@@ -44,16 +44,37 @@ def ensure_directory_exists(directory):
 
 def setup_chromedriver():
     print("检测依赖项...")
-    manager = ChromeDriverManager()
     cache_dir = os.path.expanduser("~/.wdm/drivers/chromedriver")
+    drivers_json = os.path.expanduser("~/.wdm/drivers.json")
+    
+    # 检查是否已有缓存的ChromeDriver
+    if os.path.exists(drivers_json):
+        try:
+            import json
+            with open(drivers_json, 'r') as f:
+                drivers_data = json.load(f)
+            
+            # 获取最新的ChromeDriver路径
+            for key, value in drivers_data.items():
+                if 'chromedriver' in key and 'binary_path' in value:
+                    driver_path = value['binary_path']
+                    if os.path.exists(driver_path) and os.access(driver_path, os.X_OK):
+                        print("ChromeDriver已准备就绪")
+                        return Service(driver_path)
+        except Exception as e:
+            print(f"读取缓存的ChromeDriver信息失败: {e}")
+    
+    # 如果没有找到缓存的ChromeDriver或出错，则执行常规安装流程
     if not os.path.exists(cache_dir):
-        print("首次运行需要安装ChromeDriver，可能需要国际互联网连接...")
+        print("检查ChromeDriver更新，这可能需要一点时间...")
+        
     try:
+        manager = ChromeDriverManager()
         service = Service(manager.install())
         print("ChromeDriver已准备就绪")
         return service
     except Exception as e:
-        print(f"安装ChromeDriver失败: {e}")
+        print(f"安装ChromeDriver失败，请检查国际互联网连接: {e}")
         sys.exit(1)
 
 def check_chrome_running():
