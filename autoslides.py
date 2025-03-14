@@ -10,10 +10,22 @@ from datetime import datetime
 import configparser
 import subprocess
 import sys
+import json
+
+def get_resource_path(relative_path):
+    exe_dir = os.path.dirname(sys.executable)
+    external_path = os.path.join(exe_dir, relative_path)
+    if os.path.exists(external_path):
+        return external_path
+
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    else:
+        return os.path.join(os.path.dirname(__file__), relative_path)
 
 def load_config():
     config = configparser.ConfigParser()
-    config_file = os.path.join(os.path.dirname(__file__), "config.ini")
+    config_file = get_resource_path("config.ini")
     if not os.path.exists(config_file):
         config['Settings'] = {
             'output_dir': '~/Downloads/slides',
@@ -47,14 +59,10 @@ def setup_chromedriver():
     cache_dir = os.path.expanduser("~/.wdm/drivers/chromedriver")
     drivers_json = os.path.expanduser("~/.wdm/drivers.json")
     
-    # 检查是否已有缓存的ChromeDriver
     if os.path.exists(drivers_json):
         try:
-            import json
             with open(drivers_json, 'r') as f:
                 drivers_data = json.load(f)
-            
-            # 获取最新的ChromeDriver路径
             for key, value in drivers_data.items():
                 if 'chromedriver' in key and 'binary_path' in value:
                     driver_path = value['binary_path']
@@ -64,7 +72,6 @@ def setup_chromedriver():
         except Exception as e:
             print(f"读取缓存的ChromeDriver信息失败: {e}")
     
-    # 如果没有找到缓存的ChromeDriver或出错，则执行常规安装流程
     if not os.path.exists(cache_dir):
         print("检查ChromeDriver更新，这可能需要一点时间...")
         
@@ -114,7 +121,7 @@ def connect_to_chrome(service, debug_port):
         raise
 
 def apply_block_rules(driver, rules_file):
-    rules_file = os.path.join(os.path.dirname(__file__), "block_rules.txt")
+    rules_file = get_resource_path("block_rules.txt")
     block_rules = []
     if os.path.exists(rules_file):
         with open(rules_file, 'r') as f:
@@ -147,13 +154,11 @@ def monitor_slides(driver, chrome_process, output_dir, top_crop_percent, bottom_
             screenshot = driver.get_screenshot_as_png()
             current_frame = cv2.imdecode(np.frombuffer(screenshot, np.uint8), cv2.IMREAD_COLOR)
 
-            # 裁剪顶部和底部
             height, width = current_frame.shape[:2]
             top_crop = int(height * top_crop_percent)
             bottom_crop = int(height * (1 - bottom_crop_percent))
             current_frame = current_frame[top_crop:bottom_crop, 0:width]
 
-            # 生成时间戳
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
             if last_frame is None:
@@ -183,7 +188,6 @@ def monitor_slides(driver, chrome_process, output_dir, top_crop_percent, bottom_
     except KeyboardInterrupt:
         print("停止监控")
         try:
-            # 使用超时机制防止driver.quit()挂起
             import threading
             import signal
             
@@ -193,21 +197,19 @@ def monitor_slides(driver, chrome_process, output_dir, top_crop_percent, bottom_
                 except Exception:
                     pass
             
-            # 在单独线程中运行driver.quit()，设置超时
             quit_thread = threading.Thread(target=quit_driver)
-            quit_thread.daemon = True  # 设置为守护线程，确保主线程退出时自动结束
+            quit_thread.daemon = True
             quit_thread.start()
-            quit_thread.join(timeout=3)  # 最多等待3秒
+            quit_thread.join(timeout=3)
         except Exception as e:
             print(f"关闭浏览器时发生错误: {e}")
         finally:
-            # 无论如何都确保终止Chrome进程
             try:
                 chrome_process.terminate()
                 print("已终止Chrome进程")
             except Exception:
                 try:
-                    chrome_process.kill()  # 如果terminate失败，强制杀死进程
+                    chrome_process.kill()
                     print("已强制终止Chrome进程")
                 except Exception:
                     pass
@@ -230,7 +232,6 @@ def main():
     except Exception as e:
         print(f"程序异常退出: {e}")
     finally:
-        # 无论如何退出，都确保清理资源
         if 'driver' in locals() and driver:
             try:
                 driver.quit()
