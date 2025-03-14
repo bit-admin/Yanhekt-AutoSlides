@@ -13,14 +13,14 @@
 
 ## 安装
 1. **下载分发包**：
-   - 获取分发文件夹（`AutoSlides`），包含以下文件：
+- 获取分发文件夹（`AutoSlides`），包含以下文件：
 ```
 AutoSlides/
 ├── autoslides        # 可执行文件
 ├── config.ini       # 配置文件
 ├── block_rules.txt  # 屏蔽规则文件
 ```
-   - 将AutoSlides文件夹放在你喜欢的位置（如`~/AutoSlides`）。
+- 将AutoSlides文件夹放在你喜欢的位置（如`~/AutoSlides`）。
 
 2. **赋予执行权限**：
 - 打开终端，进入文件夹：
