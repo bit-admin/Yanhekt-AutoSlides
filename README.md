@@ -49,8 +49,8 @@ cd ~/path/to/AutoSlides # 替换为具体路径
 - **首次运行**：如果本地没有ChromeDriver，会自动下载（需要国际互联网连接）。
 - **关闭残留Chrome**：若检测到已有Chrome进程，提示退出所有Chrome窗口（注意保存工作）。
 - **启动Chrome**：程序会打开Chrome调试模式，在浏览器中打开幻灯片页面，建议：
-- 只保留一个标签页。
-- 进入网页全屏模式。
+   - 只保留一个标签页。
+   - 进入网页全屏模式。
 - **开始监控**：设置好后按回车键，程序开始监控并保存截图。
 - **停止**：在终端按`Ctrl+C`，程序会清理所有进程并退出。
 
@@ -75,6 +75,29 @@ debug_port = 9222               # 调试端口
 ### `block_rules.txt`
 - 文件位置：与`AutoSlides`同目录。
 - 格式：`域名###CSS选择器`，每行一条规则。（可以使用AdGuard自定义用户规则，直接粘贴到这里。）
+
+### 全局安装
+- 将`AutoSlides`文件夹移动到你喜欢的位置，比如用户根目录后，你还可以创建并配置全局脚本（输入密码时不会显示）：
+```
+sudo touch /usr/local/bin/autoslides
+sudo chmod +x /usr/local/bin/autoslides
+sudo nano /usr/local/bin/autoslides
+```
+- 在编辑器中粘贴以下内容，然后保存（Ctrl+O，回车，Ctrl+X退出）：
+```bash
+#!/bin/bash
+
+# 项目固定路径（根据你的实际位置调整）
+PROJECT_DIR="$HOME/AutoSlides"
+
+# 切换到项目目录并运行 AutoSlides
+cd "$PROJECT_DIR"
+./AutoSlides
+```
+- 这样，在任意终端中输入即可运行：
+```
+autoslides
+```
 
 ## 注意事项
 - **权限问题**：Mac用户若遇到“无法打开，因为开发者未验证”，请在“系统设置 > 安全与隐私”中允许。
