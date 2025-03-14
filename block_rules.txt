@@ -1,0 +1,3 @@
+yanhekt.cn###root > div.app > div.sidebar-open:first-child
+yanhekt.cn###root > div.app > div.BlankLayout_layout__kC9f3:last-child > div.ant-spin-nested-loading:nth-child(2) > div.ant-spin-container > div.index_liveWrapper__YGcpO > div.index_userlist__T-6xf:last-child > div.index_staticContainer__z3yt-
+yanhekt.cn###ai-bit-shortcut
