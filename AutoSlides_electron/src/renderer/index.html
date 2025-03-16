@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>AutoSlides</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div class="sidebar-top">
+        <h2>AutoSlides</h2>
+        
+        <div class="controls">
+          <button id="btnStartCapture">Start Capture</button>
+          <button id="btnStopCapture" disabled>Stop Capture</button>
+        </div>
+      </div>
+      
+      <div class="sidebar-middle">
+        <div class="config-panel">
+          <h3>Settings</h3>
+        
+          <div class="setting-item">
+            <label for="inputOutputDir">Output Directory:</label>
+            <div class="output-dir-container">
+              <input type="text" id="inputOutputDir" readonly />
+              <button id="btnSelectDir">...</button>
+            </div>
+          </div>
+          
+          <div class="setting-item">
+            <label for="inputTopCrop">Top Crop (%):</label>
+            <input type="number" id="inputTopCrop" min="0" max="40" step="1" />
+          </div>
+          
+          <div class="setting-item">
+            <label for="inputBottomCrop">Bottom Crop (%):</label>
+            <input type="number" id="inputBottomCrop" min="0" max="40" step="1" />
+          </div>
+          
+          <div class="setting-item">
+            <button id="btnShowCropGuides" class="secondary-button">Show Crop Guides</button>
+          </div>
+          
+          <div class="setting-item">
+            <label for="inputCropGuidesTrigger">Auto-crop guides if URL contains:</label>
+            <input type="text" id="inputCropGuidesTrigger" placeholder="session" />
+          </div>
+          
+          <div class="setting-item">
+            <label for="inputChangeThreshold">Change Threshold:</label>
+            <input type="number" id="inputChangeThreshold" min="0.0001" max="0.1" step="0.0001" />
+          </div>
+          
+          <div class="setting-item">
+            <label for="inputCheckInterval">Check Interval (s):</label>
+            <input type="number" id="inputCheckInterval" min="0.5" max="10" step="0.5" />
+          </div>
+        
+          <div class="settings-buttons">
+            <button id="btnSaveConfig">Apply</button>
+            <button id="btnDefaultConfig">Default</button>
+          </div>
+        </div>
+        
+        <div class="blocking-rules-panel">
+          <h3>Element Blocking Rules</h3>
+          <p class="help-text">AdGuard-like rules (one per line)</p>
+          <div class="code-editor-container">
+            <textarea id="blockingRules" rows="8" spellcheck="false" wrap="off"></textarea>
+          </div>
+          <div class="rules-buttons">
+            <button id="btnApplyRules">Apply</button>
+            <button id="btnResetRules">Default</button>
+          </div>
+        </div>
+      </div>
+      
+      <div class="sidebar-bottom">
+        <div class="status-panel">
+          <h3>Status</h3>
+          <div id="statusText">Idle</div>
+          <div id="slideCount">Slides captured: 0</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="content">
+      <div class="address-bar">
+        <div class="url-container">
+          <input type="text" id="inputUrl" value="https://www.yanhekt.cn/home" placeholder="https://www.yanhekt.cn/home" />
+          <button id="btnLoadUrl">Go</button>
+        </div>
+      </div>
+      <div class="webview-container">
+        <webview id="slideWebview" src="https://www.yanhekt.cn/home" allowpopups nodeintegration></webview>
+        <div class="crop-guides">
+          <div id="topCropGuide" class="crop-guide top-guide"></div>
+          <div id="bottomCropGuide" class="crop-guide bottom-guide"></div>
+          <div id="cropInfoOverlay" class="crop-info-overlay">Adjusting crop area...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

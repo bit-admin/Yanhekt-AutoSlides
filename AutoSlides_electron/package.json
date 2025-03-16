@@ -1,0 +1,37 @@
+{
+  "name": "autoslides",
+  "version": "2.0.0",
+  "description": "Automatic slide capture application",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build": "electron-builder"
+  },
+  "author": "bit-admin",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.1.0",
+    "electron-builder": "^24.13.3"
+  },
+  "dependencies": {
+    "electron-store": "^8.1.0"
+  },
+  "build": {
+    "appId": "com.autoslides.app",
+    "productName": "AutoSlides",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.icns",
+      "target": ["dmg", "zip"]
+    },
+    "win": {
+      "target": ["nsis", "portable"],
+      "icon": "build/icon.ico",
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
