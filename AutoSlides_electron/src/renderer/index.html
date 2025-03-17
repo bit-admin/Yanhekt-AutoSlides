@@ -18,6 +18,7 @@
       </div>
       
       <div class="sidebar-middle">
+        <!-- Settings Panel -->
         <div class="config-panel">
           <h3>Settings</h3>
         
@@ -30,25 +31,6 @@
           </div>
           
           <div class="setting-item">
-            <label for="inputTopCrop">Top Crop (%):</label>
-            <input type="number" id="inputTopCrop" min="0" max="40" step="1" />
-          </div>
-          
-          <div class="setting-item">
-            <label for="inputBottomCrop">Bottom Crop (%):</label>
-            <input type="number" id="inputBottomCrop" min="0" max="40" step="1" />
-          </div>
-          
-          <div class="setting-item">
-            <button id="btnShowCropGuides" class="secondary-button">Show Crop Guides</button>
-          </div>
-          
-          <div class="setting-item">
-            <label for="inputCropGuidesTrigger">Auto-crop guides if URL contains:</label>
-            <input type="text" id="inputCropGuidesTrigger" placeholder="session" />
-          </div>
-          
-          <div class="setting-item">
             <label for="inputChangeThreshold">Change Threshold:</label>
             <input type="number" id="inputChangeThreshold" min="0.0001" max="0.1" step="0.0001" />
           </div>
@@ -57,13 +39,76 @@
             <label for="inputCheckInterval">Check Interval (s):</label>
             <input type="number" id="inputCheckInterval" min="0.5" max="10" step="0.5" />
           </div>
+
+          <!-- Advanced Settings Section -->
+          <div class="collapsible-section">
+            <div class="collapsible-header">
+              <h5>Advanced Settings</h5>
+              <button class="toggle-button" id="toggleAdvancedSettings">▼</button>
+            </div>
         
+            <div class="collapsible-content hidden" id="advancedSettingsContent">
+              <div class="setting-item">
+                <label for="inputTopCrop">Top Crop (%):</label>
+                <input type="number" id="inputTopCrop" step="1" min="0" max="40" value="5" />
+              </div>
+        
+              <div class="setting-item">
+                <label for="inputBottomCrop">Bottom Crop (%):</label>
+                <input type="number" id="inputBottomCrop" step="1" min="0" max="40" value="5" />
+              </div>
+        
+              <div class="setting-item">
+                <div class="buttons-container">
+                  <button id="btnShowCropGuides">Show Crop Guides</button>
+                </div>
+                <p class="help-text">Crops only apply to Default profile</p>
+              </div>
+
+              <div class="settings-separator"></div>
+            </div>
+          </div>
+          
+          <div style="height: 10px;"></div>
+
           <div class="settings-buttons">
             <button id="btnSaveConfig">Apply</button>
             <button id="btnDefaultConfig">Default</button>
           </div>
         </div>
-        
+
+        <!-- Site Profiles Panel (now a standalone panel) -->
+        <div class="site-profile-panel">
+          <h3>Optimization Profiles</h3>
+          
+          <div class="setting-item">
+            <label for="siteProfileSelect">Active profile:</label>
+            <select id="siteProfileSelect">
+              <option value="default">Default (Full Page)</option>
+              <option value="yanhekt">YanHeKT Video Player</option>
+              <option value="custom">Custom...</option>
+            </select>
+          </div>
+          
+          <div id="profileDetails" class="profile-details hidden">
+            <div class="setting-item">
+              <label for="elementSelector">Element selector:</label>
+              <input type="text" id="elementSelector" placeholder="#video_id_topPlayer_html5_api" />
+              <p class="help-text">Only element selected will be captured</p>
+            </div>
+            <div class="setting-item">
+              <label for="urlPattern">URL patterns:</label>
+              <input type="text" id="urlPattern" placeholder="yanhekt.cn/live" />
+              <p class="help-text">Separate URL patterns with spaces</p>
+            </div>
+            <div class="profile-actions">
+              <button id="btnSaveProfile">Apply</button>
+              <button id="btnDeleteProfile">Delete</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Element Blocking Rules Panel -->
         <div class="blocking-rules-panel">
           <h3>Element Blocking Rules</h3>
           <p class="help-text">AdGuard-like rules (one per line)</p>
@@ -76,13 +121,18 @@
           </div>
         </div>
 
+        <!-- Cache Management Panel -->
         <div class="cache-management-panel">
           <h3>Cache Management</h3>
           <p class="help-text">Manage temporary files and cache</p>
           <div class="cache-info" id="cacheInfo">Calculating cache size...</div>
-          <div class="cache-buttons">
+          <div class="buttons-container">
             <button id="btnClearCache">Clear Browser Cache</button>
+          </div>
+          <div class="buttons-container">
             <button id="btnClearCookies">Clear Cookies</button>
+          </div>
+          <div class="buttons-container">
             <button id="btnClearAll">Clear All Data</button>
           </div>
           <div class="setting-item">

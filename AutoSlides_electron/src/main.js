@@ -37,13 +37,23 @@ const schema = {
 yanhekt.cn###root > div.app > div.BlankLayout_layout__kC9f3:last-child > div.ant-spin-nested-loading:nth-child(2) > div.ant-spin-container > div.index_liveWrapper__YGcpO > div.index_userlist__T-6xf:last-child > div.index_staticContainer__z3yt-
 yanhekt.cn###ai-bit-shortcut`
   },
-  cropGuidesTrigger: {
-    type: 'string',
-    default: 'session'
-  },
   cacheCleanInterval: {
     type: 'number',
     default: 15
+  },
+  siteProfiles: {
+    type: 'object',
+    default: {
+      yanhekt: {
+        name: 'YanHeKT Video Player',
+        elementSelector: '#video_id_topPlayer_html5_api',
+        urlPattern: 'yanhekt.cn/session yanhekt.cn/live',
+      }
+    }
+  },
+  activeProfileId: {
+    type: 'string',
+    default: 'default'
   }
 };
 

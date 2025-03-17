@@ -25,11 +25,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveBlockingRules: (rules) => ipcRenderer.invoke('save-blocking-rules', rules),
   
   /**
-   * Link handling
-   */
-  openLink: (url) => ipcRenderer.invoke('open-link', url),
-  
-  /**
    * Cache management methods
    */
   clearBrowserCache: () => ipcRenderer.invoke('clear-browser-cache'),

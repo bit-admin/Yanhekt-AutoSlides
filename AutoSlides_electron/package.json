@@ -1,6 +1,6 @@
 {
   "name": "autoslides",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Automatic slide capture application",
   "main": "src/main.js",
   "scripts": {
