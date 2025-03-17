@@ -30,6 +30,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openLink: (url) => ipcRenderer.invoke('open-link', url),
   
   /**
+   * Cache management methods
+   */
+  clearBrowserCache: () => ipcRenderer.invoke('clear-browser-cache'),
+  clearCookies: () => ipcRenderer.invoke('clear-cookies'),
+  clearAllData: () => ipcRenderer.invoke('clear-all-data'),
+  getCacheSize: () => ipcRenderer.invoke('get-cache-size'),
+  
+  /**
    * System information
    */
   platform: process.platform

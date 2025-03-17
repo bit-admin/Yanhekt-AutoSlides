@@ -286,6 +286,39 @@ input {
   flex-grow: 1;
 }
 
+/* Cache Management Panel Styles */
+.cache-management-panel {
+  margin-bottom: 20px;
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 6px;
+}
+
+.sidebar-middle .cache-management-panel {
+  margin-top: 20px;
+}
+
+.cache-info {
+  background: #f1f1f1;
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  color: #555;
+}
+
+.cache-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cache-buttons button {
+  flex-grow: 1;
+  min-width: 120px;
+}
+
 /* Line numbers can be added if desired */
 .line-numbers {
   position: absolute;
