@@ -1,10 +1,9 @@
 # AutoSlides
 
-`AutoSlides` is a tool for automatically capturing slides from web pages, supporting monitoring content changes and saving screenshots of new slides. Initially designed for Beijing Institute of Technology's Yanhe Classroom, compatible with various live/recorded platforms.
-
 [**中文版本**](README.md) 👈 Click here for Chinese
 
-## Version Selection
+`AutoSlides` is a tool for automatically capturing slides from web pages, supporting monitoring content changes and saving screenshots of new slides. Initially designed for Beijing Institute of Technology's Yanhe Classroom, compatible with various live/recorded platforms.
+
 - **Graphical Interface Version (Recommended)**: Uses Electron framework, supports Windows/macOS, provides visual operation
 - **Command Line Version**: macOS only, based on Selenium, supports terminal operation only
 
@@ -49,12 +48,19 @@ sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app
 
 ## Configuration Options
 
-### Settings
+### Basic Settings
 - **Output Directory**: Where slide images are saved
-- **Top/Bottom Crop (%)**: Percentage to remove from the top and bottom of the image
-- **Auto-crop guides if URL contains**: Automatically show cropping guides when the URL contains this text
 - **Change Threshold**: Threshold for detecting slide changes, smaller values are more sensitive (recommended 0.001-0.005)
 - **Check Interval**: Frequency to check for slide changes (in seconds)
+
+### Advanced Settings
+- **Top/Bottom Crop (%)**: Percentage to remove from the top and bottom of the image (applies only with Default profile)
+- **Show Crop Guides**: Display cropping reference lines to preview the capture area
+
+### Optimization Profiles
+- **Default**: Captures the full page, using crop settings
+- **YanHeKT Video Player**: Pre-configured to capture just the video player element (built-in profile)
+- **Custom**: Create your own site-specific capture settings
 
 ### Element Blocking Rules
 Use AdGuard-like syntax to hide unwanted elements:
@@ -64,6 +70,12 @@ yanhekt.cn###root > div.app > div.sidebar-open:first-child
 yanhekt.cn###root > div.app > div.BlankLayout_layout__kC9f3:last-child > div.ant-spin-nested-loading:nth-child(2) > div.ant-spin-container > div.index_liveWrapper__YGcpO > div.index_userlist__T-6xf:last-child > div.index_staticContainer__z3yt-
 yanhekt.cn###ai-bit-shortcut
 ```
+
+### Cache Management
+- **Clear Browser Cache**: Removes cached web page data and images
+- **Clear Cookies**: Deletes stored cookies from websites
+- **Clear All Data**: Complete cleanup of all temporary data and cache
+- **Auto-clean interval**: Configure how frequently (in minutes) cache should be automatically cleared during capture
 
 ## Troubleshooting
 - **Slides not captured**: Try lowering the "Change Threshold" value

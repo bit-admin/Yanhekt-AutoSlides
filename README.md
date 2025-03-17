@@ -10,9 +10,12 @@
 
 ## 简介
 - **自动幻灯片检测**：仅在内容变化时捕获幻灯片
+- **优化配置文件**：支持针对特定网站直接捕获视频元素（如延河课堂）
+- **缓存管理**：控制缓存以优化性能和减少磁盘使用
 - **自定义裁剪**：设置顶部和底部裁剪百分比以移除页眉/页脚
-- **元素屏蔽**：使用类似 AdGuard 的语法隐藏分散注意力的 UI 元素
 - **可视化裁剪参考线**：预览确切的捕获区域
+- **元素屏蔽**：使用类似 AdGuard 的语法隐藏分散注意力的 UI 元素
+
 
 ## 安装
 
@@ -45,12 +48,19 @@
 
 ## 配置选项
 
-### 设置
+### 基本设置
 - **Output Directory**：幻灯片图像保存的位置
-- **Top/Bottom Crop (%)**：从图像顶部和底部移除的百分比
-- **Auto-crop guides if URL contains**：当 URL 包含此文本时自动显示裁剪参考线
 - **Change Threshold**：检测幻灯片变化的阈值，数值越小越敏感（推荐 0.001-0.005）
 - **Check Interval**：检查幻灯片变化的频率（以秒为单位）
+
+### 高级设置
+- **Top/Bottom Crop (%)**：从图像顶部和底部移除的百分比（仅在使用默认配置文件时生效）
+- **Show Crop Guides**：显示裁剪参考线以预览捕获区域
+
+### 优化配置文件
+- **Default**：捕获整个页面，使用裁剪设置
+- **YanHeKT Video Player**：内置为仅捕获视频播放器元素
+- **Custom**：创建自定义网站特定捕获设置
 
 ### 元素屏蔽规则
 使用类似 AdGuard 的语法隐藏不需要的元素：
@@ -59,6 +69,12 @@ yanhekt.cn###root > div.app > div.sidebar-open:first-child
 yanhekt.cn###root > div.app > div.BlankLayout_layout__kC9f3:last-child > div.ant-spin-nested-loading:nth-child(2) > div.ant-spin-container > div.index_liveWrapper__YGcpO > div.index_userlist__T-6xf:last-child > div.index_staticContainer__z3yt-
 yanhekt.cn###ai-bit-shortcut
 ```
+
+### 缓存管理
+- **Clear Browser Cache**：清除缓存的网页数据和图像
+- **Clear Cookies**：删除网站存储的 cookie
+- **Clear All Data**：完全清理所有临时数据和缓存
+- **Auto-clean interval**：设置捕获过程中自动清理缓存的频率（分钟）
 
 ## 故障排除
 - **幻灯片未捕获**：尝试降低"Change Threshold"阈值
