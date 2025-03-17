@@ -23,12 +23,13 @@
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
-      "target": ["dmg", "zip"]
+      "target": ["dmg"],
+      "artifactName": "${productName}-${version}-macOS-${arch}.${ext}"
     },
     "win": {
-      "target": ["nsis", "portable"],
+      "target": ["7z"],
       "icon": "build/icon.ico",
-      "artifactName": "${productName}-Setup-${version}.${ext}"
+      "artifactName": "${productName}-${version}-Windows-${arch}.${ext}"
     },
     "linux": {
       "target": "AppImage"
