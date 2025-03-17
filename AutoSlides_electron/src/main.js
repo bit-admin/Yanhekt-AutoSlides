@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, session } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session, Menu, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
@@ -56,6 +56,94 @@ function ensureDirectoryExists(directory) {
   }
 }
 
+function createApplicationMenu() {
+  // Template for macOS application menu
+  const template = [
+    {
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'delete' },
+        { role: 'selectAll' }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'zoom' },
+        { type: 'separator' },
+        { role: 'front' },
+        { type: 'separator' },
+        { role: 'window' }
+      ]
+    },
+    {
+      role: 'help',
+      submenu: [
+        {
+          label: 'AutoSlides Help',
+          click: async () => {
+            const helpWindow = new BrowserWindow({
+              width: 900,
+              height: 700,
+              webPreferences: {
+                contextIsolation: true,
+                nodeIntegration: false
+              },
+              title: 'AutoSlides Help'
+            });
+            
+            helpWindow.loadFile(path.join(__dirname, 'renderer', 'help.html'));
+          }
+        },
+        {
+          label: 'Visit GitHub Repository',
+          click: async () => {
+            await shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides');
+          }
+        }
+      ]
+    }
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
 // Create main window
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -78,6 +166,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  createApplicationMenu(); // Add this line to create the menu
   createWindow();
   
   // Ensure output directory exists
