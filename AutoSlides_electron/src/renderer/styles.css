@@ -307,18 +307,6 @@ input {
   color: #555;
 }
 
-.cache-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.cache-buttons button {
-  flex-grow: 1;
-  min-width: 120px;
-}
-
 /* Line numbers can be added if desired */
 .line-numbers {
   position: absolute;
@@ -418,4 +406,110 @@ button:active {
   border-radius: 4px;
   font-size: 12px;
   pointer-events: none;
+}
+
+/* Site Profile Panel Styles - FIXED */
+.site-profile-panel {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 6px;
+}
+
+/* Select element styling for site profile */
+#siteProfileSelect {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+}
+
+#siteProfileSelect:focus {
+  outline: 2px solid #0078d7;
+  border-color: #0078d7;
+}
+
+.profile-details {
+  /* Remove background, padding, border radius that created visual separation */
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  margin-top: 15px;
+  padding-top: 15px;
+}
+
+.profile-details.hidden {
+  display: none;
+}
+
+.profile-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.profile-actions button {
+  flex-grow: 1;
+}
+
+.buttons-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.buttons-container button {
+  flex-grow: 1;
+}
+
+/* Add these new styles for the collapsible sections */
+.collapsible-section {
+  margin-top: 15px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.collapsible-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.collapsible-header h5 {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.toggle-button {
+  background: none;
+  border: none;
+  font-size: 15px;
+  color: #555;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.toggle-button:hover {
+  background-color: #f0f0f0;
+}
+
+.collapsible-content {
+  padding-top: 10px;
+}
+
+.collapsible-content.hidden {
+  display: none;
+}
+
+/* Add a separator between Advanced Settings and buttons */
+.settings-separator {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 15px 0 15px 0;
 }

@@ -93,9 +93,30 @@ yanhekt.cn###ai-bit-shortcut</code></pre>
     <li><strong>Clear All Data</strong>: Complete cleanup of all temporary data and cache</li>
     <li><strong>Auto-clean interval</strong>: Configure how frequently (in minutes) cache should be automatically cleared during capture</li>
   </ul>
+
+  <h3>Site Profiles</h3>
+  <p>AutoSlides supports site-specific capture configurations to extract only the relevant content:</p>
+  <ul>
+    <li><strong>YanHeKT Video Player</strong>: Pre-configured to capture just the video player element</li>
+    <li><strong>Custom Profiles</strong>: Create your own site-specific capture settings</li>
+  </ul>
+  
+  <p>To use site profiles:</p>
+  <ol>
+    <li>Go to Settings → Site Profiles</li>
+    <li>Select a profile from the dropdown or create a custom one</li>
+    <li>For custom profiles, specify:
+      <ul>
+        <li><strong>Element Selector</strong>: CSS selector for the element to capture (e.g., #video_id_topPlayer_html5_api)</li>
+        <li><strong>URL Patterns</strong>: Space-separated patterns that identify the website (e.g., yanhekt.cn/session yanhekt.cn/live)</li>
+      </ul>
+    </li>
+    <li>Click "Save Profile"</li>
+    <li>Profiles will automatically activate when you visit matching websites</li>
+  </ol>
   
   <div class="note">
-    <p><strong>Note:</strong> Cache is automatically cleared when you stop capturing to prevent accumulation of temporary files.</p>
+    <p><strong>Note:</strong> When using a site profile, the application will capture only the specified element instead of the entire page. This bypasses the normal cropping settings.</p>
   </div>
 
   <h2>Troubleshooting</h2>

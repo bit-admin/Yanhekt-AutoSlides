@@ -24,12 +24,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   const cropGuides = document.querySelector('.crop-guides');
   const cropInfoOverlay = document.getElementById('cropInfoOverlay');
   const btnShowCropGuides = document.getElementById('btnShowCropGuides');
-  const inputCropGuidesTrigger = document.getElementById('inputCropGuidesTrigger');
   const cacheInfo = document.getElementById('cacheInfo');
   const btnClearCache = document.getElementById('btnClearCache');
   const btnClearCookies = document.getElementById('btnClearCookies');
   const btnClearAll = document.getElementById('btnClearAll');
   const cacheCleanInterval = document.getElementById('cacheCleanInterval');
+  const siteProfileSelect = document.getElementById('siteProfileSelect');
+  const elementSelector = document.getElementById('elementSelector');
+  const urlPattern = document.getElementById('urlPattern');
+  const btnSaveProfile = document.getElementById('btnSaveProfile');
+  const btnDeleteProfile = document.getElementById('btnDeleteProfile');
+  const profileDetails = document.getElementById('profileDetails');
+  const toggleAdvancedSettings = document.getElementById('toggleAdvancedSettings');
+  const advancedSettingsContent = document.getElementById('advancedSettingsContent');
 
   // Capture related variables
   let captureInterval = null;
@@ -37,6 +44,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   let capturedCount = 0;
   let cropGuideTimer = null;
   let cacheCleanupTimer = null;
+  let siteProfiles = {};
+  let activeProfileId = 'default';
+  let currentProfile = null;
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -132,10 +142,31 @@ yanhekt.cn###ai-bit-shortcut`;
       inputOutputDir.value = config.outputDir || '';
       inputTopCrop.value = config.topCropPercent || 5;
       inputBottomCrop.value = config.bottomCropPercent || 5;
-      inputChangeThreshold.value = config.changeThreshold || 0.002;
+      inputChangeThreshold.value = config.changeThreshold || 0.001;
       inputCheckInterval.value = config.checkInterval || 2;
-      inputCropGuidesTrigger.value = config.cropGuidesTrigger || 'session';
+      
+      // Load cache clean interval
       cacheCleanInterval.value = config.cacheCleanInterval || 15;
+      
+      // Load site profiles
+      siteProfiles = config.siteProfiles || {
+        yanhekt: {
+          name: 'YanHeKT Video Player',
+          elementSelector: '#video_id_topPlayer_html5_api',
+          urlPattern: 'yanhekt.cn/session yanhekt.cn/live',
+          captureElementOnly: true
+        }
+      };
+      
+      activeProfileId = config.activeProfileId || 'default';
+      
+      // Populate profile dropdown
+      updateProfileDropdown();
+      
+      // Select active profile
+      siteProfileSelect.value = activeProfileId;
+      loadProfileDetails(activeProfileId);
+      
       return config;
     } catch (error) {
       console.error('Failed to load config:', error);
@@ -150,8 +181,9 @@ yanhekt.cn###ai-bit-shortcut`;
         bottomCropPercent: parseFloat(inputBottomCrop.value),
         changeThreshold: parseFloat(inputChangeThreshold.value),
         checkInterval: parseFloat(inputCheckInterval.value),
-        cropGuidesTrigger: inputCropGuidesTrigger.value,
-        cacheCleanInterval: parseInt(cacheCleanInterval.value, 10)
+        cacheCleanInterval: parseInt(cacheCleanInterval.value, 10),
+        siteProfiles: siteProfiles,
+        activeProfileId: activeProfileId
       };
       
       await window.electronAPI.saveConfig(config);
@@ -172,8 +204,7 @@ yanhekt.cn###ai-bit-shortcut`;
       topCropPercent: 5,
       bottomCropPercent: 5,
       changeThreshold: 0.002,
-      checkInterval: 2,
-      cropGuidesTrigger: 'session'
+      checkInterval: 2
     };
     
     // Update input fields
@@ -181,7 +212,6 @@ yanhekt.cn###ai-bit-shortcut`;
     inputBottomCrop.value = defaultConfig.bottomCropPercent;
     inputChangeThreshold.value = defaultConfig.changeThreshold;
     inputCheckInterval.value = defaultConfig.checkInterval;
-    inputCropGuidesTrigger.value = defaultConfig.cropGuidesTrigger;
     
     // Save to config
     await window.electronAPI.saveConfig(defaultConfig);
@@ -189,6 +219,118 @@ yanhekt.cn###ai-bit-shortcut`;
     setTimeout(() => {
       statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
     }, 2000);
+  }
+
+  // Add profile management functions
+  function updateProfileDropdown() {
+    // Clear existing options except defaults
+    const options = Array.from(siteProfileSelect.options);
+    for (const option of options) {
+      if (!['default', 'custom'].includes(option.value)) {
+        siteProfileSelect.removeChild(option);
+      }
+    }
+    
+    // Add profiles from config
+    for (const [id, profile] of Object.entries(siteProfiles)) {
+      const option = document.createElement('option');
+      option.value = id;
+      option.textContent = profile.name;
+      
+      // Insert before the "Custom..." option
+      const customOption = Array.from(siteProfileSelect.options).find(o => o.value === 'custom');
+      siteProfileSelect.insertBefore(option, customOption);
+    }
+  }
+
+  function loadProfileDetails(profileId) {
+    if (profileId === 'default') {
+      // Hide profile details for default
+      profileDetails.classList.add('hidden');
+      currentProfile = null;
+      return;
+    }
+    
+    profileDetails.classList.remove('hidden');
+    
+    if (profileId === 'custom') {
+      // New custom profile
+      elementSelector.value = '';
+      urlPattern.value = '';
+      currentProfile = null;
+      return;
+    }
+    
+    // Load existing profile
+    const profile = siteProfiles[profileId];
+    if (profile) {
+      elementSelector.value = profile.elementSelector || '';
+      urlPattern.value = profile.urlPattern || '';
+      currentProfile = profile;
+    }
+  }
+  
+  function saveCurrentProfile() {
+    if (siteProfileSelect.value === 'default') {
+      return; // Nothing to save
+    }
+    
+    if (siteProfileSelect.value === 'custom') {
+      // Generate a new profile ID
+      const profileId = 'profile_' + Date.now();
+      const profileName = urlPattern.value ? `${urlPattern.value.split(' ')[0]} Profile` : 'Custom Profile';
+      
+      // Create new profile
+      siteProfiles[profileId] = {
+        name: profileName,
+        elementSelector: elementSelector.value,
+        urlPattern: urlPattern.value,
+      };
+      
+      // Update dropdown and select new profile
+      updateProfileDropdown();
+      siteProfileSelect.value = profileId;
+      activeProfileId = profileId;
+    } else {
+      // Update existing profile
+      const profileId = siteProfileSelect.value;
+      siteProfiles[profileId].elementSelector = elementSelector.value;
+      siteProfiles[profileId].urlPattern = urlPattern.value;
+      activeProfileId = profileId;
+    }
+    
+    // Save config
+    saveConfig();
+    statusText.textContent = 'Profile saved';
+    setTimeout(() => {
+      statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+    }, 2000);
+  }
+  
+  function deleteCurrentProfile() {
+    const profileId = siteProfileSelect.value;
+    
+    // Prevent deletion of the built-in YanHeKT Video Player profile
+    if (profileId === 'yanhekt') {
+      statusText.textContent = 'Cannot delete built-in profile';
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 2000);
+      return;
+    }
+    
+    if (profileId !== 'default' && profileId !== 'custom') {
+      delete siteProfiles[profileId];
+      updateProfileDropdown();
+      siteProfileSelect.value = 'default';
+      loadProfileDetails('default');
+      activeProfileId = 'default';
+      saveConfig();
+      statusText.textContent = 'Profile deleted';
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 2000);
+    }
   }
 
   async function updateCacheInfo() {
@@ -364,26 +506,8 @@ yanhekt.cn###ai-bit-shortcut`;
   }
 
   function checkUrlForCropGuidesTrigger(url) {
-    try {
-      if (!url) {
-        console.log('No URL to check for crop guides trigger');
-        return false;
-      }
-      
-      const trigger = inputCropGuidesTrigger.value.trim();
-      if (!trigger) {
-        console.log('No trigger defined for crop guides');
-        return false;
-      }
-      
-      // Check if URL contains the trigger string (case insensitive)
-      const result = url.toLowerCase().includes(trigger.toLowerCase());
-      console.log(`Checking if URL "${url}" contains trigger "${trigger}": ${result}`);
-      return result;
-    } catch (error) {
-      console.error('Error checking URL for crop guides trigger:', error);
-      return false;
-    }
+    // Since this feature has been removed, always return false
+    return false;
   }
   
   async function saveBlockingRules() {
@@ -520,12 +644,172 @@ yanhekt.cn###ai-bit-shortcut`;
   }
   
   // Capture screenshot from webview
-  function captureScreenshot() {
-    return new Promise((resolve) => {
-      webview.capturePage().then(image => {
-        resolve(image.toDataURL());
-      });
+  async function captureScreenshot() {
+    return new Promise((resolve, reject) => {
+      try {
+        // Check if we should use element capture
+        const currentUrl = webview.src;
+        let profileToUse = null;
+        
+        // First check if we have an active non-default profile
+        if (activeProfileId !== 'default' && siteProfiles[activeProfileId]) {
+          profileToUse = siteProfiles[activeProfileId];
+        } else {
+          // Otherwise try to match by URL pattern
+          for (const [id, profile] of Object.entries(siteProfiles)) {
+            if (profile.urlPattern && currentUrl.includes(profile.urlPattern)) {
+              profileToUse = profile;
+              break;
+            }
+          }
+        }
+
+        // Special handling for yanhekt video player
+        if (profileToUse && 
+          profileToUse.elementSelector && 
+          profileToUse.elementSelector.includes('video') &&
+          currentUrl.includes('yanhekt.cn')) {
+
+            captureVideoElement(profileToUse.elementSelector)
+            .then(resolve)
+            .catch(error => {
+              console.error('Video capture error:', error);
+              // Fall back to regular screenshot
+              webview.capturePage().then(image => {
+                resolve(image.toDataURL());
+              });
+            });
+        }
+        
+        // Regular element capture for other elements
+        else if (profileToUse && profileToUse.elementSelector) {
+          // Use element-specific capture
+          webview.executeJavaScript(`
+            (function() {
+              try {
+                const element = document.querySelector('${profileToUse.elementSelector}');
+                if (!element) {
+                  return { error: 'Element not found', selector: '${profileToUse.elementSelector}' };
+                }
+                
+                // Get element position and dimensions
+                const rect = element.getBoundingClientRect();
+                
+                // Create canvas at the proper size
+                const canvas = document.createElement('canvas');
+                const context = canvas.getContext('2d');
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+                
+                // Draw just the element onto the canvas
+                context.drawImage(element, 0, 0, rect.width, rect.height);
+                
+                // Return the data URL
+                return {
+                  dataUrl: canvas.toDataURL('image/png'),
+                  width: rect.width,
+                  height: rect.height
+                };
+              } catch (err) {
+                return { error: err.toString() };
+              }
+            })();
+          `)
+          .then(result => {
+            if (result.error) {
+              console.error('Element capture error:', result.error);
+              // Fall back to regular screenshot
+              webview.capturePage().then(image => {
+                resolve(image.toDataURL());
+              });
+            } else {
+              resolve(result.dataUrl);
+            }
+          })
+          .catch(error => {
+            console.error('Error executing element capture script:', error);
+            // Fall back to regular screenshot
+            webview.capturePage().then(image => {
+              resolve(image.toDataURL());
+            });
+          });
+        } else {
+          // Use regular full page screenshot
+          webview.capturePage().then(image => {
+            resolve(image.toDataURL());
+          });
+        }
+      } catch (error) {
+        reject(error);
+      }
     });
+  }
+
+  // Add this function to handle video element capture specially
+  async function captureVideoElement(selector) {
+    return new Promise((resolve, reject) => {
+      webview.executeJavaScript(`
+        (function() {
+          try {
+            const video = document.querySelector('${selector}');
+            if (!video) {
+              return { error: 'Video element not found' };
+            }
+            
+            // Create a canvas with the video dimensions
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            
+            // Draw the current video frame
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Return the data URL
+            return { dataUrl: canvas.toDataURL('image/png') };
+          } catch (err) {
+            return { error: err.toString() };
+          }
+        })();
+      `)
+      .then(result => {
+        if (result.error) {
+          reject(new Error(result.error));
+        } else {
+          resolve(result.dataUrl);
+        }
+      })
+      .catch(reject);
+    });
+  }
+
+  // Add this function to detect and switch profiles based on URL
+  function checkAndSwitchProfile(url) {
+    // Don't switch if capturing is in progress
+    if (captureInterval) {
+      return;
+    }
+    
+    // Try to find a matching profile
+    for (const [id, profile] of Object.entries(siteProfiles)) {
+      if (profile.urlPattern) {
+        // Split the URL patterns by space and check each one
+        const patterns = profile.urlPattern.split(' ');
+        for (const pattern of patterns) {
+          if (pattern && url.includes(pattern)) {
+            // Switch to this profile
+            siteProfileSelect.value = id;
+            activeProfileId = id;
+            loadProfileDetails(id);
+            statusText.textContent = `Switched to ${profile.name} profile`;
+            setTimeout(() => {
+              statusText.textContent = 'Idle';
+            }, 2000);
+            return;
+          }
+        }
+      }
+    }
   }
 
   // Crop image based on current settings
@@ -677,34 +961,35 @@ yanhekt.cn###ai-bit-shortcut`;
     try {
       // Use local timestamp instead of ISO string
       const timestamp = formatLocalTimestamp();
-      const fullImageData = await captureScreenshot();
+      const imageData = await captureScreenshot();
       
       // Store the uncropped image for comparison
-      lastImageData = fullImageData;
+      lastImageData = imageData;
       
-      // Crop the image before saving
-      const croppedImageData = await cropImage(fullImageData);
+      // If using element capture, don't crop the image
+      const isUsingElementCapture = activeProfileId !== 'default';
+      const finalImageData = isUsingElementCapture ? imageData : await cropImage(imageData);
       
-      await window.electronAPI.saveSlide({ imageData: croppedImageData, timestamp });
+      await window.electronAPI.saveSlide({ imageData: finalImageData, timestamp });
       capturedCount++;
       slideCount.textContent = `Slides captured: ${capturedCount}`;
       
       // Start interval for checking slide changes
       captureInterval = setInterval(async () => {
-        const currentFullImageData = await captureScreenshot();
-        const result = await compareImages(lastImageData, currentFullImageData);
+        const currentImageData = await captureScreenshot();
+        const result = await compareImages(lastImageData, currentImageData);
         
         if (result.changed) {
           // Use local timestamp for each new slide
           const timestamp = formatLocalTimestamp();
           
           // Store the uncropped image for future comparisons
-          lastImageData = currentFullImageData;
+          lastImageData = currentImageData;
           
-          // Crop the image before saving
-          const croppedImageData = await cropImage(currentFullImageData);
+          // If using element capture, don't crop the image
+          const finalImageData = isUsingElementCapture ? currentImageData : await cropImage(currentImageData);
           
-          await window.electronAPI.saveSlide({ imageData: croppedImageData, timestamp });
+          await window.electronAPI.saveSlide({ imageData: finalImageData, timestamp });
           capturedCount++;
           slideCount.textContent = `Slides captured: ${capturedCount}`;
           console.log(`Saved new slide (change ratio: ${result.changeRatio.toFixed(4)})`);
@@ -909,6 +1194,24 @@ yanhekt.cn###ai-bit-shortcut`;
     setupCacheCleanupTimer();
   });
 
+  siteProfileSelect.addEventListener('change', () => {
+    const profileId = siteProfileSelect.value;
+    loadProfileDetails(profileId);
+    activeProfileId = profileId;
+    saveConfig();
+  });
+
+  // Add event listener for webview navigation
+  webview.addEventListener('did-navigate', (event) => {
+    const url = event.url;
+    checkAndSwitchProfile(url);
+  });
+
+  webview.addEventListener('did-navigate-in-page', (event) => {
+    const url = event.url;
+    checkAndSwitchProfile(url);
+  });
+
   // Update cache info initially 
   updateCacheInfo();
 
@@ -930,6 +1233,14 @@ yanhekt.cn###ai-bit-shortcut`;
   btnClearCache.addEventListener('click', clearBrowserCache);
   btnClearCookies.addEventListener('click', clearCookies);
   btnClearAll.addEventListener('click', clearAllData);
+  btnSaveProfile.addEventListener('click', saveCurrentProfile);
+  btnDeleteProfile.addEventListener('click', deleteCurrentProfile);
+
+  // Add collapsible section functionality
+  toggleAdvancedSettings.addEventListener('click', () => {
+    advancedSettingsContent.classList.toggle('hidden');
+    toggleAdvancedSettings.textContent = advancedSettingsContent.classList.contains('hidden') ? '▼' : '▲';
+  });
   
   // Add enter key handling for URL input
   inputUrl.addEventListener('keydown', (e) => {
