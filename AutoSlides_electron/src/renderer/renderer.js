@@ -25,12 +25,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const cropInfoOverlay = document.getElementById('cropInfoOverlay');
   const btnShowCropGuides = document.getElementById('btnShowCropGuides');
   const inputCropGuidesTrigger = document.getElementById('inputCropGuidesTrigger');
+  const cacheInfo = document.getElementById('cacheInfo');
+  const btnClearCache = document.getElementById('btnClearCache');
+  const btnClearCookies = document.getElementById('btnClearCookies');
+  const btnClearAll = document.getElementById('btnClearAll');
+  const cacheCleanInterval = document.getElementById('cacheCleanInterval');
 
   // Capture related variables
   let captureInterval = null;
   let lastImageData = null;
   let capturedCount = 0;
   let cropGuideTimer = null;
+  let cacheCleanupTimer = null;
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -126,9 +132,10 @@ yanhekt.cn###ai-bit-shortcut`;
       inputOutputDir.value = config.outputDir || '';
       inputTopCrop.value = config.topCropPercent || 5;
       inputBottomCrop.value = config.bottomCropPercent || 5;
-      inputChangeThreshold.value = config.changeThreshold || 0.001;
+      inputChangeThreshold.value = config.changeThreshold || 0.002;
       inputCheckInterval.value = config.checkInterval || 2;
       inputCropGuidesTrigger.value = config.cropGuidesTrigger || 'session';
+      cacheCleanInterval.value = config.cacheCleanInterval || 15;
       return config;
     } catch (error) {
       console.error('Failed to load config:', error);
@@ -143,7 +150,8 @@ yanhekt.cn###ai-bit-shortcut`;
         bottomCropPercent: parseFloat(inputBottomCrop.value),
         changeThreshold: parseFloat(inputChangeThreshold.value),
         checkInterval: parseFloat(inputCheckInterval.value),
-        cropGuidesTrigger: inputCropGuidesTrigger.value
+        cropGuidesTrigger: inputCropGuidesTrigger.value,
+        cacheCleanInterval: parseInt(cacheCleanInterval.value, 10)
       };
       
       await window.electronAPI.saveConfig(config);
@@ -163,7 +171,7 @@ yanhekt.cn###ai-bit-shortcut`;
       outputDir: await window.electronAPI.getConfig().then(config => config.outputDir), // Keep output dir as is
       topCropPercent: 5,
       bottomCropPercent: 5,
-      changeThreshold: 0.001,
+      changeThreshold: 0.002,
       checkInterval: 2,
       cropGuidesTrigger: 'session'
     };
@@ -181,6 +189,130 @@ yanhekt.cn###ai-bit-shortcut`;
     setTimeout(() => {
       statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
     }, 2000);
+  }
+
+  async function updateCacheInfo() {
+    try {
+      cacheInfo.textContent = 'Calculating cache size...';
+      const cacheData = await window.electronAPI.getCacheSize();
+      cacheInfo.textContent = `Total cache: ${cacheData.totalMB} MB`;
+      
+      // Add detailed tooltip
+      const details = cacheData.details;
+      const detailsText = [
+        `Browser cache: ${details.cache} MB`,
+        `GPU cache: ${details.gpuCache} MB`,
+        `Local storage: ${details.localStorage} MB`,
+        `Session storage: ${details.sessionStorage} MB`
+      ].join('\n');
+      
+      cacheInfo.title = detailsText;
+    } catch (error) {
+      console.error('Error updating cache info:', error);
+      cacheInfo.textContent = 'Error calculating cache size';
+    }
+  }
+  
+  // Clear browser cache
+  async function clearBrowserCache() {
+    try {
+      cacheInfo.textContent = 'Clearing browser cache...';
+      btnClearCache.disabled = true;
+      
+      const result = await window.electronAPI.clearBrowserCache();
+      
+      if (result.success) {
+        statusText.textContent = 'Browser cache cleared';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 2000);
+      } else {
+        statusText.textContent = 'Failed to clear cache';
+      }
+      
+      await updateCacheInfo();
+      btnClearCache.disabled = false;
+    } catch (error) {
+      console.error('Error clearing browser cache:', error);
+      statusText.textContent = 'Error clearing cache';
+      btnClearCache.disabled = false;
+    }
+  }
+  
+  // Clear cookies
+  async function clearCookies() {
+    try {
+      cacheInfo.textContent = 'Clearing cookies...';
+      btnClearCookies.disabled = true;
+      
+      const result = await window.electronAPI.clearCookies();
+      
+      if (result.success) {
+        statusText.textContent = 'Cookies cleared';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 2000);
+      } else {
+        statusText.textContent = 'Failed to clear cookies';
+      }
+      
+      await updateCacheInfo();
+      btnClearCookies.disabled = false;
+    } catch (error) {
+      console.error('Error clearing cookies:', error);
+      statusText.textContent = 'Error clearing cookies';
+      btnClearCookies.disabled = false;
+    }
+  }
+  
+  // Clear all data
+  async function clearAllData() {
+    try {
+      cacheInfo.textContent = 'Clearing all data...';
+      btnClearAll.disabled = true;
+      
+      const result = await window.electronAPI.clearAllData();
+      
+      if (result.success) {
+        statusText.textContent = 'All cache data cleared';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 2000);
+      } else {
+        statusText.textContent = 'Failed to clear all data';
+      }
+      
+      await updateCacheInfo();
+      btnClearAll.disabled = false;
+    } catch (error) {
+      console.error('Error clearing all data:', error);
+      statusText.textContent = 'Error clearing all data';
+      btnClearAll.disabled = false;
+    }
+  }
+
+  // Set up automatic cache cleanup
+  function setupCacheCleanupTimer() {
+    // Clear any existing timer
+    if (cacheCleanupTimer) {
+      clearInterval(cacheCleanupTimer);
+      cacheCleanupTimer = null;
+    }
+    
+    // Get the interval in minutes
+    const interval = parseInt(cacheCleanInterval.value, 10);
+    
+    // If interval is valid and not zero, set up timer
+    if (interval > 0) {
+      console.log(`Setting up cache cleanup timer for every ${interval} minutes`);
+      cacheCleanupTimer = setInterval(async () => {
+        if (captureInterval) {  // Only clean if capturing
+          console.log('Running automatic cache cleanup');
+          await window.electronAPI.clearBrowserCache();
+          await updateCacheInfo();
+        }
+      }, interval * 60 * 1000);
+    }
   }
   
   async function loadBlockingRules() {
@@ -528,7 +660,7 @@ yanhekt.cn###ai-bit-shortcut`;
       statusText.textContent = 'Please enter a URL';
       return;
     }
-
+  
     // Only load the URL if webview is empty or about:blank
     if (webview.src === 'about:blank' || !webview.src) {
       webview.src = url;
@@ -537,6 +669,9 @@ yanhekt.cn###ai-bit-shortcut`;
     btnStartCapture.disabled = true;
     btnStopCapture.disabled = false;
     statusText.textContent = 'Capturing...';
+    
+    // Setup the automatic cache cleanup timer
+    setupCacheCleanupTimer();
     
     // Capture first slide
     try {
@@ -586,9 +721,32 @@ yanhekt.cn###ai-bit-shortcut`;
     if (captureInterval) {
       clearInterval(captureInterval);
       captureInterval = null;
+      
+      // Clear any cache cleanup timer
+      if (cacheCleanupTimer) {
+        clearInterval(cacheCleanupTimer);
+        cacheCleanupTimer = null;
+      }
+      
       btnStartCapture.disabled = false;
       btnStopCapture.disabled = true;
-      statusText.textContent = 'Capture stopped';
+      statusText.textContent = 'Capture stopped, cleaning up...';
+      
+      // Clean up cache after stopping
+      window.electronAPI.clearBrowserCache()
+        .then(() => {
+          return updateCacheInfo();
+        })
+        .then(() => {
+          statusText.textContent = 'Capture stopped, cache cleared';
+          setTimeout(() => {
+            statusText.textContent = 'Idle';
+          }, 2000);
+        })
+        .catch(error => {
+          console.error('Error cleaning cache on stop:', error);
+          statusText.textContent = 'Capture stopped';
+        });
     }
   }
   
@@ -746,6 +904,17 @@ yanhekt.cn###ai-bit-shortcut`;
     }
   });
 
+  cacheCleanInterval.addEventListener('change', () => {
+    saveConfig();
+    setupCacheCleanupTimer();
+  });
+
+  // Update cache info initially 
+  updateCacheInfo();
+
+  // Set up periodic cache info updates
+  setInterval(updateCacheInfo, 60000); // Update every minute
+
   // Add event listeners for all buttons
   btnStartCapture.addEventListener('click', startCapture);
   btnStopCapture.addEventListener('click', stopCapture);
@@ -758,6 +927,9 @@ yanhekt.cn###ai-bit-shortcut`;
     applyBlockingRules();
   });
   btnResetRules.addEventListener('click', resetRules);
+  btnClearCache.addEventListener('click', clearBrowserCache);
+  btnClearCookies.addEventListener('click', clearCookies);
+  btnClearAll.addEventListener('click', clearAllData);
   
   // Add enter key handling for URL input
   inputUrl.addEventListener('keydown', (e) => {

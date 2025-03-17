@@ -1,7 +1,13 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
+const { promisify } = require('util');
+const fsAccess = promisify(fs.access);
+const fsReaddir = promisify(fs.readdir);
+const fsStat = promisify(fs.stat);
+const fsUnlink = promisify(fs.unlink);
+const fsRmdir = promisify(fs.rmdir);
 
 // Configuration schema
 const schema = {
@@ -19,7 +25,7 @@ const schema = {
   },
   changeThreshold: {
     type: 'number',
-    default: 0.001
+    default: 0.002
   },
   checkInterval: {
     type: 'number',
@@ -34,6 +40,10 @@ yanhekt.cn###ai-bit-shortcut`
   cropGuidesTrigger: {
     type: 'string',
     default: 'session'
+  },
+  cacheCleanInterval: {
+    type: 'number',
+    default: 15
   }
 };
 
@@ -81,6 +91,114 @@ app.whenReady().then(() => {
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit();
 });
+
+// Cache management utilities
+async function calculateCacheSize() {
+  try {
+    const cachePath = app.getPath('userData');
+    let totalSize = 0;
+    
+    // Function to recursively calculate directory size
+    const getDirSize = async (dirPath) => {
+      try {
+        const files = await fsReaddir(dirPath);
+        const stats = await Promise.all(
+          files.map(async (file) => {
+            const filePath = path.join(dirPath, file);
+            const stat = await fsStat(filePath);
+            if (stat.isDirectory()) {
+              return getDirSize(filePath);
+            }
+            return stat.size;
+          })
+        );
+        return stats.reduce((acc, size) => acc + size, 0);
+      } catch (e) {
+        console.error(`Error calculating size for ${dirPath}:`, e);
+        return 0;
+      }
+    };
+
+    // Calculate cache directories sizes
+    const cacheSize = await getDirSize(path.join(cachePath, 'Cache'));
+    const gpuCacheSize = await getDirSize(path.join(cachePath, 'GPUCache'));
+    const storageSize = await getDirSize(path.join(cachePath, 'Local Storage'));
+    const sessionStorageSize = await getDirSize(path.join(cachePath, 'Session Storage'));
+    
+    totalSize = cacheSize + gpuCacheSize + storageSize + sessionStorageSize;
+    
+    // Format to MB with 2 decimal places
+    return {
+      totalMB: (totalSize / (1024 * 1024)).toFixed(2),
+      details: {
+        cache: (cacheSize / (1024 * 1024)).toFixed(2),
+        gpuCache: (gpuCacheSize / (1024 * 1024)).toFixed(2),
+        localStorage: (storageSize / (1024 * 1024)).toFixed(2),
+        sessionStorage: (sessionStorageSize / (1024 * 1024)).toFixed(2)
+      }
+    };
+  } catch (error) {
+    console.error('Error calculating cache size:', error);
+    return { totalMB: 'Error', details: {} };
+  }
+}
+
+async function clearCacheDirectory(dirPath) {
+  try {
+    // Check if directory exists
+    await fsAccess(dirPath).catch(() => {
+      // Directory doesn't exist, nothing to delete
+      return null;
+    });
+    
+    // Read directory contents
+    const files = await fsReaddir(dirPath);
+    
+    // Delete all files in the directory
+    for (const file of files) {
+      const filePath = path.join(dirPath, file);
+      const stat = await fsStat(filePath);
+      
+      if (stat.isDirectory()) {
+        await clearCacheDirectory(filePath);
+      } else {
+        await fsUnlink(filePath).catch(err => {
+          console.error(`Failed to delete file ${filePath}:`, err);
+        });
+      }
+    }
+    
+    // Don't delete the directory itself as Electron might recreate it
+    // and could have issues if it's missing
+    
+    return true;
+  } catch (error) {
+    console.error(`Error clearing directory ${dirPath}:`, error);
+    return false;
+  }
+}
+
+async function clearAllCacheData() {
+  try {
+    const userData = app.getPath('userData');
+    
+    // Clear various cache directories
+    await Promise.all([
+      clearCacheDirectory(path.join(userData, 'Cache')),
+      clearCacheDirectory(path.join(userData, 'Code Cache')),
+      clearCacheDirectory(path.join(userData, 'GPUCache')),
+      session.defaultSession.clearCache(),
+      session.defaultSession.clearStorageData({
+        storages: ['appcache', 'cookies', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage'],
+      }),
+    ]);
+    
+    return true;
+  } catch (error) {
+    console.error('Error clearing all cache data:', error);
+    return false;
+  }
+}
 
 // IPC handlers
 ipcMain.handle('get-config', () => {
@@ -136,7 +254,6 @@ ipcMain.handle('save-blocking-rules', (event, rules) => {
   return true;
 });
 
-// Add this IPC handler
 ipcMain.handle('open-link', async (event, url) => {
   const webContents = event.sender;
   const win = BrowserWindow.fromWebContents(webContents);
@@ -146,4 +263,43 @@ ipcMain.handle('open-link', async (event, url) => {
   }
   
   return true;
+});
+
+// Cache management IPC handlers
+ipcMain.handle('clear-browser-cache', async () => {
+  try {
+    await session.defaultSession.clearCache();
+    await clearCacheDirectory(path.join(app.getPath('userData'), 'Cache'));
+    await clearCacheDirectory(path.join(app.getPath('userData'), 'GPUCache'));
+    return { success: true };
+  } catch (error) {
+    console.error('Error clearing browser cache:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('clear-cookies', async () => {
+  try {
+    await session.defaultSession.clearStorageData({
+      storages: ['cookies']
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error clearing cookies:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('clear-all-data', async () => {
+  try {
+    const result = await clearAllCacheData();
+    return { success: result };
+  } catch (error) {
+    console.error('Error clearing all data:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-cache-size', async () => {
+  return calculateCacheSize();
 });

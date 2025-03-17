@@ -75,6 +75,22 @@
             <button id="btnResetRules">Default</button>
           </div>
         </div>
+
+        <div class="cache-management-panel">
+          <h3>Cache Management</h3>
+          <p class="help-text">Manage temporary files and cache</p>
+          <div class="cache-info" id="cacheInfo">Calculating cache size...</div>
+          <div class="cache-buttons">
+            <button id="btnClearCache">Clear Browser Cache</button>
+            <button id="btnClearCookies">Clear Cookies</button>
+            <button id="btnClearAll">Clear All Data</button>
+          </div>
+          <div class="setting-item">
+            <label for="cacheCleanInterval">Auto-clean interval (minutes):</label>
+            <input type="number" id="cacheCleanInterval" min="0" max="60" step="5" value="15" />
+            <p class="help-text">Set to 0 to disable auto-cleaning</p>
+          </div>
+        </div>
       </div>
       
       <div class="sidebar-bottom">
