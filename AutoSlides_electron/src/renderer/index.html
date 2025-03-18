@@ -123,6 +123,25 @@
                   <input type="text" id="endDetectionSelector" placeholder=".player-ended-poster">
                   <p class="help-text">CSS selector for end-of-playback element</p>
                 </div>
+                
+                <!-- Add the new auto-start section -->
+                <div class="setting-item">
+                  <label>
+                    <input type="checkbox" id="autoStartPlayback"> 
+                    Auto-start playback
+                  </label>
+                  <p class="help-text">Automatically start video playback when ready</p>
+                </div>
+                <div class="setting-item">
+                  <label for="playButtonSelector">Play button selector:</label>
+                  <input type="text" id="playButtonSelector" placeholder=".player-mid-button-container button">
+                  <p class="help-text">CSS selector for the play button</p>
+                </div>
+                <div class="setting-item">
+                  <label for="countdownSelector">Countdown selector (optional):</label>
+                  <input type="text" id="countdownSelector" placeholder=".countdown-content">
+                  <p class="help-text">CSS selector for the countdown element (leave empty if not applicable)</p>
+                </div>
               </div>
             </div>
           </div>
