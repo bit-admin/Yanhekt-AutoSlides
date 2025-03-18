@@ -142,23 +142,30 @@ yanhekt.cn###ai-bit-shortcut`;
       inputOutputDir.value = config.outputDir || '';
       inputTopCrop.value = config.topCropPercent || 5;
       inputBottomCrop.value = config.bottomCropPercent || 5;
-      inputChangeThreshold.value = config.changeThreshold || 0.001;
+      inputChangeThreshold.value = config.changeThreshold || 0.005;
       inputCheckInterval.value = config.checkInterval || 2;
       
       // Load cache clean interval
       cacheCleanInterval.value = config.cacheCleanInterval || 15;
       
-      // Load site profiles
+      // Load site profiles with default built-in profiles
       siteProfiles = config.siteProfiles || {
-        yanhekt: {
-          name: 'YanHeKT Video Player',
+        yanhekt_session: {
+          name: 'YanHeKT Session Player',
           elementSelector: '#video_id_topPlayer_html5_api',
-          urlPattern: 'yanhekt.cn/session yanhekt.cn/live',
-          captureElementOnly: true
+          urlPattern: 'yanhekt.cn/session',
+          builtin: true
+        },
+        yanhekt_live: {
+          name: 'YanHeKT Live Player',
+          elementSelector: '#video_id_mainPlayer_html5_api',
+          urlPattern: 'yanhekt.cn/live',
+          builtin: true
         }
       };
       
-      activeProfileId = config.activeProfileId || 'default';
+      // Set default active profile to Live Player
+      activeProfileId = config.activeProfileId || 'yanhekt_live';
       
       // Populate profile dropdown
       updateProfileDropdown();
@@ -203,7 +210,7 @@ yanhekt.cn###ai-bit-shortcut`;
       outputDir: await window.electronAPI.getConfig().then(config => config.outputDir), // Keep output dir as is
       topCropPercent: 5,
       bottomCropPercent: 5,
-      changeThreshold: 0.002,
+      changeThreshold: 0.005,
       checkInterval: 2
     };
     
@@ -310,8 +317,8 @@ yanhekt.cn###ai-bit-shortcut`;
   function deleteCurrentProfile() {
     const profileId = siteProfileSelect.value;
     
-    // Prevent deletion of the built-in YanHeKT Video Player profile
-    if (profileId === 'yanhekt') {
+    // Prevent deletion of built-in profiles and Default profile
+    if (profileId === 'default' || (siteProfiles[profileId] && siteProfiles[profileId].builtin)) {
       statusText.textContent = 'Cannot delete built-in profile';
       setTimeout(() => {
         statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
@@ -319,7 +326,7 @@ yanhekt.cn###ai-bit-shortcut`;
       return;
     }
     
-    if (profileId !== 'default' && profileId !== 'custom') {
+    if (profileId !== 'custom') {
       delete siteProfiles[profileId];
       updateProfileDropdown();
       siteProfileSelect.value = 'default';

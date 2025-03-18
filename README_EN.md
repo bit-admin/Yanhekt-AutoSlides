@@ -50,7 +50,7 @@ sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app
 
 ### Basic Settings
 - **Output Directory**: Where slide images are saved
-- **Change Threshold**: Threshold for detecting slide changes, smaller values are more sensitive (recommended 0.001-0.005)
+- **Change Threshold**: Threshold for detecting slide changes, smaller values are more sensitive (recommended 0.002-0.008)
 - **Check Interval**: Frequency to check for slide changes (in seconds)
 
 ### Advanced Settings
