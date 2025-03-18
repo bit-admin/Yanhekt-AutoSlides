@@ -25,7 +25,7 @@ const schema = {
   },
   changeThreshold: {
     type: 'number',
-    default: 0.002
+    default: 0.005
   },
   checkInterval: {
     type: 'number',
@@ -44,16 +44,23 @@ yanhekt.cn###ai-bit-shortcut`
   siteProfiles: {
     type: 'object',
     default: {
-      yanhekt: {
-        name: 'YanHeKT Video Player',
+      yanhekt_session: {
+        name: 'YanHeKT Session Player',
         elementSelector: '#video_id_topPlayer_html5_api',
-        urlPattern: 'yanhekt.cn/session yanhekt.cn/live',
+        urlPattern: 'yanhekt.cn/session',
+        builtin: true
+      },
+      yanhekt_live: {
+        name: 'YanHeKT Live Player',
+        elementSelector: '#video_id_mainPlayer_html5_api',
+        urlPattern: 'yanhekt.cn/live',
+        builtin: true
       }
     }
   },
   activeProfileId: {
     type: 'string',
-    default: 'default'
+    default: 'yanhekt_live'  // Change default profile to live player
   }
 };
 
