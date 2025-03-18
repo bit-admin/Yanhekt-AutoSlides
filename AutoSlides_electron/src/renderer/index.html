@@ -105,6 +105,26 @@
               <button id="btnSaveProfile">Apply</button>
               <button id="btnDeleteProfile">Delete</button>
             </div>
+            <div class="collapsible-section" id="automationSection">
+              <div class="collapsible-header">
+                <h5>Automation</h5>
+                <button class="toggle-button" id="toggleAutomation">▼</button>
+              </div>
+              <div class="collapsible-content hidden" id="automationContent">
+                <div class="setting-item">
+                  <label>
+                    <input type="checkbox" id="autoDetectEnd"> 
+                    Auto-detect playback end
+                  </label>
+                  <p class="help-text">Automatically stop capture when playback ends</p>
+                </div>
+                <div class="setting-item">
+                  <label for="endDetectionSelector">End detection selector:</label>
+                  <input type="text" id="endDetectionSelector" placeholder=".player-ended-poster">
+                  <p class="help-text">CSS selector for end-of-playback element</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

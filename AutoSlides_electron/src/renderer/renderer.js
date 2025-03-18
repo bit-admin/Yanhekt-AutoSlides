@@ -37,6 +37,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const profileDetails = document.getElementById('profileDetails');
   const toggleAdvancedSettings = document.getElementById('toggleAdvancedSettings');
   const advancedSettingsContent = document.getElementById('advancedSettingsContent');
+  const automationSection = document.getElementById('automationSection');
+  const toggleAutomation = document.getElementById('toggleAutomation');
+  const automationContent = document.getElementById('automationContent');
+  const autoDetectEnd = document.getElementById('autoDetectEnd');
+  const endDetectionSelector = document.getElementById('endDetectionSelector');
 
   // Capture related variables
   let captureInterval = null;
@@ -154,13 +159,21 @@ yanhekt.cn###ai-bit-shortcut`;
           name: 'YanHeKT Session Player',
           elementSelector: '#video_id_topPlayer_html5_api',
           urlPattern: 'yanhekt.cn/session',
-          builtin: true
+          builtin: true,
+          automation: {
+            autoDetectEnd: true,
+            endDetectionSelector: '.player-ended-poster'
+          }
         },
         yanhekt_live: {
           name: 'YanHeKT Live Player',
           elementSelector: '#video_id_mainPlayer_html5_api',
           urlPattern: 'yanhekt.cn/live',
-          builtin: true
+          builtin: true,
+          automation: {
+            autoDetectEnd: true,
+            endDetectionSelector: '.VideoResult_result__LdbB3'
+          }
         }
       };
       
@@ -254,16 +267,20 @@ yanhekt.cn###ai-bit-shortcut`;
     if (profileId === 'default') {
       // Hide profile details for default
       profileDetails.classList.add('hidden');
+      automationSection.classList.add('hidden'); // Hide automation for default profile
       currentProfile = null;
       return;
     }
     
     profileDetails.classList.remove('hidden');
+    automationSection.classList.remove('hidden'); // Show automation for non-default profiles
     
     if (profileId === 'custom') {
       // New custom profile
       elementSelector.value = '';
       urlPattern.value = '';
+      autoDetectEnd.checked = false;
+      endDetectionSelector.value = '';
       currentProfile = null;
       return;
     }
@@ -273,6 +290,15 @@ yanhekt.cn###ai-bit-shortcut`;
     if (profile) {
       elementSelector.value = profile.elementSelector || '';
       urlPattern.value = profile.urlPattern || '';
+      
+      if (profile.automation) {
+        autoDetectEnd.checked = profile.automation.autoDetectEnd || false;
+        endDetectionSelector.value = profile.automation.endDetectionSelector || '';
+      } else {
+        autoDetectEnd.checked = false;
+        endDetectionSelector.value = '';
+      }
+      
       currentProfile = profile;
     }
   }
@@ -281,6 +307,11 @@ yanhekt.cn###ai-bit-shortcut`;
     if (siteProfileSelect.value === 'default') {
       return; // Nothing to save
     }
+    
+    const automationSettings = {
+      autoDetectEnd: autoDetectEnd.checked,
+      endDetectionSelector: endDetectionSelector.value
+    };
     
     if (siteProfileSelect.value === 'custom') {
       // Generate a new profile ID
@@ -292,6 +323,7 @@ yanhekt.cn###ai-bit-shortcut`;
         name: profileName,
         elementSelector: elementSelector.value,
         urlPattern: urlPattern.value,
+        automation: automationSettings
       };
       
       // Update dropdown and select new profile
@@ -303,6 +335,7 @@ yanhekt.cn###ai-bit-shortcut`;
       const profileId = siteProfileSelect.value;
       siteProfiles[profileId].elementSelector = elementSelector.value;
       siteProfiles[profileId].urlPattern = urlPattern.value;
+      siteProfiles[profileId].automation = automationSettings;
       activeProfileId = profileId;
     }
     
@@ -983,6 +1016,9 @@ yanhekt.cn###ai-bit-shortcut`;
       
       // Start interval for checking slide changes
       captureInterval = setInterval(async () => {
+        const playbackEnded = await checkPlaybackEnded();
+        if (playbackEnded) return;
+        
         const currentImageData = await captureScreenshot();
         const result = await compareImages(lastImageData, currentImageData);
         
@@ -1255,4 +1291,45 @@ yanhekt.cn###ai-bit-shortcut`;
       loadURL();
     }
   });
+
+  toggleAutomation.addEventListener('click', () => {
+    automationContent.classList.toggle('hidden');
+    toggleAutomation.textContent = automationContent.classList.contains('hidden') ? '▼' : '▲';
+  });
+
+  async function checkPlaybackEnded() {
+    if (!captureInterval) return false;
+    
+    if (activeProfileId === 'default' || !siteProfiles[activeProfileId]?.automation?.autoDetectEnd) {
+      return false;
+    }
+    
+    const endSelector = siteProfiles[activeProfileId].automation.endDetectionSelector;
+    if (!endSelector) return false;
+    
+    try {
+      const result = await webview.executeJavaScript(`
+        (function() {
+          try {
+            const endElement = document.querySelector('${endSelector}');
+            return !!endElement && endElement.offsetParent !== null;
+          } catch (err) {
+            console.error('Error checking for playback end:', err);
+            return false;
+          }
+        })();
+      `);
+      
+      if (result) {
+        console.log('Playback end detected, stopping capture');
+        stopCapture();
+        statusText.textContent = 'Playback ended, capture stopped automatically';
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Error in playback end detection:', error);
+      return false;
+    }
+  }
 });

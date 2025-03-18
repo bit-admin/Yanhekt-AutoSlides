@@ -48,13 +48,21 @@ yanhekt.cn###ai-bit-shortcut`
         name: 'YanHeKT Session Player',
         elementSelector: '#video_id_topPlayer_html5_api',
         urlPattern: 'yanhekt.cn/session',
-        builtin: true
+        builtin: true,
+        automation: {
+          autoDetectEnd: true,
+          endDetectionSelector: '.player-ended-poster'
+        }
       },
       yanhekt_live: {
         name: 'YanHeKT Live Player',
         elementSelector: '#video_id_mainPlayer_html5_api',
         urlPattern: 'yanhekt.cn/live',
-        builtin: true
+        builtin: true,
+        automation: {
+          autoDetectEnd: true,
+          endDetectionSelector: '.VideoResult_result__LdbB3'
+        }
       }
     }
   },
