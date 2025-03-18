@@ -42,6 +42,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const automationContent = document.getElementById('automationContent');
   const autoDetectEnd = document.getElementById('autoDetectEnd');
   const endDetectionSelector = document.getElementById('endDetectionSelector');
+  const autoStartPlayback = document.getElementById('autoStartPlayback');
+  const playButtonSelector = document.getElementById('playButtonSelector');
+  const countdownSelector = document.getElementById('countdownSelector');
 
   // Capture related variables
   let captureInterval = null;
@@ -52,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let siteProfiles = {};
   let activeProfileId = 'default';
   let currentProfile = null;
+  let autoStartCheckInterval = null; // Add this line
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -281,6 +285,9 @@ yanhekt.cn###ai-bit-shortcut`;
       urlPattern.value = '';
       autoDetectEnd.checked = false;
       endDetectionSelector.value = '';
+      autoStartPlayback.checked = false;
+      playButtonSelector.value = '';
+      countdownSelector.value = '';
       currentProfile = null;
       return;
     }
@@ -294,9 +301,15 @@ yanhekt.cn###ai-bit-shortcut`;
       if (profile.automation) {
         autoDetectEnd.checked = profile.automation.autoDetectEnd || false;
         endDetectionSelector.value = profile.automation.endDetectionSelector || '';
+        autoStartPlayback.checked = profile.automation.autoStartPlayback || false;
+        playButtonSelector.value = profile.automation.playButtonSelector || '';
+        countdownSelector.value = profile.automation.countdownSelector || '';
       } else {
         autoDetectEnd.checked = false;
         endDetectionSelector.value = '';
+        autoStartPlayback.checked = false;
+        playButtonSelector.value = '';
+        countdownSelector.value = '';
       }
       
       currentProfile = profile;
@@ -310,7 +323,10 @@ yanhekt.cn###ai-bit-shortcut`;
     
     const automationSettings = {
       autoDetectEnd: autoDetectEnd.checked,
-      endDetectionSelector: endDetectionSelector.value
+      endDetectionSelector: endDetectionSelector.value,
+      autoStartPlayback: autoStartPlayback.checked,
+      playButtonSelector: playButtonSelector.value,
+      countdownSelector: countdownSelector.value
     };
     
     if (siteProfileSelect.value === 'custom') {
@@ -979,6 +995,12 @@ yanhekt.cn###ai-bit-shortcut`;
   
   // Start capturing slides
   async function startCapture() {
+    // Clear auto-start check interval if it exists
+    if (autoStartCheckInterval) {
+      clearInterval(autoStartCheckInterval);
+      autoStartCheckInterval = null;
+    }
+    
     const url = inputUrl.value;
     if (!url) {
       statusText.textContent = 'Please enter a URL';
@@ -1100,6 +1122,24 @@ yanhekt.cn###ai-bit-shortcut`;
         updateCropGuides(true);
       }
     }, 500);
+    
+    // Add this block for auto-start playback check
+    if (activeProfileId !== 'default' && 
+        siteProfiles[activeProfileId]?.automation?.autoStartPlayback && 
+        urlMatchesProfilePatterns(webview.src, activeProfileId)) {
+      
+      console.log('URL matches profile pattern, initiating auto-start playback check');
+      statusText.textContent = 'Checking for play button...';
+      
+      // Clear any existing interval
+      if (autoStartCheckInterval) {
+        clearInterval(autoStartCheckInterval);
+      }
+      
+      // Call immediately and then set up interval
+      checkAndAutoStartPlayback();
+      autoStartCheckInterval = setInterval(checkAndAutoStartPlayback, 2000);
+    }
   });
   
   webview.addEventListener('did-fail-load', (event) => {
@@ -1331,5 +1371,180 @@ yanhekt.cn###ai-bit-shortcut`;
       console.error('Error in playback end detection:', error);
       return false;
     }
+  }
+
+  // Toggle visibility of auto-start fields
+  autoStartPlayback.addEventListener('change', () => {
+    const autoStartFields = document.querySelectorAll('#playButtonSelector, #countdownSelector');
+    const autoStartLabels = document.querySelectorAll('label[for="playButtonSelector"], label[for="countdownSelector"]');
+    const helpTexts = autoStartPlayback.closest('.setting-item').nextElementSibling.querySelectorAll('.help-text');
+    
+    if (autoStartPlayback.checked) {
+      autoStartFields.forEach(field => field.closest('.setting-item').style.display = 'block');
+      autoStartLabels.forEach(label => label.style.display = 'inline-block');
+      helpTexts.forEach(help => help.style.display = 'block');
+    } else {
+      autoStartFields.forEach(field => field.closest('.setting-item').style.display = 'none');
+      autoStartLabels.forEach(label => label.style.display = 'none');
+      helpTexts.forEach(help => help.style.display = 'none');
+    }
+  });
+  
+  // Initial display state
+  if (!autoStartPlayback.checked) {
+    const autoStartFields = document.querySelectorAll('#playButtonSelector, #countdownSelector');
+    const autoStartLabels = document.querySelectorAll('label[for="playButtonSelector"], label[for="countdownSelector"]');
+    const helpTexts = autoStartPlayback.closest('.setting-item').nextElementSibling.querySelectorAll('.help-text');
+    
+    autoStartFields.forEach(field => field.closest('.setting-item').style.display = 'none');
+    autoStartLabels.forEach(label => label.style.display = 'none');
+    helpTexts.forEach(help => help.style.display = 'none');
+  }
+
+  // Toggle visibility of auto-detect-end fields
+  autoDetectEnd.addEventListener('change', () => {
+    const endDetectionField = document.getElementById('endDetectionSelector');
+    const endDetectionLabel = document.querySelector('label[for="endDetectionSelector"]');
+    const helpText = endDetectionField.closest('.setting-item').querySelector('.help-text');
+    
+    if (autoDetectEnd.checked) {
+      endDetectionField.closest('.setting-item').style.display = 'block';
+      endDetectionLabel.style.display = 'inline-block';
+      helpText.style.display = 'block';
+    } else {
+      endDetectionField.closest('.setting-item').style.display = 'none';
+      endDetectionLabel.style.display = 'none';
+      helpText.style.display = 'none';
+    }
+  });
+
+  // Initial display state for auto-detect-end
+  if (!autoDetectEnd.checked) {
+    const endDetectionField = document.getElementById('endDetectionSelector');
+    const endDetectionLabel = document.querySelector('label[for="endDetectionSelector"]');
+    const helpText = endDetectionField.closest('.setting-item').querySelector('.help-text');
+    
+    endDetectionField.closest('.setting-item').style.display = 'none';
+    endDetectionLabel.style.display = 'none';
+    helpText.style.display = 'none';
+  }
+
+  async function checkAndAutoStartPlayback() {
+    // Only run auto-start if active profile is not default and has autoStartPlayback enabled
+    if (activeProfileId === 'default' || 
+        !siteProfiles[activeProfileId]?.automation?.autoStartPlayback) {
+      return;
+    }
+    
+    // Make sure URL matches patterns for this profile
+    if (!urlMatchesProfilePatterns(webview.src, activeProfileId)) {
+      return;
+    }
+    
+    // Get the custom selectors
+    const playBtnSelector = siteProfiles[activeProfileId]?.automation?.playButtonSelector || 
+                            '.player-mid-button-container button';
+    const countdownSel = siteProfiles[activeProfileId]?.automation?.countdownSelector || '';
+    
+    try {
+      const result = await webview.executeJavaScript(`
+        (function() {
+          try {
+            // Check for the play button
+            const playButtonSelector = '${playBtnSelector}';
+            const playButton = document.querySelector(playButtonSelector);
+            if (playButton && playButton.offsetParent !== null) {
+              // Only click if visible and not already clicked
+              const isVisible = window.getComputedStyle(playButton).display !== 'none';
+              if (isVisible) {
+                console.log('Found play button, clicking it');
+                playButton.click();
+                return { clicked: true, type: 'play' };
+              }
+            }
+            
+            // Check for video playing state
+            const videoElement = document.querySelector('video');
+            if (videoElement && !videoElement.paused) {
+              return { playing: true };
+            }
+            
+            // Check for countdown if selector is provided
+            ${countdownSel ? `
+            const countdown = document.querySelector('${countdownSel}');
+            if (countdown && countdown.offsetParent !== null) {
+              // Get the countdown text if available
+              let timeInfo = '';
+              const tip = document.querySelector('.countdown-tip');
+              if (tip) {
+                timeInfo = tip.textContent;
+              }
+              return { found: true, type: 'countdown', info: timeInfo };
+            }` : ''}
+            
+            return { found: false };
+          } catch (err) {
+            console.error('Error in auto-start check:', err);
+            return { error: err.toString() };
+          }
+        })();
+      `);
+      
+      if (result.error) {
+        console.error('Auto-start check error:', result.error);
+        return;
+      }
+      
+      // If video is already playing or button was clicked, stop checking and start capturing
+      if (result.playing || result.clicked) {
+        if (autoStartCheckInterval) {
+          clearInterval(autoStartCheckInterval);
+          autoStartCheckInterval = null;
+        }
+        
+        if (result.clicked) {
+          console.log('Auto-started playback');
+          statusText.textContent = 'Auto-started playback';
+          
+          // Wait a moment for video to start playing before starting capture
+          setTimeout(() => {
+            if (!captureInterval) {
+              console.log('Auto-starting capture after playback began');
+              startCapture();
+            }
+          }, 2000);
+        }
+        
+        return;
+      }
+      
+      // Handle countdown detection if applicable
+      if (countdownSel && result.found && result.type === 'countdown') {
+        console.log('Detected countdown:', result.info);
+        statusText.textContent = `Waiting for live stream: ${result.info.trim()}`;
+      }
+    } catch (error) {
+      console.error('Error in checkAndAutoStartPlayback:', error);
+    }
+  }
+
+  // Add this function to check URL against profile patterns
+  function urlMatchesProfilePatterns(url, profileId) {
+    if (!profileId || profileId === 'default' || !siteProfiles[profileId]) {
+      return false;
+    }
+    
+    const profile = siteProfiles[profileId];
+    if (!profile.urlPattern) {
+      return false;
+    }
+    
+    const patterns = profile.urlPattern.split(' ');
+    for (const pattern of patterns) {
+      if (pattern && url.includes(pattern)) {
+        return true;
+      }
+    }
+    return false;
   }
 });

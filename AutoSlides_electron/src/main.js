@@ -51,7 +51,10 @@ yanhekt.cn###ai-bit-shortcut`
         builtin: true,
         automation: {
           autoDetectEnd: true,
-          endDetectionSelector: '.player-ended-poster'
+          endDetectionSelector: '.player-ended-poster',
+          autoStartPlayback: true,
+          playButtonSelector: '.player-mid-button-container button',
+          countdownSelector: '' // Leave empty for session player
         }
       },
       yanhekt_live: {
@@ -61,7 +64,10 @@ yanhekt.cn###ai-bit-shortcut`
         builtin: true,
         automation: {
           autoDetectEnd: true,
-          endDetectionSelector: '.VideoResult_result__LdbB3'
+          endDetectionSelector: '.VideoResult_result__LdbB3',
+          autoStartPlayback: true,
+          playButtonSelector: '.player-mid-button-container button',
+          countdownSelector: '.countdown-content'
         }
       }
     }
