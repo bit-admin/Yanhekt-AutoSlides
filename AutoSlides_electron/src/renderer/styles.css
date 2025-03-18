@@ -513,3 +513,20 @@ button:active {
   background-color: #e0e0e0;
   margin: 15px 0 15px 0;
 }
+
+/* Automation section styles */
+#automationSection {
+  margin-top: 15px;
+  border-top: 1px solid #e0e0e0;
+}
+
+#automationSection label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#automationSection input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
