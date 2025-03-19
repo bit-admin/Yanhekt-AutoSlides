@@ -353,6 +353,11 @@ yanhekt.cn###ai-bit-shortcut`;
         autoAdjustSpeed.checked = profile.automation.autoAdjustSpeed || false;
         speedSelector.value = profile.automation.speedSelector || '';
         playbackSpeed.value = profile.automation.playbackSpeed || '2.0';
+        
+        // Add these lines to update UI visibility based on checkbox values
+        updateAutoDetectEndFieldsVisibility();
+        updateAutoStartFieldsVisibility();
+        updateAutoAdjustSpeedFieldsVisibility();
       } else {
         autoDetectEnd.checked = false;
         endDetectionSelector.value = '';
@@ -2020,4 +2025,58 @@ yanhekt.cn###ai-bit-shortcut`;
     }
     speedAdjustRetryAttempts = 0;
   });
+
+  // Add these helper functions to consolidate visibility logic
+  function updateAutoDetectEndFieldsVisibility() {
+    const endDetectionField = document.getElementById('endDetectionSelector');
+    const endDetectionLabel = document.querySelector('label[for="endDetectionSelector"]');
+    const helpText = endDetectionField.closest('.setting-item').querySelector('.help-text');
+    
+    if (autoDetectEnd.checked) {
+      endDetectionField.closest('.setting-item').style.display = 'block';
+      endDetectionLabel.style.display = 'inline-block';
+      helpText.style.display = 'block';
+    } else {
+      endDetectionField.closest('.setting-item').style.display = 'none';
+      endDetectionLabel.style.display = 'none';
+      helpText.style.display = 'none';
+    }
+  }
+
+  function updateAutoStartFieldsVisibility() {
+    const autoStartFields = document.querySelectorAll('#playButtonSelector, #countdownSelector');
+    const autoStartLabels = document.querySelectorAll('label[for="playButtonSelector"], label[for="countdownSelector"]');
+    const helpTexts = autoStartPlayback.closest('.setting-item').nextElementSibling.querySelectorAll('.help-text');
+    
+    if (autoStartPlayback.checked) {
+      autoStartFields.forEach(field => field.closest('.setting-item').style.display = 'block');
+      autoStartLabels.forEach(label => label.style.display = 'inline-block');
+      helpTexts.forEach(help => help.style.display = 'block');
+    } else {
+      autoStartFields.forEach(field => field.closest('.setting-item').style.display = 'none');
+      autoStartLabels.forEach(label => label.style.display = 'none');
+      helpTexts.forEach(help => help.style.display = 'none');
+    }
+  }
+
+  function updateAutoAdjustSpeedFieldsVisibility() {
+    const speedFields = document.querySelectorAll('#speedSelector, #playbackSpeed');
+    const speedLabels = document.querySelectorAll('label[for="speedSelector"], label[for="playbackSpeed"]');
+    const helpTexts = autoAdjustSpeed.closest('.setting-item').nextElementSibling.querySelectorAll('.help-text');
+    
+    if (autoAdjustSpeed.checked) {
+      speedFields.forEach(field => field.closest('.setting-item').style.display = 'block');
+      speedLabels.forEach(label => label.style.display = 'inline-block');
+      helpTexts.forEach(help => help.style.display = 'block');
+    } else {
+      speedFields.forEach(field => field.closest('.setting-item').style.display = 'none');
+      speedLabels.forEach(label => label.style.display = 'none');
+      helpTexts.forEach(help => help.style.display = 'none');
+    }
+  }
+
+  // Update event listeners to use these functions
+  autoDetectEnd.addEventListener('change', updateAutoDetectEndFieldsVisibility);
+  autoStartPlayback.addEventListener('change', updateAutoStartFieldsVisibility);
+  autoAdjustSpeed.addEventListener('change', updateAutoAdjustSpeedFieldsVisibility);
 });
