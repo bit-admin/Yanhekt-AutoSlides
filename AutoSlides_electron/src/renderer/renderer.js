@@ -102,17 +102,30 @@ yanhekt.cn###ai-bit-shortcut`;
     }
   }, 200);
 
-  setInterval(() => {
-    if (webview.src && webview.src !== 'about:blank' && webview.src !== inputUrl.value) {
-      inputUrl.value = webview.src;
-      
-      // Check for trigger
-      if (checkUrlForCropGuidesTrigger(webview.src)) {
-        console.log('URL contains crop guides trigger (periodic check), showing guides');
-        updateCropGuides(true);
-      }
-    }
-  }, 1000);
+  // Remove the problematic interval that overwrites user input
+  // setInterval(() => {
+  //   if (webview.src && webview.src !== 'about:blank' && webview.src !== inputUrl.value) {
+  //     inputUrl.value = webview.src;
+  //     
+  //     // Check for trigger
+  //     if (checkUrlForCropGuidesTrigger(webview.src)) {
+  //       console.log('URL contains crop guides trigger (periodic check), showing guides');
+  //       updateCropGuides(true);
+  //     }
+  //   }
+  // }, 1000);
+
+  // Add flag to track if user is actively editing the URL
+  let userIsEditingUrl = false;
+
+  // Add event listeners to detect when user is interacting with URL input
+  inputUrl.addEventListener('focus', () => {
+    userIsEditingUrl = true;
+  });
+
+  inputUrl.addEventListener('blur', () => {
+    userIsEditingUrl = false;
+  });
 
   // Function definitions
   function loadURL() {
@@ -128,6 +141,14 @@ yanhekt.cn###ai-bit-shortcut`;
   function safeLoadURL(url) {
     if (url && typeof url === 'string' && url.trim() !== '') {
       try {
+        // Automatically add https:// if protocol is missing
+        if (!url.match(/^[a-zA-Z]+:\/\//)) {
+          url = 'https://' + url;
+          console.log('Protocol missing, using:', url);
+          // Update input field with the corrected URL
+          inputUrl.value = url;
+        }
+        
         // Basic URL validation
         new URL(url); // This will throw if URL is invalid
         
@@ -1128,8 +1149,8 @@ yanhekt.cn###ai-bit-shortcut`;
   });
   
   webview.addEventListener('did-finish-load', () => {
-    // Update URL field
-    if (webview.src) {
+    // Update URL field only if user isn't editing
+    if (!userIsEditingUrl && webview.src) {
       inputUrl.value = webview.src;
     }
     
@@ -1179,8 +1200,10 @@ yanhekt.cn###ai-bit-shortcut`;
   });
 
   webview.addEventListener('did-navigate', (e) => {
-    // Update URL field
-    inputUrl.value = e.url;
+    // Update URL field only if user isn't editing
+    if (!userIsEditingUrl) {
+      inputUrl.value = e.url;
+    }
     statusText.textContent = 'Page loaded';
     
     // Check if URL matches trigger
@@ -1193,7 +1216,10 @@ yanhekt.cn###ai-bit-shortcut`;
   // Add event listener for in-page navigation (hash changes, etc)
   webview.addEventListener('did-navigate-in-page', (e) => {
     if (e.isMainFrame && e.url) {
-      inputUrl.value = e.url;
+      // Update URL field only if user isn't editing
+      if (!userIsEditingUrl) {
+        inputUrl.value = e.url;
+      }
       
       // Check if URL matches trigger
       if (checkUrlForCropGuidesTrigger(e.url)) {
@@ -1353,6 +1379,9 @@ yanhekt.cn###ai-bit-shortcut`;
   // Add enter key handling for URL input
   inputUrl.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
+      // When Enter is pressed, blur the input to indicate user is done editing
+      inputUrl.blur();
+      userIsEditingUrl = false;
       loadURL();
     }
   });
