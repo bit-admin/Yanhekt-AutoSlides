@@ -70,6 +70,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const MAX_SPEED_ADJUST_ATTEMPTS = 5;
   let detectedTitle = null;
   let titleExtractionComplete = false;
+  let currentTitleText = ''; // Track the current title for saving
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -1126,7 +1127,13 @@ yanhekt.cn###ai-bit-shortcut`;
       const isUsingElementCapture = activeProfileId !== 'default';
       const finalImageData = isUsingElementCapture ? imageData : await cropImage(imageData);
       
-      await window.electronAPI.saveSlide({ imageData: finalImageData, timestamp });
+      // Pass the title to the save function
+      await window.electronAPI.saveSlide({ 
+        imageData: finalImageData, 
+        timestamp,
+        title: currentTitleText
+      });
+      
       capturedCount++;
       slideCount.textContent = `Slides captured: ${capturedCount}`;
       
@@ -1148,7 +1155,13 @@ yanhekt.cn###ai-bit-shortcut`;
           // If using element capture, don't crop the image
           const finalImageData = isUsingElementCapture ? currentImageData : await cropImage(currentImageData);
           
-          await window.electronAPI.saveSlide({ imageData: finalImageData, timestamp });
+          // Pass the title to the save function
+          await window.electronAPI.saveSlide({ 
+            imageData: finalImageData, 
+            timestamp,
+            title: currentTitleText
+          });
+          
           capturedCount++;
           slideCount.textContent = `Slides captured: ${capturedCount}`;
           console.log(`Saved new slide (change ratio: ${result.changeRatio.toFixed(4)})`);
@@ -1217,6 +1230,7 @@ yanhekt.cn###ai-bit-shortcut`;
     statusText.textContent = 'Loading page...';
     titleDisplay.textContent = '';
     titleDisplay.style.display = 'none';
+    currentTitleText = ''; // Clear current title
   });
   
   webview.addEventListener('did-finish-load', () => {
@@ -2142,15 +2156,17 @@ yanhekt.cn###ai-bit-shortcut`;
     // Only run if active profile is not default and has autoDetectTitle enabled
     if (activeProfileId === 'default' || 
         !siteProfiles[activeProfileId]?.automation?.autoDetectTitle) {
-      titleDisplay.textContent = ''; // Clear title when not applicable
+      titleDisplay.textContent = '';
       titleDisplay.style.display = 'none';
+      currentTitleText = ''; // Clear current title
       return;
     }
     
     // Make sure URL matches patterns for this profile
     if (!urlMatchesProfilePatterns(webview.src, activeProfileId)) {
-      titleDisplay.textContent = ''; // Clear title when not applicable
+      titleDisplay.textContent = '';
       titleDisplay.style.display = 'none';
+      currentTitleText = ''; // Clear current title
       return;
     }
     
@@ -2159,8 +2175,9 @@ yanhekt.cn###ai-bit-shortcut`;
     const sessionInfoSel = siteProfiles[activeProfileId]?.automation?.sessionInfoSelector || '';
     
     if (!courseTitleSel && !sessionInfoSel) {
-      titleDisplay.textContent = ''; // Clear title when no selectors defined
+      titleDisplay.textContent = '';
       titleDisplay.style.display = 'none';
+      currentTitleText = ''; // Clear current title
       return;
     }
     
@@ -2228,29 +2245,32 @@ yanhekt.cn###ai-bit-shortcut`;
         }
         
         if (titleDisplayText) {
-          // Update the dedicated title element instead of status text
+          // Update the dedicated title element
           titleDisplay.textContent = titleDisplayText;
           titleDisplay.style.display = 'block';
+          currentTitleText = titleDisplayText; // Store the title for saving
         } else {
           titleDisplay.textContent = '';
           titleDisplay.style.display = 'none';
+          currentTitleText = ''; // Clear current title
         }
       } else {
         titleDisplay.textContent = '';
         titleDisplay.style.display = 'none';
+        currentTitleText = ''; // Clear current title
       }
     } catch (error) {
       console.error('Error in title detection:', error);
       titleDisplay.textContent = '';
       titleDisplay.style.display = 'none';
+      currentTitleText = ''; // Clear current title
     }
   }
 
   // Clear title when starting to load a new page
   webview.addEventListener('did-start-loading', () => {
-    statusText.textContent = 'Loading page...';
-    titleDisplay.textContent = '';
-    titleDisplay.style.display = 'none';
+    // ...existing code...
+    currentTitleText = ''; // Clear current title
   });
 
   // Reset speed adjustment state on navigation 
