@@ -401,14 +401,39 @@ ipcMain.handle('select-output-directory', async () => {
   return config.get('outputDir');
 });
 
+// Add this helper function for sanitizing folder names
+function sanitizeFolderName(name) {
+  if (!name) return 'Untitled';
+  
+  // First replace spaces with underscores
+  let sanitized = name.replace(/\s+/g, '_');
+  
+  // Then replace invalid characters with underscores, but preserve hyphens
+  sanitized = sanitized.replace(/[\\/:*?"<>|]/g, '_');
+  
+  // Convert multiple sequential underscores to single
+  sanitized = sanitized.replace(/_+/g, '_');
+  
+  // Limit length to avoid path issues
+  return sanitized.substring(0, 100);
+}
+
 // Handle saving screenshots
-ipcMain.handle('save-slide', (event, { imageData, timestamp }) => {
+ipcMain.handle('save-slide', (event, { imageData, timestamp, title }) => {
   try {
-    const outputDir = config.get('outputDir');
-    ensureDirectoryExists(outputDir);
+    const baseOutputDir = config.get('outputDir');
+    ensureDirectoryExists(baseOutputDir);
+    
+    // Create a title-based subfolder if title is provided
+    let targetDir = baseOutputDir;
+    if (title) {
+      const folderName = sanitizeFolderName(title);
+      targetDir = path.join(baseOutputDir, folderName);
+      ensureDirectoryExists(targetDir);
+    }
     
     const fileName = `slide_${timestamp}.png`;
-    const filePath = path.join(outputDir, fileName);
+    const filePath = path.join(targetDir, fileName);
     
     // Remove the data URL prefix
     const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
@@ -416,6 +441,7 @@ ipcMain.handle('save-slide', (event, { imageData, timestamp }) => {
     
     return { success: true, filePath };
   } catch (error) {
+    console.error('Error saving slide:', error);
     return { success: false, error: error.message };
   }
 });
