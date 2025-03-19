@@ -150,6 +150,31 @@
                   <input type="text" id="countdownSelector" placeholder=".countdown-content">
                   <p class="help-text">CSS selector for the countdown element (leave empty if not applicable)</p>
                 </div>
+                
+                <!-- Add auto playback speed adjustment -->
+                <div class="setting-item">
+                  <label>
+                    <input type="checkbox" id="autoAdjustSpeed"> 
+                    Auto-adjust playback speed
+                  </label>
+                  <p class="help-text">Automatically adjust video playback speed</p>
+                </div>
+                <div class="setting-item">
+                  <label for="speedSelector">Video element selector:</label>
+                  <input type="text" id="speedSelector" placeholder="#video_id_mainPlayer_html5_api">
+                  <p class="help-text">CSS selector for the video element to adjust</p>
+                </div>
+                <div class="setting-item">
+                  <label for="playbackSpeed">Playback speed:</label>
+                  <select id="playbackSpeed">
+                    <option value="1.5">1.0x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2.0">2.0x</option>
+                    <option value="2.5">2.5x</option>
+                    <option value="3.0">3.0x</option>
+                  </select>
+                  <p class="help-text">Select desired playback speed</p>
+                </div>
               </div>
             </div>
           </div>

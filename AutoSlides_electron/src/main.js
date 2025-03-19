@@ -54,7 +54,10 @@ yanhekt.cn###ai-bit-shortcut`
           endDetectionSelector: '.player-ended-poster',
           autoStartPlayback: true,
           playButtonSelector: '.player-mid-button-container button',
-          countdownSelector: '' // Leave empty for session player
+          countdownSelector: '', // Leave empty for session player
+          autoAdjustSpeed: true,  // Enable auto speed adjustment
+          speedSelector: '#video_id_mainPlayer_html5_api', // not same as elementSelector
+          playbackSpeed: '3.0' // Default to 3x speed
         }
       },
       yanhekt_live: {
@@ -67,7 +70,10 @@ yanhekt.cn###ai-bit-shortcut`
           endDetectionSelector: '.VideoResult_result__LdbB3',
           autoStartPlayback: true,
           playButtonSelector: '.player-mid-button-container button',
-          countdownSelector: '.countdown-content'
+          countdownSelector: '.countdown-content',
+          autoAdjustSpeed: false, // Disabled for live player
+          speedSelector: '#video_id_mainPlayer_html5_api', // Same as elementSelector
+          playbackSpeed: '1.0' // 1x default speed for live
         }
       }
     }
