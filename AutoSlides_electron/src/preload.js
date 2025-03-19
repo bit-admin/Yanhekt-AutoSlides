@@ -33,6 +33,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getCacheSize: () => ipcRenderer.invoke('get-cache-size'),
   
   /**
+   * Background running methods
+   */
+  enableBackgroundRunning: () => ipcRenderer.invoke('enable-background-running'),
+  disableBackgroundRunning: () => ipcRenderer.invoke('disable-background-running'),
+  getBackgroundRunningStatus: () => ipcRenderer.invoke('get-background-running-status'),
+  
+  /**
    * System information
    */
   platform: process.platform

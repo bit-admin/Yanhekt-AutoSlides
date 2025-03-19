@@ -530,3 +530,23 @@ button:active {
   width: auto;
   margin: 0;
 }
+
+/* Style for checkboxes throughout the application */
+.setting-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.setting-item input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+/* Preserve existing label styling for non-checkbox inputs */
+.setting-item label:not(:has(input[type="checkbox"])) {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+  font-weight: 500;
+}

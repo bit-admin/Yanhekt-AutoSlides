@@ -75,6 +75,10 @@ yanhekt.cn###ai-bit-shortcut`
   activeProfileId: {
     type: 'string',
     default: 'yanhekt_live'  // Change default profile to live player
+  },
+  allowBackgroundRunning: {
+    type: 'boolean',
+    default: false
   }
 };
 
@@ -320,6 +324,46 @@ async function clearAllCacheData() {
   }
 }
 
+// Background running handling
+let powerSaveBlockerId = null;
+
+function enableBackgroundRunning() {
+  try {
+    if (powerSaveBlockerId === null) {
+      // The 'prevent-app-suspension' reason works on both macOS and Windows
+      powerSaveBlockerId = require('electron').powerSaveBlocker.start('prevent-app-suspension');
+      console.log('Background running enabled, ID:', powerSaveBlockerId);
+      
+      // On macOS, we can also prevent display sleep if needed
+      if (process.platform === 'darwin') {
+        const displayBlockerId = require('electron').powerSaveBlocker.start('prevent-display-sleep');
+        console.log('Display sleep prevention enabled, ID:', displayBlockerId);
+      }
+      
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Failed to enable background running:', error);
+    return false;
+  }
+}
+
+function disableBackgroundRunning() {
+  try {
+    if (powerSaveBlockerId !== null) {
+      require('electron').powerSaveBlocker.stop(powerSaveBlockerId);
+      console.log('Background running disabled');
+      powerSaveBlockerId = null;
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Failed to disable background running:', error);
+    return false;
+  }
+}
+
 // IPC handlers
 ipcMain.handle('get-config', () => {
   return config.store;
@@ -422,4 +466,17 @@ ipcMain.handle('clear-all-data', async () => {
 
 ipcMain.handle('get-cache-size', async () => {
   return calculateCacheSize();
+});
+
+// Add IPC handlers for background running
+ipcMain.handle('enable-background-running', () => {
+  return enableBackgroundRunning();
+});
+
+ipcMain.handle('disable-background-running', () => {
+  return disableBackgroundRunning();
+});
+
+ipcMain.handle('get-background-running-status', () => {
+  return powerSaveBlockerId !== null;
 });
