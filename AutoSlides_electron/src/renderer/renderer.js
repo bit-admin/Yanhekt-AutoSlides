@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const autoStartPlayback = document.getElementById('autoStartPlayback');
   const playButtonSelector = document.getElementById('playButtonSelector');
   const countdownSelector = document.getElementById('countdownSelector');
+  const allowBackgroundRunning = document.getElementById('allowBackgroundRunning');
 
   // Capture related variables
   let captureInterval = null;
@@ -190,6 +191,8 @@ yanhekt.cn###ai-bit-shortcut`;
       // Select active profile
       siteProfileSelect.value = activeProfileId;
       loadProfileDetails(activeProfileId);
+
+      allowBackgroundRunning.checked = config.allowBackgroundRunning || false;
       
       return config;
     } catch (error) {
@@ -207,7 +210,8 @@ yanhekt.cn###ai-bit-shortcut`;
         checkInterval: parseFloat(inputCheckInterval.value),
         cacheCleanInterval: parseInt(cacheCleanInterval.value, 10),
         siteProfiles: siteProfiles,
-        activeProfileId: activeProfileId
+        activeProfileId: activeProfileId,
+        allowBackgroundRunning: allowBackgroundRunning.checked
       };
       
       await window.electronAPI.saveConfig(config);
@@ -228,7 +232,8 @@ yanhekt.cn###ai-bit-shortcut`;
       topCropPercent: 5,
       bottomCropPercent: 5,
       changeThreshold: 0.005,
-      checkInterval: 2
+      checkInterval: 2,
+      allowBackgroundRunning: false // Add this line to reset background running
     };
     
     // Update input fields
@@ -236,6 +241,7 @@ yanhekt.cn###ai-bit-shortcut`;
     inputBottomCrop.value = defaultConfig.bottomCropPercent;
     inputChangeThreshold.value = defaultConfig.changeThreshold;
     inputCheckInterval.value = defaultConfig.checkInterval;
+    allowBackgroundRunning.checked = defaultConfig.allowBackgroundRunning; // Update checkbox state
     
     // Save to config
     await window.electronAPI.saveConfig(defaultConfig);
@@ -1018,6 +1024,15 @@ yanhekt.cn###ai-bit-shortcut`;
     
     // Setup the automatic cache cleanup timer
     setupCacheCleanupTimer();
+
+    if (allowBackgroundRunning.checked) {
+      try {
+        await window.electronAPI.enableBackgroundRunning();
+        console.log('Background running enabled for capture session');
+      } catch (error) {
+        console.error('Failed to enable background running:', error);
+      }
+    }
     
     // Capture first slide
     try {
@@ -1067,7 +1082,7 @@ yanhekt.cn###ai-bit-shortcut`;
   }
   
   // Stop capturing slides
-  function stopCapture() {
+  async function stopCapture() {
     if (captureInterval) {
       clearInterval(captureInterval);
       captureInterval = null;
@@ -1076,6 +1091,13 @@ yanhekt.cn###ai-bit-shortcut`;
       if (cacheCleanupTimer) {
         clearInterval(cacheCleanupTimer);
         cacheCleanupTimer = null;
+      }
+
+      try {
+        await window.electronAPI.disableBackgroundRunning();
+        console.log('Background running disabled after capture');
+      } catch (error) {
+        console.error('Failed to disable background running:', error);
       }
       
       btnStartCapture.disabled = false;
@@ -1547,4 +1569,26 @@ yanhekt.cn###ai-bit-shortcut`;
     }
     return false;
   }
+
+  allowBackgroundRunning.addEventListener('change', async () => {
+    try {
+      if (allowBackgroundRunning.checked) {
+        await window.electronAPI.enableBackgroundRunning();
+        statusText.textContent = 'Background running enabled';
+      } else {
+        await window.electronAPI.disableBackgroundRunning();
+        statusText.textContent = 'Background running disabled';
+      }
+      
+      // Reset status text after 2 seconds
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 2000);
+      
+      // Save the new setting
+      saveConfig();
+    } catch (error) {
+      console.error('Error toggling background running:', error);
+    }
+  });
 });
