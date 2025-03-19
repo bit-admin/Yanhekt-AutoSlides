@@ -46,6 +46,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const playButtonSelector = document.getElementById('playButtonSelector');
   const countdownSelector = document.getElementById('countdownSelector');
   const allowBackgroundRunning = document.getElementById('allowBackgroundRunning');
+  const autoAdjustSpeed = document.getElementById('autoAdjustSpeed');
+  const speedSelector = document.getElementById('speedSelector');
+  const playbackSpeed = document.getElementById('playbackSpeed');
 
   // Capture related variables
   let captureInterval = null;
@@ -57,6 +60,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   let activeProfileId = 'default';
   let currentProfile = null;
   let autoStartCheckInterval = null; // Add this line
+  let speedAdjusted = false;
+  let speedAdjustInterval = null;
+  let speedAdjustRetryAttempts = 0;
+  const MAX_SPEED_ADJUST_ATTEMPTS = 5;
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -188,7 +195,13 @@ yanhekt.cn###ai-bit-shortcut`;
           builtin: true,
           automation: {
             autoDetectEnd: true,
-            endDetectionSelector: '.player-ended-poster'
+            endDetectionSelector: '.player-ended-poster',
+            autoStartPlayback: true,
+            playButtonSelector: '.player-mid-button-container button',
+            countdownSelector: '', // Leave empty for session player
+            autoAdjustSpeed: true,  // Add default auto speed adjustment
+            speedSelector: '#video_id_mainPlayer_html5_api', // not Same as elementSelector
+            playbackSpeed: '3.0' // Default to 3x speed
           }
         },
         yanhekt_live: {
@@ -198,7 +211,10 @@ yanhekt.cn###ai-bit-shortcut`;
           builtin: true,
           automation: {
             autoDetectEnd: true,
-            endDetectionSelector: '.VideoResult_result__LdbB3'
+            endDetectionSelector: '.VideoResult_result__LdbB3',
+            autoAdjustSpeed: false,
+            speedSelector: '#video_id_mainPlayer_html5_api', // Same as elementSelector
+            playbackSpeed: '1.0'  // Default to 1x speed
           }
         }
       };
@@ -315,6 +331,9 @@ yanhekt.cn###ai-bit-shortcut`;
       autoStartPlayback.checked = false;
       playButtonSelector.value = '';
       countdownSelector.value = '';
+      autoAdjustSpeed.checked = false;
+      speedSelector.value = '';
+      playbackSpeed.value = '2.0';
       currentProfile = null;
       return;
     }
@@ -331,12 +350,18 @@ yanhekt.cn###ai-bit-shortcut`;
         autoStartPlayback.checked = profile.automation.autoStartPlayback || false;
         playButtonSelector.value = profile.automation.playButtonSelector || '';
         countdownSelector.value = profile.automation.countdownSelector || '';
+        autoAdjustSpeed.checked = profile.automation.autoAdjustSpeed || false;
+        speedSelector.value = profile.automation.speedSelector || '';
+        playbackSpeed.value = profile.automation.playbackSpeed || '2.0';
       } else {
         autoDetectEnd.checked = false;
         endDetectionSelector.value = '';
         autoStartPlayback.checked = false;
         playButtonSelector.value = '';
         countdownSelector.value = '';
+        autoAdjustSpeed.checked = false;
+        speedSelector.value = '';
+        playbackSpeed.value = '2.0';
       }
       
       currentProfile = profile;
@@ -353,7 +378,10 @@ yanhekt.cn###ai-bit-shortcut`;
       endDetectionSelector: endDetectionSelector.value,
       autoStartPlayback: autoStartPlayback.checked,
       playButtonSelector: playButtonSelector.value,
-      countdownSelector: countdownSelector.value
+      countdownSelector: countdownSelector.value,
+      autoAdjustSpeed: autoAdjustSpeed.checked,
+      speedSelector: speedSelector.value,
+      playbackSpeed: playbackSpeed.value
     };
     
     if (siteProfileSelect.value === 'custom') {
@@ -1121,6 +1149,16 @@ yanhekt.cn###ai-bit-shortcut`;
         console.error('Failed to disable background running:', error);
       }
       
+      // Clear speed adjustment interval if it exists
+      if (speedAdjustInterval) {
+        clearInterval(speedAdjustInterval);
+        speedAdjustInterval = null;
+      }
+      
+      // Reset speed adjustment state
+      speedAdjusted = false;
+      speedAdjustRetryAttempts = 0;
+
       btnStartCapture.disabled = false;
       btnStopCapture.disabled = true;
       statusText.textContent = 'Capture stopped, cleaning up...';
@@ -1140,6 +1178,7 @@ yanhekt.cn###ai-bit-shortcut`;
           console.error('Error cleaning cache on stop:', error);
           statusText.textContent = 'Capture stopped';
         });
+      speedAdjusted = false;
     }
   }
   
@@ -1627,6 +1666,33 @@ yanhekt.cn###ai-bit-shortcut`;
                   startCapture();
                 }
               }, 2000);
+              
+              // Set up speed adjustment check interval if enabled in the profile
+              if (!speedAdjusted && 
+                  activeProfileId !== 'default' &&
+                  siteProfiles[activeProfileId]?.automation?.autoAdjustSpeed && 
+                  siteProfiles[activeProfileId]?.automation?.speedSelector) {
+                
+                // Reset retry counter
+                speedAdjustRetryAttempts = 0;
+                
+                // Clear any existing interval
+                if (speedAdjustInterval) {
+                  clearInterval(speedAdjustInterval);
+                }
+                
+                // Delay before starting speed adjustment checks
+                setTimeout(() => {
+                  // First try immediately
+                  checkAndAdjustPlaybackSpeed();
+                  
+                  // Then set up interval for retries if needed
+                  speedAdjustInterval = setInterval(checkAndAdjustPlaybackSpeed, 2000);
+                }, 1000); // 1 second delay before first attempt
+              }
+              
+              // Remove the old implementation
+              // if (!speedAdjusted && ...) { ... }
             } else {
               // Button click didn't start playback, retry if within attempts limit
               playbackRetryAttempts++;
@@ -1690,6 +1756,161 @@ yanhekt.cn###ai-bit-shortcut`;
     }
   }
 
+  // Add this new function for checking and adjusting playback speed
+  async function checkAndAdjustPlaybackSpeed() {
+    if (speedAdjusted || 
+        activeProfileId === 'default' || 
+        !siteProfiles[activeProfileId]?.automation?.autoAdjustSpeed ||
+        !siteProfiles[activeProfileId]?.automation?.speedSelector) {
+      
+      // Clean up interval if it exists
+      if (speedAdjustInterval) {
+        clearInterval(speedAdjustInterval);
+        speedAdjustInterval = null;
+      }
+      return;
+    }
+    
+    try {
+      // First check if the video is actually playing
+      const playingCheck = await webview.executeJavaScript(`
+        (function() {
+          try {
+            const speedSelector = '${siteProfiles[activeProfileId].automation.speedSelector}';
+            const videoEl = document.querySelector(speedSelector);
+            
+            if (!videoEl) {
+              return { success: false, error: 'Video element not found', playing: false };
+            }
+            
+            return { 
+              success: true, 
+              playing: !videoEl.paused && !videoEl.ended && videoEl.currentTime > 0,
+              currentSpeed: videoEl.playbackRate
+            };
+          } catch (err) {
+            return { success: false, error: err.toString(), playing: false };
+          }
+        })();
+      `);
+      
+      if (!playingCheck.success) {
+        console.error('Error checking video playback status:', playingCheck.error);
+        statusText.textContent = 'Error checking video status';
+        
+        // Increment retry counter
+        speedAdjustRetryAttempts++;
+        if (speedAdjustRetryAttempts >= MAX_SPEED_ADJUST_ATTEMPTS) {
+          console.log('Max speed adjustment retry attempts reached');
+          clearInterval(speedAdjustInterval);
+          speedAdjustInterval = null;
+        }
+        return;
+      }
+      
+      if (!playingCheck.playing) {
+        console.log('Video not playing yet, cannot adjust speed');
+        return; // Try again on next interval
+      }
+      
+      // Get target speed from the profile
+      const targetSpeed = parseFloat(siteProfiles[activeProfileId].automation.playbackSpeed) || 1.0;
+      
+      // Check if speed is already set correctly
+      if (playingCheck.currentSpeed === targetSpeed) {
+        console.log(`Playback speed is already at target ${targetSpeed}x`);
+        statusText.textContent = `Playback speed: ${targetSpeed}x`;
+        speedAdjusted = true;
+        clearInterval(speedAdjustInterval);
+        speedAdjustInterval = null;
+        
+        // Reset status text after 3 seconds
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+        return;
+      }
+      
+      // If we get here, we need to adjust the speed
+      console.log(`Adjusting playback speed to ${targetSpeed}x`);
+      statusText.textContent = `Setting playback speed to ${targetSpeed}x`;
+      
+      const result = await webview.executeJavaScript(`
+        (function() {
+          try {
+            const speedSelector = '${siteProfiles[activeProfileId].automation.speedSelector}';
+            const videoEl = document.querySelector(speedSelector);
+            
+            if (!videoEl) {
+              return { success: false, error: 'Video element not found for speed adjustment' };
+            }
+            
+            // Store original speed for comparison
+            const originalSpeed = videoEl.playbackRate;
+            
+            // Set the new speed
+            videoEl.playbackRate = ${targetSpeed};
+            
+            // Verify the speed was actually changed
+            if (videoEl.playbackRate !== ${targetSpeed}) {
+              return { 
+                success: false, 
+                error: 'Speed setting was not applied', 
+                requestedSpeed: ${targetSpeed},
+                actualSpeed: videoEl.playbackRate
+              };
+            }
+            
+            return { 
+              success: true, 
+              actualSpeed: videoEl.playbackRate,
+              originalSpeed: originalSpeed
+            };
+          } catch(err) {
+            return { success: false, error: err.toString() };
+          }
+        })();
+      `);
+      
+      if (result.success) {
+        console.log(`Playback speed set to ${result.actualSpeed}x (was ${result.originalSpeed}x)`);
+        statusText.textContent = `Playback speed: ${result.actualSpeed}x`;
+        speedAdjusted = true;
+        
+        // Clean up interval
+        clearInterval(speedAdjustInterval);
+        speedAdjustInterval = null;
+        
+        // Reset status text after 3 seconds
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+      } else {
+        console.error('Failed to adjust playback speed:', result.error);
+        speedAdjustRetryAttempts++;
+        statusText.textContent = `Speed adjustment failed, retry ${speedAdjustRetryAttempts}/${MAX_SPEED_ADJUST_ATTEMPTS}`;
+        
+        if (speedAdjustRetryAttempts >= MAX_SPEED_ADJUST_ATTEMPTS) {
+          console.log('Max speed adjustment retry attempts reached');
+          clearInterval(speedAdjustInterval);
+          speedAdjustInterval = null;
+          
+          setTimeout(() => {
+            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          }, 2000);
+        }
+      }
+    } catch (error) {
+      console.error('Error in checkAndAdjustPlaybackSpeed:', error);
+      speedAdjustRetryAttempts++;
+      
+      if (speedAdjustRetryAttempts >= MAX_SPEED_ADJUST_ATTEMPTS) {
+        clearInterval(speedAdjustInterval);
+        speedAdjustInterval = null;
+      }
+    }
+  }
+
   // Add this function to check URL against profile patterns
   function urlMatchesProfilePatterns(url, profileId) {
     if (!profileId || profileId === 'default' || !siteProfiles[profileId]) {
@@ -1730,5 +1951,73 @@ yanhekt.cn###ai-bit-shortcut`;
     } catch (error) {
       console.error('Error toggling background running:', error);
     }
+  });
+
+  // Toggle visibility of auto-adjust speed fields
+  autoAdjustSpeed.addEventListener('change', () => {
+    const speedFields = document.querySelectorAll('#speedSelector, #playbackSpeed');
+    const speedLabels = document.querySelectorAll('label[for="speedSelector"], label[for="playbackSpeed"]');
+    const helpTexts = autoAdjustSpeed.closest('.setting-item').nextElementSibling.querySelectorAll('.help-text');
+    
+    if (autoAdjustSpeed.checked) {
+      speedFields.forEach(field => field.closest('.setting-item').style.display = 'block');
+      speedLabels.forEach(label => label.style.display = 'inline-block');
+      helpTexts.forEach(help => help.style.display = 'block');
+    } else {
+      speedFields.forEach(field => field.closest('.setting-item').style.display = 'none');
+      speedLabels.forEach(label => label.style.display = 'none');
+      helpTexts.forEach(help => help.style.display = 'none');
+    }
+  });
+  
+  // Initial display state for auto-adjust speed
+  if (!autoAdjustSpeed.checked) {
+    const speedFields = document.querySelectorAll('#speedSelector, #playbackSpeed');
+    const speedLabels = document.querySelectorAll('label[for="speedSelector"], label[for="playbackSpeed"]');
+    const helpTexts = autoAdjustSpeed.closest('.setting-item').nextElementSibling.querySelectorAll('.help-text');
+    
+    speedFields.forEach(field => field.closest('.setting-item').style.display = 'none');
+    speedLabels.forEach(label => label.style.display = 'none');
+    helpTexts.forEach(help => help.style.display = 'none');
+  }
+
+  // Disable auto-adjust speed if auto-start playback is not checked
+  autoStartPlayback.addEventListener('change', () => {
+    // ...existing code...
+    
+    // If auto-start is disabled, also disable auto-adjust speed
+    if (!autoStartPlayback.checked) {
+      autoAdjustSpeed.checked = false;
+      autoAdjustSpeed.disabled = true;
+      
+      // Hide speed fields
+      const speedFields = document.querySelectorAll('#speedSelector, #playbackSpeed');
+      const speedLabels = document.querySelectorAll('label[for="speedSelector"], label[for="playbackSpeed"]');
+      const helpTexts = autoAdjustSpeed.closest('.setting-item').nextElementSibling.querySelectorAll('.help-text');
+      
+      speedFields.forEach(field => field.closest('.setting-item').style.display = 'none');
+      speedLabels.forEach(label => label.style.display = 'none');
+      helpTexts.forEach(help => help.style.display = 'none');
+    } else {
+      autoAdjustSpeed.disabled = false;
+    }
+  });
+
+  // Apply this constraint on initial load
+  if (!autoStartPlayback.checked) {
+    autoAdjustSpeed.disabled = true;
+  }
+
+  // Make sure speedAdjusted is reset when webview navigates
+  webview.addEventListener('did-navigate', (e) => {
+    // ...existing code...
+    
+    // Reset speed adjustment state on navigation
+    speedAdjusted = false;
+    if (speedAdjustInterval) {
+      clearInterval(speedAdjustInterval);
+      speedAdjustInterval = null;
+    }
+    speedAdjustRetryAttempts = 0;
   });
 });

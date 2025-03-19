@@ -550,3 +550,18 @@ button:active {
   font-size: 14px;
   font-weight: 500;
 }
+
+/* Style for select elements like the playback speed dropdown */
+select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+}
+
+select:focus {
+  outline: 2px solid #0078d7;
+  border-color: #0078d7;
+}
