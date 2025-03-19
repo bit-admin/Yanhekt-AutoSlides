@@ -52,12 +52,15 @@ yanhekt.cn###ai-bit-shortcut`
         automation: {
           autoDetectEnd: true,
           endDetectionSelector: '.player-ended-poster',
-          autoStartPlayback: true,
+          autoStartPlayback: false,
           playButtonSelector: '.player-mid-button-container button',
           countdownSelector: '', // Leave empty for session player
           autoAdjustSpeed: true,  // Enable auto speed adjustment
           speedSelector: '#video_id_mainPlayer_html5_api', // not same as elementSelector
-          playbackSpeed: '3.0' // Default to 3x speed
+          playbackSpeed: '3.0', // Default to 3x speed
+          autoDetectTitle: true, // Enable title detection
+          courseTitleSelector: '.ant-breadcrumb li:nth-child(2) a', // Course title selector
+          sessionInfoSelector: '.ant-breadcrumb li:nth-child(3) span' // Session info selector
         }
       },
       yanhekt_live: {
@@ -68,12 +71,15 @@ yanhekt.cn###ai-bit-shortcut`
         automation: {
           autoDetectEnd: true,
           endDetectionSelector: '.VideoResult_result__LdbB3',
-          autoStartPlayback: true,
+          autoStartPlayback: false,
           playButtonSelector: '.player-mid-button-container button',
           countdownSelector: '.countdown-content',
           autoAdjustSpeed: false, // Disabled for live player
           speedSelector: '#video_id_mainPlayer_html5_api', // Same as elementSelector
-          playbackSpeed: '1.0' // 1x default speed for live
+          playbackSpeed: '1.0', // 1x default speed for live
+          autoDetectTitle: true, // Enable title detection
+          courseTitleSelector: '.index_liveHeader__uN3uM', // Course title selector
+          sessionInfoSelector: '' // No session info for live
         }
       }
     }

@@ -171,6 +171,27 @@
                   </select>
                   <p class="help-text">Select desired playback speed</p>
                 </div>
+                
+                <!-- Add title detection section -->
+                <div class="setting-item">
+                  <label>
+                    <input type="checkbox" id="autoDetectTitle"> 
+                    Auto-detect title
+                  </label>
+                  <p class="help-text">Automatically extract title information from page</p>
+                </div>
+                <div class="setting-item">
+                  <label for="courseTitleSelector">Course title selector:</label>
+                  <input type="text" id="courseTitleSelector" placeholder=".ant-breadcrumb li:nth-child(2) a">
+                  <p class="help-text">CSS selector for course title element</p>
+                </div>
+                <div class="setting-item">
+                  <label for="sessionInfoSelector">Session info selector:</label>
+                  <input type="text" id="sessionInfoSelector" placeholder=".ant-breadcrumb li:nth-child(3) span">
+                  <p class="help-text">CSS selector for session info element</p>
+                </div>
+                <!-- End of title detection section -->
+                
                 <div class="settings-separator"></div>
               </div>
             </div>
@@ -219,6 +240,7 @@
       <div class="sidebar-bottom">
         <div class="status-panel">
           <h3>Status</h3>
+          <div id="titleDisplay" class="title-display"></div>
           <div id="statusText">Idle</div>
           <div id="slideCount">Slides captured: 0</div>
         </div>
