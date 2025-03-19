@@ -49,6 +49,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const autoAdjustSpeed = document.getElementById('autoAdjustSpeed');
   const speedSelector = document.getElementById('speedSelector');
   const playbackSpeed = document.getElementById('playbackSpeed');
+  const autoDetectTitle = document.getElementById('autoDetectTitle');
+  const courseTitleSelector = document.getElementById('courseTitleSelector');
+  const sessionInfoSelector = document.getElementById('sessionInfoSelector');
+  const titleDisplay = document.getElementById('titleDisplay'); // Add this line
 
   // Capture related variables
   let captureInterval = null;
@@ -64,6 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   let speedAdjustInterval = null;
   let speedAdjustRetryAttempts = 0;
   const MAX_SPEED_ADJUST_ATTEMPTS = 5;
+  let detectedTitle = null;
+  let titleExtractionComplete = false;
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -199,22 +205,28 @@ yanhekt.cn###ai-bit-shortcut`;
             autoStartPlayback: true,
             playButtonSelector: '.player-mid-button-container button',
             countdownSelector: '', // Leave empty for session player
-            autoAdjustSpeed: true,  // Add default auto speed adjustment
-            speedSelector: '#video_id_mainPlayer_html5_api', // not Same as elementSelector
-            playbackSpeed: '3.0' // Default to 3x speed
+            autoAdjustSpeed: true,  // Enable auto speed adjustment
+            speedSelector: '#video_id_mainPlayer_html5_api', // not same as elementSelector
+            playbackSpeed: '3.0', // Default to 3x speed
+            autoDetectTitle: true, // Add title detection
+            courseTitleSelector: '.ant-breadcrumb li:nth-child(2) a', // Course title selector
+            sessionInfoSelector: '.ant-breadcrumb li:nth-child(3) span' // Session info selector
           }
         },
         yanhekt_live: {
           name: 'YanHeKT Live Player',
           elementSelector: '#video_id_mainPlayer_html5_api',
           urlPattern: 'yanhekt.cn/live',
-          builtin: true,
+          builtin: false,
           automation: {
             autoDetectEnd: true,
             endDetectionSelector: '.VideoResult_result__LdbB3',
             autoAdjustSpeed: false,
             speedSelector: '#video_id_mainPlayer_html5_api', // Same as elementSelector
-            playbackSpeed: '1.0'  // Default to 1x speed
+            playbackSpeed: '1.0',  // Default to 1x speed
+            autoDetectTitle: true, // Enable title detection
+            courseTitleSelector: '.index_liveHeader__uN3uM', // Course title selector
+            sessionInfoSelector: '' // No session info for live
           }
         }
       };
@@ -334,6 +346,9 @@ yanhekt.cn###ai-bit-shortcut`;
       autoAdjustSpeed.checked = false;
       speedSelector.value = '';
       playbackSpeed.value = '2.0';
+      autoDetectTitle.checked = false; // Default title detection settings
+      courseTitleSelector.value = '';
+      sessionInfoSelector.value = '';
       currentProfile = null;
       return;
     }
@@ -353,11 +368,15 @@ yanhekt.cn###ai-bit-shortcut`;
         autoAdjustSpeed.checked = profile.automation.autoAdjustSpeed || false;
         speedSelector.value = profile.automation.speedSelector || '';
         playbackSpeed.value = profile.automation.playbackSpeed || '2.0';
+        autoDetectTitle.checked = profile.automation.autoDetectTitle || false; // Load title detection settings
+        courseTitleSelector.value = profile.automation.courseTitleSelector || '';
+        sessionInfoSelector.value = profile.automation.sessionInfoSelector || '';
         
         // Add these lines to update UI visibility based on checkbox values
         updateAutoDetectEndFieldsVisibility();
         updateAutoStartFieldsVisibility();
         updateAutoAdjustSpeedFieldsVisibility();
+        updateAutoDetectTitleFieldsVisibility(); // Add this function
       } else {
         autoDetectEnd.checked = false;
         endDetectionSelector.value = '';
@@ -367,6 +386,9 @@ yanhekt.cn###ai-bit-shortcut`;
         autoAdjustSpeed.checked = false;
         speedSelector.value = '';
         playbackSpeed.value = '2.0';
+        autoDetectTitle.checked = false; // Default title detection settings
+        courseTitleSelector.value = '';
+        sessionInfoSelector.value = '';
       }
       
       currentProfile = profile;
@@ -386,7 +408,10 @@ yanhekt.cn###ai-bit-shortcut`;
       countdownSelector: countdownSelector.value,
       autoAdjustSpeed: autoAdjustSpeed.checked,
       speedSelector: speedSelector.value,
-      playbackSpeed: playbackSpeed.value
+      playbackSpeed: playbackSpeed.value,
+      autoDetectTitle: autoDetectTitle.checked, // Save title detection settings
+      courseTitleSelector: courseTitleSelector.value,
+      sessionInfoSelector: sessionInfoSelector.value
     };
     
     if (siteProfileSelect.value === 'custom') {
@@ -1190,6 +1215,8 @@ yanhekt.cn###ai-bit-shortcut`;
   // Set event listeners for page loading
   webview.addEventListener('did-start-loading', () => {
     statusText.textContent = 'Loading page...';
+    titleDisplay.textContent = '';
+    titleDisplay.style.display = 'none';
   });
   
   webview.addEventListener('did-finish-load', () => {
@@ -1230,6 +1257,10 @@ yanhekt.cn###ai-bit-shortcut`;
       checkAndAutoStartPlayback();
       autoStartCheckInterval = setInterval(checkAndAutoStartPlayback, 2000);
     }
+    // Add a slight delay to ensure page content is loaded
+    setTimeout(() => {
+      detectAndDisplayTitle();
+    }, 1000);
   });
 
   webview.addEventListener('did-fail-load', (event) => {
@@ -1255,6 +1286,12 @@ yanhekt.cn###ai-bit-shortcut`;
       console.log('URL contains crop guides trigger in did-navigate, showing guides');
       setTimeout(() => updateCropGuides(true), 500); // true = automatic trigger
     }
+    const url = e.url;
+    checkAndSwitchProfile(url);
+    // Add a slight delay to ensure page content is loaded
+    setTimeout(() => {
+      detectAndDisplayTitle();
+    }, 1000);
   });
 
   // Add event listener for in-page navigation (hash changes, etc)
@@ -1271,6 +1308,12 @@ yanhekt.cn###ai-bit-shortcut`;
         setTimeout(() => updateCropGuides(true), 500);
       }
     }
+    const url = e.url;
+    checkAndSwitchProfile(url);
+    // Add a slight delay to ensure page content is loaded
+    setTimeout(() => {
+      detectAndDisplayTitle();
+    }, 1000);
   });
   
   webview.addEventListener('new-window', (e) => {
@@ -2024,6 +2067,10 @@ yanhekt.cn###ai-bit-shortcut`;
       speedAdjustInterval = null;
     }
     speedAdjustRetryAttempts = 0;
+    
+    // Reset title display before detecting new title
+    titleDisplay.textContent = '';
+    titleDisplay.style.display = 'none';
   });
 
   // Add these helper functions to consolidate visibility logic
@@ -2079,4 +2126,139 @@ yanhekt.cn###ai-bit-shortcut`;
   autoDetectEnd.addEventListener('change', updateAutoDetectEndFieldsVisibility);
   autoStartPlayback.addEventListener('change', updateAutoStartFieldsVisibility);
   autoAdjustSpeed.addEventListener('change', updateAutoAdjustSpeedFieldsVisibility);
+
+  // Add this function to toggle title detection fields visibility
+  function updateAutoDetectTitleFieldsVisibility() {
+    const isChecked = autoDetectTitle.checked;
+    document.querySelector('label[for="courseTitleSelector"]').parentElement.style.display = isChecked ? 'block' : 'none';
+    document.querySelector('label[for="sessionInfoSelector"]').parentElement.style.display = isChecked ? 'block' : 'none';
+  }
+
+  // Add event listener for title detection checkbox
+  autoDetectTitle.addEventListener('change', updateAutoDetectTitleFieldsVisibility);
+
+  // Add the title detection function
+  async function detectAndDisplayTitle() {
+    // Only run if active profile is not default and has autoDetectTitle enabled
+    if (activeProfileId === 'default' || 
+        !siteProfiles[activeProfileId]?.automation?.autoDetectTitle) {
+      titleDisplay.textContent = ''; // Clear title when not applicable
+      titleDisplay.style.display = 'none';
+      return;
+    }
+    
+    // Make sure URL matches patterns for this profile
+    if (!urlMatchesProfilePatterns(webview.src, activeProfileId)) {
+      titleDisplay.textContent = ''; // Clear title when not applicable
+      titleDisplay.style.display = 'none';
+      return;
+    }
+    
+    // Get the selectors from the active profile
+    const courseTitleSel = siteProfiles[activeProfileId]?.automation?.courseTitleSelector || '';
+    const sessionInfoSel = siteProfiles[activeProfileId]?.automation?.sessionInfoSelector || '';
+    
+    if (!courseTitleSel && !sessionInfoSel) {
+      titleDisplay.textContent = ''; // Clear title when no selectors defined
+      titleDisplay.style.display = 'none';
+      return;
+    }
+    
+    try {
+      // Extract title information
+      const titleInfo = await webview.executeJavaScript(`
+        (function() {
+          try {
+            const result = {};
+            
+            // Extract course title
+            if ('${courseTitleSel}') {
+              const courseElem = document.querySelector('${courseTitleSel}');
+              if (courseElem) {
+                result.courseTitle = courseElem.textContent.trim();
+              }
+            }
+            
+            // Extract session information
+            if ('${sessionInfoSel}') {
+              const sessionElem = document.querySelector('${sessionInfoSel}');
+              if (sessionElem) {
+                result.sessionInfo = sessionElem.textContent.trim();
+                
+                // Try to parse week and day information using regex
+                const weekMatch = result.sessionInfo.match(/第(\\d+)周/);
+                const dayMatch = result.sessionInfo.match(/星期([一二三四五六日])/);
+                
+                if (weekMatch && weekMatch[1]) {
+                  result.weekNumber = weekMatch[1];
+                }
+                
+                if (dayMatch && dayMatch[1]) {
+                  // Convert Chinese day to English abbreviation
+                  const dayMap = {
+                    '一': 'mon', '二': 'tue', '三': 'wed', '四': 'thu',
+                    '五': 'fri', '六': 'sat', '日': 'sun'
+                  };
+                  result.dayOfWeek = dayMap[dayMatch[1]] || dayMatch[1];
+                }
+              }
+            }
+            
+            return result;
+          } catch (err) {
+            console.error('Error extracting title information:', err);
+            return null;
+          }
+        })();
+      `);
+      
+      if (titleInfo) {
+        let titleDisplayText = '';
+        
+        if (titleInfo.courseTitle) {
+          titleDisplayText += titleInfo.courseTitle;
+        }
+        
+        if (titleInfo.weekNumber && titleInfo.dayOfWeek) {
+          if (titleDisplayText) titleDisplayText += ' - ';
+          titleDisplayText += `week ${titleInfo.weekNumber} ${titleInfo.dayOfWeek}`;
+        } else if (titleInfo.sessionInfo) {
+          if (titleDisplayText) titleDisplayText += ' - ';
+          titleDisplayText += titleInfo.sessionInfo;
+        }
+        
+        if (titleDisplayText) {
+          // Update the dedicated title element instead of status text
+          titleDisplay.textContent = titleDisplayText;
+          titleDisplay.style.display = 'block';
+        } else {
+          titleDisplay.textContent = '';
+          titleDisplay.style.display = 'none';
+        }
+      } else {
+        titleDisplay.textContent = '';
+        titleDisplay.style.display = 'none';
+      }
+    } catch (error) {
+      console.error('Error in title detection:', error);
+      titleDisplay.textContent = '';
+      titleDisplay.style.display = 'none';
+    }
+  }
+
+  // Clear title when starting to load a new page
+  webview.addEventListener('did-start-loading', () => {
+    statusText.textContent = 'Loading page...';
+    titleDisplay.textContent = '';
+    titleDisplay.style.display = 'none';
+  });
+
+  // Reset speed adjustment state on navigation 
+  webview.addEventListener('did-navigate', (e) => {
+    // ...existing code...
+    
+    // Reset title display before detecting new title
+    titleDisplay.textContent = '';
+    titleDisplay.style.display = 'none';
+  });
 });

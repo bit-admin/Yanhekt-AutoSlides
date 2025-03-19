@@ -565,3 +565,19 @@ select:focus {
   outline: 2px solid #0078d7;
   border-color: #0078d7;
 }
+
+/* Title display styles */
+.title-display {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+  font-weight: 500;
+  color: #333;
+  word-break: break-word;
+  display: none; /* Hidden by default */
+}
+
+.title-display:empty {
+  display: none;
+}
