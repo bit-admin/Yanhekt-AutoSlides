@@ -1158,12 +1158,15 @@ yanhekt.cn###ai-bit-shortcut`;
         clearInterval(autoStartCheckInterval);
       }
       
+      // Reset retry counter
+      playbackRetryAttempts = 0;
+      
       // Call immediately and then set up interval
       checkAndAutoStartPlayback();
       autoStartCheckInterval = setInterval(checkAndAutoStartPlayback, 2000);
     }
   });
-  
+
   webview.addEventListener('did-fail-load', (event) => {
     if (event.errorCode !== -3) { // Ignore aborted loads
       statusText.textContent = `Load failed: ${event.errorDescription}`;
@@ -1451,6 +1454,10 @@ yanhekt.cn###ai-bit-shortcut`;
     helpText.style.display = 'none';
   }
 
+  // Add this variable to track retry attempts
+  let playbackRetryAttempts = 0;
+  const MAX_RETRY_ATTEMPTS = 5;
+
   async function checkAndAutoStartPlayback() {
     // Only run auto-start if active profile is not default and has autoStartPlayback enabled
     if (activeProfileId === 'default' || 
@@ -1469,81 +1476,185 @@ yanhekt.cn###ai-bit-shortcut`;
     const countdownSel = siteProfiles[activeProfileId]?.automation?.countdownSelector || '';
     
     try {
-      const result = await webview.executeJavaScript(`
+      // First check if the video is already playing
+      const playingCheck = await webview.executeJavaScript(`
         (function() {
           try {
-            // Check for the play button
-            const playButtonSelector = '${playBtnSelector}';
-            const playButton = document.querySelector(playButtonSelector);
-            if (playButton && playButton.offsetParent !== null) {
-              // Only click if visible and not already clicked
-              const isVisible = window.getComputedStyle(playButton).display !== 'none';
-              if (isVisible) {
-                console.log('Found play button, clicking it');
-                playButton.click();
-                return { clicked: true, type: 'play' };
+            // Check if any video is already playing
+            const videoElements = document.querySelectorAll('video');
+            for (let i = 0; i < videoElements.length; i++) {
+              const video = videoElements[i];
+              if (!video.paused && !video.ended && video.currentTime > 0) {
+                console.log('Video already playing:', video);
+                return { playing: true, message: 'Video already playing' };
               }
             }
-            
-            // Check for video playing state
-            const videoElement = document.querySelector('video');
-            if (videoElement && !videoElement.paused) {
-              return { playing: true };
-            }
-            
-            // Check for countdown if selector is provided
-            ${countdownSel ? `
-            const countdown = document.querySelector('${countdownSel}');
-            if (countdown && countdown.offsetParent !== null) {
-              // Get the countdown text if available
-              let timeInfo = '';
-              const tip = document.querySelector('.countdown-tip');
-              if (tip) {
-                timeInfo = tip.textContent;
-              }
-              return { found: true, type: 'countdown', info: timeInfo };
-            }` : ''}
-            
-            return { found: false };
+            return { playing: false };
           } catch (err) {
-            console.error('Error in auto-start check:', err);
+            console.error('Error checking video playing status:', err);
             return { error: err.toString() };
           }
         })();
       `);
       
-      if (result.error) {
-        console.error('Auto-start check error:', result.error);
+      if (playingCheck.error) {
+        console.error('Error checking if video is playing:', playingCheck.error);
         return;
       }
       
-      // If video is already playing or button was clicked, stop checking and start capturing
-      if (result.playing || result.clicked) {
+      if (playingCheck.playing) {
         if (autoStartCheckInterval) {
           clearInterval(autoStartCheckInterval);
           autoStartCheckInterval = null;
         }
         
-        if (result.clicked) {
-          console.log('Auto-started playback');
-          statusText.textContent = 'Auto-started playback';
-          
-          // Wait a moment for video to start playing before starting capture
+        console.log('Video detected as playing, starting capture');
+        statusText.textContent = 'Video playing, starting capture';
+        playbackRetryAttempts = 0;
+        
+        // Start capture if not already capturing
+        if (!captureInterval) {
           setTimeout(() => {
-            if (!captureInterval) {
-              console.log('Auto-starting capture after playback began');
-              startCapture();
-            }
-          }, 2000);
+            console.log('Auto-starting capture after detecting playback');
+            startCapture();
+          }, 1000);
         }
         
         return;
       }
       
-      // Handle countdown detection if applicable
-      if (countdownSel && result.found && result.type === 'countdown') {
-        console.log('Detected countdown:', result.info);
-        statusText.textContent = `Waiting for live stream: ${result.info.trim()}`;
+      // If video is not playing, check for play button and try to click it
+      const buttonCheck = await webview.executeJavaScript(`
+        (function() {
+          try {
+            const playButtonSelector = '${playBtnSelector}';
+            const playButton = document.querySelector(playButtonSelector);
+            
+            if (playButton && playButton.offsetParent !== null) {
+              const isVisible = window.getComputedStyle(playButton).display !== 'none';
+              if (isVisible) {
+                console.log('Found play button, clicking it');
+                playButton.click();
+                return { clicked: true };
+              }
+            }
+            return { clicked: false };
+          } catch (err) {
+            console.error('Error clicking play button:', err);
+            return { error: err.toString() };
+          }
+        })();
+      `);
+      
+      if (buttonCheck.error) {
+        console.error('Error checking for play button:', buttonCheck.error);
+        return;
+      }
+      
+      if (buttonCheck.clicked) {
+        console.log('Play button clicked, waiting to verify playback started');
+        statusText.textContent = 'Clicked play, verifying...';
+        
+        // Wait a moment and then check if playback started
+        setTimeout(async () => {
+          try {
+            const verifyPlayback = await webview.executeJavaScript(`
+              (function() {
+                try {
+                  const videos = document.querySelectorAll('video');
+                  for (let i = 0; i < videos.length; i++) {
+                    const video = videos[i];
+                    console.log('Video paused state:', video.paused);
+                    if (!video.paused) {
+                      return { playbackStarted: true };
+                    }
+                  }
+                  return { playbackStarted: false, videoCount: document.querySelectorAll('video').length };
+                } catch (err) {
+                  return { error: err.toString() };
+                }
+              })();
+            `);
+            
+            if (verifyPlayback.error) {
+              console.error('Error verifying playback:', verifyPlayback.error);
+              return;
+            }
+            
+            if (verifyPlayback.playbackStarted) {
+              // Button click was successful, playback started
+              if (autoStartCheckInterval) {
+                clearInterval(autoStartCheckInterval);
+                autoStartCheckInterval = null;
+              }
+              
+              statusText.textContent = 'Auto-started playback';
+              playbackRetryAttempts = 0;
+              
+              // Wait a moment for video to stabilize before starting capture
+              setTimeout(() => {
+                if (!captureInterval) {
+                  console.log('Auto-starting capture after playback began');
+                  startCapture();
+                }
+              }, 2000);
+            } else {
+              // Button click didn't start playback, retry if within attempts limit
+              playbackRetryAttempts++;
+              console.log(`Play button click didn't start video. Retry attempt ${playbackRetryAttempts}/${MAX_RETRY_ATTEMPTS}`);
+              statusText.textContent = `Play attempt ${playbackRetryAttempts}/${MAX_RETRY_ATTEMPTS}...`;
+              
+              if (playbackRetryAttempts >= MAX_RETRY_ATTEMPTS) {
+                console.log('Max retry attempts reached, giving up auto-start');
+                statusText.textContent = 'Auto-start failed, manual play needed';
+                playbackRetryAttempts = 0;
+                
+                if (autoStartCheckInterval) {
+                  clearInterval(autoStartCheckInterval);
+                  autoStartCheckInterval = null;
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Error in playback verification:', error);
+          }
+        }, 500); // Wait 500ms before checking if video started playing
+        
+        return;
+      }
+      
+      // Check for countdown if selector is provided
+      if (countdownSel) {
+        const countdownCheck = await webview.executeJavaScript(`
+          (function() {
+            try {
+              const countdown = document.querySelector('${countdownSel}');
+              if (countdown && countdown.offsetParent !== null) {
+                let timeInfo = '';
+                const tip = document.querySelector('.countdown-tip');
+                if (tip) {
+                  timeInfo = tip.textContent;
+                }
+                return { found: true, type: 'countdown', info: timeInfo };
+              }
+              return { found: false };
+            } catch (err) {
+              return { error: err.toString() };
+            }
+          })();
+        `);
+        
+        if (countdownCheck.error) {
+          console.error('Error checking for countdown:', countdownCheck.error);
+          return;
+        }
+        
+        if (countdownCheck.found) {
+          console.log('Detected countdown:', countdownCheck.info);
+          statusText.textContent = `Waiting for live stream: ${countdownCheck.info.trim()}`;
+          // Reset retry counter when waiting for countdown
+          playbackRetryAttempts = 0;
+        }
       }
     } catch (error) {
       console.error('Error in checkAndAutoStartPlayback:', error);
