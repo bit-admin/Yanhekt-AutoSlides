@@ -1519,6 +1519,18 @@ yanhekt.cn###ai-bit-shortcut`;
         console.log('Playback end detected, stopping capture');
         stopCapture();
         statusText.textContent = 'Playback ended, capture stopped automatically';
+        
+        // If we're processing tasks, move to the next task
+        if (isProcessingTasks) {
+          console.log('Moving to next task in queue');
+          currentTaskIndex++;
+          
+          // Slight delay before loading next task
+          setTimeout(() => {
+            processNextTask();
+          }, 2000);
+        }
+        
         return true;
       }
       return false;
@@ -2281,4 +2293,462 @@ yanhekt.cn###ai-bit-shortcut`;
     titleDisplay.textContent = '';
     titleDisplay.style.display = 'none';
   });
+
+  // Task Manager elements
+  const btnOpenTaskManager = document.getElementById('btnOpenTaskManager');
+  const taskManagerModal = document.getElementById('taskManagerModal');
+  const closeTaskManager = document.getElementById('closeTaskManager');
+  const taskProfileSelect = document.getElementById('taskProfileSelect');
+  const taskIdInput = document.getElementById('taskIdInput');
+  const btnAddTask = document.getElementById('btnAddTask');
+  const taskTableBody = document.getElementById('taskTableBody');
+  const btnStartTasks = document.getElementById('btnStartTasks');
+  const btnCancelTasks = document.getElementById('btnCancelTasks');
+  const btnClearTasks = document.getElementById('btnClearTasks');
+  const taskValidationMessage = document.getElementById('taskValidationMessage');
+
+  // Task management variables
+  let taskQueue = [];
+  let isProcessingTasks = false;
+  let currentTaskIndex = -1;
+
+  // Task Manager functions
+  function openTaskManager() {
+    // Populate the profile dropdown
+    populateTaskProfiles();
+    
+    // Check if automation requirements are met
+    validateAutomationRequirements();
+    
+    // Display the modal
+    taskManagerModal.style.display = 'block';
+  }
+
+  function closeTaskManagerModal() {
+    taskManagerModal.style.display = 'none';
+  }
+
+  function populateTaskProfiles() {
+    // Clear existing options
+    taskProfileSelect.innerHTML = '';
+    
+    // Add profiles (excluding default which doesn't support automation)
+    for (const [id, profile] of Object.entries(siteProfiles)) {
+      if (id !== 'default' && profile.urlPattern) {
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = profile.name || id;
+        taskProfileSelect.appendChild(option);
+      }
+    }
+    
+    // Add custom option
+    const customOption = document.createElement('option');
+    customOption.value = 'custom';
+    customOption.textContent = 'Custom URL';
+    taskProfileSelect.appendChild(customOption);
+  }
+
+  function validateAutomationRequirements() {
+    // Get the profile selected in the task manager, not the globally active profile
+    const selectedProfileId = taskProfileSelect.value;
+    
+    // Check if the selected profile has the required automation settings
+    let isValid = true;
+    let message = '';
+    
+    if (selectedProfileId === 'custom') {
+      // Custom URL doesn't need validation of automation settings
+      taskValidationMessage.textContent = '';
+      btnStartTasks.disabled = taskQueue.length === 0 || isProcessingTasks;
+      return true;
+    }
+    
+    if (!selectedProfileId || !siteProfiles[selectedProfileId]) {
+      isValid = false;
+      message = 'Please select a valid profile';
+    } else {
+      const profile = siteProfiles[selectedProfileId];
+      const automation = profile.automation || {};
+      
+      if (!automation.autoDetectEnd) {
+        isValid = false;
+        message = `"Auto-detect playback end" must be enabled for ${profile.name}`;
+      } else if (!automation.autoStartPlayback) {
+        isValid = false;
+        message = `"Auto-start playback" must be enabled for ${profile.name}`;
+      } else if (!automation.autoDetectTitle) {
+        isValid = false;
+        message = `"Auto-detect title" must be enabled for ${profile.name}`;
+      }
+    }
+    
+    // Update UI
+    btnStartTasks.disabled = !isValid || taskQueue.length === 0 || isProcessingTasks;
+    
+    if (!isValid) {
+      taskValidationMessage.textContent = message;
+    } else {
+      taskValidationMessage.textContent = '';
+    }
+    
+    return isValid;
+  }
+
+  function addTask() {
+    const profileId = taskProfileSelect.value;
+    const taskId = taskIdInput.value.trim();
+    
+    // Validation
+    if (!profileId) {
+      taskValidationMessage.textContent = 'Please select a profile';
+      return;
+    }
+    
+    // For custom URLs, bypass automation checks
+    if (profileId === 'custom') {
+      // For custom URLs, the entire URL should be in the taskId field
+      if (!taskId) {
+        taskValidationMessage.textContent = 'Please enter a URL';
+        return;
+      }
+      
+      // Validate URL format
+      try {
+        new URL(taskId.startsWith('http') ? taskId : `https://${taskId}`);
+      } catch (e) {
+        taskValidationMessage.textContent = 'Invalid URL format';
+        return;
+      }
+      
+      // Add the task with the custom URL
+      taskQueue.push({
+        profileId: 'custom',
+        taskId: '',
+        url: taskId.startsWith('http') ? taskId : `https://${taskId}`,
+        profileName: 'Custom URL'
+      });
+    } else {
+      // For profile-based tasks, check automation requirements first
+      if (!validateAutomationRequirements()) {
+        return; // Don't add task if validation fails (error message already shown)
+      }
+      
+      if (!taskId) {
+        taskValidationMessage.textContent = 'Please enter a task ID';
+        return;
+      }
+      
+      const profile = siteProfiles[profileId];
+      if (!profile || !profile.urlPattern) {
+        taskValidationMessage.textContent = 'Selected profile is invalid';
+        return;
+      }
+      
+      // Get the base URL pattern
+      const urlPattern = profile.urlPattern.split(' ')[0]; // Take the first pattern if multiple
+      
+      // Construct the full URL
+      let url;
+      if (urlPattern.endsWith('/')) {
+        url = `https://${urlPattern}${taskId}`;
+      } else {
+        url = `https://${urlPattern}/${taskId}`;
+      }
+      
+      // Add to task queue
+      taskQueue.push({
+        profileId,
+        taskId,
+        url,
+        profileName: profile.name || profileId
+      });
+    }
+    
+    // Clear input and validation message
+    taskIdInput.value = '';
+    taskValidationMessage.textContent = '';
+    
+    // Update task table
+    updateTaskTable();
+    
+    // Enable/disable buttons
+    btnStartTasks.disabled = taskQueue.length === 0 || isProcessingTasks;
+    btnClearTasks.disabled = isProcessingTasks;
+  }
+
+  function updateTaskTable() {
+    // Clear existing rows
+    taskTableBody.innerHTML = '';
+    
+    // Add a row for each task
+    taskQueue.forEach((task, index) => {
+      const row = document.createElement('tr');
+      
+      // Highlight current task
+      if (isProcessingTasks && index === currentTaskIndex) {
+        row.classList.add('current-task');
+      }
+      
+      // Profile column
+      const profileCell = document.createElement('td');
+      profileCell.textContent = task.profileName;
+      row.appendChild(profileCell);
+      
+      // Task ID column
+      const taskIdCell = document.createElement('td');
+      taskIdCell.textContent = task.taskId || '-';
+      row.appendChild(taskIdCell);
+      
+      // URL column
+      const urlCell = document.createElement('td');
+      urlCell.textContent = task.url;
+      row.appendChild(urlCell);
+      
+      // Action column
+      const actionCell = document.createElement('td');
+      const removeButton = document.createElement('button');
+      removeButton.textContent = 'Remove';
+      removeButton.className = 'remove-task-button';
+      removeButton.disabled = isProcessingTasks && index === currentTaskIndex;
+      removeButton.addEventListener('click', () => removeTask(index));
+      actionCell.appendChild(removeButton);
+      row.appendChild(actionCell);
+      
+      taskTableBody.appendChild(row);
+    });
+  }
+
+  function removeTask(index) {
+    // Can't remove the current task if it's processing
+    if (isProcessingTasks && index === currentTaskIndex) {
+      return;
+    }
+    
+    // Remove the task
+    taskQueue.splice(index, 1);
+    
+    // If removing a task before current task, adjust current task index
+    if (isProcessingTasks && index < currentTaskIndex) {
+      currentTaskIndex--;
+    }
+    
+    // Update UI
+    updateTaskTable();
+    
+    // Update button states
+    btnStartTasks.disabled = taskQueue.length === 0 || isProcessingTasks || !validateAutomationRequirements();
+  }
+
+  function clearAllTasks() {
+    if (isProcessingTasks) {
+      taskValidationMessage.textContent = 'Cannot clear tasks while processing';
+      return;
+    }
+    
+    taskQueue = [];
+    updateTaskTable();
+    btnStartTasks.disabled = true;
+  }
+
+  async function startTaskProcessing() {
+    // For starting tasks, we need to verify that all profile-based tasks have valid profiles
+    let allTasksValid = true;
+    let invalidTaskIndex = -1;
+    
+    // Validate all non-custom tasks
+    for (let i = 0; i < taskQueue.length; i++) {
+      const task = taskQueue[i];
+      if (task.profileId !== 'custom') {
+        const profile = siteProfiles[task.profileId];
+        
+        if (!profile) {
+          allTasksValid = false;
+          invalidTaskIndex = i;
+          break;
+        }
+        
+        const automation = profile.automation || {};
+        if (!automation.autoDetectEnd || !automation.autoStartPlayback || !automation.autoDetectTitle) {
+          allTasksValid = false;
+          invalidTaskIndex = i;
+          break;
+        }
+      }
+    }
+    
+    if (!allTasksValid) {
+      const invalidTask = taskQueue[invalidTaskIndex];
+      taskValidationMessage.textContent = `Task #${invalidTaskIndex + 1} (${invalidTask.profileName}) has invalid automation settings`;
+      return;
+    }
+    
+    if (taskQueue.length === 0 || isProcessingTasks) {
+      return;
+    }
+    
+    isProcessingTasks = true;
+    currentTaskIndex = 0;
+    
+    // Update UI
+    updateTaskTable();
+    btnStartTasks.disabled = true;
+    btnCancelTasks.disabled = false;
+    btnClearTasks.disabled = true;
+    
+    // Add task progress indicator to status area
+    const taskProgress = document.createElement('div');
+    taskProgress.id = 'taskProgressIndicator';
+    taskProgress.className = 'task-progress';
+    taskProgress.textContent = `Processing task 1/${taskQueue.length}`;
+    
+    // Insert after title display
+    if (titleDisplay.nextSibling) {
+      titleDisplay.parentNode.insertBefore(taskProgress, titleDisplay.nextSibling);
+    } else {
+      titleDisplay.parentNode.appendChild(taskProgress);
+    }
+    
+    // Process the first task
+    await processNextTask();
+  }
+
+  function cancelTaskProcessing() {
+    if (!isProcessingTasks) return;
+    
+    isProcessingTasks = false;
+    
+    // Stop the current capture if running
+    if (captureInterval) {
+      stopCapture();
+    }
+    
+    // Reset state
+    currentTaskIndex = -1;
+    
+    // Update UI
+    btnStartTasks.disabled = !validateAutomationRequirements();
+    btnCancelTasks.disabled = true;
+    btnClearTasks.disabled = false;
+    updateTaskTable();
+    
+    // Remove task progress indicator
+    const taskProgress = document.getElementById('taskProgressIndicator');
+    if (taskProgress) taskProgress.remove();
+    
+    statusText.textContent = 'Task processing cancelled';
+    setTimeout(() => {
+      statusText.textContent = 'Idle';
+    }, 2000);
+  }
+
+  async function processNextTask() {
+    if (!isProcessingTasks || currentTaskIndex >= taskQueue.length) {
+      finishTaskProcessing();
+      return;
+    }
+    
+    const currentTask = taskQueue[currentTaskIndex];
+    
+    // Update UI to show current task
+    updateTaskTable();
+    
+    // Update progress indicator
+    const taskProgress = document.getElementById('taskProgressIndicator');
+    if (taskProgress) {
+      taskProgress.textContent = `Processing task ${currentTaskIndex + 1}/${taskQueue.length}`;
+    }
+    
+    // Update status text
+    statusText.textContent = `Loading task ${currentTaskIndex + 1}/${taskQueue.length}`;
+    
+    try {
+      // Switch to the task's profile if needed
+      if (currentTask.profileId !== 'custom' && currentTask.profileId !== activeProfileId) {
+        siteProfileSelect.value = currentTask.profileId;
+        activeProfileId = currentTask.profileId;
+        loadProfileDetails(currentTask.profileId);
+      }
+      
+      // Load the URL
+      webview.src = currentTask.url;
+      inputUrl.value = currentTask.url;
+      
+      // The page will load, and automation will take over:
+      // 1. auto-start playback will click the play button
+      // 2. auto-adjust speed will set the speed if enabled
+      // 3. auto-detect title will extract the title
+      // 4. capture will start automatically when playback begins
+      // 5. auto-detect end will detect when playback ends and trigger the next task
+    } catch (error) {
+      console.error('Error processing task:', error);
+      statusText.textContent = `Error processing task: ${error.message}`;
+      
+      // Move to next task after a delay
+      setTimeout(() => {
+        currentTaskIndex++;
+        processNextTask();
+      }, 2000);
+    }
+  }
+
+  function finishTaskProcessing() {
+    isProcessingTasks = false;
+    currentTaskIndex = -1;
+    
+    // Update UI
+    btnStartTasks.disabled = !validateAutomationRequirements();
+    btnCancelTasks.disabled = true;
+    btnClearTasks.disabled = false;
+    updateTaskTable();
+    
+    // Remove task progress indicator
+    const taskProgress = document.getElementById('taskProgressIndicator');
+    if (taskProgress) taskProgress.remove();
+    
+    statusText.textContent = 'All tasks completed';
+    setTimeout(() => {
+      statusText.textContent = 'Idle';
+    }, 3000);
+  }
+
+  // Event listeners for task manager
+  btnOpenTaskManager.addEventListener('click', openTaskManager);
+  closeTaskManager.addEventListener('click', closeTaskManagerModal);
+  btnAddTask.addEventListener('click', addTask);
+  btnStartTasks.addEventListener('click', startTaskProcessing);
+  btnCancelTasks.addEventListener('click', cancelTaskProcessing);
+  btnClearTasks.addEventListener('click', clearAllTasks);
+  
+  // Close modal when clicking outside of it
+  window.addEventListener('click', (event) => {
+    if (event.target === taskManagerModal) {
+      closeTaskManagerModal();
+    }
+  });
+  
+  // Enter key in task ID input should add the task
+  taskIdInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      addTask();
+    }
+  });
+
+  // Attach event handlers to profile change to update task validation
+  siteProfileSelect.addEventListener('change', () => {
+    // ...existing code...
+    
+    // Update task manager validation if open
+    if (taskManagerModal.style.display === 'block') {
+      validateAutomationRequirements();
+    }
+  });
+
+  // Update validation when automation settings change
+  autoDetectEnd.addEventListener('change', validateAutomationRequirements);
+  autoStartPlayback.addEventListener('change', validateAutomationRequirements);
+  autoDetectTitle.addEventListener('change', validateAutomationRequirements);
+
+  // Modify the task profile select change handler to update validation
+  taskProfileSelect.addEventListener('change', validateAutomationRequirements);
 });
