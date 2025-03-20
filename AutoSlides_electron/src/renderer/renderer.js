@@ -206,7 +206,7 @@ yanhekt.cn###ai-bit-shortcut`;
             autoStartPlayback: true,
             playButtonSelector: '.player-mid-button-container button',
             countdownSelector: '', // Leave empty for session player
-            autoAdjustSpeed: true,  // Enable auto speed adjustment
+            autoAdjustSpeed: false,  // Enable auto speed adjustment
             speedSelector: '#video_id_mainPlayer_html5_api', // not same as elementSelector
             playbackSpeed: '3.0', // Default to 3x speed
             autoDetectTitle: true, // Add title detection
@@ -222,6 +222,9 @@ yanhekt.cn###ai-bit-shortcut`;
           automation: {
             autoDetectEnd: true,
             endDetectionSelector: '.VideoResult_result__LdbB3',
+            autoStartPlayback: true,
+            playButtonSelector: '.player-mid-button-container button',
+            countdownSelector: '.countdown-content',
             autoAdjustSpeed: false,
             speedSelector: '#video_id_mainPlayer_html5_api', // Same as elementSelector
             playbackSpeed: '1.0',  // Default to 1x speed
@@ -2223,10 +2226,10 @@ yanhekt.cn###ai-bit-shortcut`;
                 }
                 
                 if (dayMatch && dayMatch[1]) {
-                  // Convert Chinese day to English abbreviation
+                  // Convert Chinese day to English abbreviation with first letter capitalized
                   const dayMap = {
-                    '一': 'mon', '二': 'tue', '三': 'wed', '四': 'thu',
-                    '五': 'fri', '六': 'sat', '日': 'sun'
+                    '一': 'Mon', '二': 'Tue', '三': 'Wed', '四': 'Thu',
+                    '五': 'Fri', '六': 'Sat', '日': 'Sun'
                   };
                   result.dayOfWeek = dayMap[dayMatch[1]] || dayMatch[1];
                 }
@@ -2249,10 +2252,10 @@ yanhekt.cn###ai-bit-shortcut`;
         }
         
         if (titleInfo.weekNumber && titleInfo.dayOfWeek) {
-          if (titleDisplayText) titleDisplayText += ' - ';
-          titleDisplayText += `week ${titleInfo.weekNumber} ${titleInfo.dayOfWeek}`;
+          if (titleDisplayText) titleDisplayText += ' '; // Space instead of ' - '
+          titleDisplayText += `Week ${titleInfo.weekNumber} ${titleInfo.dayOfWeek}`; // Capitalize 'Week'
         } else if (titleInfo.sessionInfo) {
-          if (titleDisplayText) titleDisplayText += ' - ';
+          if (titleDisplayText) titleDisplayText += ' '; // Space instead of ' - '
           titleDisplayText += titleInfo.sessionInfo;
         }
         

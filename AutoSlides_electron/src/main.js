@@ -52,10 +52,10 @@ yanhekt.cn###ai-bit-shortcut`
         automation: {
           autoDetectEnd: true,
           endDetectionSelector: '.player-ended-poster',
-          autoStartPlayback: false,
+          autoStartPlayback: true,
           playButtonSelector: '.player-mid-button-container button',
           countdownSelector: '', // Leave empty for session player
-          autoAdjustSpeed: true,  // Enable auto speed adjustment
+          autoAdjustSpeed: false,  // Enable auto speed adjustment
           speedSelector: '#video_id_mainPlayer_html5_api', // not same as elementSelector
           playbackSpeed: '3.0', // Default to 3x speed
           autoDetectTitle: true, // Enable title detection
@@ -71,7 +71,7 @@ yanhekt.cn###ai-bit-shortcut`
         automation: {
           autoDetectEnd: true,
           endDetectionSelector: '.VideoResult_result__LdbB3',
-          autoStartPlayback: false,
+          autoStartPlayback: true,
           playButtonSelector: '.player-mid-button-container button',
           countdownSelector: '.countdown-content',
           autoAdjustSpeed: false, // Disabled for live player
