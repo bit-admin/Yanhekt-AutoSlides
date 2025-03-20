@@ -120,12 +120,11 @@
                     <input type="checkbox" id="autoDetectEnd"> 
                     Auto-detect playback end
                   </label>
-                  <p class="help-text">Automatically stop capture when playback ends</p>
+                  <p class="help-text">Auto-stop capture when playback ends</p>
                 </div>
                 <div class="setting-item">
                   <label for="endDetectionSelector">End detection selector:</label>
                   <input type="text" id="endDetectionSelector" placeholder=".player-ended-poster">
-                  <p class="help-text">CSS selector for end-of-playback element</p>
                 </div>
                 
                 <!-- Add the new auto-start section -->
@@ -134,17 +133,15 @@
                     <input type="checkbox" id="autoStartPlayback"> 
                     Auto-start playback
                   </label>
-                  <p class="help-text">Automatically start video playback when ready</p>
+                  <p class="help-text">Auto-start video playback when ready</p>
                 </div>
                 <div class="setting-item">
                   <label for="playButtonSelector">Play button selector:</label>
                   <input type="text" id="playButtonSelector" placeholder=".player-mid-button-container button">
-                  <p class="help-text">CSS selector for the play button</p>
                 </div>
                 <div class="setting-item">
                   <label for="countdownSelector">Countdown selector (optional):</label>
                   <input type="text" id="countdownSelector" placeholder=".countdown-content">
-                  <p class="help-text">CSS selector for the countdown element (leave empty if not applicable)</p>
                 </div>
                 
                 <!-- Add auto playback speed adjustment -->
@@ -153,12 +150,11 @@
                     <input type="checkbox" id="autoAdjustSpeed"> 
                     Auto-adjust playback speed
                   </label>
-                  <p class="help-text">Automatically adjust video playback speed</p>
+                  <p class="help-text">Auto-adjust video playback speed</p>
                 </div>
                 <div class="setting-item">
                   <label for="speedSelector">Video element selector:</label>
                   <input type="text" id="speedSelector" placeholder="#video_id_mainPlayer_html5_api">
-                  <p class="help-text">CSS selector for the video element to adjust</p>
                 </div>
                 <div class="setting-item">
                   <label for="playbackSpeed">Playback speed:</label>
@@ -168,8 +164,8 @@
                     <option value="2.0">2.0x</option>
                     <option value="2.5">2.5x</option>
                     <option value="3.0">3.0x</option>
+                    <option value="5.0">5.0x</option>
                   </select>
-                  <p class="help-text">Select desired playback speed</p>
                 </div>
                 
                 <!-- Add title detection section -->
@@ -178,17 +174,15 @@
                     <input type="checkbox" id="autoDetectTitle"> 
                     Auto-detect title
                   </label>
-                  <p class="help-text">Automatically extract title information and create folders for slides</p>
+                  <p class="help-text">Auto-detect info and create subfolders</p>
                 </div>
                 <div class="setting-item">
                   <label for="courseTitleSelector">Course title selector:</label>
                   <input type="text" id="courseTitleSelector" placeholder=".ant-breadcrumb li:nth-child(2) a">
-                  <p class="help-text">CSS selector for course title element</p>
                 </div>
                 <div class="setting-item">
-                  <label for="sessionInfoSelector">Session info selector:</label>
+                  <label for="sessionInfoSelector">Session info selector (optional):</label>
                   <input type="text" id="sessionInfoSelector" placeholder=".ant-breadcrumb li:nth-child(3) span">
-                  <p class="help-text">CSS selector for session info element</p>
                 </div>
                 <!-- End of title detection section -->
                 
