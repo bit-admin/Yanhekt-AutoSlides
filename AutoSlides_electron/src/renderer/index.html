@@ -178,7 +178,7 @@
                     <input type="checkbox" id="autoDetectTitle"> 
                     Auto-detect title
                   </label>
-                  <p class="help-text">Automatically extract title information from page</p>
+                  <p class="help-text">Automatically extract title information and create folders for slides</p>
                 </div>
                 <div class="setting-item">
                   <label for="courseTitleSelector">Course title selector:</label>
@@ -196,8 +196,53 @@
               </div>
             </div>
             <div class="profile-actions">
-              <button id="btnSaveProfile">Apply</button>
-              <button id="btnDeleteProfile">Delete</button>
+              <div class="action-row">
+                <button id="btnSaveProfile">Apply</button>
+                <button id="btnDeleteProfile">Delete</button>
+              </div>
+              <button id="btnOpenTaskManager">Task Manager</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Remove the standalone task-manager-section -->
+
+        <!-- Task Manager Modal -->
+        <div id="taskManagerModal" class="modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3>Task Manager</h3>
+              <span id="closeTaskManager" class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+              <div class="task-input-row">
+                <select id="taskProfileSelect">
+                  <!-- Will be populated with profiles -->
+                </select>
+                <input type="text" id="taskIdInput" placeholder="Task ID (e.g., 693305)">
+                <button id="btnAddTask">Add Task</button>
+              </div>
+              <div class="task-validation-message" id="taskValidationMessage"></div>
+              <div class="task-list-container">
+                <table id="taskTable">
+                  <thead>
+                    <tr>
+                      <th>Profile</th>
+                      <th>Task ID</th>
+                      <th>URL</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="taskTableBody">
+                    <!-- Tasks will be added here -->
+                  </tbody>
+                </table>
+              </div>
+              <div class="task-buttons">
+                <button id="btnStartTasks">Start Tasks</button>
+                <button id="btnCancelTasks" disabled>Cancel Tasks</button>
+                <button id="btnClearTasks">Clear All</button>
+              </div>
             </div>
           </div>
         </div>
