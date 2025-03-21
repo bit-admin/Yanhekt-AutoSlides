@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const courseTitleSelector = document.getElementById('courseTitleSelector');
   const sessionInfoSelector = document.getElementById('sessionInfoSelector');
   const titleDisplay = document.getElementById('titleDisplay'); // Add this line
+  const comparisonAlgorithm = document.getElementById('comparisonAlgorithm'); // Add this line
 
   // Capture related variables
   let captureInterval = null;
@@ -187,7 +188,7 @@ yanhekt.cn###ai-bit-shortcut`;
       inputOutputDir.value = config.outputDir || '';
       inputTopCrop.value = config.topCropPercent || 5;
       inputBottomCrop.value = config.bottomCropPercent || 5;
-      inputChangeThreshold.value = config.changeThreshold || 0.005;
+      inputChangeThreshold.value = config.changeThreshold || 0.2; // Default to 0.2 for unified threshold T
       inputCheckInterval.value = config.checkInterval || 2;
       
       // Load cache clean interval
@@ -247,6 +248,13 @@ yanhekt.cn###ai-bit-shortcut`;
 
       allowBackgroundRunning.checked = config.allowBackgroundRunning || false;
       
+      // Set comparison algorithm, default to pixelDifference if not set
+      if (config.comparisonAlgorithm && comparisonAlgorithm.querySelector(`option[value="${config.comparisonAlgorithm}"]`)) {
+        comparisonAlgorithm.value = config.comparisonAlgorithm;
+      } else {
+        comparisonAlgorithm.value = 'pixelDifference';
+      }
+      
       return config;
     } catch (error) {
       console.error('Failed to load config:', error);
@@ -264,7 +272,8 @@ yanhekt.cn###ai-bit-shortcut`;
         cacheCleanInterval: parseInt(cacheCleanInterval.value, 10),
         siteProfiles: siteProfiles,
         activeProfileId: activeProfileId,
-        allowBackgroundRunning: allowBackgroundRunning.checked
+        allowBackgroundRunning: allowBackgroundRunning.checked,
+        comparisonAlgorithm: comparisonAlgorithm.value // Add this line
       };
       
       await window.electronAPI.saveConfig(config);
@@ -284,9 +293,10 @@ yanhekt.cn###ai-bit-shortcut`;
       outputDir: await window.electronAPI.getConfig().then(config => config.outputDir), // Keep output dir as is
       topCropPercent: 5,
       bottomCropPercent: 5,
-      changeThreshold: 0.005,
+      changeThreshold: 0.2, // Default to 0.2 for unified threshold T
       checkInterval: 2,
-      allowBackgroundRunning: false // Add this line to reset background running
+      allowBackgroundRunning: false, // Add this line to reset background running
+      comparisonAlgorithm: 'pixelDifference' // Add this line
     };
     
     // Update input fields
@@ -295,6 +305,7 @@ yanhekt.cn###ai-bit-shortcut`;
     inputChangeThreshold.value = defaultConfig.changeThreshold;
     inputCheckInterval.value = defaultConfig.checkInterval;
     allowBackgroundRunning.checked = defaultConfig.allowBackgroundRunning; // Update checkbox state
+    comparisonAlgorithm.value = defaultConfig.comparisonAlgorithm; // Add this line
     
     // Save to config
     await window.electronAPI.saveConfig(defaultConfig);
@@ -995,7 +1006,22 @@ yanhekt.cn###ai-bit-shortcut`;
     });
   }
   
-  // Compare images for changes
+  // Add this function for converting unified threshold T to algorithm-specific threshold
+  function convertThreshold(unifiedThreshold, algorithm) {
+    // Ensure threshold is within bounds
+    unifiedThreshold = Math.max(0.1, Math.min(0.7, unifiedThreshold));
+    
+    switch (algorithm) {
+      case 'pixelDifference':
+        // threshold_pixel(T) = 0.001 * e^(5T)
+        return 0.001 * Math.exp(5 * unifiedThreshold);
+      default:
+        console.warn(`Unknown algorithm ${algorithm}, using default conversion`);
+        return 0.001 * Math.exp(5 * unifiedThreshold);
+    }
+  }
+
+  // Compare images for changes - update to use the unified threshold conversion
   function compareImages(img1Data, img2Data) {
     return new Promise((resolve) => {
       const img1 = new Image();
@@ -1023,31 +1049,58 @@ yanhekt.cn###ai-bit-shortcut`;
           const data1 = ctx1.getImageData(0, 0, canvas1.width, canvas1.height);
           const data2 = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
 
-          let diffCount = 0;
-          const threshold = 30; // Pixel difference threshold
+          // Get the selected algorithm and unified threshold T
+          const algorithm = comparisonAlgorithm.value;
+          const unifiedThreshold = parseFloat(inputChangeThreshold.value);
           
-          for (let i = 0; i < data1.data.length; i += 4) {
-            const r1 = data1.data[i];
-            const g1 = data1.data[i + 1];
-            const b1 = data1.data[i + 2];
+          // Convert the unified threshold to the algorithm-specific threshold
+          const algorithmThreshold = convertThreshold(unifiedThreshold, algorithm);
+          
+          // For pixel difference algorithm, we use the old comparison method but with the converted threshold
+          if (algorithm === 'pixelDifference') {
+            let diffCount = 0;
+            const threshold = 30; // Pixel difference threshold
             
-            const r2 = data2.data[i];
-            const g2 = data2.data[i + 1];
-            const b2 = data2.data[i + 2];
-            
-            const diff = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
-            if (diff > threshold) {
-              diffCount++;
+            for (let i = 0; i < data1.data.length; i += 4) {
+              const r1 = data1.data[i];
+              const g1 = data1.data[i + 1];
+              const b1 = data1.data[i + 2];
+              
+              const r2 = data2.data[i];
+              const g2 = data2.data[i + 1];
+              const b2 = data2.data[i + 2];
+              
+              const diff = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+              if (diff > threshold) {
+                diffCount++;
+              }
             }
-          }
 
-          const totalPixels = (canvas1.width * canvas1.height);
-          const changeRatio = diffCount / totalPixels;
-          
-          resolve({
-            changed: changeRatio > parseFloat(inputChangeThreshold.value),
-            changeRatio
-          });
+            const totalPixels = (canvas1.width * canvas1.height);
+            const changeRatio = diffCount / totalPixels;
+            
+            resolve({
+              changed: changeRatio > algorithmThreshold,
+              changeRatio
+            });
+          } else {
+            // For future algorithms, we'll add more cases here
+            console.warn('Unknown algorithm, falling back to pixel difference');
+            
+            // Default pixel difference logic as fallback
+            let diffCount = 0;
+            const threshold = 30;
+            
+            // ...existing pixel difference logic...
+            
+            const totalPixels = (canvas1.width * canvas1.height);
+            const changeRatio = diffCount / totalPixels;
+            
+            resolve({
+              changed: changeRatio > algorithmThreshold,
+              changeRatio
+            });
+          }
         }
       }
 

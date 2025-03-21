@@ -25,7 +25,7 @@ const schema = {
   },
   changeThreshold: {
     type: 'number',
-    default: 0.005
+    default: 0.2
   },
   checkInterval: {
     type: 'number',
