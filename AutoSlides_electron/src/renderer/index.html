@@ -31,8 +31,17 @@
           </div>
           
           <div class="setting-item">
-            <label for="inputChangeThreshold">Change Threshold:</label>
-            <input type="number" id="inputChangeThreshold" min="0.0001" max="0.1" step="0.0001" />
+            <label for="comparisonAlgorithm">Comparison Algorithm:</label>
+            <select id="comparisonAlgorithm">
+              <option value="pixelDifference">Pixel Difference (Standard)</option>
+            </select>
+            <p class="help-text">Algorithm used to detect slide changes</p>
+          </div>
+
+          <div class="setting-item">
+            <label for="inputChangeThreshold">Change Threshold (T):</label>
+            <input type="number" id="inputChangeThreshold" min="0.1" max="0.7" step="0.02" value="0.2" />
+            <p class="help-text">Higher values require bigger changes (0.1-0.7)</p>
           </div>
           
           <div class="setting-item">
@@ -213,7 +222,7 @@
                 <select id="taskProfileSelect">
                   <!-- Will be populated with profiles -->
                 </select>
-                <input type="text" id="taskIdInput" placeholder="Task ID (e.g., 693305)">
+                <input type="text" id="taskIdInput" placeholder="Task ID (e.g., 050410)">
                 <button id="btnAddTask">Add Task</button>
               </div>
               <div class="task-validation-message" id="taskValidationMessage"></div>

@@ -48,52 +48,34 @@
       margin: 15px 0;
       border-radius: 0 4px 4px 0;
     }
-    table {
-      border-collapse: collapse;
-      width: 100%;
-      margin: 20px 0;
-    }
-    th, td {
-      border: 1px solid #e2e8f0;
-      padding: 8px 12px;
-      text-align: left;
-    }
-    th {
-      background-color: #f7fafc;
-    }
-    ul, ol {
-      padding-left: 20px;
-    }
   </style>
 </head>
 <body>
   <h1>AutoSlides Help</h1>
 
-  <h2>Contents</h2>
-  <ol>
-    <li><a href="#getting-started">Getting Started</a></li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#config-options">Configuration Options</a></li>
-    <li><a href="#optimization-profiles">Optimization Profiles</a></li>
-    <li><a href="#automation-features">Automation Features</a></li>
-    <li><a href="#background-running">Background Running</a></li>
-    <li><a href="#task-manager">Task Manager</a></li>
-    <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
-    <li><a href="#troubleshooting">Troubleshooting</a></li>
-  </ol>
-
-  <h2 id="getting-started">Getting Started</h2>
-  <p>AutoSlides is designed to capture slides from online presentations and videos automatically. Follow these steps to get started:</p>
-  <ol>
-    <li>Install the application on your system</li>
-    <li>Verify the application starts without errors</li>
-    <li>Set your output directory where slide images will be saved</li>
-    <li>Configure settings if necessary, or use the default configuration</li>
-  </ol>
-
-  <h2 id="usage">Usage</h2>
-  <ol>
+  <h2>Usage</h2>c">
+  <ol>2>Contents</h2>
     <li>Launch the application and set your desired output directory</li>
+    <li>Configure settings as needed:Getting Started</a></li>
+      <ul><a href="#usage">Usage</a></li>
+        <li>Basic settings for output directory, change threshold, and check interval</li>
+        <li>Advanced settings for image cropping (if using Default profile)</li>
+      </ul>a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
+    </li>
+    <li>Use the address bar to enter the URL, navigate to the playback interface, retain the slide view, and enter full-screen mode</li>
+    <li>Click "Start Capture" to begin capturing</li>
+    <li>Stop capturing when playback is complete</li>
+    <li>Find the captured slides in your chosen output directory</li>entations and videos automatically. Follow these steps to get started:</p>
+  </ol>
+    <li>Install the application on your system</li>
+  <h2>Configuration Options</h2>rify the application starts without errors</li>
+    <li>Set your output directory where slide images will be saved</li>
+  <h3>Settings</h3>c settings if necessary, or use the default configuration</li>
+  <ul>>
+    <li><strong>Output Directory</strong>: Where slide images are saved</li>
+    <li><strong>Change Threshold</strong>: Threshold for detecting slide changes, smaller values are more sensitive (recommended 0.002-0.008)</li>
+    <li><strong>Check Interval</strong>: Frequency to check for slide changes (in seconds)</li>
+  </ul>>Launch the application and set your desired output directory</li>
     <li>Configure settings as needed:
       <ul>
         <li>Basic settings for output directory, change threshold, and check interval</li>
@@ -132,19 +114,17 @@
     <li><strong>Top Crop (%)</strong>: Percentage to remove from the top of the image</li>
     <li><strong>Bottom Crop (%)</strong>: Percentage to remove from the bottom of the image</li>
     <li><strong>Show Crop Guides</strong>: Preview the area that will be captured</li>
-    <li><strong>Keep running in background</strong>: Enables background running mode (see Background Running section)</li>
   </ul>
 
   <div class="note">
     <p><strong>Note:</strong> Cropping settings only apply when using the Default profile</p>
   </div>
 
-  <h2 id="optimization-profiles">Optimization Profiles</h2>
+  <h3>Optimization Profiles</h3>
   <p>AutoSlides supports site-specific capture configurations to extract only the relevant content:</p>
   <ul>
     <li><strong>Default</strong>: Captures the full page with optional cropping</li>
-    <li><strong>YanHeKT Session Player</strong>: Pre-configured to capture just the video player element for recorded sessions</li>
-    <li><strong>YanHeKT Live Player</strong>: Pre-configured to capture just the video player element for live sessions</li>
+    <li><strong>YanHeKT Video Player</strong>: Pre-configured to capture just the video player element (built-in profile that cannot be deleted)</li>
     <li><strong>Custom...</strong>: Create your own site-specific capture settings</li>
   </ul>
   
@@ -157,7 +137,6 @@
         <li><strong>URL patterns</strong>: Space-separated patterns that identify websites (e.g., yanhekt.cn/session yanhekt.cn/live)</li>
       </ul>
     </li>
-    <li>Configure automation settings (see Automation Features)</li>
     <li>Click "Apply" to save your profile settings</li>
   </ol>
   
@@ -165,83 +144,73 @@
     <p><strong>Note:</strong> When using an optimization profile (not Default), the application will capture only the specified element instead of the entire page. This bypasses the normal cropping settings.</p>
   </div>
 
-  <h2 id="automation-features">Automation Features</h2>
-  <p>When using optimization profiles (except Default profile), you can enable these automated behaviors:</p>
+  <h3>Automation Features</h3>
+  <p>When using optimization profiles (except Default profile), you can enable automated behaviors:</p>
   <ul>
-    <li><strong>Auto-detect playback end</strong>: Automatically stops the capture when video playback ends
-      <ul>
-        <li>Requires an end detection selector (CSS selector for the element that appears when playback ends)</li>
-        <li>Example: For YanHeKT Session Player, it detects the end-of-video poster screen</li>
-      </ul>
-    </li>
-    <li><strong>Auto-start playback</strong>: Automatically clicks the play button when the page loads
-      <ul>
-        <li>Requires a play button selector (CSS selector for the play button)</li>
-        <li>Optional countdown selector for waiting for live streams to begin</li>
-      </ul>
-    </li>
-    <li><strong>Auto-adjust playback speed</strong>: Automatically sets the playback speed for videos
-      <ul>
-        <li>Requires the video element selector</li>
-        <li>Choose playback speed (1.0x to 3.0x)</li>
-      </ul>
-    </li>
-    <li><strong>Auto-detect title</strong>: Automatically extracts and displays the title of the current content
-      <ul>
-        <li>Requires selectors for course title and optional session info</li>
-        <li>Creates separate folders for different courses/sessions to organize slides</li>
-      </ul>
-    </li>
-  </ul>
+    <li><strong>Auto-detect playback end</strong>: Automatically stops the capture when video playback ends</li>
+    <li>For YanHeKT Session Player: Detects the end-of-video poster screen</li>
+    <li>For YanHeKT Live Player: Detects the "Live has ended" message</li>
+    <li>You can customize the detection selector when creating your own profiles</li>d="keyboard-shortcuts">Keyboard Shortcuts</h2>
 
-  <h2 id="background-running">Background Running</h2>
-  <p>AutoSlides can continue capturing slides even when your computer is locked or the display is turned off:</p>
-  <ul>
-    <li>Enable "Keep running in background" in Advanced Settings to activate this feature</li>
-    <li>This setting prevents the system from suspending the application while capturing</li>
-    <li>Particularly useful for long sessions that you want to capture unattended</li>
-    <li>On macOS, also prevents display sleep during capture</li>
-  </ul>
-  
-  <div class="note">
-    <p><strong>Note:</strong> Background running is automatically disabled when you stop capturing. It does not affect system behavior when the application is not actively capturing slides.</p>
-  </div>
 
-  <h2 id="task-manager">Task Manager</h2>
-  <p>The Task Manager allows you to queue multiple capture tasks to run sequentially:</p>
-  <ol>
-    <li>Click "Task Manager" in the profile panel to open it</li>
-    <li>Select a profile to use for the task</li>
-    <li>Enter the task ID or full URL
-      <ul>
-        <li>For profile-based tasks: Enter just the ID (e.g., 693305)</li>
-        <li>For custom URLs: Enter the complete URL</li>
-      </ul>
-    </li>
-    <li>Click "Add Task" to add it to the queue</li>
-    <li>Repeat to add more tasks as needed</li>
-    <li>Click "Start Tasks" to begin processing the queue</li>
-  </ol>
-  
-  <p>Task Manager features:</p>
-  <ul>
-    <li>All tasks run with full automation (auto-start, auto-detect end, etc.)</li>
-    <li>When one task finishes, the next one starts automatically</li>
-    <li>You can cancel task processing at any time</li>
-    <li>Task progress is displayed in the status area</li>
-  </ul>
-  
-  <div class="note">
-    <p><strong>Note:</strong> To use the Task Manager effectively, the selected profiles must have automation features properly configured (especially auto-detect end and auto-start playback).</p>
-  </div>
 
-  <h2 id="keyboard-shortcuts">Keyboard Shortcuts</h2>
-  <p>Use these shortcuts to enhance your workflow:</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <li><strong>Disk space usage</strong>: If the application is using too much disk space, use the Cache Management tools to clear temporary files</li>    <li><strong>Performance issues</strong>: Increase the "Check Interval" value</li>    <li><strong>Security warning on macOS</strong>: Use the <code>sudo xattr -d com.apple.quarantine</code> command mentioned in installation</li>    <li><strong>Slides not captured</strong>: Try lowering the "Change Threshold" value</li>  <ul>  <h2>Troubleshooting</h2>  </ul>    <li><strong>Auto-clean interval</strong>: Configure how frequently (in minutes) cache should be automatically cleared during capture</li>    <li><strong>Clear All Data</strong>: Complete cleanup of all temporary data and cache</li>    <li><strong>Clear Cookies</strong>: Deletes stored cookies from websites</li>    <li><strong>Clear Browser Cache</strong>: Removes cached web page data and images</li>  <ul>  <p>AutoSlides includes tools to manage cache and temporary files:</p>  <h3>Cache Management</h3>yanhekt.cn###ai-bit-shortcut</code></pre>yanhekt.cn###root > div.app > div.BlankLayout_layout__kC9f3:last-child > div.ant-spin-nested-loading:nth-child(2) > div.ant-spin-container > div.index_liveWrapper__YGcpO > div.index_userlist__T-6xf:last-child > div.index_staticContainer__z3yt-  <pre><code>yanhekt.cn###root > div.app > div.sidebar-open:first-child  <p>Use AdGuard-like syntax to hide unwanted elements:</p>  <h3>Element Blocking Rules</h3>  </ul>  <p>Use these shortcuts to enhance your workflow:</p>
   <table>
     <tr>
       <th>Function</th>
       <th>Windows/Linux</th>
       <th>macOS</th>
+    </tr>
+    <tr>
+      <td>Start/Stop Capture</td>
+      <td>Ctrl+S</td>
+      <td>⌘+S</td>
+    </tr>
+    <tr>
+      <td>Open Settings</td>
+      <td>Ctrl+,</td>
+      <td>⌘+,</td>
+    </tr>
+
+
+
+
+
+
+
+
+
+
+
+
+
+</html></body>  </ul>    <li><strong>Internet Connection</strong>: Required for accessing online content</li>    <li><strong>Processor</strong>: Dual-core processor or better</li>
+    <li><strong>Disk Space</strong>: 200MB for installation, plus storage for captured slides</li>
+
+    <li><strong>Memory</strong>: Minimum 4GB RAM (8GB recommended)</li>    <li><strong>Operating System</strong>: Windows 10+, macOS 10.14+, Linux (major distributions)</li>  <ul>  <h2>System Requirements</h2>  </ul>    <li><strong>Cache Clearing</strong>: Clear cache regularly for optimal performance, especially for long capture sessions</li>    <li><strong>Profile Management</strong>: Create specific profiles for websites you frequently use</li>    <li><strong>Regular Updates</strong>: Keep AutoSlides updated for the latest features and compatibility fixes</li>    <li><strong>External Storage</strong>: For long recordings, save to external storage with sufficient space</li>    <tr>
+      <td>Help</td>
+      <td>F1</td>
+      <td>F1</td>
     </tr>
     <tr>
       <td>Refresh Page</td>
@@ -253,54 +222,8 @@
       <td>F12 or Ctrl+Shift+I</td>
       <td>⌘+Option+I</td>
     </tr>
-    <tr>
-      <td>Help</td>
-      <td>F1</td>
-      <td>F1</td>
-    </tr>
   </table>
-
-  <h2 id="troubleshooting">Troubleshooting</h2>
-  <ul>
-    <li><strong>Slides not captured</strong>: Try lowering the "Change Threshold" value</li>
-    <li><strong>Performance issues</strong>: Increase the "Check Interval" value</li>
-    <li><strong>Disk space usage</strong>: Use the Cache Management tools to clear temporary files</li>
-    <li><strong>Automation not working</strong>: Verify your CSS selectors are correct</li>
-    <li><strong>Task Manager errors</strong>: Ensure the profile has all required automation settings</li>
-    <li><strong>Background running issues</strong>: Some systems may have power management policies that override the application's settings</li>
-  </ul>
-
-  <h3>Element Blocking Rules</h3>
-  <p>Use AdGuard-like syntax to hide unwanted elements:</p>
-  <pre><code>yanhekt.cn###root > div.app > div.sidebar-open:first-child
-yanhekt.cn###root > div.app > div.BlankLayout_layout__kC9f3:last-child > div.ant-spin-nested-loading:nth-child(2) > div.ant-spin-container > div.index_liveWrapper__YGcpO > div.index_userlist__T-6xf:last-child > div.index_staticContainer__z3yt-
-yanhekt.cn###ai-bit-shortcut</code></pre>
-
-  <h3>Cache Management</h3>
-  <p>AutoSlides includes tools to manage cache and temporary files:</p>
-  <ul>
-    <li><strong>Clear Browser Cache</strong>: Removes cached web page data and images</li>
-    <li><strong>Clear Cookies</strong>: Deletes stored cookies from websites</li>
-    <li><strong>Clear All Data</strong>: Complete cleanup of all temporary data and cache</li>
-    <li><strong>Auto-clean interval</strong>: Configure how frequently (in minutes) cache should be automatically cleared during capture</li>
-  </ul>
-
-  <h2>System Requirements</h2>
-  <ul>
-    <li><strong>Operating System</strong>: Windows 10+, macOS 10.14+, Linux (major distributions)</li>
-    <li><strong>Memory</strong>: Minimum 4GB RAM (8GB recommended)</li>
-    <li><strong>Disk Space</strong>: 200MB for installation, plus storage for captured slides</li>
-    <li><strong>Processor</strong>: Dual-core processor or better</li>
-    <li><strong>Internet Connection</strong>: Required for accessing online content</li>
-  </ul>
 
   <h2>Best Practices</h2>
   <ul>
     <li><strong>Pre-capture Test</strong>: Before important presentations, do a quick test capture to verify your settings are appropriate</li>
-    <li><strong>Profile Management</strong>: Create specific profiles for websites you frequently use</li>
-    <li><strong>Task Manager</strong>: For multiple recordings, set up a task queue instead of manually starting each capture</li>
-    <li><strong>Cache Clearing</strong>: Clear cache regularly for optimal performance, especially for long capture sessions</li>
-    <li><strong>External Storage</strong>: For long recordings, save to external storage with sufficient space</li>
-  </ul>
-</body>
-</html>
