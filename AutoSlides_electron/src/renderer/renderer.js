@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const inputOutputDir = document.getElementById('inputOutputDir');
   const inputTopCrop = document.getElementById('inputTopCrop');
   const inputBottomCrop = document.getElementById('inputBottomCrop');
-  const inputChangeThreshold = document.getElementById('inputChangeThreshold');
   const inputCheckInterval = document.getElementById('inputCheckInterval');
   const statusText = document.getElementById('statusText');
   const slideCount = document.getElementById('slideCount');
@@ -187,7 +186,6 @@ yanhekt.cn###ai-bit-shortcut`;
       inputOutputDir.value = config.outputDir || '';
       inputTopCrop.value = config.topCropPercent || 5;
       inputBottomCrop.value = config.bottomCropPercent || 5;
-      inputChangeThreshold.value = config.changeThreshold || 0.005;
       inputCheckInterval.value = config.checkInterval || 2;
       
       // Load cache clean interval
@@ -259,7 +257,6 @@ yanhekt.cn###ai-bit-shortcut`;
         outputDir: inputOutputDir.value,
         topCropPercent: parseFloat(inputTopCrop.value),
         bottomCropPercent: parseFloat(inputBottomCrop.value),
-        changeThreshold: parseFloat(inputChangeThreshold.value),
         checkInterval: parseFloat(inputCheckInterval.value),
         cacheCleanInterval: parseInt(cacheCleanInterval.value, 10),
         siteProfiles: siteProfiles,
@@ -284,7 +281,6 @@ yanhekt.cn###ai-bit-shortcut`;
       outputDir: await window.electronAPI.getConfig().then(config => config.outputDir), // Keep output dir as is
       topCropPercent: 5,
       bottomCropPercent: 5,
-      changeThreshold: 0.005,
       checkInterval: 2,
       allowBackgroundRunning: false // Add this line to reset background running
     };
@@ -292,7 +288,6 @@ yanhekt.cn###ai-bit-shortcut`;
     // Update input fields
     inputTopCrop.value = defaultConfig.topCropPercent;
     inputBottomCrop.value = defaultConfig.bottomCropPercent;
-    inputChangeThreshold.value = defaultConfig.changeThreshold;
     inputCheckInterval.value = defaultConfig.checkInterval;
     allowBackgroundRunning.checked = defaultConfig.allowBackgroundRunning; // Update checkbox state
     
@@ -1149,7 +1144,7 @@ yanhekt.cn###ai-bit-shortcut`;
           const changeRatio = diffCount / totalPixels;
           
           resolve({
-            changed: changeRatio > parseFloat(inputChangeThreshold.value),
+            changed: changeRatio > 0.005, // Hardcoded value instead of parseFloat(inputChangeThreshold.value)
             changeRatio
           });
         }
