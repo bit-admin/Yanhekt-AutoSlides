@@ -276,6 +276,10 @@ yanhekt.cn###ai-bit-shortcut`;
       setTimeout(() => {
         statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
       }, 2000);
+
+      // Reset Apply button style
+      btnSaveConfig.style.backgroundColor = '';
+      btnSaveConfig.style.fontWeight = '';
     } catch (error) {
       console.error('Failed to save config:', error);
       statusText.textContent = 'Error saving settings';
@@ -289,7 +293,8 @@ yanhekt.cn###ai-bit-shortcut`;
       topCropPercent: 5,
       bottomCropPercent: 5,
       checkInterval: 2,
-      allowBackgroundRunning: false // Add this line to reset background running
+      allowBackgroundRunning: false, // Add this line to reset background running
+      comparisonMethod: 'default' // Add this line to reset comparison method
     };
     
     // Update input fields
@@ -297,6 +302,7 @@ yanhekt.cn###ai-bit-shortcut`;
     inputBottomCrop.value = defaultConfig.bottomCropPercent;
     inputCheckInterval.value = defaultConfig.checkInterval;
     allowBackgroundRunning.checked = defaultConfig.allowBackgroundRunning; // Update checkbox state
+    comparisonMethod.value = defaultConfig.comparisonMethod; // Update comparison method field
     
     // Save to config
     await window.electronAPI.saveConfig(defaultConfig);
@@ -1263,76 +1269,17 @@ yanhekt.cn###ai-bit-shortcut`;
           // Get comparison method
           const method = comparisonMethod.value || 'default';
           
-          if (method === 'basic') {
-            // Basic pixel comparison method (existing)
-            data1 = convertToGrayscale(data1);
-            data2 = convertToGrayscale(data2);
-            
-            data1 = applyGaussianBlur(data1, 2);
-            data2 = applyGaussianBlur(data2, 2);
-
-            const comparisonResult = comparePixels(data1, data2);
-            
-            resolve({
-              changed: comparisonResult.changeRatio > 0.005, // Hardcoded value instead of parseFloat(inputChangeThreshold.value)
-              changeRatio: comparisonResult.changeRatio,
-              method: 'basic'
-            });
-          } else {
-            // New perceptual hash + SSIM method
-            try {
-              // Calculate perceptual hashes
-              const hash1 = calculatePerceptualHash(data1);
-              const hash2 = calculatePerceptualHash(data2);
-              
-              // Calculate Hamming distance between hashes
-              const hammingDistance = calculateHammingDistance(hash1, hash2);
-              
-              console.log(`pHash comparison: Hamming distance = ${hammingDistance}`);
-              
-              if (hammingDistance > 5) {
-                // Significant change detected by hash
-                resolve({
-                  changed: true,
-                  changeRatio: hammingDistance / 64, // Normalize for logging
-                  method: 'pHash',
-                  distance: hammingDistance
-                });
-              } else if (hammingDistance === 0) {
-                // Identical hashes
-                resolve({
-                  changed: false,
-                  changeRatio: 0,
-                  method: 'pHash',
-                  distance: 0
-                });
-              } else {
-                // Borderline case, use SSIM
-                const ssim = calculateSSIM(data1, data2);
-                console.log(`SSIM similarity: ${ssim.toFixed(6)}`);
-                
-                resolve({
-                  changed: ssim < 0.999,
-                  changeRatio: 1.0 - ssim, // Convert to "change ratio" for consistency
-                  method: 'SSIM',
-                  similarity: ssim
-                });
-              }
-            } catch (error) {
-              console.error('Error in advanced comparison:', error);
-              
-              // Fall back to basic method on error
-              data1 = convertToGrayscale(data1);
-              data2 = convertToGrayscale(data2);
-              
-              const comparisonResult = comparePixels(data1, data2);
-              
-              resolve({
-                changed: comparisonResult.changeRatio > 0.005, // Hardcoded value instead of parseFloat(inputChangeThreshold.value)
-                changeRatio: comparisonResult.changeRatio,
-                method: 'basic (fallback)'
-              });
-            }
+          // Use a more extensible approach with strategy pattern
+          switch (method) {
+            case 'basic':
+              performBasicComparison(data1, data2, resolve);
+              break;
+            case 'perceptual':
+              performPerceptualComparison(data1, data2, resolve);
+              break;
+            // Easy to add more methods here
+            default:
+              performPerceptualComparison(data1, data2, resolve); // Default to advanced method
           }
         }
       }
@@ -1350,6 +1297,68 @@ yanhekt.cn###ai-bit-shortcut`;
       img1.src = img1Data;
       img2.src = img2Data;
     });
+  }
+
+  // Extract methods to separate functions
+  function performBasicComparison(data1, data2, resolve) {
+    data1 = convertToGrayscale(data1);
+    data2 = convertToGrayscale(data2);
+    
+    data1 = applyGaussianBlur(data1, 2);
+    data2 = applyGaussianBlur(data2, 2);
+    
+    const comparisonResult = comparePixels(data1, data2);
+    
+    resolve({
+      changed: comparisonResult.changeRatio > 0.005,
+      changeRatio: comparisonResult.changeRatio,
+      method: 'basic'
+    });
+  }
+
+  function performPerceptualComparison(data1, data2, resolve) {
+    try {
+      // Calculate perceptual hashes
+      const hash1 = calculatePerceptualHash(data1);
+      const hash2 = calculatePerceptualHash(data2);
+      
+      // Calculate Hamming distance between hashes
+      const hammingDistance = calculateHammingDistance(hash1, hash2);
+      
+      console.log(`pHash comparison: Hamming distance = ${hammingDistance}`);
+      
+      if (hammingDistance > 5) {
+        // Significant change detected by hash
+        resolve({
+          changed: true,
+          changeRatio: hammingDistance / 64,
+          method: 'pHash',
+          distance: hammingDistance
+        });
+      } else if (hammingDistance === 0) {
+        // Identical hashes
+        resolve({
+          changed: false,
+          changeRatio: 0,
+          method: 'pHash',
+          distance: 0
+        });
+      } else {
+        // Borderline case, use SSIM
+        const ssim = calculateSSIM(data1, data2);
+        console.log(`SSIM similarity: ${ssim.toFixed(6)}`);
+        
+        resolve({
+          changed: ssim < 0.999,
+          changeRatio: 1.0 - ssim,
+          method: 'SSIM',
+          similarity: ssim
+        });
+      }
+    } catch (error) {
+      console.error('Error in advanced comparison:', error);
+      performBasicComparison(data1, data2, resolve); // Fall back to basic method
+    }
   }
 
   // Format date as local timestamp string suitable for filenames
@@ -1585,6 +1594,14 @@ yanhekt.cn###ai-bit-shortcut`;
   // Also intercept links that try to open in a new frame
   webview.addEventListener('will-navigate', (e) => {
     statusText.textContent = 'Navigating...';
+    if (hasUnsavedChanges) {
+      const answer = confirm('You have unsaved changes. Are you sure you want to navigate away?');
+      if (!answer) {
+        e.preventDefault();
+      } else {
+        hasUnsavedChanges = false;
+      }
+    }
   });
 
   webview.addEventListener('did-navigate', (e) => {
@@ -3050,4 +3067,126 @@ yanhekt.cn###ai-bit-shortcut`;
 
   // Modify the task profile select change handler to update validation
   taskProfileSelect.addEventListener('change', validateAutomationRequirements);
+
+  comparisonMethod.addEventListener('change', () => {
+    // Visual indicator that changes need to be applied
+    btnSaveConfig.style.backgroundColor = '#4CAF50';
+    btnSaveConfig.style.fontWeight = 'bold';
+    
+    // Optional: Add a small notification
+    statusText.textContent = 'Click Apply to save changes';
+    setTimeout(() => {
+      if (statusText.textContent === 'Click Apply to save changes') {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }
+    }, 3000);
+  });
+
+  // Create a function to highlight the profile save button
+  function highlightProfileSaveButton() {
+    btnSaveProfile.style.backgroundColor = '#4CAF50';
+    btnSaveProfile.style.fontWeight = 'bold';
+    statusText.textContent = 'Click Apply to save profile changes';
+    setTimeout(() => {
+      if (statusText.textContent === 'Click Apply to save profile changes') {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }
+    }, 3000);
+    markUnsavedChanges();
+  }
+
+  // Add event listeners to profile configuration fields
+  elementSelector.addEventListener('input', highlightProfileSaveButton);
+  urlPattern.addEventListener('input', highlightProfileSaveButton);
+  autoDetectEnd.addEventListener('change', highlightProfileSaveButton);
+  endDetectionSelector.addEventListener('input', highlightProfileSaveButton);
+  autoStartPlayback.addEventListener('change', highlightProfileSaveButton);
+  playButtonSelector.addEventListener('input', highlightProfileSaveButton);
+  countdownSelector.addEventListener('input', highlightProfileSaveButton);
+  autoAdjustSpeed.addEventListener('change', highlightProfileSaveButton);
+  speedSelector.addEventListener('input', highlightProfileSaveButton);
+  playbackSpeed.addEventListener('change', highlightProfileSaveButton);
+  autoDetectTitle.addEventListener('change', highlightProfileSaveButton);
+  courseTitleSelector.addEventListener('input', highlightProfileSaveButton);
+  sessionInfoSelector.addEventListener('input', highlightProfileSaveButton);
+
+  // Reset button appearance after saving
+  btnSaveProfile.addEventListener('click', () => {
+    setTimeout(() => {
+      btnSaveProfile.style.backgroundColor = '';
+      btnSaveProfile.style.fontWeight = '';
+    }, 500);
+    hasUnsavedChanges = false;
+  });
+
+  // Highlight Apply button when blocking rules are changed
+  blockingRules.addEventListener('input', () => {
+    btnApplyRules.style.backgroundColor = '#4CAF50';
+    btnApplyRules.style.fontWeight = 'bold';
+    statusText.textContent = 'Click Apply to activate new rules';
+    setTimeout(() => {
+      if (statusText.textContent === 'Click Apply to activate new rules') {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }
+    }, 3000);
+    markUnsavedChanges();
+  });
+
+  // Reset button appearance after applying
+  btnApplyRules.addEventListener('click', () => {
+    setTimeout(() => {
+      btnApplyRules.style.backgroundColor = '';
+      btnApplyRules.style.fontWeight = '';
+    }, 500);
+    hasUnsavedChanges = false;
+  });
+
+  // Function to highlight config save button
+  function highlightConfigSaveButton() {
+    btnSaveConfig.style.backgroundColor = '#4CAF50';
+    btnSaveConfig.style.fontWeight = 'bold';
+    statusText.textContent = 'Click Apply to save settings';
+    setTimeout(() => {
+      if (statusText.textContent === 'Click Apply to save settings') {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }
+    }, 3000);
+    markUnsavedChanges();
+  }
+
+  // Add listeners to configuration fields
+  inputTopCrop.addEventListener('input', highlightConfigSaveButton);
+  inputBottomCrop.addEventListener('input', highlightConfigSaveButton);
+  inputCheckInterval.addEventListener('input', highlightConfigSaveButton);
+  allowBackgroundRunning.addEventListener('change', highlightConfigSaveButton);
+  comparisonMethod.addEventListener('change', highlightConfigSaveButton);
+
+  // Reset button appearance after saving
+  btnSaveConfig.addEventListener('click', () => {
+    setTimeout(() => {
+      btnSaveConfig.style.backgroundColor = '';
+      btnSaveConfig.style.fontWeight = '';
+    }, 500);
+    hasUnsavedChanges = false;
+  });
+
+  // Track if there are unsaved changes
+  let hasUnsavedChanges = false;
+
+  // Update this function to be called from all input handlers
+  function markUnsavedChanges() {
+    hasUnsavedChanges = true;
+  }
+
+  // Add a warning when navigating away with unsaved changes
+  webview.addEventListener('will-navigate', (e) => {
+    if (hasUnsavedChanges) {
+      const answer = confirm('You have unsaved changes. Are you sure you want to navigate away?');
+      if (!answer) {
+        e.preventDefault();
+      } else {
+        hasUnsavedChanges = false;
+      }
+    }
+  });
 });
