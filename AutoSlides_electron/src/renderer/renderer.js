@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const courseTitleSelector = document.getElementById('courseTitleSelector');
   const sessionInfoSelector = document.getElementById('sessionInfoSelector');
   const titleDisplay = document.getElementById('titleDisplay'); // Add this line
+  const comparisonMethod = document.getElementById('comparisonMethod'); // Add this line
 
   // Capture related variables
   let captureInterval = null;
@@ -245,6 +246,11 @@ yanhekt.cn###ai-bit-shortcut`;
 
       allowBackgroundRunning.checked = config.allowBackgroundRunning || false;
       
+      // Load comparison method setting
+      if (config.comparisonMethod) {
+        comparisonMethod.value = config.comparisonMethod;
+      }
+      
       return config;
     } catch (error) {
       console.error('Failed to load config:', error);
@@ -261,7 +267,8 @@ yanhekt.cn###ai-bit-shortcut`;
         cacheCleanInterval: parseInt(cacheCleanInterval.value, 10),
         siteProfiles: siteProfiles,
         activeProfileId: activeProfileId,
-        allowBackgroundRunning: allowBackgroundRunning.checked
+        allowBackgroundRunning: allowBackgroundRunning.checked,
+        comparisonMethod: comparisonMethod.value // Add this line
       };
       
       await window.electronAPI.saveConfig(config);
@@ -1115,6 +1122,115 @@ yanhekt.cn###ai-bit-shortcut`;
     };
   }
 
+  // Resize image data to specific dimensions
+  function resizeImageData(imageData, newWidth, newHeight) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Create a temporary image
+    const img = new Image();
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Set the temp canvas to the original image size
+    tempCanvas.width = imageData.width;
+    tempCanvas.height = imageData.height;
+    
+    // Create ImageData and put it on the temp canvas
+    tempCtx.putImageData(imageData, 0, 0);
+    
+    // Set target canvas size
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+    
+    // Draw resized image to the target canvas
+    ctx.drawImage(tempCanvas, 0, 0, imageData.width, imageData.height, 0, 0, newWidth, newHeight);
+    
+    // Return new ImageData
+    return ctx.getImageData(0, 0, newWidth, newHeight);
+  }
+
+  // Calculate perceptual hash for an image
+  function calculatePerceptualHash(imageData) {
+    // Convert to grayscale if not already
+    const grayscaleData = convertToGrayscale(imageData);
+    
+    // Resize to 8x8
+    const resizedData = resizeImageData(grayscaleData, 8, 8);
+    
+    // Calculate average pixel value
+    let sum = 0;
+    for (let i = 0; i < resizedData.data.length; i += 4) {
+      sum += resizedData.data[i]; // Just using red channel as it's grayscale
+    }
+    const avg = sum / (8 * 8);
+    
+    // Generate hash based on whether pixel is above average
+    let hash = '';
+    for (let i = 0; i < resizedData.data.length; i += 4) {
+      hash += (resizedData.data[i] >= avg) ? '1' : '0';
+    }
+    
+    return hash;
+  }
+
+  // Calculate Hamming distance between two hashes
+  function calculateHammingDistance(hash1, hash2) {
+    if (hash1.length !== hash2.length) {
+      throw new Error('Hash lengths do not match');
+    }
+    
+    let distance = 0;
+    for (let i = 0; i < hash1.length; i++) {
+      if (hash1[i] !== hash2[i]) {
+        distance++;
+      }
+    }
+    
+    return distance;
+  }
+
+  // Calculate SSIM (Structural Similarity Index)
+  function calculateSSIM(img1Data, img2Data) {
+    // Convert to grayscale
+    const gray1 = convertToGrayscale(img1Data);
+    const gray2 = convertToGrayscale(img2Data);
+    
+    // Calculate means
+    let mean1 = 0, mean2 = 0;
+    const pixelCount = gray1.width * gray1.height;
+    
+    for (let i = 0; i < gray1.data.length; i += 4) {
+      mean1 += gray1.data[i];
+      mean2 += gray2.data[i];
+    }
+    mean1 /= pixelCount;
+    mean2 /= pixelCount;
+    
+    // Calculate variances and covariance
+    let var1 = 0, var2 = 0, covar = 0;
+    for (let i = 0; i < gray1.data.length; i += 4) {
+      const diff1 = gray1.data[i] - mean1;
+      const diff2 = gray2.data[i] - mean2;
+      var1 += diff1 * diff1;
+      var2 += diff2 * diff2;
+      covar += diff1 * diff2;
+    }
+    var1 /= pixelCount;
+    var2 /= pixelCount;
+    covar /= pixelCount;
+    
+    // Constants for stability
+    const C1 = 0.01 * 255 * 0.01 * 255;
+    const C2 = 0.03 * 255 * 0.03 * 255;
+    
+    // Calculate SSIM
+    const numerator = (2 * mean1 * mean2 + C1) * (2 * covar + C2);
+    const denominator = (mean1 * mean1 + mean2 * mean2 + C1) * (var1 + var2 + C2);
+    
+    return numerator / denominator;
+  }
+
   // Compare images for changes
   function compareImages(img1Data, img2Data) {
     return new Promise((resolve) => {
@@ -1144,21 +1260,80 @@ yanhekt.cn###ai-bit-shortcut`;
           let data1 = ctx1.getImageData(0, 0, canvas1.width, canvas1.height);
           let data2 = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
           
-          // Apply grayscale conversion
-          data1 = convertToGrayscale(data1);
-          data2 = convertToGrayscale(data2);
+          // Get comparison method
+          const method = comparisonMethod.value || 'default';
           
-          // Apply Gaussian blur (with radius 2)
-          data1 = applyGaussianBlur(data1, 2);
-          data2 = applyGaussianBlur(data2, 2);
+          if (method === 'basic') {
+            // Basic pixel comparison method (existing)
+            data1 = convertToGrayscale(data1);
+            data2 = convertToGrayscale(data2);
+            
+            data1 = applyGaussianBlur(data1, 2);
+            data2 = applyGaussianBlur(data2, 2);
 
-          // Use the new pixel comparison function
-          const comparisonResult = comparePixels(data1, data2);
-          
-          resolve({
-            changed: comparisonResult.changeRatio > 0.005, // Hardcoded value instead of parseFloat(inputChangeThreshold.value)
-            changeRatio: comparisonResult.changeRatio
-          });
+            const comparisonResult = comparePixels(data1, data2);
+            
+            resolve({
+              changed: comparisonResult.changeRatio > 0.005, // Hardcoded value instead of parseFloat(inputChangeThreshold.value)
+              changeRatio: comparisonResult.changeRatio,
+              method: 'basic'
+            });
+          } else {
+            // New perceptual hash + SSIM method
+            try {
+              // Calculate perceptual hashes
+              const hash1 = calculatePerceptualHash(data1);
+              const hash2 = calculatePerceptualHash(data2);
+              
+              // Calculate Hamming distance between hashes
+              const hammingDistance = calculateHammingDistance(hash1, hash2);
+              
+              console.log(`pHash comparison: Hamming distance = ${hammingDistance}`);
+              
+              if (hammingDistance > 5) {
+                // Significant change detected by hash
+                resolve({
+                  changed: true,
+                  changeRatio: hammingDistance / 64, // Normalize for logging
+                  method: 'pHash',
+                  distance: hammingDistance
+                });
+              } else if (hammingDistance === 0) {
+                // Identical hashes
+                resolve({
+                  changed: false,
+                  changeRatio: 0,
+                  method: 'pHash',
+                  distance: 0
+                });
+              } else {
+                // Borderline case, use SSIM
+                const ssim = calculateSSIM(data1, data2);
+                console.log(`SSIM similarity: ${ssim.toFixed(6)}`);
+                
+                resolve({
+                  changed: ssim < 0.999,
+                  changeRatio: 1.0 - ssim, // Convert to "change ratio" for consistency
+                  method: 'SSIM',
+                  similarity: ssim
+                });
+              }
+            } catch (error) {
+              console.error('Error in advanced comparison:', error);
+              
+              // Fall back to basic method on error
+              data1 = convertToGrayscale(data1);
+              data2 = convertToGrayscale(data2);
+              
+              const comparisonResult = comparePixels(data1, data2);
+              
+              resolve({
+                changed: comparisonResult.changeRatio > 0.005, // Hardcoded value instead of parseFloat(inputChangeThreshold.value)
+                changeRatio: comparisonResult.changeRatio,
+                method: 'basic (fallback)'
+              });
+            }
+          }
         }
       }
 
@@ -1278,7 +1453,17 @@ yanhekt.cn###ai-bit-shortcut`;
           
           capturedCount++;
           slideCount.textContent = `Slides captured: ${capturedCount}`;
-          console.log(`Saved new slide (change ratio: ${result.changeRatio.toFixed(4)})`);
+          
+          // Enhanced logging with comparison method info
+          let logMsg = `Saved new slide (`;
+          if (result.method === 'pHash') {
+            logMsg += `method: ${result.method}, hamming distance: ${result.distance})`;
+          } else if (result.method === 'SSIM') {
+            logMsg += `method: ${result.method}, similarity: ${result.similarity.toFixed(6)})`;
+          } else {
+            logMsg += `method: ${result.method}, change ratio: ${result.changeRatio.toFixed(4)})`;
+          }
+          console.log(logMsg);
         }
       }, parseFloat(inputCheckInterval.value) * 1000);
     } catch (error) {

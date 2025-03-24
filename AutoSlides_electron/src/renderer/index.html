@@ -31,6 +31,15 @@
           </div>
           
           <div class="setting-item">
+            <label for="comparisonMethod">Comparison Method:</label>
+            <select id="comparisonMethod">
+              <option value="default">Default (pHash+SSIM)</option>
+              <option value="basic">Basic (Pixel-based)</option>
+            </select>
+            <p class="help-text">Default uses perceptual hash with SSIM for better accuracy</p>
+          </div>
+          
+          <div class="setting-item">
             <label for="inputCheckInterval">Check Interval (s):</label>
             <input type="number" id="inputCheckInterval" min="0.5" max="10" step="0.5" />
           </div>
