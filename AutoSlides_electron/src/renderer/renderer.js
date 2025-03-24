@@ -1020,7 +1020,7 @@ yanhekt.cn###ai-bit-shortcut`;
     const dst = new Uint8ClampedArray(src);
     
     // Generate Gaussian kernel
-    const sigma = radius / 3;
+    const sigma = radius / 2;
     const kernelSize = radius * 2 + 1;
     const kernel = new Array(kernelSize);
     const kernelSum = 2 * Math.PI * sigma * sigma;
@@ -1085,6 +1085,36 @@ yanhekt.cn###ai-bit-shortcut`;
     return new ImageData(dst, width, height);
   }
 
+  // Compare pixels between two ImageData objects
+  function comparePixels(data1, data2) {
+    let diffCount = 0;
+    const threshold = 30; // Pixel difference threshold
+    
+    for (let i = 0; i < data1.data.length; i += 4) {
+      const r1 = data1.data[i];
+      const g1 = data1.data[i + 1];
+      const b1 = data1.data[i + 2];
+      
+      const r2 = data2.data[i];
+      const g2 = data2.data[i + 1];
+      const b2 = data2.data[i + 2];
+      
+      const diff = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+      if (diff > threshold) {
+        diffCount++;
+      }
+    }
+    
+    const totalPixels = (data1.width * data1.height);
+    const changeRatio = diffCount / totalPixels;
+    
+    return {
+      diffCount,
+      totalPixels,
+      changeRatio
+    };
+  }
+
   // Compare images for changes
   function compareImages(img1Data, img2Data) {
     return new Promise((resolve) => {
@@ -1122,30 +1152,12 @@ yanhekt.cn###ai-bit-shortcut`;
           data1 = applyGaussianBlur(data1, 2);
           data2 = applyGaussianBlur(data2, 2);
 
-          let diffCount = 0;
-          const threshold = 30; // Pixel difference threshold
-          
-          for (let i = 0; i < data1.data.length; i += 4) {
-            const r1 = data1.data[i];
-            const g1 = data1.data[i + 1];
-            const b1 = data1.data[i + 2];
-            
-            const r2 = data2.data[i];
-            const g2 = data2.data[i + 1];
-            const b2 = data2.data[i + 2];
-            
-            const diff = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
-            if (diff > threshold) {
-              diffCount++;
-            }
-          }
-
-          const totalPixels = (canvas1.width * canvas1.height);
-          const changeRatio = diffCount / totalPixels;
+          // Use the new pixel comparison function
+          const comparisonResult = comparePixels(data1, data2);
           
           resolve({
-            changed: changeRatio > 0.005, // Hardcoded value instead of parseFloat(inputChangeThreshold.value)
-            changeRatio
+            changed: comparisonResult.changeRatio > 0.005, // Hardcoded value instead of parseFloat(inputChangeThreshold.value)
+            changeRatio: comparisonResult.changeRatio
           });
         }
       }
