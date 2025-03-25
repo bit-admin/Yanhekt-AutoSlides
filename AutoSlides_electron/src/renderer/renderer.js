@@ -304,7 +304,8 @@ yanhekt.cn###ai-bit-shortcut`;
       bottomCropPercent: 5,
       checkInterval: 2,
       allowBackgroundRunning: false, // Add this line to reset background running
-      comparisonMethod: 'default' // Add this line to reset comparison method
+      comparisonMethod: 'default', // Add this line to reset comparison method
+      enableDoubleVerification: false // Reset double verification to default
     };
     
     // Update input fields
@@ -313,6 +314,7 @@ yanhekt.cn###ai-bit-shortcut`;
     inputCheckInterval.value = defaultConfig.checkInterval;
     allowBackgroundRunning.checked = defaultConfig.allowBackgroundRunning; // Update checkbox state
     comparisonMethod.value = defaultConfig.comparisonMethod; // Update comparison method field
+    enableDoubleVerificationCheckbox.checked = defaultConfig.enableDoubleVerification; // Update checkbox state
     
     // Save to config
     await window.electronAPI.saveConfig(defaultConfig);
@@ -3222,7 +3224,9 @@ yanhekt.cn###ai-bit-shortcut`;
 
   // Add event listener for double verification checkbox
   enableDoubleVerificationCheckbox.addEventListener('change', () => {
+    // Update the state but don't save immediately
     enableDoubleVerification = enableDoubleVerificationCheckbox.checked;
-    saveConfig();
+    hasUnsavedChanges = true;  // Mark that we have unsaved changes
+    highlightConfigSaveButton(); // Highlight Apply button
   });
 });
