@@ -53,6 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const sessionInfoSelector = document.getElementById('sessionInfoSelector');
   const titleDisplay = document.getElementById('titleDisplay'); // Add this line
   const comparisonMethod = document.getElementById('comparisonMethod'); // Add this line
+  const enableDoubleVerificationCheckbox = document.getElementById('enableDoubleVerification'); // Add this line
 
   // Capture related variables
   let captureInterval = null;
@@ -71,6 +72,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   let detectedTitle = null;
   let titleExtractionComplete = false;
   let currentTitleText = ''; // Track the current title for saving
+  let enableDoubleVerification = false; // Add this line
+  let verificationState = 'none'; // Add this line
+  let potentialNewImageData = null; // Add this line
+  let verificationMethod = null; // Add this line
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -250,6 +255,10 @@ yanhekt.cn###ai-bit-shortcut`;
       if (config.comparisonMethod) {
         comparisonMethod.value = config.comparisonMethod;
       }
+
+      // Load double verification setting
+      enableDoubleVerification = config.enableDoubleVerification || false;
+      enableDoubleVerificationCheckbox.checked = enableDoubleVerification;
       
       return config;
     } catch (error) {
@@ -268,7 +277,8 @@ yanhekt.cn###ai-bit-shortcut`;
         siteProfiles: siteProfiles,
         activeProfileId: activeProfileId,
         allowBackgroundRunning: allowBackgroundRunning.checked,
-        comparisonMethod: comparisonMethod.value // Add this line
+        comparisonMethod: comparisonMethod.value, // Add this line
+        enableDoubleVerification: enableDoubleVerificationCheckbox.checked // Add this line
       };
       
       await window.electronAPI.saveConfig(config);
@@ -1441,38 +1451,53 @@ yanhekt.cn###ai-bit-shortcut`;
         if (playbackEnded) return;
         
         const currentImageData = await captureScreenshot();
-        const result = await compareImages(lastImageData, currentImageData);
-        
-        if (result.changed) {
-          // Use local timestamp for each new slide
-          const timestamp = formatLocalTimestamp();
-          
-          // Store the uncropped image for future comparisons
-          lastImageData = currentImageData;
-          
-          // If using element capture, don't crop the image
-          const finalImageData = isUsingElementCapture ? currentImageData : await cropImage(currentImageData);
-          
-          // Pass the title to the save function
-          await window.electronAPI.saveSlide({ 
-            imageData: finalImageData, 
-            timestamp,
-            title: currentTitleText
-          });
-          
-          capturedCount++;
-          slideCount.textContent = `Slides captured: ${capturedCount}`;
-          
-          // Enhanced logging with comparison method info
-          let logMsg = `Saved new slide (`;
-          if (result.method === 'pHash') {
-            logMsg += `method: ${result.method}, hamming distance: ${result.distance})`;
-          } else if (result.method === 'SSIM') {
-            logMsg += `method: ${result.method}, similarity: ${result.similarity.toFixed(6)})`;
+
+        if (enableDoubleVerification && verificationState !== 'none') {
+          const verifyResult = await compareImages(potentialNewImageData, currentImageData);
+    
+          if (verifyResult.changed) {
+            console.log(`Verification failed (${verificationState}): new slide is unstable`);
+            verificationState = 'none';
+            potentialNewImageData = null;
+            verificationMethod = null;
           } else {
-            logMsg += `method: ${result.method}, change ratio: ${result.changeRatio.toFixed(4)})`;
+            if (verificationState === 'first') {
+              console.log('First verification passed, proceeding to second verification');
+              verificationState = 'second';
+            } else if (verificationState === 'second') {
+              console.log('Second verification passed, saving new slide');
+              const timestamp = formatLocalTimestamp();
+              lastImageData = potentialNewImageData;
+              const isUsingElementCapture = activeProfileId !== 'default';
+              const finalImageData = isUsingElementCapture ? potentialNewImageData : await cropImage(potentialNewImageData);
+              await window.electronAPI.saveSlide({ imageData: finalImageData, timestamp, title: currentTitleText });
+              capturedCount++;
+              slideCount.textContent = `Slides captured: ${capturedCount}`;
+              verificationState = 'none';
+              potentialNewImageData = null;
+              verificationMethod = null;
+            }
           }
-          console.log(logMsg);
+        } else {
+          const result = await compareImages(lastImageData, currentImageData);
+    
+          if (result.changed) {
+            if (enableDoubleVerification) {
+              console.log('Potential slide change detected, starting verification');
+              verificationState = 'first';
+              potentialNewImageData = currentImageData;
+              verificationMethod = result.method;
+            } else {
+              const timestamp = formatLocalTimestamp();
+              lastImageData = currentImageData;
+              const isUsingElementCapture = activeProfileId !== 'default';
+              const finalImageData = isUsingElementCapture ? currentImageData : await cropImage(currentImageData);
+              await window.electronAPI.saveSlide({ imageData: finalImageData, timestamp, title: currentTitleText });
+              capturedCount++;
+              slideCount.textContent = `Slides captured: ${capturedCount}`;
+            }
+            console.log(`${enableDoubleVerification ? 'Potential' : 'Saved'} new slide (method: ${result.method})`);
+          }
         }
       }, parseFloat(inputCheckInterval.value) * 1000);
     } catch (error) {
@@ -1509,6 +1534,11 @@ yanhekt.cn###ai-bit-shortcut`;
       // Reset speed adjustment state
       speedAdjusted = false;
       speedAdjustRetryAttempts = 0;
+
+      // Reset verification state
+      verificationState = 'none';
+      potentialNewImageData = null;
+      verificationMethod = null;
 
       btnStartCapture.disabled = false;
       btnStopCapture.disabled = true;
@@ -3188,5 +3218,11 @@ yanhekt.cn###ai-bit-shortcut`;
         hasUnsavedChanges = false;
       }
     }
+  });
+
+  // Add event listener for double verification checkbox
+  enableDoubleVerificationCheckbox.addEventListener('change', () => {
+    enableDoubleVerification = enableDoubleVerificationCheckbox.checked;
+    saveConfig();
   });
 });

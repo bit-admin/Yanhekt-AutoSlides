@@ -44,6 +44,14 @@
             <input type="number" id="inputCheckInterval" min="0.5" max="10" step="0.5" />
           </div>
 
+          <div class="setting-item">
+            <label>
+              <input type="checkbox" id="enableDoubleVerification"> 
+              Enable double verification
+            </label>
+            <p class="help-text">Verify slide changes with additional checks before saving</p>
+          </div>
+
           <!-- Advanced Settings Section -->
           <div class="collapsible-section">
             <div class="collapsible-header">
@@ -155,7 +163,7 @@
                     <input type="checkbox" id="autoAdjustSpeed"> 
                     Auto-adjust playback speed
                   </label>
-                  <p class="help-text">May need to modify check interval accordingly</p>
+                  <p class="help-text">Modify check interval if needed</p>
                 </div>
                 <div class="setting-item">
                   <label for="speedSelector">Video element selector:</label>
