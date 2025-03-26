@@ -15,7 +15,8 @@
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
-    "electron-store": "^8.1.0"
+    "electron-store": "^8.1.0",
+    "node-fetch": "^2.7.0"
   },
   "build": {
     "appId": "com.autoslides.app",
@@ -23,11 +24,15 @@
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
-      "target": ["dmg"],
+      "target": [
+        "dmg"
+      ],
       "artifactName": "${productName}-${version}-macOS-${arch}.${ext}"
     },
     "win": {
-      "target": ["7z"],
+      "target": [
+        "7z"
+      ],
       "icon": "build/icon.ico",
       "artifactName": "${productName}-${version}-Windows-${arch}.${ext}"
     },

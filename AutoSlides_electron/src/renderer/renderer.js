@@ -3063,8 +3063,8 @@ yanhekt.cn###ai-bit-shortcut`;
       return null;
     }
   }
-
-  // Enhanced fetchSessionList function with better login detection
+  
+  // Enhanced fetchSessionList function with proper token extraction
   async function fetchSessionList(courseId, page = 1, pageSize = 10) {
     try {
       // Basic validation
@@ -3074,217 +3074,97 @@ yanhekt.cn###ai-bit-shortcut`;
   
       statusText.textContent = 'Fetching session data...';
       
-      // Wait longer to ensure page is fully loaded
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Extract session data directly from the DOM
-      const result = await webview.executeJavaScript(`
-        (async function() {
+      // Extract authentication token from localStorage instead of cookies
+      const authInfo = await webview.executeJavaScript(`
+        (function() {
+          // Get auth data from localStorage (this is where YanHeKT stores it)
+          let token = null;
           try {
-            // More comprehensive login check
-            console.log('Checking login status...');
+            // First try to get from localStorage (primary method)
+            const authData = localStorage.getItem('auth');
+            if (authData) {
+              const parsed = JSON.parse(authData);
+              token = parsed.token;
+              console.log('Found token in localStorage');
+            }
             
-            // Try to extract session data regardless of login check
-            console.log('Extracting session data from page...');
-            
-            // Look for session list in the DOM
-            const sessions = [];
-            const sessionElements = document.querySelectorAll('.ant-list-items .ant-list-item');
-            
-            console.log('Found session elements:', sessionElements.length);
-            
-            if (!sessionElements || sessionElements.length === 0) {
-              // Check if we're actually looking at a course page
-              const courseTitleElement = document.querySelector('.ant-breadcrumb') || 
-                                        document.querySelector('.course-title') || 
-                                        document.querySelector('h1');
-              
-              const courseTitle = courseTitleElement ? courseTitleElement.textContent : '';
-              
-              if (courseTitle) {
-                return { 
-                  error: 'Session list not found',
-                  message: 'Course page found but no sessions listed. Try refreshing the page.'
-                };
-              } else {
-                return { 
-                  error: 'Not a course page',
-                  message: 'Please make sure you are on a course page with video sessions'
-                };
+            // If not found in localStorage, try backup locations
+            if (!token) {
+              // Check alternative localStorage keys
+              for (const key of ['token', 'accessToken', 'yanhekt_token']) {
+                const value = localStorage.getItem(key);
+                if (value) {
+                  token = value.replace(/^"|"$/g, ''); // Remove quotes if present
+                  console.log('Found token in localStorage key:', key);
+                  break;
+                }
               }
             }
             
-            // Extract data from each session element
-            sessionElements.forEach((item, index) => {
-              try {
-                // Extract title - typically contains week and day info
-                const titleElement = item.querySelector('.ant-list-item-meta-title span:first-child');
-                const title = titleElement ? titleElement.textContent.trim() : '';
-                
-                // Extract date info
-                const dateElement = item.querySelector('.RecordInfo_subTitle__e-nwC');
-                const dateText = dateElement ? dateElement.textContent.trim() : '';
-                
-                // Extract session ID - more robust approach
-                let sessionId = null;
-                
-                // Method 1: Get from play button
-                const playButton = item.querySelector('.ant-btn-primary');
-                if (playButton) {
-                  // Log the button for debugging
-                  console.log('Found play button:', playButton.outerHTML);
-                  
-                  // Method 1a: Check onclick attribute
-                  const onClickAttr = playButton.getAttribute('onclick') || '';
-                  const sessionMatch = onClickAttr.match(/session\\/([0-9]+)/);
-                  if (sessionMatch && sessionMatch[1]) {
-                    sessionId = sessionMatch[1];
-                    console.log('Found session ID from onclick:', sessionId);
-                  }
-                  
-                  // Method 1b: Check href if it's an <a> element or has parent anchor
-                  const parentAnchor = playButton.closest('a');
-                  const buttonHref = playButton.getAttribute('href') || 
-                                     (parentAnchor ? parentAnchor.getAttribute('href') : '');
-                  
-                  if (!sessionId && buttonHref) {
-                    const hrefMatch = buttonHref.match(/session\\/([0-9]+)/);
-                    if (hrefMatch && hrefMatch[1]) {
-                      sessionId = hrefMatch[1];
-                      console.log('Found session ID from href:', sessionId);
-                    }
-                  }
-                  
-                  // Method 1c: Check any data attributes
-                  if (!sessionId) {
-                    Array.from(playButton.attributes).forEach(attr => {
-                      if (attr.name.startsWith('data-') && /^\\d+$/.test(attr.value)) {
-                        sessionId = attr.value;
-                        console.log('Found session ID from data attribute:', sessionId);
-                      }
-                    });
-                  }
-                  
-                  // Method 1d: Look at any spans or other elements inside the button
-                  if (!sessionId) {
-                    const allText = playButton.innerText || '';
-                    const textMatch = allText.match(/(\\d{5,})/); // Look for numbers with 5+ digits
-                    if (textMatch && textMatch[1]) {
-                      sessionId = textMatch[1];
-                      console.log('Found session ID from button text:', sessionId);
-                    }
-                  }
-                }
-                
-                // Method 2: Try to get from item attributes or data
-                if (!sessionId) {
-                  Array.from(item.attributes).forEach(attr => {
-                    if ((attr.name.includes('id') || attr.name.startsWith('data-')) && 
-                        /^\\d+$/.test(attr.value)) {
-                      sessionId = attr.value;
-                      console.log('Found session ID from item attribute:', sessionId);
-                    }
-                  });
-                }
-                
-                // Method 3: Look for any anchor links in the item
-                if (!sessionId) {
-                  const allLinks = item.querySelectorAll('a');
-                  allLinks.forEach(link => {
-                    const href = link.getAttribute('href') || '';
-                    const linkMatch = href.match(/session\\/([0-9]+)/);
-                    if (linkMatch && linkMatch[1]) {
-                      sessionId = linkMatch[1];
-                      console.log('Found session ID from link href:', sessionId);
-                    }
-                  });
-                }
-                
-                // Fallback: Generate a synthetic ID
-                if (!sessionId) {
-                  // Try to extract from the title if it contains numbers
-                  const titleNumbers = title.match(/(\\d+)/g);
-                  if (titleNumbers && titleNumbers.length > 0) {
-                    // Use title numbers to create a deterministic ID
-                    sessionId = 'auto_' + ${courseId} + '_' + titleNumbers.join('_');
-                  } else {
-                    // Last resort - use index
-                    sessionId = 'auto_' + ${courseId} + '_' + index;
-                  }
-                  console.log('Generated synthetic session ID:', sessionId);
-                }
-                
-                // Extract week number and day using regex
-                const weekMatch = title.match(/第(\\d+)周/);
-                const dayMatch = title.match(/星期([一二三四五六日])/);
-                
-                const weekNumber = weekMatch ? parseInt(weekMatch[1], 10) : index + 1;
-                
-                // Map Chinese day names to numbers (1-7)
-                const dayMap = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '日': 7};
-                const dayOfWeek = dayMatch ? dayMap[dayMatch[1]] || 1 : 1;
-                
-                sessions.push({
-                  sessionId: sessionId,
-                  courseId: ${courseId},
-                  title: title,
-                  weekNumber: weekNumber,
-                  dayOfWeek: dayOfWeek,
-                  startedAt: dateText.replace(/[()]/g, ''),
-                  videoId: null,
-                  videoUrl: null
-                });
-                
-                console.log('Added session:', title, 'ID:', sessionId);
-              } catch (itemError) {
-                console.error('Error parsing session item:', itemError);
+            // Last resort: try cookies
+            if (!token) {
+              const cookies = document.cookie.split(';');
+              const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+              if (tokenCookie) {
+                token = tokenCookie.split('=')[1].trim();
+                console.log('Found token in cookies');
               }
-            });
-            
-            if (sessions.length > 0) {
-              console.log('Successfully extracted', sessions.length, 'sessions');
-              return { success: true, data: sessions };
-            } else {
-              return { 
-                error: 'No sessions extracted', 
-                message: 'Found session elements but failed to extract data' 
-              };
             }
-          } catch (err) {
-            console.error('Error in page extraction:', err);
-            return { 
-              error: 'Extraction error', 
-              message: err.toString() 
-            };
+          } catch (e) {
+            console.error('Error extracting token:', e);
           }
+          
+          // Get user agent for request headers
+          const userAgent = navigator.userAgent;
+          
+          // Generate timestamp for request
+          const timestamp = Math.floor(Date.now() / 1000).toString();
+          
+          // Return all the necessary auth information
+          return {
+            token: token,
+            userAgent: userAgent,
+            timestamp: timestamp,
+            traceId: 'AUTO-' + Math.random().toString(36).substring(2, 15)
+          };
         })();
       `);
       
-      console.log('Session extraction result:', result);
+      console.log('Auth info retrieved (token hidden):', {
+        ...authInfo,
+        token: authInfo.token ? '***token-hidden***' : 'null'
+      });
       
-      if (result.error) {
-        throw new Error(`${result.error}: ${result.message || 'Unknown error'}`);
+      if (!authInfo.token) {
+        throw new Error('Authentication token not found. Please log in first and refresh the page.');
       }
       
-      if (result.success && result.data) {
-        // Format the response to match the expected API response structure
-        return {
-          code: 0,
-          message: "",
-          data: {
-            current_page: 1,
-            data: result.data.map(session => ({
-              id: session.sessionId,
-              course_id: session.courseId,
-              title: session.title,
-              week_number: session.weekNumber,
-              day: session.dayOfWeek,
-              started_at: session.startedAt
-            }))
-          }
-        };
+      // Call the API through our main process to avoid CORS issues
+      const result = await window.electronAPI.makeApiRequest({
+        url: `https://cbiz.yanhekt.cn/v1/course/session/list?course_id=${courseId}&with_page=true&page=${page}&page_size=${pageSize}&order_type=desc`,
+        headers: {
+          'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6',
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+          'Origin': 'https://www.yanhekt.cn',
+          'Referer': 'https://www.yanhekt.cn/',
+          'User-Agent': authInfo.userAgent,
+          'X-TRACE-ID': authInfo.traceId,
+          'Xdomain-Client': 'web_user',
+          'xclient-timestamp': authInfo.timestamp,
+          'xclient-version': 'v1'
+        }
+      });
+      
+      console.log('API response:', result);
+      
+      // Process API response
+      if (result.code === 0 && result.data) {
+        return result; // Return the raw API response
+      } else if (result.code === 401) {
+        throw new Error('Authentication failed. Please refresh the page and log in again.');
       } else {
-        throw new Error('Failed to extract session data from page');
+        throw new Error(result.message || 'Failed to fetch session data from API');
       }
     } catch (error) {
       console.error('Error fetching session list:', error);
@@ -3408,12 +3288,12 @@ yanhekt.cn###ai-bit-shortcut`;
     }
   }
 
-  // Improved button injection with more detailed logging
+  // Improved button injection with proper communication channel
   function injectYanHeKTButtons(sessions) {
     return webview.executeJavaScript(`
       (function() {
         try {
-          console.log('Starting button injection for', ${sessions.length}, 'sessions');
+          console.log('Starting button injection for', ${JSON.stringify(sessions).length}, 'sessions');
           
           // Store session data for later use
           window.__autoSlidesSessions = ${JSON.stringify(sessions)};
@@ -3439,6 +3319,10 @@ yanhekt.cn###ai-bit-shortcut`;
               border-radius: 20px;
               margin: 10px;
               cursor: pointer;
+              font-weight: bold;
+            }
+            .autoslides-btn-all:hover {
+              opacity: 0.9;
             }
           \`;
           document.head.appendChild(style);
@@ -3451,6 +3335,9 @@ yanhekt.cn###ai-bit-shortcut`;
             console.error('No session list items found in DOM');
             return { success: false, message: 'No session list items found' };
           }
+          
+          // Instead of window.postMessage, we'll use console.log with a special prefix
+          // that we can detect in the webview's console-message event
           
           // Loop through list items and inject buttons
           let buttonCount = 0;
@@ -3471,16 +3358,15 @@ yanhekt.cn###ai-bit-shortcut`;
               button.setAttribute('data-session-id', session.sessionId);
               button.setAttribute('data-index', index);
               
-              // Add event listener
-              button.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                window.postMessage({
-                  type: 'addYanHeKTSession',
-                  sessionId: this.getAttribute('data-session-id'),
-                  index: parseInt(this.getAttribute('data-index'))
-                }, '*');
-              });
+              // Add onclick handler that uses console.log
+              button.onclick = function() {
+                // Special prefix that we'll detect in the console-message event
+                console.log('AUTOSLIDES_ADD_SESSION:' + JSON.stringify({
+                  sessionId: session.sessionId,
+                  index: index
+                }));
+                return false; // Prevent default
+              };
               
               newLi.appendChild(button);
               actionList.insertBefore(newLi, actionList.firstChild);
@@ -3496,11 +3382,12 @@ yanhekt.cn###ai-bit-shortcut`;
             const addAllButton = document.createElement('button');
             addAllButton.className = 'autoslides-btn-all';
             addAllButton.innerHTML = '添加所有课程到任务列表';
-            addAllButton.addEventListener('click', function() {
-              window.postMessage({
-                type: 'addAllYanHeKTSessions'
-              }, '*');
-            });
+            
+            // Use console.log approach for add all button too
+            addAllButton.onclick = function() {
+              console.log('AUTOSLIDES_ADD_ALL_SESSIONS');
+              return false; // Prevent default
+            };
             
             // Add the button to the page
             listContainer.parentNode.insertBefore(addAllButton, listContainer.nextSibling);
@@ -3519,20 +3406,36 @@ yanhekt.cn###ai-bit-shortcut`;
     `);
   }
 
-  // Add message listener for webview actions
-  window.addEventListener('message', async (event) => {
-    // Handle messages from webview
-    if (event.data.type === 'addYanHeKTSession') {
-      const { sessionId, index } = event.data;
-      await addYanHeKTSessionToTasks(sessionId, index);
-    } else if (event.data.type === 'addAllYanHeKTSessions') {
+
+  // Listen for console messages from the webview which we use for communication
+  webview.addEventListener('console-message', async (event) => {
+    // Check for our special prefixes
+    const message = event.message;
+    
+    if (message.startsWith('AUTOSLIDES_ADD_SESSION:')) {
+      try {
+        // Extract the JSON payload
+        const jsonStr = message.substring('AUTOSLIDES_ADD_SESSION:'.length);
+        const data = JSON.parse(jsonStr);
+        
+        console.log('Received add session request from webview:', data);
+        
+        // Call your function with the data
+        await addYanHeKTSessionToTasks(data.sessionId, data.index);
+      } catch (error) {
+        console.error('Error processing add session message:', error);
+      }
+    } else if (message === 'AUTOSLIDES_ADD_ALL_SESSIONS') {
+      console.log('Received add all sessions request from webview');
       await addAllYanHeKTSessionsToTasks();
     }
   });
   
-  // Add a single YanHeKT session to task queue
+  // Add a single YanHeKT session to task queue with synthetic ID handling
   async function addYanHeKTSessionToTasks(sessionId, index) {
     try {
+      console.log('Adding YanHeKT session to tasks:', sessionId, 'at index:', index);
+      
       const sessions = await webview.executeJavaScript('window.__autoSlidesSessions');
       if (!sessions || !sessions[index]) {
         console.error('Session data not found');
@@ -3540,15 +3443,50 @@ yanhekt.cn###ai-bit-shortcut`;
       }
       
       const session = sessions[index];
+      
+      // Convert sessionId to string before checking if it's synthetic
+      const sessionIdStr = String(sessionId);
+      const isSynthetic = sessionIdStr.startsWith('auto_');
+      
+      if (isSynthetic) {
+        statusText.textContent = 'Warning: Using synthetic session ID. Playback may not work correctly.';
+        console.warn('Using synthetic session ID. Playback may not work correctly:', sessionId);
+        
+        // Ask user for confirmation
+        const result = await webview.executeJavaScript(`
+          confirm('Could not detect a valid session ID. Continue with synthetic ID? (Playback may not work correctly)')
+        `);
+        
+        if (!result) {
+          statusText.textContent = 'Session addition cancelled';
+          setTimeout(() => {
+            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          }, 2000);
+          return;
+        }
+      }
+      
       const yanHeKTProfileId = 'yanhekt_session';
-
-      // Add to task queue
+      if (!siteProfiles[yanHeKTProfileId]) {
+        console.error('YanHeKT profile not found in siteProfiles:', yanHeKTProfileId);
+        statusText.textContent = 'Error: YanHeKT profile not found';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+        return;
+      }
+      
+      console.log('Using profile:', yanHeKTProfileId, 'for session:', sessionId);
+  
+      // Add to task queue with www subdomain for better compatibility
       taskQueue.push({
         profileId: yanHeKTProfileId,
         taskId: sessionId.toString(),
         url: `https://yanhekt.cn/session/${sessionId}`,
         profileName: siteProfiles[yanHeKTProfileId].name || yanHeKTProfileId
       });
+      
+      console.log('Task queue updated:', taskQueue.length, 'tasks');
       
       // Update UI
       updateTaskTable();
@@ -3566,22 +3504,78 @@ yanhekt.cn###ai-bit-shortcut`;
       
     } catch (error) {
       console.error('Error adding YanHeKT session to tasks:', error);
+      statusText.textContent = `Error: ${error.message}`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 3000);
     }
   }
   
   // Add all YanHeKT sessions to task queue
   async function addAllYanHeKTSessionsToTasks() {
     try {
+      console.log('Adding all YanHeKT sessions to tasks');
+      
       const sessions = await webview.executeJavaScript('window.__autoSlidesSessions');
       if (!sessions || !sessions.length) {
         console.error('No sessions found');
         return;
       }
       
+      // Make sure we convert sessionId to string before checking
+      const syntheticSessions = sessions.filter(s => String(s.sessionId).startsWith('auto_'));
+      
+      if (syntheticSessions.length > 0) {
+        const result = await webview.executeJavaScript(`
+          confirm('${syntheticSessions.length} session(s) have synthetic IDs which may not work correctly. Continue anyway?')
+        `);
+        
+        if (!result) {
+          statusText.textContent = 'Bulk session addition cancelled';
+          setTimeout(() => {
+            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          }, 2000);
+          return;
+        }
+      }
+      
       const yanHeKTProfileId = 'yanhekt_session';
+      if (!siteProfiles[yanHeKTProfileId]) {
+        console.error('YanHeKT profile not found in siteProfiles:', yanHeKTProfileId);
+        statusText.textContent = 'Error: YanHeKT profile not found';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+        return;
+      }
+      
+      console.log('Using profile:', yanHeKTProfileId, 'for', sessions.length, 'sessions');
+      
+      // Rest of the function uses the result variable, make sure to define it properly
+      let confirmResult = true;
+      if (syntheticSessions.length > 0) {
+        confirmResult = await webview.executeJavaScript(`
+          confirm('${syntheticSessions.length} session(s) have synthetic IDs which may not work correctly. Continue anyway?')
+        `);
+        
+        if (!confirmResult) {
+          statusText.textContent = 'Bulk session addition cancelled';
+          setTimeout(() => {
+            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          }, 2000);
+          return;
+        }
+      }
+
+      // Use confirmResult variable here
+      const filteredSessions = sessions.filter(s => 
+        !String(s.sessionId).startsWith('auto_') || 
+        syntheticSessions.length === 0 || 
+        confirmResult
+      );
       
       // Add all sessions to task queue
-      for (const session of sessions) {
+      for (const session of filteredSessions) {
         taskQueue.push({
           profileId: yanHeKTProfileId,
           taskId: session.sessionId.toString(),
@@ -3589,6 +3583,8 @@ yanhekt.cn###ai-bit-shortcut`;
           profileName: siteProfiles[yanHeKTProfileId].name || yanHeKTProfileId
         });
       }
+      
+      console.log('Task queue updated:', taskQueue.length, 'tasks');
       
       // Update UI
       updateTaskTable();
@@ -3599,13 +3595,17 @@ yanhekt.cn###ai-bit-shortcut`;
         openTaskManager();
       }
       
-      statusText.textContent = `Added ${sessions.length} sessions to tasks`;
+      statusText.textContent = `Added ${filteredSessions.length} sessions to tasks`;
       setTimeout(() => {
         statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
       }, 2000);
       
     } catch (error) {
       console.error('Error adding YanHeKT sessions to tasks:', error);
+      statusText.textContent = `Error: ${error.message}`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 3000);
     }
   }
 
