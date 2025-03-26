@@ -38,6 +38,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   enableBackgroundRunning: () => ipcRenderer.invoke('enable-background-running'),
   disableBackgroundRunning: () => ipcRenderer.invoke('disable-background-running'),
   getBackgroundRunningStatus: () => ipcRenderer.invoke('get-background-running-status'),
+
+  /**
+   * API request method
+   */
+  makeApiRequest: (options) => ipcRenderer.invoke('make-api-request', options),
   
   /**
    * System information

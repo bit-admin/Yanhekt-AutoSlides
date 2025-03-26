@@ -3060,6 +3060,91 @@ yanhekt.cn###ai-bit-shortcut`;
     }, 3000);
   }
 
+  // Extract course ID from URL
+  function extractCourseId(url) {
+    try {
+      // Match patterns like /course/55952 or /course/55952/
+      const coursePattern = /\/course\/(\d+)(?:\/|$)/;
+      const match = url.match(coursePattern);
+      
+      if (match && match[1]) {
+        return match[1];
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('Error extracting course ID:', error);
+      return null;
+    }
+  }
+
+  // Fetch session list from API
+  async function fetchSessionList(courseId, page = 1, pageSize = 10) {
+    try {
+      // Basic validation
+      if (!courseId) {
+        throw new Error('Course ID is required');
+      }
+  
+      // Get cookies from the webview to authenticate the request
+      const cookies = await webview.executeJavaScript(`document.cookie`);
+      
+      // Construct URL with query parameters
+      const apiUrl = `https://cbiz.yanhekt.cn/v1/course/session/list?course_id=${courseId}&with_page=true&page=${page}&page_size=${pageSize}&order_type=desc`;
+      
+      // Make request via main process to avoid CORS issues
+      const response = await window.electronAPI.makeApiRequest({
+        url: apiUrl,
+        headers: {
+          'Cookie': cookies,
+          'Referer': `https://www.yanhekt.cn/course/${courseId}`
+        }
+      });
+  
+      // Check if we got a valid response 
+      if (response.code === 0 && response.data) {
+        return response;
+      } else {
+        throw new Error(`API Error: ${response.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error fetching session list:', error);
+      throw error;
+    }
+  }
+
+  // Extract and format session information from API response
+  function parseSessionInfo(apiResponse) {
+    try {
+      const sessions = [];
+      
+      if (apiResponse?.data?.data && Array.isArray(apiResponse.data.data)) {
+        apiResponse.data.data.forEach(session => {
+          // Extract the key information
+          sessions.push({
+            sessionId: session.id,
+            courseId: session.course_id,
+            title: session.title,
+            weekNumber: session.week_number,
+            dayOfWeek: session.day, // 1=Monday, 7=Sunday
+            startedAt: session.started_at,
+            videoId: session.video_ids?.[0] || null,
+            videoUrl: session.videos?.[0]?.main || null,
+            // Calculate progress percentage if available
+            progressPercent: session.user_progress ? 
+              Math.round((parseInt(session.user_progress.progress_current, 10) / 
+                         parseInt(session.user_progress.progress_overall, 10)) * 100) : 0
+          });
+        });
+      }
+      
+      return sessions;
+    } catch (error) {
+      console.error('Error parsing session info:', error);
+      return [];
+    }
+  }
+
   // Event listeners for task manager
   btnOpenTaskManager.addEventListener('click', openTaskManager);
   closeTaskManager.addEventListener('click', closeTaskManagerModal);
