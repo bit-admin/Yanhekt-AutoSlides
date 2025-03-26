@@ -589,9 +589,6 @@ select:focus {
 }
 
 /* Task Manager Styles */
-.task-manager-section {
-  display: none; /* Hide the old section */
-}
 
 .task-manager-button {
   width: 100%;
