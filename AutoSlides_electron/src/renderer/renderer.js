@@ -1636,27 +1636,54 @@ yanhekt.cn###ai-bit-shortcut`;
     }
   });
 
-  webview.addEventListener('did-navigate', (e) => {
+  // Comprehensive did-navigate event handler
+  webview.addEventListener('did-navigate', async (e) => {
     // Update URL field only if user isn't editing
     if (!userIsEditingUrl) {
       inputUrl.value = e.url;
     }
     statusText.textContent = 'Page loaded';
     
-    // Check if URL matches trigger
-    if (checkUrlForCropGuidesTrigger(e.url)) {
+    const url = e.url;
+    
+    // Check if URL matches trigger for crop guides
+    if (checkUrlForCropGuidesTrigger(url)) {
       console.log('URL contains crop guides trigger in did-navigate, showing guides');
       setTimeout(() => updateCropGuides(true), 500); // true = automatic trigger
     }
-    const url = e.url;
+
+    // Check URL pattern for YanHeKT course pages
+    if (url.includes('yanhekt.cn/course/')) {
+      try {
+        console.log('Detected YanHeKT course page:', url);
+        await detectYanHeKTCourse(url);
+      } catch (error) {
+        console.error('Error detecting YanHeKT course:', error);
+      }
+    }
+
+    // Check for profile switching based on URL patterns
     checkAndSwitchProfile(url);
-    // Add a slight delay to ensure page content is loaded
+    
+    // Reset speed adjustment state on navigation
+    speedAdjusted = false;
+    if (speedAdjustInterval) {
+      clearInterval(speedAdjustInterval);
+      speedAdjustInterval = null;
+    }
+    speedAdjustRetryAttempts = 0;
+    
+    // Reset title display before detecting new title
+    titleDisplay.textContent = '';
+    titleDisplay.style.display = 'none';
+    
+    // Add a slight delay to ensure page content is loaded before detecting title
     setTimeout(() => {
       detectAndDisplayTitle();
     }, 1000);
   });
 
-  // Add event listener for in-page navigation (hash changes, etc)
+  // Comprehensive in-page navigation handler
   webview.addEventListener('did-navigate-in-page', (e) => {
     if (e.isMainFrame && e.url) {
       // Update URL field only if user isn't editing
@@ -1670,8 +1697,12 @@ yanhekt.cn###ai-bit-shortcut`;
         setTimeout(() => updateCropGuides(true), 500);
       }
     }
+    
     const url = e.url;
+    
+    // Check for profile switching
     checkAndSwitchProfile(url);
+    
     // Add a slight delay to ensure page content is loaded
     setTimeout(() => {
       detectAndDisplayTitle();
@@ -1782,17 +1813,9 @@ yanhekt.cn###ai-bit-shortcut`;
     loadProfileDetails(profileId);
     activeProfileId = profileId;
     saveConfig();
-  });
-
-  // Add event listener for webview navigation
-  webview.addEventListener('did-navigate', (event) => {
-    const url = event.url;
-    checkAndSwitchProfile(url);
-  });
-
-  webview.addEventListener('did-navigate-in-page', (event) => {
-    const url = event.url;
-    checkAndSwitchProfile(url);
+    if (taskManagerModal.style.display === 'block') {
+      validateAutomationRequirements();
+    }
   });
 
   // Update cache info initially 
@@ -1902,6 +1925,22 @@ yanhekt.cn###ai-bit-shortcut`;
       autoStartFields.forEach(field => field.closest('.setting-item').style.display = 'none');
       autoStartLabels.forEach(label => label.style.display = 'none');
       helpTexts.forEach(help => help.style.display = 'none');
+    }
+    // If auto-start is disabled, also disable auto-adjust speed
+    if (!autoStartPlayback.checked) {
+      autoAdjustSpeed.checked = false;
+      autoAdjustSpeed.disabled = true;
+      
+      // Hide speed fields
+      const speedFields = document.querySelectorAll('#speedSelector, #playbackSpeed');
+      const speedLabels = document.querySelectorAll('label[for="speedSelector"], label[for="playbackSpeed"]');
+      const helpTexts = autoAdjustSpeed.closest('.setting-item').nextElementSibling.querySelectorAll('.help-text');
+      
+      speedFields.forEach(field => field.closest('.setting-item').style.display = 'none');
+      speedLabels.forEach(label => label.style.display = 'none');
+      helpTexts.forEach(help => help.style.display = 'none');
+    } else {
+      autoAdjustSpeed.disabled = false;
     }
   });
   
@@ -2403,49 +2442,10 @@ yanhekt.cn###ai-bit-shortcut`;
     helpTexts.forEach(help => help.style.display = 'none');
   }
 
-  // Disable auto-adjust speed if auto-start playback is not checked
-  autoStartPlayback.addEventListener('change', () => {
-    // ...existing code...
-    
-    // If auto-start is disabled, also disable auto-adjust speed
-    if (!autoStartPlayback.checked) {
-      autoAdjustSpeed.checked = false;
-      autoAdjustSpeed.disabled = true;
-      
-      // Hide speed fields
-      const speedFields = document.querySelectorAll('#speedSelector, #playbackSpeed');
-      const speedLabels = document.querySelectorAll('label[for="speedSelector"], label[for="playbackSpeed"]');
-      const helpTexts = autoAdjustSpeed.closest('.setting-item').nextElementSibling.querySelectorAll('.help-text');
-      
-      speedFields.forEach(field => field.closest('.setting-item').style.display = 'none');
-      speedLabels.forEach(label => label.style.display = 'none');
-      helpTexts.forEach(help => help.style.display = 'none');
-    } else {
-      autoAdjustSpeed.disabled = false;
-    }
-  });
-
   // Apply this constraint on initial load
   if (!autoStartPlayback.checked) {
     autoAdjustSpeed.disabled = true;
   }
-
-  // Make sure speedAdjusted is reset when webview navigates
-  webview.addEventListener('did-navigate', (e) => {
-    // ...existing code...
-    
-    // Reset speed adjustment state on navigation
-    speedAdjusted = false;
-    if (speedAdjustInterval) {
-      clearInterval(speedAdjustInterval);
-      speedAdjustInterval = null;
-    }
-    speedAdjustRetryAttempts = 0;
-    
-    // Reset title display before detecting new title
-    titleDisplay.textContent = '';
-    titleDisplay.style.display = 'none';
-  });
 
   // Add these helper functions to consolidate visibility logic
   function updateAutoDetectEndFieldsVisibility() {
@@ -2627,20 +2627,6 @@ yanhekt.cn###ai-bit-shortcut`;
     }
   }
 
-  // Clear title when starting to load a new page
-  webview.addEventListener('did-start-loading', () => {
-    // ...existing code...
-    currentTitleText = ''; // Clear current title
-  });
-
-  // Reset speed adjustment state on navigation 
-  webview.addEventListener('did-navigate', (e) => {
-    // ...existing code...
-    
-    // Reset title display before detecting new title
-    titleDisplay.textContent = '';
-    titleDisplay.style.display = 'none';
-  });
 
   // Task Manager elements
   const btnOpenTaskManager = document.getElementById('btnOpenTaskManager');
@@ -3078,7 +3064,7 @@ yanhekt.cn###ai-bit-shortcut`;
     }
   }
 
-  // Fetch session list from API
+  // Enhanced fetchSessionList function with better login detection
   async function fetchSessionList(courseId, page = 1, pageSize = 10) {
     try {
       // Basic validation
@@ -3086,29 +3072,226 @@ yanhekt.cn###ai-bit-shortcut`;
         throw new Error('Course ID is required');
       }
   
-      // Get cookies from the webview to authenticate the request
-      const cookies = await webview.executeJavaScript(`document.cookie`);
+      statusText.textContent = 'Fetching session data...';
       
-      // Construct URL with query parameters
-      const apiUrl = `https://cbiz.yanhekt.cn/v1/course/session/list?course_id=${courseId}&with_page=true&page=${page}&page_size=${pageSize}&order_type=desc`;
+      // Wait longer to ensure page is fully loaded
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Make request via main process to avoid CORS issues
-      const response = await window.electronAPI.makeApiRequest({
-        url: apiUrl,
-        headers: {
-          'Cookie': cookies,
-          'Referer': `https://www.yanhekt.cn/course/${courseId}`
-        }
-      });
-  
-      // Check if we got a valid response 
-      if (response.code === 0 && response.data) {
-        return response;
+      // Extract session data directly from the DOM
+      const result = await webview.executeJavaScript(`
+        (async function() {
+          try {
+            // More comprehensive login check
+            console.log('Checking login status...');
+            
+            // Try to extract session data regardless of login check
+            console.log('Extracting session data from page...');
+            
+            // Look for session list in the DOM
+            const sessions = [];
+            const sessionElements = document.querySelectorAll('.ant-list-items .ant-list-item');
+            
+            console.log('Found session elements:', sessionElements.length);
+            
+            if (!sessionElements || sessionElements.length === 0) {
+              // Check if we're actually looking at a course page
+              const courseTitleElement = document.querySelector('.ant-breadcrumb') || 
+                                        document.querySelector('.course-title') || 
+                                        document.querySelector('h1');
+              
+              const courseTitle = courseTitleElement ? courseTitleElement.textContent : '';
+              
+              if (courseTitle) {
+                return { 
+                  error: 'Session list not found',
+                  message: 'Course page found but no sessions listed. Try refreshing the page.'
+                };
+              } else {
+                return { 
+                  error: 'Not a course page',
+                  message: 'Please make sure you are on a course page with video sessions'
+                };
+              }
+            }
+            
+            // Extract data from each session element
+            sessionElements.forEach((item, index) => {
+              try {
+                // Extract title - typically contains week and day info
+                const titleElement = item.querySelector('.ant-list-item-meta-title span:first-child');
+                const title = titleElement ? titleElement.textContent.trim() : '';
+                
+                // Extract date info
+                const dateElement = item.querySelector('.RecordInfo_subTitle__e-nwC');
+                const dateText = dateElement ? dateElement.textContent.trim() : '';
+                
+                // Extract session ID - more robust approach
+                let sessionId = null;
+                
+                // Method 1: Get from play button
+                const playButton = item.querySelector('.ant-btn-primary');
+                if (playButton) {
+                  // Log the button for debugging
+                  console.log('Found play button:', playButton.outerHTML);
+                  
+                  // Method 1a: Check onclick attribute
+                  const onClickAttr = playButton.getAttribute('onclick') || '';
+                  const sessionMatch = onClickAttr.match(/session\\/([0-9]+)/);
+                  if (sessionMatch && sessionMatch[1]) {
+                    sessionId = sessionMatch[1];
+                    console.log('Found session ID from onclick:', sessionId);
+                  }
+                  
+                  // Method 1b: Check href if it's an <a> element or has parent anchor
+                  const parentAnchor = playButton.closest('a');
+                  const buttonHref = playButton.getAttribute('href') || 
+                                     (parentAnchor ? parentAnchor.getAttribute('href') : '');
+                  
+                  if (!sessionId && buttonHref) {
+                    const hrefMatch = buttonHref.match(/session\\/([0-9]+)/);
+                    if (hrefMatch && hrefMatch[1]) {
+                      sessionId = hrefMatch[1];
+                      console.log('Found session ID from href:', sessionId);
+                    }
+                  }
+                  
+                  // Method 1c: Check any data attributes
+                  if (!sessionId) {
+                    Array.from(playButton.attributes).forEach(attr => {
+                      if (attr.name.startsWith('data-') && /^\\d+$/.test(attr.value)) {
+                        sessionId = attr.value;
+                        console.log('Found session ID from data attribute:', sessionId);
+                      }
+                    });
+                  }
+                  
+                  // Method 1d: Look at any spans or other elements inside the button
+                  if (!sessionId) {
+                    const allText = playButton.innerText || '';
+                    const textMatch = allText.match(/(\\d{5,})/); // Look for numbers with 5+ digits
+                    if (textMatch && textMatch[1]) {
+                      sessionId = textMatch[1];
+                      console.log('Found session ID from button text:', sessionId);
+                    }
+                  }
+                }
+                
+                // Method 2: Try to get from item attributes or data
+                if (!sessionId) {
+                  Array.from(item.attributes).forEach(attr => {
+                    if ((attr.name.includes('id') || attr.name.startsWith('data-')) && 
+                        /^\\d+$/.test(attr.value)) {
+                      sessionId = attr.value;
+                      console.log('Found session ID from item attribute:', sessionId);
+                    }
+                  });
+                }
+                
+                // Method 3: Look for any anchor links in the item
+                if (!sessionId) {
+                  const allLinks = item.querySelectorAll('a');
+                  allLinks.forEach(link => {
+                    const href = link.getAttribute('href') || '';
+                    const linkMatch = href.match(/session\\/([0-9]+)/);
+                    if (linkMatch && linkMatch[1]) {
+                      sessionId = linkMatch[1];
+                      console.log('Found session ID from link href:', sessionId);
+                    }
+                  });
+                }
+                
+                // Fallback: Generate a synthetic ID
+                if (!sessionId) {
+                  // Try to extract from the title if it contains numbers
+                  const titleNumbers = title.match(/(\\d+)/g);
+                  if (titleNumbers && titleNumbers.length > 0) {
+                    // Use title numbers to create a deterministic ID
+                    sessionId = 'auto_' + ${courseId} + '_' + titleNumbers.join('_');
+                  } else {
+                    // Last resort - use index
+                    sessionId = 'auto_' + ${courseId} + '_' + index;
+                  }
+                  console.log('Generated synthetic session ID:', sessionId);
+                }
+                
+                // Extract week number and day using regex
+                const weekMatch = title.match(/第(\\d+)周/);
+                const dayMatch = title.match(/星期([一二三四五六日])/);
+                
+                const weekNumber = weekMatch ? parseInt(weekMatch[1], 10) : index + 1;
+                
+                // Map Chinese day names to numbers (1-7)
+                const dayMap = {'一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '日': 7};
+                const dayOfWeek = dayMatch ? dayMap[dayMatch[1]] || 1 : 1;
+                
+                sessions.push({
+                  sessionId: sessionId,
+                  courseId: ${courseId},
+                  title: title,
+                  weekNumber: weekNumber,
+                  dayOfWeek: dayOfWeek,
+                  startedAt: dateText.replace(/[()]/g, ''),
+                  videoId: null,
+                  videoUrl: null
+                });
+                
+                console.log('Added session:', title, 'ID:', sessionId);
+              } catch (itemError) {
+                console.error('Error parsing session item:', itemError);
+              }
+            });
+            
+            if (sessions.length > 0) {
+              console.log('Successfully extracted', sessions.length, 'sessions');
+              return { success: true, data: sessions };
+            } else {
+              return { 
+                error: 'No sessions extracted', 
+                message: 'Found session elements but failed to extract data' 
+              };
+            }
+          } catch (err) {
+            console.error('Error in page extraction:', err);
+            return { 
+              error: 'Extraction error', 
+              message: err.toString() 
+            };
+          }
+        })();
+      `);
+      
+      console.log('Session extraction result:', result);
+      
+      if (result.error) {
+        throw new Error(`${result.error}: ${result.message || 'Unknown error'}`);
+      }
+      
+      if (result.success && result.data) {
+        // Format the response to match the expected API response structure
+        return {
+          code: 0,
+          message: "",
+          data: {
+            current_page: 1,
+            data: result.data.map(session => ({
+              id: session.sessionId,
+              course_id: session.courseId,
+              title: session.title,
+              week_number: session.weekNumber,
+              day: session.dayOfWeek,
+              started_at: session.startedAt
+            }))
+          }
+        };
       } else {
-        throw new Error(`API Error: ${response.message || 'Unknown error'}`);
+        throw new Error('Failed to extract session data from page');
       }
     } catch (error) {
       console.error('Error fetching session list:', error);
+      statusText.textContent = `Error: ${error.message || 'Failed to fetch sessions'}`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 3000);
       throw error;
     }
   }
@@ -3145,6 +3328,287 @@ yanhekt.cn###ai-bit-shortcut`;
     }
   }
 
+  // YanHeKT Course detection with better error handling and more robust page checking
+  async function detectYanHeKTCourse(url) {
+    // Extract course ID
+    const courseId = extractCourseId(url);
+    if (!courseId) {
+      console.log('No valid course ID found in URL');
+      return;
+    }
+    
+    // Show status while fetching
+    statusText.textContent = 'Analyzing course content...';
+    
+    try {
+      // Wait longer to ensure the page is fully loaded
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Check if we're on a course page with session lists
+      const isValidPage = await webview.executeJavaScript(`
+        (function() {
+          // Log everything to help debug
+          console.log('Page URL:', window.location.href);
+          console.log('Found ant-list-items:', document.querySelectorAll('.ant-list-items').length);
+          
+          // Course page check without login requirement
+          const hasList = document.querySelector('.ant-list-items') !== null;
+          const courseHeader = document.querySelector('.ant-breadcrumb') || 
+                              document.querySelector('.course-title') || 
+                              document.querySelector('h1');
+          
+          return {
+            hasList: hasList,
+            hasHeader: courseHeader !== null,
+            headerText: courseHeader ? courseHeader.textContent : 'Not found'
+          };
+        })();
+      `);
+      
+      console.log('Page validation result:', isValidPage);
+      
+      if (!isValidPage.hasList) {
+        console.log('No session list found on page');
+        statusText.textContent = 'No session list found. Please make sure you can see the video sessions';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+        return;
+      }
+      
+      // Fetch sessions from page content directly
+      const apiResponse = await fetchSessionList(courseId);
+      const sessions = parseSessionInfo(apiResponse);
+      
+      if (sessions.length === 0) {
+        console.log('No sessions found for this course');
+        statusText.textContent = 'No sessions found';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 2000);
+        return;
+      }
+      
+      // Inject buttons to the UI
+      const injectionResult = await injectYanHeKTButtons(sessions);
+      console.log('Button injection result:', injectionResult);
+      
+      // Show status message
+      statusText.textContent = `Found ${sessions.length} sessions in course ${courseId}`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Failed to fetch or parse sessions:', error);
+      statusText.textContent = `Error: ${error.message || 'Failed to analyze course'}`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 3000);
+    }
+  }
+
+  // Improved button injection with more detailed logging
+  function injectYanHeKTButtons(sessions) {
+    return webview.executeJavaScript(`
+      (function() {
+        try {
+          console.log('Starting button injection for', ${sessions.length}, 'sessions');
+          
+          // Store session data for later use
+          window.__autoSlidesSessions = ${JSON.stringify(sessions)};
+          
+          // Check if buttons are already injected to avoid duplicates
+          if (document.querySelector('.autoslides-btn')) {
+            console.log('Buttons already injected, refreshing data only');
+            return { success: true, message: 'Buttons already exist, data refreshed' };
+          }
+          
+          // Add CSS styles for our buttons
+          const style = document.createElement('style');
+          style.textContent = \`
+            .autoslides-btn {
+              background-color: #52c41a !important;
+              margin-right: 8px;
+            }
+            .autoslides-btn-all {
+              background-color: #1890ff;
+              color: white;
+              border: none;
+              padding: 8px 16px;
+              border-radius: 20px;
+              margin: 10px;
+              cursor: pointer;
+            }
+          \`;
+          document.head.appendChild(style);
+          
+          // Get all list items that contain session information
+          const listItems = document.querySelectorAll('.ant-list-items .ant-list-item');
+          console.log('Found', listItems.length, 'list items to add buttons to');
+          
+          if (!listItems.length) {
+            console.error('No session list items found in DOM');
+            return { success: false, message: 'No session list items found' };
+          }
+          
+          // Loop through list items and inject buttons
+          let buttonCount = 0;
+          listItems.forEach((item, index) => {
+            if (index >= window.__autoSlidesSessions.length) return;
+            
+            const session = window.__autoSlidesSessions[index];
+            const actionList = item.querySelector('.ant-list-item-action');
+            
+            if (actionList) {
+              // Create new list item for our button
+              const newLi = document.createElement('li');
+              
+              // Create button
+              const button = document.createElement('button');
+              button.className = 'ant-btn ant-btn-round ant-btn-primary autoslides-btn';
+              button.innerHTML = '<span>添加到任务</span>';
+              button.setAttribute('data-session-id', session.sessionId);
+              button.setAttribute('data-index', index);
+              
+              // Add event listener
+              button.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                window.postMessage({
+                  type: 'addYanHeKTSession',
+                  sessionId: this.getAttribute('data-session-id'),
+                  index: parseInt(this.getAttribute('data-index'))
+                }, '*');
+              });
+              
+              newLi.appendChild(button);
+              actionList.insertBefore(newLi, actionList.firstChild);
+              buttonCount++;
+            } else {
+              console.log('No action list found for item', index);
+            }
+          });
+          
+          // Add "Add All" button at the bottom
+          const listContainer = document.querySelector('.ant-list');
+          if (listContainer) {
+            const addAllButton = document.createElement('button');
+            addAllButton.className = 'autoslides-btn-all';
+            addAllButton.innerHTML = '添加所有课程到任务列表';
+            addAllButton.addEventListener('click', function() {
+              window.postMessage({
+                type: 'addAllYanHeKTSessions'
+              }, '*');
+            });
+            
+            // Add the button to the page
+            listContainer.parentNode.insertBefore(addAllButton, listContainer.nextSibling);
+            console.log('Added "Add All" button');
+          } else {
+            console.log('No list container found for "Add All" button');
+          }
+          
+          console.log('Successfully added', buttonCount, 'buttons');
+          return { success: true, buttonCount, message: 'Button injection complete' };
+        } catch (error) {
+          console.error('Error injecting buttons:', error);
+          return { success: false, error: error.toString() };
+        }
+      })();
+    `);
+  }
+
+  // Add message listener for webview actions
+  window.addEventListener('message', async (event) => {
+    // Handle messages from webview
+    if (event.data.type === 'addYanHeKTSession') {
+      const { sessionId, index } = event.data;
+      await addYanHeKTSessionToTasks(sessionId, index);
+    } else if (event.data.type === 'addAllYanHeKTSessions') {
+      await addAllYanHeKTSessionsToTasks();
+    }
+  });
+  
+  // Add a single YanHeKT session to task queue
+  async function addYanHeKTSessionToTasks(sessionId, index) {
+    try {
+      const sessions = await webview.executeJavaScript('window.__autoSlidesSessions');
+      if (!sessions || !sessions[index]) {
+        console.error('Session data not found');
+        return;
+      }
+      
+      const session = sessions[index];
+      const yanHeKTProfileId = 'yanhekt_session';
+
+      // Add to task queue
+      taskQueue.push({
+        profileId: yanHeKTProfileId,
+        taskId: sessionId.toString(),
+        url: `https://yanhekt.cn/session/${sessionId}`,
+        profileName: siteProfiles[yanHeKTProfileId].name || yanHeKTProfileId
+      });
+      
+      // Update UI
+      updateTaskTable();
+      btnStartTasks.disabled = taskQueue.length === 0 || isProcessingTasks || !validateAutomationRequirements();
+      
+      // Open task manager
+      if (taskManagerModal.style.display !== 'block') {
+        openTaskManager();
+      }
+      
+      statusText.textContent = `Added session ${sessionId} to tasks`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error adding YanHeKT session to tasks:', error);
+    }
+  }
+  
+  // Add all YanHeKT sessions to task queue
+  async function addAllYanHeKTSessionsToTasks() {
+    try {
+      const sessions = await webview.executeJavaScript('window.__autoSlidesSessions');
+      if (!sessions || !sessions.length) {
+        console.error('No sessions found');
+        return;
+      }
+      
+      const yanHeKTProfileId = 'yanhekt_session';
+      
+      // Add all sessions to task queue
+      for (const session of sessions) {
+        taskQueue.push({
+          profileId: yanHeKTProfileId,
+          taskId: session.sessionId.toString(),
+          url: `https://yanhekt.cn/session/${session.sessionId}`,
+          profileName: siteProfiles[yanHeKTProfileId].name || yanHeKTProfileId
+        });
+      }
+      
+      // Update UI
+      updateTaskTable();
+      btnStartTasks.disabled = taskQueue.length === 0 || isProcessingTasks || !validateAutomationRequirements();
+      
+      // Open task manager
+      if (taskManagerModal.style.display !== 'block') {
+        openTaskManager();
+      }
+      
+      statusText.textContent = `Added ${sessions.length} sessions to tasks`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error adding YanHeKT sessions to tasks:', error);
+    }
+  }
+
   // Event listeners for task manager
   btnOpenTaskManager.addEventListener('click', openTaskManager);
   closeTaskManager.addEventListener('click', closeTaskManagerModal);
@@ -3164,16 +3628,6 @@ yanhekt.cn###ai-bit-shortcut`;
   taskIdInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       addTask();
-    }
-  });
-
-  // Attach event handlers to profile change to update task validation
-  siteProfileSelect.addEventListener('change', () => {
-    // ...existing code...
-    
-    // Update task manager validation if open
-    if (taskManagerModal.style.display === 'block') {
-      validateAutomationRequirements();
     }
   });
 
