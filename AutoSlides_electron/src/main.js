@@ -8,6 +8,7 @@ const fsReaddir = promisify(fs.readdir);
 const fsStat = promisify(fs.stat);
 const fsUnlink = promisify(fs.unlink);
 const fsRmdir = promisify(fs.rmdir);
+const fetch = require('node-fetch');
 
 // Configuration schema
 const schema = {
@@ -226,45 +227,26 @@ app.on('window-all-closed', function () {
 
 // Handle API requests from renderer
 ipcMain.handle('make-api-request', async (event, options) => {
-  return new Promise((resolve, reject) => {
-    const request = net.request({
+  try {
+    const { url, headers } = options;
+    
+    // Make the API request
+    const response = await fetch(url, {
       method: 'GET',
-      url: options.url
+      headers: headers
     });
     
-    // Add headers
-    if (options.headers) {
-      Object.entries(options.headers).forEach(([key, value]) => {
-        request.setHeader(key, value);
-      });
-    }
-
-    let responseData = '';
-
-    request.on('response', (response) => {
-      response.on('data', (chunk) => {
-        responseData += chunk.toString();
-      });
-      
-      response.on('end', () => {
-        try {
-          resolve(JSON.parse(responseData));
-        } catch (error) {
-          reject(new Error('Failed to parse response: ' + error.message));
-        }
-      });
-      
-      response.on('error', (error) => {
-        reject(error);
-      });
-    });
-
-    request.on('error', (error) => {
-      reject(error);
-    });
-
-    request.end();
-  });
+    // Parse JSON response
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error making API request:', error);
+    return {
+      code: -1,
+      message: `API Request failed: ${error.message}`,
+      error: error.toString()
+    };
+  }
 });
 
 // Cache management utilities
