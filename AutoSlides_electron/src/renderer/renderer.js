@@ -59,9 +59,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const autoDetectTitle = document.getElementById('autoDetectTitle');
   const courseTitleSelector = document.getElementById('courseTitleSelector');
   const sessionInfoSelector = document.getElementById('sessionInfoSelector');
-  const titleDisplay = document.getElementById('titleDisplay'); // Add this line
-  const comparisonMethod = document.getElementById('comparisonMethod'); // Add this line
-  const enableDoubleVerificationCheckbox = document.getElementById('enableDoubleVerification'); // Add this line
+  const titleDisplay = document.getElementById('titleDisplay'); 
+  const comparisonMethod = document.getElementById('comparisonMethod'); 
+  const enableDoubleVerificationCheckbox = document.getElementById('enableDoubleVerification'); 
 
   // Capture related variables
   let captureInterval = null;
@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let siteProfiles = {};
   let activeProfileId = 'default';
   let currentProfile = null;
-  let autoStartCheckInterval = null; // Add this line
+  let autoStartCheckInterval = null; 
   let speedAdjusted = false;
   let speedAdjustInterval = null;
   let speedAdjustRetryAttempts = 0;
@@ -80,15 +80,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   let detectedTitle = null;
   let titleExtractionComplete = false;
   let currentTitleText = ''; // Track the current title for saving
-  let enableDoubleVerification = false; // Add this line
-  let verificationState = 'none'; // Add this line
-  let potentialNewImageData = null; // Add this line
-  let verificationMethod = null; // Add this line
+  let enableDoubleVerification = false; 
+  let verificationState = 'none'; 
+  let potentialNewImageData = null; 
+  let verificationMethod = null; 
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
 yanhekt.cn###root > div.app > div.BlankLayout_layout__kC9f3:last-child > div.ant-spin-nested-loading:nth-child(2) > div.ant-spin-container > div.index_liveWrapper__YGcpO > div.index_userlist__T-6xf:last-child > div.index_staticContainer__z3yt-
-yanhekt.cn###ai-bit-shortcut`;
+yanhekt.cn###ai-bit-shortcut
+yanhekt.cn##div#ai-bit-animation-modal`;
 
   // Enhance the blocking rules text area for code-like behavior
   function enhanceBlockingRulesEditor() {
@@ -146,9 +147,6 @@ yanhekt.cn###ai-bit-shortcut`;
     const url = inputUrl.value;
     if (url) {
       const loaded = safeLoadURL(url);
-      if (loaded && checkUrlForCropGuidesTrigger(url)) {
-        setTimeout(() => updateCropGuides(), 1000);
-      }
     }
   }
 
@@ -272,8 +270,8 @@ yanhekt.cn###ai-bit-shortcut`;
         siteProfiles: siteProfiles,
         activeProfileId: activeProfileId,
         allowBackgroundRunning: allowBackgroundRunning.checked,
-        comparisonMethod: comparisonMethod.value, // Add this line
-        enableDoubleVerification: enableDoubleVerificationCheckbox.checked // Add this line
+        comparisonMethod: comparisonMethod.value, 
+        enableDoubleVerification: enableDoubleVerificationCheckbox.checked 
       };
       
       await window.electronAPI.saveConfig(config);
@@ -298,8 +296,8 @@ yanhekt.cn###ai-bit-shortcut`;
       topCropPercent: 5,
       bottomCropPercent: 5,
       checkInterval: 2,
-      allowBackgroundRunning: false, // Add this line to reset background running
-      comparisonMethod: 'default', // Add this line to reset comparison method
+      allowBackgroundRunning: false, //  to reset background running
+      comparisonMethod: 'default', //  to reset comparison method
       enableDoubleVerification: false // Reset double verification to default
     };
     
@@ -663,11 +661,6 @@ yanhekt.cn###ai-bit-shortcut`;
         btnShowCropGuides.textContent = 'Show Crop Guides';
       }
     }, hideDelay);
-  }
-
-  function checkUrlForCropGuidesTrigger(url) {
-    // Since this feature has been removed, always return false
-    return false;
   }
   
   async function saveBlockingRules() {
@@ -1578,13 +1571,7 @@ yanhekt.cn###ai-bit-shortcut`;
     // Short delay to ensure page is fully rendered
     setTimeout(() => {
       applyBlockingRules();
-      
-      // Check URL for trigger after loading is complete
-      if (checkUrlForCropGuidesTrigger(webview.src)) {
-        console.log('URL contains crop guides trigger after page load, showing guides');
-        updateCropGuides(true);
-      }
-    }, 500);
+    }, 200);
     
     // Add this block for auto-start playback check
     if (activeProfileId !== 'default' && 
@@ -1640,12 +1627,6 @@ yanhekt.cn###ai-bit-shortcut`;
     statusText.textContent = 'Page loaded';
     
     const url = e.url;
-    
-    // Check if URL matches trigger for crop guides
-    if (checkUrlForCropGuidesTrigger(url)) {
-      console.log('URL contains crop guides trigger in did-navigate, showing guides');
-      setTimeout(() => updateCropGuides(true), 500); // true = automatic trigger
-    }
 
     // Check URL pattern for YanHeKT course pages
     if (url.includes('yanhekt.cn/course/')) {
@@ -1684,12 +1665,6 @@ yanhekt.cn###ai-bit-shortcut`;
       // Update URL field only if user isn't editing
       if (!userIsEditingUrl) {
         inputUrl.value = e.url;
-      }
-      
-      // Check if URL matches trigger
-      if (checkUrlForCropGuidesTrigger(e.url)) {
-        console.log('URL contains crop guides trigger in did-navigate-in-page, showing guides');
-        setTimeout(() => updateCropGuides(true), 500);
       }
     }
     
@@ -1794,18 +1769,6 @@ yanhekt.cn###ai-bit-shortcut`;
     if (cropGuides.classList.contains('visible')) {
       updateCropGuides();
     }
-  });
-
-  // Initialize guides after webview loads
-  webview.addEventListener('dom-ready', () => {
-    // Give webview time to settle and get correct dimensions
-    setTimeout(() => {
-      // ONLY show guides if URL matches trigger
-      if (checkUrlForCropGuidesTrigger(webview.src)) {
-        console.log('URL contains crop guides trigger, showing guides');
-        updateCropGuides();
-      }
-    }, 1000);
   });
 
   // Add event listener for the show guides button
@@ -2657,11 +2620,13 @@ yanhekt.cn###ai-bit-shortcut`;
   const btnCancelTasks = document.getElementById('btnCancelTasks');
   const btnClearTasks = document.getElementById('btnClearTasks');
   const taskValidationMessage = document.getElementById('taskValidationMessage');
+  const resetProgressCheckbox = document.getElementById('resetProgressCheckbox');
 
   // Task management variables
   let taskQueue = [];
   let isProcessingTasks = false;
   let currentTaskIndex = -1;
+  let resetVideoProgress = true;
 
   // Task Manager functions
   function openTaskManager() {
@@ -2670,6 +2635,13 @@ yanhekt.cn###ai-bit-shortcut`;
     
     // Check if automation requirements are met
     validateAutomationRequirements();
+    
+    // Load saved preference for resetting video progress
+    const savedResetProgress = localStorage.getItem('resetVideoProgress');
+    if (savedResetProgress !== null) {
+      resetVideoProgress = savedResetProgress === 'true';
+      resetProgressCheckbox.checked = resetVideoProgress;
+    }
     
     // Display the modal
     taskManagerModal.style.display = 'block';
@@ -2902,6 +2874,14 @@ yanhekt.cn###ai-bit-shortcut`;
     btnStartTasks.disabled = true;
   }
 
+  resetProgressCheckbox.addEventListener('change', function() {
+    resetVideoProgress = this.checked;
+    console.log('Reset video progress option set to:', resetVideoProgress);
+    
+    // Save preference to localStorage
+    localStorage.setItem('resetVideoProgress', resetVideoProgress);
+  });
+
   // Reset video progress for YanHeKT session
   async function resetYanHeKTSessionProgress(sessionId) {
     try {
@@ -3115,8 +3095,8 @@ yanhekt.cn###ai-bit-shortcut`;
         loadProfileDetails(currentTask.profileId);
       }
       
-      // For YanHeKT sessions, reset the progress first
-      if (currentTask.profileId === 'yanhekt_session') {
+      // For YanHeKT sessions, reset the progress first if the option is enabled
+      if (currentTask.profileId === 'yanhekt_session' && resetVideoProgress) {
         try {
           // Extract the session ID from the URL
           const urlMatch = currentTask.url.match(/\/session\/(\d+)/);
@@ -3497,6 +3477,7 @@ yanhekt.cn###ai-bit-shortcut`;
               color: white;
               border: none;
               padding: 8px 16px;
+              font-size: 14px;
               border-radius: 20px;
               margin: 10px;
               cursor: pointer;
