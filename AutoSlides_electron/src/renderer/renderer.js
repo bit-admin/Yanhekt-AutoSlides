@@ -1,6 +1,14 @@
-// First declare all your DOM element variables
 document.addEventListener('DOMContentLoaded', async () => {
-  // Get DOM elements
+  
+  // Clear cache on startup
+  try {
+    console.log('Clearing browser cache on startup...');
+    await window.electronAPI.clearBrowserCache();
+    console.log('Browser cache cleared on startup');
+  } catch (error) {
+    console.error('Error clearing browser cache on startup:', error);
+  }
+
   const webview = document.getElementById('slideWebview');
   const btnStartCapture = document.getElementById('btnStartCapture');
   const btnStopCapture = document.getElementById('btnStopCapture');
@@ -3799,7 +3807,26 @@ yanhekt.cn###ai-bit-shortcut`;
   btnOpenTaskManager.addEventListener('click', openTaskManager);
   closeTaskManager.addEventListener('click', closeTaskManagerModal);
   btnAddTask.addEventListener('click', addTask);
-  btnStartTasks.addEventListener('click', startTaskProcessing);
+  btnStartTasks.addEventListener('click', async () => {
+    // Clear cache before starting tasks
+    try {
+      statusText.textContent = 'Clearing cache before starting tasks...';
+      const result = await window.electronAPI.clearBrowserCache();
+      
+      if (result.success) {
+        console.log('Cache cleared successfully before starting tasks');
+      } else {
+        console.warn('Failed to clear cache before starting tasks');
+      }
+      
+      await updateCacheInfo();
+    } catch (error) {
+      console.error('Error clearing cache before starting tasks:', error);
+    }
+    
+    // Continue with the existing task starting logic
+    startTaskProcessing();
+  });
   btnCancelTasks.addEventListener('click', cancelTaskProcessing);
   btnClearTasks.addEventListener('click', clearAllTasks);
   
