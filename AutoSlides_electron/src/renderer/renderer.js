@@ -121,19 +121,6 @@ yanhekt.cn###ai-bit-shortcut`;
     }
   }, 200);
 
-  // Remove the problematic interval that overwrites user input
-  // setInterval(() => {
-  //   if (webview.src && webview.src !== 'about:blank' && webview.src !== inputUrl.value) {
-  //     inputUrl.value = webview.src;
-  //     
-  //     // Check for trigger
-  //     if (checkUrlForCropGuidesTrigger(webview.src)) {
-  //       console.log('URL contains crop guides trigger (periodic check), showing guides');
-  //       updateCropGuides(true);
-  //     }
-  //   }
-  // }, 1000);
-
   // Add flag to track if user is actively editing the URL
   let userIsEditingUrl = false;
 
