@@ -2902,6 +2902,100 @@ yanhekt.cn###ai-bit-shortcut`;
     btnStartTasks.disabled = true;
   }
 
+  // Reset video progress for YanHeKT session
+  async function resetYanHeKTSessionProgress(sessionId) {
+    try {
+      console.log('Resetting progress for session:', sessionId);
+      
+      if (!sessionId) {
+        throw new Error('Session ID is required to reset progress');
+      }
+      
+      // Extract authentication token from localStorage
+      const authInfo = await webview.executeJavaScript(`
+        (function() {
+          // Get auth data from localStorage (this is where YanHeKT stores it)
+          let token = null;
+          try {
+            // First try to get from localStorage (primary method)
+            const authData = localStorage.getItem('auth');
+            if (authData) {
+              const parsed = JSON.parse(authData);
+              token = parsed.token;
+            }
+            
+            // If not found, try backup locations
+            if (!token) {
+              for (const key of ['token', 'accessToken', 'yanhekt_token']) {
+                const value = localStorage.getItem(key);
+                if (value) {
+                  token = value.replace(/^"|"$/g, '');
+                  break;
+                }
+              }
+            }
+            
+            // Last resort: try cookies
+            if (!token) {
+              const cookies = document.cookie.split(';');
+              const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+              if (tokenCookie) {
+                token = tokenCookie.split('=')[1].trim();
+              }
+            }
+          } catch (e) {
+            console.error('Error extracting token:', e);
+          }
+          
+          // Get user agent for request headers
+          const userAgent = navigator.userAgent;
+          
+          // Generate timestamp for request
+          const timestamp = Math.floor(Date.now() / 1000).toString();
+          
+          return {
+            token: token,
+            userAgent: userAgent,
+            timestamp: timestamp,
+            traceId: 'AUTO-' + Math.random().toString(36).substring(2, 15)
+          };
+        })();
+      `);
+      
+      if (!authInfo.token) {
+        throw new Error('Authentication token not found. Please log in first.');
+      }
+      
+      // Call the reset progress API
+      const result = await window.electronAPI.makeApiRequest({
+        url: 'https://cbiz.yanhekt.cn/v1/course/session/user/progress',
+        method: 'PUT',
+        headers: {
+          'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6',
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+          'Origin': 'https://www.yanhekt.cn',
+          'Referer': 'https://www.yanhekt.cn/',
+          'User-Agent': authInfo.userAgent,
+          'X-TRACE-ID': authInfo.traceId,
+          'Xdomain-Client': 'web_user',
+          'xclient-timestamp': authInfo.timestamp,
+          'xclient-version': 'v1'
+        },
+        body: JSON.stringify({
+          session_id: sessionId.toString(),
+          seconds: 0
+        })
+      });
+      
+      console.log('Progress reset result:', result);
+      return result;
+    } catch (error) {
+      console.error('Error resetting session progress:', error);
+      throw error;
+    }
+  }
+
   async function startTaskProcessing() {
     // For starting tasks, we need to verify that all profile-based tasks have valid profiles
     let allTasksValid = true;
@@ -3021,16 +3115,28 @@ yanhekt.cn###ai-bit-shortcut`;
         loadProfileDetails(currentTask.profileId);
       }
       
+      // For YanHeKT sessions, reset the progress first
+      if (currentTask.profileId === 'yanhekt_session') {
+        try {
+          // Extract the session ID from the URL
+          const urlMatch = currentTask.url.match(/\/session\/(\d+)/);
+          const sessionId = urlMatch ? urlMatch[1] : null;
+          
+          if (sessionId) {
+            statusText.textContent = `Resetting progress for session ${sessionId}...`;
+            await resetYanHeKTSessionProgress(sessionId);
+            statusText.textContent = `Progress reset, loading session ${sessionId}...`;
+          }
+        } catch (resetError) {
+          console.error('Error resetting session progress:', resetError);
+          // Continue anyway - failing to reset progress shouldn't stop the task
+        }
+      }
+      
       // Load the URL
       webview.src = currentTask.url;
       inputUrl.value = currentTask.url;
       
-      // The page will load, and automation will take over:
-      // 1. auto-start playback will click the play button
-      // 2. auto-adjust speed will set the speed if enabled
-      // 3. auto-detect title will extract the title
-      // 4. capture will start automatically when playback begins
-      // 5. auto-detect end will detect when playback ends and trigger the next task
     } catch (error) {
       console.error('Error processing task:', error);
       statusText.textContent = `Error processing task: ${error.message}`;

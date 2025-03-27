@@ -212,7 +212,8 @@ function createWindow() {
 app.whenReady().then(() => {
   createApplicationMenu(); // Add this line to create the menu
   createWindow();
-  
+  setupProgressInterceptor();
+
   // Ensure output directory exists
   ensureDirectoryExists(config.get('outputDir'));
   
@@ -228,13 +229,21 @@ app.on('window-all-closed', function () {
 // Handle API requests from renderer
 ipcMain.handle('make-api-request', async (event, options) => {
   try {
-    const { url, headers } = options;
+    const { url, headers, method = 'GET', body } = options;
+    
+    // Request configuration
+    const config = {
+      method: method,
+      headers: headers
+    };
+    
+    // Add body for PUT/POST requests
+    if (body && (method === 'PUT' || method === 'POST')) {
+      config.body = body;
+    }
     
     // Make the API request
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: headers
-    });
+    const response = await fetch(url, config);
     
     // Parse JSON response
     const data = await response.json();
@@ -355,6 +364,125 @@ async function clearAllCacheData() {
     console.error('Error clearing all cache data:', error);
     return false;
   }
+}
+
+// Add these variables to track intercept state
+let interceptProgress = false;
+
+// Add this function to set up the webRequest interceptor
+function setupProgressInterceptor() {
+  // Filter for API responses from YanHeKT
+  const filter = {
+    urls: [
+      'https://cbiz.yanhekt.cn/v2/course/session/*', 
+      'https://cbiz.yanhekt.cn/v1/course/session/*',
+      'https://cbiz.yanhekt.cn/v2/session/*/progress',
+      'https://cbiz.yanhekt.cn/v1/session/*/progress'
+    ]
+  };
+
+  // Intercept response headers
+  session.defaultSession.webRequest.onHeadersReceived(filter, (details, callback) => {
+    if (!interceptProgress) {
+      // If not intercepting, just pass through
+      callback({ cancel: false });
+      return;
+    }
+
+    // Get content type to check if JSON
+    const contentTypeHeader = details.responseHeaders['content-type'] || details.responseHeaders['Content-Type'];
+    const isJson = contentTypeHeader && contentTypeHeader[0] && 
+                   contentTypeHeader[0].toLowerCase().includes('application/json');
+
+    if (isJson) {
+      // For JSON responses, we'll need to modify the response body
+      // We'll do this by setting a flag to handle it in onResponseStarted
+      details.interceptResponse = true;
+    }
+
+    callback({ responseHeaders: details.responseHeaders });
+  });
+
+  // Intercept and modify response bodies
+  session.defaultSession.webRequest.onResponseStarted(filter, (details) => {
+    if (!interceptProgress || !details.interceptResponse) {
+      return;
+    }
+
+      // Add this to your setupProgressInterceptor function, within the onResponseStarted callback
+      const code = `
+        // Override fetch for YanHeKT progress APIs
+        const originalFetch = window.fetch;
+        window.fetch = async function(url, options) {
+          // ...existing fetch override code
+        };
+        
+        // Also override XMLHttpRequest for older implementations
+        const originalXHROpen = XMLHttpRequest.prototype.open;
+        const originalXHRSend = XMLHttpRequest.prototype.send;
+        
+        XMLHttpRequest.prototype.open = function(method, url, ...args) {
+          this._autoSlidesUrl = url;
+          return originalXHROpen.call(this, method, url, ...args);
+        };
+        
+        XMLHttpRequest.prototype.send = function(...args) {
+          const url = this._autoSlidesUrl || '';
+          
+          if (typeof url === 'string' && (
+              url.includes('/course/session/') || 
+              url.includes('/session/') && url.includes('/progress'))) {
+            
+            const originalOnReadyStateChange = this.onreadystatechange;
+            this.onreadystatechange = function() {
+              if (this.readyState === 4 && this.status === 200) {
+                try {
+                  const originalResponse = JSON.parse(this.responseText);
+                  const modifiedResponse = JSON.parse(JSON.stringify(originalResponse));
+                  
+                  // Modify user_progress in session list
+                  if (modifiedResponse.data && Array.isArray(modifiedResponse.data.data)) {
+                    modifiedResponse.data.data.forEach(session => {
+                      if (session.user_progress) {
+                        session.user_progress.progress_current = "0";
+                        console.log('[AutoSlides] Reset progress for session (XHR):', session.id);
+                      }
+                    });
+                  }
+                  
+                  // Modify direct progress response
+                  if (modifiedResponse.data && modifiedResponse.data.progress_current) {
+                    modifiedResponse.data.progress_current = "0";
+                    console.log('[AutoSlides] Reset progress for current session (XHR)');
+                  }
+                  
+                  // Override the response properties
+                  Object.defineProperty(this, 'responseText', {
+                    get: function() {
+                      return JSON.stringify(modifiedResponse);
+                    }
+                  });
+                } catch (e) {
+                  console.error('[AutoSlides] Error modifying XHR response:', e);
+                }
+              }
+              
+              if (originalOnReadyStateChange) {
+                originalOnReadyStateChange.apply(this, arguments);
+              }
+            };
+          }
+          
+          return originalXHRSend.apply(this, args);
+        };
+        
+        console.log('[AutoSlides] Progress intercept fully installed (fetch+XHR)');
+      `;
+
+    // Execute this code in all frames
+    details.webContents.executeJavaScript(code)
+      .catch(err => console.error('Error installing progress intercept:', err));
+  });
 }
 
 // Background running handling
@@ -538,4 +666,20 @@ ipcMain.handle('disable-background-running', () => {
 
 ipcMain.handle('get-background-running-status', () => {
   return powerSaveBlockerId !== null;
+});
+
+ipcMain.handle('enableProgressIntercept', (event) => {
+  interceptProgress = true;
+  console.log('Progress intercept enabled');
+  return true;
+});
+
+ipcMain.handle('disableProgressIntercept', (event) => {
+  interceptProgress = false;
+  console.log('Progress intercept disabled');
+  return true;
+});
+
+ipcMain.handle('getProgressInterceptStatus', (event) => {
+  return interceptProgress;
 });
