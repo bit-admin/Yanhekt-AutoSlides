@@ -83,7 +83,7 @@ yanhekt.cn###ai-bit-shortcut`
   },
   activeProfileId: {
     type: 'string',
-    default: 'yanhekt_live'  // Change default profile to live player
+    default: 'yanhekt_session'  // Change default profile
   },
   allowBackgroundRunning: {
     type: 'boolean',
