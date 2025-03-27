@@ -1704,51 +1704,73 @@ yanhekt.cn###ai-bit-shortcut`;
     }
   });
   
-  // Inject a simpler but more robust script for handling links
+  // Integrated approach that preserves link handling while adding YanHeKT functionality
   webview.addEventListener('dom-ready', () => {
     webview.executeJavaScript(`
       (function() {
-        // Only set up once
-        if (window._autoSlidesLinkHandlerInstalled) return;
-        window._autoSlidesLinkHandlerInstalled = true;
-        
-        // Override window.open
-        const originalWindowOpen = window.open;
-        window.open = function(url, name, features) {
-          if (url) {
-            console.log('Intercepted window.open:', url);
-            // Use location.href to navigate in the same window
-            setTimeout(() => location.href = url, 0);
-            
-            // Return a mock window object
-            return {
-              closed: false,
-              close: function() {},
-              focus: function() {},
-              document: document
-            };
-          }
-          return null;
-        };
-        
-        // Handle target="_blank" links
-        document.addEventListener('click', function(event) {
-          const link = event.target.closest('a');
-          if (!link) return;
+        // Only set up link handler once
+        if (!window._autoSlidesLinkHandlerInstalled) {
+          window._autoSlidesLinkHandlerInstalled = true;
           
-          // Handle _blank links or cmd/ctrl+click
-          if (link.target === '_blank' || event.ctrlKey || event.metaKey) {
-            event.preventDefault();
-            event.stopPropagation();
-            
-            if (link.href) {
-              console.log('Intercepted link click:', link.href);
-              location.href = link.href;
+          // Override window.open
+          const originalWindowOpen = window.open;
+          window.open = function(url, name, features) {
+            if (url) {
+              console.log('Intercepted window.open:', url);
+              // Use location.href to navigate in the same window
+              setTimeout(() => location.href = url, 0);
+              
+              // Return a mock window object
+              return {
+                closed: false,
+                close: function() {},
+                focus: function() {},
+                document: document
+              };
             }
-          }
-        }, true);
+            return null;
+          };
+          
+          // Handle target="_blank" links
+          document.addEventListener('click', function(event) {
+            const link = event.target.closest('a');
+            if (!link) return;
+            
+            // Handle _blank links or cmd/ctrl+click
+            if (link.target === '_blank' || event.ctrlKey || event.metaKey) {
+              event.preventDefault();
+              event.stopPropagation();
+              
+              if (link.href) {
+                console.log('Intercepted link click:', link.href);
+                location.href = link.href;
+              }
+            }
+          }, true);
+          
+          console.log('AutoSlides link handler installed');
+        }
+
+        // Check if we're on a YanHeKT course page and notify main process
+        if (window.location.href.includes('yanhekt.cn/course/')) {
+          console.log('YanHeKT course page detected, will process after page fully loads');
+        }
       })();
     `).catch(err => console.error('Error injecting link handler:', err));
+    
+    // Check URL pattern for YanHeKT course pages after a delay
+    // to ensure page has fully loaded
+    setTimeout(async () => {
+      const url = await webview.executeJavaScript('window.location.href');
+      if (url && url.includes('yanhekt.cn/course/')) {
+        try {
+          console.log('Delayed YanHeKT course page detection:', url);
+          await detectYanHeKTCourse(url);
+        } catch (error) {
+          console.error('Error in delayed YanHeKT course detection:', error);
+        }
+      }
+    }, 1500);
   });
 
   // Add event listeners to crop input fields
@@ -3050,16 +3072,16 @@ yanhekt.cn###ai-bit-shortcut`;
       return null;
     }
   }
-  
-  // Enhanced fetchSessionList function with proper token extraction
+
+  // Enhanced fetchSessionList function with pagination support
   async function fetchSessionList(courseId, page = 1, pageSize = 10) {
     try {
       // Basic validation
       if (!courseId) {
         throw new Error('Course ID is required');
       }
-  
-      statusText.textContent = 'Fetching session data...';
+
+      statusText.textContent = `Fetching session data (page ${page})...`;
       
       // Extract authentication token from localStorage instead of cookies
       const authInfo = await webview.executeJavaScript(`
@@ -3126,9 +3148,12 @@ yanhekt.cn###ai-bit-shortcut`;
         throw new Error('Authentication token not found. Please log in first and refresh the page.');
       }
       
+      // Use version 2 of the API for better compatibility
+      const apiUrl = `https://cbiz.yanhekt.cn/v2/course/session/list?course_id=${courseId}&with_page=true&page=${page}&page_size=${pageSize}&order_type=desc&order_type_weight=desc`;
+      
       // Call the API through our main process to avoid CORS issues
       const result = await window.electronAPI.makeApiRequest({
-        url: `https://cbiz.yanhekt.cn/v1/course/session/list?course_id=${courseId}&with_page=true&page=${page}&page_size=${pageSize}&order_type=desc`,
+        url: apiUrl,
         headers: {
           'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6',
           'Authorization': `Bearer ${authInfo.token}`,
@@ -3139,11 +3164,11 @@ yanhekt.cn###ai-bit-shortcut`;
           'X-TRACE-ID': authInfo.traceId,
           'Xdomain-Client': 'web_user',
           'xclient-timestamp': authInfo.timestamp,
-          'xclient-version': 'v1'
+          'xclient-version': 'v2'
         }
       });
       
-      console.log('API response:', result);
+      console.log(`API response for page ${page}:`, result);
       
       // Process API response
       if (result.code === 0 && result.data) {
@@ -3195,7 +3220,7 @@ yanhekt.cn###ai-bit-shortcut`;
     }
   }
 
-  // YanHeKT Course detection with better error handling and more robust page checking
+  // Enhanced detectYanHeKTCourse function with pagination support
   async function detectYanHeKTCourse(url) {
     // Extract course ID
     const courseId = extractCourseId(url);
@@ -3224,10 +3249,29 @@ yanhekt.cn###ai-bit-shortcut`;
                               document.querySelector('.course-title') || 
                               document.querySelector('h1');
           
+          // Get pagination info if available
+          const paginationItems = document.querySelectorAll('.ant-pagination-item');
+          let currentPage = 1;
+          let totalPages = 1;
+          
+          if (paginationItems.length > 0) {
+            paginationItems.forEach(item => {
+              if (item.classList.contains('ant-pagination-item-active')) {
+                currentPage = parseInt(item.textContent, 10) || 1;
+              }
+              const pageNum = parseInt(item.textContent, 10) || 0;
+              if (pageNum > totalPages) {
+                totalPages = pageNum;
+              }
+            });
+          }
+          
           return {
             hasList: hasList,
             hasHeader: courseHeader !== null,
-            headerText: courseHeader ? courseHeader.textContent : 'Not found'
+            headerText: courseHeader ? courseHeader.textContent : 'Not found',
+            currentPage: currentPage,
+            totalPages: totalPages
           };
         })();
       `);
@@ -3243,11 +3287,38 @@ yanhekt.cn###ai-bit-shortcut`;
         return;
       }
       
-      // Fetch sessions from page content directly
-      const apiResponse = await fetchSessionList(courseId);
-      const sessions = parseSessionInfo(apiResponse);
+      // Fetch all pages of sessions
+      let allSessions = [];
+      const currentPage = isValidPage.currentPage || 1;
+      const totalPages = isValidPage.totalPages || 1;
       
-      if (sessions.length === 0) {
+      // First get the current page
+      const apiResponse = await fetchSessionList(courseId, currentPage);
+      const currentPageSessions = parseSessionInfo(apiResponse);
+      allSessions = [...currentPageSessions];
+      
+      // Fetch remaining pages (but don't fetch too many to avoid rate limits)
+      const maxPagesToFetch = 5; // Limit to avoid excessive API calls
+      const pagesToFetch = Math.min(totalPages, maxPagesToFetch);
+      
+      if (pagesToFetch > 1) {
+        statusText.textContent = `Found ${totalPages} pages, retrieving all sessions...`;
+        
+        // Fetch all other pages except the current one
+        for (let page = 1; page <= pagesToFetch; page++) {
+          if (page !== currentPage) { // Skip the page we already fetched
+            try {
+              const pageResponse = await fetchSessionList(courseId, page);
+              const pageSessions = parseSessionInfo(pageResponse);
+              allSessions = [...allSessions, ...pageSessions];
+            } catch (pageError) {
+              console.error(`Error fetching page ${page}:`, pageError);
+            }
+          }
+        }
+      }
+      
+      if (allSessions.length === 0) {
         console.log('No sessions found for this course');
         statusText.textContent = 'No sessions found';
         setTimeout(() => {
@@ -3256,15 +3327,15 @@ yanhekt.cn###ai-bit-shortcut`;
         return;
       }
       
-      // Inject buttons to the UI
-      const injectionResult = await injectYanHeKTButtons(sessions);
+      // Inject buttons to the UI with pagination monitoring
+      const injectionResult = await injectYanHeKTButtons(allSessions, courseId, currentPage, totalPages);
       console.log('Button injection result:', injectionResult);
       
       // Show status message
-      statusText.textContent = `Found ${sessions.length} sessions in course ${courseId}`;
+      statusText.textContent = `Found ${allSessions.length} sessions across ${totalPages} pages in course ${courseId}`;
       setTimeout(() => {
         statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }, 2000);
+      }, 3000);
       
     } catch (error) {
       console.error('Failed to fetch or parse sessions:', error);
@@ -3275,21 +3346,30 @@ yanhekt.cn###ai-bit-shortcut`;
     }
   }
 
-  // Improved button injection with proper communication channel
-  function injectYanHeKTButtons(sessions) {
+  // Improved button injection with proper cleanup for pagination
+  function injectYanHeKTButtons(sessions, courseId, currentPage, totalPages) {
     return webview.executeJavaScript(`
       (function() {
         try {
-          console.log('Starting button injection for', ${JSON.stringify(sessions).length}, 'sessions');
+          console.log('Starting button injection for', ${JSON.stringify(sessions).length}, 'sessions across', ${totalPages}, 'pages');
           
-          // Store session data for later use
+          // Store session data for all pages
           window.__autoSlidesSessions = ${JSON.stringify(sessions)};
+          window.__courseId = "${courseId}";
+          window.__currentPage = ${currentPage};
+          window.__totalPages = ${totalPages};
           
-          // Check if buttons are already injected to avoid duplicates
-          if (document.querySelector('.autoslides-btn')) {
-            console.log('Buttons already injected, refreshing data only');
-            return { success: true, message: 'Buttons already exist, data refreshed' };
-          }
+          // CLEANUP: Remove all existing buttons and notes
+          document.querySelectorAll('.autoslides-btn').forEach(button => {
+            // Get the parent li element and remove it
+            const li = button.closest('li');
+            if (li) li.remove();
+          });
+          
+          // Remove "Add All" button and pagination note
+          document.querySelectorAll('.autoslides-btn-all, .autoslides-pagination-note').forEach(el => {
+            el.remove();
+          });
           
           // Add CSS styles for our buttons
           const style = document.createElement('style');
@@ -3299,7 +3379,7 @@ yanhekt.cn###ai-bit-shortcut`;
               margin-right: 8px;
             }
             .autoslides-btn-all {
-              background-color: #1890ff;
+              background-color: #52c41a;
               color: white;
               border: none;
               padding: 8px 16px;
@@ -3311,27 +3391,95 @@ yanhekt.cn###ai-bit-shortcut`;
             .autoslides-btn-all:hover {
               opacity: 0.9;
             }
+            .autoslides-pagination-note {
+              color: #1890ff;
+              font-size: 14px;
+              margin: 10px;
+              padding: 8px;
+              background-color: #f0f5ff;
+              border-radius: 4px;
+              display: inline-block;
+            }
           \`;
-          document.head.appendChild(style);
           
-          // Get all list items that contain session information
+          // Only add stylesheet if it doesn't exist
+          if (!document.querySelector('style[data-autoslides-style]')) {
+            style.setAttribute('data-autoslides-style', 'true');
+            document.head.appendChild(style);
+          }
+          
+          // Get all list items that contain session information for the current page
           const listItems = document.querySelectorAll('.ant-list-items .ant-list-item');
-          console.log('Found', listItems.length, 'list items to add buttons to');
+          console.log('Found', listItems.length, 'list items on page', ${currentPage});
           
           if (!listItems.length) {
             console.error('No session list items found in DOM');
             return { success: false, message: 'No session list items found' };
           }
           
-          // Instead of window.postMessage, we'll use console.log with a special prefix
-          // that we can detect in the webview's console-message event
+          // Add pagination monitoring
+          const setupPaginationMonitoring = function() {
+            // Monitor pagination elements
+            const paginationItems = document.querySelectorAll('.ant-pagination-item, .ant-pagination-prev, .ant-pagination-next');
+            paginationItems.forEach(item => {
+              // Avoid adding multiple listeners to the same element
+              if (!item.dataset.autoSlidesMonitored) {
+                item.dataset.autoSlidesMonitored = 'true';
+                
+                item.addEventListener('click', function() {
+                  console.log('AUTOSLIDES_PAGINATION_CLICKED');
+                  // Wait for the page to update
+                  setTimeout(() => {
+                    // Get updated current page
+                    const activePage = document.querySelector('.ant-pagination-item-active');
+                    if (activePage) {
+                      const newPage = parseInt(activePage.textContent, 10) || 1;
+                      console.log('AUTOSLIDES_PAGE_CHANGED:' + newPage);
+                    }
+                  }, 500);
+                });
+              }
+            });
+            
+            // Also monitor the jump box
+            const jumpBox = document.querySelector('.ant-pagination-options-quick-jumper input');
+            if (jumpBox && !jumpBox.dataset.autoSlidesMonitored) {
+              jumpBox.dataset.autoSlidesMonitored = 'true';
+              jumpBox.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                  console.log('AUTOSLIDES_PAGINATION_JUMPED');
+                  // Wait for the page to update
+                  setTimeout(() => {
+                    const activePage = document.querySelector('.ant-pagination-item-active');
+                    if (activePage) {
+                      const newPage = parseInt(activePage.textContent, 10) || 1;
+                      console.log('AUTOSLIDES_PAGE_CHANGED:' + newPage);
+                    }
+                  }, 500);
+                }
+              });
+            }
+          };
+          
+          // Call immediately to set up monitoring
+          setupPaginationMonitoring();
+          
+          // Also refresh pagination monitoring occasionally in case the DOM changes
+          setInterval(setupPaginationMonitoring, 2000);
           
           // Loop through list items and inject buttons
           let buttonCount = 0;
+          
+          // Get the sessions for the current page
+          const currentPageSessions = window.__autoSlidesSessions.filter(s => s.page === ${currentPage});
+          const visibleSessions = currentPageSessions.length > 0 ? 
+                                currentPageSessions : 
+                                window.__autoSlidesSessions.slice(0, listItems.length);
+          
           listItems.forEach((item, index) => {
-            if (index >= window.__autoSlidesSessions.length) return;
+            if (index >= visibleSessions.length) return;
             
-            const session = window.__autoSlidesSessions[index];
+            const session = visibleSessions[index];
             const actionList = item.querySelector('.ant-list-item-action');
             
             if (actionList) {
@@ -3341,16 +3489,21 @@ yanhekt.cn###ai-bit-shortcut`;
               // Create button
               const button = document.createElement('button');
               button.className = 'ant-btn ant-btn-round ant-btn-primary autoslides-btn';
-              button.innerHTML = '<span>添加到任务</span>';
+              button.innerHTML = '<span>Add to Tasks</span>';
               button.setAttribute('data-session-id', session.sessionId);
               button.setAttribute('data-index', index);
               
               // Add onclick handler that uses console.log
               button.onclick = function() {
+                // Find the actual index in the full sessions array
+                const fullIndex = window.__autoSlidesSessions.findIndex(s => 
+                  s.sessionId.toString() === session.sessionId.toString()
+                );
+                
                 // Special prefix that we'll detect in the console-message event
                 console.log('AUTOSLIDES_ADD_SESSION:' + JSON.stringify({
                   sessionId: session.sessionId,
-                  index: index
+                  index: fullIndex >= 0 ? fullIndex : index
                 }));
                 return false; // Prevent default
               };
@@ -3366,9 +3519,17 @@ yanhekt.cn###ai-bit-shortcut`;
           // Add "Add All" button at the bottom
           const listContainer = document.querySelector('.ant-list');
           if (listContainer) {
+            // Add a note about pagination if multiple pages
+            if (${totalPages} > 1) {
+              const paginationNote = document.createElement('div');
+              paginationNote.className = 'autoslides-pagination-note';
+              paginationNote.innerHTML = \`All ${totalPages} pages of courses loaded, ${sessions.length} sessions total\`;
+              listContainer.parentNode.insertBefore(paginationNote, listContainer.nextSibling);
+            }
+            
             const addAllButton = document.createElement('button');
             addAllButton.className = 'autoslides-btn-all';
-            addAllButton.innerHTML = '添加所有课程到任务列表';
+            addAllButton.innerHTML = 'Add All Sessions to Task List';
             
             // Use console.log approach for add all button too
             addAllButton.onclick = function() {
@@ -3415,6 +3576,27 @@ yanhekt.cn###ai-bit-shortcut`;
     } else if (message === 'AUTOSLIDES_ADD_ALL_SESSIONS') {
       console.log('Received add all sessions request from webview');
       await addAllYanHeKTSessionsToTasks();
+    } else if (message === 'AUTOSLIDES_PAGINATION_CLICKED') {
+      console.log('Pagination navigation detected');
+    } else if (message.startsWith('AUTOSLIDES_PAGE_CHANGED:')) {
+      try {
+        const newPage = parseInt(message.substring('AUTOSLIDES_PAGE_CHANGED:'.length), 10);
+        console.log('Page changed to:', newPage);
+        
+        // Get the current URL to extract course ID
+        const currentUrl = await webview.executeJavaScript('window.location.href');
+        const courseId = extractCourseId(currentUrl);
+        
+        if (courseId) {
+          // Re-run the detection on the new page
+          statusText.textContent = `Page changed to ${newPage}, refreshing data...`;
+          setTimeout(() => {
+            detectYanHeKTCourse(currentUrl);
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Error handling page change:', error);
+      }
     }
   });
   
