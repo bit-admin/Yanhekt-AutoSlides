@@ -1507,6 +1507,13 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         clearInterval(cacheCleanupTimer);
         cacheCleanupTimer = null;
       }
+
+      try {
+        await window.electronAPI.disableBackgroundRunning();
+        console.log('Background running disabled after capture');
+      } catch (error) {
+        console.error('Failed to disable background running:', error);
+      }
       
       // Clear speed adjustment interval if it exists
       if (speedAdjustInterval) {
