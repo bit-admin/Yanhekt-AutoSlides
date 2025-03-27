@@ -3386,7 +3386,6 @@ yanhekt.cn###ai-bit-shortcut`;
               border-radius: 20px;
               margin: 10px;
               cursor: pointer;
-              font-weight: bold;
             }
             .autoslides-btn-all:hover {
               opacity: 0.9;
@@ -3394,12 +3393,19 @@ yanhekt.cn###ai-bit-shortcut`;
             .autoslides-pagination-note {
               color: #1890ff;
               font-size: 14px;
-              margin: 10px;
+              margin: 10px auto;
               padding: 8px;
               background-color: #f0f5ff;
               border-radius: 4px;
               display: inline-block;
             }
+            .autoslides-controls-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            width: 100%;
+          }
           \`;
           
           // Only add stylesheet if it doesn't exist
@@ -3519,12 +3525,20 @@ yanhekt.cn###ai-bit-shortcut`;
           // Add "Add All" button at the bottom
           const listContainer = document.querySelector('.ant-list');
           if (listContainer) {
-            // Add a note about pagination if multiple pages
+            // Create the container for both elements
+            const controlsContainer = document.createElement('div');
+            controlsContainer.className = 'autoslides-controls-container';
+
+            // Add pagination note on the left if needed
             if (${totalPages} > 1) {
               const paginationNote = document.createElement('div');
               paginationNote.className = 'autoslides-pagination-note';
               paginationNote.innerHTML = \`All ${totalPages} pages of courses loaded, ${sessions.length} sessions total\`;
-              listContainer.parentNode.insertBefore(paginationNote, listContainer.nextSibling);
+              controlsContainer.appendChild(paginationNote);
+            } else {
+              // Add an empty div to maintain the flex layout
+              const spacerDiv = document.createElement('div');
+              controlsContainer.appendChild(spacerDiv);
             }
             
             const addAllButton = document.createElement('button');
@@ -3536,12 +3550,15 @@ yanhekt.cn###ai-bit-shortcut`;
               console.log('AUTOSLIDES_ADD_ALL_SESSIONS');
               return false; // Prevent default
             };
+
+            // Add button to the container (will be on the right due to flexbox)
+            controlsContainer.appendChild(addAllButton);
             
             // Add the button to the page
-            listContainer.parentNode.insertBefore(addAllButton, listContainer.nextSibling);
-            console.log('Added "Add All" button');
+            listContainer.parentNode.insertBefore(controlsContainer, listContainer.nextSibling);
+            console.log('Added controls container with "Add All" button');
           } else {
-            console.log('No list container found for "Add All" button');
+            console.log('No list container found for controls');
           }
           
           console.log('Successfully added', buttonCount, 'buttons');
