@@ -1638,6 +1638,16 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       }
     }
 
+    // Check URL pattern for YanHeKT live course pages
+    if (url.includes('yanhekt.cn/liveCourse')) {
+      try {
+        console.log('Detected YanHeKT live course page:', url);
+        await detectYanHeKTLiveCourse(url);
+      } catch (error) {
+        console.error('Error detecting YanHeKT live course:', error);
+      }
+    }
+
     // Check for profile switching based on URL patterns
     checkAndSwitchProfile(url);
     
@@ -1660,7 +1670,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   });
 
   // Comprehensive in-page navigation handler
-  webview.addEventListener('did-navigate-in-page', (e) => {
+  webview.addEventListener('did-navigate-in-page', async (e) => {
     if (e.isMainFrame && e.url) {
       // Update URL field only if user isn't editing
       if (!userIsEditingUrl) {
@@ -1669,6 +1679,26 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
     
     const url = e.url;
+
+      // Check URL pattern for YanHeKT course pages
+    if (url.includes('yanhekt.cn/course/')) {
+      try {
+        console.log('Detected YanHeKT course page (in-page):', url);
+        await detectYanHeKTCourse(url);
+      } catch (error) {
+        console.error('Error detecting YanHeKT course (in-page):', error);
+      }
+    }
+    
+    // Check URL pattern for YanHeKT live course pages
+    if (url.includes('yanhekt.cn/liveCourse')) {
+      try {
+        console.log('Detected YanHeKT live course page (in-page):', url);
+        await detectYanHeKTLiveCourse(url);
+      } catch (error) {
+        console.error('Error detecting YanHeKT live course (in-page):', error);
+      }
+    }
     
     // Check for profile switching
     checkAndSwitchProfile(url);
@@ -1733,16 +1763,17 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           
           console.log('AutoSlides link handler installed');
         }
-
-        // Check if we're on a YanHeKT course page and notify main process
+  
+        // Check if we're on a YanHeKT course or live course page and notify main process
         if (window.location.href.includes('yanhekt.cn/course/')) {
           console.log('YanHeKT course page detected, will process after page fully loads');
+        } else if (window.location.href.includes('yanhekt.cn/liveCourse')) {
+          console.log('YanHeKT live course page detected, will process after page fully loads');
         }
       })();
     `).catch(err => console.error('Error injecting link handler:', err));
     
-    // Check URL pattern for YanHeKT course pages after a delay
-    // to ensure page has fully loaded
+    // Check URL pattern for YanHeKT pages after a delay to ensure page has fully loaded
     setTimeout(async () => {
       const url = await webview.executeJavaScript('window.location.href');
       if (url && url.includes('yanhekt.cn/course/')) {
@@ -1751,6 +1782,13 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           await detectYanHeKTCourse(url);
         } catch (error) {
           console.error('Error in delayed YanHeKT course detection:', error);
+        }
+      } else if (url && url.includes('yanhekt.cn/liveCourse')) {
+        try {
+          console.log('Delayed YanHeKT live course page detection:', url);
+          await detectYanHeKTLiveCourse(url);
+        } catch (error) {
+          console.error('Error in delayed YanHeKT live course detection:', error);
         }
       }
     }, 1500);
@@ -3021,6 +3059,727 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   }
 
+  // Function to fetch live course listings from YanHeKT API
+  async function fetchLiveList(page = 1, pageSize = 16) {
+    try {
+      statusText.textContent = `Fetching live courses (page ${page})...`;
+      
+      // Extract authentication token from localStorage
+      const authInfo = await webview.executeJavaScript(`
+        (function() {
+          // Get auth data from localStorage (this is where YanHeKT stores it)
+          let token = null;
+          try {
+            // First try to get from localStorage (primary method)
+            const authData = localStorage.getItem('auth');
+            if (authData) {
+              const parsed = JSON.parse(authData);
+              token = parsed.token;
+              console.log('Found token in localStorage');
+            }
+            
+            // If not found in localStorage, try backup locations
+            if (!token) {
+              for (const key of ['token', 'accessToken', 'yanhekt_token']) {
+                const value = localStorage.getItem(key);
+                if (value) {
+                  token = value.replace(/^"|"$/g, ''); // Remove quotes if present
+                  console.log('Found token in localStorage key:', key);
+                  break;
+                }
+              }
+            }
+            
+            // Last resort: try cookies
+            if (!token) {
+              const cookies = document.cookie.split(';');
+              const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+              if (tokenCookie) {
+                token = tokenCookie.split('=')[1].trim();
+                console.log('Found token in cookies');
+              }
+            }
+          } catch (e) {
+            console.error('Error extracting token:', e);
+          }
+          
+          // Get user agent for request headers
+          const userAgent = navigator.userAgent;
+          
+          // Generate timestamp for request
+          const timestamp = Math.floor(Date.now() / 1000).toString();
+          
+          return {
+            token: token,
+            userAgent: userAgent,
+            timestamp: timestamp,
+            traceId: 'AUTO-' + Math.random().toString(36).substring(2, 15)
+          };
+        })();
+      `);
+      
+      console.log('Auth info retrieved (token hidden):', {
+        ...authInfo,
+        token: authInfo.token ? '***token-hidden***' : 'null'
+      });
+      
+      if (!authInfo.token) {
+        throw new Error('Authentication token not found. Please log in first and refresh the page.');
+      }
+      
+      // Call the API through main process to avoid CORS issues
+      const result = await window.electronAPI.makeApiRequest({
+        url: `https://cbiz.yanhekt.cn/v2/live/list?page=${page}&page_size=${pageSize}&user_relationship_type=1`,
+        headers: {
+          'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6',
+          'Authorization': `Bearer ${authInfo.token}`,
+          'Content-Type': 'application/json',
+          'Origin': 'https://www.yanhekt.cn',
+          'Referer': 'https://www.yanhekt.cn/',
+          'User-Agent': authInfo.userAgent,
+          'X-TRACE-ID': authInfo.traceId,
+          'Xdomain-Client': 'web_user',
+          'xclient-timestamp': authInfo.timestamp,
+          'xclient-version': 'v2'
+        }
+      });
+      
+      console.log(`API response for live courses page ${page}:`, result);
+      
+      // Process API response
+      if (result.code === 0 && result.data) {
+        return result; // Return the raw API response
+      } else if (result.code === 401) {
+        throw new Error('Authentication failed. Please refresh the page and log in again.');
+      } else {
+        throw new Error(result.message || 'Failed to fetch live courses data from API');
+      }
+    } catch (error) {
+      console.error('Error fetching live list:', error);
+      statusText.textContent = `Error: ${error.message || 'Failed to fetch live courses'}`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 3000);
+      throw error;
+    }
+  }
+  
+  // Extract and format live course information from API response
+  function parseLiveInfo(apiResponse) {
+    try {
+      const liveCourses = [];
+      
+      if (apiResponse?.data?.data && Array.isArray(apiResponse.data.data)) {
+        apiResponse.data.data.forEach(live => {
+          // Extract the key information
+          liveCourses.push({
+            liveId: live.id,
+            courseId: live.source_id,
+            courseName: live.course?.name_zh || live.title,
+            title: live.title,
+            subtitle: live.subtitle,
+            startedAt: live.started_at,
+            endedAt: live.ended_at,
+            status: live.status, // 1=upcoming, 2=live, 3=ended
+            statusText: getStatusText(live.status),
+            professorName: live.session?.professor?.name || '',
+            location: live.location || '',
+            participantCount: live.participant_count || 0
+          });
+        });
+      }
+      
+      return liveCourses;
+    } catch (error) {
+      console.error('Error parsing live info:', error);
+      return [];
+    }
+  }
+  
+  // Helper function to get status text
+  function getStatusText(status) {
+    switch (status) {
+      case 1: return 'Upcoming';
+      case 2: return 'Live';
+      case 3: return 'Ended';
+      default: return 'Unknown';
+    }
+  }
+  
+  // Detect YanHeKT Live Course page and fetch data
+  async function detectYanHeKTLiveCourse(url) {
+    // Check if we're on the live course page
+    if (!url.includes('yanhekt.cn/liveCourse')) {
+      return;
+    }
+
+    // Show status while fetching
+    statusText.textContent = 'Analyzing live courses...';
+
+    try {
+      // Wait longer to ensure the page is fully loaded
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Check if we're on a live course page with updated selectors
+      const isValidPage = await webview.executeJavaScript(`
+        (function() {
+          // Log everything to help debug
+          console.log('Page URL:', window.location.href);
+          
+          // Updated live course page check - look for common-course-card instead of live-content
+          const hasLiveElements = document.querySelectorAll('.common-course-card').length > 0 || 
+                                document.querySelector('.ant-list-grid') !== null;
+          
+          console.log('Found common-course-cards:', document.querySelectorAll('.common-course-card').length);
+          console.log('Found ant-list-grid:', document.querySelector('.ant-list-grid') !== null);
+          
+          // Get pagination info if available
+          const paginationItems = document.querySelectorAll('.ant-pagination-item');
+          let currentPage = 1;
+          let totalPages = 1;
+          
+          if (paginationItems.length > 0) {
+            paginationItems.forEach(item => {
+              if (item.classList.contains('ant-pagination-item-active')) {
+                currentPage = parseInt(item.textContent, 10) || 1;
+              }
+              const pageNum = parseInt(item.textContent, 10) || 0;
+              if (pageNum > totalPages) {
+                totalPages = pageNum;
+              }
+            });
+          }
+          
+          return {
+            hasLiveElements: hasLiveElements,
+            currentPage: currentPage,
+            totalPages: totalPages
+          };
+        })();
+      `);
+      
+      console.log('Live page validation result:', isValidPage);
+      
+      if (!isValidPage.hasLiveElements) {
+        console.log('No live course elements found on page');
+        statusText.textContent = 'No live courses found. Please make sure you can see the live courses list';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+        return;
+      }
+      
+      // Fetch live courses
+      let allLiveCourses = [];
+      const currentPage = isValidPage.currentPage || 1;
+      const totalPages = isValidPage.totalPages || 1;
+      
+      // First get the current page
+      const apiResponse = await fetchLiveList(currentPage);
+      const currentPageLives = parseLiveInfo(apiResponse);
+      allLiveCourses = [...currentPageLives];
+      
+      // Fetch remaining pages (with a reasonable limit)
+      const maxPagesToFetch = 3; // Limit to avoid excessive API calls
+      const pagesToFetch = Math.min(totalPages, maxPagesToFetch);
+      
+      if (pagesToFetch > 1) {
+        statusText.textContent = `Found ${totalPages} pages, retrieving all live courses...`;
+        
+        // Fetch all other pages except the current one
+        for (let page = 1; page <= pagesToFetch; page++) {
+          if (page !== currentPage) { // Skip the page we already fetched
+            try {
+              const pageResponse = await fetchLiveList(page);
+              const pageLives = parseLiveInfo(pageResponse);
+              allLiveCourses = [...allLiveCourses, ...pageLives];
+            } catch (pageError) {
+              console.error(`Error fetching page ${page}:`, pageError);
+            }
+          }
+        }
+      }
+      
+      if (allLiveCourses.length === 0) {
+        console.log('No live courses found');
+        statusText.textContent = 'No live courses found';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 2000);
+        return;
+      }
+      
+      // Inject buttons to the UI with pagination monitoring
+      const injectionResult = await injectYanHeKTLiveButtons(allLiveCourses, currentPage, totalPages);
+      console.log('Live button injection result:', injectionResult);
+      
+      // Show status message
+      statusText.textContent = `Found ${allLiveCourses.length} live courses across ${totalPages} pages`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Failed to fetch or parse live courses:', error);
+      statusText.textContent = `Error: ${error.message || 'Failed to analyze live courses'}`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 3000);
+    }
+  }
+  
+  function injectYanHeKTLiveButtons(liveCourses, currentPage, totalPages) {
+    return webview.executeJavaScript(`
+      (function() {
+        try {
+          // Store the live courses data passed from the parent scope
+          const liveCourses = ${JSON.stringify(liveCourses)};
+          
+          console.log('Starting live button injection for', liveCourses.length, 'courses across', ${totalPages}, 'pages');
+          
+          // Store live course data for all pages - use the local variable we just created
+          window.__autoSlidesLiveCourses = liveCourses;
+          window.__currentLivePage = ${currentPage};
+          window.__totalLivePages = ${totalPages};
+          
+          // CLEANUP: Remove all existing buttons and notes
+          document.querySelectorAll('.autoslides-live-btn').forEach(button => {
+            button.remove();
+          });
+          
+          // Remove "Add All" button and pagination note
+          document.querySelectorAll('.autoslides-live-btn-all, .autoslides-live-pagination-note').forEach(el => {
+            el.remove();
+          });
+          
+          // Add CSS styles for our buttons
+          const style = document.createElement('style');
+          style.textContent = \`
+              .autoslides-live-btn {
+                background-color: #52c41a !important;
+                color: white;
+                border: none;
+                padding: 6px 12px;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 12px;
+                margin-top: 8px;
+                width: 100%;
+                text-align: center;
+              }
+              .autoslides-live-btn:hover {
+                opacity: 0.9;
+              }
+              .autoslides-live-btn-all {
+                background-color: #52c41a;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 20px;
+                margin: 20px auto;
+                cursor: pointer;
+                display: block;
+              }
+              .autoslides-live-btn-all:hover {
+                opacity: 0.9;
+              }
+              .autoslides-live-pagination-note {
+                color: #1890ff;
+                font-size: 14px;
+                margin-left: 15px;
+                display: inline-block;
+                vertical-align: middle;
+              }
+            \`;
+          
+          // Only add stylesheet if it doesn't exist
+          if (!document.querySelector('style[data-autoslides-live-style]')) {
+            style.setAttribute('data-autoslides-live-style', 'true');
+            document.head.appendChild(style);
+          }
+          
+          // Find all live course cards
+          const liveCards = document.querySelectorAll('.common-course-card');
+          console.log('Found', liveCards.length, 'live cards on page', ${currentPage});
+          
+          if (!liveCards.length) {
+            console.error('No live cards found in DOM');
+            return { success: false, message: 'No live cards found' };
+          }
+          
+          // Add pagination monitoring
+          const setupPaginationMonitoring = function() {
+            // Monitor pagination elements
+            const paginationItems = document.querySelectorAll('.ant-pagination-item, .ant-pagination-prev, .ant-pagination-next');
+            paginationItems.forEach(item => {
+              // Avoid adding multiple listeners to the same element
+              if (!item.dataset.autoSlidesLiveMonitored) {
+                item.dataset.autoSlidesLiveMonitored = 'true';
+                
+                item.addEventListener('click', function() {
+                  console.log('AUTOSLIDES_LIVE_PAGINATION_CLICKED');
+                  // Wait for the page to update
+                  setTimeout(() => {
+                    // Get updated current page
+                    const activePage = document.querySelector('.ant-pagination-item-active');
+                    if (activePage) {
+                      const newPage = parseInt(activePage.textContent, 10) || 1;
+                      console.log('AUTOSLIDES_LIVE_PAGE_CHANGED:' + newPage);
+                    }
+                  }, 500);
+                });
+              }
+            });
+            
+            // Also monitor the jump box
+            const jumpBox = document.querySelector('.ant-pagination-options-quick-jumper input');
+            if (jumpBox && !jumpBox.dataset.autoSlidesLiveMonitored) {
+              jumpBox.dataset.autoSlidesLiveMonitored = 'true';
+              jumpBox.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                  console.log('AUTOSLIDES_LIVE_PAGINATION_JUMPED');
+                  // Wait for the page to update
+                  setTimeout(() => {
+                    const activePage = document.querySelector('.ant-pagination-item-active');
+                    if (activePage) {
+                      const newPage = parseInt(activePage.textContent, 10) || 1;
+                      console.log('AUTOSLIDES_LIVE_PAGE_CHANGED:' + newPage);
+                    }
+                  }, 500);
+                }
+              });
+            }
+            
+            // Add the pagination information text to the pagination control
+            if (${totalPages} > 1) {
+              // First remove any existing pagination note we previously added
+              const existingNote = document.querySelector('.autoslides-live-pagination-note');
+              if (existingNote) {
+                existingNote.remove();
+              }
+              
+              // Find the jumper container
+              const paginationJumper = document.querySelector('.ant-pagination-options-quick-jumper');
+              if (paginationJumper) {
+                // Create the pagination note
+                const paginationNote = document.createElement('span');
+                paginationNote.className = 'autoslides-live-pagination-note';
+                paginationNote.innerHTML = \`All ${totalPages} pages of live courses loaded, \${liveCourses.length} courses total\`;
+                
+                // Insert after the jumper
+                if (paginationJumper.parentNode) {
+                  paginationJumper.insertAdjacentElement('afterend', paginationNote);
+                }
+              }
+            }
+          };
+          
+          // Call immediately to set up monitoring
+          setupPaginationMonitoring();
+          
+          // Also refresh pagination monitoring occasionally in case the DOM changes
+          setInterval(setupPaginationMonitoring, 2000);
+          
+          // Loop through live cards and inject buttons
+          let buttonCount = 0;
+          
+          liveCards.forEach((card, index) => {
+            // We need to associate each card with a live course from our data
+            // Without a clear ID in the DOM, we'll use the title and time to match
+            const titleElem = card.querySelector('.line-1');
+            const professorElem = card.querySelector('.line-2');
+            const timeElem = card.querySelector('.living-tag');
+            
+            if (!titleElem || !titleElem.textContent) {
+              console.log('Missing title for card', index);
+              return;
+            }
+            
+            // Extract course info from the card
+            const courseTitle = titleElem.textContent.trim();
+            const professorName = professorElem ? professorElem.textContent.trim() : '';
+            const timeText = timeElem ? timeElem.textContent.trim() : '';
+            
+            // Try to find matching live course
+            let matchingLive = null;
+            let liveId = null;
+            
+            // First try to get from our pre-loaded data by index if available
+            if (index < liveCourses.length) {
+              matchingLive = liveCourses[index];
+              liveId = matchingLive.liveId;
+            }
+            
+            // If no match by index or missing ID, try matching by title
+            if (!liveId) {
+              matchingLive = liveCourses.find(l => 
+                l.title === courseTitle || 
+                l.courseName === courseTitle
+              );
+              
+              if (matchingLive) {
+                liveId = matchingLive.liveId;
+              }
+            }
+            
+            // If still no match, try matching by professor and time
+            if (!liveId && professorName && timeText) {
+              matchingLive = liveCourses.find(l => 
+                (l.professorName && l.professorName.includes(professorName)) && 
+                (l.startedAt && timeText.includes(l.startedAt.substring(0, 16)))
+              );
+              
+              if (matchingLive) {
+                liveId = matchingLive.liveId;
+              }
+            }
+            
+            if (!liveId) {
+              console.log('Could not find live ID for card', index, 'with title', courseTitle);
+              return;
+            }
+            
+            // Find the info div to add our button
+            const infoDiv = card.querySelector('.info');
+            
+            if (infoDiv) {
+              // Create button
+              const button = document.createElement('button');
+              button.className = 'autoslides-live-btn';
+              button.innerText = 'Add to Tasks';
+              button.setAttribute('data-live-id', liveId);
+              button.setAttribute('data-index', index);
+              
+              // Add onclick handler that uses console.log
+              button.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Find the actual live course in our data
+                const liveCourse = window.__autoSlidesLiveCourses.find(l => l.liveId.toString() === liveId.toString());
+                
+                // Special prefix that we'll detect in the console-message event
+                console.log('AUTOSLIDES_ADD_LIVE:' + JSON.stringify({
+                  liveId: liveId,
+                  liveCourse: liveCourse || { liveId: liveId }
+                }));
+                
+                return false; // Prevent default
+              };
+              
+              // Append to the info div
+              infoDiv.appendChild(button);
+              buttonCount++;
+            } else {
+              console.log('No info div found for card', index);
+            }
+          });
+          
+          // Add "Add All" button at the bottom of the page
+          const liveContent = document.querySelector('.ant-row');
+          if (liveContent) {
+            // Create container for the "Add All" button
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.textAlign = 'center';
+            buttonContainer.style.margin = '20px 0';
+            buttonContainer.style.width = '100%';
+            
+            const addAllButton = document.createElement('button');
+            addAllButton.className = 'autoslides-live-btn-all';
+            addAllButton.innerHTML = 'Add All Live Courses to Task List';
+            
+            // Use console.log approach for add all button too
+            addAllButton.onclick = function() {
+              console.log('AUTOSLIDES_ADD_ALL_LIVES');
+              return false; // Prevent default
+            };
+            
+            buttonContainer.appendChild(addAllButton);
+            liveContent.parentNode.insertBefore(buttonContainer, liveContent.nextSibling);
+            console.log('Added "Add All" button for live courses');
+          } else {
+            console.log('No live container found for "Add All" button');
+          }
+          
+          console.log('Successfully added', buttonCount, 'live buttons');
+          return { success: true, buttonCount, message: 'Live button injection complete' };
+        } catch (error) {
+          console.error('Error injecting live buttons:', error);
+          return { success: false, error: error.toString() };
+        }
+      })();
+    `);
+  }
+
+  // Add a single YanHeKT live course to task queue
+  async function addYanHeKTLiveToTasks(liveId, liveCourseData) {
+    try {
+      console.log('Adding YanHeKT live course to tasks:', liveId, 'with data:', liveCourseData);
+      
+      if (!liveId) {
+        console.error('Live ID not provided');
+        statusText.textContent = 'Error: Live course ID not found';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+        return;
+      }
+      
+      const yanHeKTLiveProfileId = 'yanhekt_live';
+      if (!siteProfiles[yanHeKTLiveProfileId]) {
+        console.error('YanHeKT Live profile not found in siteProfiles:', yanHeKTLiveProfileId);
+        statusText.textContent = 'Error: YanHeKT Live profile not found';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+        return;
+      }
+      
+      // Check if this live course is already in the task queue
+      const existingTask = taskQueue.find(task => 
+        task.profileId === yanHeKTLiveProfileId && 
+        task.taskId === liveId.toString()
+      );
+      
+      if (existingTask) {
+        statusText.textContent = 'This live course is already in the task queue';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+        return;
+      }
+      
+      console.log('Using profile:', yanHeKTLiveProfileId, 'for live course:', liveId);
+
+      // Add to task queue
+      taskQueue.push({
+        profileId: yanHeKTLiveProfileId,
+        taskId: liveId.toString(),
+        url: `https://yanhekt.cn/live/${liveId}`,
+        profileName: siteProfiles[yanHeKTLiveProfileId].name || yanHeKTLiveProfileId,
+        courseTitle: liveCourseData?.title || liveCourseData?.courseName || 'Live Course'
+      });
+      
+      console.log('Task queue updated:', taskQueue.length, 'tasks');
+      
+      // Update UI
+      updateTaskTable();
+      btnStartTasks.disabled = taskQueue.length === 0 || isProcessingTasks || !validateAutomationRequirements();
+      
+      // Open task manager
+      if (taskManagerModal.style.display !== 'block') {
+        openTaskManager();
+      }
+      
+      statusText.textContent = `Added live course ${liveId} to tasks`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error adding YanHeKT live course to tasks:', error);
+      statusText.textContent = `Error: ${error.message}`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 3000);
+    }
+  }
+
+  // Add all YanHeKT live courses to task queue
+  async function addAllYanHeKTLivesToTasks() {
+    try {
+      console.log('Adding all YanHeKT live courses to tasks');
+      
+      const liveCourses = await webview.executeJavaScript('window.__autoSlidesLiveCourses');
+      if (!liveCourses || !liveCourses.length) {
+        console.error('No live courses found');
+        statusText.textContent = 'No live courses found to add';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+        return;
+      }
+      
+      const yanHeKTLiveProfileId = 'yanhekt_live';
+      if (!siteProfiles[yanHeKTLiveProfileId]) {
+        console.error('YanHeKT Live profile not found in siteProfiles:', yanHeKTLiveProfileId);
+        statusText.textContent = 'Error: YanHeKT Live profile not found';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+        return;
+      }
+      
+      // Get a count of how many courses we'll add (exclude those already in the queue)
+      const existingLiveIds = taskQueue
+        .filter(task => task.profileId === yanHeKTLiveProfileId)
+        .map(task => task.taskId);
+      
+      const newLiveCourses = liveCourses.filter(lc => 
+        !existingLiveIds.includes(lc.liveId.toString())
+      );
+      
+      if (newLiveCourses.length === 0) {
+        statusText.textContent = 'All live courses are already in the task queue';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+        return;
+      }
+      
+      console.log('Using profile:', yanHeKTLiveProfileId, 'for', newLiveCourses.length, 'live courses');
+      
+      // Add confirmation for large number of courses
+      if (newLiveCourses.length > 16) {
+        const confirmResult = await webview.executeJavaScript(`
+          confirm('Are you sure you want to add ${newLiveCourses.length} live courses to the task queue?')
+        `);
+        
+        if (!confirmResult) {
+          statusText.textContent = 'Bulk live course addition cancelled';
+          setTimeout(() => {
+            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          }, 2000);
+          return;
+        }
+      }
+      
+      // Add all new live courses to task queue
+      for (const liveCourse of newLiveCourses) {
+        taskQueue.push({
+          profileId: yanHeKTLiveProfileId,
+          taskId: liveCourse.liveId.toString(),
+          url: `https://yanhekt.cn/live/${liveCourse.liveId}`,
+          profileName: siteProfiles[yanHeKTLiveProfileId].name || yanHeKTLiveProfileId,
+          courseTitle: liveCourse.title || liveCourse.courseName || 'Live Course'
+        });
+      }
+      
+      console.log('Task queue updated:', taskQueue.length, 'tasks');
+      
+      // Update UI
+      updateTaskTable();
+      btnStartTasks.disabled = taskQueue.length === 0 || isProcessingTasks || !validateAutomationRequirements();
+      
+      // Open task manager
+      if (taskManagerModal.style.display !== 'block') {
+        openTaskManager();
+      }
+      
+      statusText.textContent = `Added ${newLiveCourses.length} live courses to tasks`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error adding YanHeKT live courses to tasks:', error);
+      statusText.textContent = `Error: ${error.message}`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 3000);
+    }
+  }
+
   async function startTaskProcessing() {
     // For starting tasks, we need to verify that all profile-based tasks have valid profiles
     let allTasksValid = true;
@@ -3716,8 +4475,45 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   webview.addEventListener('console-message', async (event) => {
     // Check for our special prefixes
     const message = event.message;
-    
-    if (message.startsWith('AUTOSLIDES_ADD_SESSION:')) {
+  
+    if (message.startsWith('AUTOSLIDES_ADD_LIVE:')) {
+      try {
+        // Extract the JSON payload
+        const jsonStr = message.substring('AUTOSLIDES_ADD_LIVE:'.length);
+        const data = JSON.parse(jsonStr);
+        
+        console.log('Received add live course request from webview:', data);
+        
+        // Call the function with the data
+        await addYanHeKTLiveToTasks(data.liveId, data.liveCourse);
+      } catch (error) {
+        console.error('Error processing add live course message:', error);
+      }
+    } else if (message === 'AUTOSLIDES_ADD_ALL_LIVES') {
+      console.log('Received add all live courses request from webview');
+      await addAllYanHeKTLivesToTasks();
+    } else if (message === 'AUTOSLIDES_LIVE_PAGINATION_CLICKED') {
+      console.log('Live pagination navigation detected');
+    } else if (message.startsWith('AUTOSLIDES_LIVE_PAGE_CHANGED:')) {
+      try {
+        const newPage = parseInt(message.substring('AUTOSLIDES_LIVE_PAGE_CHANGED:'.length), 10);
+        console.log('Live page changed to:', newPage);
+        
+        // Get the current URL
+        const currentUrl = await webview.executeJavaScript('window.location.href');
+        
+        if (currentUrl.includes('yanhekt.cn/liveCourse')) {
+          // Re-run the detection on the new page
+          statusText.textContent = `Page changed to ${newPage}, refreshing data...`;
+          setTimeout(() => {
+            detectYanHeKTLiveCourse(currentUrl);
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Error handling live page change:', error);
+      }
+    // Handle existing events for session courses
+    } else if (message.startsWith('AUTOSLIDES_ADD_SESSION:')) {
       try {
         // Extract the JSON payload
         const jsonStr = message.substring('AUTOSLIDES_ADD_SESSION:'.length);
