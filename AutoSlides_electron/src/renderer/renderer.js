@@ -3013,21 +3013,30 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   // Create functions to get the effective values based on fast mode state
   function getEffectiveCheckInterval() {
-    if (isProcessingTasks && fastModeEnabled) {
+    // Only apply fast mode to YanHeKT Session tasks, not live streams
+    if (isProcessingTasks && fastModeEnabled && 
+        taskQueue[currentTaskIndex] && 
+        taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
       return 0.5; // Fast mode check interval
     }
     return parseFloat(inputCheckInterval.value);
   }
 
   function getEffectiveAutoAdjustSpeed() {
-    if (isProcessingTasks && fastModeEnabled) {
+    // Only apply fast mode to YanHeKT Session tasks, not live streams
+    if (isProcessingTasks && fastModeEnabled && 
+        taskQueue[currentTaskIndex] && 
+        taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
       return true; // Force auto-adjust speed in fast mode
     }
     return autoAdjustSpeed.checked;
   }
 
   function getEffectiveTargetSpeed() {
-    if (isProcessingTasks && fastModeEnabled) {
+    // Only apply fast mode to YanHeKT Session tasks, not live streams
+    if (isProcessingTasks && fastModeEnabled && 
+        taskQueue[currentTaskIndex] && 
+        taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
       return 5.0; // Fast mode speed
     }
     return parseFloat(playbackSpeed.value);
@@ -3041,8 +3050,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       existingIndicator.remove();
     }
     
-    // Add indicator if fast mode is enabled and tasks are processing
-    if (isProcessingTasks && fastModeEnabled) {
+    // Add indicator if fast mode is enabled and we're processing a YanHeKT Session task
+    if (isProcessingTasks && fastModeEnabled && 
+        taskQueue[currentTaskIndex] && 
+        taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
       const indicator = document.createElement('div');
       indicator.id = 'fastModeIndicator';
       indicator.className = 'fast-mode-active';
@@ -4020,7 +4031,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       speedAdjusted = false;
       speedAdjustRetryAttempts = 0;
       playbackRetryAttempts = 0;
-
+      
       // Clear any existing intervals to ensure clean state for next task
       if (speedAdjustInterval) {
         clearInterval(speedAdjustInterval);
@@ -4056,7 +4067,32 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           // Continue anyway - failing to reset progress shouldn't stop the task
         }
       }
-
+      
+      // Show Fast Mode status message for Live tasks
+      if (fastModeEnabled && currentTask.profileId === 'yanhekt_live') {
+        console.log('Fast Mode skipped for live task - not applicable to live streams');
+        const taskNote = document.createElement('div');
+        taskNote.id = 'fastModeSkippedNote';
+        taskNote.style.color = '#f39c12';
+        taskNote.style.fontSize = '12px';
+        taskNote.style.marginTop = '5px';
+        taskNote.textContent = 'Note: Fast Mode skipped for live stream (only applicable to sessions)';
+        
+        // Only add if not already present
+        if (!document.getElementById('fastModeSkippedNote')) {
+          const taskIndicator = document.getElementById('taskProgressIndicator');
+          if (taskIndicator && taskIndicator.parentNode) {
+            taskIndicator.parentNode.insertBefore(taskNote, taskIndicator.nextSibling);
+            
+            // Remove this note after 5 seconds
+            setTimeout(() => {
+              const note = document.getElementById('fastModeSkippedNote');
+              if (note) note.remove();
+            }, 5000);
+          }
+        }
+      }
+  
       // Update fast mode indicator - do this for each task
       updateFastModeIndicator();
       
