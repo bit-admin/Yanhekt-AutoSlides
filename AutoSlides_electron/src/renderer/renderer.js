@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const titleDisplay = document.getElementById('titleDisplay'); 
   const comparisonMethod = document.getElementById('comparisonMethod'); 
   const enableDoubleVerificationCheckbox = document.getElementById('enableDoubleVerification'); 
+  const btnHome = document.getElementById('btnHome');
 
   // Capture related variables
   let captureInterval = null;
@@ -5141,6 +5142,16 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         hasUnsavedChanges = false;
       }
     }
+  });
+
+  // Add home button functionality
+  btnHome.addEventListener('click', () => {
+    // Use correct file:// URL format to load the homepage
+    const homepageUrl = `file://${window.location.pathname.replace('index.html', 'homepage.html')}`;
+    console.log('Navigating to homepage:', homepageUrl);
+    webview.src = homepageUrl;
+    inputUrl.value = '';
+    statusText.textContent = 'Homepage loaded';
   });
 
   // Add event listener for double verification checkbox
