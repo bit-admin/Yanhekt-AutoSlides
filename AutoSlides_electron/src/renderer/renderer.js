@@ -1434,6 +1434,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       capturedCount++;
       slideCount.textContent = `Slides captured: ${capturedCount}`;
+
+      // Get the effective check interval considering fast mode
+      const effectiveCheckInterval = getEffectiveCheckInterval();
       
       // Start interval for checking slide changes
       captureInterval = setInterval(async () => {
@@ -1489,7 +1492,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             console.log(`${enableDoubleVerification ? 'Potential' : 'Saved'} new slide (method: ${result.method})`);
           }
         }
-      }, parseFloat(inputCheckInterval.value) * 1000);
+      }, effectiveCheckInterval * 1000); // Use the effective check interval
     } catch (error) {
       console.error('Error starting capture:', error);
       statusText.textContent = 'Error: ' + error.message;
@@ -1521,9 +1524,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         speedAdjustInterval = null;
       }
       
-      // Reset speed adjustment state
+      // Reset state flags completely
       speedAdjusted = false;
       speedAdjustRetryAttempts = 0;
+      playbackRetryAttempts = 0;
 
       // Reset verification state
       verificationState = 'none';
@@ -2146,11 +2150,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 }
               }, 2000);
               
-              // Set up speed adjustment check interval if enabled in the profile
+              // Set up speed adjustment check interval based on the effective auto-adjust setting
               if (!speedAdjusted && 
-                  activeProfileId !== 'default' &&
-                  siteProfiles[activeProfileId]?.automation?.autoAdjustSpeed && 
-                  siteProfiles[activeProfileId]?.automation?.speedSelector) {
+                activeProfileId !== 'default' &&
+                (getEffectiveAutoAdjustSpeed() || siteProfiles[activeProfileId]?.automation?.autoAdjustSpeed) && 
+                siteProfiles[activeProfileId]?.automation?.speedSelector) {
                 
                 // Reset retry counter
                 speedAdjustRetryAttempts = 0;
@@ -2159,19 +2163,20 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 if (speedAdjustInterval) {
                   clearInterval(speedAdjustInterval);
                 }
+
+                console.log('Setting up speed adjustment with fast mode check');
                 
                 // Delay before starting speed adjustment checks
                 setTimeout(() => {
                   // First try immediately
+                  console.log('First attempt to adjust playback speed');
+                  speedAdjusted = false; // Reset this flag before the check
                   checkAndAdjustPlaybackSpeed();
                   
                   // Then set up interval for retries if needed
                   speedAdjustInterval = setInterval(checkAndAdjustPlaybackSpeed, 2000);
                 }, 1000); // 1 second delay before first attempt
               }
-              
-              // Remove the old implementation
-              // if (!speedAdjusted && ...) { ... }
             } else {
               // Button click didn't start playback, retry if within attempts limit
               playbackRetryAttempts++;
@@ -2237,9 +2242,17 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   // Add this new function for checking and adjusting playback speed
   async function checkAndAdjustPlaybackSpeed() {
+    // Use the effective auto-adjust speed setting that considers fast mode
+    const shouldAdjustSpeed = getEffectiveAutoAdjustSpeed();
+
+    // If we're in fast mode, log this explicitly
+    if (isProcessingTasks && fastModeEnabled) {
+      console.log('Fast Mode is active - will force speed adjustment');
+    }
+
+    // Clean up interval if already adjusted or profile has no selector
     if (speedAdjusted || 
         activeProfileId === 'default' || 
-        !siteProfiles[activeProfileId]?.automation?.autoAdjustSpeed ||
         !siteProfiles[activeProfileId]?.automation?.speedSelector) {
       
       // Clean up interval if it exists
@@ -2249,7 +2262,21 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       }
       return;
     }
+
+    if (!shouldAdjustSpeed) {
+      // If fast mode is not forcing speed adjustment and user has disabled it
+      console.log('Speed adjustment not enabled - skipping (fast mode not active)');
+      
+      // Clean up and return
+      if (speedAdjustInterval) {
+        clearInterval(speedAdjustInterval);
+        speedAdjustInterval = null;
+      }
+      return;
+    }
     
+    console.log('Proceeding with speed adjustment check');
+
     try {
       // First check if the video is actually playing
       const playingCheck = await webview.executeJavaScript(`
@@ -2292,8 +2319,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         return; // Try again on next interval
       }
       
-      // Get target speed from the profile
-      const targetSpeed = parseFloat(siteProfiles[activeProfileId].automation.playbackSpeed) || 1.0;
+      // Get effective target speed
+      const targetSpeed = getEffectiveTargetSpeed();
+      console.log(`Target speed is ${targetSpeed}x (fast mode: ${isProcessingTasks && fastModeEnabled ? 'active' : 'inactive'})`);
       
       // Check if speed is already set correctly
       if (playingCheck.currentSpeed === targetSpeed) {
@@ -2311,7 +2339,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       }
       
       // If we get here, we need to adjust the speed
-      console.log(`Adjusting playback speed to ${targetSpeed}x`);
+      console.log(`Adjusting playback speed to ${targetSpeed}x (current: ${playingCheck.currentSpeed}x)`);
       statusText.textContent = `Setting playback speed to ${targetSpeed}x`;
       
       const result = await webview.executeJavaScript(`
@@ -2540,6 +2568,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const speedFields = document.querySelectorAll('#speedSelector, #playbackSpeed');
     const speedLabels = document.querySelectorAll('label[for="speedSelector"], label[for="playbackSpeed"]');
     const settingItem = autoAdjustSpeed.closest('.setting-item');
+    const fastModeCheckbox = document.getElementById('fastModeCheckbox');
     
     if (!settingItem) return; // Add safety check
     
@@ -2710,6 +2739,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   let isProcessingTasks = false;
   let currentTaskIndex = -1;
   let resetVideoProgress = true;
+  let fastModeEnabled = false;
 
   // Task Manager functions
   function openTaskManager() {
@@ -2724,6 +2754,13 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (savedResetProgress !== null) {
       resetVideoProgress = savedResetProgress === 'true';
       resetProgressCheckbox.checked = resetVideoProgress;
+    }
+
+    // Load saved preference for fast mode
+    const savedFastMode = localStorage.getItem('fastModeEnabled');
+    if (savedFastMode !== null) {
+      fastModeEnabled = savedFastMode === 'true';
+      fastModeCheckbox.checked = fastModeEnabled;
     }
     
     // Display the modal
@@ -2964,6 +3001,83 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     // Save preference to localStorage
     localStorage.setItem('resetVideoProgress', resetVideoProgress);
   });
+
+  // Add event listener for fast mode checkbox
+  fastModeCheckbox.addEventListener('change', function() {
+    fastModeEnabled = this.checked;
+    console.log('Fast mode set to:', fastModeEnabled);
+    
+    // Save preference to localStorage
+    localStorage.setItem('fastModeEnabled', fastModeEnabled);
+  });
+
+  // Create functions to get the effective values based on fast mode state
+  function getEffectiveCheckInterval() {
+    if (isProcessingTasks && fastModeEnabled) {
+      return 0.5; // Fast mode check interval
+    }
+    return parseFloat(inputCheckInterval.value);
+  }
+
+  function getEffectiveAutoAdjustSpeed() {
+    if (isProcessingTasks && fastModeEnabled) {
+      return true; // Force auto-adjust speed in fast mode
+    }
+    return autoAdjustSpeed.checked;
+  }
+
+  function getEffectiveTargetSpeed() {
+    if (isProcessingTasks && fastModeEnabled) {
+      return 5.0; // Fast mode speed
+    }
+    return parseFloat(playbackSpeed.value);
+  }
+
+  // Add a visual indicator for fast mode to the UI
+  function updateFastModeIndicator() {
+    // Remove any existing indicator
+    const existingIndicator = document.getElementById('fastModeIndicator');
+    if (existingIndicator) {
+      existingIndicator.remove();
+    }
+    
+    // Add indicator if fast mode is enabled and tasks are processing
+    if (isProcessingTasks && fastModeEnabled) {
+      const indicator = document.createElement('div');
+      indicator.id = 'fastModeIndicator';
+      indicator.className = 'fast-mode-active';
+      indicator.textContent = '⚡ FAST MODE ACTIVE ⚡';
+      
+      // Insert after title display
+      if (titleDisplay.nextSibling) {
+        titleDisplay.parentNode.insertBefore(indicator, titleDisplay.nextSibling);
+      } else {
+        titleDisplay.parentNode.appendChild(indicator);
+      }
+    }
+  }
+
+  // Add CSS for the fast mode indicator
+  const styleSheet = document.createElement('style');
+  styleSheet.textContent = `
+    .fast-mode-active {
+      color: #e74c3c;
+      font-weight: bold;
+      margin: 5px 0;
+      padding: 5px;
+      background-color: rgba(231, 76, 60, 0.1);
+      border-radius: 4px;
+      text-align: center;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.7; }
+      100% { opacity: 1; }
+    }
+  `;
+  document.head.appendChild(styleSheet);
 
   // Reset video progress for YanHeKT session
   async function resetYanHeKTSessionProgress(sessionId) {
@@ -3818,6 +3932,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     
     isProcessingTasks = true;
     currentTaskIndex = 0;
+
+    // Update the fast mode indicator
+    updateFastModeIndicator();
     
     // Update UI
     updateTaskTable();
@@ -3831,8 +3948,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     taskProgress.className = 'task-progress';
     taskProgress.textContent = `Processing task 1/${taskQueue.length}`;
     
-    // Insert after title display
-    if (titleDisplay.nextSibling) {
+    // Insert after title display or fast mode indicator
+    const fastModeIndicator = document.getElementById('fastModeIndicator');
+    if (fastModeIndicator) {
+      fastModeIndicator.parentNode.insertBefore(taskProgress, fastModeIndicator.nextSibling);
+    } else if (titleDisplay.nextSibling) {
       titleDisplay.parentNode.insertBefore(taskProgress, titleDisplay.nextSibling);
     } else {
       titleDisplay.parentNode.appendChild(taskProgress);
@@ -3854,6 +3974,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     
     // Reset state
     currentTaskIndex = -1;
+
+    // Remove fast mode indicator
+    const fastModeIndicator = document.getElementById('fastModeIndicator');
+    if (fastModeIndicator) fastModeIndicator.remove();
     
     // Update UI
     btnStartTasks.disabled = !validateAutomationRequirements();
@@ -3892,6 +4016,22 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     statusText.textContent = `Loading task ${currentTaskIndex + 1}/${taskQueue.length}`;
     
     try {
+      // Reset important flags for the new task
+      speedAdjusted = false;
+      speedAdjustRetryAttempts = 0;
+      playbackRetryAttempts = 0;
+
+      // Clear any existing intervals to ensure clean state for next task
+      if (speedAdjustInterval) {
+        clearInterval(speedAdjustInterval);
+        speedAdjustInterval = null;
+      }
+      
+      if (autoStartCheckInterval) {
+        clearInterval(autoStartCheckInterval);
+        autoStartCheckInterval = null;
+      }
+      
       // Switch to the task's profile if needed
       if (currentTask.profileId !== 'custom' && currentTask.profileId !== activeProfileId) {
         siteProfileSelect.value = currentTask.profileId;
@@ -3916,6 +4056,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           // Continue anyway - failing to reset progress shouldn't stop the task
         }
       }
+
+      // Update fast mode indicator - do this for each task
+      updateFastModeIndicator();
       
       // Load the URL
       webview.src = currentTask.url;
@@ -3936,6 +4079,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   function finishTaskProcessing() {
     isProcessingTasks = false;
     currentTaskIndex = -1;
+
+    // Remove fast mode indicator
+    const fastModeIndicator = document.getElementById('fastModeIndicator');
+    if (fastModeIndicator) fastModeIndicator.remove();
     
     // Update UI
     btnStartTasks.disabled = !validateAutomationRequirements();
