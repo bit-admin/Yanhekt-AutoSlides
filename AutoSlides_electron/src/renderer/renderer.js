@@ -120,13 +120,14 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   
   // Load default URL when app starts
   setTimeout(() => {
-    const defaultUrl = 'https://www.yanhekt.cn/home';
-    
-    // Only set if not already set
+    // Replace direct URL loading with custom homepage
     if (webview.src === 'about:blank' || !webview.src) {
-      webview.src = defaultUrl;
-      inputUrl.value = defaultUrl;
-      statusText.textContent = 'Loading default URL...';
+      // Use correct file:// URL format to load the homepage
+      const homepageUrl = `file://${window.location.pathname.replace('index.html', 'homepage.html')}`;
+      console.log('Loading homepage from:', homepageUrl);
+      webview.src = homepageUrl;
+      inputUrl.value = '';
+      statusText.textContent = 'Homepage loaded';
     }
   }, 200);
 
