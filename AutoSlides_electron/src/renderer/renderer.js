@@ -1518,13 +1518,18 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.error('Failed to disable background running:', error);
       }
       
-      // Clear speed adjustment interval if it exists
+      // Clear ALL intervals and reset ALL state
       if (speedAdjustInterval) {
         clearInterval(speedAdjustInterval);
         speedAdjustInterval = null;
       }
       
-      // Reset state flags completely
+      if (autoStartCheckInterval) {
+        clearInterval(autoStartCheckInterval);
+        autoStartCheckInterval = null;
+      }
+      
+      // Reset ALL state flags completely
       speedAdjusted = false;
       speedAdjustRetryAttempts = 0;
       playbackRetryAttempts = 0;
@@ -1533,6 +1538,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       verificationState = 'none';
       potentialNewImageData = null;
       verificationMethod = null;
+      lastImageData = null;
 
       btnStartCapture.disabled = false;
       btnStopCapture.disabled = true;
@@ -1555,6 +1561,46 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         });
       speedAdjusted = false;
     }
+  }
+
+
+  // Add debug logging to the getEffective functions to help diagnose issues
+  function getEffectiveCheckInterval() {
+    // Only apply fast mode to YanHeKT Session tasks, not live streams
+    if (isProcessingTasks && fastModeEnabled && 
+        taskQueue[currentTaskIndex] && 
+        taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
+      console.log('Fast Mode active: Using 0.5s check interval');
+      return 0.5; // Fast mode check interval
+    }
+    const normalInterval = parseFloat(inputCheckInterval.value);
+    console.log('Using normal check interval:', normalInterval);
+    return normalInterval;
+  }
+
+  function getEffectiveAutoAdjustSpeed() {
+    // Only apply fast mode to YanHeKT Session tasks, not live streams
+    if (isProcessingTasks && fastModeEnabled && 
+        taskQueue[currentTaskIndex] && 
+        taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
+      console.log('Fast Mode active: Forcing auto-adjust speed ON');
+      return true; // Force auto-adjust speed in fast mode
+    }
+    console.log('Using normal auto-adjust speed setting:', autoAdjustSpeed.checked);
+    return autoAdjustSpeed.checked;
+  }
+
+  function getEffectiveTargetSpeed() {
+    // Only apply fast mode to YanHeKT Session tasks, not live streams
+    if (isProcessingTasks && fastModeEnabled && 
+        taskQueue[currentTaskIndex] && 
+        taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
+      console.log('Fast Mode active: Using 5.0x playback speed');
+      return 5.0; // Fast mode speed
+    }
+    const normalSpeed = parseFloat(playbackSpeed.value);
+    console.log('Using normal playback speed:', normalSpeed);
+    return normalSpeed;
   }
   
   // Set event listeners for page loading
@@ -1631,7 +1677,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     statusText.textContent = 'Page loaded';
     
     const url = e.url;
-
+  
     // Check URL pattern for YanHeKT course pages
     if (url.includes('yanhekt.cn/course/')) {
       try {
@@ -1641,7 +1687,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.error('Error detecting YanHeKT course:', error);
       }
     }
-
+  
     // Check URL pattern for YanHeKT live course pages
     if (url.includes('yanhekt.cn/liveCourse')) {
       try {
@@ -1651,11 +1697,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.error('Error detecting YanHeKT live course:', error);
       }
     }
-
+  
     // Check for profile switching based on URL patterns
     checkAndSwitchProfile(url);
     
-    // Reset speed adjustment state on navigation
+    // Ensure clean state after navigation
     speedAdjusted = false;
     if (speedAdjustInterval) {
       clearInterval(speedAdjustInterval);
@@ -4032,7 +4078,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       speedAdjustRetryAttempts = 0;
       playbackRetryAttempts = 0;
       
-      // Clear any existing intervals to ensure clean state for next task
+      // Clear ALL intervals to ensure clean state
       if (speedAdjustInterval) {
         clearInterval(speedAdjustInterval);
         speedAdjustInterval = null;
@@ -4042,6 +4088,17 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         clearInterval(autoStartCheckInterval);
         autoStartCheckInterval = null;
       }
+      
+      if (captureInterval) {
+        clearInterval(captureInterval);
+        captureInterval = null;
+      }
+
+      // Reset additional capture state
+      lastImageData = null;
+      verificationState = 'none';
+      potentialNewImageData = null;
+      verificationMethod = null;
       
       // Switch to the task's profile if needed
       if (currentTask.profileId !== 'custom' && currentTask.profileId !== activeProfileId) {
