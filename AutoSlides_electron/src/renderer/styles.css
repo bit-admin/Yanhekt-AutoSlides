@@ -756,3 +756,28 @@ select:focus {
   color: #4a90e2;
   margin-top: 5px;
 }
+
+.taskmode-item {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.taskmode-item label {
+  display: flex;
+  align-items: center;
+  margin-right: 15px;
+}
+
+.fast-mode-active {
+  color: #e74c3c;
+  font-weight: bold;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
