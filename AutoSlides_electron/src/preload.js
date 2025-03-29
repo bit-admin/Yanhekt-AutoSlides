@@ -43,7 +43,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
    * API request method
    */
   makeApiRequest: (options) => ipcRenderer.invoke('make-api-request', options),
+
+  muteWebviewAudio: async (webviewId) => {
+    try {
+      return await ipcRenderer.invoke('muteWebviewAudio', webviewId);
+    } catch (error) {
+      console.error('Error muting webview audio:', error);
+      throw error;
+    }
+  },
   
+  unmuteWebviewAudio: async (webviewId) => {
+    try {
+      return await ipcRenderer.invoke('unmuteWebviewAudio', webviewId);
+    } catch (error) {
+      console.error('Error unmuting webview audio:', error);
+      throw error;
+    }
+  },
   /**
    * System information
    */

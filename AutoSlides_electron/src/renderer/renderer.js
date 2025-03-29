@@ -64,7 +64,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const enableDoubleVerificationCheckbox = document.getElementById('enableDoubleVerification'); 
   const btnHome = document.getElementById('btnHome');
 
-  // Capture related variables
   let captureInterval = null;
   let lastImageData = null;
   let capturedCount = 0;
@@ -87,6 +86,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   let verificationMethod = null;
   let resetVideoProgress = true;
   let fastModeEnabled = false; 
+  let autoMuteEnabled = false;
+  const autoMuteCheckbox = document.getElementById('autoMuteCheckbox');
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -280,6 +281,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       if (config.resetVideoProgress !== undefined) {
         resetVideoProgress = config.resetVideoProgress;
       }
+
+      if (config.autoMuteEnabled !== undefined) {
+        autoMuteEnabled = config.autoMuteEnabled;
+      }
       
       return config;
     } catch (error) {
@@ -301,7 +306,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         comparisonMethod: comparisonMethod.value, 
         enableDoubleVerification: enableDoubleVerificationCheckbox.checked,
         fastModeEnabled: fastModeEnabled,
-        resetVideoProgress: resetVideoProgress
+        resetVideoProgress: resetVideoProgress,
+        autoMuteEnabled: autoMuteEnabled
       };
       
       await window.electronAPI.saveConfig(config);
@@ -1673,6 +1679,21 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         cacheCleanupTimer = null;
       }
 
+      // Disable auto-mute if enabled
+      if (autoMuteEnabled) {
+        try {
+          const result = await window.electronAPI.unmuteWebviewAudio(webview.id);
+          console.log('Auto-unmute result:', result);
+          
+          const muteIndicator = document.getElementById('muteIndicator');
+          if (muteIndicator) {
+            muteIndicator.remove();
+          }
+        } catch (unmuteError) {
+          console.error('Error removing auto-mute:', unmuteError);
+        }
+      }
+
       try {
         await window.electronAPI.disableBackgroundRunning();
         console.log('Background running disabled after capture');
@@ -1897,6 +1918,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   // Comprehensive in-page navigation handler
   webview.addEventListener('did-navigate-in-page', async (e) => {
+    loadingOverlay.style.display = 'none';
     if (e.isMainFrame && e.url) {
       // Update URL field only if user isn't editing
       if (!userIsEditingUrl) {
@@ -2972,6 +2994,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     // Set checkboxes from the global variables (loaded from config)
     fastModeCheckbox.checked = fastModeEnabled;
     resetProgressCheckbox.checked = resetVideoProgress;
+    autoMuteCheckbox.checked = autoMuteEnabled;
     
     // Display the modal
     taskManagerModal.style.display = 'block';
@@ -3221,6 +3244,14 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     saveConfig();
   });
 
+  autoMuteCheckbox.addEventListener('change', function() {
+    autoMuteEnabled = this.checked;
+    console.log('Auto-mute set to:', autoMuteEnabled);
+    
+    // Save to config file
+    saveConfig();
+  });
+
   // Create functions to get the effective values based on fast mode state
   function getEffectiveCheckInterval() {
     // Only apply fast mode to YanHeKT Session tasks, not live streams
@@ -3304,6 +3335,16 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       0% { opacity: 1; }
       50% { opacity: 0.7; }
       100% { opacity: 1; }
+    }
+
+    .mute-indicator {
+      color: #e74c3c;
+      background-color: rgba(231, 76, 60, 0.1);
+      padding: 5px;
+      margin: 5px 0;
+      border-radius: 4px;
+      text-align: center;
+      font-weight: bold;
     }
   `;
   document.head.appendChild(styleSheet);
@@ -4200,6 +4241,18 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (captureInterval) {
       stopCapture();
     }
+
+    // Unmute the webview audio if auto-mute is enabled
+    if (autoMuteEnabled) {
+      window.electronAPI.unmuteWebviewAudio(webview.id)
+        .then(result => console.log('Task cancellation unmute result:', result))
+        .catch(err => console.error('Error unmuting during task cancellation:', err));
+      
+      const muteIndicator = document.getElementById('muteIndicator');
+      if (muteIndicator) {
+        muteIndicator.remove();
+      }
+    }
     
     // Reset state
     currentTaskIndex = -1;
@@ -4228,6 +4281,50 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (!isProcessingTasks || currentTaskIndex >= taskQueue.length) {
       finishTaskProcessing();
       return;
+    }
+
+    // Mute the webview audio if auto-mute is enabled
+    if (autoMuteEnabled) {
+      try {
+        const result = await window.electronAPI.muteWebviewAudio(webview.id);
+        console.log('Auto-mute result:', result);
+        
+        if (result.success) {
+          console.log('Webview audio muted successfully');
+          
+          // First remove any existing mute indicator
+          const existingMuteIndicator = document.getElementById('muteIndicator');
+          if (existingMuteIndicator) {
+            existingMuteIndicator.remove();
+          }
+          
+          // Create new mute indicator
+          const muteIndicator = document.createElement('div');
+          muteIndicator.id = 'muteIndicator';
+          muteIndicator.className = 'mute-indicator';
+          muteIndicator.innerHTML = '🔇 AUDIO MUTED 🔇';
+          
+          // Find insertion point - after fast mode indicator if it exists
+          const fastModeIndicator = document.getElementById('fastModeIndicator');
+          const statusPanel = titleDisplay.parentNode;
+          
+          if (fastModeIndicator && fastModeIndicator.parentNode === statusPanel) {
+            // Insert after fast mode indicator
+            if (fastModeIndicator.nextSibling) {
+              statusPanel.insertBefore(muteIndicator, fastModeIndicator.nextSibling);
+            } else {
+              statusPanel.appendChild(muteIndicator);
+            }
+          } else {
+            // No fast mode indicator, just add to status panel
+            statusPanel.appendChild(muteIndicator);
+          }
+        } else {
+          console.warn('Failed to mute webview audio:', result.error || result.message);
+        }
+      } catch (muteError) {
+        console.error('Error applying auto-mute:', muteError);
+      }
     }
     
     const currentTask = taskQueue[currentTaskIndex];

@@ -762,7 +762,7 @@ select:focus {
   justify-content: space-between; /* Position items at edges instead of flex-wrap */
   align-items: center;
   margin-bottom: 15px;
-  width: 85%;
+  width: 95%;
 }
 
 .taskmode-item label {
