@@ -134,6 +134,20 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   }, 200);
 
+  const loadingOverlay = document.createElement('div');
+  loadingOverlay.id = 'loadingOverlay';
+  loadingOverlay.style.cssText = `
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: transparent;
+    z-index: 9999;
+    display: none;
+  `;
+  document.body.appendChild(loadingOverlay);
+
   // Add flag to track if user is actively editing the URL
   let userIsEditingUrl = false;
 
@@ -1721,13 +1735,58 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   
   // Set event listeners for page loading
   webview.addEventListener('did-start-loading', () => {
+    loadingOverlay.style.display = 'block';
     statusText.textContent = 'Loading page...';
     titleDisplay.textContent = '';
     titleDisplay.style.display = 'none';
     currentTitleText = ''; // Clear current title
+    
+    // Inject early link handling script
+    webview.executeJavaScript(`
+      (function() {
+        // Only set if not already set
+        if (!window._autoSlidesEarlyLinkHandlerInstalled) {
+          window._autoSlidesEarlyLinkHandlerInstalled = true;
+          
+          // Override window.open immediately
+          const originalWindowOpen = window.open;
+          window.open = function(url, name, features) {
+            if (url) {
+              console.log('Early interception of window.open:', url);
+              setTimeout(() => location.href = url, 0);
+              return {
+                closed: false,
+                close: function() {},
+                focus: function() {},
+                document: document
+              };
+            }
+            return null;
+          };
+          
+          // Add early click handler
+          document.addEventListener('click', function(event) {
+            const link = event.target.closest('a');
+            if (!link) return;
+            
+            if (link.target === '_blank' || event.ctrlKey || event.metaKey) {
+              event.preventDefault();
+              event.stopPropagation();
+              if (link.href) {
+                console.log('Early interception of link click:', link.href);
+                location.href = link.href;
+              }
+            }
+          }, true);
+          
+          console.log('Early AutoSlides link handler installed');
+        }
+      })();
+    `).catch(err => console.error('Error injecting early link handler:', err));
   });
   
   webview.addEventListener('did-finish-load', () => {
+    loadingOverlay.style.display = 'none';
     // Update URL field only if user isn't editing
     if (!userIsEditingUrl && webview.src) {
       inputUrl.value = webview.src;
@@ -1766,6 +1825,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   });
 
   webview.addEventListener('did-fail-load', (event) => {
+    loadingOverlay.style.display = 'none';
     if (event.errorCode !== -3) { // Ignore aborted loads
       statusText.textContent = `Load failed: ${event.errorDescription}`;
     }
