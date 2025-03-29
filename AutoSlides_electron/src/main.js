@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, session, Menu, shell, net } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session, Menu, shell, net, webContents } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
@@ -699,4 +699,84 @@ ipcMain.handle('disableProgressIntercept', (event) => {
 
 ipcMain.handle('getProgressInterceptStatus', (event) => {
   return interceptProgress;
+});
+
+ipcMain.handle('muteWebviewAudio', async (event, webviewId) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return { success: false, error: 'No window found' };
+    
+    const allWebContents = webContents.getAllWebContents();
+    
+    let webviewContents = null;
+    for (const contents of allWebContents) {
+      if (contents.id === event.sender.id) continue;
+      
+      if (contents.hostWebContents && contents.hostWebContents.id === event.sender.id) {
+        webviewContents = contents;
+        break;
+      }
+    }
+    
+    if (!webviewContents) {
+      console.log('No webview webContents found');
+      let mutedAny = false;
+      for (const contents of allWebContents) {
+        if (contents.id !== event.sender.id) {
+          contents.setAudioMuted(true);
+          mutedAny = true;
+          console.log(`Muted webContents with ID: ${contents.id}`);
+        }
+      }
+      return { success: mutedAny, message: 'Attempted to mute all secondary webContents' };
+    }
+    
+    webviewContents.setAudioMuted(true);
+    console.log(`Muted webview webContents with ID: ${webviewContents.id}`);
+    return { success: true, message: 'Webview audio muted' };
+    
+  } catch (error) {
+    console.error('Error in muteWebviewAudio:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('unmuteWebviewAudio', async (event, webviewId) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win) return { success: false, error: 'No window found' };
+    
+    const allWebContents = webContents.getAllWebContents();
+    
+    let webviewContents = null;
+    for (const contents of allWebContents) {
+      if (contents.id === event.sender.id) continue;
+      
+      if (contents.hostWebContents && contents.hostWebContents.id === event.sender.id) {
+        webviewContents = contents;
+        break;
+      }
+    }
+    
+    if (!webviewContents) {
+      console.log('No webview webContents found');
+      let unmutedAny = false;
+      for (const contents of allWebContents) {
+        if (contents.id !== event.sender.id) {
+          contents.setAudioMuted(false);
+          unmutedAny = true;
+          console.log(`Unmuted webContents with ID: ${contents.id}`);
+        }
+      }
+      return { success: unmutedAny, message: 'Attempted to unmute all secondary webContents' };
+    }
+    
+    webviewContents.setAudioMuted(false);
+    console.log(`Unmuted webview webContents with ID: ${webviewContents.id}`);
+    return { success: true, message: 'Webview audio unmuted' };
+    
+  } catch (error) {
+    console.error('Error in unmuteWebviewAudio:', error);
+    return { success: false, error: error.message };
+  }
 });
