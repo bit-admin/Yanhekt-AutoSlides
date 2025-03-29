@@ -97,6 +97,14 @@ yanhekt.cn##div#ai-bit-animation-modal`
   enableDoubleVerification: {
     type: 'boolean',
     default: false
+  },
+  fastModeEnabled: {
+    type: 'boolean',
+    default: false
+  },
+  resetVideoProgress: {
+    type: 'boolean',
+    default: true
   }
 };
 
