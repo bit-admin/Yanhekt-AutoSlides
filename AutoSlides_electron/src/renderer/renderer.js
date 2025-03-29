@@ -1192,28 +1192,77 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     return ctx.getImageData(0, 0, newWidth, newHeight);
   }
 
-  // Calculate perceptual hash for an image
+  // Calculate perceptual hash using DCT (Discrete Cosine Transform)
   function calculatePerceptualHash(imageData) {
     // Convert to grayscale if not already
     const grayscaleData = convertToGrayscale(imageData);
     
-    // Resize to 8x8
-    const resizedData = resizeImageData(grayscaleData, 8, 8);
+    // Resize to 32x32 for DCT processing
+    const resizedData = resizeImageData(grayscaleData, 32, 32);
     
-    // Calculate average pixel value
-    let sum = 0;
-    for (let i = 0; i < resizedData.data.length; i += 4) {
-      sum += resizedData.data[i]; // Just using red channel as it's grayscale
+    // Convert image data to 2D array for DCT
+    const pixels = new Array(32);
+    for (let y = 0; y < 32; y++) {
+      pixels[y] = new Array(32);
+      for (let x = 0; x < 32; x++) {
+        const idx = (y * 32 + x) * 4;
+        pixels[y][x] = resizedData.data[idx]; // Use red channel (grayscale)
+      }
     }
-    const avg = sum / (8 * 8);
     
-    // Generate hash based on whether pixel is above average
+    // Apply DCT - simplified version
+    const dct = applySimplifiedDCT(pixels, 32);
+    
+    // Calculate median of low frequency components (excluding DC component)
+    // We'll use a smaller portion of the DCT coefficients (8x8 low-freq components)
+    const hashSize = 8;
+    const dctLowFreq = [];
+    for (let y = 0; y < hashSize; y++) {
+      for (let x = 0; x < hashSize; x++) {
+        if (!(x === 0 && y === 0)) { // Skip DC component (top-left)
+          dctLowFreq.push(dct[y][x]);
+        }
+      }
+    }
+    dctLowFreq.sort((a, b) => a - b);
+    const medianValue = dctLowFreq[Math.floor(dctLowFreq.length / 2)];
+    
+    // Generate hash using low frequency components
     let hash = '';
-    for (let i = 0; i < resizedData.data.length; i += 4) {
-      hash += (resizedData.data[i] >= avg) ? '1' : '0';
+    for (let y = 0; y < hashSize; y++) {
+      for (let x = 0; x < hashSize; x++) {
+        if (!(x === 0 && y === 0)) { // Skip DC component
+          hash += (dct[y][x] >= medianValue) ? '1' : '0';
+        }
+      }
     }
     
     return hash;
+  }
+
+  // Apply a simplified DCT
+  function applySimplifiedDCT(pixels, size) {
+    const result = Array(size).fill().map(() => Array(size).fill(0));
+    
+    for (let u = 0; u < size; u++) {
+      for (let v = 0; v < size; v++) {
+        let sum = 0;
+        for (let y = 0; y < size; y++) {
+          for (let x = 0; x < size; x++) {
+            const cosX = Math.cos((2 * x + 1) * u * Math.PI / (2 * size));
+            const cosY = Math.cos((2 * y + 1) * v * Math.PI / (2 * size));
+            sum += pixels[y][x] * cosX * cosY;
+          }
+        }
+        
+        // Apply weight factors
+        const cu = (u === 0) ? 1 / Math.sqrt(2) : 1;
+        const cv = (v === 0) ? 1 / Math.sqrt(2) : 1;
+        result[u][v] = sum * cu * cv * (2 / size);
+      }
+    }
+    
+    return result;
   }
 
   // Calculate Hamming distance between two hashes
