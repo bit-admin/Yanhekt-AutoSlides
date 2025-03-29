@@ -1430,12 +1430,114 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     
     // Capture first slide
     try {
+        // Check if we need to wait for video to load (for video-based profiles)
+        if (activeProfileId !== 'default' && 
+          siteProfiles[activeProfileId]?.elementSelector?.includes('video')) {
+        
+        statusText.textContent = 'Waiting for video to load...';
+        
+        // Wait for video element to be ready
+        let videoReady = false;
+        let retryCount = 0;
+        const maxRetries = 20; // Maximum 20 attempts (20 seconds)
+        
+        while (!videoReady && retryCount < maxRetries) {
+          try {
+            const videoCheck = await webview.executeJavaScript(`
+              (function() {
+                try {
+                  const videoEl = document.querySelector('${siteProfiles[activeProfileId].elementSelector}');
+                  
+                  if (!videoEl) {
+                    return { ready: false, reason: 'Video element not found' };
+                  }
+                  
+                  // Check if video has metadata and dimensions
+                  if (videoEl.readyState < 1) {
+                    return { ready: false, reason: 'Video metadata not loaded', readyState: videoEl.readyState };
+                  }
+                  
+                  // Check if video has valid dimensions
+                  if (videoEl.videoWidth === 0 || videoEl.videoHeight === 0) {
+                    return { ready: false, reason: 'Video dimensions not available', width: videoEl.videoWidth, height: videoEl.videoHeight };
+                  }
+                  
+                  // Check if video has started buffering
+                  if (videoEl.readyState < 3) {
+                    return { 
+                      ready: false, 
+                      reason: 'Video not buffered enough', 
+                      readyState: videoEl.readyState,
+                      buffered: videoEl.buffered.length > 0 ? videoEl.buffered.end(0) : 0 
+                    };
+                  }
+                  
+                  return { 
+                    ready: true, 
+                    readyState: videoEl.readyState,
+                    width: videoEl.videoWidth, 
+                    height: videoEl.videoHeight 
+                  };
+                } catch (err) {
+                  return { ready: false, error: err.toString() };
+                }
+              })();
+            `);
+            
+            if (videoCheck.ready) {
+              videoReady = true;
+              console.log('Video is loaded and ready for capture:', videoCheck);
+              statusText.textContent = 'Video loaded, starting capture...';
+            } else {
+              console.log(`Video not ready (attempt ${retryCount + 1}/${maxRetries}):`, videoCheck);
+              await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retrying
+              retryCount++;
+              statusText.textContent = `Waiting for video (${retryCount}/${maxRetries})...`;
+            }
+          } catch (checkError) {
+            console.error('Error checking video status:', checkError);
+            retryCount++;
+            await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retrying
+          }
+        }
+        
+        if (!videoReady) {
+          console.warn('Proceeding with capture despite video not being fully ready');
+          statusText.textContent = 'Video may not be fully loaded, but proceeding...';
+          
+          // Add an extra delay as a last resort
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+
       // Use local timestamp instead of ISO string
       const timestamp = formatLocalTimestamp();
       const imageData = await captureScreenshot();
+
+
       
-      // Store the uncropped image for comparison
-      lastImageData = imageData;
+      // Check if the image is valid (not empty)
+      const isValidImage = await validateImage(imageData);
+      if (!isValidImage) {
+        console.error('First captured image is invalid or empty');
+        statusText.textContent = 'Error: Empty screenshot. Retrying...';
+        
+        // Wait a bit longer and try again
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        const retryImageData = await captureScreenshot();
+        
+        // Validate the retry image
+        const isRetryValid = await validateImage(retryImageData);
+        if (!isRetryValid) {
+          throw new Error('Failed to capture valid screenshot after retry');
+        }
+        
+        // Use the valid retry image
+        lastImageData = retryImageData;
+      } else {
+        // Store the uncropped image for comparison
+        lastImageData = imageData;
+      }
       
       // If using element capture, don't crop the image
       const isUsingElementCapture = activeProfileId !== 'default';
@@ -1512,7 +1614,37 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     } catch (error) {
       console.error('Error starting capture:', error);
       statusText.textContent = 'Error: ' + error.message;
+
+      // Ensure buttons are re-enabled on error
+      btnStartCapture.disabled = false;
+      btnStopCapture.disabled = true;
     }
+  }
+
+  // Add a function to validate image data
+  async function validateImage(imageData) {
+    return new Promise((resolve) => {
+      if (!imageData || imageData.length < 100) {
+        resolve(false);
+        return;
+      }
+      
+      const img = new Image();
+      img.onload = () => {
+        // Check if the image has valid dimensions
+        if (img.width > 0 && img.height > 0) {
+          resolve(true);
+        } else {
+          resolve(false);
+        }
+      };
+      
+      img.onerror = () => {
+        resolve(false);
+      };
+      
+      img.src = imageData;
+    });
   }
   
   // Stop capturing slides
