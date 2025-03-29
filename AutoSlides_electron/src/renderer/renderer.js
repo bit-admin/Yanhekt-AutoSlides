@@ -1565,21 +1565,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   }
 
-
-  // Add debug logging to the getEffective functions to help diagnose issues
-  function getEffectiveCheckInterval() {
-    // Only apply fast mode to YanHeKT Session tasks, not live streams
-    if (isProcessingTasks && fastModeEnabled && 
-        taskQueue[currentTaskIndex] && 
-        taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
-      console.log('Fast Mode active: Using 0.5s check interval');
-      return 0.5; // Fast mode check interval
-    }
-    const normalInterval = parseFloat(inputCheckInterval.value);
-    console.log('Using normal check interval:', normalInterval);
-    return normalInterval;
-  }
-
   function getEffectiveAutoAdjustSpeed() {
     // Only apply fast mode to YanHeKT Session tasks, not live streams
     if (isProcessingTasks && fastModeEnabled && 
@@ -3065,9 +3050,12 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (isProcessingTasks && fastModeEnabled && 
         taskQueue[currentTaskIndex] && 
         taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
+      console.log('Fast Mode active: Using 0.5s check interval');
       return 0.5; // Fast mode check interval
     }
-    return parseFloat(inputCheckInterval.value);
+    const normalInterval = parseFloat(inputCheckInterval.value);
+    console.log('Using normal check interval:', normalInterval);
+    return normalInterval;
   }
 
   function getEffectiveAutoAdjustSpeed() {
