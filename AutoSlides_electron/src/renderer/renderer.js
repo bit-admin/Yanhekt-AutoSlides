@@ -84,7 +84,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   let enableDoubleVerification = false; 
   let verificationState = 'none'; 
   let potentialNewImageData = null; 
-  let verificationMethod = null; 
+  let verificationMethod = null;
+  let resetVideoProgress = true;
+  let fastModeEnabled = false; 
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -254,6 +256,16 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       // Load double verification setting
       enableDoubleVerification = config.enableDoubleVerification || false;
       enableDoubleVerificationCheckbox.checked = enableDoubleVerification;
+
+      // Load Fast Mode setting
+      if (config.fastModeEnabled !== undefined) {
+        fastModeEnabled = config.fastModeEnabled;
+      }
+
+      // Load Reset Video Progress setting
+      if (config.resetVideoProgress !== undefined) {
+        resetVideoProgress = config.resetVideoProgress;
+      }
       
       return config;
     } catch (error) {
@@ -273,7 +285,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         activeProfileId: activeProfileId,
         allowBackgroundRunning: allowBackgroundRunning.checked,
         comparisonMethod: comparisonMethod.value, 
-        enableDoubleVerification: enableDoubleVerificationCheckbox.checked 
+        enableDoubleVerification: enableDoubleVerificationCheckbox.checked,
+        fastModeEnabled: fastModeEnabled,
+        resetVideoProgress: resetVideoProgress
       };
       
       await window.electronAPI.saveConfig(config);
@@ -1519,6 +1533,14 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       } catch (error) {
         console.error('Failed to disable background running:', error);
       }
+
+      // Explicitly reset Fast Mode activation state
+      if (isProcessingTasks && fastModeEnabled) {
+        console.log('Resetting Fast Mode activation state after capture');
+        // Remove Fast Mode indicator if present
+        const fastModeIndicator = document.getElementById('fastModeIndicator');
+        if (fastModeIndicator) fastModeIndicator.remove();
+      }
       
       // Clear ALL intervals and reset ALL state
       if (speedAdjustInterval) {
@@ -2746,8 +2768,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   let taskQueue = [];
   let isProcessingTasks = false;
   let currentTaskIndex = -1;
-  let resetVideoProgress = true;
-  let fastModeEnabled = false;
 
   // Task Manager functions
   function openTaskManager() {
@@ -2757,19 +2777,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     // Check if automation requirements are met
     validateAutomationRequirements();
     
-    // Load saved preference for resetting video progress
-    const savedResetProgress = localStorage.getItem('resetVideoProgress');
-    if (savedResetProgress !== null) {
-      resetVideoProgress = savedResetProgress === 'true';
-      resetProgressCheckbox.checked = resetVideoProgress;
-    }
-
-    // Load saved preference for fast mode
-    const savedFastMode = localStorage.getItem('fastModeEnabled');
-    if (savedFastMode !== null) {
-      fastModeEnabled = savedFastMode === 'true';
-      fastModeCheckbox.checked = fastModeEnabled;
-    }
+    // Set checkboxes from the global variables (loaded from config)
+    fastModeCheckbox.checked = fastModeEnabled;
+    resetProgressCheckbox.checked = resetVideoProgress;
     
     // Display the modal
     taskManagerModal.style.display = 'block';
@@ -3004,10 +3014,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   resetProgressCheckbox.addEventListener('change', function() {
     resetVideoProgress = this.checked;
-    console.log('Reset video progress option set to:', resetVideoProgress);
+    console.log('Reset video progress set to:', resetVideoProgress);
     
-    // Save preference to localStorage
-    localStorage.setItem('resetVideoProgress', resetVideoProgress);
+    // Save to config file
+    saveConfig();
   });
 
   // Add event listener for fast mode checkbox
@@ -3015,8 +3025,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     fastModeEnabled = this.checked;
     console.log('Fast mode set to:', fastModeEnabled);
     
-    // Save preference to localStorage
-    localStorage.setItem('fastModeEnabled', fastModeEnabled);
+    // Save to config file
+    saveConfig();
   });
 
   // Create functions to get the effective values based on fast mode state
