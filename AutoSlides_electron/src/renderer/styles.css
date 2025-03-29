@@ -759,15 +759,18 @@ select:focus {
 
 .taskmode-item {
   display: flex;
-  flex-wrap: nowrap;
+  justify-content: space-between; /* Position items at edges instead of flex-wrap */
   align-items: center;
   margin-bottom: 15px;
+  width: 85%;
 }
 
 .taskmode-item label {
   display: flex;
   align-items: center;
-  margin-right: 15px;
+  white-space: nowrap; /* Prevent text from wrapping */
+  margin-right: 0; /* Remove right margin that could cause wrapping */
+  gap: 8px; /* Add gap between checkbox and text, same as other checkboxes */
 }
 
 .fast-mode-active {
