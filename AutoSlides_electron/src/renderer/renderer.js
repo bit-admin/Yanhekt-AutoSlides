@@ -1564,31 +1564,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       speedAdjusted = false;
     }
   }
-
-  function getEffectiveAutoAdjustSpeed() {
-    // Only apply fast mode to YanHeKT Session tasks, not live streams
-    if (isProcessingTasks && fastModeEnabled && 
-        taskQueue[currentTaskIndex] && 
-        taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
-      console.log('Fast Mode active: Forcing auto-adjust speed ON');
-      return true; // Force auto-adjust speed in fast mode
-    }
-    console.log('Using normal auto-adjust speed setting:', autoAdjustSpeed.checked);
-    return autoAdjustSpeed.checked;
-  }
-
-  function getEffectiveTargetSpeed() {
-    // Only apply fast mode to YanHeKT Session tasks, not live streams
-    if (isProcessingTasks && fastModeEnabled && 
-        taskQueue[currentTaskIndex] && 
-        taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
-      console.log('Fast Mode active: Using 5.0x playback speed');
-      return 5.0; // Fast mode speed
-    }
-    const normalSpeed = parseFloat(playbackSpeed.value);
-    console.log('Using normal playback speed:', normalSpeed);
-    return normalSpeed;
-  }
   
   // Set event listeners for page loading
   webview.addEventListener('did-start-loading', () => {
@@ -3063,8 +3038,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (isProcessingTasks && fastModeEnabled && 
         taskQueue[currentTaskIndex] && 
         taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
+      console.log('Fast Mode active: Forcing auto-adjust speed ON');
       return true; // Force auto-adjust speed in fast mode
     }
+    console.log('Using normal auto-adjust speed setting:', autoAdjustSpeed.checked);
     return autoAdjustSpeed.checked;
   }
 
@@ -3073,9 +3050,12 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (isProcessingTasks && fastModeEnabled && 
         taskQueue[currentTaskIndex] && 
         taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
+      console.log('Fast Mode active: Using 5.0x playback speed');
       return 5.0; // Fast mode speed
     }
-    return parseFloat(playbackSpeed.value);
+    const normalSpeed = parseFloat(playbackSpeed.value);
+    console.log('Using normal playback speed:', normalSpeed);
+    return normalSpeed;
   }
 
   // Add a visual indicator for fast mode to the UI
