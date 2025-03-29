@@ -88,20 +88,52 @@
             flex-wrap: wrap;
             gap: 20px;
         }
-        .feature {
+        
+        .feature-button {
             background-color: #f9f9f9;
             padding: 20px;
-            border-radius: 6px;
-            width: 180px;
+            border-radius: 8px;
+            width: 200px;
             text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .feature h3 {
+        
+        .feature-button:hover {
+            background-color: #e8f4ff;
+            border-color: #1890ff;
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+        }
+        
+        .feature-button h3 {
             margin-top: 0;
             color: #1890ff;
+            margin-bottom: 10px;
         }
-        .feature p {
+        
+        .feature-button p {
             font-size: 14px;
-            margin-bottom: 0;
+            margin-bottom: 15px;
+        }
+        
+        .feature-icon {
+            margin-bottom: 10px;
+            color: #1890ff;
+            font-size: 24px;
+        }
+        
+        .feature-cta {
+            font-size: 13px;
+            color: #1890ff;
+            font-weight: 500;
+            margin-top: auto;
         }
     </style>
 </head>
@@ -113,20 +145,42 @@
             Automatically capture and save slides.
             Designed for YanHeKT courses and live sessions.
         </p>
-
         <div class="features">
-            <div class="feature">
-                <h3>Course Capture</h3>
-                <p>Automatically save slides from recorded courses</p>
-            </div>
-            <div class="feature">
+            <a class="feature-button" id="recorded-course-btn">
+                <div class="feature-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                        <line x1="7" y1="2" x2="7" y2="22"></line>
+                        <line x1="17" y1="2" x2="17" y2="22"></line>
+                        <line x1="2" y1="12" x2="22" y2="12"></line>
+                        <line x1="2" y1="7" x2="7" y2="7"></line>
+                        <line x1="2" y1="17" x2="7" y2="17"></line>
+                        <line x1="17" y1="17" x2="22" y2="17"></line>
+                        <line x1="17" y1="7" x2="22" y2="7"></line>
+                    </svg>
+                </div>
+                <h3>Recorded Courses</h3>
+                <p>Capture slides from recorded course sessions</p>
+                <span class="feature-cta">Open Recorded Courses →</span>
+            </a>
+            
+            <a class="feature-button" id="live-course-btn">
+                <div class="feature-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="2" y="7" width="14" height="10" rx="2" ry="2"></rect>
+                        <polygon points="22 9 22 15 16 12 22 9"></polygon>
+                        <line x1="6.5" y1="4.5" x2="6.5" y2="3"></line>
+                        <line x1="9.5" y1="4.5" x2="9.5" y2="3"></line>
+                        <line x1="12.5" y1="4.5" x2="12.5" y2="3"></line>
+                        <line x1="5" y1="20" x2="7" y2="20"></line>
+                        <line x1="9" y1="20" x2="11" y2="20"></line>
+                        <line x1="13" y1="20" x2="15" y2="20"></line>
+                    </svg>
+                </div>
                 <h3>Live Sessions</h3>
-                <p>Capture slides during live teaching sessions</p>
-            </div>
-            <div class="feature">
-                <h3>Easy Schedule</h3>
-                <p>Schedule your task from the courses websites</p>
-            </div>
+                <p>Capture slides during ongoing live teaching sessions</p>
+                <span class="feature-cta">Join Live Courses →</span>
+            </a>
         </div>
 
         <div class="action-area">
@@ -136,11 +190,19 @@
             <p class="help-text">Click the button above to login and start capturing slides</p>
         </div>
     </div>
-
     <script>
         document.getElementById('yanhekt-link').addEventListener('click', function(event) {
             event.preventDefault();
             window.location.href = 'https://www.yanhekt.cn/home';
+        });
+        document.getElementById('recorded-course-btn').addEventListener('click', function(event) {
+            event.preventDefault();
+            window.location.href = 'https://www.yanhekt.cn/recordCourse';
+        });
+        
+        document.getElementById('live-course-btn').addEventListener('click', function(event) {
+            event.preventDefault();
+            window.location.href = 'https://www.yanhekt.cn/liveCourse';
         });
     </script>
 </body>
