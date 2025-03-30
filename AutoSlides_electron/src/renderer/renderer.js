@@ -142,19 +142,97 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   }, 200);
 
+  // Create loading overlay with message
   const loadingOverlay = document.createElement('div');
   loadingOverlay.id = 'loadingOverlay';
+  loadingOverlay.innerHTML = '<div class="spinner"></div><span class="loading-text">Loading content...</span>';
   loadingOverlay.style.cssText = `
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: transparent;
+    background: rgba(255, 255, 255, 0.7);
     z-index: 9999;
     display: none;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    text-align: center;
+    color: #333;
   `;
-  document.body.appendChild(loadingOverlay);
+  
+  // Create styles for the spinner and text
+  const loadingStyles = document.createElement('style');
+  loadingStyles.textContent = `
+    #loadingOverlay .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top-color: #3b82f6;
+      animation: spin 1s ease-in-out infinite;
+      margin-bottom: 20px;
+    }
+    
+    #loadingOverlay .loading-text {
+      font-size: 18px;
+      font-weight: 500;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Timeout state - darkened background */
+    #loadingOverlay.timeout {
+      background: rgba(0, 0, 0, 1);
+      color: white;
+    }
+    
+    #loadingOverlay.timeout .spinner {
+      display: none;
+    }
+    
+    #loadingOverlay.timeout .loading-text {
+      font-size: 20px;
+      max-width: 80%;
+      line-height: 1.5;
+    }
+    
+    #loadingOverlay.timeout .loading-text:before {
+      content: '\\26A0';  /* Warning symbol */
+      font-size: 36px;
+      color: #f39c12;
+      display: block;
+      margin-bottom: 20px;
+    }
+  `;
+  document.head.appendChild(loadingStyles);
+  
+  // Directly append to webview container instead of document.body
+  const webviewContainer = document.querySelector('.webview-container');
+  if (webviewContainer) {
+    webviewContainer.appendChild(loadingOverlay);
+  }
+  
+  // Add a timeout function to update the message if loading takes too long
+  let loadingMessageTimeoutId = null;
+  
+  function updateLoadingMessage() {
+    if (loadingOverlay) {
+      loadingOverlay.classList.add('timeout');
+      const loadingText = loadingOverlay.querySelector('.loading-text');
+      if (loadingText) {
+        loadingText.innerHTML = `
+          This page is taking longer than expected to load<br><br>
+          It might be temporarily unavailable or too busy.<br>
+          Check your network connection if the issue persists.
+        `;
+      }
+    }
+  }
 
   // Add flag to track if user is actively editing the URL
   let userIsEditingUrl = false;
@@ -1846,11 +1924,25 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   
   // Set event listeners for page loading
   webview.addEventListener('did-start-loading', () => {
-    loadingOverlay.style.display = 'block';
+    loadingOverlay.style.display = 'flex';
     statusText.textContent = 'Loading page...';
     titleDisplay.textContent = '';
     titleDisplay.style.display = 'none';
     currentTitleText = ''; // Clear current title
+
+    // Reset loading message
+    const loadingMessage = document.querySelector('.loading-message');
+    if (loadingMessage) {
+      loadingMessage.textContent = 'Loading content...';
+    }
+    
+    // Clear any existing timeout
+    if (loadingMessageTimeoutId) {
+      clearTimeout(loadingMessageTimeoutId);
+    }
+    
+    // Set new timeout to update message after 10 seconds
+    loadingMessageTimeoutId = setTimeout(updateLoadingMessage, 10000);
     
     // Inject early link handling script
     webview.executeJavaScript(`
@@ -1898,6 +1990,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   
   webview.addEventListener('did-finish-load', () => {
     loadingOverlay.style.display = 'none';
+    if (loadingMessageTimeoutId) {
+      clearTimeout(loadingMessageTimeoutId);
+      loadingMessageTimeoutId = null;
+    }
     // Update URL field only if user isn't editing
     if (!userIsEditingUrl && webview.src) {
       inputUrl.value = webview.src;
@@ -1937,6 +2033,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   webview.addEventListener('did-fail-load', (event) => {
     loadingOverlay.style.display = 'none';
+    if (loadingMessageTimeoutId) {
+      clearTimeout(loadingMessageTimeoutId);
+      loadingMessageTimeoutId = null;
+    }
     if (event.errorCode !== -3) { // Ignore aborted loads
       statusText.textContent = `Load failed: ${event.errorDescription}`;
     }
@@ -4652,7 +4752,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (taskQueue.length > 0 && currentTaskIndex >= 0 && currentTaskIndex < taskQueue.length) {
       taskQueue.splice(currentTaskIndex, 1);
     }
-    
+
     isProcessingTasks = false;
     currentTaskIndex = -1;
 
