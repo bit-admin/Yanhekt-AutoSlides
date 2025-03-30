@@ -1924,6 +1924,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   
   // Set event listeners for page loading
   webview.addEventListener('did-start-loading', () => {
+    const loadingText = loadingOverlay.querySelector('.loading-text');
     loadingOverlay.style.display = 'flex';
     statusText.textContent = 'Loading page...';
     titleDisplay.textContent = '';
@@ -4625,8 +4626,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
               statusPanel.appendChild(muteIndicator);
             }
           } else {
-            // No fast mode indicator, just add to status panel
-            statusPanel.appendChild(muteIndicator);
+            if (titleDisplay.nextSibling) {
+              statusPanel.insertBefore(muteIndicator, titleDisplay.nextSibling);
+            } else {
+              statusPanel.appendChild(muteIndicator);
+            }
           }
         } else {
           console.warn('Failed to mute webview audio:', result.error || result.message);
