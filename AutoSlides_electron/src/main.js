@@ -61,7 +61,7 @@ yanhekt.cn##div#ai-bit-animation-modal`
           sessionInfoSelector: '.ant-breadcrumb li:nth-child(3) span', // Session info selector
           autoRetryError: true,
           errorSelector: '.vjs-errors-dialog',
-          maxRetryAttempts: '3'
+          maxRetryAttempts: '30'
         }
       },
       yanhekt_live: {
