@@ -63,6 +63,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const comparisonMethod = document.getElementById('comparisonMethod'); 
   const enableDoubleVerificationCheckbox = document.getElementById('enableDoubleVerification'); 
   const btnHome = document.getElementById('btnHome');
+  const autoRetryError = document.getElementById('autoRetryError');
+  const errorSelector = document.getElementById('errorSelector');
+  const maxRetryAttempts = document.getElementById('maxRetryAttempts');
 
   let captureInterval = null;
   let lastImageData = null;
@@ -88,6 +91,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   let fastModeEnabled = false; 
   let autoMuteEnabled = false;
   const autoMuteCheckbox = document.getElementById('autoMuteCheckbox');
+  let autoRetryErrorEnabled = false;
+  let errorRetryAttempts = 0;
+  const MAX_ERROR_RETRY_ATTEMPTS = 3;
+  let errorCheckInterval = null;
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -227,7 +234,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             playbackSpeed: '3.0', // Default to 3x speed
             autoDetectTitle: true, // Add title detection
             courseTitleSelector: '.ant-breadcrumb li:nth-child(2) a', // Course title selector
-            sessionInfoSelector: '.ant-breadcrumb li:nth-child(3) span' // Session info selector
+            sessionInfoSelector: '.ant-breadcrumb li:nth-child(3) span', // Session info selector
+            autoRetryError: true,
+            errorSelector: '.vjs-errors-dialog',
+            maxRetryAttempts: '3'
           }
         },
         yanhekt_live: {
@@ -246,7 +256,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             playbackSpeed: '1.0',  // Default to 1x speed
             autoDetectTitle: true, // Enable title detection
             courseTitleSelector: '.index_liveHeader__uN3uM', // Course title selector
-            sessionInfoSelector: '' // No session info for live
+            sessionInfoSelector: '', // No session info for live
+            autoRetryError: true,
+            errorSelector: '.vjs-errors-dialog',
+            maxRetryAttempts: '3'
           }
         }
       };
@@ -424,12 +437,17 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         autoDetectTitle.checked = profile.automation.autoDetectTitle || false; // Load title detection settings
         courseTitleSelector.value = profile.automation.courseTitleSelector || '';
         sessionInfoSelector.value = profile.automation.sessionInfoSelector || '';
+        // Add auto-retry settings
+        autoRetryError.checked = profile.automation.autoRetryError || false;
+        errorSelector.value = profile.automation.errorSelector || '';
+        maxRetryAttempts.value = profile.automation.maxRetryAttempts || '3';
         
         // Add these lines to update UI visibility based on checkbox values
         updateAutoDetectEndFieldsVisibility();
         updateAutoStartFieldsVisibility();
         updateAutoAdjustSpeedFieldsVisibility();
-        updateAutoDetectTitleFieldsVisibility(); // Add this function
+        updateAutoDetectTitleFieldsVisibility();
+        updateAutoRetryErrorFieldsVisibility();
       } else {
         autoDetectEnd.checked = false;
         endDetectionSelector.value = '';
@@ -442,6 +460,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         autoDetectTitle.checked = false; // Default title detection settings
         courseTitleSelector.value = '';
         sessionInfoSelector.value = '';
+        autoRetryError.checked = false;
+        errorSelector.value = '';
+        maxRetryAttempts.value = '3';
       }
       
       currentProfile = profile;
@@ -464,7 +485,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       playbackSpeed: playbackSpeed.value,
       autoDetectTitle: autoDetectTitle.checked, // Save title detection settings
       courseTitleSelector: courseTitleSelector.value,
-      sessionInfoSelector: sessionInfoSelector.value
+      sessionInfoSelector: sessionInfoSelector.value,
+      // Add auto-retry settings
+      autoRetryError: autoRetryError.checked,
+      errorSelector: errorSelector.value,
+      maxRetryAttempts: maxRetryAttempts.value
     };
     
     if (siteProfileSelect.value === 'custom') {
@@ -1680,6 +1705,21 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           }
         }
       }, effectiveCheckInterval * 1000); // Use the effective check interval
+
+      // Set up error checking if enabled
+      if (activeProfileId !== 'default' && 
+          siteProfiles[activeProfileId]?.automation?.autoRetryError) {
+        
+        // Reset counter
+        errorRetryAttempts = 0;
+        
+        // Set up interval for checking errors
+        if (errorCheckInterval) {
+          clearInterval(errorCheckInterval);
+        }
+        
+        errorCheckInterval = setInterval(checkForPlaybackErrors, 5000); // Check every 5 seconds
+      }
     } catch (error) {
       console.error('Error starting capture:', error);
       statusText.textContent = 'Error: ' + error.message;
@@ -1773,6 +1813,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       speedAdjusted = false;
       speedAdjustRetryAttempts = 0;
       playbackRetryAttempts = 0;
+      errorRetryAttempts = 0;
 
       // Reset verification state
       verificationState = 'none';
@@ -2711,6 +2752,71 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   }
 
+  // Add function to check for playback errors
+  async function checkForPlaybackErrors() {
+    // Skip if not in automation mode or feature not enabled
+    if (activeProfileId === 'default' || 
+        !siteProfiles[activeProfileId]?.automation?.autoRetryError ||
+        !siteProfiles[activeProfileId]?.automation?.errorSelector) {
+      return;
+    }
+    
+    try {
+      const result = await webview.executeJavaScript(`
+        (function() {
+          try {
+            const errorSelector = '${siteProfiles[activeProfileId].automation.errorSelector}';
+            const errorEl = document.querySelector(errorSelector);
+            
+            return { 
+              success: true, 
+              errorDetected: !!errorEl,
+              errorMessage: errorEl ? errorEl.textContent.trim() : ''
+            };
+          } catch (err) {
+            return { success: false, error: err.toString() };
+          }
+        })();
+      `);
+      
+      if (!result.success) {
+        console.error('Error checking for playback errors:', result.error);
+        return;
+      }
+      
+      if (result.errorDetected) {
+        console.log('Playback error detected:', result.errorMessage);
+        
+        // Check if we've exceeded max retries
+        const maxAttempts = parseInt(siteProfiles[activeProfileId].automation.maxRetryAttempts || '3', 10);
+        
+        if (errorRetryAttempts >= maxAttempts) {
+          console.log(`Max retry attempts (${maxAttempts}) reached, giving up`);
+          statusText.textContent = `Error: Playback failed after ${maxAttempts} retry attempts`;
+          
+          // Clean up interval
+          if (errorCheckInterval) {
+            clearInterval(errorCheckInterval);
+            errorCheckInterval = null;
+          }
+          return;
+        }
+        
+        // Increment counter and reload page
+        errorRetryAttempts++;
+        statusText.textContent = `Playback error detected. Retrying (${errorRetryAttempts}/${maxAttempts})...`;
+        
+        // Wait a moment before reloading
+        setTimeout(() => {
+          console.log(`Reloading page, attempt ${errorRetryAttempts}/${maxAttempts}`);
+          webview.reload();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Error in checkForPlaybackErrors:', error);
+    }
+  }
+
   // Add this function to check URL against profile patterns
   function urlMatchesProfilePatterns(url, profileId) {
     if (!profileId || profileId === 'default' || !siteProfiles[profileId]) {
@@ -2845,10 +2951,47 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   }
 
+  function updateAutoRetryErrorFieldsVisibility() {
+    const retryFields = document.querySelectorAll('#errorSelector, #maxRetryAttempts');
+    const retryLabels = document.querySelectorAll('label[for="errorSelector"], label[for="maxRetryAttempts"]');
+    const settingItem = autoRetryError.closest('.setting-item');
+    
+    if (!settingItem) return; // Add safety check
+    
+    const nextItem = settingItem.nextElementSibling;
+    const helpTexts = nextItem ? nextItem.querySelectorAll('.help-text') : [];
+    
+    if (autoRetryError.checked) {
+      retryFields.forEach(field => {
+        const fieldItem = field.closest('.setting-item');
+        if (fieldItem) fieldItem.style.display = 'block';
+      });
+      retryLabels.forEach(label => {
+        if (label) label.style.display = 'inline-block';
+      });
+      helpTexts.forEach(help => {
+        if (help) help.style.display = 'block';
+      });
+    } else {
+      retryFields.forEach(field => {
+        const fieldItem = field.closest('.setting-item');
+        if (fieldItem) fieldItem.style.display = 'none';
+      });
+      retryLabels.forEach(label => {
+        if (label) label.style.display = 'none';
+      });
+      helpTexts.forEach(help => {
+        if (help) help.style.display = 'none';
+      });
+    }
+  }
+
   // Update event listeners to use these functions
   autoDetectEnd.addEventListener('change', updateAutoDetectEndFieldsVisibility);
   autoStartPlayback.addEventListener('change', updateAutoStartFieldsVisibility);
   autoAdjustSpeed.addEventListener('change', updateAutoAdjustSpeedFieldsVisibility);
+  // Add event listener for auto-retry checkbox
+  autoRetryError.addEventListener('change', updateAutoRetryErrorFieldsVisibility);
 
   // Add this function to toggle title detection fields visibility
   function updateAutoDetectTitleFieldsVisibility() {
