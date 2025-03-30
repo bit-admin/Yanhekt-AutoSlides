@@ -4482,6 +4482,16 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       return;
     }
 
+    // Remove previous completed task if we're moving to a new task and not the first one
+    if (currentTaskIndex > 0) {
+      // Remove the previous task (index currentTaskIndex-1)
+      taskQueue.splice(currentTaskIndex-1, 1);
+      // Adjust currentTaskIndex since we removed an element before it
+      currentTaskIndex--;
+      // Update the task table to reflect changes
+      updateTaskTable();
+    }
+
     // Mute the webview audio if auto-mute is enabled
     if (autoMuteEnabled) {
       try {
@@ -4638,6 +4648,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   }
 
   function finishTaskProcessing() {
+    // If there's still a task in the queue and we're done processing, remove it
+    if (taskQueue.length > 0 && currentTaskIndex >= 0 && currentTaskIndex < taskQueue.length) {
+      taskQueue.splice(currentTaskIndex, 1);
+    }
+    
     isProcessingTasks = false;
     currentTaskIndex = -1;
 
