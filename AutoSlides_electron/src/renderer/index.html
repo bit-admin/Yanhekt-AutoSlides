@@ -45,7 +45,7 @@
 
           <div class="setting-item">
             <label>
-              <input type="checkbox" id="enableDoubleVerification"> 
+              <input type="checkbox" id="enableDoubleVerification" checked> 
               Enable double verification
             </label>
             <p class="help-text">Check slides stability (recommended)</p>
@@ -197,6 +197,24 @@
                   <input type="text" id="sessionInfoSelector" placeholder=".ant-breadcrumb li:nth-child(3) span">
                 </div>
                 <!-- End of title detection section -->
+
+                <!-- Add auto-retry section -->
+                <div class="setting-item">
+                  <label>
+                    <input type="checkbox" id="autoRetryError"> 
+                    Auto-retry on playback error
+                  </label>
+                  <p class="help-text">Automatically refresh page when playback fails</p>
+                </div>
+                <div class="setting-item">
+                  <label for="errorSelector">Error selector:</label>
+                  <input type="text" id="errorSelector" placeholder=".vjs-errors-dialog">
+                </div>
+                <div class="setting-item">
+                  <label for="maxRetryAttempts">Max retry attempts:</label>
+                  <input type="number" id="maxRetryAttempts" min="1" max="10" value="3">
+                </div>
+                <!-- End of auto-retry section -->
                 
                 <div class="settings-separator"></div>
               </div>

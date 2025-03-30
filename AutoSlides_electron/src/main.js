@@ -58,7 +58,10 @@ yanhekt.cn##div#ai-bit-animation-modal`
           playbackSpeed: '3.0', // Default to 3x speed
           autoDetectTitle: true, // Enable title detection
           courseTitleSelector: '.ant-breadcrumb li:nth-child(2) a', // Course title selector
-          sessionInfoSelector: '.ant-breadcrumb li:nth-child(3) span' // Session info selector
+          sessionInfoSelector: '.ant-breadcrumb li:nth-child(3) span', // Session info selector
+          autoRetryError: true,
+          errorSelector: '.vjs-errors-dialog',
+          maxRetryAttempts: '3'
         }
       },
       yanhekt_live: {
@@ -77,7 +80,10 @@ yanhekt.cn##div#ai-bit-animation-modal`
           playbackSpeed: '1.0', // 1x default speed for live
           autoDetectTitle: true, // Enable title detection
           courseTitleSelector: '.index_liveHeader__uN3uM', // Course title selector
-          sessionInfoSelector: '' // No session info for live
+          sessionInfoSelector: '', // No session info for live
+          autoRetryError: true,
+          errorSelector: '.vjs-errors-dialog',
+          maxRetryAttempts: '3'
         }
       }
     }
@@ -96,7 +102,7 @@ yanhekt.cn##div#ai-bit-animation-modal`
   },
   enableDoubleVerification: {
     type: 'boolean',
-    default: false
+    default: true
   },
   fastModeEnabled: {
     type: 'boolean',
