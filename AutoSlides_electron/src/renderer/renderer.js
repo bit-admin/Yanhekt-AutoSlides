@@ -237,7 +237,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             sessionInfoSelector: '.ant-breadcrumb li:nth-child(3) span', // Session info selector
             autoRetryError: true,
             errorSelector: '.vjs-errors-dialog',
-            maxRetryAttempts: '3'
+            maxRetryAttempts: '30'
           }
         },
         yanhekt_live: {
@@ -2805,6 +2805,13 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         // Increment counter and reload page
         errorRetryAttempts++;
         statusText.textContent = `Playback error detected. Retrying (${errorRetryAttempts}/${maxAttempts})...`;
+
+        try {
+          console.log('Clearing browser cache before reload attempt');
+          await window.electronAPI.clearBrowserCache();
+        } catch (cacheError) {
+          console.error('Error clearing cache during retry:', cacheError);
+        }
         
         // Wait a moment before reloading
         setTimeout(() => {
