@@ -222,6 +222,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   
   function updateLoadingMessage() {
     if (loadingOverlay) {
+      console.log('Loading timeout occurred - showing timeout message');
       loadingOverlay.classList.add('timeout');
       const loadingText = loadingOverlay.querySelector('.loading-text');
       if (loadingText) {
@@ -1961,18 +1962,15 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   
   // Set event listeners for page loading
   webview.addEventListener('did-start-loading', () => {
-    const loadingText = loadingOverlay.querySelector('.loading-text');
+    // reset loading overlay
+    loadingOverlay.classList.remove('timeout');
+    loadingOverlay.innerHTML = '<div class="spinner"></div><span class="loading-text">Loading content...</span>';
     loadingOverlay.style.display = 'flex';
+
     statusText.textContent = 'Loading page...';
     titleDisplay.textContent = '';
     titleDisplay.style.display = 'none';
     currentTitleText = ''; // Clear current title
-
-    // Reset loading message
-    const loadingMessage = document.querySelector('.loading-message');
-    if (loadingMessage) {
-      loadingMessage.textContent = 'Loading content...';
-    }
     
     // Clear any existing timeout
     if (loadingMessageTimeoutId) {
@@ -2027,7 +2025,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   });
   
   webview.addEventListener('did-finish-load', () => {
+    loadingOverlay.classList.remove('timeout');
     loadingOverlay.style.display = 'none';
+
     if (loadingMessageTimeoutId) {
       clearTimeout(loadingMessageTimeoutId);
       loadingMessageTimeoutId = null;
@@ -2070,7 +2070,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   });
 
   webview.addEventListener('did-fail-load', (event) => {
+    loadingOverlay.classList.remove('timeout');
     loadingOverlay.style.display = 'none';
+
     if (loadingMessageTimeoutId) {
       clearTimeout(loadingMessageTimeoutId);
       loadingMessageTimeoutId = null;
