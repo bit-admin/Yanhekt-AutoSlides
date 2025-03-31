@@ -351,8 +351,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       // Select active profile
       siteProfileSelect.value = activeProfileId;
       loadProfileDetails(activeProfileId);
-
-      allowBackgroundRunning.checked = config.allowBackgroundRunning || false;
       
       // Load comparison method setting
       if (config.comparisonMethod) {
