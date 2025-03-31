@@ -1735,6 +1735,13 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         const currentImageData = await captureScreenshot();
 
+        // Add validation for each new captured image
+        const isValidImage = await validateImage(currentImageData);
+        if (!isValidImage) {
+          console.warn('Captured invalid/empty image during interval, skipping this frame');
+          return; // Skip this cycle if the image is invalid
+        }
+
         if (enableDoubleVerification && verificationState !== 'none') {
           const verifyResult = await compareImages(potentialNewImageData, currentImageData);
     
@@ -1820,7 +1827,37 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       img.onload = () => {
         // Check if the image has valid dimensions
         if (img.width > 0 && img.height > 0) {
-          resolve(true);
+          // Quick check for blank image by sampling just a few pixels
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          const ctx = canvas.getContext('2d');
+          
+          // Draw the image to canvas
+          ctx.drawImage(img, 0, 0);
+          
+          // Sample just 5 strategic pixels instead of the whole image
+          // Check center and corners to efficiently detect content
+          const checkPoints = [
+            [Math.floor(img.width/2), Math.floor(img.height/2)],           // Center
+            [300, 300],                                                       // Top-left
+            [img.width - 300, 300],                                           // Top-right
+            [300, img.height - 300],                                          // Bottom-left
+            [img.width - 300, img.height - 300]                               // Bottom-right
+          ];
+          
+          let hasContent = false;
+          for (const [x, y] of checkPoints) {
+            const pixel = ctx.getImageData(x, y, 1, 1).data;
+            // Consider non-black, non-transparent pixel as content
+            // Alpha > 5 and any RGB channel > 5
+            if (pixel[3] > 5 && (pixel[0] > 5 || pixel[1] > 5 || pixel[2] > 5)) {
+              hasContent = true;
+              break; // Early return once content is found
+            }
+          }
+          
+          resolve(hasContent);
         } else {
           resolve(false);
         }
@@ -3583,8 +3620,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (isProcessingTasks && fastModeEnabled && 
         taskQueue[currentTaskIndex] && 
         taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
-      console.log('Fast Mode active: Using 5.0x playback speed');
-      return 5.0; // Fast mode speed
+      console.log('Fast Mode active: Using 4.0x playback speed');
+      return 4.0; // Fast mode speed
     }
     const normalSpeed = parseFloat(playbackSpeed.value);
     console.log('Using normal playback speed:', normalSpeed);
