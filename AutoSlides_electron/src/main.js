@@ -131,6 +131,12 @@ function createApplicationMenu() {
       submenu: [
         { role: 'about' },
         { type: 'separator' },
+        {
+          label: 'Preferences',
+          accelerator: process.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,',
+          click: () => createPreferencesWindow()
+        },
+        { type: 'separator' },
         { role: 'services' },
         { type: 'separator' },
         { role: 'hide' },
@@ -229,6 +235,44 @@ function createWindow() {
   // Open DevTools in development
   if (process.env.NODE_ENV === 'development') {
     mainWindow.webContents.openDevTools();
+  }
+}
+
+let preferencesWindow = null;
+
+function createPreferencesWindow() {
+  // If preferences window already exists, focus it instead of creating a new one
+  if (preferencesWindow) {
+    preferencesWindow.focus();
+    return;
+  }
+  
+  preferencesWindow = new BrowserWindow({
+    width: 600,
+    height: 400,
+    title: 'Preferences',
+    minimizable: false,
+    maximizable: false,
+    resizable: false,
+    parent: BrowserWindow.getFocusedWindow(),
+    modal: process.platform !== 'darwin', // Modal on Windows/Linux, not on macOS
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  preferencesWindow.loadFile(path.join(__dirname, 'renderer', 'preferences.html'));
+  
+  // Clean up the window when closed
+  preferencesWindow.on('closed', () => {
+    preferencesWindow = null;
+  });
+  
+  // Open DevTools in development
+  if (process.env.NODE_ENV === 'development') {
+    preferencesWindow.webContents.openDevTools();
   }
 }
 
