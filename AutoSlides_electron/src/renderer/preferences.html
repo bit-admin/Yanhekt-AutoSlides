@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoSlides Preferences</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .preferences-container {
+            max-width: 550px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .preferences-header {
+            background-color: #f9f9f9;
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .preferences-header h1 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 500;
+        }
+        
+        .preferences-content {
+            padding: 20px;
+        }
+        
+        .preference-item {
+            margin-bottom: 20px;
+        }
+        
+        .preference-item label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+        
+        .preference-item input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+        
+        .help-text {
+            color: #777;
+            font-size: 12px;
+            margin-top: 5px;
+            margin-left: 24px;
+        }
+        
+        .buttons-container {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 15px 20px;
+            background-color: #f9f9f9;
+            border-top: 1px solid #eee;
+        }
+        
+        button {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background-color: #f0f0f0;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #e8e8e8;
+        }
+        
+        #btnSave {
+            background-color: #0078d7;
+            color: white;
+            border-color: #0067b8;
+        }
+        
+        #btnSave:hover {
+            background-color: #0067b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="preferences-container">
+        <div class="preferences-header">
+            <h1>AutoSlides Preferences</h1>
+        </div>
+        <div class="preferences-content">
+            <div class="preference-item">
+                <label>
+                    <input type="checkbox" id="allowBackgroundRunning">
+                    Keep running in background
+                </label>
+                <div class="help-text">
+                    Prevents the system from sleeping while AutoSlides is running. 
+                </div>
+            </div>
+            <!-- More preference items can be added here in the future -->
+        </div>
+        <div class="buttons-container">
+            <button id="btnDefault">Restore Defaults</button>
+            <button id="btnCancel">Cancel</button>
+            <button id="btnSave">Save</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const allowBackgroundRunning = document.getElementById('allowBackgroundRunning');
+            const btnSave = document.getElementById('btnSave');
+            const btnCancel = document.getElementById('btnCancel');
+            const btnDefault = document.getElementById('btnDefault');
+            
+            // Load current preferences
+            try {
+                const config = await window.electronAPI.getConfig();
+                allowBackgroundRunning.checked = config.allowBackgroundRunning || false;
+            } catch (error) {
+                console.error('Failed to load preferences:', error);
+            }
+            
+            // Save button handler
+            btnSave.addEventListener('click', async () => {
+                try {
+                    // Get the current config first
+                    const config = await window.electronAPI.getConfig();
+                    
+                    // Update only the preferences-related settings
+                    const updatedConfig = {
+                        ...config,
+                        allowBackgroundRunning: allowBackgroundRunning.checked
+                    };
+                    
+                    // Save the updated config
+                    await window.electronAPI.saveConfig(updatedConfig);
+                    
+                    // Update background running state
+                    if (allowBackgroundRunning.checked) {
+                        await window.electronAPI.enableBackgroundRunning();
+                    } else {
+                        await window.electronAPI.disableBackgroundRunning();
+                    }
+                    
+                    // Close the window
+                    window.close();
+                } catch (error) {
+                    console.error('Failed to save preferences:', error);
+                    alert('Failed to save preferences: ' + error.message);
+                }
+            });
+            
+            // Cancel button handler
+            btnCancel.addEventListener('click', () => {
+                window.close();
+            });
+            
+            // Default button handler
+            btnDefault.addEventListener('click', async () => {
+                // Set to default values
+                allowBackgroundRunning.checked = false;
+            });
+        });
+    </script>
+</body>
+</html>

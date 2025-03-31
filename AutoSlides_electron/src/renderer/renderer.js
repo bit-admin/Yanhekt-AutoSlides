@@ -52,7 +52,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const autoStartPlayback = document.getElementById('autoStartPlayback');
   const playButtonSelector = document.getElementById('playButtonSelector');
   const countdownSelector = document.getElementById('countdownSelector');
-  const allowBackgroundRunning = document.getElementById('allowBackgroundRunning');
   const autoAdjustSpeed = document.getElementById('autoAdjustSpeed');
   const speedSelector = document.getElementById('speedSelector');
   const playbackSpeed = document.getElementById('playbackSpeed');
@@ -394,7 +393,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         cacheCleanInterval: parseInt(cacheCleanInterval.value, 10),
         siteProfiles: siteProfiles,
         activeProfileId: activeProfileId,
-        allowBackgroundRunning: allowBackgroundRunning.checked,
         comparisonMethod: comparisonMethod.value, 
         enableDoubleVerification: enableDoubleVerificationCheckbox.checked,
         fastModeEnabled: fastModeEnabled,
@@ -424,7 +422,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       topCropPercent: 5,
       bottomCropPercent: 5,
       checkInterval: 2,
-      allowBackgroundRunning: false, //  to reset background running
       comparisonMethod: 'default', //  to reset comparison method
       enableDoubleVerification: false // Reset double verification to default
     };
@@ -433,7 +430,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     inputTopCrop.value = defaultConfig.topCropPercent;
     inputBottomCrop.value = defaultConfig.bottomCropPercent;
     inputCheckInterval.value = defaultConfig.checkInterval;
-    allowBackgroundRunning.checked = defaultConfig.allowBackgroundRunning; // Update checkbox state
     comparisonMethod.value = defaultConfig.comparisonMethod; // Update comparison method field
     enableDoubleVerificationCheckbox.checked = defaultConfig.enableDoubleVerification; // Update checkbox state
     
@@ -1591,15 +1587,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     
     // Setup the automatic cache cleanup timer
     setupCacheCleanupTimer();
-
-    if (allowBackgroundRunning.checked) {
-      try {
-        await window.electronAPI.enableBackgroundRunning();
-        console.log('Background running enabled for capture session');
-      } catch (error) {
-        console.error('Failed to enable background running:', error);
-      }
-    }
     
     // Capture first slide
     try {
@@ -2983,28 +2970,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
     return false;
   }
-
-  allowBackgroundRunning.addEventListener('change', async () => {
-    try {
-      if (allowBackgroundRunning.checked) {
-        await window.electronAPI.enableBackgroundRunning();
-        statusText.textContent = 'Background running enabled';
-      } else {
-        await window.electronAPI.disableBackgroundRunning();
-        statusText.textContent = 'Background running disabled';
-      }
-      
-      // Reset status text after 2 seconds
-      setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }, 2000);
-      
-      // Save the new setting
-      saveConfig();
-    } catch (error) {
-      console.error('Error toggling background running:', error);
-    }
-  });
 
   // Toggle visibility of auto-adjust speed fields
   autoAdjustSpeed.addEventListener('change', () => {
@@ -5744,7 +5709,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   inputTopCrop.addEventListener('input', highlightConfigSaveButton);
   inputBottomCrop.addEventListener('input', highlightConfigSaveButton);
   inputCheckInterval.addEventListener('input', highlightConfigSaveButton);
-  allowBackgroundRunning.addEventListener('change', highlightConfigSaveButton);
   comparisonMethod.addEventListener('change', highlightConfigSaveButton);
 
   // Reset button appearance after saving
