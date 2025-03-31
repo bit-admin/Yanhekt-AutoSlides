@@ -4339,7 +4339,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       taskQueue.push({
         profileId: yanHeKTLiveProfileId,
         taskId: liveId.toString(),
-        url: `https://yanhekt.cn/live/${liveId}`,
+        url: `https://www.yanhekt.cn/live/${liveId}`,
         profileName: siteProfiles[yanHeKTLiveProfileId].name || yanHeKTLiveProfileId,
         courseTitle: liveCourseData?.title || liveCourseData?.courseName || 'Live Course'
       });
@@ -4433,7 +4433,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         taskQueue.push({
           profileId: yanHeKTLiveProfileId,
           taskId: liveCourse.liveId.toString(),
-          url: `https://yanhekt.cn/live/${liveCourse.liveId}`,
+          url: `https://www.yanhekt.cn/live/${liveCourse.liveId}`,
           profileName: siteProfiles[yanHeKTLiveProfileId].name || yanHeKTLiveProfileId,
           courseTitle: liveCourse.title || liveCourse.courseName || 'Live Course'
         });
@@ -4648,7 +4648,15 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     // Update progress indicator
     const taskProgress = document.getElementById('taskProgressIndicator');
     if (taskProgress) {
-      taskProgress.textContent = `Processing task ${currentTaskIndex + 1}/${taskQueue.length}`;
+      // Store the original task count in a data attribute if not already set
+      if (!taskProgress.dataset.originalCount) {
+        taskProgress.dataset.originalCount = taskQueue.length;
+      }
+      
+      // Use the original count for display
+      const originalCount = parseInt(taskProgress.dataset.originalCount);
+      // Show completed count (currentTaskIndex) out of total original count
+      taskProgress.textContent = `Processing task ${currentTaskIndex + 1}/${originalCount}`;
     }
     
     // Update status text
@@ -5431,7 +5439,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       taskQueue.push({
         profileId: yanHeKTProfileId,
         taskId: sessionId.toString(),
-        url: `https://yanhekt.cn/session/${sessionId}`,
+        url: `https://www.yanhekt.cn/session/${sessionId}`,
         profileName: siteProfiles[yanHeKTProfileId].name || yanHeKTProfileId
       });
       
@@ -5528,7 +5536,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         taskQueue.push({
           profileId: yanHeKTProfileId,
           taskId: session.sessionId.toString(),
-          url: `https://yanhekt.cn/session/${session.sessionId}`,
+          url: `https://www.yanhekt.cn/session/${session.sessionId}`,
           profileName: siteProfiles[yanHeKTProfileId].name || yanHeKTProfileId
         });
       }
