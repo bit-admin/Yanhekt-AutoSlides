@@ -88,7 +88,6 @@
           </div>
         </div>
 
-        <!-- Site Profiles Panel (now a standalone panel) -->
         <div class="site-profile-panel">
           <h3>Optimization Profiles</h3>
           
@@ -98,131 +97,60 @@
               <option value="default">Default (Full Page)</option>
               <option value="yanhekt_session">YanHeKT Session Player</option>
               <option value="yanhekt_live">YanHeKT Live Player</option>
-              <option value="custom">Custom...</option>
+              <!-- Custom profiles will be added dynamically -->
             </select>
           </div>
-          
-          <div id="profileDetails" class="profile-details hidden">
-            <div class="setting-item">
-              <label for="elementSelector">Element selector:</label>
-              <input type="text" id="elementSelector" placeholder="#video_id_topPlayer_html5_api" />
-              <p class="help-text">Only element selected will be captured</p>
-            </div>
-            <div class="setting-item">
-              <label for="urlPattern">URL patterns:</label>
-              <input type="text" id="urlPattern" placeholder="yanhekt.cn/live" />
-              <p class="help-text">Separate URL patterns with spaces</p>
-            </div>
             <div class="collapsible-section" id="automationSection">
-              <div class="collapsible-header">
-                <h5>Automation</h5>
-                <button class="toggle-button" id="toggleAutomation">▼</button>
+            <div class="collapsible-header">
+              <h5>Automation</h5>
+              <button class="toggle-button" id="toggleAutomation">▼</button>
+            </div>
+            <div class="collapsible-content hidden" id="automationContent">
+              <div class="setting-item">
+              <label>
+                <input type="checkbox" id="autoDetectEnd"> 
+                Auto-detect playback end
+              </label>
+              <p class="help-text">Auto-stop capture when playback ends</p>
               </div>
-              <div class="collapsible-content hidden" id="automationContent">
-                <div class="setting-item">
-                  <label>
-                    <input type="checkbox" id="autoDetectEnd"> 
-                    Auto-detect playback end
-                  </label>
-                  <p class="help-text">Auto-stop capture when playback ends</p>
-                </div>
-                <div class="setting-item">
-                  <label for="endDetectionSelector">End detection selector:</label>
-                  <input type="text" id="endDetectionSelector" placeholder=".player-ended-poster">
-                </div>
-                
-                <!-- Add the new auto-start section -->
-                <div class="setting-item">
-                  <label>
-                    <input type="checkbox" id="autoStartPlayback"> 
-                    Auto-start playback
-                  </label>
-                  <p class="help-text">Auto-start video playback when ready</p>
-                </div>
-                <div class="setting-item">
-                  <label for="playButtonSelector">Play button selector:</label>
-                  <input type="text" id="playButtonSelector" placeholder=".player-mid-button-container button">
-                </div>
-                <div class="setting-item">
-                  <label for="countdownSelector">Countdown selector (optional):</label>
-                  <input type="text" id="countdownSelector" placeholder=".countdown-content">
-                </div>
-                
-                <!-- Add auto playback speed adjustment -->
-                <div class="setting-item">
-                  <label>
-                    <input type="checkbox" id="autoAdjustSpeed"> 
-                    Auto-adjust playback speed
-                  </label>
-                  <p class="help-text">Modify check interval if needed</p>
-                </div>
-                <div class="setting-item">
-                  <label for="speedSelector">Video element selector:</label>
-                  <input type="text" id="speedSelector" placeholder="#video_id_mainPlayer_html5_api">
-                </div>
-                <div class="setting-item">
-                  <label for="playbackSpeed">Playback speed:</label>
-                  <select id="playbackSpeed">
-                    <option value="1.0">1.0x</option>
-                    <option value="1.5">1.5x</option>
-                    <option value="2.0">2.0x</option>
-                    <option value="2.5">2.5x</option>
-                    <option value="3.0">3.0x</option>
-                    <option value="4.0">4.0x</option>
-                    <option value="5.0">5.0x</option>
-                  </select>
-                </div>
-                
-                <!-- Add title detection section -->
-                <div class="setting-item">
-                  <label>
-                    <input type="checkbox" id="autoDetectTitle"> 
-                    Auto-detect title
-                  </label>
-                  <p class="help-text">Auto-detect info and create subfolders</p>
-                </div>
-                <div class="setting-item">
-                  <label for="courseTitleSelector">Course title selector:</label>
-                  <input type="text" id="courseTitleSelector" placeholder=".ant-breadcrumb li:nth-child(2) a">
-                </div>
-                <div class="setting-item">
-                  <label for="sessionInfoSelector">Session info selector (optional):</label>
-                  <input type="text" id="sessionInfoSelector" placeholder=".ant-breadcrumb li:nth-child(3) span">
-                </div>
-                <!-- End of title detection section -->
-
-                <!-- Add auto-retry section -->
-                <div class="setting-item">
-                  <label>
-                    <input type="checkbox" id="autoRetryError"> 
-                    Auto-retry on playback error
-                  </label>
-                  <p class="help-text">Automatically refresh page when playback fails</p>
-                </div>
-                <div class="setting-item">
-                  <label for="errorSelector">Error selector:</label>
-                  <input type="text" id="errorSelector" placeholder=".vjs-errors-dialog">
-                </div>
-                <div class="setting-item">
-                  <label for="maxRetryAttempts">Max retry attempts:</label>
-                  <input type="number" id="maxRetryAttempts" min="1" max="10" value="3">
-                </div>
-                <!-- End of auto-retry section -->
-                
-                <div class="settings-separator"></div>
+              
+              <div class="setting-item">
+              <label>
+                <input type="checkbox" id="autoStartPlayback"> 
+                Auto-start playback
+              </label>
+              <p class="help-text">Automatically click play button</p>
+              </div>
+              
+              <div class="setting-item">
+              <label>
+                <input type="checkbox" id="autoAdjustSpeed"> 
+                Auto-adjust playback speed
+              </label>
+              </div>
+              
+              <div class="setting-item">
+              <label>
+                <input type="checkbox" id="autoDetectTitle"> 
+                Auto-detect title
+              </label>
+              <p class="help-text">Auto-detect info and create subfolders</p>
+              </div>
+              
+              <div class="setting-item">
+              <label>
+                <input type="checkbox" id="autoRetryError"> 
+                Auto-retry on error
+              </label>
+              <p class="help-text">Automatically retry when errors occur</p>
               </div>
             </div>
-            <div class="profile-actions">
-              <div class="action-row">
-                <button id="btnSaveProfile">Apply</button>
-                <button id="btnDeleteProfile">Delete</button>
-              </div>
-              <button id="btnOpenTaskManager">Task Manager</button>
             </div>
+          
+          <div class="profile-actions">
+            <button id="btnOpenTaskManager">Task Manager</button>
           </div>
         </div>
-
-        <!-- Remove the standalone task-manager-section -->
 
         <!-- Task Manager Modal -->
         <div id="taskManagerModal" class="modal">
