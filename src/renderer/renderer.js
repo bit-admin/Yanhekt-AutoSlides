@@ -433,31 +433,17 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   function loadProfileDetails(profileId) {
     if (profileId === 'default') {
-      // Hide profile details for default
-      profileDetails.classList.add('hidden');
-      automationSection.classList.add('hidden'); // Hide automation for default profile
+      // Hide automation section for default profile
+      automationSection.classList.add('hidden');
       currentProfile = null;
       return;
     }
     
-    profileDetails.classList.remove('hidden');
-    automationSection.classList.remove('hidden'); // Show automation for non-default profiles
+    automationSection.classList.remove('hidden');
     
+    // Custom profile creation is no longer supported in the main interface
     if (profileId === 'custom') {
-      // New custom profile
-      elementSelector.value = '';
-      urlPattern.value = '';
-      autoDetectEnd.checked = false;
-      endDetectionSelector.value = '';
-      autoStartPlayback.checked = false;
-      playButtonSelector.value = '';
-      countdownSelector.value = '';
-      autoAdjustSpeed.checked = false;
-      speedSelector.value = '';
-      playbackSpeed.value = '2.0';
-      autoDetectTitle.checked = false; // Default title detection settings
-      courseTitleSelector.value = '';
-      sessionInfoSelector.value = '';
+      automationSection.classList.add('hidden');
       currentProfile = null;
       return;
     }
@@ -465,133 +451,22 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     // Load existing profile
     const profile = siteProfiles[profileId];
     if (profile) {
-      elementSelector.value = profile.elementSelector || '';
-      urlPattern.value = profile.urlPattern || '';
-      
       if (profile.automation) {
+        // Only set checkbox states, don't populate input fields
         autoDetectEnd.checked = profile.automation.autoDetectEnd || false;
-        endDetectionSelector.value = profile.automation.endDetectionSelector || '';
         autoStartPlayback.checked = profile.automation.autoStartPlayback || false;
-        playButtonSelector.value = profile.automation.playButtonSelector || '';
-        countdownSelector.value = profile.automation.countdownSelector || '';
         autoAdjustSpeed.checked = profile.automation.autoAdjustSpeed || false;
-        speedSelector.value = profile.automation.speedSelector || '';
-        playbackSpeed.value = profile.automation.playbackSpeed || '2.0';
-        autoDetectTitle.checked = profile.automation.autoDetectTitle || false; // Load title detection settings
-        courseTitleSelector.value = profile.automation.courseTitleSelector || '';
-        sessionInfoSelector.value = profile.automation.sessionInfoSelector || '';
-        // Add auto-retry settings
+        autoDetectTitle.checked = profile.automation.autoDetectTitle || false;
         autoRetryError.checked = profile.automation.autoRetryError || false;
-        errorSelector.value = profile.automation.errorSelector || '';
-        maxRetryAttempts.value = profile.automation.maxRetryAttempts || '3';
-        
-        // Add these lines to update UI visibility based on checkbox values
-        updateAutoDetectEndFieldsVisibility();
-        updateAutoStartFieldsVisibility();
-        updateAutoAdjustSpeedFieldsVisibility();
-        updateAutoDetectTitleFieldsVisibility();
-        updateAutoRetryErrorFieldsVisibility();
       } else {
         autoDetectEnd.checked = false;
-        endDetectionSelector.value = '';
         autoStartPlayback.checked = false;
-        playButtonSelector.value = '';
-        countdownSelector.value = '';
         autoAdjustSpeed.checked = false;
-        speedSelector.value = '';
-        playbackSpeed.value = '2.0';
-        autoDetectTitle.checked = false; // Default title detection settings
-        courseTitleSelector.value = '';
-        sessionInfoSelector.value = '';
+        autoDetectTitle.checked = false;
         autoRetryError.checked = false;
-        errorSelector.value = '';
-        maxRetryAttempts.value = '3';
       }
       
       currentProfile = profile;
-    }
-  }
-  
-  function saveCurrentProfile() {
-    if (siteProfileSelect.value === 'default') {
-      return; // Nothing to save
-    }
-    
-    const automationSettings = {
-      autoDetectEnd: autoDetectEnd.checked,
-      endDetectionSelector: endDetectionSelector.value,
-      autoStartPlayback: autoStartPlayback.checked,
-      playButtonSelector: playButtonSelector.value,
-      countdownSelector: countdownSelector.value,
-      autoAdjustSpeed: autoAdjustSpeed.checked,
-      speedSelector: speedSelector.value,
-      playbackSpeed: playbackSpeed.value,
-      autoDetectTitle: autoDetectTitle.checked, // Save title detection settings
-      courseTitleSelector: courseTitleSelector.value,
-      sessionInfoSelector: sessionInfoSelector.value,
-      // Add auto-retry settings
-      autoRetryError: autoRetryError.checked,
-      errorSelector: errorSelector.value,
-      maxRetryAttempts: maxRetryAttempts.value
-    };
-    
-    if (siteProfileSelect.value === 'custom') {
-      // Generate a new profile ID
-      const profileId = 'profile_' + Date.now();
-      const profileName = urlPattern.value ? `${urlPattern.value.split(' ')[0]} Profile` : 'Custom Profile';
-      
-      // Create new profile
-      siteProfiles[profileId] = {
-        name: profileName,
-        elementSelector: elementSelector.value,
-        urlPattern: urlPattern.value,
-        automation: automationSettings
-      };
-      
-      // Update dropdown and select new profile
-      updateProfileDropdown();
-      siteProfileSelect.value = profileId;
-      activeProfileId = profileId;
-    } else {
-      // Update existing profile
-      const profileId = siteProfileSelect.value;
-      siteProfiles[profileId].elementSelector = elementSelector.value;
-      siteProfiles[profileId].urlPattern = urlPattern.value;
-      siteProfiles[profileId].automation = automationSettings;
-      activeProfileId = profileId;
-    }
-    
-    // Save config
-    saveConfig();
-    statusText.textContent = 'Profile saved';
-    setTimeout(() => {
-      statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-    }, 2000);
-  }
-  
-  function deleteCurrentProfile() {
-    const profileId = siteProfileSelect.value;
-    
-    // Prevent deletion of built-in profiles and Default profile
-    if (profileId === 'default' || (siteProfiles[profileId] && siteProfiles[profileId].builtin)) {
-      statusText.textContent = 'Cannot delete built-in profile';
-      setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }, 2000);
-      return;
-    }
-    
-    if (profileId !== 'custom') {
-      delete siteProfiles[profileId];
-      updateProfileDropdown();
-      siteProfileSelect.value = 'default';
-      loadProfileDetails('default');
-      activeProfileId = 'default';
-      saveConfig();
-      statusText.textContent = 'Profile deleted';
-      setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }, 2000);
     }
   }
 
@@ -2312,8 +2187,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   btnSaveConfig.addEventListener('click', saveConfig);
   btnDefaultConfig.addEventListener('click', resetConfigToDefaults);
   btnClearCache.addEventListener('click', clearBrowserCache);
-  btnSaveProfile.addEventListener('click', saveCurrentProfile);
-  btnDeleteProfile.addEventListener('click', deleteCurrentProfile);
 
   // Add collapsible section functionality
   toggleAdvancedSettings.addEventListener('click', () => {
@@ -5623,53 +5496,15 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }, 3000);
   });
 
-  // Create a function to highlight the profile save button
-  function highlightProfileSaveButton() {
-    btnSaveProfile.style.backgroundColor = '#4CAF50';
-    btnSaveProfile.style.fontWeight = 'bold';
-    statusText.textContent = 'Click Apply to save profile changes';
-    setTimeout(() => {
-      if (statusText.textContent === 'Click Apply to save profile changes') {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }
-    }, 3000);
-    markUnsavedChanges();
-  }
-
-  // Add event listeners to profile configuration fields
-  elementSelector.addEventListener('input', highlightProfileSaveButton);
-  urlPattern.addEventListener('input', highlightProfileSaveButton);
-  autoDetectEnd.addEventListener('change', highlightProfileSaveButton);
-  endDetectionSelector.addEventListener('input', highlightProfileSaveButton);
-  autoStartPlayback.addEventListener('change', highlightProfileSaveButton);
-  playButtonSelector.addEventListener('input', highlightProfileSaveButton);
-  countdownSelector.addEventListener('input', highlightProfileSaveButton);
-  autoAdjustSpeed.addEventListener('change', highlightProfileSaveButton);
-  speedSelector.addEventListener('input', highlightProfileSaveButton);
-  playbackSpeed.addEventListener('change', highlightProfileSaveButton);
-  autoDetectTitle.addEventListener('change', highlightProfileSaveButton);
-  courseTitleSelector.addEventListener('input', highlightProfileSaveButton);
-  sessionInfoSelector.addEventListener('input', highlightProfileSaveButton);
-
-  // Reset button appearance after saving
-  btnSaveProfile.addEventListener('click', () => {
-    setTimeout(() => {
-      btnSaveProfile.style.backgroundColor = '';
-      btnSaveProfile.style.fontWeight = '';
-    }, 500);
-    hasUnsavedChanges = false;
-  });
-
   // Function to highlight config save button
   function highlightConfigSaveButton() {
     btnSaveConfig.style.backgroundColor = '#4CAF50';
-    btnSaveConfig.style.fontWeight = 'bold';
     statusText.textContent = 'Click Apply to save settings';
     setTimeout(() => {
       if (statusText.textContent === 'Click Apply to save settings') {
         statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
       }
-    }, 3000);
+    }, 5000);
     markUnsavedChanges();
   }
 
@@ -5728,5 +5563,77 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   window.electronAPI.onApplyBlockingRules(() => {
     applyBlockingRules();
+  });
+
+  // Add event listener for automation checkbox, save immediately
+  autoDetectEnd.addEventListener('change', function() {
+    if (!activeProfileId || activeProfileId === 'default') return;
+    
+    // Update configuration in memory
+    if (!siteProfiles[activeProfileId].automation) {
+      siteProfiles[activeProfileId].automation = {};
+    }
+    siteProfiles[activeProfileId].automation.autoDetectEnd = this.checked;
+    
+    // Save to configuration
+    saveConfig();
+    
+    // If task manager is open, update validation
+    if (taskManagerModal.style.display === 'block') {
+      validateAutomationRequirements();
+    }
+  });
+
+  // Add similar event handlers for other checkboxes
+  autoStartPlayback.addEventListener('change', function() {
+    if (!activeProfileId || activeProfileId === 'default') return;
+    
+    if (!siteProfiles[activeProfileId].automation) {
+      siteProfiles[activeProfileId].automation = {};
+    }
+    siteProfiles[activeProfileId].automation.autoStartPlayback = this.checked;
+    
+    saveConfig();
+    
+    if (taskManagerModal.style.display === 'block') {
+      validateAutomationRequirements();
+    }
+  });
+
+  autoAdjustSpeed.addEventListener('change', function() {
+    if (!activeProfileId || activeProfileId === 'default') return;
+    
+    if (!siteProfiles[activeProfileId].automation) {
+      siteProfiles[activeProfileId].automation = {};
+    }
+    siteProfiles[activeProfileId].automation.autoAdjustSpeed = this.checked;
+    
+    saveConfig();
+  });
+
+  autoDetectTitle.addEventListener('change', function() {
+    if (!activeProfileId || activeProfileId === 'default') return;
+    
+    if (!siteProfiles[activeProfileId].automation) {
+      siteProfiles[activeProfileId].automation = {};
+    }
+    siteProfiles[activeProfileId].automation.autoDetectTitle = this.checked;
+    
+    saveConfig();
+    
+    if (taskManagerModal.style.display === 'block') {
+      validateAutomationRequirements();
+    }
+  });
+
+  autoRetryError.addEventListener('change', function() {
+    if (!activeProfileId || activeProfileId === 'default') return;
+    
+    if (!siteProfiles[activeProfileId].automation) {
+      siteProfiles[activeProfileId].automation = {};
+    }
+    siteProfiles[activeProfileId].automation.autoRetryError = this.checked;
+    
+    saveConfig();
   });
 });

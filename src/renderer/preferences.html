@@ -268,10 +268,149 @@
         
         <!-- Optimization Profiles Tab -->
         <div class="tab-content" id="profiles-tab">
-            <div class="coming-soon">
-                Optimization Profile settings will appear here in future updates.
+            <div class="preference-section">
+                <h3>Profile Management</h3>
+                <div class="preference-item">
+                    <label for="newProfileName">New Profile Name:</label>
+                    <input type="text" id="newProfileName" placeholder="Enter profile name">
+                    <button id="btnCreateProfile">Create New Profile</button>
+                </div>
             </div>
+            
+            <div id="profilesContainer">
+                <!-- Default profiles are not displayed, only non-default profiles -->
+                <!-- Each profile section will be dynamically generated via JavaScript -->
+            </div>
+            
+            <template id="profileTemplate">
+                <div class="profile-section" data-profile-id="">
+                    <div class="profile-header">
+                        <h3 class="profile-name"></h3>
+                        <button class="btnDeleteProfile">Delete</button>
+                    </div>
+                    
+                    <!-- Basic Configuration -->
+                    <div class="profile-config">
+                        <h4>Basic Configuration</h4>
+                        <div class="preference-item">
+                            <label for="profileElementSelector">Element selector:</label>
+                            <input type="text" class="profileElementSelector" placeholder="#video_id_topPlayer_html5_api">
+                            <div class="help-text">Only the selected element will be captured</div>
+                        </div>
+                        
+                        <div class="preference-item">
+                            <label for="profileUrlPattern">URL patterns:</label>
+                            <input type="text" class="profileUrlPattern" placeholder="example.com/video">
+                            <div class="help-text">Space-separated patterns to auto-select this profile</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Automation Settings -->
+                    <div class="profile-automation">
+                        <h4>Automation Settings</h4>
+                        
+                        <!-- End Detection Settings -->
+                        <div class="preference-item">
+                            <label>
+                                <input type="checkbox" class="profileAutoDetectEnd"> 
+                                Auto-detect playback end
+                            </label>
+                            <div class="help-text">Auto-stop capture when playback ends</div>
+                        </div>
+                        
+                        <div class="preference-item">
+                            <label for="profileEndDetectionSelector">End detection selector:</label>
+                            <input type="text" class="profileEndDetectionSelector" placeholder=".player-ended-poster">
+                        </div>
+                        
+                        <!-- Playback Settings -->
+                        <div class="preference-item">
+                            <label>
+                                <input type="checkbox" class="profileAutoStartPlayback"> 
+                                Auto-start playback
+                            </label>
+                            <div class="help-text">Automatically click play button</div>
+                        </div>
+                        
+                        <div class="preference-item">
+                            <label for="profilePlayButtonSelector">Play button selector:</label>
+                            <input type="text" class="profilePlayButtonSelector" placeholder=".play-button">
+                        </div>
+                        
+                        <div class="preference-item">
+                            <label for="profileCountdownSelector">Countdown selector:</label>
+                            <input type="text" class="profileCountdownSelector" placeholder=".countdown">
+                            <div class="help-text">Element containing countdown before video starts</div>
+                        </div>
+                        
+                        <!-- Speed Settings -->
+                        <div class="preference-item">
+                            <label>
+                                <input type="checkbox" class="profileAutoAdjustSpeed"> 
+                                Auto-adjust playback speed
+                            </label>
+                        </div>
+                        
+                        <div class="preference-item">
+                            <label for="profileSpeedSelector">Speed selector:</label>
+                            <input type="text" class="profileSpeedSelector" placeholder="#video_element">
+                        </div>
+                        
+                        <div class="preference-item">
+                            <label for="profilePlaybackSpeed">Default playback speed:</label>
+                            <select class="profilePlaybackSpeed">
+                                <option value="1.0">1.0x</option>
+                                <option value="1.5">1.5x</option>
+                                <option value="2.0">2.0x</option>
+                                <option value="2.5">2.5x</option>
+                                <option value="3.0">3.0x</option>
+                                <option value="4.0">4.0x</option>
+                                <option value="5.0">5.0x</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Title Detection Settings -->
+                        <div class="preference-item">
+                            <label>
+                                <input type="checkbox" class="profileAutoDetectTitle"> 
+                                Auto-detect title
+                            </label>
+                            <div class="help-text">Auto-detect info and create subfolders</div>
+                        </div>
+                        
+                        <div class="preference-item">
+                            <label for="profileCourseTitleSelector">Course title selector:</label>
+                            <input type="text" class="profileCourseTitleSelector" placeholder=".course-title">
+                        </div>
+                        
+                        <div class="preference-item">
+                            <label for="profileSessionInfoSelector">Session info selector:</label>
+                            <input type="text" class="profileSessionInfoSelector" placeholder=".session-info">
+                        </div>
+                        
+                        <!-- Error Handling Settings -->
+                        <div class="preference-item">
+                            <label>
+                                <input type="checkbox" class="profileAutoRetryError"> 
+                                Auto-retry on error
+                            </label>
+                            <div class="help-text">Automatically retry when errors occur</div>
+                        </div>
+                        
+                        <div class="preference-item">
+                            <label for="profileErrorSelector">Error selector:</label>
+                            <input type="text" class="profileErrorSelector" placeholder=".error-message">
+                        </div>
+                        
+                        <div class="preference-item">
+                            <label for="profileMaxRetryAttempts">Max retry attempts:</label>
+                            <input type="number" class="profileMaxRetryAttempts" min="1" max="10" value="3">
+                        </div>
+                    </div>
+                </div>
+            </template>
         </div>
+    </div>
         
         <!-- Website Automation Tab -->
         <div class="tab-content" id="automation-tab">
@@ -449,6 +588,256 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 
                 // When more preferences are added, reset them to defaults here
             });
+
+            // Profiles related elements
+            const profilesContainer = document.getElementById('profilesContainer');
+            const profileTemplate = document.getElementById('profileTemplate');
+            const newProfileName = document.getElementById('newProfileName');
+            const btnCreateProfile = document.getElementById('btnCreateProfile');
+            
+            // Global buttons
+            const btnRestoreDefaults = document.getElementById('btnRestoreDefaults');
+            
+            let profiles = {};
+            let hasChanges = false;
+            
+            // Load all profiles from configuration
+            async function loadAllProfiles() {
+                try {
+                    const config = await window.electronAPI.getConfig();
+                    profiles = config.siteProfiles || {};
+                    
+                    // Clear existing profiles container
+                    profilesContainer.innerHTML = '';
+                    
+                    // Create UI for each non-default profile
+                    for (const [id, profile] of Object.entries(profiles)) {
+                        if (id !== 'default') {
+                            createProfileSection(id, profile);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to load profiles:', error);
+                    alert('Failed to load profiles: ' + error.message);
+                }
+            }
+            
+            // Create settings section for a single profile
+            function createProfileSection(profileId, profile) {
+                // Clone template
+                const profileSection = profileTemplate.content.cloneNode(true).querySelector('.profile-section');
+                
+                // Set profile ID
+                profileSection.dataset.profileId = profileId;
+                
+                // Set profile name
+                const profileName = profileSection.querySelector('.profile-name');
+                profileName.textContent = profile.name || profileId;
+                
+                // Set basic attributes
+                const elementSelector = profileSection.querySelector('.profileElementSelector');
+                const urlPattern = profileSection.querySelector('.profileUrlPattern');
+                elementSelector.value = profile.elementSelector || '';
+                urlPattern.value = profile.urlPattern || '';
+                
+                // Set automation attributes
+                const automation = profile.automation || {};
+                const autoDetectEnd = profileSection.querySelector('.profileAutoDetectEnd');
+                const endDetectionSelector = profileSection.querySelector('.profileEndDetectionSelector');
+                const autoStartPlayback = profileSection.querySelector('.profileAutoStartPlayback');
+                const playButtonSelector = profileSection.querySelector('.profilePlayButtonSelector');
+                const countdownSelector = profileSection.querySelector('.profileCountdownSelector');
+                const autoAdjustSpeed = profileSection.querySelector('.profileAutoAdjustSpeed');
+                const speedSelector = profileSection.querySelector('.profileSpeedSelector');
+                const playbackSpeed = profileSection.querySelector('.profilePlaybackSpeed');
+                const autoDetectTitle = profileSection.querySelector('.profileAutoDetectTitle');
+                const courseTitleSelector = profileSection.querySelector('.profileCourseTitleSelector');
+                const sessionInfoSelector = profileSection.querySelector('.profileSessionInfoSelector');
+                const autoRetryError = profileSection.querySelector('.profileAutoRetryError');
+                const errorSelector = profileSection.querySelector('.profileErrorSelector');
+                const maxRetryAttempts = profileSection.querySelector('.profileMaxRetryAttempts');
+                
+                autoDetectEnd.checked = automation.autoDetectEnd || false;
+                endDetectionSelector.value = automation.endDetectionSelector || '';
+                autoStartPlayback.checked = automation.autoStartPlayback || false;
+                playButtonSelector.value = automation.playButtonSelector || '';
+                countdownSelector.value = automation.countdownSelector || '';
+                autoAdjustSpeed.checked = automation.autoAdjustSpeed || false;
+                speedSelector.value = automation.speedSelector || '';
+                playbackSpeed.value = automation.playbackSpeed || '2.0';
+                autoDetectTitle.checked = automation.autoDetectTitle || false;
+                courseTitleSelector.value = automation.courseTitleSelector || '';
+                sessionInfoSelector.value = automation.sessionInfoSelector || '';
+                autoRetryError.checked = automation.autoRetryError || false;
+                errorSelector.value = automation.errorSelector || '';
+                maxRetryAttempts.value = automation.maxRetryAttempts || '3';
+                
+                // Disable delete button for built-in profiles
+                const deleteButton = profileSection.querySelector('.btnDeleteProfile');
+                if (profile.builtin) {
+                    deleteButton.disabled = true;
+                    deleteButton.title = "Built-in profiles cannot be deleted";
+                } else {
+                    deleteButton.addEventListener('click', () => deleteProfile(profileId));
+                }
+                
+                // Add change event to all inputs to mark changes
+                const allInputs = profileSection.querySelectorAll('input, select');
+                allInputs.forEach(input => {
+                    input.addEventListener('change', () => {
+                        hasChanges = true;
+                    });
+                });
+                
+                // Add to container
+                profilesContainer.appendChild(profileSection);
+            }
+            
+            // Create new profile
+            function createNewProfile() {
+                const name = newProfileName.value.trim();
+                if (!name) {
+                    alert('Please enter a profile name');
+                    return;
+                }
+                
+                // Create unique ID
+                const profileId = 'profile_' + Date.now();
+                
+                // Create new profile with default values
+                const newProfile = {
+                    name: name,
+                    elementSelector: '',
+                    urlPattern: '',
+                    automation: {
+                        autoDetectEnd: false,
+                        endDetectionSelector: '',
+                        autoStartPlayback: false,
+                        playButtonSelector: '',
+                        countdownSelector: '',
+                        autoAdjustSpeed: false,
+                        speedSelector: '',
+                        playbackSpeed: '2.0',
+                        autoDetectTitle: false,
+                        courseTitleSelector: '',
+                        sessionInfoSelector: '',
+                        autoRetryError: false,
+                        errorSelector: '',
+                        maxRetryAttempts: '3'
+                    }
+                };
+                
+                // Add to profiles object
+                profiles[profileId] = newProfile;
+                
+                // Create UI element
+                createProfileSection(profileId, newProfile);
+                
+                // Clear input field
+                newProfileName.value = '';
+                
+                // Mark changes
+                hasChanges = true;
+            }
+            
+            // Delete profile
+            function deleteProfile(profileId) {
+                if (confirm(`Are you sure you want to delete the profile "${profiles[profileId].name}"?`)) {
+                    // Remove UI element
+                    const profileSection = document.querySelector(`.profile-section[data-profile-id="${profileId}"]`);
+                    if (profileSection) {
+                        profilesContainer.removeChild(profileSection);
+                    }
+                    
+                    // Remove data
+                    delete profiles[profileId];
+                    
+                    // Mark changes
+                    hasChanges = true;
+                }
+            }
+            
+            // Save all profiles
+            async function saveAllProfiles() {
+                try {
+                    // Get current configuration
+                    const config = await window.electronAPI.getConfig();
+                    
+                    // Collect all profile data
+                    const profileSections = document.querySelectorAll('.profile-section');
+                    for (const section of profileSections) {
+                        const profileId = section.dataset.profileId;
+                        if (profileId && profiles[profileId]) {
+                            const profile = profiles[profileId];
+                            
+                            // Update basic attributes
+                            profile.elementSelector = section.querySelector('.profileElementSelector').value;
+                            profile.urlPattern = section.querySelector('.profileUrlPattern').value;
+                            
+                            // Update automation settings
+                            if (!profile.automation) profile.automation = {};
+                            profile.automation.autoDetectEnd = section.querySelector('.profileAutoDetectEnd').checked;
+                            profile.automation.endDetectionSelector = section.querySelector('.profileEndDetectionSelector').value;
+                            profile.automation.autoStartPlayback = section.querySelector('.profileAutoStartPlayback').checked;
+                            profile.automation.playButtonSelector = section.querySelector('.profilePlayButtonSelector').value;
+                            profile.automation.countdownSelector = section.querySelector('.profileCountdownSelector').value;
+                            profile.automation.autoAdjustSpeed = section.querySelector('.profileAutoAdjustSpeed').checked;
+                            profile.automation.speedSelector = section.querySelector('.profileSpeedSelector').value;
+                            profile.automation.playbackSpeed = section.querySelector('.profilePlaybackSpeed').value;
+                            profile.automation.autoDetectTitle = section.querySelector('.profileAutoDetectTitle').checked;
+                            profile.automation.courseTitleSelector = section.querySelector('.profileCourseTitleSelector').value;
+                            profile.automation.sessionInfoSelector = section.querySelector('.profileSessionInfoSelector').value;
+                            profile.automation.autoRetryError = section.querySelector('.profileAutoRetryError').checked;
+                            profile.automation.errorSelector = section.querySelector('.profileErrorSelector').value;
+                            profile.automation.maxRetryAttempts = section.querySelector('.profileMaxRetryAttempts').value;
+                        }
+                    }
+                    
+                    // Update profiles in configuration
+                    config.siteProfiles = profiles;
+                    
+                    // Save configuration
+                    await window.electronAPI.saveConfig(config);
+                    
+                    hasChanges = false;
+                    return true;
+                } catch (error) {
+                    console.error('Failed to save profiles:', error);
+                    alert('Failed to save profiles: ' + error.message);
+                    return false;
+                }
+            }
+            
+            // Bind events
+            btnCreateProfile.addEventListener('click', createNewProfile);
+            
+            // Load data when Profiles tab is displayed
+            document.querySelector('.tab[data-tab="profiles"]').addEventListener('click', loadAllProfiles);
+            
+            // Enhance Save button to save profiles
+            btnSave.addEventListener('click', async function() {
+                // Check if on Profiles tab
+                const profilesTabActive = document.getElementById('profiles-tab').classList.contains('active');
+                
+                if (profilesTabActive && hasChanges) {
+                    await saveAllProfiles();
+                }
+            });
+            
+            // Enhance Cancel button to reload profiles
+            btnCancel.addEventListener('click', function() {
+                const profilesTabActive = document.getElementById('profiles-tab').classList.contains('active');
+                
+                if (profilesTabActive && hasChanges) {
+                    loadAllProfiles();
+                    hasChanges = false;
+                }
+            });
+            
+            // Initial load of profiles
+            if (document.getElementById('profiles-tab').classList.contains('active')) {
+                loadAllProfiles();
+            }
         });
     </script>
 </body>
