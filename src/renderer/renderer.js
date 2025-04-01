@@ -23,9 +23,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const inputCheckInterval = document.getElementById('inputCheckInterval');
   const statusText = document.getElementById('statusText');
   const slideCount = document.getElementById('slideCount');
-  const blockingRules = document.getElementById('blockingRules');
-  const btnApplyRules = document.getElementById('btnApplyRules');
-  const btnResetRules = document.getElementById('btnResetRules');
   const topCropGuide = document.getElementById('topCropGuide');
   const bottomCropGuide = document.getElementById('bottomCropGuide');
   const cropGuides = document.querySelector('.crop-guides');
@@ -98,29 +95,9 @@ yanhekt.cn###root > div.app > div.BlankLayout_layout__kC9f3:last-child > div.ant
 yanhekt.cn###ai-bit-shortcut
 yanhekt.cn##div#ai-bit-animation-modal`;
 
-  // Enhance the blocking rules text area for code-like behavior
-  function enhanceBlockingRulesEditor() {
-    // Enable tab key in the textarea (instead of changing focus)
-    blockingRules.addEventListener('keydown', function(e) {
-      if (e.key === 'Tab') {
-        e.preventDefault();
-        
-        // Insert a tab character at the cursor position
-        const start = this.selectionStart;
-        const end = this.selectionEnd;
-        
-        this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
-        
-        // Put the cursor after the tab
-        this.selectionStart = this.selectionEnd = start + 4;
-      }
-    });
-  }
-
   // Add this call after loading the blocking rules
   await loadConfig();
   await loadBlockingRules();
-  enhanceBlockingRulesEditor();
   
   // Set default URL
   inputUrl.value = 'https://www.yanhekt.cn/home';
@@ -747,10 +724,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   async function loadBlockingRules() {
     try {
       const rules = await window.electronAPI.getBlockingRules();
-      blockingRules.value = rules || DEFAULT_RULES;
+      console.log('Blocking rules loaded successfully');
+      return rules;
     } catch (error) {
       console.error('Failed to load blocking rules:', error);
-      blockingRules.value = DEFAULT_RULES;
+      return DEFAULT_RULES; // Fall back to default rules on error
     }
   }
 
@@ -792,9 +770,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }, hideDelay);
   }
   
-  async function saveBlockingRules() {
+  async function saveBlockingRules(rulesText) {
     try {
-      await window.electronAPI.saveBlockingRules(blockingRules.value);
+      // If rulesText is provided, use it, otherwise fetch from storage
+      const rules = rulesText || await window.electronAPI.getBlockingRules();
+      await window.electronAPI.saveBlockingRules(rules);
       statusText.textContent = 'Blocking rules saved';
       setTimeout(() => {
         statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
@@ -804,116 +784,145 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   }
   
-  function applyBlockingRules() {
-    const rules = blockingRules.value.trim().split('\n');
-    if (!webview.src || webview.src === 'about:blank') {
-      statusText.textContent = 'No page loaded to apply rules';
-      return;
-    }
+  function applyBlockingRules(rulesText) {
+    // Get rules either from parameter or by fetching from config
+    const getRulesPromise = rulesText ? 
+      Promise.resolve(rulesText) : 
+      window.electronAPI.getBlockingRules();
     
-    try {
-      const currentUrl = new URL(webview.src);
-      const currentDomain = currentUrl.hostname;
-      
-      let cssToInject = '';
-      let appliedRules = 0;
-      
-      rules.forEach(rule => {
-        if (!rule || rule.startsWith('#')) return; // Skip empty lines or comments
-        
-        const parts = rule.split('##');
-        if (parts.length !== 2) return; // Skip invalid rules
-        
-        const ruleDomain = parts[0];
-        const selector = parts[1];
-        
-        // Check if rule applies to current domain
-        if (currentDomain.endsWith(ruleDomain) || 
-            currentDomain === `www.${ruleDomain}` ||
-            ruleDomain === '*') {
-          cssToInject += `${selector} { display: none !important; }\n`;
-          appliedRules++;
-        }
-      });
-      
-      if (cssToInject) {
-        // Inject both CSS and JavaScript to ensure elements are hidden
-        const script = `
-          (function() {
-            // 1. Add CSS style
-            const style = document.createElement('style');
-            style.id = 'autoslides-blocking-css';
-            style.textContent = ${JSON.stringify(cssToInject)};
-            
-            // Remove any existing style we added before
-            const existingStyle = document.getElementById('autoslides-blocking-css');
-            if (existingStyle) {
-              existingStyle.remove();
-            }
-            
-            document.head.appendChild(style);
-            
-            // 2. Also use JavaScript to directly hide elements for more aggressive hiding
-            function hideElements() {
-              const selectors = [${rules
-                .filter(rule => rule && !rule.startsWith('#'))
-                .map(rule => {
-                  const parts = rule.split('##');
-                  if (parts.length !== 2) return null;
-                  return JSON.stringify(parts[1]);
-                })
-                .filter(Boolean)
-                .join(', ')}];
-                
-              selectors.forEach(selector => {
-                try {
-                  const elements = document.querySelectorAll(selector);
-                  elements.forEach(el => {
-                    el.style.display = 'none';
-                  });
-                } catch (e) {
-                  console.error('Error hiding element with selector: ' + selector, e);
-                }
-              });
-            }
-            
-            // Run now
-            hideElements();
-            
-            // Also run again after a short delay to catch elements that might load later
-            setTimeout(hideElements, 1000);
-            
-            console.log('AutoSlides: Applied element blocking rules');
-          })();
-        `;
-        
-        webview.executeJavaScript(script)
-          .then(() => {
-            statusText.textContent = `Applied ${appliedRules} blocking rules`;
-            setTimeout(() => {
-              statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-            }, 2000);
-          })
-          .catch(err => {
-            console.error('Error applying blocking rules:', err);
-            statusText.textContent = 'Error applying rules';
-          });
-      } else {
-        statusText.textContent = 'No applicable rules for current page';
-        setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-        }, 2000);
+    getRulesPromise.then(rules => {
+      // Ensure rules is a string and split into lines
+      const ruleLines = typeof rules === 'string' ? rules.trim().split('\n') : rules;
+  
+      if (!webview.src || webview.src === 'about:blank') {
+        statusText.textContent = 'No page loaded to apply rules';
+        return;
       }
-    } catch (error) {
-      console.error('Error in applyBlockingRules:', error);
-      statusText.textContent = 'Error processing rules';
-    }
+      
+      try {
+        const currentUrl = new URL(webview.src);
+        const currentDomain = currentUrl.hostname;
+        
+        let cssToInject = '';
+        let appliedRules = 0;
+        
+        // Process each rule line
+        for (let i = 0; i < ruleLines.length; i++) {
+          const rule = ruleLines[i];
+          if (!rule || rule.startsWith('#')) continue; // Skip empty lines or comments
+          
+          const parts = rule.split('##');
+          if (parts.length !== 2) continue; // Skip invalid rules
+          
+          const ruleDomain = parts[0];
+          const selector = parts[1];
+          
+          // Check if rule applies to current domain
+          if (currentDomain.endsWith(ruleDomain) || 
+              currentDomain === `www.${ruleDomain}` ||
+              ruleDomain === '*') {
+            cssToInject += `${selector} { display: none !important; }\n`;
+            appliedRules++;
+          }
+        }
+      
+        if (cssToInject) {
+          // Inject both CSS and JavaScript to ensure elements are hidden
+          const script = `
+            (function() {
+              // 1. Add CSS style
+              const style = document.createElement('style');
+              style.id = 'autoslides-blocking-css';
+              style.textContent = ${JSON.stringify(cssToInject)};
+              
+              // Remove any existing style we added before
+              const existingStyle = document.getElementById('autoslides-blocking-css');
+              if (existingStyle) {
+                existingStyle.remove();
+              }
+              
+              document.head.appendChild(style);
+              
+              // 2. Also use JavaScript to directly hide elements for more aggressive hiding
+              function hideElements() {
+                const selectors = [${ruleLines
+                  .filter(rule => rule && !rule.startsWith('#'))
+                  .map(rule => {
+                    const parts = rule.split('##');
+                    if (parts.length !== 2) return null;
+                    
+                    const ruleDomain = parts[0];
+                    const selector = parts[1];
+                    
+                    // Only include selectors for matching domains
+                    if (currentDomain.endsWith(ruleDomain) || 
+                        currentDomain === "www.${ruleDomain}" ||
+                        ruleDomain === '*') {
+                      return JSON.stringify(selector);
+                    }
+                    return null;
+                  })
+                  .filter(Boolean)
+                  .join(', ')}];
+                  
+                selectors.forEach(selector => {
+                  try {
+                    const elements = document.querySelectorAll(selector);
+                    elements.forEach(el => {
+                      el.style.display = 'none';
+                    });
+                  } catch (e) {
+                    console.error('Error hiding element with selector: ' + selector, e);
+                  }
+                });
+              }
+              
+              // Run now
+              hideElements();
+              
+              // Also run again after a short delay to catch elements that might load later
+              setTimeout(hideElements, 1000);
+              
+              console.log('AutoSlides: Applied element blocking rules');
+            })();
+          `;
+          
+          webview.executeJavaScript(script)
+            .then(() => {
+              statusText.textContent = `Applied ${appliedRules} blocking rules`;
+              setTimeout(() => {
+                statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+              }, 2000);
+            })
+            .catch(err => {
+              console.error('Error applying blocking rules:', err);
+              statusText.textContent = 'Error applying rules';
+            });
+        } else {
+          statusText.textContent = 'No applicable rules for current page';
+          setTimeout(() => {
+            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          }, 2000);
+        }
+      } catch (error) {
+        console.error('Error in applyBlockingRules:', error);
+        statusText.textContent = 'Error processing rules';
+      }
+    });
   }
   
   function resetRules() {
-    blockingRules.value = DEFAULT_RULES;
-    saveBlockingRules();
-    applyBlockingRules();
+    window.electronAPI.saveBlockingRules(DEFAULT_RULES)
+    .then(() => {
+      applyBlockingRules(DEFAULT_RULES);  // Pass the default rules directly
+      statusText.textContent = 'Default blocking rules applied';
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 2000);
+    })
+    .catch(error => {
+      console.error('Failed to reset blocking rules:', error);
+    });
   }
   
   async function selectOutputDirectory() {
@@ -2302,11 +2311,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   btnSelectDir.addEventListener('click', selectOutputDirectory);
   btnSaveConfig.addEventListener('click', saveConfig);
   btnDefaultConfig.addEventListener('click', resetConfigToDefaults);
-  btnApplyRules.addEventListener('click', () => {
-    saveBlockingRules();
-    applyBlockingRules();
-  });
-  btnResetRules.addEventListener('click', resetRules);
   btnClearCache.addEventListener('click', clearBrowserCache);
   btnSaveProfile.addEventListener('click', saveCurrentProfile);
   btnDeleteProfile.addEventListener('click', deleteCurrentProfile);
@@ -5656,28 +5660,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     hasUnsavedChanges = false;
   });
 
-  // Highlight Apply button when blocking rules are changed
-  blockingRules.addEventListener('input', () => {
-    btnApplyRules.style.backgroundColor = '#4CAF50';
-    btnApplyRules.style.fontWeight = 'bold';
-    statusText.textContent = 'Click Apply to activate new rules';
-    setTimeout(() => {
-      if (statusText.textContent === 'Click Apply to activate new rules') {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }
-    }, 3000);
-    markUnsavedChanges();
-  });
-
-  // Reset button appearance after applying
-  btnApplyRules.addEventListener('click', () => {
-    setTimeout(() => {
-      btnApplyRules.style.backgroundColor = '';
-      btnApplyRules.style.fontWeight = '';
-    }, 500);
-    hasUnsavedChanges = false;
-  });
-
   // Function to highlight config save button
   function highlightConfigSaveButton() {
     btnSaveConfig.style.backgroundColor = '#4CAF50';
@@ -5742,5 +5724,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     enableDoubleVerification = enableDoubleVerificationCheckbox.checked;
     hasUnsavedChanges = true;  // Mark that we have unsaved changes
     highlightConfigSaveButton(); // Highlight Apply button
+  });
+
+  window.electronAPI.onApplyBlockingRules(() => {
+    applyBlockingRules();
   });
 });

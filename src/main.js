@@ -830,3 +830,21 @@ ipcMain.handle('unmuteWebviewAudio', async (event, webviewId) => {
     return { success: false, error: error.message };
   }
 });
+
+ipcMain.handle('apply-blocking-rules', async (event) => {
+  try {
+    // Get the main window
+    const mainWindow = BrowserWindow.getAllWindows().find(win => win !== BrowserWindow.fromWebContents(event.sender));
+    
+    if (mainWindow) {
+      // Send message to main window to apply rules
+      mainWindow.webContents.send('apply-blocking-rules');
+      return { success: true };
+    } else {
+      return { success: false, error: 'Main window not found' };
+    }
+  } catch (error) {
+    console.error('Error applying blocking rules:', error);
+    return { success: false, error: error.message };
+  }
+});

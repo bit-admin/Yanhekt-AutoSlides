@@ -181,6 +181,39 @@
         .buttons-group button:hover {
             background-color: #e8e8e8;
         }
+
+        .code-editor-container {
+            position: relative;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            background-color: #f8f8f8;
+        }
+        
+        #blockingRules {
+            width: 100%;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+            padding: 8px;
+            font-size: 12px;
+            border: none;
+            resize: vertical;
+            background-color: #f8f8f8;
+            color: #333;
+            line-height: 1.5;
+            tab-size: 4;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        
+        .rules-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .rules-buttons button {
+            flex: 1;
+        }
     </style>
 </head>
 <body>
@@ -242,8 +275,12 @@
         
         <!-- Website Automation Tab -->
         <div class="tab-content" id="automation-tab">
-            <div class="coming-soon">
-                Website Automation settings will appear here in future updates.
+            <div class="preference-section">
+                <h3>Element Blocking Rules</h3>
+                <p class="help-text">AdGuard-like rules (one per line)</p>
+                <div class="code-editor-container">
+                    <textarea id="blockingRules" rows="8" spellcheck="false" wrap="off"></textarea>
+                </div>
             </div>
         </div>
         
@@ -273,21 +310,54 @@
                     document.getElementById(`${tabName}-tab`).classList.add('active');
                 });
             });
+
+            // Default rules
+            const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
+yanhekt.cn###root > div.app > div.BlankLayout_layout__kC9f3:last-child > div.ant-spin-nested-loading:nth-child(2) > div.ant-spin-container > div.index_liveWrapper__YGcpO > div.index_userlist__T-6xf:last-child > div.index_staticContainer__z3yt-
+yanhekt.cn###ai-bit-shortcut
+yanhekt.cn##div#ai-bit-animation-modal`;
             
             // Preference elements
             const allowBackgroundRunning = document.getElementById('allowBackgroundRunning');
             const cacheCleanInterval = document.getElementById('cacheCleanInterval');
             const btnClearCookies = document.getElementById('btnClearCookies');
             const btnClearAll = document.getElementById('btnClearAll');
+            const blockingRules = document.getElementById('blockingRules');
+            const btnApplyRules = document.getElementById('btnApplyRules');
+            const btnResetRules = document.getElementById('btnResetRules');
             const btnSave = document.getElementById('btnSave');
             const btnCancel = document.getElementById('btnCancel');
             const btnDefault = document.getElementById('btnDefault');
+
+            // Enhance the blocking rules text area for code-like behavior
+            function enhanceBlockingRulesEditor() {
+                // Enable tab key in the textarea (instead of changing focus)
+                blockingRules.addEventListener('keydown', function(e) {
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                        
+                        // Insert a tab character at the cursor position
+                        const start = this.selectionStart;
+                        const end = this.selectionEnd;
+                        
+                        this.value = this.value.substring(0, start) + '    ' + this.value.substring(end);
+                        
+                        // Put the cursor after the tab
+                        this.selectionStart = this.selectionEnd = start + 4;
+                    }
+                });
+            }
             
             // Load current preferences
             try {
                 const config = await window.electronAPI.getConfig();
                 allowBackgroundRunning.checked = config.allowBackgroundRunning || false;
                 cacheCleanInterval.value = config.cacheCleanInterval || 15;
+                
+                // Load blocking rules
+                const rules = await window.electronAPI.getBlockingRules();
+                blockingRules.value = rules || DEFAULT_RULES;
+                enhanceBlockingRulesEditor();
             } catch (error) {
                 console.error('Failed to load preferences:', error);
             }
@@ -332,34 +402,38 @@
             
             // Save button handler
             btnSave.addEventListener('click', async () => {
-                try {
-                    // Get the current config first
-                    const config = await window.electronAPI.getConfig();
-                    
-                    // Update only the preferences-related settings
-                    const updatedConfig = {
-                        ...config,
-                        allowBackgroundRunning: allowBackgroundRunning.checked,
-                        cacheCleanInterval: parseInt(cacheCleanInterval.value, 10)
-                    };
-                    
-                    // Save the updated config
-                    await window.electronAPI.saveConfig(updatedConfig);
-                    
-                    // Update background running state
-                    if (allowBackgroundRunning.checked) {
-                        await window.electronAPI.enableBackgroundRunning();
-                    } else {
-                        await window.electronAPI.disableBackgroundRunning();
-                    }
-                    
-                    // Close the window
-                    window.close();
-                } catch (error) {
-                    console.error('Failed to save preferences:', error);
-                    alert('Failed to save preferences: ' + error.message);
+            try {
+                // Get the current config first
+                const config = await window.electronAPI.getConfig();
+                
+                // Update only the preferences-related settings
+                const updatedConfig = {
+                    ...config,
+                    allowBackgroundRunning: allowBackgroundRunning.checked,
+                    cacheCleanInterval: parseInt(cacheCleanInterval.value, 10)
+                };
+                
+                // Save the updated config
+                await window.electronAPI.saveConfig(updatedConfig);
+                
+                // Save blocking rules separately and apply them
+                await window.electronAPI.saveBlockingRules(blockingRules.value);
+                await window.electronAPI.applyBlockingRules();
+                
+                // Update background running state
+                if (allowBackgroundRunning.checked) {
+                    await window.electronAPI.enableBackgroundRunning();
+                } else {
+                    await window.electronAPI.disableBackgroundRunning();
                 }
-            });
+                
+                // Close the window
+                window.close();
+            } catch (error) {
+                console.error('Failed to save preferences:', error);
+                alert('Failed to save preferences: ' + error.message);
+            }
+        });
             
             // Cancel button handler
             btnCancel.addEventListener('click', () => {
@@ -371,6 +445,7 @@
                 // Set to default values
                 allowBackgroundRunning.checked = false;
                 cacheCleanInterval.value = 15;
+                blockingRules.value = DEFAULT_RULES;
                 
                 // When more preferences are added, reset them to defaults here
             });

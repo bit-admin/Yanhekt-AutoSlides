@@ -52,6 +52,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       throw error;
     }
   },
+
+  applyBlockingRules: () => ipcRenderer.invoke('apply-blocking-rules'),
+  onApplyBlockingRules: (callback) => ipcRenderer.on('apply-blocking-rules', () => callback()),
   
   unmuteWebviewAudio: async (webviewId) => {
     try {
