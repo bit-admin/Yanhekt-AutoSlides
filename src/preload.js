@@ -55,6 +55,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   applyBlockingRules: () => ipcRenderer.invoke('apply-blocking-rules'),
   onApplyBlockingRules: (callback) => ipcRenderer.on('apply-blocking-rules', () => callback()),
+
+  // Send message to main window
+  sendToMainWindow: (channel, data) => {
+    return ipcRenderer.invoke('send-to-main-window', channel, data);
+  },
+
+  // For main window to receive updates
+  onUpdateProfiles: (callback) => {
+      ipcRenderer.on('update-profiles', (event, profiles) => callback(event, profiles));
+  },
   
   unmuteWebviewAudio: async (webviewId) => {
     try {

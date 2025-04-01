@@ -305,36 +305,22 @@
                         </div>
                     </div>
                     
-                    <!-- Automation Settings -->
+                    <!-- Automation Settings (Without Checkboxes) -->
                     <div class="profile-automation">
                         <h4>Automation Settings</h4>
                         
                         <!-- End Detection Settings -->
                         <div class="preference-item">
-                            <label>
-                                <input type="checkbox" class="profileAutoDetectEnd"> 
-                                Auto-detect playback end
-                            </label>
-                            <div class="help-text">Auto-stop capture when playback ends</div>
-                        </div>
-                        
-                        <div class="preference-item">
                             <label for="profileEndDetectionSelector">End detection selector:</label>
                             <input type="text" class="profileEndDetectionSelector" placeholder=".player-ended-poster">
+                            <div class="help-text">Used when "Auto-detect playback end" is enabled</div>
                         </div>
                         
                         <!-- Playback Settings -->
                         <div class="preference-item">
-                            <label>
-                                <input type="checkbox" class="profileAutoStartPlayback"> 
-                                Auto-start playback
-                            </label>
-                            <div class="help-text">Automatically click play button</div>
-                        </div>
-                        
-                        <div class="preference-item">
                             <label for="profilePlayButtonSelector">Play button selector:</label>
                             <input type="text" class="profilePlayButtonSelector" placeholder=".play-button">
+                            <div class="help-text">Used when "Auto-start playback" is enabled</div>
                         </div>
                         
                         <div class="preference-item">
@@ -345,15 +331,9 @@
                         
                         <!-- Speed Settings -->
                         <div class="preference-item">
-                            <label>
-                                <input type="checkbox" class="profileAutoAdjustSpeed"> 
-                                Auto-adjust playback speed
-                            </label>
-                        </div>
-                        
-                        <div class="preference-item">
                             <label for="profileSpeedSelector">Speed selector:</label>
                             <input type="text" class="profileSpeedSelector" placeholder="#video_element">
+                            <div class="help-text">Used when "Auto-adjust playback speed" is enabled</div>
                         </div>
                         
                         <div class="preference-item">
@@ -371,16 +351,9 @@
                         
                         <!-- Title Detection Settings -->
                         <div class="preference-item">
-                            <label>
-                                <input type="checkbox" class="profileAutoDetectTitle"> 
-                                Auto-detect title
-                            </label>
-                            <div class="help-text">Auto-detect info and create subfolders</div>
-                        </div>
-                        
-                        <div class="preference-item">
                             <label for="profileCourseTitleSelector">Course title selector:</label>
                             <input type="text" class="profileCourseTitleSelector" placeholder=".course-title">
+                            <div class="help-text">Used when "Auto-detect title" is enabled</div>
                         </div>
                         
                         <div class="preference-item">
@@ -390,16 +363,9 @@
                         
                         <!-- Error Handling Settings -->
                         <div class="preference-item">
-                            <label>
-                                <input type="checkbox" class="profileAutoRetryError"> 
-                                Auto-retry on error
-                            </label>
-                            <div class="help-text">Automatically retry when errors occur</div>
-                        </div>
-                        
-                        <div class="preference-item">
                             <label for="profileErrorSelector">Error selector:</label>
                             <input type="text" class="profileErrorSelector" placeholder=".error-message">
+                            <div class="help-text">Used when "Auto-retry on error" is enabled</div>
                         </div>
                         
                         <div class="preference-item">
@@ -622,7 +588,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 }
             }
             
-            // Create settings section for a single profile
+            // Create settings section for a single profile          
             function createProfileSection(profileId, profile) {
                 // Clone template
                 const profileSection = profileTemplate.content.cloneNode(true).querySelector('.profile-section');
@@ -640,35 +606,25 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 elementSelector.value = profile.elementSelector || '';
                 urlPattern.value = profile.urlPattern || '';
                 
-                // Set automation attributes
+                // Set automation attributes - only set input fields, no checkboxes
                 const automation = profile.automation || {};
-                const autoDetectEnd = profileSection.querySelector('.profileAutoDetectEnd');
                 const endDetectionSelector = profileSection.querySelector('.profileEndDetectionSelector');
-                const autoStartPlayback = profileSection.querySelector('.profileAutoStartPlayback');
                 const playButtonSelector = profileSection.querySelector('.profilePlayButtonSelector');
                 const countdownSelector = profileSection.querySelector('.profileCountdownSelector');
-                const autoAdjustSpeed = profileSection.querySelector('.profileAutoAdjustSpeed');
                 const speedSelector = profileSection.querySelector('.profileSpeedSelector');
                 const playbackSpeed = profileSection.querySelector('.profilePlaybackSpeed');
-                const autoDetectTitle = profileSection.querySelector('.profileAutoDetectTitle');
                 const courseTitleSelector = profileSection.querySelector('.profileCourseTitleSelector');
                 const sessionInfoSelector = profileSection.querySelector('.profileSessionInfoSelector');
-                const autoRetryError = profileSection.querySelector('.profileAutoRetryError');
                 const errorSelector = profileSection.querySelector('.profileErrorSelector');
                 const maxRetryAttempts = profileSection.querySelector('.profileMaxRetryAttempts');
                 
-                autoDetectEnd.checked = automation.autoDetectEnd || false;
                 endDetectionSelector.value = automation.endDetectionSelector || '';
-                autoStartPlayback.checked = automation.autoStartPlayback || false;
                 playButtonSelector.value = automation.playButtonSelector || '';
                 countdownSelector.value = automation.countdownSelector || '';
-                autoAdjustSpeed.checked = automation.autoAdjustSpeed || false;
                 speedSelector.value = automation.speedSelector || '';
                 playbackSpeed.value = automation.playbackSpeed || '2.0';
-                autoDetectTitle.checked = automation.autoDetectTitle || false;
                 courseTitleSelector.value = automation.courseTitleSelector || '';
                 sessionInfoSelector.value = automation.sessionInfoSelector || '';
-                autoRetryError.checked = automation.autoRetryError || false;
                 errorSelector.value = automation.errorSelector || '';
                 maxRetryAttempts.value = automation.maxRetryAttempts || '3';
                 
@@ -710,18 +666,14 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                     elementSelector: '',
                     urlPattern: '',
                     automation: {
-                        autoDetectEnd: false,
+                        // No boolean flags here, only configuration values
                         endDetectionSelector: '',
-                        autoStartPlayback: false,
                         playButtonSelector: '',
                         countdownSelector: '',
-                        autoAdjustSpeed: false,
                         speedSelector: '',
                         playbackSpeed: '2.0',
-                        autoDetectTitle: false,
                         courseTitleSelector: '',
                         sessionInfoSelector: '',
-                        autoRetryError: false,
                         errorSelector: '',
                         maxRetryAttempts: '3'
                     }
@@ -757,11 +709,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 }
             }
             
-            // Save all profiles
             async function saveAllProfiles() {
                 try {
-                    // Get current configuration
+                    // Get current config
                     const config = await window.electronAPI.getConfig();
+                    const currentProfiles = config.siteProfiles || {};
                     
                     // Collect all profile data
                     const profileSections = document.querySelectorAll('.profile-section');
@@ -774,20 +726,27 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                             profile.elementSelector = section.querySelector('.profileElementSelector').value;
                             profile.urlPattern = section.querySelector('.profileUrlPattern').value;
                             
-                            // Update automation settings
+                            // Initialize or get existing automation object
                             if (!profile.automation) profile.automation = {};
-                            profile.automation.autoDetectEnd = section.querySelector('.profileAutoDetectEnd').checked;
+                            
+                            // Get the current automation settings that might have checkbox states
+                            const currentAutomation = currentProfiles[profileId]?.automation || {};
+                            
+                            // Preserve checkbox states from current config if they exist
+                            profile.automation.autoDetectEnd = currentAutomation.autoDetectEnd || false;
+                            profile.automation.autoStartPlayback = currentAutomation.autoStartPlayback || false;
+                            profile.automation.autoAdjustSpeed = currentAutomation.autoAdjustSpeed || false;
+                            profile.automation.autoDetectTitle = currentAutomation.autoDetectTitle || false;
+                            profile.automation.autoRetryError = currentAutomation.autoRetryError || false;
+                            
+                            // Update configuration fields (not checkbox states)
                             profile.automation.endDetectionSelector = section.querySelector('.profileEndDetectionSelector').value;
-                            profile.automation.autoStartPlayback = section.querySelector('.profileAutoStartPlayback').checked;
                             profile.automation.playButtonSelector = section.querySelector('.profilePlayButtonSelector').value;
                             profile.automation.countdownSelector = section.querySelector('.profileCountdownSelector').value;
-                            profile.automation.autoAdjustSpeed = section.querySelector('.profileAutoAdjustSpeed').checked;
                             profile.automation.speedSelector = section.querySelector('.profileSpeedSelector').value;
                             profile.automation.playbackSpeed = section.querySelector('.profilePlaybackSpeed').value;
-                            profile.automation.autoDetectTitle = section.querySelector('.profileAutoDetectTitle').checked;
                             profile.automation.courseTitleSelector = section.querySelector('.profileCourseTitleSelector').value;
                             profile.automation.sessionInfoSelector = section.querySelector('.profileSessionInfoSelector').value;
-                            profile.automation.autoRetryError = section.querySelector('.profileAutoRetryError').checked;
                             profile.automation.errorSelector = section.querySelector('.profileErrorSelector').value;
                             profile.automation.maxRetryAttempts = section.querySelector('.profileMaxRetryAttempts').value;
                         }
@@ -798,6 +757,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                     
                     // Save configuration
                     await window.electronAPI.saveConfig(config);
+                    
+                    // Send a message to the main window to update profile dropdown
+                    await window.electronAPI.sendToMainWindow('update-profiles', profiles);
                     
                     hasChanges = false;
                     return true;
