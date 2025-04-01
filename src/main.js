@@ -248,8 +248,8 @@ function createPreferencesWindow() {
   }
   
   preferencesWindow = new BrowserWindow({
-    width: 600,
-    height: 400,
+    width: 900,
+    height: 700,
     title: 'Preferences',
     minimizable: false,
     maximizable: false,

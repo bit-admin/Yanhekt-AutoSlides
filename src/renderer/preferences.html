@@ -8,14 +8,14 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #f5f5f5;
             color: #333;
         }
         
         .preferences-container {
-            max-width: 550px;
-            margin: 0 auto;
+            max-width: 650px;
+            margin: 20px auto;
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -34,8 +34,37 @@
             font-weight: 500;
         }
         
-        .preferences-content {
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #eee;
+            background-color: #f9f9f9;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            border-bottom: 2px solid transparent;
+        }
+        
+        .tab.active {
+            border-bottom: 2px solid #0078d7;
+            color: #0078d7;
+            background-color: white;
+        }
+        
+        .tab:hover:not(.active) {
+            background-color: #eaeaea;
+        }
+        
+        .tab-content {
+            display: none;
             padding: 20px;
+        }
+        
+        .tab-content.active {
+            display: block;
         }
         
         .preference-item {
@@ -58,6 +87,9 @@
             color: #777;
             font-size: 12px;
             margin-top: 5px;
+        }
+
+        .preference-item label:has(input[type="checkbox"]) + .help-text {
             margin-left: 24px;
         }
         
@@ -91,6 +123,64 @@
         #btnSave:hover {
             background-color: #0067b8;
         }
+        
+        /* For settings that use selects/inputs other than checkboxes */
+        .preference-item select,
+        .preference-item input[type="number"],
+        .preference-item input[type="text"] {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        /* For labels that don't have checkboxes inside */
+        .preference-item label:not(:has(input[type="checkbox"])) {
+            display: block;
+        }
+
+        /* Placeholder for future categories that may be empty */
+        .coming-soon {
+            color: #999;
+            font-style: italic;
+            padding: 20px 0;
+            text-align: center;
+        }
+
+        .preference-section {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+        
+        .preference-section h3 {
+            font-size: 16px;
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #444;
+        }
+        
+        .buttons-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .buttons-group button {
+            flex: 1;
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            background-color: #f0f0f0;
+            cursor: pointer;
+        }
+        
+        .buttons-group button:hover {
+            background-color: #e8e8e8;
+        }
     </style>
 </head>
 <body>
@@ -98,7 +188,16 @@
         <div class="preferences-header">
             <h1>AutoSlides Preferences</h1>
         </div>
-        <div class="preferences-content">
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="general">General</div>
+            <div class="tab" data-tab="capture">Capture Strategy</div>
+            <div class="tab" data-tab="profiles">Optimization Profiles</div>
+            <div class="tab" data-tab="automation">Website Automation</div>
+        </div>
+        
+        <!-- General Tab -->
+        <div class="tab-content active" id="general-tab">
             <div class="preference-item">
                 <label>
                     <input type="checkbox" id="allowBackgroundRunning">
@@ -106,10 +205,48 @@
                 </label>
                 <div class="help-text">
                     Prevents the system from sleeping while AutoSlides is running. 
+                    Useful for long automated capture sessions.
                 </div>
             </div>
-            <!-- More preference items can be added here in the future -->
+            
+            <div class="preference-section">
+                <h3>Cache Management</h3>
+                
+                <div class="preference-item">
+                    <label for="cacheCleanInterval">Auto-clean interval (minutes):</label>
+                    <input type="number" id="cacheCleanInterval" min="0" max="60" step="5" value="15" />
+                    <div class="help-text">Set to 0 to disable auto-cleaning</div>
+                </div>
+                
+                <div class="buttons-group">
+                    <button id="btnClearCookies">Clear Cookies</button>
+                    <button id="btnClearAll">Clear All Data</button>
+                </div>
+            </div>
+            <!-- Other general settings will be added here -->
         </div>
+        
+        <!-- Capture Strategy Tab -->
+        <div class="tab-content" id="capture-tab">
+            <div class="coming-soon">
+                Capture Strategy settings will appear here in future updates.
+            </div>
+        </div>
+        
+        <!-- Optimization Profiles Tab -->
+        <div class="tab-content" id="profiles-tab">
+            <div class="coming-soon">
+                Optimization Profile settings will appear here in future updates.
+            </div>
+        </div>
+        
+        <!-- Website Automation Tab -->
+        <div class="tab-content" id="automation-tab">
+            <div class="coming-soon">
+                Website Automation settings will appear here in future updates.
+            </div>
+        </div>
+        
         <div class="buttons-container">
             <button id="btnDefault">Restore Defaults</button>
             <button id="btnCancel">Cancel</button>
@@ -119,7 +256,29 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
+            // Tab switching logic
+            const tabs = document.querySelectorAll('.tab');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs and content
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab
+                    tab.classList.add('active');
+                    
+                    // Show corresponding content
+                    const tabName = tab.getAttribute('data-tab');
+                    document.getElementById(`${tabName}-tab`).classList.add('active');
+                });
+            });
+            
+            // Preference elements
             const allowBackgroundRunning = document.getElementById('allowBackgroundRunning');
+            const cacheCleanInterval = document.getElementById('cacheCleanInterval');
+            const btnClearCookies = document.getElementById('btnClearCookies');
+            const btnClearAll = document.getElementById('btnClearAll');
             const btnSave = document.getElementById('btnSave');
             const btnCancel = document.getElementById('btnCancel');
             const btnDefault = document.getElementById('btnDefault');
@@ -128,9 +287,48 @@
             try {
                 const config = await window.electronAPI.getConfig();
                 allowBackgroundRunning.checked = config.allowBackgroundRunning || false;
+                cacheCleanInterval.value = config.cacheCleanInterval || 15;
             } catch (error) {
                 console.error('Failed to load preferences:', error);
             }
+
+            // Clear cookies handler
+            btnClearCookies.addEventListener('click', async () => {
+                try {
+                    btnClearCookies.disabled = true;
+                    const result = await window.electronAPI.clearCookies();
+                    btnClearCookies.disabled = false;
+                    
+                    if (result.success) {
+                        alert('Cookies cleared successfully');
+                    } else {
+                        alert('Failed to clear cookies');
+                    }
+                } catch (error) {
+                    console.error('Error clearing cookies:', error);
+                    btnClearCookies.disabled = false;
+                    alert('Error clearing cookies: ' + error.message);
+                }
+            });
+
+            // Clear all data handler
+            btnClearAll.addEventListener('click', async () => {
+                try {
+                    btnClearAll.disabled = true;
+                    const result = await window.electronAPI.clearAllData();
+                    btnClearAll.disabled = false;
+                    
+                    if (result.success) {
+                        alert('All data cleared successfully');
+                    } else {
+                        alert('Failed to clear all data');
+                    }
+                } catch (error) {
+                    console.error('Error clearing all data:', error);
+                    btnClearAll.disabled = false;
+                    alert('Error clearing all data: ' + error.message);
+                }
+            });
             
             // Save button handler
             btnSave.addEventListener('click', async () => {
@@ -141,7 +339,8 @@
                     // Update only the preferences-related settings
                     const updatedConfig = {
                         ...config,
-                        allowBackgroundRunning: allowBackgroundRunning.checked
+                        allowBackgroundRunning: allowBackgroundRunning.checked,
+                        cacheCleanInterval: parseInt(cacheCleanInterval.value, 10)
                     };
                     
                     // Save the updated config
@@ -171,6 +370,9 @@
             btnDefault.addEventListener('click', async () => {
                 // Set to default values
                 allowBackgroundRunning.checked = false;
+                cacheCleanInterval.value = 15;
+                
+                // When more preferences are added, reset them to defaults here
             });
         });
     </script>
