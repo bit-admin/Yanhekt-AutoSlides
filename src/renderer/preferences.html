@@ -707,12 +707,98 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             
             // Default button handler
             btnDefault.addEventListener('click', async () => {
-                // Set to default values
+                // Set to default values for general settings
                 allowBackgroundRunning.checked = false;
                 cacheCleanInterval.value = 15;
                 blockingRules.value = DEFAULT_RULES;
                 
-                // When more preferences are added, reset them to defaults here
+                // If on profiles tab, restore default profiles
+                const profilesTabActive = document.getElementById('profiles-tab').classList.contains('active');
+                if (profilesTabActive) {
+                    // Define default values for built-in profiles
+                    const defaultProfiles = {
+                        "yanhekt_session": {
+                            "name": "YanHeKT Session Player",
+                            "elementSelector": "#video_id_topPlayer_html5_api",
+                            "urlPattern": "yanhekt.cn/session",
+                            "builtin": true,
+                            "automation": {
+                                "autoDetectEnd": true,
+                                "endDetectionSelector": ".player-ended-poster",
+                                "autoStartPlayback": true,
+                                "playButtonSelector": ".player-mid-button-container button",
+                                "countdownSelector": "",
+                                "autoAdjustSpeed": false,
+                                "speedSelector": "#video_id_mainPlayer_html5_api",
+                                "playbackSpeed": "3.0",
+                                "autoDetectTitle": true,
+                                "courseTitleSelector": ".ant-breadcrumb li:nth-child(2) a",
+                                "sessionInfoSelector": ".ant-breadcrumb li:nth-child(3) span",
+                                "autoRetryError": true,
+                                "errorSelector": ".vjs-errors-dialog",
+                                "maxRetryAttempts": "30"
+                            }
+                        },
+                        "yanhekt_live": {
+                            "name": "YanHeKT Live Player",
+                            "elementSelector": "#video_id_mainPlayer_html5_api",
+                            "urlPattern": "yanhekt.cn/live",
+                            "builtin": true,
+                            "automation": {
+                                "autoDetectEnd": true,
+                                "endDetectionSelector": ".VideoResult_result__LdbB3",
+                                "autoStartPlayback": true,
+                                "playButtonSelector": ".player-mid-button-container button",
+                                "countdownSelector": ".countdown-content",
+                                "autoAdjustSpeed": false,
+                                "speedSelector": "#video_id_mainPlayer_html5_api",
+                                "playbackSpeed": "1.0",
+                                "autoDetectTitle": true,
+                                "courseTitleSelector": ".index_liveHeader__uN3uM",
+                                "sessionInfoSelector": "",
+                                "autoRetryError": true,
+                                "errorSelector": ".vjs-errors-dialog",
+                                "maxRetryAttempts": "3"
+                            }
+                        }
+                    };
+                    
+                    // Get current config to preserve custom profiles
+                    try {
+                        const config = await window.electronAPI.getConfig();
+                        const currentProfiles = config.siteProfiles || {};
+                        
+                        // Reset built-in profiles while preserving custom ones
+                        for (const [id, profile] of Object.entries(defaultProfiles)) {
+                            profiles[id] = profile;
+                        }
+                        
+                        // Preserve custom profiles
+                        for (const [id, profile] of Object.entries(currentProfiles)) {
+                            if (!profile.builtin && id !== 'default') {
+                                profiles[id] = profile;
+                            }
+                        }
+                        
+                        // Clear existing profiles containers
+                        document.querySelector('.built-in-profiles .profiles-grid').innerHTML = '';
+                        document.querySelector('.custom-profiles .profiles-grid').innerHTML = '';
+                        
+                        // Recreate UI for all profiles
+                        for (const [id, profile] of Object.entries(profiles)) {
+                            if (id !== 'default') {
+                                createProfileSection(id, profile);
+                            }
+                        }
+                        
+                        // Mark as changed
+                        hasChanges = true;
+                        
+                    } catch (error) {
+                        console.error('Failed to restore default profiles:', error);
+                        alert('Failed to restore default profiles: ' + error.message);
+                    }
+                }
             });
 
             // Profiles related elements
