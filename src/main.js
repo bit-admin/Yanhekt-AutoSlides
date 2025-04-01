@@ -116,6 +116,8 @@ yanhekt.cn##div#ai-bit-animation-modal`
 
 const config = new Store({ schema });
 
+let mainWindow = null;
+
 // Create directory if it doesn't exist
 function ensureDirectoryExists(directory) {
   if (!fs.existsSync(directory)) {
@@ -219,7 +221,8 @@ function createApplicationMenu() {
 
 // Create main window
 function createWindow() {
-  const mainWindow = new BrowserWindow({
+  // Change from const to using the global variable
+  mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
@@ -847,4 +850,8 @@ ipcMain.handle('apply-blocking-rules', async (event) => {
     console.error('Error applying blocking rules:', error);
     return { success: false, error: error.message };
   }
+});
+
+ipcMain.handle('send-to-main-window', (event, channel, data) => {
+  mainWindow.webContents.send(channel, data);
 });

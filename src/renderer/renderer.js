@@ -5636,4 +5636,17 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     
     saveConfig();
   });
+
+  window.electronAPI.onUpdateProfiles((event, updatedProfiles) => {
+    // Update in-memory profiles
+    siteProfiles = updatedProfiles;
+    
+    // Update UI dropdown
+    updateProfileDropdown();
+    
+    // If current profile was modified, reload its details
+    if (activeProfileId && siteProfiles[activeProfileId]) {
+        loadProfileDetails(activeProfileId);
+    }
+  });
 });
