@@ -33,9 +33,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnShowCropGuides = document.getElementById('btnShowCropGuides');
   const cacheInfo = document.getElementById('cacheInfo');
   const btnClearCache = document.getElementById('btnClearCache');
-  const btnClearCookies = document.getElementById('btnClearCookies');
-  const btnClearAll = document.getElementById('btnClearAll');
-  const cacheCleanInterval = document.getElementById('cacheCleanInterval');
   const siteProfileSelect = document.getElementById('siteProfileSelect');
   const elementSelector = document.getElementById('elementSelector');
   const urlPattern = document.getElementById('urlPattern');
@@ -291,9 +288,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       inputBottomCrop.value = config.bottomCropPercent || 5;
       inputCheckInterval.value = config.checkInterval || 2;
       
-      // Load cache clean interval
-      cacheCleanInterval.value = config.cacheCleanInterval || 15;
-      
       // Load site profiles with default built-in profiles
       siteProfiles = config.siteProfiles || {
         yanhekt_session: {
@@ -388,7 +382,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         topCropPercent: parseFloat(inputTopCrop.value),
         bottomCropPercent: parseFloat(inputBottomCrop.value),
         checkInterval: parseFloat(inputCheckInterval.value),
-        cacheCleanInterval: parseInt(cacheCleanInterval.value, 10),
         siteProfiles: siteProfiles,
         activeProfileId: activeProfileId,
         comparisonMethod: comparisonMethod.value, 
@@ -733,20 +726,22 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       cacheCleanupTimer = null;
     }
     
-    // Get the interval in minutes
-    const interval = parseInt(cacheCleanInterval.value, 10);
-    
-    // If interval is valid and not zero, set up timer
-    if (interval > 0) {
-      console.log(`Setting up cache cleanup timer for every ${interval} minutes`);
-      cacheCleanupTimer = setInterval(async () => {
-        if (captureInterval) {  // Only clean if capturing
-          console.log('Running automatic cache cleanup');
-          await window.electronAPI.clearBrowserCache();
-          await updateCacheInfo();
-        }
-      }, interval * 60 * 1000);
-    }
+    // Get the interval from config
+    window.electronAPI.getConfig().then(config => {
+      const interval = config.cacheCleanInterval || 15;
+      
+      // If interval is valid and not zero, set up timer
+      if (interval > 0) {
+        console.log(`Setting up cache cleanup timer for every ${interval} minutes`);
+        cacheCleanupTimer = setInterval(async () => {
+          if (captureInterval) {  // Only clean if capturing
+            console.log('Running automatic cache cleanup');
+            await window.electronAPI.clearBrowserCache();
+            await updateCacheInfo();
+          }
+        }, interval * 60 * 1000);
+      }
+    });
   }
   
   async function loadBlockingRules() {
@@ -2284,11 +2279,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   });
 
-  cacheCleanInterval.addEventListener('change', () => {
-    saveConfig();
-    setupCacheCleanupTimer();
-  });
-
   siteProfileSelect.addEventListener('change', () => {
     const profileId = siteProfileSelect.value;
     loadProfileDetails(profileId);
@@ -2318,8 +2308,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   });
   btnResetRules.addEventListener('click', resetRules);
   btnClearCache.addEventListener('click', clearBrowserCache);
-  btnClearCookies.addEventListener('click', clearCookies);
-  btnClearAll.addEventListener('click', clearAllData);
   btnSaveProfile.addEventListener('click', saveCurrentProfile);
   btnDeleteProfile.addEventListener('click', deleteCurrentProfile);
 
