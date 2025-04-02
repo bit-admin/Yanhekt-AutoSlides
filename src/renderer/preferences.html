@@ -11,21 +11,25 @@
             padding: 0;
             background-color: #f5f5f5;
             color: #333;
+            overflow: hidden; /* Prevent body scrolling */
         }
         
         .preferences-container {
-            max-width: 650px;
-            margin: 20px auto;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
             overflow: hidden;
+            max-width: 650px;
+            margin: 0 auto;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
         
         .preferences-header {
             background-color: #f9f9f9;
             padding: 15px 20px;
             border-bottom: 1px solid #eee;
+            flex-shrink: 0; /* Prevent shrinking */
         }
         
         .preferences-header h1 {
@@ -38,6 +42,10 @@
             display: flex;
             border-bottom: 1px solid #eee;
             background-color: #f9f9f9;
+            flex-shrink: 0; /* Prevent shrinking */
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
         
         .tab {
@@ -65,6 +73,13 @@
         
         .tab-content.active {
             display: block;
+        }
+
+        /* Create a scrollable content area */
+        .content-scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
         }
         
         .preference-item {
@@ -100,6 +115,10 @@
             padding: 15px 20px;
             background-color: #f9f9f9;
             border-top: 1px solid #eee;
+            flex-shrink: 0; /* Prevent shrinking */
+            position: sticky;
+            bottom: 0;
+            z-index: 100;
         }
         
         button {
@@ -384,218 +403,223 @@
             <div class="tab" data-tab="profiles">Optimization Profiles</div>
             <div class="tab" data-tab="automation">Website Automation</div>
         </div>
+
+        <!-- Add scrollable content area wrapper -->
+        <div class="content-scroll-area">
         
-        <!-- General Tab -->
-        <div class="tab-content active" id="general-tab">
-            <div class="preference-item">
-                <label>
-                    <input type="checkbox" id="allowBackgroundRunning">
-                    Keep running in background
-                </label>
-                <div class="help-text">
-                    Prevents the system from sleeping while AutoSlides is running. 
-                    Useful for long automated capture sessions.
-                </div>
-            </div>
-            
-            <div class="preference-section">
-                <h3>Cache Management</h3>
-                
+            <!-- General Tab -->
+            <div class="tab-content active" id="general-tab">
                 <div class="preference-item">
-                    <label for="cacheCleanInterval">Auto-clean interval (minutes):</label>
-                    <input type="number" id="cacheCleanInterval" min="0" max="60" step="5" value="15" />
-                    <div class="help-text">Set to 0 to disable auto-cleaning</div>
+                    <label>
+                        <input type="checkbox" id="allowBackgroundRunning">
+                        Keep running in background
+                    </label>
+                    <div class="help-text">
+                        Prevents the system from sleeping while AutoSlides is running. 
+                        Useful for long automated capture sessions.
+                    </div>
                 </div>
                 
-                <div class="buttons-group">
-                    <button id="btnClearCookies">Clear Cookies</button>
-                    <button id="btnClearAll">Clear All Data</button>
-                </div>
-            </div>
-            <!-- Other general settings will be added here -->
-        </div>
-        
-        <!-- Capture Strategy Tab -->
-        <div class="tab-content" id="capture-tab">
-            <div class="coming-soon">
-                Capture Strategy settings will appear here in future updates.
-            </div>
-        </div>
-        
-        <!-- Optimization Profiles Tab -->
-        <div class="tab-content" id="profiles-tab">
-            <!-- Default Profile Section - NEW -->
-            <div class="preference-section default-profile">
-                <div class="profile-card built-in" data-profile-id="default">
-                    <div class="profile-header">
-                        <h4 class="profile-name">Default (Full Page)</h4>
-                        <button id="btnShowCropGuides" class="preview-link">Preview Crop</button>
-                    </div>
+                <div class="preference-section">
+                    <h3>Cache Management</h3>
                     
-                    <p class="help-text">The default profile captures the entire webpage with cropping (apply only to Default profile).</p>
-                    
-                    <hr class="section-divider">
-                    
-                    <!-- Cropping Settings Group -->
-                    <div class="settings-grid">
-                        <div class="preference-item">
-                            <label for="inputTopCrop">Top Crop (%):</label>
-                            <input type="number" id="inputTopCrop" class="topCropPercent" step="1" min="0" max="40" value="5" />
-                        </div>
-                        
-                        <div class="preference-item">
-                            <label for="inputBottomCrop">Bottom Crop (%):</label>
-                            <input type="number" id="inputBottomCrop" class="bottomCropPercent" step="1" min="0" max="40" value="5" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Built-in Profiles Section -->
-            <div class="preference-section built-in-profiles">
-                <div class="profiles-grid">
-                    <!-- Built-in profile sections will be added dynamically -->
-                </div>
-            </div>
-            
-            <!-- New Profile Creation (Now in the middle) -->
-            <div class="preference-section profile-creation">
-                <div class="create-profile-row">
                     <div class="preference-item">
-                        <label for="newProfileName">Create New Profile:</label>
-                        <input type="text" id="newProfileName" placeholder="Enter profile name">
+                        <label for="cacheCleanInterval">Auto-clean interval (minutes):</label>
+                        <input type="number" id="cacheCleanInterval" min="0" max="60" step="5" value="15" />
+                        <div class="help-text">Set to 0 to disable auto-cleaning</div>
                     </div>
-                    <button id="btnCreateProfile" class="action-button">Create Profile</button>
+                    
+                    <div class="buttons-group">
+                        <button id="btnClearCookies">Clear Cookies</button>
+                        <button id="btnClearAll">Clear All Data</button>
+                    </div>
+                </div>
+                <!-- Other general settings will be added here -->
+            </div>
+            
+            <!-- Capture Strategy Tab -->
+            <div class="tab-content" id="capture-tab">
+                <div class="coming-soon">
+                    Capture Strategy settings will appear here in future updates.
                 </div>
             </div>
             
-            <!-- Custom Profiles Section -->
-            <div class="preference-section custom-profiles">
-                <div class="profiles-grid">
-                    <!-- Custom profile sections will be added dynamically -->
+            <!-- Optimization Profiles Tab -->
+            <div class="tab-content" id="profiles-tab">
+                <!-- Default Profile Section - NEW -->
+                <div class="preference-section default-profile">
+                    <div class="profile-card built-in" data-profile-id="default">
+                        <div class="profile-header">
+                            <h4 class="profile-name">Default (Full Page)</h4>
+                            <button id="btnShowCropGuides" class="preview-link">Preview Crop</button>
+                        </div>
+                        
+                        <p class="help-text">The default profile captures the entire webpage with cropping (apply only to Default profile).</p>
+                        
+                        <hr class="section-divider">
+                        
+                        <!-- Cropping Settings Group -->
+                        <div class="settings-grid">
+                            <div class="preference-item">
+                                <label for="inputTopCrop">Top Crop (%):</label>
+                                <input type="number" id="inputTopCrop" class="topCropPercent" step="1" min="0" max="40" value="5" />
+                            </div>
+                            
+                            <div class="preference-item">
+                                <label for="inputBottomCrop">Bottom Crop (%):</label>
+                                <input type="number" id="inputBottomCrop" class="bottomCropPercent" step="1" min="0" max="40" value="5" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Built-in Profiles Section -->
+                <div class="preference-section built-in-profiles">
+                    <div class="profiles-grid">
+                        <!-- Built-in profile sections will be added dynamically -->
+                    </div>
+                </div>
+                
+                <!-- New Profile Creation (Now in the middle) -->
+                <div class="preference-section profile-creation">
+                    <div class="create-profile-row">
+                        <div class="preference-item">
+                            <label for="newProfileName">Create New Profile:</label>
+                            <input type="text" id="newProfileName" placeholder="Enter profile name">
+                        </div>
+                        <button id="btnCreateProfile" class="action-button">Create Profile</button>
+                    </div>
+                </div>
+                
+                <!-- Custom Profiles Section -->
+                <div class="preference-section custom-profiles">
+                    <div class="profiles-grid">
+                        <!-- Custom profile sections will be added dynamically -->
+                    </div>
+                </div>
+                
+                <!-- Template for profiles -->
+                <template id="profileTemplate">
+                    <div class="profile-card" data-profile-id="">
+                        <div class="profile-header">
+                            <h4 class="profile-name"></h4>
+                            <button class="profile-delete-btn" title="Delete profile">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Basic Configuration Group -->
+                        <div class="settings-grid">
+                            <div class="preference-item">
+                                <label for="profileElementSelector">Element selector:</label>
+                                <input type="text" class="profileElementSelector" placeholder="#video_id_topPlayer_html5_api">
+                                <div class="help-text">Only the selected element will be captured</div>
+                            </div>
+                            
+                            <div class="preference-item">
+                                <label for="profileUrlPattern">URL patterns:</label>
+                                <input type="text" class="profileUrlPattern" placeholder="example.com/video">
+                                <div class="help-text">Space-separated patterns to auto-select this profile</div>
+                            </div>
+                        </div>
+                        
+                        <hr class="section-divider">
+                        
+                        <!-- Playback Detection Group -->
+                        <div class="settings-grid">
+                            <div class="preference-item">
+                                <label for="profileEndDetectionSelector">End detection selector:</label>
+                                <input type="text" class="profileEndDetectionSelector" placeholder=".player-ended-poster">
+                                <div class="help-text">Used when "Auto-detect playback end" is enabled</div>
+                            </div>
+                            
+                            <div class="preference-item">
+                                <label for="profilePlayButtonSelector">Play button selector:</label>
+                                <input type="text" class="profilePlayButtonSelector" placeholder=".play-button">
+                                <div class="help-text">Used when "Auto-start playback" is enabled</div>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-grid">
+                            <div class="preference-item">
+                                <label for="profileCountdownSelector">Countdown selector:</label>
+                                <input type="text" class="profileCountdownSelector" placeholder=".countdown">
+                                <div class="help-text">Element containing countdown before video starts</div>
+                            </div>
+                        </div>
+                        
+                        <hr class="section-divider">
+                        
+                        <!-- Speed Settings Group -->
+                        <div class="settings-grid">
+                            <div class="preference-item">
+                                <label for="profileSpeedSelector">Speed selector:</label>
+                                <input type="text" class="profileSpeedSelector" placeholder="#video_element">
+                                <div class="help-text">Used when "Auto-adjust playback speed" is enabled</div>
+                            </div>
+                            
+                            <div class="preference-item">
+                                <label for="profilePlaybackSpeed">Default playback speed:</label>
+                                <select class="profilePlaybackSpeed">
+                                    <option value="1.0">1.0x</option>
+                                    <option value="1.5">1.5x</option>
+                                    <option value="2.0">2.0x</option>
+                                    <option value="2.5">2.5x</option>
+                                    <option value="3.0">3.0x</option>
+                                    <option value="4.0">4.0x</option>
+                                    <option value="5.0">5.0x</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <hr class="section-divider">
+                        
+                        <!-- Title Detection Group -->
+                        <div class="settings-grid">
+                            <div class="preference-item">
+                                <label for="profileCourseTitleSelector">Course title selector:</label>
+                                <input type="text" class="profileCourseTitleSelector" placeholder=".course-title">
+                                <div class="help-text">Used when "Auto-detect title" is enabled</div>
+                            </div>
+                            
+                            <div class="preference-item">
+                                <label for="profileSessionInfoSelector">Session info selector:</label>
+                                <input type="text" class="profileSessionInfoSelector" placeholder=".session-info">
+                            </div>
+                        </div>
+                        
+                        <hr class="section-divider">
+                        
+                        <!-- Error Handling Group -->
+                        <div class="settings-grid">
+                            <div class="preference-item">
+                                <label for="profileErrorSelector">Error selector:</label>
+                                <input type="text" class="profileErrorSelector" placeholder=".error-message">
+                                <div class="help-text">Used when "Auto-retry on error" is enabled</div>
+                            </div>
+                            
+                            <div class="preference-item">
+                                <label for="profileMaxRetryAttempts">Max retry attempts:</label>
+                                <input type="number" class="profileMaxRetryAttempts" min="1" max="10" value="3">
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div> 
+            <!-- Website Automation Tab -->
+            <div class="tab-content" id="automation-tab">
+                <div class="preference-section">
+                    <h3>Element Blocking Rules</h3>
+                    <p class="help-text">AdGuard-like rules (one per line)</p>
+                    <div class="code-editor-container">
+                        <textarea id="blockingRules" rows="8" spellcheck="false" wrap="off"></textarea>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Template for profiles -->
-            <template id="profileTemplate">
-                <div class="profile-card" data-profile-id="">
-                    <div class="profile-header">
-                        <h4 class="profile-name"></h4>
-                        <button class="profile-delete-btn" title="Delete profile">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </button>
-                    </div>
-                    
-                    <!-- Basic Configuration Group -->
-                    <div class="settings-grid">
-                        <div class="preference-item">
-                            <label for="profileElementSelector">Element selector:</label>
-                            <input type="text" class="profileElementSelector" placeholder="#video_id_topPlayer_html5_api">
-                            <div class="help-text">Only the selected element will be captured</div>
-                        </div>
-                        
-                        <div class="preference-item">
-                            <label for="profileUrlPattern">URL patterns:</label>
-                            <input type="text" class="profileUrlPattern" placeholder="example.com/video">
-                            <div class="help-text">Space-separated patterns to auto-select this profile</div>
-                        </div>
-                    </div>
-                    
-                    <hr class="section-divider">
-                    
-                    <!-- Playback Detection Group -->
-                    <div class="settings-grid">
-                        <div class="preference-item">
-                            <label for="profileEndDetectionSelector">End detection selector:</label>
-                            <input type="text" class="profileEndDetectionSelector" placeholder=".player-ended-poster">
-                            <div class="help-text">Used when "Auto-detect playback end" is enabled</div>
-                        </div>
-                        
-                        <div class="preference-item">
-                            <label for="profilePlayButtonSelector">Play button selector:</label>
-                            <input type="text" class="profilePlayButtonSelector" placeholder=".play-button">
-                            <div class="help-text">Used when "Auto-start playback" is enabled</div>
-                        </div>
-                    </div>
-                    
-                    <div class="settings-grid">
-                        <div class="preference-item">
-                            <label for="profileCountdownSelector">Countdown selector:</label>
-                            <input type="text" class="profileCountdownSelector" placeholder=".countdown">
-                            <div class="help-text">Element containing countdown before video starts</div>
-                        </div>
-                    </div>
-                    
-                    <hr class="section-divider">
-                    
-                    <!-- Speed Settings Group -->
-                    <div class="settings-grid">
-                        <div class="preference-item">
-                            <label for="profileSpeedSelector">Speed selector:</label>
-                            <input type="text" class="profileSpeedSelector" placeholder="#video_element">
-                            <div class="help-text">Used when "Auto-adjust playback speed" is enabled</div>
-                        </div>
-                        
-                        <div class="preference-item">
-                            <label for="profilePlaybackSpeed">Default playback speed:</label>
-                            <select class="profilePlaybackSpeed">
-                                <option value="1.0">1.0x</option>
-                                <option value="1.5">1.5x</option>
-                                <option value="2.0">2.0x</option>
-                                <option value="2.5">2.5x</option>
-                                <option value="3.0">3.0x</option>
-                                <option value="4.0">4.0x</option>
-                                <option value="5.0">5.0x</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <hr class="section-divider">
-                    
-                    <!-- Title Detection Group -->
-                    <div class="settings-grid">
-                        <div class="preference-item">
-                            <label for="profileCourseTitleSelector">Course title selector:</label>
-                            <input type="text" class="profileCourseTitleSelector" placeholder=".course-title">
-                            <div class="help-text">Used when "Auto-detect title" is enabled</div>
-                        </div>
-                        
-                        <div class="preference-item">
-                            <label for="profileSessionInfoSelector">Session info selector:</label>
-                            <input type="text" class="profileSessionInfoSelector" placeholder=".session-info">
-                        </div>
-                    </div>
-                    
-                    <hr class="section-divider">
-                    
-                    <!-- Error Handling Group -->
-                    <div class="settings-grid">
-                        <div class="preference-item">
-                            <label for="profileErrorSelector">Error selector:</label>
-                            <input type="text" class="profileErrorSelector" placeholder=".error-message">
-                            <div class="help-text">Used when "Auto-retry on error" is enabled</div>
-                        </div>
-                        
-                        <div class="preference-item">
-                            <label for="profileMaxRetryAttempts">Max retry attempts:</label>
-                            <input type="number" class="profileMaxRetryAttempts" min="1" max="10" value="3">
-                        </div>
-                    </div>
-                </div>
-            </template>
-        </div> 
-        <!-- Website Automation Tab -->
-        <div class="tab-content" id="automation-tab">
-            <div class="preference-section">
-                <h3>Element Blocking Rules</h3>
-                <p class="help-text">AdGuard-like rules (one per line)</p>
-                <div class="code-editor-container">
-                    <textarea id="blockingRules" rows="8" spellcheck="false" wrap="off"></textarea>
-                </div>
-            </div>
+
         </div>
         
         <div class="buttons-container">
