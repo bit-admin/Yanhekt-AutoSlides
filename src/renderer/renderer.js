@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const bottomCropGuide = document.getElementById('bottomCropGuide');
   const cropGuides = document.querySelector('.crop-guides');
   const cropInfoOverlay = document.getElementById('cropInfoOverlay');
-  const btnShowCropGuides = document.getElementById('btnShowCropGuides');
   const cacheInfo = document.getElementById('cacheInfo');
   const btnClearCache = document.getElementById('btnClearCache');
   const siteProfileSelect = document.getElementById('siteProfileSelect');
@@ -2154,15 +2153,21 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   });
 
-window.electronAPI.onShowCropGuides && window.electronAPI.onShowCropGuides(async () => {
-  // Get latest crop settings from config
-  const config = await window.electronAPI.getConfig();
-  const topCropPercent = config.topCropPercent || 5;
-  const bottomCropPercent = config.bottomCropPercent || 5;
-  
-  // Update the crop guide positions with these values
-  updateCropGuidesFromConfig(topCropPercent, bottomCropPercent);
-});
+  window.electronAPI.onShowCropGuides && window.electronAPI.onShowCropGuides(async () => {
+    // Get latest crop settings from config
+    const config = await window.electronAPI.getConfig();
+    const topCropPercent = config.topCropPercent || 5;
+    const bottomCropPercent = config.bottomCropPercent || 5;
+    
+    // Update the crop guide positions with these values
+    updateCropGuidesFromConfig(topCropPercent, bottomCropPercent);
+  });
+
+  window.electronAPI.onUpdateCropPreview && window.electronAPI.onUpdateCropPreview((event, data) => {
+    const { topCropPercent, bottomCropPercent } = data;
+    // Update the crop guides with the received values
+    updateCropGuidesFromConfig(topCropPercent, bottomCropPercent);
+  });
 
   siteProfileSelect.addEventListener('change', () => {
     const profileId = siteProfileSelect.value;

@@ -859,3 +859,7 @@ ipcMain.handle('send-to-main-window', (event, channel, data) => {
 ipcMain.on('show-crop-guides', (event) => {
   mainWindow.webContents.send('show-crop-guides');
 });
+
+ipcMain.on('update-crop-preview', (event, data) => {
+  mainWindow.webContents.send('update-crop-preview', data);
+});

@@ -429,7 +429,7 @@
                 <div class="profile-card built-in" data-profile-id="default">
                     <div class="profile-header">
                         <h4 class="profile-name">Default (Full Page)</h4>
-                        <button id="btnShowCropGuides" class="preview-link">Preview</button>
+                        <button id="btnShowCropGuides" class="preview-link">Preview Crop</button>
                     </div>
                     
                     <p class="help-text">The default profile captures the entire webpage with cropping (apply only to Default profile).</p>
@@ -1139,14 +1139,38 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 }
             });
             
-            // Mark changes when crop settings change
-            inputTopCrop.addEventListener('change', () => {
+            // Mark changes and show real-time preview when crop settings change
+            inputTopCrop.addEventListener('input', async () => {
                 hasChanges = true;
+                await updateCropPreviewInMainWindow();
             });
             
-            inputBottomCrop.addEventListener('change', () => {
+            inputBottomCrop.addEventListener('input', async () => {
                 hasChanges = true;
+                await updateCropPreviewInMainWindow();
             });
+            
+            // Focus events to show crop guides
+            inputTopCrop.addEventListener('focus', async () => {
+                await updateCropPreviewInMainWindow();
+            });
+            
+            inputBottomCrop.addEventListener('focus', async () => {
+                await updateCropPreviewInMainWindow();
+            });
+            
+            // Helper function to update crop preview in main window
+            async function updateCropPreviewInMainWindow() {
+                try {
+                    // Send current values directly to main window without saving to config
+                    await window.electronAPI.sendToMainWindow('update-crop-preview', {
+                        topCropPercent: parseFloat(inputTopCrop.value) || 0,
+                        bottomCropPercent: parseFloat(inputBottomCrop.value) || 0
+                    });
+                } catch (error) {
+                    console.error('Failed to update crop preview:', error);
+                }
+            }
             
             // Load crop settings when Profiles tab is displayed
             document.querySelector('.tab[data-tab="profiles"]').addEventListener('click', () => {
