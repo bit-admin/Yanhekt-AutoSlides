@@ -261,8 +261,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     try {
       const config = await window.electronAPI.getConfig();
       inputOutputDir.value = config.outputDir || '';
-      inputTopCrop.value = config.topCropPercent || 5;
-      inputBottomCrop.value = config.bottomCropPercent || 5;
+
+      if (inputTopCrop) inputTopCrop.value = config.topCropPercent || 5;
+      if (inputBottomCrop) inputBottomCrop.value = config.bottomCropPercent || 5;
+
       inputCheckInterval.value = config.checkInterval || 2;
       
       // Load site profiles with default built-in profiles
@@ -354,10 +356,14 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   
   async function saveConfig() {
     try {
+      // Get existing config first to preserve crop settings
+      const existingConfig = await window.electronAPI.getConfig();
+
       const config = {
         outputDir: inputOutputDir.value,
-        topCropPercent: parseFloat(inputTopCrop.value),
-        bottomCropPercent: parseFloat(inputBottomCrop.value),
+        // Use existing config values or element values if they exist
+        topCropPercent: inputTopCrop ? parseFloat(inputTopCrop.value) : (existingConfig.topCropPercent || 5),
+        bottomCropPercent: inputBottomCrop ? parseFloat(inputBottomCrop.value) : (existingConfig.bottomCropPercent || 5),
         checkInterval: parseFloat(inputCheckInterval.value),
         siteProfiles: siteProfiles,
         activeProfileId: activeProfileId,
@@ -980,15 +986,20 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   // Crop image based on current settings
   function cropImage(imageData) {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
+      // Get latest crop settings from config
+      const config = await window.electronAPI.getConfig();
+      const topCropPercent = config.topCropPercent || 5;
+      const bottomCropPercent = config.bottomCropPercent || 5;
+      
       const img = new Image();
       
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         
-        const topCrop = Math.floor(img.height * (parseFloat(inputTopCrop.value) / 100));
-        const bottomCrop = Math.floor(img.height * (1 - parseFloat(inputBottomCrop.value) / 100));
+        const topCrop = Math.floor(img.height * (topCropPercent / 100));
+        const bottomCrop = Math.floor(img.height * (1 - bottomCropPercent / 100));
         
         // Set canvas size to the cropped dimensions
         canvas.width = img.width;
@@ -2136,14 +2147,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }, 1500);
   });
 
-  // Add event listeners to crop input fields
-  inputTopCrop.addEventListener('input', () => updateCropGuides(false));
-  inputBottomCrop.addEventListener('input', () => updateCropGuides(false));
-
-  // Also show guides when focusing the inputs
-  inputTopCrop.addEventListener('focus', () => updateCropGuides(false));
-  inputBottomCrop.addEventListener('focus', () => updateCropGuides(false));
-
   // Update guides if webview size changes (e.g., when window is resized)
   window.addEventListener('resize', () => {
     if (cropGuides.classList.contains('visible')) {
@@ -2151,17 +2154,15 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   });
 
-  // Add event listener for the show guides button
-  btnShowCropGuides.addEventListener('click', () => {
-    updateCropGuides(false);
-    
-    // Toggle button text
-    if (cropGuides.classList.contains('visible')) {
-      btnShowCropGuides.textContent = 'Show Crop Guides';
-    } else {
-      btnShowCropGuides.textContent = 'Hide Crop Guides';
-    }
-  });
+window.electronAPI.onShowCropGuides && window.electronAPI.onShowCropGuides(async () => {
+  // Get latest crop settings from config
+  const config = await window.electronAPI.getConfig();
+  const topCropPercent = config.topCropPercent || 5;
+  const bottomCropPercent = config.bottomCropPercent || 5;
+  
+  // Update the crop guide positions with these values
+  updateCropGuidesFromConfig(topCropPercent, bottomCropPercent);
+});
 
   siteProfileSelect.addEventListener('change', () => {
     const profileId = siteProfileSelect.value;
@@ -2172,6 +2173,35 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       validateAutomationRequirements();
     }
   });
+
+  function updateCropGuidesFromConfig(topCropPercent, bottomCropPercent) {
+    // Get webview dimensions
+    const webviewHeight = webview.clientHeight;
+    
+    // Calculate pixel positions
+    const topPosition = Math.floor(webviewHeight * (topCropPercent / 100));
+    const bottomPosition = Math.floor(webviewHeight * (1 - bottomCropPercent / 100));
+    
+    // Update guide positions
+    topCropGuide.style.top = `${topPosition}px`;
+    bottomCropGuide.style.top = `${bottomPosition}px`;
+    
+    // Update info overlay with current crop percentages
+    cropInfoOverlay.textContent = `Crop: Top ${topCropPercent}%, Bottom ${bottomCropPercent}%`;
+    
+    // Show the guides
+    cropGuides.classList.add('visible');
+    
+    // Clear any existing timer
+    if (cropGuideTimer) {
+      clearTimeout(cropGuideTimer);
+    }
+    
+    // Set timer to hide guides after 3 seconds
+    cropGuideTimer = setTimeout(() => {
+      cropGuides.classList.remove('visible');
+    }, 3000);
+  }
 
   // Update cache info initially 
   updateCacheInfo();
@@ -5257,8 +5287,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   }
 
   // Add listeners to configuration fields
-  inputTopCrop.addEventListener('input', highlightConfigSaveButton);
-  inputBottomCrop.addEventListener('input', highlightConfigSaveButton);
   inputCheckInterval.addEventListener('input', highlightConfigSaveButton);
   comparisonMethod.addEventListener('change', highlightConfigSaveButton);
 
