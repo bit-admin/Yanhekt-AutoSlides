@@ -17,8 +17,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnDefaultConfig = document.getElementById('btnDefaultConfig');
   const inputUrl = document.getElementById('inputUrl');
   const inputOutputDir = document.getElementById('inputOutputDir');
-  const inputTopCrop = document.getElementById('inputTopCrop');
-  const inputBottomCrop = document.getElementById('inputBottomCrop');
   const inputCheckInterval = document.getElementById('inputCheckInterval');
   const statusText = document.getElementById('statusText');
   const slideCount = document.getElementById('slideCount');
@@ -241,9 +239,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       const config = await window.electronAPI.getConfig();
       inputOutputDir.value = config.outputDir || '';
 
-      if (inputTopCrop) inputTopCrop.value = config.topCropPercent || 5;
-      if (inputBottomCrop) inputBottomCrop.value = config.bottomCropPercent || 5;
-
       inputCheckInterval.value = config.checkInterval || 2;
       
       // Load site profiles with default built-in profiles
@@ -340,9 +335,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   
       const config = {
         outputDir: inputOutputDir.value,
-        // Use existing config values or element values if they exist
-        topCropPercent: inputTopCrop ? parseFloat(inputTopCrop.value) : (existingConfig.topCropPercent || 5),
-        bottomCropPercent: inputBottomCrop ? parseFloat(inputBottomCrop.value) : (existingConfig.bottomCropPercent || 5),
+        topCropPercent: existingConfig.topCropPercent || 5,
+        bottomCropPercent: existingConfig.bottomCropPercent || 5,
         checkInterval: parseFloat(inputCheckInterval.value),
         siteProfiles: siteProfiles,
         activeProfileId: activeProfileId,
@@ -592,13 +586,14 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   }
 
   // Function to update the crop guide positions
-  function updateCropGuides(isAutomatic = false) {
+  async function updateCropGuides(isAutomatic = false) {
     // Get webview dimensions
     const webviewHeight = webview.clientHeight;
     
     // Calculate guide positions based on crop percentages
-    const topCropPercent = parseFloat(inputTopCrop.value) || 0;
-    const bottomCropPercent = parseFloat(inputBottomCrop.value) || 0;
+    const config = await window.electronAPI.getConfig();
+    const topCropPercent = config.topCropPercent || 0;
+    const bottomCropPercent = config.bottomCropPercent || 0;
     
     // Calculate pixel positions
     const topPosition = Math.floor(webviewHeight * (topCropPercent / 100));
@@ -1307,8 +1302,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           canvas2.width = img2.width;
           canvas2.height = img2.height;
 
-          const topCrop = Math.floor(img1.height * (parseFloat(inputTopCrop.value) / 100));
-          const bottomCrop = Math.floor(img1.height * (1 - parseFloat(inputBottomCrop.value) / 100));
+          const topCrop = Math.floor(img1.height * (topCropPercent / 100));
+          const bottomCrop = Math.floor(img1.height * (1 - bottomCropPercent / 100));
 
           ctx1.drawImage(img1, 0, topCrop, img1.width, bottomCrop - topCrop, 0, 0, img1.width, bottomCrop - topCrop);
           ctx2.drawImage(img2, 0, topCrop, img2.width, bottomCrop - topCrop, 0, 0, img2.width, bottomCrop - topCrop);
