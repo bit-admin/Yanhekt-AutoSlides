@@ -1285,29 +1285,35 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   // Compare images for changes
   function compareImages(img1Data, img2Data) {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
+      // Get latest crop settings from config
+      const config = await window.electronAPI.getConfig();
+      const topCropPercent = config.topCropPercent || 5;
+      const bottomCropPercent = config.bottomCropPercent || 5;
+      
       const img1 = new Image();
       const img2 = new Image();
       let loadedCount = 0;
-
+  
       function processImages() {
         if (loadedCount === 2) {
           const canvas1 = document.createElement('canvas');
           const canvas2 = document.createElement('canvas');
           const ctx1 = canvas1.getContext('2d');
           const ctx2 = canvas2.getContext('2d');
-
+  
           canvas1.width = img1.width;
           canvas1.height = img1.height;
           canvas2.width = img2.width;
           canvas2.height = img2.height;
-
+  
+          // Now we use the topCropPercent and bottomCropPercent from config
           const topCrop = Math.floor(img1.height * (topCropPercent / 100));
           const bottomCrop = Math.floor(img1.height * (1 - bottomCropPercent / 100));
-
+  
           ctx1.drawImage(img1, 0, topCrop, img1.width, bottomCrop - topCrop, 0, 0, img1.width, bottomCrop - topCrop);
           ctx2.drawImage(img2, 0, topCrop, img2.width, bottomCrop - topCrop, 0, 0, img2.width, bottomCrop - topCrop);
-
+  
           // Get image data
           let data1 = ctx1.getImageData(0, 0, canvas1.width, canvas1.height);
           let data2 = ctx2.getImageData(0, 0, canvas2.width, canvas2.height);
@@ -1329,7 +1335,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           }
         }
       }
-
+  
       img1.onload = () => {
         loadedCount++;
         processImages();
@@ -1339,7 +1345,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         loadedCount++;
         processImages();
       };
-
+  
       img1.src = img1Data;
       img2.src = img2Data;
     });
