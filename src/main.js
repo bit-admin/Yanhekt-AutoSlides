@@ -224,7 +224,7 @@ function createWindow() {
   // Change from const to using the global variable
   mainWindow = new BrowserWindow({
     width: 1200,
-    height: 800,
+    height: 820,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -252,7 +252,7 @@ function createPreferencesWindow() {
   
   preferencesWindow = new BrowserWindow({
     width: 700,
-    height: 800,
+    height: 820,
     title: 'Preferences',
     minimizable: false,
     maximizable: false,
