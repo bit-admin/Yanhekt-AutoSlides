@@ -614,14 +614,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       clearTimeout(cropGuideTimer);
     }
     
-    // Set timer to hide guides - 6 seconds for automatic triggers, 3 seconds for manual
-    const hideDelay = isAutomatic ? 6000 : 3000;
     cropGuideTimer = setTimeout(() => {
       cropGuides.classList.remove('visible');
-      if (btnShowCropGuides.textContent === 'Hide Crop Guides') {
-        btnShowCropGuides.textContent = 'Show Crop Guides';
-      }
-    }, hideDelay);
+    }, 3000);
   }
   
   async function saveBlockingRules(rulesText) {
