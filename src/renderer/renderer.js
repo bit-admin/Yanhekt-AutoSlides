@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnStopCapture = document.getElementById('btnStopCapture');
   const btnLoadUrl = document.getElementById('btnLoadUrl');
   const btnSelectDir = document.getElementById('btnSelectDir');
-  const btnSaveConfig = document.getElementById('btnSaveConfig');
   const btnDefaultConfig = document.getElementById('btnDefaultConfig');
   const inputUrl = document.getElementById('inputUrl');
   const inputOutputDir = document.getElementById('inputOutputDir');
@@ -357,7 +356,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     try {
       // Get existing config first to preserve crop settings
       const existingConfig = await window.electronAPI.getConfig();
-
+  
       const config = {
         outputDir: inputOutputDir.value,
         // Use existing config values or element values if they exist
@@ -377,11 +376,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       statusText.textContent = 'Settings saved';
       setTimeout(() => {
         statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }, 2000);
-
-      // Reset Apply button style
-      btnSaveConfig.style.backgroundColor = '';
-      btnSaveConfig.style.fontWeight = '';
+      }, 1000);
+      
     } catch (error) {
       console.error('Failed to save config:', error);
       statusText.textContent = 'Error saving settings';
@@ -389,29 +385,31 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   }
 
   async function resetConfigToDefaults() {
-    // Default values from schema in main.js
-    const defaultConfig = {
-      outputDir: await window.electronAPI.getConfig().then(config => config.outputDir), // Keep output dir as is
-      topCropPercent: 5,
-      bottomCropPercent: 5,
-      checkInterval: 2,
-      comparisonMethod: 'default', //  to reset comparison method
-      enableDoubleVerification: false // Reset double verification to default
-    };
-    
-    // Update input fields
-    inputTopCrop.value = defaultConfig.topCropPercent;
-    inputBottomCrop.value = defaultConfig.bottomCropPercent;
-    inputCheckInterval.value = defaultConfig.checkInterval;
-    comparisonMethod.value = defaultConfig.comparisonMethod; // Update comparison method field
-    enableDoubleVerificationCheckbox.checked = defaultConfig.enableDoubleVerification; // Update checkbox state
-    
-    // Save to config
-    await window.electronAPI.saveConfig(defaultConfig);
-    statusText.textContent = 'Settings reset to defaults';
-    setTimeout(() => {
-      statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-    }, 2000);
+    try {
+      // Default values from schema in main.js
+      const defaultConfig = {
+        outputDir: await window.electronAPI.getConfig().then(config => config.outputDir), // Keep output dir as is
+        checkInterval: 2,
+        comparisonMethod: 'default',
+        enableDoubleVerification: true
+      };
+      
+      // Update input fields
+      inputCheckInterval.value = defaultConfig.checkInterval;
+      comparisonMethod.value = defaultConfig.comparisonMethod;
+      enableDoubleVerificationCheckbox.checked = defaultConfig.enableDoubleVerification;
+      
+      // Save to config directly
+      await window.electronAPI.saveConfig(defaultConfig);
+      statusText.textContent = 'Settings reset to defaults';
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Failed to reset settings:', error);
+      statusText.textContent = 'Error resetting settings';
+    }
   }
 
   // Add profile management functions
@@ -1956,19 +1954,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   });
 
-  // Also intercept links that try to open in a new frame
-  webview.addEventListener('will-navigate', (e) => {
-    statusText.textContent = 'Navigating...';
-    if (hasUnsavedChanges) {
-      const answer = confirm('You have unsaved changes. Are you sure you want to navigate away?');
-      if (!answer) {
-        e.preventDefault();
-      } else {
-        hasUnsavedChanges = false;
-      }
-    }
-  });
-
   // Comprehensive did-navigate event handler
   webview.addEventListener('did-navigate', async (e) => {
     // Update URL field only if user isn't editing
@@ -2219,7 +2204,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   btnStopCapture.addEventListener('click', stopCapture);
   btnLoadUrl.addEventListener('click', loadURL);
   btnSelectDir.addEventListener('click', selectOutputDirectory);
-  btnSaveConfig.addEventListener('click', saveConfig);
   btnDefaultConfig.addEventListener('click', resetConfigToDefaults);
   btnClearCache.addEventListener('click', clearBrowserCache);
 
@@ -5265,63 +5249,12 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   // Modify the task profile select change handler to update validation
   taskProfileSelect.addEventListener('change', validateAutomationRequirements);
 
-  comparisonMethod.addEventListener('change', () => {
-    // Visual indicator that changes need to be applied
-    btnSaveConfig.style.backgroundColor = '#4CAF50';
-    btnSaveConfig.style.fontWeight = 'bold';
-    
-    // Optional: Add a small notification
-    statusText.textContent = 'Click Apply to save changes';
-    setTimeout(() => {
-      if (statusText.textContent === 'Click Apply to save changes') {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }
-    }, 3000);
-  });
-
-  // Function to highlight config save button
-  function highlightConfigSaveButton() {
-    btnSaveConfig.style.backgroundColor = '#4CAF50';
-    statusText.textContent = 'Click Apply to save settings';
-    setTimeout(() => {
-      if (statusText.textContent === 'Click Apply to save settings') {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }
-    }, 5000);
-    markUnsavedChanges();
-  }
-
   // Add listeners to configuration fields
-  inputCheckInterval.addEventListener('input', highlightConfigSaveButton);
-  comparisonMethod.addEventListener('change', highlightConfigSaveButton);
-
-  // Reset button appearance after saving
-  btnSaveConfig.addEventListener('click', () => {
-    setTimeout(() => {
-      btnSaveConfig.style.backgroundColor = '';
-      btnSaveConfig.style.fontWeight = '';
-    }, 500);
-    hasUnsavedChanges = false;
+  inputCheckInterval.addEventListener('input', function() {
+    saveConfig();
   });
-
-  // Track if there are unsaved changes
-  let hasUnsavedChanges = false;
-
-  // Update this function to be called from all input handlers
-  function markUnsavedChanges() {
-    hasUnsavedChanges = true;
-  }
-
-  // Add a warning when navigating away with unsaved changes
-  webview.addEventListener('will-navigate', (e) => {
-    if (hasUnsavedChanges) {
-      const answer = confirm('You have unsaved changes. Are you sure you want to navigate away?');
-      if (!answer) {
-        e.preventDefault();
-      } else {
-        hasUnsavedChanges = false;
-      }
-    }
+  comparisonMethod.addEventListener('change', function() {
+    saveConfig();
   });
 
   // Add home button functionality
@@ -5335,11 +5268,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   });
 
   // Add event listener for double verification checkbox
-  enableDoubleVerificationCheckbox.addEventListener('change', () => {
-    // Update the state but don't save immediately
-    enableDoubleVerification = enableDoubleVerificationCheckbox.checked;
-    hasUnsavedChanges = true;  // Mark that we have unsaved changes
-    highlightConfigSaveButton(); // Highlight Apply button
+  enableDoubleVerificationCheckbox.addEventListener('change', function() {
+    saveConfig();
   });
 
   window.electronAPI.onApplyBlockingRules(() => {
