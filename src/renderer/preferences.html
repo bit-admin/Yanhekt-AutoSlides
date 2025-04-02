@@ -354,6 +354,22 @@
         .default-profile .profile-header {
             margin-bottom: 10px;
         }
+
+        .preview-link {
+            background: none;
+            border: none;
+            color: #888;
+            font-size: 13px;
+            padding: 0;
+            cursor: pointer;
+            font-weight: normal;
+        }
+        
+        .preview-link:hover {
+            color: #0078d7;
+            text-decoration: underline;
+            background: none;
+        }
     </style>
 </head>
 <body>
@@ -413,9 +429,10 @@
                 <div class="profile-card built-in" data-profile-id="default">
                     <div class="profile-header">
                         <h4 class="profile-name">Default (Full Page)</h4>
+                        <button id="btnShowCropGuides" class="preview-link">Preview</button>
                     </div>
                     
-                    <p class="help-text">The default profile captures the entire webpage with optional cropping. Crop settings apply only to Default profile captures.</p>
+                    <p class="help-text">The default profile captures the entire webpage with cropping (apply only to Default profile).</p>
                     
                     <hr class="section-divider">
                     
@@ -430,11 +447,6 @@
                             <label for="inputBottomCrop">Bottom Crop (%):</label>
                             <input type="number" id="inputBottomCrop" class="bottomCropPercent" step="1" min="0" max="40" value="5" />
                         </div>
-                    </div>
-                    
-                    <div class="preference-item">
-                        <button id="btnShowCropGuides" class="action-button">Show Crop Guides</button>
-                        <div class="help-text">Preview the cropping area in the main window</div>
                     </div>
                 </div>
             </div>
