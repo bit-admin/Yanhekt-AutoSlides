@@ -855,3 +855,7 @@ ipcMain.handle('apply-blocking-rules', async (event) => {
 ipcMain.handle('send-to-main-window', (event, channel, data) => {
   mainWindow.webContents.send(channel, data);
 });
+
+ipcMain.on('show-crop-guides', (event) => {
+  mainWindow.webContents.send('show-crop-guides');
+});

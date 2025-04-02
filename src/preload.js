@@ -61,6 +61,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return ipcRenderer.invoke('send-to-main-window', channel, data);
   },
 
+  sendToMainWindow: (channel, data) => {
+    ipcRenderer.send(channel, data);
+  },
+
+  onShowCropGuides: (callback) => ipcRenderer.on('show-crop-guides', () => callback()),
+
   // For main window to receive updates
   onUpdateProfiles: (callback) => {
       ipcRenderer.on('update-profiles', (event, profiles) => callback(event, profiles));

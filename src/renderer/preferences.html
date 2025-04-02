@@ -344,6 +344,16 @@
             margin-top: 3px; /* Reduced from 5px */
             font-size: 11px; /* Slightly smaller */
         }
+
+        .default-profile .profile-card {
+            background-color: #f0f4fa;
+            border-color: #c0d0e4;
+            margin-bottom: 20px;
+        }
+        
+        .default-profile .profile-header {
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -398,6 +408,37 @@
         
         <!-- Optimization Profiles Tab -->
         <div class="tab-content" id="profiles-tab">
+            <!-- Default Profile Section - NEW -->
+            <div class="preference-section default-profile">
+                <div class="profile-card built-in" data-profile-id="default">
+                    <div class="profile-header">
+                        <h4 class="profile-name">Default (Full Page)</h4>
+                    </div>
+                    
+                    <p class="help-text">The default profile captures the entire webpage with optional cropping. Crop settings apply only to Default profile captures.</p>
+                    
+                    <hr class="section-divider">
+                    
+                    <!-- Cropping Settings Group -->
+                    <div class="settings-grid">
+                        <div class="preference-item">
+                            <label for="inputTopCrop">Top Crop (%):</label>
+                            <input type="number" id="inputTopCrop" class="topCropPercent" step="1" min="0" max="40" value="5" />
+                        </div>
+                        
+                        <div class="preference-item">
+                            <label for="inputBottomCrop">Bottom Crop (%):</label>
+                            <input type="number" id="inputBottomCrop" class="bottomCropPercent" step="1" min="0" max="40" value="5" />
+                        </div>
+                    </div>
+                    
+                    <div class="preference-item">
+                        <button id="btnShowCropGuides" class="action-button">Show Crop Guides</button>
+                        <div class="help-text">Preview the cropping area in the main window</div>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Built-in Profiles Section -->
             <div class="preference-section built-in-profiles">
                 <div class="profiles-grid">
@@ -1051,6 +1092,105 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             // Initial load of profiles
             if (document.getElementById('profiles-tab').classList.contains('active')) {
                 loadAllProfiles();
+            }
+
+            // Default profile crop settings
+            const inputTopCrop = document.getElementById('inputTopCrop');
+            const inputBottomCrop = document.getElementById('inputBottomCrop');
+            const btnShowCropGuides = document.getElementById('btnShowCropGuides');
+            
+            // Load crop settings from config
+            async function loadCropSettings() {
+                try {
+                    const config = await window.electronAPI.getConfig();
+                    inputTopCrop.value = config.topCropPercent || 5;
+                    inputBottomCrop.value = config.bottomCropPercent || 5;
+                } catch (error) {
+                    console.error('Failed to load crop settings:', error);
+                }
+            }
+            
+            // Show crop guides button handler
+            btnShowCropGuides.addEventListener('click', async () => {
+                try {
+                    // Save current crop settings first
+                    const config = await window.electronAPI.getConfig();
+                    config.topCropPercent = parseFloat(inputTopCrop.value);
+                    config.bottomCropPercent = parseFloat(inputBottomCrop.value);
+                    await window.electronAPI.saveConfig(config);
+                    
+                    // Tell main window to show crop guides
+                    await window.electronAPI.sendToMainWindow('show-crop-guides');
+                } catch (error) {
+                    console.error('Failed to show crop guides:', error);
+                    alert('Failed to show crop guides: ' + error.message);
+                }
+            });
+            
+            // Mark changes when crop settings change
+            inputTopCrop.addEventListener('change', () => {
+                hasChanges = true;
+            });
+            
+            inputBottomCrop.addEventListener('change', () => {
+                hasChanges = true;
+            });
+            
+            // Load crop settings when Profiles tab is displayed
+            document.querySelector('.tab[data-tab="profiles"]').addEventListener('click', () => {
+                loadCropSettings();
+                // Also load profiles (existing functionality)
+                if (typeof loadAllProfiles === 'function') {
+                    loadAllProfiles();
+                }
+            });
+            
+            // Enhance save button to also save crop settings
+            const originalSaveHandler = btnSave.onclick;
+            btnSave.onclick = async function() {
+                const profilesTabActive = document.getElementById('profiles-tab').classList.contains('active');
+                
+                if (profilesTabActive) {
+                    try {
+                        // Save crop settings
+                        const config = await window.electronAPI.getConfig();
+                        config.topCropPercent = parseFloat(inputTopCrop.value);
+                        config.bottomCropPercent = parseFloat(inputBottomCrop.value);
+                        await window.electronAPI.saveConfig(config);
+                    } catch (error) {
+                        console.error('Failed to save crop settings:', error);
+                        alert('Failed to save crop settings: ' + error.message);
+                        return;
+                    }
+                }
+                
+                // Call original save handler for other settings
+                if (originalSaveHandler) {
+                    return originalSaveHandler.call(this);
+                }
+            };
+            
+            // Also restore crop settings when defaults are restored
+            const enhanceResetDefaults = btnDefault.onclick;
+            btnDefault.addEventListener('click', async function() {
+                const profilesTabActive = document.getElementById('profiles-tab').classList.contains('active');
+                
+                if (profilesTabActive) {
+                    // Reset crop settings to defaults
+                    inputTopCrop.value = 5;
+                    inputBottomCrop.value = 5;
+                    hasChanges = true;
+                }
+                
+                // Call original handler
+                if (enhanceResetDefaults) {
+                    return enhanceResetDefaults.call(this);
+                }
+            });
+            
+            // Initial load if profiles tab is active
+            if (document.getElementById('profiles-tab').classList.contains('active')) {
+                loadCropSettings();
             }
         });
     </script>
