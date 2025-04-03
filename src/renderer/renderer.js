@@ -68,6 +68,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   let topCropPercent = 0;
   let bottomCropPercent = 0;
   let gaussianBlurSigma = null;
+  let pixelDiffThreshold = 30;
+  let changeRatioThreshold = 0.005;
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -243,6 +245,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       inputOutputDir.value = config.outputDir || '';
       inputCheckInterval.value = config.checkInterval || 2;
       gaussianBlurSigma = config.captureStrategy.gaussianBlurSigma || 0.5;
+      pixelDiffThreshold = config.captureStrategy.pixelDiffThreshold || 30;
+      changeRatioThreshold = config.captureStrategy.changeRatioThreshold || 0.005;
       
       // Load site profiles with default built-in profiles
       siteProfiles = config.siteProfiles || {
@@ -333,13 +337,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   
   async function saveConfig() {
     try {
-      // Get existing config first to preserve crop settings
-      const existingConfig = await window.electronAPI.getConfig();
-  
       const config = {
         outputDir: inputOutputDir.value,
-        topCropPercent: existingConfig.topCropPercent || 5,
-        bottomCropPercent: existingConfig.bottomCropPercent || 5,
         checkInterval: parseFloat(inputCheckInterval.value),
         siteProfiles: siteProfiles,
         activeProfileId: activeProfileId,
@@ -1091,7 +1090,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   // Compare pixels between two ImageData objects
   function comparePixels(data1, data2) {
     let diffCount = 0;
-    const threshold = 30; // Pixel difference threshold
+    const threshold = pixelDiffThreshold; // Pixel difference threshold
     
     for (let i = 0; i < data1.data.length; i += 4) {
       const r1 = data1.data[i];
@@ -1351,7 +1350,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const comparisonResult = comparePixels(data1, data2);
     
     resolve({
-      changed: comparisonResult.changeRatio > 0.005,
+      changed: comparisonResult.changeRatio > changeRatioThreshold,
       changeRatio: comparisonResult.changeRatio,
       method: 'basic'
     });
@@ -1447,6 +1446,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     // Load the latest configuration values
     const config = await window.electronAPI.getConfig();
     gaussianBlurSigma = config.captureStrategy?.gaussianBlurSigma || 0.5;
+    pixelDiffThreshold = config.captureStrategy.pixelDiffThreshold || 30;
+    changeRatioThreshold = config.captureStrategy.changeRatioThreshold || 0.005;
     topCropPercent = config.topCropPercent || 5;
     bottomCropPercent = config.bottomCropPercent || 5;
     
