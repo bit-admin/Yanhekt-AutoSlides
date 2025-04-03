@@ -38,7 +38,9 @@ yanhekt.cn##div#ai-bit-animation-modal`
   captureStrategy: {
     type: 'object',
     default: {
-      gaussianBlurSigma: 0.5
+      gaussianBlurSigma: 0.5,
+      pixelDiffThreshold: 30,
+    changeRatioThreshold: 0.005
     }
   },
   cacheCleanInterval: {

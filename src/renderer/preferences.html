@@ -600,13 +600,29 @@
                             </div>
                         </div>
                         
-                        <hr class="section-divider">
+                        <hr class="section-divider" style="margin: 0 0 25px 0;">
                         
                         <!-- Filtering Section -->
                         <div class="strategy-section">
-                            <h4>Filtering</h4>
+                            <h4></h4>
                             <div class="settings-grid">
-                                <!-- Content will be added later -->
+                                <div class="preference-item">
+                                    <!-- Pixel Difference Threshold -->
+                                    <div class="setting-label">Pixel Difference Threshold</div>
+                                    <div class="setting-control">
+                                        <input type="number" id="pixelDiffThreshold" min="1" max="255" step="1" value="30">
+                                        <div class="help-text">Threshold for considering pixels different.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="preference-item">
+                                    <!-- Change Ratio Threshold -->
+                                    <div class="setting-label">Change Ratio Threshold</div>
+                                    <div class="setting-control">
+                                        <input type="number" id="changeRatioThreshold" min="0.001" max="0.02" step="0.001" value="0.005">
+                                        <div class="help-text">Min-ratio of changed pixels to trigger a slide change.</div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -699,7 +715,7 @@
                             <div class="preference-item">
                                 <label for="profileUrlPattern">URL patterns:</label>
                                 <input type="text" class="profileUrlPattern" placeholder="example.com/video">
-                                <div class="help-text">Space-separated patterns to auto-select this profile</div>
+                                <div class="help-text">Patterns to auto-select this profile</div>
                             </div>
                         </div>
                         
@@ -710,13 +726,11 @@
                             <div class="preference-item">
                                 <label for="profileEndDetectionSelector">End detection selector:</label>
                                 <input type="text" class="profileEndDetectionSelector" placeholder=".player-ended-poster">
-                                <div class="help-text">Used when "Auto-detect playback end" is enabled</div>
                             </div>
                             
                             <div class="preference-item">
                                 <label for="profilePlayButtonSelector">Play button selector:</label>
                                 <input type="text" class="profilePlayButtonSelector" placeholder=".play-button">
-                                <div class="help-text">Used when "Auto-start playback" is enabled</div>
                             </div>
                         </div>
                         
@@ -724,7 +738,6 @@
                             <div class="preference-item">
                                 <label for="profileCountdownSelector">Countdown selector:</label>
                                 <input type="text" class="profileCountdownSelector" placeholder=".countdown">
-                                <div class="help-text">Element containing countdown before video starts</div>
                             </div>
                         </div>
                         
@@ -735,7 +748,6 @@
                             <div class="preference-item">
                                 <label for="profileSpeedSelector">Speed selector:</label>
                                 <input type="text" class="profileSpeedSelector" placeholder="#video_element">
-                                <div class="help-text">Used when "Auto-adjust playback speed" is enabled</div>
                             </div>
                             
                             <div class="preference-item">
@@ -844,6 +856,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             const btnSave = document.getElementById('btnSave');
             const btnCancel = document.getElementById('btnCancel');
             const btnDefault = document.getElementById('btnDefault');
+            const pixelDiffThreshold = document.getElementById('pixelDiffThreshold');
+            const changeRatioThreshold = document.getElementById('changeRatioThreshold');
 
             // Enhance the blocking rules text area for code-like behavior
             function enhanceBlockingRulesEditor() {
@@ -871,8 +885,18 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 cacheCleanInterval.value = config.cacheCleanInterval || 15;
 
                 // Set Gaussian blur sigma
-                if (config.captureStrategy && config.captureStrategy.gaussianBlurSigma) {
-                    document.getElementById('gaussianBlurSigma').value = config.captureStrategy.gaussianBlurSigma;
+                if (config.captureStrategy && config.captureStrategy.gaussianBlurSigma !== undefined) {
+                    gaussianBlurSigma.value = config.captureStrategy.gaussianBlurSigma;
+                }
+
+                // Set pixel difference threshold
+                if (config.captureStrategy && config.captureStrategy.pixelDiffThreshold !== undefined) {
+                    pixelDiffThreshold.value = config.captureStrategy.pixelDiffThreshold;
+                }
+                
+                // Set change ratio threshold
+                if (config.captureStrategy && config.captureStrategy.changeRatioThreshold !== undefined) {
+                    changeRatioThreshold.value = config.captureStrategy.changeRatioThreshold;
                 }
                 
                 // Load blocking rules
@@ -934,7 +958,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                         cacheCleanInterval: parseInt(cacheCleanInterval.value, 10),
                         captureStrategy: {
                             ...(config.captureStrategy || {}),
-                            gaussianBlurSigma: parseFloat(document.getElementById('gaussianBlurSigma').value)
+                            gaussianBlurSigma: parseFloat(gaussianBlurSigma.value),
+                            pixelDiffThreshold: parseInt(pixelDiffThreshold.value, 10),
+                            changeRatioThreshold: parseFloat(changeRatioThreshold.value)
                         }
                     };
                     
@@ -977,6 +1003,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 if (captureTabActive) {
                     // Reset gaussian blur sigma to default value
                     gaussianBlurSigma.value = 0.5;
+                    // Reset pixel difference threshold to default value
+                    pixelDiffThreshold.value = 30;
+                    // Reset change ratio threshold to default value
+                    changeRatioThreshold.value = 0.005;
                 }
                 
                 // If on profiles tab, restore default profiles
