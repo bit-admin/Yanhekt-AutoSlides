@@ -65,6 +65,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const autoMuteCheckbox = document.getElementById('autoMuteCheckbox');
   let errorRetryAttempts = 0;
   let errorCheckInterval = null;
+  let topCropPercent = 0;
+  let bottomCropPercent = 0;
+  let gaussianBlurSigma = null;
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -238,8 +241,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     try {
       const config = await window.electronAPI.getConfig();
       inputOutputDir.value = config.outputDir || '';
-
       inputCheckInterval.value = config.checkInterval || 2;
+      gaussianBlurSigma = config.captureStrategy.gaussianBlurSigma || 0.5;
       
       // Load site profiles with default built-in profiles
       siteProfiles = config.siteProfiles || {
@@ -955,10 +958,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   // Crop image based on current settings
   function cropImage(imageData) {
     return new Promise(async (resolve) => {
-      // Get latest crop settings from config
-      const config = await window.electronAPI.getConfig();
-      const topCropPercent = config.topCropPercent || 5;
-      const bottomCropPercent = config.bottomCropPercent || 5;
       
       const img = new Image();
       
@@ -1018,22 +1017,23 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   }
 
   // Apply Gaussian blur to ImageData
-  function applyGaussianBlur(imageData, radius = 1) {
+  function applyGaussianBlur(imageData, sigma = null) {
+    const effectiveSigma = sigma !== null ? sigma : (gaussianBlurSigma || 0.5);
+
     const width = imageData.width;
     const height = imageData.height;
     const src = imageData.data;
     const dst = new Uint8ClampedArray(src);
     
     // Generate Gaussian kernel
-    const sigma = radius / 2;
-    const kernelSize = radius * 2 + 1;
+    const radius = Math.ceil(3 * effectiveSigma);
+    const kernelSize = 2 * radius + 1;
     const kernel = new Array(kernelSize);
-    const kernelSum = 2 * Math.PI * sigma * sigma;
     
     let sum = 0;
     for (let i = 0; i < kernelSize; i++) {
       const x = i - radius;
-      kernel[i] = Math.exp(-(x * x) / (2 * sigma * sigma)) / kernelSum;
+      kernel[i] = Math.exp(-(x * x) / (2 * effectiveSigma * effectiveSigma));
       sum += kernel[i];
     }
     
@@ -1045,22 +1045,21 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     // Horizontal pass
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
-        let r = 0, g = 0, b = 0;
+        let val = 0;
         
         for (let i = -radius; i <= radius; i++) {
           const kx = Math.min(Math.max(0, x + i), width - 1);
           const idx = (y * width + kx) * 4;
           const weight = kernel[i + radius];
           
-          r += src[idx] * weight;
-          g += src[idx + 1] * weight;
-          b += src[idx + 2] * weight;
+          val += src[idx] * weight; // Only need one channel for grayscale
         }
         
         const idx = (y * width + x) * 4;
-        dst[idx] = r;
-        dst[idx + 1] = g;
-        dst[idx + 2] = b;
+        dst[idx] = val;
+        dst[idx + 1] = val;
+        dst[idx + 2] = val;
+        // Alpha remains unchanged
       }
     }
     
@@ -1068,22 +1067,21 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const temp = new Uint8ClampedArray(dst);
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        let r = 0, g = 0, b = 0;
+        let val = 0;
         
         for (let i = -radius; i <= radius; i++) {
           const ky = Math.min(Math.max(0, y + i), height - 1);
           const idx = (ky * width + x) * 4;
           const weight = kernel[i + radius];
           
-          r += temp[idx] * weight;
-          g += temp[idx + 1] * weight;
-          b += temp[idx + 2] * weight;
+          val += temp[idx] * weight; // Only need one channel for grayscale
         }
         
         const idx = (y * width + x) * 4;
-        dst[idx] = r;
-        dst[idx + 1] = g;
-        dst[idx + 2] = b;
+        dst[idx] = val;
+        dst[idx + 1] = val;
+        dst[idx + 2] = val;
+        // Alpha remains unchanged
       }
     }
     
@@ -1281,10 +1279,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   // Compare images for changes
   function compareImages(img1Data, img2Data) {
     return new Promise(async (resolve) => {
-      // Get latest crop settings from config
-      const config = await window.electronAPI.getConfig();
-      const topCropPercent = config.topCropPercent || 5;
-      const bottomCropPercent = config.bottomCropPercent || 5;
       
       const img1 = new Image();
       const img2 = new Image();
@@ -1351,8 +1345,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     data1 = convertToGrayscale(data1);
     data2 = convertToGrayscale(data2);
     
-    data1 = applyGaussianBlur(data1, 2);
-    data2 = applyGaussianBlur(data2, 2);
+    data1 = applyGaussianBlur(data1, gaussianBlurSigma);
+    data2 = applyGaussianBlur(data2, gaussianBlurSigma);
     
     const comparisonResult = comparePixels(data1, data2);
     
@@ -1449,6 +1443,12 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     
     // Setup the automatic cache cleanup timer
     setupCacheCleanupTimer();
+
+    // Load the latest configuration values
+    const config = await window.electronAPI.getConfig();
+    gaussianBlurSigma = config.captureStrategy?.gaussianBlurSigma || 0.5;
+    topCropPercent = config.topCropPercent || 5;
+    bottomCropPercent = config.bottomCropPercent || 5;
     
     // Capture first slide
     try {

@@ -35,6 +35,12 @@ yanhekt.cn###root > div.app > div.BlankLayout_layout__kC9f3:last-child > div.ant
 yanhekt.cn###ai-bit-shortcut
 yanhekt.cn##div#ai-bit-animation-modal`
   },
+  captureStrategy: {
+    type: 'object',
+    default: {
+      gaussianBlurSigma: 0.5
+    }
+  },
   cacheCleanInterval: {
     type: 'number',
     default: 15
