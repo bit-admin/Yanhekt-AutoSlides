@@ -161,6 +161,10 @@
             display: block;
         }
 
+        .strategy-section .preference-item:last-child {
+            margin-bottom: 0;
+        }
+
         /* Placeholder for future categories that may be empty */
         .coming-soon {
             color: #999;
@@ -338,7 +342,7 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px; /* Reduced from 20px */
-            margin-bottom: 10px; /* Reduced from 15px */
+            margin-bottom: 2px; /* Reduced from 15px */
         }
 
         /* On smaller screens, stack the grid */
@@ -352,7 +356,7 @@
             border: 0;
             height: 1px;
             background-color: #e0e0e0;
-            margin: 12px 0; /* Reduced from 20px */
+            margin: 6px 0; /* Reduced from 20px */
         }
 
         .profile-card .preference-item {
@@ -440,7 +444,7 @@
         }
         
         .strategy-section {
-            margin-bottom: 20px;
+            margin-bottom: 2px;
         }
         
         .strategy-section h4 {
@@ -530,6 +534,17 @@
                             <h3>Default</h3>
                             <span class="strategy-badge">pHash & SSIM</span>
                         </div>
+
+                        <div class="strategy-section">
+                            <div class="settings-grid">
+                                <div class="preference-item">
+                                    <div class="setting-with-info">
+                                        <span class="setting-label">Grayscale Conversion</span>
+                                        <span class="setting-value">Enabled</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         
                         <hr class="section-divider">
                         
@@ -563,20 +578,24 @@
                         
                         <!-- Preprocessing Section -->
                         <div class="strategy-section">
-                            <h4>Preprocessing</h4>
                             <div class="settings-grid">
                                 <div class="preference-item">
+                                    <div style="height: 10px;"></div>
                                     <div class="setting-with-info">
                                         <span class="setting-label">Grayscale Conversion</span>
                                         <span class="setting-value">Enabled</span>
                                     </div>
-                                    <div class="help-text">Images are converted to grayscale before comparison (not configurable)</div>
+                                    <div style="height: 10px;"></div>
+                                    <div class="setting-with-info">
+                                        <span class="setting-label">Gaussian Blur</span>
+                                        <span class="setting-value">Enabled</span>
+                                    </div>
                                 </div>
                                 
                                 <div class="preference-item">
-                                    <label for="gaussianBlurSigma">Gaussian Blur Sigma:</label>
+                                    <label for="gaussianBlurSigma">Sigma:</label>
                                     <input type="number" id="gaussianBlurSigma" min="0.1" max="2.0" step="0.1" value="0.5">
-                                    <div class="help-text">Controls blur intensity (0.1-2.0). Higher values increase blur strength.</div>
+                                    <div class="help-text">Higher values increase blur strength.</div>
                                 </div>
                             </div>
                         </div>
