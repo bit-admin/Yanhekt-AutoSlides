@@ -408,7 +408,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
             margin-bottom: 20px;
         }
-        
+
         .strategy-header {
             display: flex;
             justify-content: space-between;
@@ -448,6 +448,26 @@
             margin-top: 0;
             margin-bottom: 12px;
             color: #555;
+        }
+
+        .setting-with-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .setting-label {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .setting-value {
+            background-color: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
         }
     </style>
 </head>
@@ -511,14 +531,6 @@
                             <span class="strategy-badge">pHash & SSIM</span>
                         </div>
                         
-                        <!-- Preprocessing Section -->
-                        <div class="strategy-section">
-                            <h4>Preprocessing</h4>
-                            <div class="settings-grid">
-                                <!-- Content will be added later -->
-                            </div>
-                        </div>
-                        
                         <hr class="section-divider">
                         
                         <!-- Primary Filtering Section -->
@@ -553,7 +565,19 @@
                         <div class="strategy-section">
                             <h4>Preprocessing</h4>
                             <div class="settings-grid">
-                                <!-- Content will be added later -->
+                                <div class="preference-item">
+                                    <div class="setting-with-info">
+                                        <span class="setting-label">Grayscale Conversion</span>
+                                        <span class="setting-value">Enabled</span>
+                                    </div>
+                                    <div class="help-text">Images are converted to grayscale before comparison (not configurable)</div>
+                                </div>
+                                
+                                <div class="preference-item">
+                                    <label for="gaussianBlurSigma">Gaussian Blur Sigma:</label>
+                                    <input type="number" id="gaussianBlurSigma" min="0.1" max="2.0" step="0.1" value="0.5">
+                                    <div class="help-text">Controls blur intensity (0.1-2.0). Higher values increase blur strength.</div>
+                                </div>
                             </div>
                         </div>
                         
@@ -792,6 +816,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             // Preference elements
             const allowBackgroundRunning = document.getElementById('allowBackgroundRunning');
             const cacheCleanInterval = document.getElementById('cacheCleanInterval');
+            const gaussianBlurSigma = document.getElementById('gaussianBlurSigma');
             const btnClearCookies = document.getElementById('btnClearCookies');
             const btnClearAll = document.getElementById('btnClearAll');
             const blockingRules = document.getElementById('blockingRules');
@@ -825,6 +850,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 const config = await window.electronAPI.getConfig();
                 allowBackgroundRunning.checked = config.allowBackgroundRunning || false;
                 cacheCleanInterval.value = config.cacheCleanInterval || 15;
+
+                // Set Gaussian blur sigma
+                if (config.captureStrategy && config.captureStrategy.gaussianBlurSigma) {
+                    document.getElementById('gaussianBlurSigma').value = config.captureStrategy.gaussianBlurSigma;
+                }
                 
                 // Load blocking rules
                 const rules = await window.electronAPI.getBlockingRules();
@@ -874,38 +904,42 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             
             // Save button handler
             btnSave.addEventListener('click', async () => {
-            try {
-                // Get the current config first
-                const config = await window.electronAPI.getConfig();
-                
-                // Update only the preferences-related settings
-                const updatedConfig = {
-                    ...config,
-                    allowBackgroundRunning: allowBackgroundRunning.checked,
-                    cacheCleanInterval: parseInt(cacheCleanInterval.value, 10)
-                };
-                
-                // Save the updated config
-                await window.electronAPI.saveConfig(updatedConfig);
-                
-                // Save blocking rules separately and apply them
-                await window.electronAPI.saveBlockingRules(blockingRules.value);
-                await window.electronAPI.applyBlockingRules();
-                
-                // Update background running state
-                if (allowBackgroundRunning.checked) {
-                    await window.electronAPI.enableBackgroundRunning();
-                } else {
-                    await window.electronAPI.disableBackgroundRunning();
+                try {
+                    // Get the current config first
+                    const config = await window.electronAPI.getConfig();
+                    
+                    // Update only the preferences-related settings
+                    const updatedConfig = {
+                        ...config,
+                        allowBackgroundRunning: allowBackgroundRunning.checked,
+                        cacheCleanInterval: parseInt(cacheCleanInterval.value, 10),
+                        captureStrategy: {
+                            ...(config.captureStrategy || {}),
+                            gaussianBlurSigma: parseFloat(document.getElementById('gaussianBlurSigma').value)
+                        }
+                    };
+                    
+                    // Save the updated config
+                    await window.electronAPI.saveConfig(updatedConfig);
+                    
+                    // Save blocking rules separately and apply them
+                    await window.electronAPI.saveBlockingRules(blockingRules.value);
+                    await window.electronAPI.applyBlockingRules();
+                    
+                    // Update background running state
+                    if (allowBackgroundRunning.checked) {
+                        await window.electronAPI.enableBackgroundRunning();
+                    } else {
+                        await window.electronAPI.disableBackgroundRunning();
+                    }
+                    
+                    // Close the window
+                    window.close();
+                } catch (error) {
+                    console.error('Failed to save preferences:', error);
+                    alert('Failed to save preferences: ' + error.message);
                 }
-                
-                // Close the window
-                window.close();
-            } catch (error) {
-                console.error('Failed to save preferences:', error);
-                alert('Failed to save preferences: ' + error.message);
-            }
-        });
+            });
             
             // Cancel button handler
             btnCancel.addEventListener('click', () => {
@@ -918,6 +952,13 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 allowBackgroundRunning.checked = false;
                 cacheCleanInterval.value = 15;
                 blockingRules.value = DEFAULT_RULES;
+
+                // If on capture strategy tab, restore default strategy settings
+                const captureTabActive = document.getElementById('capture-tab').classList.contains('active');
+                if (captureTabActive) {
+                    // Reset gaussian blur sigma to default value
+                    gaussianBlurSigma.value = 0.5;
+                }
                 
                 // If on profiles tab, restore default profiles
                 const profilesTabActive = document.getElementById('profiles-tab').classList.contains('active');
