@@ -389,6 +389,66 @@
             text-decoration: underline;
             background: none;
         }
+
+        .preference-header-warning {
+            font-size: 14px;
+        }
+        
+        .preference-header-warning p {
+            margin: 0;
+            color: #ff0000;
+        }
+        
+        .strategy-card {
+            background-color: #f5f7fa;
+            border-color: #d0d7e2;
+            border: 1px solid #c0d0e4;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .strategy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .strategy-header h3 {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .strategy-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 12px;
+            background-color: #e8f4fd;
+            color: #0078d7;
+        }
+        
+        .default-strategy .strategy-badge {
+            background-color: #e0f0e0;
+            color: #2e7d32;
+        }
+        
+        .strategy-section {
+            margin-bottom: 20px;
+        }
+        
+        .strategy-section h4 {
+            font-size: 14px;
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: #555;
+        }
     </style>
 </head>
 <body>
@@ -436,11 +496,85 @@
                 </div>
                 <!-- Other general settings will be added here -->
             </div>
-            
+
             <!-- Capture Strategy Tab -->
             <div class="tab-content" id="capture-tab">
-                <div class="coming-soon">
-                    Capture Strategy settings will appear here in future updates.
+                <div class="preference-header-warning">
+                    <p>Avoid changing defaults unless required. Modifications may cause instability.</p>
+                </div>
+                
+                <!-- Default Strategy Card -->
+                <div class="preference-section">
+                    <div class="strategy-card default-strategy">
+                        <div class="strategy-header">
+                            <h3>Default</h3>
+                            <span class="strategy-badge">pHash & SSIM</span>
+                        </div>
+                        
+                        <!-- Preprocessing Section -->
+                        <div class="strategy-section">
+                            <h4>Preprocessing</h4>
+                            <div class="settings-grid">
+                                <!-- Content will be added later -->
+                            </div>
+                        </div>
+                        
+                        <hr class="section-divider">
+                        
+                        <!-- Primary Filtering Section -->
+                        <div class="strategy-section">
+                            <h4>Primary Filtering</h4>
+                            <div class="settings-grid">
+                                <!-- Content will be added later -->
+                            </div>
+                        </div>
+                        
+                        <hr class="section-divider">
+                        
+                        <!-- Secondary Filtering Section -->
+                        <div class="strategy-section">
+                            <h4>Secondary Filtering</h4>
+                            <div class="settings-grid">
+                                <!-- Content will be added later -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Basic Strategy Card -->
+                <div class="preference-section">
+                    <div class="strategy-card basic-strategy">
+                        <div class="strategy-header">
+                            <h3>Basic</h3>
+                            <span class="strategy-badge">Pixel</span>
+                        </div>
+                        
+                        <!-- Preprocessing Section -->
+                        <div class="strategy-section">
+                            <h4>Preprocessing</h4>
+                            <div class="settings-grid">
+                                <!-- Content will be added later -->
+                            </div>
+                        </div>
+                        
+                        <hr class="section-divider">
+                        
+                        <!-- Filtering Section -->
+                        <div class="strategy-section">
+                            <h4>Filtering</h4>
+                            <div class="settings-grid">
+                                <!-- Content will be added later -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Double Verification Settings -->
+                <div class="preference-section">
+                    <h3>Double Verification</h3>
+                    <div class="settings-grid">
+                        <!-- Content will be added later -->
+                    </div>
                 </div>
             </div>
             
