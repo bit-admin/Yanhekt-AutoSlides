@@ -822,14 +822,19 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
         // Special handling for yanhekt video player
         if (profileToUse && 
-          profileToUse.elementSelector && 
-          profileToUse.elementSelector.includes('video') &&
-          currentUrl.includes('yanhekt.cn')) {
-
+            profileToUse.elementSelector && 
+            profileToUse.elementSelector.includes('video') &&
+            currentUrl.includes('yanhekt.cn')) {
+        
             captureVideoElement(profileToUse.elementSelector)
             .then(resolve)
             .catch(error => {
               console.error('Video capture error:', error);
+              // Track "Video element not found" errors specifically
+              if (error.message === 'Video element not found') {
+                videoElementNotFoundCounter++;
+                console.log(`Video element not found count: ${videoElementNotFoundCounter}/${MAX_VIDEO_NOT_FOUND_ERRORS}`);
+              }
               // Fall back to regular screenshot
               webview.capturePage().then(image => {
                 resolve(image.toDataURL());
@@ -1528,6 +1533,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
               videoReady = true;
               console.log('Video is loaded and ready for capture:', videoCheck);
               statusText.textContent = 'Video loaded, starting capture...';
+              // Reset counter when video is found successfully
+              videoElementNotFoundCounter = 0;
             } else {
               console.log(`Video not ready (attempt ${retryCount + 1}/${maxRetries}):`, videoCheck);
 
