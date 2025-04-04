@@ -70,6 +70,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   let gaussianBlurSigma = null;
   let pixelDiffThreshold = 30;
   let changeRatioThreshold = 0.005;
+  let hammingThresholdLow = 0;
+  let hammingThresholdUp = 5;
+  let ssimThreshold = 0.999;
 
   // Default rules
   const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
@@ -247,6 +250,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       gaussianBlurSigma = config.captureStrategy.gaussianBlurSigma || 0.5;
       pixelDiffThreshold = config.captureStrategy.pixelDiffThreshold || 30;
       changeRatioThreshold = config.captureStrategy.changeRatioThreshold || 0.005;
+      hammingThresholdLow = config.captureStrategy.hammingThresholdLow || 0;
+      hammingThresholdUp = config.captureStrategy.hammingThresholdUp || 5;
+      ssimThreshold = config.captureStrategy.ssimThreshold || 0.999;
+      
       
       // Load site profiles with default built-in profiles
       siteProfiles = config.siteProfiles || {
@@ -1367,7 +1374,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       console.log(`pHash comparison: Hamming distance = ${hammingDistance}`);
       
-      if (hammingDistance > 5) {
+      if (hammingDistance > hammingThresholdUp) {
         // Significant change detected by hash
         resolve({
           changed: true,
@@ -1375,7 +1382,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           method: 'pHash',
           distance: hammingDistance
         });
-      } else if (hammingDistance === 0) {
+      } else if (hammingDistance <= hammingThresholdLow) {
         // Identical hashes
         resolve({
           changed: false,
@@ -1389,7 +1396,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.log(`SSIM similarity: ${ssim.toFixed(6)}`);
         
         resolve({
-          changed: ssim < 0.999,
+          changed: ssim < ssimThreshold,
           changeRatio: 1.0 - ssim,
           method: 'SSIM',
           similarity: ssim
@@ -1448,6 +1455,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     gaussianBlurSigma = config.captureStrategy?.gaussianBlurSigma || 0.5;
     pixelDiffThreshold = config.captureStrategy.pixelDiffThreshold || 30;
     changeRatioThreshold = config.captureStrategy.changeRatioThreshold || 0.005;
+    hammingThresholdLow = config.captureStrategy.hammingThresholdLow || 0;
+    hammingThresholdUp = config.captureStrategy.hammingThresholdUp || 5;
+    ssimThreshold = config.captureStrategy.ssimThreshold || 0.999;
     topCropPercent = config.topCropPercent || 5;
     bottomCropPercent = config.bottomCropPercent || 5;
     
