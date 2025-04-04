@@ -571,7 +571,7 @@
                                 </div>
 
                                 <div class="preference-item">
-                                    <label for="">Hamming Distance Threshold:</label>
+                                    <label for="hammingThreshold">Hamming Distance Threshold:</label>
                                     <input type="number" id="hammingThresholdLow" min="0" max="10" step="1" value="0">
                                     <div class="help-text">Bypass SSIM check if below lower threshold</div>
                                     <input type="number" id="hammingThresholdUp" min="0" max="20" step="1" value="5">
@@ -593,8 +593,9 @@
                                     </div>
                                 </div>
                                 <div class="preference-item">
-                                    <label for="">SSIM Threshold:</label>
+                                    <label for="ssimThreshold">SSIM Threshold:</label>
                                     <input type="number" id="ssimThreshold" min="0.95" max="1" step="0.0001" value="0.999">
+                                    <div class="help-text">Minimum similarity for images equivalent</div>
                                 </div>
                             </div>
                         </div>
@@ -651,7 +652,7 @@
                                     <div class="setting-label">Change Ratio Threshold:</div>
                                     <div class="setting-control">
                                         <input type="number" id="changeRatioThreshold" min="0.001" max="0.02" step="0.001" value="0.005">
-                                        <div class="help-text">Min-ratio of changed pixels to trigger changes.</div>
+                                        <div class="help-text">Minimum ratio of pixels to trigger changes.</div>
                                     </div>
                                 </div>
                             </div>
@@ -661,9 +662,14 @@
                 
                 <!-- Double Verification Settings -->
                 <div class="preference-section">
-                    <h3>Double Verification</h3>
                     <div class="settings-grid">
-                        <!-- Content will be added later -->
+                        <div class="preference-item">
+                            <div class="setting-label">Verification Count:</div>
+                            <div class="setting-control">
+                                <input type="number" id="verificationCount" min="1" max="5" step="1" value="2">
+                                <div class="help-text">Number of verification checks to perform (default: 2)</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -892,6 +898,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             const hammingThresholdLow = document.getElementById('hammingThresholdLow');
             const hammingThresholdUp = document.getElementById('hammingThresholdUp');
             const ssimThreshold = document.getElementById('ssimThreshold');
+            const verificationCount = document.getElementById('verificationCount');
 
             // Enhance the blocking rules text area for code-like behavior
             function enhanceBlockingRulesEditor() {
@@ -940,6 +947,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
                 if (config.captureStrategy && config.captureStrategy.ssimThreshold !== undefined) {
                     ssimThreshold.value = config.captureStrategy.ssimThreshold;
+                }
+
+                if (config.captureStrategy && config.captureStrategy.verificationCount !== undefined) {
+                    verificationCount.value = config.captureStrategy.verificationCount;
                 }
                 
                 // Load blocking rules
@@ -1006,7 +1017,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                             changeRatioThreshold: parseFloat(changeRatioThreshold.value),
                             hammingThresholdLow: parseInt(hammingThresholdLow.value),
                             hammingThresholdUp: parseInt(hammingThresholdUp.value),
-                            ssimThreshold: parseFloat(ssimThreshold.value)
+                            ssimThreshold: parseFloat(ssimThreshold.value),
+                            verificationCount: parseFloat(verificationCount.value)
                         }
                     };
                     
@@ -1053,6 +1065,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                     hammingThresholdLow.value = 0;
                     hammingThresholdUp.value = 5;
                     ssimThreshold.value = 0.999;
+                    verificationCount.value = 2
                 }
                 
                 // If on profiles tab, restore default profiles

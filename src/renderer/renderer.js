@@ -59,6 +59,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   let enableDoubleVerification = false; 
   let verificationState = 'none'; 
   let potentialNewImageData = null; 
+  let verificationCount = 2; // Default number of verifications
+  let currentVerification = 0; // Current verification attempt
   let resetVideoProgress = true;
   let fastModeEnabled = false; 
   let autoMuteEnabled = false;
@@ -66,7 +68,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let errorRetryAttempts = 0;
   let errorCheckInterval = null;
   let videoElementNotFoundCounter = 0;
-  const MAX_VIDEO_NOT_FOUND_ERRORS = 10; // Threshold to trigger reload
+  const MAX_VIDEO_NOT_FOUND_ERRORS = 5; // Threshold to trigger reload
   let topCropPercent = 0;
   let bottomCropPercent = 0;
   let gaussianBlurSigma = null;
@@ -321,8 +323,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       }
 
       // Load double verification setting
-      enableDoubleVerification = config.enableDoubleVerification || false;
+      enableDoubleVerification = config.enableDoubleVerification || true;
       enableDoubleVerificationCheckbox.checked = enableDoubleVerification;
+
+      // Load verification count
+      verificationCount = config.verificationCount || 2;
 
       // Load Fast Mode setting
       if (config.fastModeEnabled !== undefined) {
@@ -1614,18 +1619,20 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
         if (enableDoubleVerification && verificationState !== 'none') {
           const verifyResult = await compareImages(potentialNewImageData, currentImageData);
-    
+          
           if (verifyResult.changed) {
-            console.log(`Verification failed (${verificationState}): new slide is unstable`);
+            console.log(`Verification failed (attempt ${currentVerification}/${verificationCount}): new slide is unstable`);
             verificationState = 'none';
+            currentVerification = 0;
             potentialNewImageData = null;
             verificationMethod = null;
           } else {
-            if (verificationState === 'first') {
-              console.log('First verification passed, proceeding to second verification');
-              verificationState = 'second';
-            } else if (verificationState === 'second') {
-              console.log('Second verification passed, saving new slide');
+            currentVerification++;
+            
+            if (currentVerification < verificationCount) {
+              console.log(`Verification ${currentVerification}/${verificationCount} passed, continuing verification`);
+            } else {
+              console.log(`All ${verificationCount} verifications passed, saving new slide`);
               const timestamp = formatLocalTimestamp();
               lastImageData = potentialNewImageData;
               const isUsingElementCapture = activeProfileId !== 'default';
@@ -1634,6 +1641,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
               capturedCount++;
               slideCount.textContent = `Slides captured: ${capturedCount}`;
               verificationState = 'none';
+              currentVerification = 0;
               potentialNewImageData = null;
               verificationMethod = null;
             }
@@ -1643,8 +1651,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     
           if (result.changed) {
             if (enableDoubleVerification) {
-              console.log('Potential slide change detected, starting verification');
-              verificationState = 'first';
+              console.log(`Potential slide change detected, starting verification (will perform ${verificationCount} checks)`);
+              verificationState = 'verifying';
+              currentVerification = 0;
               potentialNewImageData = currentImageData;
               verificationMethod = result.method;
             } else {
