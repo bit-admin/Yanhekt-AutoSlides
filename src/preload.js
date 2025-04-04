@@ -56,13 +56,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   applyBlockingRules: () => ipcRenderer.invoke('apply-blocking-rules'),
   onApplyBlockingRules: (callback) => ipcRenderer.on('apply-blocking-rules', () => callback()),
 
+  onThemeChange: (callback) => {
+    ipcRenderer.on('theme-changed', (event, data) => callback(event, data));
+  },
+
   // Send message to main window
   sendToMainWindow: (channel, data) => {
     return ipcRenderer.invoke('send-to-main-window', channel, data);
-  },
-
-  sendToMainWindow: (channel, data) => {
-    ipcRenderer.send(channel, data);
   },
 
   onShowCropGuides: (callback) => ipcRenderer.on('show-crop-guides', () => callback()),

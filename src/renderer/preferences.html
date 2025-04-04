@@ -474,6 +474,10 @@
             font-size: 12px;
             color: #666;
         }
+
+        .dark-mode {
+            filter: invert(1) hue-rotate(180deg) contrast(0.85);
+        }
     </style>
 </head>
 <body>
@@ -500,8 +504,17 @@
                         Keep running in background
                     </label>
                     <div class="help-text">
-                        Prevents the system from sleeping while AutoSlides is running. 
-                        Useful for long automated capture sessions.
+                        Prevents the system from sleeping while AutoSlides is running
+                    </div>
+                </div>
+
+                <div class="preference-item">
+                    <label>
+                        <input type="checkbox" id="darkModeEnabled">
+                        Enable Dark Mode
+                    </label>
+                    <div class="help-text">
+                        Switch the application to a darker color scheme with color inversion
                     </div>
                 </div>
                 
