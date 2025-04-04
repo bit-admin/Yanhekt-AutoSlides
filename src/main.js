@@ -40,7 +40,10 @@ yanhekt.cn##div#ai-bit-animation-modal`
     default: {
       gaussianBlurSigma: 0.5,
       pixelDiffThreshold: 30,
-    changeRatioThreshold: 0.005
+      changeRatioThreshold: 0.005,
+      hammingThresholdLow: 0,
+      hammingThresholdUp: 5,
+      ssimThreshold: 0.999
     }
   },
   cacheCleanInterval: {

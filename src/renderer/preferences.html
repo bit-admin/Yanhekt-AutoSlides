@@ -342,7 +342,8 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px; /* Reduced from 20px */
-            margin-bottom: 2px; /* Reduced from 15px */
+            margin-bottom: 2px;
+            margin-top: 5px;
         }
 
         /* On smaller screens, stack the grid */
@@ -550,26 +551,56 @@
                         
                         <!-- Primary Filtering Section -->
                         <div class="strategy-section">
-                            <h4>Primary Filtering</h4>
                             <div class="settings-grid">
-                                <!-- Content will be added later -->
+                                <div class="preference-item">
+                                    <div style="height: 12px;"></div>
+                                    <div class="setting-with-info">
+                                        <span class="setting-label">Resizing</span>
+                                        <span class="setting-value">Enabled</span>
+                                    </div>
+                                    <div style="height: 12px;"></div>
+                                    <div class="setting-with-info">
+                                        <span class="setting-label">DCT</span>
+                                        <span class="setting-value">Enabled</span>
+                                    </div>
+                                    <div style="height: 12px;"></div>
+                                    <div class="setting-with-info">
+                                        <span class="setting-label">pHash</span>
+                                        <span class="setting-value">Enabled</span>
+                                    </div>
+                                </div>
+
+                                <div class="preference-item">
+                                    <label for="">Hamming Distance Threshold:</label>
+                                    <input type="number" id="hammingThresholdLow" min="0" max="10" step="1" value="0">
+                                    <div class="help-text">Bypass SSIM check if below lower threshold</div>
+                                    <input type="number" id="hammingThresholdUp" min="0" max="20" step="1" value="5">
+                                    <div class="help-text">Bypass SSIM check if above upper threshold</div>
+                                </div>
                             </div>
                         </div>
                         
-                        <hr class="section-divider">
+                        <hr class="section-divider" style="margin: 0 0 25px 0;">
                         
                         <!-- Secondary Filtering Section -->
                         <div class="strategy-section">
-                            <h4>Secondary Filtering</h4>
                             <div class="settings-grid">
-                                <!-- Content will be added later -->
+                                <div class="preference-item">
+                                    <div style="height: 22px;"></div>
+                                    <div class="setting-with-info">
+                                        <span class="setting-label">SSIM</span>
+                                        <span class="setting-value">Enabled</span>
+                                    </div>
+                                </div>
+                                <div class="preference-item">
+                                    <label for="">SSIM Threshold:</label>
+                                    <input type="number" id="ssimThreshold" min="0.95" max="1" step="0.0001" value="0.999">
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
                 
-                <!-- Basic Strategy Card -->
-                <div class="preference-section">
+                    <!-- Basic Strategy Card -->
                     <div class="strategy-card basic-strategy">
                         <div class="strategy-header">
                             <h3>Basic</h3>
@@ -595,7 +626,7 @@
                                 <div class="preference-item">
                                     <label for="gaussianBlurSigma">Sigma:</label>
                                     <input type="number" id="gaussianBlurSigma" min="0.1" max="2.0" step="0.1" value="0.5">
-                                    <div class="help-text">Higher values increase blur strength.</div>
+                                    <div class="help-text">Higher values increase blur strength</div>
                                 </div>
                             </div>
                         </div>
@@ -608,19 +639,19 @@
                             <div class="settings-grid">
                                 <div class="preference-item">
                                     <!-- Pixel Difference Threshold -->
-                                    <div class="setting-label">Pixel Difference Threshold</div>
+                                    <div class="setting-label">Pixel Difference Threshold:</div>
                                     <div class="setting-control">
                                         <input type="number" id="pixelDiffThreshold" min="1" max="255" step="1" value="30">
-                                        <div class="help-text">Threshold for considering pixels different.</div>
+                                        <div class="help-text">Threshold for considering pixels different</div>
                                     </div>
                                 </div>
                                 
                                 <div class="preference-item">
                                     <!-- Change Ratio Threshold -->
-                                    <div class="setting-label">Change Ratio Threshold</div>
+                                    <div class="setting-label">Change Ratio Threshold:</div>
                                     <div class="setting-control">
                                         <input type="number" id="changeRatioThreshold" min="0.001" max="0.02" step="0.001" value="0.005">
-                                        <div class="help-text">Min-ratio of changed pixels to trigger a slide change.</div>
+                                        <div class="help-text">Min-ratio of changed pixels to trigger changes.</div>
                                     </div>
                                 </div>
                             </div>
@@ -858,6 +889,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             const btnDefault = document.getElementById('btnDefault');
             const pixelDiffThreshold = document.getElementById('pixelDiffThreshold');
             const changeRatioThreshold = document.getElementById('changeRatioThreshold');
+            const hammingThresholdLow = document.getElementById('hammingThresholdLow');
+            const hammingThresholdUp = document.getElementById('hammingThresholdUp');
+            const ssimThreshold = document.getElementById('ssimThreshold');
 
             // Enhance the blocking rules text area for code-like behavior
             function enhanceBlockingRulesEditor() {
@@ -884,19 +918,28 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 allowBackgroundRunning.checked = config.allowBackgroundRunning || false;
                 cacheCleanInterval.value = config.cacheCleanInterval || 15;
 
-                // Set Gaussian blur sigma
                 if (config.captureStrategy && config.captureStrategy.gaussianBlurSigma !== undefined) {
                     gaussianBlurSigma.value = config.captureStrategy.gaussianBlurSigma;
                 }
 
-                // Set pixel difference threshold
                 if (config.captureStrategy && config.captureStrategy.pixelDiffThreshold !== undefined) {
                     pixelDiffThreshold.value = config.captureStrategy.pixelDiffThreshold;
                 }
                 
-                // Set change ratio threshold
                 if (config.captureStrategy && config.captureStrategy.changeRatioThreshold !== undefined) {
                     changeRatioThreshold.value = config.captureStrategy.changeRatioThreshold;
+                }
+
+                if (config.hammingThresholdLow && config.captureStrategy.hammingThresholdLow !== undefined) {
+                    hammingThresholdLow.value = config.captureStrategy.hammingThresholdLow;
+                }
+
+                if (config.hammingThresholdUp && config.captureStrategy.hammingThresholdUp !== undefined) {
+                    hammingThresholdUp.value = config.captureStrategy.hammingThresholdUp;
+                }
+
+                if (config.ssimThreshold && config.captureStrategy.ssimThreshold !== undefined) {
+                    ssimThreshold.value = config.captureStrategy.ssimThreshold;
                 }
                 
                 // Load blocking rules
@@ -960,7 +1003,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                             ...(config.captureStrategy || {}),
                             gaussianBlurSigma: parseFloat(gaussianBlurSigma.value),
                             pixelDiffThreshold: parseInt(pixelDiffThreshold.value, 10),
-                            changeRatioThreshold: parseFloat(changeRatioThreshold.value)
+                            changeRatioThreshold: parseFloat(changeRatioThreshold.value),
+                            hammingThresholdLow: parseInt(hammingThresholdLow.value),
+                            hammingThresholdUp: parseInt(hammingThresholdUp.value),
+                            ssimThreshold: parseFloat(ssimThreshold.value)
                         }
                     };
                     
@@ -1001,12 +1047,12 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 // If on capture strategy tab, restore default strategy settings
                 const captureTabActive = document.getElementById('capture-tab').classList.contains('active');
                 if (captureTabActive) {
-                    // Reset gaussian blur sigma to default value
                     gaussianBlurSigma.value = 0.5;
-                    // Reset pixel difference threshold to default value
                     pixelDiffThreshold.value = 30;
-                    // Reset change ratio threshold to default value
                     changeRatioThreshold.value = 0.005;
+                    hammingThresholdLow.value = 0;
+                    hammingThresholdUp.value = 5;
+                    ssimThreshold.value = 0.999;
                 }
                 
                 // If on profiles tab, restore default profiles
