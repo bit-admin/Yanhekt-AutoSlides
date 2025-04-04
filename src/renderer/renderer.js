@@ -87,6 +87,14 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   // Add this call after loading the blocking rules
   await loadConfig();
   await loadBlockingRules();
+
+  window.electronAPI.onThemeChange((event, data) => {
+    if (data.darkMode) {
+      document.documentElement.classList.add('dark-mode');
+    } else {
+      document.documentElement.classList.remove('dark-mode');
+    }
+  });
   
   // Set default URL
   inputUrl.value = 'https://www.yanhekt.cn/home';
@@ -306,6 +314,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           }
         }
       };
+
+      applyDarkMode(config);
       
       // Set default active profile to Live Player
       activeProfileId = config.activeProfileId || 'yanhekt_live';
@@ -346,6 +356,14 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       return config;
     } catch (error) {
       console.error('Failed to load config:', error);
+    }
+  }
+
+  function applyDarkMode(config) {
+    if (config.darkModeEnabled) {
+      document.documentElement.classList.add('dark-mode');
+    } else {
+      document.documentElement.classList.remove('dark-mode');
     }
   }
   

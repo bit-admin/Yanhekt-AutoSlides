@@ -817,3 +817,18 @@ select:focus {
   background-color: #f0f0f0;
   color: #0078d7;
 }
+
+.dark-mode {
+  filter: invert(1) hue-rotate(180deg) contrast(0.85);
+}
+
+/* Exclude images and videos from inversion */
+.dark-mode img, 
+.dark-mode video {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Special treatment for webview with reduced brightness */
+.dark-mode webview {
+  filter: brightness(0.85) contrast(0.85);
+}

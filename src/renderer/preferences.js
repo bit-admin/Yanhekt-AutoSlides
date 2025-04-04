@@ -41,6 +41,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const hammingThresholdUp = document.getElementById('hammingThresholdUp');
     const ssimThreshold = document.getElementById('ssimThreshold');
     const verificationCount = document.getElementById('verificationCount');
+    const darkModeEnabled = document.getElementById('darkModeEnabled');
 
     // Enhance the blocking rules text area for code-like behavior
     function enhanceBlockingRulesEditor() {
@@ -66,6 +67,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         const config = await window.electronAPI.getConfig();
         allowBackgroundRunning.checked = config.allowBackgroundRunning || false;
         cacheCleanInterval.value = config.cacheCleanInterval || 15;
+        darkModeEnabled.checked = config.darkModeEnabled || false;
 
         if (config.captureStrategy && config.captureStrategy.gaussianBlurSigma !== undefined) {
             gaussianBlurSigma.value = config.captureStrategy.gaussianBlurSigma;
@@ -101,6 +103,17 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         enhanceBlockingRulesEditor();
     } catch (error) {
         console.error('Failed to load preferences:', error);
+    }
+
+    try {
+        // Apply dark mode immediately to the preferences window
+        if (darkModeEnabled.checked) {
+            document.documentElement.classList.add('dark-mode');
+        } else {
+            document.documentElement.classList.remove('dark-mode');
+        }
+    } catch (error) {
+        console.error('Failed to load dark mode preference:', error);
     }
 
     // Clear cookies handler
@@ -151,6 +164,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             const updatedConfig = {
                 ...config,
                 allowBackgroundRunning: allowBackgroundRunning.checked,
+                darkModeEnabled: darkModeEnabled.checked,
                 cacheCleanInterval: parseInt(cacheCleanInterval.value, 10),
                 captureStrategy: {
                     ...(config.captureStrategy || {}),
@@ -163,6 +177,16 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                     verificationCount: parseFloat(verificationCount.value)
                 }
             };
+
+            if (darkModeEnabled.checked) {
+                document.documentElement.classList.add('dark-mode');
+            } else {
+                document.documentElement.classList.remove('dark-mode');
+            }
+
+            // Notify main window about the theme change
+            window.electronAPI.sendToMainWindow('theme-changed', {darkMode: darkModeEnabled.checked});
+
             
             // Save the updated config
             await window.electronAPI.saveConfig(updatedConfig);

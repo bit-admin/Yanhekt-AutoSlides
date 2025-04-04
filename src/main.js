@@ -122,6 +122,10 @@ yanhekt.cn##div#ai-bit-animation-modal`
   resetVideoProgress: {
     type: 'boolean',
     default: true
+  },
+  darkModeEnabled: {
+    type: 'boolean',
+    default: false
   }
 };
 
