@@ -65,6 +65,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const autoMuteCheckbox = document.getElementById('autoMuteCheckbox');
   let errorRetryAttempts = 0;
   let errorCheckInterval = null;
+  let videoElementNotFoundCounter = 0;
+  const MAX_VIDEO_NOT_FOUND_ERRORS = 10; // Threshold to trigger reload
   let topCropPercent = 0;
   let bottomCropPercent = 0;
   let gaussianBlurSigma = null;
@@ -1523,6 +1525,13 @@ yanhekt.cn##div#ai-bit-animation-modal`;
               statusText.textContent = 'Video loaded, starting capture...';
             } else {
               console.log(`Video not ready (attempt ${retryCount + 1}/${maxRetries}):`, videoCheck);
+
+              // Increment counter specifically for "Video element not found" errors
+              if (videoCheck.reason === 'Video element not found') {
+                videoElementNotFoundCounter++;
+                console.log(`Video element not found count: ${videoElementNotFoundCounter}/${MAX_VIDEO_NOT_FOUND_ERRORS}`);
+              }
+
               await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retrying
               retryCount++;
               statusText.textContent = `Waiting for video (${retryCount}/${maxRetries})...`;
@@ -1790,6 +1799,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       speedAdjustRetryAttempts = 0;
       playbackRetryAttempts = 0;
       errorRetryAttempts = 0;
+      videoElementNotFoundCounter = 0;
 
       // Reset verification state
       verificationState = 'none';
@@ -2681,8 +2691,54 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   async function checkForPlaybackErrors() {
     // Skip if not in automation mode or feature not enabled
     if (activeProfileId === 'default' || 
-        !siteProfiles[activeProfileId]?.automation?.autoRetryError ||
-        !siteProfiles[activeProfileId]?.automation?.errorSelector) {
+        !siteProfiles[activeProfileId]?.automation?.autoRetryError) {
+      return;
+    }
+
+    // Check for excessive "Video element not found" errors
+    if (videoElementNotFoundCounter >= MAX_VIDEO_NOT_FOUND_ERRORS) {
+      console.log(`Too many "Video element not found" errors (${videoElementNotFoundCounter}/${MAX_VIDEO_NOT_FOUND_ERRORS}), treating as playback error`);
+      
+      // Check if we've exceeded max retries
+      const maxAttempts = parseInt(siteProfiles[activeProfileId].automation.maxRetryAttempts || '3', 10);
+      
+      if (errorRetryAttempts >= maxAttempts) {
+        console.log(`Max retry attempts (${maxAttempts}) reached, giving up`);
+        statusText.textContent = `Error: Playback failed after ${maxAttempts} retry attempts`;
+        
+        // Clean up interval
+        if (errorCheckInterval) {
+          clearInterval(errorCheckInterval);
+          errorCheckInterval = null;
+        }
+        return;
+      }
+      
+      // Increment counter and reload page
+      errorRetryAttempts++;
+      statusText.textContent = `Video element not found error. Retrying (${errorRetryAttempts}/${maxAttempts})...`;
+      
+      // Reset video not found counter
+      videoElementNotFoundCounter = 0;
+
+      try {
+        console.log('Clearing browser cache before reload attempt');
+        await window.electronAPI.clearBrowserCache();
+      } catch (cacheError) {
+        console.error('Error clearing cache during retry:', cacheError);
+      }
+      
+      // Wait a moment before reloading
+      setTimeout(() => {
+        console.log(`Reloading page, attempt ${errorRetryAttempts}/${maxAttempts}`);
+        webview.reload();
+      }, 1000);
+      
+      return; // Exit early after handling video not found error
+    }
+
+    // Continue with regular error selector check
+    if (!siteProfiles[activeProfileId]?.automation?.errorSelector) {
       return;
     }
     
