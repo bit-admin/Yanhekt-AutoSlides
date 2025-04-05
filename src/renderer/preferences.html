@@ -579,11 +579,7 @@
             padding: 15px;
             background-color: #f9f9f9;
             transition: transform 0.2s ease;
-        }
-
-        .dark-mode .course-card {
-            background-color: #2a2a2a;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            margin-right: 15px;
         }
 
         .course-card:hover {
@@ -591,22 +587,24 @@
         }
 
         .course-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .course-image {
-            width: 50px;
-            height: 50px;
-            object-fit: cover;
-            border-radius: 4px;
-            margin-right: 10px;
+            margin-bottom: 12px;
         }
 
         .course-title {
             font-weight: bold;
-            margin-bottom: 5px;
+            font-size: 1.1em;
+            color: #1890ff;
+        }
+
+        .course-id {
+            font-size: 0.95em;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .course-id .highlight {
+            color: #52c41a;
+            font-weight: bold;
         }
 
         .course-detail {
@@ -617,6 +615,28 @@
         .course-professors, .course-classrooms {
             font-size: 0.85em;
             margin-top: 10px;
+            color: #666;
+        }
+
+        #fetch-courses-btn {
+            padding: 8px 12px;
+            background-color: #0078d7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #fetch-courses-btn:hover {
+            background-color: #40a9ff;
+        }
+
+        #courses-status {
+            margin-left: 10px;
+            margin-top: 5.5px;
+            font-style: italic;
+            color: #666;
+            align-items: center;
         }
 
         .loading-spinner {
@@ -640,20 +660,12 @@
             color: #666;
         }
 
-        .dark-mode .status-text {
-            color: #aaa;
-        }
-
         .course-container {
             margin-top: 15px;
             border: 1px solid #ddd;
             border-radius: 6px;
-            padding: 10px;
+            padding: 15px;
             min-height: 200px;
-        }
-
-        .dark-mode .course-container {
-            border-color: #444;
         }
 
         .dark-mode {
@@ -1061,15 +1073,13 @@
 
                 <div class="preference-section" id="course-info-section">
                     <h3>Recorded Course Information</h3>
-                    <div class="form-row">
-                        <button id="fetch-courses-btn" class="action-button">Fetch Course Data</button>
-                        <span id="courses-status" class="status-text">Click this bottom to fetch your private course list</span>
+                    <div class="token-container">
+                        <div class="token-row">
+                            <button id="fetch-courses-btn" class="token-action-button">Fetch Course Data</button>
+                            <span id="courses-status" class="courses-status">Click to fetch your private course list</span>
+                        </div>
                     </div>
                     <div class="course-container">
-                        <div id="courses-loading" style="display: none;">
-                            <div class="loading-spinner"></div>
-                                <p>Loading course data, please wait...</p>
-                            </div>
                         <div id="course-list-container" class="scrollable-horizontal">
                         <!-- Course cards will be inserted here -->
                         </div>

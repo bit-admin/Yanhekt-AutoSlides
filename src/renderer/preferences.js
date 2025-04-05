@@ -790,15 +790,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             // Clear previous course cards
             courseListContainer.innerHTML = '';
             
-            // Show loading indicator
-            coursesLoading.style.display = 'block';
+            // Update status
             coursesStatus.textContent = 'Fetching course data...';
             
             // Fetch course data
             const result = await window.electronAPI.fetchRecordedCourses();
-            
-            // Hide loading indicator
-            coursesLoading.style.display = 'none';
             
             if (result.success && result.courses && result.courses.length > 0) {
                 // Create and display course cards
@@ -821,7 +817,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             }
         } catch (error) {
             console.error('Error fetching courses:', error);
-            coursesLoading.style.display = 'none';
             coursesStatus.textContent = `Error: ${error.message || 'Unknown error'}`;
             setTimeout(() => {
                 coursesStatus.textContent = 'Idle';
@@ -833,33 +828,26 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         const card = document.createElement('div');
         card.className = 'course-card';
         
-        // Create card header with image
-        const header = document.createElement('div');
-        header.className = 'course-header';
-        
-        const image = document.createElement('img');
-        image.className = 'course-image';
-        image.src = course.imageUrl || 'placeholder-image.jpg';
-        image.alt = course.nameEn || course.nameZh || 'Course';
-        image.onerror = () => {
-            image.src = './assets/placeholder-course.png';
-            image.onerror = null;
-        };
-        header.appendChild(image);
-        
+        // Create card header with just the title (no image)
         const titleContainer = document.createElement('div');
+        titleContainer.className = 'course-header';
+        
         const title = document.createElement('div');
         title.className = 'course-title';
         title.textContent = course.nameEn || course.nameZh || 'Unnamed Course';
         titleContainer.appendChild(title);
-        header.appendChild(titleContainer);
         
-        card.appendChild(header);
+        card.appendChild(titleContainer);
+        
+        // Course ID with special highlighting
+        const courseIdElement = document.createElement('div');
+        courseIdElement.className = 'course-id';
+        courseIdElement.innerHTML = `Course ID: <span class="highlight">${course.id}</span>`;
+        card.appendChild(courseIdElement);
         
         // Course details
         const details = [
             { label: 'Name', value: course.nameZh },
-            { label: 'Course ID', value: course.id },
             { label: 'College', value: course.collegeName },
             { label: 'Year', value: course.schoolYear },
             { label: 'Semester', value: course.semester },
