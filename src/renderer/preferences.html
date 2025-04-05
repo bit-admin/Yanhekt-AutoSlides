@@ -481,6 +481,10 @@
             margin-bottom: 10px;
             align-items: stretch;
         }
+
+        .token-row .input {
+            border: #555;
+        }
         
         .token-row .password-container {
             flex: 1;
@@ -711,6 +715,178 @@
 
         .dark-mode {
             filter: invert(1) hue-rotate(180deg) contrast(0.85);
+        }
+
+        .session-card {
+            min-width: 200px;
+            max-width: 200px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 12px;
+            background-color: #f5f7fa;
+            transition: transform 0.2s ease;
+            margin-right: 15px;
+            border-left: 4px solid #1890ff;
+            height: auto;
+        }
+
+        .session-card[data-week="1"], .session-card[data-week="5"], .session-card[data-week="9"], .session-card[data-week="13"], .session-card[data-week="17"] {
+            border-left: 4px solid #1890ff; 
+        }
+        .session-card[data-week="2"], .session-card[data-week="6"], .session-card[data-week="10"], .session-card[data-week="14"], .session-card[data-week="18"] {
+            border-left: 4px solid #52c41a;
+        }
+        .session-card[data-week="3"], .session-card[data-week="7"], .session-card[data-week="11"], .session-card[data-week="15"], .session-card[data-week="19"] {
+            border-left: 4px solid #1890ff; 
+        }
+        .session-card[data-week="4"], .session-card[data-week="8"], .session-card[data-week="12"], .session-card[data-week="16"], .session-card[data-week="20"] {
+            border-left: 4px solid #52c41a; 
+        }
+
+        .session-header {
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .session-title {
+            font-weight: bold;
+            font-size: 1em;
+            color: #1890ff;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+            cursor: default;
+        }
+        
+        .session-id {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .session-week {
+            font-size: 0.9em;
+            margin-bottom: 4px;
+            color: #666;
+        }
+        
+        .session-day {
+            display: inline-block;
+            padding: 2px 6px;
+            background-color: #f0f0f0;
+            border-radius: 4px;
+            font-size: 0.8em;
+            margin-bottom: 5px;
+        }
+        
+        .session-time {
+            font-size: 0.85em;
+            margin-bottom: 6px;
+            color: #666;
+        }
+        
+        .session-location {
+            font-size: 0.85em;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .get-sessions-btn {
+            margin-top: 10px;
+            padding: 6px 12px;
+            background-color: #F0F0F3;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            width: 100%;
+        }
+        
+        .get-sessions-btn:hover {
+            background-color: #e8e8e8;
+        }
+        
+        #fetch-sessions-btn {
+            padding: 8px 12px;
+            background-color: #0078d7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            height: 34px;
+            display: flex;
+            align-items: center;
+        }
+        
+        #fetch-sessions-btn:hover {
+            background-color: #40a9ff;
+        }
+        
+        #sessions-status {
+            margin-left: 15px;
+            margin-top: 5.5px;
+            font-style: italic;
+            color: #666;
+            align-items: center;
+        }
+
+        .scrollable-horizontal {
+            display: flex;
+            overflow-x: auto;
+            padding: 10px 0;
+            gap: 15px;
+            width: 100%;
+        }
+
+        .week-header {
+            width: 100%;
+            padding: 8px 0;
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 1.1em;
+            border-bottom: 1px solid #eee;
+            color: #333;
+        }
+
+        .week-row {
+            display: flex;
+            overflow-x: auto;
+            margin-bottom: 20px;
+            padding-bottom: 5px;
+        }
+
+        #session-list-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            padding: 5px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .session-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .session-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .week-odd .session-card {
+            border-left: 4px solid #1890ff;
+        }
+
+        .week-even .session-card {
+            border-left: 4px solid #52c41a;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+            font-style: italic;
         }
     </style>
 </head>
@@ -1123,6 +1299,23 @@
                     <div class="course-container">
                         <div id="course-list-container" class="scrollable-horizontal">
                         <!-- Course cards will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preference-section" id="session-info-section">
+                    <h3>Course Sessions Information</h3>
+                    <div class="token-container">
+                        <div class="token-row">
+                            <button id="fetch-sessions-btn" class="token-action-button">Fetch Sessions</button>
+                            <input type="text" id="session-course-id" placeholder="Enter Course ID" 
+                                style="border: 1px solid #ddd; border-radius: 4px;">
+                            <span id="sessions-status" class="courses-status">Enter a course ID or get course Info above</span>
+                        </div>
+                    </div>
+                    <div class="course-container">
+                        <div id="session-list-container" class="scrollable-horizontal">
+                        <!-- Session cards will be inserted here -->
                         </div>
                     </div>
                 </div>
