@@ -1046,10 +1046,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         headerDiv.appendChild(titleDiv);
         card.appendChild(headerDiv);
         
-        // 创建会话信息表格（类似于课程卡片的无框线表格）
         const infoTable = document.createElement('div');
         infoTable.className = 'course-info-table';
-        infoTable.style.gridTemplateColumns = '50px 1fr'; // 调整列宽以适应会话信息
+        infoTable.style.gridTemplateColumns = '50px 1fr'; 
         
         // Session ID
         const idRow = document.createElement('div');
@@ -1125,20 +1124,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             infoTable.appendChild(timeRow);
         }
         
-        // 移除 Location 信息
-        
+        // 添加信息表格到卡片
         card.appendChild(infoTable);
-        
-        // Progress bar
-        const progressDiv = document.createElement('div');
-        progressDiv.className = 'session-progress';
-        
-        const progressBarDiv = document.createElement('div');
-        progressBarDiv.className = 'session-progress-bar';
-        progressBarDiv.style.width = `${session.progressPercent || 0}%`;
-        
-        progressDiv.appendChild(progressBarDiv);
-        card.appendChild(progressDiv);
         
         return card;
     }
