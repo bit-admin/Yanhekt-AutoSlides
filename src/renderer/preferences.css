@@ -1292,3 +1292,102 @@ button:hover {
     color: var(--color-text-primary);
     border-color: var(--color-border);
 }
+
+/* 修复课程卡片在暗色模式下的详细样式 */
+.dark-mode .course-card {
+    background-color: var(--color-background-section);
+    border-color: var(--color-border);
+    box-shadow: 0 2px 5px var(--color-shadow);
+}
+
+.dark-mode .course-card:hover {
+    box-shadow: 0 5px 15px var(--color-shadow-dark);
+}
+
+.dark-mode .course-title {
+    color: #4da3ff;  /* 更亮的蓝色以增加在暗色背景下的可见性 */
+}
+
+.dark-mode .course-header {
+    border-color: var(--color-border);
+}
+
+/* 修复课程信息表格中的文本颜色 */
+.dark-mode .course-info-label {
+    color: var(--color-text-secondary);
+}
+
+.dark-mode .course-info-value {
+    color: var(--color-text-primary);
+}
+
+.dark-mode .course-info-value.highlight {
+    color: #6fd669;  /* 更亮的绿色以增加在暗色背景下的可见性 */
+}
+
+/* 修复卡片中的教授和教室信息颜色 */
+.dark-mode .professors-row .course-info-value,
+.dark-mode .classrooms-row .course-info-value {
+    color: var(--color-text-secondary);
+}
+
+/* 修复按钮样式 */
+.dark-mode .get-sessions-btn {
+    background-color: var(--color-secondary);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.dark-mode .get-sessions-btn:hover {
+    background-color: var(--color-secondary-hover);
+}
+
+/* 修复直播课程卡片中的状态徽章 */
+.dark-mode .status-badge.status-1 {
+    background-color: #d48806;  /* 更深的黄色 */
+}
+
+.dark-mode .status-badge.status-2 {
+    background-color: #389e0d;  /* 更深的绿色 */
+}
+
+.dark-mode .status-badge.status-3 {
+    background-color: #595959;  /* 更深的灰色 */
+}
+
+.dark-mode .session-card {
+  background-color: var(--color-background-section);
+  border-color: var(--color-border);
+  box-shadow: 0 2px 5px var(--color-shadow);
+}
+
+.dark-mode .session-card:hover {
+  box-shadow: 0 5px 15px var(--color-shadow-dark);
+  transform: translateY(-5px);
+}
+
+.dark-mode .session-title {
+  color: #4da3ff;  /* 更亮的蓝色以增加可见性 */
+}
+
+.dark-mode .session-header {
+  border-color: var(--color-border);
+}
+
+/* 修复网格样式中的内联样式问题 */
+.dark-mode .course-info-table[style*="grid-template-columns"] {
+  color: var(--color-text-primary);
+}
+
+/* 修复会话卡片中的时间和日期文本 */
+.dark-mode .session-week,
+.dark-mode .session-time,
+.dark-mode .session-day,
+.dark-mode .session-location {
+  color: var(--color-text-secondary);
+}
+
+.dark-mode .session-day {
+  background-color: var(--color-secondary);
+  color: var(--color-text-primary);
+}
