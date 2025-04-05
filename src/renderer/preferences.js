@@ -828,15 +828,17 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         const card = document.createElement('div');
         card.className = 'course-card';
         
-        // Title container
+        // Title
         const titleContainer = document.createElement('div');
         titleContainer.className = 'course-header';
         
         const title = document.createElement('div');
         title.className = 'course-title';
-        title.textContent = course.nameEn || course.nameZh || 'Unnamed Course';
-        titleContainer.appendChild(title);
+        const fullTitle = course.nameEn || course.nameZh || 'Unnamed Course';
+        title.textContent = fullTitle;
+        title.setAttribute('title', fullTitle);
         
+        titleContainer.appendChild(title);
         card.appendChild(titleContainer);
         
         // Course info table
