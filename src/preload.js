@@ -43,6 +43,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
    * API request method
    */
   makeApiRequest: (options) => ipcRenderer.invoke('make-api-request', options),
+  fetchRecordedCourses: () => ipcRenderer.invoke('fetch-recorded-courses'),
+  fetchCourseSessions: (courseId) => ipcRenderer.invoke('fetch-course-sessions', courseId),
 
   muteWebviewAudio: async (webviewId) => {
     try {
@@ -63,15 +65,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Send message to main window
   sendToMainWindow: (channel, data) => {
     return ipcRenderer.invoke('send-to-main-window', channel, data);
-  },
-
-  fetchRecordedCourses: async () => {
-    try {
-      return await ipcRenderer.invoke('fetch-recorded-courses');
-    } catch (error) {
-      console.error('Error in fetchRecordedCourses:', error);
-      return { success: false, error: error.message };
-    }
   },
 
   onShowCropGuides: (callback) => ipcRenderer.on('show-crop-guides', () => callback()),

@@ -1162,3 +1162,211 @@ ipcMain.handle('fetch-recorded-courses', async (event) => {
     return { success: false, error: error.message };
   }
 });
+
+// Add this new IPC handler for fetching course sessions
+ipcMain.handle('fetch-course-sessions', async (event, courseId) => {
+  try {
+    if (!courseId) {
+      return { success: false, message: 'Course ID is required' };
+    }
+    
+    // Send request to main window and wait for response
+    const result = await mainWindow.webContents.executeJavaScript(`
+      (async function() {
+        try {
+          if (!document.querySelector('webview')) {
+            return { success: false, message: 'No webview found' };
+          }
+          
+          const webview = document.querySelector('webview');
+          
+          async function fetchSessionList(courseId, page = 1, pageSize = 10) {
+            try {
+              // Extract authentication token from localStorage
+              const authInfo = await webview.executeJavaScript(\`
+                (function() {
+                  // Get auth data from localStorage (this is where YanHeKT stores it)
+                  let token = null;
+                  try {
+                    // First try to get from localStorage (primary method)
+                    const authData = localStorage.getItem('auth');
+                    if (authData) {
+                      const parsed = JSON.parse(authData);
+                      token = parsed.token;
+                      console.log('Found token in localStorage');
+                    }
+                    
+                    // If not found, try backup locations
+                    if (!token) {
+                      for (const key of ['token', 'accessToken', 'yanhekt_token']) {
+                        const value = localStorage.getItem(key);
+                        if (value) {
+                          token = value.replace(/^"|"$/g, ''); // Remove quotes if present
+                          console.log('Found token in localStorage key:', key);
+                          break;
+                        }
+                      }
+                    }
+                    
+                    // Last resort: try cookies
+                    if (!token) {
+                      const cookies = document.cookie.split(';');
+                      const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+                      if (tokenCookie) {
+                        token = tokenCookie.split('=')[1].trim();
+                        console.log('Found token in cookies');
+                      }
+                    }
+                  } catch (e) {
+                    console.error('Error extracting token:', e);
+                  }
+                  
+                  // Get user agent for request headers
+                  const userAgent = navigator.userAgent;
+                  
+                  // Generate timestamp for request
+                  const timestamp = Math.floor(Date.now() / 1000).toString();
+                  
+                  return {
+                    token: token,
+                    userAgent: userAgent,
+                    timestamp: timestamp,
+                    traceId: 'AUTO-' + Math.random().toString(36).substring(2, 15)
+                  };
+                })();
+              \`);
+              
+              if (!authInfo.token) {
+                throw new Error('Authentication token not found');
+              }
+              
+              // API endpoint for session list
+              const apiUrl = \`https://cbiz.yanhekt.cn/v2/course/session/list?course_id=\${courseId}&with_page=true&page=\${page}&page_size=\${pageSize}&order_type=desc&order_type_weight=desc\`;
+              
+              // Call the API through main process
+              const result = await window.electronAPI.makeApiRequest({
+                url: apiUrl,
+                headers: {
+                  'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6',
+                  'Authorization': \`Bearer \${authInfo.token}\`,
+                  'Content-Type': 'application/json',
+                  'Origin': 'https://www.yanhekt.cn',
+                  'Referer': 'https://www.yanhekt.cn/',
+                  'User-Agent': authInfo.userAgent,
+                  'X-TRACE-ID': authInfo.traceId,
+                  'Xdomain-Client': 'web_user',
+                  'xclient-timestamp': authInfo.timestamp,
+                  'xclient-version': 'v2'
+                }
+              });
+              
+              return result;
+            } catch (error) {
+              console.error('Error fetching session list:', error);
+              throw error;
+            }
+          }
+          
+          // Parse session information from API response
+          function parseSessionInfo(apiResponse) {
+            try {
+              const sessions = [];
+              
+              if (apiResponse?.data?.data && Array.isArray(apiResponse.data.data)) {
+                apiResponse.data.data.forEach(session => {
+                  // Extract the key information
+                  sessions.push({
+                    sessionId: session.id,
+                    courseId: session.course_id,
+                    title: session.title,
+                    weekNumber: session.week_number,
+                    dayOfWeek: session.day, // 1=Monday, 7=Sunday
+                    startedAt: session.started_at,
+                    endedAt: session.ended_at,
+                    videoId: session.video_ids?.[0] || null,
+                    videoUrl: session.videos?.[0]?.main || null,
+                    location: session.location || '',
+                    // Calculate progress percentage if available
+                    progressPercent: session.user_progress ? 
+                      Math.round((parseInt(session.user_progress.progress_current, 10) / 
+                                 parseInt(session.user_progress.progress_overall, 10)) * 100) : 0
+                  });
+                });
+              }
+              
+              return sessions;
+            } catch (error) {
+              console.error('Error parsing session info:', error);
+              return [];
+            }
+          }
+          
+          // Start fetching session data with pagination
+          async function getAllSessions() {
+            try {
+              // Fetch first page
+              const firstPageResponse = await fetchSessionList(${courseId}, 1);
+              
+              if (firstPageResponse.code !== 0) {
+                throw new Error(firstPageResponse.message || 'Failed to fetch sessions');
+              }
+              
+              let allSessions = parseSessionInfo(firstPageResponse);
+              
+              // Check for additional pages
+              const totalPages = firstPageResponse.data.last_page || 1;
+              
+              // Fetch remaining pages (with a reasonable limit)
+              const maxPagesToFetch = 5; // Limit to avoid excessive API calls
+              const pagesToFetch = Math.min(totalPages, maxPagesToFetch);
+              
+              if (pagesToFetch > 1) {
+                // Fetch all other pages except the first one which we already fetched
+                for (let page = 2; page <= pagesToFetch; page++) {
+                  try {
+                    const pageResponse = await fetchSessionList(${courseId}, page);
+                    const pageSessions = parseSessionInfo(pageResponse);
+                    allSessions = [...allSessions, ...pageSessions];
+                  } catch (pageError) {
+                    console.error(\`Error fetching page \${page}:\`, pageError);
+                  }
+                }
+              }
+              
+              return { 
+                success: true,
+                sessions: allSessions,
+                totalPages: totalPages,
+                courseId: ${courseId}
+              };
+            } catch (error) {
+              console.error('Error in sessions retrieval:', error);
+              return { 
+                success: false, 
+                message: error.message || 'Failed to fetch sessions',
+                error: error.toString()
+              };
+            }
+          }
+          
+          return getAllSessions();
+        } catch (error) {
+          return { 
+            success: false, 
+            message: error.message || 'Failed to process session data',
+            error: error.toString()
+          };
+        }
+      })();
+    `);
+    
+    return result;
+  } catch (error) {
+    console.error('Error fetching course sessions:', error);
+    return { 
+      success: false, 
+      message: error.message || 'Failed to fetch course sessions',
+      error: error.toString()
+    };
+  }
+});

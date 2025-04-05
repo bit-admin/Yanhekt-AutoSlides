@@ -20,7 +20,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelector('.tab[data-tab="automation"]').addEventListener('click', () => {
         // Reset course status when tab is clicked
         if (document.getElementById('courses-status')) {
-            document.getElementById('courses-status').textContent = 'Click this button to fetch your private course list';
+            document.getElementById('courses-status').textContent = 'Click to fetch your private course list';
+        }
+        
+        // Also reset session list and status
+        if (document.getElementById('sessions-status')) {
+            document.getElementById('sessions-status').textContent = 'Enter a course ID or get course Info above';
+        }
+        
+        // Clear any previously displayed session cards
+        if (sessionListContainer) {
+            sessionListContainer.innerHTML = '';
+        }
+        
+        // Reset course ID input
+        if (sessionCourseId) {
+            sessionCourseId.value = '';
         }
     });
 
@@ -56,6 +71,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const coursesStatus = document.getElementById('courses-status');
     const coursesLoading = document.getElementById('courses-loading');
     const courseListContainer = document.getElementById('course-list-container');
+    const sessionCourseId = document.getElementById('session-course-id');
+    const fetchSessionsBtn = document.getElementById('fetch-sessions-btn');
+    const sessionsStatus = document.getElementById('sessions-status');
+    const sessionListContainer = document.getElementById('session-list-container');
 
     // Enhance the blocking rules text area for code-like behavior
     function enhanceBlockingRulesEditor() {
@@ -185,8 +204,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                     gaussianBlurSigma: parseFloat(gaussianBlurSigma.value),
                     pixelDiffThreshold: parseInt(pixelDiffThreshold.value, 10),
                     changeRatioThreshold: parseFloat(changeRatioThreshold.value),
-                    hammingThresholdLow: parseInt(hammingThresholdLow.value),
-                    hammingThresholdUp: parseInt(hammingThresholdUp.value),
+                    hammingThresholdLow: parseInt(hammingThresholdLow.value, 10),
+                    hammingThresholdUp: parseInt(hammingThresholdUp.value, 10),
                     ssimThreshold: parseFloat(ssimThreshold.value),
                     verificationCount: parseFloat(verificationCount.value)
                 }
@@ -927,6 +946,214 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             infoTable.appendChild(roomRow);
         }
         
+        // Add "Get Sessions Info" button
+        const getSessionsBtn = document.createElement('button');
+        getSessionsBtn.className = 'get-sessions-btn';
+        getSessionsBtn.textContent = 'Get Sessions Info';
+        getSessionsBtn.dataset.courseId = course.id;
+        getSessionsBtn.addEventListener('click', () => {
+            // Fill the course ID input and trigger fetch
+            sessionCourseId.value = course.id;
+            fetchCourseSessions(course.id);
+        });
+        card.appendChild(getSessionsBtn);
+        
         return card;
     }
+
+    // Function to fetch sessions for a course
+    async function fetchCourseSessions(courseId) {
+        try {
+            // Validate course ID
+            if (!courseId) {
+                sessionsStatus.textContent = 'Error: Course ID is required';
+                setTimeout(() => {
+                    sessionsStatus.textContent = 'Enter a course ID or get course Info above';
+                }, 3000);
+                return;
+            }
+            
+            // Clear previous session cards
+            sessionListContainer.innerHTML = '';
+            
+            // Update status
+            sessionsStatus.textContent = 'Fetching session data...';
+            
+            // Fetch session data
+            const result = await window.electronAPI.fetchCourseSessions(courseId);
+            
+            if (result.success && result.sessions && result.sessions.length > 0) {
+                
+                result.sessions.sort((a, b) => {
+                    if (b.weekNumber !== a.weekNumber) {
+                        return b.weekNumber - a.weekNumber;
+                    }
+                    if (a.dayOfWeek !== b.dayOfWeek) {
+                        return a.dayOfWeek - b.dayOfWeek;
+                    }
+                    return new Date(a.startedAt) - new Date(b.startedAt);
+                });
+                
+                const sessionsRow = document.createElement('div');
+                sessionsRow.className = 'scrollable-horizontal';
+                
+                result.sessions.forEach(session => {
+                    const card = createSessionCard(session);
+                    card.dataset.week = session.weekNumber;
+                    sessionsRow.appendChild(card);
+                });
+                
+                sessionListContainer.appendChild(sessionsRow);
+                
+                sessionsStatus.textContent = `Found ${result.sessions.length} sessions`;
+                setTimeout(() => {
+                    sessionsStatus.textContent = 'Idle';
+                }, 3000);
+            } else {
+                const errorMsg = result.message || 'No sessions found or failed to retrieve sessions';
+                sessionsStatus.textContent = `Error: ${errorMsg}`;
+                sessionListContainer.innerHTML = `<div class="empty-state">
+                    <div style="font-size: 16px; margin-bottom: 10px;">No sessions found</div>
+                    <div>${errorMsg}</div>
+                </div>`;
+                setTimeout(() => {
+                    sessionsStatus.textContent = 'Idle';
+                }, 3000);
+            }
+        } catch (error) {
+            console.error('Error fetching sessions:', error);
+            sessionsStatus.textContent = `Error: ${error.message || 'Unknown error'}`;
+            setTimeout(() => {
+                sessionsStatus.textContent = 'Idle';
+            }, 3000);
+        }
+    }
+    
+    // Function to create a session card
+    function createSessionCard(session) {
+        const card = document.createElement('div');
+        card.className = 'session-card';
+        
+        // Session Header
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'session-header';
+        
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'session-title';
+        titleDiv.textContent = session.title || 'Untitled Session';
+        titleDiv.setAttribute('title', session.title || 'Untitled Session');
+        
+        headerDiv.appendChild(titleDiv);
+        card.appendChild(headerDiv);
+        
+        // 创建会话信息表格（类似于课程卡片的无框线表格）
+        const infoTable = document.createElement('div');
+        infoTable.className = 'course-info-table';
+        infoTable.style.gridTemplateColumns = '50px 1fr'; // 调整列宽以适应会话信息
+        
+        // Session ID
+        const idRow = document.createElement('div');
+        idRow.className = 'course-info-row';
+        
+        const idLabel = document.createElement('div');
+        idLabel.className = 'course-info-label';
+        idLabel.textContent = 'ID:';
+        
+        const idValue = document.createElement('div');
+        idValue.className = 'course-info-value highlight';
+        idValue.textContent = session.sessionId;
+        
+        idRow.appendChild(idLabel);
+        idRow.appendChild(idValue);
+        infoTable.appendChild(idRow);
+        
+        // Week
+        const weekRow = document.createElement('div');
+        weekRow.className = 'course-info-row';
+        
+        const weekLabel = document.createElement('div');
+        weekLabel.className = 'course-info-label';
+        weekLabel.textContent = 'Week:';
+        
+        const weekValue = document.createElement('div');
+        weekValue.className = 'course-info-value';
+        weekValue.textContent = session.weekNumber;
+        
+        weekRow.appendChild(weekLabel);
+        weekRow.appendChild(weekValue);
+        infoTable.appendChild(weekRow);
+        
+        // Day
+        const dayRow = document.createElement('div');
+        dayRow.className = 'course-info-row';
+        
+        const dayLabel = document.createElement('div');
+        dayLabel.className = 'course-info-label';
+        dayLabel.textContent = 'Day:';
+        
+        const dayValue = document.createElement('div');
+        dayValue.className = 'course-info-value';
+        // Convert numeric day to text (1=Monday, 7=Sunday)
+        const days = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        dayValue.textContent = days[session.dayOfWeek] || `Day ${session.dayOfWeek}`;
+        
+        dayRow.appendChild(dayLabel);
+        dayRow.appendChild(dayValue);
+        infoTable.appendChild(dayRow);
+        
+        // Date/Time
+        if (session.startedAt) {
+            const timeRow = document.createElement('div');
+            timeRow.className = 'course-info-row';
+            
+            const timeLabel = document.createElement('div');
+            timeLabel.className = 'course-info-label';
+            timeLabel.textContent = 'Time:';
+            
+            const timeValue = document.createElement('div');
+            timeValue.className = 'course-info-value';
+            
+            // Format the date nicely
+            const startDate = new Date(session.startedAt);
+            const dateStr = startDate.toLocaleDateString();
+            const timeStr = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            timeValue.textContent = `${dateStr} ${timeStr}`;
+            
+            timeRow.appendChild(timeLabel);
+            timeRow.appendChild(timeValue);
+            infoTable.appendChild(timeRow);
+        }
+        
+        // 移除 Location 信息
+        
+        card.appendChild(infoTable);
+        
+        // Progress bar
+        const progressDiv = document.createElement('div');
+        progressDiv.className = 'session-progress';
+        
+        const progressBarDiv = document.createElement('div');
+        progressBarDiv.className = 'session-progress-bar';
+        progressBarDiv.style.width = `${session.progressPercent || 0}%`;
+        
+        progressDiv.appendChild(progressBarDiv);
+        card.appendChild(progressDiv);
+        
+        return card;
+    }
+    
+    // Add event listener for fetch sessions button
+    fetchSessionsBtn.addEventListener('click', () => {
+        const courseId = sessionCourseId.value.trim();
+        fetchCourseSessions(courseId);
+    });
+    
+    // Add event listener for enter key in course ID input
+    sessionCourseId.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            const courseId = sessionCourseId.value.trim();
+            fetchCourseSessions(courseId);
+        }
+    });
 });
