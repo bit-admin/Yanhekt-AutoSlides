@@ -828,7 +828,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         const card = document.createElement('div');
         card.className = 'course-card';
         
-        // Create card header with just the title (no image)
+        // Title container
         const titleContainer = document.createElement('div');
         titleContainer.className = 'course-header';
         
@@ -839,11 +839,25 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         card.appendChild(titleContainer);
         
-        // Course ID with special highlighting
-        const courseIdElement = document.createElement('div');
-        courseIdElement.className = 'course-id';
-        courseIdElement.innerHTML = `Course ID: <span class="highlight">${course.id}</span>`;
-        card.appendChild(courseIdElement);
+        // Course info table
+        const infoTable = document.createElement('div');
+        infoTable.className = 'course-info-table';
+        
+        // Course ID
+        const idRow = document.createElement('div');
+        idRow.className = 'course-info-row';
+        
+        const idLabel = document.createElement('div');
+        idLabel.className = 'course-info-label';
+        idLabel.textContent = 'Course ID:';
+        
+        const idValue = document.createElement('div');
+        idValue.className = 'course-info-value highlight';
+        idValue.textContent = course.id;
+        
+        idRow.appendChild(idLabel);
+        idRow.appendChild(idValue);
+        infoTable.appendChild(idRow);
         
         // Course details
         const details = [
@@ -856,27 +870,59 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         details.forEach(detail => {
             if (detail.value) {
-                const detailElement = document.createElement('div');
-                detailElement.className = 'course-detail';
-                detailElement.textContent = `${detail.label}: ${detail.value}`;
-                card.appendChild(detailElement);
+                const row = document.createElement('div');
+                row.className = 'course-info-row';
+                
+                const label = document.createElement('div');
+                label.className = 'course-info-label';
+                label.textContent = `${detail.label}:`;
+                
+                const value = document.createElement('div');
+                value.className = 'course-info-value';
+                value.textContent = detail.value;
+                
+                row.appendChild(label);
+                row.appendChild(value);
+                infoTable.appendChild(row);
             }
         });
         
-        // Professors
+        card.appendChild(infoTable);
+        
+        // Professor
         if (course.professors && course.professors.length > 0) {
-            const professorsElement = document.createElement('div');
-            professorsElement.className = 'course-professors';
-            professorsElement.textContent = `Professors: ${course.professors.map(p => p.name).join(', ')}`;
-            card.appendChild(professorsElement);
+            const profRow = document.createElement('div');
+            profRow.className = 'course-info-row professors-row';
+            
+            const profLabel = document.createElement('div');
+            profLabel.className = 'course-info-label';
+            profLabel.textContent = 'Professors:';
+            
+            const profValue = document.createElement('div');
+            profValue.className = 'course-info-value';
+            profValue.textContent = course.professors.map(p => p.name).join(', ');
+            
+            profRow.appendChild(profLabel);
+            profRow.appendChild(profValue);
+            infoTable.appendChild(profRow);
         }
         
-        // Classrooms
+        // CLassrooms
         if (course.classrooms && course.classrooms.length > 0) {
-            const classroomsElement = document.createElement('div');
-            classroomsElement.className = 'course-classrooms';
-            classroomsElement.textContent = `Classrooms: ${course.classrooms.map(c => c.name || c.number).join(', ')}`;
-            card.appendChild(classroomsElement);
+            const roomRow = document.createElement('div');
+            roomRow.className = 'course-info-row classrooms-row';
+            
+            const roomLabel = document.createElement('div');
+            roomLabel.className = 'course-info-label';
+            roomLabel.textContent = 'Classrooms:';
+            
+            const roomValue = document.createElement('div');
+            roomValue.className = 'course-info-value';
+            roomValue.textContent = course.classrooms.map(c => c.name || c.number).join(', ');
+            
+            roomRow.appendChild(roomLabel);
+            roomRow.appendChild(roomValue);
+            infoTable.appendChild(roomRow);
         }
         
         return card;

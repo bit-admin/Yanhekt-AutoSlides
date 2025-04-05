@@ -572,8 +572,8 @@
         }
 
         .course-card {
-            min-width: 280px;
-            max-width: 280px;
+            min-width: 300px;
+            max-width: 300px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             padding: 15px;
@@ -588,6 +588,8 @@
 
         .course-header {
             margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
         }
 
         .course-title {
@@ -666,6 +668,40 @@
             border-radius: 6px;
             padding: 15px;
             min-height: 200px;
+        }
+
+        .course-info-table {
+            display: grid;
+            grid-template-columns: 95px 1fr;
+            gap: 4px 8px;
+            margin-top: 8px;
+            width: 100%;
+        }
+        
+        .course-info-row {
+            display: contents;
+        }
+        
+        .course-info-label {
+            font-weight: 500;
+            color: #666;
+            text-align: right;
+        }
+        
+        .course-info-value {
+            text-align: left;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .course-info-value.highlight {
+            color: #52c41a;
+            font-weight: bold;
+        }
+        
+        .professors-row, .classrooms-row {
+            margin-top: 5px;
         }
 
         .dark-mode {
