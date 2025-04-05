@@ -42,6 +42,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const ssimThreshold = document.getElementById('ssimThreshold');
     const verificationCount = document.getElementById('verificationCount');
     const darkModeEnabled = document.getElementById('darkModeEnabled');
+    const tokenField = document.getElementById('tokenField');
+    const btnTogglePassword = document.getElementById('btnTogglePassword');
+    const btnRetrieveToken = document.getElementById('btnRetrieveToken');
+    const btnCopyToken = document.getElementById('btnCopyToken');
+    const tokenStatus = document.getElementById('tokenStatus');
 
     // Enhance the blocking rules text area for code-like behavior
     function enhanceBlockingRulesEditor() {
@@ -700,5 +705,74 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     // Initial load if profiles tab is active
     if (document.getElementById('profiles-tab').classList.contains('active')) {
         loadCropSettings();
-    }
+    };
+
+    // Toggle password visibility
+    btnTogglePassword.addEventListener('click', () => {
+        if (tokenField.type === 'password') {
+            tokenField.type = 'text';
+            btnTogglePassword.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            `;
+        } else {
+            tokenField.type = 'password';
+            btnTogglePassword.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            `;
+        }
+    });
+    
+    // Retrieve token
+    btnRetrieveToken.addEventListener('click', async () => {
+        try {
+            tokenStatus.textContent = 'Retrieving token...';
+            tokenStatus.className = 'token-status';
+            
+            // Request token retrieval from main window
+            const result = await window.electronAPI.sendToMainWindow('retrieve-token');
+            
+            if (result && result.token) {
+                tokenField.value = result.token;
+                tokenStatus.textContent = 'Token retrieved successfully';
+                tokenStatus.className = 'token-status success';
+            } else {
+                tokenStatus.textContent = 'No token found. Please log in to YanHeKT in the main window first.';
+                tokenStatus.className = 'token-status error';
+            }
+        } catch (error) {
+            console.error('Error retrieving token:', error);
+            tokenStatus.textContent = `Error: ${error.message || 'Failed to retrieve token'}`;
+            tokenStatus.className = 'token-status error';
+        }
+    });
+    
+    // Copy token to clipboard
+    btnCopyToken.addEventListener('click', () => {
+        if (!tokenField.value) {
+            tokenStatus.textContent = 'No token to copy';
+            tokenStatus.className = 'token-status error';
+            return;
+        }
+        
+        navigator.clipboard.writeText(tokenField.value)
+            .then(() => {
+                tokenStatus.textContent = 'Token copied to clipboard';
+                tokenStatus.className = 'token-status success';
+                setTimeout(() => {
+                    tokenStatus.textContent = '';
+                }, 3000);
+            })
+            .catch(err => {
+                console.error('Failed to copy token:', err);
+                tokenStatus.textContent = 'Failed to copy token';
+                tokenStatus.className = 'token-status error';
+            });
+    });
 });

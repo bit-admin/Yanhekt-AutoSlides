@@ -475,6 +475,93 @@
             color: #666;
         }
 
+        .token-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: stretch;
+        }
+        
+        .token-row .password-container {
+            flex: 1;
+            margin-bottom: 0;
+        }
+        
+        .token-row .token-retrieve-btn {
+            white-space: nowrap;
+            margin-bottom: 0;
+        }
+
+        .token-retrieve-btn {
+            margin-bottom: 10px;
+            height: 30px;
+            align-items: center;
+            display: flex;
+        }
+
+        .password-container {
+            display: flex;
+            align-items: center;
+            position: relative;
+            margin-bottom: 10px;
+            height: 30px; /* Fixed height to prevent size change */
+        }
+        
+        .password-container input {
+            flex: 1;
+            padding-right: 80px; /* Increased space for two buttons */
+            font-family: monospace;
+            height: 100%;
+            box-sizing: border-box;
+            align-items: center;
+        }
+
+        .password-actions {
+            position: absolute;
+            right: 5px;
+            display: flex;
+            gap: 5px;
+        }
+        
+        .icon-button {
+            background: none;
+            border: none;
+            color: #777;
+            cursor: pointer;
+            padding: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .icon-button:hover {
+            color: #333;
+        }
+        
+        .token-actions {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .token-actions .action-button {
+            flex: 1;
+        }
+        
+        .token-status {
+            font-size: 13px;
+            margin-top: 5px;
+            min-height: 19px;
+        }
+        
+        .token-status.success {
+            color: #28a745;
+        }
+        
+        .token-status.error {
+            color: #dc3545;
+        }
+
         .dark-mode {
             filter: invert(1) hue-rotate(180deg) contrast(0.85);
         }
@@ -849,6 +936,35 @@
             </div> 
             <!-- Website Automation Tab -->
             <div class="tab-content" id="automation-tab">
+                <div class="preference-section">
+                    <h3>Authentication</h3>
+                    
+                    <div class="preference-item">
+                        <label for="tokenField">YanHeKT Authentication Token:</label>
+                        <div class="token-row">
+                            <button id="btnRetrieveToken" class="action-button token-retrieve-btn">Retrieve Token</button>
+                            <div class="password-container">
+                                <input type="password" id="tokenField" readonly>
+                                <div class="password-actions">
+                                    <button id="btnCopyToken" class="icon-button" title="Copy to Clipboard">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </button>
+                                    <button id="btnTogglePassword" class="icon-button" title="Show/Hide Password">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="tokenStatus" class="token-status"></div>
+                    </div>
+                </div>
+
                 <div class="preference-section">
                     <h3>Element Blocking Rules</h3>
                     <p class="help-text">AdGuard-like rules (one per line)</p>
