@@ -944,3 +944,205 @@ ipcMain.on('show-crop-guides', (event) => {
 ipcMain.on('update-crop-preview', (event, data) => {
   mainWindow.webContents.send('update-crop-preview', data);
 });
+
+// Add this new IPC handler for fetching recorded courses
+ipcMain.handle('fetch-recorded-courses', async (event) => {
+  try {
+    // Send request to main window and wait for response
+    const result = await mainWindow.webContents.executeJavaScript(`
+      (async function() {
+        try {
+          if (!document.querySelector('webview')) {
+            return { success: false, message: 'No webview found' };
+          }
+          
+          const webview = document.querySelector('webview');
+          
+          async function fetchPrivateCourseList(page = 1, pageSize = 16) {
+            try {
+              // Extract authentication token from localStorage similar to fetchSessionList
+              const authInfo = await webview.executeJavaScript(\`
+                (function() {
+                  // Get auth data from localStorage (this is where YanHeKT stores it)
+                  let token = null;
+                  try {
+                    // First try to get from localStorage (primary method)
+                    const authData = localStorage.getItem('auth');
+                    if (authData) {
+                      const parsed = JSON.parse(authData);
+                      token = parsed.token;
+                      console.log('Found token in localStorage');
+                    }
+                    
+                    // If not found in localStorage, try backup locations
+                    if (!token) {
+                      // Check alternative localStorage keys
+                      for (const key of ['token', 'accessToken', 'yanhekt_token']) {
+                        const value = localStorage.getItem(key);
+                        if (value) {
+                          token = value.replace(/^"|"$/g, ''); // Remove quotes if present
+                          console.log('Found token in localStorage key:', key);
+                          break;
+                        }
+                      }
+                    }
+                    
+                    // Last resort: try cookies
+                    if (!token) {
+                      const cookies = document.cookie.split(';');
+                      const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+                      if (tokenCookie) {
+                        token = tokenCookie.split('=')[1].trim();
+                        console.log('Found token in cookies');
+                      }
+                    }
+                  } catch (e) {
+                    console.error('Error extracting token:', e);
+                  }
+                  
+                  // Get user agent for request headers
+                  const userAgent = navigator.userAgent;
+                  
+                  // Generate timestamp for request
+                  const timestamp = Math.floor(Date.now() / 1000).toString();
+                  
+                  // Return all the necessary auth information
+                  return {
+                    token: token,
+                    userAgent: userAgent,
+                    timestamp: timestamp,
+                    traceId: 'AUTO-' + Math.random().toString(36).substring(2, 15)
+                  };
+                })();
+              \`);
+              
+              console.log('Auth info retrieved (token hidden):', {
+                ...authInfo,
+                token: authInfo.token ? '***token-hidden***' : 'null'
+              });
+              
+              if (!authInfo.token) {
+                throw new Error('Authentication token not found');
+              }
+              
+              // API endpoint for course list
+              const apiUrl = \`https://cbiz.yanhekt.cn/v2/course/private/list?page=\${page}&page_size=\${pageSize}&user_relationship_type=1&with_introduction=true\`;
+              
+              // Call the API through our main process to avoid CORS issues
+              const result = await window.electronAPI.makeApiRequest({
+                url: apiUrl,
+                headers: {
+                  'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6',
+                  'Authorization': \`Bearer \${authInfo.token}\`,
+                  'Content-Type': 'application/json',
+                  'Origin': 'https://www.yanhekt.cn',
+                  'Referer': 'https://www.yanhekt.cn/',
+                  'User-Agent': authInfo.userAgent,
+                  'X-TRACE-ID': authInfo.traceId,
+                  'Xdomain-Client': 'web_user',
+                  'xclient-timestamp': authInfo.timestamp,
+                  'xclient-version': 'v2'
+                }
+              });
+              
+              // Process API response
+              if (result.code === 0 && result.data) {
+                const courses = parseCourseInfo(result);
+                
+                // Add current page info to each course
+                courses.forEach(course => {
+                  course.page = page;
+                });
+                
+                // Check if we need to fetch more pages
+                const totalPages = result.data.last_page || 1;
+                
+                if (page < totalPages) {
+                  // Fetch next page and combine results
+                  const nextPageCourses = await fetchPrivateCourseList(page + 1, pageSize);
+                  return [...courses, ...nextPageCourses];
+                }
+                
+                return courses;
+              } else {
+                const errorMsg = result.message || 'Unknown API error';
+                throw new Error(\`API Error: \${errorMsg}\`);
+              }
+            } catch (error) {
+              console.error('Error fetching course list:', error);
+              throw error;
+            }
+          }
+
+          // Extract and format course information from API response
+          function parseCourseInfo(apiResponse) {
+            try {
+              const courses = [];
+              
+              if (apiResponse?.data?.data && Array.isArray(apiResponse.data.data)) {
+                apiResponse.data.data.forEach(course => {
+                  // Extract the key information
+                  courses.push({
+                    id: course.id,
+                    nameZh: course.name_zh,
+                    nameEn: course.name_en,
+                    code: course.code,
+                    collegeName: course.college_name,
+                    collegeCode: course.college_code,
+                    universityCode: course.university_code,
+                    universityId: course.university_id,
+                    schoolYear: course.school_year,
+                    semester: course.semester,
+                    imageUrl: course.image_url,
+                    state: course.state,
+                    participantCount: course.participant_count,
+                    professors: Array.isArray(course.professors) 
+                      ? course.professors.map(prof => {
+                          // Handle both cases: when prof is a string (name) or an object with a name property
+                          if (typeof prof === 'string') {
+                            return { name: prof };
+                          } else if (typeof prof === 'object' && prof.name) {
+                            return prof;
+                          } else {
+                            return { name: String(prof) };
+                          }
+                        }) 
+                      : [],
+                    classrooms: Array.isArray(course.classrooms) ? 
+                      course.classrooms.map(classroom => ({
+                        id: classroom.id,
+                        name: classroom.name,
+                        number: classroom.number
+                      })) : []
+                  });
+                });
+              }
+              
+              return courses;
+            } catch (error) {
+              console.error('Error parsing course info:', error);
+              return [];
+            }
+          }
+
+          // Start fetching course data
+          return { 
+            success: true, 
+            courses: await fetchPrivateCourseList()
+          };
+        } catch (error) {
+          console.error('Error in course retrieval:', error);
+          return { 
+            success: false, 
+            message: error.message || 'Failed to fetch course information'
+          };
+        }
+      })();
+    `);
+    
+    return result;
+  } catch (error) {
+    console.error('Error fetching recorded courses:', error);
+    return { success: false, error: error.message };
+  }
+});

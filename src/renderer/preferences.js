@@ -17,6 +17,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
+    document.querySelector('.tab[data-tab="automation"]').addEventListener('click', () => {
+        // Reset course status when tab is clicked
+        if (document.getElementById('courses-status')) {
+            document.getElementById('courses-status').textContent = 'Click this button to fetch your private course list';
+        }
+    });
+
     // Default rules
     const DEFAULT_RULES = `yanhekt.cn###root > div.app > div.sidebar-open:first-child
 yanhekt.cn###root > div.app > div.BlankLayout_layout__kC9f3:last-child > div.ant-spin-nested-loading:nth-child(2) > div.ant-spin-container > div.index_liveWrapper__YGcpO > div.index_userlist__T-6xf:last-child > div.index_staticContainer__z3yt-
@@ -30,8 +37,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const btnClearCookies = document.getElementById('btnClearCookies');
     const btnClearAll = document.getElementById('btnClearAll');
     const blockingRules = document.getElementById('blockingRules');
-    const btnApplyRules = document.getElementById('btnApplyRules');
-    const btnResetRules = document.getElementById('btnResetRules');
     const btnSave = document.getElementById('btnSave');
     const btnCancel = document.getElementById('btnCancel');
     const btnDefault = document.getElementById('btnDefault');
@@ -47,6 +52,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const btnRetrieveToken = document.getElementById('btnRetrieveToken');
     const btnCopyToken = document.getElementById('btnCopyToken');
     const tokenStatus = document.getElementById('tokenStatus');
+    const fetchCoursesBtn = document.getElementById('fetch-courses-btn');
+    const coursesStatus = document.getElementById('courses-status');
+    const coursesLoading = document.getElementById('courses-loading');
+    const courseListContainer = document.getElementById('course-list-container');
 
     // Enhance the blocking rules text area for code-like behavior
     function enhanceBlockingRulesEditor() {
@@ -775,4 +784,113 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 tokenStatus.className = 'token-status error';
             });
     });
+
+    fetchCoursesBtn.addEventListener('click', async () => {
+        try {
+            // Clear previous course cards
+            courseListContainer.innerHTML = '';
+            
+            // Show loading indicator
+            coursesLoading.style.display = 'block';
+            coursesStatus.textContent = 'Fetching course data...';
+            
+            // Fetch course data
+            const result = await window.electronAPI.fetchRecordedCourses();
+            
+            // Hide loading indicator
+            coursesLoading.style.display = 'none';
+            
+            if (result.success && result.courses && result.courses.length > 0) {
+                // Create and display course cards
+                result.courses.forEach(course => {
+                    const card = createCourseCard(course);
+                    courseListContainer.appendChild(card);
+                });
+                
+                coursesStatus.textContent = `Found ${result.courses.length} courses`;
+                setTimeout(() => {
+                    coursesStatus.textContent = 'Idle';
+                }, 3000);
+            } else {
+                const errorMsg = result.message || 'No courses found or failed to retrieve courses';
+                coursesStatus.textContent = `Error: ${errorMsg}`;
+                courseListContainer.innerHTML = `<div class="error-message">${errorMsg}</div>`;
+                setTimeout(() => {
+                    coursesStatus.textContent = 'Idle';
+                }, 3000);
+            }
+        } catch (error) {
+            console.error('Error fetching courses:', error);
+            coursesLoading.style.display = 'none';
+            coursesStatus.textContent = `Error: ${error.message || 'Unknown error'}`;
+            setTimeout(() => {
+                coursesStatus.textContent = 'Idle';
+            }, 3000);
+        }
+    });
+
+    function createCourseCard(course) {
+        const card = document.createElement('div');
+        card.className = 'course-card';
+        
+        // Create card header with image
+        const header = document.createElement('div');
+        header.className = 'course-header';
+        
+        const image = document.createElement('img');
+        image.className = 'course-image';
+        image.src = course.imageUrl || 'placeholder-image.jpg';
+        image.alt = course.nameEn || course.nameZh || 'Course';
+        image.onerror = () => {
+            image.src = './assets/placeholder-course.png';
+            image.onerror = null;
+        };
+        header.appendChild(image);
+        
+        const titleContainer = document.createElement('div');
+        const title = document.createElement('div');
+        title.className = 'course-title';
+        title.textContent = course.nameEn || course.nameZh || 'Unnamed Course';
+        titleContainer.appendChild(title);
+        header.appendChild(titleContainer);
+        
+        card.appendChild(header);
+        
+        // Course details
+        const details = [
+            { label: 'Name', value: course.nameZh },
+            { label: 'Course ID', value: course.id },
+            { label: 'College', value: course.collegeName },
+            { label: 'Year', value: course.schoolYear },
+            { label: 'Semester', value: course.semester },
+            { label: 'Participants', value: course.participantCount }
+        ];
+        
+        details.forEach(detail => {
+            if (detail.value) {
+                const detailElement = document.createElement('div');
+                detailElement.className = 'course-detail';
+                detailElement.textContent = `${detail.label}: ${detail.value}`;
+                card.appendChild(detailElement);
+            }
+        });
+        
+        // Professors
+        if (course.professors && course.professors.length > 0) {
+            const professorsElement = document.createElement('div');
+            professorsElement.className = 'course-professors';
+            professorsElement.textContent = `Professors: ${course.professors.map(p => p.name).join(', ')}`;
+            card.appendChild(professorsElement);
+        }
+        
+        // Classrooms
+        if (course.classrooms && course.classrooms.length > 0) {
+            const classroomsElement = document.createElement('div');
+            classroomsElement.className = 'course-classrooms';
+            classroomsElement.textContent = `Classrooms: ${course.classrooms.map(c => c.name || c.number).join(', ')}`;
+            card.appendChild(classroomsElement);
+        }
+        
+        return card;
+    }
 });
