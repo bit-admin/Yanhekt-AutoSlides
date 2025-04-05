@@ -562,6 +562,100 @@
             color: #dc3545;
         }
 
+        .scrollable-horizontal {
+            width: 100%;
+            overflow-x: auto;
+            display: flex;
+            flex-wrap: nowrap;
+            padding: 10px 0;
+            gap: 15px;
+        }
+
+        .course-card {
+            min-width: 280px;
+            max-width: 280px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 15px;
+            background-color: #f9f9f9;
+            transition: transform 0.2s ease;
+        }
+
+        .dark-mode .course-card {
+            background-color: #2a2a2a;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .course-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .course-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .course-image {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+
+        .course-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .course-detail {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .course-professors, .course-classrooms {
+            font-size: 0.85em;
+            margin-top: 10px;
+        }
+
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 10px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .status-text {
+            margin-left: 10px;
+            font-style: italic;
+            color: #666;
+        }
+
+        .dark-mode .status-text {
+            color: #aaa;
+        }
+
+        .course-container {
+            margin-top: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 10px;
+            min-height: 200px;
+        }
+
+        .dark-mode .course-container {
+            border-color: #444;
+        }
+
         .dark-mode {
             filter: invert(1) hue-rotate(180deg) contrast(0.85);
         }
@@ -962,6 +1056,23 @@
                             </div>
                         </div>
                         <div id="tokenStatus" class="token-status"></div>
+                    </div>
+                </div>
+
+                <div class="preference-section" id="course-info-section">
+                    <h3>Recorded Course Information</h3>
+                    <div class="form-row">
+                        <button id="fetch-courses-btn" class="action-button">Fetch Course Data</button>
+                        <span id="courses-status" class="status-text">Click this bottom to fetch your private course list</span>
+                    </div>
+                    <div class="course-container">
+                        <div id="courses-loading" style="display: none;">
+                            <div class="loading-spinner"></div>
+                                <p>Loading course data, please wait...</p>
+                            </div>
+                        <div id="course-list-container" class="scrollable-horizontal">
+                        <!-- Course cards will be inserted here -->
+                        </div>
                     </div>
                 </div>
 
