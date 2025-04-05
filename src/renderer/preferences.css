@@ -265,9 +265,8 @@ button:hover {
 
 .action-button {
     padding: 8px 16px;
-    background-color: #0078d7;
-    color: white;
-    border: none;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
     border-radius: 4px;
     cursor: pointer;
     font-weight: 500;
@@ -275,7 +274,7 @@ button:hover {
 }
 
 .action-button:hover {
-    background-color: #0063b1;
+    background-color: #e8e8e8;
 }
 
 .profiles-grid {
@@ -635,8 +634,8 @@ button:hover {
 .course-card .get-sessions-btn {
     margin-top: auto; /* Push to bottom */
     padding: 6px 12px;
-    background-color: #F0F0F3;
-    border: none;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.85em;
@@ -649,15 +648,14 @@ button:hover {
 
 #fetch-courses-btn {
     padding: 8px 12px;
-    background-color: #0078d7;
-    color: white;
-    border: none;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
     border-radius: 4px;
     cursor: pointer;
 }
 
 #fetch-courses-btn:hover {
-    background-color: #40a9ff;
+    background-color: #e8e8e8;
 }
 
 #courses-status {
@@ -814,9 +812,8 @@ button:hover {
 
 #fetch-sessions-btn {
     padding: 8px 12px;
-    background-color: #0078d7;
-    color: white;
-    border: none;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
     border-radius: 4px;
     cursor: pointer;
     height: 34px;
@@ -825,14 +822,13 @@ button:hover {
 }
 
 #fetch-sessions-btn:hover {
-    background-color: #40a9ff;
+    background-color: #e8e8e8;
 }
 
 #fetch-live-courses-btn {
     padding: 8px 12px;
-    background-color: #0078d7;
-    color: white;
-    border: none;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
     border-radius: 4px;
     cursor: pointer;
     height: 34px;
@@ -841,7 +837,7 @@ button:hover {
 }
 
 #fetch-live-courses-btn:hover {
-    background-color: #40a9ff;
+    background-color: #e8e8e8;
 }
 
 #sessions-status {
