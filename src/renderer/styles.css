@@ -1,3 +1,33 @@
+:root {
+  /* 颜色变量 - 亮色主题 */
+  --color-text-primary: #333;
+  --color-text-secondary: #666;
+  --color-text-tertiary: #888;
+  --color-text-light: #aaa;
+  --color-background-main: #f5f5f5;
+  --color-background-content: #fff;
+  --color-background-section: #f9f9f9;
+  --color-border: #ddd;
+  --color-border-light: #eee;
+  --color-primary: #0078d7;
+  --color-primary-hover: #0063b1;
+  --color-primary-light: #eaf4fd;
+  --color-secondary: #f0f0f0;
+  --color-secondary-hover: #e8e8e8;
+  --color-shadow: rgba(0, 0, 0, 0.1);
+  --color-shadow-dark: rgba(0, 0, 0, 0.5);
+  --color-success: #4caf50;
+  --color-success-hover: #45a049;
+  --color-success-light: #e0f0e0;
+  --color-warning: #f39c12;
+  --color-danger: #e74c3c;
+  --color-danger-hover: #c0392b;
+  --color-highlight: #4a90e2;
+  --color-code-bg: #f8f8f8;
+  --color-code-text: #333;
+  --color-link: #0078d7;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -6,8 +36,8 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  color: #333;
-  background: #f5f5f5;
+  color: var(--color-text-primary);
+  background: var(--color-background-main);
 }
 
 .container {
@@ -19,15 +49,15 @@ body {
   width: 300px;
   display: flex;
   flex-direction: column;
-  background: #fff;
-  border-right: 1px solid #ddd;
+  background: var(--color-background-content);
+  border-right: 1px solid var(--color-border);
   height: 100vh;
 }
 
 .sidebar-top {
   padding: 16px 20px 6px;
-  background: #fff;
-  border-bottom: 1px solid #eee;
+  background: var(--color-background-content);
+  border-bottom: 1px solid var(--color-border-light);
   z-index: 10;
 }
 
@@ -48,10 +78,14 @@ body {
   margin-bottom: 0;
 }
 
+.sidebar-middle .cache-management-panel {
+  margin-top: 12px;
+}
+
 .sidebar-bottom {
   padding: 20px;
-  background: #fff;
-  border-top: 1px solid #eee;
+  background: var(--color-background-content);
+  border-top: 1px solid var(--color-border-light);
   z-index: 10;
 }
 
@@ -65,8 +99,8 @@ body {
 /* Address bar styles */
 .address-bar {
   height: 40px;
-  background: #f1f3f4;
-  border-bottom: 1px solid #ddd;
+  background: var(--color-secondary);
+  border-bottom: 1px solid var(--color-border);
   padding: 5px 10px;
   display: flex;
   align-items: center;
@@ -75,7 +109,7 @@ body {
 .address-bar .url-container {
   display: flex;
   width: 100%;
-  background: white;
+  background: var(--color-background-content);
   border-radius: 4px;
   overflow: hidden;
   height: 36px; /* Fixed height */
@@ -84,7 +118,7 @@ body {
 
 .address-bar input {
   flex-grow: 1;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-right: none; /* Remove right border */
   border-top-left-radius: 4px;
   border-bottom-left-radius: 4px;
@@ -92,10 +126,12 @@ body {
   font-size: 14px;
   outline: none;
   height: 100%;
+  background-color: var(--color-background-content);
+  color: var(--color-text-primary);
 }
 
 .address-bar button {
-  background: #0078d7; /* Match other buttons */
+  background: var(--color-primary); /* Match other buttons */
   color: white;
   border: none;
   min-width: 40px;
@@ -108,7 +144,7 @@ body {
 }
 
 .address-bar button:hover {
-  background: #0063b1; /* Match hover state of other buttons */
+  background: var(--color-primary-hover); /* Match hover state of other buttons */
 }
 
 /* Specific styles for the Go button */
@@ -151,7 +187,7 @@ h3 {
 
 button {
   padding: 8px 12px;
-  background: #0078d7;
+  background: var(--color-primary);
   color: white;
   border: none;
   border-radius: 4px;
@@ -160,11 +196,11 @@ button {
 }
 
 button:hover {
-  background: #0063b1;
+  background: var(--color-primary-hover);
 }
 
 button:disabled {
-  background: #cccccc;
+  background: var(--color-text-light);
   cursor: not-allowed;
 }
 
@@ -178,7 +214,7 @@ button:disabled {
 
 .config-panel, .status-panel {
   margin-bottom: 12px;
-  background: #f9f9f9;
+  background: var(--color-background-section);
   padding: 15px;
   border-radius: 6px;
 }
@@ -197,9 +233,11 @@ label {
 input {
   width: 100%;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
+  background-color: var(--color-background-content);
+  color: var(--color-text-primary);
 }
 
 /* URL container styles for settings panel if needed */
@@ -237,14 +275,14 @@ input {
 
 .help-text {
   font-size: 12px;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-bottom: 5px;
 }
 
 /* Code editor styling for blocking rules */
 .blocking-rules-panel {
   margin-bottom: 20px;
-  background: #f9f9f9;
+  background: var(--color-background-section);
   padding: 15px;
   border-radius: 6px;
   overflow: hidden; /* For horizontal scrolling containment */
@@ -253,11 +291,11 @@ input {
 /* Style for the code editor container */
 .code-editor-container {
   position: relative;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 10px;
-  background-color: #f8f8f8;
+  background-color: var(--color-code-bg);
 }
 
 #blockingRules {
@@ -267,8 +305,8 @@ input {
   font-size: 12px;
   border: none;
   resize: vertical;
-  background-color: #f8f8f8;
-  color: #333;
+  background-color: var(--color-code-bg);
+  color: var(--color-code-text);
   line-height: 1.5;
   tab-size: 4;
   overflow-x: auto;
@@ -289,22 +327,18 @@ input {
 /* Cache Management Panel Styles */
 .cache-management-panel {
   margin-bottom: 12px;
-  background: #f9f9f9;
+  background: var(--color-background-section);
   padding: 15px;
   border-radius: 6px;
 }
 
-.sidebar-middle .cache-management-panel {
-  margin-top: 12px;
-}
-
 .cache-info {
-  background: #f1f1f1;
+  background: var(--color-secondary);
   padding: 8px;
   border-radius: 4px;
   margin-bottom: 10px;
   font-size: 14px;
-  color: #555;
+  color: var(--color-text-secondary);
 }
 
 /* Line numbers can be added if desired */
@@ -314,21 +348,21 @@ input {
   top: 0;
   width: 30px;
   height: 100%;
-  background-color: #f0f0f0;
-  border-right: 1px solid #ddd;
+  background-color: var(--color-secondary);
+  border-right: 1px solid var(--color-border);
   padding: 8px 0;
   text-align: right;
   font-family: monospace;
   font-size: 12px;
-  color: #888;
+  color: var(--color-text-tertiary);
   user-select: none;
 }
 
 /* Focus state for inputs */
 input:focus, 
 #blockingRules:focus {
-  outline: 2px solid #0078d7;
-  border-color: #0078d7;
+  outline: 2px solid var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 /* Visual feedback on buttons */
@@ -412,7 +446,7 @@ button:active {
 .site-profile-panel {
   margin-top: 20px;
   margin-bottom: 20px;
-  background: #f9f9f9;
+  background: var(--color-background-section);
   padding: 15px;
   border-radius: 6px;
 }
@@ -421,15 +455,16 @@ button:active {
 #siteProfileSelect {
   width: 100%;
   padding: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 14px;
-  background-color: white;
+  background-color: var(--color-background-content);
+  color: var(--color-text-primary);
 }
 
 #siteProfileSelect:focus {
-  outline: 2px solid #0078d7;
-  border-color: #0078d7;
+  outline: 2px solid var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .profile-details {
@@ -707,8 +742,6 @@ select:focus {
 }
 
 #taskTable th {
-  background-color: #f5f5f5;
-  position: sticky;
   top: 0;
 }
 
@@ -819,16 +852,220 @@ select:focus {
 }
 
 .dark-mode {
-  filter: invert(1) hue-rotate(180deg) contrast(0.85);
+  /* 移除滤镜反转方法，改用CSS变量覆盖 */
+  --color-text-primary: #e1e1e1;
+  --color-text-secondary: #b0b0b0;
+  --color-text-tertiary: #8a8a8a;
+  --color-text-light: #707070;
+  --color-background-main: #1e1e1e;
+  --color-background-content: #2d2d2d;
+  --color-background-section: #383838;
+  --color-border: #444;
+  --color-border-light: #555;
+  --color-primary: #0078d7;
+  --color-primary-hover: #1a8fe6;
+  --color-primary-light: #193147;
+  --color-secondary: #3a3a3a;
+  --color-secondary-hover: #444;
+  --color-shadow: rgba(0, 0, 0, 0.3);
+  --color-shadow-dark: rgba(0, 0, 0, 0.7);
+  --color-code-bg: #2a2a2a;
+  --color-code-text: #e0e0e0;
+  --color-link: #4da3ff;
 }
 
-/* Exclude images and videos from inversion */
-.dark-mode img, 
+/* 移除之前的滤镜覆盖 */
+.dark-mode img,
 .dark-mode video {
-  filter: invert(1) hue-rotate(180deg);
+  /* 移除滤镜反转，确保媒体内容显示正常 */
+  filter: none;
 }
 
-/* Special treatment for webview with reduced brightness */
 .dark-mode webview {
-  filter: brightness(0.85) contrast(0.85);
+  /* 为webview提供更舒适的暗色体验 */
+  filter: brightness(0.85);
+}
+
+/* 设置暗色模式下特定元素的样式 */
+.dark-mode .modal-content {
+  background-color: var(--color-background-content);
+  border-color: var(--color-border);
+}
+
+.dark-mode .modal-header {
+  background-color: var(--color-background-section);
+  border-color: var(--color-border);
+}
+
+.dark-mode .close {
+  color: var(--color-text-secondary);
+}
+
+.dark-mode .close:hover {
+  color: var(--color-text-primary);
+}
+
+.dark-mode select {
+  background-color: var(--color-background-content);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+.dark-mode .title-display {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.dark-mode #taskTable th {
+  background-color: var(--color-background-section);
+}
+
+.dark-mode .crop-info-overlay {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.dark-mode .toggle-button:hover {
+  background-color: var(--color-secondary-hover);
+}
+
+.dark-mode .icon-button:hover {
+  background-color: var(--color-secondary-hover);
+}
+
+.dark-mode .cache-info {
+  background-color: var(--color-secondary);
+  color: var(--color-text-secondary);
+}
+
+.dark-mode input:focus, 
+.dark-mode #blockingRules:focus {
+  outline: 2px solid var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.dark-mode .settings-separator,
+.dark-mode .section-divider,
+.dark-mode #automationSection {
+  border-color: var(--color-border);
+}
+
+.dark-mode .current-task {
+  background-color: rgba(74, 144, 226, 0.2);
+}
+
+.dark-mode .collapsible-section {
+  border-color: var(--color-border);
+}
+
+/* 修复暗色模式下的颜色问题 */
+.dark-mode .collapsible-header h5 {
+  color: var(--color-text-primary);
+}
+
+.dark-mode .site-profile-panel {
+  background: var(--color-background-section);
+}
+
+/* 修复暗色模式下的course cards和session cards样式 */
+.dark-mode .course-card {
+  background-color: var(--color-background-section);
+  border-color: var(--color-border);
+  box-shadow: 0 2px 5px var(--color-shadow);
+}
+
+.dark-mode .course-card:hover {
+  box-shadow: 0 5px 15px var(--color-shadow-dark);
+}
+
+.dark-mode .course-title {
+  color: var(--color-primary);
+}
+
+.dark-mode .course-header {
+  border-color: var(--color-border);
+}
+
+.dark-mode .course-info-label {
+  color: var(--color-text-secondary);
+}
+
+.dark-mode .course-info-value {
+  color: var(--color-text-primary);
+}
+
+.dark-mode .course-info-value.highlight {
+  color: #6fd669;
+}
+
+.dark-mode .course-card .get-sessions-btn,
+.dark-mode #fetch-courses-btn,
+.dark-mode #fetch-sessions-btn,
+.dark-mode #fetch-live-courses-btn {
+  background-color: var(--color-secondary);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.dark-mode .course-card .get-sessions-btn:hover,
+.dark-mode #fetch-courses-btn:hover,
+.dark-mode #fetch-sessions-btn:hover,
+.dark-mode #fetch-live-courses-btn:hover {
+  background-color: var(--color-secondary-hover);
+}
+
+.dark-mode #courses-status,
+.dark-mode #sessions-status,
+.dark-mode #live-courses-status,
+.dark-mode .status-text {
+  color: var(--color-text-secondary);
+}
+
+.dark-mode .session-card {
+  background-color: #2a3142;
+  border-color: #384055;
+  box-shadow: 0 2px 5px var(--color-shadow);
+}
+
+.dark-mode .session-card:hover {
+  box-shadow: 0 5px 15px var(--color-shadow-dark);
+}
+
+.dark-mode .session-title {
+  color: var(--color-primary);
+}
+
+.dark-mode .session-header {
+  border-color: var(--color-border);
+}
+
+.dark-mode .session-week,
+.dark-mode .session-time,
+.dark-mode .session-location {
+  color: var(--color-text-secondary);
+}
+
+.dark-mode .session-day {
+  background-color: var(--color-secondary);
+  color: var(--color-text-primary);
+}
+
+.dark-mode .empty-state {
+  color: var(--color-text-tertiary);
+}
+
+.dark-mode .empty-state-title {
+  color: var(--color-text-secondary);
+}
+
+.dark-mode .empty-state-message {
+  color: var(--color-text-tertiary);
+}
+
+.dark-mode .loading-spinner {
+  border-color: #2a2a2a;
+  border-top-color: var(--color-primary);
+}
+
+.dark-mode .week-header {
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
 }

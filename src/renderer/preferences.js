@@ -851,6 +851,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         }
     });
 
+    // Function to create a course card
     function createCourseCard(course) {
         const card = document.createElement('div');
         card.className = 'course-card';
