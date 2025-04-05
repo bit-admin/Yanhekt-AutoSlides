@@ -867,8 +867,74 @@ ipcMain.handle('apply-blocking-rules', async (event) => {
   }
 });
 
-ipcMain.handle('send-to-main-window', (event, channel, data) => {
+ipcMain.handle('send-to-main-window', async (event, channel, data) => {
   mainWindow.webContents.send(channel, data);
+
+  if (channel === 'retrieve-token') {
+    // Send request to main window and wait for response
+    const result = await mainWindow.webContents.executeJavaScript(`
+      (async function() {
+        try {
+          if (!document.querySelector('webview')) {
+            return { success: false, message: 'No webview found' };
+          }
+          
+          const webview = document.querySelector('webview');
+          
+          const authInfo = await webview.executeJavaScript(\`
+            (function() {
+              // Get auth data from localStorage (this is where YanHeKT stores it)
+              let token = null;
+              try {
+                // First try to get from localStorage (primary method)
+                const authData = localStorage.getItem('auth');
+                if (authData) {
+                  const parsed = JSON.parse(authData);
+                  token = parsed.token;
+                  console.log('Found token in localStorage');
+                }
+                
+                // If not found in localStorage, try backup locations
+                if (!token) {
+                  for (const key of ['token', 'accessToken', 'yanhekt_token']) {
+                    const value = localStorage.getItem(key);
+                    if (value) {
+                      token = value.replace(/^"|"$/g, ''); // Remove quotes if present
+                      console.log('Found token in localStorage key:', key);
+                      break;
+                    }
+                  }
+                }
+                
+                // Last resort: try cookies
+                if (!token) {
+                  const cookies = document.cookie.split(';');
+                  const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+                  if (tokenCookie) {
+                    token = tokenCookie.split('=')[1].trim();
+                    console.log('Found token in cookies');
+                  }
+                }
+              } catch (e) {
+                console.error('Error extracting token:', e);
+              }
+              
+              return { token: token };
+            })();
+          \`);
+          
+          return authInfo;
+        } catch (error) {
+          console.error('Error retrieving token:', error);
+          return { success: false, error: error.toString() };
+        }
+      })();
+    `);
+    
+    return result;
+  }
+  
+  return null;
 });
 
 ipcMain.on('show-crop-guides', (event) => {
