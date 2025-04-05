@@ -1238,7 +1238,7 @@ ipcMain.handle('fetch-live-courses', async (event) => {
               });
               
               if (!authInfo.token) {
-                throw new Error('Authentication token not found. Please log in first and refresh the page.');
+                throw new Error('Authentication token not found.');
               }
               
               // Call the API through our main process to avoid CORS issues

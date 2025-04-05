@@ -580,6 +580,13 @@ button:hover {
     margin-right: 15px;
     display: flex;
     flex-direction: column;
+    position: relative; /* Added for absolute positioning of status badges */
+}
+
+/* Specific style for live course cards with reduced height */
+.live-course-card {
+    height: 200px; /* Reduced height for live course cards */
+    min-height: 200px;
 }
 
 .course-card:hover {
@@ -821,7 +828,31 @@ button:hover {
     background-color: #40a9ff;
 }
 
+#fetch-live-courses-btn {
+    padding: 8px 12px;
+    background-color: #0078d7;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    height: 34px;
+    display: flex;
+    align-items: center;
+}
+
+#fetch-live-courses-btn:hover {
+    background-color: #40a9ff;
+}
+
 #sessions-status {
+    margin-left: 15px;
+    margin-top: 7.5px;
+    font-style: italic;
+    color: #666;
+    align-items: center;
+}
+
+#live-courses-status {
     margin-left: 15px;
     margin-top: 7.5px;
     font-style: italic;
@@ -885,4 +916,28 @@ button:hover {
     padding: 30px;
     color: #888;
     font-style: italic;
+}
+
+/* Status badge styling */
+.status-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: white;
+}
+
+.status-badge.status-1 {
+    background-color: #faad14; /* Yellow for upcoming */
+}
+
+.status-badge.status-2 {
+    background-color: #52c41a; /* Green for live */
+}
+
+.status-badge.status-3 {
+    background-color: #8c8c8c; /* Gray for ended */
 }
