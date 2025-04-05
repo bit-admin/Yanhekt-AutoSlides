@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   makeApiRequest: (options) => ipcRenderer.invoke('make-api-request', options),
   fetchRecordedCourses: () => ipcRenderer.invoke('fetch-recorded-courses'),
   fetchCourseSessions: (courseId) => ipcRenderer.invoke('fetch-course-sessions', courseId),
+  fetchLiveCourses: () => ipcRenderer.invoke('fetch-live-courses'),
 
   muteWebviewAudio: async (webviewId) => {
     try {

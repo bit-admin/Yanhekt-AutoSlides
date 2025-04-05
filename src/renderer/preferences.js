@@ -1143,4 +1143,187 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             fetchCourseSessions(courseId);
         }
     });
+
+    // Live courses functionality
+    const fetchLiveCoursesBtn = document.getElementById('fetch-live-courses-btn');
+    const liveCoursesStatus = document.getElementById('live-courses-status');
+    const liveCourseListContainer = document.getElementById('live-course-list-container');
+
+    // Function to fetch live courses
+    async function fetchLiveCourses() {
+        try {
+            // Clear previous live course cards
+            liveCourseListContainer.innerHTML = '';
+            
+            // Update status
+            liveCoursesStatus.textContent = 'Fetching live courses...';
+            
+            // Fetch live courses data
+            const result = await window.electronAPI.fetchLiveCourses();
+            
+            if (result.success && result.liveCourses && result.liveCourses.length > 0) {
+                // Create and display live course cards
+                result.liveCourses.forEach(course => {
+                    const card = createLiveCourseCard(course);
+                    liveCourseListContainer.appendChild(card);
+                });
+                
+                liveCoursesStatus.textContent = `Found ${result.liveCourses.length} live courses`;
+                setTimeout(() => {
+                    liveCoursesStatus.textContent = 'Idle';
+                }, 3000);
+            } else {
+                const errorMsg = result.message || 'No live courses found or failed to retrieve live courses';
+                liveCoursesStatus.textContent = `Error: ${errorMsg}`;
+                liveCourseListContainer.innerHTML = `<div class="empty-state">
+                    <div style="font-size: 16px; margin-bottom: 10px;">No live courses found</div>
+                    <div>${errorMsg}</div>
+                </div>`;
+                setTimeout(() => {
+                    liveCoursesStatus.textContent = 'Idle';
+                }, 3000);
+            }
+        } catch (error) {
+            console.error('Error fetching live courses:', error);
+            liveCoursesStatus.textContent = `Error: ${error.message || 'Unknown error'}`;
+            setTimeout(() => {
+                liveCoursesStatus.textContent = 'Idle';
+            }, 3000);
+        }
+    }
+
+    // Function to create a live course card
+    function createLiveCourseCard(liveCourse) {
+        const card = document.createElement('div');
+        card.className = 'course-card';
+        
+        // Add status badge based on status
+        const statusBadge = document.createElement('div');
+        statusBadge.className = `status-badge status-${liveCourse.status}`;
+        statusBadge.textContent = liveCourse.statusText;
+        card.appendChild(statusBadge);
+        
+        // Title
+        const titleContainer = document.createElement('div');
+        titleContainer.className = 'course-header';
+        
+        const title = document.createElement('div');
+        title.className = 'course-title';
+        const fullTitle = liveCourse.courseName || liveCourse.title || 'Unnamed Course';
+        title.textContent = fullTitle;
+        title.setAttribute('title', fullTitle);
+        
+        titleContainer.appendChild(title);
+        card.appendChild(titleContainer);
+        
+        // Course info table
+        const infoTable = document.createElement('div');
+        infoTable.className = 'course-info-table';
+        
+        // Live ID
+        const idRow = document.createElement('div');
+        idRow.className = 'course-info-row';
+        
+        const idLabel = document.createElement('div');
+        idLabel.className = 'course-info-label';
+        idLabel.textContent = 'Live ID:';
+        
+        const idValue = document.createElement('div');
+        idValue.className = 'course-info-value highlight';
+        idValue.textContent = liveCourse.liveId;
+        
+        idRow.appendChild(idLabel);
+        idRow.appendChild(idValue);
+        infoTable.appendChild(idRow);
+        
+        // Course ID (if available)
+        if (liveCourse.courseId) {
+            const courseIdRow = document.createElement('div');
+            courseIdRow.className = 'course-info-row';
+            
+            const courseIdLabel = document.createElement('div');
+            courseIdLabel.className = 'course-info-label';
+            courseIdLabel.textContent = 'Course ID:';
+            
+            const courseIdValue = document.createElement('div');
+            courseIdValue.className = 'course-info-value';
+            courseIdValue.textContent = liveCourse.courseId;
+            
+            courseIdRow.appendChild(courseIdLabel);
+            courseIdRow.appendChild(courseIdValue);
+            infoTable.appendChild(courseIdRow);
+        }
+        
+        // Live course details
+        const details = [
+            { label: 'Location', value: liveCourse.subtitle || liveCourse.location },
+            { label: 'Professor', value: liveCourse.professorName },
+            { label: 'Participants', value: liveCourse.participantCount > 0 ? liveCourse.participantCount : undefined },
+        ];
+        
+        details.forEach(detail => {
+            if (detail.value) {
+                const row = document.createElement('div');
+                row.className = 'course-info-row';
+                
+                const label = document.createElement('div');
+                label.className = 'course-info-label';
+                label.textContent = `${detail.label}:`;
+                
+                const value = document.createElement('div');
+                value.className = 'course-info-value';
+                value.textContent = detail.value;
+                
+                row.appendChild(label);
+                row.appendChild(value);
+                infoTable.appendChild(row);
+            }
+        });
+        
+        // Schedule row (Start & End time)
+        if (liveCourse.startedAt) {
+            const scheduleRow = document.createElement('div');
+            scheduleRow.className = 'course-info-row';
+            
+            const scheduleLabel = document.createElement('div');
+            scheduleLabel.className = 'course-info-label';
+            scheduleLabel.textContent = 'Schedule:';
+            
+            const scheduleValue = document.createElement('div');
+            scheduleValue.className = 'course-info-value';
+            
+            // Format the dates nicely
+            const startDate = new Date(liveCourse.startedAt);
+            const endDate = liveCourse.endedAt ? new Date(liveCourse.endedAt) : null;
+            
+            const startDateStr = startDate.toLocaleDateString();
+            const startTimeStr = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            let scheduleText = `${startDateStr} ${startTimeStr}`;
+            
+            if (endDate) {
+                // For same-day events, don't repeat the date
+                if (startDate.toDateString() === endDate.toDateString()) {
+                    scheduleText += ` - ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                } else {
+                    const endDateStr = endDate.toLocaleDateString();
+                    const endTimeStr = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    scheduleText += ` - ${endDateStr} ${endTimeStr}`;
+                }
+            }
+            
+            scheduleValue.textContent = scheduleText;
+            
+            scheduleRow.appendChild(scheduleLabel);
+            scheduleRow.appendChild(scheduleValue);
+            infoTable.appendChild(scheduleRow);
+        }
+        
+        card.appendChild(infoTable);
+        
+        return card;
+    }
+
+    // Add event listener for fetch live courses button
+    fetchLiveCoursesBtn.addEventListener('click', fetchLiveCourses);
 });
