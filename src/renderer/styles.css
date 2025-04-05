@@ -913,6 +913,7 @@ select:focus {
 
 .dark-mode .title-display {
   background-color: rgba(255, 255, 255, 0.05);
+  color: var(--color-text-primary); /* 确保在暗色模式下文本颜色是亮色的 */
 }
 
 .dark-mode #taskTable th {
