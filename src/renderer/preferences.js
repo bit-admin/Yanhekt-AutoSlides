@@ -829,7 +829,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             } else {
                 const errorMsg = result.message || 'No courses found or failed to retrieve courses';
                 coursesStatus.textContent = `Error: ${errorMsg}`;
-                courseListContainer.innerHTML = `<div class="error-message">${errorMsg}</div>`;
+                courseListContainer.innerHTML = `<div class="empty-state">
+                    <div class="empty-state-title">No courses found</div>
+                    <div class="empty-state-message">${errorMsg}</div>
+                </div>`;
                 setTimeout(() => {
                     coursesStatus.textContent = 'Idle';
                 }, 3000);
@@ -1013,8 +1016,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 const errorMsg = result.message || 'No sessions found or failed to retrieve sessions';
                 sessionsStatus.textContent = `Error: ${errorMsg}`;
                 sessionListContainer.innerHTML = `<div class="empty-state">
-                    <div style="font-size: 16px; margin-bottom: 10px;">No sessions found</div>
-                    <div>${errorMsg}</div>
+                    <div class="empty-state-title">No sessions found</div>
+                    <div class="empty-state-message">${errorMsg}</div>
                 </div>`;
                 setTimeout(() => {
                     sessionsStatus.textContent = 'Idle';
@@ -1176,8 +1179,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 const errorMsg = result.message || 'No live courses found or failed to retrieve live courses';
                 liveCoursesStatus.textContent = `Error: ${errorMsg}`;
                 liveCourseListContainer.innerHTML = `<div class="empty-state">
-                    <div style="font-size: 16px; margin-bottom: 10px;">No live courses found</div>
-                    <div>${errorMsg}</div>
+                    <div class="empty-state-title">No live courses found</div>
+                    <div class="empty-state-message">${errorMsg}</div>
                 </div>`;
                 setTimeout(() => {
                     liveCoursesStatus.textContent = 'Idle';
