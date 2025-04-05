@@ -28,6 +28,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('sessions-status').textContent = 'Enter a course ID or get course Info above';
         }
         
+        // Reset live courses status
+        if (document.getElementById('live-courses-status')) {
+            document.getElementById('live-courses-status').textContent = 'Click to fetch available live courses';
+        }
+        
         // Clear any previously displayed session cards
         if (sessionListContainer) {
             sessionListContainer.innerHTML = '';
