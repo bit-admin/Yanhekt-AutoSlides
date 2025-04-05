@@ -1195,7 +1195,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     // Function to create a live course card
     function createLiveCourseCard(liveCourse) {
         const card = document.createElement('div');
-        card.className = 'course-card';
+        card.className = 'course-card live-course-card';
         
         // Add status badge based on status
         const statusBadge = document.createElement('div');
@@ -1209,6 +1209,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         const title = document.createElement('div');
         title.className = 'course-title';
+        // Use course name or title without adding "Live" prefix
         const fullTitle = liveCourse.courseName || liveCourse.title || 'Unnamed Course';
         title.textContent = fullTitle;
         title.setAttribute('title', fullTitle);
