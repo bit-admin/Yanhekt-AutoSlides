@@ -880,6 +880,22 @@ ipcMain.handle('send-to-main-window', async (event, channel, data) => {
           }
           
           const webview = document.querySelector('webview');
+
+          // Check if webview is on homepage.html and redirect if needed
+          const currentUrl = webview.getURL();
+          if (currentUrl.includes('homepage.html')) {
+            console.log('Detected homepage.html, navigating to YanHeKT home...');
+            // Navigate to YanHeKT home
+            await new Promise((resolve) => {
+              const loadListener = () => {
+                webview.removeEventListener('did-finish-load', loadListener);
+                resolve();
+              };
+              webview.addEventListener('did-finish-load', loadListener);
+              webview.src = 'https://www.yanhekt.cn/home';
+            });
+            console.log('Navigation to YanHeKT home completed');
+          }
           
           const authInfo = await webview.executeJavaScript(\`
             (function() {
