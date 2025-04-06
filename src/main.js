@@ -433,18 +433,60 @@ async function clearCacheDirectory(dirPath) {
 async function clearAllCacheData() {
   try {
     const userData = app.getPath('userData');
+    const appName = 'com.autoslides.app';
     
-    // Clear various cache directories
+    // Clear various cache directories in userData
     await Promise.all([
       clearCacheDirectory(path.join(userData, 'Cache')),
       clearCacheDirectory(path.join(userData, 'Code Cache')),
       clearCacheDirectory(path.join(userData, 'GPUCache')),
+      clearCacheDirectory(path.join(userData, 'Local Storage')),
+      clearCacheDirectory(path.join(userData, 'Session Storage')),
+      clearCacheDirectory(path.join(userData, 'IndexedDB')),
+      clearCacheDirectory(path.join(userData, 'Cookies')),
       session.defaultSession.clearCache(),
       session.defaultSession.clearStorageData({
-        storages: ['appcache', 'cookies', 'filesystem', 'indexdb', 'localstorage', 'shadercache', 'websql', 'serviceworkers', 'cachestorage'],
+        storages: ['appcache', 'cookies', 'filesystem', 'indexdb', 'localstorage', 
+                   'shadercache', 'websql', 'serviceworkers', 'cachestorage'],
       }),
     ]);
     
+    // Clear savedState folder on macOS
+    if (process.platform === 'darwin') {
+      const homeDir = app.getPath('home');
+      const savedStatePath = path.join(homeDir, 'Library/Saved Application State', `${appName}.savedState`);
+      
+      try {
+        // First check if the directory exists
+        await fsAccess(savedStatePath).catch(() => null);
+        console.log(`Clearing savedState folder: ${savedStatePath}`);
+        await clearCacheDirectory(savedStatePath);
+        
+        // Try to remove the directory itself
+        await fsRmdir(savedStatePath).catch(err => {
+          console.log(`Note: Could not remove savedState directory (this is often normal): ${err.message}`);
+        });
+      } catch (err) {
+        console.log(`Note: savedState folder handling: ${err.message}`);
+      }
+    }
+    
+    // Clear additional app-specific data on Windows
+    if (process.platform === 'win32') {
+      try {
+        const appData = app.getPath('appData');
+        const roamingPath = path.join(appData, appName);
+        await clearCacheDirectory(roamingPath).catch(() => null);
+        
+        const localAppData = app.getPath('appData');
+        const localAppDataPath = path.join(localAppData, appName);
+        await clearCacheDirectory(localAppDataPath).catch(() => null);
+      } catch (err) {
+        console.log(`Note: Windows app data handling: ${err.message}`);
+      }
+    }
+    
+    console.log('All application data successfully cleared');
     return true;
   } catch (error) {
     console.error('Error clearing all cache data:', error);
