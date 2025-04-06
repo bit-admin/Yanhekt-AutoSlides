@@ -212,7 +212,8 @@ function createApplicationMenu() {
               height: 700,
               webPreferences: {
                 contextIsolation: true,
-                nodeIntegration: false
+                nodeIntegration: false,
+                preload: path.join(__dirname, 'preload-help.js') // Use our new preload script
               },
               title: 'AutoSlides Help'
             });
@@ -1590,5 +1591,27 @@ ipcMain.handle('fetch-course-sessions', async (event, courseId) => {
       message: error.message || 'Failed to fetch course sessions',
       error: error.toString()
     };
+  }
+});
+
+ipcMain.handle('get-dark-mode-status', async () => {
+  try {
+    const config = await Store.getItem('darkModeEnabled');
+    return !!config; // Convert to boolean
+  } catch (error) {
+    console.error('Error getting dark mode status:', error);
+    return false;
+  }
+});
+
+ipcMain.handle('toggle-dark-mode', async () => {
+  try {
+    const currentStatus = await Store.getItem('darkModeEnabled');
+    const newStatus = !currentStatus;
+    await Store.setItem('darkModeEnabled', newStatus);
+    return newStatus;
+  } catch (error) {
+    console.error('Error toggling dark mode:', error);
+    return false;
   }
 });
