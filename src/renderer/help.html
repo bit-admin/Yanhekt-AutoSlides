@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoSlides Help</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f7;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        h1 {
+            color: #2b6cb0;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: color 0.3s ease;
+        }
+        
+        h2 {
+            color: #2d3748;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 8px;
+            margin-top: 30px;
+            transition: color 0.3s ease, border-bottom-color 0.3s ease;
+        }
+        
+        h3 {
+            color: #4a5568;
+            margin-top: 25px;
+            transition: color 0.3s ease;
+        }
+        
+        .button-example {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            background-color: #4299e1;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+        
+        .icon-example {
+            width: 16px;
+            height: 16px;
+            margin-right: 8px;
+        }
+        
+        .screenshot {
+            max-width: 100%;
+            height: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 4px;
+            margin: 15px 0;
+            transition: border-color 0.3s ease;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+            transition: border-bottom-color 0.3s ease, background-color 0.3s ease;
+        }
+        
+        th {
+            background-color: #f7fafc;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        
+        tr:hover {
+            background-color: #f7fafc;
+            transition: background-color 0.3s ease;
+        }
+        
+        .note {
+            background-color: #ebf8ff;
+            border-left: 4px solid #4299e1;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+            transition: background-color 0.3s ease, border-left-color 0.3s ease;
+        }
+        
+        .warning {
+            background-color: #fffaf0;
+            border-left: 4px solid #ed8936;
+            padding: 12px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+            transition: background-color 0.3s ease, border-left-color 0.3s ease;
+        }
+        
+        kbd {
+            background-color: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 3px;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+            color: #4a5568;
+            display: inline-block;
+            font-size: 0.9em;
+            font-family: Monaco, 'Courier New', monospace;
+            padding: 2px 5px;
+            margin: 0 2px;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .toc {
+            background-color: #f7fafc;
+            padding: 15px 20px;
+            border-radius: 4px;
+            margin: 20px 0;
+            transition: background-color 0.3s ease;
+        }
+        
+        .toc ul {
+            list-style-type: none;
+            padding-left: 15px;
+        }
+        
+        .toc li {
+            margin: 8px 0;
+        }
+        
+        .toc a {
+            color: #3182ce;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .toc a:hover {
+            text-decoration: underline;
+        }
+        
+        .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #f0f0f0;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: background-color 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .theme-toggle:hover {
+            background-color: #e8e8e8;
+        }
+
+        .dark-mode .theme-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #333;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            transition: background-color 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .dark-mode .theme-toggle:hover {
+            background-color: #666;
+        }
+        
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+        
+        .dark-mode .container {
+            background-color: #2d3748;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .dark-mode h1 {
+            color: #63b3ed;
+        }
+        
+        .dark-mode h2 {
+            color: #e2e8f0;
+            border-bottom-color: #4a5568;
+        }
+        
+        .dark-mode h3 {
+            color: #cbd5e0;
+        }
+        
+        .dark-mode table th {
+            background-color: #4a5568;
+        }
+        
+        .dark-mode table td,
+        .dark-mode table th {
+            border-bottom-color: #4a5568;
+        }
+        
+        .dark-mode tr:hover {
+            background-color: #4a5568;
+        }
+        
+        .dark-mode .note {
+            background-color: #2c5282;
+            border-left-color: #4299e1;
+        }
+        
+        .dark-mode .warning {
+            background-color: #744210;
+            border-left-color: #ed8936;
+        }
+        
+        .dark-mode kbd {
+            background-color: #4a5568;
+            border-color: #718096;
+            color: #e2e8f0;
+        }
+        
+        .dark-mode .toc {
+            background-color: #4a5568;
+        }
+        
+        .dark-mode .toc a {
+            color: #63b3ed;
+        }
+        
+        .dark-mode .screenshot {
+            border-color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <button id="themeToggle" class="theme-toggle" title="Toggle Dark/Light Mode">
+        ☀️
+    </button>
+    
+    <div class="container">
+        <h1>AutoSlides Help Manual</h1>
+        
+        <div class="toc">
+            <h3>Table of Contents</h3>
+            <ul>
+                <li><a href="#introduction">Introduction</a></li>
+                <li><a href="#main-interface">Main Interface</a>
+                    <ul>
+                        <li><a href="#navigation-bar">Navigation Bar</a></li>
+                        <li><a href="#capture-controls">Capture Controls</a></li>
+                        <li><a href="#capture-settings">Capture Settings</a></li>
+                        <li><a href="#optimization">Optimization & Profiles</a></li>
+                        <li><a href="#automation">Automation Features</a></li>
+                        <li><a href="#status-panel">Status Panel</a></li>
+                        <li><a href="#cache-management">Cache Management</a></li>
+                    </ul>
+                </li>
+                <li><a href="#task-manager">Task Manager</a>
+                    <ul>
+                        <li><a href="#adding-tasks">Adding Tasks</a></li>
+                        <li><a href="#managing-tasks">Managing Tasks</a></li>
+                        <li><a href="#task-options">Task Options</a></li>
+                    </ul>
+                </li>
+                <li><a href="#preferences">Preferences</a>
+                    <ul>
+                        <li><a href="#general-preferences">General Tab</a></li>
+                        <li><a href="#capture-preferences">Capture Tab</a></li>
+                        <li><a href="#profiles-preferences">Profiles Tab</a></li>
+                        <li><a href="#automation-preferences">Handler Tab</a></li>
+                    </ul>
+                </li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+                <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
+            </ul>
+        </div>
+        
+        <h2 id="introduction">Introduction</h2>
+        <p>AutoSlides is a powerful tool designed to automatically capture slides from web-based presentations, online courses, and various streaming platforms. It specializes in monitoring video content for changes and saving high-quality screenshots of slides, making it ideal for creating study materials from online lectures.</p>
+        
+        <p>The application is particularly optimized for BIT YanHeKT classroom but works with various online learning platforms and lecture recordings.</p>
+        
+        <div class="note">
+            <strong>Note:</strong> Before using AutoSlides, ensure you have proper authorization to capture content from the sources you're using.
+        </div>
+        
+        <h2 id="main-interface">Main Interface</h2>
+        <p>The main interface of AutoSlides is divided into several sections, each with specific functions.</p>
+        
+        <h3 id="navigation-bar">Navigation Bar</h3>
+        <p>Located at the top of the content area, the navigation bar allows you to browse and load URLs:</p>
+        <ul>
+            <li><strong>Home Button</strong> <span class="button-example">🏠</span>: Returns to the AutoSlides homepage</li>
+            <li><strong>URL Input Field</strong>: Enter the web address of the course or video you want to capture</li>
+            <li><strong>Go Button</strong> <span class="button-example">Go</span>: Loads the URL entered in the input field</li>
+        </ul>
+        
+        <h3 id="capture-controls">Capture Controls</h3>
+        <p>These primary controls let you start and stop the slide capture process:</p>
+        <ul>
+            <li><strong>Start Capture</strong> <span class="button-example">Start Capture</span>: Begins monitoring the loaded page for slides</li>
+            <li><strong>Stop Capture</strong> <span class="button-example">Stop Capture</span>: Ends the capture process and finalizes any pending slides</li>
+        </ul>
+        
+        <h3 id="capture-settings">Capture Settings</h3>
+        <p>The Capture Settings panel allows you to configure how slides are captured and saved:</p>
+        <ul>
+            <li><strong>Output Directory</strong>: Sets the folder where captured slides will be saved</li>
+            <li><strong>Select Directory Button</strong> <span class="button-example">...</span>: Opens a file dialog to choose the output folder</li>
+            <li><strong>Strategy Group</strong>: Select between different image comparison algorithms:
+                <ul>
+                    <li><strong>Default (pHash & SSIM)</strong>: Advanced perceptual hash algorithm with SSIM verification for accurate detection</li>
+                    <li><strong>Basic (Pixel)</strong>: Simple pixel-based comparison, may be more suitable for certain types of content</li>
+                </ul>
+            </li>
+            <li><strong>Advanced Settings</strong>: Expandable section with additional options:
+                <ul>
+                    <li><strong>Check Interval</strong>: The time in seconds between checks for new slides (lower values capture more frequently)</li>
+                    <li><strong>Enable Secondary Verification</strong>: When enabled, requires stability over multiple checks to confirm a new slide</li>
+                </ul>
+            </li>
+        </ul>
+        
+        <h3 id="optimization">Optimization & Profiles</h3>
+        <p>This section allows you to select from predefined optimization profiles for different platforms:</p>
+        <ul>
+            <li><strong>Active Profile</strong>: Choose the appropriate profile for the content you're capturing:
+                <ul>
+                    <li><strong>Default (Full Page)</strong>: Captures the entire webpage with configurable cropping</li>
+                    <li><strong>YanHeKT Session Player</strong>: Optimized for recorded sessions on YanHeKT platform</li>
+                    <li><strong>YanHeKT Live Player</strong>: Optimized for live streams on YanHeKT platform</li>
+                    <li><strong>Custom Profiles</strong>: Any user-created profiles will also appear here</li>
+                </ul>
+            </li>
+            <li><strong>Task Manager Button</strong> <span class="button-example">Task Manager</span>: Opens the task manager for batch processing</li>
+        </ul>
+        
+        <h3 id="automation">Automation Features</h3>
+        <p>When a non-default profile is selected, automation options become available to enhance the capture process:</p>
+        <ul>
+            <li><strong>Auto-Detect Playback End</strong>: Automatically stops capture when video playback ends</li>
+            <li><strong>Auto-Start Playback</strong>: Automatically clicks the play button to start video playback</li>
+            <li><strong>Auto-Adjust Playback Speed</strong>: Automatically adjusts video playback speed for faster processing</li>
+            <li><strong>Auto-Detect Title</strong>: Automatically extracts course and session information to organize captures</li>
+            <li><strong>Auto-Retry On Error</strong>: Automatically retries if playback errors occur</li>
+        </ul>
+        
+        <h3 id="status-panel">Status Panel</h3>
+        <p>Located at the bottom of the sidebar, this panel shows the current status and progress of your capture process:</p>
+        <ul>
+            <li><strong>Title Display</strong>: Shows the detected course/session title when available</li>
+            <li><strong>Status Text</strong>: Current status of the application (e.g., "Idle", "Capturing...", "Error")</li>
+            <li><strong>Slides Counter</strong>: Number of slides captured in the current session</li>
+        </ul>
+        
+        <h3 id="cache-management">Cache Management</h3>
+        <p>This panel provides tools to manage browser cache data:</p>
+        <ul>
+            <li><strong>Cache Info</strong>: Displays current cache size information</li>
+            <li><strong>Clear Browser Cache</strong> <span class="button-example">Clear Browser Cache</span>: Removes temporary browser data to improve performance</li>
+        </ul>
+        
+        <h2 id="task-manager">Task Manager</h2>
+        <p>The Task Manager allows you to queue and process multiple capture tasks automatically. It's especially useful for batch processing multiple sessions or courses.</p>
+        
+        <h3 id="adding-tasks">Adding Tasks</h3>
+        <ul>
+            <li><strong>Task Profile</strong>: Select the profile to use for the task (YanHeKT Session Player, etc.)</li>
+            <li><strong>Task ID</strong>: Enter the course/session ID or complete URL</li>
+            <li><strong>Add Task Button</strong> <span class="button-example">Add Task</span>: Add the task to the queue</li>
+        </ul>
+        
+        <h3 id="managing-tasks">Managing Tasks</h3>
+        <ul>
+            <li><strong>Task Table</strong>: Displays all queued tasks with their profile, ID, and URL</li>
+            <li><strong>Remove Task</strong>: Remove individual tasks from the queue</li>
+            <li><strong>Start Tasks</strong> <span class="button-example">Start Tasks</span>: Begin processing all tasks in the queue</li>
+            <li><strong>Cancel Tasks</strong> <span class="button-example">Cancel Tasks</span>: Stop the current task processing</li>
+            <li><strong>Clear All</strong> <span class="button-example">Clear All</span>: Remove all tasks from the queue</li>
+        </ul>
+        
+        <h3 id="task-options">Task Options</h3>
+        <ul>
+            <li><strong>Always start videos from beginning</strong>: Resets playback progress before starting tasks</li>
+            <li><strong>Fast Mode</strong>: Accelerates processing with shorter check intervals and 4x playback speed (only for recorded sessions)</li>
+            <li><strong>Run on Mute</strong>: Mutes audio during task processing</li>
+        </ul>
+        
+        <h2 id="preferences">Preferences</h2>
+        <p>The Preferences window provides comprehensive configuration options for AutoSlides. Access it from the menu bar via "Preferences" or use the shortcut <kbd>Cmd</kbd>+<kbd>,</kbd> (Mac) or <kbd>Ctrl</kbd>+<kbd>,</kbd> (Windows).</p>
+        
+        <h3 id="general-preferences">General Tab</h3>
+        <p>Basic application settings:</p>
+        <ul>
+            <li><strong>Keep Running in Background</strong>: Prevents system sleep while AutoSlides is running</li>
+            <li><strong>Enable Dark Mode</strong>: Switches the application to a darker color scheme</li>
+            <li><strong>Cache Management</strong>:
+                <ul>
+                    <li><strong>Auto-Clean Interval</strong>: How often the cache is automatically cleaned (in minutes)</li>
+                    <li><strong>Clear Cookies</strong>: Removes website login and session information</li>
+                    <li><strong>Clear All Data</strong>: Completely resets all cache and storage data</li>
+                </ul>
+            </li>
+        </ul>
+        
+        <h3 id="capture-preferences">Capture Tab</h3>
+        <p>Advanced settings for the image comparison and slide detection algorithms:</p>
+        
+        <h4>Default Strategy (pHash & SSIM)</h4>
+        <ul>
+            <li><strong>Hamming Distance Threshold</strong>: 
+                <ul>
+                    <li>Lower Threshold: Bypass SSIM check if hamming distance is below this value</li>
+                    <li>Upper Threshold: Bypass SSIM check if hamming distance is above this value</li>
+                </ul>
+            </li>
+            <li><strong>SSIM Threshold</strong>: Minimum similarity for images to be considered equivalent</li>
+        </ul>
+        
+        <h4>Basic Strategy (Pixel)</h4>
+        <ul>
+            <li><strong>Gaussian Blur Sigma</strong>: Controls blur strength for noise reduction</li>
+            <li><strong>Pixel Difference Threshold</strong>: Threshold for considering individual pixels different</li>
+            <li><strong>Change Ratio Threshold</strong>: Minimum percentage of changed pixels to trigger a slide capture</li>
+        </ul>
+        
+        <h4>Secondary Verification</h4>
+        <ul>
+            <li><strong>Stability Threshold</strong>: Number of consecutive checks required to confirm a slide change</li>
+        </ul>
+        
+        <h3 id="profiles-preferences">Profiles Tab</h3>
+        <p>Manage and configure capture profiles for different platforms and content types:</p>
+        
+        <h4>Default Profile</h4>
+        <ul>
+            <li><strong>Top Crop</strong>: Percentage of the top of the screen to crop</li>
+            <li><strong>Bottom Crop</strong>: Percentage of the bottom of the screen to crop</li>
+            <li><strong>Preview Crop</strong>: Shows crop guides on the main interface</li>
+        </ul>
+        
+        <h4>Built-in Profiles</h4>
+        <p>These profiles are optimized for specific platforms like YanHeKT and can be customized with the following settings:</p>
+        <ul>
+            <li><strong>Element Selector</strong>: CSS selector for the element to capture</li>
+            <li><strong>URL Patterns</strong>: URLs that trigger automatic selection of this profile</li>
+            <li><strong>End Detection Selector</strong>: CSS selector to detect video playback end</li>
+            <li><strong>Play Button Selector</strong>: CSS selector for the play button</li>
+            <li><strong>Countdown Selector</strong>: CSS selector for countdown timers</li>
+            <li><strong>Speed Selector</strong>: CSS selector for the video element to adjust speed</li>
+            <li><strong>Adjusted Playback Speed</strong>: Speed multiplier for playback</li>
+            <li><strong>Course Title Selector</strong>: CSS selector to extract course title</li>
+            <li><strong>Session Info Selector</strong>: CSS selector to extract session information</li>
+            <li><strong>Error Selector</strong>: CSS selector to detect playback errors</li>
+            <li><strong>Max Retry Attempts</strong>: Maximum number of retries on errors</li>
+        </ul>
+        
+        <h4>Custom Profiles</h4>
+        <ul>
+            <li><strong>Create New Profile</strong>: Create a custom profile with a unique name</li>
+            <li><strong>Delete Profile</strong>: Remove a custom profile</li>
+        </ul>
+        
+        <h3 id="automation-preferences">Handler Tab</h3>
+        <p>Advanced options for API integration and content handling:</p>
+        
+        <h4>Authentication</h4>
+        <ul>
+            <li><strong>YanHeKT Authentication Token</strong>: Retrieve and manage authentication token for API access</li>
+            <li><strong>Retrieve Token</strong>: Automatically fetch token from the logged-in session</li>
+        </ul>
+        
+        <h4>Course Information</h4>
+        <ul>
+            <li><strong>Fetch Course Data</strong>: Retrieve your enrolled courses from YanHeKT</li>
+            <li><strong>Fetch Sessions</strong>: Get all sessions for a specific course</li>
+            <li><strong>Fetch Live Sessions</strong>: Get available live courses</li>
+        </ul>
+        
+        <h4>Element Blocking Rules</h4>
+        <ul>
+            <li><strong>Blocking Rules Editor</strong>: AdGuard-like rules to hide distracting elements in the web page</li>
+        </ul>
+        
+        <h2 id="troubleshooting">Troubleshooting</h2>
+        
+        <h3>Common Issues</h3>
+        <table>
+            <tr>
+                <th>Problem</th>
+                <th>Solution</th>
+            </tr>
+            <tr>
+                <td>Slides not being captured</td>
+                <td>
+                    <ul>
+                        <li>Try lowering the "Change Ratio Threshold" in Preferences</li>
+                        <li>Make sure the correct profile is selected</li>
+                        <li>Verify the video is actually playing</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Too many slides captured (duplicates)</td>
+                <td>
+                    <ul>
+                        <li>Increase the "Change Ratio Threshold" value</li>
+                        <li>Enable "Secondary Verification" with a higher stability threshold</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Video not playing automatically</td>
+                <td>
+                    <ul>
+                        <li>Make sure "Auto-Start Playback" is enabled</li>
+                        <li>Check if the correct "Play Button Selector" is set for your profile</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Capturing wrong area of the screen</td>
+                <td>
+                    <ul>
+                        <li>For Default profile: Adjust Top and Bottom Crop percentages</li>
+                        <li>For other profiles: Verify the "Element Selector" is correct</li>
+                    </ul>
+                </td>
+            </tr>
+            <tr>
+                <td>Application running slowly</td>
+                <td>
+                    <ul>
+                        <li>Increase "Check Interval" to reduce CPU usage</li>
+                        <li>Use "Clear Browser Cache" to free up memory</li>
+                        <li>Set "Auto-Clean Interval" to a lower value</li>
+                    </ul>
+                </td>
+            </tr>
+        </table>
+        
+        <h2 id="keyboard-shortcuts">Keyboard Shortcuts</h2>
+        <table>
+            <tr>
+                <th>Action</th>
+                <th>Mac</th>
+                <th>Windows/Linux</th>
+            </tr>
+            <tr>
+                <td>Open Preferences</td>
+                <td><kbd>Cmd</kbd> + <kbd>,</kbd></td>
+                <td><kbd>Ctrl</kbd> + <kbd>,</kbd></td>
+            </tr>
+            <tr>
+                <td>Reload Page</td>
+                <td><kbd>Cmd</kbd> + <kbd>R</kbd></td>
+                <td><kbd>Ctrl</kbd> + <kbd>R</kbd></td>
+            </tr>
+            <tr>
+                <td>Force Reload</td>
+                <td><kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd></td>
+                <td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>R</kbd></td>
+            </tr>
+            <tr>
+                <td>Open Developer Tools</td>
+                <td><kbd>Cmd</kbd> + <kbd>Alt</kbd> + <kbd>I</kbd></td>
+                <td><kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>I</kbd></td>
+            </tr>
+            <tr>
+                <td>Zoom In</td>
+                <td><kbd>Cmd</kbd> + <kbd>+</kbd></td>
+                <td><kbd>Ctrl</kbd> + <kbd>+</kbd></td>
+            </tr>
+            <tr>
+                <td>Zoom Out</td>
+                <td><kbd>Cmd</kbd> + <kbd>-</kbd></td>
+                <td><kbd>Ctrl</kbd> + <kbd>-</kbd></td>
+            </tr>
+            <tr>
+                <td>Reset Zoom</td>
+                <td><kbd>Cmd</kbd> + <kbd>0</kbd></td>
+                <td><kbd>Ctrl</kbd> + <kbd>0</kbd></td>
+            </tr>
+        </table>
+        
+        <div class="note">
+            <strong>Tip:</strong> For most effective results, log into your YanHeKT account first, then use Task Manager to batch process courses. Enable Fast Mode to speed up the capture of recorded sessions.
+        </div>
+        
+        <div class="warning">
+            <strong>Warning:</strong> In Fast Mode, playback speed is set to 4x and check interval to 0.5 seconds. This may cause high CPU usage but significantly reduces the time needed to process recordings.
+        </div>
+    </div>
+    
+    <script>
+        // Theme management
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggle = document.getElementById('themeToggle');
+            
+            // Check for saved theme preference or system preference
+            const savedTheme = localStorage.getItem('autoSlides-helpTheme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            // Apply initial theme
+            if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
+                document.body.classList.add('dark-mode');
+                themeToggle.innerHTML = '🌙';
+            } else {
+                document.body.classList.remove('dark-mode');
+                themeToggle.innerHTML = '☀️';
+            }
+            
+            // Toggle theme on button click
+            themeToggle.addEventListener('click', function() {
+                if (document.body.classList.contains('dark-mode')) {
+                    document.body.classList.remove('dark-mode');
+                    localStorage.setItem('autoSlides-helpTheme', 'light');
+                    themeToggle.innerHTML = '☀️';
+                } else {
+                    document.body.classList.add('dark-mode');
+                    localStorage.setItem('autoSlides-helpTheme', 'dark');
+                    themeToggle.innerHTML = '🌙';
+                }
+            });
+            
+            // Also listen for system theme changes
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                // Only apply system change if user hasn't manually set a preference
+                if (!localStorage.getItem('autoSlides-helpTheme')) {
+                    if (e.matches) {
+                        document.body.classList.add('dark-mode');
+                        themeToggle.innerHTML = '🌙';
+                    } else {
+                        document.body.classList.remove('dark-mode');
+                        themeToggle.innerHTML = '☀️';
+                    }
+                }
+            });
+            
+            // Check if dark mode is enabled in main AutoSlides app via IPC if available
+            try {
+                if (window.electronAPI && window.electronAPI.getDarkModeStatus) {
+                    window.electronAPI.getDarkModeStatus().then(isDarkMode => {
+                        if (isDarkMode) {
+                            document.body.classList.add('dark-mode');
+                            themeToggle.innerHTML = '🌙';
+                        } else {
+                            document.body.classList.remove('dark-mode');
+                            themeToggle.innerHTML = '☀️';
+                        }
+                    }).catch(err => {
+                        console.log('Error fetching app dark mode status:', err);
+                    });
+                }
+            } catch (error) {
+                console.log('electronAPI not available');
+            }
+        });
+    </script>
+</body>
+</html>
