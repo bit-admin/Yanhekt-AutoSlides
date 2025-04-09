@@ -123,10 +123,11 @@ yanhekt.cn##div#ai-bit-animation-modal`
     type: 'boolean',
     default: true
   },
-  darkModeEnabled: {
-    type: 'boolean',
-    default: false
-  }
+  darkMode: {
+    type: 'string',
+    enum: ['system', 'light', 'dark'],
+    default: 'system'
+}
 };
 
 const config = new Store({ schema });
@@ -1638,22 +1639,35 @@ ipcMain.handle('fetch-course-sessions', async (event, courseId) => {
 
 ipcMain.handle('get-dark-mode-status', async () => {
   try {
-    const config = await Store.getItem('darkModeEnabled');
-    return !!config; // Convert to boolean
+      const mode = await Store.getItem('darkMode') || 'system';
+      // For backwards compatibility, convert boolean to string
+      if (typeof mode === 'boolean') {
+          return mode ? 'dark' : 'light';
+      }
+      return mode;
   } catch (error) {
-    console.error('Error getting dark mode status:', error);
-    return false;
+      console.error('Error getting dark mode status:', error);
+      return 'system';
   }
 });
 
 ipcMain.handle('toggle-dark-mode', async () => {
   try {
-    const currentStatus = await Store.getItem('darkModeEnabled');
-    const newStatus = !currentStatus;
-    await Store.setItem('darkModeEnabled', newStatus);
-    return newStatus;
+      const currentMode = await Store.getItem('darkMode') || 'system';
+      let newMode;
+      
+      if (currentMode === 'light') {
+          newMode = 'dark';
+      } else if (currentMode === 'dark') {
+          newMode = 'system';
+      } else {
+          newMode = 'light';
+      }
+      
+      await Store.setItem('darkMode', newMode);
+      return newMode;
   } catch (error) {
-    console.error('Error toggling dark mode:', error);
-    return false;
+      console.error('Error toggling dark mode:', error);
+      return 'system';
   }
 });

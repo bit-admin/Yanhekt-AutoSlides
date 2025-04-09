@@ -66,7 +66,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const hammingThresholdUp = document.getElementById('hammingThresholdUp');
     const ssimThreshold = document.getElementById('ssimThreshold');
     const verificationCount = document.getElementById('verificationCount');
-    const darkModeEnabled = document.getElementById('darkModeEnabled');
+    const darkModeSelect = document.getElementById('darkModeSelect');
     const tokenField = document.getElementById('tokenField');
     const btnTogglePassword = document.getElementById('btnTogglePassword');
     const btnRetrieveToken = document.getElementById('btnRetrieveToken');
@@ -105,7 +105,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         const config = await window.electronAPI.getConfig();
         allowBackgroundRunning.checked = config.allowBackgroundRunning || false;
         cacheCleanInterval.value = config.cacheCleanInterval || 15;
-        darkModeEnabled.checked = config.darkModeEnabled || false;
+        darkModeSelect.value = config.darkMode || 'system';
 
         if (config.captureStrategy && config.captureStrategy.gaussianBlurSigma !== undefined) {
             gaussianBlurSigma.value = config.captureStrategy.gaussianBlurSigma;
@@ -145,13 +145,17 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
     try {
         // Apply dark mode immediately to the preferences window
-        if (darkModeEnabled.checked) {
+        applyDarkModePreference(config.darkMode);
+    } catch (error) {
+        console.error('Failed to load dark mode preference:', error);
+    }
+
+    function applyDarkModePreference(mode) {
+        if (mode === 'dark' || (mode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark-mode');
         } else {
             document.documentElement.classList.remove('dark-mode');
         }
-    } catch (error) {
-        console.error('Failed to load dark mode preference:', error);
     }
 
     // Clear cookies handler
@@ -202,7 +206,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             const updatedConfig = {
                 ...config,
                 allowBackgroundRunning: allowBackgroundRunning.checked,
-                darkModeEnabled: darkModeEnabled.checked,
+                darkMode: darkModeSelect.value,
                 cacheCleanInterval: parseInt(cacheCleanInterval.value, 10),
                 captureStrategy: {
                     ...(config.captureStrategy || {}),
@@ -223,7 +227,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             }
 
             // Notify main window about the theme change
-            window.electronAPI.sendToMainWindow('theme-changed', {darkMode: darkModeEnabled.checked});
+            window.electronAPI.sendToMainWindow('theme-changed', {darkMode: darkModeSelect.value});
 
             
             // Save the updated config
