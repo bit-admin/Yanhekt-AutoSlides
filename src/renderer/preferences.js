@@ -80,6 +80,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const fetchSessionsBtn = document.getElementById('fetch-sessions-btn');
     const sessionsStatus = document.getElementById('sessions-status');
     const sessionListContainer = document.getElementById('session-list-container');
+    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
     // Enhance the blocking rules text area for code-like behavior
     function enhanceBlockingRulesEditor() {
@@ -106,6 +107,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         allowBackgroundRunning.checked = config.allowBackgroundRunning || false;
         cacheCleanInterval.value = config.cacheCleanInterval || 15;
         darkModeSelect.value = config.darkMode || 'system';
+
+        applyDarkModePreference(config.darkMode || 'system');
 
         if (config.captureStrategy && config.captureStrategy.gaussianBlurSigma !== undefined) {
             gaussianBlurSigma.value = config.captureStrategy.gaussianBlurSigma;
@@ -220,14 +223,20 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 }
             };
 
-            if (darkModeEnabled.checked) {
-                document.documentElement.classList.add('dark-mode');
-            } else {
-                document.documentElement.classList.remove('dark-mode');
-            }
+            darkModeMediaQuery.addEventListener('change', (e) => {
+                // Only apply if the current setting is "system"
+                const darkModeSelect = document.getElementById('darkModeSelect');
+                if (darkModeSelect && darkModeSelect.value === 'system') {
+                    if (e.matches) {
+                        document.documentElement.classList.add('dark-mode');
+                    } else {
+                        document.documentElement.classList.remove('dark-mode');
+                    }
+                }
+            });
 
             // Notify main window about the theme change
-            window.electronAPI.sendToMainWindow('theme-changed', {darkMode: darkModeSelect.value});
+            await window.electronAPI.sendToMainWindow('theme-changed', {darkMode: darkModeSelect.value});
 
             
             // Save the updated config
