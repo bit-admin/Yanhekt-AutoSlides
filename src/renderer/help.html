@@ -680,8 +680,10 @@
             // Check if dark mode is enabled in main AutoSlides app via IPC if available
             try {
                 if (window.electronAPI && window.electronAPI.getDarkModeStatus) {
-                    window.electronAPI.getDarkModeStatus().then(isDarkMode => {
-                        if (isDarkMode) {
+                    window.electronAPI.getDarkModeStatus().then(mode => {
+                        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        
+                        if (mode === 'dark' || (mode === 'system' && systemPrefersDark)) {
                             document.body.classList.add('dark-mode');
                             themeToggle.innerHTML = '🌙';
                         } else {

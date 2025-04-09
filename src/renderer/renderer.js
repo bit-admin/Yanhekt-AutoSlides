@@ -360,12 +360,15 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   }
 
   function applyDarkMode(config) {
-    if (config.darkModeEnabled) {
-      document.documentElement.classList.add('dark-mode');
+    const darkMode = config.darkMode || 'system';
+    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    
+    if (darkMode === 'dark' || (darkMode === 'system' && systemPrefersDark)) {
+        document.documentElement.classList.add('dark-mode');
     } else {
-      document.documentElement.classList.remove('dark-mode');
+        document.documentElement.classList.remove('dark-mode');
     }
-  }
+}
   
   async function saveConfig() {
     try {
@@ -1351,7 +1354,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             case 'basic':
               performBasicComparison(data1, data2, resolve);
               break;
-            case 'perceptual':
+            case 'default':
               performPerceptualComparison(data1, data2, resolve);
               break;
             // Easy to add more methods here
@@ -5438,4 +5441,17 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         loadProfileDetails(activeProfileId);
     }
   });
+
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    // Only apply the change if the setting is 'system'
+    window.electronAPI.getConfig().then(config => {
+        if (config.darkMode === 'system') {
+            if (e.matches) {
+                document.documentElement.classList.add('dark-mode');
+            } else {
+                document.documentElement.classList.remove('dark-mode');
+            }
+        }
+    });
+});
 });
