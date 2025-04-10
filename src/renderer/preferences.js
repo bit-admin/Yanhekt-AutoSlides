@@ -81,6 +81,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const sessionsStatus = document.getElementById('sessions-status');
     const sessionListContainer = document.getElementById('session-list-container');
     const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    // Remote management elements
+    const enableRemote = document.getElementById('enable-remote');
+    const remotePort = document.getElementById('remote-port');
+    const remoteUsername = document.getElementById('remote-username');
+    const remotePassword = document.getElementById('remote-password');
 
     // Enhance the blocking rules text area for code-like behavior
     function enhanceBlockingRulesEditor() {
@@ -109,6 +114,12 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         darkModeSelect.value = config.darkMode || 'system';
 
         applyDarkModePreference(config.darkMode || 'system');
+
+        // Load remote management settings
+        enableRemote.checked = config.remoteManagement?.enabled || false;
+        remotePort.value = config.remoteManagement?.port || 8080;
+        remoteUsername.value = config.remoteManagement?.username || '';
+        remotePassword.value = config.remoteManagement?.password || '';
 
         if (config.captureStrategy && config.captureStrategy.gaussianBlurSigma !== undefined) {
             gaussianBlurSigma.value = config.captureStrategy.gaussianBlurSigma;
@@ -160,6 +171,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             document.documentElement.classList.remove('dark-mode');
         }
     }
+
+    darkModeSelect.addEventListener('change', function() {
+        applyDarkModePreference(this.value);
+    });
 
     // Clear cookies handler
     btnClearCookies.addEventListener('click', async () => {
@@ -220,6 +235,12 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                     hammingThresholdUp: parseInt(hammingThresholdUp.value, 10),
                     ssimThreshold: parseFloat(ssimThreshold.value),
                     verificationCount: parseFloat(verificationCount.value)
+                },
+                remoteManagement: {
+                    enabled: enableRemote.checked,
+                    port: parseInt(remotePort.value, 10),
+                    username: remoteUsername.value,
+                    password: remotePassword.value
                 }
             };
 

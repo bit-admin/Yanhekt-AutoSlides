@@ -57,7 +57,50 @@
                         <button id="btnClearAll">Clear All Data</button>
                     </div>
                 </div>
-                <!-- Other general settings will be added here -->
+                
+                <div class="preference-group">
+                    <h3>Remote Management</h3>
+                    
+                    <div class="preference-item">
+                        <div class="preference-label">
+                            <label for="enable-remote">Enable Remote Management</label>
+                        </div>
+                        <div class="preference-control">
+                            <input type="checkbox" id="enable-remote" class="toggle">
+                        </div>
+                    </div>
+                    
+                    <div class="preference-item">
+                        <div class="preference-label">
+                            <label for="remote-port">Port Number</label>
+                        </div>
+                        <div class="preference-control">
+                            <input type="number" id="remote-port" min="1024" max="65535" value="8080">
+                        </div>
+                    </div>
+                    
+                    <div class="preference-item">
+                        <div class="preference-label">
+                            <label for="remote-username">Username</label>
+                        </div>
+                        <div class="preference-control">
+                            <input type="text" id="remote-username">
+                        </div>
+                    </div>
+                    
+                    <div class="preference-item">
+                        <div class="preference-label">
+                            <label for="remote-password">Password</label>
+                        </div>
+                        <div class="preference-control">
+                            <input type="password" id="remote-password">
+                        </div>
+                    </div>
+                    
+                    <div class="preference-description">
+                        Enable a web interface to manage AutoSlides remotely. Please use a strong password.
+                    </div>
+                </div>
             </div>
 
             <!-- Capture Strategy Tab -->

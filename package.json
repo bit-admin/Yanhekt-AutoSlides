@@ -16,6 +16,8 @@
   },
   "dependencies": {
     "electron-store": "^8.1.0",
+    "express": "^5.1.0",
+    "express-basic-auth": "^1.2.1",
     "node-fetch": "^2.7.0"
   },
   "build": {
