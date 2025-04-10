@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, session, Menu, shell, net, webContents } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session, Menu, shell, net, webContents, globalShortcut } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
@@ -9,6 +9,9 @@ const fsStat = promisify(fs.stat);
 const fsUnlink = promisify(fs.unlink);
 const fsRmdir = promisify(fs.rmdir);
 const fetch = require('node-fetch');
+const express = require('express');
+const http = require('http');
+const basicAuth = require('express-basic-auth');
 
 // Configuration schema
 const schema = {
@@ -296,13 +299,81 @@ function createPreferencesWindow() {
   }
 }
 
-app.whenReady().then(() => {
+// Remote management server
+let remoteServer = null;
+
+function startRemoteServer(preferences) {
+  if (!preferences.remoteManagement || !preferences.remoteManagement.enabled) {
+    stopRemoteServer();
+    return;
+  }
+  
+  const port = preferences.remoteManagement.port || 8080;
+  const username = preferences.remoteManagement.username;
+  const password = preferences.remoteManagement.password;
+  
+  // Stop any existing server
+  stopRemoteServer();
+  
+  // Create Express app - change variable name to expressApp
+  const expressApp = express();
+  
+  // Add basic authentication if credentials are provided
+  if (username && password) {
+    const users = {};
+    users[username] = password;
+    
+    expressApp.use(basicAuth({
+      users,
+      challenge: true,
+      realm: 'AutoSlides Remote Management'
+    }));
+  }
+  
+  // Serve static files from the web UI directory
+  expressApp.use(express.static(path.join(__dirname, 'web-ui')));
+  
+  // Add API endpoints - use app for Electron and expressApp for Express
+  expressApp.get('/api/status', (req, res) => {
+    res.json({ status: 'running', version: app.getVersion() });
+  });
+  
+  // Start the server
+  remoteServer = http.createServer(expressApp);
+  remoteServer.listen(port, '0.0.0.0', () => {
+    console.log(`Remote management server running on port ${port}, accessible from network`);
+  });
+  
+  // Error handling remains the same
+  remoteServer.on('error', (error) => {
+    console.error('Remote server error:', error);
+    if (error.code === 'EADDRINUSE') {
+      dialog.showErrorBox(
+        'Port In Use',
+        `Port ${port} is already in use. Please choose another port in preferences.`
+      );
+    }
+  });
+}
+
+function stopRemoteServer() {
+  if (remoteServer) {
+    remoteServer.close();
+    remoteServer = null;
+    console.log('Remote management server stopped');
+  }
+}
+
+app.whenReady().then(async () => {
   createApplicationMenu(); // Add this line to create the menu
   createWindow();
   setupProgressInterceptor();
 
   // Ensure output directory exists
   ensureDirectoryExists(config.get('outputDir'));
+
+  // Start remote server if enabled in config
+  startRemoteServer(config.store);
   
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -663,6 +734,9 @@ ipcMain.handle('save-config', (event, newConfig) => {
   for (const key in newConfig) {
     config.set(key, newConfig[key]);
   }
+
+  startRemoteServer(newConfig);
+
   return config.store;
 });
 
@@ -1669,5 +1743,16 @@ ipcMain.handle('toggle-dark-mode', async () => {
   } catch (error) {
       console.error('Error toggling dark mode:', error);
       return 'system';
+  }
+});
+
+ipcMain.handle('update-remote-server', (event, newConfig) => {
+  try {
+    // Start or stop the remote server based on updated config
+    startRemoteServer(newConfig);
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating remote server:', error);
+    return { success: false, error: error.message };
   }
 });

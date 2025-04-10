@@ -89,7 +89,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   await loadBlockingRules();
 
   window.electronAPI.onThemeChange((event, data) => {
-    if (data.darkMode) {
+    if (data.darkMode === 'dark' || 
+        (data.darkMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
       document.documentElement.classList.add('dark-mode');
     } else {
       document.documentElement.classList.remove('dark-mode');
