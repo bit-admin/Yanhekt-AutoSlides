@@ -63,6 +63,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on('theme-changed', (event, data) => callback(event, data));
   },
 
+  showNotification: (options) => ipcRenderer.invoke('show-notification', options),
+
   // Send message to main window
   sendToMainWindow: (channel, data) => {
     return ipcRenderer.invoke('send-to-main-window', channel, data);

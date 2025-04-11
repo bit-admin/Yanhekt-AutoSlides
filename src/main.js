@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, session, Menu, shell, net, webContents, globalShortcut } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, session, Menu, shell, net, webContents, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
@@ -378,6 +378,11 @@ app.whenReady().then(async () => {
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+
+  // Request Notification Permission (macOS only)
+  if (process.platform === 'darwin') {
+    app.setAppUserModelId('com.autoslides.app');
+  }
 });
 
 app.on('window-all-closed', function () {
@@ -1753,6 +1758,49 @@ ipcMain.handle('update-remote-server', (event, newConfig) => {
     return { success: true };
   } catch (error) {
     console.error('Error updating remote server:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// System notification handler
+ipcMain.handle('show-notification', async (event, options) => {
+  // Determine which icon to use based on platform
+  const getIconPath = () => {
+    const iconName = process.platform === 'darwin' ? 'icon.icns' : 'icon.ico';
+    
+    // For packaged app
+    if (process.resourcesPath) {
+      return path.join(process.resourcesPath, iconName);
+    } 
+    
+    // Fallback for development environment
+    return path.join(__dirname, '../build', iconName);
+  };
+
+  try {
+
+    const iconPath = getIconPath();
+    
+    // Create notification options with platform-specific settings
+    const notificationOptions = {
+      title: options.title,
+      body: options.body,
+      icon: iconPath,
+      silent: false
+    };
+    
+    // Add taskbar/dock bounce effect on macOS for task queue completions
+    if (process.platform === 'darwin' && options.isTaskQueue) {
+      app.dock.bounce('critical');
+    }
+    
+    // Show the notification
+    const notification = new Notification(notificationOptions);
+    notification.show();
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error showing notification:', error);
     return { success: false, error: error.message };
   }
 });

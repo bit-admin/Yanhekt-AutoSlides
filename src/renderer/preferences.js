@@ -105,6 +105,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             }
         });
     }
+
+    let config = { darkMode: 'system' }; // Default to system dark mode
     
     // Load current preferences
     try {
