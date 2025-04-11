@@ -24,23 +24,62 @@
         
             <!-- General Tab -->
             <div class="tab-content active" id="general-tab">
-                <div class="preference-item">
-                    <label>
-                        <input type="checkbox" id="allowBackgroundRunning">
-                        Keep Running in Background
-                    </label>
-                    <div class="help-text">
-                        Prevents the system from sleeping while AutoSlides is running
+                <div class="preference-section">
+                    <div class="preference-item">
+                        <label for="darkModeSelect">Appearence:</label>
+                        <select id="darkModeSelect">
+                            <option value="system">Follow System</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="preference-item">
-                    <label for="darkModeSelect">Appearence:</label>
-                    <select id="darkModeSelect">
-                        <option value="system">Follow System</option>
-                        <option value="light">Light</option>
-                        <option value="dark">Dark</option>
-                    </select>
+                <div class="preference-section">
+                    <div class="preference-item">
+                        <label>
+                            <input type="checkbox" id="allowBackgroundRunning">
+                            Keep Running in Background
+                        </label>
+                        <div class="help-text">
+                            Prevents the system from sleeping while AutoSlides is running
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preference-section">
+                    <h3>Remote Management</h3>
+                    
+                    <div class="preference-item">
+                        <label>
+                            <input type="checkbox" id="enable-remote" class="toggle">
+                            Enable Remote Management
+                        </label>
+                        <div class="help-text">
+                            Manage AutoSlides remotely on your local network
+                        </div>
+                    </div>
+                    
+                    <div class="preference-item">
+                        <label for="remote-port">Port Number</label>
+                        <div class="preference-control">
+                            <input type="number" id="remote-port" min="1024" max="65535" value="8080">
+                        </div>
+                    </div>
+                    
+                    <div class="preference-item">
+                        <label for="remote-username">Username</label>
+                        <div class="preference-control">
+                            <input type="text" id="remote-username">
+                        </div>
+                    </div>
+                    
+                    <div class="preference-item">
+                        <label for="remote-password">Password</label>
+                        <div class="preference-control">
+                            <input type="password" id="remote-password">
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="preference-section">
@@ -55,50 +94,6 @@
                     <div class="buttons-group">
                         <button id="btnClearCookies">Clear Cookies</button>
                         <button id="btnClearAll">Clear All Data</button>
-                    </div>
-                </div>
-                
-                <div class="preference-group">
-                    <h3>Remote Management</h3>
-                    
-                    <div class="preference-item">
-                        <div class="preference-label">
-                            <label for="enable-remote">Enable Remote Management</label>
-                        </div>
-                        <div class="preference-control">
-                            <input type="checkbox" id="enable-remote" class="toggle">
-                        </div>
-                    </div>
-                    
-                    <div class="preference-item">
-                        <div class="preference-label">
-                            <label for="remote-port">Port Number</label>
-                        </div>
-                        <div class="preference-control">
-                            <input type="number" id="remote-port" min="1024" max="65535" value="8080">
-                        </div>
-                    </div>
-                    
-                    <div class="preference-item">
-                        <div class="preference-label">
-                            <label for="remote-username">Username</label>
-                        </div>
-                        <div class="preference-control">
-                            <input type="text" id="remote-username">
-                        </div>
-                    </div>
-                    
-                    <div class="preference-item">
-                        <div class="preference-label">
-                            <label for="remote-password">Password</label>
-                        </div>
-                        <div class="preference-control">
-                            <input type="password" id="remote-password">
-                        </div>
-                    </div>
-                    
-                    <div class="preference-description">
-                        Enable a web interface to manage AutoSlides remotely. Please use a strong password.
                     </div>
                 </div>
             </div>
