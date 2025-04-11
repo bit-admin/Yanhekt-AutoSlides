@@ -4299,6 +4299,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       return;
     }
 
+    const currentTask = taskQueue[currentTaskIndex];
+
     // Remove previous completed task if we're moving to a new task and not the first one
     if (currentTaskIndex > 0) {
       // Remove the previous task (index currentTaskIndex-1)
@@ -4307,6 +4309,26 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       currentTaskIndex--;
       // Update the task table to reflect changes
       updateTaskTable();
+    }
+
+    if (currentTask) {
+      // Get the total number of tasks consistent with the status bar display
+      const taskProgress = document.getElementById('taskProgressIndicator');
+      let totalTasks;
+      
+      if (taskProgress && taskProgress.dataset.originalCount) {
+        totalTasks = parseInt(taskProgress.dataset.originalCount);
+      } else {
+        // If a progress indicator has not been created yet, use the current queue length as the total.
+        totalTasks = taskQueue.length;
+      }
+      
+      const currentTaskNumber = currentTaskIndex + 1;
+      
+      sendTaskNotification(
+        'Task in progress', 
+        `AutoSlides is working on task ${currentTaskNumber}/${totalTasks}`
+      );
     }
 
     // Mute the webview audio if auto-mute is enabled
@@ -4355,8 +4377,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.error('Error applying auto-mute:', muteError);
       }
     }
-    
-    const currentTask = taskQueue[currentTaskIndex];
     
     // Update UI to show current task
     updateTaskTable();
@@ -4499,9 +4519,22 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (taskProgress) taskProgress.remove();
     
     statusText.textContent = 'All tasks completed';
+
+    sendTaskNotification('AutoSlides Task Queue Complete', 'All tasks have been processed successfully.', true);
+
     setTimeout(() => {
       statusText.textContent = 'Idle';
     }, 3000);
+  }
+  
+  function sendTaskNotification(title, body, isTaskQueue = false) {
+    // Use Electron's API to send notifications through IPC
+    window.electronAPI.showNotification({
+      title: title,
+      body: body,
+      // Pass whether this is for a task queue or individual task
+      isTaskQueue: isTaskQueue 
+    });
   }
 
   // Extract course ID from URL
