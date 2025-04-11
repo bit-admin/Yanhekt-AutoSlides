@@ -1,5 +1,5 @@
 :root {
-  /* 颜色变量 - 亮色主题 */
+  /* Color Variables - Light Theme */
   --color-text-primary: #333;
   --color-text-secondary: #666;
   --color-text-tertiary: #888;
@@ -107,6 +107,25 @@ body {
     align-items: center;
     gap: 8px;
     margin-bottom: 5px;
+}
+
+.preference-control {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.preference-control input[type="text"],
+.preference-control input[type="password"],
+.preference-control input[type="number"],
+.preference-control select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: var(--color-background-content);
+    color: var(--color-text-primary);
 }
 
 .preference-item input[type="checkbox"] {
