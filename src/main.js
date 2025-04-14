@@ -334,9 +334,522 @@ function startRemoteServer(preferences) {
   // Serve static files from the web UI directory
   expressApp.use(express.static(path.join(__dirname, 'web-ui')));
   
-  // Add API endpoints - use app for Electron and expressApp for Express
+  // API endpoints
   expressApp.get('/api/status', (req, res) => {
     res.json({ status: 'Connected to server' });
+  });
+  
+  // Add retrieve token endpoint
+  expressApp.get('/api/retrieve-token', async (req, res) => {
+    try {
+      const result = await mainWindow.webContents.executeJavaScript(`
+        (async function() {
+          try {
+            if (!document.querySelector('webview')) {
+              return { success: false, message: 'No webview found' };
+            }
+            
+            const webview = document.querySelector('webview');
+
+            // Check if webview is on homepage.html and redirect if needed
+            const currentUrl = webview.getURL();
+            if (currentUrl.includes('homepage.html')) {
+              console.log('Detected homepage.html, navigating to YanHeKT home...');
+              // Navigate to YanHeKT home
+              await new Promise((resolve) => {
+                const loadListener = () => {
+                  webview.removeEventListener('did-finish-load', loadListener);
+                  resolve();
+                };
+                webview.addEventListener('did-finish-load', loadListener);
+                webview.src = 'https://www.yanhekt.cn/home';
+              });
+              console.log('Navigation to YanHeKT home completed');
+            }
+            
+            const authInfo = await webview.executeJavaScript(\`
+              (function() {
+                // Get auth data from localStorage (this is where YanHeKT stores it)
+                let token = null;
+                try {
+                  // First try to get from localStorage (primary method)
+                  const authData = localStorage.getItem('auth');
+                  if (authData) {
+                    const parsed = JSON.parse(authData);
+                    token = parsed.token;
+                    console.log('Found token in localStorage');
+                  }
+                  
+                  // If not found in localStorage, try backup locations
+                  if (!token) {
+                    for (const key of ['token', 'accessToken', 'yanhekt_token']) {
+                      const value = localStorage.getItem(key);
+                      if (value) {
+                        token = value.replace(/^"|"$/g, ''); // Remove quotes if present
+                        console.log('Found token in localStorage key:', key);
+                        break;
+                      }
+                    }
+                  }
+                  
+                  // Last resort: try cookies
+                  if (!token) {
+                    const cookies = document.cookie.split(';');
+                    const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+                    if (tokenCookie) {
+                      token = tokenCookie.split('=')[1].trim();
+                      console.log('Found token in cookies');
+                    }
+                  }
+                } catch (e) {
+                  console.error('Error extracting token:', e);
+                }
+                
+                return { token: token };
+              })();
+            \`);
+            
+            return authInfo;
+          } catch (error) {
+            console.error('Error retrieving token:', error);
+            return { success: false, error: error.toString() };
+          }
+        })();
+      `);
+      
+      if (result && result.token) {
+        res.json({ success: true, token: result.token });
+      } else {
+        res.json({ 
+          success: false, 
+          message: 'No token found. Please log in to YanHeKT in the main app first.'
+        });
+      }
+    } catch (error) {
+      console.error('Error in retrieve-token endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to retrieve token'
+      });
+    }
+  });
+  
+  // Add fetch courses endpoint
+  expressApp.get('/api/courses', async (req, res) => {
+    try {
+      // Send request to main window and wait for response
+      const result = await mainWindow.webContents.executeJavaScript(`
+        (async function() {
+          try {
+            if (!document.querySelector('webview')) {
+              return { success: false, message: 'No webview found' };
+            }
+            
+            const webview = document.querySelector('webview');
+            
+            async function fetchPrivateCourseList(page = 1, pageSize = 16) {
+              try {
+                // Extract authentication token from localStorage similar to fetchSessionList
+                const authInfo = await webview.executeJavaScript(\`
+                  (function() {
+                    // Get auth data from localStorage (this is where YanHeKT stores it)
+                    let token = null;
+                    try {
+                      // First try to get from localStorage (primary method)
+                      const authData = localStorage.getItem('auth');
+                      if (authData) {
+                        const parsed = JSON.parse(authData);
+                        token = parsed.token;
+                        console.log('Found token in localStorage');
+                      }
+                      
+                      // If not found in localStorage, try backup locations
+                      if (!token) {
+                        // Check alternative localStorage keys
+                        for (const key of ['token', 'accessToken', 'yanhekt_token']) {
+                          const value = localStorage.getItem(key);
+                          if (value) {
+                            token = value.replace(/^"|"$/g, ''); // Remove quotes if present
+                            console.log('Found token in localStorage key:', key);
+                            break;
+                          }
+                        }
+                      }
+                      
+                      // Last resort: try cookies
+                      if (!token) {
+                        const cookies = document.cookie.split(';');
+                        const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+                        if (tokenCookie) {
+                          token = tokenCookie.split('=')[1].trim();
+                          console.log('Found token in cookies');
+                        }
+                      }
+                    } catch (e) {
+                      console.error('Error extracting token:', e);
+                    }
+                    
+                    // Get user agent for request headers
+                    const userAgent = navigator.userAgent;
+                    
+                    // Generate timestamp for request
+                    const timestamp = Math.floor(Date.now() / 1000).toString();
+                    
+                    // Return all the necessary auth information
+                    return {
+                      token: token,
+                      userAgent: userAgent,
+                      timestamp: timestamp,
+                      traceId: 'AUTO-' + Math.random().toString(36).substring(2, 15)
+                    };
+                  })();
+                \`);
+                
+                console.log('Auth info retrieved (token hidden):', {
+                  ...authInfo,
+                  token: authInfo.token ? '***token-hidden***' : 'null'
+                });
+                
+                if (!authInfo.token) {
+                  throw new Error('Authentication token not found');
+                }
+                
+                // API endpoint for course list
+                const apiUrl = \`https://cbiz.yanhekt.cn/v2/course/private/list?page=\${page}&page_size=\${pageSize}&user_relationship_type=1&with_introduction=true\`;
+                
+                // Call the API through our main process to avoid CORS issues
+                const result = await window.electronAPI.makeApiRequest({
+                  url: apiUrl,
+                  headers: {
+                    'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6',
+                    'Authorization': \`Bearer \${authInfo.token}\`,
+                    'Content-Type': 'application/json',
+                    'Origin': 'https://www.yanhekt.cn',
+                    'Referer': 'https://www.yanhekt.cn/',
+                    'User-Agent': authInfo.userAgent,
+                    'X-TRACE-ID': authInfo.traceId,
+                    'Xdomain-Client': 'web_user',
+                    'xclient-timestamp': authInfo.timestamp,
+                    'xclient-version': 'v2'
+                  }
+                });
+                
+                // Process API response
+                if (result.code === 0 && result.data) {
+                  const courses = parseCourseInfo(result);
+                  
+                  // Add current page info to each course
+                  courses.forEach(course => {
+                    course.page = page;
+                  });
+                  
+                  // Check if we need to fetch more pages
+                  const totalPages = result.data.last_page || 1;
+                  
+                  if (page < totalPages) {
+                    // Fetch next page and combine results
+                    const nextPageCourses = await fetchPrivateCourseList(page + 1, pageSize);
+                    return [...courses, ...nextPageCourses];
+                  }
+                  
+                  return courses;
+                } else {
+                  const errorMsg = result.message || 'Unknown API error';
+                  throw new Error(\`API Error: \${errorMsg}\`);
+                }
+              } catch (error) {
+                console.error('Error fetching course list:', error);
+                throw error;
+              }
+            }
+
+            // Extract and format course information from API response
+            function parseCourseInfo(apiResponse) {
+              try {
+                const courses = [];
+                
+                if (apiResponse?.data?.data && Array.isArray(apiResponse.data.data)) {
+                  apiResponse.data.data.forEach(course => {
+                    // Extract the key information
+                    courses.push({
+                      id: course.id,
+                      nameZh: course.name_zh,
+                      nameEn: course.name_en,
+                      code: course.code,
+                      collegeName: course.college_name,
+                      collegeCode: course.college_code,
+                      universityCode: course.university_code,
+                      universityId: course.university_id,
+                      schoolYear: course.school_year,
+                      semester: course.semester,
+                      imageUrl: course.image_url,
+                      state: course.state,
+                      participantCount: course.participant_count,
+                      professors: Array.isArray(course.professors) 
+                        ? course.professors.map(prof => {
+                            // Handle both cases: when prof is a string (name) or an object with a name property
+                            if (typeof prof === 'string') {
+                              return { name: prof };
+                            } else if (typeof prof === 'object' && prof.name) {
+                              return prof;
+                            } else {
+                              return { name: String(prof) };
+                            }
+                          }) 
+                        : [],
+                      classrooms: Array.isArray(course.classrooms) ? 
+                        course.classrooms.map(classroom => ({
+                          id: classroom.id,
+                          name: classroom.name,
+                          number: classroom.number
+                        })) : []
+                    });
+                  });
+                }
+                
+                return courses;
+              } catch (error) {
+                console.error('Error parsing course info:', error);
+                return [];
+              }
+            }
+
+            // Start fetching course data
+            return { 
+              success: true, 
+              courses: await fetchPrivateCourseList()
+            };
+          } catch (error) {
+            console.error('Error in course retrieval:', error);
+            return { 
+              success: false, 
+              message: error.message || 'Failed to fetch course information'
+            };
+          }
+        })();
+      `);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error in courses endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to fetch courses'
+      });
+    }
+  });
+  
+  // Add fetch sessions endpoint
+  expressApp.get('/api/sessions', async (req, res) => {
+    try {
+      const courseId = req.query.courseId;
+      
+      if (!courseId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Course ID is required'
+        });
+      }
+      
+      // Send request to main window and wait for response
+      const result = await mainWindow.webContents.executeJavaScript(`
+        (async function() {
+          try {
+            if (!document.querySelector('webview')) {
+              return { success: false, message: 'No webview found' };
+            }
+            
+            const webview = document.querySelector('webview');
+            
+            async function fetchSessionList(courseId, page = 1, pageSize = 10) {
+              try {
+                // Extract authentication token from localStorage
+                const authInfo = await webview.executeJavaScript(\`
+                  (function() {
+                    // Get auth data from localStorage (this is where YanHeKT stores it)
+                    let token = null;
+                    try {
+                      // First try to get from localStorage (primary method)
+                      const authData = localStorage.getItem('auth');
+                      if (authData) {
+                        const parsed = JSON.parse(authData);
+                        token = parsed.token;
+                        console.log('Found token in localStorage');
+                      }
+                      
+                      // If not found, try backup locations
+                      if (!token) {
+                        for (const key of ['token', 'accessToken', 'yanhekt_token']) {
+                          const value = localStorage.getItem(key);
+                          if (value) {
+                            token = value.replace(/^"|"$/g, ''); // Remove quotes if present
+                            console.log('Found token in localStorage key:', key);
+                            break;
+                          }
+                        }
+                      }
+                      
+                      // Last resort: try cookies
+                      if (!token) {
+                        const cookies = document.cookie.split(';');
+                        const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+                        if (tokenCookie) {
+                          token = tokenCookie.split('=')[1].trim();
+                          console.log('Found token in cookies');
+                        }
+                      }
+                    } catch (e) {
+                      console.error('Error extracting token:', e);
+                    }
+                    
+                    // Get user agent for request headers
+                    const userAgent = navigator.userAgent;
+                    
+                    // Generate timestamp for request
+                    const timestamp = Math.floor(Date.now() / 1000).toString();
+                    
+                    return {
+                      token: token,
+                      userAgent: userAgent,
+                      timestamp: timestamp,
+                      traceId: 'AUTO-' + Math.random().toString(36).substring(2, 15)
+                    };
+                  })();
+                \`);
+                
+                if (!authInfo.token) {
+                  throw new Error('Authentication token not found');
+                }
+                
+                // API endpoint for session list
+                const apiUrl = \`https://cbiz.yanhekt.cn/v2/course/session/list?course_id=\${courseId}&with_page=true&page=\${page}&page_size=\${pageSize}&order_type=desc&order_type_weight=desc\`;
+                
+                // Call the API through main process
+                const result = await window.electronAPI.makeApiRequest({
+                  url: apiUrl,
+                  headers: {
+                    'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6',
+                    'Authorization': \`Bearer \${authInfo.token}\`,
+                    'Content-Type': 'application/json',
+                    'Origin': 'https://www.yanhekt.cn',
+                    'Referer': 'https://www.yanhekt.cn/',
+                    'User-Agent': authInfo.userAgent,
+                    'X-TRACE-ID': authInfo.traceId,
+                    'Xdomain-Client': 'web_user',
+                    'xclient-timestamp': authInfo.timestamp,
+                    'xclient-version': 'v2'
+                  }
+                });
+                
+                return result;
+              } catch (error) {
+                console.error('Error fetching session list:', error);
+                throw error;
+              }
+            }
+            
+            // Parse session information from API response
+            function parseSessionInfo(apiResponse) {
+              try {
+                const sessions = [];
+                
+                if (apiResponse?.data?.data && Array.isArray(apiResponse.data.data)) {
+                  apiResponse.data.data.forEach(session => {
+                    // Extract the key information
+                    sessions.push({
+                      sessionId: session.id,
+                      courseId: session.course_id,
+                      title: session.title,
+                      weekNumber: session.week_number,
+                      dayOfWeek: session.day, // 1=Monday, 7=Sunday
+                      startedAt: session.started_at,
+                      endedAt: session.ended_at,
+                      videoId: session.video_ids?.[0] || null,
+                      videoUrl: session.videos?.[0]?.main || null,
+                      location: session.location || '',
+                      // Calculate progress percentage if available
+                      progressPercent: session.user_progress ? 
+                        Math.round((parseInt(session.user_progress.progress_current, 10) / 
+                                   parseInt(session.user_progress.progress_overall, 10)) * 100) : 0
+                    });
+                  });
+                }
+                
+                return sessions;
+              } catch (error) {
+                console.error('Error parsing session info:', error);
+                return [];
+              }
+            }
+            
+            // Start fetching session data with pagination
+            async function getAllSessions() {
+              try {
+                // Fetch first page
+                const firstPageResponse = await fetchSessionList(${courseId}, 1);
+                
+                if (firstPageResponse.code !== 0) {
+                  throw new Error(firstPageResponse.message || 'Failed to fetch sessions');
+                }
+                
+                let allSessions = parseSessionInfo(firstPageResponse);
+                
+                // Check for additional pages
+                const totalPages = firstPageResponse.data.last_page || 1;
+                
+                // Fetch remaining pages (with a reasonable limit)
+                const maxPagesToFetch = 5; // Limit to avoid excessive API calls
+                const pagesToFetch = Math.min(totalPages, maxPagesToFetch);
+                
+                if (pagesToFetch > 1) {
+                  // Fetch all other pages except the first one which we already fetched
+                  for (let page = 2; page <= pagesToFetch; page++) {
+                    try {
+                      const pageResponse = await fetchSessionList(${courseId}, page);
+                      const pageSessions = parseSessionInfo(pageResponse);
+                      allSessions = [...allSessions, ...pageSessions];
+                    } catch (pageError) {
+                      console.error(\`Error fetching page \${page}:\`, pageError);
+                    }
+                  }
+                }
+                
+                return { 
+                  success: true,
+                  sessions: allSessions,
+                  totalPages: totalPages,
+                  courseId: ${courseId}
+                };
+              } catch (error) {
+                console.error('Error in sessions retrieval:', error);
+                return { 
+                  success: false, 
+                  message: error.message || 'Failed to fetch sessions',
+                  error: error.toString()
+                };
+              }
+            }
+            
+            return getAllSessions();
+          } catch (error) {
+            return { 
+              success: false, 
+              message: error.message || 'Failed to process session data',
+              error: error.toString()
+            };
+          }
+        })();
+      `);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error in sessions endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to fetch sessions',
+        error: error.toString()
+      });
+    }
   });
   
   // Start the server
@@ -345,7 +858,7 @@ function startRemoteServer(preferences) {
     console.log(`Remote management server running on port ${port}, accessible from network`);
   });
   
-  // Error handling remains the same
+  // Error handling
   remoteServer.on('error', (error) => {
     console.error('Remote server error:', error);
     if (error.code === 'EADDRINUSE') {
