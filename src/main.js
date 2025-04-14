@@ -852,6 +852,228 @@ function startRemoteServer(preferences) {
     }
   });
   
+  // Add this endpoint to the startRemoteServer function
+  expressApp.get('/api/live-courses', async (req, res) => {
+    try {
+      // Send request to main window and wait for response
+      const result = await mainWindow.webContents.executeJavaScript(`
+        (async function() {
+          try {
+            if (!document.querySelector('webview')) {
+              return { success: false, message: 'No webview found' };
+            }
+            
+            const webview = document.querySelector('webview');
+            
+            async function fetchLiveList(page = 1, pageSize = 16) {
+              try {
+                // Extract authentication token from localStorage
+                const authInfo = await webview.executeJavaScript(\`
+                  (function() {
+                    // Get auth data from localStorage (this is where YanHeKT stores it)
+                    let token = null;
+                    try {
+                      // First try to get from localStorage (primary method)
+                      const authData = localStorage.getItem('auth');
+                      if (authData) {
+                        const parsed = JSON.parse(authData);
+                        token = parsed.token;
+                        console.log('Found token in localStorage');
+                      }
+                      
+                      // If not found in localStorage, try backup locations
+                      if (!token) {
+                        for (const key of ['token', 'accessToken', 'yanhekt_token']) {
+                          const value = localStorage.getItem(key);
+                          if (value) {
+                            token = value.replace(/^"|"$/g, ''); // Remove quotes if present
+                            console.log('Found token in localStorage key:', key);
+                            break;
+                          }
+                        }
+                      }
+                      
+                      // Last resort: try cookies
+                      if (!token) {
+                        const cookies = document.cookie.split(';');
+                        const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+                        if (tokenCookie) {
+                          token = tokenCookie.split('=')[1].trim();
+                          console.log('Found token in cookies');
+                        }
+                      }
+                    } catch (e) {
+                      console.error('Error extracting token:', e);
+                    }
+                    
+                    // Get user agent for request headers
+                    const userAgent = navigator.userAgent;
+                    
+                    // Generate timestamp for request
+                    const timestamp = Math.floor(Date.now() / 1000).toString();
+                    
+                    return {
+                      token: token,
+                      userAgent: userAgent,
+                      timestamp: timestamp,
+                      traceId: 'AUTO-' + Math.random().toString(36).substring(2, 15)
+                    };
+                  })();
+                \`);
+                
+                console.log('Auth info retrieved (token hidden):', {
+                  ...authInfo,
+                  token: authInfo.token ? '***token-hidden***' : 'null'
+                });
+                
+                if (!authInfo.token) {
+                  throw new Error('Authentication token not found.');
+                }
+                
+                // Call the API through our main process to avoid CORS issues
+                const result = await window.electronAPI.makeApiRequest({
+                  url: \`https://cbiz.yanhekt.cn/v2/live/list?page=\${page}&page_size=\${pageSize}&user_relationship_type=1\`,
+                  headers: {
+                    'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6',
+                    'Authorization': \`Bearer \${authInfo.token}\`,
+                    'Content-Type': 'application/json',
+                    'Origin': 'https://www.yanhekt.cn',
+                    'Referer': 'https://www.yanhekt.cn/',
+                    'User-Agent': authInfo.userAgent,
+                    'X-TRACE-ID': authInfo.traceId,
+                    'Xdomain-Client': 'web_user',
+                    'xclient-timestamp': authInfo.timestamp,
+                    'xclient-version': 'v2'
+                  }
+                });
+                
+                console.log(\`API response for live courses page \${page}:\`, result);
+                
+                // Process API response
+                if (result.code === 0 && result.data) {
+                  return result; // Return the raw API response
+                } else if (result.code === 401) {
+                  throw new Error('Authentication failed. Please refresh the page and log in again.');
+                } else {
+                  throw new Error(result.message || 'Failed to fetch live courses data from API');
+                }
+              } catch (error) {
+                console.error('Error fetching live list:', error);
+                throw error;
+              }
+            }
+            
+            // Helper function to get status text for display
+            function getStatusText(status) {
+              switch (status) {
+                case 1: return 'Upcoming';
+                case 2: return 'Live';
+                case 3: return 'Ended';
+                default: return 'Unknown';
+              }
+            }
+  
+            // Extract and format live course information from API response
+            function parseLiveInfo(apiResponse) {
+              try {
+                const liveCourses = [];
+                
+                if (apiResponse?.data?.data && Array.isArray(apiResponse.data.data)) {
+                  apiResponse.data.data.forEach(live => {
+                    // Extract the key information
+                    liveCourses.push({
+                      liveId: live.id,
+                      courseId: live.source_id,
+                      courseName: live.course?.name_zh || live.title,
+                      title: live.title,
+                      subtitle: live.subtitle,
+                      startedAt: live.started_at,
+                      endedAt: live.ended_at,
+                      status: live.status, // 1=upcoming, 2=live, 3=ended
+                      statusText: getStatusText(live.status),
+                      professorName: live.session?.professor?.name || '',
+                      location: live.location || '',
+                      participantCount: live.participant_count || 0
+                    });
+                  });
+                }
+                
+                return liveCourses;
+              } catch (error) {
+                console.error('Error parsing live info:', error);
+                return [];
+              }
+            }
+  
+            // Start fetching live course data with pagination
+            async function getAllLiveCourses() {
+              try {
+                // Fetch first page
+                const firstPageResponse = await fetchLiveList(1);
+                
+                if (firstPageResponse.code !== 0) {
+                  throw new Error(firstPageResponse.message || 'Failed to fetch live courses');
+                }
+                
+                let allLiveCourses = parseLiveInfo(firstPageResponse);
+                
+                // Check for additional pages
+                const totalPages = firstPageResponse.data.pagination?.last_page || 1;
+                
+                // Fetch remaining pages (with a reasonable limit)
+                const maxPagesToFetch = 3; // Limit to avoid excessive API calls
+                const pagesToFetch = Math.min(totalPages, maxPagesToFetch);
+                
+                if (pagesToFetch > 1) {
+                  // Fetch all other pages except the first one which we already fetched
+                  for (let page = 2; page <= pagesToFetch; page++) {
+                    try {
+                      const pageResponse = await fetchLiveList(page);
+                      const pageLives = parseLiveInfo(pageResponse);
+                      allLiveCourses = [...allLiveCourses, ...pageLives];
+                    } catch (pageError) {
+                      console.error(\`Error fetching page \${page}:\`, pageError);
+                    }
+                  }
+                }
+                
+                return { 
+                  success: true,
+                  liveCourses: allLiveCourses,
+                  totalPages: totalPages
+                };
+              } catch (error) {
+                console.error('Error in live courses retrieval:', error);
+                return { 
+                  success: false, 
+                  message: error.message || 'Failed to fetch live courses',
+                  error: error.toString()
+                };
+              }
+            }
+            
+            return getAllLiveCourses();
+          } catch (error) {
+            return { 
+              success: false, 
+              message: error.message || 'Failed to process live course data',
+              error: error.toString()
+            };
+          }
+        })();
+      `);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error fetching live courses:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to fetch live courses',
+        error: error.toString()
+      });
+    }
+  });
+  
   // Start the server
   remoteServer = http.createServer(expressApp);
   remoteServer.listen(port, '0.0.0.0', () => {

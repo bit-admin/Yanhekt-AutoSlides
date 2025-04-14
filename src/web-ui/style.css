@@ -460,3 +460,46 @@ header {
         margin-bottom: 15px;
     }
 }
+
+/* Live course card specific styles */
+.live-course-card {
+    height: 200px; /* Reduced height for live course cards */
+    min-height: 200px;
+}
+
+/* Status badge styling */
+.status-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: white;
+}
+
+.status-badge.status-1 {
+    background-color: #faad14; /* Yellow for upcoming */
+}
+
+.status-badge.status-2 {
+    background-color: #52c41a; /* Green for live */
+}
+
+.status-badge.status-3 {
+    background-color: #8c8c8c; /* Gray for ended */
+}
+
+/* Dark mode status badges */
+.dark-mode .status-badge.status-1 {
+    background-color: #d48806;  /* Darker yellow */
+}
+
+.dark-mode .status-badge.status-2 {
+    background-color: #389e0d;  /* Darker green */
+}
+
+.dark-mode .status-badge.status-3 {
+    background-color: #595959;  /* Darker gray */
+}
