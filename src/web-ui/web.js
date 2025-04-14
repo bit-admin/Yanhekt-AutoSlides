@@ -159,6 +159,24 @@ function createCourseCard(course) {
         }
     });
     
+    // Professor information
+    if (course.professors && course.professors.length > 0) {
+        const profRow = document.createElement('div');
+        profRow.className = 'course-info-row professors-row';
+        
+        const profLabel = document.createElement('div');
+        profLabel.className = 'course-info-label';
+        profLabel.textContent = 'Professors:';
+        
+        const profValue = document.createElement('div');
+        profValue.className = 'course-info-value';
+        profValue.textContent = course.professors.map(p => typeof p === 'object' ? p.name : p).join(', ');
+        
+        profRow.appendChild(profLabel);
+        profRow.appendChild(profValue);
+        infoTable.appendChild(profRow);
+    }
+    
     card.appendChild(infoTable);
     
     // Add "Get Sessions Info" button
@@ -190,11 +208,17 @@ fetchCoursesBtn.addEventListener('click', async () => {
         const result = await response.json();
         
         if (result.success && result.courses && result.courses.length > 0) {
+            // Create a scrollable wrapper for course cards
+            const coursesRow = document.createElement('div');
+            coursesRow.className = 'scrollable-horizontal';
+            
             // Create and display course cards
             result.courses.forEach(course => {
                 const card = createCourseCard(course);
-                courseListContainer.appendChild(card);
+                coursesRow.appendChild(card);
             });
+            
+            courseListContainer.appendChild(coursesRow);
             
             coursesStatus.textContent = `Found ${result.courses.length} courses`;
             setTimeout(() => {
@@ -230,6 +254,11 @@ const sessionListContainer = document.getElementById('session-list-container');
 function createSessionCard(session) {
     const card = document.createElement('div');
     card.className = 'session-card';
+    
+    // Set the week attribute for styling
+    if (session.weekNumber) {
+        card.setAttribute('data-week', session.weekNumber);
+    }
     
     // Session Header
     const headerDiv = document.createElement('div');
@@ -363,11 +392,17 @@ async function fetchCourseSessions(courseId) {
                 return new Date(a.startedAt) - new Date(b.startedAt);
             });
             
+            // Create a scrollable container for sessions
+            const sessionsRow = document.createElement('div');
+            sessionsRow.className = 'scrollable-horizontal';
+            
             // Create and display session cards
             result.sessions.forEach(session => {
                 const card = createSessionCard(session);
-                sessionListContainer.appendChild(card);
+                sessionsRow.appendChild(card);
             });
+            
+            sessionListContainer.appendChild(sessionsRow);
             
             sessionsStatus.textContent = `Found ${result.sessions.length} sessions`;
             setTimeout(() => {
