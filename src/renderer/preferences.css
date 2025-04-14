@@ -1139,16 +1139,12 @@ button:hover {
     color: white;
 }
 
-.status-badge.status-1 {
+.status-badge.status-2 {
     background-color: #faad14; /* Yellow for upcoming */
 }
 
-.status-badge.status-2 {
+.status-badge.status-1 {
     background-color: #52c41a; /* Green for live */
-}
-
-.status-badge.status-3 {
-    background-color: #8c8c8c; /* Gray for ended */
 }
 
 /* 修复 Handler 标签页中的按钮和动态生成元素的样式 */
@@ -1222,19 +1218,6 @@ button:hover {
 
 .dark-mode .week-even .session-card {
     border-left: 4px solid #3da138;
-}
-
-/* 修复状态标签的颜色 */
-.dark-mode .status-badge.status-1 {
-    background-color: #d48806;
-}
-
-.dark-mode .status-badge.status-2 {
-    background-color: #389e0d;
-}
-
-.dark-mode .status-badge.status-3 {
-    background-color: #595959;
 }
 
 /* 修复Token管理部分的样式 */
@@ -1362,16 +1345,12 @@ button:hover {
 }
 
 /* 修复直播课程卡片中的状态徽章 */
-.dark-mode .status-badge.status-1 {
+.dark-mode .status-badge.status-2 {
     background-color: #d48806;  /* 更深的黄色 */
 }
 
-.dark-mode .status-badge.status-2 {
+.dark-mode .status-badge.status-1 {
     background-color: #389e0d;  /* 更深的绿色 */
-}
-
-.dark-mode .status-badge.status-3 {
-    background-color: #595959;  /* 更深的灰色 */
 }
 
 .dark-mode .session-card {

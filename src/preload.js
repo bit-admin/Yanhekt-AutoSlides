@@ -98,7 +98,104 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /**
    * System information
    */
-  platform: process.platform
+  platform: process.platform,
+
+  // Task management methods
+  receiveAddTask: (task) => {
+    return new Promise((resolve, reject) => {
+      try {
+        ipcRenderer.invoke('task:add', task)
+          .then(resolve)
+          .catch(reject);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  },
+  
+  receiveAddTasks: (data) => {
+    return new Promise((resolve, reject) => {
+      try {
+        ipcRenderer.invoke('task:add-multiple', data.tasks)
+          .then(resolve)
+          .catch(reject);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  },
+  
+  receiveStartTasks: (data) => {
+    return new Promise((resolve, reject) => {
+      try {
+        ipcRenderer.invoke('task:start', data.options)
+          .then(resolve)
+          .catch(reject);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  },
+  
+  receiveCancelTasks: () => {
+    return new Promise((resolve, reject) => {
+      try {
+        ipcRenderer.invoke('task:cancel')
+          .then(resolve)
+          .catch(reject);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  },
+  
+  getTaskStatus: () => {
+    return new Promise((resolve, reject) => {
+      try {
+        ipcRenderer.invoke('task:status')
+          .then(resolve)
+          .catch(reject);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  },
+
+  sendTaskStatus: (channel, data) => {
+    ipcRenderer.send(channel, data);
+  },
+
+  debugLog: (message) => {
+    ipcRenderer.send('debug-log', message);
+  },
+  
+  onReceiveTaskCommands: () => {
+    // Already set up the event listeners in preload.js
+    return true;
+  }
+});
+
+// Forward IPC events to renderer via custom events
+ipcRenderer.on('add-task', (event, task) => {
+  document.dispatchEvent(new CustomEvent('ipc-add-task', { detail: task }));
+});
+
+ipcRenderer.on('add-tasks', (event, tasks) => {
+  document.dispatchEvent(new CustomEvent('ipc-add-tasks', { detail: tasks }));
+});
+
+ipcRenderer.on('start-tasks', (event, options) => {
+  document.dispatchEvent(new CustomEvent('ipc-start-tasks', { detail: options }));
+});
+
+ipcRenderer.on('cancel-tasks', () => {
+  document.dispatchEvent(new CustomEvent('ipc-cancel-tasks'));
+});
+
+ipcRenderer.on('get-task-status', (event, responseChannel) => {
+  document.dispatchEvent(new CustomEvent('ipc-get-task-status', { 
+    detail: { responseChannel } 
+  }));
 });
 
 // Log when preload script has been loaded

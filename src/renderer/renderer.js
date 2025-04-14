@@ -5487,5 +5487,180 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             }
         }
     });
-});
+  });
+
+  // Handle add-task event from main process
+  document.addEventListener('ipc-add-task', (event) => {
+    window.electronAPI.debugLog(`Received task: ${JSON.stringify(event.detail)}`);
+    try {
+      const task = event.detail;
+      console.log('Received task from remote API:', task);
+      
+      // Make sure task manager is open
+      if (taskManagerModal.style.display !== 'block') {
+        openTaskManager();
+      }
+      
+      // Set the correct profile in the dropdown based on task type
+      if (task.type === 'session') {
+        taskProfileSelect.value = 'yanhekt_session';
+      } else if (task.type === 'live') {
+        taskProfileSelect.value = 'yanhekt_live';
+      } else {
+        console.warn('Unknown task type:', task.type);
+        // Use custom profile for unknown types
+        taskProfileSelect.value = 'custom_url';
+      }
+      
+      // Set the task ID in the input field
+      taskIdInput.value = task.id;
+      
+      // Add the task
+      addTask();
+    } catch (error) {
+      console.error('Error handling add-task event:', error);
+    }
+  });
+  
+  // Handle add-tasks event from main process
+  document.addEventListener('ipc-add-tasks', (event) => {
+    try {
+      const tasks = event.detail;
+      console.log('Received tasks from remote API:', tasks);
+      
+      // Make sure task manager is open
+      if (taskManagerModal.style.display !== 'block') {
+        openTaskManager();
+      }
+      
+      // Add each task
+      let addedCount = 0;
+      
+      for (const task of tasks) {
+        try {
+          // Set the correct profile in the dropdown based on task type
+          if (task.type === 'session') {
+            taskProfileSelect.value = 'yanhekt_session';
+          } else if (task.type === 'live') {
+            taskProfileSelect.value = 'yanhekt_live';
+          } else {
+            // Skip tasks with unknown types
+            console.warn('Unknown task type:', task.type);
+            continue;
+          }
+          
+          // Set the task ID in the input field
+          taskIdInput.value = task.id;
+          
+          // Add the task
+          addTask();
+          
+          addedCount++;
+        } catch (taskError) {
+          console.error('Error adding task:', taskError);
+        }
+      }
+      
+      console.log(`Added ${addedCount} tasks from remote API`);
+    } catch (error) {
+      console.error('Error handling add-tasks event:', error);
+    }
+  });
+  
+  // Handle start-tasks event from main process
+  document.addEventListener('ipc-start-tasks', (event) => {
+    try {
+      const options = event.detail;
+      console.log('Received command to start tasks with options:', options);
+      
+      // Make sure task manager is open
+      if (taskManagerModal.style.display !== 'block') {
+        openTaskManager();
+      }
+      
+      // Set options if provided
+      if (options) {
+        if (typeof options.resetProgress === 'boolean') {
+          document.getElementById('resetProgressCheckbox').checked = options.resetProgress;
+          resetVideoProgress = options.resetProgress;
+        }
+        
+        if (typeof options.fastMode === 'boolean') {
+          document.getElementById('fastModeCheckbox').checked = options.fastMode;
+          fastModeEnabled = options.fastMode;
+          try { updateFastModeIndicator(); } catch (e) {}
+        }
+      }
+      
+      // Start tasks if there are any in the queue
+      if (taskQueue.length > 0 && !isProcessingTasks) {
+        startTaskProcessing();
+        console.log('Tasks started from remote API');
+      } else {
+        console.log('Cannot start tasks: Queue is empty or tasks are already running');
+      }
+    } catch (error) {
+      console.error('Error handling start-tasks event:', error);
+    }
+  });
+  
+  // Handle cancel-tasks event from main process
+  document.addEventListener('ipc-cancel-tasks', () => {
+    try {
+      console.log('Received command to cancel tasks');
+      
+      // Cancel tasks if they are running
+      if (isProcessingTasks) {
+        cancelTaskProcessing();
+        console.log('Tasks canceled from remote API');
+      } else {
+        console.log('No tasks are currently running');
+      }
+    } catch (error) {
+      console.error('Error handling cancel-tasks event:', error);
+    }
+  });
+  
+  // Handle get-task-status event from main process
+  document.addEventListener('ipc-get-task-status', (event) => {
+    try {
+      const { responseChannel } = event.detail;
+      console.log('Received request for task status');
+      
+      // Gather task status information
+      const status = {
+        success: true,
+        isProcessing: isProcessingTasks,
+        currentTaskIndex: currentTaskIndex,
+        totalTasks: taskQueue.length,
+        status: document.getElementById('statusText').textContent,
+        slideCount: document.getElementById('slideCount').textContent
+      };
+      
+      // If there is a current task, include its information
+      if (isProcessingTasks && currentTaskIndex >= 0 && currentTaskIndex < taskQueue.length) {
+        status.currentTask = {
+          type: taskQueue[currentTaskIndex].profileId === 'yanhekt_session' ? 'session' : 
+                taskQueue[currentTaskIndex].profileId === 'yanhekt_live' ? 'live' : 'custom',
+          id: taskQueue[currentTaskIndex].taskId,
+          title: taskQueue[currentTaskIndex].title || 'Untitled Task'
+        };
+      }
+      
+      // Send the status back to the main process
+      window.electronAPI.sendTaskStatus(responseChannel, status);
+      
+      console.log('Task status sent:', status);
+    } catch (error) {
+      console.error('Error handling get-task-status event:', error);
+      
+      // Send error response
+      if (event.detail && event.detail.responseChannel) {
+        window.electronAPI.sendTaskStatus(event.detail.responseChannel, {
+          success: false,
+          error: error.toString()
+        });
+      }
+    }
+  });
 });

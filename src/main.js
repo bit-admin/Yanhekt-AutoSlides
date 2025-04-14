@@ -318,6 +318,13 @@ function startRemoteServer(preferences) {
   
   // Create Express app - change variable name to expressApp
   const expressApp = express();
+
+  // Middleware for parsing JSON bodies
+  expressApp.use(express.json());
+  expressApp.use(express.urlencoded({ extended: true }));
+
+  // Then your existing code for serving static files and routes
+  expressApp.use(express.static(path.join(__dirname, 'web-ui')));
   
   // Add basic authentication if credentials are provided
   if (username && password) {
@@ -966,9 +973,8 @@ function startRemoteServer(preferences) {
             // Helper function to get status text for display
             function getStatusText(status) {
               switch (status) {
-                case 1: return 'Upcoming';
-                case 2: return 'Live';
-                case 3: return 'Ended';
+                case 1: return 'Live';
+                case 2: return 'Upcoming';
                 default: return 'Unknown';
               }
             }
@@ -989,7 +995,7 @@ function startRemoteServer(preferences) {
                       subtitle: live.subtitle,
                       startedAt: live.started_at,
                       endedAt: live.ended_at,
-                      status: live.status, // 1=upcoming, 2=live, 3=ended
+                      status: live.status, // 1=live, 2=Upcoming
                       statusText: getStatusText(live.status),
                       professorName: live.session?.professor?.name || '',
                       location: live.location || '',
@@ -1069,6 +1075,149 @@ function startRemoteServer(preferences) {
       res.status(500).json({ 
         success: false, 
         message: error.message || 'Failed to fetch live courses',
+        error: error.toString()
+      });
+    }
+  });
+
+  // Enhanced version of the start-tasks endpoint
+  expressApp.post('/api/start-tasks', async (req, res) => {
+    try {
+      const { options = {} } = req.body;
+      
+      // Send a message to the renderer process to start tasks
+      mainWindow.webContents.send('start-tasks', options);
+      
+      // Wait a short time for tasks to start
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      res.json({ success: true, message: 'Tasks started' });
+    } catch (error) {
+      console.error('Error in start-tasks endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to start tasks',
+        error: error.toString()
+      });
+    }
+  });
+  
+  // Enhanced version of the cancel-tasks endpoint
+  expressApp.post('/api/cancel-tasks', async (req, res) => {
+    try {
+      // Send a message to the renderer process to cancel tasks
+      mainWindow.webContents.send('cancel-tasks');
+      
+      // Wait a short time for tasks to be canceled
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      res.json({ success: true, message: 'Tasks canceled' });
+    } catch (error) {
+      console.error('Error in cancel-tasks endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to cancel tasks',
+        error: error.toString()
+      });
+    }
+  });
+  
+  // Enhanced task-status endpoint to get more detailed status info
+  expressApp.get('/api/task-status', async (req, res) => {
+    try {
+      // Create a unique channel for this request
+      const responseChannel = `task-status-response-${Date.now()}`;
+      
+      // Create a promise that will be resolved when we get a response
+      const statusPromise = new Promise((resolve) => {
+        // Set up a one-time listener for the response
+        ipcMain.once(responseChannel, (event, status) => {
+          resolve(status);
+        });
+        
+        // Set a timeout to avoid hanging
+        setTimeout(() => {
+          resolve({ 
+            success: false, 
+            message: 'Task status request timed out' 
+          });
+        }, 2000);
+      });
+      
+      // Send request to renderer
+      mainWindow.webContents.send('get-task-status', responseChannel);
+      
+      // Wait for response from renderer process
+      const status = await statusPromise;
+      
+      res.json(status);
+    } catch (error) {
+      console.error('Error in task-status endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to get task status',
+        error: error.toString()
+      });
+    }
+  });
+  
+  // Add a single task to the main window's task queue
+  expressApp.post('/api/add-task', async (req, res) => {
+    try {
+      const task = req.body;
+      
+      if (!task || !task.type || !task.id || !task.title) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid task data'
+        });
+      }
+      
+      // Send the task to the renderer process via IPC
+      mainWindow.webContents.send('add-task', task);
+      
+      // Wait a short time for the task to be added
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      res.json({ success: true, message: 'Task added to queue' });
+    } catch (error) {
+      console.error('Error in add-task endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to add task',
+        error: error.toString()
+      });
+    }
+  });
+  
+  // Add multiple tasks to the main window's task queue
+  expressApp.post('/api/add-tasks', async (req, res) => {
+    try {
+      const { tasks } = req.body;
+      
+      if (!Array.isArray(tasks) || tasks.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No tasks provided'
+        });
+      }
+      
+      // Send the tasks to the renderer process via IPC
+      mainWindow.webContents.send('add-tasks', tasks);
+      
+      // Wait a short time for the tasks to be added
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      res.json({ 
+        success: true, 
+        message: 'Tasks added to queue', 
+        addedCount: tasks.length 
+      });
+    } catch (error) {
+      console.error('Error in add-tasks endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to add tasks',
         error: error.toString()
       });
     }
@@ -2136,9 +2285,8 @@ ipcMain.handle('fetch-live-courses', async (event) => {
           // Helper function to get status text for display
           function getStatusText(status) {
             switch (status) {
-              case 1: return 'Upcoming';
-              case 2: return 'Live';
-              case 3: return 'Ended';
+                case 1: return 'Live';
+                case 2: return 'Upcoming';
               default: return 'Unknown';
             }
           }
@@ -2159,7 +2307,7 @@ ipcMain.handle('fetch-live-courses', async (event) => {
                     subtitle: live.subtitle,
                     startedAt: live.started_at,
                     endedAt: live.ended_at,
-                    status: live.status, // 1=upcoming, 2=live, 3=ended
+                    status: live.status, // 1=live, 2=Upcoming
                     statusText: getStatusText(live.status),
                     professorName: live.session?.professor?.name || '',
                     location: live.location || '',
@@ -2565,4 +2713,101 @@ ipcMain.handle('open-external-url', async (event, url) => {
     console.error('Failed to open external URL:', error);
     return { success: false, error: error.message };
   }
+});
+
+// Task Management IPC Handlers
+ipcMain.handle('task:add', async (event, task) => {
+  try {
+    // Send a message to the renderer process to add the task
+    mainWindow.webContents.send('add-task', task);
+    
+    // Wait a short time for the task to be added
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    return { success: true, message: 'Task added to queue' };
+  } catch (error) {
+    console.error('Error adding task:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('task:add-multiple', async (event, tasks) => {
+  try {
+    // Send a message to the renderer process to add multiple tasks
+    mainWindow.webContents.send('add-tasks', tasks);
+    
+    // Wait a short time for the tasks to be added
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    return { success: true, message: 'Tasks added to queue', addedCount: tasks.length };
+  } catch (error) {
+    console.error('Error adding multiple tasks:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('task:start', async (event, options) => {
+  try {
+    // Send a message to the renderer process to start tasks
+    mainWindow.webContents.send('start-tasks', options);
+    
+    // Wait a short time for tasks to start
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    return { success: true, message: 'Tasks started' };
+  } catch (error) {
+    console.error('Error starting tasks:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('task:cancel', async (event) => {
+  try {
+    // Send a message to the renderer process to cancel tasks
+    mainWindow.webContents.send('cancel-tasks');
+    
+    // Wait a short time for tasks to be canceled
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    return { success: true, message: 'Tasks canceled' };
+  } catch (error) {
+    console.error('Error canceling tasks:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('task:status', async (event) => {
+  try {
+    // This is a bit trickier - we need to request the status from the renderer
+    // and get a response back
+    return new Promise((resolve) => {
+      // Create a unique channel name for this request
+      const responseChannel = `task-status-response-${Date.now()}`;
+      
+      // Set up a one-time listener for the response
+      ipcMain.once(responseChannel, (event, status) => {
+        resolve(status);
+      });
+      
+      // Send the request with the response channel
+      mainWindow.webContents.send('get-task-status', responseChannel);
+      
+      // Set a timeout to avoid hanging if there's no response
+      setTimeout(() => {
+        resolve({ 
+          success: true, 
+          isProcessing: false, 
+          message: 'Status request timed out' 
+        });
+      }, 1000);
+    });
+  } catch (error) {
+    console.error('Error getting task status:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+// Debug logging for IPC to help diagnose task management issues
+ipcMain.on('debug-log', (event, message) => {
+  console.log('[Renderer Debug]:', message);
 });
