@@ -86,6 +86,58 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const remotePort = document.getElementById('remote-port');
     const remoteUsername = document.getElementById('remote-username');
     const remotePassword = document.getElementById('remote-password');
+    const serviceUrlDisplay = document.getElementById('service-url-display');
+    const serviceUrlLink = document.getElementById('service-url-link');
+    const remoteSettingsContainer = document.getElementById('remote-settings-container');
+
+    // Update URL when port changes
+    remotePort.addEventListener('input', updateServiceUrl);
+    remotePort.addEventListener('change', updateServiceUrl);
+
+    // Function to get IP and update URL
+    async function updateServiceUrl() {
+        try {
+            // First try to get local IP addresses
+            const serviceUrlLink = document.getElementById('service-url-link');
+            serviceUrlLink.textContent = 'Detecting IP address...';
+            
+            const ipAddresses = await window.electronAPI.getLocalIpAddresses();
+            
+            // Use first non-localhost IPv4 address
+            const ip = ipAddresses.find(addr => 
+                addr !== '127.0.0.1' && !addr.includes(':')
+            ) || 'localhost';
+            
+            const port = remotePort.value || '11150';
+            const url = `http://${ip}:${port}`;
+            
+            serviceUrlLink.textContent = url;
+            serviceUrlLink.setAttribute('data-url', url); // Store URL as data attribute
+            
+            // Add event listener for the link
+            serviceUrlLink.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const urlToOpen = e.currentTarget.getAttribute('data-url');
+                await window.electronAPI.openExternalUrl(urlToOpen);
+            });
+        } catch (error) {
+            console.error('Error getting IP address:', error);
+            const serviceUrlLink = document.getElementById('service-url-link');
+            const url = `http://localhost:${remotePort.value || '11150'}`;
+            serviceUrlLink.textContent = url;
+            serviceUrlLink.setAttribute('data-url', url);
+            
+            // Add event listener for the link
+            serviceUrlLink.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const urlToOpen = e.currentTarget.getAttribute('data-url');
+                await window.electronAPI.openExternalUrl(urlToOpen);
+            });
+        }
+    }
+
+    // Initial state
+    updateServiceUrl();
 
     // Enhance the blocking rules text area for code-like behavior
     function enhanceBlockingRulesEditor() {
@@ -119,7 +171,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
         // Load remote management settings
         enableRemote.checked = config.remoteManagement?.enabled || false;
-        remotePort.value = config.remoteManagement?.port || 8080;
+        remotePort.value = config.remoteManagement?.port || 11150;
         remoteUsername.value = config.remoteManagement?.username || '';
         remotePassword.value = config.remoteManagement?.password || '';
 

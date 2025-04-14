@@ -60,24 +60,37 @@
                         </div>
                     </div>
                     
-                    <div class="preference-item">
-                        <label for="remote-port">Port Number</label>
-                        <div class="preference-control">
-                            <input type="number" id="remote-port" min="1024" max="65535" value="11150">
+                    <div class="remote-settings-container" id="remote-settings-container">
+                        <div class="preference-row">
+                            <div class="preference-item">
+                                <label for="remote-port">Port Number</label>
+                                <div class="preference-control">
+                                    <input type="number" id="remote-port" min="1024" max="65535" value="11150">
+                                </div>
+                            </div>
+                            <div class="preference-item">
+                                <label>Service URL</label>
+                                <div style="height: 5px;"></div>
+                                <div class="service-url">
+                                    <a id="service-url-link" href="#" target="_blank">Detecting IP address...</a>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="preference-item">
-                        <label for="remote-username">Username</label>
-                        <div class="preference-control">
-                            <input type="text" id="remote-username">
-                        </div>
-                    </div>
-                    
-                    <div class="preference-item">
-                        <label for="remote-password">Password</label>
-                        <div class="preference-control">
-                            <input type="password" id="remote-password">
+                        
+                        <div class="preference-row">
+                            <div class="preference-item">
+                                <label for="remote-username">Username</label>
+                                <div class="preference-control">
+                                    <input type="text" id="remote-username">
+                                </div> 
+                            </div>
+                            <div class="preference-item">
+                                <label for="remote-password">Password</label>
+                                <div style="height: 5px;"></div>
+                                <div class="preference-control">
+                                    <input type="password" id="remote-password">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
