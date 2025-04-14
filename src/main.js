@@ -12,6 +12,7 @@ const fetch = require('node-fetch');
 const express = require('express');
 const http = require('http');
 const basicAuth = require('express-basic-auth');
+const os = require('os');
 
 // Configuration schema
 const schema = {
@@ -308,7 +309,7 @@ function startRemoteServer(preferences) {
     return;
   }
   
-  const port = preferences.remoteManagement.port || 8080;
+  const port = preferences.remoteManagement.port || 11150;
   const username = preferences.remoteManagement.username;
   const password = preferences.remoteManagement.password;
   
@@ -335,7 +336,7 @@ function startRemoteServer(preferences) {
   
   // Add API endpoints - use app for Electron and expressApp for Express
   expressApp.get('/api/status', (req, res) => {
-    res.json({ status: 'running', version: app.getVersion() });
+    res.json({ status: 'Connected to server' });
   });
   
   // Start the server
@@ -1801,6 +1802,32 @@ ipcMain.handle('show-notification', async (event, options) => {
     return { success: true };
   } catch (error) {
     console.error('Error showing notification:', error);
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('get-local-ip-addresses', () => {
+  const networkInterfaces = os.networkInterfaces();
+  const addresses = [];
+  
+  for (const interfaceName of Object.keys(networkInterfaces)) {
+      for (const iface of networkInterfaces[interfaceName]) {
+          // Skip over internal (non-public) and non-IPv4 addresses
+          if (!iface.internal) {
+              addresses.push(iface.address);
+          }
+      }
+  }
+  
+  return addresses;
+});
+
+ipcMain.handle('open-external-url', async (event, url) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to open external URL:', error);
     return { success: false, error: error.message };
   }
 });

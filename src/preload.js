@@ -47,6 +47,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   fetchCourseSessions: (courseId) => ipcRenderer.invoke('fetch-course-sessions', courseId),
   fetchLiveCourses: () => ipcRenderer.invoke('fetch-live-courses'),
 
+  getLocalIpAddresses: () => ipcRenderer.invoke('get-local-ip-addresses'),
+  openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
+
   muteWebviewAudio: async (webviewId) => {
     try {
       return await ipcRenderer.invoke('muteWebviewAudio', webviewId);

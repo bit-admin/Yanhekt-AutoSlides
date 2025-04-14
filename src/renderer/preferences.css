@@ -1410,3 +1410,34 @@ button:hover {
   background-color: var(--color-secondary);
   color: var(--color-text-primary);
 }
+
+/* Add these styles for the remote management section */
+.preference-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 15px;
+}
+
+.preference-row .preference-item {
+    flex: 1;
+}
+
+.service-url {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+}
+
+#service-url-link {
+    font-family: monospace;
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.dark-mode #service-url-link {
+    color: var(--color-primary);
+}
+
+#service-url-link:hover {
+    text-decoration: underline;
+}
