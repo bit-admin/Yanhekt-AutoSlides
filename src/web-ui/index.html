@@ -22,7 +22,7 @@
         <svg id="dark-icon" style="display: none;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
-        <span id="theme-text">Dark Mode</span>
+        <span id="theme-text">Dark</span>
     </button>
     <header>
         <h1>AutoSlides Remote Management</h1>
@@ -95,6 +95,26 @@
             <div id="live-course-list-container" class="scrollable-horizontal">
                 <!-- Live course cards will be inserted here -->
             </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Task Management</h2>
+        <div class="token-row">
+            <button id="start-tasks-btn" class="token-action-button">Start Tasks</button>
+            <button id="cancel-tasks-btn" class="token-action-button">Cancel Tasks</button>
+            <span id="task-status" class="token-status">Idle</span>
+        </div>
+        
+        <div class="task-options">
+            <label class="task-option">
+                <input type="checkbox" id="resetProgressCheckbox" checked>
+                Always start videos from beginning
+            </label>
+            <label class="task-option">
+                <input type="checkbox" id="fastModeCheckbox">
+                Fast Mode (0.5s interval, 4x speed)
+            </label>
         </div>
     </div>
     
