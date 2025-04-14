@@ -26,7 +26,7 @@
             <div class="tab-content active" id="general-tab">
                 <div class="preference-section">
                     <div class="preference-item">
-                        <label for="darkModeSelect">Appearence:</label>
+                        <label for="darkModeSelect">Appearence</label>
                         <select id="darkModeSelect">
                             <option value="system">Follow System</option>
                             <option value="light">Light</option>
@@ -99,16 +99,15 @@
                     <h3>Cache Management</h3>
                     
                     <div class="preference-item">
-                        <label for="cacheCleanInterval">Auto-Clean Interval (mins):</label>
+                        <label for="cacheCleanInterval">Auto-Clean Interval (mins, set to 0 to disable)</label>
                         <input type="number" id="cacheCleanInterval" min="0" max="60" step="5" value="15" />
-                        <div class="help-text">Set to 0 to disable auto-cleaning</div>
                     </div>
                     
                     <div class="buttons-group">
                         <button id="btnClearCookies">Clear Cookies</button>
                         <button id="btnClearAll">Reset All Data</button>
-                        <div class="help-text">Resetting data can resolve common issues</div>
                     </div>
+                    <div class="help-text">Resetting data can resolve common issues</div>
                 </div>
             </div>
 
@@ -161,7 +160,7 @@
                                 </div>
 
                                 <div class="preference-item">
-                                    <label for="hammingThreshold">Hamming Distance Threshold:</label>
+                                    <label for="hammingThreshold">Hamming Distance Threshold</label>
                                     <input type="number" id="hammingThresholdLow" min="0" max="10" step="1" value="0">
                                     <div class="help-text">Bypass SSIM check if below lower threshold</div>
                                     <input type="number" id="hammingThresholdUp" min="0" max="20" step="1" value="5">
@@ -183,7 +182,7 @@
                                     </div>
                                 </div>
                                 <div class="preference-item">
-                                    <label for="ssimThreshold">SSIM Threshold:</label>
+                                    <label for="ssimThreshold">SSIM Threshold</label>
                                     <input type="number" id="ssimThreshold" min="0.95" max="1" step="0.0001" value="0.999">
                                     <div class="help-text">Minimum similarity for images equivalent</div>
                                 </div>
@@ -215,7 +214,7 @@
                                 </div>
                                 
                                 <div class="preference-item">
-                                    <label for="gaussianBlurSigma">Sigma:</label>
+                                    <label for="gaussianBlurSigma">Sigma</label>
                                     <input type="number" id="gaussianBlurSigma" min="0.1" max="2.0" step="0.1" value="0.5">
                                     <div class="help-text">Higher values increase blur strength</div>
                                 </div>
@@ -230,7 +229,7 @@
                             <div class="settings-grid">
                                 <div class="preference-item">
                                     <!-- Pixel Difference Threshold -->
-                                    <div class="setting-label">Pixel Difference Threshold:</div>
+                                    <div class="setting-label">Pixel Difference Threshold</div>
                                     <div class="setting-control">
                                         <input type="number" id="pixelDiffThreshold" min="1" max="255" step="1" value="30">
                                         <div class="help-text">Threshold for considering pixels different</div>
@@ -239,7 +238,7 @@
                                 
                                 <div class="preference-item">
                                     <!-- Change Ratio Threshold -->
-                                    <div class="setting-label">Change Ratio Threshold:</div>
+                                    <div class="setting-label">Change Ratio Threshold</div>
                                     <div class="setting-control">
                                         <input type="number" id="changeRatioThreshold" min="0.001" max="0.02" step="0.001" value="0.005">
                                         <div class="help-text">Minimum ratio of pixels to trigger changes.</div>
@@ -254,7 +253,7 @@
                 <div class="preference-section">
                     <h3>​Secondary Verification​</h3>
                     <div class="preference-item">
-                        <div class="setting-label">Stability Threshold:</div>
+                        <div class="setting-label">Stability Threshold</div>
                         <div class="setting-control">
                             <input type="number" id="verificationCount" min="1" max="5" step="1" value="2">
                             <div class="help-text">Number of consecutive stability checks before accepting a new slide</div>
@@ -280,12 +279,12 @@
                         <!-- Cropping Settings Group -->
                         <div class="settings-grid">
                             <div class="preference-item">
-                                <label for="inputTopCrop">Top Crop (%):</label>
+                                <label for="inputTopCrop">Top Crop (%)</label>
                                 <input type="number" id="inputTopCrop" class="topCropPercent" step="1" min="0" max="40" value="5" />
                             </div>
                             
                             <div class="preference-item">
-                                <label for="inputBottomCrop">Bottom Crop (%):</label>
+                                <label for="inputBottomCrop">Bottom Crop (%)</label>
                                 <input type="number" id="inputBottomCrop" class="bottomCropPercent" step="1" min="0" max="40" value="5" />
                             </div>
                         </div>
@@ -303,7 +302,7 @@
                 <div class="preference-section profile-creation">
                     <div class="create-profile-row">
                         <div class="preference-item">
-                            <label for="newProfileName">Create New Profile:</label>
+                            <label for="newProfileName">Create New Profile</label>
                             <input type="text" id="newProfileName" placeholder="Enter profile name">
                         </div>
                         <button id="btnCreateProfile" class="action-button">Create Profile</button>
@@ -333,13 +332,13 @@
                         <!-- Basic Configuration Group -->
                         <div class="settings-grid">
                             <div class="preference-item">
-                                <label for="profileElementSelector">Element Selector:</label>
+                                <label for="profileElementSelector">Element Selector</label>
                                 <input type="text" class="profileElementSelector" placeholder="#video_id_topPlayer_html5_api">
                                 <div class="help-text">Only the selected element will be captured</div>
                             </div>
                             
                             <div class="preference-item">
-                                <label for="profileUrlPattern">URL Patterns:</label>
+                                <label for="profileUrlPattern">URL Patterns</label>
                                 <input type="text" class="profileUrlPattern" placeholder="example.com/video">
                                 <div class="help-text">Patterns to auto-select this profile</div>
                             </div>
@@ -350,19 +349,19 @@
                         <!-- Playback Detection Group -->
                         <div class="settings-grid">
                             <div class="preference-item">
-                                <label for="profileEndDetectionSelector">End Detection Selector:</label>
+                                <label for="profileEndDetectionSelector">End Detection Selector</label>
                                 <input type="text" class="profileEndDetectionSelector" placeholder=".player-ended-poster">
                             </div>
                             
                             <div class="preference-item">
-                                <label for="profilePlayButtonSelector">Play Button Selector:</label>
+                                <label for="profilePlayButtonSelector">Play Button Selector</label>
                                 <input type="text" class="profilePlayButtonSelector" placeholder=".play-button">
                             </div>
                         </div>
                         
                         <div class="settings-grid">
                             <div class="preference-item">
-                                <label for="profileCountdownSelector">Countdown Selector:</label>
+                                <label for="profileCountdownSelector">Countdown Selector</label>
                                 <input type="text" class="profileCountdownSelector" placeholder=".countdown">
                             </div>
                         </div>
@@ -372,12 +371,12 @@
                         <!-- Speed Settings Group -->
                         <div class="settings-grid">
                             <div class="preference-item">
-                                <label for="profileSpeedSelector">Speed Selector:</label>
+                                <label for="profileSpeedSelector">Speed Selector</label>
                                 <input type="text" class="profileSpeedSelector" placeholder="#video_element">
                             </div>
                             
                             <div class="preference-item">
-                                <label for="profilePlaybackSpeed">Adjusted Playback Speed:</label>
+                                <label for="profilePlaybackSpeed">Adjusted Playback Speed</label>
                                 <select class="profilePlaybackSpeed">
                                     <option value="1.0">1.0x</option>
                                     <option value="1.5">1.5x</option>
@@ -395,13 +394,13 @@
                         <!-- Title Detection Group -->
                         <div class="settings-grid">
                             <div class="preference-item">
-                                <label for="profileCourseTitleSelector">Course Title Selector:</label>
+                                <label for="profileCourseTitleSelector">Course Title Selector</label>
                                 <input type="text" class="profileCourseTitleSelector" placeholder=".course-title">
                                 <div class="help-text">Used when "Auto-detect title" is enabled</div>
                             </div>
                             
                             <div class="preference-item">
-                                <label for="profileSessionInfoSelector">Session Info Selector:</label>
+                                <label for="profileSessionInfoSelector">Session Info Selector</label>
                                 <input type="text" class="profileSessionInfoSelector" placeholder=".session-info">
                             </div>
                         </div>
@@ -411,13 +410,13 @@
                         <!-- Error Handling Group -->
                         <div class="settings-grid">
                             <div class="preference-item">
-                                <label for="profileErrorSelector">Error Selector:</label>
+                                <label for="profileErrorSelector">Error Selector</label>
                                 <input type="text" class="profileErrorSelector" placeholder=".error-message">
                                 <div class="help-text">Used when "Auto-retry on error" is enabled</div>
                             </div>
                             
                             <div class="preference-item">
-                                <label for="profileMaxRetryAttempts">Max Retry Attempts:</label>
+                                <label for="profileMaxRetryAttempts">Max Retry Attempts</label>
                                 <input type="number" class="profileMaxRetryAttempts" min="1" max="10" value="3">
                             </div>
                         </div>
@@ -430,7 +429,7 @@
                     <h3>Authentication</h3>
                     
                     <div class="preference-item">
-                        <label for="tokenField">YanHeKT Authentication Token for API Communication:</label>
+                        <label for="tokenField">YanHeKT Authentication Token for API Communication</label>
                         <div class="token-row">
                             <button id="btnRetrieveToken" class="action-button token-retrieve-btn">Retrieve Token</button>
                             <div class="password-container">
