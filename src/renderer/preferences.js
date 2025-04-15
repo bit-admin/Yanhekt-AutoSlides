@@ -366,7 +366,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             // Define default values for built-in profiles
             const defaultProfiles = {
                 "yanhekt_session": {
-                    "name": "YanHeKT Session Player",
+                    "name": "YanHeKT Session",
                     "elementSelector": "#video_id_topPlayer_html5_api",
                     "urlPattern": "yanhekt.cn/session",
                     "builtin": true,
@@ -388,7 +388,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                     }
                 },
                 "yanhekt_live": {
-                    "name": "YanHeKT Live Player",
+                    "name": "YanHeKT Live",
                     "elementSelector": "#video_id_mainPlayer_html5_api",
                     "urlPattern": "yanhekt.cn/live",
                     "builtin": true,
