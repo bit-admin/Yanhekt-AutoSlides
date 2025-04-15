@@ -271,7 +271,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       // Load site profiles with default built-in profiles
       siteProfiles = config.siteProfiles || {
         yanhekt_session: {
-          name: 'YanHeKT Session Player',
+          name: 'YanHeKT Session',
           elementSelector: '#video_id_topPlayer_html5_api',
           urlPattern: 'yanhekt.cn/session',
           builtin: true,
@@ -293,7 +293,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           }
         },
         yanhekt_live: {
-          name: 'YanHeKT Live Player',
+          name: 'YanHeKT Live',
           elementSelector: '#video_id_mainPlayer_html5_api',
           urlPattern: 'yanhekt.cn/live',
           builtin: false,
@@ -1554,7 +1554,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             if (videoCheck.ready) {
               videoReady = true;
               console.log('Video is loaded and ready for capture:', videoCheck);
-              statusText.textContent = 'Video loaded, starting capture...';
+              statusText.textContent = 'Capturing...';
               // Reset counter when video is found successfully
               videoElementNotFoundCounter = 0;
             } else {
@@ -3179,7 +3179,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       // Highlight current task
       if (isProcessingTasks && index === currentTaskIndex) {
-        row.classList.add('current-task');
+        row.className = 'current-task';
       }
       
       // Profile column
@@ -3196,6 +3196,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       const urlCell = document.createElement('td');
       urlCell.textContent = task.url;
       row.appendChild(urlCell);
+      
+      // Info column (new)
+      const infoCell = document.createElement('td');
+      infoCell.textContent = task.courseInfo || '-';
+      row.appendChild(infoCell);
       
       // Action column
       const actionCell = document.createElement('td');
@@ -3580,7 +3585,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             subtitle: live.subtitle,
             startedAt: live.started_at,
             endedAt: live.ended_at,
-            status: live.status, // 1=upcoming, 2=live, 3=ended
+            status: live.status, // 1=live, 2=upcoming
             statusText: getStatusText(live.status),
             professorName: live.session?.professor?.name || '',
             location: live.location || '',
@@ -3599,9 +3604,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   // Helper function to get status text
   function getStatusText(status) {
     switch (status) {
-      case 1: return 'Upcoming';
-      case 2: return 'Live';
-      case 3: return 'Ended';
+      case 1: return 'Live';
+      case 2: return 'upcoming';
       default: return 'Unknown';
     }
   }
@@ -4049,6 +4053,23 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         return;
       }
       
+      // Get course information for the Info column
+      let courseInfo = '';
+      
+      // For live courses, we can extract info directly from the liveCourseData
+      if (liveCourseData) {
+        if (liveCourseData.title) {
+          courseInfo = liveCourseData.title;
+        } else if (liveCourseData.courseName) {
+          courseInfo = liveCourseData.courseName;
+        }
+      }
+      
+      // Use a default if we don't have course info
+      if (!courseInfo) {
+        courseInfo = 'Live Course ' + liveId;
+      }
+      
       console.log('Using profile:', yanHeKTLiveProfileId, 'for live course:', liveId);
 
       // Add to task queue
@@ -4057,7 +4078,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         taskId: liveId.toString(),
         url: `https://www.yanhekt.cn/live/${liveId}`,
         profileName: siteProfiles[yanHeKTLiveProfileId].name || yanHeKTLiveProfileId,
-        courseTitle: liveCourseData?.title || liveCourseData?.courseName || 'Live Course'
+        courseInfo: courseInfo // Add the course info to the task
       });
       
       console.log('Task queue updated:', taskQueue.length, 'tasks');
@@ -4146,12 +4167,22 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       // Add all new live courses to task queue
       for (const liveCourse of newLiveCourses) {
+        // Get course information for the Info column
+        let courseInfo = '';
+        if (liveCourse.title) {
+          courseInfo = liveCourse.title;
+        } else if (liveCourse.courseName) {
+          courseInfo = liveCourse.courseName;
+        } else {
+          courseInfo = 'Live Course ' + liveCourse.liveId;
+        }
+        
         taskQueue.push({
           profileId: yanHeKTLiveProfileId,
           taskId: liveCourse.liveId.toString(),
           url: `https://www.yanhekt.cn/live/${liveCourse.liveId}`,
           profileName: siteProfiles[yanHeKTLiveProfileId].name || yanHeKTLiveProfileId,
-          courseTitle: liveCourse.title || liveCourse.courseName || 'Live Course'
+          courseInfo: courseInfo
         });
       }
       
@@ -5137,7 +5168,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   });
   
-  // Add a single YanHeKT session to task queue with synthetic ID handling
+  // Add a single YanHeKT session to task queue with course info
   async function addYanHeKTSessionToTasks(sessionId, index) {
     try {
       console.log('Adding YanHeKT session to tasks:', sessionId, 'at index:', index);
@@ -5182,14 +5213,115 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         return;
       }
       
+      // Get course information
+      let courseInfo = '';
+      try {
+        // Get courseId from URL to match with the API results
+        const courseId = await webview.executeJavaScript('window.__courseId || ""');
+        
+        // Extract authentication token from localStorage
+        const authInfo = await webview.executeJavaScript(`
+          (function() {
+            // Get auth data from localStorage (this is where YanHeKT stores it)
+            let token = null;
+            try {
+              // First try to get from localStorage (primary method)
+              const authData = localStorage.getItem('auth');
+              if (authData) {
+                const parsed = JSON.parse(authData);
+                token = parsed.token;
+              }
+              
+              // If not found in localStorage, try backup locations
+              if (!token) {
+                // Check alternative localStorage keys
+                for (const key of ['token', 'accessToken', 'yanhekt_token']) {
+                  const value = localStorage.getItem(key);
+                  if (value) {
+                    token = value.replace(/^"|"$/g, ''); // Remove quotes if present
+                    break;
+                  }
+                }
+              }
+              
+              // Last resort: try cookies
+              if (!token) {
+                const cookies = document.cookie.split(';');
+                const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+                if (tokenCookie) {
+                  token = tokenCookie.split('=')[1].trim();
+                }
+              }
+            } catch (e) {
+              console.error('Error extracting token:', e);
+            }
+            
+            // Get user agent for request headers
+            const userAgent = navigator.userAgent;
+            
+            // Generate timestamp for request
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+            
+            return {
+              token: token,
+              userAgent: userAgent,
+              timestamp: timestamp,
+              traceId: 'AUTO-' + Math.random().toString(36).substring(2, 15)
+            };
+          })();
+        `);
+        
+        if (!authInfo.token) {
+          throw new Error('Authentication token not found');
+        }
+        
+        // API endpoint for course list - use makeApiRequest through main process
+        const result = await window.electronAPI.makeApiRequest({
+          url: 'https://cbiz.yanhekt.cn/v2/course/private/list?page=1&page_size=50&user_relationship_type=1&with_introduction=true',
+          headers: {
+            'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6',
+            'Authorization': `Bearer ${authInfo.token}`,
+            'Content-Type': 'application/json',
+            'Origin': 'https://www.yanhekt.cn',
+            'Referer': 'https://www.yanhekt.cn/',
+            'User-Agent': authInfo.userAgent,
+            'X-TRACE-ID': authInfo.traceId,
+            'Xdomain-Client': 'web_user',
+            'xclient-timestamp': authInfo.timestamp,
+            'xclient-version': 'v2'
+          }
+        });
+        
+        if (result.code === 0 && result.data && result.data.data) {
+          // Find the matching course
+          const matchingCourse = result.data.data.find(c => c.id.toString() === courseId);
+          
+          if (matchingCourse) {
+            // Format course info
+            courseInfo = `${matchingCourse.name_zh || ''} - ${session.title || session.week || ''}`;
+          } else {
+            // Fallback to just session info if course info not available
+            courseInfo = session.title || session.week || '';
+          }
+        } else {
+          // Fallback to just session info if course info API call failed
+          courseInfo = session.title || session.week || '';
+        }
+      } catch (error) {
+        console.error('Error getting course info:', error);
+        // Fallback to basic session info
+        courseInfo = session.title || session.week || '';
+      }
+      
       console.log('Using profile:', yanHeKTProfileId, 'for session:', sessionId);
-  
+
       // Add to task queue with www subdomain for better compatibility
       taskQueue.push({
         profileId: yanHeKTProfileId,
         taskId: sessionId.toString(),
         url: `https://www.yanhekt.cn/session/${sessionId}`,
-        profileName: siteProfiles[yanHeKTProfileId].name || yanHeKTProfileId
+        profileName: siteProfiles[yanHeKTProfileId].name || yanHeKTProfileId,
+        courseInfo: courseInfo // Add the course info to the task
       });
       
       console.log('Task queue updated:', taskQueue.length, 'tasks');
@@ -5217,7 +5349,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   }
   
-  // Add all YanHeKT sessions to task queue
+  // Add all YanHeKT sessions to task queue with course info
   async function addAllYanHeKTSessionsToTasks() {
     try {
       console.log('Adding all YanHeKT sessions to tasks');
@@ -5225,18 +5357,22 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       const sessions = await webview.executeJavaScript('window.__autoSlidesSessions');
       if (!sessions || !sessions.length) {
         console.error('No sessions found');
+        statusText.textContent = 'No sessions found to add';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
         return;
       }
       
-      // Make sure we convert sessionId to string before checking
+      // Handle synthetic session IDs
       const syntheticSessions = sessions.filter(s => String(s.sessionId).startsWith('auto_'));
       
       if (syntheticSessions.length > 0) {
-        const result = await webview.executeJavaScript(`
+        const confirmResult = await webview.executeJavaScript(`
           confirm('${syntheticSessions.length} session(s) have synthetic IDs which may not work correctly. Continue anyway?')
         `);
         
-        if (!result) {
+        if (!confirmResult) {
           statusText.textContent = 'Bulk session addition cancelled';
           setTimeout(() => {
             statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
@@ -5255,42 +5391,123 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         return;
       }
       
-      console.log('Using profile:', yanHeKTProfileId, 'for', sessions.length, 'sessions');
+      // Get course information (once for all sessions)
+      const courseId = await webview.executeJavaScript('window.__courseId || ""');
+      let courseNameZh = '';
       
-      // Rest of the function uses the result variable, make sure to define it properly
-      let confirmResult = true;
-      if (syntheticSessions.length > 0) {
-        confirmResult = await webview.executeJavaScript(`
-          confirm('${syntheticSessions.length} session(s) have synthetic IDs which may not work correctly. Continue anyway?')
+      try {
+        // Extract authentication token from localStorage
+        const authInfo = await webview.executeJavaScript(`
+          (function() {
+            // Get auth data from localStorage (this is where YanHeKT stores it)
+            let token = null;
+            try {
+              // First try to get from localStorage (primary method)
+              const authData = localStorage.getItem('auth');
+              if (authData) {
+                const parsed = JSON.parse(authData);
+                token = parsed.token;
+              }
+              
+              // If not found in localStorage, try backup locations
+              if (!token) {
+                // Check alternative localStorage keys
+                for (const key of ['token', 'accessToken', 'yanhekt_token']) {
+                  const value = localStorage.getItem(key);
+                  if (value) {
+                    token = value.replace(/^"|"$/g, ''); // Remove quotes if present
+                    break;
+                  }
+                }
+              }
+              
+              // Last resort: try cookies
+              if (!token) {
+                const cookies = document.cookie.split(';');
+                const tokenCookie = cookies.find(c => c.trim().startsWith('token='));
+                if (tokenCookie) {
+                  token = tokenCookie.split('=')[1].trim();
+                }
+              }
+            } catch (e) {
+              console.error('Error extracting token:', e);
+            }
+            
+            // Get user agent for request headers
+            const userAgent = navigator.userAgent;
+            
+            // Generate timestamp for request
+            const timestamp = Math.floor(Date.now() / 1000).toString();
+            
+            return {
+              token: token,
+              userAgent: userAgent,
+              timestamp: timestamp,
+              traceId: 'AUTO-' + Math.random().toString(36).substring(2, 15)
+            };
+          })();
         `);
         
-        if (!confirmResult) {
-          statusText.textContent = 'Bulk session addition cancelled';
-          setTimeout(() => {
-            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-          }, 2000);
-          return;
+        if (!authInfo.token) {
+          throw new Error('Authentication token not found');
         }
-      }
-
-      // Use confirmResult variable here
-      const filteredSessions = sessions.filter(s => 
-        !String(s.sessionId).startsWith('auto_') || 
-        syntheticSessions.length === 0 || 
-        confirmResult
-      );
-      
-      // Add all sessions to task queue
-      for (const session of filteredSessions) {
-        taskQueue.push({
-          profileId: yanHeKTProfileId,
-          taskId: session.sessionId.toString(),
-          url: `https://www.yanhekt.cn/session/${session.sessionId}`,
-          profileName: siteProfiles[yanHeKTProfileId].name || yanHeKTProfileId
+        
+        // API endpoint for course list - use makeApiRequest through main process
+        const result = await window.electronAPI.makeApiRequest({
+          url: 'https://cbiz.yanhekt.cn/v2/course/private/list?page=1&page_size=50&user_relationship_type=1&with_introduction=true',
+          headers: {
+            'Accept-Language': 'en-GB,en-US;q=0.9,en;q=0.8,zh-CN;q=0.7,zh;q=0.6',
+            'Authorization': `Bearer ${authInfo.token}`,
+            'Content-Type': 'application/json',
+            'Origin': 'https://www.yanhekt.cn',
+            'Referer': 'https://www.yanhekt.cn/',
+            'User-Agent': authInfo.userAgent,
+            'X-TRACE-ID': authInfo.traceId,
+            'Xdomain-Client': 'web_user',
+            'xclient-timestamp': authInfo.timestamp,
+            'xclient-version': 'v2'
+          }
         });
+        
+        if (result.code === 0 && result.data && result.data.data) {
+          // Find the matching course
+          const matchingCourse = result.data.data.find(c => c.id.toString() === courseId);
+          
+          if (matchingCourse) {
+            courseNameZh = matchingCourse.name_zh || '';
+          }
+        }
+      } catch (error) {
+        console.error('Error getting course info for all sessions:', error);
       }
       
-      console.log('Task queue updated:', taskQueue.length, 'tasks');
+      // Add each session to the task queue
+      let addedCount = 0;
+      for (const session of sessions) {
+        // Skip if already in queue
+        if (taskQueue.some(task => task.taskId === session.sessionId.toString())) {
+          continue;
+        }
+        
+        // Format course info
+        const courseInfo = courseNameZh 
+          ? `${courseNameZh} - ${session.title || session.week || ''}`
+          : (session.title || session.week || '');
+        
+        // Construct the URL
+        const url = `https://www.yanhekt.cn/session/${session.sessionId}`;
+        
+        // Add to task queue
+        taskQueue.push({
+          profileId: 'yanhekt_session',
+          taskId: session.sessionId.toString(),
+          url,
+          profileName: 'YanHeKT Session',
+          courseInfo: courseInfo
+        });
+        
+        addedCount++;
+      }
       
       // Update UI
       updateTaskTable();
@@ -5301,13 +5518,13 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         openTaskManager();
       }
       
-      statusText.textContent = `Added ${filteredSessions.length} sessions to tasks`;
+      statusText.textContent = `Added ${addedCount} sessions to tasks`;
       setTimeout(() => {
         statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
       }, 2000);
       
     } catch (error) {
-      console.error('Error adding YanHeKT sessions to tasks:', error);
+      console.error('Error adding all YanHeKT sessions to tasks:', error);
       statusText.textContent = `Error: ${error.message}`;
       setTimeout(() => {
         statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
