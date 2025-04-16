@@ -3182,38 +3182,88 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         row.className = 'current-task';
       }
       
+      // Sequence number column
+      const seqCell = document.createElement('td');
+      seqCell.textContent = (index + 1).toString();
+      seqCell.className = 'seq-cell';
+      row.appendChild(seqCell);
+      
       // Profile column
       const profileCell = document.createElement('td');
       profileCell.textContent = task.profileName;
+      profileCell.className = 'profile-cell';
       row.appendChild(profileCell);
       
       // Task ID column
       const taskIdCell = document.createElement('td');
       taskIdCell.textContent = task.taskId || '-';
+      taskIdCell.className = 'task-id-cell';
       row.appendChild(taskIdCell);
       
-      // URL column
-      const urlCell = document.createElement('td');
-      urlCell.textContent = task.url;
-      row.appendChild(urlCell);
-      
-      // Info column (new)
+      // Info column - show courseInfo for auto-added tasks, URL for manual tasks
       const infoCell = document.createElement('td');
-      infoCell.textContent = task.courseInfo || '-';
+      
+      // If this is an auto-added task with courseInfo, use that
+      // Otherwise (for manually added tasks), use the URL
+      if (task.courseInfo) {
+        infoCell.textContent = task.courseInfo;
+      } else {
+        infoCell.textContent = task.url || '-';
+      }
+      
+      infoCell.className = 'info-cell';
       row.appendChild(infoCell);
       
-      // Action column
+      // Icon button for removing task
       const actionCell = document.createElement('td');
+      actionCell.className = 'action-cell';
       const removeButton = document.createElement('button');
-      removeButton.textContent = 'Remove';
-      removeButton.className = 'remove-task-button';
+      removeButton.className = 'icon-remove-button';
+      removeButton.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" 
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
       removeButton.disabled = isProcessingTasks && index === currentTaskIndex;
+      removeButton.title = "Remove task";
       removeButton.addEventListener('click', () => removeTask(index));
       actionCell.appendChild(removeButton);
       row.appendChild(actionCell);
       
       taskTableBody.appendChild(row);
     });
+  }
+
+  // Helper function to truncate URLs nicely
+  function truncateUrl(url, maxLength) {
+    if (!url || url.length <= maxLength) return url;
+    
+    // Try to create a meaningful truncation
+    try {
+      const urlObj = new URL(url);
+      const domain = urlObj.hostname;
+      const path = urlObj.pathname;
+      
+      // If just the domain is too long, truncate it
+      if (domain.length > maxLength - 3) {
+        return domain.substring(0, maxLength - 3) + '...';
+      }
+      
+      // If domain.com/session/123456, return domain.com/.../123456
+      const pathParts = path.split('/').filter(p => p);
+      const lastPart = pathParts.length > 0 ? pathParts[pathParts.length - 1] : '';
+      
+      if (domain.length + lastPart.length + 5 <= maxLength) {
+        return `${domain}/.../${lastPart}`;
+      }
+      
+      // If still too long, just truncate the whole URL
+      return url.substring(0, maxLength - 3) + '...';
+    } catch (e) {
+      // If URL parsing fails, do simple truncation
+      return url.substring(0, maxLength - 3) + '...';
+    }
   }
 
   function removeTask(index) {
@@ -4331,16 +4381,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
 
     const currentTask = taskQueue[currentTaskIndex];
-
-    // Remove previous completed task if we're moving to a new task and not the first one
-    if (currentTaskIndex > 0) {
-      // Remove the previous task (index currentTaskIndex-1)
-      taskQueue.splice(currentTaskIndex-1, 1);
-      // Adjust currentTaskIndex since we removed an element before it
-      currentTaskIndex--;
-      // Update the task table to reflect changes
-      updateTaskTable();
-    }
 
     if (currentTask) {
       // Get the total number of tasks consistent with the status bar display

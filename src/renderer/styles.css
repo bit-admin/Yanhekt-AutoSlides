@@ -1070,3 +1070,68 @@ select:focus {
   color: var(--color-text-primary);
   border-color: var(--color-border);
 }
+
+/* Task table column styling */
+.seq-cell {
+  width: 5%;
+  text-align: center;
+  font-weight: 500;
+}
+
+.profile-cell {
+  width: 20%;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.task-id-cell {
+  width: 12%;
+  max-width: 110px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.info-cell {
+  width: 58%;
+  word-break: break-word;
+}
+
+.action-cell {
+  width: 5%;
+  text-align: center;
+}
+
+/* Icon remove button styles */
+.icon-remove-button {
+  background: none;
+  border: none;
+  color: #e74c3c;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.icon-remove-button:hover {
+  background-color: rgba(231, 76, 60, 0.1);
+}
+
+.icon-remove-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Dark mode support for the new elements */
+.dark-mode .icon-remove-button {
+  color: #ff6b6b;
+}
+
+.dark-mode .icon-remove-button:hover {
+  background-color: rgba(255, 107, 107, 0.1);
+}
