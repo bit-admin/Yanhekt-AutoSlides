@@ -60,7 +60,7 @@ yanhekt.cn##div#ai-bit-animation-modal`
       yanhekt_session: {
         name: 'YanHeKT Session',
         elementSelector: '#video_id_topPlayer_html5_api',
-        urlPattern: 'yanhekt.cn/session',
+        urlPattern: 'www.yanhekt.cn/session',
         builtin: true,
         automation: {
           autoDetectEnd: true,
@@ -82,7 +82,7 @@ yanhekt.cn##div#ai-bit-animation-modal`
       yanhekt_live: {
         name: 'YanHeKT Live',
         elementSelector: '#video_id_mainPlayer_html5_api',
-        urlPattern: 'yanhekt.cn/live',
+        urlPattern: 'www.yanhekt.cn/live',
         builtin: true,
         automation: {
           autoDetectEnd: true,

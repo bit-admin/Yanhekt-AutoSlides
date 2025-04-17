@@ -273,7 +273,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         yanhekt_session: {
           name: 'YanHeKT Session',
           elementSelector: '#video_id_topPlayer_html5_api',
-          urlPattern: 'yanhekt.cn/session',
+          urlPattern: 'www.yanhekt.cn/session',
           builtin: true,
           automation: {
             autoDetectEnd: true,
@@ -295,7 +295,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         yanhekt_live: {
           name: 'YanHeKT Live',
           elementSelector: '#video_id_mainPlayer_html5_api',
-          urlPattern: 'yanhekt.cn/live',
+          urlPattern: 'www.yanhekt.cn/live',
           builtin: false,
           automation: {
             autoDetectEnd: true,
@@ -5209,17 +5209,80 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   });
   
   // Add a single YanHeKT session to task queue with course info
-  async function addYanHeKTSessionToTasks(sessionId, index) {
+  async function addYanHeKTSessionToTasks(sessionId, indexOrCourseId) {
     try {
-      console.log('Adding YanHeKT session to tasks:', sessionId, 'at index:', index);
+      console.log('Adding YanHeKT session to tasks:', sessionId, 'with indexOrCourseId:', indexOrCourseId);
       
-      const sessions = await webview.executeJavaScript('window.__autoSlidesSessions');
-      if (!sessions || !sessions[index]) {
-        console.error('Session data not found');
+      // Initialize sessions array if it doesn't exist
+      if (!window.__autoSlidesSessions) {
+        window.__autoSlidesSessions = [];
+      }
+      
+      let session;
+      let isUsingCourseId = false;
+      
+      // Check if we're dealing with an array index or a courseId
+      if (typeof indexOrCourseId === 'number') {
+        // Try to retrieve session from array first (original button injection method)
+        if (indexOrCourseId >= 0 && indexOrCourseId < window.__autoSlidesSessions.length) {
+          // This is a valid index into the __autoSlidesSessions array
+          session = window.__autoSlidesSessions[indexOrCourseId];
+        } else {
+          // This might be a courseId rather than an index
+          isUsingCourseId = true;
+          console.log('Index is out of bounds, treating as courseId:', indexOrCourseId);
+          
+          // Create a synthetic session object with the courseId
+          session = {
+            sessionId: sessionId,
+            courseId: indexOrCourseId, // Treat as courseId
+            title: '', // We'll try to fetch this later
+            weekNumber: null,
+            dayOfWeek: null
+          };
+          
+          // Store it in the array for future reference
+          window.__autoSlidesSessions.push(session);
+        }
+      } else {
+        // Non-numeric parameter - try to find session by sessionId
+        console.log('Non-numeric parameter provided, searching for session by ID');
+        const existingIndex = window.__autoSlidesSessions.findIndex(s => 
+          s.sessionId.toString() === sessionId.toString()
+        );
+        
+        if (existingIndex >= 0) {
+          session = window.__autoSlidesSessions[existingIndex];
+        } else {
+          // Create a minimal session object
+          session = {
+            sessionId: sessionId,
+            title: `Session ${sessionId}`,
+            weekNumber: null,
+            dayOfWeek: null
+          };
+          
+          // If courseId was provided as a string
+          if (typeof indexOrCourseId === 'string' && /^\d+$/.test(indexOrCourseId)) {
+            session.courseId = parseInt(indexOrCourseId, 10);
+            isUsingCourseId = true;
+          }
+          
+          // Store it in the array
+          window.__autoSlidesSessions.push(session);
+        }
+      }
+      
+      if (!session) {
+        console.error('Failed to find or create session data');
+        statusText.textContent = 'Error: Session data not available';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
         return;
       }
       
-      const session = sessions[index];
+      // Rest of the function remains the same as your original implementation
       
       // Convert sessionId to string before checking if it's synthetic
       const sessionIdStr = String(sessionId);
@@ -5253,11 +5316,31 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         return;
       }
       
+      // Check if this session is already in the task queue
+      const existingTask = taskQueue.find(task => 
+        task.profileId === yanHeKTProfileId && 
+        task.taskId === sessionId.toString()
+      );
+      
+      if (existingTask) {
+        statusText.textContent = 'This session is already in the task queue';
+        setTimeout(() => {
+          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        }, 3000);
+        return;
+      }
+      
       // Get course information
       let courseInfo = '';
       try {
-        // Get courseId from URL to match with the API results
-        const courseId = await webview.executeJavaScript('window.__courseId || ""');
+        // We'll use the courseId from our session object or the global courseId
+        const courseId = session.courseId || await webview.executeJavaScript('window.__courseId || ""');
+        
+        if (!courseId) {
+          throw new Error('Course ID not available');
+        }
+        
+        console.log('Getting course info for courseId:', courseId);
         
         // Extract authentication token from localStorage
         const authInfo = await webview.executeJavaScript(`
@@ -5334,11 +5417,16 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         if (result.code === 0 && result.data && result.data.data) {
           // Find the matching course
-          const matchingCourse = result.data.data.find(c => c.id.toString() === courseId);
+          const matchingCourse = result.data.data.find(c => c.id.toString() === courseId.toString());
           
           if (matchingCourse) {
             // Format course info
             courseInfo = `${matchingCourse.name_zh || ''} - ${session.title || session.week || ''}`;
+            
+            // Update the session title if it's empty
+            if (!session.title && matchingCourse.name_zh) {
+              session.title = matchingCourse.name_zh;
+            }
           } else {
             // Fallback to just session info if course info not available
             courseInfo = session.title || session.week || '';
@@ -5354,7 +5442,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       }
       
       console.log('Using profile:', yanHeKTProfileId, 'for session:', sessionId);
-
+  
       // Add to task queue with www subdomain for better compatibility
       taskQueue.push({
         profileId: yanHeKTProfileId,
@@ -5748,7 +5836,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   // Handle add-task event from main process
   document.addEventListener('ipc-add-task', (event) => {
-    window.electronAPI.debugLog(`Received task: ${JSON.stringify(event.detail)}`);
     try {
       const task = event.detail;
       console.log('Received task from remote API:', task);
@@ -5758,22 +5845,62 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         openTaskManager();
       }
       
-      // Set the correct profile in the dropdown based on task type
+      // Different handling based on task type
       if (task.type === 'session') {
-        taskProfileSelect.value = 'yanhekt_session';
+        console.log('Adding session task with courseId:', task.courseId);
+        
+        // Create a synthetic session object and add it to window.__autoSlidesSessions
+        // This matches the format expected by addYanHeKTSessionToTasks
+        if (!window.__autoSlidesSessions) {
+          window.__autoSlidesSessions = [];
+        }
+        
+        // Create a session object with the format expected by the function
+        const sessionObj = {
+          sessionId: task.id,
+          courseId: task.courseId,
+          title: task.title || `Session ${task.id}`,
+          // Add other fields that might be needed
+          weekNumber: null,
+          dayOfWeek: null
+        };
+        
+        // Add to the global sessions array and get its index
+        const existingIndex = window.__autoSlidesSessions.findIndex(s => 
+          s.sessionId.toString() === task.id.toString()
+        );
+        
+        let sessionIndex;
+        if (existingIndex >= 0) {
+          // Update existing session if found
+          window.__autoSlidesSessions[existingIndex] = sessionObj;
+          sessionIndex = existingIndex;
+        } else {
+          // Add new session and get its index
+          window.__autoSlidesSessions.push(sessionObj);
+          sessionIndex = window.__autoSlidesSessions.length - 1;
+        }
+        
+        // Now call the function with proper parameters
+        addYanHeKTSessionToTasks(task.id, sessionIndex);
+        
       } else if (task.type === 'live') {
-        taskProfileSelect.value = 'yanhekt_live';
+        // Create liveCourseData object with needed properties
+        const liveCourseData = {
+          title: task.title,
+          courseName: task.title,
+          liveId: task.id
+        };
+        
+        // Call addYanHeKTLiveToTasks with proper parameters
+        addYanHeKTLiveToTasks(task.id, liveCourseData);
       } else {
-        console.warn('Unknown task type:', task.type);
-        // Use custom profile for unknown types
+        // Fallback for custom URLs
         taskProfileSelect.value = 'custom_url';
+        taskIdInput.value = task.url || task.id;
+        addTask();
       }
       
-      // Set the task ID in the input field
-      taskIdInput.value = task.id;
-      
-      // Add the task
-      addTask();
     } catch (error) {
       console.error('Error handling add-task event:', error);
     }
@@ -5790,35 +5917,80 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         openTaskManager();
       }
       
-      // Add each task
+      // Make sure the sessions array exists
+      if (!window.__autoSlidesSessions) {
+        window.__autoSlidesSessions = [];
+      }
+      
+      // Process each task
       let addedCount = 0;
       
       for (const task of tasks) {
         try {
-          // Set the correct profile in the dropdown based on task type
           if (task.type === 'session') {
-            taskProfileSelect.value = 'yanhekt_session';
+            // Create a session object for the global array
+            const sessionObj = {
+              sessionId: task.id,
+              courseId: task.courseId,
+              title: task.title || `Session ${task.id}`,
+              // Add other fields that might be needed
+              weekNumber: null,
+              dayOfWeek: null
+            };
+            
+            // Add to the global sessions array and get its index
+            const existingIndex = window.__autoSlidesSessions.findIndex(s => 
+              s.sessionId.toString() === task.id.toString()
+            );
+            
+            let sessionIndex;
+            if (existingIndex >= 0) {
+              // Update existing session if found
+              window.__autoSlidesSessions[existingIndex] = sessionObj;
+              sessionIndex = existingIndex;
+            } else {
+              // Add new session and get its index
+              window.__autoSlidesSessions.push(sessionObj);
+              sessionIndex = window.__autoSlidesSessions.length - 1;
+            }
+            
+            // Now call the function with proper parameters
+            addYanHeKTSessionToTasks(task.id, sessionIndex);
+            addedCount++;
           } else if (task.type === 'live') {
-            taskProfileSelect.value = 'yanhekt_live';
+            // Create liveCourseData object with needed properties
+            const liveCourseData = {
+              title: task.title,
+              courseName: task.title,
+              liveId: task.id
+            };
+            
+            // Call addYanHeKTLiveToTasks with proper parameters
+            addYanHeKTLiveToTasks(task.id, liveCourseData);
+            addedCount++;
           } else {
-            // Skip tasks with unknown types
-            console.warn('Unknown task type:', task.type);
-            continue;
+            // Fallback to basic task addition
+            const profileId = task.type === 'session' ? 'yanhekt_session' : 
+                            task.type === 'live' ? 'yanhekt_live' : 'custom_url';
+            
+            taskProfileSelect.value = profileId;
+            taskIdInput.value = task.id;
+            addTask();
+            addedCount++;
           }
-          
-          // Set the task ID in the input field
-          taskIdInput.value = task.id;
-          
-          // Add the task
-          addTask();
-          
-          addedCount++;
         } catch (taskError) {
           console.error('Error adding task:', taskError);
         }
       }
       
       console.log(`Added ${addedCount} tasks from remote API`);
+      
+      // Update UI status
+      statusText.textContent = `Added ${addedCount} tasks to queue`;
+      setTimeout(() => {
+        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      }, 2000);
+      
     } catch (error) {
       console.error('Error handling add-tasks event:', error);
     }
