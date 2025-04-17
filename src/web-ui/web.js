@@ -782,6 +782,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelTasksBtn = document.getElementById('cancel-tasks-btn');
     const resetProgressCheckbox = document.getElementById('resetProgressCheckbox');
     const fastModeCheckbox = document.getElementById('fastModeCheckbox');
+    const autoMuteCheckbox = document.getElementById('autoMuteCheckbox');
     const taskStatus = document.getElementById('task-status');
     
     // Send a single task to the main window
@@ -928,6 +929,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const resetProgress = resetProgressCheckbox.checked;
             const fastMode = fastModeCheckbox.checked;
+            const autoMute = autoMuteCheckbox.checked;
             
             taskStatus.textContent = 'Starting tasks...';
             
@@ -940,7 +942,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     options: {
                         resetProgress,
-                        fastMode
+                        fastMode,
+                        autoMute
                     }
                 })
             });
