@@ -424,7 +424,8 @@ document.addEventListener('DOMContentLoaded', () => {
         addToTasksBtn.dataset.sessionId = session.sessionId;
         addToTasksBtn.dataset.title = session.title || 'Untitled Session';
         addToTasksBtn.addEventListener('click', () => {
-            sendTaskToMainWindow('session', session.sessionId, session.title || 'Untitled Session');
+            // Pass the courseId as the fourth parameter
+            sendTaskToMainWindow('session', session.sessionId, session.title || 'Untitled Session', session.courseId);
         });
         card.appendChild(addToTasksBtn);
 
@@ -784,14 +785,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskStatus = document.getElementById('task-status');
     
     // Send a single task to the main window
-    async function sendTaskToMainWindow(type, id, title) {
+    async function sendTaskToMainWindow(type, id, title, courseId = null) {
         try {
             // Prepare task data
             const task = {
                 type: type,
                 id: id,
                 title: title,
-                url: `https://www.yanhekt.cn/${type === 'session' ? 'session' : 'live'}/${id}`
+                url: `https://www.yanhekt.cn/${type === 'session' ? 'session' : 'live'}/${id}`,
+                courseId: courseId // Include courseId for session tasks
             };
             
             taskStatus.textContent = 'Adding task...';
@@ -833,7 +835,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 type: 'session',
                 id: session.sessionId,
                 title: session.title || 'Untitled Session',
-                url: `https://www.yanhekt.cn/session/${session.sessionId}`
+                url: `https://www.yanhekt.cn/session/${session.sessionId}`,
+                courseId: session.courseId // Include courseId for each session
             }));
             
             taskStatus.textContent = `Adding ${tasks.length} sessions...`;
