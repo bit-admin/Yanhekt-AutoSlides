@@ -6069,21 +6069,28 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       // Set options if provided
       if (options) {
         if (typeof options.resetProgress === 'boolean') {
-          document.getElementById('resetProgressCheckbox').checked = options.resetProgress;
+          resetProgressCheckbox.checked = options.resetProgress;
           resetVideoProgress = options.resetProgress;
         }
         
         if (typeof options.fastMode === 'boolean') {
-          document.getElementById('fastModeCheckbox').checked = options.fastMode;
+          fastModeCheckbox.checked = options.fastMode;
           fastModeEnabled = options.fastMode;
           try { updateFastModeIndicator(); } catch (e) {}
+        }
+        
+        // Add this block to handle autoMute option
+        if (typeof options.autoMute === 'boolean') {
+          autoMuteCheckbox.checked = options.autoMute;
+          autoMuteEnabled = options.autoMute;
+          console.log('Auto-mute option set to:', autoMuteEnabled);
         }
       }
       
       // Start tasks if there are any in the queue
       if (taskQueue.length > 0 && !isProcessingTasks) {
         startTaskProcessing();
-        console.log('Tasks started from remote API');
+        console.log('Tasks started successfully');
       } else {
         console.log('Cannot start tasks: Queue is empty or tasks are already running');
       }
