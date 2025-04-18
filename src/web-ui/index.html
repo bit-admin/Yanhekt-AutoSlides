@@ -29,8 +29,31 @@
     </header>
     
     <div class="container">
-        <h2>Status</h2>
-        <div id="status-container">Loading...</div>
+        <h2>Task Management</h2>
+
+        <div class="token-row">
+            <span id="task-status" class="token-status">Idle</span>
+        </div>
+        
+        <div class="task-options">
+            <label class="task-option">
+                <input type="checkbox" id="resetProgressCheckbox" checked>
+                Always start videos from beginning
+            </label>
+            <label class="task-option">
+                <input type="checkbox" id="fastModeCheckbox">
+                Fast Mode (0.5s interval, 4x speed)
+            </label>
+            <label class="task-option">
+                <input type="checkbox" id="autoMuteCheckbox">
+                Run on Mute
+            </label>
+        </div>
+
+        <div class="token-row">
+            <button id="start-tasks-btn" class="token-action-button">Start Tasks</button>
+            <button id="cancel-tasks-btn" class="token-action-button">Cancel Tasks</button>
+        </div>
     </div>
     
     <div class="container">
@@ -95,30 +118,6 @@
             <div id="live-course-list-container" class="scrollable-horizontal">
                 <!-- Live course cards will be inserted here -->
             </div>
-        </div>
-    </div>
-
-    <div class="container">
-        <h2>Task Management</h2>
-        <div class="token-row">
-            <button id="start-tasks-btn" class="token-action-button">Start Tasks</button>
-            <button id="cancel-tasks-btn" class="token-action-button">Cancel Tasks</button>
-            <span id="task-status" class="token-status">Idle</span>
-        </div>
-        
-        <div class="task-options">
-            <label class="task-option">
-                <input type="checkbox" id="resetProgressCheckbox" checked>
-                Always start videos from beginning
-            </label>
-            <label class="task-option">
-                <input type="checkbox" id="fastModeCheckbox">
-                Fast Mode (0.5s interval, 4x speed)
-            </label>
-            <label class="task-option">
-                <input type="checkbox" id="autoMuteCheckbox">
-                Run on Mute
-            </label>
         </div>
     </div>
     
