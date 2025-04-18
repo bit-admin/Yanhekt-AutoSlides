@@ -60,20 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Basic script to fetch status
-    async function checkStatus() {
-        try {
-            const response = await fetch('/api/status');
-            const data = await response.json();
-            document.getElementById('status-container').innerHTML = `
-                <p>Status: ${data.status}</p>
-            `;
-        } catch (error) {
-            document.getElementById('status-container').innerHTML = 
-                `<p>Error connecting to server: ${error.message}</p>`;
-        }
-    }
-
     // Token handling
     const tokenField = document.getElementById('tokenField');
     const btnTogglePassword = document.getElementById('btnTogglePassword');
@@ -1042,7 +1028,4 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add event listeners for task management buttons
     startTasksBtn.addEventListener('click', startTasksInMainWindow);
     cancelTasksBtn.addEventListener('click', cancelTasksInMainWindow);
-
-    // Check status when page loads
-    window.addEventListener('load', checkStatus);
 });

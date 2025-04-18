@@ -342,9 +342,6 @@ function startRemoteServer(preferences) {
   expressApp.use(express.static(path.join(__dirname, 'web-ui')));
   
   // API endpoints
-  expressApp.get('/api/status', (req, res) => {
-    res.json({ status: 'Connected to server' });
-  });
   
   // Add retrieve token endpoint
   expressApp.get('/api/retrieve-token', async (req, res) => {
