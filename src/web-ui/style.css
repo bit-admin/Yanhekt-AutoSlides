@@ -151,9 +151,9 @@ header {
 
 /* Updated course card styles to match preferences */
 .course-card {
-    min-width: 300px;
-    max-width: 300px;
-    height: 300px;
+    min-width: 280px;
+    max-width: 280px;
+    height: 280px;
     border-radius: 8px;
     box-shadow: 0 2px 5px var(--color-shadow);
     padding: 15px;
@@ -499,21 +499,27 @@ header {
 /* Task Management Styles */
 .task-options {
     display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
+    justify-content: space-between;
+    align-items: stretch;
+    gap: 10px;
     margin: 15px 0;
 }
 
 .task-option {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    color: var(--color-text-primary);
+    padding: 8px 12px;
+    background-color: var(--color-background-secondary);
+    border-radius: 4px;
+    border: 1px solid var(--color-border-light);
+    min-height: 34px;
+    box-sizing: border-box;
+    flex: 1;
+    font-size: 12px;
 }
 
 .task-option input[type="checkbox"] {
-    margin: 0;
+    margin-right: 8px; /* Add comfortable spacing */
 }
 
 .add-to-tasks-btn {
@@ -545,7 +551,15 @@ header {
 
 /* Dark mode support */
 .dark-mode .task-option {
-    color: var(--color-text-primary);
+    background-color: var(--color-background-tertiary);
+}
+
+.dark-mode #web-task-table tr.current-task {
+    background-color: rgba(74, 144, 226, 0.2);
+}
+
+#task-status {
+    margin: 0;
 }
 
 /* Task table styles */
@@ -555,36 +569,48 @@ header {
     overflow-y: auto;
     border: 1px solid var(--color-border);
     border-radius: 4px;
-}
-
-#web-task-table {
+    background-color: var(--color-background-content);
+  }
+  
+  #web-task-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
-}
-
-#web-task-table th {
+    font-size: 13px;
+    table-layout: fixed;
+  }
+  
+  #web-task-table th {
     background-color: var(--color-background-header);
-    padding: 8px;
+    padding: 8px 10px;
     text-align: left;
     border-bottom: 1px solid var(--color-border);
     position: sticky;
     top: 0;
     z-index: 10;
-}
-
-#web-task-table td {
-    padding: 8px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+  }
+  
+  #web-task-table td {
+    padding: 8px 10px;
     border-bottom: 1px solid var(--color-border-light);
-}
-
-#web-task-table tr:last-child td {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  #web-task-table tr:last-child td {
     border-bottom: none;
-}
-
-#web-task-table tr:hover {
+  }
+  
+  #web-task-table tr:hover {
     background-color: var(--color-background-hover);
-}
+  }
+
+  #web-task-table tr.current-task {
+    background-color: var(--color-background-active);
+    font-weight: bold;
+  }
 
 .task-remove-btn {
     background: none;
@@ -592,7 +618,34 @@ header {
     color: var(--color-error);
     cursor: pointer;
     font-weight: bold;
-    font-size: 16px;
+    font-size: 18px;
+    padding: 0 5px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.task-remove-btn:hover {
+    color: var(--color-error-hover);
+}
+
+.token-row.task-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.token-row.task-buttons .token-action-button {
+    flex: 1;
+    height: 36px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .no-tasks-message {
@@ -627,6 +680,18 @@ header {
 .task-status-cell {
     display: flex;
     align-items: center;
+    margin: -8px -10px;
+    padding: 8px 10px;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.task-info-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-grow: 1;
+    min-width: 0;
 }
 
 .task-status-indicator {
@@ -643,6 +708,17 @@ header {
 .task-status-indicator.processing {
     background-color: #52c41a;
     animation: pulse 2s infinite;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.section-header h2 {
+    margin: 0;
 }
 
 @keyframes pulse {

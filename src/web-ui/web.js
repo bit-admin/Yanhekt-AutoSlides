@@ -60,6 +60,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // New function to check task status without setting up polling
+    async function checkTaskStatus() {
+        try {
+            const response = await fetch('/api/task-status');
+            const result = await response.json();
+            
+            if (result.success && result.isProcessing) {
+                let statusMsg = result.status || `Processing task ${result.currentTaskIndex + 1} of ${result.totalTasks}`;
+                
+                if (result.slideCount) {
+                    statusMsg += ` (${result.slideCount})`;
+                }
+                
+                // Update status display with 'progress' class and start polling
+                updateTaskStatus(statusMsg, 'progress', 0); // No timeout
+                pollTaskStatus();
+            }
+        } catch (error) {
+            console.error('Error checking task status:', error);
+        }
+    }
+
     function updateTaskStatus(message, type = null, timeout = 3000) {
         const taskStatus = document.getElementById('task-status');
         
@@ -78,8 +100,8 @@ document.addEventListener('DOMContentLoaded', () => {
             taskStatus.classList.add('progress');
         }
         
-        // Reset to idle after timeout (if specified)
-        if (timeout > 0 && type !== null) {
+        // Only reset to idle for success/error messages, not for progress
+        if (timeout > 0 && (type === 'error' || type === 'success')) {
             setTimeout(() => {
                 taskStatus.textContent = 'Idle';
                 taskStatus.className = 'token-status';
@@ -124,10 +146,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td>${i + 1}</td>
                         <td>${task.profileName || task.profileId}</td>
                         <td>${task.taskId}</td>
-                        <td class="task-status-cell">
-                            ${isCurrentTask ? '<span class="task-status-indicator processing"></span>' : 
-                                             '<span class="task-status-indicator pending"></span>'}
-                            ${task.courseInfo || task.url || ''}
+                        <td>
+                            <div class="task-status-cell">
+                                ${isCurrentTask ? '<span class="task-status-indicator processing"></span>' : 
+                                                '<span class="task-status-indicator pending"></span>'}
+                                <span class="task-info-text">${task.courseInfo || task.url || ''}</span>
+                            </div>
                         </td>
                         <td>
                             ${isCurrentTask ? '' : `<button class="task-remove-btn" data-index="${i}">×</button>`}
@@ -943,6 +967,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success) {
                 taskStatus.textContent = `Task added: ${title} (${id})`;
                 taskStatus.className = 'token-status success';
+                fetchTaskQueue();
             } else {
                 throw new Error(result.message || 'Failed to add task');
             }
@@ -986,6 +1011,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success) {
                 taskStatus.textContent = `Added ${result.addedCount || tasks.length} sessions to task queue`;
                 taskStatus.className = 'token-status success';
+                fetchTaskQueue();
             } else {
                 throw new Error(result.message || 'Failed to add sessions');
             }
@@ -1039,6 +1065,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (result.success) {
                 taskStatus.textContent = `Added ${result.addedCount || tasks.length} live courses to task queue`;
                 taskStatus.className = 'token-status success';
+                fetchTaskQueue();
             } else {
                 throw new Error(result.message || 'Failed to add live courses');
             }
@@ -1172,10 +1199,6 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(pollTaskStatus, 5000);
         }
     }
-    
-    // Add event listeners for task management buttons
-    startTasksBtn.addEventListener('click', startTasksInMainWindow);
-    cancelTasksBtn.addEventListener('click', cancelTasksInMainWindow);
 
     // Add event listener to refresh tasks button
     const refreshTasksBtn = document.getElementById('refresh-tasks-btn');
@@ -1187,9 +1210,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial task fetch
     fetchTaskQueue();
+
+    // Check task status immediately when page loads
+    checkTaskStatus();
     
     // Set up periodic task queue refresh
-    setInterval(fetchTaskQueue, 5000); // Refresh every 5 seconds
+    setInterval(fetchTaskQueue, 10000); // Refresh every 10 seconds
     
     // When starting tasks or canceling tasks, refresh the task queue
     startTasksBtn.addEventListener('click', async () => {
