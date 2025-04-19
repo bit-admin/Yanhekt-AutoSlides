@@ -29,8 +29,11 @@
     </header>
     
     <div class="container">
-        <h2>Task Management</h2>
-
+        <div class="section-header">
+            <h2>Task Management</h2>
+            <div id="task-status" class="token-status">Idle</div>
+        </div>
+    
         <div class="task-list-container">
             <table id="web-task-table">
                 <thead>
@@ -39,17 +42,13 @@
                         <th width="20%">Profile</th>
                         <th width="12%">Task ID</th>
                         <th width="58%">Info</th>
-                        <th width="5%">Del</th>
+                        <th width="5%">Delete</th>
                     </tr>
                 </thead>
                 <tbody id="web-task-table-body">
                     <!-- Tasks will be populated here -->
                 </tbody>
             </table>
-        </div>
-
-        <div class="token-row">
-            <span id="task-status" class="token-status">Idle</span>
         </div>
         
         <div class="task-options">
@@ -66,8 +65,8 @@
                 Run on Mute
             </label>
         </div>
-
-        <div class="token-row">
+    
+        <div class="token-row task-buttons">
             <button id="start-tasks-btn" class="token-action-button">Start Tasks</button>
             <button id="cancel-tasks-btn" class="token-action-button">Cancel Tasks</button>
             <button id="clear-tasks-btn" class="token-action-button">Clear All Tasks</button>
