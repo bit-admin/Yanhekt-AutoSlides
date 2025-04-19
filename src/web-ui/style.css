@@ -463,8 +463,8 @@ header {
 
 /* Live course card specific styles */
 .live-course-card {
-    height: 200px; /* Reduced height for live course cards */
-    min-height: 200px;
+    height: 220px; /* Reduced height for live course cards */
+    min-height: 220px;
 }
 
 /* Status badge styling */
@@ -546,4 +546,107 @@ header {
 /* Dark mode support */
 .dark-mode .task-option {
     color: var(--color-text-primary);
+}
+
+/* Task table styles */
+.task-list-container {
+    margin: 15px 0;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+}
+
+#web-task-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+#web-task-table th {
+    background-color: var(--color-background-header);
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#web-task-table td {
+    padding: 8px;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+#web-task-table tr:last-child td {
+    border-bottom: none;
+}
+
+#web-task-table tr:hover {
+    background-color: var(--color-background-hover);
+}
+
+.task-remove-btn {
+    background: none;
+    border: none;
+    color: var(--color-error);
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.no-tasks-message {
+    text-align: center;
+    padding: 20px;
+    color: var(--color-text-tertiary);
+    font-style: italic;
+}
+
+/* Dark mode support */
+.dark-mode #web-task-table th {
+    background-color: var(--color-background-active);
+}
+
+/* Refresh button icon */
+#refresh-tasks-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+#refresh-tasks-btn svg {
+    transition: transform 0.3s ease;
+}
+
+#refresh-tasks-btn:hover svg {
+    transform: rotate(180deg);
+}
+
+/* Task status indicator */
+.task-status-cell {
+    display: flex;
+    align-items: center;
+}
+
+.task-status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.task-status-indicator.pending {
+    background-color: #faad14;
+}
+
+.task-status-indicator.processing {
+    background-color: #52c41a;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
 }

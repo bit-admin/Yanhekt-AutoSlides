@@ -6158,4 +6158,140 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       }
     }
   });
+
+  // Handle get-tasks event from main process
+  document.addEventListener('ipc-get-tasks', (event) => {
+    try {
+      const { responseChannel } = event.detail;
+      console.log('Received request for tasks');
+      
+      // Gather task data
+      const tasks = taskQueue.map((task, index) => {
+        return {
+          index,
+          profileId: task.profileId,
+          profileName: task.profileName || task.profileId,
+          taskId: task.taskId,
+          url: task.url,
+          courseInfo: task.courseInfo || '',
+          title: task.title || ''
+        };
+      });
+      
+      // Send the tasks back to the main process
+      window.electronAPI.sendTaskStatus(responseChannel, {
+        success: true,
+        tasks,
+        isProcessing: isProcessingTasks,
+        currentTaskIndex: currentTaskIndex
+      });
+      
+      console.log('Task list sent:', tasks.length);
+    } catch (error) {
+      console.error('Error handling get-tasks event:', error);
+      
+      // Send error response
+      if (event.detail && event.detail.responseChannel) {
+        window.electronAPI.sendTaskStatus(event.detail.responseChannel, {
+          success: false,
+          error: error.toString()
+        });
+      }
+    }
+  });
+  
+  // Handle remove-task event from main process
+  document.addEventListener('ipc-remove-task', (event) => {
+    try {
+      const { index, responseChannel } = event.detail;
+      console.log('Received request to remove task at index:', index);
+      
+      // Check if index is valid
+      if (index < 0 || index >= taskQueue.length) {
+        window.electronAPI.sendTaskStatus(responseChannel, {
+          success: false,
+          message: 'Invalid task index'
+        });
+        return;
+      }
+      
+      // Check if we can remove this task
+      if (isProcessingTasks && index === currentTaskIndex) {
+        window.electronAPI.sendTaskStatus(responseChannel, {
+          success: false,
+          message: 'Cannot remove task that is currently processing'
+        });
+        return;
+      }
+      
+      // Remove the task
+      taskQueue.splice(index, 1);
+      
+      // If removing a task before current task, adjust current task index
+      if (isProcessingTasks && index < currentTaskIndex) {
+        currentTaskIndex--;
+      }
+      
+      // Update UI
+      updateTaskTable();
+      
+      // Send success response
+      window.electronAPI.sendTaskStatus(responseChannel, {
+        success: true,
+        message: 'Task removed',
+        remainingTasks: taskQueue.length
+      });
+      
+    } catch (error) {
+      console.error('Error handling remove-task event:', error);
+      
+      // Send error response
+      if (event.detail && event.detail.responseChannel) {
+        window.electronAPI.sendTaskStatus(event.detail.responseChannel, {
+          success: false,
+          error: error.toString()
+        });
+      }
+    }
+  });
+  
+  // Handle clear-tasks event from main process
+  document.addEventListener('ipc-clear-tasks', (event) => {
+    try {
+      const { responseChannel } = event.detail;
+      console.log('Received request to clear all tasks');
+      
+      // Check if tasks are currently processing
+      if (isProcessingTasks) {
+        window.electronAPI.sendTaskStatus(responseChannel, {
+          success: false,
+          message: 'Cannot clear tasks while processing is in progress'
+        });
+        return;
+      }
+      
+      // Clear the task queue
+      taskQueue = [];
+      
+      // Update UI
+      updateTaskTable();
+      
+      // Send success response
+      window.electronAPI.sendTaskStatus(responseChannel, {
+        success: true,
+        message: 'All tasks cleared'
+      });
+      
+    } catch (error) {
+      console.error('Error handling clear-tasks event:', error);
+      
+      // Send error response
+      if (event.detail && event.detail.responseChannel) {
+        window.electronAPI.sendTaskStatus(event.detail.responseChannel, {
+          success: false,
+          error: error.toString()
+        });
+      }
+    }
+  });
 });

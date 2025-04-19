@@ -1219,6 +1219,132 @@ function startRemoteServer(preferences) {
       });
     }
   });
+
+  // Get the current task queue
+  expressApp.get('/api/tasks', async (req, res) => {
+    try {
+      // Create a unique channel for this request
+      const responseChannel = `tasks-response-${Date.now()}`;
+      
+      // Create a promise that will be resolved when we get a response
+      const tasksPromise = new Promise((resolve) => {
+        // Set up a one-time listener for the response
+        ipcMain.once(responseChannel, (event, result) => {
+          resolve(result);
+        });
+        
+        // Set a timeout to avoid hanging
+        setTimeout(() => {
+          resolve({ 
+            success: false, 
+            message: 'Tasks request timed out' 
+          });
+        }, 2000);
+      });
+      
+      // Send request to renderer
+      mainWindow.webContents.send('get-tasks', responseChannel);
+      
+      // Wait for response from renderer process
+      const result = await tasksPromise;
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error in tasks endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to get tasks',
+        error: error.toString()
+      });
+    }
+  });
+  
+  // Delete a specific task
+  expressApp.delete('/api/tasks/:index', async (req, res) => {
+    try {
+      const index = parseInt(req.params.index, 10);
+      
+      if (isNaN(index)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid task index'
+        });
+      }
+      
+      // Create a unique channel for this request
+      const responseChannel = `remove-task-response-${Date.now()}`;
+      
+      // Create a promise that will be resolved when we get a response
+      const removePromise = new Promise((resolve) => {
+        // Set up a one-time listener for the response
+        ipcMain.once(responseChannel, (event, result) => {
+          resolve(result);
+        });
+        
+        // Set a timeout to avoid hanging
+        setTimeout(() => {
+          resolve({ 
+            success: false, 
+            message: 'Remove task request timed out' 
+          });
+        }, 2000);
+      });
+      
+      // Send request to renderer
+      mainWindow.webContents.send('remove-task', { index, responseChannel });
+      
+      // Wait for response from renderer process
+      const result = await removePromise;
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error in remove task endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to remove task',
+        error: error.toString()
+      });
+    }
+  });
+  
+  // Clear all tasks
+  expressApp.delete('/api/tasks', async (req, res) => {
+    try {
+      // Create a unique channel for this request
+      const responseChannel = `clear-tasks-response-${Date.now()}`;
+      
+      // Create a promise that will be resolved when we get a response
+      const clearPromise = new Promise((resolve) => {
+        // Set up a one-time listener for the response
+        ipcMain.once(responseChannel, (event, result) => {
+          resolve(result);
+        });
+        
+        // Set a timeout to avoid hanging
+        setTimeout(() => {
+          resolve({ 
+            success: false, 
+            message: 'Clear tasks request timed out' 
+          });
+        }, 2000);
+      });
+      
+      // Send request to renderer
+      mainWindow.webContents.send('clear-tasks', responseChannel);
+      
+      // Wait for response from renderer process
+      const result = await clearPromise;
+      
+      res.json(result);
+    } catch (error) {
+      console.error('Error in clear tasks endpoint:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: error.message || 'Failed to clear tasks',
+        error: error.toString()
+      });
+    }
+  });
   
   // Start the server
   remoteServer = http.createServer(expressApp);
