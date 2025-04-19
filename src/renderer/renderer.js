@@ -97,9 +97,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   });
   
-  // Set default URL
-  inputUrl.value = 'https://www.yanhekt.cn/home';
-  
   // Load default URL when app starts
   setTimeout(() => {
     // Replace direct URL loading with custom homepage
@@ -4338,7 +4335,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (captureInterval) {
       stopCapture();
     }
-
+  
     // Unmute the webview audio if auto-mute is enabled
     if (autoMuteEnabled) {
       window.electronAPI.unmuteWebviewAudio(webview.id)
@@ -4353,7 +4350,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     
     // Reset state
     currentTaskIndex = -1;
-
+  
     // Remove fast mode indicator
     const fastModeIndicator = document.getElementById('fastModeIndicator');
     if (fastModeIndicator) fastModeIndicator.remove();
@@ -4368,10 +4365,22 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const taskProgress = document.getElementById('taskProgressIndicator');
     if (taskProgress) taskProgress.remove();
     
-    statusText.textContent = 'Task processing cancelled';
+    // Navigate to YanHeKT home page
     setTimeout(() => {
-      statusText.textContent = 'Idle';
-    }, 2000);
+      const homeUrl = "https://www.yanhekt.cn/home";
+      console.log('Navigating to YanHeKT home page:', homeUrl);
+      
+      // Use safeLoadURL for proper URL validation and loading
+      safeLoadURL(homeUrl);
+      
+      // Update input field with the URL
+      inputUrl.value = homeUrl;
+      
+      // Update status text
+      setTimeout(() => {
+        statusText.textContent = 'Idle';
+      }, 2000);
+    }, 500);
   }
 
   async function processNextTask() {

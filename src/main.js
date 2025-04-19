@@ -322,9 +322,6 @@ function startRemoteServer(preferences) {
   // Middleware for parsing JSON bodies
   expressApp.use(express.json());
   expressApp.use(express.urlencoded({ extended: true }));
-
-  // Then your existing code for serving static files and routes
-  expressApp.use(express.static(path.join(__dirname, 'web-ui')));
   
   // Add basic authentication if credentials are provided
   if (username && password) {
