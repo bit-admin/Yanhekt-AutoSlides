@@ -198,5 +198,26 @@ ipcRenderer.on('get-task-status', (event, responseChannel) => {
   }));
 });
 
+// Get tasks request
+ipcRenderer.on('get-tasks', (event, responseChannel) => {
+  document.dispatchEvent(new CustomEvent('ipc-get-tasks', { 
+    detail: { responseChannel } 
+  }));
+});
+
+// Remove task request
+ipcRenderer.on('remove-task', (event, data) => {
+  document.dispatchEvent(new CustomEvent('ipc-remove-task', { 
+    detail: data 
+  }));
+});
+
+// Clear tasks request
+ipcRenderer.on('clear-tasks', (event, responseChannel) => {
+  document.dispatchEvent(new CustomEvent('ipc-clear-tasks', { 
+    detail: { responseChannel } 
+  }));
+});
+
 // Log when preload script has been loaded
 console.log('Preload script has been loaded');

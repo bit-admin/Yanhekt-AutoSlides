@@ -31,6 +31,23 @@
     <div class="container">
         <h2>Task Management</h2>
 
+        <div class="task-list-container">
+            <table id="web-task-table">
+                <thead>
+                    <tr>
+                        <th width="5%">#</th>
+                        <th width="20%">Profile</th>
+                        <th width="12%">Task ID</th>
+                        <th width="58%">Info</th>
+                        <th width="5%">Del</th>
+                    </tr>
+                </thead>
+                <tbody id="web-task-table-body">
+                    <!-- Tasks will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
         <div class="token-row">
             <span id="task-status" class="token-status">Idle</span>
         </div>
@@ -53,6 +70,13 @@
         <div class="token-row">
             <button id="start-tasks-btn" class="token-action-button">Start Tasks</button>
             <button id="cancel-tasks-btn" class="token-action-button">Cancel Tasks</button>
+            <button id="clear-tasks-btn" class="token-action-button">Clear All Tasks</button>
+            <button id="refresh-tasks-btn" class="token-action-button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                </svg>
+                Refresh
+            </button>
         </div>
     </div>
     

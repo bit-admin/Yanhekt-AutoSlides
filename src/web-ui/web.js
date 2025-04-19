@@ -60,6 +60,150 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    function updateTaskStatus(message, type = null, timeout = 3000) {
+        const taskStatus = document.getElementById('task-status');
+        
+        if (!taskStatus) return;
+        
+        // Update message
+        taskStatus.textContent = message;
+        
+        // Update class based on type
+        taskStatus.className = 'token-status';
+        if (type === 'error') {
+            taskStatus.classList.add('error');
+        } else if (type === 'success') {
+            taskStatus.classList.add('success');
+        } else if (type === 'progress') {
+            taskStatus.classList.add('progress');
+        }
+        
+        // Reset to idle after timeout (if specified)
+        if (timeout > 0 && type !== null) {
+            setTimeout(() => {
+                taskStatus.textContent = 'Idle';
+                taskStatus.className = 'token-status';
+            }, timeout);
+        }
+    }
+
+    // Function to fetch and display the current task queue
+    async function fetchTaskQueue() {
+        try {
+            const response = await fetch('/api/tasks');
+            const result = await response.json();
+            
+            const taskTableBody = document.getElementById('web-task-table-body');
+            
+            if (!result.success) {
+                console.error('Failed to fetch tasks:', result.message);
+                taskTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="no-tasks-message">Error loading tasks: ${result.message || 'Unknown error'}</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            if (!result.tasks || result.tasks.length === 0) {
+                taskTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="no-tasks-message">No tasks in queue</td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Create table rows for each task
+            let tableHTML = '';
+            result.tasks.forEach((task, i) => {
+                const isCurrentTask = result.isProcessing && i === result.currentTaskIndex;
+                
+                tableHTML += `
+                    <tr${isCurrentTask ? ' class="current-task"' : ''}>
+                        <td>${i + 1}</td>
+                        <td>${task.profileName || task.profileId}</td>
+                        <td>${task.taskId}</td>
+                        <td class="task-status-cell">
+                            ${isCurrentTask ? '<span class="task-status-indicator processing"></span>' : 
+                                             '<span class="task-status-indicator pending"></span>'}
+                            ${task.courseInfo || task.url || ''}
+                        </td>
+                        <td>
+                            ${isCurrentTask ? '' : `<button class="task-remove-btn" data-index="${i}">×</button>`}
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            taskTableBody.innerHTML = tableHTML;
+            
+            // Add event listeners to delete buttons
+            document.querySelectorAll('.task-remove-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const index = parseInt(this.getAttribute('data-index'), 10);
+                    removeTask(index);
+                });
+            });
+            
+        } catch (error) {
+            console.error('Error fetching task queue:', error);
+            document.getElementById('web-task-table-body').innerHTML = `
+                <tr>
+                    <td colspan="5" class="no-tasks-message">Error loading tasks: ${error.message || 'Connection failed'}</td>
+                </tr>
+            `;
+        }
+    }
+    
+    // Function to remove a specific task
+    async function removeTask(index) {
+        try {
+            updateTaskStatus(`Removing task at position ${index + 1}...`, 'progress');
+            
+            const response = await fetch(`/api/tasks/${index}`, {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                updateTaskStatus(`Task removed successfully`, 'success');
+                // Refresh the task queue
+                fetchTaskQueue();
+            } else {
+                throw new Error(result.message || 'Failed to remove task');
+            }
+        } catch (error) {
+            console.error('Error removing task:', error);
+            updateTaskStatus(`Error: ${error.message || 'Failed to remove task'}`, 'error');
+        }
+    }
+    
+    // Function to clear all tasks
+    async function clearAllTasks() {
+        try {
+            updateTaskStatus('Clearing all tasks...', 'progress');
+            
+            const response = await fetch('/api/tasks', {
+                method: 'DELETE'
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                updateTaskStatus('All tasks cleared', 'success');
+                // Refresh the task queue
+                fetchTaskQueue();
+            } else {
+                throw new Error(result.message || 'Failed to clear tasks');
+            }
+        } catch (error) {
+            console.error('Error clearing tasks:', error);
+            updateTaskStatus(`Error: ${error.message || 'Failed to clear tasks'}`, 'error');
+        }
+    }
+
     // Token handling
     const tokenField = document.getElementById('tokenField');
     const btnTogglePassword = document.getElementById('btnTogglePassword');
@@ -999,17 +1143,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         statusMsg += ` (${result.slideCount})`;
                     }
                     
-                    // Update status display
-                    taskStatus.textContent = statusMsg;
+                    // Update status display with 'progress' class
+                    updateTaskStatus(statusMsg, 'progress');
+                    
+                    // Refresh the task queue to show current progress
+                    fetchTaskQueue();
                     
                     // Continue polling
                     setTimeout(pollTaskStatus, 2000);
                 } else {
-                    taskStatus.textContent = 'Task processing completed or idle';
+                    updateTaskStatus('Task processing completed or idle', 'success');
+                    
+                    // Refresh the task queue one last time
+                    fetchTaskQueue();
                     
                     setTimeout(() => {
-                        taskStatus.textContent = 'Idle';
-                        taskStatus.className = 'token-status';
+                        updateTaskStatus('Idle');
                     }, 3000);
                 }
             } else {
@@ -1017,8 +1166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Error polling task status:', error);
-            taskStatus.textContent = `Error: ${error.message || 'Failed to get task status'}`;
-            taskStatus.className = 'token-status error';
+            updateTaskStatus(`Error: ${error.message || 'Failed to get task status'}`, 'error');
             
             // Try again after a longer delay
             setTimeout(pollTaskStatus, 5000);
@@ -1028,4 +1176,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add event listeners for task management buttons
     startTasksBtn.addEventListener('click', startTasksInMainWindow);
     cancelTasksBtn.addEventListener('click', cancelTasksInMainWindow);
+
+    // Add event listener to refresh tasks button
+    const refreshTasksBtn = document.getElementById('refresh-tasks-btn');
+    refreshTasksBtn.addEventListener('click', fetchTaskQueue);
+
+    // Add event listener to clear tasks button
+    const clearTasksBtn = document.getElementById('clear-tasks-btn');
+    clearTasksBtn.addEventListener('click', clearAllTasks);
+
+    // Initial task fetch
+    fetchTaskQueue();
+    
+    // Set up periodic task queue refresh
+    setInterval(fetchTaskQueue, 5000); // Refresh every 5 seconds
+    
+    // When starting tasks or canceling tasks, refresh the task queue
+    startTasksBtn.addEventListener('click', async () => {
+        await startTasksInMainWindow();
+        fetchTaskQueue();
+    });
+    
+    cancelTasksBtn.addEventListener('click', async () => {
+        await cancelTasksInMainWindow();
+        fetchTaskQueue();
+    });
 });
