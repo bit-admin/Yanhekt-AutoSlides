@@ -509,6 +509,10 @@ header {
     cursor: pointer;
     font-size: 0.85em;
     width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .add-to-tasks-btn:hover {
@@ -524,6 +528,7 @@ header {
     margin-left: auto;
     background-color: var(--color-primary);
     color: white;
+    height: 18px;
 }
 
 /* Dark mode support */
@@ -1103,18 +1108,27 @@ header {
     }
 
     .section-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+        row-gap: 5px;
+    }
+
+    .title-with-icon {
+        margin-right: 10px;
     }
 
     .section-header h2 {
-        margin-bottom: 5px;
+        margin-bottom: 0;
+        font-size: 1.1em;
     }
 
     .token-status {
         font-size: 12px;
         padding: 3px 8px;
+        align-self: center;
+        white-space: nowrap;
     }
 
     .help-text {
@@ -1138,6 +1152,7 @@ header {
 
     .icon-only-button {
         padding: 8px; /* Larger tap target */
+        margin-top: 0;
     }
 }
 
@@ -1173,23 +1188,59 @@ header {
     }
 
     #web-task-table {
-        min-width: 600px; /* Ensure table content doesn't wrap too aggressively */
+        table-layout: auto;
+        min-width: auto;
         font-size: 12px;
+        width: 100%;
     }
 
-    #web-task-table th, #web-task-table td {
-        padding: 6px 8px;
+    #web-task-table th {
+        padding: 8px 4px;
+        font-size: 11px;
+    }
+
+    /* Allow the content of the information column to wrap. */
+    #web-task-table td {
+        white-space: normal; /* Allow text wrapping */
+        vertical-align: middle;
+        padding: 10px 8px; /* Add vertical padding to wrapped text */
     }
 
     #web-task-table th[width="5%"], #web-task-table td[width="5%"] { width: 30px; }
     #web-task-table th[width="20%"], #web-task-table td[width="20%"] { width: 100px; }
     #web-task-table th[width="12%"], #web-task-table td[width="12%"] { width: 80px; }
-    #web-task-table th[width="58%"], #web-task-table td[width="58%"] { min-width: 200px; } /* Allow info to expand */
+    #web-task-table th[width="58%"], #web-task-table td[width="58%"] { min-width: 180px; width: auto; } /* Allow info to expand */
     #web-task-table th[width="5%"]:last-child, #web-task-table td:last-child { width: 40px; }
 
     .task-status-cell {
-        padding: 6px 8px;
-        margin: -6px -8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+
+    .task-info-text {
+        white-space: normal; /* Line break allowed */
+        overflow: visible;/* Do not truncate content */
+        text-overflow: clip;
+        line-height: 1.4;
+        word-break: break-word; /* Break words when necessary */
+    }
+
+   /* Task status indicator vertically centered */
+    .task-status-indicator {
+        margin-top: 4px;
+    }
+    
+    .task-list-container {
+        border-radius: 4px;
+    }
+
+    #web-task-table tr.current-task {
+        background-color: rgba(0, 122, 204, 0.1);
+    }
+    
+    .dark-mode #web-task-table tr.current-task {
+        background-color: rgba(74, 144, 226, 0.15);
     }
 }
 
@@ -1364,5 +1415,51 @@ header {
 
     .dark-mode .search-input input {
         border-right-color: var(--color-border); /* Ensure dark mode border */
+    }
+
+    #web-task-table th:nth-child(2), #web-task-table td:nth-child(2) {
+        display: none; /* Hide Profile column */
+    }
+
+    #web-task-table th:first-child, #web-task-table td:first-child {
+        width: 20px;
+    }
+    
+    #web-task-table th:nth-child(3), #web-task-table td:nth-child(3) {
+        width: 50px;
+    }
+
+    .task-status-cell {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    
+    .task-status-indicator {
+        flex-shrink: 0; /* Prevent status indicator from shrinking */
+        margin-top: 5px; /* Align with the first line of the text */
+        margin-left: 2px;
+    }
+    
+    .task-info-text {
+        flex: 1; /* Let the text occupy the remaining space */
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.5;
+        word-break: break-word;
+    }
+    
+    #web-task-table td {
+        padding: 10px 5px;
+    }
+
+    .section-header {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+        row-gap: 5px;
     }
 }
