@@ -7,6 +7,21 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="notification" class="notification">
+        <div class="notification-content">
+            <div class="notification-icon" id="notification-icon">
+                <!-- Icon will be inserted here via JavaScript -->
+            </div>
+            <div id="notification-message"></div>
+            <button id="close-notification" class="close-notification" aria-label="Close notification">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+        </div>
+    </div>
+
     <button id="theme-toggle" class="theme-toggle" title="Toggle dark mode">
         <svg id="light-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="5"></circle>
@@ -30,7 +45,14 @@
     
     <div class="container">
         <div class="section-header">
-            <h2>Task Management</h2>
+            <div class="title-with-icon">
+                <h2>Task Manager</h2>
+                <button id="refresh-tasks-btn" class="icon-only-button" title="Refresh Task List">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                </button>
+            </div>
             <div id="task-status" class="token-status">Idle</div>
         </div>
     
@@ -70,17 +92,19 @@
             <button id="start-tasks-btn" class="token-action-button">Start Tasks</button>
             <button id="cancel-tasks-btn" class="token-action-button">Cancel Tasks</button>
             <button id="clear-tasks-btn" class="token-action-button">Clear All Tasks</button>
-            <button id="refresh-tasks-btn" class="token-action-button">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                </svg>
-                Refresh
-            </button>
         </div>
     </div>
     
     <div class="container">
-        <h2>Authentication</h2>
+        <div class="section-header">
+            <h2>Authentication</h2>
+            <div id="tokenStatus" class="token-status">Idle</div>
+        </div>
+
+        <div class="help-text">
+            You need to log in to YanHeKT in the main app first. Then retrieve the token used for API requests. 
+        </div>
+        
         <div class="token-row">
             <button id="btnRetrieveToken" class="token-action-button">Retrieve Token</button>
             <div class="password-container">
@@ -101,47 +125,89 @@
                 </div>
             </div>
         </div>
-        <div id="tokenStatus" class="token-status"></div>
     </div>
     
     <div class="container">
-        <h2>Recorded Course Information</h2>
-        <div class="token-row">
-            <button id="fetch-courses-btn" class="token-action-button">Fetch Course Data</button>
-            <span id="courses-status" class="token-status">Click to fetch course list</span>
+        <div class="section-header">
+            <div class="title-with-icon">
+                <h2>Recorded Courses</h2>
+                <button id="fetch-courses-btn" class="icon-only-button" title="Fetch Private Course List">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="courses-status" class="token-status">Idle</div>
         </div>
+
+        <div class="help-text">
+            Fetch your private course list from YanHeKT or enter a course ID to find specific sessions that you have access to.
+        </div>
+        
         <div class="course-container">
             <div id="course-list-container" class="scrollable-horizontal">
                 <!-- Course cards will be inserted here -->
             </div>
         </div>
-    </div>
-    
-    <div class="container">
-        <h2>Course Sessions Information</h2>
-        <div class="token-row">
-            <button id="fetch-sessions-btn" class="token-action-button">Fetch Sessions</button>
-            <input type="text" id="session-course-id" class="course-id-input" placeholder="Enter Course ID">
-            <span id="sessions-status" class="token-status">Enter a course ID or select a course above</span>
+
+        <div class="action-bar">
+            <div class="search-group full-width">
+                <div class="search-input">
+                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="text" id="session-course-id" placeholder="Enter Course ID to find specific sessions that you have access to">
+                </div>
+                <button id="fetch-sessions-btn" class="action-button primary">
+                    <span>Find Sessions</span>
+                </button>
+            </div>
         </div>
-        <div class="course-container">
+        
+        <div class="course-container session-container">
             <div id="session-list-container" class="scrollable-horizontal">
                 <!-- Session cards will be inserted here -->
             </div>
         </div>
+        
+        <button id="add-all-sessions-btn" class="full-width-action-button" style="display: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span>Add All Sessions to Tasks</span>
+        </button>
     </div>
-
+    
     <div class="container">
-        <h2>Live Courses Information</h2>
-        <div class="token-row">
-            <button id="fetch-live-courses-btn" class="token-action-button">Fetch Live Sessions</button>
-            <span id="live-courses-status" class="token-status">Click to fetch available live courses</span>
+        <div class="section-header">
+            <div class="title-with-icon">
+                <h2>Live Sessions</h2>
+                <button id="fetch-live-courses-btn" class="icon-only-button" title="Fetch Live Sessions">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="live-courses-status" class="token-status">Idle</div>
         </div>
+
+        <div class="help-text">
+            Fetch your own live sessions list from YanHeKT.
+        </div>
+        
         <div class="course-container">
             <div id="live-course-list-container" class="scrollable-horizontal">
                 <!-- Live course cards will be inserted here -->
             </div>
         </div>
+        
+        <button id="add-all-lives-btn" class="full-width-action-button" style="display: none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span>Add All Active Lives to Tasks</span>
+        </button>
     </div>
     
     <script src="web.js"></script>
