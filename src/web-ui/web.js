@@ -643,7 +643,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add "Add to Tasks" button
         const addToTasksBtn = document.createElement('button');
         addToTasksBtn.className = 'add-to-tasks-btn';
-        addToTasksBtn.textContent = 'Add to Tasks';
+        // Replace textContent with SVG icon + text
+        addToTasksBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span>Add to Tasks</span>
+        `;
         addToTasksBtn.dataset.sessionId = session.sessionId;
         addToTasksBtn.dataset.title = session.title || 'Untitled Session';
         addToTasksBtn.addEventListener('click', () => {
@@ -964,7 +970,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add "Add to Tasks" button
         const addToTasksBtn = document.createElement('button');
         addToTasksBtn.className = 'add-to-tasks-btn';
-        addToTasksBtn.textContent = 'Add to Tasks';
+        // Replace textContent with SVG icon + text
+        addToTasksBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 5v14M5 12h14"/>
+            </svg>
+            <span>Add to Tasks</span>
+        `;
         addToTasksBtn.dataset.liveId = liveCourse.liveId;
         addToTasksBtn.dataset.title = liveCourse.courseName || liveCourse.title || 'Unnamed Course';
         
