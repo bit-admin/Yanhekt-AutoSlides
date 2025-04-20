@@ -44,6 +44,9 @@
     </header>
     
     <div class="container">
+        <div class="api-status-container">
+            <div id="api-task-status" class="api-status">Connected to server</div>
+        </div>
         <div class="section-header">
             <div class="title-with-icon">
                 <h2>Task Manager</h2>
@@ -157,7 +160,7 @@
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    <input type="text" id="session-course-id" placeholder="Enter Course ID to find specific sessions that you have access to">
+                    <input type="text" id="session-course-id" placeholder="Enter Course ID to find specific sessions">
                 </div>
                 <button id="fetch-sessions-btn" class="action-button primary">
                     <span>Find Sessions</span>
