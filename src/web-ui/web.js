@@ -51,15 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`Theme toggled to: ${newTheme}`);
     });
 
-    // Listen for system theme changes
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        // Only apply system change if user hasn't set a preference
-        if (!localStorage.getItem('theme')) {
-            const newTheme = e.matches ? 'dark' : 'light';
-            applyTheme(newTheme);
-        }
-    });
-
     // Notification system
     const notification = document.getElementById('notification');
     const notificationMessage = document.getElementById('notification-message');
@@ -129,6 +120,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // New function added to update the status obtained from the API
+    function updateApiStatus(message, type = null, timeout = 0) {
+        const apiStatus = document.getElementById('api-task-status');
+        
+        if (!apiStatus) return;
+        
+        // Update message content
+        apiStatus.textContent = message;
+        
+        // Update class name to display different status styles
+        apiStatus.className = 'api-status';
+        if (type === 'error') {
+            apiStatus.classList.add('error');
+        } else if (type === 'success') {
+            apiStatus.classList.add('success');
+        } else if (type === 'progress') {
+            apiStatus.classList.add('progress');
+        }
+        
+        // Display API Status Container
+        const apiContainer = document.querySelector('.api-status-container');
+        if (apiContainer) {
+            apiContainer.style.display = 'block';
+        }
+        
+        // If a timeout is set and it is not in progress, automatically hide
+        if (timeout > 0 && type !== 'progress') {
+            setTimeout(() => {
+                apiStatus.classList.add('hidden');
+                if (apiContainer) {
+                    apiContainer.style.display = 'none';
+                }
+            }, timeout);
+        }
+    }
+
     // New function to check task status without setting up polling
     async function checkTaskStatus() {
         try {
@@ -143,11 +170,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 
                 // Update status display with 'progress' class and start polling
-                updateTaskStatus(statusMsg, 'progress', 0); // No timeout
+                updateApiStatus(statusMsg, 'progress', 0);
                 pollTaskStatus();
             }
         } catch (error) {
             console.error('Error checking task status:', error);
+            updateApiStatus(`Error: ${error.message || 'Failed to check task status'}`, 'error', 5000);
         }
     }
 
@@ -351,6 +379,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Copy token to clipboard
+    // Copy token to clipboard
     btnCopyToken.addEventListener('click', () => {
         if (!tokenField.value) {
             tokenStatus.textContent = 'No token to copy';
@@ -358,18 +387,69 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        navigator.clipboard.writeText(tokenField.value)
-            .then(() => {
-                tokenStatus.textContent = 'Token copied to clipboard';
-                tokenStatus.className = 'token-status success';
-                setTimeout(() => {
-                    tokenStatus.textContent = '';
-                }, 3000);
+        // Try to use the clipboard API with fallback methods
+        function copyToClipboard(text) {
+            // Modern clipboard API method
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                return navigator.clipboard.writeText(text)
+                    .then(() => true)
+                    .catch(error => {
+                        console.error('Clipboard API error:', error);
+                        return false;
+                    });
+            }
+            // Fallback method
+            return new Promise((resolve) => {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                
+                // Make the textarea out of viewport
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                
+                textArea.focus();
+                textArea.select();
+                
+                let success = false;
+                try {
+                    success = document.execCommand('copy');
+                } catch (err) {
+                    console.error('execCommand error:', err);
+                }
+                
+                document.body.removeChild(textArea);
+                resolve(success);
+            });
+        }
+        
+        // Execute the copy
+        copyToClipboard(tokenField.value)
+            .then(success => {
+                if (success) {
+                    // Update status text
+                    tokenStatus.textContent = 'Token copied to clipboard';
+                    tokenStatus.className = 'token-status success';
+                    
+                    // Show notification for better visibility
+                    showNotification('Token copied to clipboard', 'success');
+                    
+                    // Don't clear status text completely, just reset class after delay
+                    setTimeout(() => {
+                        tokenStatus.className = 'token-status';
+                    }, 3000);
+                } else {
+                    throw new Error('Copy operation failed');
+                }
             })
             .catch(err => {
                 console.error('Failed to copy token:', err);
                 tokenStatus.textContent = 'Failed to copy token';
                 tokenStatus.className = 'token-status error';
+                
+                // Show notification for better visibility
+                showNotification('Failed to copy token to clipboard', 'error');
             });
     });
 
@@ -1187,7 +1267,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             
             if (result.success) {
-                taskStatus.textContent = 'Tasks started in main application';
+                taskStatus.textContent = 'Tasks started';
                 taskStatus.className = 'token-status success';
                 
                 // Poll for task status to keep UI updated
@@ -1215,7 +1295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
             
             if (result.success) {
-                taskStatus.textContent = 'Tasks canceled in main application';
+                taskStatus.textContent = 'Tasks canceled';
                 taskStatus.className = 'token-status success';
             } else {
                 throw new Error(result.message || 'Failed to cancel tasks');
@@ -1250,7 +1330,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     
                     // Update status display with 'progress' class
-                    updateTaskStatus(statusMsg, 'progress');
+                    updateApiStatus(statusMsg, 'progress');
                     
                     // Refresh the task queue to show current progress
                     fetchTaskQueue();
@@ -1258,7 +1338,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Continue polling
                     setTimeout(pollTaskStatus, 2000);
                 } else {
-                    updateTaskStatus('Task processing completed or idle', 'success');
+                    updateApiStatus('Task processing completed', 'success', 5000);
                     
                     // Refresh the task queue one last time
                     fetchTaskQueue();
@@ -1272,7 +1352,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error('Error polling task status:', error);
-            updateTaskStatus(`Error: ${error.message || 'Failed to get task status'}`, 'error');
+            updateApiStatus(`Error: ${error.message || 'Failed to get task status'}`, 'error', 5000);
             
             // Try again after a longer delay
             setTimeout(pollTaskStatus, 5000);
