@@ -438,29 +438,6 @@ header {
     height: 20px;
 }
 
-@media (max-width: 900px) {
-    .course-card {
-        min-width: 250px;
-    }
-}
-
-@media (max-width: 600px) {
-    .token-row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    .token-action-button {
-        margin-bottom: 10px;
-    }
-    .course-id-input {
-        margin-bottom: 10px;
-    }
-    .theme-toggle {
-        position: static;
-        margin-bottom: 15px;
-    }
-}
-
 /* Live course card specific styles */
 .live-course-card {
     height: 220px; /* Reduced height for live course cards */
@@ -1092,4 +1069,300 @@ header {
 
 .dark-mode .notification.error::after {
   background-color: rgba(220, 53, 69, 0.3);
+}
+
+/* --- Responsive Styles --- */
+
+/* General adjustments for smaller screens */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    header {
+        padding: 10px 15px;
+        margin-bottom: 15px;
+    }
+
+    .container {
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
+    h1 {
+        font-size: 1.5em;
+    }
+
+    h2 {
+        font-size: 1.2em;
+    }
+
+    .theme-toggle {
+        top: 10px;
+        right: 10px;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .section-header h2 {
+        margin-bottom: 5px;
+    }
+
+    .token-status {
+        font-size: 12px;
+        padding: 3px 8px;
+    }
+
+    .help-text {
+        font-size: 0.85em;
+        margin-bottom: 10px;
+    }
+
+    .action-button {
+        padding: 8px 12px; /* Slightly larger tap target */
+        min-height: 36px;
+    }
+
+    .full-width-action-button {
+        height: 40px; /* Larger tap target */
+    }
+
+    .icon-action-button {
+        width: 40px;
+        height: 40px;
+    }
+
+    .icon-only-button {
+        padding: 8px; /* Larger tap target */
+    }
+}
+
+/* Task Manager adjustments */
+@media (max-width: 768px) {
+    .task-options {
+        flex-direction: column;
+        gap: 8px;
+        align-items: flex-start; /* Align items to the start */
+    }
+
+    .task-option {
+        width: 100%; /* Make options take full width */
+        box-sizing: border-box;
+        padding: 10px 12px;
+        font-size: 13px;
+    }
+
+    .token-row.task-buttons {
+        flex-direction: column; /* Stack buttons vertically */
+        gap: 8px;
+    }
+
+    .token-row.task-buttons .token-action-button {
+        width: 100%; /* Make buttons full width */
+        height: 40px;
+    }
+
+    /* Make task table horizontally scrollable */
+    .task-list-container {
+        overflow-x: auto; /* Allow horizontal scrolling */
+        max-height: 250px; /* Slightly reduce max height */
+    }
+
+    #web-task-table {
+        min-width: 600px; /* Ensure table content doesn't wrap too aggressively */
+        font-size: 12px;
+    }
+
+    #web-task-table th, #web-task-table td {
+        padding: 6px 8px;
+    }
+
+    #web-task-table th[width="5%"], #web-task-table td[width="5%"] { width: 30px; }
+    #web-task-table th[width="20%"], #web-task-table td[width="20%"] { width: 100px; }
+    #web-task-table th[width="12%"], #web-task-table td[width="12%"] { width: 80px; }
+    #web-task-table th[width="58%"], #web-task-table td[width="58%"] { min-width: 200px; } /* Allow info to expand */
+    #web-task-table th[width="5%"]:last-child, #web-task-table td:last-child { width: 40px; }
+
+    .task-status-cell {
+        padding: 6px 8px;
+        margin: -6px -8px;
+    }
+}
+
+/* Authentication adjustments */
+@media (max-width: 768px) {
+    .token-row {
+        flex-direction: column;
+        align-items: stretch; /* Make elements full width */
+        gap: 10px;
+    }
+
+    .token-action-button {
+        margin-right: 0; /* Remove margin */
+        width: 100%;
+        height: 40px;
+    }
+
+    .password-container {
+        width: 100%;
+    }
+
+    #tokenField {
+        padding: 10px; /* Easier interaction */
+    }
+}
+
+/* Course/Session/Live adjustments */
+@media (max-width: 768px) {
+    .course-container {
+        padding: 10px;
+        min-height: 150px; /* Reduce min height */
+    }
+
+    .scrollable-horizontal {
+        gap: 10px; /* Reduce gap between cards */
+        padding-bottom: 10px; /* Add padding for scrollbar */
+    }
+
+    .course-card {
+        min-width: 260px; /* Slightly smaller cards */
+        max-width: 260px;
+        height: auto; /* Allow height to adjust */
+        min-height: 260px; /* Set a min-height */
+        padding: 12px;
+    }
+
+    .live-course-card {
+        min-width: 240px;
+        max-width: 240px;
+        min-height: 200px; /* Adjust min-height */
+    }
+
+    .session-card {
+        min-width: 180px; /* Smaller session cards */
+        max-width: 180px;
+        padding: 10px;
+    }
+
+    .course-title, .session-title {
+        font-size: 1em;
+    }
+
+    .course-info-table {
+        grid-template-columns: 80px 1fr; /* Adjust label width */
+        font-size: 0.9em;
+    }
+
+    .session-card .course-info-table {
+        grid-template-columns: 45px 1fr; /* Adjust label width */
+    }
+
+    .get-sessions-btn, .add-to-tasks-btn {
+        font-size: 0.8em;
+        padding: 8px 10px; /* Adjust padding */
+    }
+
+    .action-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .search-group {
+        max-width: none; /* Allow full width */
+        width: 100%;
+    }
+
+    .search-input input {
+        padding: 10px 10px 10px 36px; /* Adjust padding */
+        height: auto; /* Let padding define height */
+    }
+
+    .search-group .action-button {
+        border-radius: 0 4px 4px 0; /* Keep right radius */
+    }
+
+    .session-container {
+        padding-top: 10px;
+        margin-top: 10px;
+    }
+}
+
+/* Notification adjustments */
+@media (max-width: 768px) {
+    .notification {
+        top: 10px;
+        right: 10px;
+        left: 10px; /* Make it span more width */
+        max-width: none; /* Remove max-width */
+        width: auto;
+    }
+
+    .notification-content {
+        padding: 12px 14px;
+        gap: 10px;
+    }
+
+    #notification-message {
+        font-size: 0.9em;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+    body {
+        padding: 5px;
+    }
+
+    .container {
+        padding: 10px;
+    }
+
+    h1 {
+        font-size: 1.3em;
+    }
+
+    h2 {
+        font-size: 1.1em;
+    }
+
+    .course-card {
+        min-width: 220px;
+        max-width: 220px;
+        min-height: 240px;
+    }
+
+    .live-course-card {
+        min-width: 200px;
+        max-width: 200px;
+        min-height: 180px;
+    }
+
+    .session-card {
+        min-width: 160px;
+        max-width: 160px;
+    }
+
+    .search-group {
+        flex-direction: column; /* Stack input and button */
+        align-items: stretch;
+    }
+
+    .search-input input {
+        border-radius: 4px 4px 0 0; /* Adjust radius */
+        border-right: 1px solid var(--color-border); /* Add back right border */
+    }
+
+    .search-group .action-button {
+        border-radius: 0 0 4px 4px; /* Adjust radius */
+        width: 100%;
+    }
+
+    .dark-mode .search-input input {
+        border-right-color: var(--color-border); /* Ensure dark mode border */
+    }
 }
