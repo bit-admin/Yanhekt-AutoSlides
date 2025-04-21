@@ -18,6 +18,8 @@
     "electron-store": "^8.1.0",
     "express": "^5.1.0",
     "express-basic-auth": "^1.2.1",
+    "i18next": "^25.0.1",
+    "i18next-fs-backend": "^2.6.0",
     "node-fetch": "^2.7.0"
   },
   "build": {
