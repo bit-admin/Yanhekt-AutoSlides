@@ -98,12 +98,23 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   });
   
   // Load default URL when app starts
-  setTimeout(() => {
+  setTimeout(async () => {
     // Replace direct URL loading with custom homepage
     if (webview.src === 'about:blank' || !webview.src) {
-      // Use correct file:// URL format to load the homepage
-      const homepageUrl = `file://${window.location.pathname.replace('index.html', 'homepage.html')}`;
-      console.log('Loading homepage from:', homepageUrl);
+      // Check current language
+      let currentLanguage = 'en'; // Default to English
+      try {
+        currentLanguage = await window.i18n.getCurrentLanguage();
+      } catch (error) {
+        console.error('Error getting current language:', error);
+        // Continue with default language if there's an error
+      }
+      
+      // Choose homepage based on language
+      const homepageFile = currentLanguage === 'zh' ? 'homepage-cn.html' : 'homepage.html';
+      const homepageUrl = `file://${window.location.pathname.replace('index.html', homepageFile)}`;
+      console.log(`Loading ${currentLanguage} homepage from:`, homepageUrl);
+      
       webview.src = homepageUrl;
       inputUrl.value = '';
       statusText.textContent = 'Homepage loaded';
