@@ -13,9 +13,36 @@ const express = require('express');
 const http = require('http');
 const basicAuth = require('express-basic-auth');
 const os = require('os');
+const i18next = require('i18next'); // Add i18next import
+const FsBackend = require('i18next-fs-backend'); // Add backend import
+
+// i18n initialization
+async function setupI18n() {
+  await i18next
+    .use(FsBackend)
+    .init({
+      backend: {
+        // Storage path for translation files
+        loadPath: path.join(process.env.NODE_ENV === 'development' 
+          ? __dirname 
+          : process.resourcesPath, 'locales/{{lng}}/{{ns}}.json'),
+      },
+      fallbackLng: 'en',
+      defaultNS: 'translation',
+      supportedLngs: ['en', 'zh'],
+      lng: config.get('language') || 'en', // Read language settings from configuration
+    });
+
+  return i18next;
+}
 
 // Configuration schema
 const schema = {
+  language: {
+    type: 'string',
+    enum: ['en', 'zh'],
+    default: 'en'
+  },
   outputDir: {
     type: 'string',
     default: path.join(app.getPath('downloads'), 'slides')
@@ -131,7 +158,16 @@ yanhekt.cn##div#ai-bit-animation-modal`
     type: 'string',
     enum: ['system', 'light', 'dark'],
     default: 'system'
-}
+  },
+  remoteManagement: {
+    type: 'object',
+    default: {
+      enabled: false,
+      port: 11150,
+      username: '',
+      password: ''
+    }
+  }
 };
 
 const config = new Store({ schema });
@@ -1370,6 +1406,7 @@ function stopRemoteServer() {
 }
 
 app.whenReady().then(async () => {
+  await setupI18n();
   createApplicationMenu(); // Add this line to create the menu
   createWindow();
   setupProgressInterceptor();
@@ -1392,6 +1429,20 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit();
+});
+
+ipcMain.handle('i18n:translate', async (event, key, options) => {
+  return i18next.t(key, options);
+});
+
+ipcMain.handle('i18n:changeLanguage', async (event, lng) => {
+  await i18next.changeLanguage(lng);
+  config.set('language', lng);
+  return lng;
+});
+
+ipcMain.handle('i18n:getCurrentLanguage', () => {
+  return i18next.language;
 });
 
 // Handle API requests from renderer
@@ -2931,3 +2982,4 @@ ipcMain.handle('task:status', async (event) => {
 ipcMain.on('debug-log', (event, message) => {
   console.log('[Renderer Debug]:', message);
 });
+

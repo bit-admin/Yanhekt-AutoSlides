@@ -1,0 +1,32 @@
+{
+  "general": {
+    "start": "Start Capture",
+    "stop": "Stop Capture",
+    "settings": "Settings",
+    "language": "Language",
+    "appearance": "Appearance",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "preferences": {
+    "title": "AutoSlides Preferences",
+    "general": "General",
+    "capture": "Capture",
+    "profiles": "Profiles",
+    "automation": "Handler",
+    "appearance": "Appearance",
+    "language": "Language",
+    "backgroundRunning": "Keep Running in Background",
+    "backgroundRunningHelp": "Prevents the system from sleeping while AutoSlides is running",
+    "cacheManagement": "Cache Management",
+    "cacheInterval": "Auto-Clean Interval (mins, set to 0 to disable)",
+    "clearCookies": "Clear Cookies",
+    "resetAllData": "Reset All Data",
+    "resetDataHelp": "Resetting data can resolve common issues",
+    "restartRequired": "Please restart the application for language changes to take effect",
+    "save": "Save",
+    "cancel": "Cancel",
+    "restoreDefaults": "Restore Defaults"
+  }
+}

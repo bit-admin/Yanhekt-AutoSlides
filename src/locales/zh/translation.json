@@ -1,0 +1,32 @@
+{
+  "general": {
+    "start": "开始捕获",
+    "stop": "停止捕获",
+    "settings": "设置",
+    "language": "语言",
+    "appearance": "外观",
+    "light": "浅色",
+    "dark": "深色",
+    "system": "跟随系统"
+  },
+  "preferences": {
+    "title": "自动幻灯片偏好设置",
+    "general": "通用",
+    "capture": "捕获",
+    "profiles": "配置文件",
+    "automation": "处理器",
+    "appearance": "外观",
+    "language": "语言",
+    "backgroundRunning": "在后台保持运行",
+    "backgroundRunningHelp": "防止系统在自动幻灯片运行时进入睡眠状态",
+    "cacheManagement": "缓存管理",
+    "cacheInterval": "自动清理间隔（分钟，设为0禁用）",
+    "clearCookies": "清除Cookies",
+    "resetAllData": "重置所有数据",
+    "resetDataHelp": "重置数据可以解决常见问题",
+    "restartRequired": "请重启应用程序以使语言更改生效",
+    "save": "保存",
+    "cancel": "取消",
+    "restoreDefaults": "恢复默认值"
+  }
+}

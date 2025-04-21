@@ -175,6 +175,36 @@ contextBridge.exposeInMainWorld('electronAPI', {
   }
 });
 
+contextBridge.exposeInMainWorld('i18n', {
+  t: async (key, options) => {
+    try {
+      return await ipcRenderer.invoke('i18n:translate', key, options);
+    } catch (error) {
+      console.error(`Translation error for ${key}:`, error);
+      return key; // Return the original key as a backup
+    }
+  },
+  changeLanguage: async (lng) => {
+    try {
+      const result = await ipcRenderer.invoke('i18n:changeLanguage', lng);
+      // Trigger an event after the language change
+      window.dispatchEvent(new CustomEvent('language-changed', { detail: { language: lng } }));
+      return result;
+    } catch (error) {
+      console.error(`Error changing language to ${lng}:`, error);
+      return false;
+    }
+  },
+  getCurrentLanguage: async () => {
+    try {
+      return await ipcRenderer.invoke('i18n:getCurrentLanguage');
+    } catch (error) {
+      console.error('Error getting current language:', error);
+      return 'en'; // Default is English
+    }
+  }
+});
+
 // Forward IPC events to renderer via custom events
 ipcRenderer.on('add-task', (event, task) => {
   document.dispatchEvent(new CustomEvent('ipc-add-task', { detail: task }));

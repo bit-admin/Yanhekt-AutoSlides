@@ -89,6 +89,26 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const serviceUrlDisplay = document.getElementById('service-url-display');
     const serviceUrlLink = document.getElementById('service-url-link');
     const remoteSettingsContainer = document.getElementById('remote-settings-container');
+    // i18m
+    const languageSelect = document.getElementById('languageSelect');
+
+    // Loading current language settings
+    const currentLanguage = await window.i18n.getCurrentLanguage();
+    languageSelect.value = currentLanguage;
+
+    // Save settings when language changes
+    languageSelect.addEventListener('change', async function() {
+        const newLanguage = this.value;
+        await window.i18n.changeLanguage(newLanguage);
+        
+        // Get current configuration and update language settings
+        const config = await window.electronAPI.getConfig();
+        config.language = newLanguage;
+        await window.electronAPI.saveConfig(config);
+        
+        // Show reboot prompt
+        alert(window.i18n.t('preferences.restartRequired'));
+    });
 
     // Update URL when port changes
     remotePort.addEventListener('input', updateServiceUrl);
