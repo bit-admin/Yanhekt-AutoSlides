@@ -42,5 +42,117 @@
     "cacheManagement": "Cache Management",
     "clearBrowserCache": "Clear Browser Cache",
     "backToHomepage": "Back to Homepage"
+  },
+  "preferences": {
+    "title": "AutoSlides Preferences",
+    "header": "AutoSlides Preferences",
+    "tab": {
+      "general": "General",
+      "capture": "Capture",
+      "profiles": "Profiles",
+      "handler": "Handler"
+    },
+    "label": {
+      "appearance": "Appearence",
+      "language": "Language",
+      "keepRunning": "Keep Running in Background",
+      "enableRemote": "Enable Remote Management",
+      "portNumber": "Port Number",
+      "serviceUrl": "Service URL",
+      "username": "Username",
+      "password": "Password",
+      "autoCleanInterval": "Auto-Clean Interval (mins, set to 0 to disable)",
+      "hammingDistance": "Hamming Distance Threshold",
+      "ssimThreshold": "SSIM Threshold",
+      "sigma": "Sigma",
+      "topCrop": "Top Crop (%)",
+      "bottomCrop": "Bottom Crop (%)",
+      "createNewProfile": "Create New Profile",
+      "elementSelector": "Element Selector",
+      "urlPatterns": "URL Patterns",
+      "endDetectionSelector": "End Detection Selector",
+      "playButtonSelector": "Play Button Selector",
+      "countdownSelector": "Countdown Selector",
+      "speedSelector": "Speed Selector",
+      "adjustedPlaybackSpeed": "Adjusted Playback Speed",
+      "courseTitleSelector": "Course Title Selector",
+      "sessionInfoSelector": "Session Info Selector",
+      "errorSelector": "Error Selector",
+      "maxRetryAttempts": "Max Retry Attempts",
+      "authToken": "YanHeKT Authentication Token for API Communication"
+    },
+    "option": {
+      "followSystem": "Follow System",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "help": {
+      "languageRestart": "Changes apply after restart",
+      "preventSleep": "Prevents the system from sleeping while AutoSlides is running",
+      "remoteManagement": "Manage AutoSlides remotely on your local network",
+      "resetData": "Resetting data can resolve common issues",
+      "bypassSsimLower": "Bypass SSIM check if below lower threshold",
+      "bypassSsimUpper": "Bypass SSIM check if above upper threshold",
+      "ssimEquivalent": "Minimum similarity for images equivalent",
+      "blurStrength": "Higher values increase blur strength",
+      "pixelDifference": "Threshold for considering pixels different",
+      "changeRatio": "Minimum ratio of pixels to trigger changes",
+      "stabilityChecks": "Number of consecutive stability checks before accepting a new slide",
+      "defaultProfile": "The default profile captures the entire webpage with cropping (apply only to Default profile)",
+      "elementSelector": "Only the selected element will be captured",
+      "urlPatterns": "Patterns to auto-select this profile",
+      "autoDetectTitle": "Used when \"Auto-detect title\" is enabled",
+      "autoRetryError": "Used when \"Auto-retry on error\" is enabled",
+      "blockingRules": "AdGuard-like rules (one per line)"
+    },
+    "section": {
+      "remoteManagement": "Remote Management",
+      "cacheManagement": "Cache Management",
+      "secondaryVerification": "​Secondary Verification​",
+      "authentication": "Authentication",
+      "recordedCourseInfo": "Recorded Course Information",
+      "courseSessionsInfo": "Course Sessions Information",
+      "liveCoursesInfo": "Live Courses Information",
+      "elementBlockingRules": "Element Blocking Rules"
+    },
+    "button": {
+      "clearCookies": "Clear Cookies",
+      "resetAllData": "Reset All Data",
+      "previewCrop": "Preview Crop",
+      "createProfile": "Create Profile",
+      "retrieveToken": "Retrieve Token",
+      "fetchCourseData": "Fetch Course Data",
+      "fetchSessions": "Fetch Sessions",
+      "fetchLiveSessions": "Fetch Live Sessions",
+      "restoreDefaults": "Restore Defaults",
+      "cancel": "Cancel",
+      "save": "Save"
+    },
+    "warning": {
+      "captureDefaults": "Avoid changing defaults unless required. Modifications may cause instability."
+    },
+    "strategy": {
+      "default": "Default",
+      "defaultBadge": "pHash & SSIM",
+      "basic": "Basic",
+      "basicBadge": "Pixel" 
+    },
+    "setting": {
+      "grayscale": "Grayscale Conversion",
+      "resizing": "Resizing",
+      "dct": "DCT",
+      "phash": "pHash",
+      "ssim": "SSIM",
+      "gaussianBlur": "Gaussian Blur",
+      "pixelDiffThreshold": "Pixel Difference Threshold",
+      "changeRatioThreshold": "Change Ratio Threshold",
+      "stabilityThreshold": "Stability Threshold"
+    },
+    "value": {
+      "enabled": "Enabled"
+    },
+    "profile": {
+      "defaultFullPage": "Default (Full Page)"
+    }
   }
 }

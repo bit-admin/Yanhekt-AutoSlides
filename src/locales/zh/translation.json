@@ -42,5 +42,117 @@
     "cacheManagement": "缓存管理",
     "clearBrowserCache": "清除浏览器缓存",
     "backToHomepage": "返回主页"
+  },
+  "preferences": {
+    "title": "AutoSlides 偏好设置",
+    "header": "AutoSlides 偏好设置",
+    "tab": {
+      "general": "通用",
+      "capture": "图像处理",
+      "profiles": "配置文件",
+      "handler": "网页处理"
+    },
+    "label": {
+      "appearance": "外观",
+      "language": "语言",
+      "keepRunning": "在后台保持运行",
+      "enableRemote": "启用远程管理",
+      "portNumber": "端口号",
+      "serviceUrl": "控制台地址",
+      "username": "用户名",
+      "password": "密码",
+      "autoCleanInterval": "自动清理间隔（分钟，设为0以禁用）",
+      "hammingDistance": "汉明距离阈值",
+      "ssimThreshold": "SSIM 阈值",
+      "sigma": "标准差",
+      "topCrop": "顶部裁剪（%）",
+      "bottomCrop": "底部裁剪（%）",
+      "createNewProfile": "创建新配置文件",
+      "elementSelector": "元素选择器",
+      "urlPatterns": "URL 规则",
+      "endDetectionSelector": "结束检测选择器",
+      "playButtonSelector": "播放按钮选择器",
+      "countdownSelector": "倒计时选择器",
+      "speedSelector": "速度选择器",
+      "adjustedPlaybackSpeed": "调整播放速度",
+      "courseTitleSelector": "课程标题选择器",
+      "sessionInfoSelector": "课程信息选择器",
+      "errorSelector": "错误选择器",
+      "maxRetryAttempts": "最大重试次数",
+      "authToken": "用于 API 通信的 YanHeKT Token"
+    },
+    "option": {
+      "followSystem": "跟随系统",
+      "light": "浅色",
+      "dark": "深色"
+    },
+    "help": {
+      "languageRestart": "更改将在重启后生效",
+      "preventSleep": "防止系统在 AutoSlides 运行时进入睡眠状态",
+      "remoteManagement": "在本地网络上远程管理自动幻灯片",
+      "resetData": "重置数据通常可以解决运行错误",
+      "bypassSsimLower": "如果低于下限阈值，绕过 SSIM 检查",
+      "bypassSsimUpper": "如果高于上限阈值，绕过 SSIM 检查",
+      "ssimEquivalent": "图像无变化的最小相似度要求",
+      "blurStrength": "值越高，模糊强度越大",
+      "pixelDifference": "像素差异的阈值",
+      "changeRatio": "图像变换的最小像素比例要求",
+      "stabilityChecks": "检测到新幻灯片后保持稳定的次数要求（假设演讲人将会停留一段时间进行讲解）",
+      "defaultProfile": "默认配置将截取整个网页并进行裁剪（仅适用于手动选择默认配置）",
+      "elementSelector": "仅截取所选元素",
+      "urlPatterns": "自动选择此配置文件的规则",
+      "autoDetectTitle": "启用“自动检测标题”时使用",
+      "autoRetryError": "启用“错误时自动重试”时使用",
+      "blockingRules": "类 AdGuard 规则（每行一条规则）"
+    },
+    "section": {
+      "remoteManagement": "远程管理",
+      "cacheManagement": "缓存管理",
+      "secondaryVerification": "二次验证",
+      "authentication": "认证信息",
+      "recordedCourseInfo": "录播课堂信息",
+      "courseSessionsInfo": "详细课程信息",
+      "liveCoursesInfo": "直播课程信息",
+      "elementBlockingRules": "元素屏蔽规则"
+    },
+    "button": {
+      "clearCookies": "清除 Cookies",
+      "resetAllData": "重置所有数据",
+      "previewCrop": "预览裁剪",
+      "createProfile": "创建配置文件",
+      "retrieveToken": "获取 Token",
+      "fetchCourseData": "获取课程数据",
+      "fetchSessions": "获取详细信息",
+      "fetchLiveSessions": "获取直播课程信息",
+      "restoreDefaults": "恢复默认值",
+      "cancel": "取消",
+      "save": "保存"
+    },
+    "warning": {
+      "captureDefaults": "除非必要，避免更改默认值。修改可能导致程序运行不稳定。"
+    },
+    "strategy": {
+      "default": "默认",
+      "defaultBadge": "pHash & SSIM",
+      "basic": "基本",
+      "basicBadge": "Pixel"
+    },
+    "setting": {
+      "grayscale": "灰度转换",
+      "resizing": "调整大小",
+      "dct": "离散余弦变换",
+      "phash": "感知哈希",
+      "ssim": "结构相似性指数",
+      "gaussianBlur": "高斯模糊",
+      "pixelDiffThreshold": "像素差异阈值",
+      "changeRatioThreshold": "变化比例阈值",
+      "stabilityThreshold": "稳定性阈值"
+    },
+    "value": {
+      "enabled": "已启用"
+    },
+    "profile": {
+      "defaultFullPage": "默认（截取整页）"
+    }
   }
 }

@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoSlides Preferences</title>
+    <title data-i18n="preferences.title">AutoSlides Preferences</title>
     <link rel="stylesheet" href="preferences.css">
 </head>
 <body>
     <div class="preferences-container">
         <div class="preferences-header">
-            <h1>AutoSlides Preferences</h1>
+            <h1 data-i18n="preferences.header">AutoSlides Preferences</h1>
         </div>
         
         <div class="tabs">
-            <div class="tab active" data-tab="general">General</div>
-            <div class="tab" data-tab="capture">Capture</div>
-            <div class="tab" data-tab="profiles">Profiles</div>
-            <div class="tab" data-tab="automation">Handler</div>
+            <div class="tab active" data-tab="general" data-i18n="preferences.tab.general">General</div>
+            <div class="tab" data-tab="capture" data-i18n="preferences.tab.capture">Capture</div>
+            <div class="tab" data-tab="profiles" data-i18n="preferences.tab.profiles">Profiles</div>
+            <div class="tab" data-tab="automation" data-i18n="preferences.tab.handler">Handler</div>
         </div>
 
         <!-- Add scrollable content area wrapper -->
@@ -26,21 +26,21 @@
             <div class="tab-content active" id="general-tab">
                 <div class="preference-section">
                     <div class="preference-item">
-                        <label for="darkModeSelect">Appearence</label>
+                        <label for="darkModeSelect" data-i18n="preferences.label.appearance">Appearence</label>
                         <select id="darkModeSelect">
-                            <option value="system">Follow System</option>
-                            <option value="light">Light</option>
-                            <option value="dark">Dark</option>
+                            <option value="system" data-i18n="preferences.option.followSystem">Follow System</option>
+                            <option value="light" data-i18n="preferences.option.light">Light</option>
+                            <option value="dark" data-i18n="preferences.option.dark">Dark</option>
                         </select>
                     </div>
 
                     <div class="preference-item">
-                        <label for="languageSelect">Language</label>
+                        <label for="languageSelect" data-i18n="preferences.label.language">Language</label>
                         <select id="languageSelect">
                             <option value="en">English</option>
                             <option value="zh">简体中文</option>
                         </select>
-                        <div class="help-text">Changes apply after restart</div>
+                        <div class="help-text" data-i18n="preferences.help.languageRestart">Changes apply after restart</div>
                     </div>
                 </div>
 
@@ -48,23 +48,23 @@
                     <div class="preference-item">
                         <label>
                             <input type="checkbox" id="allowBackgroundRunning">
-                            Keep Running in Background
+                            <span data-i18n="preferences.label.keepRunning">Keep Running in Background</span>
                         </label>
-                        <div class="help-text">
+                        <div class="help-text" data-i18n="preferences.help.preventSleep">
                             Prevents the system from sleeping while AutoSlides is running
                         </div>
                     </div>
                 </div>
 
                 <div class="preference-section">
-                    <h3>Remote Management</h3>
+                    <h3 data-i18n="preferences.section.remoteManagement">Remote Management</h3>
                     
                     <div class="preference-item">
                         <label>
                             <input type="checkbox" id="enable-remote" class="toggle">
-                            Enable Remote Management
+                            <span data-i18n="preferences.label.enableRemote">Enable Remote Management</span>
                         </label>
-                        <div class="help-text">
+                        <div class="help-text" data-i18n="preferences.help.remoteManagement">
                             Manage AutoSlides remotely on your local network
                         </div>
                     </div>
@@ -72,13 +72,13 @@
                     <div class="remote-settings-container" id="remote-settings-container">
                         <div class="preference-row">
                             <div class="preference-item">
-                                <label for="remote-port">Port Number</label>
+                                <label for="remote-port" data-i18n="preferences.label.portNumber">Port Number</label>
                                 <div class="preference-control">
                                     <input type="number" id="remote-port" min="1024" max="65535" value="11150">
                                 </div>
                             </div>
                             <div class="preference-item">
-                                <label>Service URL</label>
+                                <label data-i18n="preferences.label.serviceUrl">Service URL</label>
                                 <div style="height: 5px;"></div>
                                 <div class="service-url">
                                     <a id="service-url-link" href="#" target="_blank">Detecting IP address...</a>
@@ -88,13 +88,13 @@
                         
                         <div class="preference-row">
                             <div class="preference-item">
-                                <label for="remote-username">Username</label>
+                                <label for="remote-username" data-i18n="preferences.label.username">Username</label>
                                 <div class="preference-control">
                                     <input type="text" id="remote-username">
                                 </div> 
                             </div>
                             <div class="preference-item">
-                                <label for="remote-password">Password</label>
+                                <label for="remote-password" data-i18n="preferences.label.password">Password</label>
                                 <div style="height: 5px;"></div>
                                 <div class="preference-control">
                                     <input type="password" id="remote-password">
@@ -105,41 +105,41 @@
                 </div>
                 
                 <div class="preference-section">
-                    <h3>Cache Management</h3>
+                    <h3 data-i18n="preferences.section.cacheManagement">Cache Management</h3>
                     
                     <div class="preference-item">
-                        <label for="cacheCleanInterval">Auto-Clean Interval (mins, set to 0 to disable)</label>
+                        <label for="cacheCleanInterval" data-i18n="preferences.label.autoCleanInterval">Auto-Clean Interval (mins, set to 0 to disable)</label>
                         <input type="number" id="cacheCleanInterval" min="0" max="60" step="5" value="15" />
                     </div>
                     
                     <div class="buttons-group">
-                        <button id="btnClearCookies">Clear Cookies</button>
-                        <button id="btnClearAll">Reset All Data</button>
+                        <button id="btnClearCookies" data-i18n="preferences.button.clearCookies">Clear Cookies</button>
+                        <button id="btnClearAll" data-i18n="preferences.button.resetAllData">Reset All Data</button>
                     </div>
-                    <div class="help-text">Resetting data can resolve common issues</div>
+                    <div class="help-text" data-i18n="preferences.help.resetData">Resetting data can resolve common issues</div>
                 </div>
             </div>
 
             <!-- Capture Strategy Tab -->
             <div class="tab-content" id="capture-tab">
                 <div class="preference-header-warning">
-                    <p>Avoid changing defaults unless required. Modifications may cause instability.</p>
+                    <p data-i18n="preferences.warning.captureDefaults">Avoid changing defaults unless required. Modifications may cause instability.</p>
                 </div>
                 
                 <!-- Default Strategy Card -->
                 <div class="preference-section">
                     <div class="strategy-card default-strategy">
                         <div class="strategy-header">
-                            <h3>Default</h3>
-                            <span class="strategy-badge">pHash & SSIM</span>
+                            <h3 data-i18n="preferences.strategy.default">Default</h3>
+                            <span class="strategy-badge" data-i18n="preferences.strategy.defaultBadge">pHash & SSIM</span>
                         </div>
 
                         <div class="strategy-section">
                             <div class="settings-grid">
                                 <div class="preference-item">
                                     <div class="setting-with-info">
-                                        <span class="setting-label">Grayscale Conversion</span>
-                                        <span class="setting-value">Enabled</span>
+                                        <span class="setting-label" data-i18n="preferences.setting.grayscale">Grayscale Conversion</span>
+                                        <span class="setting-value" data-i18n="preferences.value.enabled">Enabled</span>
                                     </div>
                                 </div>
                             </div>
@@ -153,27 +153,27 @@
                                 <div class="preference-item">
                                     <div style="height: 12px;"></div>
                                     <div class="setting-with-info">
-                                        <span class="setting-label">Resizing</span>
-                                        <span class="setting-value">Enabled</span>
+                                        <span class="setting-label" data-i18n="preferences.setting.resizing">Resizing</span>
+                                        <span class="setting-value" data-i18n="preferences.value.enabled">Enabled</span>
                                     </div>
                                     <div style="height: 12px;"></div>
                                     <div class="setting-with-info">
-                                        <span class="setting-label">DCT</span>
-                                        <span class="setting-value">Enabled</span>
+                                        <span class="setting-label" data-i18n="preferences.setting.dct">DCT</span>
+                                        <span class="setting-value" data-i18n="preferences.value.enabled">Enabled</span>
                                     </div>
                                     <div style="height: 12px;"></div>
                                     <div class="setting-with-info">
-                                        <span class="setting-label">pHash</span>
-                                        <span class="setting-value">Enabled</span>
+                                        <span class="setting-label" data-i18n="preferences.setting.phash">pHash</span>
+                                        <span class="setting-value" data-i18n="preferences.value.enabled">Enabled</span>
                                     </div>
                                 </div>
 
                                 <div class="preference-item">
-                                    <label for="hammingThreshold">Hamming Distance Threshold</label>
+                                    <label for="hammingThreshold" data-i18n="preferences.label.hammingDistance">Hamming Distance Threshold</label>
                                     <input type="number" id="hammingThresholdLow" min="0" max="10" step="1" value="0">
-                                    <div class="help-text">Bypass SSIM check if below lower threshold</div>
+                                    <div class="help-text" data-i18n="preferences.help.bypassSsimLower">Bypass SSIM check if below lower threshold</div>
                                     <input type="number" id="hammingThresholdUp" min="0" max="20" step="1" value="5">
-                                    <div class="help-text">Bypass SSIM check if above upper threshold</div>
+                                    <div class="help-text" data-i18n="preferences.help.bypassSsimUpper">Bypass SSIM check if above upper threshold</div>
                                 </div>
                             </div>
                         </div>
@@ -186,14 +186,14 @@
                                 <div class="preference-item">
                                     <div style="height: 22px;"></div>
                                     <div class="setting-with-info">
-                                        <span class="setting-label">SSIM</span>
-                                        <span class="setting-value">Enabled</span>
+                                        <span class="setting-label" data-i18n="preferences.setting.ssim">SSIM</span>
+                                        <span class="setting-value" data-i18n="preferences.value.enabled">Enabled</span>
                                     </div>
                                 </div>
                                 <div class="preference-item">
-                                    <label for="ssimThreshold">SSIM Threshold</label>
+                                    <label for="ssimThreshold" data-i18n="preferences.label.ssimThreshold">SSIM Threshold</label>
                                     <input type="number" id="ssimThreshold" min="0.95" max="1" step="0.0001" value="0.999">
-                                    <div class="help-text">Minimum similarity for images equivalent</div>
+                                    <div class="help-text" data-i18n="preferences.help.ssimEquivalent">Minimum similarity for images equivalent</div>
                                 </div>
                             </div>
                         </div>
@@ -202,8 +202,8 @@
                     <!-- Basic Strategy Card -->
                     <div class="strategy-card basic-strategy">
                         <div class="strategy-header">
-                            <h3>Basic</h3>
-                            <span class="strategy-badge">Pixel</span>
+                            <h3 data-i18n="preferences.strategy.basic">Basic</h3>
+                            <span class="strategy-badge" data-i18n="preferences.strategy.basicBadge">Pixel</span>
                         </div>
                         
                         <!-- Preprocessing Section -->
@@ -212,20 +212,20 @@
                                 <div class="preference-item">
                                     <div style="height: 10px;"></div>
                                     <div class="setting-with-info">
-                                        <span class="setting-label">Grayscale Conversion</span>
-                                        <span class="setting-value">Enabled</span>
+                                        <span class="setting-label" data-i18n="preferences.setting.grayscale">Grayscale Conversion</span>
+                                        <span class="setting-value" data-i18n="preferences.value.enabled">Enabled</span>
                                     </div>
                                     <div style="height: 10px;"></div>
                                     <div class="setting-with-info">
-                                        <span class="setting-label">Gaussian Blur</span>
-                                        <span class="setting-value">Enabled</span>
+                                        <span class="setting-label" data-i18n="preferences.setting.gaussianBlur">Gaussian Blur</span>
+                                        <span class="setting-value" data-i18n="preferences.value.enabled">Enabled</span>
                                     </div>
                                 </div>
                                 
                                 <div class="preference-item">
-                                    <label for="gaussianBlurSigma">Sigma</label>
+                                    <label for="gaussianBlurSigma" data-i18n="preferences.label.sigma">Sigma</label>
                                     <input type="number" id="gaussianBlurSigma" min="0.1" max="2.0" step="0.1" value="0.5">
-                                    <div class="help-text">Higher values increase blur strength</div>
+                                    <div class="help-text" data-i18n="preferences.help.blurStrength">Higher values increase blur strength</div>
                                 </div>
                             </div>
                         </div>
@@ -238,19 +238,19 @@
                             <div class="settings-grid">
                                 <div class="preference-item">
                                     <!-- Pixel Difference Threshold -->
-                                    <div class="setting-label">Pixel Difference Threshold</div>
+                                    <div class="setting-label" data-i18n="preferences.setting.pixelDiffThreshold">Pixel Difference Threshold</div>
                                     <div class="setting-control">
                                         <input type="number" id="pixelDiffThreshold" min="1" max="255" step="1" value="30">
-                                        <div class="help-text">Threshold for considering pixels different</div>
+                                        <div class="help-text" data-i18n="preferences.help.pixelDifference">Threshold for considering pixels different</div>
                                     </div>
                                 </div>
                                 
                                 <div class="preference-item">
                                     <!-- Change Ratio Threshold -->
-                                    <div class="setting-label">Change Ratio Threshold</div>
+                                    <div class="setting-label" data-i18n="preferences.setting.changeRatioThreshold">Change Ratio Threshold</div>
                                     <div class="setting-control">
                                         <input type="number" id="changeRatioThreshold" min="0.001" max="0.02" step="0.001" value="0.005">
-                                        <div class="help-text">Minimum ratio of pixels to trigger changes.</div>
+                                        <div class="help-text" data-i18n="preferences.help.changeRatio">Minimum ratio of pixels to trigger changes</div>
                                     </div>
                                 </div>
                             </div>
@@ -260,12 +260,12 @@
                 
                 <!-- Double Verification Settings -->
                 <div class="preference-section">
-                    <h3>​Secondary Verification​</h3>
+                    <h3 data-i18n="preferences.section.secondaryVerification">​Secondary Verification​</h3>
                     <div class="preference-item">
-                        <div class="setting-label">Stability Threshold</div>
+                        <div class="setting-label" data-i18n="preferences.setting.stabilityThreshold">Stability Threshold</div>
                         <div class="setting-control">
                             <input type="number" id="verificationCount" min="1" max="5" step="1" value="2">
-                            <div class="help-text">Number of consecutive stability checks before accepting a new slide</div>
+                            <div class="help-text" data-i18n="preferences.help.stabilityChecks">Number of consecutive stability checks before accepting a new slide</div>
                         </div>
                     </div>
                 </div>
@@ -277,23 +277,23 @@
                 <div class="preference-section default-profile">
                     <div class="profile-card built-in" data-profile-id="default">
                         <div class="profile-header">
-                            <h4 class="profile-name">Default (Full Page)</h4>
-                            <button id="btnShowCropGuides" class="preview-link">Preview Crop</button>
+                            <h4 class="profile-name" data-i18n="preferences.profile.defaultFullPage">Default (Full Page)</h4>
+                            <button id="btnShowCropGuides" class="preview-link" data-i18n="preferences.button.previewCrop">Preview Crop</button>
                         </div>
                         
-                        <p class="help-text">The default profile captures the entire webpage with cropping (apply only to Default profile).</p>
+                        <p class="help-text" data-i18n="preferences.help.defaultProfile">The default profile captures the entire webpage with cropping (apply only to Default profile)</p>
                         
                         <hr class="section-divider">
                         
                         <!-- Cropping Settings Group -->
                         <div class="settings-grid">
                             <div class="preference-item">
-                                <label for="inputTopCrop">Top Crop (%)</label>
+                                <label for="inputTopCrop" data-i18n="preferences.label.topCrop">Top Crop (%)</label>
                                 <input type="number" id="inputTopCrop" class="topCropPercent" step="1" min="0" max="40" value="5" />
                             </div>
                             
                             <div class="preference-item">
-                                <label for="inputBottomCrop">Bottom Crop (%)</label>
+                                <label for="inputBottomCrop" data-i18n="preferences.label.bottomCrop">Bottom Crop (%)</label>
                                 <input type="number" id="inputBottomCrop" class="bottomCropPercent" step="1" min="0" max="40" value="5" />
                             </div>
                         </div>
@@ -311,10 +311,10 @@
                 <div class="preference-section profile-creation">
                     <div class="create-profile-row">
                         <div class="preference-item">
-                            <label for="newProfileName">Create New Profile</label>
+                            <label for="newProfileName" data-i18n="preferences.label.createNewProfile">Create New Profile</label>
                             <input type="text" id="newProfileName" placeholder="Enter profile name">
                         </div>
-                        <button id="btnCreateProfile" class="action-button">Create Profile</button>
+                        <button id="btnCreateProfile" class="action-button" data-i18n="preferences.button.createProfile">Create Profile</button>
                     </div>
                 </div>
                 
@@ -435,12 +435,12 @@
             <!-- Website Handler Tab -->
             <div class="tab-content" id="automation-tab">
                 <div class="preference-section">
-                    <h3>Authentication</h3>
+                    <h3 data-i18n="preferences.section.authentication">Authentication</h3>
                     
                     <div class="preference-item">
-                        <label for="tokenField">YanHeKT Authentication Token for API Communication</label>
+                        <label for="tokenField" data-i18n="preferences.label.authToken">YanHeKT Authentication Token for API Communication</label>
                         <div class="token-row">
-                            <button id="btnRetrieveToken" class="action-button token-retrieve-btn">Retrieve Token</button>
+                            <button id="btnRetrieveToken" class="action-button token-retrieve-btn" data-i18n="preferences.button.retrieveToken">Retrieve Token</button>
                             <div class="password-container">
                                 <input type="password" id="tokenField" readonly>
                                 <div class="password-actions">
@@ -464,10 +464,10 @@
                 </div>
 
                 <div class="preference-section" id="course-info-section">
-                    <h3>Recorded Course Information</h3>
+                    <h3 data-i18n="preferences.section.recordedCourseInfo">Recorded Course Information</h3>
                     <div class="token-container">
                         <div class="token-row">
-                            <button id="fetch-courses-btn" class="token-action-button">Fetch Course Data</button>
+                            <button id="fetch-courses-btn" class="token-action-button" data-i18n="preferences.button.fetchCourseData">Fetch Course Data</button>
                             <span id="courses-status" class="courses-status">Click to fetch your private course list</span>
                         </div>
                     </div>
@@ -479,10 +479,10 @@
                 </div>
 
                 <div class="preference-section" id="session-info-section">
-                    <h3>Course Sessions Information</h3>
+                    <h3 data-i18n="preferences.section.courseSessionsInfo">Course Sessions Information</h3>
                     <div class="token-container">
                         <div class="token-row">
-                            <button id="fetch-sessions-btn" class="token-action-button">Fetch Sessions</button>
+                            <button id="fetch-sessions-btn" class="token-action-button" data-i18n="preferences.button.fetchSessions">Fetch Sessions</button>
                             <input type="text" id="session-course-id" class="course-id-input" placeholder="Enter Course ID">
                             <span id="sessions-status" class="courses-status">Enter a course ID or get course info above</span>
                         </div>
@@ -495,10 +495,10 @@
                 </div>
 
                 <div class="preference-section" id="live-courses-section">
-                    <h3>Live Courses Information</h3>
+                    <h3 data-i18n="preferences.section.liveCoursesInfo">Live Courses Information</h3>
                     <div class="token-container">
                         <div class="token-row">
-                            <button id="fetch-live-courses-btn" class="token-action-button">Fetch Live Sessions</button>
+                            <button id="fetch-live-courses-btn" class="token-action-button" data-i18n="preferences.button.fetchLiveSessions">Fetch Live Sessions</button>
                             <span id="live-courses-status" class="courses-status">Click to fetch available live courses</span>
                         </div>
                     </div>
@@ -510,8 +510,8 @@
                 </div>
 
                 <div class="preference-section">
-                    <h3>Element Blocking Rules</h3>
-                    <p class="help-text">AdGuard-like rules (one per line)</p>
+                    <h3 data-i18n="preferences.section.elementBlockingRules">Element Blocking Rules</h3>
+                    <p class="help-text" data-i18n="preferences.help.blockingRules">AdGuard-like rules (one per line)</p>
                     <div class="code-editor-container">
                         <textarea id="blockingRules" rows="8" spellcheck="false" wrap="off"></textarea>
                     </div>
@@ -521,9 +521,9 @@
         </div>
         
         <div class="buttons-container">
-            <button id="btnDefault">Restore Defaults</button>
-            <button id="btnCancel">Cancel</button>
-            <button id="btnSave">Save</button>
+            <button id="btnDefault" data-i18n="preferences.button.restoreDefaults">Restore Defaults</button>
+            <button id="btnCancel" data-i18n="preferences.button.cancel">Cancel</button>
+            <button id="btnSave" data-i18n="preferences.button.save">Save</button>
         </div>
     </div>
 
