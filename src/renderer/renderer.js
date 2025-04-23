@@ -111,7 +111,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       }
       
       // Choose homepage based on language
-      const homepageFile = currentLanguage === 'zh' ? 'homepage-cn.html' : 'homepage.html';
+      const homepageFile = currentLanguage === 'zh' ? 'cn-homepage.html' : 'homepage.html';
       const homepageUrl = `file://${window.location.pathname.replace('index.html', homepageFile)}`;
       console.log(`Loading ${currentLanguage} homepage from:`, homepageUrl);
       
