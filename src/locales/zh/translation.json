@@ -153,6 +153,53 @@
     },
     "profile": {
       "defaultFullPage": "默认（截取整页）"
+    },
+    "placeholder": {
+      "profileName": "输入新建配置文件名称"
+    }
+  },
+  "web": {
+    "title": "AutoSlides 远程管理",
+    "theme": {
+      "toggle": "切换主题"
+    },
+    "task": {
+      "manager": "任务管理器",
+      "refresh": "刷新任务列表",
+      "table": {
+        "number": "序号",
+        "profile": "配置文件",
+        "taskId": "任务 ID",
+        "info": "详细信息",
+        "delete": "删除"
+      },
+      "option": {
+        "resetProgress": "始终从头开始播放视频",
+        "fastMode": "快速模式（0.5秒间隔，4倍速）",
+        "autoMute": "静音运行"
+      },
+      "start": "开始任务",
+      "cancel": "取消任务",
+      "clear": "清除所有任务"
+    },
+    "auth": {
+      "title": "认证信息",
+      "help": "您需要先在主应用中登录 YanHeKT。然后获取用于 API 请求的 Token。",
+      "retrieveToken": "获取 Token",
+      "copyToken": "复制到剪贴板",
+      "togglePassword": "显示/隐藏密码"
+    },
+    "courses": {
+      "title": "录播课堂",
+      "fetch": "获取个人课程列表",
+      "help": "从 YanHeKT 获取您的个人课程列表，或输入课程 ID 以查找您有权限访问的特定课程。",
+      "searchPlaceholder": "输入课程 ID 以查找特定课程",
+      "findSessions": "查找课程"
+    },
+    "live": {
+      "title": "直播课堂",
+      "fetch": "获取直播课程",
+      "help": "从 YanHeKT 获取您自己的直播课程列表。"
     }
   }
 }

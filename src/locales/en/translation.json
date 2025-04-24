@@ -153,6 +153,54 @@
     },
     "profile": {
       "defaultFullPage": "Default (Full Page)"
+    },
+    "placeholder": {
+      "profileName": "Enter profile name"
+    }
+  },
+  "web": {
+    "title": "AutoSlides Remote Management",
+    "theme": {
+      "toggle": "Toggle dark mode"
+    },
+    "task": {
+      "manager": "Task Manager",
+      "refresh": "Refresh Task List",
+      "table": {
+        "number": "#",
+        "profile": "Profile",
+        "taskId": "Task ID",
+        "info": "Info",
+        "delete": "Delete"
+      },
+      "option": {
+        "resetProgress": "Always start videos from beginning",
+        "fastMode": "Fast Mode (0.5s interval, 4x speed)",
+        "autoMute": "Run on Mute"
+      },
+      "start": "Start Tasks",
+      "cancel": "Cancel Tasks",
+      "clear": "Clear All Tasks"
+    },
+    "auth": {
+      "title": "Authentication",
+      "help": "You need to log in to YanHeKT in the main app first. Then retrieve the token used for API requests.",
+      "retrieveToken": "Retrieve Token",
+      "copyToken": "Copy to Clipboard",
+      "togglePassword": "Show/Hide Password"
+    },
+    "courses": {
+      "title": "Recorded Courses",
+      "fetch": "Fetch Private Course List",
+      "help": "Fetch your private course list from YanHeKT or enter a course ID to find specific sessions that you have access to.",
+      "searchPlaceholder": "Enter Course ID to find specific sessions",
+      "findSessions": "Find Sessions"
+    },
+    "live": {
+      "title": "Live Sessions",
+      "fetch": "Fetch Live Sessions",
+      "status": "Idle",
+      "help": "Fetch your own live sessions list from YanHeKT."
     }
   }
 }
