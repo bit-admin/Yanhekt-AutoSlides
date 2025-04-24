@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoSlides Remote Management</title>
+    <title data-i18n="web.title">AutoSlides Remote Management</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.ico" sizes="any">
 </head>
@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <button id="theme-toggle" class="theme-toggle" title="Toggle dark mode">
+    <button id="theme-toggle" class="theme-toggle" title="Toggle dark mode" data-i18n="[title]web.theme.toggle">
         <svg id="light-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -41,7 +41,7 @@
         <span id="theme-text">Dark</span>
     </button>
     <header>
-        <h1>AutoSlides Remote Management</h1>
+        <h1 data-i18n="web.title">AutoSlides Remote Management</h1>
     </header>
     
     <div class="container">
@@ -50,8 +50,8 @@
         </div>
         <div class="section-header">
             <div class="title-with-icon">
-                <h2>Task Manager</h2>
-                <button id="refresh-tasks-btn" class="icon-only-button" title="Refresh Task List">
+                <h2 data-i18n="web.task.manager">Task Manager</h2>
+                <button id="refresh-tasks-btn" class="icon-only-button" title="Refresh Task List" data-i18n="[title]web.task.refresh">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
                     </svg>
@@ -64,11 +64,11 @@
             <table id="web-task-table">
                 <thead>
                     <tr>
-                        <th width="5%">#</th>
-                        <th width="20%">Profile</th>
-                        <th width="12%">Task ID</th>
-                        <th width="58%">Info</th>
-                        <th width="5%">Delete</th>
+                        <th width="5%" data-i18n="web.task.table.number">#</th>
+                        <th width="20%" data-i18n="web.task.table.profile">Profile</th>
+                        <th width="12%" data-i18n="web.task.table.taskId">Task ID</th>
+                        <th width="58%" data-i18n="web.task.table.info">Info</th>
+                        <th width="5%" data-i18n="web.task.table.delete">Delete</th>
                     </tr>
                 </thead>
                 <tbody id="web-task-table-body">
@@ -80,47 +80,47 @@
         <div class="task-options">
             <label class="task-option">
                 <input type="checkbox" id="resetProgressCheckbox" checked>
-                Always start videos from beginning
+                <span data-i18n="web.task.option.resetProgress">Always start videos from beginning</span>
             </label>
             <label class="task-option">
                 <input type="checkbox" id="fastModeCheckbox">
-                Fast Mode (0.5s interval, 4x speed)
+                <span data-i18n="web.task.option.fastMode">Fast Mode (0.5s interval, 4x speed)</span>
             </label>
             <label class="task-option">
                 <input type="checkbox" id="autoMuteCheckbox">
-                Run on Mute
+                <span data-i18n="web.task.option.autoMute">Run on Mute</span>
             </label>
         </div>
     
         <div class="token-row task-buttons">
-            <button id="start-tasks-btn" class="token-action-button">Start Tasks</button>
-            <button id="cancel-tasks-btn" class="token-action-button">Cancel Tasks</button>
-            <button id="clear-tasks-btn" class="token-action-button">Clear All Tasks</button>
+            <button id="start-tasks-btn" class="token-action-button" data-i18n="web.task.start">Start Tasks</button>
+            <button id="cancel-tasks-btn" class="token-action-button" data-i18n="web.task.cancel">Cancel Tasks</button>
+            <button id="clear-tasks-btn" class="token-action-button" data-i18n="web.task.clear">Clear All Tasks</button>
         </div>
     </div>
     
     <div class="container">
         <div class="section-header">
-            <h2>Authentication</h2>
+            <h2 data-i18n="web.auth.title">Authentication</h2>
             <div id="tokenStatus" class="token-status">Idle</div>
         </div>
 
-        <div class="help-text">
+        <div class="help-text" data-i18n="web.auth.help">
             You need to log in to YanHeKT in the main app first. Then retrieve the token used for API requests. 
         </div>
         
         <div class="token-row">
-            <button id="btnRetrieveToken" class="token-action-button">Retrieve Token</button>
+            <button id="btnRetrieveToken" class="token-action-button" data-i18n="web.auth.retrieveToken">Retrieve Token</button>
             <div class="password-container">
                 <input type="password" id="tokenField" readonly>
                 <div class="password-actions">
-                    <button id="btnCopyToken" class="icon-button" title="Copy to Clipboard">
+                    <button id="btnCopyToken" class="icon-button" title="Copy to Clipboard" data-i18n="[title]web.auth.copyToken">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                     </button>
-                    <button id="btnTogglePassword" class="icon-button" title="Show/Hide Password">
+                    <button id="btnTogglePassword" class="icon-button" title="Show/Hide Password" data-i18n="[title]web.auth.togglePassword">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -134,8 +134,8 @@
     <div class="container">
         <div class="section-header">
             <div class="title-with-icon">
-                <h2>Recorded Courses</h2>
-                <button id="fetch-courses-btn" class="icon-only-button" title="Fetch Private Course List">
+                <h2 data-i18n="web.courses.title">Recorded Courses</h2>
+                <button id="fetch-courses-btn" class="icon-only-button" title="Fetch Private Course List" data-i18n="[title]web.courses.fetch">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
                     </svg>
@@ -144,7 +144,7 @@
             <div id="courses-status" class="token-status">Idle</div>
         </div>
 
-        <div class="help-text">
+        <div class="help-text" data-i18n="web.courses.help">
             Fetch your private course list from YanHeKT or enter a course ID to find specific sessions that you have access to.
         </div>
         
@@ -161,9 +161,9 @@
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                    <input type="text" id="session-course-id" placeholder="Enter Course ID to find specific sessions">
+                    <input type="text" id="session-course-id" placeholder="Enter Course ID to find specific sessions" data-i18n="[placeholder]web.courses.searchPlaceholder">
                 </div>
-                <button id="fetch-sessions-btn" class="action-button primary">
+                <button id="fetch-sessions-btn" class="action-button primary" data-i18n="web.courses.findSessions">
                     <span>Find Sessions</span>
                 </button>
             </div>
@@ -186,8 +186,8 @@
     <div class="container">
         <div class="section-header">
             <div class="title-with-icon">
-                <h2>Live Sessions</h2>
-                <button id="fetch-live-courses-btn" class="icon-only-button" title="Fetch Live Sessions">
+                <h2 data-i18n="web.live.title">Live Sessions</h2>
+                <button id="fetch-live-courses-btn" class="icon-only-button" title="Fetch Live Sessions" data-i18n="[title]web.live.fetch">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
                     </svg>
@@ -196,7 +196,7 @@
             <div id="live-courses-status" class="token-status">Idle</div>
         </div>
 
-        <div class="help-text">
+        <div class="help-text" data-i18n="web.live.help">
             Fetch your own live sessions list from YanHeKT.
         </div>
         
@@ -215,5 +215,6 @@
     </div>
     
     <script src="web.js"></script>
+    <script src="i18n-helper.js"></script>
 </body>
 </html>

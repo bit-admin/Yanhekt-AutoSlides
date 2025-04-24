@@ -375,6 +375,34 @@ function startRemoteServer(preferences) {
   expressApp.use(express.static(path.join(__dirname, 'web-ui')));
   
   // API endpoints
+
+  // Add API endpoint for translations
+  expressApp.get('/api/language', (req, res) => {
+    try {
+      const language = i18next.language;
+      res.json({ language });
+    } catch (error) {
+      console.error('Error getting language:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  expressApp.get('/api/translations/:language', (req, res) => {
+    try {
+      const language = req.params.language;
+      
+      // Get all translation resources for the requested language
+      const resources = i18next.getResourceBundle(language, 'translation');
+      
+      res.json({ 
+        translations: resources,
+        language: language 
+      });
+    } catch (error) {
+      console.error('Error getting translations:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
   
   // Add retrieve token endpoint
   expressApp.get('/api/retrieve-token', async (req, res) => {
