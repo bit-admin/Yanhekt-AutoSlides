@@ -41,7 +41,10 @@
     "clearTasks": "清除全部任务",
     "cacheManagement": "缓存管理",
     "clearBrowserCache": "清除浏览器缓存",
-    "backToHomepage": "返回主页"
+    "backToHomepage": "返回主页",
+    "status":"状态栏",
+    "statusText": "空闲",
+    "slideCount": "已保存幻灯片数：0"
   },
   "preferences": {
     "title": "AutoSlides 偏好设置",
@@ -201,6 +204,14 @@
       "title": "直播课堂",
       "fetch": "获取直播课程",
       "help": "从 YanHeKT 获取您自己的直播课程列表。"
+    }
+  },
+  "renderer": {
+    "statusText": {
+      "idle": "空闲",
+      "capturing": "截取中...",
+      "pageLoaded": "页面已加载",
+      "loadingPage": "加载页面中..."
     }
   }
 }
