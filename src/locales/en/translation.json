@@ -156,7 +156,8 @@
     },
     "placeholder": {
       "profileName": "Enter profile name"
-    }
+    },
+    "restartRequired": "Language changes will take effect after restarting the app."
   },
   "web": {
     "title": "AutoSlides Remote Management",
