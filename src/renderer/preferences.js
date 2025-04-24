@@ -107,7 +107,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         await window.electronAPI.saveConfig(config);
         
         // Show reboot prompt
-        alert(window.i18n.t('preferences.restartRequired'));
+        const message = await window.i18n.t('preferences.restartRequired');
+        alert(message);
     });
 
     // Update URL when port changes

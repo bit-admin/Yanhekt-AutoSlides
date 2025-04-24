@@ -156,7 +156,8 @@
     },
     "placeholder": {
       "profileName": "输入新建配置文件名称"
-    }
+    },
+    "restartRequired": "语言更改将在应用重启后生效"
   },
   "web": {
     "title": "AutoSlides 远程管理",
@@ -167,7 +168,7 @@
       "manager": "任务管理器",
       "refresh": "刷新任务列表",
       "table": {
-        "number": "序号",
+        "number": "#",
         "profile": "配置文件",
         "taskId": "任务 ID",
         "info": "详细信息",
