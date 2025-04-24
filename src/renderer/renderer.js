@@ -96,6 +96,46 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       document.documentElement.classList.remove('dark-mode');
     }
   });
+
+  /**
+   * Updates the status text and applies translation
+   * @param {string} key - The translation key name, automatically prefixed with renderer.statusText.
+   * @param {Object} replacements - Replacement variables for dynamic text
+   * @param {number} timeout - Optional timeout duration, after which it reverts to the default state
+   * @returns {Promise<void>}
+   */
+  async function updateStatus(key, replacements = {}, timeout = 0) {
+    try {
+      // Build complete translation key names
+      const fullKey = `renderer.statusText.${key}`;
+      const text = await window.i18n.t(fullKey, replacements);
+      statusText.textContent = text;
+      
+      // If a timeout is set, it will revert to the default state after the specified time.
+      if (timeout > 0) {
+        setTimeout(async () => {
+          const defaultKey = captureInterval ? 'capturing' : 'idle';
+          await updateStatus(defaultKey);
+        }, timeout);
+      }
+    } catch (error) {
+      console.error(`Translation error for status key ${key}:`, error);
+      // If the translation is incorrect, use the key name as a fallback
+      statusText.textContent = key;
+    }
+  }
+  
+  /**
+   * Update status text based on condition
+   * @param {boolean} condition - Conditional expression
+   * @param {string} trueKey - Translation key name used when condition is true
+   * @param {string} falseKey - Translation key name used when condition is false
+   * @param {Object} replacements - Replacement variables
+   * @returns {Promise<void>}
+   */
+  async function updateStatusConditional(condition, trueKey, falseKey, replacements = {}) {
+    await updateStatus(condition ? trueKey : falseKey, replacements);
+  }
   
   // Load default URL when app starts
   setTimeout(async () => {
@@ -117,7 +157,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       webview.src = homepageUrl;
       inputUrl.value = '';
-      statusText.textContent = 'Homepage loaded';
     }
   }, 200);
 
@@ -396,7 +435,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       await window.electronAPI.saveConfig(config);
       statusText.textContent = 'Settings saved';
       setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        updateStatusConditional(captureInterval, 'capturing', 'idle');
       }, 1000);
       
     } catch (error) {
@@ -424,7 +463,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       await window.electronAPI.saveConfig(defaultConfig);
       statusText.textContent = 'Settings reset to defaults';
       setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        updateStatusConditional(captureInterval, 'capturing', 'idle');
       }, 1000);
       
     } catch (error) {
@@ -527,7 +566,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       if (result.success) {
         statusText.textContent = 'Browser cache cleared';
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 2000);
       } else {
         statusText.textContent = 'Failed to clear cache';
@@ -539,58 +578,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       console.error('Error clearing browser cache:', error);
       statusText.textContent = 'Error clearing cache';
       btnClearCache.disabled = false;
-    }
-  }
-  
-  // Clear cookies
-  async function clearCookies() {
-    try {
-      cacheInfo.textContent = 'Clearing cookies...';
-      btnClearCookies.disabled = true;
-      
-      const result = await window.electronAPI.clearCookies();
-      
-      if (result.success) {
-        statusText.textContent = 'Cookies cleared';
-        setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-        }, 2000);
-      } else {
-        statusText.textContent = 'Failed to clear cookies';
-      }
-      
-      await updateCacheInfo();
-      btnClearCookies.disabled = false;
-    } catch (error) {
-      console.error('Error clearing cookies:', error);
-      statusText.textContent = 'Error clearing cookies';
-      btnClearCookies.disabled = false;
-    }
-  }
-  
-  // Clear all data
-  async function clearAllData() {
-    try {
-      cacheInfo.textContent = 'Clearing all data...';
-      btnClearAll.disabled = true;
-      
-      const result = await window.electronAPI.clearAllData();
-      
-      if (result.success) {
-        statusText.textContent = 'All cache data cleared';
-        setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-        }, 2000);
-      } else {
-        statusText.textContent = 'Failed to clear all data';
-      }
-      
-      await updateCacheInfo();
-      btnClearAll.disabled = false;
-    } catch (error) {
-      console.error('Error clearing all data:', error);
-      statusText.textContent = 'Error clearing all data';
-      btnClearAll.disabled = false;
     }
   }
 
@@ -665,20 +652,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }, 3000);
   }
   
-  async function saveBlockingRules(rulesText) {
-    try {
-      // If rulesText is provided, use it, otherwise fetch from storage
-      const rules = rulesText || await window.electronAPI.getBlockingRules();
-      await window.electronAPI.saveBlockingRules(rules);
-      statusText.textContent = 'Blocking rules saved';
-      setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to save blocking rules:', error);
-    }
-  }
-  
   function applyBlockingRules(rulesText) {
     // Get rules either from parameter or by fetching from config
     const getRulesPromise = rulesText ? 
@@ -690,7 +663,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       const ruleLines = typeof rules === 'string' ? rules.trim().split('\n') : rules;
   
       if (!webview.src || webview.src === 'about:blank') {
-        statusText.textContent = 'No page loaded to apply rules';
         return;
       }
       
@@ -786,7 +758,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             .then(() => {
               statusText.textContent = `Applied ${appliedRules} blocking rules`;
               setTimeout(() => {
-                statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+                updateStatusConditional(captureInterval, 'capturing', 'idle');
               }, 2000);
             })
             .catch(err => {
@@ -794,29 +766,14 @@ yanhekt.cn##div#ai-bit-animation-modal`;
               statusText.textContent = 'Error applying rules';
             });
         } else {
-          statusText.textContent = 'No applicable rules for current page';
           setTimeout(() => {
-            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+            updateStatusConditional(captureInterval, 'capturing', 'idle');
           }, 2000);
         }
       } catch (error) {
         console.error('Error in applyBlockingRules:', error);
         statusText.textContent = 'Error processing rules';
       }
-    });
-  }
-  
-  function resetRules() {
-    window.electronAPI.saveBlockingRules(DEFAULT_RULES)
-    .then(() => {
-      applyBlockingRules(DEFAULT_RULES);  // Pass the default rules directly
-      statusText.textContent = 'Default blocking rules applied';
-      setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }, 2000);
-    })
-    .catch(error => {
-      console.error('Failed to reset blocking rules:', error);
     });
   }
   
@@ -1883,7 +1840,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     loadingOverlay.innerHTML = '<div class="spinner"></div><span class="loading-text">Loading content...</span>';
     loadingOverlay.style.display = 'flex';
 
-    statusText.textContent = 'Loading page...';
+    updateStatus('loadingPage');
     titleDisplay.textContent = '';
     titleDisplay.style.display = 'none';
     currentTitleText = ''; // Clear current title
@@ -1953,7 +1910,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       inputUrl.value = webview.src;
     }
     
-    statusText.textContent = 'Page loaded, applying rules...';
     // Short delay to ensure page is fully rendered
     setTimeout(() => {
       applyBlockingRules();
@@ -2004,7 +1960,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (!userIsEditingUrl) {
       inputUrl.value = e.url;
     }
-    statusText.textContent = 'Page loaded';
+    updateStatus('pageLoaded');
     
     const url = e.url;
   
@@ -2648,7 +2604,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         // Reset status text after 3 seconds
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 3000);
         return;
       }
@@ -2705,7 +2661,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         // Reset status text after 3 seconds
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 3000);
       } else {
         console.error('Failed to adjust playback speed:', result.error);
@@ -2718,7 +2674,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           speedAdjustInterval = null;
           
           setTimeout(() => {
-            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+            updateStatusConditional(captureInterval, 'capturing', 'idle');
           }, 2000);
         }
       }
@@ -3621,7 +3577,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       console.error('Error fetching live list:', error);
       statusText.textContent = `Error: ${error.message || 'Failed to fetch live courses'}`;
       setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        updateStatusConditional(captureInterval, 'capturing', 'idle');
       }, 3000);
       throw error;
     }
@@ -3726,7 +3682,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.log('No live course elements found on page');
         statusText.textContent = 'No live courses found. Please make sure you can see the live courses list';
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 3000);
         return;
       }
@@ -3766,7 +3722,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.log('No live courses found');
         statusText.textContent = 'No live courses found';
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 2000);
         return;
       }
@@ -3785,7 +3741,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       console.error('Failed to fetch or parse live courses:', error);
       statusText.textContent = `Error: ${error.message || 'Failed to analyze live courses'}`;
       setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        updateStatusConditional(captureInterval, 'capturing', 'idle');
       }, 3000);
     }
   }
@@ -4082,7 +4038,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.error('Live ID not provided');
         statusText.textContent = 'Error: Live course ID not found';
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 3000);
         return;
       }
@@ -4092,7 +4048,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.error('YanHeKT Live profile not found in siteProfiles:', yanHeKTLiveProfileId);
         statusText.textContent = 'Error: YanHeKT Live profile not found';
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 3000);
         return;
       }
@@ -4159,7 +4115,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       console.error('Error adding YanHeKT live course to tasks:', error);
       statusText.textContent = `Error: ${error.message}`;
       setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        updateStatusConditional(captureInterval, 'capturing', 'idle');
       }, 3000);
     }
   }
@@ -4174,7 +4130,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.error('No live courses found');
         statusText.textContent = 'No live courses found to add';
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 3000);
         return;
       }
@@ -4184,7 +4140,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.error('YanHeKT Live profile not found in siteProfiles:', yanHeKTLiveProfileId);
         statusText.textContent = 'Error: YanHeKT Live profile not found';
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 3000);
         return;
       }
@@ -4217,7 +4173,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         if (!confirmResult) {
           statusText.textContent = 'Bulk live course addition cancelled';
           setTimeout(() => {
-            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+            updateStatusConditional(captureInterval, 'capturing', 'idle');
           }, 2000);
           return;
         }
@@ -4264,7 +4220,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       console.error('Error adding YanHeKT live courses to tasks:', error);
       statusText.textContent = `Error: ${error.message}`;
       setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        updateStatusConditional(captureInterval, 'capturing', 'idle');
       }, 3000);
     }
   }
@@ -4755,7 +4711,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       console.error('Error fetching session list:', error);
       statusText.textContent = `Error: ${error.message || 'Failed to fetch sessions'}`;
       setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        updateStatusConditional(captureInterval, 'capturing', 'idle');
       }, 3000);
       throw error;
     }
@@ -4895,7 +4851,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.log('No sessions found for this course');
         statusText.textContent = 'No sessions found';
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 2000);
         return;
       }
@@ -4914,7 +4870,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       console.error('Failed to fetch or parse sessions:', error);
       statusText.textContent = `Error: ${error.message || 'Failed to analyze course'}`;
       setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        updateStatusConditional(captureInterval, 'capturing', 'idle');
       }, 3000);
     }
   }
@@ -5297,7 +5253,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.error('Failed to find or create session data');
         statusText.textContent = 'Error: Session data not available';
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 3000);
         return;
       }
@@ -5314,13 +5270,13 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         // Ask user for confirmation
         const result = await webview.executeJavaScript(`
-          confirm('Could not detect a valid session ID. Continue with synthetic ID? (Playback may not work correctly)')
+          confirm('Could not detect a valid session ID. Continue with synthetic ID? (Playback will not work correctly)')
         `);
         
         if (!result) {
           statusText.textContent = 'Session addition cancelled';
           setTimeout(() => {
-            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+            updateStatusConditional(captureInterval, 'capturing', 'idle');
           }, 2000);
           return;
         }
@@ -5331,7 +5287,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.error('YanHeKT profile not found in siteProfiles:', yanHeKTProfileId);
         statusText.textContent = 'Error: YanHeKT profile not found';
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 3000);
         return;
       }
@@ -5492,7 +5448,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       console.error('Error adding YanHeKT session to tasks:', error);
       statusText.textContent = `Error: ${error.message}`;
       setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        updateStatusConditional(captureInterval, 'capturing', 'idle');
       }, 3000);
     }
   }
@@ -5559,7 +5515,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         if (!confirmResult) {
           statusText.textContent = 'Bulk session addition cancelled';
           setTimeout(() => {
-            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+            updateStatusConditional(captureInterval, 'capturing', 'idle');
           }, 2000);
           return;
         }
@@ -5570,7 +5526,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.error('YanHeKT profile not found in siteProfiles:', yanHeKTProfileId);
         statusText.textContent = 'Error: YanHeKT profile not found';
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 3000);
         return;
       }
@@ -5741,7 +5697,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       console.error('Error adding all YanHeKT sessions to tasks:', error);
       statusText.textContent = `Error: ${error.message}`;
       setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+        updateStatusConditional(captureInterval, 'capturing', 'idle');
       }, 3000);
     }
   }
@@ -5804,9 +5760,16 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   });
 
   // Add home button functionality
-  btnHome.addEventListener('click', () => {
-    // Use correct file:// URL format to load the homepage
-    const homepageUrl = `file://${window.location.pathname.replace('index.html', 'homepage.html')}`;
+  btnHome.addEventListener('click', async () => {
+    let currentLanguage = 'en'; // Default to English
+    try {
+      currentLanguage = await window.i18n.getCurrentLanguage();
+    } catch (error) {
+      console.error('Error getting current language:', error);
+      // Continue with default language if there's an error
+    }
+    const homepageFile = currentLanguage === 'zh' ? 'cn-homepage.html' : 'homepage.html';
+    const homepageUrl = `file://${window.location.pathname.replace('index.html', homepageFile)}`;
     console.log('Navigating to homepage:', homepageUrl);
     webview.src = homepageUrl;
     inputUrl.value = '';

@@ -41,7 +41,10 @@
     "clearTasks": "Clear All",
     "cacheManagement": "Cache Management",
     "clearBrowserCache": "Clear Browser Cache",
-    "backToHomepage": "Back to Homepage"
+    "backToHomepage": "Back to Homepage",
+    "status":"Status",
+    "statusText": "Idle",
+    "slideCount": "Slides captured: 0"
   },
   "preferences": {
     "title": "AutoSlides Preferences",
@@ -202,6 +205,14 @@
       "fetch": "Fetch Live Sessions",
       "status": "Idle",
       "help": "Fetch your own live sessions list from YanHeKT."
+    }
+  },
+  "renderer": {
+    "statusText": {
+      "idle": "Idle",
+      "capturing": "Capturing...",
+      "pageLoaded": "Page loaded",
+      "loadingPage": "Loading page..."
     }
   }
 }
