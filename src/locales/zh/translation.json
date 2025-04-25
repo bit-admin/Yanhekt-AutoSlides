@@ -42,7 +42,7 @@
     "cacheManagement": "缓存管理",
     "clearBrowserCache": "清除浏览器缓存",
     "backToHomepage": "返回主页",
-    "status":"状态栏",
+    "status": "状态栏",
     "statusText": "空闲",
     "slideCount": "已保存幻灯片数：0"
   },
@@ -211,7 +211,29 @@
       "idle": "空闲",
       "capturing": "截取中...",
       "pageLoaded": "页面已加载",
-      "loadingPage": "加载页面中..."
+      "loadingPage": "加载页面中...",
+      "settingsSaved": "设置已保存",
+      "settingsReset": "已恢复默认设置",
+      "cacheCleard": "缓存已清除",
+      "switchProfile": "切换到{{profile}}配置文件",
+      "rulesApplied": "{{count}}项规则已应用",
+      "waitingVideo": "等待视频加载...",
+      "waitingVideoRetry": "等待视频加载（{{retryCount}}/{{maxRetries}}）...",
+      "captureStoppedCacheCleared": "截取停止，缓存已清除",
+      "endPlayback": "播放结束，截取停止",
+      "startPlayback": "播放开始",
+      "waitingLiveStream": "等待直播开始：{{info}}",
+      "setPlaybackSpeed": "设置播放速度：{{speed}}x",
+      "playbackRetry": "播放失败，正在重试（{{retryCount}}/{{maxRetries}}）...",
+      "liveFound": "从{{pages}}页找到{{count}}个直播课程",
+      "liveAdd": "已添加一个直播课程到队列",
+      "allLiveAdd": "已添加{{count}}项直播课程到队列中",
+      "progressReset": "播放进度已重置",
+      "sessionsFound": "从{{pages}}页找到课程{{courseId}}的{{count}}个录播课程",
+      "sessionAlreadyInQueue": "该课程已在队列中",
+      "sessionAdd": "已添加一个录播课程到队列",
+      "allSessionAdd": "已添加{{count}}个录播课程到队列中",
+      "icpAdd": "已添加{{message}}到队列"
     }
   }
 }

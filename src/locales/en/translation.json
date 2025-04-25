@@ -42,7 +42,7 @@
     "cacheManagement": "Cache Management",
     "clearBrowserCache": "Clear Browser Cache",
     "backToHomepage": "Back to Homepage",
-    "status":"Status",
+    "status": "Status",
     "statusText": "Idle",
     "slideCount": "Slides captured: 0"
   },
@@ -138,7 +138,7 @@
       "default": "Default",
       "defaultBadge": "pHash & SSIM",
       "basic": "Basic",
-      "basicBadge": "Pixel" 
+      "basicBadge": "Pixel"
     },
     "setting": {
       "grayscale": "Grayscale Conversion",
@@ -212,7 +212,29 @@
       "idle": "Idle",
       "capturing": "Capturing...",
       "pageLoaded": "Page loaded",
-      "loadingPage": "Loading page..."
+      "loadingPage": "Loading page...",
+      "settingsSaved": "Settings saved",
+      "settingsReset": "Settings reset to defaults",
+      "cacheCleard": "Browser cache cleared",
+      "switchProfile": "Switched to {{profile}} profile",
+      "rulesApplied": "Applied {{count}} blocking rules",
+      "waitingVideo": "Waiting for video to load...",
+      "waitingVideoRetry": "Waiting for video ({{retryCount}}/{{maxRetries}})...",
+      "captureStoppedCacheCleared": "Capture stopped, cache cleared",
+      "endPlayback": "Playback ended, capture stopped",
+      "startPlayback": "Playback started",
+      "waitingLiveStream": "Waiting for live stream: {{info}}",
+      "setPlaybackSpeed": "Setting playback speed to {{Speed}}x",
+      "playbackRetry": "Playback error detected. Retrying ({{retryCount}}/{{maxRetries}})...",
+      "liveFound": "Found {{count}} live courses across {{pages}} pages",
+      "liveAdd": "A live course added to task queue",
+      "allLiveAdd": "Added {{count}} live courses to tasks",
+      "progressReset": "Playback progress reseted",
+      "sessionsFound": "Found {{count}} sessions across {{pages}} pages in course {{courseId}}",
+      "sessionAlreadyInQueue": "This session is already in the task queue",
+      "sessionAdd": "A session added to task queue",
+      "allSessionAdd": "Added {{count}} sessions to tasks",
+      "icpAdd": "Added {{message}} to queue"
     }
   }
 }

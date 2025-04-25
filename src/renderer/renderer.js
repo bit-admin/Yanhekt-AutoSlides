@@ -433,10 +433,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       };
       
       await window.electronAPI.saveConfig(config);
-      statusText.textContent = 'Settings saved';
-      setTimeout(() => {
-        updateStatusConditional(captureInterval, 'capturing', 'idle');
-      }, 1000);
+      updateStatus('settingsSaved', {}, 3000);
       
     } catch (error) {
       console.error('Failed to save config:', error);
@@ -461,10 +458,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       // Save to config directly
       await window.electronAPI.saveConfig(defaultConfig);
-      statusText.textContent = 'Settings reset to defaults';
-      setTimeout(() => {
-        updateStatusConditional(captureInterval, 'capturing', 'idle');
-      }, 1000);
+      updateStatus('settingsReset', {}, 3000);
       
     } catch (error) {
       console.error('Failed to reset settings:', error);
@@ -564,10 +558,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       const result = await window.electronAPI.clearBrowserCache();
       
       if (result.success) {
-        statusText.textContent = 'Browser cache cleared';
-        setTimeout(() => {
-          updateStatusConditional(captureInterval, 'capturing', 'idle');
-        }, 2000);
+        updateStatus('cacheCleard', {}, 3000);
       } else {
         statusText.textContent = 'Failed to clear cache';
       }
@@ -756,10 +747,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           
           webview.executeJavaScript(script)
             .then(() => {
-              statusText.textContent = `Applied ${appliedRules} blocking rules`;
-              setTimeout(() => {
-                updateStatusConditional(captureInterval, 'capturing', 'idle');
-              }, 2000);
+              updateStatus('rulesApplied', { count: appliedRules }, 3000);
             })
             .catch(err => {
               console.error('Error applying blocking rules:', err);
@@ -768,7 +756,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         } else {
           setTimeout(() => {
             updateStatusConditional(captureInterval, 'capturing', 'idle');
-          }, 2000);
+          }, 3000);
         }
       } catch (error) {
         console.error('Error in applyBlockingRules:', error);
@@ -949,10 +937,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             siteProfileSelect.value = id;
             activeProfileId = id;
             loadProfileDetails(id);
-            statusText.textContent = `Switched to ${profile.name} profile`;
-            setTimeout(() => {
-              statusText.textContent = 'Idle';
-            }, 2000);
+            updateStatus('switchProfile', { profile: profile.name }, 3000);
             return;
           }
         }
@@ -1444,7 +1429,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     
     btnStartCapture.disabled = true;
     btnStopCapture.disabled = false;
-    statusText.textContent = 'Capturing...';
+    updateStatus('capturing');
     
     // Setup the automatic cache cleanup timer
     setupCacheCleanupTimer();
@@ -1466,7 +1451,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         if (activeProfileId !== 'default' && 
           siteProfiles[activeProfileId]?.elementSelector?.includes('video')) {
         
-        statusText.textContent = 'Waiting for video to load...';
+        updateStatus('waitingVideo');
         
         // Wait for video element to be ready
         let videoReady = false;
@@ -1519,7 +1504,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             if (videoCheck.ready) {
               videoReady = true;
               console.log('Video is loaded and ready for capture:', videoCheck);
-              statusText.textContent = 'Capturing...';
+              updateStatus('capturing');
               // Reset counter when video is found successfully
               videoElementNotFoundCounter = 0;
             } else {
@@ -1533,7 +1518,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
               await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retrying
               retryCount++;
-              statusText.textContent = `Waiting for video (${retryCount}/${maxRetries})...`;
+              updateStatus('waitingVideoRetry', { retryCount, maxRetries });
             }
           } catch (checkError) {
             console.error('Error checking video status:', checkError);
@@ -1812,7 +1797,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
       btnStartCapture.disabled = false;
       btnStopCapture.disabled = true;
-      statusText.textContent = 'Capture stopped, cleaning up...';
       
       // Clean up cache after stopping
       window.electronAPI.clearBrowserCache()
@@ -1820,10 +1804,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           return updateCacheInfo();
         })
         .then(() => {
-          statusText.textContent = 'Capture stopped, cache cleared';
-          setTimeout(() => {
-            statusText.textContent = 'Idle';
-          }, 2000);
+          updateStatus('captureStoppedCacheCleared', {}, 3000);
         })
         .catch(error => {
           console.error('Error cleaning cache on stop:', error);
@@ -1921,7 +1902,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         urlMatchesProfilePatterns(webview.src, activeProfileId)) {
       
       console.log('URL matches profile pattern, initiating auto-start playback check');
-      statusText.textContent = 'Checking for play button...';
       
       // Clear any existing interval
       if (autoStartCheckInterval) {
@@ -2254,7 +2234,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       if (result) {
         console.log('Playback end detected, stopping capture');
         stopCapture();
-        statusText.textContent = 'Playback ended, capture stopped automatically';
+        updateStatus('endPlayback');
         
         // If we're processing tasks, move to the next task
         if (isProcessingTasks) {
@@ -2331,7 +2311,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         }
         
         console.log('Video detected as playing, starting capture');
-        statusText.textContent = 'Video playing, starting capture';
         playbackRetryAttempts = 0;
         
         // Start capture if not already capturing
@@ -2375,7 +2354,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       if (buttonCheck.clicked) {
         console.log('Play button clicked, waiting to verify playback started');
-        statusText.textContent = 'Clicked play, verifying...';
         
         // Wait a moment and then check if playback started
         setTimeout(async () => {
@@ -2410,7 +2388,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 autoStartCheckInterval = null;
               }
               
-              statusText.textContent = 'Auto-started playback';
+              updateStatus('startPlayback');
               playbackRetryAttempts = 0;
               
               // Wait a moment for video to stabilize before starting capture
@@ -2501,7 +2479,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         if (countdownCheck.found) {
           console.log('Detected countdown:', countdownCheck.info);
-          statusText.textContent = `Waiting for live stream: ${countdownCheck.info.trim()}`;
+          updateStatus('waitingLiveStream', { info: countdownCheck.info.trim() });
           // Reset retry counter when waiting for countdown
           playbackRetryAttempts = 0;
         }
@@ -2597,7 +2575,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       // Check if speed is already set correctly
       if (playingCheck.currentSpeed === targetSpeed) {
         console.log(`Playback speed is already at target ${targetSpeed}x`);
-        statusText.textContent = `Playback speed: ${targetSpeed}x`;
         speedAdjusted = true;
         clearInterval(speedAdjustInterval);
         speedAdjustInterval = null;
@@ -2611,7 +2588,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       // If we get here, we need to adjust the speed
       console.log(`Adjusting playback speed to ${targetSpeed}x (current: ${playingCheck.currentSpeed}x)`);
-      statusText.textContent = `Setting playback speed to ${targetSpeed}x`;
+      updateStatus('setPlaybackSpeed', { Speed: targetSpeed });
       
       const result = await webview.executeJavaScript(`
         (function() {
@@ -2652,7 +2629,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       if (result.success) {
         console.log(`Playback speed set to ${result.actualSpeed}x (was ${result.originalSpeed}x)`);
-        statusText.textContent = `Playback speed: ${result.actualSpeed}x`;
         speedAdjusted = true;
         
         // Clean up interval
@@ -2787,7 +2763,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         // Increment counter and reload page
         errorRetryAttempts++;
-        statusText.textContent = `Playback error detected. Retrying (${errorRetryAttempts}/${maxAttempts})...`;
+        updateStatus('playbackRetry', {
+          retryCount: errorRetryAttempts,
+          maxRetries: maxAttempts,
+        });
 
         try {
           console.log('Clearing browser cache before reload attempt');
@@ -3480,9 +3459,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   // Function to fetch live course listings from YanHeKT API
   async function fetchLiveList(page = 1, pageSize = 16) {
-    try {
-      statusText.textContent = `Fetching live courses (page ${page})...`;
-      
+    try {  
       // Extract authentication token from localStorage
       const authInfo = await webview.executeJavaScript(`
         (function() {
@@ -3631,9 +3608,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       return;
     }
 
-    // Show status while fetching
-    statusText.textContent = 'Analyzing live courses...';
-
     try {
       // Wait longer to ensure the page is fully loaded
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -3701,9 +3675,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       const maxPagesToFetch = 3; // Limit to avoid excessive API calls
       const pagesToFetch = Math.min(totalPages, maxPagesToFetch);
       
-      if (pagesToFetch > 1) {
-        statusText.textContent = `Found ${totalPages} pages, retrieving all live courses...`;
-        
+      if (pagesToFetch > 1) {        
         // Fetch all other pages except the current one
         for (let page = 1; page <= pagesToFetch; page++) {
           if (page !== currentPage) { // Skip the page we already fetched
@@ -3732,9 +3704,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       console.log('Live button injection result:', injectionResult);
       
       // Show status message
-      statusText.textContent = `Found ${allLiveCourses.length} live courses across ${totalPages} pages`;
-      setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      updateStatus('liveFound', { 
+        count: allLiveCourses.length, 
+        pages: totalPages, 
       }, 3000);
       
     } catch (error) {
@@ -4060,10 +4032,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       );
       
       if (existingTask) {
-        statusText.textContent = 'This live course is already in the task queue';
-        setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-        }, 3000);
         return;
       }
       
@@ -4106,10 +4074,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         openTaskManager();
       }
       
-      statusText.textContent = `Added live course ${liveId} to tasks`;
-      setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }, 2000);
+      updateStatus('liveAdd', {}, 3000);
       
     } catch (error) {
       console.error('Error adding YanHeKT live course to tasks:', error);
@@ -4155,10 +4120,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       );
       
       if (newLiveCourses.length === 0) {
-        statusText.textContent = 'All live courses are already in the task queue';
-        setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-        }, 3000);
         return;
       }
       
@@ -4174,7 +4135,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           statusText.textContent = 'Bulk live course addition cancelled';
           setTimeout(() => {
             updateStatusConditional(captureInterval, 'capturing', 'idle');
-          }, 2000);
+          }, 3000);
           return;
         }
       }
@@ -4211,10 +4172,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         openTaskManager();
       }
       
-      statusText.textContent = `Added ${newLiveCourses.length} live courses to tasks`;
-      setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }, 2000);
+      updateStatus('allLiveAdd', { count: newLiveCourses.length }, 3000);
       
     } catch (error) {
       console.error('Error adding YanHeKT live courses to tasks:', error);
@@ -4345,7 +4303,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       // Update status text
       setTimeout(() => {
-        statusText.textContent = 'Idle';
+        updateStatus('idle');
       }, 2000);
     }, 500);
   }
@@ -4442,9 +4400,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       taskProgress.textContent = `Processing task ${currentTaskIndex + 1}/${originalCount}`;
     }
     
-    // Update status text
-    statusText.textContent = `Loading task ${currentTaskIndex + 1}/${taskQueue.length}`;
-    
     try {
       // Reset important flags for the new task
       speedAdjusted = false;
@@ -4488,9 +4443,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           const sessionId = urlMatch ? urlMatch[1] : null;
           
           if (sessionId) {
-            statusText.textContent = `Resetting progress for session ${sessionId}...`;
             await resetYanHeKTSessionProgress(sessionId);
-            statusText.textContent = `Progress reset, loading session ${sessionId}...`;
+            updateStatus('progressReset');
           }
         } catch (resetError) {
           console.error('Error resetting session progress:', resetError);
@@ -4564,14 +4518,12 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     // Remove task progress indicator
     const taskProgress = document.getElementById('taskProgressIndicator');
     if (taskProgress) taskProgress.remove();
-    
-    statusText.textContent = 'All tasks completed';
 
     sendTaskNotification('AutoSlides Task Queue Complete', 'All tasks have been processed successfully.', true);
 
     setTimeout(() => {
-      statusText.textContent = 'Idle';
-    }, 3000);
+      updateStatus('idle');
+    }, 2000);
   }
   
   function sendTaskNotification(title, body, isTaskQueue = false) {
@@ -4609,8 +4561,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       if (!courseId) {
         throw new Error('Course ID is required');
       }
-
-      statusText.textContent = `Fetching session data (page ${page})...`;
       
       // Extract authentication token from localStorage instead of cookies
       const authInfo = await webview.executeJavaScript(`
@@ -4758,9 +4708,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       return;
     }
     
-    // Show status while fetching
-    statusText.textContent = 'Analyzing course content...';
-    
     try {
       // Wait longer to ensure the page is fully loaded
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -4811,7 +4758,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.log('No session list found on page');
         statusText.textContent = 'No session list found. Please make sure you can see the video sessions';
         setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+          updateStatusConditional(captureInterval, 'capturing', 'idle');
         }, 3000);
         return;
       }
@@ -4830,9 +4777,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       const maxPagesToFetch = 5; // Limit to avoid excessive API calls
       const pagesToFetch = Math.min(totalPages, maxPagesToFetch);
       
-      if (pagesToFetch > 1) {
-        statusText.textContent = `Found ${totalPages} pages, retrieving all sessions...`;
-        
+      if (pagesToFetch > 1) {       
         // Fetch all other pages except the current one
         for (let page = 1; page <= pagesToFetch; page++) {
           if (page !== currentPage) { // Skip the page we already fetched
@@ -4861,9 +4806,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       console.log('Button injection result:', injectionResult);
       
       // Show status message
-      statusText.textContent = `Found ${allSessions.length} sessions across ${totalPages} pages in course ${courseId}`;
-      setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+      updateStatus('sessionsFound', { 
+        count: allSessions.length, 
+        pages: totalPages, 
+        courseId: courseId 
       }, 3000);
       
     } catch (error) {
@@ -5135,7 +5081,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         if (currentUrl.includes('yanhekt.cn/liveCourse')) {
           // Re-run the detection on the new page
-          statusText.textContent = `Page changed to ${newPage}, refreshing data...`;
           setTimeout(() => {
             detectYanHeKTLiveCourse(currentUrl);
           }, 1000);
@@ -5173,7 +5118,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         if (courseId) {
           // Re-run the detection on the new page
-          statusText.textContent = `Page changed to ${newPage}, refreshing data...`;
           setTimeout(() => {
             detectYanHeKTCourse(currentUrl);
           }, 1000);
@@ -5265,7 +5209,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       const isSynthetic = sessionIdStr.startsWith('auto_');
       
       if (isSynthetic) {
-        statusText.textContent = 'Warning: Using synthetic session ID. Playback may not work correctly.';
+        statusText.textContent = 'Warning: Using synthetic session ID. Playback will not work correctly.';
         console.warn('Using synthetic session ID. Playback may not work correctly:', sessionId);
         
         // Ask user for confirmation
@@ -5299,10 +5243,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       );
       
       if (existingTask) {
-        statusText.textContent = 'This session is already in the task queue';
-        setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-        }, 3000);
+        updateStatus('sessionAlreadyInQueue', {}, 3000);
         return;
       }
       
@@ -5439,10 +5380,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         openTaskManager();
       }
       
-      statusText.textContent = `Added session ${sessionId} to tasks`;
-      setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }, 2000);
+      updateStatus('sessionAdd', {}, 3000);
       
     } catch (error) {
       console.error('Error adding YanHeKT session to tasks:', error);
@@ -5495,7 +5433,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           console.error('No sessions found');
           statusText.textContent = 'No sessions found to add';
           setTimeout(() => {
-            statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
+            updateStatusConditional(captureInterval, 'capturing', 'idle');
           }, 3000);
           return;
         }
@@ -5688,10 +5626,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         openTaskManager();
       }
       
-      statusText.textContent = `Added ${addedCount} sessions to tasks`;
-      setTimeout(() => {
-        statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-      }, 2000);
+      updateStatus('allSessionAdd', { count: addedCount }, 3000);
       
     } catch (error) {
       console.error('Error adding all YanHeKT sessions to tasks:', error);
@@ -5709,7 +5644,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   btnStartTasks.addEventListener('click', async () => {
     // Clear cache before starting tasks
     try {
-      statusText.textContent = 'Clearing cache before starting tasks...';
       const result = await window.electronAPI.clearBrowserCache();
       
       if (result.success) {
@@ -5773,7 +5707,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     console.log('Navigating to homepage:', homepageUrl);
     webview.src = homepageUrl;
     inputUrl.value = '';
-    statusText.textContent = 'Homepage loaded';
   });
 
   // Add event listener for double verification checkbox
@@ -6027,10 +5960,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       }
       
       if (statusMessage) {
-        statusText.textContent = `Added ${statusMessage} to queue`;
-        setTimeout(() => {
-          statusText.textContent = captureInterval ? 'Capturing...' : 'Idle';
-        }, 2000);
+        updateStatus('icpAdd', { message: statusMessage }, 3000);
       }
       
     } catch (error) {
