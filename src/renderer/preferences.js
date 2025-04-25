@@ -295,7 +295,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             // Get the current config first
             const config = await window.electronAPI.getConfig();
             
-            // Update only the preferences-related settings
+            // Update all settings regardless of active tab
             const updatedConfig = {
                 ...config,
                 allowBackgroundRunning: allowBackgroundRunning.checked,
@@ -316,9 +316,17 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                     port: parseInt(remotePort.value, 10),
                     username: remoteUsername.value,
                     password: remotePassword.value
-                }
+                },
+                // Always save crop settings
+                topCropPercent: parseFloat(inputTopCrop?.value || config.topCropPercent || 5),
+                bottomCropPercent: parseFloat(inputBottomCrop?.value || config.bottomCropPercent || 5)
             };
-
+    
+            // Always save all profiles if they exist
+            if (typeof saveAllProfiles === 'function') {
+                await saveAllProfiles();
+            }
+    
             darkModeMediaQuery.addEventListener('change', (e) => {
                 // Only apply if the current setting is "system"
                 const darkModeSelect = document.getElementById('darkModeSelect');
@@ -330,10 +338,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                     }
                 }
             });
-
+    
             // Notify main window about the theme change
             await window.electronAPI.sendToMainWindow('theme-changed', {darkMode: darkModeSelect.value});
-
             
             // Save the updated config
             await window.electronAPI.saveConfig(updatedConfig);
@@ -701,16 +708,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     // Load data when Profiles tab is displayed
     document.querySelector('.tab[data-tab="profiles"]').addEventListener('click', loadAllProfiles);
     
-    // Enhance Save button to save profiles
-    btnSave.addEventListener('click', async function() {
-        // Check if on Profiles tab
-        const profilesTabActive = document.getElementById('profiles-tab').classList.contains('active');
-        
-        if (profilesTabActive && hasChanges) {
-            await saveAllProfiles();
-        }
-    });
-    
     // Enhance Cancel button to reload profiles
     btnCancel.addEventListener('click', function() {
         const profilesTabActive = document.getElementById('profiles-tab').classList.contains('active');
@@ -800,31 +797,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             loadAllProfiles();
         }
     });
-    
-    // Enhance save button to also save crop settings
-    const originalSaveHandler = btnSave.onclick;
-    btnSave.onclick = async function() {
-        const profilesTabActive = document.getElementById('profiles-tab').classList.contains('active');
-        
-        if (profilesTabActive) {
-            try {
-                // Save crop settings
-                const config = await window.electronAPI.getConfig();
-                config.topCropPercent = parseFloat(inputTopCrop.value);
-                config.bottomCropPercent = parseFloat(inputBottomCrop.value);
-                await window.electronAPI.saveConfig(config);
-            } catch (error) {
-                console.error('Failed to save crop settings:', error);
-                alert('Failed to save crop settings: ' + error.message);
-                return;
-            }
-        }
-        
-        // Call original save handler for other settings
-        if (originalSaveHandler) {
-            return originalSaveHandler.call(this);
-        }
-    };
     
     // Also restore crop settings when defaults are restored
     const enhanceResetDefaults = btnDefault.onclick;

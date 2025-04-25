@@ -235,6 +235,19 @@
       "sessionAdd": "A session added to task queue",
       "allSessionAdd": "Added {{count}} sessions to tasks",
       "icpAdd": "Added {{message}} to queue"
+    },
+    "cache": {
+      "calculating": "Calculating cache size...",
+      "totalSize": "Total cache: {{size}} MB"
+    },
+    "ui": {
+      "count": "Slides captured: {{count}}"
+    },
+    "indicators": {
+      "fastMode": "⚡ FAST MODE ACTIVE ⚡",
+      "taskProgress": "Processing task {{current}}/{{total}}",
+      "fastModeSkipped": "Note: Fast Mode skipped for live stream (only applicable to sessions)",
+      "muteAudio": "🔇 AUDIO MUTED 🔇"
     }
   }
 }
