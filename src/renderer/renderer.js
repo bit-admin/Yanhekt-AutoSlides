@@ -136,6 +136,109 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   async function updateStatusConditional(condition, trueKey, falseKey, replacements = {}) {
     await updateStatus(condition ? trueKey : falseKey, replacements);
   }
+
+  /**
+   * Update element text and apply translation
+   * @param {HTMLElement} element - The DOM element to be updated
+   * @param {string} key - Translation key name (without namespace)
+   * @param {string} namespace - Translation namespace
+   * @param {Object} replacements - Replacement variables
+   * @returns {Promise<void>}
+   */
+  async function updateElementTranslation(element, key, namespace, replacements = {}) {
+    if (!element) return;
+    
+    try {
+      const fullKey = `renderer.${namespace}.${key}`;
+      const text = await window.i18n.t(fullKey, replacements);
+      element.textContent = text;
+    } catch (error) {
+      console.error(`Translation error for ${namespace}.${key}:`, error);
+      // Use simple fallback handling
+      switch (key) {
+        case 'calculating':
+          element.textContent = 'Calculating cache size...';
+          break;
+        case 'totalSize':
+          element.textContent = `Total cache: ${replacements.size || 0} MB`;
+          break;
+        case 'clearing':
+          element.textContent = 'Clearing browser cache...';
+          break;
+        case 'error':
+          element.textContent = 'Error calculating cache size';
+          break;
+        case 'cropInfo':
+          element.textContent = `Crop: Top ${replacements.top || 0}%, Bottom ${replacements.bottom || 0}%`;
+          break;
+        case 'count':
+          element.textContent = `Slides captured: ${replacements.count || 0}`;
+          break;
+        default:
+          // If there was original content, keep the original content.
+          if (!element.textContent) {
+            element.textContent = key;
+          }
+      }
+    }
+  }
+
+  /**
+   * Update cache information display
+   * @param {string} key - Translation key name: 'calculating', 'totalSize', 'clearing', 'error'
+   * @param {Object} replacements - Replacement variables, e.g., {size: 123.45}
+   * @returns {Promise<void>}
+   */
+  async function updateCacheInfoText(key, replacements = {}) {
+    await updateElementTranslation(cacheInfo, key, 'cache', replacements);
+  }
+  
+  /**
+   * Update the slide count display
+   * @param {number} count - The number of slides
+   * @returns {Promise<void>}
+   */
+  async function updateSlideCountText(count) {
+    await updateElementTranslation(slideCount, 'count', 'ui', { count });
+  }
+
+  /**
+   * Updates the text of tasks and status indicators
+   * @param {string} indicatorType - Indicator type: 'fastMode', 'taskProgress', 'fastModeSkipped'
+   * @param {HTMLElement} element - The DOM element to be updated
+   * @param {Object} replacements - Replacement variables
+   * @returns {Promise<void>}
+   */
+  async function updateIndicatorText(indicatorType, element, replacements = {}) {
+    if (!element) return;
+    
+    try {
+      const fullKey = `renderer.indicators.${indicatorType}`;
+      const text = await window.i18n.t(fullKey, replacements);
+      element.textContent = text;
+    } catch (error) {
+      console.error(`Translation error for indicator ${indicatorType}:`, error);
+      
+      switch (indicatorType) {
+        case 'fastMode':
+          element.textContent = '⚡ FAST MODE ACTIVE ⚡';
+          break;
+        case 'taskProgress':
+          const current = replacements.current || '?';
+          const total = replacements.total || '?';
+          element.textContent = `Processing task ${current}/${total}`;
+          break;
+        case 'fastModeSkipped':
+          element.textContent = 'Note: Fast Mode skipped for live stream (only applicable to sessions)';
+          break;
+        case 'muteAudio':
+          element.textContent = '🔇 AUDIO MUTED 🔇';
+          break;
+        default:
+          break;
+      }
+    }
+  }
   
   // Load default URL when app starts
   setTimeout(async () => {
@@ -529,9 +632,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   async function updateCacheInfo() {
     try {
-      cacheInfo.textContent = 'Calculating cache size...';
+      updateCacheInfoText('calculating');
       const cacheData = await window.electronAPI.getCacheSize();
-      cacheInfo.textContent = `Total cache: ${cacheData.totalMB} MB`;
+      updateCacheInfoText('totalSize', { size: cacheData.totalMB });
       
       // Add detailed tooltip
       const details = cacheData.details;
@@ -552,7 +655,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   // Clear browser cache
   async function clearBrowserCache() {
     try {
-      cacheInfo.textContent = 'Clearing browser cache...';
       btnClearCache.disabled = true;
       
       const result = await window.electronAPI.clearBrowserCache();
@@ -1577,7 +1679,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       });
       
       capturedCount++;
-      slideCount.textContent = `Slides captured: ${capturedCount}`;
+      updateSlideCountText(capturedCount);
 
       // Get the effective check interval considering fast mode
       const effectiveCheckInterval = getEffectiveCheckInterval();
@@ -1618,7 +1720,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
               const finalImageData = isUsingElementCapture ? potentialNewImageData : await cropImage(potentialNewImageData);
               await window.electronAPI.saveSlide({ imageData: finalImageData, timestamp, title: currentTitleText });
               capturedCount++;
-              slideCount.textContent = `Slides captured: ${capturedCount}`;
+              updateSlideCountText(capturedCount);
               verificationState = 'none';
               currentVerification = 0;
               potentialNewImageData = null;
@@ -1642,7 +1744,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
               const finalImageData = isUsingElementCapture ? currentImageData : await cropImage(currentImageData);
               await window.electronAPI.saveSlide({ imageData: finalImageData, timestamp, title: currentTitleText });
               capturedCount++;
-              slideCount.textContent = `Slides captured: ${capturedCount}`;
+              updateSlideCountText(capturedCount);
             }
             console.log(`${enableDoubleVerification ? 'Potential' : 'Saved'} new slide (method: ${result.method})`);
           }
@@ -2588,7 +2690,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       // If we get here, we need to adjust the speed
       console.log(`Adjusting playback speed to ${targetSpeed}x (current: ${playingCheck.currentSpeed}x)`);
-      updateStatus('setPlaybackSpeed', { Speed: targetSpeed });
+      updateStatus('setPlaybackSpeed', { speed: targetSpeed });
       
       const result = await webview.executeJavaScript(`
         (function() {
@@ -3306,7 +3408,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   }
 
   // Add a visual indicator for fast mode to the UI
-  function updateFastModeIndicator() {
+  async function updateFastModeIndicator() {
     // Remove any existing indicator
     const existingIndicator = document.getElementById('fastModeIndicator');
     if (existingIndicator) {
@@ -3320,7 +3422,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       const indicator = document.createElement('div');
       indicator.id = 'fastModeIndicator';
       indicator.className = 'fast-mode-active';
-      indicator.textContent = '⚡ FAST MODE ACTIVE ⚡';
+
+      updateIndicatorText('fastMode', indicator);
       
       // Insert after title display
       if (titleDisplay.nextSibling) {
@@ -4235,7 +4338,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const taskProgress = document.createElement('div');
     taskProgress.id = 'taskProgressIndicator';
     taskProgress.className = 'task-progress';
-    taskProgress.textContent = `Processing task 1/${taskQueue.length}`;
+
+    updateIndicatorText('taskProgress', taskProgress, {
+      current: 1,
+      total: taskQueue.length
+    });
     
     // Insert after title display or fast mode indicator
     const fastModeIndicator = document.getElementById('fastModeIndicator');
@@ -4355,7 +4462,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           const muteIndicator = document.createElement('div');
           muteIndicator.id = 'muteIndicator';
           muteIndicator.className = 'mute-indicator';
-          muteIndicator.innerHTML = '🔇 AUDIO MUTED 🔇';
+          
+          updateIndicatorText('muteAudio', muteIndicator);
           
           // Find insertion point - after fast mode indicator if it exists
           const fastModeIndicator = document.getElementById('fastModeIndicator');
@@ -4397,7 +4505,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       // Use the original count for display
       const originalCount = parseInt(taskProgress.dataset.originalCount);
       // Show completed count (currentTaskIndex) out of total original count
-      taskProgress.textContent = `Processing task ${currentTaskIndex + 1}/${originalCount}`;
+      updateIndicatorText('taskProgress', taskProgress, {
+        current: currentTaskIndex + 1,
+        total: originalCount
+      });
     }
     
     try {
@@ -4460,7 +4571,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         taskNote.style.color = '#f39c12';
         taskNote.style.fontSize = '12px';
         taskNote.style.marginTop = '5px';
-        taskNote.textContent = 'Note: Fast Mode skipped for live stream (only applicable to sessions)';
+        
+        updateIndicatorText('fastModeSkipped', taskNote);
         
         // Only add if not already present
         if (!document.getElementById('fastModeSkippedNote')) {
