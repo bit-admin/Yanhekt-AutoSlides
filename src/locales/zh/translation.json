@@ -244,9 +244,15 @@
     },
     "indicators": {
       "fastMode": "⚡ 快速模式启用 ⚡",
-      "taskProgress": "正在处理任务 {{current}}/{{total}}",
+      "taskProgress": "正在进行任务 {{current}}/{{total}}",
       "fastModeSkipped": "直播不适用快速模式（仅适用于录播课程）",
       "muteAudio": "🔇 音频已静音 🔇"
+    },
+    "notifications": {
+      "taskInProgress": "任务进行中",
+      "workingOnTask": "AutoSlides 正在进行任务 {{current}}/{{total}}",
+      "queueComplete": "AutoSlides 任务队列完成",
+      "allTasksComplete": "所有任务已完成。"
     }
   }
 }
