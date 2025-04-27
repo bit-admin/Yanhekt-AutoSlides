@@ -248,6 +248,12 @@
       "taskProgress": "Processing task {{current}}/{{total}}",
       "fastModeSkipped": "Note: Fast Mode skipped for live stream (only applicable to sessions)",
       "muteAudio": "🔇 AUDIO MUTED 🔇"
+    },
+    "notifications": {
+      "taskInProgress": "Task in progress",
+      "workingOnTask": "AutoSlides is working on task {{current}}/{{total}}",
+      "queueComplete": "AutoSlides Task Queue Complete",
+      "allTasksComplete": "All tasks have been processed successfully."
     }
   }
 }

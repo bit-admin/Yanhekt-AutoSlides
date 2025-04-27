@@ -3345,7 +3345,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   resetProgressCheckbox.addEventListener('change', function() {
     resetVideoProgress = this.checked;
-    console.log('Reset video progress set to:', resetVideoProgress);
     
     // Save to config file
     saveConfig();
@@ -3354,7 +3353,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   // Add event listener for fast mode checkbox
   fastModeCheckbox.addEventListener('change', function() {
     fastModeEnabled = this.checked;
-    console.log('Fast mode set to:', fastModeEnabled);
     
     // Save to config file
     saveConfig();
@@ -3362,7 +3360,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   autoMuteCheckbox.addEventListener('change', function() {
     autoMuteEnabled = this.checked;
-    console.log('Auto-mute set to:', autoMuteEnabled);
     
     // Save to config file
     saveConfig();
@@ -3374,11 +3371,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (isProcessingTasks && fastModeEnabled && 
         taskQueue[currentTaskIndex] && 
         taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
-      console.log('Fast Mode active: Using 0.5s check interval');
       return 0.5; // Fast mode check interval
     }
     const normalInterval = parseFloat(inputCheckInterval.value);
-    console.log('Using normal check interval:', normalInterval);
     return normalInterval;
   }
 
@@ -3387,10 +3382,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (isProcessingTasks && fastModeEnabled && 
         taskQueue[currentTaskIndex] && 
         taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
-      console.log('Fast Mode active: Forcing auto-adjust speed ON');
       return true; // Force auto-adjust speed in fast mode
     }
-    console.log('Using normal auto-adjust speed setting:', autoAdjustSpeed.checked);
     return autoAdjustSpeed.checked;
   }
 
@@ -3399,11 +3392,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (isProcessingTasks && fastModeEnabled && 
         taskQueue[currentTaskIndex] && 
         taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
-      console.log('Fast Mode active: Using 4.0x playback speed');
       return 4.0; // Fast mode speed
     }
     const normalSpeed = parseFloat(playbackSpeed.value);
-    console.log('Using normal playback speed:', normalSpeed);
     return normalSpeed;
   }
 
@@ -3643,8 +3634,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         }
       });
       
-      console.log(`API response for live courses page ${page}:`, result);
-      
       // Process API response
       if (result.code === 0 && result.data) {
         return result; // Return the raw API response
@@ -3725,9 +3714,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           const hasLiveElements = document.querySelectorAll('.common-course-card').length > 0 || 
                                 document.querySelector('.ant-list-grid') !== null;
           
-          console.log('Found common-course-cards:', document.querySelectorAll('.common-course-card').length);
-          console.log('Found ant-list-grid:', document.querySelector('.ant-list-grid') !== null);
-          
           // Get pagination info if available
           const paginationItems = document.querySelectorAll('.ant-pagination-item');
           let currentPage = 1;
@@ -3752,8 +3738,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           };
         })();
       `);
-      
-      console.log('Live page validation result:', isValidPage);
       
       if (!isValidPage.hasLiveElements) {
         console.log('No live course elements found on page');
@@ -4166,8 +4150,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         courseInfo: courseInfo // Add the course info to the task
       });
       
-      console.log('Task queue updated:', taskQueue.length, 'tasks');
-      
       // Update UI
       updateTaskTable();
       btnStartTasks.disabled = taskQueue.length === 0 || isProcessingTasks || !validateAutomationRequirements();
@@ -4263,8 +4245,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           courseInfo: courseInfo
         });
       }
-      
-      console.log('Task queue updated:', taskQueue.length, 'tasks');
       
       // Update UI
       updateTaskTable();
@@ -4437,9 +4417,10 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       const currentTaskNumber = currentTaskIndex + 1;
       
-      sendTaskNotification(
-        'Task in progress', 
-        `AutoSlides is working on task ${currentTaskNumber}/${totalTasks}`
+      await sendTaskNotification(
+        'taskInProgress', 
+        'workingOnTask',
+        { current: currentTaskNumber, total: totalTasks }
       );
     }
 
@@ -4608,7 +4589,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   }
 
-  function finishTaskProcessing() {
+  async function finishTaskProcessing() {
     // If there's still a task in the queue and we're done processing, remove it
     if (taskQueue.length > 0 && currentTaskIndex >= 0 && currentTaskIndex < taskQueue.length) {
       taskQueue.splice(currentTaskIndex, 1);
@@ -4631,21 +4612,49 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     const taskProgress = document.getElementById('taskProgressIndicator');
     if (taskProgress) taskProgress.remove();
 
-    sendTaskNotification('AutoSlides Task Queue Complete', 'All tasks have been processed successfully.', true);
+    await sendTaskNotification(
+      'queueComplete', 
+      'allTasksComplete',
+      {},
+      true
+    );
 
     setTimeout(() => {
       updateStatus('idle');
     }, 2000);
   }
   
-  function sendTaskNotification(title, body, isTaskQueue = false) {
-    // Use Electron's API to send notifications through IPC
-    window.electronAPI.showNotification({
-      title: title,
-      body: body,
-      // Pass whether this is for a task queue or individual task
-      isTaskQueue: isTaskQueue 
-    });
+  /**
+   * Send localized task notifications
+   *
+   * @param {string} titleKey - The translation key for the title, automatically prefixed with 'notifications'
+   * @param {string} bodyKey - The translation key for the content, automatically prefixed with 'notifications'
+   * @param {Object} replacements - Variables used to replace dynamic text
+   * @param {boolean} isTaskQueue - Whether it is a task queue notification
+   * @returns {Promise<void>}
+   */
+  async function sendTaskNotification(titleKey, bodyKey, replacements = {}, isTaskQueue = false) {
+    try {
+      const fullTitleKey = `renderer.notifications.${titleKey}`;
+      const fullBodyKey = `renderer.notifications.${bodyKey}`;
+      
+      const title = await window.i18n.t(fullTitleKey, replacements);
+      const body = await window.i18n.t(fullBodyKey, replacements);
+      
+      // Send Notification
+      window.electronAPI.showNotification({
+        title: title,
+        body: body,
+        isTaskQueue: isTaskQueue
+      });
+    } catch (error) {
+      console.error(`Translation error in notification: ${error}`);
+      window.electronAPI.showNotification({
+        title: titleKey,
+        body: bodyKey,
+        isTaskQueue: isTaskQueue
+      });
+    }
   }
 
   // Extract course ID from URL
@@ -4729,11 +4738,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           };
         })();
       `);
-      
-      console.log('Auth info retrieved (token hidden):', {
-        ...authInfo,
-        token: authInfo.token ? '***token-hidden***' : 'null'
-      });
       
       if (!authInfo.token) {
         throw new Error('Authentication token not found. Please log in first and refresh the page.');
@@ -4915,7 +4919,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       // Inject buttons to the UI with pagination monitoring
       const injectionResult = await injectYanHeKTButtons(allSessions, courseId, currentPage, totalPages);
-      console.log('Button injection result:', injectionResult);
       
       // Show status message
       updateStatus('sessionsFound', { 
@@ -5211,7 +5214,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         const jsonStr = message.substring('AUTOSLIDES_ADD_SESSION:'.length);
         const data = JSON.parse(jsonStr);
         
-        console.log('Received add session request from webview:', data);
         
         // Create a session object with the data from the message
         const sessionData = {
@@ -5228,14 +5230,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         console.error('Error processing add session message:', error);
       }
     } else if (message === 'AUTOSLIDES_ADD_ALL_SESSIONS') {
-      console.log('Received add all sessions request from webview');
       await addAllYanHeKTSessionsToTasks();
     } else if (message === 'AUTOSLIDES_PAGINATION_CLICKED') {
-      console.log('Pagination navigation detected');
     } else if (message.startsWith('AUTOSLIDES_PAGE_CHANGED:')) {
       try {
         const newPage = parseInt(message.substring('AUTOSLIDES_PAGE_CHANGED:'.length), 10);
-        console.log('Page changed to:', newPage);
         
         // Get the current URL to extract course ID
         const currentUrl = await webview.executeJavaScript('window.location.href');
@@ -5539,8 +5538,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         profileName: siteProfiles[yanHeKTProfileId].name || yanHeKTProfileId,
         courseInfo: courseInfo // Add the course info to the task
       });
-      
-      console.log('Task queue updated:', taskQueue.length, 'tasks');
       
       // Update UI
       updateTaskTable();
