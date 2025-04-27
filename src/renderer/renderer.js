@@ -536,7 +536,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       };
       
       await window.electronAPI.saveConfig(config);
-      updateStatus('settingsSaved', {}, 3000);
+      await updateStatus('settingsSaved', {}, 3000);
       
     } catch (error) {
       console.error('Failed to save config:', error);
@@ -561,7 +561,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       // Save to config directly
       await window.electronAPI.saveConfig(defaultConfig);
-      updateStatus('settingsReset', {}, 3000);
+      await updateStatus('settingsReset', {}, 3000);
       
     } catch (error) {
       console.error('Failed to reset settings:', error);
@@ -660,7 +660,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       const result = await window.electronAPI.clearBrowserCache();
       
       if (result.success) {
-        updateStatus('cacheCleard', {}, 3000);
+        await updateStatus('cacheCleard', {}, 3000);
       } else {
         statusText.textContent = 'Failed to clear cache';
       }
@@ -848,8 +848,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           `;
           
           webview.executeJavaScript(script)
-            .then(() => {
-              updateStatus('rulesApplied', { count: appliedRules }, 3000);
+            .then(async () => {
+              await updateStatus('rulesApplied', { count: appliedRules }, 3000);
             })
             .catch(err => {
               console.error('Error applying blocking rules:', err);
@@ -1022,7 +1022,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   }
 
   // Add this function to detect and switch profiles based on URL
-  function checkAndSwitchProfile(url) {
+  async function checkAndSwitchProfile(url) {
     // Don't switch if capturing is in progress
     if (captureInterval) {
       return;
@@ -1039,7 +1039,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             siteProfileSelect.value = id;
             activeProfileId = id;
             loadProfileDetails(id);
-            updateStatus('switchProfile', { profile: profile.name }, 3000);
+            await updateStatus('switchProfile', { profile: profile.name }, 3000);
             return;
           }
         }
@@ -1531,7 +1531,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     
     btnStartCapture.disabled = true;
     btnStopCapture.disabled = false;
-    updateStatus('capturing');
+    await updateStatus('capturing');
     
     // Setup the automatic cache cleanup timer
     setupCacheCleanupTimer();
@@ -1553,7 +1553,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         if (activeProfileId !== 'default' && 
           siteProfiles[activeProfileId]?.elementSelector?.includes('video')) {
         
-        updateStatus('waitingVideo');
+        await updateStatus('waitingVideo');
         
         // Wait for video element to be ready
         let videoReady = false;
@@ -1606,7 +1606,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             if (videoCheck.ready) {
               videoReady = true;
               console.log('Video is loaded and ready for capture:', videoCheck);
-              updateStatus('capturing');
+              await updateStatus('capturing');
               // Reset counter when video is found successfully
               videoElementNotFoundCounter = 0;
             } else {
@@ -1620,7 +1620,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
               await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retrying
               retryCount++;
-              updateStatus('waitingVideoRetry', { retryCount, maxRetries });
+              await updateStatus('waitingVideoRetry', { retryCount, maxRetries });
             }
           } catch (checkError) {
             console.error('Error checking video status:', checkError);
@@ -1905,8 +1905,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         .then(() => {
           return updateCacheInfo();
         })
-        .then(() => {
-          updateStatus('captureStoppedCacheCleared', {}, 3000);
+        .then(async () => {
+          await updateStatus('captureStoppedCacheCleared', {}, 3000);
         })
         .catch(error => {
           console.error('Error cleaning cache on stop:', error);
@@ -1917,13 +1917,13 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   }
   
   // Set event listeners for page loading
-  webview.addEventListener('did-start-loading', () => {
+  webview.addEventListener('did-start-loading', async () => {
     // reset loading overlay
     loadingOverlay.classList.remove('timeout');
     loadingOverlay.innerHTML = '<div class="spinner"></div><span class="loading-text">Loading content...</span>';
     loadingOverlay.style.display = 'flex';
 
-    updateStatus('loadingPage');
+    await updateStatus('loadingPage');
     titleDisplay.textContent = '';
     titleDisplay.style.display = 'none';
     currentTitleText = ''; // Clear current title
@@ -2042,7 +2042,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     if (!userIsEditingUrl) {
       inputUrl.value = e.url;
     }
-    updateStatus('pageLoaded');
+    await updateStatus('pageLoaded');
     
     const url = e.url;
   
@@ -2336,7 +2336,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       if (result) {
         console.log('Playback end detected, stopping capture');
         stopCapture();
-        updateStatus('endPlayback');
+        await updateStatus('endPlayback');
         
         // If we're processing tasks, move to the next task
         if (isProcessingTasks) {
@@ -2490,7 +2490,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 autoStartCheckInterval = null;
               }
               
-              updateStatus('startPlayback');
+              await updateStatus('startPlayback');
               playbackRetryAttempts = 0;
               
               // Wait a moment for video to stabilize before starting capture
@@ -2581,7 +2581,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         if (countdownCheck.found) {
           console.log('Detected countdown:', countdownCheck.info);
-          updateStatus('waitingLiveStream', { info: countdownCheck.info.trim() });
+          await updateStatus('waitingLiveStream', { info: countdownCheck.info.trim() });
           // Reset retry counter when waiting for countdown
           playbackRetryAttempts = 0;
         }
@@ -2690,7 +2690,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       
       // If we get here, we need to adjust the speed
       console.log(`Adjusting playback speed to ${targetSpeed}x (current: ${playingCheck.currentSpeed}x)`);
-      updateStatus('setPlaybackSpeed', { speed: targetSpeed });
+      await updateStatus('setPlaybackSpeed', { speed: targetSpeed });
       
       const result = await webview.executeJavaScript(`
         (function() {
@@ -4159,7 +4159,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         openTaskManager();
       }
       
-      updateStatus('liveAdd', {}, 3000);
+      await updateStatus('liveAdd', {}, 3000);
       
     } catch (error) {
       console.error('Error adding YanHeKT live course to tasks:', error);
@@ -4255,7 +4255,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         openTaskManager();
       }
       
-      updateStatus('allLiveAdd', { count: newLiveCourses.length }, 3000);
+      await updateStatus('allLiveAdd', { count: newLiveCourses.length }, 3000);
       
     } catch (error) {
       console.error('Error adding YanHeKT live courses to tasks:', error);
@@ -4389,8 +4389,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       inputUrl.value = homeUrl;
       
       // Update status text
-      setTimeout(() => {
-        updateStatus('idle');
+      setTimeout(async () => {
+        await updateStatus('idle');
       }, 2000);
     }, 500);
   }
@@ -4536,7 +4536,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           
           if (sessionId) {
             await resetYanHeKTSessionProgress(sessionId);
-            updateStatus('progressReset');
+            await updateStatus('progressReset');
           }
         } catch (resetError) {
           console.error('Error resetting session progress:', resetError);
@@ -4619,8 +4619,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       true
     );
 
-    setTimeout(() => {
-      updateStatus('idle');
+    setTimeout(async () => {
+      await updateStatus('idle');
     }, 2000);
   }
   
@@ -5413,7 +5413,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       );
       
       if (existingTask) {
-        updateStatus('sessionAlreadyInQueue', {}, 3000);
+        await updateStatus('sessionAlreadyInQueue', {}, 3000);
         return;
       }
       
@@ -5548,7 +5548,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         openTaskManager();
       }
       
-      updateStatus('sessionAdd', {}, 3000);
+      await updateStatus('sessionAdd', {}, 3000);
       
     } catch (error) {
       console.error('Error adding YanHeKT session to tasks:', error);
@@ -5794,7 +5794,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         openTaskManager();
       }
       
-      updateStatus('allSessionAdd', { count: addedCount }, 3000);
+      await updateStatus('allSessionAdd', { count: addedCount }, 3000);
       
     } catch (error) {
       console.error('Error adding all YanHeKT sessions to tasks:', error);
@@ -6057,7 +6057,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   });
   
   // Handle add-tasks event from main process
-  document.addEventListener('ipc-add-tasks', (event) => {
+  document.addEventListener('ipc-add-tasks', async (event) => {
     try {
       const tasks = event.detail;
       console.log('Received tasks from remote API:', tasks);
@@ -6128,7 +6128,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       }
       
       if (statusMessage) {
-        updateStatus('icpAdd', { message: statusMessage }, 3000);
+        await updateStatus('icpAdd', { message: statusMessage }, 3000);
       }
       
     } catch (error) {
