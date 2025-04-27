@@ -32,7 +32,7 @@
     "taskTableProfile": "配置文件",
     "taskTableTaskId": "任务 ID",
     "taskTableInfo": "详细信息",
-    "taskTableDelete": "x",
+    "taskTableDelete": "\u200B X \u200B",
     "resetProgress": "始终从头开始播放视频",
     "fastMode": "快速模式 (0.5秒间隔, 4倍速, 仅限录播)",
     "autoMute": "静音运行",

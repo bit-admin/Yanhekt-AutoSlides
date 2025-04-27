@@ -5097,7 +5097,11 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 // Special prefix that we'll detect in the console-message event
                 console.log('AUTOSLIDES_ADD_SESSION:' + JSON.stringify({
                   sessionId: session.sessionId,
-                  index: fullIndex >= 0 ? fullIndex : index
+                  index: fullIndex >= 0 ? fullIndex : index,
+                  courseId: session.courseId || window.__courseId,
+                  title: session.title || '',        // Include title
+                  weekNumber: session.weekNumber,    // Include week number
+                  dayOfWeek: session.dayOfWeek       // Include day of week
                 }));
                 return false; // Prevent default
               };
@@ -5209,8 +5213,17 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         
         console.log('Received add session request from webview:', data);
         
-        // Call your function with the data
-        await addYanHeKTSessionToTasks(data.sessionId, data.index);
+        // Create a session object with the data from the message
+        const sessionData = {
+          sessionId: data.sessionId,
+          courseId: data.courseId,
+          title: data.title || '',
+          weekNumber: data.weekNumber,
+          dayOfWeek: data.dayOfWeek
+        };
+        
+        // Pass the full session object to addYanHeKTSessionToTasks
+        await addYanHeKTSessionToTasks(data.sessionId, data.courseId, sessionData);
       } catch (error) {
         console.error('Error processing add session message:', error);
       }
@@ -5241,9 +5254,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   });
   
   // Add a single YanHeKT session to task queue with course info
-  async function addYanHeKTSessionToTasks(sessionId, indexOrCourseId) {
+  async function addYanHeKTSessionToTasks(sessionId, courseIdOrIndex, sessionData = null) {
     try {
-      console.log('Adding YanHeKT session to tasks:', sessionId, 'with indexOrCourseId:', indexOrCourseId);
+      console.log('Adding YanHeKT session to tasks:', sessionId, 'with courseIdOrIndex:', courseIdOrIndex);
       
       // Initialize sessions array if it doesn't exist
       if (!window.__autoSlidesSessions) {
@@ -5253,55 +5266,103 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       let session;
       let isUsingCourseId = false;
       
-      // Check if we're dealing with an array index or a courseId
-      if (typeof indexOrCourseId === 'number') {
-        // Try to retrieve session from array first (original button injection method)
-        if (indexOrCourseId >= 0 && indexOrCourseId < window.__autoSlidesSessions.length) {
-          // This is a valid index into the __autoSlidesSessions array
-          session = window.__autoSlidesSessions[indexOrCourseId];
+      // If sessionData is provided, use it directly to create a more complete session object
+      if (sessionData) {
+        console.log('Using provided session data:', sessionData);
+        
+        // Create a session object with complete information
+        session = {
+          sessionId: sessionId,
+          courseId: parseInt(courseIdOrIndex, 10), // Ensures courseId is properly converted to number
+          title: sessionData.title || '',
+          weekNumber: sessionData.weekNumber,
+          dayOfWeek: sessionData.dayOfWeek
+        };
+        
+        // Add to sessions array if not already there
+        const existingIndex = window.__autoSlidesSessions.findIndex(s => 
+          s.sessionId?.toString() === sessionId?.toString()
+        );
+        
+        if (existingIndex >= 0) {
+          // Update existing session
+          window.__autoSlidesSessions[existingIndex] = session;
         } else {
-          // This might be a courseId rather than an index
+          // Add new session
+          window.__autoSlidesSessions.push(session);
+        }
+        
+        // Skip the rest of the session determination logic
+        isUsingCourseId = true;
+      } else {
+        // First, determine if we have a valid courseId (string or number)
+        if (typeof courseIdOrIndex === 'string' && /^\d+$/.test(courseIdOrIndex)) {
+          // We have a string courseId - use it directly
           isUsingCourseId = true;
-          console.log('Index is out of bounds, treating as courseId:', indexOrCourseId);
+          console.log('Using provided course ID (string):', courseIdOrIndex);
           
-          // Create a synthetic session object with the courseId
+          // Create a session object with the courseId
           session = {
             sessionId: sessionId,
-            courseId: indexOrCourseId, // Treat as courseId
+            courseId: parseInt(courseIdOrIndex, 10),
             title: '', // We'll try to fetch this later
             weekNumber: null,
             dayOfWeek: null
           };
           
-          // Store it in the array for future reference
+          // Add to sessions array
           window.__autoSlidesSessions.push(session);
-        }
-      } else {
-        // Non-numeric parameter - try to find session by sessionId
-        console.log('Non-numeric parameter provided, searching for session by ID');
-        const existingIndex = window.__autoSlidesSessions.findIndex(s => 
-          s.sessionId.toString() === sessionId.toString()
-        );
-        
-        if (existingIndex >= 0) {
-          session = window.__autoSlidesSessions[existingIndex];
-        } else {
-          // Create a minimal session object
-          session = {
-            sessionId: sessionId,
-            title: `Session ${sessionId}`,
-            weekNumber: null,
-            dayOfWeek: null
-          };
-          
-          // If courseId was provided as a string
-          if (typeof indexOrCourseId === 'string' && /^\d+$/.test(indexOrCourseId)) {
-            session.courseId = parseInt(indexOrCourseId, 10);
+        } 
+        else if (typeof courseIdOrIndex === 'number') {
+          // Check if this number represents a course ID (large number) or array index (small number)
+          // For array indices, they should be valid (>=0 and within array bounds)
+          if (courseIdOrIndex >= 0 && 
+              courseIdOrIndex < window.__autoSlidesSessions.length && 
+              courseIdOrIndex < 1000) { // Assuming course IDs are larger than 1000
+            
+            // This is likely a valid index into the __autoSlidesSessions array
+            session = window.__autoSlidesSessions[courseIdOrIndex];
+            console.log('Found session by index:', courseIdOrIndex);
+          } else {
+            // This is more likely a courseId passed as a number
             isUsingCourseId = true;
+            console.log('Treating numeric parameter as courseId:', courseIdOrIndex);
+            
+            // Create a session object with the courseId
+            session = {
+              sessionId: sessionId,
+              courseId: courseIdOrIndex,
+              title: '', // We'll try to fetch this later
+              weekNumber: null,
+              dayOfWeek: null
+            };
+            
+            // Add to sessions array
+            window.__autoSlidesSessions.push(session);
           }
+        } 
+        else {
+          // No valid courseId - try to find session by sessionId
+          console.log('No course ID provided, searching for session by ID');
+          const existingIndex = window.__autoSlidesSessions.findIndex(s => 
+            s.sessionId?.toString() === sessionId?.toString()
+          );
           
-          // Store it in the array
-          window.__autoSlidesSessions.push(session);
+          if (existingIndex >= 0) {
+            session = window.__autoSlidesSessions[existingIndex];
+            console.log('Found existing session by ID');
+          } else {
+            // Create a minimal session object without courseId
+            session = {
+              sessionId: sessionId,
+              title: `Session ${sessionId}`,
+              weekNumber: null,
+              dayOfWeek: null
+            };
+            
+            // Store it in the array
+            window.__autoSlidesSessions.push(session);
+          }
         }
       }
       
@@ -5313,8 +5374,6 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         }, 3000);
         return;
       }
-      
-      // Rest of the function remains the same as your original implementation
       
       // Convert sessionId to string before checking if it's synthetic
       const sessionIdStr = String(sessionId);
@@ -5363,9 +5422,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       let courseInfo = '';
       try {
         // We'll use the courseId from our session object or the global courseId
-        const courseId = session.courseId || await webview.executeJavaScript('window.__courseId || ""');
+        const courseId = session.courseId !== undefined ? session.courseId : await webview.executeJavaScript('window.__courseId || ""');
         
-        if (!courseId) {
+        if (!courseId && courseId !== 0) {
           throw new Error('Course ID not available');
         }
         
