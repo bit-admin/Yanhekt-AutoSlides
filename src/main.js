@@ -182,71 +182,81 @@ function ensureDirectoryExists(directory) {
 }
 
 function createApplicationMenu() {
+  const translate = key => {
+    try {
+      return i18next.t(`menu.${key}`);
+    } catch (error) {
+      console.error(`Translation error for menu.${key}:`, error);
+      return key; // Roll back to key name
+    }
+  };
+
   // Template for macOS application menu
   const template = [
     {
       label: app.name,
       submenu: [
-        { role: 'about' },
+        { role: 'about', label: translate('about') },
         { type: 'separator' },
         {
-          label: 'Preferences',
+          label: translate('preferences'),
           accelerator: process.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,',
           click: () => createPreferencesWindow()
         },
         { type: 'separator' },
         { role: 'services' },
         { type: 'separator' },
-        { role: 'hide' },
-        { role: 'hideOthers' },
-        { role: 'unhide' },
+        { role: 'hide', label: translate('hide') },
+        { role: 'hideOthers', label: translate('hideOthers') },
+        { role: 'unhide', label: translate('unhide') },
         { type: 'separator' },
-        { role: 'quit' }
+        { role: 'quit', label: translate('quit') }
       ]
     },
     {
-      label: 'Edit',
+      label: translate('edit'),
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
+        { role: 'undo', label: translate('undo') },
+        { role: 'redo', label: translate('redo') },
         { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'delete' },
-        { role: 'selectAll' }
+        { role: 'cut', label: translate('cut') },
+        { role: 'copy', label: translate('copy') },
+        { role: 'paste', label: translate('paste') },
+        { role: 'delete', label: translate('delete') },
+        { role: 'selectAll', label: translate('selectAll') }
       ]
     },
     {
-      label: 'View',
+      label: translate('view'),
       submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
+        { role: 'reload', label: translate('reload') },
+        { role: 'forceReload', label: translate('forceReload') },
+        { role: 'toggleDevTools', label: translate('toggleDevTools') },
         { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
+        { role: 'resetZoom', label: translate('resetZoom') },
+        { role: 'zoomIn', label: translate('zoomIn') },
+        { role: 'zoomOut', label: translate('zoomOut') },
         { type: 'separator' },
-        { role: 'togglefullscreen' }
+        { role: 'togglefullscreen', label: translate('toggleFullscreen') }
       ]
     },
     {
-      label: 'Window',
+      label: translate('window'),
       submenu: [
-        { role: 'minimize' },
-        { role: 'zoom' },
+        { role: 'minimize', label: translate('minimize') },
+        { role: 'zoom', label: translate('zoom') },
         { type: 'separator' },
-        { role: 'front' },
+        { role: 'front', label: translate('front') },
         { type: 'separator' },
         { role: 'window' }
       ]
     },
     {
       role: 'help',
+      label: translate('help'),
       submenu: [
         {
-          label: 'AutoSlides Help',
+          label: translate('autoSlidesHelp'),
           click: async () => {
             const helpWindow = new BrowserWindow({
               width: 900,
@@ -254,7 +264,7 @@ function createApplicationMenu() {
               webPreferences: {
                 contextIsolation: true,
                 nodeIntegration: false,
-                preload: path.join(__dirname, 'preload-help.js') // Use our new preload script
+                preload: path.join(__dirname, 'preload-help.js')
               },
               title: 'AutoSlides Help'
             });
@@ -263,7 +273,7 @@ function createApplicationMenu() {
           }
         },
         {
-          label: 'Visit GitHub Repository',
+          label: translate('visitGitHub'),
           click: async () => {
             await shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides');
           }

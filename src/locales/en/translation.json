@@ -1,4 +1,35 @@
 {
+  "menu": {
+    "about": "About",
+    "hide": "Hide",
+    "hideOthers": "Hide Others",
+    "unhide": "Show All",
+    "quit": "Quit",
+    "preferences": "Preferences",
+    "edit": "Edit",
+    "undo": "Undo",
+    "redo": "Redo",
+    "cut": "Cut",
+    "copy": "Copy",
+    "paste": "Paste",
+    "delete": "Delete",
+    "selectAll": "Select All",
+    "view": "View",
+    "reload": "Reload",
+    "forceReload": "Force Reload",
+    "toggleDevTools": "Toggle Developer Tools",
+    "resetZoom": "Actual Size",
+    "zoomIn": "Zoom In",
+    "zoomOut": "Zoom Out",
+    "toggleFullscreen": "Toggle Full Screen",
+    "window": "Window",
+    "minimize": "Minimize",
+    "zoom": "Zoom",
+    "front": "Bring All to Front",
+    "help": "Help",
+    "autoSlidesHelp": "AutoSlides Help",
+    "visitGitHub": "Visit GitHub Repository"
+  },
   "interface": {
     "start": "Start Capture",
     "stop": "Stop Capture",
@@ -203,7 +234,6 @@
     "live": {
       "title": "Live Sessions",
       "fetch": "Fetch Live Sessions",
-      "status": "Idle",
       "help": "Fetch your own live sessions list from YanHeKT."
     }
   },
@@ -254,6 +284,13 @@
       "workingOnTask": "AutoSlides is working on task {{current}}/{{total}}",
       "queueComplete": "AutoSlides Task Queue Complete",
       "allTasksComplete": "All tasks have been processed successfully."
+    },
+    "webButtons": {
+      "addToTasks": "Add to Tasks",
+      "addAllSessions": "Add All Sessions to Task List",
+      "addAllLives": "Add All Live Courses to Task List",
+      "sessionsLoaded": "All {{pages}} pages of courses loaded, {{count}} sessions total",
+      "livesLoaded": "All {{pages}} pages of live courses loaded, {{count}} courses total"
     }
   }
 }
