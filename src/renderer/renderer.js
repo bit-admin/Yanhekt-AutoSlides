@@ -266,7 +266,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   // Create loading overlay with message
   const loadingOverlay = document.createElement('div');
   loadingOverlay.id = 'loadingOverlay';
-  loadingOverlay.innerHTML = '<div class="spinner"></div><span class="loading-text">Loading content...</span>';
+  loadingOverlay.innerHTML = '<div class="spinner"></div><span class="loading-text">Loading...</span>';
   loadingOverlay.style.cssText = `
     position: absolute;
     top: 0;
@@ -349,8 +349,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       if (loadingText) {
         loadingText.innerHTML = `
           This page is taking longer than expected to load<br><br>
-          It might be temporarily unavailable or too busy.<br>
-          Check your network connection if the issue persists.
+          It might be temporarily unavailable or experiencing technical difficulties.<br>
+          Check your network connection or try resetting all data in Preferences if the issue persists.
         `;
       }
     }
@@ -632,9 +632,9 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   async function updateCacheInfo() {
     try {
-      updateCacheInfoText('calculating');
+      await updateCacheInfoText('calculating');
       const cacheData = await window.electronAPI.getCacheSize();
-      updateCacheInfoText('totalSize', { size: cacheData.totalMB });
+      await updateCacheInfoText('totalSize', { size: cacheData.totalMB });
       
       // Add detailed tooltip
       const details = cacheData.details;
@@ -1679,7 +1679,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       });
       
       capturedCount++;
-      updateSlideCountText(capturedCount);
+      await updateSlideCountText(capturedCount);
 
       // Get the effective check interval considering fast mode
       const effectiveCheckInterval = getEffectiveCheckInterval();
@@ -1720,7 +1720,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
               const finalImageData = isUsingElementCapture ? potentialNewImageData : await cropImage(potentialNewImageData);
               await window.electronAPI.saveSlide({ imageData: finalImageData, timestamp, title: currentTitleText });
               capturedCount++;
-              updateSlideCountText(capturedCount);
+              await updateSlideCountText(capturedCount);
               verificationState = 'none';
               currentVerification = 0;
               potentialNewImageData = null;
@@ -1744,7 +1744,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
               const finalImageData = isUsingElementCapture ? currentImageData : await cropImage(currentImageData);
               await window.electronAPI.saveSlide({ imageData: finalImageData, timestamp, title: currentTitleText });
               capturedCount++;
-              updateSlideCountText(capturedCount);
+              await updateSlideCountText(capturedCount);
             }
             console.log(`${enableDoubleVerification ? 'Potential' : 'Saved'} new slide (method: ${result.method})`);
           }
@@ -1920,7 +1920,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   webview.addEventListener('did-start-loading', async () => {
     // reset loading overlay
     loadingOverlay.classList.remove('timeout');
-    loadingOverlay.innerHTML = '<div class="spinner"></div><span class="loading-text">Loading content...</span>';
+    loadingOverlay.innerHTML = '<div class="spinner"></div><span class="loading-text">Loading...</span>';
     loadingOverlay.style.display = 'flex';
 
     await updateStatus('loadingPage');
@@ -3414,7 +3414,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       indicator.id = 'fastModeIndicator';
       indicator.className = 'fast-mode-active';
 
-      updateIndicatorText('fastMode', indicator);
+      await updateIndicatorText('fastMode', indicator);
       
       // Insert after title display
       if (titleDisplay.nextSibling) {
@@ -3805,7 +3805,15 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
   }
   
-  function injectYanHeKTLiveButtons(liveCourses, currentPage, totalPages) {
+  async function injectYanHeKTLiveButtons(liveCourses, currentPage, totalPages) {
+    // Get translated text
+    const addToTasksText = await window.i18n.t('renderer.webButtons.addToTasks');
+    const addAllLivesText = await window.i18n.t('renderer.webButtons.addAllLives');
+    const livesLoadedText = await window.i18n.t('renderer.webButtons.livesLoaded', {
+      pages: totalPages,
+      count: liveCourses.length
+    });
+
     return webview.executeJavaScript(`
       (function() {
         try {
@@ -3941,7 +3949,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
                 // Create the pagination note
                 const paginationNote = document.createElement('span');
                 paginationNote.className = 'autoslides-live-pagination-note';
-                paginationNote.innerHTML = \`All ${totalPages} pages of live courses loaded, \${liveCourses.length} courses total\`;
+                paginationNote.innerHTML = \`${livesLoadedText.replace('{{pages}}', totalPages).replace('{{count}}', 'liveCourses.length')}\`;
                 
                 // Insert after the jumper
                 if (paginationJumper.parentNode) {
@@ -4023,7 +4031,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
               // Create button
               const button = document.createElement('button');
               button.className = 'autoslides-live-btn';
-              button.innerText = 'Add to Tasks';
+              button.innerText = '${addToTasksText}';
               button.setAttribute('data-live-id', liveId);
               button.setAttribute('data-index', index);
               
@@ -4063,7 +4071,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             
             const addAllButton = document.createElement('button');
             addAllButton.className = 'autoslides-live-btn-all';
-            addAllButton.innerHTML = 'Add All Live Courses to Task List';
+            addAllButton.innerHTML = '${addAllLivesText}';
             
             // Use console.log approach for add all button too
             addAllButton.onclick = function() {
@@ -4444,7 +4452,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           muteIndicator.id = 'muteIndicator';
           muteIndicator.className = 'mute-indicator';
           
-          updateIndicatorText('muteAudio', muteIndicator);
+          await updateIndicatorText('muteAudio', muteIndicator);
           
           // Find insertion point - after fast mode indicator if it exists
           const fastModeIndicator = document.getElementById('fastModeIndicator');
@@ -4553,7 +4561,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         taskNote.style.fontSize = '12px';
         taskNote.style.marginTop = '5px';
         
-        updateIndicatorText('fastModeSkipped', taskNote);
+        await updateIndicatorText('fastModeSkipped', taskNote);
         
         // Only add if not already present
         if (!document.getElementById('fastModeSkippedNote')) {
@@ -4937,7 +4945,15 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   }
 
   // Improved button injection with proper cleanup for pagination
-  function injectYanHeKTButtons(sessions, courseId, currentPage, totalPages) {
+  async function injectYanHeKTButtons(sessions, courseId, currentPage, totalPages) {
+    // Get translated text
+    const addToTasksText = await window.i18n.t('renderer.webButtons.addToTasks');
+    const addAllSessionsText = await window.i18n.t('renderer.webButtons.addAllSessions');
+    const sessionsLoadedText = await window.i18n.t('renderer.webButtons.sessionsLoaded', {
+      pages: totalPages,
+      count: sessions.length
+    });
+
     return webview.executeJavaScript(`
       (function() {
         try {
@@ -5086,7 +5102,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
               // Create button
               const button = document.createElement('button');
               button.className = 'ant-btn ant-btn-round ant-btn-primary autoslides-btn';
-              button.innerHTML = '<span>Add to Tasks</span>';
+              button.innerHTML = '<span>${addToTasksText}</span>';
               button.setAttribute('data-session-id', session.sessionId);
               button.setAttribute('data-index', index);
               
@@ -5128,7 +5144,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             if (${totalPages} > 1) {
               const paginationNote = document.createElement('div');
               paginationNote.className = 'autoslides-pagination-note';
-              paginationNote.innerHTML = \`All ${totalPages} pages of courses loaded, ${sessions.length} sessions total\`;
+              paginationNote.innerHTML = \`${sessionsLoadedText.replace('{{pages}}', totalPages).replace('{{count}}', sessions.length)}\`;
               controlsContainer.appendChild(paginationNote);
             } else {
               // Add an empty div to maintain the flex layout
@@ -5138,7 +5154,7 @@ yanhekt.cn##div#ai-bit-animation-modal`;
             
             const addAllButton = document.createElement('button');
             addAllButton.className = 'autoslides-btn-all';
-            addAllButton.innerHTML = 'Add All Sessions to Task List';
+            addAllButton.innerHTML = '${addAllSessionsText}';
             
             // Use console.log approach for add all button too
             addAllButton.onclick = function() {

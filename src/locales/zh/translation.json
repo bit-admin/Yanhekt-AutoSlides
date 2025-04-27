@@ -1,4 +1,35 @@
 {
+  "menu": {
+    "about": "关于",
+    "hide": "隐藏",
+    "hideOthers": "隐藏其他",
+    "unhide": "显示全部",
+    "quit": "退出",
+    "preferences": "偏好设置",
+    "edit": "编辑",
+    "undo": "撤销",
+    "redo": "重做",
+    "cut": "剪切",
+    "copy": "复制",
+    "paste": "粘贴",
+    "delete": "删除",
+    "selectAll": "全选",
+    "view": "视图",
+    "reload": "重新加载",
+    "forceReload": "强制重新加载",
+    "toggleDevTools": "切换开发者工具",
+    "resetZoom": "实际大小",
+    "zoomIn": "放大",
+    "zoomOut": "缩小",
+    "toggleFullscreen": "切换全屏",
+    "window": "窗口",
+    "minimize": "最小化",
+    "zoom": "缩放",
+    "front": "前置所有窗口",
+    "help": "帮助",
+    "autoSlidesHelp": "AutoSlides 帮助",
+    "visitGitHub": "访问 GitHub 仓库"
+  },
   "interface": {
     "start": "开始截取",
     "stop": "停止截取",
@@ -253,6 +284,13 @@
       "workingOnTask": "AutoSlides 正在进行任务 {{current}}/{{total}}",
       "queueComplete": "AutoSlides 任务队列完成",
       "allTasksComplete": "所有任务已完成。"
+    },
+    "webButtons": {
+      "addToTasks": "添加到任务",
+      "addAllSessions": "将所有课程添加到任务列表",
+      "addAllLives": "将所有直播添加到任务列表",
+      "sessionsLoaded": "已加载全部 {{pages}} 页课程，共 {{count}} 个课程",
+      "livesLoaded": "已加载全部 {{pages}} 页直播，共 {{count}} 个直播"
     }
   }
 }
