@@ -194,21 +194,26 @@ function createApplicationMenu() {
   // Template for macOS application menu
   const template = [
     {
-      label: app.name,
+      label: process.platform === 'darwin' ? app.name : translate('options'),
       submenu: [
-        { role: 'about', label: translate('about') },
+        process.platform === 'darwin' 
+          ? { role: 'about', label: translate('about') } 
+          : { label: translate('about'), click: () => app.showAboutPanel() },
         { type: 'separator' },
         {
           label: translate('preferences'),
           accelerator: process.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,',
           click: () => createPreferencesWindow()
         },
-        { type: 'separator' },
-        { role: 'services' },
-        { type: 'separator' },
-        { role: 'hide', label: translate('hide') },
-        { role: 'hideOthers', label: translate('hideOthers') },
-        { role: 'unhide', label: translate('unhide') },
+        // macOS-specific project with conditional judgment
+        ...(process.platform === 'darwin' ? [
+          { type: 'separator' },
+          { role: 'services' },
+          { type: 'separator' },
+          { role: 'hide', label: translate('hide') },
+          { role: 'hideOthers', label: translate('hideOthers') },
+          { role: 'unhide', label: translate('unhide') },
+        ] : []),
         { type: 'separator' },
         { role: 'quit', label: translate('quit') }
       ]
