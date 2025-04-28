@@ -45,7 +45,8 @@
         "7z"
       ],
       "icon": "build/icon.ico",
-      "artifactName": "${productName}-${version}-Windows-${arch}.${ext}"
+      "artifactName": "${productName}-${version}-Windows-${arch}.${ext}",
+      "appId": "AutoSlides"
     },
     "linux": {
       "target": "AppImage"
