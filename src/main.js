@@ -31,7 +31,7 @@ async function setupI18n() {
       },
       fallbackLng: 'en',
       defaultNS: 'translation',
-      supportedLngs: ['en', 'zh'],
+      supportedLngs: ['en', 'zh', 'zh-HK'],
       lng: config.get('language') || 'en', // Read language settings from configuration
     });
 
@@ -42,7 +42,7 @@ async function setupI18n() {
 const schema = {
   language: {
     type: 'string',
-    enum: ['en', 'zh'],
+    enum: ['en', 'zh', 'zh-HK'],
     default: 'en'
   },
   outputDir: {
