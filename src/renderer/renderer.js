@@ -89,12 +89,32 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   await loadBlockingRules();
 
   window.electronAPI.onThemeChange((event, data) => {
-    if (data.darkMode === 'dark' || 
-        (data.darkMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    const isDarkMode = data.darkMode === 'dark' || 
+        (data.darkMode === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    // Update app UI
+    if (isDarkMode) {
       document.documentElement.classList.add('dark-mode');
+      
+      // Update loading overlay for dark mode
+      if (loadingOverlay) {
+        loadingOverlay.classList.add('dark-mode');
+        loadingOverlay.style.background = 'rgba(0, 0, 0, 0.7)';
+        loadingOverlay.style.color = 'var(--color-text-primary, #e1e1e1)';
+      }
     } else {
       document.documentElement.classList.remove('dark-mode');
+      
+      // Update loading overlay for light mode
+      if (loadingOverlay) {
+        loadingOverlay.classList.remove('dark-mode');
+        loadingOverlay.style.background = 'rgba(255, 255, 255, 0.7)';
+        loadingOverlay.style.color = '#333';
+      }
     }
+    
+    // Apply Dark Reader to webview
+    toggleDarkReaderInWebview(isDarkMode);
   });
 
   /**
@@ -267,13 +287,18 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   const loadingOverlay = document.createElement('div');
   loadingOverlay.id = 'loadingOverlay';
   loadingOverlay.innerHTML = '<div class="spinner"></div><span class="loading-text">Loading...</span>';
+
+  // Check if dark mode is active initially
+  const isDarkModeActive = document.documentElement.classList.contains('dark-mode');
+
+  // Apply appropriate styling based on current theme
   loadingOverlay.style.cssText = `
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(255, 255, 255, 0.7);
+    background: ${isDarkModeActive ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)'};
     z-index: 9999;
     display: none;
     justify-content: center;
@@ -281,8 +306,13 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     flex-direction: column;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     text-align: center;
-    color: #333;
+    color: ${isDarkModeActive ? 'var(--color-text-primary, #e1e1e1)' : '#333'};
   `;
+
+  // If dark mode is active, add the class
+  if (isDarkModeActive) {
+    loadingOverlay.classList.add('dark-mode');
+  }
   
   // Create styles for the spinner and text
   const loadingStyles = document.createElement('style');
@@ -329,6 +359,27 @@ yanhekt.cn##div#ai-bit-animation-modal`;
       display: block;
       margin-bottom: 20px;
     }
+
+    /* Dark mode styles for loading overlay */
+    .dark-mode #loadingOverlay {
+      background: rgba(0, 0, 0, 0.7);
+      color: var(--color-text-primary, #e1e1e1);
+    }
+    
+    .dark-mode #loadingOverlay .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.1);
+      border-top-color: var(--color-primary, #0078d7);
+    }
+    
+    /* Ensure timeout state in dark mode is visually distinct */
+    .dark-mode #loadingOverlay.timeout {
+      background: rgba(0, 0, 0, 0.9);
+    }
+    
+    /* Keep warning color consistent */
+    .dark-mode #loadingOverlay.timeout .loading-text:before {
+      color: #f39c12;
+    }
   `;
   document.head.appendChild(loadingStyles);
   
@@ -353,6 +404,85 @@ yanhekt.cn##div#ai-bit-animation-modal`;
           Check your network connection or try resetting all data in Preferences if the issue persists.
         `;
       }
+    }
+  }
+  
+  // Create a preload script for Dark Reader
+  function createDarkReaderPreload() {
+    // Create a local dark reader script path
+    const darkReaderScript = `
+      // Preload Dark Reader early in the page lifecycle
+      if (!window.injectedDarkMode) {
+        window.injectedDarkMode = true;
+        
+        // Insert a temporary dark style immediately to prevent flash
+        const style = document.createElement('style');
+        style.id = 'dark-reader-temp-style';
+        style.textContent = 'html, body { background-color: #181a1b !important; color: #e8e6e3 !important; transition: all 0.1s ease-in-out; }';
+        
+        // Function to inject early
+        function injectEarly() {
+          try {
+            if (document.head) {
+              document.head.prepend(style);
+              
+              // Load Dark Reader script
+              const script = document.createElement('script');
+              script.src = 'https://cdn.jsdelivr.net/npm/darkreader@4.9.58/darkreader.min.js';
+              script.onload = function() {
+                if (window.DarkReader) {
+                  window.DarkReader.enable({
+                    brightness: 100,
+                    contrast: 100,
+                    sepia: 0,
+                    darkSchemeBackgroundColor: '#181a1b',
+                    darkSchemeTextColor: '#e8e6e3'
+                  });
+                  style.remove(); // Remove temporary style once Dark Reader is active
+                }
+              };
+              document.head.appendChild(script);
+            }
+          } catch (e) {
+            console.error('Error applying early dark mode:', e);
+          }
+        }
+        
+        // Execute as early as possible
+        if (document.head) {
+          injectEarly();
+        } else {
+          // If document.head is not available yet, wait for it
+          window.addEventListener('DOMContentLoaded', injectEarly, { once: true });
+          
+          // Also try with a small timeout as a fallback
+          setTimeout(injectEarly, 20);
+        }
+      }
+    `;
+    
+    return darkReaderScript;
+  }
+  
+  // Function to toggle Dark Reader in the webview
+  async function toggleDarkReaderInWebview(isDarkMode) {
+    if (!webview) return;
+    
+    try {
+      if (isDarkMode) {
+        // Apply dark reader with preload approach for immediate effect
+        await webview.executeJavaScript(createDarkReaderPreload());
+      } else {
+        // Disable dark reader if it exists
+        await webview.executeJavaScript(`
+          if (window.DarkReader) {
+            window.DarkReader.disable();
+            window.injectedDarkMode = false;
+          }
+        `);
+      }
+    } catch (error) {
+      console.error('Error toggling Dark Reader:', error);
     }
   }
 
@@ -2045,6 +2175,18 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     await updateStatus('pageLoaded');
     
     const url = e.url;
+
+    // Apply dark mode immediately to prevent flashing
+    const isDarkMode = document.documentElement.classList.contains('dark-mode');
+    if (isDarkMode) {
+      try {
+        // Apply dark reader preload immediately rather than with a delay
+        // This prevents the flash of light content during navigation
+        await webview.executeJavaScript(createDarkReaderPreload());
+      } catch (err) {
+        console.error('Error applying dark reader during navigation:', err);
+      }
+    }
   
     // Check URL pattern for YanHeKT course pages
     if (url.includes('yanhekt.cn/course/')) {
@@ -2090,6 +2232,18 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   // Comprehensive in-page navigation handler
   webview.addEventListener('did-navigate-in-page', async (e) => {
     loadingOverlay.style.display = 'none';
+    
+    // Apply dark mode immediately to prevent flashing during in-page navigation
+    const isDarkMode = document.documentElement.classList.contains('dark-mode');
+    if (isDarkMode) {
+      try {
+        // Apply dark reader preload immediately
+        await webview.executeJavaScript(createDarkReaderPreload());
+      } catch (err) {
+        console.error('Error applying dark reader during in-page navigation:', err);
+      }
+    }
+    
     if (e.isMainFrame && e.url) {
       // Update URL field only if user isn't editing
       if (!userIsEditingUrl) {
@@ -2098,8 +2252,8 @@ yanhekt.cn##div#ai-bit-animation-modal`;
     }
     
     const url = e.url;
-
-      // Check URL pattern for YanHeKT course pages
+  
+    // Check URL pattern for YanHeKT course pages
     if (url.includes('yanhekt.cn/course/')) {
       try {
         console.log('Detected YanHeKT course page (in-page):', url);
@@ -2138,6 +2292,15 @@ yanhekt.cn##div#ai-bit-animation-modal`;
   
   // Integrated approach that preserves link handling while adding YanHeKT functionality
   webview.addEventListener('dom-ready', () => {
+    // Get dark mode state
+    const isDarkMode = document.documentElement.classList.contains('dark-mode');
+    
+    if (isDarkMode) {
+      // Apply the dark reader script earlier in page load cycle
+      webview.executeJavaScript(createDarkReaderPreload())
+        .catch(err => console.error('Error applying dark reader preload:', err));
+    }
+
     webview.executeJavaScript(`
       (function() {
         // Only set up link handler once
