@@ -1,6 +1,6 @@
 {
   "name": "autoslides",
-  "version": "3.1.0-beta",
+  "version": "3.2.0-beta",
   "description": "Automatic slide capture application",
   "main": "src/main.js",
   "scripts": {
@@ -25,6 +25,12 @@
   "build": {
     "appId": "com.autoslides.app",
     "productName": "AutoSlides",
+    "extraResources": [
+      {
+        "from": "src/locales",
+        "to": "locales"
+      }
+    ],
     "mac": {
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",

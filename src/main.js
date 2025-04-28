@@ -16,6 +16,8 @@ const os = require('os');
 const i18next = require('i18next'); // Add i18next import
 const FsBackend = require('i18next-fs-backend'); // Add backend import
 
+app.setName('AutoSlides'); 
+
 // i18n initialization
 async function setupI18n() {
   await i18next
