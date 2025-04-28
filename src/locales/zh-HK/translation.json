@@ -1,0 +1,312 @@
+{
+    "menu": {
+      "about": "關於",
+      "options": "選項",
+      "hide": "隱藏",
+      "hideOthers": "隱藏其他",
+      "unhide": "顯示全部",
+      "quit": "退出",
+      "preferences": "偏好設定",
+      "edit": "編輯",
+      "undo": "還原",
+      "redo": "重做",
+      "cut": "剪下",
+      "copy": "複製",
+      "paste": "貼上",
+      "delete": "刪除",
+      "selectAll": "全選",
+      "view": "檢視",
+      "reload": "重新載入",
+      "forceReload": "強制重新載入",
+      "toggleDevTools": "切換開發者工具",
+      "resetZoom": "實際大小",
+      "zoomIn": "放大",
+      "zoomOut": "縮小",
+      "toggleFullscreen": "切換全螢幕",
+      "window": "視窗",
+      "minimize": "最小化",
+      "zoom": "縮放",
+      "front": "前置所有視窗",
+      "help": "說明",
+      "autoSlidesHelp": "AutoSlides 說明",
+      "visitGitHub": "造訪 GitHub 倉庫"
+    },
+    "interface": {
+      "start": "開始擷取",
+      "stop": "停止擷取",
+      "captureSettings": "擷取設定",
+      "resetToDefaults": "回復預設值",
+      "outputDirectory": "輸出目錄",
+      "strategyGroup": "策略組",
+      "strategyDefault": "預設 (pHash & SSIM)",
+      "strategyBasic": "基本 (Pixel)",
+      "advancedSettings": "進階設定",
+      "checkInterval": "檢查間隔（秒）",
+      "enableSecondaryVerification": "啟用二次驗證",
+      "secondaryVerificationHelp": "檢查投影片穩定性（建議啟用）",
+      "optimization": "優化設定",
+      "activeProfile": "目前設定檔",
+      "profileDefault": "預設（擷取整頁）",
+      "taskManager": "任務管理器",
+      "automation": "自動化",
+      "autoDetectEnd": "自動偵測播放結束",
+      "autoDetectEndHelp": "播放結束時自動停止擷取",
+      "autoStartPlayback": "自動開始播放",
+      "autoStartPlaybackHelp": "自動點擊播放按鈕",
+      "autoAdjustSpeed": "自動調整播放速度",
+      "autoAdjustSpeedHelp": "於偏好設定中調整速度",
+      "autoDetectTitle": "自動偵測標題",
+      "autoDetectTitleHelp": "自動偵測資訊並建立子資料夾",
+      "autoRetryError": "出錯時自動重試",
+      "autoRetryErrorHelp": "發生錯誤時自動重試",
+      "taskManagerTitle": "任務管理器",
+      "taskIdPlaceholder": "任務 ID 或完整 URL",
+      "addTask": "新增任務",
+      "taskTableProfile": "設定檔",
+      "taskTableTaskId": "任務 ID",
+      "taskTableInfo": "詳細資料",
+      "taskTableDelete": "\u200B X \u200B",
+      "resetProgress": "總是從頭開始播放影片",
+      "fastMode": "快速模式 (0.5秒間隔, 4倍速, 只限錄播)",
+      "autoMute": "靜音運行",
+      "startTasks": "開始任務",
+      "cancelTasks": "取消任務",
+      "clearTasks": "清除全部任務",
+      "cacheManagement": "快取管理",
+      "clearBrowserCache": "清除瀏覽器快取",
+      "backToHomepage": "返回主頁",
+      "status": "狀態列",
+      "statusText": "閒置",
+      "slideCount": "已儲存投影片數：0"
+    },
+    "preferences": {
+      "title": "AutoSlides 偏好設定",
+      "header": "AutoSlides 偏好設定",
+      "tab": {
+        "general": "一般",
+        "capture": "影像處理",
+        "profiles": "設定檔",
+        "handler": "網頁處理"
+      },
+      "label": {
+        "appearance": "外觀",
+        "language": "語言",
+        "keepRunning": "於背景保持運行",
+        "enableRemote": "啟用遠端管理",
+        "portNumber": "連接埠號碼",
+        "serviceUrl": "控制台位址",
+        "username": "用戶名稱",
+        "password": "密碼",
+        "autoCleanInterval": "自動清理間隔（分鐘，設為0以停用）",
+        "hammingDistance": "漢明距離閾值",
+        "ssimThreshold": "SSIM 閾值",
+        "sigma": "標準差",
+        "topCrop": "頂部裁剪（%）",
+        "bottomCrop": "底部裁剪（%）",
+        "createNewProfile": "建立新設定檔",
+        "elementSelector": "元素選擇器",
+        "urlPatterns": "URL 規則",
+        "endDetectionSelector": "結束偵測選擇器",
+        "playButtonSelector": "播放按鈕選擇器",
+        "countdownSelector": "倒數計時選擇器",
+        "speedSelector": "速度選擇器",
+        "adjustedPlaybackSpeed": "調整播放速度",
+        "courseTitleSelector": "課程標題選擇器",
+        "sessionInfoSelector": "課程資訊選擇器",
+        "errorSelector": "錯誤選擇器",
+        "maxRetryAttempts": "最大重試次數",
+        "authToken": "用於 API 通訊的 YanHeKT Token"
+      },
+      "option": {
+        "followSystem": "跟隨系統",
+        "light": "淺色",
+        "dark": "深色"
+      },
+      "help": {
+        "languageRestart": "更改將於重啟後生效",
+        "preventSleep": "防止系統於 AutoSlides 運行時進入睡眠",
+        "remoteManagement": "於本地網路上遠端管理 AutoSlides",
+        "resetData": "重設資料通常可解決運行錯誤",
+        "bypassSsimLower": "若低於下限閾值，略過 SSIM 檢查",
+        "bypassSsimUpper": "若高於上限閾值，略過 SSIM 檢查",
+        "ssimEquivalent": "影像無變化的最小相似度要求",
+        "blurStrength": "值越高，模糊強度越大",
+        "pixelDifference": "像素差異的閾值",
+        "changeRatio": "影像變化的最小像素比例要求",
+        "stabilityChecks": "偵測到新投影片後保持穩定的次數要求（假設講者會停留一段時間講解）",
+        "defaultProfile": "預設設定將擷取整個網頁並進行裁剪（僅適用於手動選擇預設設定）",
+        "elementSelector": "只擷取所選元素",
+        "urlPatterns": "自動選擇此設定檔的規則",
+        "autoDetectTitle": "啟用「自動偵測標題」時使用",
+        "autoRetryError": "啟用「出錯時自動重試」時使用",
+        "blockingRules": "類 AdGuard 規則（每行一條規則）"
+      },
+      "section": {
+        "remoteManagement": "遠端管理",
+        "cacheManagement": "快取管理",
+        "secondaryVerification": "二次驗證",
+        "authentication": "認證資訊",
+        "recordedCourseInfo": "錄播課堂資訊",
+        "courseSessionsInfo": "詳細課程資訊",
+        "liveCoursesInfo": "直播課堂資訊",
+        "elementBlockingRules": "元素屏蔽規則"
+      },
+      "button": {
+        "clearCookies": "清除 Cookies",
+        "resetAllData": "重設所有資料",
+        "previewCrop": "預覽裁剪",
+        "createProfile": "建立設定檔",
+        "retrieveToken": "取得 Token",
+        "fetchCourseData": "取得課程資料",
+        "fetchSessions": "取得詳細資訊",
+        "fetchLiveSessions": "取得直播課堂資訊",
+        "restoreDefaults": "回復預設值",
+        "cancel": "取消",
+        "save": "儲存"
+      },
+      "warning": {
+        "captureDefaults": "除非必要，避免更改預設值。修改可能導致程式運作不穩定。"
+      },
+      "strategy": {
+        "default": "預設",
+        "defaultBadge": "pHash & SSIM",
+        "basic": "基本",
+        "basicBadge": "Pixel"
+      },
+      "setting": {
+        "grayscale": "Grayscale Conversion",
+        "resizing": "Resizing",
+        "dct": "DCT",
+        "phash": "pHash",
+        "ssim": "SSIM",
+        "gaussianBlur": "Gaussian Blur",
+        "pixelDiffThreshold": "像素差異閾值",
+        "changeRatioThreshold": "變化比例閾值",
+        "stabilityThreshold": "穩定性閾值"
+      },
+      "value": {
+        "enabled": "已啟用"
+      },
+      "profile": {
+        "defaultFullPage": "預設（擷取整頁）"
+      },
+      "placeholder": {
+        "profileName": "輸入新建設定檔名稱"
+      },
+      "restartRequired": "語言更改將於應用程式重啟後生效"
+    },
+    "web": {
+      "title": "AutoSlides 遠端管理",
+      "connected": "已連線到伺服器",
+      "theme": {
+        "toggle": "切換主題"
+      },
+      "task": {
+        "manager": "任務管理器",
+        "refresh": "重新整理任務列表",
+        "table": {
+          "number": "#",
+          "profile": "設定檔",
+          "taskId": "任務 ID",
+          "info": "詳細資料",
+          "delete": "刪除"
+        },
+        "option": {
+          "resetProgress": "總是從頭開始播放影片",
+          "fastMode": "快速模式（0.5秒間隔，4倍速）",
+          "autoMute": "靜音運行"
+        },
+        "start": "開始任務",
+        "cancel": "取消任務",
+        "clear": "清除所有任務"
+      },
+      "auth": {
+        "title": "認證資訊",
+        "help": "您需要先於主應用程式登入 YanHeKT。然後取得用於 API 請求的 Token。",
+        "retrieveToken": "取得 Token",
+        "copyToken": "複製到剪貼簿",
+        "togglePassword": "顯示/隱藏密碼"
+      },
+      "courses": {
+        "title": "錄播課堂",
+        "fetch": "取得個人課程列表",
+        "help": "從 YanHeKT 取得您的個人課程列表，或輸入課程 ID 以查找您有權限存取的特定課程。",
+        "searchPlaceholder": "輸入課程 ID 以查找特定課程",
+        "findSessions": "查找課程",
+        "addAllSessions": "將所有課程加入任務隊列"
+      },
+      "live": {
+        "title": "直播課堂",
+        "fetch": "取得直播課堂",
+        "help": "從 YanHeKT 取得您自己的直播課堂列表。",
+        "addAllLive": "將所有直播加入任務隊列"
+      },
+      "notifications": {
+        "tokenCopied": "Token 已複製到剪貼簿",
+        "taskAdded": "已新增任務：{{title}}",
+        "sessionsAdded": "已新增 {{count}} 個課程到任務隊列",
+        "livesAdded": "已新增 {{count}} 個直播到任務隊列"
+      },
+      "buttons": {
+        "getSessionsInfo": "取得課程資訊",
+        "addToTasks": "加入任務列表"
+      }
+    },
+    "renderer": {
+      "statusText": {
+        "idle": "閒置",
+        "capturing": "擷取中...",
+        "pageLoaded": "頁面已載入",
+        "loadingPage": "載入頁面中...",
+        "settingsSaved": "設定已儲存",
+        "settingsReset": "已回復預設設定",
+        "cacheCleard": "快取已清除",
+        "switchProfile": "切換到{{profile}}設定檔",
+        "rulesApplied": "{{count}}項規則已套用",
+        "waitingVideo": "等待影片載入...",
+        "waitingVideoRetry": "等待影片載入（{{retryCount}}/{{maxRetries}}）...",
+        "captureStoppedCacheCleared": "擷取停止，快取已清除",
+        "endPlayback": "播放結束，擷取停止",
+        "startPlayback": "播放開始",
+        "waitingLiveStream": "等待直播開始：{{info}}",
+        "setPlaybackSpeed": "設定播放速度：{{speed}}x",
+        "playbackRetry": "播放失敗，正在重試（{{retryCount}}/{{maxRetries}}）...",
+        "liveFound": "從{{pages}}頁找到{{count}}個直播課堂",
+        "liveAdd": "已新增一個直播課堂到隊列",
+        "allLiveAdd": "已新增{{count}}項直播課堂到隊列中",
+        "progressReset": "播放進度已重設",
+        "sessionsFound": "從{{pages}}頁找到課程{{courseId}}的{{count}}個錄播課堂",
+        "sessionAlreadyInQueue": "該課堂已在隊列中",
+        "sessionAdd": "已新增一個錄播課堂到隊列",
+        "allSessionAdd": "已新增{{count}}個錄播課堂到隊列中",
+        "icpAdd": "已新增{{message}}到隊列",
+        "speedAdjustLiveDisabled": "無法對直播進行速度調整"
+      },
+      "cache": {
+        "calculating": "正在計算快取大小...",
+        "totalSize": "總快取: {{size}} MB"
+      },
+      "ui": {
+        "count": "已儲存投影片數：{{count}}"
+      },
+      "indicators": {
+        "fastMode": "⚡ 快速模式已啟用 ⚡",
+        "taskProgress": "正在進行任務 {{current}}/{{total}}",
+        "fastModeSkipped": "直播不適用快速模式（只適用於錄播課堂）",
+        "muteAudio": "🔇 音訊已靜音 🔇"
+      },
+      "notifications": {
+        "taskInProgress": "任務進行中",
+        "workingOnTask": "AutoSlides 正在進行任務 {{current}}/{{total}}",
+        "queueComplete": "AutoSlides 任務隊列完成",
+        "allTasksComplete": "所有任務已完成。"
+      },
+      "webButtons": {
+        "addToTasks": "加入任務",
+        "addAllSessions": "將所有課堂加入任務列表",
+        "addAllLives": "將所有直播加入任務列表",
+        "sessionsLoaded": "已載入全部 {{pages}} 頁課堂，共 {{count}} 個課堂",
+        "livesLoaded": "已載入全部 {{pages}} 頁直播，共 {{count}} 個直播"
+      }
+    }
+  }
