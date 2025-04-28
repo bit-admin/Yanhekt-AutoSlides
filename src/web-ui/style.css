@@ -243,8 +243,8 @@ header {
 
 /* Updated session card styles to match preferences */
 .session-card {
-    min-width: 200px;
-    max-width: 200px;
+    min-width: 220px;
+    max-width: 220px;
     border-radius: 8px;
     box-shadow: 0 2px 5px var(--color-shadow);
     padding: 12px;
@@ -440,8 +440,10 @@ header {
 
 /* Live course card specific styles */
 .live-course-card {
-    height: 220px; /* Reduced height for live course cards */
-    min-height: 220px;
+    min-width: 270px;
+    max-width: 270px;
+    height: 260px;
+    min-height: 260px;
 }
 
 /* Status badge styling */

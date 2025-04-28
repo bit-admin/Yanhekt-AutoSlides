@@ -1466,7 +1466,11 @@ app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 
-  app.setAppUserModelId('com.autoslides.app');
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('AutoSlides');
+  } else {
+    app.setAppUserModelId('com.autoslides.app');
+  }
 });
 
 app.on('window-all-closed', function () {

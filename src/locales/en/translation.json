@@ -197,6 +197,7 @@
   },
   "web": {
     "title": "AutoSlides Remote Management",
+    "connected": "Connected to server",
     "theme": {
       "toggle": "Toggle dark mode"
     },
@@ -231,12 +232,24 @@
       "fetch": "Fetch Private Course List",
       "help": "Fetch your private course list from YanHeKT or enter a course ID to find specific sessions that you have access to.",
       "searchPlaceholder": "Enter Course ID to find specific sessions",
-      "findSessions": "Find Sessions"
+      "findSessions": "Find Sessions",
+      "addAllSessions": "Add All Sessions to Tasks"
     },
     "live": {
       "title": "Live Sessions",
       "fetch": "Fetch Live Sessions",
-      "help": "Fetch your own live sessions list from YanHeKT."
+      "help": "Fetch your own live sessions list from YanHeKT.",
+      "addAllLive": "Add All Active Lives to Tasks"
+    },
+    "notifications": {
+      "tokenCopied": "Token copied to clipboard",
+      "taskAdded": "Task added: {{title}}",
+      "sessionsAdded": "Added {{count}} sessions to task queue",
+      "livesAdded": "Added {{count}} live courses to task queue"
+    },
+    "buttons": {
+      "getSessionsInfo": "Get Sessions Info",
+      "addToTasks": "Add to Tasks"
     }
   },
   "renderer": {

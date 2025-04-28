@@ -51,6 +51,23 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`Theme toggled to: ${newTheme}`);
     });
 
+    /**
+     * Display a notification with translation
+     * @param {string} key - Translation key (under the web.notifications namespace)
+     * @param {Object} replacements - Object used to replace template variables
+     * @param {string} type - Notification type: 'success', 'error', or 'info'
+     * @param {number} duration - Notification display duration (in milliseconds)
+     */
+    async function showTranslatedNotification(key, replacements = {}, type = 'success', duration = 3000) {
+        try {
+            const message = await window.i18n.t(`web.notifications.${key}`, replacements);
+            showNotification(message, type, duration);
+        } catch (error) {
+            console.error(`Translation error for notification key ${key}:`, error);
+            showNotification(`[${key}]`, type, duration);
+        }
+    }
+
     // Notification system
     const notification = document.getElementById('notification');
     const notificationMessage = document.getElementById('notification-message');
@@ -433,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     tokenStatus.className = 'token-status success';
                     
                     // Show notification for better visibility
-                    showNotification('Token copied to clipboard', 'success');
+                    showTranslatedNotification('tokenCopied', {}, 'success');
                     
                     // Don't clear status text completely, just reset class after delay
                     setTimeout(() => {
@@ -547,7 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add "Get Sessions Info" button
         const getSessionsBtn = document.createElement('button');
         getSessionsBtn.className = 'get-sessions-btn';
-        getSessionsBtn.textContent = 'Get Sessions Info';
+        getSessionsBtn.textContent = window.i18n.t('web.buttons.getSessionsInfo');
         getSessionsBtn.dataset.courseId = course.id;
         getSessionsBtn.addEventListener('click', () => {
             // Fill the course ID input and trigger fetch
@@ -724,11 +741,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const addToTasksBtn = document.createElement('button');
         addToTasksBtn.className = 'add-to-tasks-btn';
         // Replace textContent with SVG icon + text
+        const addToTasksText = window.i18n.t('web.buttons.addToTasks');
         addToTasksBtn.innerHTML = `
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 5v14M5 12h14"/>
             </svg>
-            <span>Add to Tasks</span>
+            <span>${addToTasksText}</span>
         `;
         addToTasksBtn.dataset.sessionId = session.sessionId;
         addToTasksBtn.dataset.title = session.title || 'Untitled Session';
@@ -1006,43 +1024,47 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Schedule row (Start & End time)
         if (liveCourse.startedAt) {
-            const scheduleRow = document.createElement('div');
-            scheduleRow.className = 'course-info-row';
+            // Start time row
+            const startRow = document.createElement('div');
+            startRow.className = 'course-info-row';
             
-            const scheduleLabel = document.createElement('div');
-            scheduleLabel.className = 'course-info-label';
-            scheduleLabel.textContent = 'Schedule:';
+            const startLabel = document.createElement('div');
+            startLabel.className = 'course-info-label';
+            startLabel.textContent = 'Start:';
             
-            const scheduleValue = document.createElement('div');
-            scheduleValue.className = 'course-info-value';
+            const startValue = document.createElement('div');
+            startValue.className = 'course-info-value';
             
-            // Format the dates nicely
             const startDate = new Date(liveCourse.startedAt);
-            const endDate = liveCourse.endedAt ? new Date(liveCourse.endedAt) : null;
-            
             const startDateStr = startDate.toLocaleDateString();
             const startTimeStr = startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            startValue.textContent = `${startDateStr} ${startTimeStr}`;
             
-            let scheduleText = `${startDateStr} ${startTimeStr}`;
+            startRow.appendChild(startLabel);
+            startRow.appendChild(startValue);
+            infoTable.appendChild(startRow);
             
-            if (endDate) {
-                // If end date is different from start date, show full date
-                if (endDate.toDateString() !== startDate.toDateString()) {
-                    const endDateStr = endDate.toLocaleDateString();
-                    const endTimeStr = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    scheduleText += ` - ${endDateStr} ${endTimeStr}`;
-                } else {
-                    // Otherwise just show the end time
-                    const endTimeStr = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    scheduleText += ` - ${endTimeStr}`;
-                }
+            // End time row (if available)
+            if (liveCourse.endedAt) {
+                const endRow = document.createElement('div');
+                endRow.className = 'course-info-row';
+                
+                const endLabel = document.createElement('div');
+                endLabel.className = 'course-info-label';
+                endLabel.textContent = 'End:';
+                
+                const endValue = document.createElement('div');
+                endValue.className = 'course-info-value';
+                
+                const endDate = new Date(liveCourse.endedAt);
+                const endDateStr = endDate.toLocaleDateString();
+                const endTimeStr = endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                endValue.textContent = `${endDateStr} ${endTimeStr}`;
+                
+                endRow.appendChild(endLabel);
+                endRow.appendChild(endValue);
+                infoTable.appendChild(endRow);
             }
-            
-            scheduleValue.textContent = scheduleText;
-            
-            scheduleRow.appendChild(scheduleLabel);
-            scheduleRow.appendChild(scheduleValue);
-            infoTable.appendChild(scheduleRow);
         }
         
         card.appendChild(infoTable);
@@ -1051,11 +1073,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const addToTasksBtn = document.createElement('button');
         addToTasksBtn.className = 'add-to-tasks-btn';
         // Replace textContent with SVG icon + text
+        const addToTasksText = window.i18n.t('web.buttons.addToTasks');
         addToTasksBtn.innerHTML = `
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 5v14M5 12h14"/>
             </svg>
-            <span>Add to Tasks</span>
+            <span>${addToTasksText}</span>
         `;
         addToTasksBtn.dataset.liveId = liveCourse.liveId;
         addToTasksBtn.dataset.title = liveCourse.courseName || liveCourse.title || 'Unnamed Course';
@@ -1111,7 +1134,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchTaskQueue();
 
                 // Show notification
-                showNotification(`Task added: ${title}`, 'success');
+                showTranslatedNotification('taskAdded', { title }, 'success');
             } else {
                 throw new Error(result.message || 'Failed to add task');
             }
@@ -1161,7 +1184,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchTaskQueue();
 
                 // Show notification
-                showNotification(`Added ${result.addedCount || tasks.length} sessions to task queue`, 'success');
+                showTranslatedNotification('sessionsAdded', 
+                    { count: result.addedCount || tasks.length }, 
+                    'success');
             } else {
                 throw new Error(result.message || 'Failed to add sessions');
             }
@@ -1221,7 +1246,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 fetchTaskQueue();
 
                 // Show notification
-                showNotification(`Added ${result.addedCount || tasks.length} live courses to task queue`, 'success');
+                showTranslatedNotification('livesAdded', 
+                    { count: result.addedCount || tasks.length }, 
+                    'success');
             } else {
                 throw new Error(result.message || 'Failed to add live courses');
             }

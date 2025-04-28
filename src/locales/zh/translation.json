@@ -197,6 +197,7 @@
   },
   "web": {
     "title": "AutoSlides 远程管理",
+    "connected": "已连接到服务器",
     "theme": {
       "toggle": "切换主题"
     },
@@ -231,12 +232,24 @@
       "fetch": "获取个人课程列表",
       "help": "从 YanHeKT 获取您的个人课程列表，或输入课程 ID 以查找您有权限访问的特定课程。",
       "searchPlaceholder": "输入课程 ID 以查找特定课程",
-      "findSessions": "查找课程"
+      "findSessions": "查找课程",
+      "addAllSessions": "将所有课程添加到任务队列"
     },
     "live": {
       "title": "直播课堂",
       "fetch": "获取直播课程",
-      "help": "从 YanHeKT 获取您自己的直播课程列表。"
+      "help": "从 YanHeKT 获取您自己的直播课程列表。",
+      "addAllLive": "将所有直播添加到任务队列"
+    },
+    "notifications": {
+      "tokenCopied": "Token 已复制到剪贴板",
+      "taskAdded": "已添加任务：{{title}}",
+      "sessionsAdded": "已添加 {{count}} 个课程到任务队列",
+      "livesAdded": "已添加 {{count}} 个直播到任务队列"
+    },
+    "buttons": {
+      "getSessionsInfo": "获取课程信息",
+      "addToTasks": "添加到任务列表"
     }
   },
   "renderer": {

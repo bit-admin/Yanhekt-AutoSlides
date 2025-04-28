@@ -39,7 +39,18 @@ function t(key, options = {}) {
   }
   
   if (typeof result === 'string') {
-    return result;
+    // Process variable replacements (this is what was missing)
+    let text = result;
+    
+    // Replace all {{varName}} with the corresponding value from options
+    if (options && typeof options === 'object') {
+      Object.keys(options).forEach(varName => {
+        const regex = new RegExp(`{{${varName}}}`, 'g');
+        text = text.replace(regex, options[varName]);
+      });
+    }
+    
+    return text;
   }
   
   console.warn(`Invalid translation for key: ${key}`);
