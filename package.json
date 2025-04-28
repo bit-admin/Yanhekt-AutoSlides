@@ -15,6 +15,7 @@
     "electron-builder": "^24.13.3"
   },
   "dependencies": {
+    "darkreader": "^4.9.105",
     "electron-store": "^8.1.0",
     "express": "^5.1.0",
     "express-basic-auth": "^1.2.1",

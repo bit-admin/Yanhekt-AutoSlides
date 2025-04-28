@@ -852,7 +852,6 @@ select:focus {
 }
 
 .dark-mode {
-  /* 移除滤镜反转方法，改用CSS变量覆盖 */
   --color-text-primary: #e1e1e1;
   --color-text-secondary: #b0b0b0;
   --color-text-tertiary: #8a8a8a;
@@ -874,19 +873,11 @@ select:focus {
   --color-link: #4da3ff;
 }
 
-/* 移除之前的滤镜覆盖 */
 .dark-mode img,
 .dark-mode video {
-  /* 移除滤镜反转，确保媒体内容显示正常 */
   filter: none;
 }
 
-.dark-mode webview {
-  /* 为webview提供更舒适的暗色体验 */
-  filter: brightness(0.85);
-}
-
-/* 设置暗色模式下特定元素的样式 */
 .dark-mode .modal-content {
   background-color: var(--color-background-content);
   border-color: var(--color-border);
@@ -913,7 +904,7 @@ select:focus {
 
 .dark-mode .title-display {
   background-color: rgba(255, 255, 255, 0.05);
-  color: var(--color-text-primary); /* 确保在暗色模式下文本颜色是亮色的 */
+  color: var(--color-text-primary);
 }
 
 .dark-mode #taskTable th {
@@ -957,7 +948,6 @@ select:focus {
   border-color: var(--color-border);
 }
 
-/* 修复暗色模式下的颜色问题 */
 .dark-mode .collapsible-header h5 {
   color: var(--color-text-primary);
 }
@@ -966,7 +956,6 @@ select:focus {
   background: var(--color-background-section);
 }
 
-/* 修复暗色模式下的course cards和session cards样式 */
 .dark-mode .course-card {
   background-color: var(--color-background-section);
   border-color: var(--color-border);
