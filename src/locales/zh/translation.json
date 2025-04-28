@@ -54,6 +54,7 @@
     "autoStartPlayback": "自动开始播放",
     "autoStartPlaybackHelp": "自动点击播放按钮",
     "autoAdjustSpeed": "自动调整播放速度",
+    "autoAdjustSpeedHelp": "在偏好设置中调整速度",
     "autoDetectTitle": "自动检测标题",
     "autoDetectTitleHelp": "自动检测信息并创建子文件夹",
     "autoRetryError": "出错时自动重试",
@@ -265,7 +266,8 @@
       "sessionAlreadyInQueue": "该课程已在队列中",
       "sessionAdd": "已添加一个录播课程到队列",
       "allSessionAdd": "已添加{{count}}个录播课程到队列中",
-      "icpAdd": "已添加{{message}}到队列"
+      "icpAdd": "已添加{{message}}到队列",
+      "speedAdjustLiveDisabled": "无法对直播进行速度调整"
     },
     "cache": {
       "calculating": "正在计算缓存大小...",

@@ -3557,8 +3557,21 @@ yanhekt.cn##div#ai-bit-animation-modal`;
         taskQueue[currentTaskIndex].profileId === 'yanhekt_session') {
       return 4.0; // Fast mode speed
     }
-    const normalSpeed = parseFloat(playbackSpeed.value);
-    return normalSpeed;
+    
+    // Check if auto-adjust speed is enabled for the current profile
+    const shouldAdjustSpeed = activeProfileId !== 'default' && 
+      siteProfiles[activeProfileId]?.automation?.autoAdjustSpeed;
+    
+    if (shouldAdjustSpeed) {
+      // Get the configured playback speed from the profile
+      const configuredSpeed = parseFloat(
+        siteProfiles[activeProfileId]?.automation?.playbackSpeed || 1.0
+      );
+      return configuredSpeed;
+    }
+    
+    // Default to normal speed if auto-adjust is not enabled
+    return 1.0;
   }
 
   // Add a visual indicator for fast mode to the UI
@@ -6102,6 +6115,16 @@ yanhekt.cn##div#ai-bit-animation-modal`;
 
   autoAdjustSpeed.addEventListener('change', function() {
     if (!activeProfileId || activeProfileId === 'default') return;
+
+    // Prevent enabling autoAdjustSpeed for live streams
+    if (activeProfileId === 'yanhekt_live' && this.checked) {
+      // Revert the checkbox state
+      this.checked = false;
+      
+      // Show a notification to the user
+      updateStatus('speedAdjustLiveDisabled', {}, 3000);
+      return;
+    }
     
     if (!siteProfiles[activeProfileId].automation) {
       siteProfiles[activeProfileId].automation = {};

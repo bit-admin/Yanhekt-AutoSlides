@@ -1466,10 +1466,7 @@ app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
 
-  // Request Notification Permission (macOS only)
-  if (process.platform === 'darwin') {
-    app.setAppUserModelId('com.autoslides.app');
-  }
+  app.setAppUserModelId('com.autoslides.app');
 });
 
 app.on('window-all-closed', function () {

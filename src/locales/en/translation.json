@@ -54,6 +54,7 @@
     "autoStartPlayback": "Auto-Start Playback",
     "autoStartPlaybackHelp": "Automatically click play button",
     "autoAdjustSpeed": "Auto-Adjust Playback Speed",
+    "autoAdjustSpeedHelp": "Configure speed in the profile settings",
     "autoDetectTitle": "Auto-Detect Title",
     "autoDetectTitleHelp": "Auto-detect info and create subfolders",
     "autoRetryError": "Auto-Retry On Error",
@@ -265,7 +266,8 @@
       "sessionAlreadyInQueue": "This session is already in the task queue",
       "sessionAdd": "A session added to task queue",
       "allSessionAdd": "Added {{count}} sessions to tasks",
-      "icpAdd": "Added {{message}} to queue"
+      "icpAdd": "Added {{message}} to queue",
+      "speedAdjustLiveDisabled": "Speed adjustment cannot be enabled for live streams"
     },
     "cache": {
       "calculating": "Calculating cache size...",
