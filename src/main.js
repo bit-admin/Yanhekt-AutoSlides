@@ -199,7 +199,7 @@ function createApplicationMenu() {
       label: process.platform === 'darwin' ? app.name : translate('options'),
       submenu: [
         process.platform === 'darwin' 
-          ? { role: 'about', label: translate('about') } 
+          ? { role: 'about', label: translate('about') + app.name } 
           : { label: translate('about'), click: () => app.showAboutPanel() },
         { type: 'separator' },
         {
@@ -262,23 +262,6 @@ function createApplicationMenu() {
       role: 'help',
       label: translate('help'),
       submenu: [
-        {
-          label: translate('autoSlidesHelp'),
-          click: async () => {
-            const helpWindow = new BrowserWindow({
-              width: 900,
-              height: 700,
-              webPreferences: {
-                contextIsolation: true,
-                nodeIntegration: false,
-                preload: path.join(__dirname, 'preload-help.js')
-              },
-              title: 'AutoSlides Help'
-            });
-            
-            helpWindow.loadFile(path.join(__dirname, 'renderer', 'help.html'));
-          }
-        },
         {
           label: translate('visitGitHub'),
           click: async () => {
