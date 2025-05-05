@@ -49,8 +49,7 @@
       "category": "public.app-category.productivity",
       "icon": "build/icon.icns",
       "target": [
-        "dmg",
-        "pkg"
+        "dmg"
       ],
       "artifactName": "${productName}-${version}-macOS-${arch}.${ext}"
     },

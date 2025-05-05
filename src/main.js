@@ -200,7 +200,7 @@ function createApplicationMenu() {
       submenu: [
         process.platform === 'darwin' 
           ? { role: 'about', label: translate('about') + app.name } 
-          : { label: translate('about'), click: () => app.showAboutPanel() },
+          : { label: translate('about') + app.name, click: () => app.showAboutPanel() },
         { type: 'separator' },
         {
           label: translate('preferences'),
