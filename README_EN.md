@@ -155,20 +155,31 @@ AutoSlides employs a multi-level image comparison strategy to ensure accurate ca
 ## TERMS AND CONDITIONS​
 
 1. Permitted Use​
+
 The Software is designed exclusively to facilitate the download of course resources from the "Yanhe Classroom" platform ("Platform") of the Beijing Institute of Technology ("BIT"), assisting users in managing and utilizing learning materials within legally authorized boundaries. The Software does not store, modify, or distribute any course content. All downloaded materials originate directly from the Platform.
 
-​2. Intellectual Property Rights​
+2. Intellectual Property Rights​
+
 All course resources on the Platform (including but not limited to videos, documents, images, and audio files) are the intellectual property of their original authors, BIT, or respective rights holders. The Software solely functions as a technical intermediary and assumes no liability for the ownership or licensing status of Platform content. Users shall strictly comply with the Copyright Law of the People's Republic of China, applicable laws, and the Platform’s user agreement and intellectual property policies when utilizing the Software.
 
-​3. User Obligations​
+3. User Obligations​
+
 Users shall ensure that their use of the Software adheres to all applicable laws and the Platform’s terms of service. Prohibited activities include, but are not limited to:
+
 	A.	Unauthorized reproduction, distribution, modification, or dissemination of course resources;
+
 	B.	Commercial exploitation, reverse engineering, or unlawful use of downloaded materials;
+
 	C.	Infringement of intellectual property rights or other legal interests of third parties (including BIT, content creators, or rights holders).
+   
 	D.	​Users bear sole responsibility​ for any legal disputes or violations arising from misuse of the Software. The Software developer disclaims all liability for consequences resulting from such actions.
 
-​4. LIMITATION OF LIABILITY​
+4. LIMITATION OF LIABILITY​
+
 TO THE MAXIMUM EXTENT PERMITTED BY LAW:
+
 	A.	THE SOFTWARE DEVELOPER MAKES NO WARRANTIES, EXPRESS OR IMPLIED, REGARDING THE LEGALITY, COMPLETENESS, ACCURACY, OR AVAILABILITY OF THE PLATFORM OR ITS CONTENT.
+
 	B.	IN NO EVENT SHALL THE SOFTWARE DEVELOPER BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES (INCLUDING DATA LOSS, INTELLECTUAL PROPERTY DISPUTES, OR THIRD-PARTY CLAIMS) ARISING FROM THE USE OF THE SOFTWARE.
+
 	C.	USERS AGREE TO INDEMNIFY AND HOLD HARMLESS THE SOFTWARE DEVELOPER AGAINST ALL LIABILITIES, COSTS, AND EXPENSES RELATED TO THEIR USE OF THE SOFTWARE.
