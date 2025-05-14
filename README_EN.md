@@ -166,20 +166,20 @@ All course resources on the Platform (including but not limited to videos, docum
 
 Users shall ensure that their use of the Software adheres to all applicable laws and the Platform’s terms of service. Prohibited activities include, but are not limited to:
 
-	A.	Unauthorized reproduction, distribution, modification, or dissemination of course resources;
+A. Unauthorized reproduction, distribution, modification, or dissemination of course resources;
 
-	B.	Commercial exploitation, reverse engineering, or unlawful use of downloaded materials;
+B. Commercial exploitation, reverse engineering, or unlawful use of downloaded materials;
 
-	C.	Infringement of intellectual property rights or other legal interests of third parties (including BIT, content creators, or rights holders).
+C. Infringement of intellectual property rights or other legal interests of third parties (including BIT, content creators, or rights holders).
    
-	D.	​Users bear sole responsibility​ for any legal disputes or violations arising from misuse of the Software. The Software developer disclaims all liability for consequences resulting from such actions.
+D. ​Users bear sole responsibility​ for any legal disputes or violations arising from misuse of the Software. The Software developer disclaims all liability for consequences resulting from such actions.
 
 4. LIMITATION OF LIABILITY​
 
 TO THE MAXIMUM EXTENT PERMITTED BY LAW:
 
-	A.	THE SOFTWARE DEVELOPER MAKES NO WARRANTIES, EXPRESS OR IMPLIED, REGARDING THE LEGALITY, COMPLETENESS, ACCURACY, OR AVAILABILITY OF THE PLATFORM OR ITS CONTENT.
+A. THE SOFTWARE DEVELOPER MAKES NO WARRANTIES, EXPRESS OR IMPLIED, REGARDING THE LEGALITY, COMPLETENESS, ACCURACY, OR AVAILABILITY OF THE PLATFORM OR ITS CONTENT.
 
-	B.	IN NO EVENT SHALL THE SOFTWARE DEVELOPER BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES (INCLUDING DATA LOSS, INTELLECTUAL PROPERTY DISPUTES, OR THIRD-PARTY CLAIMS) ARISING FROM THE USE OF THE SOFTWARE.
+B. IN NO EVENT SHALL THE SOFTWARE DEVELOPER BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES (INCLUDING DATA LOSS, INTELLECTUAL PROPERTY DISPUTES, OR THIRD-PARTY CLAIMS) ARISING FROM THE USE OF THE SOFTWARE.
 
-	C.	USERS AGREE TO INDEMNIFY AND HOLD HARMLESS THE SOFTWARE DEVELOPER AGAINST ALL LIABILITIES, COSTS, AND EXPENSES RELATED TO THEIR USE OF THE SOFTWARE.
+C. USERS AGREE TO INDEMNIFY AND HOLD HARMLESS THE SOFTWARE DEVELOPER AGAINST ALL LIABILITIES, COSTS, AND EXPENSES RELATED TO THEIR USE OF THE SOFTWARE.
