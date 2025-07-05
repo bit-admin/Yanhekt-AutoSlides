@@ -6,6 +6,7 @@
 - 基于Electron框架
 - 支持Windows/macOS
 - 针对延河课堂专门优化
+- 使用网页版[AutoSlides Web](https://yanhe.bitech.edu.kg) 查看全校直播课程，运行基础的提取幻灯片功能
 
 
 ## 简介
