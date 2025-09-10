@@ -6,7 +6,8 @@
 - 基于Electron框架
 - 支持Windows/macOS
 - 针对延河课堂专门优化
-- 使用网页版[AutoSlides Web](https://yanhe.bitech.edu.kg) 查看全校直播课程，运行基础的提取幻灯片功能
+
+想要在上课时使用移动设备自动捕获幻灯片吗？你也可以使用网页版[RUC Student Portal](https://learn.ruc.edu.kg) 查看全校直播课程，运行基础的提取幻灯片功能
 
 
 ## 简介
@@ -39,11 +40,6 @@ AutoSlides 能够自动检测并捕获幻灯片变化，保存为高质量PNG图
 3. 运行安装包，按向导完成安装
 4. 可选择安装路径、是否创建桌面快捷方式等
 5. 安装完成后，从开始菜单或桌面快捷方式启动应用
-
-### 版本选择
-
-从3.3.0版本开始，正式版（如3.3.0）的发布界面只包括 AutoSlides，预发布版本（如3.3.1-beta）的发布界面将是包括 AutoSlides、Yanhekt Downloader、AutoSlides Extractor 的捆绑版本，您可以按需下载。
-
 
 ## 使用方法
 
