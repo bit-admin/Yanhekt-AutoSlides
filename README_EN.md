@@ -37,10 +37,6 @@ It can also work with other projects:
 4. You can choose installation path, whether to create desktop shortcuts, etc.
 5. After installation, launch the application from the Start menu or desktop shortcut
 
-### Version Selection
-
-Starting from version 3.3.0, the official releases (e.g., 3.3.0) will only include AutoSlides, while pre-release versions (e.g., 3.3.1-beta) will be bundled versions including AutoSlides, Yanhekt Downloader, and AutoSlides Extractor. You can download according to your needs.
-
 ## How to Use
 
 ### Basic Functions
