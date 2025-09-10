@@ -7,7 +7,7 @@
 - 支持Windows/macOS
 - 针对延河课堂专门优化
 
-想要在上课时使用移动设备自动捕获幻灯片吗？你也可以使用网页版[RUC Student Portal](https://learn.ruc.edu.kg) 查看全校直播课程，运行基础的提取幻灯片功能
+想要在上课时使用移动设备自动捕获幻灯片吗？你也可以使用网页版 [RUC Student Portal](https://learn.ruc.edu.kg) 查看全校直播课程，运行基础的提取幻灯片功能。
 
 
 ## 简介
