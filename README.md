@@ -1,5 +1,7 @@
 # AutoSlides
 
+> 此项目将会被重构。
+
 [**English Version**](README_EN.md) 👈 Click here for English
 
 `AutoSlides`是一个自动从网页中捕获幻灯片的工具，支持监控内容变化并保存新幻灯片的截图。为北理工延河课堂设计，兼容各类直播/录播平台。
