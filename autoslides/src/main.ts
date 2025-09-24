@@ -1,6 +1,8 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
+import { MainAuthService } from './main/authService';
+import { MainApiClient } from './main/apiClient';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -16,6 +18,8 @@ const createWindow = () => {
     minHeight: 700,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
     },
   });
 
@@ -54,6 +58,19 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+// Initialize auth services
+const authService = new MainAuthService();
+const apiClient = new MainApiClient();
+
+// IPC handlers for authentication
+ipcMain.handle('auth:login', async (event, username: string, password: string) => {
+  return await authService.loginAndGetToken(username, password);
+});
+
+ipcMain.handle('auth:verifyToken', async (event, token: string) => {
+  return await apiClient.verifyToken(token);
 });
 
 // In this file you can include the rest of your app's specific main process
