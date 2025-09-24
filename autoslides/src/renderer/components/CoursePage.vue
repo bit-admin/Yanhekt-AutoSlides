@@ -34,29 +34,37 @@
     </div>
 
     <div class="content">
+      <div v-if="errorMessage" class="error-message">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        {{ errorMessage }}
+      </div>
       <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
         <p>Loading courses...</p>
       </div>
-      <div v-else class="courses-grid">
+      <div v-else-if="!errorMessage" class="courses-grid">
         <div
           v-for="course in paginatedCourses"
           :key="course.id"
           class="course-card"
           @click="selectCourse(course)"
         >
-          <div class="course-image">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
+          <div class="course-status" :class="getStatusClass(course.status)">
+            {{ getStatusText(course.status) }}
           </div>
           <div class="course-info">
             <h3 class="course-title">{{ course.title }}</h3>
             <p class="course-instructor">{{ course.instructor }}</p>
+            <p class="course-location" v-if="course.subtitle">{{ course.subtitle }}</p>
             <p class="course-time">{{ course.time }}</p>
+            <p class="course-section" v-if="course.session?.section_group_title">{{ course.session.section_group_title }}</p>
+            <p class="course-participants" v-if="course.participant_count !== undefined">
+              {{ course.participant_count }} participants
+            </p>
           </div>
         </div>
       </div>
@@ -88,12 +96,26 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { ApiClient, type LiveStream, type LiveListResponse } from '../services/apiClient'
+import { TokenManager } from '../services/authService'
+import { DataStore } from '../services/dataStore'
 
 interface Course {
   id: string
   title: string
   instructor: string
   time: string
+  status?: number
+  subtitle?: string
+  schedule_started_at?: string
+  schedule_ended_at?: string
+  participant_count?: number
+  session?: {
+    professor?: {
+      name: string;
+    };
+    section_group_title?: string;
+  };
 }
 
 const props = defineProps<{
@@ -104,64 +126,163 @@ const emit = defineEmits<{
   courseSelected: [course: Course]
 }>()
 
+const apiClient = new ApiClient()
+const tokenManager = new TokenManager()
 const searchQuery = ref('')
 const isLoading = ref(false)
 const courses = ref<Course[]>([])
 const currentPage = ref(1)
+const totalPages = ref(1)
 const coursesPerPage = 16
-
-const mockCourses: Course[] = [
-  { id: '1', title: 'Introduction to Computer Science', instructor: 'Dr. Smith', time: '10:00 AM' },
-  { id: '2', title: 'Advanced Mathematics', instructor: 'Prof. Johnson', time: '2:00 PM' },
-  { id: '3', title: 'Physics Fundamentals', instructor: 'Dr. Brown', time: '9:00 AM' },
-  { id: '4', title: 'Chemistry Lab', instructor: 'Prof. Davis', time: '3:00 PM' },
-  { id: '5', title: 'Biology Basics', instructor: 'Dr. Wilson', time: '11:00 AM' },
-  { id: '6', title: 'History of Science', instructor: 'Prof. Miller', time: '1:00 PM' },
-  { id: '7', title: 'English Literature', instructor: 'Dr. Garcia', time: '10:30 AM' },
-  { id: '8', title: 'Art Appreciation', instructor: 'Prof. Martinez', time: '4:00 PM' },
-]
-
-const totalPages = computed(() => Math.ceil(courses.value.length / coursesPerPage))
+const errorMessage = ref('')
 
 const paginatedCourses = computed(() => {
-  const start = (currentPage.value - 1) * coursesPerPage
-  const end = start + coursesPerPage
-  return courses.value.slice(start, end)
+  return courses.value
 })
 
-const searchCourses = () => {
-  if (searchQuery.value.trim()) {
-    courses.value = mockCourses.filter(course =>
-      course.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      course.instructor.toLowerCase().includes(searchQuery.value.toLowerCase())
-    )
-  } else {
-    courses.value = [...mockCourses]
+const searchCourses = async () => {
+  const keyword = searchQuery.value.trim()
+  if (!keyword) {
+    errorMessage.value = 'Please enter a search keyword'
+    return
   }
-  currentPage.value = 1
+
+  const token = tokenManager.getToken()
+  if (!token) {
+    errorMessage.value = 'Please login first'
+    return
+  }
+
+  if (props.mode !== 'live') {
+    errorMessage.value = 'Search is only available in Live mode'
+    return
+  }
+
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response: LiveListResponse = await apiClient.searchLiveList(token, keyword, currentPage.value, coursesPerPage)
+    courses.value = response.data.map(transformLiveStreamToCourse)
+    totalPages.value = response.last_page
+    currentPage.value = response.current_page
+  } catch (error: any) {
+    console.error('Search failed:', error)
+    errorMessage.value = error.message || 'Failed to search courses'
+    courses.value = []
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const fetchPersonalCourses = async () => {
-  isLoading.value = true
+  const token = tokenManager.getToken()
+  if (!token) {
+    errorMessage.value = 'Please login first'
+    return
+  }
 
-  setTimeout(() => {
-    courses.value = [...mockCourses]
+  if (props.mode !== 'live') {
+    errorMessage.value = 'Personal course list is only available in Live mode'
+    return
+  }
+
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response: LiveListResponse = await apiClient.getPersonalLiveList(token, currentPage.value, coursesPerPage)
+    courses.value = response.data.map(transformLiveStreamToCourse)
+    totalPages.value = response.last_page
+    currentPage.value = response.current_page
+  } catch (error: any) {
+    console.error('Failed to fetch personal courses:', error)
+    errorMessage.value = error.message || 'Failed to fetch personal courses'
+    courses.value = []
+  } finally {
     isLoading.value = false
-  }, 1500)
+  }
+}
+
+const transformLiveStreamToCourse = (stream: LiveStream): Course => {
+  const startTime = new Date(stream.schedule_started_at).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+  const endTime = new Date(stream.schedule_ended_at).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+
+  return {
+    id: stream.id || stream.live_id || '',
+    title: stream.title || 'Untitled',
+    instructor: stream.session?.professor?.name || 'Unknown',
+    time: `${startTime} - ${endTime}`,
+    status: stream.status,
+    subtitle: stream.subtitle,
+    schedule_started_at: stream.schedule_started_at,
+    schedule_ended_at: stream.schedule_ended_at,
+    participant_count: stream.participant_count,
+    session: stream.session
+  }
+}
+
+const getStatusClass = (status?: number): string => {
+  switch (status) {
+    case 0: return 'status-ended'
+    case 1: return 'status-live'
+    case 2: return 'status-upcoming'
+    default: return 'status-unknown'
+  }
+}
+
+const getStatusText = (status?: number): string => {
+  switch (status) {
+    case 0: return 'Ended'
+    case 1: return 'Live'
+    case 2: return 'Upcoming'
+    default: return 'Unknown'
+  }
 }
 
 const selectCourse = (course: Course) => {
+  // Store complete stream data for playback
+  const streamData: LiveStream = {
+    id: course.id,
+    title: course.title,
+    subtitle: course.subtitle,
+    status: course.status || 0,
+    schedule_started_at: course.schedule_started_at || '',
+    schedule_ended_at: course.schedule_ended_at || '',
+    participant_count: course.participant_count,
+    session: course.session
+  };
+
+  // Store data in localStorage for the playback page
+  DataStore.setStreamData(course.id, streamData);
+
+  // Emit the course selection event
   emit('courseSelected', course)
 }
 
-const goToPage = (page: number) => {
-  if (page >= 1 && page <= totalPages.value) {
+const goToPage = async (page: number) => {
+  if (page >= 1 && page <= totalPages.value && page !== currentPage.value) {
     currentPage.value = page
+
+    // Re-fetch data for the new page
+    if (searchQuery.value.trim()) {
+      await searchCourses()
+    } else {
+      await fetchPersonalCourses()
+    }
   }
 }
 
 onMounted(() => {
-  fetchPersonalCourses()
+  if (props.mode === 'live') {
+    fetchPersonalCourses()
+  }
 })
 </script>
 
@@ -237,6 +358,19 @@ onMounted(() => {
   flex-direction: column;
 }
 
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 4px;
+  color: #c33;
+  font-size: 14px;
+}
+
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -272,13 +406,14 @@ onMounted(() => {
 .course-card {
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 12px;
   border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  border-radius: 6px;
   background-color: white;
   cursor: pointer;
   transition: all 0.2s;
   height: fit-content;
+  position: relative;
 }
 
 .course-card:hover {
@@ -286,35 +421,84 @@ onMounted(() => {
   box-shadow: 0 2px 8px rgba(0, 122, 204, 0.1);
 }
 
-.course-image {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 12px;
+.course-status {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-ended {
+  background-color: #f5f5f5;
   color: #666;
 }
 
+.status-live {
+  background-color: #e8f5e8;
+  color: #2d8f2d;
+}
+
+.status-upcoming {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-unknown {
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+
 .course-info {
-  text-align: center;
+  text-align: left;
+  padding-top: 20px;
 }
 
 .course-title {
-  margin: 0 0 8px 0;
-  font-size: 14px;
+  margin: 0 0 6px 0;
+  font-size: 13px;
   font-weight: 600;
   color: #333;
   line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .course-instructor {
   margin: 0 0 4px 0;
-  font-size: 12px;
+  font-size: 11px;
   color: #666;
+  font-weight: 500;
+}
+
+.course-location {
+  margin: 0 0 4px 0;
+  font-size: 11px;
+  color: #888;
 }
 
 .course-time {
-  margin: 0;
-  font-size: 12px;
+  margin: 0 0 4px 0;
+  font-size: 11px;
   color: #999;
+}
+
+.course-section {
+  margin: 0 0 4px 0;
+  font-size: 10px;
+  color: #aaa;
+}
+
+.course-participants {
+  margin: 0;
+  font-size: 10px;
+  color: #007acc;
+  font-weight: 500;
 }
 
 .pagination {

@@ -13,4 +13,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectOutputDirectory: () => ipcRenderer.invoke('config:selectOutputDirectory'),
     setConnectionMode: (mode: 'internal' | 'external') => ipcRenderer.invoke('config:setConnectionMode', mode),
   },
+  api: {
+    getPersonalLiveList: (token: string, page?: number, pageSize?: number) =>
+      ipcRenderer.invoke('api:getPersonalLiveList', token, page, pageSize),
+    searchLiveList: (token: string, keyword: string, page?: number, pageSize?: number) =>
+      ipcRenderer.invoke('api:searchLiveList', token, keyword, page, pageSize),
+  },
 });

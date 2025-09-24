@@ -42,6 +42,52 @@ interface ElectronAPI {
       connectionMode: 'internal' | 'external';
     }>;
   };
+  api: {
+    getPersonalLiveList: (token: string, page?: number, pageSize?: number) => Promise<{
+      data: Array<{
+        id: string;
+        live_id?: string;
+        title: string;
+        subtitle?: string;
+        status: number;
+        schedule_started_at: string;
+        schedule_ended_at: string;
+        participant_count?: number;
+        session?: {
+          professor?: {
+            name: string;
+          };
+          section_group_title?: string;
+        };
+      }>;
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    }>;
+    searchLiveList: (token: string, keyword: string, page?: number, pageSize?: number) => Promise<{
+      data: Array<{
+        id: string;
+        live_id?: string;
+        title: string;
+        subtitle?: string;
+        status: number;
+        schedule_started_at: string;
+        schedule_ended_at: string;
+        participant_count?: number;
+        session?: {
+          professor?: {
+            name: string;
+          };
+          section_group_title?: string;
+        };
+      }>;
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    }>;
+  };
 }
 
 declare global {

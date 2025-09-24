@@ -95,5 +95,14 @@ ipcMain.handle('config:setConnectionMode', async (event, mode: 'internal' | 'ext
   return configService.getConfig();
 });
 
+// IPC handlers for live streams
+ipcMain.handle('api:getPersonalLiveList', async (event, token: string, page?: number, pageSize?: number) => {
+  return await apiClient.getPersonalLiveList(token, page, pageSize);
+});
+
+ipcMain.handle('api:searchLiveList', async (event, token: string, keyword: string, page?: number, pageSize?: number) => {
+  return await apiClient.searchLiveList(token, keyword, page, pageSize);
+});
+
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
