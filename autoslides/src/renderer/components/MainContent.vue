@@ -38,7 +38,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import CoursePage from './CoursePage.vue'
 import SessionPage from './SessionPage.vue'
 import PlaybackPage from './PlaybackPage.vue'
@@ -46,45 +46,92 @@ import PlaybackPage from './PlaybackPage.vue'
 type Mode = 'live' | 'recorded'
 type Page = 'courses' | 'sessions' | 'playback'
 
+interface ModeState {
+  page: Page;
+  selectedCourse: any;
+  selectedSession: any;
+}
+
 const currentMode = ref<Mode>('live')
-const currentPage = ref<Page>('courses')
-const selectedCourse = ref<any>(null)
-const selectedSession = ref<any>(null)
+
+// 为每个模式维护独立的状态
+const liveState = ref<ModeState>({
+  page: 'courses',
+  selectedCourse: null,
+  selectedSession: null
+})
+
+const recordedState = ref<ModeState>({
+  page: 'courses',
+  selectedCourse: null,
+  selectedSession: null
+})
+
+// 计算当前模式的状态
+const currentState = computed(() => {
+  return currentMode.value === 'live' ? liveState.value : recordedState.value
+})
+
+// 便捷的访问器
+const currentPage = computed(() => currentState.value.page)
+const selectedCourse = computed(() => currentState.value.selectedCourse)
+const selectedSession = computed(() => currentState.value.selectedSession)
 
 const switchMode = (mode: Mode) => {
+  console.log(`🔄 Switching from ${currentMode.value} to ${mode}`)
+  console.log(`📊 Current ${currentMode.value} state:`, {
+    page: currentState.value.page,
+    course: currentState.value.selectedCourse?.title || 'none',
+    session: currentState.value.selectedSession?.title || 'none'
+  })
+
   currentMode.value = mode
-  currentPage.value = 'courses'
-  selectedCourse.value = null
-  selectedSession.value = null
+
+  console.log(`📊 New ${mode} state:`, {
+    page: currentState.value.page,
+    course: currentState.value.selectedCourse?.title || 'none',
+    session: currentState.value.selectedSession?.title || 'none'
+  })
+  // 不重置状态，每个模式保持自己的导航状态
 }
 
 const handleCourseSelected = (course: any) => {
-  selectedCourse.value = course
+  console.log(`📚 Course selected in ${currentMode.value} mode:`, course.title)
+  const state = currentMode.value === 'live' ? liveState.value : recordedState.value
+  state.selectedCourse = course
 
   if (currentMode.value === 'live') {
-    currentPage.value = 'playback'
+    state.page = 'playback'
+    console.log(`🎬 ${currentMode.value}: Going to playback page`)
   } else {
-    currentPage.value = 'sessions'
+    state.page = 'sessions'
+    console.log(`📋 ${currentMode.value}: Going to sessions page`)
   }
 }
 
 const handleSessionSelected = (session: any) => {
-  selectedSession.value = session
-  currentPage.value = 'playback'
+  console.log(`🎥 Session selected in ${currentMode.value} mode:`, session.title)
+  const state = currentMode.value === 'live' ? liveState.value : recordedState.value
+  state.selectedSession = session
+  state.page = 'playback'
+  console.log(`🎬 ${currentMode.value}: Going to playback page`)
 }
 
 const backToCourses = () => {
-  currentPage.value = 'courses'
-  selectedCourse.value = null
-  selectedSession.value = null
+  const state = currentMode.value === 'live' ? liveState.value : recordedState.value
+  state.page = 'courses'
+  state.selectedCourse = null
+  state.selectedSession = null
 }
 
 const handleBackFromPlayback = () => {
+  const state = currentMode.value === 'live' ? liveState.value : recordedState.value
+
   if (currentMode.value === 'live') {
     backToCourses()
   } else {
-    currentPage.value = 'sessions'
-    selectedSession.value = null
+    state.page = 'sessions'
+    state.selectedSession = null
   }
 }
 </script>
