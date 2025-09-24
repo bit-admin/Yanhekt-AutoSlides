@@ -233,7 +233,7 @@ const searchCourses = async () => {
       // Record mode search
       const options = {
         keyword: searchQuery.value.trim(),
-        semesters: selectedSemesters.value,
+        semesters: [...selectedSemesters.value],
         page: currentPage.value,
         pageSize: coursesPerPage
       }
