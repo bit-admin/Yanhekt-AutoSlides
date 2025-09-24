@@ -20,9 +20,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import LeftPanel from './components/LeftPanel.vue'
-import MainContent from './components/MainContent.vue'
-import RightPanel from './components/RightPanel.vue'
+import LeftPanel from './renderer/components/LeftPanel.vue'
+import MainContent from './renderer/components/MainContent.vue'
+import RightPanel from './renderer/components/RightPanel.vue'
 
 const leftWidth = ref(320)
 const rightWidth = ref(320)

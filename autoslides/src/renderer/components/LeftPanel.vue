@@ -139,6 +139,7 @@ const login = async () => {
 }
 
 const logout = () => {
+  tokenManager.clearToken()
   isLoggedIn.value = false
   username.value = ''
   password.value = ''
