@@ -10,8 +10,10 @@ if (started) {
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1400,
+    height: 900,
+    minWidth: 1200,
+    minHeight: 700,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
@@ -26,8 +28,10 @@ const createWindow = () => {
     );
   }
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  // Open the DevTools only in development
+  if (process.env.NODE_ENV === 'development') {
+    // mainWindow.webContents.openDevTools();
+  }
 };
 
 // This method will be called when Electron has finished
