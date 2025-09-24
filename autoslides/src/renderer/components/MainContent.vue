@@ -31,6 +31,9 @@
         v-else-if="currentPage === 'playback'"
         :course="selectedCourse"
         :session="selectedSession"
+        :mode="currentMode"
+        :streamId="selectedCourse?.id"
+        :sessionId="selectedSession?.session_id"
         @back="handleBackFromPlayback"
       />
     </div>

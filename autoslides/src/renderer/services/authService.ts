@@ -1,4 +1,4 @@
-/// <reference path="../../../src/vite-env.d.ts" />
+// Type definitions are available globally
 
 export interface LoginResult {
   success: boolean;

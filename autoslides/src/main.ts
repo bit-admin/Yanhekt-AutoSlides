@@ -4,6 +4,8 @@ import started from 'electron-squirrel-startup';
 import { MainAuthService } from './main/authService';
 import { MainApiClient } from './main/apiClient';
 import { ConfigService } from './main/configService';
+import { IntranetMappingService } from './main/intranetMappingService';
+import { VideoProxyService } from './main/videoProxyService';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -65,6 +67,8 @@ app.on('activate', () => {
 const authService = new MainAuthService();
 const apiClient = new MainApiClient();
 const configService = new ConfigService();
+const intranetMappingService = new IntranetMappingService(configService);
+const videoProxyService = new VideoProxyService(apiClient, intranetMappingService);
 
 // IPC handlers for authentication
 ipcMain.handle('auth:login', async (event, username: string, password: string) => {
@@ -92,7 +96,19 @@ ipcMain.handle('config:selectOutputDirectory', async () => {
 
 ipcMain.handle('config:setConnectionMode', async (event, mode: 'internal' | 'external') => {
   configService.setConnectionMode(mode);
+  // Update intranet mode based on connection mode
+  intranetMappingService.setEnabled(mode === 'internal');
   return configService.getConfig();
+});
+
+// IPC handlers for intranet mapping
+ipcMain.handle('intranet:setEnabled', async (event, enabled: boolean) => {
+  intranetMappingService.setEnabled(enabled);
+  return intranetMappingService.getNetworkStatus();
+});
+
+ipcMain.handle('intranet:getStatus', async () => {
+  return intranetMappingService.getNetworkStatus();
 });
 
 // IPC handlers for live streams
@@ -119,6 +135,15 @@ ipcMain.handle('api:getCourseInfo', async (event, courseId: string, token: strin
 
 ipcMain.handle('api:getAvailableSemesters', async () => {
   return MainApiClient.getAvailableSemesters();
+});
+
+// IPC handlers for video proxy
+ipcMain.handle('video:getLiveStreamUrls', async (event, stream: any, token: string) => {
+  return await videoProxyService.getLiveStreamUrls(stream, token);
+});
+
+ipcMain.handle('video:getVideoPlaybackUrls', async (event, session: any, token: string) => {
+  return await videoProxyService.getVideoPlaybackUrls(session, token);
 });
 
 // In this file you can include the rest of your app's specific main process

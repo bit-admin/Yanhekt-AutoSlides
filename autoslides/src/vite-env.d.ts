@@ -153,6 +153,46 @@ interface ElectronAPI {
       semester: number;
     }>>;
   };
+  intranet: {
+    setEnabled: (enabled: boolean) => Promise<{
+      mode: string;
+      enabled: boolean;
+      mappingCount: number;
+    }>;
+    getStatus: () => Promise<{
+      mode: string;
+      enabled: boolean;
+      mappingCount: number;
+    }>;
+  };
+  video: {
+    getLiveStreamUrls: (stream: any, token: string) => Promise<{
+      stream_id?: string;
+      title: string;
+      streams: {
+        [key: string]: {
+          type: 'camera' | 'screen';
+          name: string;
+          url: string;
+          original_url: string;
+        };
+      };
+    }>;
+    getVideoPlaybackUrls: (session: any, token: string) => Promise<{
+      session_id?: string;
+      video_id?: string;
+      title: string;
+      duration?: string;
+      streams: {
+        [key: string]: {
+          type: 'camera' | 'screen';
+          name: string;
+          url: string;
+          original_url: string;
+        };
+      };
+    }>;
+  };
 }
 
 declare global {

@@ -27,4 +27,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAvailableSemesters: () =>
       ipcRenderer.invoke('api:getAvailableSemesters'),
   },
+  intranet: {
+    setEnabled: (enabled: boolean) => ipcRenderer.invoke('intranet:setEnabled', enabled),
+    getStatus: () => ipcRenderer.invoke('intranet:getStatus'),
+  },
+  video: {
+    getLiveStreamUrls: (stream: any, token: string) =>
+      ipcRenderer.invoke('video:getLiveStreamUrls', stream, token),
+    getVideoPlaybackUrls: (session: any, token: string) =>
+      ipcRenderer.invoke('video:getVideoPlaybackUrls', session, token),
+  },
 });

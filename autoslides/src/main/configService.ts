@@ -7,6 +7,8 @@ import * as os from 'os';
 export interface AppConfig {
   outputDirectory: string;
   connectionMode: 'internal' | 'external';
+  intranetMode?: boolean;
+  intranetMappings?: any;
 }
 
 const defaultConfig: AppConfig = {
@@ -55,6 +57,14 @@ export class ConfigService {
     }
 
     return null;
+  }
+
+  get<K extends keyof AppConfig>(key: K, defaultValue?: AppConfig[K]): AppConfig[K] {
+    return (this.store as any).get(key, defaultValue);
+  }
+
+  set<K extends keyof AppConfig>(key: K, value: AppConfig[K]): void {
+    (this.store as any).set(key, value);
   }
 
   private ensureOutputDirectoryExists(): void {

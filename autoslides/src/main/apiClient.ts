@@ -89,7 +89,7 @@ export interface SemesterOption {
   semester: number;
 }
 
-export class MainApiClient {
+export class ApiClient {
   private readonly MAGIC = "1138b69dfef641d9d7ba49137d2d4875";
   private readonly BASE_HEADERS = {
     "Origin": "https://www.yanhekt.cn",
@@ -444,4 +444,31 @@ export class MainApiClient {
 
     return semesters.reverse(); // Show most recent semesters first
   }
+
+  async getVideoToken(token: string): Promise<string> {
+    try {
+      const url = "https://cbiz.yanhekt.cn/v1/auth/video/token";
+      const data = await this.makeRequest('GET', url, token);
+
+      if (data.code !== 0 && data.code !== "0") {
+        let errorMessage = data.message;
+        switch (data.code) {
+          case 13001001:
+            errorMessage = "Authentication failed, please check if token is valid";
+            break;
+          default:
+            errorMessage = `API error: ${data.message} (code: ${data.code})`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return data.data.token;
+    } catch (error: unknown) {
+      console.error('Failed to get video token:', error);
+      throw error;
+    }
+  }
 }
+
+// Maintain backward compatibility
+export const MainApiClient = ApiClient;
