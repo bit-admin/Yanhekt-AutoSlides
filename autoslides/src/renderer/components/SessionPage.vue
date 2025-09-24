@@ -11,25 +11,54 @@
     </div>
 
     <div class="content">
-      <p class="placeholder">Session selection will be implemented here</p>
-      <p class="course-info">Course: {{ course?.title }}</p>
-      <p class="instructor-info">Instructor: {{ course?.instructor }}</p>
+      <div v-if="errorMessage" class="error-message">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="15" y1="9" x2="9" y2="15"/>
+          <line x1="9" y1="9" x2="15" y2="15"/>
+        </svg>
+        {{ errorMessage }}
+      </div>
 
-      <div class="sessions-list">
-        <div
-          v-for="session in mockSessions"
-          :key="session.id"
-          class="session-item"
-          @click="selectSession(session)"
-        >
-          <div class="session-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="5,3 19,12 5,21"/>
-            </svg>
-          </div>
-          <div class="session-info">
-            <h3>{{ session.title }}</h3>
-            <p>{{ session.date }} - {{ session.duration }}</p>
+      <div v-if="isLoading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Loading sessions...</p>
+      </div>
+
+      <div v-else-if="!errorMessage">
+        <div class="course-details">
+          <p class="course-info">Course: {{ course?.title }}</p>
+          <p class="instructor-info">Instructor: {{ course?.instructor }}</p>
+          <p class="professor-info" v-if="courseInfo?.professor">Professor: {{ courseInfo.professor }}</p>
+        </div>
+
+        <div v-if="sessions.length === 0" class="no-sessions">
+          <p>No sessions found for this course.</p>
+        </div>
+
+        <div v-else class="sessions-list">
+          <div
+            v-for="session in sessions"
+            :key="session.session_id"
+            class="session-item"
+            @click="selectSession(session)"
+          >
+            <div class="session-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5,3 19,12 5,21"/>
+              </svg>
+            </div>
+            <div class="session-info">
+              <h3>{{ session.title }}</h3>
+              <div class="session-details">
+                <p v-if="session.week_number && session.day">Week {{ session.week_number }}, {{ getDayName(session.day) }}</p>
+                <p v-if="session.duration">{{ formatDuration(session.duration) }}</p>
+                <p class="session-dates" v-if="session.started_at">
+                  {{ formatDate(session.started_at) }}
+                  <span v-if="session.ended_at"> - {{ formatDate(session.ended_at) }}</span>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -38,7 +67,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { ApiClient, type SessionData, type CourseInfoResponse } from '../services/apiClient'
+import { TokenManager } from '../services/authService'
+import { DataStore } from '../services/dataStore'
 
 interface Course {
   id: string
@@ -47,11 +79,8 @@ interface Course {
   time: string
 }
 
-interface Session {
-  id: string
-  title: string
-  date: string
-  duration: string
+interface Session extends SessionData {
+  // Extends SessionData from API client
 }
 
 const props = defineProps<{
@@ -63,20 +92,87 @@ const emit = defineEmits<{
   backToCourses: []
 }>()
 
-const mockSessions = ref<Session[]>([
-  { id: '1', title: 'Session 1: Introduction', date: '2024-01-15', duration: '1h 30m' },
-  { id: '2', title: 'Session 2: Basic Concepts', date: '2024-01-22', duration: '1h 45m' },
-  { id: '3', title: 'Session 3: Advanced Topics', date: '2024-01-29', duration: '2h 00m' },
-  { id: '4', title: 'Session 4: Practice Session', date: '2024-02-05', duration: '1h 15m' },
-])
+const apiClient = new ApiClient()
+const tokenManager = new TokenManager()
+const sessions = ref<Session[]>([])
+const courseInfo = ref<CourseInfoResponse | null>(null)
+const isLoading = ref(false)
+const errorMessage = ref('')
 
 const goBack = () => {
   emit('backToCourses')
 }
 
 const selectSession = (session: Session) => {
+  // Store session data for playback
+  DataStore.setSessionData(session.session_id, session)
   emit('sessionSelected', session)
 }
+
+const loadCourseSessions = async () => {
+  if (!props.course) {
+    errorMessage.value = 'No course selected'
+    return
+  }
+
+  const token = tokenManager.getToken()
+  if (!token) {
+    errorMessage.value = 'Please login first'
+    return
+  }
+
+  isLoading.value = true
+  errorMessage.value = ''
+
+  try {
+    const response = await apiClient.getCourseInfo(props.course.id, token)
+    courseInfo.value = response
+    sessions.value = response.videos
+  } catch (error: any) {
+    console.error('Failed to load course sessions:', error)
+    errorMessage.value = error.message || 'Failed to load course sessions'
+    sessions.value = []
+  } finally {
+    isLoading.value = false
+  }
+}
+
+const formatDuration = (seconds: number): string => {
+  if (!seconds || seconds === 0) return 'N/A'
+
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`
+  } else {
+    return `${minutes}m`
+  }
+}
+
+const getDayName = (day: number): string => {
+  const dayNames = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+  return dayNames[day] || `Day ${day}`
+}
+
+const formatDate = (dateString: string): string => {
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return dateString
+  }
+}
+
+onMounted(() => {
+  loadCourseSessions()
+})
 </script>
 
 <style scoped>
@@ -182,5 +278,78 @@ const selectSession = (session: Session) => {
   margin: 0;
   font-size: 14px;
   color: #666;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 4px;
+  color: #c33;
+  font-size: 14px;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  gap: 16px;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007acc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.course-details {
+  margin-bottom: 24px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.course-info, .instructor-info, .professor-info {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.no-sessions {
+  text-align: center;
+  padding: 48px 16px;
+  color: #666;
+  font-style: italic;
+}
+
+.session-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.session-details p {
+  margin: 0;
+  font-size: 13px;
+  color: #888;
+}
+
+.session-dates {
+  font-weight: 500;
+  color: #666 !important;
 }
 </style>

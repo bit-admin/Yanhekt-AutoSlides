@@ -41,6 +41,54 @@ export interface LiveListResponse {
   total: number;
 }
 
+export interface CourseData {
+  id: string;
+  name_zh: string;
+  professors: string[];
+  classrooms: { name: string }[];
+  school_year: string;
+  semester: string;
+  college_name: string;
+  participant_count: number;
+}
+
+export interface CourseListResponse {
+  data: CourseData[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
+
+export interface SessionData {
+  id: string;
+  session_id: string;
+  video_id: string;
+  title: string;
+  duration: number;
+  week_number: number;
+  day: number;
+  started_at: string;
+  ended_at: string;
+  main_url?: string;
+  vga_url?: string;
+}
+
+export interface CourseInfoResponse {
+  course_id: string;
+  title: string;
+  professor: string;
+  videos: SessionData[];
+}
+
+export interface SemesterOption {
+  id: number;
+  label: string;
+  labelEn: string;
+  schoolYear: number;
+  semester: number;
+}
+
 export class MainApiClient {
   private readonly MAGIC = "1138b69dfef641d9d7ba49137d2d4875";
   private readonly BASE_HEADERS = {
@@ -181,5 +229,219 @@ export class MainApiClient {
       console.error('Failed to search live list:', error);
       throw error;
     }
+  }
+
+  // Record mode API functions
+  async getCourseList(token: string, options: {
+    semesters?: number[];
+    page?: number;
+    pageSize?: number;
+    keyword?: string;
+  } = {}): Promise<CourseListResponse> {
+    try {
+      const {
+        semesters = [],
+        page = 1,
+        pageSize = 16,
+        keyword = ''
+      } = options;
+
+      const params = new URLSearchParams();
+
+      semesters.forEach(semesterId => {
+        params.append('semesters[]', semesterId.toString());
+      });
+
+      params.append('page', page.toString());
+      params.append('page_size', pageSize.toString());
+
+      if (keyword && keyword.trim()) {
+        params.append('keyword', keyword.trim());
+      }
+
+      const url = `https://cbiz.yanhekt.cn/v2/course/list?${params.toString()}`;
+      const data = await this.makeRequest('GET', url, token);
+
+      if (data.code !== 0 && data.code !== "0") {
+        let errorMessage = data.message;
+        switch (data.code) {
+          case 13001001:
+            errorMessage = "Authentication failed, please check if token is valid";
+            break;
+          default:
+            errorMessage = `API error: ${data.message} (code: ${data.code})`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return data.data;
+    } catch (error: unknown) {
+      console.error('Failed to get course list:', error);
+      throw error;
+    }
+  }
+
+  async getPersonalCourseList(token: string, options: {
+    page?: number;
+    pageSize?: number;
+  } = {}): Promise<CourseListResponse> {
+    try {
+      const {
+        page = 1,
+        pageSize = 16
+      } = options;
+
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('page_size', pageSize.toString());
+      params.append('user_relationship_type', '1');
+      params.append('with_introduction', 'true');
+
+      const url = `https://cbiz.yanhekt.cn/v2/course/private/list?${params.toString()}`;
+      const data = await this.makeRequest('GET', url, token);
+
+      if (data.code !== 0 && data.code !== "0") {
+        let errorMessage = data.message;
+        switch (data.code) {
+          case 13001001:
+            errorMessage = "Authentication failed, please check if token is valid";
+            break;
+          default:
+            errorMessage = `API error: ${data.message} (code: ${data.code})`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return data.data;
+    } catch (error: unknown) {
+      console.error('Failed to get personal course list:', error);
+      throw error;
+    }
+  }
+
+  async getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
+    try {
+      const courseApiUrl = `https://cbiz.yanhekt.cn/v1/course?id=${courseId}&with_professor_badges=true`;
+      const courseData = await this.makeRequest('GET', courseApiUrl, token);
+
+      if (courseData.code !== 0 && courseData.code !== "0") {
+        let errorMessage = courseData.message;
+        switch (courseData.code) {
+          case 12111010:
+            errorMessage = "Course not found, please check if course ID is correct";
+            break;
+          case 13001001:
+            errorMessage = "Authentication failed, please check if token is valid";
+            break;
+          default:
+            errorMessage = `Course ID: ${courseId}, ${courseData.message}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const sessionApiUrl = `https://cbiz.yanhekt.cn/v2/course/session/list?course_id=${courseId}`;
+      const sessionData = await this.makeRequest('GET', sessionApiUrl, token);
+
+      if (sessionData.code !== 0 && sessionData.code !== "0") {
+        throw new Error(`Failed to get course sessions: ${sessionData.message}`);
+      }
+
+      const videoList = sessionData.data;
+
+      if (!videoList || videoList.length === 0) {
+        throw new Error(`Course information returned error, please check if authentication is obtained and course ID is correct`);
+      }
+
+      const name = courseData.data.name_zh.trim();
+
+      let professor = "Unknown Teacher";
+      if (courseData.data.professors && courseData.data.professors.length > 0) {
+        professor = courseData.data.professors[0].name.trim();
+      }
+
+      const formattedVideos = videoList.map((video: any) => {
+        const realVideoId = video.videos && video.videos.length > 0 ? video.videos[0].id : null;
+        const videoData = video.videos && video.videos.length > 0 ? video.videos[0] : null;
+        const mainUrl = videoData ? videoData.main : null;
+        const vgaUrl = videoData ? videoData.vga : null;
+
+        return {
+          session_id: video.id,
+          video_id: realVideoId,
+          title: video.title,
+          duration: videoData ? parseInt(videoData.duration) : null,
+          week_number: video.week_number,
+          day: video.day,
+          started_at: video.started_at,
+          ended_at: video.ended_at,
+          main_url: mainUrl,
+          vga_url: vgaUrl,
+          id: realVideoId
+        };
+      });
+
+      return {
+        course_id: courseId,
+        title: name,
+        professor: professor,
+        videos: formattedVideos
+      };
+    } catch (error: unknown) {
+      console.error('Failed to get course info:', error);
+      throw error;
+    }
+  }
+
+  // Calculate semester ID based on school year and semester number
+  static calculateSemesterId(schoolYear: number, semesterNumber: number): number {
+    if (typeof schoolYear !== 'number' || semesterNumber < 1 || semesterNumber > 2) {
+      throw new Error('Invalid school year or semester number');
+    }
+    return (schoolYear - 1977) * 2 + semesterNumber;
+  }
+
+  // Generate available semesters from 2020-2021 to current year
+  static getAvailableSemesters(): SemesterOption[] {
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
+
+    // Determine current semester based on date
+    // Fall semester: Aug 1 to Feb 1 (next year)
+    // Spring semester: Feb 1 to Aug 1 (same year)
+    let currentSchoolYear = currentYear;
+    if (currentMonth >= 8 || (currentMonth <= 1)) {
+      // Fall semester or early Spring semester
+      if (currentMonth <= 1) {
+        currentSchoolYear = currentYear - 1; // We're in Spring of school year that started last year
+      }
+    }
+
+    const semesters: SemesterOption[] = [];
+
+    // Start from 2020-2021 school year to current school year
+    for (let year = 2020; year <= currentSchoolYear; year++) {
+      // Fall semester (first semester)
+      const firstSemesterId = this.calculateSemesterId(year, 1);
+      semesters.push({
+        id: firstSemesterId,
+        label: `${year}-${year + 1} 第一学期`,
+        labelEn: `${year} Fall`,
+        schoolYear: year,
+        semester: 1
+      });
+
+      // Spring semester (second semester)
+      const secondSemesterId = this.calculateSemesterId(year, 2);
+      semesters.push({
+        id: secondSemesterId,
+        label: `${year}-${year + 1} 第二学期`,
+        labelEn: `${year + 1} Spring`,
+        schoolYear: year,
+        semester: 2
+      });
+    }
+
+    return semesters.reverse(); // Show most recent semesters first
   }
 }

@@ -104,5 +104,22 @@ ipcMain.handle('api:searchLiveList', async (event, token: string, keyword: strin
   return await apiClient.searchLiveList(token, keyword, page, pageSize);
 });
 
+// IPC handlers for recorded courses
+ipcMain.handle('api:getCourseList', async (event, token: string, options: any) => {
+  return await apiClient.getCourseList(token, options);
+});
+
+ipcMain.handle('api:getPersonalCourseList', async (event, token: string, options: any) => {
+  return await apiClient.getPersonalCourseList(token, options);
+});
+
+ipcMain.handle('api:getCourseInfo', async (event, courseId: string, token: string) => {
+  return await apiClient.getCourseInfo(courseId, token);
+});
+
+ipcMain.handle('api:getAvailableSemesters', async () => {
+  return MainApiClient.getAvailableSemesters();
+});
+
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.

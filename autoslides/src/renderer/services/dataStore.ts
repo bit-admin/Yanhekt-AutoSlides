@@ -1,4 +1,4 @@
-import type { LiveStream } from './apiClient'
+import type { LiveStream, SessionData } from './apiClient'
 
 export interface StreamData extends LiveStream {
   // Additional metadata for playback
@@ -6,8 +6,15 @@ export interface StreamData extends LiveStream {
   checksum?: string;
 }
 
+export interface SessionDataWithMeta extends SessionData {
+  // Additional metadata for playback
+  timestamp?: number;
+  checksum?: string;
+}
+
 export class DataStore {
   private static readonly STREAM_PREFIX = 'stream_';
+  private static readonly SESSION_PREFIX = 'session_';
 
   // Store stream data for playback
   static setStreamData(streamId: string, data: StreamData): void {
@@ -61,14 +68,66 @@ export class DataStore {
     localStorage.removeItem(key);
   }
 
-  // Clean up old stream data
+  // Store session data for playback
+  static setSessionData(sessionId: string, data: SessionData): void {
+    const key = this.SESSION_PREFIX + sessionId;
+    const dataWithTimestamp: SessionDataWithMeta = {
+      ...data,
+      timestamp: Date.now(),
+      checksum: this.generateChecksum(sessionId)
+    };
+    localStorage.setItem(key, JSON.stringify(dataWithTimestamp));
+  }
+
+  // Retrieve session data for playback
+  static getSessionData(sessionId: string): SessionDataWithMeta | null {
+    const key = this.SESSION_PREFIX + sessionId;
+    const stored = localStorage.getItem(key);
+
+    if (!stored) {
+      return null;
+    }
+
+    try {
+      const data = JSON.parse(stored) as SessionDataWithMeta;
+
+      // Verify checksum for basic integrity
+      if (data.checksum !== this.generateChecksum(sessionId)) {
+        console.warn('Session data checksum mismatch, removing corrupted data');
+        this.removeSessionData(sessionId);
+        return null;
+      }
+
+      // Check if data is not too old (24 hours)
+      const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      if (data.timestamp && (Date.now() - data.timestamp) > maxAge) {
+        console.warn('Session data expired, removing old data');
+        this.removeSessionData(sessionId);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Failed to parse session data:', error);
+      this.removeSessionData(sessionId);
+      return null;
+    }
+  }
+
+  // Remove session data
+  static removeSessionData(sessionId: string): void {
+    const key = this.SESSION_PREFIX + sessionId;
+    localStorage.removeItem(key);
+  }
+
+  // Clean up old stream and session data
   static cleanupOldData(): void {
     const maxAge = 24 * 60 * 60 * 1000; // 24 hours
     const now = Date.now();
 
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && key.startsWith(this.STREAM_PREFIX)) {
+      if (key && (key.startsWith(this.STREAM_PREFIX) || key.startsWith(this.SESSION_PREFIX))) {
         try {
           const stored = localStorage.getItem(key);
           if (stored) {

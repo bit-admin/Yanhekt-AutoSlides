@@ -91,6 +91,63 @@ interface ElectronAPI {
       per_page: number;
       total: number;
     }>;
+    getCourseList: (token: string, options: any) => Promise<{
+      data: Array<{
+        id: string;
+        name_zh: string;
+        professors: string[];
+        classrooms: { name: string }[];
+        school_year: string;
+        semester: string;
+        college_name: string;
+        participant_count: number;
+      }>;
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    }>;
+    getPersonalCourseList: (token: string, options: any) => Promise<{
+      data: Array<{
+        id: string;
+        name_zh: string;
+        professors: string[];
+        classrooms: { name: string }[];
+        school_year: string;
+        semester: string;
+        college_name: string;
+        participant_count: number;
+      }>;
+      current_page: number;
+      last_page: number;
+      per_page: number;
+      total: number;
+    }>;
+    getCourseInfo: (courseId: string, token: string) => Promise<{
+      course_id: string;
+      title: string;
+      professor: string;
+      videos: Array<{
+        id: string;
+        session_id: string;
+        video_id: string;
+        title: string;
+        duration: number;
+        week_number: number;
+        day: number;
+        started_at: string;
+        ended_at: string;
+        main_url?: string;
+        vga_url?: string;
+      }>;
+    }>;
+    getAvailableSemesters: () => Promise<Array<{
+      id: number;
+      label: string;
+      labelEn: string;
+      schoolYear: number;
+      semester: number;
+    }>>;
   };
 }
 
