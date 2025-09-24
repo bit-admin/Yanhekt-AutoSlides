@@ -3,6 +3,7 @@ import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { MainAuthService } from './main/authService';
 import { MainApiClient } from './main/apiClient';
+import { ConfigService } from './main/configService';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -60,9 +61,10 @@ app.on('activate', () => {
   }
 });
 
-// Initialize auth services
+// Initialize services
 const authService = new MainAuthService();
 const apiClient = new MainApiClient();
+const configService = new ConfigService();
 
 // IPC handlers for authentication
 ipcMain.handle('auth:login', async (event, username: string, password: string) => {
@@ -71,6 +73,26 @@ ipcMain.handle('auth:login', async (event, username: string, password: string) =
 
 ipcMain.handle('auth:verifyToken', async (event, token: string) => {
   return await apiClient.verifyToken(token);
+});
+
+// IPC handlers for config
+ipcMain.handle('config:get', async () => {
+  return configService.getConfig();
+});
+
+ipcMain.handle('config:setOutputDirectory', async (event, directory: string) => {
+  configService.setOutputDirectory(directory);
+  return configService.getConfig();
+});
+
+ipcMain.handle('config:selectOutputDirectory', async () => {
+  const selectedPath = await configService.selectOutputDirectory();
+  return selectedPath ? configService.getConfig() : null;
+});
+
+ipcMain.handle('config:setConnectionMode', async (event, mode: 'internal' | 'external') => {
+  configService.setConnectionMode(mode);
+  return configService.getConfig();
 });
 
 // In this file you can include the rest of your app's specific main process

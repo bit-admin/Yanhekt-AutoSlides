@@ -24,6 +24,24 @@ interface ElectronAPI {
       networkError?: boolean;
     }>;
   };
+  config: {
+    get: () => Promise<{
+      outputDirectory: string;
+      connectionMode: 'internal' | 'external';
+    }>;
+    setOutputDirectory: (directory: string) => Promise<{
+      outputDirectory: string;
+      connectionMode: 'internal' | 'external';
+    }>;
+    selectOutputDirectory: () => Promise<{
+      outputDirectory: string;
+      connectionMode: 'internal' | 'external';
+    } | null>;
+    setConnectionMode: (mode: 'internal' | 'external') => Promise<{
+      outputDirectory: string;
+      connectionMode: 'internal' | 'external';
+    }>;
+  };
 }
 
 declare global {

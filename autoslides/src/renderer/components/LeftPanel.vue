@@ -46,7 +46,37 @@
         </button>
       </div>
       <div class="settings-content">
-        <p class="placeholder">Settings will be implemented here</p>
+        <div class="setting-item">
+          <label class="setting-label">Output Directory:</label>
+          <div class="directory-input-group">
+            <input
+              v-model="outputDirectory"
+              type="text"
+              readonly
+              class="directory-input"
+              :title="outputDirectory"
+            />
+            <button @click="selectOutputDirectory" class="browse-btn">Browse</button>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">Connection Mode:</label>
+          <div class="mode-toggle">
+            <button
+              @click="setConnectionMode('internal')"
+              :class="['mode-btn', { active: connectionMode === 'internal' }]"
+            >
+              Internal Network
+            </button>
+            <button
+              @click="setConnectionMode('external')"
+              :class="['mode-btn', { active: connectionMode === 'external' }]"
+            >
+              External Network
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -96,12 +126,13 @@ const username = ref('')
 const password = ref('')
 const userNickname = ref('User')
 const userId = ref('user123')
-const connectionMode = ref<'internal' | 'external'>('internal')
+const connectionMode = ref<'internal' | 'external'>('external')
 const taskStatus = ref('Ready')
 const downloadSpeed = ref('0 KB/s')
 const showAdvancedModal = ref(false)
 const isLoading = ref(false)
 const isVerifyingToken = ref(false)
+const outputDirectory = ref('')
 
 const tokenManager = new TokenManager()
 const authService = new AuthService(tokenManager)
@@ -175,8 +206,39 @@ const verifyExistingToken = async () => {
   }
 }
 
+const loadConfig = async () => {
+  try {
+    const config = await window.electronAPI.config.get()
+    outputDirectory.value = config.outputDirectory
+    connectionMode.value = config.connectionMode
+  } catch (error) {
+    console.error('Failed to load config:', error)
+  }
+}
+
+const selectOutputDirectory = async () => {
+  try {
+    const result = await window.electronAPI.config.selectOutputDirectory()
+    if (result) {
+      outputDirectory.value = result.outputDirectory
+    }
+  } catch (error) {
+    console.error('Failed to select output directory:', error)
+  }
+}
+
+const setConnectionMode = async (mode: 'internal' | 'external') => {
+  try {
+    const result = await window.electronAPI.config.setConnectionMode(mode)
+    connectionMode.value = result.connectionMode
+  } catch (error) {
+    console.error('Failed to set connection mode:', error)
+  }
+}
+
 onMounted(() => {
   verifyExistingToken()
+  loadConfig()
 })
 
 const openAdvancedSettings = () => {
@@ -318,13 +380,83 @@ const closeAdvancedSettings = () => {
 }
 
 .settings-content {
-  color: #666;
-  font-style: italic;
+  padding: 0;
 }
 
-.placeholder {
-  margin: 0;
-  font-size: 14px;
+.setting-item {
+  margin-bottom: 16px;
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
+}
+
+.setting-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 6px;
+}
+
+.directory-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.directory-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: #f8f9fa;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browse-btn {
+  padding: 6px 12px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.browse-btn:hover {
+  background-color: #0056b3;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 4px;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  background-color: #f8f9fa;
+  color: #666;
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn:hover {
+  background-color: #e9ecef;
+}
+
+.mode-btn.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
 }
 
 .status-section {
