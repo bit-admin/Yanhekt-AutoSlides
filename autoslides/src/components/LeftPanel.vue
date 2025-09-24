@@ -1,9 +1,14 @@
 <template>
   <div class="left-panel">
     <div class="login-section">
-      <div v-if="!isLoggedIn" class="login-form">
+      <div v-if="isVerifyingToken" class="verifying-state">
+        <h3>Verifying...</h3>
+        <p>Verifying login status, please wait...</p>
+        <div class="loading-spinner"></div>
+      </div>
+      <div v-else-if="!isLoggedIn" class="login-form">
         <h3>Sign In</h3>
-        <p>Please sign in to access your courses and settings.</p>
+        <p>Please sign in to Yanhekt access your account resourses.</p>
         <div class="input-group">
           <input
             v-model="username"
@@ -18,7 +23,9 @@
             class="input-field"
           />
         </div>
-        <button @click="login" class="login-btn">Sign In</button>
+        <button @click="login" :disabled="isLoading" class="login-btn">
+          {{ isLoading ? 'Signing In...' : 'Sign In' }}
+        </button>
       </div>
       <div v-else class="user-info">
         <h3>Hi there, {{ userNickname }}</h3>
@@ -80,7 +87,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { AuthService, TokenManager } from '../services/authService'
+import { ApiClient } from '../services/apiClient'
 
 const isLoggedIn = ref(false)
 const username = ref('')
@@ -91,11 +100,41 @@ const connectionMode = ref<'internal' | 'external'>('internal')
 const taskStatus = ref('Ready')
 const downloadSpeed = ref('0 KB/s')
 const showAdvancedModal = ref(false)
+const isLoading = ref(false)
+const isVerifyingToken = ref(false)
 
-const login = () => {
-  if (username.value && password.value) {
-    isLoggedIn.value = true
-    userNickname.value = username.value
+const tokenManager = new TokenManager()
+const authService = new AuthService(tokenManager)
+const apiClient = new ApiClient()
+
+const login = async () => {
+  if (!username.value || !password.value) return
+
+  isLoading.value = true
+  try {
+    const result = await authService.loginAndGetToken(username.value, password.value)
+
+    if (result.success && result.token) {
+      const verificationResult = await apiClient.verifyToken(result.token)
+
+      if (verificationResult.valid && verificationResult.userData) {
+        isLoggedIn.value = true
+        userNickname.value = verificationResult.userData.nickname || username.value
+        userId.value = verificationResult.userData.badge || 'unknown'
+        console.log('Login successful')
+      } else {
+        console.error('Token verification failed after login')
+        alert('Login failed: Token verification failed')
+      }
+    } else {
+      console.error('Login failed:', result.error)
+      alert(`Login failed: ${result.error}`)
+    }
+  } catch (error) {
+    console.error('Login error:', error)
+    alert('Login failed: Network error or server exception')
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -103,7 +142,41 @@ const logout = () => {
   isLoggedIn.value = false
   username.value = ''
   password.value = ''
+  userNickname.value = 'User'
+  userId.value = 'user123'
 }
+
+const verifyExistingToken = async () => {
+  const token = tokenManager.getToken()
+  if (!token) return
+
+  isVerifyingToken.value = true
+  try {
+    const result = await apiClient.verifyToken(token)
+    if (result.valid && result.userData) {
+      isLoggedIn.value = true
+      userNickname.value = result.userData.nickname || 'User'
+      userId.value = result.userData.badge || 'unknown'
+      console.log('Existing token verified successfully')
+    } else {
+      if (!result.networkError) {
+        tokenManager.clearToken()
+        console.log('Existing token is invalid, cleared')
+      } else {
+        console.log('Network error during token verification, keeping token')
+      }
+    }
+  } catch (error) {
+    console.error('Token verification error:', error)
+    tokenManager.clearToken()
+  } finally {
+    isVerifyingToken.value = false
+  }
+}
+
+onMounted(() => {
+  verifyExistingToken()
+})
 
 const openAdvancedSettings = () => {
   showAdvancedModal.value = true
@@ -128,16 +201,36 @@ const closeAdvancedSettings = () => {
   background-color: #f8f9fa;
 }
 
-.login-form h3, .user-info h3 {
+.login-form h3, .user-info h3, .verifying-state h3 {
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
 }
 
-.login-form p, .user-info p {
+.login-form p, .user-info p, .verifying-state p {
   margin: 0 0 12px 0;
   font-size: 12px;
   color: #666;
+}
+
+.verifying-state {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #007acc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .input-group {
@@ -169,8 +262,13 @@ const closeAdvancedSettings = () => {
   color: white;
 }
 
-.login-btn:hover {
+.login-btn:hover:not(:disabled) {
   background-color: #005a9e;
+}
+
+.login-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 
 .logout-btn {
