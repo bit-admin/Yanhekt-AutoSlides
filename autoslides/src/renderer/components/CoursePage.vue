@@ -63,11 +63,34 @@
         </svg>
         {{ errorMessage }}
       </div>
+
+      <div v-if="showWelcome" class="welcome-page">
+        <div class="welcome-content">
+          <div class="welcome-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path v-if="mode === 'live'" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <path v-if="mode === 'live'" d="M22 4L12 14.01l-3-3"/>
+              <rect v-if="mode === 'recorded'" x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line v-if="mode === 'recorded'" x1="8" y1="21" x2="16" y2="21"/>
+              <line v-if="mode === 'recorded'" x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <h2>{{ mode === 'live' ? 'Live Courses' : 'Recorded Courses' }}</h2>
+          <p v-if="mode === 'live'">
+            Browse and join live streaming courses. Use the search function to find specific courses or get your personal course list.
+          </p>
+          <p v-if="mode === 'recorded'">
+            Access recorded course sessions. Filter by semester and search through your course history to find the content you need.
+          </p>
+        </div>
+      </div>
+
       <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
         <p>Loading courses...</p>
       </div>
-      <div v-else-if="!errorMessage" class="courses-grid">
+
+      <div v-else-if="!errorMessage && !showWelcome" class="courses-grid">
         <div
           v-for="course in paginatedCourses"
           :key="course.id"
@@ -97,7 +120,7 @@
         </div>
       </div>
 
-      <div v-if="!isLoading && courses.length > 0" class="pagination">
+      <div v-if="!isLoading && courses.length > 0 && !showWelcome" class="pagination">
         <button
           :disabled="currentPage === 1"
           @click="goToPage(currentPage - 1)"
@@ -123,7 +146,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ApiClient, type LiveStream, type LiveListResponse, type CourseData, type CourseListResponse, type SemesterOption } from '../services/apiClient'
 import { TokenManager } from '../services/authService'
 import { DataStore } from '../services/dataStore'
@@ -177,6 +200,7 @@ const availableSemesters = ref<SemesterOption[]>([])
 const selectedSemesters = ref<number[]>([])
 const showSemesterDropdown = ref(false)
 const semesterDropdownText = ref('All Semesters')
+const showWelcome = ref(true)
 
 const paginatedCourses = computed(() => {
   return courses.value
@@ -189,6 +213,7 @@ const searchCourses = async () => {
     return
   }
 
+  showWelcome.value = false
   isLoading.value = true
   errorMessage.value = ''
 
@@ -233,6 +258,7 @@ const fetchPersonalCourses = async () => {
     return
   }
 
+  showWelcome.value = false
   isLoading.value = true
   errorMessage.value = ''
 
@@ -399,14 +425,35 @@ const handleClickOutside = (event: Event) => {
   }
 }
 
+// Reset state when mode changes
+const resetPageState = () => {
+  courses.value = []
+  currentPage.value = 1
+  totalPages.value = 1
+  searchQuery.value = ''
+  selectedSemesters.value = []
+  semesterDropdownText.value = 'All Semesters'
+  showSemesterDropdown.value = false
+  errorMessage.value = ''
+  showWelcome.value = true
+}
+
+// Watch for mode changes and reset state
+watch(() => props.mode, async () => {
+  resetPageState()
+  if (props.mode === 'recorded') {
+    await loadAvailableSemesters()
+  }
+})
+
 onMounted(async () => {
   if (props.mode === 'recorded') {
     await loadAvailableSemesters()
     document.addEventListener('click', handleClickOutside)
   }
 
-  // Load initial data
-  await fetchPersonalCourses()
+  // Show welcome page initially, don't auto-load data
+  showWelcome.value = true
 })
 
 onUnmounted(() => {
@@ -780,4 +827,40 @@ onUnmounted(() => {
   flex: 1;
   user-select: none;
 }
+
+/* Welcome page styles */
+.welcome-page {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+}
+
+.welcome-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.welcome-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+  color: #007acc;
+}
+
+.welcome-content h2 {
+  margin: 0 0 16px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #333;
+}
+
+.welcome-content p {
+  margin: 0 0 32px 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #666;
+}
+
 </style>

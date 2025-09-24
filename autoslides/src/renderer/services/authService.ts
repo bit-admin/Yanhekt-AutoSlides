@@ -1,3 +1,5 @@
+/// <reference path="../../../src/vite-env.d.ts" />
+
 export interface LoginResult {
   success: boolean;
   token?: string;

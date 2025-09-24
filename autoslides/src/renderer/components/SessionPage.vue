@@ -36,27 +36,37 @@
           <p>No sessions found for this course.</p>
         </div>
 
-        <div v-else class="sessions-list">
-          <div
-            v-for="session in sessions"
-            :key="session.session_id"
-            class="session-item"
-            @click="selectSession(session)"
-          >
-            <div class="session-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="5,3 19,12 5,21"/>
-              </svg>
-            </div>
-            <div class="session-info">
-              <h3>{{ session.title }}</h3>
-              <div class="session-details">
-                <p v-if="session.week_number && session.day">Week {{ session.week_number }}, {{ getDayName(session.day) }}</p>
-                <p v-if="session.duration">{{ formatDuration(session.duration) }}</p>
-                <p class="session-dates" v-if="session.started_at">
-                  {{ formatDate(session.started_at) }}
-                  <span v-if="session.ended_at"> - {{ formatDate(session.ended_at) }}</span>
-                </p>
+        <div v-else class="sessions-container">
+          <div class="sessions-list">
+            <div
+              v-for="session in sessions"
+              :key="session.session_id"
+              class="session-item"
+              @click="selectSession(session)"
+            >
+              <div class="session-main">
+                <div class="session-icon">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5,3 19,12 5,21"/>
+                  </svg>
+                </div>
+                <div class="session-info">
+                  <div class="session-title">{{ session.title }}</div>
+                  <div class="session-meta">
+                    <span v-if="session.week_number && session.day" class="session-time">
+                      Week {{ session.week_number }}, {{ getDayName(session.day) }}
+                    </span>
+                    <span v-if="session.duration" class="session-duration">
+                      {{ formatDuration(session.duration) }}
+                    </span>
+                    <span v-if="session.started_at" class="session-date">
+                      {{ formatDate(session.started_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="session-actions">
+                <!-- Space reserved for future action buttons -->
               </div>
             </div>
           </div>
@@ -232,52 +242,108 @@ onMounted(() => {
   color: #666;
 }
 
-.sessions-list {
-  margin-top: 24px;
+.sessions-container {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  min-height: 0;
+  margin-top: 16px;
+}
+
+.sessions-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 4px;
 }
 
 .session-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
+  justify-content: space-between;
+  padding: 8px 12px;
   background-color: white;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
+  min-height: 48px;
 }
 
 .session-item:hover {
-  border-color: #007acc;
-  box-shadow: 0 2px 8px rgba(0, 122, 204, 0.1);
+  background-color: #f0f8ff;
+  box-shadow: 0 1px 3px rgba(0, 122, 204, 0.1);
+}
+
+.session-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
 }
 
 .session-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  background-color: #f0f8ff;
+  border-radius: 6px;
   color: #007acc;
+  flex-shrink: 0;
 }
 
-.session-info h3 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
+.session-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.session-title {
+  font-size: 14px;
   font-weight: 600;
   color: #333;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.session-info p {
-  margin: 0;
-  font-size: 14px;
+.session-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
   color: #666;
+}
+
+.session-meta span {
+  white-space: nowrap;
+}
+
+.session-time {
+  color: #007acc;
+  font-weight: 500;
+}
+
+.session-duration {
+  color: #666;
+}
+
+.session-date {
+  color: #888;
+}
+
+.session-actions {
+  width: 120px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .error-message {
@@ -336,20 +402,4 @@ onMounted(() => {
   font-style: italic;
 }
 
-.session-details {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.session-details p {
-  margin: 0;
-  font-size: 13px;
-  color: #888;
-}
-
-.session-dates {
-  font-weight: 500;
-  color: #666 !important;
-}
 </style>

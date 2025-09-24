@@ -178,7 +178,7 @@ export class MainApiClient {
     return response.data;
   }
 
-  async getLiveList(token: string, page: number = 1, pageSize: number = 16, userRelationshipType: number = 0): Promise<LiveListResponse> {
+  async getLiveList(token: string, page = 1, pageSize = 16, userRelationshipType = 0): Promise<LiveListResponse> {
     try {
       const url = `https://cbiz.yanhekt.cn/v2/live/list?page=${page}&page_size=${pageSize}&user_relationship_type=${userRelationshipType}`;
       const data = await this.makeRequest('GET', url, token);
@@ -202,11 +202,11 @@ export class MainApiClient {
     }
   }
 
-  async getPersonalLiveList(token: string, page: number = 1, pageSize: number = 16): Promise<LiveListResponse> {
+  async getPersonalLiveList(token: string, page = 1, pageSize = 16): Promise<LiveListResponse> {
     return this.getLiveList(token, page, pageSize, 1);
   }
 
-  async searchLiveList(token: string, keyword: string, page: number = 1, pageSize: number = 16): Promise<LiveListResponse> {
+  async searchLiveList(token: string, keyword: string, page = 1, pageSize = 16): Promise<LiveListResponse> {
     try {
       const encodedKeyword = encodeURIComponent(keyword);
       const url = `https://cbiz.yanhekt.cn/v2/live/list?page=${page}&page_size=${pageSize}&keyword=${encodedKeyword}`;

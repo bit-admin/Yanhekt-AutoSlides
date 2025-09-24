@@ -13,6 +13,15 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
-    "jsx": "preserve"
-  }
+    "jsx": "preserve",
+    "types": ["node"]
+  },
+  "include": [
+    "src/**/*",
+    "src/vite-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

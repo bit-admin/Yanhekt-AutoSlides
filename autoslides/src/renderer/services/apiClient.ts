@@ -1,3 +1,5 @@
+/// <reference path="../../../src/vite-env.d.ts" />
+
 export interface UserData {
   badge: string;
   nickname: string;
@@ -96,7 +98,7 @@ export class ApiClient {
     }
   }
 
-  async getPersonalLiveList(token: string, page: number = 1, pageSize: number = 16): Promise<LiveListResponse> {
+  async getPersonalLiveList(token: string, page = 1, pageSize = 16): Promise<LiveListResponse> {
     try {
       return await window.electronAPI.api.getPersonalLiveList(token, page, pageSize);
     } catch (error) {
@@ -105,7 +107,7 @@ export class ApiClient {
     }
   }
 
-  async searchLiveList(token: string, keyword: string, page: number = 1, pageSize: number = 16): Promise<LiveListResponse> {
+  async searchLiveList(token: string, keyword: string, page = 1, pageSize = 16): Promise<LiveListResponse> {
     try {
       return await window.electronAPI.api.searchLiveList(token, keyword, page, pageSize);
     } catch (error) {

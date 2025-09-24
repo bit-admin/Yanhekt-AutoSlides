@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+/// <reference types="electron" />
 
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
@@ -156,3 +157,5 @@ declare global {
     electronAPI: ElectronAPI;
   }
 }
+
+export {};
