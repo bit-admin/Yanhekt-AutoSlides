@@ -67,12 +67,12 @@ const recordedState = ref<ModeState>({
   selectedSession: null
 })
 
-// 计算当前模式的状态
+// Calculate the status of the current mode
 const currentState = computed(() => {
   return currentMode.value === 'live' ? liveState.value : recordedState.value
 })
 
-// 便捷的访问器
+// Convenient accessor
 const currentPage = computed(() => currentState.value.page)
 const selectedCourse = computed(() => currentState.value.selectedCourse)
 const selectedSession = computed(() => currentState.value.selectedSession)
@@ -92,7 +92,7 @@ const switchMode = (mode: Mode) => {
     course: currentState.value.selectedCourse?.title || 'none',
     session: currentState.value.selectedSession?.title || 'none'
   })
-  // 不重置状态，每个模式保持自己的导航状态
+  // Without resetting the state, each mode maintains its own navigation state.
 }
 
 const handleCourseSelected = (course: any) => {

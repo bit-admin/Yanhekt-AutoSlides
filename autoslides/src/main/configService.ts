@@ -1,8 +1,8 @@
-import Store from 'electron-store';
+import ElectronStore from 'electron-store';
 import { dialog } from 'electron';
-import path from 'path';
-import fs from 'fs';
-import os from 'os';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 
 export interface AppConfig {
   outputDirectory: string;
@@ -15,10 +15,10 @@ const defaultConfig: AppConfig = {
 };
 
 export class ConfigService {
-  private store: Store<AppConfig>;
+  private store: ElectronStore<AppConfig>;
 
   constructor() {
-    this.store = new Store<AppConfig>({
+    this.store = new ElectronStore<AppConfig>({
       defaults: defaultConfig,
       name: 'autoslides-config'
     });
@@ -28,24 +28,24 @@ export class ConfigService {
 
   getConfig(): AppConfig {
     return {
-      outputDirectory: this.store.get('outputDirectory'),
-      connectionMode: this.store.get('connectionMode')
+      outputDirectory: (this.store as any).get('outputDirectory') as string,
+      connectionMode: (this.store as any).get('connectionMode') as 'internal' | 'external'
     };
   }
 
   setOutputDirectory(directory: string): void {
-    this.store.set('outputDirectory', directory);
+    (this.store as any).set('outputDirectory', directory);
     this.ensureOutputDirectoryExists();
   }
 
   setConnectionMode(mode: 'internal' | 'external'): void {
-    this.store.set('connectionMode', mode);
+    (this.store as any).set('connectionMode', mode);
   }
 
   async selectOutputDirectory(): Promise<string | null> {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
-      defaultPath: this.store.get('outputDirectory')
+      defaultPath: (this.store as any).get('outputDirectory') as string
     });
 
     if (!result.canceled && result.filePaths.length > 0) {
@@ -58,7 +58,7 @@ export class ConfigService {
   }
 
   private ensureOutputDirectoryExists(): void {
-    const outputDir = this.store.get('outputDirectory');
+    const outputDir = (this.store as any).get('outputDirectory') as string;
     try {
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });

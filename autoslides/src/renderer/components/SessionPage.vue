@@ -25,7 +25,7 @@
         <p>Loading sessions...</p>
       </div>
 
-      <div v-else-if="!errorMessage">
+      <div v-else-if="!errorMessage" class="main-content">
         <div class="course-details">
           <p class="course-info">Course: {{ course?.title }}</p>
           <p class="instructor-info">Instructor: {{ course?.instructor }}</p>
@@ -228,6 +228,9 @@ onMounted(() => {
 
 .content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .placeholder {
@@ -240,6 +243,13 @@ onMounted(() => {
   margin: 8px 0;
   font-size: 14px;
   color: #666;
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .sessions-container {
