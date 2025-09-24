@@ -26,6 +26,8 @@ export interface LiveStream {
     };
     section_group_title?: string;
   };
+  target?: string; // Camera stream URL
+  target_vga?: string; // Screen stream URL
 }
 
 export interface LiveListResponse {

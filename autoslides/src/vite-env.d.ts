@@ -59,6 +59,8 @@ interface ElectronAPI {
           };
           section_group_title?: string;
         };
+        target?: string;
+        target_vga?: string;
       }>;
       current_page: number;
       last_page: number;
@@ -81,6 +83,8 @@ interface ElectronAPI {
           };
           section_group_title?: string;
         };
+        target?: string;
+        target_vga?: string;
       }>;
       current_page: number;
       last_page: number;

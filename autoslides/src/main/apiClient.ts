@@ -29,6 +29,8 @@ export interface LiveStream {
     };
     section_group_title?: string;
   };
+  target?: string; // Camera stream URL
+  target_vga?: string; // Screen stream URL
 }
 
 export interface LiveListResponse {
@@ -52,7 +54,7 @@ export class MainApiClient {
 
   private createHeaders(token: string): { headers: Record<string, string>; timestamp: string } {
     const timestamp = Math.floor(Date.now() / 1000).toString();
-    const headers = { ...this.BASE_HEADERS };
+    const headers: Record<string, string> = { ...this.BASE_HEADERS };
 
     headers["Xclient-Signature"] = CryptoJS.MD5(this.MAGIC + "_v1_undefined").toString();
     headers["Xclient-Timestamp"] = timestamp;

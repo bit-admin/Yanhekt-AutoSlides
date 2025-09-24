@@ -116,6 +116,8 @@ interface Course {
     };
     section_group_title?: string;
   };
+  target?: string; // Camera stream URL
+  target_vga?: string; // Screen stream URL
 }
 
 const props = defineProps<{
@@ -224,7 +226,9 @@ const transformLiveStreamToCourse = (stream: LiveStream): Course => {
     schedule_started_at: stream.schedule_started_at,
     schedule_ended_at: stream.schedule_ended_at,
     participant_count: stream.participant_count,
-    session: stream.session
+    session: stream.session,
+    target: stream.target,
+    target_vga: stream.target_vga
   }
 }
 
@@ -256,7 +260,9 @@ const selectCourse = (course: Course) => {
     schedule_started_at: course.schedule_started_at || '',
     schedule_ended_at: course.schedule_ended_at || '',
     participant_count: course.participant_count,
-    session: course.session
+    session: course.session,
+    target: course.target,
+    target_vga: course.target_vga
   };
 
   // Store data in localStorage for the playback page
@@ -356,6 +362,7 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Important for flex child to shrink */
 }
 
 .error-message {
@@ -369,6 +376,7 @@ onMounted(() => {
   border-radius: 4px;
   color: #c33;
   font-size: 14px;
+  flex-shrink: 0;
 }
 
 .loading-state {
@@ -397,23 +405,25 @@ onMounted(() => {
 .courses-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 12px;
   flex: 1;
   overflow-y: auto;
   padding-bottom: 16px;
+  min-height: 0; /* Important for scrolling */
 }
 
 .course-card {
   display: flex;
   flex-direction: column;
-  padding: 12px;
+  padding: 10px;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   background-color: white;
   cursor: pointer;
   transition: all 0.2s;
-  height: fit-content;
+  height: 140px; /* Fixed height for consistent layout */
   position: relative;
+  overflow: hidden;
 }
 
 .course-card:hover {
@@ -454,15 +464,19 @@ onMounted(() => {
 
 .course-info {
   text-align: left;
-  padding-top: 20px;
+  padding-top: 18px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
 .course-title {
-  margin: 0 0 6px 0;
-  font-size: 13px;
+  margin: 0 0 4px 0;
+  font-size: 12px;
   font-weight: 600;
   color: #333;
-  line-height: 1.3;
+  line-height: 1.2;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -470,33 +484,33 @@ onMounted(() => {
 }
 
 .course-instructor {
-  margin: 0 0 4px 0;
-  font-size: 11px;
+  margin: 0 0 3px 0;
+  font-size: 10px;
   color: #666;
   font-weight: 500;
 }
 
 .course-location {
-  margin: 0 0 4px 0;
-  font-size: 11px;
+  margin: 0 0 3px 0;
+  font-size: 10px;
   color: #888;
 }
 
 .course-time {
-  margin: 0 0 4px 0;
-  font-size: 11px;
+  margin: 0 0 3px 0;
+  font-size: 10px;
   color: #999;
 }
 
 .course-section {
-  margin: 0 0 4px 0;
-  font-size: 10px;
+  margin: 0 0 3px 0;
+  font-size: 9px;
   color: #aaa;
 }
 
 .course-participants {
   margin: 0;
-  font-size: 10px;
+  font-size: 9px;
   color: #007acc;
   font-weight: 500;
 }
@@ -507,8 +521,10 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   margin-top: 16px;
-  padding-top: 16px;
+  padding: 16px 0;
   border-top: 1px solid #e0e0e0;
+  flex-shrink: 0; /* Prevent pagination from shrinking */
+  background-color: white; /* Ensure visibility */
 }
 
 .page-btn {
