@@ -289,6 +289,14 @@ const loadVideoSource = async () => {
 
       hls.value.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log('HLS manifest parsed successfully')
+        // Automatically start playback when manifest is ready
+        setTimeout(() => {
+          if (videoPlayer.value) {
+            videoPlayer.value.play().catch(e => {
+              console.log('Autoplay prevented:', e)
+            })
+          }
+        }, 100)
       })
 
       hls.value.on(Hls.Events.MEDIA_ATTACHED, () => {
@@ -318,6 +326,15 @@ const loadVideoSource = async () => {
       console.log('Using native HLS support')
       videoPlayer.value.src = videoUrl
       await videoPlayer.value.load()
+
+      // Automatically start playback for native HLS
+      setTimeout(() => {
+        if (videoPlayer.value) {
+          videoPlayer.value.play().catch(e => {
+            console.log('Autoplay prevented:', e)
+          })
+        }
+      }, 100)
     } else {
       throw new Error('HLS is not supported in this browser')
     }
@@ -344,6 +361,13 @@ const switchStream = async () => {
           await videoPlayer.value.play()
         } catch (err) {
           console.warn('Could not resume playback:', err)
+        }
+      } else {
+        // Automatically start playback even if previous stream wasn't playing
+        try {
+          await videoPlayer.value.play()
+        } catch (err) {
+          console.log('Autoplay prevented during stream switch:', err)
         }
       }
     }
