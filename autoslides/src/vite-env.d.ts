@@ -193,6 +193,15 @@ interface ElectronAPI {
       };
     }>;
   };
+  ffmpeg: {
+    getPath: () => Promise<string | null>;
+    isAvailable: () => Promise<boolean>;
+    getPlatformInfo: () => Promise<{
+      platform: string;
+      ffmpegPath: string | null;
+      isPackaged: boolean;
+    }>;
+  };
 }
 
 declare global {

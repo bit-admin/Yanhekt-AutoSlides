@@ -10,6 +10,14 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
+    // Only include ffmpeg resources for Windows builds
+    extraResource: process.platform === 'win32' || process.env.npm_config_target_platform === 'win32' ? [
+      {
+        from: 'resources/ffmpeg',
+        to: 'ffmpeg',
+        filter: ['**/*']
+      }
+    ] : []
   },
   rebuildConfig: {},
   makers: [

@@ -6,6 +6,7 @@ import { MainApiClient } from './main/apiClient';
 import { ConfigService } from './main/configService';
 import { IntranetMappingService } from './main/intranetMappingService';
 import { VideoProxyService } from './main/videoProxyService';
+import { FFmpegService } from './main/ffmpegService';
 
 // Declare Vite dev server variables that are injected during build
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -73,6 +74,7 @@ const apiClient = new MainApiClient();
 const configService = new ConfigService();
 const intranetMappingService = new IntranetMappingService(configService);
 const videoProxyService = new VideoProxyService(apiClient, intranetMappingService);
+const ffmpegService = new FFmpegService();
 
 // IPC handlers for authentication
 ipcMain.handle('auth:login', async (event, username: string, password: string) => {
@@ -158,6 +160,19 @@ ipcMain.handle('video:getVideoPlaybackUrls', async (event, session: any, token: 
     console.error('Failed to get video playback URLs:', error);
     throw error;
   }
+});
+
+// IPC handlers for FFmpeg
+ipcMain.handle('ffmpeg:getPath', async () => {
+  return ffmpegService.getFfmpegPath();
+});
+
+ipcMain.handle('ffmpeg:isAvailable', async () => {
+  return ffmpegService.isAvailable();
+});
+
+ipcMain.handle('ffmpeg:getPlatformInfo', async () => {
+  return ffmpegService.getPlatformInfo();
 });
 
 // In this file you can include the rest of your app's specific main process
