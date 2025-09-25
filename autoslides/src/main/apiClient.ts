@@ -116,7 +116,6 @@ export class ApiClient {
       const url = "https://cbiz.yanhekt.cn/v1/user";
       const { headers } = this.createHeaders(token);
 
-      console.log('Verifying token with API...');
 
       const response: AxiosResponse = await axios.get(url, {
         headers,
@@ -131,7 +130,6 @@ export class ApiClient {
       const isValid = data.code === 0 || data.code === "0";
 
       if (isValid) {
-        console.log('Token verification successful');
         const userData: UserData = {
           badge: data.data?.badge || "",
           nickname: data.data?.nickname || "",
@@ -140,7 +138,6 @@ export class ApiClient {
         };
         return { valid: true, userData };
       } else {
-        console.log('Token verification failed - invalid token, code:', data.code, 'message:', data.message);
         return { valid: false, userData: null };
       }
     } catch (error: unknown) {
@@ -149,7 +146,6 @@ export class ApiClient {
       const errorObj = error as { code?: string; message?: string };
       if (errorObj.code === 'ENOTFOUND' || errorObj.code === 'ECONNREFUSED' ||
         errorObj.code === 'ETIMEDOUT' || errorObj.message?.includes('timeout')) {
-        console.log('Network error detected during token verification');
         return { valid: false, userData: null, networkError: true };
       }
 

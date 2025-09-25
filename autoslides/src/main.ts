@@ -140,20 +140,18 @@ ipcMain.handle('api:getAvailableSemesters', async () => {
 // IPC handlers for video proxy
 ipcMain.handle('video:getLiveStreamUrls', async (event, stream: any, token: string) => {
   try {
-    console.log('IPC: getLiveStreamUrls called with stream:', JSON.stringify(stream, null, 2));
     return await videoProxyService.getLiveStreamUrls(stream, token);
   } catch (error) {
-    console.error('IPC: getLiveStreamUrls error:', error);
+    console.error('Failed to get live stream URLs:', error);
     throw error;
   }
 });
 
 ipcMain.handle('video:getVideoPlaybackUrls', async (event, session: any, token: string) => {
   try {
-    console.log('IPC: getVideoPlaybackUrls called with session:', JSON.stringify(session, null, 2));
     return await videoProxyService.getVideoPlaybackUrls(session, token);
   } catch (error) {
-    console.error('IPC: getVideoPlaybackUrls error:', error);
+    console.error('Failed to get video playback URLs:', error);
     throw error;
   }
 });

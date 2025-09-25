@@ -164,7 +164,6 @@ export class VideoProxyService {
         }
       } else {
         // External mode: direct HLS playback
-        console.log('External network mode: using direct HLS playback for live streams');
 
         // Process main camera stream (target) if available
         if (stream.target) {
@@ -224,7 +223,6 @@ export class VideoProxyService {
           const parsedUrl = url.parse(req.url || '', true);
           const pathname = parsedUrl.pathname || '';
 
-          console.log('Proxy request received:', { pathname, query: Object.keys(parsedUrl.query) });
 
           // Handle different types of requests
           if (pathname === '/') {
@@ -255,7 +253,6 @@ export class VideoProxyService {
 
       this.proxyServer.listen(0, 'localhost', () => {
         this.proxyPort = (this.proxyServer?.address() as any)?.port || 0;
-        console.log(`Video proxy server started on port ${this.proxyPort}`);
         resolve(this.proxyPort);
       });
 
@@ -272,8 +269,6 @@ export class VideoProxyService {
   private async handleLiveM3u8Request(_req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery): Promise<void> {
     const { originalUrl, loginToken } = parsedUrl.query;
 
-    console.log('Live M3U8 request:', { originalUrl, loginToken: loginToken ? (loginToken as string).substring(0, 10) + '...' : 'missing' });
-
     if (!originalUrl || !loginToken) {
       console.error('Missing required parameters for live m3u8:', { originalUrl: !!originalUrl, loginToken: !!loginToken });
       res.writeHead(400, { 'Content-Type': 'text/plain' });
@@ -283,8 +278,6 @@ export class VideoProxyService {
 
     // Store login token for future use
     this.loginToken = loginToken as string;
-
-    console.log('Live M3U8 Original URL:', originalUrl);
 
     // Set proper headers for live stream request
     const liveHeaders: any = {
@@ -299,10 +292,7 @@ export class VideoProxyService {
     if (requestUrl !== originalUrl) {
       const originalHost = new URL(originalUrl as string).hostname;
       liveHeaders['Host'] = originalHost;
-      console.log('Live URL rewritten for intranet mode:', { original: originalUrl, rewritten: requestUrl, host: originalHost });
     }
-
-    console.log('Making live m3u8 request to:', requestUrl);
 
     // Create axios instance with proper configuration
     const axiosConfig: any = {
@@ -322,8 +312,6 @@ export class VideoProxyService {
 
     // Proxy the request
     const response = await axios.get(requestUrl, axiosConfig);
-
-    console.log('Live M3U8 Response received:', { status: response.status });
 
     if (response.status !== 200) {
       res.writeHead(response.status, { 'Content-Type': 'text/plain' });
@@ -349,8 +337,6 @@ export class VideoProxyService {
   private async handleM3u8Request(_req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery): Promise<void> {
     const { originalUrl, loginToken } = parsedUrl.query;
 
-    console.log('M3U8 request:', { originalUrl, loginToken: loginToken ? (loginToken as string).substring(0, 10) + '...' : 'missing' });
-
     if (!originalUrl || !loginToken) {
       console.error('Missing required parameters for m3u8:', { originalUrl: !!originalUrl, loginToken: !!loginToken });
       res.writeHead(400, { 'Content-Type': 'text/plain' });
@@ -368,9 +354,6 @@ export class VideoProxyService {
     const encryptedUrl = this.encryptURL(originalUrl as string);
     const signedUrl = this.addSignatureForUrl(encryptedUrl, tokenData.videoToken!, tokenData.timestamp!, tokenData.signature!);
 
-    console.log('M3U8 Original URL:', originalUrl);
-    console.log('M3U8 Signed URL:', signedUrl);
-
     // Set proper headers for video request
     const videoHeaders: any = {
       ...this.BASE_HEADERS,
@@ -384,10 +367,7 @@ export class VideoProxyService {
     if (requestUrl !== signedUrl) {
       const originalHost = new URL(signedUrl).hostname;
       videoHeaders['Host'] = originalHost;
-      console.log('URL rewritten for intranet mode:', { original: signedUrl, rewritten: requestUrl, host: originalHost });
     }
-
-    console.log('Making m3u8 request to:', requestUrl);
 
     // Create axios instance with proper configuration
     const axiosConfig: any = {
@@ -407,8 +387,6 @@ export class VideoProxyService {
 
     // Proxy the request
     const response = await axios.get(requestUrl, axiosConfig);
-
-    console.log('M3U8 Response received:', { status: response.status });
 
     if (response.status !== 200) {
       res.writeHead(response.status, { 'Content-Type': 'text/plain' });
@@ -435,8 +413,6 @@ export class VideoProxyService {
     const pathname = parsedUrl.pathname || '';
     const { baseUrl } = parsedUrl.query;
 
-    console.log('TS request:', { pathname, baseUrl: baseUrl ? (baseUrl as string).substring(0, 50) + '...' : 'missing' });
-
     if (!baseUrl) {
       console.error('Missing baseUrl for TS request');
       res.writeHead(400, { 'Content-Type': 'text/plain' });
@@ -456,7 +432,6 @@ export class VideoProxyService {
     }
 
     const tsUrl = this.resolveUrl(baseUrl as string, tsFileName);
-    console.log('TS file URL:', tsUrl);
 
     let requestUrl: string;
     let videoHeaders: any;
@@ -475,7 +450,6 @@ export class VideoProxyService {
         videoHeaders['Host'] = originalHost;
       }
 
-      console.log('Live TS request to:', requestUrl);
     } else {
       // Recorded video - use encryption and signing
       const tokenData = await this.refreshTokenAndSignature();
@@ -483,8 +457,6 @@ export class VideoProxyService {
       // Encrypt and sign the TS URL with fresh token
       const encryptedUrl = this.encryptURL(tsUrl);
       const signedUrl = this.addSignatureForUrl(encryptedUrl, tokenData.videoToken!, tokenData.timestamp!, tokenData.signature!);
-
-      console.log('TS Signed URL:', signedUrl);
 
       // Set proper headers for video request
       videoHeaders = {
@@ -501,7 +473,6 @@ export class VideoProxyService {
         videoHeaders['Host'] = originalHost;
       }
 
-      console.log('Making TS request to:', requestUrl);
     }
 
     // Create axios instance with proper configuration
@@ -523,8 +494,6 @@ export class VideoProxyService {
 
     // Proxy the request
     const response = await axios.get(requestUrl, axiosConfig);
-
-    console.log('TS Response received:', { status: response.status });
 
     // Copy response headers (except CORS-related ones)
     Object.keys(response.headers).forEach(key => {
@@ -549,8 +518,6 @@ export class VideoProxyService {
     }
 
     try {
-      console.log('Refreshing video token and signature...');
-
       // Get fresh video token using login token
       const videoToken = await this.apiClient.getVideoToken(this.loginToken!);
 
@@ -566,7 +533,6 @@ export class VideoProxyService {
         lastRefresh: now
       };
 
-      console.log('Token refreshed successfully');
       return this.tokenCache;
     } catch (error) {
       console.error('Failed to refresh token:', error);

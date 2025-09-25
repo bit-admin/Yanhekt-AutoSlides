@@ -215,13 +215,11 @@ const loadVideoStreams = async () => {
         throw new Error('Stream data not found')
       }
 
-      console.log('Live stream data:', streamData)
       // Create a serializable copy to avoid IPC cloning issues
       const serializableStreamData = createSerializableCopy(streamData)
       result = await window.electronAPI.video.getLiveStreamUrls(serializableStreamData, token)
     } else if (props.mode === 'recorded' && props.session) {
       // Load recorded video data
-      console.log('Session data:', props.session)
       // Create a serializable copy to avoid IPC cloning issues
       const serializableSession = createSerializableCopy(props.session)
       result = await window.electronAPI.video.getVideoPlaybackUrls(serializableSession, token)
@@ -259,11 +257,9 @@ const loadVideoSource = async () => {
     }
 
     const videoUrl = currentStreamData.value.url
-    console.log('Loading video source:', videoUrl)
 
     // Check if HLS is supported
     if (Hls.isSupported()) {
-      console.log('Using HLS.js for video playback')
       hls.value = new Hls({
         debug: false,
         enableWorker: true,
@@ -275,7 +271,7 @@ const loadVideoSource = async () => {
       hls.value.attachMedia(videoPlayer.value)
 
       hls.value.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('HLS manifest parsed successfully')
+        // HLS manifest parsed successfully
       })
 
       hls.value.on(Hls.Events.ERROR, (event, data) => {
@@ -283,15 +279,12 @@ const loadVideoSource = async () => {
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              console.log('Fatal network error encountered, trying to recover')
               hls.value?.startLoad()
               break
             case Hls.ErrorTypes.MEDIA_ERROR:
-              console.log('Fatal media error encountered, trying to recover')
               hls.value?.recoverMediaError()
               break
             default:
-              console.log('Fatal error, cannot recover')
               error.value = 'Video playback error: ' + data.details
               break
           }
@@ -299,7 +292,6 @@ const loadVideoSource = async () => {
       })
     } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Safari)
-      console.log('Using native HLS support')
       videoPlayer.value.src = videoUrl
       await videoPlayer.value.load()
     } else {
@@ -352,11 +344,11 @@ const retryLoad = () => {
 
 // Video event handlers
 const onLoadStart = () => {
-  console.log('Video load started')
+  // Video load started
 }
 
 const onLoadedMetadata = () => {
-  console.log('Video metadata loaded')
+  // Video metadata loaded
 }
 
 const onVideoError = (event: Event) => {
@@ -386,7 +378,7 @@ const onVideoError = (event: Event) => {
 }
 
 const onCanPlay = () => {
-  console.log('Video can start playing')
+  // Video can start playing
 }
 
 // Utility functions
