@@ -43,6 +43,7 @@
     "crypto-js": "^4.2.0",
     "electron-squirrel-startup": "^1.0.1",
     "electron-store": "^10.1.0",
+    "hls.js": "^1.6.13",
     "vue": "^3.5.21"
   }
 }

@@ -101,6 +101,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { DataStore } from '../services/dataStore'
+import { TokenManager } from '../services/authService'
+import Hls from 'hls.js'
 
 interface Course {
   id: string
@@ -158,6 +160,10 @@ const playbackData = ref<PlaybackData | null>(null)
 const selectedStream = ref<string>('')
 const isPlaying = ref(false)
 const videoPlayer = ref<HTMLVideoElement | null>(null)
+const hls = ref<Hls | null>(null)
+
+// Initialize TokenManager
+const tokenManager = new TokenManager()
 
 // Computed properties
 const currentStreamData = computed(() => {
@@ -170,12 +176,32 @@ const goBack = () => {
   emit('back')
 }
 
+// Helper function to create a serializable copy of an object and fix URL escaping
+const createSerializableCopy = (obj: any): any => {
+  const copy = JSON.parse(JSON.stringify(obj))
+
+  // Fix URL escaping issues
+  const fixUrls = (item: any): any => {
+    if (typeof item === 'string' && item.includes('\\/\\/')) {
+      return item.replace(/\\\//g, '/')
+    }
+    if (typeof item === 'object' && item !== null) {
+      for (const key in item) {
+        item[key] = fixUrls(item[key])
+      }
+    }
+    return item
+  }
+
+  return fixUrls(copy)
+}
+
 const loadVideoStreams = async () => {
   try {
     loading.value = true
     error.value = null
 
-    const token = localStorage.getItem('authToken')
+    const token = tokenManager.getToken()
     if (!token) {
       throw new Error('Authentication token not found')
     }
@@ -189,10 +215,16 @@ const loadVideoStreams = async () => {
         throw new Error('Stream data not found')
       }
 
-      result = await window.electronAPI.video.getLiveStreamUrls(streamData, token)
+      console.log('Live stream data:', streamData)
+      // Create a serializable copy to avoid IPC cloning issues
+      const serializableStreamData = createSerializableCopy(streamData)
+      result = await window.electronAPI.video.getLiveStreamUrls(serializableStreamData, token)
     } else if (props.mode === 'recorded' && props.session) {
       // Load recorded video data
-      result = await window.electronAPI.video.getVideoPlaybackUrls(props.session, token)
+      console.log('Session data:', props.session)
+      // Create a serializable copy to avoid IPC cloning issues
+      const serializableSession = createSerializableCopy(props.session)
+      result = await window.electronAPI.video.getVideoPlaybackUrls(serializableSession, token)
     } else {
       throw new Error('Invalid playback parameters')
     }
@@ -220,11 +252,62 @@ const loadVideoSource = async () => {
   if (!videoPlayer.value || !currentStreamData.value) return
 
   try {
-    videoPlayer.value.src = currentStreamData.value.url
-    await videoPlayer.value.load()
+    // Clean up existing HLS instance
+    if (hls.value) {
+      hls.value.destroy()
+      hls.value = null
+    }
+
+    const videoUrl = currentStreamData.value.url
+    console.log('Loading video source:', videoUrl)
+
+    // Check if HLS is supported
+    if (Hls.isSupported()) {
+      console.log('Using HLS.js for video playback')
+      hls.value = new Hls({
+        debug: false,
+        enableWorker: true,
+        lowLatencyMode: true,
+        backBufferLength: 90
+      })
+
+      hls.value.loadSource(videoUrl)
+      hls.value.attachMedia(videoPlayer.value)
+
+      hls.value.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log('HLS manifest parsed successfully')
+      })
+
+      hls.value.on(Hls.Events.ERROR, (event, data) => {
+        console.error('HLS error:', event, data)
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.log('Fatal network error encountered, trying to recover')
+              hls.value?.startLoad()
+              break
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.log('Fatal media error encountered, trying to recover')
+              hls.value?.recoverMediaError()
+              break
+            default:
+              console.log('Fatal error, cannot recover')
+              error.value = 'Video playback error: ' + data.details
+              break
+          }
+        }
+      })
+    } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS support (Safari)
+      console.log('Using native HLS support')
+      videoPlayer.value.src = videoUrl
+      await videoPlayer.value.load()
+    } else {
+      throw new Error('HLS is not supported in this browser')
+    }
   } catch (err: any) {
     console.error('Failed to load video source:', err)
-    error.value = 'Failed to load video source'
+    error.value = 'Failed to load video source: ' + err.message
   }
 }
 
@@ -351,9 +434,21 @@ watch(() => videoPlayer.value, (newPlayer) => {
   }
 })
 
+// Cleanup function
+const cleanup = () => {
+  if (hls.value) {
+    hls.value.destroy()
+    hls.value = null
+  }
+}
+
 // Lifecycle
 onMounted(() => {
   loadVideoStreams()
+})
+
+onUnmounted(() => {
+  cleanup()
 })
 </script>
 

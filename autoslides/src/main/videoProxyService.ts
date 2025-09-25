@@ -78,25 +78,27 @@ export class VideoProxyService {
 
       // Process main video (课堂摄像头) if available
       if (session.main_url) {
-        const proxyUrl = `http://localhost:${proxyPort}/?originalUrl=${encodeURIComponent(session.main_url)}&loginToken=${encodeURIComponent(token)}`;
+        const fixedMainUrl = this.fixUrlEscaping(session.main_url);
+        const proxyUrl = `http://localhost:${proxyPort}/?originalUrl=${encodeURIComponent(fixedMainUrl)}&loginToken=${encodeURIComponent(token)}`;
 
         result.streams.main = {
           type: "camera",
           name: "课堂摄像头",
           url: proxyUrl,
-          original_url: session.main_url
+          original_url: fixedMainUrl
         };
       }
 
       // Process VGA video (屏幕录制) if available
       if (session.vga_url) {
-        const proxyUrl = `http://localhost:${proxyPort}/?originalUrl=${encodeURIComponent(session.vga_url)}&loginToken=${encodeURIComponent(token)}`;
+        const fixedVgaUrl = this.fixUrlEscaping(session.vga_url);
+        const proxyUrl = `http://localhost:${proxyPort}/?originalUrl=${encodeURIComponent(fixedVgaUrl)}&loginToken=${encodeURIComponent(token)}`;
 
         result.streams.vga = {
           type: "screen",
           name: "屏幕录制",
           url: proxyUrl,
-          original_url: session.vga_url
+          original_url: fixedVgaUrl
         };
       }
 
@@ -108,13 +110,17 @@ export class VideoProxyService {
   }
 
   /**
+   * Fix URL escaping issues
+   */
+  private fixUrlEscaping(url: string): string {
+    return url.replace(/\\\//g, '/');
+  }
+
+  /**
    * Get live stream playback URLs with proxy support
    */
   async getLiveStreamUrls(stream: any, token: string): Promise<VideoPlaybackUrls> {
     try {
-      // Start proxy server if not already running
-      const proxyPort = await this.startVideoProxy();
-
       // Store the login token for dynamic token refresh
       this.loginToken = token;
 
@@ -124,28 +130,65 @@ export class VideoProxyService {
         streams: {}
       };
 
-      // Process main camera stream (target) if available
-      if (stream.target) {
-        const proxyUrl = `http://localhost:${proxyPort}/live?originalUrl=${encodeURIComponent(stream.target)}&loginToken=${encodeURIComponent(token)}`;
+      // Check if intranet mode is enabled
+      const useProxy = this.intranetMapping.isEnabled();
 
-        result.streams.camera = {
-          type: "camera",
-          name: "课堂摄像头",
-          url: proxyUrl,
-          original_url: stream.target
-        };
-      }
+      if (useProxy) {
+        // Intranet mode: use proxy with IP mapping
+        const proxyPort = await this.startVideoProxy();
 
-      // Process screen recording stream (target_vga) if available
-      if (stream.target_vga) {
-        const proxyUrl = `http://localhost:${proxyPort}/live?originalUrl=${encodeURIComponent(stream.target_vga)}&loginToken=${encodeURIComponent(token)}`;
+        // Process main camera stream (target) if available
+        if (stream.target) {
+          const fixedTarget = this.fixUrlEscaping(stream.target);
+          const proxyUrl = `http://localhost:${proxyPort}/live?originalUrl=${encodeURIComponent(fixedTarget)}&loginToken=${encodeURIComponent(token)}`;
 
-        result.streams.screen = {
-          type: "screen",
-          name: "屏幕录制",
-          url: proxyUrl,
-          original_url: stream.target_vga
-        };
+          result.streams.camera = {
+            type: "camera",
+            name: "课堂摄像头",
+            url: proxyUrl,
+            original_url: fixedTarget
+          };
+        }
+
+        // Process screen recording stream (target_vga) if available
+        if (stream.target_vga) {
+          const fixedTargetVga = this.fixUrlEscaping(stream.target_vga);
+          const proxyUrl = `http://localhost:${proxyPort}/live?originalUrl=${encodeURIComponent(fixedTargetVga)}&loginToken=${encodeURIComponent(token)}`;
+
+          result.streams.screen = {
+            type: "screen",
+            name: "屏幕录制",
+            url: proxyUrl,
+            original_url: fixedTargetVga
+          };
+        }
+      } else {
+        // External mode: direct HLS playback
+        console.log('External network mode: using direct HLS playback for live streams');
+
+        // Process main camera stream (target) if available
+        if (stream.target) {
+          const fixedTarget = this.fixUrlEscaping(stream.target);
+
+          result.streams.camera = {
+            type: "camera",
+            name: "课堂摄像头",
+            url: fixedTarget,
+            original_url: fixedTarget
+          };
+        }
+
+        // Process screen recording stream (target_vga) if available
+        if (stream.target_vga) {
+          const fixedTargetVga = this.fixUrlEscaping(stream.target_vga);
+
+          result.streams.screen = {
+            type: "screen",
+            name: "屏幕录制",
+            url: fixedTargetVga,
+            original_url: fixedTargetVga
+          };
+        }
       }
 
       return result;

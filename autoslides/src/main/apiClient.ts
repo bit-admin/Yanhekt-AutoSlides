@@ -447,7 +447,7 @@ export class ApiClient {
 
   async getVideoToken(token: string): Promise<string> {
     try {
-      const url = "https://cbiz.yanhekt.cn/v1/auth/video/token";
+      const url = "https://cbiz.yanhekt.cn/v1/auth/video/token?id=0";
       const data = await this.makeRequest('GET', url, token);
 
       if (data.code !== 0 && data.code !== "0") {
