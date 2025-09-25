@@ -8,7 +8,7 @@
         Back
       </button>
       <div class="title-info">
-        <h2>{{ playbackData?.title || course?.title }}</h2>
+        <h2>{{ course?.title || 'Unknown Course' }}</h2>
         <p v-if="session">{{ session.title }}</p>
         <div v-if="!isVisible && isPlaying" class="background-mode-indicator">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -104,7 +104,7 @@
         <!-- Course Information -->
         <div class="info-section">
           <h3>Course Information</h3>
-          <p><strong>Course:</strong> {{ playbackData.title }}</p>
+          <p><strong>Course:</strong> {{ course?.title || 'Unknown Course' }}</p>
           <p v-if="course?.instructor"><strong>Instructor:</strong> {{ course.instructor }}</p>
           <p v-if="session"><strong>Session:</strong> {{ session.title }}</p>
           <p v-if="session"><strong>Date:</strong> {{ formatDate(session.started_at) }}</p>
@@ -133,6 +133,25 @@ interface Course {
   title: string
   instructor: string
   time: string
+  status?: number
+  subtitle?: string
+  schedule_started_at?: string
+  schedule_ended_at?: string
+  participant_count?: number
+  session?: {
+    professor?: {
+      name: string;
+    };
+    section_group_title?: string;
+  };
+  target?: string; // Camera stream URL
+  target_vga?: string; // Screen stream URL
+  // Record mode specific fields
+  professors?: string[];
+  classrooms?: { name: string }[];
+  school_year?: string;
+  semester?: string;
+  college_name?: string;
 }
 
 interface Session {
