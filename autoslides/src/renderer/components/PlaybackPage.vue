@@ -36,31 +36,16 @@
       </div>
 
       <div v-else-if="playbackData" class="video-content">
-        <!-- Stream Selection -->
-        <div v-if="Object.keys(playbackData.streams).length > 1" class="stream-selector">
-          <label>Select Stream:</label>
-          <select v-model="selectedStream" @change="switchStream">
-            <option v-for="(stream, key) in playbackData.streams" :key="key" :value="key">
-              {{ stream.name }}
-            </option>
-          </select>
-        </div>
-
-        <!-- Video Player -->
-        <div class="video-container">
-          <video
-            ref="videoPlayer"
-            class="video-player"
-            controls
-            controlslist="noplaybackrate"
-            preload="metadata"
-            @loadstart="onLoadStart"
-            @loadedmetadata="onLoadedMetadata"
-            @error="onVideoError"
-            @canplay="onCanPlay"
-          >
-            Your browser does not support the video tag.
-          </video>
+        <!-- Stream Selection and Playback Controls -->
+        <div class="controls-row">
+          <div v-if="Object.keys(playbackData.streams).length > 1" class="stream-selector">
+            <label>Select Stream:</label>
+            <select v-model="selectedStream" @change="switchStream">
+              <option v-for="(stream, key) in playbackData.streams" :key="key" :value="key">
+                {{ stream.name }}
+              </option>
+            </select>
+          </div>
 
           <!-- Custom Playback Rate Control (only for recorded videos) -->
           <div v-if="props.mode === 'recorded'" class="playback-rate-control">
@@ -78,6 +63,23 @@
               <option value="10">10x</option>
             </select>
           </div>
+        </div>
+
+        <!-- Video Player -->
+        <div class="video-container">
+          <video
+            ref="videoPlayer"
+            class="video-player"
+            controls
+            controlslist="noplaybackrate"
+            preload="metadata"
+            @loadstart="onLoadStart"
+            @loadedmetadata="onLoadedMetadata"
+            @error="onVideoError"
+            @canplay="onCanPlay"
+          >
+            Your browser does not support the video tag.
+          </video>
         </div>
 
         <!-- Stream Info -->
@@ -704,13 +706,20 @@ onUnmounted(() => {
   gap: 20px;
 }
 
+.controls-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  gap: 16px;
+}
+
 .stream-selector {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-radius: 6px;
 }
 
 .stream-selector label {
@@ -735,31 +744,22 @@ onUnmounted(() => {
 }
 
 .playback-rate-control {
-  position: absolute;
-  top: 12px;
-  right: 12px;
   display: flex;
   align-items: center;
   gap: 8px;
-  background-color: rgba(0, 0, 0, 0.8);
-  padding: 6px 12px;
-  border-radius: 4px;
-  color: white;
-  font-size: 14px;
-  z-index: 10;
 }
 
 .playback-rate-control label {
   font-weight: 500;
+  color: #333;
   white-space: nowrap;
 }
 
 .playback-rate-control select {
-  background-color: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-  padding: 2px 6px;
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
   font-size: 14px;
   cursor: pointer;
 }
@@ -767,11 +767,6 @@ onUnmounted(() => {
 .playback-rate-control select:focus {
   outline: none;
   border-color: #007acc;
-}
-
-.playback-rate-control select option {
-  background-color: #333;
-  color: white;
 }
 
 .video-player {
