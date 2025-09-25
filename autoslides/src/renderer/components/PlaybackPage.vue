@@ -65,6 +65,16 @@
           </div>
         </div>
 
+        <!-- Playback Speed Warning for External Network -->
+        <div v-if="props.mode === 'recorded' && showSpeedWarning" class="speed-warning">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <path d="M12 9v4"/>
+            <path d="m12 17 .01 0"/>
+          </svg>
+          High-speed playback may cause buffering issues. Consider switching to internal network mode for optimal performance at higher speeds.
+        </div>
+
         <!-- Video Player -->
         <div class="video-container">
           <video
@@ -180,6 +190,10 @@ const isPlaying = ref(false)
 const videoPlayer = ref<HTMLVideoElement | null>(null)
 const hls = ref<Hls | null>(null)
 const currentPlaybackRate = ref(1)
+const connectionMode = ref<'internal' | 'external'>('external')
+const showSpeedWarning = computed(() => {
+  return connectionMode.value === 'external' && currentPlaybackRate.value > 2
+})
 
 // Initialize TokenManager
 const tokenManager = new TokenManager()
@@ -570,6 +584,14 @@ const cleanup = () => {
 
 // Lifecycle
 onMounted(async () => {
+  // Load connection mode from config
+  try {
+    const config = await window.electronAPI.config.get()
+    connectionMode.value = config.connectionMode
+  } catch (error) {
+    console.error('Failed to load connection mode:', error)
+  }
+
   // Wait for next tick to ensure video element is in DOM
   await nextTick()
   loadVideoStreams()
@@ -826,6 +848,26 @@ onUnmounted(() => {
 
 .info-section strong {
   color: #333;
+}
+
+/* Speed warning */
+.speed-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin: 12px 0;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  color: #856404;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.speed-warning svg {
+  flex-shrink: 0;
+  color: #f39c12;
 }
 
 /* Responsive design */
