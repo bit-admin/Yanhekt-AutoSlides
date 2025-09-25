@@ -93,7 +93,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { DataStore } from '../services/dataStore'
 import { TokenManager } from '../services/authService'
 import Hls from 'hls.js'
@@ -233,6 +233,9 @@ const loadVideoStreams = async () => {
       // Find screen recording stream first
       const screenStream = streamKeys.find(key => result.streams[key].type === 'screen')
       selectedStream.value = screenStream || streamKeys[0]
+
+      // Wait for next tick to ensure DOM is updated
+      await nextTick()
       await loadVideoSource()
     } else {
       throw new Error('No video streams available')
@@ -247,9 +250,20 @@ const loadVideoStreams = async () => {
 }
 
 const loadVideoSource = async () => {
-  if (!videoPlayer.value || !currentStreamData.value) return
+  console.log('loadVideoSource called, checking conditions...')
+  console.log('videoPlayer.value:', !!videoPlayer.value)
+  console.log('currentStreamData.value:', !!currentStreamData.value)
+  console.log('selectedStream.value:', selectedStream.value)
+  console.log('playbackData.value:', !!playbackData.value)
+
+  if (!videoPlayer.value || !currentStreamData.value) {
+    console.warn('Video player or stream data not ready')
+    return
+  }
 
   try {
+    console.log('Loading video source:', currentStreamData.value.url)
+
     // Clean up existing HLS instance
     if (hls.value) {
       hls.value.destroy()
@@ -260,6 +274,7 @@ const loadVideoSource = async () => {
 
     // Check if HLS is supported
     if (Hls.isSupported()) {
+      console.log('Using HLS.js for playback')
       hls.value = new Hls({
         debug: false,
         enableWorker: true,
@@ -271,7 +286,11 @@ const loadVideoSource = async () => {
       hls.value.attachMedia(videoPlayer.value)
 
       hls.value.on(Hls.Events.MANIFEST_PARSED, () => {
-        // HLS manifest parsed successfully
+        console.log('HLS manifest parsed successfully')
+      })
+
+      hls.value.on(Hls.Events.MEDIA_ATTACHED, () => {
+        console.log('HLS media attached')
       })
 
       hls.value.on(Hls.Events.ERROR, (event, data) => {
@@ -279,9 +298,11 @@ const loadVideoSource = async () => {
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
+              console.log('Network error, trying to restart load')
               hls.value?.startLoad()
               break
             case Hls.ErrorTypes.MEDIA_ERROR:
+              console.log('Media error, trying to recover')
               hls.value?.recoverMediaError()
               break
             default:
@@ -292,6 +313,7 @@ const loadVideoSource = async () => {
       })
     } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Safari)
+      console.log('Using native HLS support')
       videoPlayer.value.src = videoUrl
       await videoPlayer.value.load()
     } else {
@@ -308,6 +330,8 @@ const switchStream = async () => {
     const wasPlaying = !videoPlayer.value.paused
     const currentTime = videoPlayer.value.currentTime
 
+    // Wait for next tick to ensure DOM is updated
+    await nextTick()
     await loadVideoSource()
 
     // Try to maintain playback position and state
@@ -394,7 +418,14 @@ const formatDuration = (duration: string | number): string => {
 }
 
 // Watch for play/pause state changes
-watch(() => videoPlayer.value, (newPlayer) => {
+let currentEventListeners: (() => void)[] = []
+
+watch(() => videoPlayer.value, (newPlayer, oldPlayer) => {
+  console.log('Video player changed:', !!newPlayer)
+  // Clean up old listeners
+  currentEventListeners.forEach(cleanup => cleanup())
+  currentEventListeners = []
+
   if (newPlayer) {
     const updatePlayingState = () => {
       isPlaying.value = !newPlayer.paused
@@ -404,11 +435,30 @@ watch(() => videoPlayer.value, (newPlayer) => {
     newPlayer.addEventListener('pause', updatePlayingState)
     newPlayer.addEventListener('ended', updatePlayingState)
 
-    // Cleanup on component unmount
-    onUnmounted(() => {
+    // Store cleanup function
+    currentEventListeners.push(() => {
       newPlayer.removeEventListener('play', updatePlayingState)
       newPlayer.removeEventListener('pause', updatePlayingState)
       newPlayer.removeEventListener('ended', updatePlayingState)
+    })
+
+    // If we have stream data ready, load it now
+    if (currentStreamData.value && playbackData.value) {
+      console.log('Video player ready and stream data available, loading video source')
+      nextTick(() => {
+        loadVideoSource()
+      })
+    }
+  }
+})
+
+// Watch for stream data changes
+watch(() => currentStreamData.value, (newStreamData) => {
+  console.log('Stream data changed:', !!newStreamData)
+  if (newStreamData && videoPlayer.value && playbackData.value) {
+    console.log('Stream data ready and video player available, loading video source')
+    nextTick(() => {
+      loadVideoSource()
     })
   }
 })
@@ -438,12 +488,19 @@ const cleanup = () => {
 }
 
 // Lifecycle
-onMounted(() => {
+onMounted(async () => {
+  // Wait for next tick to ensure video element is in DOM
+  await nextTick()
   loadVideoStreams()
 })
 
 onUnmounted(() => {
+  // Clean up HLS
   cleanup()
+
+  // Clean up event listeners
+  currentEventListeners.forEach(cleanupFn => cleanupFn())
+  currentEventListeners = []
 })
 </script>
 
