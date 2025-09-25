@@ -69,18 +69,6 @@
             <p class="stream-type">{{ currentStreamData?.type === 'camera' ? 'Camera View' : 'Screen Recording' }}</p>
           </div>
 
-          <div class="playback-controls">
-            <button @click="togglePlayPause" class="control-btn">
-              <svg v-if="isPlaying" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="6" y="4" width="4" height="16"/>
-                <rect x="14" y="4" width="4" height="16"/>
-              </svg>
-              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="5,3 19,12 5,21"/>
-              </svg>
-              {{ isPlaying ? 'Pause' : 'Play' }}
-            </button>
-          </div>
         </div>
 
         <!-- Course Information -->
@@ -239,10 +227,12 @@ const loadVideoStreams = async () => {
 
     playbackData.value = result
 
-    // Select first available stream
+    // Select default stream - prefer screen recording
     const streamKeys = Object.keys(result.streams)
     if (streamKeys.length > 0) {
-      selectedStream.value = streamKeys[0]
+      // Find screen recording stream first
+      const screenStream = streamKeys.find(key => result.streams[key].type === 'screen')
+      selectedStream.value = screenStream || streamKeys[0]
       await loadVideoSource()
     } else {
       throw new Error('No video streams available')
@@ -334,19 +324,6 @@ const switchStream = async () => {
   }
 }
 
-const togglePlayPause = async () => {
-  if (!videoPlayer.value) return
-
-  try {
-    if (videoPlayer.value.paused) {
-      await videoPlayer.value.play()
-    } else {
-      videoPlayer.value.pause()
-    }
-  } catch (err) {
-    console.error('Failed to toggle playback:', err)
-  }
-}
 
 const retryLoad = () => {
   loadVideoStreams()
@@ -655,30 +632,6 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-.control-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: 1px solid #007acc;
-  border-radius: 4px;
-  background-color: #007acc;
-  color: white;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.control-btn:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
-}
-
-.control-btn:disabled {
-  background-color: #6c757d;
-  border-color: #6c757d;
-  cursor: not-allowed;
-}
 
 .info-section {
   padding: 20px;
