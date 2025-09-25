@@ -70,22 +70,12 @@
         />
       </div>
 
-      <!-- Background Playback Indicators -->
-      <div v-if="hasBackgroundPlayback" class="background-playback-notice">
-        <div class="notice-content">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="5,3 19,12 5,21"/>
-          </svg>
-          <span>{{ backgroundPlaybackText }} is playing in the background</span>
-          <button @click="switchToPlaybackMode" class="switch-btn">Switch to {{ backgroundModeText }}</button>
-        </div>
-      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import CoursePage from './CoursePage.vue'
 import SessionPage from './SessionPage.vue'
 import PlaybackPage from './PlaybackPage.vue'
@@ -114,36 +104,6 @@ const recordedState = ref<ModeState>({
   selectedSession: null
 })
 
-// Background playback detection
-const hasBackgroundPlayback = computed(() => {
-  const otherMode = currentMode.value === 'live' ? recordedState.value : liveState.value
-  return otherMode.page === 'playback'
-})
-
-const backgroundModeText = computed(() => {
-  return currentMode.value === 'live' ? 'Recorded' : 'Live'
-})
-
-const backgroundPlaybackText = computed(() => {
-  const otherMode = currentMode.value === 'live' ? recordedState.value : liveState.value
-  if (otherMode.page === 'playback') {
-    const course = otherMode.selectedCourse
-    const session = otherMode.selectedSession
-    if (currentMode.value === 'live') {
-      // Recorded is playing in background
-      return `${course?.name_zh || 'Recorded course'}${session ? ` - ${session.title}` : ''}`
-    } else {
-      // Live is playing in background
-      return `${course?.title || 'Live stream'}`
-    }
-  }
-  return ''
-})
-
-const switchToPlaybackMode = () => {
-  const targetMode = currentMode.value === 'live' ? 'recorded' : 'live'
-  switchMode(targetMode)
-}
 
 const switchMode = (mode: Mode) => {
   const currentState = currentMode.value === 'live' ? liveState.value : recordedState.value
@@ -275,50 +235,4 @@ const handleBackFromPlayback = () => {
   50% { opacity: 0.5; }
 }
 
-.background-playback-notice {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  background-color: #f8f9fa;
-  border: 1px solid #007acc;
-  border-radius: 8px;
-  padding: 12px 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
-  max-width: 350px;
-}
-
-.notice-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.notice-content svg {
-  color: #007acc;
-  flex-shrink: 0;
-}
-
-.notice-content span {
-  color: #333;
-  flex: 1;
-}
-
-.switch-btn {
-  padding: 4px 8px;
-  border: 1px solid #007acc;
-  border-radius: 4px;
-  background-color: #007acc;
-  color: white;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.switch-btn:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
-}
 </style>
