@@ -6,36 +6,80 @@
         @click="switchMode('live')"
       >
         Live
+        <span v-if="liveState.page === 'playback'" class="playback-indicator">●</span>
       </button>
       <button
         :class="['nav-btn', { active: currentMode === 'recorded' }]"
         @click="switchMode('recorded')"
       >
         Recorded
+        <span v-if="recordedState.page === 'playback'" class="playback-indicator">●</span>
       </button>
     </div>
 
     <div class="content-area">
-      <CoursePage
-        v-if="currentPage === 'courses'"
-        :mode="currentMode"
-        @course-selected="handleCourseSelected"
-      />
-      <SessionPage
-        v-else-if="currentPage === 'sessions'"
-        :course="selectedCourse"
-        @session-selected="handleSessionSelected"
-        @back-to-courses="backToCourses"
-      />
-      <PlaybackPage
-        v-else-if="currentPage === 'playback'"
-        :course="selectedCourse"
-        :session="selectedSession"
-        :mode="currentMode"
-        :streamId="selectedCourse?.id"
-        :sessionId="selectedSession?.session_id"
-        @back="handleBackFromPlayback"
-      />
+      <!-- Live Mode Components -->
+      <div
+        :class="['mode-container', { 'mode-hidden': currentMode !== 'live' }]"
+        data-mode="live"
+      >
+        <CoursePage
+          v-if="liveState.page === 'courses'"
+          :mode="'live'"
+          @course-selected="handleCourseSelected"
+        />
+        <PlaybackPage
+          v-else-if="liveState.page === 'playback'"
+          :course="liveState.selectedCourse"
+          :session="liveState.selectedSession"
+          :mode="'live'"
+          :streamId="liveState.selectedCourse?.id"
+          :sessionId="liveState.selectedSession?.session_id"
+          @back="handleBackFromPlayback"
+          :key="`live-playback-${liveState.selectedCourse?.id || 'none'}`"
+          :isVisible="currentMode === 'live'"
+        />
+      </div>
+
+      <!-- Recorded Mode Components -->
+      <div
+        :class="['mode-container', { 'mode-hidden': currentMode !== 'recorded' }]"
+        data-mode="recorded"
+      >
+        <CoursePage
+          v-if="recordedState.page === 'courses'"
+          :mode="'recorded'"
+          @course-selected="handleCourseSelected"
+        />
+        <SessionPage
+          v-else-if="recordedState.page === 'sessions'"
+          :course="recordedState.selectedCourse"
+          @session-selected="handleSessionSelected"
+          @back-to-courses="backToCourses"
+        />
+        <PlaybackPage
+          v-else-if="recordedState.page === 'playback'"
+          :course="recordedState.selectedCourse"
+          :session="recordedState.selectedSession"
+          :mode="'recorded'"
+          :streamId="recordedState.selectedCourse?.id"
+          :sessionId="recordedState.selectedSession?.session_id"
+          @back="handleBackFromPlayback"
+          :key="`recorded-playback-${recordedState.selectedSession?.session_id || 'none'}`"
+          :isVisible="currentMode === 'recorded'"
+        />
+      </div>
+
+      <!-- Background Playback Indicators -->
+      <div v-if="hasBackgroundPlayback" class="background-playback-notice">
+        <div class="notice-content">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5,3 19,12 5,21"/>
+          </svg>
+          <span>{{ backgroundPlaybackText }} is playing in the background</span>
+          <button @click="switchToPlaybackMode" class="switch-btn">Switch to {{ backgroundModeText }}</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -70,30 +114,53 @@ const recordedState = ref<ModeState>({
   selectedSession: null
 })
 
-// Calculate the status of the current mode
-const currentState = computed(() => {
-  return currentMode.value === 'live' ? liveState.value : recordedState.value
+// Background playback detection
+const hasBackgroundPlayback = computed(() => {
+  const otherMode = currentMode.value === 'live' ? recordedState.value : liveState.value
+  return otherMode.page === 'playback'
 })
 
-// Convenient accessor
-const currentPage = computed(() => currentState.value.page)
-const selectedCourse = computed(() => currentState.value.selectedCourse)
-const selectedSession = computed(() => currentState.value.selectedSession)
+const backgroundModeText = computed(() => {
+  return currentMode.value === 'live' ? 'Recorded' : 'Live'
+})
+
+const backgroundPlaybackText = computed(() => {
+  const otherMode = currentMode.value === 'live' ? recordedState.value : liveState.value
+  if (otherMode.page === 'playback') {
+    const course = otherMode.selectedCourse
+    const session = otherMode.selectedSession
+    if (currentMode.value === 'live') {
+      // Recorded is playing in background
+      return `${course?.name_zh || 'Recorded course'}${session ? ` - ${session.title}` : ''}`
+    } else {
+      // Live is playing in background
+      return `${course?.title || 'Live stream'}`
+    }
+  }
+  return ''
+})
+
+const switchToPlaybackMode = () => {
+  const targetMode = currentMode.value === 'live' ? 'recorded' : 'live'
+  switchMode(targetMode)
+}
 
 const switchMode = (mode: Mode) => {
+  const currentState = currentMode.value === 'live' ? liveState.value : recordedState.value
   console.log(`🔄 Switching from ${currentMode.value} to ${mode}`)
   console.log(`📊 Current ${currentMode.value} state:`, {
-    page: currentState.value.page,
-    course: currentState.value.selectedCourse?.title || 'none',
-    session: currentState.value.selectedSession?.title || 'none'
+    page: currentState.page,
+    course: currentState.selectedCourse?.title || currentState.selectedCourse?.name_zh || 'none',
+    session: currentState.selectedSession?.title || 'none'
   })
 
   currentMode.value = mode
 
+  const newState = mode === 'live' ? liveState.value : recordedState.value
   console.log(`📊 New ${mode} state:`, {
-    page: currentState.value.page,
-    course: currentState.value.selectedCourse?.title || 'none',
-    session: currentState.value.selectedSession?.title || 'none'
+    page: newState.page,
+    course: newState.selectedCourse?.title || newState.selectedCourse?.name_zh || 'none',
+    session: newState.selectedSession?.title || 'none'
   })
   // Without resetting the state, each mode maintains its own navigation state.
 }
@@ -177,5 +244,81 @@ const handleBackFromPlayback = () => {
 .content-area {
   flex: 1;
   overflow: hidden;
+  position: relative;
+}
+
+.mode-container {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.mode-container.mode-hidden {
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.playback-indicator {
+  margin-left: 6px;
+  color: #28a745;
+  font-size: 12px;
+  font-weight: bold;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.background-playback-notice {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background-color: #f8f9fa;
+  border: 1px solid #007acc;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  max-width: 350px;
+}
+
+.notice-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.notice-content svg {
+  color: #007acc;
+  flex-shrink: 0;
+}
+
+.notice-content span {
+  color: #333;
+  flex: 1;
+}
+
+.switch-btn {
+  padding: 4px 8px;
+  border: 1px solid #007acc;
+  border-radius: 4px;
+  background-color: #007acc;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.switch-btn:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
 }
 </style>

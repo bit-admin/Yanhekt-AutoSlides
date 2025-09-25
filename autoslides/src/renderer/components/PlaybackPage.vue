@@ -10,6 +10,12 @@
       <div class="title-info">
         <h2>{{ playbackData?.title || course?.title }}</h2>
         <p v-if="session">{{ session.title }}</p>
+        <div v-if="!isVisible && isPlaying" class="background-mode-indicator">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="5,3 19,12 5,21"/>
+          </svg>
+          Playing in background
+        </div>
       </div>
     </div>
 
@@ -147,7 +153,11 @@ const props = defineProps<{
   mode: 'live' | 'recorded'
   streamId?: string
   sessionId?: string
+  isVisible?: boolean
 }>()
+
+// Default isVisible to true for backward compatibility
+const isVisible = computed(() => props.isVisible ?? true)
 
 const emit = defineEmits<{
   back: []
@@ -426,6 +436,22 @@ watch(() => videoPlayer.value, (newPlayer) => {
   }
 })
 
+// Watch for visibility changes - keep video playing when hidden
+watch(isVisible, (visible) => {
+  console.log(`🎬 PlaybackPage visibility changed: ${visible} (mode: ${props.mode})`)
+
+  // Don't pause video when hidden - this is what enables background playback
+  // The video continues playing in the background even when the component is not visible
+
+  if (visible && videoPlayer.value) {
+    // When becoming visible, we might want to show current playback state
+    console.log(`▶️ ${props.mode} mode now visible, video playing: ${!videoPlayer.value.paused}`)
+  } else if (!visible && videoPlayer.value) {
+    // When becoming hidden, log the state but don't stop playback
+    console.log(`🔇 ${props.mode} mode now hidden, video continues playing: ${!videoPlayer.value.paused}`)
+  }
+}, { immediate: true })
+
 // Cleanup function
 const cleanup = () => {
   if (hls.value) {
@@ -489,6 +515,23 @@ onUnmounted(() => {
   margin: 4px 0 0 0;
   font-size: 14px;
   color: #666;
+}
+
+.background-mode-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 6px;
+  background-color: #28a745;
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.background-mode-indicator svg {
+  animation: pulse 2s infinite;
 }
 
 .content {
