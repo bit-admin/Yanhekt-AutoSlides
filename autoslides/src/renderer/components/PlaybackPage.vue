@@ -52,6 +52,7 @@
             ref="videoPlayer"
             class="video-player"
             controls
+            controlslist="noplaybackrate"
             preload="metadata"
             @loadstart="onLoadStart"
             @loadedmetadata="onLoadedMetadata"
@@ -60,6 +61,23 @@
           >
             Your browser does not support the video tag.
           </video>
+
+          <!-- Custom Playback Rate Control (only for recorded videos) -->
+          <div v-if="props.mode === 'recorded'" class="playback-rate-control">
+            <label>Playback speed:</label>
+            <select v-model="currentPlaybackRate" @change="changePlaybackRate">
+              <option value="1">1x</option>
+              <option value="2">2x</option>
+              <option value="3">3x</option>
+              <option value="4">4x</option>
+              <option value="5">5x</option>
+              <option value="6">6x</option>
+              <option value="7">7x</option>
+              <option value="8">8x</option>
+              <option value="9">9x</option>
+              <option value="10">10x</option>
+            </select>
+          </div>
         </div>
 
         <!-- Stream Info -->
@@ -159,6 +177,7 @@ const selectedStream = ref<string>('')
 const isPlaying = ref(false)
 const videoPlayer = ref<HTMLVideoElement | null>(null)
 const hls = ref<Hls | null>(null)
+const currentPlaybackRate = ref(1)
 
 // Initialize TokenManager
 const tokenManager = new TokenManager()
@@ -292,6 +311,14 @@ const loadVideoSource = async () => {
         // Automatically start playback when manifest is ready
         setTimeout(() => {
           if (videoPlayer.value) {
+            // Set initial playback rate based on mode
+            if (props.mode === 'recorded') {
+              videoPlayer.value.playbackRate = currentPlaybackRate.value
+            } else {
+              videoPlayer.value.playbackRate = 1
+              currentPlaybackRate.value = 1
+            }
+
             videoPlayer.value.play().catch(e => {
               console.log('Autoplay prevented:', e)
             })
@@ -330,6 +357,14 @@ const loadVideoSource = async () => {
       // Automatically start playback for native HLS
       setTimeout(() => {
         if (videoPlayer.value) {
+          // Set initial playback rate based on mode
+          if (props.mode === 'recorded') {
+            videoPlayer.value.playbackRate = currentPlaybackRate.value
+          } else {
+            videoPlayer.value.playbackRate = 1
+            currentPlaybackRate.value = 1
+          }
+
           videoPlayer.value.play().catch(e => {
             console.log('Autoplay prevented:', e)
           })
@@ -348,6 +383,7 @@ const switchStream = async () => {
   if (videoPlayer.value) {
     const wasPlaying = !videoPlayer.value.paused
     const currentTime = videoPlayer.value.currentTime
+    const previousRate = videoPlayer.value.playbackRate
 
     // Wait for next tick to ensure DOM is updated
     await nextTick()
@@ -356,6 +392,15 @@ const switchStream = async () => {
     // Try to maintain playback position and state
     if (videoPlayer.value) {
       videoPlayer.value.currentTime = currentTime
+
+      // Restore playback rate only for recorded videos
+      if (props.mode === 'recorded') {
+        videoPlayer.value.playbackRate = currentPlaybackRate.value
+      } else {
+        videoPlayer.value.playbackRate = 1
+        currentPlaybackRate.value = 1
+      }
+
       if (wasPlaying) {
         try {
           await videoPlayer.value.play()
@@ -377,6 +422,14 @@ const switchStream = async () => {
 
 const retryLoad = () => {
   loadVideoStreams()
+}
+
+// Change playback rate
+const changePlaybackRate = () => {
+  if (videoPlayer.value) {
+    videoPlayer.value.playbackRate = currentPlaybackRate.value
+    console.log(`Playback rate changed to: ${currentPlaybackRate.value}x`)
+  }
 }
 
 // Video event handlers
@@ -679,6 +732,46 @@ onUnmounted(() => {
   background-color: #000;
   border-radius: 8px;
   overflow: hidden;
+}
+
+.playback-rate-control {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 6px 12px;
+  border-radius: 4px;
+  color: white;
+  font-size: 14px;
+  z-index: 10;
+}
+
+.playback-rate-control label {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.playback-rate-control select {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.playback-rate-control select:focus {
+  outline: none;
+  border-color: #007acc;
+}
+
+.playback-rate-control select option {
+  background-color: #333;
+  color: white;
 }
 
 .video-player {
