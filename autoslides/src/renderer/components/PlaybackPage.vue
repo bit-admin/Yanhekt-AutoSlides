@@ -276,10 +276,12 @@ const loadVideoSource = async () => {
     if (Hls.isSupported()) {
       console.log('Using HLS.js for playback')
       hls.value = new Hls({
-        debug: false,
         enableWorker: true,
-        lowLatencyMode: true,
-        backBufferLength: 90
+        lowLatencyMode: false,
+        backBufferLength: 30,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        debug: false
       })
 
       hls.value.loadSource(videoUrl)
