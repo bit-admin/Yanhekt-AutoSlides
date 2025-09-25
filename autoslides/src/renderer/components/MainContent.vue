@@ -106,45 +106,24 @@ const recordedState = ref<ModeState>({
 
 
 const switchMode = (mode: Mode) => {
-  const currentState = currentMode.value === 'live' ? liveState.value : recordedState.value
-  console.log(`🔄 Switching from ${currentMode.value} to ${mode}`)
-  console.log(`📊 Current ${currentMode.value} state:`, {
-    page: currentState.page,
-    course: currentState.selectedCourse?.title || currentState.selectedCourse?.name_zh || 'none',
-    session: currentState.selectedSession?.title || 'none'
-  })
-
   currentMode.value = mode
-
-  const newState = mode === 'live' ? liveState.value : recordedState.value
-  console.log(`📊 New ${mode} state:`, {
-    page: newState.page,
-    course: newState.selectedCourse?.title || newState.selectedCourse?.name_zh || 'none',
-    session: newState.selectedSession?.title || 'none'
-  })
-  // Without resetting the state, each mode maintains its own navigation state.
 }
 
 const handleCourseSelected = (course: any) => {
-  console.log(`📚 Course selected in ${currentMode.value} mode:`, course.title)
   const state = currentMode.value === 'live' ? liveState.value : recordedState.value
   state.selectedCourse = course
 
   if (currentMode.value === 'live') {
     state.page = 'playback'
-    console.log(`🎬 ${currentMode.value}: Going to playback page`)
   } else {
     state.page = 'sessions'
-    console.log(`📋 ${currentMode.value}: Going to sessions page`)
   }
 }
 
 const handleSessionSelected = (session: any) => {
-  console.log(`🎥 Session selected in ${currentMode.value} mode:`, session.title)
   const state = currentMode.value === 'live' ? liveState.value : recordedState.value
   state.selectedSession = session
   state.page = 'playback'
-  console.log(`🎬 ${currentMode.value}: Going to playback page`)
 }
 
 const backToCourses = () => {

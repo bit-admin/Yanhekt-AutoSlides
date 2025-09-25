@@ -141,15 +141,7 @@ const downloadState = ref<TabState>({
 })
 
 const switchTab = (tab: Tab) => {
-  const currentState = currentTab.value === 'task' ? taskState.value : downloadState.value
-  console.log(`🔄 Switching from ${currentTab.value} to ${tab}`)
-  console.log(`📊 Current ${currentTab.value} state:`, currentState)
-
   currentTab.value = tab
-
-  const newState = tab === 'task' ? taskState.value : downloadState.value
-  console.log(`📊 New ${tab} state:`, newState)
-  // Each tab maintains its own independent state
 }
 </script>
 
