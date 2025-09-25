@@ -322,10 +322,10 @@ const loadVideoSource = async () => {
         }
       })
     } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
-      // Native HLS support (Safari)
+      // Native HLS support (Electron/Chromium fallback)
       console.log('Using native HLS support')
       videoPlayer.value.src = videoUrl
-      await videoPlayer.value.load()
+      videoPlayer.value.load()
 
       // Automatically start playback for native HLS
       setTimeout(() => {
@@ -446,7 +446,7 @@ const formatDuration = (duration: string | number): string => {
 // Watch for play/pause state changes
 let currentEventListeners: (() => void)[] = []
 
-watch(() => videoPlayer.value, (newPlayer, oldPlayer) => {
+watch(() => videoPlayer.value, (newPlayer) => {
   console.log('Video player changed:', !!newPlayer)
   // Clean up old listeners
   currentEventListeners.forEach(cleanup => cleanup())
