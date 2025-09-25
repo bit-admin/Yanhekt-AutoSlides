@@ -7,6 +7,10 @@ import { ConfigService } from './main/configService';
 import { IntranetMappingService } from './main/intranetMappingService';
 import { VideoProxyService } from './main/videoProxyService';
 
+// Declare Vite dev server variables that are injected during build
+declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
+declare const MAIN_WINDOW_VITE_NAME: string;
+
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
