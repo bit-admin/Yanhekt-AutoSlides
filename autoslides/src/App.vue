@@ -7,12 +7,12 @@
       <div class="divider left-divider" @mousedown="startResize('left', $event)"></div>
 
       <div class="main-content" :style="{ width: mainWidth + 'px' }">
-        <MainContent />
+        <MainContent @switch-to-download="handleSwitchToDownload" />
       </div>
       <div class="divider right-divider" @mousedown="startResize('right', $event)"></div>
 
       <div class="right-panel" :style="{ width: rightWidth + 'px' }">
-        <RightPanel />
+        <RightPanel ref="rightPanelRef" />
       </div>
     </div>
   </div>
@@ -34,6 +34,14 @@ let startX = 0
 let startLeftWidth = 0
 let startRightWidth = 0
 let containerWidth = 0
+
+const rightPanelRef = ref()
+
+const handleSwitchToDownload = () => {
+  if (rightPanelRef.value?.switchToDownload) {
+    rightPanelRef.value.switchToDownload()
+  }
+}
 
 const startResize = (type: string, event: MouseEvent) => {
   isResizing = true

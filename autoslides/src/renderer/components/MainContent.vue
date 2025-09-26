@@ -56,6 +56,7 @@
           :course="recordedState.selectedCourse"
           @session-selected="handleSessionSelected"
           @back-to-courses="backToCourses"
+          @switch-to-download="handleSwitchToDownload"
         />
         <PlaybackPage
           v-else-if="recordedState.page === 'playback'"
@@ -142,6 +143,14 @@ const handleBackFromPlayback = () => {
     state.page = 'sessions'
     state.selectedSession = null
   }
+}
+
+const emit = defineEmits<{
+  switchToDownload: []
+}>()
+
+const handleSwitchToDownload = () => {
+  emit('switchToDownload')
 }
 </script>
 

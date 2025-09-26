@@ -49,18 +49,23 @@ class DownloadServiceClass {
   }
 
   removeFromQueue(id: string): void {
-    const index = this.items.findIndex(item => item.id === id)
-    if (index !== -1) {
-      const item = this.items[index]
-
-      // Cancel if downloading/processing
+    const item = this.items.find(item => item.id === id)
+    if (item) {
       if (item.status === 'downloading' || item.status === 'processing') {
+        // If item is actively being processed, mark as error instead of removing
+        item.status = 'error'
+        item.error = 'Cancelled by user'
+        item.progress = 0
         this.activeDownloads.delete(id)
-        // TODO: Cancel the actual download/processing
-        console.log(`Cancelling download: ${id}`)
+        // Force interrupt active processing (this would connect to actual download cancellation)
+        console.log(`Force cancelling active download: ${item.name}`)
+      } else {
+        // Only remove if not actively processing
+        const index = this.items.findIndex(item => item.id === id)
+        if (index !== -1) {
+          this.items.splice(index, 1)
+        }
       }
-
-      this.items.splice(index, 1)
       this.processQueue()
     }
   }
@@ -132,9 +137,16 @@ class DownloadServiceClass {
   }
 
   private async simulateDownload(item: DownloadItem): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       let progress = 0
       const interval = setInterval(() => {
+        // Check if item was cancelled
+        if (item.status === 'error') {
+          clearInterval(interval)
+          reject(new Error('Download cancelled'))
+          return
+        }
+
         progress += Math.random() * 10
         item.progress = Math.min(progress, 90)
 
@@ -147,9 +159,16 @@ class DownloadServiceClass {
   }
 
   private async simulateProcessing(item: DownloadItem): Promise<void> {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       let progress = 90
       const interval = setInterval(() => {
+        // Check if item was cancelled
+        if (item.status === 'error') {
+          clearInterval(interval)
+          reject(new Error('Processing cancelled'))
+          return
+        }
+
         progress += Math.random() * 2
         item.progress = Math.min(progress, 99)
 

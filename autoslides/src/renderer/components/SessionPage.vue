@@ -46,7 +46,7 @@
                 <line x1="16" y1="17" x2="8" y2="17"/>
                 <line x1="10" y1="9" x2="8" y2="9"/>
               </svg>
-              Add All to Queue
+              Add All to Tasks
             </button>
             <button @click="downloadAllCamera" class="batch-btn download-camera-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -93,7 +93,7 @@
                 </div>
               </div>
               <div class="session-actions">
-                <button @click="addToQueue(session)" class="action-btn add-btn" title="Add to Queue">
+                <button @click.stop="addToQueue(session)" class="action-btn add-btn" title="Add to Task">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14,2 14,8 20,8"/>
@@ -101,19 +101,22 @@
                     <line x1="16" y1="17" x2="8" y2="17"/>
                     <line x1="10" y1="9" x2="8" y2="9"/>
                   </svg>
+                  <span class="action-text">Task</span>
                 </button>
-                <button @click="downloadCamera(session)" class="action-btn camera-btn" title="Download Camera">
+                <button @click.stop="downloadCamera(session)" class="action-btn camera-btn" title="Download Camera">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                   </svg>
+                  <span class="action-text">Camera</span>
                 </button>
-                <button @click="downloadScreen(session)" class="action-btn screen-btn" title="Download Screen">
+                <button @click.stop="downloadScreen(session)" class="action-btn screen-btn" title="Download Screen">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                     <line x1="8" y1="21" x2="16" y2="21"/>
                     <line x1="12" y1="17" x2="12" y2="21"/>
                   </svg>
+                  <span class="action-text">Screen</span>
                 </button>
               </div>
             </div>
@@ -554,7 +557,7 @@ onMounted(() => {
 }
 
 .session-actions {
-  width: 120px;
+  width: 200px;
   display: flex;
   justify-content: flex-end;
   align-items: center;
@@ -564,15 +567,23 @@ onMounted(() => {
 
 .action-btn {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 60px;
+  height: 40px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: white;
   cursor: pointer;
   transition: all 0.2s;
+  gap: 2px;
+}
+
+.action-text {
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1;
 }
 
 .action-btn:hover {
