@@ -52,12 +52,14 @@ class DownloadServiceClass {
     const item = this.items.find(item => item.id === id)
     if (item) {
       if (item.status === 'downloading' || item.status === 'processing') {
-        // If item is actively being processed, mark as error instead of removing
+        // Cancel the actual download in main process
+        window.electronAPI.download.cancel(id).catch(console.error)
+
+        // Mark as error
         item.status = 'error'
         item.error = 'Cancelled by user'
         item.progress = 0
         this.activeDownloads.delete(id)
-        // Force interrupt active processing (this would connect to actual download cancellation)
         console.log(`Force cancelling active download: ${item.name}`)
       } else {
         // Only remove if not actively processing
@@ -73,6 +75,9 @@ class DownloadServiceClass {
   cancelAll(): void {
     this.items.forEach(item => {
       if (item.status === 'downloading' || item.status === 'processing') {
+        // Cancel the actual download in main process
+        window.electronAPI.download.cancel(item.id).catch(console.error)
+
         item.status = 'error'
         item.error = 'Cancelled by user'
         this.activeDownloads.delete(item.id)
@@ -109,76 +114,119 @@ class DownloadServiceClass {
     this.activeDownloads.add(item.id)
 
     try {
-      // TODO: Implement actual download logic
       console.log(`Starting download: ${item.name}`)
 
-      // Simulate download progress
-      await this.simulateDownload(item)
+      // Get video stream URL from session data
+      const sessionData = await this.getSessionVideoUrl(item.sessionId, item.videoType)
+      if (!sessionData) {
+        throw new Error('Video stream URL not found')
+      }
 
-      item.status = 'processing'
-      console.log(`Processing: ${item.name}`)
-
-      // Simulate processing
-      await this.simulateProcessing(item)
-
-      item.status = 'completed'
-      item.progress = 100
-      item.completedAt = Date.now()
-      console.log(`Completed: ${item.name}`)
+      // Start actual download using IPC
+      await this.startRealDownload(item, sessionData.url)
 
     } catch (error) {
       item.status = 'error'
       item.error = error instanceof Error ? error.message : 'Unknown error'
       console.error(`Download failed: ${item.name}`, error)
-    } finally {
       this.activeDownloads.delete(item.id)
-      this.processQueue() // Start next item in queue
+      this.processQueue()
     }
   }
 
-  private async simulateDownload(item: DownloadItem): Promise<void> {
+  private async getSessionVideoUrl(sessionId: string, videoType: 'camera' | 'screen'): Promise<{ url: string } | null> {
+    try {
+      // Import DataStore dynamically to avoid circular dependencies
+      const { DataStore } = await import('./dataStore')
+      const sessionData = DataStore.getSessionData(sessionId)
+
+      if (!sessionData) {
+        console.error('Session data not found for:', sessionId)
+        return null
+      }
+
+      // Get the appropriate video URL based on type
+      // For downloads, we need the original URLs from the session data
+      const videoUrl = videoType === 'camera' ? sessionData.main_url : sessionData.vga_url
+      if (!videoUrl) {
+        console.error(`${videoType} URL not found in session data`)
+        return null
+      }
+
+      return { url: videoUrl }
+    } catch (error) {
+      console.error('Error getting session video URL:', error)
+      return null
+    }
+  }
+
+  private async startRealDownload(item: DownloadItem, m3u8Url: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      let progress = 0
-      const interval = setInterval(() => {
-        // Check if item was cancelled
-        if (item.status === 'error') {
-          clearInterval(interval)
-          reject(new Error('Download cancelled'))
-          return
+      let completed = false
+
+      // Set up progress listeners
+      const progressListener = (downloadId: string, progress: { current: number; total: number; phase: number }) => {
+        if (downloadId === item.id && !completed) {
+          // Phase 0: downloading, Phase 1: processing, Phase 2: completed
+          if (progress.phase === 0) {
+            item.status = 'downloading'
+            item.progress = Math.floor((progress.current / progress.total) * 90)
+          } else if (progress.phase === 1) {
+            item.status = 'processing'
+            item.progress = 90 + Math.floor((progress.current / progress.total) * 10)
+          }
         }
+      }
 
-        progress += Math.random() * 10
-        item.progress = Math.min(progress, 90)
+      const completedListener = (downloadId: string) => {
+        if (downloadId === item.id && !completed) {
+          completed = true
+          item.status = 'completed'
+          item.progress = 100
+          item.completedAt = Date.now()
+          console.log(`Completed: ${item.name}`)
 
-        if (progress >= 90) {
-          clearInterval(interval)
+          // Clean up by removing this specific item from active downloads
+          this.activeDownloads.delete(item.id)
+          this.processQueue()
           resolve()
         }
-      }, 200)
+      }
+
+      const errorListener = (downloadId: string, error: string) => {
+        if (downloadId === item.id && !completed) {
+          completed = true
+          item.status = 'error'
+          item.error = error
+          console.error(`Download failed: ${item.name}`, error)
+
+          // Clean up by removing this specific item from active downloads
+          this.activeDownloads.delete(item.id)
+          this.processQueue()
+          reject(new Error(error))
+        }
+      }
+
+      // Register listeners - these are global listeners that handle all downloads
+      // The IPC events are broadcast to all listeners, so we filter by downloadId
+      window.electronAPI.download.onProgress(progressListener)
+      window.electronAPI.download.onCompleted(completedListener)
+      window.electronAPI.download.onError(errorListener)
+
+      // Start the download
+      window.electronAPI.download.start(item.id, m3u8Url, item.name)
+        .catch((error: Error) => {
+          if (!completed) {
+            completed = true
+            console.error('Failed to start download:', error)
+            this.activeDownloads.delete(item.id)
+            this.processQueue()
+            reject(error)
+          }
+        })
     })
   }
 
-  private async simulateProcessing(item: DownloadItem): Promise<void> {
-    return new Promise((resolve, reject) => {
-      let progress = 90
-      const interval = setInterval(() => {
-        // Check if item was cancelled
-        if (item.status === 'error') {
-          clearInterval(interval)
-          reject(new Error('Processing cancelled'))
-          return
-        }
-
-        progress += Math.random() * 2
-        item.progress = Math.min(progress, 99)
-
-        if (progress >= 99) {
-          clearInterval(interval)
-          resolve()
-        }
-      }, 300)
-    })
-  }
 
   // Getters
   get downloadItems(): DownloadItem[] {

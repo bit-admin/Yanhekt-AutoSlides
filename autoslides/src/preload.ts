@@ -43,4 +43,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     isAvailable: () => ipcRenderer.invoke('ffmpeg:isAvailable'),
     getPlatformInfo: () => ipcRenderer.invoke('ffmpeg:getPlatformInfo'),
   },
+  download: {
+    start: (downloadId: string, m3u8Url: string, outputName: string) =>
+      ipcRenderer.invoke('download:start', downloadId, m3u8Url, outputName),
+    cancel: (downloadId: string) => ipcRenderer.invoke('download:cancel', downloadId),
+    isActive: (downloadId: string) => ipcRenderer.invoke('download:isActive', downloadId),
+    onProgress: (callback: (downloadId: string, progress: { current: number; total: number; phase: number }) => void) =>
+      ipcRenderer.on('download:progress', (_, downloadId, progress) => callback(downloadId, progress)),
+    onCompleted: (callback: (downloadId: string) => void) =>
+      ipcRenderer.on('download:completed', (_, downloadId) => callback(downloadId)),
+    onError: (callback: (downloadId: string, error: string) => void) =>
+      ipcRenderer.on('download:error', (_, downloadId, error) => callback(downloadId, error)),
+  },
 });

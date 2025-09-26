@@ -7,6 +7,7 @@ import { ConfigService } from './main/configService';
 import { IntranetMappingService } from './main/intranetMappingService';
 import { VideoProxyService } from './main/videoProxyService';
 import { FFmpegService } from './main/ffmpegService';
+import { M3u8DownloadService } from './main/m3u8DownloadService';
 
 // Declare Vite dev server variables that are injected during build
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -75,6 +76,7 @@ const configService = new ConfigService();
 const intranetMappingService = new IntranetMappingService(configService);
 const videoProxyService = new VideoProxyService(apiClient, intranetMappingService);
 const ffmpegService = new FFmpegService();
+const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService);
 
 // IPC handlers for authentication
 ipcMain.handle('auth:login', async (event, username: string, password: string) => {
@@ -178,6 +180,29 @@ ipcMain.handle('ffmpeg:isAvailable', async () => {
 
 ipcMain.handle('ffmpeg:getPlatformInfo', async () => {
   return ffmpegService.getPlatformInfo();
+});
+
+// IPC handlers for download functionality
+ipcMain.handle('download:start', async (event, downloadId: string, m3u8Url: string, outputName: string) => {
+  const progressCallback = (progress: { current: number; total: number; phase: number }) => {
+    event.sender.send('download:progress', downloadId, progress);
+  };
+
+  try {
+    await m3u8DownloadService.startDownload(downloadId, m3u8Url, outputName, progressCallback);
+    event.sender.send('download:completed', downloadId);
+  } catch (error) {
+    console.error(`Download failed for ${downloadId}:`, error);
+    event.sender.send('download:error', downloadId, error instanceof Error ? error.message : 'Unknown error');
+  }
+});
+
+ipcMain.handle('download:cancel', async (event, downloadId: string) => {
+  m3u8DownloadService.cancelDownload(downloadId);
+});
+
+ipcMain.handle('download:isActive', async (event, downloadId: string) => {
+  return m3u8DownloadService.isDownloadActive(downloadId);
 });
 
 // In this file you can include the rest of your app's specific main process

@@ -202,6 +202,14 @@ interface ElectronAPI {
       isPackaged: boolean;
     }>;
   };
+  download: {
+    start: (downloadId: string, m3u8Url: string, outputName: string) => Promise<void>;
+    cancel: (downloadId: string) => Promise<void>;
+    isActive: (downloadId: string) => Promise<boolean>;
+    onProgress: (callback: (downloadId: string, progress: { current: number; total: number; phase: number }) => void) => void;
+    onCompleted: (callback: (downloadId: string) => void) => void;
+    onError: (callback: (downloadId: string, error: string) => void) => void;
+  };
 }
 
 declare global {
