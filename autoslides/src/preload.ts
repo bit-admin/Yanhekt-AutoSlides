@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setOutputDirectory: (directory: string) => ipcRenderer.invoke('config:setOutputDirectory', directory),
     selectOutputDirectory: () => ipcRenderer.invoke('config:selectOutputDirectory'),
     setConnectionMode: (mode: 'internal' | 'external') => ipcRenderer.invoke('config:setConnectionMode', mode),
+    setMaxConcurrentDownloads: (count: number) => ipcRenderer.invoke('config:setMaxConcurrentDownloads', count),
   },
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) =>

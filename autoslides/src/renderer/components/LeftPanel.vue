@@ -109,7 +109,26 @@
           </button>
         </div>
         <div class="modal-body">
-          <p>Advanced settings will be implemented here</p>
+          <div class="advanced-settings-content">
+            <div class="advanced-setting-section">
+              <h4>Download</h4>
+              <div class="setting-item">
+                <label class="setting-label">Concurrent Download Limit:</label>
+                <div class="setting-description">Maximum number of simultaneous downloads and processing</div>
+                <select
+                  v-model="tempMaxConcurrentDownloads"
+                  class="concurrent-select"
+                  @change="updateMaxConcurrentDownloads"
+                >
+                  <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button @click="closeAdvancedSettings" class="cancel-btn">Cancel</button>
+            <button @click="saveAdvancedSettings" class="save-btn">Save</button>
+          </div>
         </div>
       </div>
     </div>
@@ -133,6 +152,8 @@ const showAdvancedModal = ref(false)
 const isLoading = ref(false)
 const isVerifyingToken = ref(false)
 const outputDirectory = ref('')
+const maxConcurrentDownloads = ref(5)
+const tempMaxConcurrentDownloads = ref(5)
 
 const tokenManager = new TokenManager()
 const authService = new AuthService(tokenManager)
@@ -211,6 +232,8 @@ const loadConfig = async () => {
     const config = await window.electronAPI.config.get()
     outputDirectory.value = config.outputDirectory
     connectionMode.value = config.connectionMode
+    maxConcurrentDownloads.value = config.maxConcurrentDownloads || 5
+    tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   } catch (error) {
     console.error('Failed to load config:', error)
   }
@@ -242,11 +265,35 @@ onMounted(() => {
 })
 
 const openAdvancedSettings = () => {
+  // Reset temp values to current values when opening modal
+  tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   showAdvancedModal.value = true
 }
 
 const closeAdvancedSettings = () => {
+  // Reset temp values when canceling
+  tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   showAdvancedModal.value = false
+}
+
+const updateMaxConcurrentDownloads = () => {
+  // This is called when the select changes, but we don't save until "Save" is clicked
+}
+
+const saveAdvancedSettings = async () => {
+  try {
+    const result = await window.electronAPI.config.setMaxConcurrentDownloads(tempMaxConcurrentDownloads.value)
+    maxConcurrentDownloads.value = result.maxConcurrentDownloads
+
+    // Also update the download service
+    const { DownloadService } = await import('../services/downloadService')
+    DownloadService.setMaxConcurrent(maxConcurrentDownloads.value)
+
+    showAdvancedModal.value = false
+  } catch (error) {
+    console.error('Failed to save advanced settings:', error)
+    alert('Failed to save settings')
+  }
 }
 </script>
 
@@ -545,7 +592,87 @@ const closeAdvancedSettings = () => {
 
 .modal-body {
   padding: 16px;
+  color: #333;
+}
+
+.advanced-settings-content {
+  margin-bottom: 24px;
+}
+
+.advanced-setting-section {
+  margin-bottom: 24px;
+}
+
+.advanced-setting-section h4 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1px solid #e0e0e0;
+  padding-bottom: 8px;
+}
+
+.advanced-setting-section .setting-item {
+  margin-bottom: 0;
+}
+
+.setting-description {
+  font-size: 11px;
   color: #666;
-  font-style: italic;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.concurrent-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+}
+
+.concurrent-select:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.cancel-btn, .save-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn {
+  background-color: #f8f9fa;
+  color: #666;
+}
+
+.cancel-btn:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.save-btn {
+  background-color: #007acc;
+  color: white;
+  border-color: #007acc;
+}
+
+.save-btn:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
 }
 </style>

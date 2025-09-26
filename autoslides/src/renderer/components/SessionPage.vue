@@ -37,6 +37,33 @@
         </div>
 
         <div v-else class="sessions-container">
+          <div class="batch-actions">
+            <button @click="addAllToQueue" class="batch-btn add-all-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14,2 14,8 20,8"/>
+                <line x1="16" y1="13" x2="8" y2="13"/>
+                <line x1="16" y1="17" x2="8" y2="17"/>
+                <line x1="10" y1="9" x2="8" y2="9"/>
+              </svg>
+              Add All to Queue
+            </button>
+            <button @click="downloadAllCamera" class="batch-btn download-camera-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              Download All Camera
+            </button>
+            <button @click="downloadAllScreen" class="batch-btn download-screen-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              Download All Screen
+            </button>
+          </div>
           <div class="sessions-list">
             <div
               v-for="session in sessions"
@@ -66,7 +93,28 @@
                 </div>
               </div>
               <div class="session-actions">
-                <!-- Space reserved for future action buttons -->
+                <button @click="addToQueue(session)" class="action-btn add-btn" title="Add to Queue">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14,2 14,8 20,8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <line x1="10" y1="9" x2="8" y2="9"/>
+                  </svg>
+                </button>
+                <button @click="downloadCamera(session)" class="action-btn camera-btn" title="Download Camera">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                  </svg>
+                </button>
+                <button @click="downloadScreen(session)" class="action-btn screen-btn" title="Download Screen">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                  </svg>
+                </button>
               </div>
             </div>
           </div>
@@ -81,6 +129,7 @@ import { ref, onMounted } from 'vue'
 import { ApiClient, type SessionData, type CourseInfoResponse } from '../services/apiClient'
 import { TokenManager } from '../services/authService'
 import { DataStore } from '../services/dataStore'
+import { DownloadService } from '../services/downloadService'
 
 interface Course {
   id: string
@@ -100,6 +149,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   sessionSelected: [session: Session]
   backToCourses: []
+  switchToDownload: []
 }>()
 
 const apiClient = new ApiClient()
@@ -178,6 +228,101 @@ const formatDate = (dateString: string): string => {
   } catch {
     return dateString
   }
+}
+
+// Download functions
+const addToQueue = (session: Session) => {
+  // TODO: Implement add to queue logic (for future task management)
+  console.log('Add to queue:', session.title)
+  alert('Add to Queue functionality will be implemented in task management')
+}
+
+const downloadCamera = (session: Session) => {
+  const added = DownloadService.addToQueue({
+    name: `${props.course?.title}_${session.title}_Camera`,
+    courseTitle: props.course?.title || 'Unknown Course',
+    sessionTitle: session.title,
+    sessionId: session.session_id,
+    videoType: 'camera'
+  })
+
+  if (!added) {
+    alert('This camera video is already in the download queue')
+  } else {
+    // Switch to download tab
+    switchToDownloadTab()
+  }
+}
+
+const downloadScreen = (session: Session) => {
+  const added = DownloadService.addToQueue({
+    name: `${props.course?.title}_${session.title}_Screen`,
+    courseTitle: props.course?.title || 'Unknown Course',
+    sessionTitle: session.title,
+    sessionId: session.session_id,
+    videoType: 'screen'
+  })
+
+  if (!added) {
+    alert('This screen video is already in the download queue')
+  } else {
+    // Switch to download tab
+    switchToDownloadTab()
+  }
+}
+
+const addAllToQueue = () => {
+  // TODO: Implement batch add to queue logic
+  console.log('Add all to queue')
+  alert('Add All to Queue functionality will be implemented in task management')
+}
+
+const downloadAllCamera = () => {
+  let addedCount = 0
+  sessions.value.forEach(session => {
+    const added = DownloadService.addToQueue({
+      name: `${props.course?.title}_${session.title}_Camera`,
+      courseTitle: props.course?.title || 'Unknown Course',
+      sessionTitle: session.title,
+      sessionId: session.session_id,
+      videoType: 'camera'
+    })
+    if (added) addedCount++
+  })
+
+  if (addedCount > 0) {
+    switchToDownloadTab()
+    alert(`Added ${addedCount} camera videos to download queue`)
+  } else {
+    alert('All camera videos are already in the download queue')
+  }
+}
+
+const downloadAllScreen = () => {
+  let addedCount = 0
+  sessions.value.forEach(session => {
+    const added = DownloadService.addToQueue({
+      name: `${props.course?.title}_${session.title}_Screen`,
+      courseTitle: props.course?.title || 'Unknown Course',
+      sessionTitle: session.title,
+      sessionId: session.session_id,
+      videoType: 'screen'
+    })
+    if (added) addedCount++
+  })
+
+  if (addedCount > 0) {
+    switchToDownloadTab()
+    alert(`Added ${addedCount} screen videos to download queue`)
+  } else {
+    alert('All screen videos are already in the download queue')
+  }
+}
+
+const switchToDownloadTab = () => {
+  // Emit event to switch to download tab in RightPanel
+  // This will be caught by the parent component
+  emit('switchToDownload')
 }
 
 onMounted(() => {
@@ -347,13 +492,122 @@ onMounted(() => {
   color: #888;
 }
 
+.batch-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.batch-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 36px;
+}
+
+.batch-btn:hover {
+  border-color: #007acc;
+  background-color: #f0f8ff;
+}
+
+.add-all-btn {
+  color: #28a745;
+  border-color: #28a745;
+}
+
+.add-all-btn:hover {
+  background-color: #d4edda;
+  border-color: #1e7e34;
+}
+
+.download-camera-btn {
+  color: #007acc;
+  border-color: #007acc;
+}
+
+.download-camera-btn:hover {
+  background-color: #e3f2fd;
+  border-color: #0056b3;
+}
+
+.download-screen-btn {
+  color: #6f42c1;
+  border-color: #6f42c1;
+}
+
+.download-screen-btn:hover {
+  background-color: #f3e5f5;
+  border-color: #59359a;
+}
+
 .session-actions {
   width: 120px;
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   flex-shrink: 0;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.add-btn {
+  color: #28a745;
+  border-color: #28a745;
+}
+
+.add-btn:hover {
+  background-color: #d4edda;
+  border-color: #1e7e34;
+}
+
+.camera-btn {
+  color: #007acc;
+  border-color: #007acc;
+}
+
+.camera-btn:hover {
+  background-color: #e3f2fd;
+  border-color: #0056b3;
+}
+
+.screen-btn {
+  color: #6f42c1;
+  border-color: #6f42c1;
+}
+
+.screen-btn:hover {
+  background-color: #f3e5f5;
+  border-color: #59359a;
 }
 
 .error-message {

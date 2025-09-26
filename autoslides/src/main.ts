@@ -107,6 +107,11 @@ ipcMain.handle('config:setConnectionMode', async (event, mode: 'internal' | 'ext
   return configService.getConfig();
 });
 
+ipcMain.handle('config:setMaxConcurrentDownloads', async (event, count: number) => {
+  configService.setMaxConcurrentDownloads(count);
+  return configService.getConfig();
+});
+
 // IPC handlers for intranet mapping
 ipcMain.handle('intranet:setEnabled', async (event, enabled: boolean) => {
   intranetMappingService.setEnabled(enabled);

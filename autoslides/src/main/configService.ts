@@ -9,11 +9,13 @@ export interface AppConfig {
   connectionMode: 'internal' | 'external';
   intranetMode?: boolean;
   intranetMappings?: any;
+  maxConcurrentDownloads: number;
 }
 
 const defaultConfig: AppConfig = {
   outputDirectory: path.join(os.homedir(), 'Downloads', 'AutoSlides'),
-  connectionMode: 'external'
+  connectionMode: 'external',
+  maxConcurrentDownloads: 5
 };
 
 export class ConfigService {
@@ -31,7 +33,8 @@ export class ConfigService {
   getConfig(): AppConfig {
     return {
       outputDirectory: (this.store as any).get('outputDirectory') as string,
-      connectionMode: (this.store as any).get('connectionMode') as 'internal' | 'external'
+      connectionMode: (this.store as any).get('connectionMode') as 'internal' | 'external',
+      maxConcurrentDownloads: (this.store as any).get('maxConcurrentDownloads') as number
     };
   }
 
@@ -42,6 +45,11 @@ export class ConfigService {
 
   setConnectionMode(mode: 'internal' | 'external'): void {
     (this.store as any).set('connectionMode', mode);
+  }
+
+  setMaxConcurrentDownloads(count: number): void {
+    const validCount = Math.max(1, Math.min(10, count));
+    (this.store as any).set('maxConcurrentDownloads', validCount);
   }
 
   async selectOutputDirectory(): Promise<string | null> {
