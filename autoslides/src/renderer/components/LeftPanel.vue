@@ -92,8 +92,8 @@
         <span class="status-value">{{ taskStatus }}</span>
       </div>
       <div class="status-row">
-        <span class="status-label">Download:</span>
-        <span class="status-value">{{ downloadSpeed }}</span>
+        <span class="status-label">Download Queue:</span>
+        <span class="status-value">{{ downloadQueueStatus }}</span>
       </div>
     </div>
 
@@ -136,9 +136,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { AuthService, TokenManager } from '../services/authService'
 import { ApiClient } from '../services/apiClient'
+import { DownloadService } from '../services/downloadService'
 
 const isLoggedIn = ref(false)
 const username = ref('')
@@ -147,7 +148,23 @@ const userNickname = ref('User')
 const userId = ref('user123')
 const connectionMode = ref<'internal' | 'external'>('external')
 const taskStatus = ref('Ready')
-const downloadSpeed = ref('0 KB/s')
+const downloadQueueStatus = computed(() => {
+  const queued = DownloadService.queuedCount
+  const active = DownloadService.activeCount
+  const completed = DownloadService.completedCount
+  const errors = DownloadService.errorCount
+
+  // Show most relevant status
+  if (active > 0) {
+    return `${active} downloading, ${queued} queued`
+  } else if (queued > 0) {
+    return `${queued} queued`
+  } else if (completed > 0 || errors > 0) {
+    return `${completed} done, ${errors} failed`
+  } else {
+    return 'No downloads'
+  }
+})
 const showAdvancedModal = ref(false)
 const isLoading = ref(false)
 const isVerifyingToken = ref(false)

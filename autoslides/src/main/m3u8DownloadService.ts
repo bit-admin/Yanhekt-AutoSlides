@@ -101,6 +101,7 @@ class M3u8Downloader {
   private numRetries = 99;
   private ffmpegProcess: any = null;
 
+
   private headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
     "Origin": "https://www.yanhekt.cn",
@@ -157,6 +158,7 @@ class M3u8Downloader {
     if (this.isRunning) return;
     this.isRunning = true;
     this.shouldStop = false;
+
 
     // Encrypt the URL
     this.url = this.encryptURL(this.url);
@@ -737,4 +739,5 @@ class M3u8Downloader {
       console.error("Error deleting temporary files:", error);
     }
   }
+
 }

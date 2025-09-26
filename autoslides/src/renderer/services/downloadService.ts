@@ -72,6 +72,7 @@ class DownloadServiceClass {
         item.progress = 0
         this.activeDownloads.delete(id)
         console.log(`Force cancelling active download: ${item.name}`)
+
       } else {
         // Only remove if not actively processing
         const index = this.items.findIndex(item => item.id === id)
@@ -99,6 +100,7 @@ class DownloadServiceClass {
         console.log(`Force cancelling: ${item.name} (was ${item.status})`)
       }
     })
+
     this.processQueue()
   }
 
@@ -188,6 +190,7 @@ class DownloadServiceClass {
             return
           }
 
+
           // Phase 0: downloading, Phase 1: processing, Phase 2: completed
           if (progress.phase === 0) {
             item.status = 'downloading'
@@ -195,6 +198,7 @@ class DownloadServiceClass {
           } else if (progress.phase === 1) {
             item.status = 'processing'
             item.progress = 90 + Math.floor((progress.current / progress.total) * 10)
+          } else if (progress.phase === 2) {
           }
         }
       }
@@ -217,6 +221,7 @@ class DownloadServiceClass {
           item.completedAt = Date.now()
           console.log(`Completed: ${item.name}`)
 
+
           // Clean up by removing this specific item from active downloads
           this.activeDownloads.delete(item.id)
           this.processQueue()
@@ -230,6 +235,7 @@ class DownloadServiceClass {
           item.status = 'error'
           item.error = error
           console.error(`Download failed: ${item.name}`, error)
+
 
           // Clean up by removing this specific item from active downloads
           this.activeDownloads.delete(item.id)
@@ -291,14 +297,6 @@ class DownloadServiceClass {
     return this.maxConcurrent.value
   }
 
-  // Statistics
-  getCurrentSpeed(): string {
-    const activeItems = this.items.filter(item => item.status === 'downloading')
-    if (activeItems.length === 0) return '0 KB/s'
-
-    // TODO: Calculate actual speed based on real downloads
-    return `${(Math.random() * 5000 + 1000).toFixed(0)} KB/s`
-  }
 }
 
 export const DownloadService = new DownloadServiceClass()

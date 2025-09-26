@@ -32,18 +32,27 @@ interface ElectronAPI {
     get: () => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
+      maxConcurrentDownloads: number;
     }>;
     setOutputDirectory: (directory: string) => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
+      maxConcurrentDownloads: number;
     }>;
     selectOutputDirectory: () => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
+      maxConcurrentDownloads: number;
     } | null>;
     setConnectionMode: (mode: 'internal' | 'external') => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
+      maxConcurrentDownloads: number;
+    }>;
+    setMaxConcurrentDownloads: (count: number) => Promise<{
+      outputDirectory: string;
+      connectionMode: 'internal' | 'external';
+      maxConcurrentDownloads: number;
     }>;
   };
   api: {
