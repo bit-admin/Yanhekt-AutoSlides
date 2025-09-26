@@ -22,6 +22,17 @@ class DownloadServiceClass {
   private activeDownloads = new Set<string>()
   private maxConcurrent = ref(5)
 
+  // Helper function to sanitize file names
+  private sanitizeFileName(fileName: string): string {
+    // Remove or replace problematic characters
+    return fileName
+      .replace(/[:"*?<>|]/g, '') // Remove Windows/macOS problematic characters
+      .replace(/\s+/g, '_') // Replace spaces with underscores
+      .replace(/[/\\]/g, '_') // Replace path separators with underscores
+      .replace(/_{2,}/g, '_') // Replace multiple underscores with single underscore
+      .trim() // Remove leading/trailing whitespace
+  }
+
   // Queue management
   addToQueue(item: Omit<DownloadItem, 'id' | 'status' | 'progress' | 'addedAt'>): boolean {
     // Check for duplicates
@@ -233,8 +244,9 @@ class DownloadServiceClass {
       window.electronAPI.download.onCompleted(completedListener)
       window.electronAPI.download.onError(errorListener)
 
-      // Start the download
-      window.electronAPI.download.start(item.id, m3u8Url, item.name)
+      // Start the download with sanitized file name
+      const sanitizedName = this.sanitizeFileName(item.name)
+      window.electronAPI.download.start(item.id, m3u8Url, sanitizedName)
         .catch((error: Error) => {
           if (!completed) {
             completed = true
