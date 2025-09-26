@@ -101,7 +101,7 @@ class M3u8Downloader {
   private numRetries = 99;
 
   private headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36 Edg/93.0.961.52",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
     "Origin": "https://www.yanhekt.cn",
     "referer": "https://www.yanhekt.cn/",
     "xdomain-client": "web_user",
