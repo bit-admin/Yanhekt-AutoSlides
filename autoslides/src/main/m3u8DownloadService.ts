@@ -6,6 +6,7 @@ import { spawn } from 'child_process';
 import { FFmpegService } from './ffmpegService';
 import { ConfigService } from './configService';
 import { IntranetMappingService } from './intranetMappingService';
+import { ApiClient } from './apiClient';
 
 const magic = "1138b69dfef641d9d7ba49137d2d4875";
 
@@ -19,19 +20,22 @@ export class M3u8DownloadService {
   private ffmpegService: FFmpegService;
   private configService: ConfigService;
   private intranetMapping: IntranetMappingService;
+  private apiClient: ApiClient;
   private activeDownloads = new Map<string, M3u8Downloader>();
 
-  constructor(ffmpegService: FFmpegService, configService: ConfigService, intranetMapping: IntranetMappingService) {
+  constructor(ffmpegService: FFmpegService, configService: ConfigService, intranetMapping: IntranetMappingService, apiClient: ApiClient) {
     this.ffmpegService = ffmpegService;
     this.configService = configService;
     this.intranetMapping = intranetMapping;
+    this.apiClient = apiClient;
   }
 
   async startDownload(
     downloadId: string,
     m3u8Url: string,
     outputName: string,
-    progressCallback: (progress: DownloadProgress) => void
+    progressCallback: (progress: DownloadProgress) => void,
+    loginToken: string
   ): Promise<void> {
     if (this.activeDownloads.has(downloadId)) {
       throw new Error('Download already in progress');
@@ -47,7 +51,9 @@ export class M3u8DownloadService {
       progressCallback,
       isIntranetMode,
       this.ffmpegService,
-      this.intranetMapping
+      this.intranetMapping,
+      this.apiClient,
+      loginToken
     );
 
     this.activeDownloads.set(downloadId, downloader);
@@ -80,6 +86,8 @@ class M3u8Downloader {
   private isIntranetMode: boolean;
   private ffmpegService: FFmpegService;
   private intranetMapping: IntranetMappingService;
+  private apiClient: ApiClient;
+  private loginToken: string;
 
   private workDir: string;
   private filePath: string;
@@ -93,10 +101,19 @@ class M3u8Downloader {
   private numRetries = 99;
 
   private headers = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.3",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Safari/537.36 Edg/93.0.961.52",
     "Origin": "https://www.yanhekt.cn",
-    "referer": "https://www.yanhekt.cn/"
+    "referer": "https://www.yanhekt.cn/",
+    "xdomain-client": "web_user",
+    "Xdomain-Client": "web_user",
+    "Xclient-Version": "v1",
+    "Authorization": ""
   };
+
+  private token: string | null = null;
+  private signature: string | null = null;
+  private timestamp: string | null = null;
+  private signatureInterval: NodeJS.Timeout | null = null;
 
   constructor(
     url: string,
@@ -105,7 +122,9 @@ class M3u8Downloader {
     progressCallback: (progress: DownloadProgress) => void,
     isIntranetMode: boolean,
     ffmpegService: FFmpegService,
-    intranetMapping: IntranetMappingService
+    intranetMapping: IntranetMappingService,
+    apiClient: ApiClient,
+    loginToken: string
   ) {
     this.url = url;
     this.outputDir = outputDir;
@@ -114,6 +133,8 @@ class M3u8Downloader {
     this.isIntranetMode = isIntranetMode;
     this.ffmpegService = ffmpegService;
     this.intranetMapping = intranetMapping;
+    this.apiClient = apiClient;
+    this.loginToken = loginToken;
 
     this.workDir = path.join(outputDir, name);
     this.filePath = path.join(outputDir, name);
@@ -141,6 +162,9 @@ class M3u8Downloader {
 
     try {
       await this.getM3u8Info(this.url, this.numRetries);
+
+      // Start the signature update loop
+      this.startUpdateSignatureLoop();
 
       console.log(`Downloading: ${this.name}`);
       console.log(`Save path: ${this.filePath}`);
@@ -171,6 +195,12 @@ class M3u8Downloader {
   stop(): void {
     this.shouldStop = true;
     this.isRunning = false;
+
+    // Clear the signature update interval immediately
+    if (this.signatureInterval) {
+      clearInterval(this.signatureInterval);
+      this.signatureInterval = null;
+    }
   }
 
   private encryptURL(url: string): string {
@@ -178,6 +208,47 @@ class M3u8Downloader {
     // Insert MD5 hash before the last segment
     urlList.splice(-1, 0, crypto.createHash('md5').update(magic + "_100").digest('hex'));
     return urlList.join("/");
+  }
+
+  private getSignature(): { timestamp: string; signature: string } {
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const signature = crypto.createHash('md5').update(magic + "_v1_" + timestamp).digest('hex');
+    return { timestamp, signature };
+  }
+
+  private async getToken(): Promise<string> {
+    if (!this.token) {
+      try {
+        // Use the existing API client to get video token
+        this.token = await this.apiClient.getVideoToken(this.loginToken);
+        this.headers["Authorization"] = "Bearer " + this.loginToken;
+      } catch (error) {
+        console.error("Error getting token:", error);
+        throw new Error("获取 Token 失败");
+      }
+    }
+    return this.token!; // Should never be null at this point due to the check above
+  }
+
+
+  private addSignatureForUrl(url: string, token: string, timestamp: string, signature: string): string {
+    return `${url}?Xvideo_Token=${token}&Xclient_Timestamp=${timestamp}&Xclient_Signature=${signature}&Xclient_Version=v1&Platform=yhkt_user`;
+  }
+
+  private startUpdateSignatureLoop(): void {
+    this.signatureInterval = setInterval(() => {
+      if (this.shouldStop || this.successSum === this.tsSum) {
+        if (this.signatureInterval) {
+          clearInterval(this.signatureInterval);
+          this.signatureInterval = null;
+        }
+        return;
+      }
+
+      const sigData = this.getSignature();
+      this.timestamp = sigData.timestamp;
+      this.signature = sigData.signature;
+    }, 10000); // Update every 10 seconds
   }
 
   private createAxiosInstance() {
@@ -206,8 +277,23 @@ class M3u8Downloader {
 
   private async getM3u8Info(m3u8Url: string, numRetries: number): Promise<void> {
     try {
+      if (!this.token) {
+        this.token = await this.getToken();
+      }
+
+      const sigData = this.getSignature();
+      this.timestamp = sigData.timestamp;
+      this.signature = sigData.signature;
+
+      const url = this.addSignatureForUrl(
+        m3u8Url,
+        this.token,
+        this.timestamp,
+        this.signature
+      );
+
       const axiosInstance = this.createAxiosInstance();
-      const response = await axiosInstance.get(m3u8Url, {
+      const response = await axiosInstance.get(url, {
         timeout: 30000,
         validateStatus: null,
         headers: this.headers
@@ -343,6 +429,17 @@ class M3u8Downloader {
     if (this.shouldStop) return;
 
     try {
+      if (!this.token) {
+        this.token = await this.getToken();
+      }
+
+      const tsUrl = this.addSignatureForUrl(
+        tsUrlOriginal.split('\n')[0],
+        this.token,
+        this.timestamp || this.getSignature().timestamp,
+        this.signature || this.getSignature().signature
+      );
+
       // Check if file already exists (for resume functionality)
       if (fs.existsSync(outputPath)) {
         this.successSum++;
@@ -351,7 +448,7 @@ class M3u8Downloader {
       }
 
       const axiosInstance = this.createAxiosInstance();
-      const response = await axiosInstance.get(tsUrlOriginal, {
+      const response = await axiosInstance.get(tsUrl, {
         responseType: 'arraybuffer',
         timeout: 60000,
         headers: this.headers
@@ -394,8 +491,19 @@ class M3u8Downloader {
         trueKeyUrl = this.url.substring(0, this.url.lastIndexOf('/') + 1) + mayKeyUrl;
       }
 
+      if (!this.token) {
+        this.token = await this.getToken();
+      }
+
+      const signedUrl = this.addSignatureForUrl(
+        trueKeyUrl,
+        this.token,
+        this.timestamp || this.getSignature().timestamp,
+        this.signature || this.getSignature().signature
+      );
+
       const axiosInstance = this.createAxiosInstance();
-      const response = await axiosInstance.get(trueKeyUrl, {
+      const response = await axiosInstance.get(signedUrl, {
         responseType: 'arraybuffer',
         timeout: 30000,
         headers: this.headers

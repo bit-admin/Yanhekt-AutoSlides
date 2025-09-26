@@ -76,7 +76,7 @@ const configService = new ConfigService();
 const intranetMappingService = new IntranetMappingService(configService);
 const videoProxyService = new VideoProxyService(apiClient, intranetMappingService);
 const ffmpegService = new FFmpegService();
-const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService);
+const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService, apiClient);
 
 // IPC handlers for authentication
 ipcMain.handle('auth:login', async (event, username: string, password: string) => {
@@ -183,13 +183,13 @@ ipcMain.handle('ffmpeg:getPlatformInfo', async () => {
 });
 
 // IPC handlers for download functionality
-ipcMain.handle('download:start', async (event, downloadId: string, m3u8Url: string, outputName: string) => {
+ipcMain.handle('download:start', async (event, downloadId: string, m3u8Url: string, outputName: string, loginToken: string) => {
   const progressCallback = (progress: { current: number; total: number; phase: number }) => {
     event.sender.send('download:progress', downloadId, progress);
   };
 
   try {
-    await m3u8DownloadService.startDownload(downloadId, m3u8Url, outputName, progressCallback);
+    await m3u8DownloadService.startDownload(downloadId, m3u8Url, outputName, progressCallback, loginToken);
     event.sender.send('download:completed', downloadId);
   } catch (error) {
     console.error(`Download failed for ${downloadId}:`, error);
