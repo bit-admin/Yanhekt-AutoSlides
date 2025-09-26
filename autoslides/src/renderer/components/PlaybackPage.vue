@@ -10,6 +10,7 @@
       <div class="title-info">
         <h2>{{ course?.title || 'Unknown Course' }}</h2>
         <p v-if="session">{{ session.title }}</p>
+        <p v-if="course?.session?.section_group_title && props.mode === 'live'">{{ course.session.section_group_title }}</p>
         <div v-if="!isVisible && isPlaying" class="background-mode-indicator">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="5,3 19,12 5,21"/>
@@ -116,6 +117,7 @@
           <p><strong>Course:</strong> {{ course?.title || 'Unknown Course' }}</p>
           <p v-if="course?.instructor"><strong>Instructor:</strong> {{ course.instructor }}</p>
           <p v-if="session"><strong>Session:</strong> {{ session.title }}</p>
+          <p v-if="course?.session?.section_group_title && props.mode === 'live'"><strong>Session:</strong> {{ course.session.section_group_title }}</p>
           <p v-if="session"><strong>Date:</strong> {{ formatDate(session.started_at) }}</p>
           <p v-if="playbackData.duration"><strong>Duration:</strong> {{ formatDuration(playbackData.duration) }}</p>
         </div>
