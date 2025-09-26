@@ -199,6 +199,9 @@ class DownloadServiceClass {
             item.status = 'processing'
             item.progress = 90 + Math.floor((progress.current / progress.total) * 10)
           } else if (progress.phase === 2) {
+            // Phase 2: Post-processing complete
+            item.status = 'completed'
+            item.progress = 100
           }
         }
       }

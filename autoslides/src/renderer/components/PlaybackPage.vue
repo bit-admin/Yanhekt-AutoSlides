@@ -87,9 +87,18 @@
             @loadedmetadata="onLoadedMetadata"
             @error="onVideoError"
             @canplay="onCanPlay"
+            @volumechange="preventUnmute"
           >
             Your browser does not support the video tag.
           </video>
+          <div v-if="shouldVideoMute" class="mute-indicator">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
+              <line x1="23" y1="9" x2="17" y2="15"/>
+              <line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>
+            <span>{{ muteMode === 'mute_all' ? 'Muted by App' : muteMode === 'mute_live' ? 'Live Muted' : 'Recorded Muted' }}</span>
+          </div>
         </div>
 
         <!-- Stream Info -->
@@ -210,8 +219,25 @@ const videoPlayer = ref<HTMLVideoElement | null>(null)
 const hls = ref<Hls | null>(null)
 const currentPlaybackRate = ref(1)
 const connectionMode = ref<'internal' | 'external'>('external')
+const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
+const isVideoMuted = ref(false)
 const showSpeedWarning = computed(() => {
   return connectionMode.value === 'external' && currentPlaybackRate.value > 2
+})
+
+// Computed property to determine if video should be muted based on mode and mute setting
+const shouldVideoMute = computed(() => {
+  switch (muteMode.value) {
+    case 'mute_all':
+      return true
+    case 'mute_live':
+      return props.mode === 'live'
+    case 'mute_recorded':
+      return props.mode === 'recorded'
+    case 'normal':
+    default:
+      return false
+  }
 })
 
 // Initialize TokenManager
@@ -354,6 +380,17 @@ const loadVideoSource = async () => {
               currentPlaybackRate.value = 1
             }
 
+            // Apply mute settings
+            if (shouldVideoMute.value) {
+              videoPlayer.value.volume = 0
+              videoPlayer.value.setAttribute('data-muted-by-app', 'true')
+              isVideoMuted.value = true
+            } else {
+              videoPlayer.value.volume = 1
+              videoPlayer.value.removeAttribute('data-muted-by-app')
+              isVideoMuted.value = false
+            }
+
             videoPlayer.value.play().catch(e => {
               console.log('Autoplay prevented:', e)
             })
@@ -400,6 +437,17 @@ const loadVideoSource = async () => {
             currentPlaybackRate.value = 1
           }
 
+          // Apply mute settings
+          if (shouldVideoMute.value) {
+            videoPlayer.value.volume = 0
+            videoPlayer.value.setAttribute('data-muted-by-app', 'true')
+            isVideoMuted.value = true
+          } else {
+            videoPlayer.value.volume = 1
+            videoPlayer.value.removeAttribute('data-muted-by-app')
+            isVideoMuted.value = false
+          }
+
           videoPlayer.value.play().catch(e => {
             console.log('Autoplay prevented:', e)
           })
@@ -434,6 +482,17 @@ const switchStream = async () => {
       } else {
         videoPlayer.value.playbackRate = 1
         currentPlaybackRate.value = 1
+      }
+
+      // Apply mute settings after stream switch
+      if (shouldVideoMute.value) {
+        videoPlayer.value.volume = 0
+        videoPlayer.value.setAttribute('data-muted-by-app', 'true')
+        isVideoMuted.value = true
+      } else {
+        videoPlayer.value.volume = 1
+        videoPlayer.value.removeAttribute('data-muted-by-app')
+        isVideoMuted.value = false
       }
 
       if (wasPlaying) {
@@ -556,6 +615,13 @@ watch(() => videoPlayer.value, (newPlayer) => {
       newPlayer.removeEventListener('ended', updatePlayingState)
     })
 
+    // Apply mute settings immediately when video player is ready
+    if (shouldVideoMute.value) {
+      newPlayer.volume = 0
+      newPlayer.setAttribute('data-muted-by-app', 'true')
+      isVideoMuted.value = true
+    }
+
     // If we have stream data ready, load it now
     if (currentStreamData.value && playbackData.value) {
       console.log('Video player ready and stream data available, loading video source')
@@ -593,6 +659,35 @@ watch(isVisible, (visible) => {
   }
 }, { immediate: true })
 
+// Watch for mute mode changes to apply software-level muting
+watch(shouldVideoMute, (shouldMute) => {
+  if (videoPlayer.value) {
+    // Apply software-level muting by setting volume to 0
+    videoPlayer.value.volume = shouldMute ? 0 : 1
+    isVideoMuted.value = shouldMute
+
+    // Disable/enable the built-in mute controls
+    if (shouldMute) {
+      videoPlayer.value.setAttribute('data-muted-by-app', 'true')
+    } else {
+      videoPlayer.value.removeAttribute('data-muted-by-app')
+    }
+
+    console.log(`🔊 ${props.mode} mode mute changed: ${shouldMute} (mode: ${muteMode.value})`)
+  }
+}, { immediate: true })
+
+// Function to prevent user from unmuting when app mute mode is active
+const preventUnmute = (event: Event) => {
+  if (shouldVideoMute.value && videoPlayer.value) {
+    // Prevent the default unmute behavior
+    event.preventDefault()
+    // Immediately set volume back to 0
+    videoPlayer.value.volume = 0
+    videoPlayer.value.muted = false // Keep the muted attribute false so controls remain visible
+  }
+}
+
 // Cleanup function
 const cleanup = () => {
   if (hls.value) {
@@ -603,10 +698,11 @@ const cleanup = () => {
 
 // Lifecycle
 onMounted(async () => {
-  // Load connection mode from config
+  // Load connection mode and mute mode from config
   try {
     const config = await window.electronAPI.config.get()
     connectionMode.value = config.connectionMode
+    muteMode.value = config.muteMode || 'normal'
   } catch (error) {
     console.error('Failed to load connection mode:', error)
   }
@@ -782,6 +878,26 @@ onUnmounted(() => {
   background-color: #000;
   border-radius: 8px;
   overflow: hidden;
+}
+
+.mute-indicator {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: rgba(220, 53, 69, 0.9);
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 10;
+}
+
+.mute-indicator svg {
+  flex-shrink: 0;
 }
 
 .playback-rate-control {

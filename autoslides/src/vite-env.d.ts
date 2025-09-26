@@ -33,26 +33,37 @@ interface ElectronAPI {
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
       maxConcurrentDownloads: number;
+      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
     }>;
     setOutputDirectory: (directory: string) => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
       maxConcurrentDownloads: number;
+      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
     }>;
     selectOutputDirectory: () => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
       maxConcurrentDownloads: number;
+      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
     } | null>;
     setConnectionMode: (mode: 'internal' | 'external') => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
       maxConcurrentDownloads: number;
+      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
     }>;
     setMaxConcurrentDownloads: (count: number) => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
       maxConcurrentDownloads: number;
+      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+    }>;
+    setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<{
+      outputDirectory: string;
+      connectionMode: 'internal' | 'external';
+      maxConcurrentDownloads: number;
+      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
     }>;
   };
   api: {

@@ -10,12 +10,14 @@ export interface AppConfig {
   intranetMode?: boolean;
   intranetMappings?: any;
   maxConcurrentDownloads: number;
+  muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
 }
 
 const defaultConfig: AppConfig = {
   outputDirectory: path.join(os.homedir(), 'Downloads', 'AutoSlides'),
   connectionMode: 'external',
-  maxConcurrentDownloads: 5
+  maxConcurrentDownloads: 5,
+  muteMode: 'normal'
 };
 
 export class ConfigService {
@@ -34,7 +36,8 @@ export class ConfigService {
     return {
       outputDirectory: (this.store as any).get('outputDirectory') as string,
       connectionMode: (this.store as any).get('connectionMode') as 'internal' | 'external',
-      maxConcurrentDownloads: (this.store as any).get('maxConcurrentDownloads') as number
+      maxConcurrentDownloads: (this.store as any).get('maxConcurrentDownloads') as number,
+      muteMode: (this.store as any).get('muteMode') as 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'
     };
   }
 
@@ -50,6 +53,10 @@ export class ConfigService {
   setMaxConcurrentDownloads(count: number): void {
     const validCount = Math.max(1, Math.min(10, count));
     (this.store as any).set('maxConcurrentDownloads', validCount);
+  }
+
+  setMuteMode(mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'): void {
+    (this.store as any).set('muteMode', mode);
   }
 
   async selectOutputDirectory(): Promise<string | null> {

@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectOutputDirectory: () => ipcRenderer.invoke('config:selectOutputDirectory'),
     setConnectionMode: (mode: 'internal' | 'external') => ipcRenderer.invoke('config:setConnectionMode', mode),
     setMaxConcurrentDownloads: (count: number) => ipcRenderer.invoke('config:setMaxConcurrentDownloads', count),
+    setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => ipcRenderer.invoke('config:setMuteMode', mode),
   },
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) =>

@@ -77,6 +77,18 @@
             </button>
           </div>
         </div>
+
+        <div class="setting-item">
+          <label class="setting-label">Audio Mode:</label>
+          <div class="audio-mode-selector">
+            <select v-model="muteMode" @change="setMuteMode" class="audio-mode-select">
+              <option value="normal">Normal</option>
+              <option value="mute_all">Mute All</option>
+              <option value="mute_live">Mute Live</option>
+              <option value="mute_recorded">Mute Recorded</option>
+            </select>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -147,6 +159,7 @@ const password = ref('')
 const userNickname = ref('User')
 const userId = ref('user123')
 const connectionMode = ref<'internal' | 'external'>('external')
+const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
 const taskStatus = ref('Ready')
 const downloadQueueStatus = computed(() => {
   const queued = DownloadService.queuedCount
@@ -249,6 +262,7 @@ const loadConfig = async () => {
     const config = await window.electronAPI.config.get()
     outputDirectory.value = config.outputDirectory
     connectionMode.value = config.connectionMode
+    muteMode.value = config.muteMode || 'normal'
     maxConcurrentDownloads.value = config.maxConcurrentDownloads || 5
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   } catch (error) {
@@ -273,6 +287,15 @@ const setConnectionMode = async (mode: 'internal' | 'external') => {
     connectionMode.value = result.connectionMode
   } catch (error) {
     console.error('Failed to set connection mode:', error)
+  }
+}
+
+const setMuteMode = async () => {
+  try {
+    const result = await window.electronAPI.config.setMuteMode(muteMode.value)
+    muteMode.value = result.muteMode
+  } catch (error) {
+    console.error('Failed to set mute mode:', error)
   }
 }
 
@@ -521,6 +544,27 @@ const saveAdvancedSettings = async () => {
   background-color: #007bff;
   color: white;
   border-color: #007bff;
+}
+
+.audio-mode-selector {
+  width: 100%;
+}
+
+.audio-mode-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.audio-mode-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
 .status-section {

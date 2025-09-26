@@ -114,6 +114,11 @@ ipcMain.handle('config:setMaxConcurrentDownloads', async (event, count: number) 
   return configService.getConfig();
 });
 
+ipcMain.handle('config:setMuteMode', async (event, mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => {
+  configService.setMuteMode(mode);
+  return configService.getConfig();
+});
+
 // IPC handlers for intranet mapping
 ipcMain.handle('intranet:setEnabled', async (event, enabled: boolean) => {
   intranetMappingService.setEnabled(enabled);
