@@ -74,13 +74,18 @@ class DownloadServiceClass {
 
   cancelAll(): void {
     this.items.forEach(item => {
-      if (item.status === 'downloading' || item.status === 'processing') {
-        // Cancel the actual download in main process
-        window.electronAPI.download.cancel(item.id).catch(console.error)
+      if (item.status === 'queued' || item.status === 'downloading' || item.status === 'processing') {
+        // Cancel the actual download in main process (for active downloads)
+        if (item.status === 'downloading' || item.status === 'processing') {
+          window.electronAPI.download.cancel(item.id).catch(console.error)
+          this.activeDownloads.delete(item.id)
+        }
 
+        // Mark all non-completed/non-error items as error
         item.status = 'error'
         item.error = 'Cancelled by user'
-        this.activeDownloads.delete(item.id)
+        item.progress = 0
+        console.log(`Force cancelling: ${item.name} (was ${item.status})`)
       }
     })
     this.processQueue()
@@ -167,6 +172,11 @@ class DownloadServiceClass {
       // Set up progress listeners
       const progressListener = (downloadId: string, progress: { current: number; total: number; phase: number }) => {
         if (downloadId === item.id && !completed) {
+          // Check if the item was already cancelled - ignore progress updates
+          if (item.status === 'error' && item.error === 'Cancelled by user') {
+            return
+          }
+
           // Phase 0: downloading, Phase 1: processing, Phase 2: completed
           if (progress.phase === 0) {
             item.status = 'downloading'
@@ -181,6 +191,16 @@ class DownloadServiceClass {
       const completedListener = (downloadId: string) => {
         if (downloadId === item.id && !completed) {
           completed = true
+
+          // Check if the item was already cancelled
+          if (item.status === 'error' && item.error === 'Cancelled by user') {
+            console.log(`Ignoring completion signal for cancelled download: ${item.name}`)
+            this.activeDownloads.delete(item.id)
+            this.processQueue()
+            resolve()
+            return
+          }
+
           item.status = 'completed'
           item.progress = 100
           item.completedAt = Date.now()

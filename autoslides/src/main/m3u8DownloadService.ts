@@ -99,6 +99,7 @@ class M3u8Downloader {
   private shouldStop = false;
   private maxWorkers = 32;
   private numRetries = 99;
+  private ffmpegProcess: any = null;
 
   private headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
@@ -183,6 +184,9 @@ class M3u8Downloader {
         await this.deleteFiles();
         console.log(`Download successfully --> ${this.name}`);
         this.progressCallback({ current: this.successSum, total: this.tsSum, phase: 2 });
+      } else if (this.shouldStop) {
+        console.log(`Download cancelled --> ${this.name}`);
+        throw new Error('Download cancelled by user');
       }
     } catch (error) {
       console.error("Download failed:", error);
@@ -200,6 +204,17 @@ class M3u8Downloader {
     if (this.signatureInterval) {
       clearInterval(this.signatureInterval);
       this.signatureInterval = null;
+    }
+
+    // Force kill FFmpeg process if it's running
+    if (this.ffmpegProcess) {
+      console.log(`Force killing FFmpeg process for: ${this.name}`);
+      try {
+        this.ffmpegProcess.kill('SIGKILL');
+        this.ffmpegProcess = null;
+      } catch (error) {
+        console.error('Error killing FFmpeg process:', error);
+      }
     }
   }
 
@@ -409,8 +424,16 @@ class M3u8Downloader {
       const outputPath = path.join(this.workDir, `${currentIndex}.ts`);
 
       try {
+        if (this.shouldStop) {
+          console.log(`Download cancelled during TS file ${currentIndex}`);
+          return;
+        }
         await this.downloadTs(tsUrl, outputPath, this.numRetries);
       } catch (error) {
+        if (this.shouldStop) {
+          console.log(`Download cancelled, stopping TS file ${currentIndex}`);
+          return;
+        }
         console.error(`Failed to download TS file ${currentIndex}:`, error);
       }
 
@@ -423,6 +446,10 @@ class M3u8Downloader {
     }
 
     await Promise.all(downloadPromises);
+
+    if (this.shouldStop) {
+      throw new Error('Download cancelled during TS file download');
+    }
   }
 
   private async downloadTs(tsUrlOriginal: string, outputPath: string, numRetries: number): Promise<void> {
@@ -546,7 +573,7 @@ class M3u8Downloader {
       console.log("Output MP4 path:", mp4FilePath);
 
       // Use spawn to execute ffmpeg
-      const ffmpegProcess = spawn(ffmpegPath, [
+      this.ffmpegProcess = spawn(ffmpegPath, [
         '-f', 'concat',
         '-safe', '0',
         '-i', concatFilePath,
@@ -558,11 +585,11 @@ class M3u8Downloader {
 
       let progressPercent = 0;
 
-      ffmpegProcess.stdout?.on('data', (data: Buffer) => {
+      this.ffmpegProcess.stdout?.on('data', (data: Buffer) => {
         console.log(`FFmpeg stdout: ${data}`);
       });
 
-      ffmpegProcess.stderr?.on('data', (data: Buffer) => {
+      this.ffmpegProcess.stderr?.on('data', (data: Buffer) => {
         const output = data.toString();
 
         // Parse progress from stderr output
@@ -581,7 +608,15 @@ class M3u8Downloader {
         }
       });
 
-      ffmpegProcess.on('close', (code: number) => {
+      this.ffmpegProcess.on('close', (code: number) => {
+        this.ffmpegProcess = null; // Clear the process reference
+
+        if (this.shouldStop) {
+          // If stopped, don't continue processing
+          reject(new Error('Download cancelled by user'));
+          return;
+        }
+
         if (code === 0) {
           console.log("MP4 conversion completed successfully");
           this.progressCallback({ current: 100, total: 100, phase: 1 });
@@ -601,9 +636,14 @@ class M3u8Downloader {
         }
       });
 
-      ffmpegProcess.on('error', (error: Error) => {
+      this.ffmpegProcess.on('error', (error: Error) => {
+        this.ffmpegProcess = null; // Clear the process reference
         console.error(`FFmpeg error: ${error.message}`);
-        this.fallbackOutputMp4(resolve, reject);
+        if (!this.shouldStop) {
+          this.fallbackOutputMp4(resolve, reject);
+        } else {
+          reject(new Error('Download cancelled by user'));
+        }
       });
     });
   }
@@ -620,7 +660,7 @@ class M3u8Downloader {
     const mp4FilePath = path.resolve(`${this.filePath}.mp4`);
     const m3u8FilePath = path.resolve(`${this.filePath}.m3u8`);
 
-    const ffmpegProcess = spawn(ffmpegPath, [
+    this.ffmpegProcess = spawn(ffmpegPath, [
       '-allowed_extensions', 'ALL',
       '-i', m3u8FilePath,
       '-c', 'copy',
@@ -630,7 +670,7 @@ class M3u8Downloader {
 
     let progressPercent = 0;
 
-    ffmpegProcess.stderr?.on('data', (data: Buffer) => {
+    this.ffmpegProcess.stderr?.on('data', (data: Buffer) => {
       const output = data.toString();
 
       if (output.includes('time=')) {
@@ -647,7 +687,15 @@ class M3u8Downloader {
       }
     });
 
-    ffmpegProcess.on('close', (code: number) => {
+    this.ffmpegProcess.on('close', (code: number) => {
+      this.ffmpegProcess = null; // Clear the process reference
+
+      if (this.shouldStop) {
+        // If stopped, don't continue processing
+        reject(new Error('Download cancelled by user'));
+        return;
+      }
+
       if (code === 0 || fs.existsSync(mp4FilePath)) {
         console.log("Fallback MP4 conversion completed");
         this.progressCallback({ current: 100, total: 100, phase: 1 });
@@ -657,8 +705,13 @@ class M3u8Downloader {
       }
     });
 
-    ffmpegProcess.on('error', (error: Error) => {
-      reject(new Error(`Fallback FFmpeg error: ${error.message}`));
+    this.ffmpegProcess.on('error', (error: Error) => {
+      this.ffmpegProcess = null; // Clear the process reference
+      if (!this.shouldStop) {
+        reject(new Error(`Fallback FFmpeg error: ${error.message}`));
+      } else {
+        reject(new Error('Download cancelled by user'));
+      }
     });
   }
 
