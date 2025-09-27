@@ -17,6 +17,31 @@
           </svg>
           Playing in background
         </div>
+
+        <!-- Collapsible Details Section -->
+        <div class="details-toggle">
+          <button @click="showDetails = !showDetails" class="toggle-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showDetails }">
+              <polyline points="6,9 12,15 18,9"/>
+            </svg>
+            {{ showDetails ? 'Hide Details' : 'Show Details' }}
+          </button>
+        </div>
+
+        <div v-if="showDetails" class="details-section">
+          <div class="detail-item" v-if="course?.instructor">
+            <strong>Instructor:</strong> {{ course.instructor }}
+          </div>
+          <div class="detail-item" v-if="session">
+            <strong>Date:</strong> {{ formatDate(session.started_at) }}
+          </div>
+          <div class="detail-item" v-if="playbackData?.duration">
+            <strong>Duration:</strong> {{ formatDuration(playbackData.duration) }}
+          </div>
+          <div class="detail-item" v-if="currentStreamData">
+            <strong>Current Stream:</strong> {{ currentStreamData.name }} ({{ currentStreamData.type === 'camera' ? 'Camera View' : 'Screen Recording' }})
+          </div>
+        </div>
       </div>
     </div>
 
@@ -102,25 +127,6 @@
           </div>
         </div>
 
-        <!-- Stream Info -->
-        <div class="stream-info">
-          <div class="current-stream">
-            <h4>{{ currentStreamData?.name }}</h4>
-            <p class="stream-type">{{ currentStreamData?.type === 'camera' ? 'Camera View' : 'Screen Recording' }}</p>
-          </div>
-
-        </div>
-
-        <!-- Course Information -->
-        <div class="info-section">
-          <h3>Course Information</h3>
-          <p><strong>Course:</strong> {{ course?.title || 'Unknown Course' }}</p>
-          <p v-if="course?.instructor"><strong>Instructor:</strong> {{ course.instructor }}</p>
-          <p v-if="session"><strong>Session:</strong> {{ session.title }}</p>
-          <p v-if="course?.session?.section_group_title && props.mode === 'live'"><strong>Session:</strong> {{ course.session.section_group_title }}</p>
-          <p v-if="session"><strong>Date:</strong> {{ formatDate(session.started_at) }}</p>
-          <p v-if="playbackData.duration"><strong>Duration:</strong> {{ formatDuration(playbackData.duration) }}</p>
-        </div>
       </div>
 
       <div v-else class="no-streams">
@@ -223,6 +229,7 @@ const currentPlaybackRate = ref(1)
 const connectionMode = ref<'internal' | 'external'>('external')
 const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
 const isVideoMuted = ref(false)
+const showDetails = ref(false)
 const showSpeedWarning = computed(() => {
   return connectionMode.value === 'external' && currentPlaybackRate.value > 2
 })
@@ -468,7 +475,6 @@ const switchStream = async () => {
   if (videoPlayer.value) {
     const wasPlaying = !videoPlayer.value.paused
     const currentTime = videoPlayer.value.currentTime
-    const previousRate = videoPlayer.value.playbackRate
 
     // Wait for next tick to ensure DOM is updated
     await nextTick()
@@ -935,55 +941,53 @@ onUnmounted(() => {
   display: block;
 }
 
-.stream-info {
+/* Details toggle section */
+.details-toggle {
+  margin-top: 12px;
+}
+
+.toggle-btn {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #666;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-btn:hover {
+  border-color: #007acc;
+  color: #007acc;
+}
+
+.toggle-btn svg {
+  transition: transform 0.2s;
+}
+
+.toggle-btn svg.rotated {
+  transform: rotate(180deg);
+}
+
+.details-section {
+  margin-top: 12px;
+  padding: 12px;
   background-color: #f8f9fa;
   border-radius: 6px;
+  border: 1px solid #e9ecef;
 }
 
-.current-stream h4 {
-  margin: 0 0 4px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.stream-type {
-  margin: 0;
+.detail-item {
+  margin: 6px 0;
   font-size: 14px;
   color: #666;
 }
 
-.playback-controls {
-  display: flex;
-  gap: 8px;
-}
-
-
-.info-section {
-  padding: 20px;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  background-color: white;
-}
-
-.info-section h3 {
-  margin: 0 0 16px 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-.info-section p {
-  margin: 8px 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.info-section strong {
+.detail-item strong {
   color: #333;
 }
 
