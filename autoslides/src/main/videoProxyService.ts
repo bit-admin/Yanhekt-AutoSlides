@@ -35,7 +35,7 @@ export class VideoProxyService {
   private readonly BASE_HEADERS = {
     "Origin": "https://www.yanhekt.cn",
     "Referer": "https://www.yanhekt.cn/",
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36 Edg/107.0.1418.26"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.3"
   };
 
   private proxyServer: http.Server | null = null;
@@ -48,6 +48,7 @@ export class VideoProxyService {
     lastRefresh: 0,
     refreshInterval: 10000 // 10 seconds
   };
+  private signatureInterval: NodeJS.Timeout | null = null;
 
   private apiClient: ApiClient;
   private intranetMapping: IntranetMappingService;
@@ -67,6 +68,9 @@ export class VideoProxyService {
 
       // Store the login token for dynamic token refresh
       this.loginToken = token;
+
+      // Start signature update loop for recorded videos
+      this.startUpdateSignatureLoop();
 
       const result: VideoPlaybackUrls = {
         session_id: session.session_id,
@@ -507,21 +511,56 @@ export class VideoProxyService {
   }
 
   /**
-   * Refresh video token and signature
+   * Start signature update loop (similar to m3u8DownloadService)
    */
-  private async refreshTokenAndSignature(): Promise<TokenCache> {
-    const now = Date.now();
-
-    // Check if we need to refresh (every 10 seconds)
-    if (this.tokenCache.lastRefresh && (now - this.tokenCache.lastRefresh) < this.tokenCache.refreshInterval) {
-      return this.tokenCache;
+  private startUpdateSignatureLoop(): void {
+    // Clear existing interval if any
+    if (this.signatureInterval) {
+      clearInterval(this.signatureInterval);
     }
 
-    try {
-      // Get fresh video token using login token
-      const videoToken = await this.apiClient.getVideoToken(this.loginToken!);
+    this.signatureInterval = setInterval(async () => {
+      try {
+        await this.refreshTokenAndSignature();
+      } catch (error) {
+        console.error('Error updating signature in loop:', error);
+      }
+    }, 10000); // Update every 10 seconds
+  }
 
-      // Get fresh signature and timestamp
+  /**
+   * Stop signature update loop
+   */
+  private stopUpdateSignatureLoop(): void {
+    if (this.signatureInterval) {
+      clearInterval(this.signatureInterval);
+      this.signatureInterval = null;
+    }
+  }
+
+  /**
+   * Get fresh token (similar to m3u8DownloadService)
+   */
+  private async getToken(): Promise<string> {
+    if (!this.tokenCache.videoToken) {
+      try {
+        // Use the existing API client to get video token
+        this.tokenCache.videoToken = await this.apiClient.getVideoToken(this.loginToken!);
+      } catch (error) {
+        console.error("Error getting token:", error);
+        throw new Error("获取 Token 失败");
+      }
+    }
+    return this.tokenCache.videoToken!;
+  }
+
+  /**
+   * Refresh video token and signature (simplified version for consistent behavior)
+   */
+  private async refreshTokenAndSignature(): Promise<TokenCache> {
+    try {
+      // Always get fresh token and signature (like m3u8DownloadService)
+      const videoToken = await this.getToken();
       const { timestamp, signature } = this.getSignature();
 
       // Update cache
@@ -530,14 +569,13 @@ export class VideoProxyService {
         videoToken,
         timestamp,
         signature,
-        lastRefresh: now
+        lastRefresh: Date.now()
       };
 
       return this.tokenCache;
     } catch (error) {
       console.error('Failed to refresh token:', error);
-      // Return cached values if refresh fails
-      return this.tokenCache;
+      throw error;
     }
   }
 
@@ -651,6 +689,9 @@ export class VideoProxyService {
    * Stop the proxy server
    */
   stopVideoProxy(): void {
+    // Stop signature update loop
+    this.stopUpdateSignatureLoop();
+
     if (this.proxyServer) {
       this.proxyServer.close();
       this.proxyServer = null;
