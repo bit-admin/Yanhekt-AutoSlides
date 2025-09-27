@@ -338,6 +338,241 @@ const loadVideoStreams = async () => {
   }
 }
 
+const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?: boolean) => {
+  console.log('loadVideoSourceWithPosition called', { seekToTime, shouldAutoPlay })
+
+  if (!videoPlayer.value || !currentStreamData.value) {
+    console.warn('Video player or stream data not ready for position restore')
+    return
+  }
+
+  try {
+    console.log('Loading video source with position restore:', currentStreamData.value.url)
+
+    // Clean up existing HLS instance
+    if (hls.value) {
+      hls.value.destroy()
+      hls.value = null
+    }
+
+    const videoUrl = currentStreamData.value.url
+
+    // Check if HLS is supported
+    if (Hls.isSupported()) {
+      console.log('Using HLS.js for playback with position restore')
+      hls.value = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        backBufferLength: 30,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        debug: false,
+        // Enhanced error recovery settings
+        fragLoadingTimeOut: 20000,
+        fragLoadingMaxRetry: 6,
+        fragLoadingRetryDelay: 1000,
+        fragLoadingMaxRetryTimeout: 64000,
+        levelLoadingTimeOut: 10000,
+        levelLoadingMaxRetry: 4,
+        levelLoadingRetryDelay: 1000,
+        levelLoadingMaxRetryTimeout: 64000,
+        // Manifest loading retry settings
+        manifestLoadingTimeOut: 10000,
+        manifestLoadingMaxRetry: 6,
+        manifestLoadingRetryDelay: 1000,
+        manifestLoadingMaxRetryTimeout: 64000,
+        // Additional resilience settings
+        startFragPrefetch: true,
+        testBandwidth: false,
+        progressive: false,
+        // Buffer settings for better error recovery
+        maxBufferSize: 60 * 1000 * 1000, // 60MB
+        maxBufferHole: 0.5,
+        highBufferWatchdogPeriod: 2,
+        nudgeOffset: 0.1,
+        nudgeMaxRetry: 3,
+        maxFragLookUpTolerance: 0.25,
+        // Stall detection and recovery
+        maxStarvationDelay: 4,
+        maxLoadingDelay: 4,
+        minAutoBitrate: 0
+      })
+
+      hls.value.loadSource(videoUrl)
+      hls.value.attachMedia(videoPlayer.value)
+
+      hls.value.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log('HLS manifest parsed successfully for position restore')
+
+        setTimeout(() => {
+          if (videoPlayer.value) {
+            // Set initial playback rate based on mode
+            if (props.mode === 'recorded') {
+              videoPlayer.value.playbackRate = currentPlaybackRate.value
+            } else {
+              videoPlayer.value.playbackRate = 1
+              currentPlaybackRate.value = 1
+            }
+
+            // Apply mute settings
+            if (shouldVideoMute.value) {
+              videoPlayer.value.volume = 0
+              videoPlayer.value.setAttribute('data-muted-by-app', 'true')
+              isVideoMuted.value = true
+            } else {
+              videoPlayer.value.volume = 1
+              videoPlayer.value.removeAttribute('data-muted-by-app')
+              isVideoMuted.value = false
+            }
+
+            // Restore position if specified
+            if (seekToTime && seekToTime > 0) {
+              console.log(`Restoring playback position to ${seekToTime}`)
+              videoPlayer.value.currentTime = seekToTime
+            }
+
+            // Auto-play if requested or if was playing before error
+            if (shouldAutoPlay !== false) {
+              videoPlayer.value.play().catch(e => {
+                console.log('Autoplay prevented during position restore:', e)
+              })
+            }
+          }
+        }, 100)
+      })
+
+      // Add the same enhanced error handling as the original function
+      let mediaErrorRecoveryCount = 0
+      let networkErrorRecoveryCount = 0
+      const maxRecoveryAttempts = 3
+
+      hls.value.on(Hls.Events.ERROR, (event, data) => {
+        console.error('HLS error during position restore:', event, data)
+
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.log(`Network error during restore (attempt ${networkErrorRecoveryCount + 1}/${maxRecoveryAttempts}):`, data.details)
+
+              if (networkErrorRecoveryCount < maxRecoveryAttempts) {
+                networkErrorRecoveryCount++
+                console.log('Attempting network error recovery during restore...')
+
+                setTimeout(() => {
+                  if (hls.value) {
+                    hls.value.startLoad()
+                  }
+                }, 1000 * networkErrorRecoveryCount)
+              } else {
+                console.error('Max network recovery attempts reached during restore')
+                error.value = 'Network error: Unable to load video after multiple attempts'
+              }
+              break
+
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.log(`Media error during restore (attempt ${mediaErrorRecoveryCount + 1}/${maxRecoveryAttempts}):`, data.details)
+
+              if (mediaErrorRecoveryCount < maxRecoveryAttempts) {
+                mediaErrorRecoveryCount++
+                console.log('Attempting media error recovery during restore...')
+
+                if (data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR ||
+                    data.details === Hls.ErrorDetails.BUFFER_FULL_ERROR ||
+                    data.details === Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
+
+                  setTimeout(() => {
+                    if (hls.value && videoPlayer.value) {
+                      const currentTime = videoPlayer.value.currentTime
+                      console.log(`Seeking forward from ${currentTime} to recover from buffer error during restore`)
+                      videoPlayer.value.currentTime = currentTime + 0.1
+                      hls.value.recoverMediaError()
+                    }
+                  }, 500)
+
+                } else {
+                  setTimeout(() => {
+                    if (hls.value) {
+                      hls.value.recoverMediaError()
+                    }
+                  }, 1000 * mediaErrorRecoveryCount)
+                }
+              } else {
+                console.error('Max media recovery attempts reached during restore')
+                error.value = 'Video decoding error: Unable to decode video after multiple attempts'
+              }
+              break
+
+            default:
+              console.error('Other fatal error during restore:', data.details)
+              error.value = 'Video playback error: ' + data.details
+              break
+          }
+        }
+      })
+
+      // Add fragment monitoring
+      hls.value.on(Hls.Events.FRAG_LOAD_EMERGENCY_ABORTED, (_event, data) => {
+        console.warn('Fragment load emergency aborted during restore:', data)
+      })
+
+      hls.value.on(Hls.Events.FRAG_LOADING, (_event, data) => {
+        console.log('Loading fragment during restore:', data.frag?.sn, 'URL:', data.frag?.url)
+      })
+
+      hls.value.on(Hls.Events.FRAG_LOADED, (_event, data) => {
+        console.log('Fragment loaded successfully during restore:', data.frag?.sn)
+      })
+
+    } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native HLS support with position restore
+      console.log('Using native HLS support with position restore')
+      videoPlayer.value.src = videoUrl
+      videoPlayer.value.load()
+
+      setTimeout(() => {
+        if (videoPlayer.value) {
+          // Set initial playback rate based on mode
+          if (props.mode === 'recorded') {
+            videoPlayer.value.playbackRate = currentPlaybackRate.value
+          } else {
+            videoPlayer.value.playbackRate = 1
+            currentPlaybackRate.value = 1
+          }
+
+          // Apply mute settings
+          if (shouldVideoMute.value) {
+            videoPlayer.value.volume = 0
+            videoPlayer.value.setAttribute('data-muted-by-app', 'true')
+            isVideoMuted.value = true
+          } else {
+            videoPlayer.value.volume = 1
+            videoPlayer.value.removeAttribute('data-muted-by-app')
+            isVideoMuted.value = false
+          }
+
+          // Restore position if specified
+          if (seekToTime && seekToTime > 0) {
+            console.log(`Restoring playback position to ${seekToTime} (native)`)
+            videoPlayer.value.currentTime = seekToTime
+          }
+
+          // Auto-play if requested
+          if (shouldAutoPlay !== false) {
+            videoPlayer.value.play().catch(e => {
+              console.log('Autoplay prevented during native position restore:', e)
+            })
+          }
+        }
+      }, 100)
+    } else {
+      throw new Error('HLS is not supported in this browser')
+    }
+  } catch (err: any) {
+    console.error('Failed to load video source with position:', err)
+    error.value = 'Failed to load video source: ' + err.message
+  }
+}
+
 const loadVideoSource = async () => {
   console.log('loadVideoSource called, checking conditions...')
   console.log('videoPlayer.value:', !!videoPlayer.value)
@@ -370,7 +605,36 @@ const loadVideoSource = async () => {
         backBufferLength: 30,
         maxBufferLength: 30,
         maxMaxBufferLength: 60,
-        debug: false
+        debug: false,
+        // Enhanced error recovery settings
+        fragLoadingTimeOut: 20000,
+        fragLoadingMaxRetry: 6,
+        fragLoadingRetryDelay: 1000,
+        fragLoadingMaxRetryTimeout: 64000,
+        levelLoadingTimeOut: 10000,
+        levelLoadingMaxRetry: 4,
+        levelLoadingRetryDelay: 1000,
+        levelLoadingMaxRetryTimeout: 64000,
+        // Manifest loading retry settings
+        manifestLoadingTimeOut: 10000,
+        manifestLoadingMaxRetry: 6,
+        manifestLoadingRetryDelay: 1000,
+        manifestLoadingMaxRetryTimeout: 64000,
+        // Additional resilience settings
+        startFragPrefetch: true,
+        testBandwidth: false,
+        progressive: false,
+        // Buffer settings for better error recovery
+        maxBufferSize: 60 * 1000 * 1000, // 60MB
+        maxBufferHole: 0.5,
+        highBufferWatchdogPeriod: 2,
+        nudgeOffset: 0.1,
+        nudgeMaxRetry: 3,
+        maxFragLookUpTolerance: 0.25,
+        // Stall detection and recovery
+        maxStarvationDelay: 4,
+        maxLoadingDelay: 4,
+        minAutoBitrate: 0
       })
 
       hls.value.loadSource(videoUrl)
@@ -411,23 +675,118 @@ const loadVideoSource = async () => {
         console.log('HLS media attached')
       })
 
+      // Enhanced error handling with retry logic
+      let mediaErrorRecoveryCount = 0
+      let networkErrorRecoveryCount = 0
+      const maxRecoveryAttempts = 3
+
       hls.value.on(Hls.Events.ERROR, (event, data) => {
         console.error('HLS error:', event, data)
+
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              console.log('Network error, trying to restart load')
-              hls.value?.startLoad()
+              console.log(`Network error (attempt ${networkErrorRecoveryCount + 1}/${maxRecoveryAttempts}):`, data.details)
+
+              if (networkErrorRecoveryCount < maxRecoveryAttempts) {
+                networkErrorRecoveryCount++
+                console.log('Attempting network error recovery...')
+
+                // Wait a bit before retrying
+                setTimeout(() => {
+                  if (hls.value) {
+                    hls.value.startLoad()
+                  }
+                }, 1000 * networkErrorRecoveryCount) // Exponential backoff
+              } else {
+                console.error('Max network recovery attempts reached')
+                error.value = 'Network error: Unable to load video after multiple attempts'
+              }
               break
+
             case Hls.ErrorTypes.MEDIA_ERROR:
-              console.log('Media error, trying to recover')
-              hls.value?.recoverMediaError()
+              console.log(`Media error (attempt ${mediaErrorRecoveryCount + 1}/${maxRecoveryAttempts}):`, data.details)
+
+              if (mediaErrorRecoveryCount < maxRecoveryAttempts) {
+                mediaErrorRecoveryCount++
+                console.log('Attempting media error recovery...')
+
+                // Save current position before recovery
+                const currentPosition = videoPlayer.value?.currentTime || 0
+                const wasPlaying = videoPlayer.value ? !videoPlayer.value.paused : false
+
+                // For decode errors, try different recovery strategies
+                if (data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR ||
+                    data.details === Hls.ErrorDetails.BUFFER_FULL_ERROR ||
+                    data.details === Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
+
+                  // Buffer-related errors - try to recover by seeking slightly forward
+                  setTimeout(() => {
+                    if (hls.value && videoPlayer.value) {
+                      console.log(`Seeking forward from ${currentPosition} to recover from buffer error`)
+                      videoPlayer.value.currentTime = currentPosition + 0.1
+                      hls.value.recoverMediaError()
+                    }
+                  }, 500)
+
+                } else {
+                  // Other media errors - standard recovery with position restore
+                  setTimeout(() => {
+                    if (hls.value) {
+                      hls.value.recoverMediaError()
+
+                      // Try to restore position after recovery
+                      setTimeout(() => {
+                        if (videoPlayer.value && currentPosition > 0) {
+                          console.log(`Restoring position to ${currentPosition} after media recovery`)
+                          videoPlayer.value.currentTime = currentPosition
+
+                          if (wasPlaying) {
+                            videoPlayer.value.play().catch(e => {
+                              console.log('Could not resume playback after recovery:', e)
+                            })
+                          }
+                        }
+                      }, 1000)
+                    }
+                  }, 1000 * mediaErrorRecoveryCount) // Exponential backoff
+                }
+              } else {
+                console.error('Max media recovery attempts reached')
+                error.value = 'Video decoding error: Unable to decode video after multiple attempts'
+              }
               break
+
             default:
+              console.error('Other fatal error:', data.details)
               error.value = 'Video playback error: ' + data.details
               break
           }
+        } else {
+          // Non-fatal errors - log but continue
+          console.warn('Non-fatal HLS error:', data.details, data)
+
+          // Handle specific non-fatal errors that might affect playback
+          if (data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR) {
+            console.log('Fragment load error - HLS.js will retry automatically')
+          } else if (data.details === Hls.ErrorDetails.FRAG_DECRYPT_ERROR) {
+            console.log('Fragment decrypt error - may indicate corrupted segment')
+          }
         }
+      })
+
+      // Add additional event listeners for better debugging
+      hls.value.on(Hls.Events.FRAG_LOAD_EMERGENCY_ABORTED, (_event, data) => {
+        console.warn('Fragment load emergency aborted:', data)
+      })
+
+      // Add fragment loading progress monitoring
+      hls.value.on(Hls.Events.FRAG_LOADING, (_event, data) => {
+        console.log('Loading fragment:', data.frag?.sn, 'URL:', data.frag?.url)
+      })
+
+      hls.value.on(Hls.Events.FRAG_LOADED, (_event, data) => {
+        console.log('Fragment loaded successfully:', data.frag?.sn)
       })
     } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Electron/Chromium fallback)
@@ -543,34 +902,80 @@ const onLoadedMetadata = () => {
   // Video metadata loaded
 }
 
+// Enhanced video error handling with retry logic
+let videoErrorRetryCount = 0
+const maxVideoErrorRetries = 2
+let lastPlaybackPosition = 0
+let wasPlayingBeforeError = false
+
 const onVideoError = (event: Event) => {
   const target = event.target as HTMLVideoElement
   const errorCode = target.error?.code
   const errorMessage = target.error?.message
 
-  console.error('Video error:', { errorCode, errorMessage })
+  // Save current playback state before error
+  if (target.currentTime > 0) {
+    lastPlaybackPosition = target.currentTime
+    wasPlayingBeforeError = !target.paused
+  }
+
+  console.error('Video error:', {
+    errorCode,
+    errorMessage,
+    retryCount: videoErrorRetryCount,
+    currentTime: target.currentTime,
+    wasPlaying: wasPlayingBeforeError
+  })
 
   let userMessage = 'Video playback error'
+  let shouldRetry = false
+
   switch (errorCode) {
     case 1: // MEDIA_ERR_ABORTED
       userMessage = 'Video playback was aborted'
       break
     case 2: // MEDIA_ERR_NETWORK
       userMessage = 'Network error occurred while loading video'
+      shouldRetry = true
       break
     case 3: // MEDIA_ERR_DECODE
       userMessage = 'Video decoding error'
+      shouldRetry = true
       break
     case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
       userMessage = 'Video format not supported'
       break
   }
 
-  error.value = userMessage
+  // Attempt retry for certain error types
+  if (shouldRetry && videoErrorRetryCount < maxVideoErrorRetries) {
+    videoErrorRetryCount++
+    console.log(`Attempting video error recovery (attempt ${videoErrorRetryCount}/${maxVideoErrorRetries}) at position ${lastPlaybackPosition}`)
+
+    setTimeout(() => {
+      if (videoPlayer.value && currentStreamData.value) {
+        console.log('Retrying video load after error...')
+
+        // Reload the video source with position restoration
+        loadVideoSourceWithPosition(lastPlaybackPosition, wasPlayingBeforeError)
+      }
+    }, 2000 * videoErrorRetryCount) // Exponential backoff
+  } else {
+    // Max retries reached or non-retryable error
+    if (videoErrorRetryCount >= maxVideoErrorRetries) {
+      userMessage += ` (Failed after ${maxVideoErrorRetries} retry attempts)`
+    }
+    error.value = userMessage
+    videoErrorRetryCount = 0 // Reset for next video
+    lastPlaybackPosition = 0
+    wasPlayingBeforeError = false
+  }
 }
 
 const onCanPlay = () => {
-  // Video can start playing
+  // Video can start playing - reset error counters on successful load
+  videoErrorRetryCount = 0
+  console.log('Video can play - error counters reset')
 }
 
 // Utility functions
