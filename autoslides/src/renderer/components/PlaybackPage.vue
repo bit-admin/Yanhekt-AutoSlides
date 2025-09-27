@@ -125,6 +125,11 @@
             </svg>
             <span>{{ muteMode === 'mute_all' ? 'Muted by App' : muteMode === 'mute_live' ? 'Live Muted' : 'Recorded Muted' }}</span>
           </div>
+          <!-- Retry Indicator -->
+          <div v-if="isRetrying" class="retry-indicator">
+            <div class="retry-spinner"></div>
+            <span>{{ retryMessage }}</span>
+          </div>
         </div>
 
       </div>
@@ -230,6 +235,8 @@ const connectionMode = ref<'internal' | 'external'>('external')
 const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
 const isVideoMuted = ref(false)
 const showDetails = ref(false)
+const isRetrying = ref(false)
+const retryMessage = ref('')
 const showSpeedWarning = computed(() => {
   return connectionMode.value === 'external' && currentPlaybackRate.value > 2
 })
@@ -433,9 +440,22 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
 
             // Auto-play if requested or if was playing before error
             if (shouldAutoPlay !== false) {
-              videoPlayer.value.play().catch(e => {
-                console.log('Autoplay prevented during position restore:', e)
-              })
+              // Add a small delay to ensure video is ready
+              setTimeout(() => {
+                if (videoPlayer.value) {
+                  videoPlayer.value.play().catch(e => {
+                    console.log('Autoplay prevented during position restore:', e)
+                    // Try again after a short delay
+                    setTimeout(() => {
+                      if (videoPlayer.value) {
+                        videoPlayer.value.play().catch(e2 => {
+                          console.log('Second autoplay attempt failed:', e2)
+                        })
+                      }
+                    }, 500)
+                  })
+                }
+              }, 200)
             }
           }
         }, 100)
@@ -558,9 +578,22 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
 
           // Auto-play if requested
           if (shouldAutoPlay !== false) {
-            videoPlayer.value.play().catch(e => {
-              console.log('Autoplay prevented during native position restore:', e)
-            })
+            // Add a small delay to ensure video is ready
+            setTimeout(() => {
+              if (videoPlayer.value) {
+                videoPlayer.value.play().catch(e => {
+                  console.log('Autoplay prevented during native position restore:', e)
+                  // Try again after a short delay
+                  setTimeout(() => {
+                    if (videoPlayer.value) {
+                      videoPlayer.value.play().catch(e2 => {
+                        console.log('Second native autoplay attempt failed:', e2)
+                      })
+                    }
+                  }, 500)
+                })
+              }
+            }, 200)
           }
         }
       }, 100)
@@ -684,6 +717,8 @@ const loadVideoSource = async () => {
         console.error('HLS error:', event, data)
 
         if (data.fatal) {
+          // Set recovery flag to coordinate with video error handling
+          isHlsRecovering = true
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
               console.log(`Network error (attempt ${networkErrorRecoveryCount + 1}/${maxRecoveryAttempts}):`, data.details)
@@ -723,16 +758,49 @@ const loadVideoSource = async () => {
                   // Buffer-related errors - try to recover by seeking slightly forward
                   setTimeout(() => {
                     if (hls.value && videoPlayer.value) {
-                      console.log(`Seeking forward from ${currentPosition} to recover from buffer error`)
-                      videoPlayer.value.currentTime = currentPosition + 0.1
+                      const skipAmount = 0.5 + (mediaErrorRecoveryCount * 0.5) // Increase skip amount with retries
+                      console.log(`Seeking forward from ${currentPosition} by ${skipAmount}s to recover from buffer error (attempt ${mediaErrorRecoveryCount})`)
+                      videoPlayer.value.currentTime = currentPosition + skipAmount
                       hls.value.recoverMediaError()
                     }
                   }, 500)
+
+                } else if (data.details === Hls.ErrorDetails.BUFFER_APPEND_ERROR ||
+                           data.details === Hls.ErrorDetails.BUFFER_APPENDING_ERROR) {
+
+                  // Buffer append errors - more aggressive recovery
+                  setTimeout(() => {
+                    if (hls.value && videoPlayer.value) {
+                      const skipAmount = 1 + (mediaErrorRecoveryCount * 1) // Skip more for append errors
+                      console.log(`Buffer append error - seeking forward from ${currentPosition} by ${skipAmount}s (attempt ${mediaErrorRecoveryCount})`)
+
+                      // Clear buffers and seek forward
+                      try {
+                        hls.value.recoverMediaError()
+                        setTimeout(() => {
+                          if (videoPlayer.value) {
+                            videoPlayer.value.currentTime = currentPosition + skipAmount
+                            if (wasPlaying) {
+                              videoPlayer.value.play().catch(e => {
+                                console.log('Could not resume playback after buffer append recovery:', e)
+                              })
+                            }
+                          }
+                          // Clear recovery flag after successful recovery
+                          isHlsRecovering = false
+                        }, 500)
+                      } catch (e) {
+                        console.error('Error during buffer append recovery:', e)
+                        isHlsRecovering = false
+                      }
+                    }
+                  }, 200) // Faster response for buffer errors
 
                 } else {
                   // Other media errors - standard recovery with position restore
                   setTimeout(() => {
                     if (hls.value) {
+                      console.log(`Standard media error recovery for ${data.details} (attempt ${mediaErrorRecoveryCount})`)
                       hls.value.recoverMediaError()
 
                       // Try to restore position after recovery
@@ -747,9 +815,11 @@ const loadVideoSource = async () => {
                             })
                           }
                         }
+                        // Clear recovery flag after successful recovery
+                        isHlsRecovering = false
                       }, 1000)
                     }
-                  }, 1000 * mediaErrorRecoveryCount) // Exponential backoff
+                  }, 500 * mediaErrorRecoveryCount) // Shorter backoff
                 }
               } else {
                 console.error('Max media recovery attempts reached')
@@ -904,14 +974,30 @@ const onLoadedMetadata = () => {
 
 // Enhanced video error handling with retry logic
 let videoErrorRetryCount = 0
-const maxVideoErrorRetries = 2
+const maxVideoErrorRetries = 5 // Increased retry attempts
 let lastPlaybackPosition = 0
 let wasPlayingBeforeError = false
+let consecutiveErrorsAtSamePosition = 0
+let lastErrorPosition = -1
+let isHlsRecovering = false // Flag to coordinate HLS and video error recovery
 
 const onVideoError = (event: Event) => {
   const target = event.target as HTMLVideoElement
   const errorCode = target.error?.code
   const errorMessage = target.error?.message
+
+  // If HLS is currently recovering, let it handle the error first
+  if (isHlsRecovering) {
+    console.log('HLS is recovering, deferring video error handling...')
+    setTimeout(() => {
+      if (isHlsRecovering) {
+        console.log('HLS recovery timeout, proceeding with video error handling')
+        isHlsRecovering = false
+        onVideoError(event) // Retry after HLS recovery timeout
+      }
+    }, 2000)
+    return
+  }
 
   // Save current playback state before error
   if (target.currentTime > 0) {
@@ -919,12 +1005,22 @@ const onVideoError = (event: Event) => {
     wasPlayingBeforeError = !target.paused
   }
 
+  // Track consecutive errors at the same position
+  if (Math.abs(lastPlaybackPosition - lastErrorPosition) < 1) {
+    consecutiveErrorsAtSamePosition++
+  } else {
+    consecutiveErrorsAtSamePosition = 1
+    lastErrorPosition = lastPlaybackPosition
+  }
+
   console.error('Video error:', {
     errorCode,
     errorMessage,
     retryCount: videoErrorRetryCount,
     currentTime: target.currentTime,
-    wasPlaying: wasPlayingBeforeError
+    wasPlaying: wasPlayingBeforeError,
+    consecutiveErrors: consecutiveErrorsAtSamePosition,
+    lastErrorPos: lastErrorPosition
   })
 
   let userMessage = 'Video playback error'
@@ -950,32 +1046,74 @@ const onVideoError = (event: Event) => {
   // Attempt retry for certain error types
   if (shouldRetry && videoErrorRetryCount < maxVideoErrorRetries) {
     videoErrorRetryCount++
-    console.log(`Attempting video error recovery (attempt ${videoErrorRetryCount}/${maxVideoErrorRetries}) at position ${lastPlaybackPosition}`)
+
+    // Calculate smart skip amount based on consecutive errors
+    let skipAmount = 0
+    if (errorCode === 3) { // DECODE error
+      if (consecutiveErrorsAtSamePosition <= 2) {
+        skipAmount = 1 // Skip 1 second for first few attempts
+      } else if (consecutiveErrorsAtSamePosition <= 4) {
+        skipAmount = 3 // Skip 3 seconds for persistent errors
+      } else {
+        skipAmount = 5 // Skip 5 seconds for very persistent errors
+      }
+    }
+
+    const targetPosition = lastPlaybackPosition + skipAmount
+    console.log(`Attempting video error recovery (attempt ${videoErrorRetryCount}/${maxVideoErrorRetries}) - skipping from ${lastPlaybackPosition} to ${targetPosition} (skip: ${skipAmount}s, consecutive errors: ${consecutiveErrorsAtSamePosition})`)
+
+    // Show retry UI
+    isRetrying.value = true
+    retryMessage.value = `Recovering from playback error... (${videoErrorRetryCount}/${maxVideoErrorRetries})`
 
     setTimeout(() => {
       if (videoPlayer.value && currentStreamData.value) {
         console.log('Retrying video load after error...')
 
-        // Reload the video source with position restoration
-        loadVideoSourceWithPosition(lastPlaybackPosition, wasPlayingBeforeError)
+        // Ensure we pass the correct autoplay state (always true for retries)
+        loadVideoSourceWithPosition(targetPosition, true) // Force autoplay on retry
       }
-    }, 2000 * videoErrorRetryCount) // Exponential backoff
+    }, 1000 + (500 * videoErrorRetryCount)) // Shorter backoff for faster recovery
   } else {
     // Max retries reached or non-retryable error
     if (videoErrorRetryCount >= maxVideoErrorRetries) {
       userMessage += ` (Failed after ${maxVideoErrorRetries} retry attempts)`
     }
     error.value = userMessage
-    videoErrorRetryCount = 0 // Reset for next video
+
+    // Reset counters for next video
+    videoErrorRetryCount = 0
     lastPlaybackPosition = 0
     wasPlayingBeforeError = false
+    consecutiveErrorsAtSamePosition = 0
+    lastErrorPosition = -1
   }
 }
 
 const onCanPlay = () => {
-  // Video can start playing - reset error counters on successful load
-  videoErrorRetryCount = 0
-  console.log('Video can play - error counters reset')
+  // Video can start playing - but don't reset error counters immediately
+  // Wait for stable playback before resetting
+  console.log('Video can play - waiting for stable playback before resetting counters')
+
+  // Hide retry UI immediately when video can play
+  if (isRetrying.value) {
+    setTimeout(() => {
+      isRetrying.value = false
+      retryMessage.value = ''
+    }, 500) // Small delay to show success
+  }
+
+  // Reset counters after successful playback for a few seconds
+  setTimeout(() => {
+    if (videoPlayer.value && !videoPlayer.value.paused && !videoPlayer.value.ended) {
+      console.log('Stable playback detected - resetting error counters')
+      videoErrorRetryCount = 0
+      consecutiveErrorsAtSamePosition = 0
+      lastErrorPosition = -1
+      isRetrying.value = false
+      retryMessage.value = ''
+    }
+  }, 3000) // Wait 3 seconds of stable playback
 }
 
 // Utility functions
@@ -1311,6 +1449,38 @@ onUnmounted(() => {
 
 .mute-indicator svg {
   flex-shrink: 0;
+}
+
+.retry-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 20;
+  backdrop-filter: blur(4px);
+}
+
+.retry-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .playback-rate-control {
