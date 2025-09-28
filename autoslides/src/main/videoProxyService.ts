@@ -351,12 +351,18 @@ export class VideoProxyService {
     // Store login token for future use
     this.loginToken = loginToken as string;
 
-    // Get fresh token and signature
+    // Get fresh token and signature (more aggressive approach)
     const tokenData = await this.refreshTokenAndSignature();
+    const freshSignature = this.getSignature(); // Always get fresh signature
 
-    // First encrypt the URL, then add signature
+    // First encrypt the URL, then add signature with fresh timestamp
     const encryptedUrl = this.encryptURL(originalUrl as string);
-    const signedUrl = this.addSignatureForUrl(encryptedUrl, tokenData.videoToken!, tokenData.timestamp!, tokenData.signature!);
+    const signedUrl = this.addSignatureForUrl(
+      encryptedUrl,
+      tokenData.videoToken!,
+      freshSignature.timestamp,
+      freshSignature.signature
+    );
 
     // Set proper headers for video request
     const videoHeaders: any = {
@@ -365,7 +371,7 @@ export class VideoProxyService {
     };
 
     // Rewrite URL for intranet mode if needed
-    const requestUrl = this.intranetMapping.rewriteUrl(signedUrl);
+    let requestUrl = this.intranetMapping.rewriteUrl(signedUrl);
 
     // Add Host header if URL was rewritten
     if (requestUrl !== signedUrl) {
@@ -389,13 +395,71 @@ export class VideoProxyService {
       });
     }
 
-    // Proxy the request
-    const response = await axios.get(requestUrl, axiosConfig);
+    // Proxy the request with retry logic for 403 errors
+    let retryCount = 0;
+    const maxRetries = 3;
+    let response: any;
 
-    if (response.status !== 200) {
-      res.writeHead(response.status, { 'Content-Type': 'text/plain' });
-      res.end(`M3U8 request failed with status ${response.status}`);
-      return;
+    while (retryCount <= maxRetries) {
+      try {
+        response = await axios.get(requestUrl, axiosConfig);
+
+        if (response.status === 200) {
+          break; // Success, exit retry loop
+        } else if (response.status === 403 && retryCount < maxRetries) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        } else {
+          res.writeHead(response.status, { 'Content-Type': 'text/plain' });
+          res.end(`M3U8 request failed with status ${response.status}`);
+          return;
+        }
+
+      } catch (error: any) {
+        if ((error.response?.status === 403 || error.message.includes('403')) && retryCount < maxRetries) {
+          retryCount++;
+          console.log(`M3U8 request got 403, retrying (${retryCount}/${maxRetries}) for: ${originalUrl}`);
+
+          // Regenerate token and signature for retry
+          console.log('Regenerating token and signature for M3U8 403 retry...');
+          const newTokenData = await this.refreshTokenAndSignature();
+          const newFreshSignature = this.getSignature();
+
+          // Recreate the signed URL with fresh credentials
+          const newEncryptedUrl = this.encryptURL(originalUrl as string);
+          const newSignedUrl = this.addSignatureForUrl(
+            newEncryptedUrl,
+            newTokenData.videoToken!,
+            newFreshSignature.timestamp,
+            newFreshSignature.signature
+          );
+
+          requestUrl = this.intranetMapping.rewriteUrl(newSignedUrl);
+
+          // Update headers if URL was rewritten
+          if (requestUrl !== newSignedUrl) {
+            const originalHost = new URL(newSignedUrl).hostname;
+            videoHeaders['Host'] = originalHost;
+          }
+
+          // Update axios config
+          axiosConfig.headers = videoHeaders;
+
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          continue; // Retry the request
+
+        } else {
+          // Non-403 error or max retries reached
+          console.error(`M3U8 request failed after ${retryCount} retries:`, {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            url: requestUrl
+          });
+          res.writeHead(500, { 'Content-Type': 'text/plain' });
+          res.end(`M3U8 request failed: ${error.message}`);
+          return;
+        }
+      }
     }
 
     // Get m3u8 content and process it
@@ -455,12 +519,20 @@ export class VideoProxyService {
       }
 
     } else {
-      // Recorded video - use encryption and signing
+      // Recorded video - use encryption and signing (more aggressive like download service)
       const tokenData = await this.refreshTokenAndSignature();
 
-      // Encrypt and sign the TS URL with fresh token
+      // Get fresh signature for each TS request (like download service)
+      const freshSignature = this.getSignature();
+
+      // Encrypt and sign the TS URL with fresh signature
       const encryptedUrl = this.encryptURL(tsUrl);
-      const signedUrl = this.addSignatureForUrl(encryptedUrl, tokenData.videoToken!, tokenData.timestamp!, tokenData.signature!);
+      const signedUrl = this.addSignatureForUrl(
+        encryptedUrl,
+        tokenData.videoToken!,
+        freshSignature.timestamp,
+        freshSignature.signature
+      );
 
       // Set proper headers for video request
       videoHeaders = {
@@ -496,18 +568,72 @@ export class VideoProxyService {
       });
     }
 
-    // Proxy the request
-    const response = await axios.get(requestUrl, axiosConfig);
+    // Proxy the request with retry logic for 403 errors
+    let retryCount = 0;
+    const maxRetries = 3;
 
-    // Copy response headers (except CORS-related ones)
-    Object.keys(response.headers).forEach(key => {
-      if (!key.toLowerCase().startsWith('access-control-')) {
-        res.setHeader(key, response.headers[key]);
+    while (retryCount <= maxRetries) {
+      try {
+        const response = await axios.get(requestUrl, axiosConfig);
+
+        // Success - copy response headers and pipe data
+        Object.keys(response.headers).forEach(key => {
+          if (!key.toLowerCase().startsWith('access-control-')) {
+            res.setHeader(key, response.headers[key]);
+          }
+        });
+
+        res.writeHead(response.status);
+        response.data.pipe(res);
+        return; // Success, exit retry loop
+
+      } catch (error: any) {
+        if (error.response?.status === 403 && retryCount < maxRetries) {
+          retryCount++;
+          console.log(`TS request got 403, retrying (${retryCount}/${maxRetries}) for: ${tsFileName}`);
+
+          // For recorded videos, regenerate signature and token for retry
+          if (!isLiveStream) {
+            console.log('Regenerating token and signature for 403 retry...');
+            const newTokenData = await this.refreshTokenAndSignature();
+            const newFreshSignature = this.getSignature();
+
+            // Recreate the signed URL with fresh credentials
+            const newEncryptedUrl = this.encryptURL(tsUrl);
+            const newSignedUrl = this.addSignatureForUrl(
+              newEncryptedUrl,
+              newTokenData.videoToken!,
+              newFreshSignature.timestamp,
+              newFreshSignature.signature
+            );
+
+            requestUrl = this.intranetMapping.rewriteUrl(newSignedUrl);
+
+            // Update headers if URL was rewritten
+            if (requestUrl !== newSignedUrl) {
+              const originalHost = new URL(newSignedUrl).hostname;
+              videoHeaders['Host'] = originalHost;
+            }
+
+            // Update axios config with new headers
+            axiosConfig.headers = videoHeaders;
+          }
+
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+          continue; // Retry the request
+
+        } else {
+          // Non-403 error or max retries reached
+          console.error(`TS request failed after ${retryCount} retries:`, {
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            url: requestUrl
+          });
+          throw error; // Re-throw the error
+        }
       }
-    });
-
-    res.writeHead(response.status);
-    response.data.pipe(res);
+    }
   }
 
   /**
