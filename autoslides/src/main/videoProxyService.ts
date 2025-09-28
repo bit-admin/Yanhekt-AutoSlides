@@ -455,6 +455,13 @@ export class VideoProxyService {
             statusText: error.response?.statusText,
             url: requestUrl
           });
+
+          // If we've exhausted retries due to 403, clear token cache
+          if (error.response?.status === 403 || error.message.includes('403')) {
+            console.log('Clearing token cache due to persistent M3U8 403 errors');
+            this.tokenCache.videoToken = null;
+          }
+
           res.writeHead(500, { 'Content-Type': 'text/plain' });
           res.end(`M3U8 request failed: ${error.message}`);
           return;
@@ -630,6 +637,13 @@ export class VideoProxyService {
             statusText: error.response?.statusText,
             url: requestUrl
           });
+
+          // If we've exhausted retries due to 403, clear token cache
+          if (error.response?.status === 403) {
+            console.log('Clearing token cache due to persistent 403 errors');
+            this.tokenCache.videoToken = null;
+          }
+
           throw error; // Re-throw the error
         }
       }
@@ -665,19 +679,18 @@ export class VideoProxyService {
   }
 
   /**
-   * Get fresh token (similar to m3u8DownloadService)
+   * Get fresh token (similar to m3u8DownloadService) - ALWAYS refresh
    */
   private async getToken(): Promise<string> {
-    if (!this.tokenCache.videoToken) {
-      try {
-        // Use the existing API client to get video token
-        this.tokenCache.videoToken = await this.apiClient.getVideoToken(this.loginToken!);
-      } catch (error) {
-        console.error("Error getting token:", error);
-        throw new Error("获取 Token 失败");
-      }
+    try {
+      // ALWAYS get fresh token (like m3u8DownloadService does)
+      console.log('Getting fresh video token...');
+      this.tokenCache.videoToken = await this.apiClient.getVideoToken(this.loginToken!);
+      return this.tokenCache.videoToken!;
+    } catch (error) {
+      console.error("Error getting fresh token:", error);
+      throw new Error("获取 Token 失败");
     }
-    return this.tokenCache.videoToken!;
   }
 
   /**
