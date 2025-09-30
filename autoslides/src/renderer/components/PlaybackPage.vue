@@ -974,7 +974,7 @@ const onLoadedMetadata = () => {
 
 // Enhanced video error handling with retry logic
 let videoErrorRetryCount = 0
-const maxVideoErrorRetries = 5 // Increased retry attempts
+const maxVideoErrorRetries = ref(5) // Will be loaded from config
 let lastPlaybackPosition = 0
 let wasPlayingBeforeError = false
 let consecutiveErrorsAtSamePosition = 0
@@ -1046,7 +1046,7 @@ const onVideoError = (event: Event) => {
   }
 
   // Attempt retry for certain error types
-  if (shouldRetry && videoErrorRetryCount < maxVideoErrorRetries) {
+  if (shouldRetry && videoErrorRetryCount < maxVideoErrorRetries.value) {
     videoErrorRetryCount++
 
     // Calculate smart skip amount based on consecutive errors
@@ -1063,11 +1063,11 @@ const onVideoError = (event: Event) => {
     }
 
     const targetPosition = lastPlaybackPosition + skipAmount
-    console.log(`Attempting video error recovery (attempt ${videoErrorRetryCount}/${maxVideoErrorRetries}) - skipping from ${lastPlaybackPosition} to ${targetPosition} (skip: ${skipAmount}s, consecutive errors: ${consecutiveErrorsAtSamePosition})`)
+    console.log(`Attempting video error recovery (attempt ${videoErrorRetryCount}/${maxVideoErrorRetries.value}) - skipping from ${lastPlaybackPosition} to ${targetPosition} (skip: ${skipAmount}s, consecutive errors: ${consecutiveErrorsAtSamePosition})`)
 
     // Show retry UI
     isRetrying.value = true
-    retryMessage.value = `Recovering from playback error... (${videoErrorRetryCount}/${maxVideoErrorRetries})`
+    retryMessage.value = `Recovering from playback error... (${videoErrorRetryCount}/${maxVideoErrorRetries.value})`
 
     setTimeout(() => {
       if (videoPlayer.value && currentStreamData.value) {
@@ -1079,8 +1079,8 @@ const onVideoError = (event: Event) => {
     }, 1000 + (500 * videoErrorRetryCount)) // Shorter backoff for faster recovery
   } else {
     // Max retries reached or non-retryable error
-    if (videoErrorRetryCount >= maxVideoErrorRetries) {
-      userMessage += ` (Failed after ${maxVideoErrorRetries} retry attempts)`
+    if (videoErrorRetryCount >= maxVideoErrorRetries.value) {
+      userMessage += ` (Failed after ${maxVideoErrorRetries.value} retry attempts)`
     }
     error.value = userMessage
 
@@ -1291,13 +1291,14 @@ const cleanup = () => {
 
 // Lifecycle
 onMounted(async () => {
-  // Load connection mode and mute mode from config
+  // Load connection mode, mute mode, and video retry count from config
   try {
     const config = await window.electronAPI.config.get()
     connectionMode.value = config.connectionMode
     muteMode.value = config.muteMode || 'normal'
+    maxVideoErrorRetries.value = config.videoRetryCount || 5
   } catch (error) {
-    console.error('Failed to load connection mode:', error)
+    console.error('Failed to load config:', error)
   }
 
   // Wait for next tick to ensure video element is in DOM

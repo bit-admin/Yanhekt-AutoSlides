@@ -34,36 +34,50 @@ interface ElectronAPI {
       connectionMode: 'internal' | 'external';
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+      videoRetryCount: number;
+      videoRetryCount: number;
     }>;
     setOutputDirectory: (directory: string) => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+      videoRetryCount: number;
     }>;
     selectOutputDirectory: () => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+      videoRetryCount: number;
     } | null>;
     setConnectionMode: (mode: 'internal' | 'external') => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+      videoRetryCount: number;
     }>;
     setMaxConcurrentDownloads: (count: number) => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+      videoRetryCount: number;
     }>;
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<{
       outputDirectory: string;
       connectionMode: 'internal' | 'external';
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+      videoRetryCount: number;
+    }>;
+    setVideoRetryCount: (count: number) => Promise<{
+      outputDirectory: string;
+      connectionMode: 'internal' | 'external';
+      maxConcurrentDownloads: number;
+      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+      videoRetryCount: number;
     }>;
   };
   api: {

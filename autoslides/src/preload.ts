@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setConnectionMode: (mode: 'internal' | 'external') => ipcRenderer.invoke('config:setConnectionMode', mode),
     setMaxConcurrentDownloads: (count: number) => ipcRenderer.invoke('config:setMaxConcurrentDownloads', count),
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => ipcRenderer.invoke('config:setMuteMode', mode),
+    setVideoRetryCount: (count: number) => ipcRenderer.invoke('config:setVideoRetryCount', count),
   },
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) =>

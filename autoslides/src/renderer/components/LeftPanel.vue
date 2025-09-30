@@ -136,6 +136,21 @@
                 </select>
               </div>
             </div>
+
+            <div class="advanced-setting-section">
+              <h4>Video Playback</h4>
+              <div class="setting-item">
+                <label class="setting-label">Video Error Retry Count:</label>
+                <div class="setting-description">Number of retry attempts when video playback errors occur (5-10)</div>
+                <select
+                  v-model="tempVideoRetryCount"
+                  class="concurrent-select"
+                  @change="updateVideoRetryCount"
+                >
+                  <option v-for="i in 6" :key="i" :value="i + 4">{{ i + 4 }}</option>
+                </select>
+              </div>
+            </div>
           </div>
           <div class="modal-actions">
             <button @click="closeAdvancedSettings" class="cancel-btn">Cancel</button>
@@ -184,6 +199,8 @@ const isVerifyingToken = ref(false)
 const outputDirectory = ref('')
 const maxConcurrentDownloads = ref(5)
 const tempMaxConcurrentDownloads = ref(5)
+const videoRetryCount = ref(5)
+const tempVideoRetryCount = ref(5)
 
 const tokenManager = new TokenManager()
 const authService = new AuthService(tokenManager)
@@ -265,6 +282,8 @@ const loadConfig = async () => {
     muteMode.value = config.muteMode || 'normal'
     maxConcurrentDownloads.value = config.maxConcurrentDownloads || 5
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
+    videoRetryCount.value = config.videoRetryCount || 5
+    tempVideoRetryCount.value = videoRetryCount.value
   } catch (error) {
     console.error('Failed to load config:', error)
   }
@@ -307,12 +326,14 @@ onMounted(() => {
 const openAdvancedSettings = () => {
   // Reset temp values to current values when opening modal
   tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
+  tempVideoRetryCount.value = videoRetryCount.value
   showAdvancedModal.value = true
 }
 
 const closeAdvancedSettings = () => {
   // Reset temp values when canceling
   tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
+  tempVideoRetryCount.value = videoRetryCount.value
   showAdvancedModal.value = false
 }
 
@@ -320,10 +341,19 @@ const updateMaxConcurrentDownloads = () => {
   // This is called when the select changes, but we don't save until "Save" is clicked
 }
 
+const updateVideoRetryCount = () => {
+  // This is called when the select changes, but we don't save until "Save" is clicked
+}
+
 const saveAdvancedSettings = async () => {
   try {
-    const result = await window.electronAPI.config.setMaxConcurrentDownloads(tempMaxConcurrentDownloads.value)
-    maxConcurrentDownloads.value = result.maxConcurrentDownloads
+    // Save concurrent downloads setting
+    const downloadResult = await window.electronAPI.config.setMaxConcurrentDownloads(tempMaxConcurrentDownloads.value)
+    maxConcurrentDownloads.value = downloadResult.maxConcurrentDownloads
+
+    // Save video retry count setting
+    const retryResult = await window.electronAPI.config.setVideoRetryCount(tempVideoRetryCount.value)
+    videoRetryCount.value = retryResult.videoRetryCount
 
     // Also update the download service
     const { DownloadService } = await import('../services/downloadService')

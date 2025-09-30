@@ -11,13 +11,15 @@ export interface AppConfig {
   intranetMappings?: any;
   maxConcurrentDownloads: number;
   muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+  videoRetryCount: number;
 }
 
 const defaultConfig: AppConfig = {
   outputDirectory: path.join(os.homedir(), 'Downloads', 'AutoSlides'),
   connectionMode: 'external',
   maxConcurrentDownloads: 5,
-  muteMode: 'normal'
+  muteMode: 'normal',
+  videoRetryCount: 5
 };
 
 export class ConfigService {
@@ -37,7 +39,8 @@ export class ConfigService {
       outputDirectory: (this.store as any).get('outputDirectory') as string,
       connectionMode: (this.store as any).get('connectionMode') as 'internal' | 'external',
       maxConcurrentDownloads: (this.store as any).get('maxConcurrentDownloads') as number,
-      muteMode: (this.store as any).get('muteMode') as 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'
+      muteMode: (this.store as any).get('muteMode') as 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded',
+      videoRetryCount: (this.store as any).get('videoRetryCount') as number
     };
   }
 
@@ -57,6 +60,11 @@ export class ConfigService {
 
   setMuteMode(mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'): void {
     (this.store as any).set('muteMode', mode);
+  }
+
+  setVideoRetryCount(count: number): void {
+    const validCount = Math.max(5, Math.min(10, count));
+    (this.store as any).set('videoRetryCount', validCount);
   }
 
   async selectOutputDirectory(): Promise<string | null> {

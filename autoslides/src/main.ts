@@ -118,6 +118,10 @@ ipcMain.handle('config:setMuteMode', async (event, mode: 'normal' | 'mute_all' |
   configService.setMuteMode(mode);
   return configService.getConfig();
 });
+ipcMain.handle('config:setVideoRetryCount', async (event, count: number) => {
+  configService.setVideoRetryCount(count);
+  return configService.getConfig();
+});
 
 // IPC handlers for intranet mapping
 ipcMain.handle('intranet:setEnabled', async (event, enabled: boolean) => {
