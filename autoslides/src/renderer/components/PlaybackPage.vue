@@ -1006,7 +1006,9 @@ const onVideoError = (event: Event) => {
   }
 
   // Track consecutive errors at the same position
-  if (Math.abs(lastPlaybackPosition - lastErrorPosition) < 1) {
+  // Use 4.5 second threshold - if errors occur within 4.5s, consider them at same position
+  // This accounts for 1s + 3s = 4s of skipping, plus small buffer
+  if (Math.abs(lastPlaybackPosition - lastErrorPosition) < 4.5) {
     consecutiveErrorsAtSamePosition++
   } else {
     consecutiveErrorsAtSamePosition = 1
@@ -1048,14 +1050,15 @@ const onVideoError = (event: Event) => {
     videoErrorRetryCount++
 
     // Calculate smart skip amount based on consecutive errors
+    // Pattern: 1s, 3s, 5s, 5s, 5s... (since TS segment is 20s)
     let skipAmount = 0
     if (errorCode === 3) { // DECODE error
-      if (consecutiveErrorsAtSamePosition <= 2) {
-        skipAmount = 1 // Skip 1 second for first few attempts
-      } else if (consecutiveErrorsAtSamePosition <= 4) {
-        skipAmount = 3 // Skip 3 seconds for persistent errors
+      if (consecutiveErrorsAtSamePosition === 1) {
+        skipAmount = 1 // First error: skip 1 second
+      } else if (consecutiveErrorsAtSamePosition === 2) {
+        skipAmount = 3 // Second error: skip 3 seconds
       } else {
-        skipAmount = 5 // Skip 5 seconds for very persistent errors
+        skipAmount = 5 // Third error and beyond: skip 5 seconds
       }
     }
 
@@ -1091,9 +1094,8 @@ const onVideoError = (event: Event) => {
 }
 
 const onCanPlay = () => {
-  // Video can start playing - but don't reset error counters immediately
-  // Wait for stable playback before resetting
-  console.log('Video can play - waiting for stable playback before resetting counters')
+  // Video can start playing - but wait to ensure it's actually stable
+  console.log('Video can play - waiting for stable playback before reducing counters')
 
   // Hide retry UI immediately when video can play
   if (isRetrying.value) {
@@ -1103,17 +1105,15 @@ const onCanPlay = () => {
     }, 500) // Small delay to show success
   }
 
-  // Reset counters after successful playback for a few seconds
+  // Wait a bit longer before reducing counters to ensure video is truly stable
   setTimeout(() => {
     if (videoPlayer.value && !videoPlayer.value.paused && !videoPlayer.value.ended) {
-      console.log('Stable playback detected - resetting error counters')
-      videoErrorRetryCount = 0
-      consecutiveErrorsAtSamePosition = 0
-      lastErrorPosition = -1
-      isRetrying.value = false
-      retryMessage.value = ''
+      if (consecutiveErrorsAtSamePosition > 0) {
+        consecutiveErrorsAtSamePosition = Math.max(0, consecutiveErrorsAtSamePosition - 1)
+        console.log(`Video stable after canplay - reduced consecutive error count to: ${consecutiveErrorsAtSamePosition}`)
+      }
     }
-  }, 3000) // Wait 3 seconds of stable playback
+  }, 1500) // Wait 1.5 seconds to ensure stability
 }
 
 // Utility functions
@@ -1155,15 +1155,57 @@ watch(() => videoPlayer.value, (newPlayer) => {
       isPlaying.value = !newPlayer.paused
     }
 
-    newPlayer.addEventListener('play', updatePlayingState)
+    const onPlayStart = () => {
+      updatePlayingState()
+      // Wait a bit before reducing counters to ensure stable playback
+      setTimeout(() => {
+        if (newPlayer && !newPlayer.paused && !newPlayer.ended) {
+          if (consecutiveErrorsAtSamePosition > 0) {
+            consecutiveErrorsAtSamePosition = Math.max(0, consecutiveErrorsAtSamePosition - 1)
+            console.log(`Video playing stably - reduced consecutive error count to: ${consecutiveErrorsAtSamePosition}`)
+          }
+        }
+      }, 1000) // Wait 1 second of stable playback
+    }
+
+    let lastTimeUpdate = 0
+    let stablePlaybackTime = 0
+    const onTimeUpdate = () => {
+      const currentTime = newPlayer.currentTime
+      // Track stable playback time (continuous progress without errors)
+      if (currentTime > lastTimeUpdate + 0.1) { // 100ms progress
+        stablePlaybackTime += (currentTime - lastTimeUpdate)
+        lastTimeUpdate = currentTime
+
+        // Only reduce counters after 2 seconds of stable playback
+        if (stablePlaybackTime >= 2.0) {
+          if (videoErrorRetryCount > 0) {
+            videoErrorRetryCount = Math.max(0, videoErrorRetryCount - 1)
+            console.log(`2s stable playback - reduced retry count to: ${videoErrorRetryCount}`)
+            stablePlaybackTime = 0 // Reset to avoid frequent reductions
+          }
+          if (consecutiveErrorsAtSamePosition > 1) {
+            consecutiveErrorsAtSamePosition = Math.max(0, consecutiveErrorsAtSamePosition - 1)
+            console.log(`2s stable playback - reduced consecutive error count to: ${consecutiveErrorsAtSamePosition}`)
+          }
+        }
+      } else {
+        // Reset stable playback time if no progress (might indicate buffering/stalling)
+        stablePlaybackTime = 0
+      }
+    }
+
+    newPlayer.addEventListener('play', onPlayStart)
     newPlayer.addEventListener('pause', updatePlayingState)
     newPlayer.addEventListener('ended', updatePlayingState)
+    newPlayer.addEventListener('timeupdate', onTimeUpdate)
 
     // Store cleanup function
     currentEventListeners.push(() => {
-      newPlayer.removeEventListener('play', updatePlayingState)
+      newPlayer.removeEventListener('play', onPlayStart)
       newPlayer.removeEventListener('pause', updatePlayingState)
       newPlayer.removeEventListener('ended', updatePlayingState)
+      newPlayer.removeEventListener('timeupdate', onTimeUpdate)
     })
 
     // Apply mute settings immediately when video player is ready
