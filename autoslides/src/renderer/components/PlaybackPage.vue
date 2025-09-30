@@ -413,9 +413,13 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
 
         setTimeout(() => {
           if (videoPlayer.value) {
-            // Set initial playback rate based on mode
+            // Set initial playback rate based on mode and saved state
             if (props.mode === 'recorded') {
-              videoPlayer.value.playbackRate = currentPlaybackRate.value
+              // Use saved playback rate if available (from error recovery), otherwise use current setting
+              const targetRate = lastPlaybackRateBeforeError > 1 ? lastPlaybackRateBeforeError : currentPlaybackRate.value
+              videoPlayer.value.playbackRate = targetRate
+              currentPlaybackRate.value = targetRate
+              console.log(`Restored playback rate to ${targetRate}x (saved: ${lastPlaybackRateBeforeError}, current: ${currentPlaybackRate.value})`)
             } else {
               videoPlayer.value.playbackRate = 1
               currentPlaybackRate.value = 1
@@ -551,9 +555,13 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
 
       setTimeout(() => {
         if (videoPlayer.value) {
-          // Set initial playback rate based on mode
+          // Set initial playback rate based on mode and saved state
           if (props.mode === 'recorded') {
-            videoPlayer.value.playbackRate = currentPlaybackRate.value
+            // Use saved playback rate if available (from error recovery), otherwise use current setting
+            const targetRate = lastPlaybackRateBeforeError > 1 ? lastPlaybackRateBeforeError : currentPlaybackRate.value
+            videoPlayer.value.playbackRate = targetRate
+            currentPlaybackRate.value = targetRate
+            console.log(`Restored playback rate to ${targetRate}x (native, saved: ${lastPlaybackRateBeforeError}, current: ${currentPlaybackRate.value})`)
           } else {
             videoPlayer.value.playbackRate = 1
             currentPlaybackRate.value = 1
@@ -977,6 +985,7 @@ let videoErrorRetryCount = 0
 const maxVideoErrorRetries = ref(5) // Will be loaded from config
 let lastPlaybackPosition = 0
 let wasPlayingBeforeError = false
+let lastPlaybackRateBeforeError = 1 // Save playback rate before error
 let consecutiveErrorsAtSamePosition = 0
 let lastErrorPosition = -1
 let isHlsRecovering = false // Flag to coordinate HLS and video error recovery
@@ -1003,6 +1012,7 @@ const onVideoError = (event: Event) => {
   if (target.currentTime > 0) {
     lastPlaybackPosition = target.currentTime
     wasPlayingBeforeError = !target.paused
+    lastPlaybackRateBeforeError = target.playbackRate // Save current playback rate
   }
 
   // Track consecutive errors at the same position
@@ -1088,6 +1098,7 @@ const onVideoError = (event: Event) => {
     videoErrorRetryCount = 0
     lastPlaybackPosition = 0
     wasPlayingBeforeError = false
+    lastPlaybackRateBeforeError = 1
     consecutiveErrorsAtSamePosition = 0
     lastErrorPosition = -1
   }
@@ -1111,6 +1122,12 @@ const onCanPlay = () => {
       if (consecutiveErrorsAtSamePosition > 0) {
         consecutiveErrorsAtSamePosition = Math.max(0, consecutiveErrorsAtSamePosition - 1)
         console.log(`Video stable after canplay - reduced consecutive error count to: ${consecutiveErrorsAtSamePosition}`)
+      }
+
+      // Reset saved playback rate after successful recovery
+      if (lastPlaybackRateBeforeError > 1) {
+        console.log(`Resetting saved playback rate from ${lastPlaybackRateBeforeError} after successful recovery`)
+        lastPlaybackRateBeforeError = 1
       }
     }
   }, 1500) // Wait 1.5 seconds to ensure stability
@@ -1187,6 +1204,12 @@ watch(() => videoPlayer.value, (newPlayer) => {
           if (consecutiveErrorsAtSamePosition > 1) {
             consecutiveErrorsAtSamePosition = Math.max(0, consecutiveErrorsAtSamePosition - 1)
             console.log(`2s stable playback - reduced consecutive error count to: ${consecutiveErrorsAtSamePosition}`)
+          }
+
+          // Reset saved playback rate after stable playback
+          if (lastPlaybackRateBeforeError > 1) {
+            console.log(`Resetting saved playback rate from ${lastPlaybackRateBeforeError} after 2s stable playback`)
+            lastPlaybackRateBeforeError = 1
           }
         }
       } else {
