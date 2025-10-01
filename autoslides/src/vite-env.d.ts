@@ -226,6 +226,7 @@ interface ElectronAPI {
         };
       };
     }>;
+    stopProxy: () => Promise<void>;
   };
   ffmpeg: {
     getPath: () => Promise<string | null>;

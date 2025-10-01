@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('video:getLiveStreamUrls', stream, token),
     getVideoPlaybackUrls: (session: any, token: string) =>
       ipcRenderer.invoke('video:getVideoPlaybackUrls', session, token),
+    stopProxy: () => ipcRenderer.invoke('video:stopProxy'),
   },
   ffmpeg: {
     getPath: () => ipcRenderer.invoke('ffmpeg:getPath'),

@@ -178,6 +178,16 @@ ipcMain.handle('video:getVideoPlaybackUrls', async (event, session: any, token: 
   }
 });
 
+ipcMain.handle('video:stopProxy', async () => {
+  try {
+    videoProxyService.stopVideoProxy();
+    console.log('Video proxy stopped');
+  } catch (error) {
+    console.error('Failed to stop video proxy:', error);
+    throw error;
+  }
+});
+
 // IPC handlers for FFmpeg
 ipcMain.handle('ffmpeg:getPath', async () => {
   return ffmpegService.getFfmpegPath();

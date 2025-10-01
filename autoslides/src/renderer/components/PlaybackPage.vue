@@ -57,7 +57,20 @@
           <line x1="15" y1="9" x2="9" y2="15"/>
           <line x1="9" y1="9" x2="15" y2="15"/>
         </svg>
-        <p>{{ error }}</p>
+        <div class="error-details">
+          <p class="error-message">{{ error }}</p>
+          <div v-if="lastPlaybackPosition > 0" class="error-info">
+            <p class="playback-position">
+              <strong>Last played position:</strong> {{ formatDuration(Math.floor(lastPlaybackPosition)) }}
+            </p>
+          </div>
+          <div v-if="error.includes('Failed after') || error.includes('retry attempts')" class="error-suggestion">
+            <p class="suggestion-text">
+              This may be due to video quality issues or network problems.
+              Consider downloading this video for offline viewing to avoid playback interruptions.
+            </p>
+          </div>
+        </div>
         <button @click="retryLoad" class="retry-btn">Retry</button>
       </div>
 
@@ -340,6 +353,16 @@ const loadVideoStreams = async () => {
   } catch (err: any) {
     console.error('Failed to load video streams:', err)
     error.value = err.message || 'Failed to load video streams'
+    // Clear retry UI state when showing final error
+    isRetrying.value = false
+    retryMessage.value = ''
+    // Stop video proxy to prevent continued token refreshing
+    try {
+      await window.electronAPI.video.stopProxy()
+      console.log('Video proxy stopped due to stream loading error')
+    } catch (proxyErr) {
+      console.error('Failed to stop video proxy:', proxyErr)
+    }
   } finally {
     loading.value = false
   }
@@ -470,7 +493,7 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
       let networkErrorRecoveryCount = 0
       const maxRecoveryAttempts = 3
 
-      hls.value.on(Hls.Events.ERROR, (event, data) => {
+      hls.value.on(Hls.Events.ERROR, async (event, data) => {
         console.error('HLS error during position restore:', event, data)
 
         if (data.fatal) {
@@ -490,6 +513,16 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
               } else {
                 console.error('Max network recovery attempts reached during restore')
                 error.value = 'Network error: Unable to load video after multiple attempts'
+                // Clear retry UI state when showing final error
+                isRetrying.value = false
+                retryMessage.value = ''
+                // Stop video proxy to prevent continued token refreshing
+                try {
+                  await window.electronAPI.video.stopProxy()
+                  console.log('Video proxy stopped due to network error')
+                } catch (err) {
+                  console.error('Failed to stop video proxy:', err)
+                }
               }
               break
 
@@ -523,12 +556,32 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
               } else {
                 console.error('Max media recovery attempts reached during restore')
                 error.value = 'Video decoding error: Unable to decode video after multiple attempts'
+                // Clear retry UI state when showing final error
+                isRetrying.value = false
+                retryMessage.value = ''
+                // Stop video proxy to prevent continued token refreshing
+                try {
+                  await window.electronAPI.video.stopProxy()
+                  console.log('Video proxy stopped due to decoding error')
+                } catch (err) {
+                  console.error('Failed to stop video proxy:', err)
+                }
               }
               break
 
             default:
               console.error('Other fatal error during restore:', data.details)
               error.value = 'Video playback error: ' + data.details
+              // Clear retry UI state when showing final error
+              isRetrying.value = false
+              retryMessage.value = ''
+              // Stop video proxy to prevent continued token refreshing
+              try {
+                await window.electronAPI.video.stopProxy()
+                console.log('Video proxy stopped due to playback error')
+              } catch (err) {
+                console.error('Failed to stop video proxy:', err)
+              }
               break
           }
         }
@@ -611,6 +664,16 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
   } catch (err: any) {
     console.error('Failed to load video source with position:', err)
     error.value = 'Failed to load video source: ' + err.message
+    // Clear retry UI state when showing final error
+    isRetrying.value = false
+    retryMessage.value = ''
+    // Stop video proxy to prevent continued token refreshing
+    try {
+      await window.electronAPI.video.stopProxy()
+      console.log('Video proxy stopped due to source loading error')
+    } catch (proxyErr) {
+      console.error('Failed to stop video proxy:', proxyErr)
+    }
   }
 }
 
@@ -721,7 +784,7 @@ const loadVideoSource = async () => {
       let networkErrorRecoveryCount = 0
       const maxRecoveryAttempts = 3
 
-      hls.value.on(Hls.Events.ERROR, (event, data) => {
+      hls.value.on(Hls.Events.ERROR, async (event, data) => {
         console.error('HLS error:', event, data)
 
         if (data.fatal) {
@@ -744,6 +807,16 @@ const loadVideoSource = async () => {
               } else {
                 console.error('Max network recovery attempts reached')
                 error.value = 'Network error: Unable to load video after multiple attempts'
+                // Clear retry UI state when showing final error
+                isRetrying.value = false
+                retryMessage.value = ''
+                // Stop video proxy to prevent continued token refreshing
+                try {
+                  await window.electronAPI.video.stopProxy()
+                  console.log('Video proxy stopped due to network error')
+                } catch (err) {
+                  console.error('Failed to stop video proxy:', err)
+                }
               }
               break
 
@@ -832,12 +905,32 @@ const loadVideoSource = async () => {
               } else {
                 console.error('Max media recovery attempts reached')
                 error.value = 'Video decoding error: Unable to decode video after multiple attempts'
+                // Clear retry UI state when showing final error
+                isRetrying.value = false
+                retryMessage.value = ''
+                // Stop video proxy to prevent continued token refreshing
+                try {
+                  await window.electronAPI.video.stopProxy()
+                  console.log('Video proxy stopped due to decoding error')
+                } catch (err) {
+                  console.error('Failed to stop video proxy:', err)
+                }
               }
               break
 
             default:
               console.error('Other fatal error:', data.details)
               error.value = 'Video playback error: ' + data.details
+              // Clear retry UI state when showing final error
+              isRetrying.value = false
+              retryMessage.value = ''
+              // Stop video proxy to prevent continued token refreshing
+              try {
+                await window.electronAPI.video.stopProxy()
+                console.log('Video proxy stopped due to playback error')
+              } catch (err) {
+                console.error('Failed to stop video proxy:', err)
+              }
               break
           }
         } else {
@@ -905,6 +998,16 @@ const loadVideoSource = async () => {
   } catch (err: any) {
     console.error('Failed to load video source:', err)
     error.value = 'Failed to load video source: ' + err.message
+    // Clear retry UI state when showing final error
+    isRetrying.value = false
+    retryMessage.value = ''
+    // Stop video proxy to prevent continued token refreshing
+    try {
+      await window.electronAPI.video.stopProxy()
+      console.log('Video proxy stopped due to source loading error')
+    } catch (proxyErr) {
+      console.error('Failed to stop video proxy:', proxyErr)
+    }
   }
 }
 
@@ -960,6 +1063,10 @@ const switchStream = async () => {
 
 
 const retryLoad = () => {
+  // Clear error state before retrying
+  error.value = null
+  // Reset playback position for fresh start
+  lastPlaybackPosition = 0
   loadVideoStreams()
 }
 
@@ -990,7 +1097,7 @@ let consecutiveErrorsAtSamePosition = 0
 let lastErrorPosition = -1
 let isHlsRecovering = false // Flag to coordinate HLS and video error recovery
 
-const onVideoError = (event: Event) => {
+const onVideoError = async (event: Event) => {
   const target = event.target as HTMLVideoElement
   const errorCode = target.error?.code
   const errorMessage = target.error?.message
@@ -1094,9 +1201,21 @@ const onVideoError = (event: Event) => {
     }
     error.value = userMessage
 
+    // Clear retry UI state when showing final error
+    isRetrying.value = false
+    retryMessage.value = ''
+
+    // Stop video proxy to prevent continued token refreshing
+    try {
+      await window.electronAPI.video.stopProxy()
+      console.log('Video proxy stopped due to playback error')
+    } catch (err) {
+      console.error('Failed to stop video proxy:', err)
+    }
+
     // Reset counters for next video
     videoErrorRetryCount = 0
-    lastPlaybackPosition = 0
+    // Don't reset lastPlaybackPosition here - keep it for error display
     wasPlayingBeforeError = false
     lastPlaybackRateBeforeError = 1
     consecutiveErrorsAtSamePosition = 0
@@ -1329,13 +1448,21 @@ onMounted(async () => {
   loadVideoStreams()
 })
 
-onUnmounted(() => {
+onUnmounted(async () => {
   // Clean up HLS
   cleanup()
 
   // Clean up event listeners
   currentEventListeners.forEach(cleanupFn => cleanupFn())
   currentEventListeners = []
+
+  // Stop video proxy to prevent continued token refreshing
+  try {
+    await window.electronAPI.video.stopProxy()
+    console.log('Video proxy stopped on component unmount')
+  } catch (err) {
+    console.error('Failed to stop video proxy on unmount:', err)
+  }
 })
 </script>
 
@@ -1436,6 +1563,47 @@ onUnmounted(() => {
 
 .error-state svg {
   color: #dc3545;
+}
+
+.error-details {
+  text-align: center;
+  max-width: 500px;
+}
+
+.error-message {
+  font-size: 16px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+.error-info {
+  margin: 12px 0;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 3px solid #007acc;
+}
+
+.playback-position {
+  margin: 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.error-suggestion {
+  margin: 16px 0;
+  padding: 12px;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+}
+
+.suggestion-text {
+  margin: 0;
+  font-size: 14px;
+  color: #856404;
+  line-height: 1.4;
 }
 
 .retry-btn {
