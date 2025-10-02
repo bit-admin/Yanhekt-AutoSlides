@@ -161,6 +161,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { DataStore } from '../services/dataStore'
 import { TokenManager } from '../services/authService'
+import { slideExtractor } from '../services/slideExtractor'
 import Hls from 'hls.js'
 
 interface Course {
@@ -442,10 +443,14 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
               const targetRate = lastPlaybackRateBeforeError > 1 ? lastPlaybackRateBeforeError : currentPlaybackRate.value
               videoPlayer.value.playbackRate = targetRate
               currentPlaybackRate.value = targetRate
+              // Update slide extractor with restored playback rate
+              slideExtractor.updatePlaybackRate(targetRate)
               console.log(`Restored playback rate to ${targetRate}x (saved: ${lastPlaybackRateBeforeError}, current: ${currentPlaybackRate.value})`)
             } else {
               videoPlayer.value.playbackRate = 1
               currentPlaybackRate.value = 1
+              // Update slide extractor with live mode playback rate
+              slideExtractor.updatePlaybackRate(1)
             }
 
             // Apply mute settings
@@ -614,10 +619,14 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
             const targetRate = lastPlaybackRateBeforeError > 1 ? lastPlaybackRateBeforeError : currentPlaybackRate.value
             videoPlayer.value.playbackRate = targetRate
             currentPlaybackRate.value = targetRate
+            // Update slide extractor with restored playback rate
+            slideExtractor.updatePlaybackRate(targetRate)
             console.log(`Restored playback rate to ${targetRate}x (native, saved: ${lastPlaybackRateBeforeError}, current: ${currentPlaybackRate.value})`)
           } else {
             videoPlayer.value.playbackRate = 1
             currentPlaybackRate.value = 1
+            // Update slide extractor with live mode playback rate
+            slideExtractor.updatePlaybackRate(1)
           }
 
           // Apply mute settings
@@ -752,9 +761,13 @@ const loadVideoSource = async () => {
             // Set initial playback rate based on mode
             if (props.mode === 'recorded') {
               videoPlayer.value.playbackRate = currentPlaybackRate.value
+              // Update slide extractor with current playback rate
+              slideExtractor.updatePlaybackRate(currentPlaybackRate.value)
             } else {
               videoPlayer.value.playbackRate = 1
               currentPlaybackRate.value = 1
+              // Update slide extractor with live mode playback rate
+              slideExtractor.updatePlaybackRate(1)
             }
 
             // Apply mute settings
@@ -971,9 +984,13 @@ const loadVideoSource = async () => {
           // Set initial playback rate based on mode
           if (props.mode === 'recorded') {
             videoPlayer.value.playbackRate = currentPlaybackRate.value
+            // Update slide extractor with current playback rate
+            slideExtractor.updatePlaybackRate(currentPlaybackRate.value)
           } else {
             videoPlayer.value.playbackRate = 1
             currentPlaybackRate.value = 1
+            // Update slide extractor with live mode playback rate
+            slideExtractor.updatePlaybackRate(1)
           }
 
           // Apply mute settings
@@ -1027,9 +1044,13 @@ const switchStream = async () => {
       // Restore playback rate only for recorded videos
       if (props.mode === 'recorded') {
         videoPlayer.value.playbackRate = currentPlaybackRate.value
+        // Update slide extractor with current playback rate
+        slideExtractor.updatePlaybackRate(currentPlaybackRate.value)
       } else {
         videoPlayer.value.playbackRate = 1
         currentPlaybackRate.value = 1
+        // Update slide extractor with live mode playback rate
+        slideExtractor.updatePlaybackRate(1)
       }
 
       // Apply mute settings after stream switch
@@ -1075,6 +1096,9 @@ const changePlaybackRate = () => {
   if (videoPlayer.value) {
     videoPlayer.value.playbackRate = currentPlaybackRate.value
     console.log(`Playback rate changed to: ${currentPlaybackRate.value}x`)
+
+    // Update slide extractor with new playback rate for dynamic interval adjustment
+    slideExtractor.updatePlaybackRate(currentPlaybackRate.value)
   }
 }
 

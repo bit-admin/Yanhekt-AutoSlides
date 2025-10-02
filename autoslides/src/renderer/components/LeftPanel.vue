@@ -92,18 +92,19 @@
 
         <div class="setting-item">
           <label class="setting-label">Slide Detection Interval:</label>
-          <div class="setting-description">How often to check for slide changes (in milliseconds)</div>
+          <div class="setting-description">How often to check for slide changes (default: 2000ms)</div>
           <div class="slide-interval-group">
             <input
               v-model.number="slideCheckInterval"
               type="number"
-              min="500"
+              min="1000"
               max="10000"
               step="500"
               class="slide-interval-input"
               @change="setSlideCheckInterval"
+              @blur="validateAndCorrectInterval"
             />
-            <span class="interval-hint">500-10000ms</span>
+            <span class="interval-hint">milliseconds</span>
           </div>
         </div>
 
@@ -386,6 +387,8 @@ const loadConfig = async () => {
     // Load slide extraction configuration
     const slideConfig = await window.electronAPI.config.getSlideExtractionConfig()
     slideCheckInterval.value = slideConfig.checkInterval || 2000
+    // Validate loaded value to ensure it meets new requirements
+    validateAndCorrectInterval()
     slideDoubleVerification.value = slideConfig.enableDoubleVerification !== false
     slideVerificationCount.value = slideConfig.verificationCount || 2
 
@@ -431,8 +434,51 @@ const setMuteMode = async () => {
 }
 
 // Slide extraction configuration methods
+const validateAndCorrectInterval = () => {
+  // Ensure the value is a valid number
+  if (isNaN(slideCheckInterval.value) || slideCheckInterval.value === null || slideCheckInterval.value === undefined) {
+    slideCheckInterval.value = 2000 // Default value
+    return
+  }
+
+  // Convert to integer to avoid floating point issues
+  let value = Math.round(slideCheckInterval.value)
+
+  // Enforce minimum and maximum bounds
+  if (value < 1000) {
+    value = 1000
+  } else if (value > 10000) {
+    value = 10000
+  }
+
+  // Round to nearest 500 multiple
+  const remainder = value % 500
+  if (remainder !== 0) {
+    // Round to nearest 500 multiple
+    if (remainder <= 250) {
+      value = value - remainder // Round down (including exactly 250)
+    } else {
+      value = value + (500 - remainder) // Round up
+    }
+  }
+
+  // Ensure we don't go below minimum after rounding
+  if (value < 1000) {
+    value = 1000
+  }
+
+  // Update the value if it was corrected
+  if (value !== slideCheckInterval.value) {
+    slideCheckInterval.value = value
+    console.log(`Slide check interval corrected to: ${value}ms`)
+  }
+}
+
 const setSlideCheckInterval = async () => {
   try {
+    // Validate and correct the value before saving
+    validateAndCorrectInterval()
+
     const result = await window.electronAPI.config.setSlideCheckInterval(slideCheckInterval.value)
     slideCheckInterval.value = result.checkInterval
   } catch (error) {
