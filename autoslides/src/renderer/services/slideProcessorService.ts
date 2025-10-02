@@ -127,14 +127,16 @@ export class SlideProcessorService {
   /**
    * Calculate perceptual hash for an image
    */
-  async calculateHash(imageData: ImageData): Promise<number> {
+  async calculateHash(imageData: ImageData): Promise<bigint> {
     try {
-      return await this.sendMessage<number>('calculateHash', {
+      const result = await this.sendMessage<string>('calculateHash', {
         imageData
       });
+      // Convert string representation back to BigInt
+      return BigInt(result);
     } catch (error) {
       console.error('Error calculating hash:', error);
-      return 0;
+      return 0n;
     }
   }
 

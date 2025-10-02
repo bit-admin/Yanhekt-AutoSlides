@@ -130,10 +130,10 @@ function calculateMedian(values: number[]): number {
 /**
  * Calculate perceptual hash (standard pHash method)
  */
-function calculatePerceptualHash(imageData: ImageData): number {
+function calculatePerceptualHash(imageData: ImageData): bigint {
   if (!imageData) {
     console.warn('calculatePerceptualHash: imageData is null');
-    return 0;
+    return 0n;
   }
 
   // 1. Convert to grayscale first
@@ -152,10 +152,10 @@ function calculatePerceptualHash(imageData: ImageData): number {
   const acCoeffs = lowFreqCoeffs.slice(1); // Exclude DC component
   const median = calculateMedian(acCoeffs);
 
-  // 6. Generate 63-bit hash
-  let hash = 0;
+  // 6. Generate 63-bit hash using BigInt for precision
+  let hash = 0n;
   for (let i = 0; i < acCoeffs.length; i++) {
-    hash = hash * 2 + (acCoeffs[i] >= median ? 1 : 0);
+    hash = hash * 2n + (acCoeffs[i] >= median ? 1n : 0n);
   }
 
   return hash;
@@ -164,13 +164,13 @@ function calculatePerceptualHash(imageData: ImageData): number {
 /**
  * Calculate Hamming distance between two hashes
  */
-function calculateHammingDistance(hash1: number, hash2: number): number {
+function calculateHammingDistance(hash1: bigint, hash2: bigint): number {
   let xor = hash1 ^ hash2;
   let distance = 0;
 
-  while (xor) {
-    distance += xor & 1;
-    xor >>>= 1;
+  while (xor > 0n) {
+    distance += Number(xor & 1n);
+    xor >>= 1n;
   }
 
   return distance;
@@ -271,7 +271,8 @@ self.onmessage = function(e: MessageEvent<WorkerMessage>) {
 
       case 'calculateHash': {
         const { imageData } = data;
-        result = calculatePerceptualHash(imageData);
+        const hash = calculatePerceptualHash(imageData);
+        result = hash.toString(); // Convert BigInt to string for serialization
         break;
       }
 

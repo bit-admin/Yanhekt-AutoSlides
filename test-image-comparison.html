@@ -215,7 +215,7 @@
         function calculatePerceptualHash(imageData) {
             if (!imageData) {
                 console.warn('calculatePerceptualHash: imageData is null');
-                return 0;
+                return 0n;
             }
 
             // 1. Convert to grayscale first
@@ -234,10 +234,10 @@
             const acCoeffs = lowFreqCoeffs.slice(1); // Exclude DC component
             const median = calculateMedian(acCoeffs);
 
-            // 6. Generate 63-bit hash
-            let hash = 0;
+            // 6. Generate 63-bit hash using BigInt for precision
+            let hash = 0n;
             for (let i = 0; i < acCoeffs.length; i++) {
-                hash = hash * 2 + (acCoeffs[i] >= median ? 1 : 0);
+                hash = hash * 2n + (acCoeffs[i] >= median ? 1n : 0n);
             }
 
             return hash;
@@ -247,9 +247,9 @@
             let xor = hash1 ^ hash2;
             let distance = 0;
 
-            while (xor) {
-                distance += xor & 1;
-                xor >>>= 1;
+            while (xor > 0n) {
+                distance += Number(xor & 1n);
+                xor >>= 1n;
             }
 
             return distance;
@@ -397,11 +397,11 @@
                 </div>`;
 
                 html += `<div class="result-item">
-                    <strong>pHash 1:</strong> ${hash1} (binary: ${hash1.toString(2).padStart(63, '0')})
+                    <strong>pHash 1:</strong> ${hash1.toString()} (binary: ${hash1.toString(2).padStart(63, '0')})
                 </div>`;
 
                 html += `<div class="result-item">
-                    <strong>pHash 2:</strong> ${hash2} (binary: ${hash2.toString(2).padStart(63, '0')})
+                    <strong>pHash 2:</strong> ${hash2.toString()} (binary: ${hash2.toString(2).padStart(63, '0')})
                 </div>`;
 
                 html += `<div class="result-item">
