@@ -74,7 +74,7 @@
         <button @click="retryLoad" class="retry-btn">Retry</button>
       </div>
 
-      <div v-else-if="playbackData" class="video-content">
+      <div v-else-if="playbackData" class="video-content" :data-playback-mode="props.mode">
         <!-- Stream Selection and Playback Controls -->
         <div class="controls-row">
           <div v-if="Object.keys(playbackData.streams).length > 1 && !isSlideExtractionEnabled" class="stream-selector">
@@ -180,7 +180,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { DataStore } from '../services/dataStore'
 import { TokenManager } from '../services/authService'
-import { slideExtractor } from '../services/slideExtractor'
+import { slideExtractionManager, type SlideExtractor } from '../services/slideExtractor'
 import Hls from 'hls.js'
 
 interface Course {
@@ -282,6 +282,8 @@ const slideExtractionStatus = ref({
   verificationState: 'none',
   currentVerification: 0
 })
+const slideExtractorInstance = ref<SlideExtractor | null>(null)
+const extractorInstanceId = ref<string | null>(null)
 
 // Computed property to determine if video should be muted based on mode and mute setting
 const shouldVideoMute = computed(() => {
@@ -479,13 +481,17 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
               videoPlayer.value.playbackRate = targetRate
               currentPlaybackRate.value = targetRate
               // Update slide extractor with restored playback rate
-              slideExtractor.updatePlaybackRate(targetRate)
+              if (slideExtractorInstance.value) {
+                slideExtractorInstance.value.updatePlaybackRate(targetRate)
+              }
               console.log(`Restored playback rate to ${targetRate}x (saved: ${lastPlaybackRateBeforeError}, current: ${currentPlaybackRate.value})`)
             } else {
               videoPlayer.value.playbackRate = 1
               currentPlaybackRate.value = 1
               // Update slide extractor with live mode playback rate
-              slideExtractor.updatePlaybackRate(1)
+              if (slideExtractorInstance.value) {
+                slideExtractorInstance.value.updatePlaybackRate(1)
+              }
             }
 
             // Apply mute settings
@@ -655,13 +661,17 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
             videoPlayer.value.playbackRate = targetRate
             currentPlaybackRate.value = targetRate
             // Update slide extractor with restored playback rate
-            slideExtractor.updatePlaybackRate(targetRate)
+            if (slideExtractorInstance.value) {
+              slideExtractorInstance.value.updatePlaybackRate(targetRate)
+            }
             console.log(`Restored playback rate to ${targetRate}x (native, saved: ${lastPlaybackRateBeforeError}, current: ${currentPlaybackRate.value})`)
           } else {
             videoPlayer.value.playbackRate = 1
             currentPlaybackRate.value = 1
             // Update slide extractor with live mode playback rate
-            slideExtractor.updatePlaybackRate(1)
+            if (slideExtractorInstance.value) {
+              slideExtractorInstance.value.updatePlaybackRate(1)
+            }
           }
 
           // Apply mute settings
@@ -797,12 +807,16 @@ const loadVideoSource = async () => {
             if (props.mode === 'recorded') {
               videoPlayer.value.playbackRate = currentPlaybackRate.value
               // Update slide extractor with current playback rate
-              slideExtractor.updatePlaybackRate(currentPlaybackRate.value)
+              if (slideExtractorInstance.value) {
+                slideExtractorInstance.value.updatePlaybackRate(currentPlaybackRate.value)
+              }
             } else {
               videoPlayer.value.playbackRate = 1
               currentPlaybackRate.value = 1
               // Update slide extractor with live mode playback rate
-              slideExtractor.updatePlaybackRate(1)
+              if (slideExtractorInstance.value) {
+                slideExtractorInstance.value.updatePlaybackRate(1)
+              }
             }
 
             // Apply mute settings
@@ -1020,12 +1034,16 @@ const loadVideoSource = async () => {
           if (props.mode === 'recorded') {
             videoPlayer.value.playbackRate = currentPlaybackRate.value
             // Update slide extractor with current playback rate
-            slideExtractor.updatePlaybackRate(currentPlaybackRate.value)
+            if (slideExtractorInstance.value) {
+              slideExtractorInstance.value.updatePlaybackRate(currentPlaybackRate.value)
+            }
           } else {
             videoPlayer.value.playbackRate = 1
             currentPlaybackRate.value = 1
             // Update slide extractor with live mode playback rate
-            slideExtractor.updatePlaybackRate(1)
+            if (slideExtractorInstance.value) {
+              slideExtractorInstance.value.updatePlaybackRate(1)
+            }
           }
 
           // Apply mute settings
@@ -1080,12 +1098,16 @@ const switchStream = async () => {
       if (props.mode === 'recorded') {
         videoPlayer.value.playbackRate = currentPlaybackRate.value
         // Update slide extractor with current playback rate
-        slideExtractor.updatePlaybackRate(currentPlaybackRate.value)
+        if (slideExtractorInstance.value) {
+          slideExtractorInstance.value.updatePlaybackRate(currentPlaybackRate.value)
+        }
       } else {
         videoPlayer.value.playbackRate = 1
         currentPlaybackRate.value = 1
         // Update slide extractor with live mode playback rate
-        slideExtractor.updatePlaybackRate(1)
+        if (slideExtractorInstance.value) {
+          slideExtractorInstance.value.updatePlaybackRate(1)
+        }
       }
 
       // Apply mute settings after stream switch
@@ -1133,7 +1155,9 @@ const changePlaybackRate = () => {
     console.log(`Playback rate changed to: ${currentPlaybackRate.value}x`)
 
     // Update slide extractor with new playback rate for dynamic interval adjustment
-    slideExtractor.updatePlaybackRate(currentPlaybackRate.value)
+    if (slideExtractorInstance.value) {
+      slideExtractorInstance.value.updatePlaybackRate(currentPlaybackRate.value)
+    }
   }
 }
 
@@ -1141,7 +1165,7 @@ const changePlaybackRate = () => {
 const toggleSlideExtraction = async () => {
   if (isSlideExtractionEnabled.value) {
     // Start slide extraction
-    console.log('Starting slide extraction...')
+    console.log(`Starting slide extraction for ${props.mode} mode...`)
 
     // Ensure we're on screen recording
     if (!isScreenRecordingSelected.value) {
@@ -1150,25 +1174,37 @@ const toggleSlideExtraction = async () => {
       return
     }
 
-    // Initialize slide extraction with current course/session info
-    await initializeSlideExtraction()
+    try {
+      // Get or create extractor instance for this mode
+      const instanceId = `${props.mode}_${props.course?.id || 'unknown'}_${Date.now()}`
+      slideExtractorInstance.value = slideExtractionManager.getExtractor(props.mode, instanceId)
+      extractorInstanceId.value = instanceId
 
-    // Start the extraction process
-    const success = slideExtractor.startExtraction()
-    if (!success) {
-      console.error('Failed to start slide extraction')
+      // Initialize slide extraction with current course/session info
+      await initializeSlideExtraction()
+
+      // Start the extraction process
+      const success = slideExtractorInstance.value.startExtraction()
+      if (!success) {
+        console.error('Failed to start slide extraction')
+        isSlideExtractionEnabled.value = false
+        return
+      }
+
+      // Update status
+      updateSlideExtractionStatus()
+      console.log(`Slide extraction started successfully for instance: ${instanceId}`)
+    } catch (error) {
+      console.error('Failed to start slide extraction:', error)
       isSlideExtractionEnabled.value = false
-      return
     }
-
-    // Update status
-    updateSlideExtractionStatus()
-    console.log('Slide extraction started successfully')
   } else {
     // Stop slide extraction
-    console.log('Stopping slide extraction...')
-    slideExtractor.stopExtraction()
-    slideExtractionStatus.value.isRunning = false
+    console.log(`Stopping slide extraction for ${props.mode} mode...`)
+    if (slideExtractorInstance.value) {
+      slideExtractorInstance.value.stopExtraction()
+      slideExtractionStatus.value.isRunning = false
+    }
     console.log('Slide extraction stopped')
   }
 }
@@ -1208,7 +1244,9 @@ const initializeSlideExtraction = async () => {
     await window.electronAPI.slideExtraction.ensureDirectory(slideOutputPath)
 
     // Store the output path and course info for later use when saving slides
-    slideExtractor.setOutputPath(slideOutputPath, courseInfo)
+    if (slideExtractorInstance.value) {
+      slideExtractorInstance.value.setOutputPath(slideOutputPath, courseInfo)
+    }
 
     console.log('Slide extraction initialized successfully')
 
@@ -1229,12 +1267,14 @@ const sanitizeFileName = (name: string): string => {
 
 // Update slide extraction status
 const updateSlideExtractionStatus = () => {
-  const status = slideExtractor.getStatus()
-  slideExtractionStatus.value = {
-    isRunning: status.isRunning,
-    slideCount: status.slideCount,
-    verificationState: status.verificationState,
-    currentVerification: status.currentVerification
+  if (slideExtractorInstance.value) {
+    const status = slideExtractorInstance.value.getStatus()
+    slideExtractionStatus.value = {
+      isRunning: status.isRunning,
+      slideCount: status.slideCount,
+      verificationState: status.verificationState,
+      currentVerification: status.currentVerification
+    }
   }
 }
 
@@ -1548,9 +1588,19 @@ watch(isVisible, (visible) => {
   if (visible && videoPlayer.value) {
     // When becoming visible, we might want to show current playback state
     console.log(`▶️ ${props.mode} mode now visible, video playing: ${!videoPlayer.value.paused}`)
+
+    // Slide extraction continues in background, no need to restart
+    if (slideExtractorInstance.value && slideExtractorInstance.value.getStatus().isRunning) {
+      console.log(`🎯 Slide extraction for ${props.mode} mode continues in background`)
+    }
   } else if (!visible && videoPlayer.value) {
-    // When becoming hidden, log the state but don't stop playback
+    // When becoming hidden, log the state but don't stop playback or slide extraction
     console.log(`🔇 ${props.mode} mode now hidden, video continues playing: ${!videoPlayer.value.paused}`)
+
+    // Ensure slide extraction continues in background
+    if (slideExtractorInstance.value && slideExtractorInstance.value.getStatus().isRunning) {
+      console.log(`🎯 Slide extraction for ${props.mode} mode will continue in background`)
+    }
   }
 }, { immediate: true })
 
@@ -1577,16 +1627,18 @@ watch(isScreenRecordingSelected, (isScreenRecording) => {
   if (!isScreenRecording && isSlideExtractionEnabled.value) {
     console.log('Stream switched away from screen recording, disabling slide extraction')
     isSlideExtractionEnabled.value = false
-    slideExtractor.stopExtraction()
+    if (slideExtractorInstance.value) {
+      slideExtractorInstance.value.stopExtraction()
+    }
     slideExtractionStatus.value.isRunning = false
   }
 })
 
 // Watch for slide extraction toggle to update playback rate
 watch(isSlideExtractionEnabled, (enabled) => {
-  if (enabled && videoPlayer.value) {
+  if (enabled && videoPlayer.value && slideExtractorInstance.value) {
     // Update slide extractor with current playback rate when enabled
-    slideExtractor.updatePlaybackRate(currentPlaybackRate.value)
+    slideExtractorInstance.value.updatePlaybackRate(currentPlaybackRate.value)
   }
 })
 
@@ -1611,13 +1663,21 @@ const cleanup = () => {
 
 // Slide extraction event handlers
 const onSlideExtracted = (event: CustomEvent) => {
-  console.log('Slide extracted:', event.detail)
-  updateSlideExtractionStatus()
+  const { instanceId, mode } = event.detail
+  // Only handle events from our instance
+  if (instanceId === extractorInstanceId.value && mode === props.mode) {
+    console.log(`Slide extracted for ${mode} mode:`, event.detail)
+    updateSlideExtractionStatus()
+  }
 }
 
-const onSlidesCleared = () => {
-  console.log('Slides cleared')
-  updateSlideExtractionStatus()
+const onSlidesCleared = (event: CustomEvent) => {
+  const { instanceId, mode } = event.detail
+  // Only handle events from our instance
+  if (instanceId === extractorInstanceId.value && mode === props.mode) {
+    console.log(`Slides cleared for ${mode} mode`)
+    updateSlideExtractionStatus()
+  }
 }
 
 // Lifecycle
@@ -1643,8 +1703,13 @@ onMounted(async () => {
 
 onUnmounted(async () => {
   // Stop slide extraction if running
-  if (isSlideExtractionEnabled.value) {
-    slideExtractor.stopExtraction()
+  if (isSlideExtractionEnabled.value && slideExtractorInstance.value) {
+    slideExtractorInstance.value.stopExtraction()
+  }
+
+  // Clean up extractor instance if it was created specifically for this component
+  if (extractorInstanceId.value) {
+    slideExtractionManager.removeExtractor(extractorInstanceId.value)
   }
 
   // Remove slide extraction event listeners

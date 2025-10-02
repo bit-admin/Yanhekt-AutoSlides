@@ -28,6 +28,11 @@ export class SlideExtractor {
   private lastImageData: ImageData | null = null;
   private extractedSlides: ExtractedSlide[] = [];
 
+  // Instance identification
+  private instanceId: string;
+  private mode: 'live' | 'recorded';
+  private videoElementSelector: string;
+
   // Configuration with default values
   private config: SlideExtractionConfig = {
     checkInterval: 2000,              // 2 seconds
@@ -52,11 +57,17 @@ export class SlideExtractor {
   private outputPath: string | null = null;
   private courseInfo: { courseName?: string; sessionTitle?: string; mode?: 'live' | 'recorded' } | null = null;
 
-  constructor() {
+  constructor(mode: 'live' | 'recorded', instanceId?: string) {
+    this.mode = mode;
+    this.instanceId = instanceId || `${mode}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    this.videoElementSelector = `[data-playback-mode="${mode}"] video`;
+
     // Build initial interval table with default base interval
     this.buildIntervalTable();
     // Initialize with default config and load from config service
     this.loadConfigFromService();
+
+    console.log(`SlideExtractor instance created: ${this.instanceId} (mode: ${mode})`);
   }
 
   /**
@@ -303,20 +314,28 @@ export class SlideExtractor {
   }
 
   /**
-   * Get video element from the page
+   * Get video element from the page for this specific instance
    */
   private getVideoElement(): HTMLVideoElement | null {
-    // Try different selectors to find the video element
-    const selectors = [
+    // First try the mode-specific selector
+    let video = document.querySelector(this.videoElementSelector) as HTMLVideoElement;
+    if (video && this.isVideoAccessible(video)) {
+      return video;
+    }
+
+    // Fallback to generic selectors for backward compatibility
+    const fallbackSelectors = [
       'video',
       '#videoPlayer video',
       '.video-container video',
       '[data-video] video'
     ];
 
-    for (const selector of selectors) {
-      const video = document.querySelector(selector) as HTMLVideoElement;
+    for (const selector of fallbackSelectors) {
+      video = document.querySelector(selector) as HTMLVideoElement;
       if (video && this.isVideoAccessible(video)) {
+        // Log warning about fallback usage
+        console.warn(`SlideExtractor ${this.instanceId}: Using fallback selector ${selector}`);
         return video;
       }
     }
@@ -602,12 +621,31 @@ export class SlideExtractor {
   }
 
   /**
+   * Get instance ID
+   */
+  getInstanceId(): string {
+    return this.instanceId;
+  }
+
+  /**
+   * Get mode
+   */
+  getMode(): 'live' | 'recorded' {
+    return this.mode;
+  }
+
+  /**
    * Emit slide extracted event
    */
   private emitSlideExtracted(slide: ExtractedSlide): void {
     // Dispatch custom event for UI components to listen
     const event = new CustomEvent('slideExtracted', {
-      detail: { slide, totalCount: this.extractedSlides.length }
+      detail: {
+        slide,
+        totalCount: this.extractedSlides.length,
+        instanceId: this.instanceId,
+        mode: this.mode
+      }
     });
     window.dispatchEvent(event);
   }
@@ -624,10 +662,15 @@ export class SlideExtractor {
    */
   clearSlides(): void {
     this.extractedSlides = [];
-    console.log('All slides cleared');
+    console.log(`All slides cleared for instance ${this.instanceId}`);
 
-    // Emit clear event
-    const event = new CustomEvent('slidesCleared');
+    // Emit clear event with instance information
+    const event = new CustomEvent('slidesCleared', {
+      detail: {
+        instanceId: this.instanceId,
+        mode: this.mode
+      }
+    });
     window.dispatchEvent(event);
   }
 
@@ -719,5 +762,85 @@ export class SlideExtractor {
   }
 }
 
-// Create singleton instance
-export const slideExtractor = new SlideExtractor();
+/**
+ * Slide Extraction Manager
+ * Manages multiple SlideExtractor instances for Live and Recorded modes
+ */
+export class SlideExtractionManager {
+  private static instance: SlideExtractionManager | null = null;
+  private extractors = new Map<string, SlideExtractor>();
+
+  private constructor() {
+    // Private constructor for singleton
+  }
+
+  static getInstance(): SlideExtractionManager {
+    if (!SlideExtractionManager.instance) {
+      SlideExtractionManager.instance = new SlideExtractionManager();
+    }
+    return SlideExtractionManager.instance;
+  }
+
+  /**
+   * Get or create extractor for specific mode
+   */
+  getExtractor(mode: 'live' | 'recorded', instanceId?: string): SlideExtractor {
+    const key = instanceId || mode;
+
+    if (!this.extractors.has(key)) {
+      const extractor = new SlideExtractor(mode, instanceId);
+      this.extractors.set(key, extractor);
+      console.log(`Created new SlideExtractor instance: ${key}`);
+    }
+
+    return this.extractors.get(key)!;
+  }
+
+  /**
+   * Remove extractor instance
+   */
+  removeExtractor(instanceId: string): void {
+    const extractor = this.extractors.get(instanceId);
+    if (extractor) {
+      extractor.destroy();
+      this.extractors.delete(instanceId);
+      console.log(`Removed SlideExtractor instance: ${instanceId}`);
+    }
+  }
+
+  /**
+   * Get all active extractors
+   */
+  getAllExtractors(): SlideExtractor[] {
+    return Array.from(this.extractors.values());
+  }
+
+  /**
+   * Get extractors by mode
+   */
+  getExtractorsByMode(mode: 'live' | 'recorded'): SlideExtractor[] {
+    return Array.from(this.extractors.values()).filter(extractor => extractor.getMode() === mode);
+  }
+
+  /**
+   * Stop all extractors
+   */
+  stopAllExtractors(): void {
+    this.extractors.forEach(extractor => {
+      extractor.stopExtraction();
+    });
+  }
+
+  /**
+   * Destroy all extractors
+   */
+  destroyAllExtractors(): void {
+    this.extractors.forEach(extractor => {
+      extractor.destroy();
+    });
+    this.extractors.clear();
+  }
+}
+
+// Export manager instance
+export const slideExtractionManager = SlideExtractionManager.getInstance();
