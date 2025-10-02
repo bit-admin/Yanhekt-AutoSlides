@@ -263,6 +263,8 @@ interface ElectronAPI {
         };
       };
     }>;
+    registerClient: () => Promise<string>;
+    unregisterClient: (clientId: string) => Promise<void>;
     stopProxy: () => Promise<void>;
   };
   ffmpeg: {

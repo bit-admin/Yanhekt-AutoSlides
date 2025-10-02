@@ -50,12 +50,42 @@ export class VideoProxyService {
   };
   private signatureInterval: NodeJS.Timeout | null = null;
 
+  // Reference counting for independent mode support
+  private activeClients: Set<string> = new Set();
+  private clientIdCounter = 0;
+
   private apiClient: ApiClient;
   private intranetMapping: IntranetMappingService;
 
   constructor(apiClient: ApiClient, intranetMapping: IntranetMappingService) {
     this.apiClient = apiClient;
     this.intranetMapping = intranetMapping;
+  }
+
+  /**
+   * Register a new client and return client ID for reference counting
+   */
+  registerClient(): string {
+    const clientId = `client_${++this.clientIdCounter}_${Date.now()}`;
+    this.activeClients.add(clientId);
+    console.log(`Video proxy client registered: ${clientId} (total: ${this.activeClients.size})`);
+    return clientId;
+  }
+
+  /**
+   * Unregister a client and stop proxy if no clients remain
+   */
+  unregisterClient(clientId: string): void {
+    if (this.activeClients.has(clientId)) {
+      this.activeClients.delete(clientId);
+      console.log(`Video proxy client unregistered: ${clientId} (remaining: ${this.activeClients.size})`);
+
+      // Only stop proxy if no clients remain
+      if (this.activeClients.size === 0) {
+        console.log('No active clients remaining, stopping video proxy');
+        this.forceStopVideoProxy();
+      }
+    }
   }
 
   /**
@@ -825,9 +855,22 @@ export class VideoProxyService {
   }
 
   /**
-   * Stop the proxy server
+   * Stop the proxy server (deprecated - use unregisterClient instead)
+   * This method is kept for backward compatibility but now logs a warning
    */
   stopVideoProxy(): void {
+    console.warn('stopVideoProxy() called - this method is deprecated for independent mode support');
+    console.warn('Use unregisterClient() instead to properly manage proxy lifecycle');
+
+    // For backward compatibility, we'll force stop if called directly
+    // But this breaks independence, so it should be avoided
+    this.forceStopVideoProxy();
+  }
+
+  /**
+   * Force stop the proxy server (internal method)
+   */
+  private forceStopVideoProxy(): void {
     // Stop signature update loop
     this.stopUpdateSignatureLoop();
 
@@ -835,6 +878,10 @@ export class VideoProxyService {
       this.proxyServer.close();
       this.proxyServer = null;
       this.proxyPort = 0;
+      console.log('Video proxy server stopped');
     }
+
+    // Clear all active clients
+    this.activeClients.clear();
   }
 }

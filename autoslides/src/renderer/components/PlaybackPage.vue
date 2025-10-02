@@ -267,6 +267,9 @@ const currentPlaybackRate = ref(1)
 const connectionMode = ref<'internal' | 'external'>('external')
 const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
 const isVideoMuted = ref(false)
+
+// Video proxy client management for independent mode support
+const videoProxyClientId = ref<string | null>(null)
 const showDetails = ref(false)
 const isRetrying = ref(false)
 const retryMessage = ref('')
@@ -394,13 +397,8 @@ const loadVideoStreams = async () => {
     // Clear retry UI state when showing final error
     isRetrying.value = false
     retryMessage.value = ''
-    // Stop video proxy to prevent continued token refreshing
-    try {
-      await window.electronAPI.video.stopProxy()
-      console.log('Video proxy stopped due to stream loading error')
-    } catch (proxyErr) {
-      console.error('Failed to stop video proxy:', proxyErr)
-    }
+    // Note: Video proxy is managed by reference counting and will be stopped
+    // automatically when all clients are unregistered
   } finally {
     loading.value = false
   }
@@ -562,13 +560,7 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
                 // Clear retry UI state when showing final error
                 isRetrying.value = false
                 retryMessage.value = ''
-                // Stop video proxy to prevent continued token refreshing
-                try {
-                  await window.electronAPI.video.stopProxy()
-                  console.log('Video proxy stopped due to network error')
-                } catch (err) {
-                  console.error('Failed to stop video proxy:', err)
-                }
+                // Note: Video proxy is managed by reference counting
               }
               break
 
@@ -605,13 +597,7 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
                 // Clear retry UI state when showing final error
                 isRetrying.value = false
                 retryMessage.value = ''
-                // Stop video proxy to prevent continued token refreshing
-                try {
-                  await window.electronAPI.video.stopProxy()
-                  console.log('Video proxy stopped due to decoding error')
-                } catch (err) {
-                  console.error('Failed to stop video proxy:', err)
-                }
+                // Note: Video proxy is managed by reference counting
               }
               break
 
@@ -621,13 +607,7 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
               // Clear retry UI state when showing final error
               isRetrying.value = false
               retryMessage.value = ''
-              // Stop video proxy to prevent continued token refreshing
-              try {
-                await window.electronAPI.video.stopProxy()
-                console.log('Video proxy stopped due to playback error')
-              } catch (err) {
-                console.error('Failed to stop video proxy:', err)
-              }
+              // Note: Video proxy is managed by reference counting
               break
           }
         }
@@ -721,13 +701,7 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
     // Clear retry UI state when showing final error
     isRetrying.value = false
     retryMessage.value = ''
-    // Stop video proxy to prevent continued token refreshing
-    try {
-      await window.electronAPI.video.stopProxy()
-      console.log('Video proxy stopped due to source loading error')
-    } catch (proxyErr) {
-      console.error('Failed to stop video proxy:', proxyErr)
-    }
+    // Note: Video proxy is managed by reference counting
   }
 }
 
@@ -872,13 +846,7 @@ const loadVideoSource = async () => {
                 // Clear retry UI state when showing final error
                 isRetrying.value = false
                 retryMessage.value = ''
-                // Stop video proxy to prevent continued token refreshing
-                try {
-                  await window.electronAPI.video.stopProxy()
-                  console.log('Video proxy stopped due to network error')
-                } catch (err) {
-                  console.error('Failed to stop video proxy:', err)
-                }
+                // Note: Video proxy is managed by reference counting
               }
               break
 
@@ -970,13 +938,7 @@ const loadVideoSource = async () => {
                 // Clear retry UI state when showing final error
                 isRetrying.value = false
                 retryMessage.value = ''
-                // Stop video proxy to prevent continued token refreshing
-                try {
-                  await window.electronAPI.video.stopProxy()
-                  console.log('Video proxy stopped due to decoding error')
-                } catch (err) {
-                  console.error('Failed to stop video proxy:', err)
-                }
+                // Note: Video proxy is managed by reference counting
               }
               break
 
@@ -986,13 +948,7 @@ const loadVideoSource = async () => {
               // Clear retry UI state when showing final error
               isRetrying.value = false
               retryMessage.value = ''
-              // Stop video proxy to prevent continued token refreshing
-              try {
-                await window.electronAPI.video.stopProxy()
-                console.log('Video proxy stopped due to playback error')
-              } catch (err) {
-                console.error('Failed to stop video proxy:', err)
-              }
+              // Note: Video proxy is managed by reference counting
               break
           }
         } else {
@@ -1071,13 +1027,7 @@ const loadVideoSource = async () => {
     // Clear retry UI state when showing final error
     isRetrying.value = false
     retryMessage.value = ''
-    // Stop video proxy to prevent continued token refreshing
-    try {
-      await window.electronAPI.video.stopProxy()
-      console.log('Video proxy stopped due to source loading error')
-    } catch (proxyErr) {
-      console.error('Failed to stop video proxy:', proxyErr)
-    }
+    // Note: Video proxy is managed by reference counting
   }
 }
 
@@ -1405,13 +1355,7 @@ const onVideoError = async (event: Event) => {
     isRetrying.value = false
     retryMessage.value = ''
 
-    // Stop video proxy to prevent continued token refreshing
-    try {
-      await window.electronAPI.video.stopProxy()
-      console.log('Video proxy stopped due to playback error')
-    } catch (err) {
-      console.error('Failed to stop video proxy:', err)
-    }
+    // Note: Video proxy is managed by reference counting
 
     // Reset counters for next video
     videoErrorRetryCount = 0
@@ -1682,6 +1626,14 @@ const onSlidesCleared = (event: CustomEvent) => {
 
 // Lifecycle
 onMounted(async () => {
+  // Register video proxy client for independent mode support
+  try {
+    videoProxyClientId.value = await window.electronAPI.video.registerClient()
+    console.log(`Video proxy client registered for ${props.mode} mode:`, videoProxyClientId.value)
+  } catch (error) {
+    console.error('Failed to register video proxy client:', error)
+  }
+
   // Load connection mode, mute mode, and video retry count from config
   try {
     const config = await window.electronAPI.config.get()
@@ -1723,12 +1675,14 @@ onUnmounted(async () => {
   currentEventListeners.forEach(cleanupFn => cleanupFn())
   currentEventListeners = []
 
-  // Stop video proxy to prevent continued token refreshing
-  try {
-    await window.electronAPI.video.stopProxy()
-    console.log('Video proxy stopped on component unmount')
-  } catch (err) {
-    console.error('Failed to stop video proxy on unmount:', err)
+  // Unregister video proxy client for independent mode support
+  if (videoProxyClientId.value) {
+    try {
+      await window.electronAPI.video.unregisterClient(videoProxyClientId.value)
+      console.log(`Video proxy client unregistered for ${props.mode} mode:`, videoProxyClientId.value)
+    } catch (err) {
+      console.error('Failed to unregister video proxy client on unmount:', err)
+    }
   }
 })
 </script>

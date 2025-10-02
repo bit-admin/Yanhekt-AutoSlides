@@ -203,6 +203,27 @@ ipcMain.handle('video:getVideoPlaybackUrls', async (event, session: any, token: 
   }
 });
 
+ipcMain.handle('video:registerClient', async () => {
+  try {
+    const clientId = videoProxyService.registerClient();
+    console.log('Video proxy client registered:', clientId);
+    return clientId;
+  } catch (error) {
+    console.error('Failed to register video proxy client:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('video:unregisterClient', async (event, clientId: string) => {
+  try {
+    videoProxyService.unregisterClient(clientId);
+    console.log('Video proxy client unregistered:', clientId);
+  } catch (error) {
+    console.error('Failed to unregister video proxy client:', error);
+    throw error;
+  }
+});
+
 ipcMain.handle('video:stopProxy', async () => {
   try {
     videoProxyService.stopVideoProxy();
