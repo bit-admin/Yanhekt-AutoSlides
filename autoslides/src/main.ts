@@ -8,6 +8,7 @@ import { IntranetMappingService } from './main/intranetMappingService';
 import { VideoProxyService } from './main/videoProxyService';
 import { FFmpegService } from './main/ffmpegService';
 import { M3u8DownloadService } from './main/m3u8DownloadService';
+import { slideExtractionService } from './main/slideExtractionService';
 
 // Declare Vite dev server variables that are injected during build
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -246,6 +247,27 @@ ipcMain.handle('download:cancel', async (event, downloadId: string) => {
 
 ipcMain.handle('download:isActive', async (event, downloadId: string) => {
   return m3u8DownloadService.isDownloadActive(downloadId);
+});
+
+// IPC handlers for slide extraction
+ipcMain.handle('slideExtraction:saveSlide', async (event, outputPath: string, filename: string, imageBuffer: Uint8Array) => {
+  try {
+    await slideExtractionService.saveSlide(outputPath, filename, imageBuffer);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save slide:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('slideExtraction:ensureDirectory', async (event, path: string) => {
+  try {
+    await slideExtractionService.ensureDirectory(path);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to ensure directory:', error);
+    throw error;
+  }
 });
 
 // In this file you can include the rest of your app's specific main process

@@ -282,6 +282,10 @@ interface ElectronAPI {
     onCompleted: (callback: (downloadId: string) => void) => void;
     onError: (callback: (downloadId: string, error: string) => void) => void;
   };
+  slideExtraction: {
+    saveSlide: (outputPath: string, filename: string, imageBuffer: Uint8Array) => Promise<{ success: boolean }>;
+    ensureDirectory: (path: string) => Promise<{ success: boolean }>;
+  };
 }
 
 declare global {

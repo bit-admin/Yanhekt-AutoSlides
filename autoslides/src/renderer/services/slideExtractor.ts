@@ -48,6 +48,10 @@ export class SlideExtractor {
   private currentVerification = 0;
   private potentialNewImageData: ImageData | null = null;
 
+  // Output path for saving slides
+  private outputPath: string | null = null;
+  private courseInfo: { courseName?: string; sessionTitle?: string; mode?: 'live' | 'recorded' } | null = null;
+
   constructor() {
     // Build initial interval table with default base interval
     this.buildIntervalTable();
@@ -60,7 +64,7 @@ export class SlideExtractor {
    */
   private async loadConfigFromService(): Promise<void> {
     try {
-      const slideConfig = await window.electronAPI.config.getSlideExtractionConfig();
+      const slideConfig = await (window as any).electronAPI.config.getSlideExtractionConfig();
       const newBaseInterval = slideConfig.checkInterval || 2000;
 
       // Rebuild interval table only if base interval changed
@@ -524,7 +528,7 @@ export class SlideExtractor {
   /**
    * Save extracted slide
    */
-  private async saveSlide(imageData: ImageData, title: string): Promise<void> {
+  private async saveSlide(imageData: ImageData, _title: string): Promise<void> {
     try {
       // Convert ImageData to canvas and generate data URL
       const canvas = document.createElement('canvas');
@@ -535,17 +539,59 @@ export class SlideExtractor {
       canvas.height = imageData.height;
       ctx.putImageData(imageData, 0, 0);
 
+      // Generate timestamp based on mode
+      let timestamp: string;
+      let filename: string;
+
+      if (this.courseInfo?.mode === 'live') {
+        // Live mode: human-readable timestamp in CST
+        const now = new Date();
+        const cstTime = new Date(now.getTime() + (8 * 60 * 60 * 1000)); // CST is UTC+8
+        timestamp = cstTime.toISOString().replace('T', '_').replace(/:/g, '-').split('.')[0];
+        filename = `Slide_${timestamp}`;
+      } else {
+        // Recorded mode: Unix timestamp in milliseconds
+        timestamp = Date.now().toString();
+        filename = `Slide_${timestamp}`;
+      }
+
       const dataUrl = canvas.toDataURL('image/png');
       const slide: ExtractedSlide = {
         id: `slide_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
-        title,
+        title: filename,
         timestamp: new Date().toISOString(),
         imageData,
         dataUrl
       };
 
       this.extractedSlides.push(slide);
-      console.log(`Slide saved: ${title} (Total: ${this.extractedSlides.length})`);
+
+      // Save to file system if output path is set
+      if (this.outputPath) {
+        try {
+          // Convert canvas to blob
+          canvas.toBlob(async (blob) => {
+            if (blob) {
+              // Convert blob to buffer for saving
+              const arrayBuffer = await blob.arrayBuffer();
+              const buffer = new Uint8Array(arrayBuffer);
+
+              // Save via IPC to main process
+              await (window as any).electronAPI.slideExtraction?.saveSlide?.(
+                this.outputPath!,
+                `${filename}.png`,
+                buffer
+              );
+
+              console.log(`Slide saved to file: ${this.outputPath}/${filename}.png`);
+            }
+          }, 'image/png');
+        } catch (fileError) {
+          console.error('Failed to save slide to file:', fileError);
+        }
+      }
+
+      console.log(`Slide saved: ${filename} (Total: ${this.extractedSlides.length})`);
 
       // Emit event for UI updates
       this.emitSlideExtracted(slide);
@@ -613,6 +659,22 @@ export class SlideExtractor {
    */
   async reloadConfig(): Promise<void> {
     await this.loadConfigFromService();
+  }
+
+  /**
+   * Set output path for saving slides
+   */
+  setOutputPath(path: string, courseInfo?: { courseName?: string; sessionTitle?: string; mode?: 'live' | 'recorded' }): void {
+    this.outputPath = path;
+    this.courseInfo = courseInfo || null;
+    console.log(`Slide extraction output path set to: ${path}`);
+  }
+
+  /**
+   * Get current output path
+   */
+  getOutputPath(): string | null {
+    return this.outputPath;
   }
 
   /**

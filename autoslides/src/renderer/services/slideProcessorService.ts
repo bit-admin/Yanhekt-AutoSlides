@@ -6,19 +6,19 @@
 interface WorkerMessage {
   id: string;
   type: 'compareImages' | 'calculateHash' | 'calculateSSIM' | 'updateConfig';
-  data: any;
+  data: unknown;
 }
 
 interface WorkerResponse {
   id: string;
   success: boolean;
-  result?: any;
+  result?: unknown;
   error?: string;
 }
 
 export class SlideProcessorService {
   private worker: Worker | null = null;
-  private pendingRequests = new Map<string, { resolve: Function; reject: Function }>();
+  private pendingRequests = new Map<string, { resolve: (value: unknown) => void; reject: (reason?: unknown) => void }>();
   private requestIdCounter = 0;
 
   constructor() {
@@ -86,7 +86,7 @@ export class SlideProcessorService {
   /**
    * Send a message to the worker and return a promise
    */
-  private sendMessage<T>(type: string, data: any): Promise<T> {
+  private sendMessage<T>(type: string, data: unknown): Promise<T> {
     return new Promise((resolve, reject) => {
       if (!this.worker) {
         reject(new Error('Worker not initialized'));
@@ -94,9 +94,9 @@ export class SlideProcessorService {
       }
 
       const id = `req_${++this.requestIdCounter}`;
-      this.pendingRequests.set(id, { resolve, reject });
+      this.pendingRequests.set(id, { resolve: resolve as (value: unknown) => void, reject });
 
-      const message: WorkerMessage = { id, type: type as any, data };
+      const message: WorkerMessage = { id, type: type as WorkerMessage['type'], data };
       this.worker.postMessage(message);
 
       // Set timeout for the request
@@ -176,9 +176,9 @@ export class SlideProcessorService {
     hammingThresholdLow?: number;
     hammingThresholdUp?: number;
     ssimThreshold?: number;
-  }): Promise<any> {
+  }): Promise<boolean> {
     try {
-      return await this.sendMessage<any>('updateConfig', { config });
+      return await this.sendMessage<boolean>('updateConfig', { config });
     } catch (error) {
       console.error('Error updating worker config:', error);
       throw error;

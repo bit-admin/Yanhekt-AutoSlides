@@ -77,13 +77,32 @@
       <div v-else-if="playbackData" class="video-content">
         <!-- Stream Selection and Playback Controls -->
         <div class="controls-row">
-          <div v-if="Object.keys(playbackData.streams).length > 1" class="stream-selector">
+          <div v-if="Object.keys(playbackData.streams).length > 1 && !isSlideExtractionEnabled" class="stream-selector">
             <label>Select Stream:</label>
             <select v-model="selectedStream" @change="switchStream">
               <option v-for="(stream, key) in playbackData.streams" :key="key" :value="key">
                 {{ stream.name }}
               </option>
             </select>
+          </div>
+
+          <!-- Slide Extraction Controls (only for screen recording) -->
+          <div v-if="isScreenRecordingSelected" class="slide-extraction-control">
+            <label class="extraction-toggle">
+              <input
+                type="checkbox"
+                v-model="isSlideExtractionEnabled"
+                @change="toggleSlideExtraction"
+              />
+              <span class="toggle-text">Extract Slides</span>
+            </label>
+            <div v-if="isSlideExtractionEnabled" class="extraction-status">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
+              </svg>
+              <span>{{ slideExtractionStatus.slideCount }} slides extracted</span>
+            </div>
           </div>
 
           <!-- Custom Playback Rate Control (only for recorded videos) -->
@@ -255,6 +274,15 @@ const showSpeedWarning = computed(() => {
   return connectionMode.value === 'external' && currentPlaybackRate.value > 2
 })
 
+// Slide extraction state
+const isSlideExtractionEnabled = ref(false)
+const slideExtractionStatus = ref({
+  isRunning: false,
+  slideCount: 0,
+  verificationState: 'none',
+  currentVerification: 0
+})
+
 // Computed property to determine if video should be muted based on mode and mute setting
 const shouldVideoMute = computed(() => {
   switch (muteMode.value) {
@@ -268,6 +296,13 @@ const shouldVideoMute = computed(() => {
     default:
       return false
   }
+})
+
+// Computed property to check if screen recording is selected
+const isScreenRecordingSelected = computed(() => {
+  if (!playbackData.value || !selectedStream.value) return false
+  const currentStream = playbackData.value.streams[selectedStream.value]
+  return currentStream?.type === 'screen'
 })
 
 // Initialize TokenManager
@@ -1102,6 +1137,107 @@ const changePlaybackRate = () => {
   }
 }
 
+// Toggle slide extraction
+const toggleSlideExtraction = async () => {
+  if (isSlideExtractionEnabled.value) {
+    // Start slide extraction
+    console.log('Starting slide extraction...')
+
+    // Ensure we're on screen recording
+    if (!isScreenRecordingSelected.value) {
+      console.warn('Slide extraction can only be enabled for screen recording')
+      isSlideExtractionEnabled.value = false
+      return
+    }
+
+    // Initialize slide extraction with current course/session info
+    await initializeSlideExtraction()
+
+    // Start the extraction process
+    const success = slideExtractor.startExtraction()
+    if (!success) {
+      console.error('Failed to start slide extraction')
+      isSlideExtractionEnabled.value = false
+      return
+    }
+
+    // Update status
+    updateSlideExtractionStatus()
+    console.log('Slide extraction started successfully')
+  } else {
+    // Stop slide extraction
+    console.log('Stopping slide extraction...')
+    slideExtractor.stopExtraction()
+    slideExtractionStatus.value.isRunning = false
+    console.log('Slide extraction stopped')
+  }
+}
+
+// Initialize slide extraction with course/session context
+const initializeSlideExtraction = async () => {
+  try {
+    // Get output directory from config
+    const config = await window.electronAPI.config.get()
+    const outputDir = config.outputDirectory || '~/Downloads/AutoSlides'
+
+    // Create folder name based on course and session info
+    let folderName = 'slides'
+
+    if (props.course?.title) {
+      folderName += `_${sanitizeFileName(props.course.title)}`
+    }
+
+    if (props.session?.title) {
+      folderName += `_${sanitizeFileName(props.session.title)}`
+    } else if (props.course?.session?.section_group_title && props.mode === 'live') {
+      folderName += `_${sanitizeFileName(props.course.session.section_group_title)}`
+    }
+
+    // Set up slide extraction output directory
+    const slideOutputPath = `${outputDir}/${folderName}`
+    console.log(`Slide extraction output directory: ${slideOutputPath}`)
+
+    // Prepare course info for slide extractor
+    const courseInfo = {
+      courseName: props.course?.title,
+      sessionTitle: props.session?.title || props.course?.session?.section_group_title,
+      mode: props.mode
+    }
+
+    // Ensure the output directory exists
+    await window.electronAPI.slideExtraction.ensureDirectory(slideOutputPath)
+
+    // Store the output path and course info for later use when saving slides
+    slideExtractor.setOutputPath(slideOutputPath, courseInfo)
+
+    console.log('Slide extraction initialized successfully')
+
+  } catch (error) {
+    console.error('Failed to initialize slide extraction:', error)
+    throw error
+  }
+}
+
+// Sanitize filename by removing special characters
+const sanitizeFileName = (name: string): string => {
+  return name
+    .replace(/[<>:"/\\|?*]/g, '') // Remove invalid filename characters
+    .replace(/\s+/g, '_') // Replace spaces with underscores
+    .replace(/_{2,}/g, '_') // Replace multiple underscores with single
+    .trim()
+}
+
+// Update slide extraction status
+const updateSlideExtractionStatus = () => {
+  const status = slideExtractor.getStatus()
+  slideExtractionStatus.value = {
+    isRunning: status.isRunning,
+    slideCount: status.slideCount,
+    verificationState: status.verificationState,
+    currentVerification: status.currentVerification
+  }
+}
+
 // Video event handlers
 const onLoadStart = () => {
   // Video load started
@@ -1436,6 +1572,24 @@ watch(shouldVideoMute, (shouldMute) => {
   }
 }, { immediate: true })
 
+// Watch for stream changes to disable slide extraction if not screen recording
+watch(isScreenRecordingSelected, (isScreenRecording) => {
+  if (!isScreenRecording && isSlideExtractionEnabled.value) {
+    console.log('Stream switched away from screen recording, disabling slide extraction')
+    isSlideExtractionEnabled.value = false
+    slideExtractor.stopExtraction()
+    slideExtractionStatus.value.isRunning = false
+  }
+})
+
+// Watch for slide extraction toggle to update playback rate
+watch(isSlideExtractionEnabled, (enabled) => {
+  if (enabled && videoPlayer.value) {
+    // Update slide extractor with current playback rate when enabled
+    slideExtractor.updatePlaybackRate(currentPlaybackRate.value)
+  }
+})
+
 // Function to prevent user from unmuting when app mute mode is active
 const preventUnmute = (event: Event) => {
   if (shouldVideoMute.value && videoPlayer.value) {
@@ -1455,6 +1609,17 @@ const cleanup = () => {
   }
 }
 
+// Slide extraction event handlers
+const onSlideExtracted = (event: CustomEvent) => {
+  console.log('Slide extracted:', event.detail)
+  updateSlideExtractionStatus()
+}
+
+const onSlidesCleared = () => {
+  console.log('Slides cleared')
+  updateSlideExtractionStatus()
+}
+
 // Lifecycle
 onMounted(async () => {
   // Load connection mode, mute mode, and video retry count from config
@@ -1467,12 +1632,25 @@ onMounted(async () => {
     console.error('Failed to load config:', error)
   }
 
+  // Add slide extraction event listeners
+  window.addEventListener('slideExtracted', onSlideExtracted as EventListener)
+  window.addEventListener('slidesCleared', onSlidesCleared as EventListener)
+
   // Wait for next tick to ensure video element is in DOM
   await nextTick()
   loadVideoStreams()
 })
 
 onUnmounted(async () => {
+  // Stop slide extraction if running
+  if (isSlideExtractionEnabled.value) {
+    slideExtractor.stopExtraction()
+  }
+
+  // Remove slide extraction event listeners
+  window.removeEventListener('slideExtracted', onSlideExtracted as EventListener)
+  window.removeEventListener('slidesCleared', onSlidesCleared as EventListener)
+
   // Clean up HLS
   cleanup()
 
@@ -1842,6 +2020,51 @@ onUnmounted(async () => {
 .speed-warning svg {
   flex-shrink: 0;
   color: #f39c12;
+}
+
+/* Slide extraction controls */
+.slide-extraction-control {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.extraction-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #333;
+}
+
+.extraction-toggle input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.toggle-text {
+  font-size: 14px;
+  user-select: none;
+}
+
+.extraction-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background-color: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 4px;
+  color: #155724;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.extraction-status svg {
+  flex-shrink: 0;
+  color: #28a745;
 }
 
 /* Responsive design */

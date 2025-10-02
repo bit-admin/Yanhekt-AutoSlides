@@ -67,4 +67,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onError: (callback: (downloadId: string, error: string) => void) =>
       ipcRenderer.on('download:error', (_, downloadId, error) => callback(downloadId, error)),
   },
+  slideExtraction: {
+    saveSlide: (outputPath: string, filename: string, imageBuffer: Uint8Array) =>
+      ipcRenderer.invoke('slideExtraction:saveSlide', outputPath, filename, imageBuffer),
+    ensureDirectory: (path: string) => ipcRenderer.invoke('slideExtraction:ensureDirectory', path),
+  },
 });
