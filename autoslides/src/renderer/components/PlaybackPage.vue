@@ -782,7 +782,7 @@ const loadVideoSource = async () => {
               videoPlayer.value.playbackRate = currentPlaybackRate.value
               // Update slide extractor with current playback rate
               if (slideExtractorInstance.value) {
-                slideExtractorInstance.value.updatePlaybackRate(currentPlaybackRate.value)
+                slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
               }
             } else {
               videoPlayer.value.playbackRate = 1
@@ -991,7 +991,7 @@ const loadVideoSource = async () => {
             videoPlayer.value.playbackRate = currentPlaybackRate.value
             // Update slide extractor with current playback rate
             if (slideExtractorInstance.value) {
-              slideExtractorInstance.value.updatePlaybackRate(currentPlaybackRate.value)
+              slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
             }
           } else {
             videoPlayer.value.playbackRate = 1
@@ -1049,7 +1049,7 @@ const switchStream = async () => {
         videoPlayer.value.playbackRate = currentPlaybackRate.value
         // Update slide extractor with current playback rate
         if (slideExtractorInstance.value) {
-          slideExtractorInstance.value.updatePlaybackRate(currentPlaybackRate.value)
+          slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
         }
       } else {
         videoPlayer.value.playbackRate = 1
@@ -1101,12 +1101,15 @@ const retryLoad = () => {
 // Change playback rate
 const changePlaybackRate = () => {
   if (videoPlayer.value) {
-    videoPlayer.value.playbackRate = currentPlaybackRate.value
-    console.log(`Playback rate changed to: ${currentPlaybackRate.value}x`)
+    // Convert to number to ensure proper type handling
+    const playbackRateNumber = Number(currentPlaybackRate.value)
+
+    videoPlayer.value.playbackRate = playbackRateNumber
+    console.log(`Playback rate changed to: ${playbackRateNumber}x`)
 
     // Update slide extractor with new playback rate for dynamic interval adjustment
     if (slideExtractorInstance.value) {
-      slideExtractorInstance.value.updatePlaybackRate(currentPlaybackRate.value)
+      slideExtractorInstance.value.updatePlaybackRate(playbackRateNumber)
     }
   }
 }
@@ -1582,7 +1585,7 @@ watch(isScreenRecordingSelected, (isScreenRecording) => {
 watch(isSlideExtractionEnabled, (enabled) => {
   if (enabled && videoPlayer.value && slideExtractorInstance.value) {
     // Update slide extractor with current playback rate when enabled
-    slideExtractorInstance.value.updatePlaybackRate(currentPlaybackRate.value)
+    slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
   }
 })
 
