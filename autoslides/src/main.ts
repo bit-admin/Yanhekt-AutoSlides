@@ -123,6 +123,30 @@ ipcMain.handle('config:setVideoRetryCount', async (event, count: number) => {
   return configService.getConfig();
 });
 
+// IPC handlers for slide extraction configuration
+ipcMain.handle('config:getSlideExtractionConfig', async () => {
+  return configService.getSlideExtractionConfig();
+});
+
+ipcMain.handle('config:setSlideCheckInterval', async (event, interval: number) => {
+  configService.setSlideCheckInterval(interval);
+  return configService.getSlideExtractionConfig();
+});
+
+ipcMain.handle('config:setSlideDoubleVerification', async (event, enabled: boolean, count?: number) => {
+  configService.setSlideDoubleVerification(enabled, count);
+  return configService.getSlideExtractionConfig();
+});
+
+ipcMain.handle('config:setSlideImageProcessingParams', async (event, params: {
+  hammingThresholdLow?: number;
+  hammingThresholdUp?: number;
+  ssimThreshold?: number;
+}) => {
+  configService.setSlideImageProcessingParams(params);
+  return configService.getSlideExtractionConfig();
+});
+
 // IPC handlers for intranet mapping
 ipcMain.handle('intranet:setEnabled', async (event, enabled: boolean) => {
   intranetMappingService.setEnabled(enabled);

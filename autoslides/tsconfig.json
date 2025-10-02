@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
+    "target": "ES2020",
+    "module": "ES2020",
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -14,6 +14,7 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "jsx": "preserve",
+    "downlevelIteration": true,
     "types": ["node"]
   },
   "include": [

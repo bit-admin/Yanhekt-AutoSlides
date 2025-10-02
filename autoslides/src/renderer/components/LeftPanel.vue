@@ -89,6 +89,48 @@
             </select>
           </div>
         </div>
+
+        <div class="setting-item">
+          <label class="setting-label">Slide Detection Interval:</label>
+          <div class="setting-description">How often to check for slide changes (in milliseconds)</div>
+          <div class="slide-interval-group">
+            <input
+              v-model.number="slideCheckInterval"
+              type="number"
+              min="500"
+              max="10000"
+              step="500"
+              class="slide-interval-input"
+              @change="setSlideCheckInterval"
+            />
+            <span class="interval-hint">500-10000ms</span>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">Slide Verification:</label>
+          <div class="setting-description">Prevent false detection by requiring multiple confirmations</div>
+          <div class="verification-control-row">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="slideDoubleVerification"
+                @change="setSlideDoubleVerification"
+              />
+              Enable
+            </label>
+            <div class="verification-count-control" v-if="slideDoubleVerification">
+              <span class="count-label">Count:</span>
+              <select
+                v-model="slideVerificationCount"
+                @change="setSlideDoubleVerification"
+                class="verification-count-select"
+              >
+                <option v-for="i in 5" :key="i" :value="i">{{ i }}</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -151,6 +193,49 @@
                 </select>
               </div>
             </div>
+
+            <div class="advanced-setting-section">
+              <h4>Image Processing</h4>
+              <div class="setting-item">
+                <label class="setting-label">Hamming Distance Lower Bound:</label>
+                <div class="setting-description">Lower threshold for perceptual hash comparison (0-10)</div>
+                <input
+                  v-model.number="tempHammingThresholdLow"
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="1"
+                  class="concurrent-select"
+                  @change="updateImageProcessingParams"
+                />
+              </div>
+              <div class="setting-item">
+                <label class="setting-label">Hamming Distance Upper Bound:</label>
+                <div class="setting-description">Upper threshold for perceptual hash comparison (0-20)</div>
+                <input
+                  v-model.number="tempHammingThresholdUp"
+                  type="number"
+                  min="0"
+                  max="20"
+                  step="1"
+                  class="concurrent-select"
+                  @change="updateImageProcessingParams"
+                />
+              </div>
+              <div class="setting-item">
+                <label class="setting-label">SSIM Threshold:</label>
+                <div class="setting-description">Structural similarity threshold for precise comparison (0.9-1.0)</div>
+                <input
+                  v-model.number="tempSsimThreshold"
+                  type="number"
+                  min="0.9"
+                  max="1.0"
+                  step="0.001"
+                  class="concurrent-select"
+                  @change="updateImageProcessingParams"
+                />
+              </div>
+            </div>
           </div>
           <div class="modal-actions">
             <button @click="closeAdvancedSettings" class="cancel-btn">Cancel</button>
@@ -201,6 +286,19 @@ const maxConcurrentDownloads = ref(5)
 const tempMaxConcurrentDownloads = ref(5)
 const videoRetryCount = ref(5)
 const tempVideoRetryCount = ref(5)
+
+// Slide extraction configuration
+const slideCheckInterval = ref(2000)
+const slideDoubleVerification = ref(true)
+const slideVerificationCount = ref(2)
+
+// Advanced image processing parameters
+const hammingThresholdLow = ref(0)
+const hammingThresholdUp = ref(5)
+const ssimThreshold = ref(0.999)
+const tempHammingThresholdLow = ref(0)
+const tempHammingThresholdUp = ref(5)
+const tempSsimThreshold = ref(0.999)
 
 const tokenManager = new TokenManager()
 const authService = new AuthService(tokenManager)
@@ -284,6 +382,20 @@ const loadConfig = async () => {
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
     videoRetryCount.value = config.videoRetryCount || 5
     tempVideoRetryCount.value = videoRetryCount.value
+
+    // Load slide extraction configuration
+    const slideConfig = await window.electronAPI.config.getSlideExtractionConfig()
+    slideCheckInterval.value = slideConfig.checkInterval || 2000
+    slideDoubleVerification.value = slideConfig.enableDoubleVerification !== false
+    slideVerificationCount.value = slideConfig.verificationCount || 2
+
+    // Load advanced image processing parameters
+    hammingThresholdLow.value = slideConfig.hammingThresholdLow || 0
+    hammingThresholdUp.value = slideConfig.hammingThresholdUp || 5
+    ssimThreshold.value = slideConfig.ssimThreshold || 0.999
+    tempHammingThresholdLow.value = hammingThresholdLow.value
+    tempHammingThresholdUp.value = hammingThresholdUp.value
+    tempSsimThreshold.value = ssimThreshold.value
   } catch (error) {
     console.error('Failed to load config:', error)
   }
@@ -318,6 +430,29 @@ const setMuteMode = async () => {
   }
 }
 
+// Slide extraction configuration methods
+const setSlideCheckInterval = async () => {
+  try {
+    const result = await window.electronAPI.config.setSlideCheckInterval(slideCheckInterval.value)
+    slideCheckInterval.value = result.checkInterval
+  } catch (error) {
+    console.error('Failed to set slide check interval:', error)
+  }
+}
+
+const setSlideDoubleVerification = async () => {
+  try {
+    const result = await window.electronAPI.config.setSlideDoubleVerification(
+      slideDoubleVerification.value,
+      slideVerificationCount.value
+    )
+    slideDoubleVerification.value = result.enableDoubleVerification
+    slideVerificationCount.value = result.verificationCount
+  } catch (error) {
+    console.error('Failed to set slide double verification:', error)
+  }
+}
+
 onMounted(() => {
   verifyExistingToken()
   loadConfig()
@@ -327,6 +462,9 @@ const openAdvancedSettings = () => {
   // Reset temp values to current values when opening modal
   tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   tempVideoRetryCount.value = videoRetryCount.value
+  tempHammingThresholdLow.value = hammingThresholdLow.value
+  tempHammingThresholdUp.value = hammingThresholdUp.value
+  tempSsimThreshold.value = ssimThreshold.value
   showAdvancedModal.value = true
 }
 
@@ -334,6 +472,9 @@ const closeAdvancedSettings = () => {
   // Reset temp values when canceling
   tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   tempVideoRetryCount.value = videoRetryCount.value
+  tempHammingThresholdLow.value = hammingThresholdLow.value
+  tempHammingThresholdUp.value = hammingThresholdUp.value
+  tempSsimThreshold.value = ssimThreshold.value
   showAdvancedModal.value = false
 }
 
@@ -345,6 +486,10 @@ const updateVideoRetryCount = () => {
   // This is called when the select changes, but we don't save until "Save" is clicked
 }
 
+const updateImageProcessingParams = () => {
+  // This is called when the inputs change, but we don't save until "Save" is clicked
+}
+
 const saveAdvancedSettings = async () => {
   try {
     // Save concurrent downloads setting
@@ -354,6 +499,16 @@ const saveAdvancedSettings = async () => {
     // Save video retry count setting
     const retryResult = await window.electronAPI.config.setVideoRetryCount(tempVideoRetryCount.value)
     videoRetryCount.value = retryResult.videoRetryCount
+
+    // Save image processing parameters
+    const imageProcessingResult = await window.electronAPI.config.setSlideImageProcessingParams({
+      hammingThresholdLow: tempHammingThresholdLow.value,
+      hammingThresholdUp: tempHammingThresholdUp.value,
+      ssimThreshold: tempSsimThreshold.value
+    })
+    hammingThresholdLow.value = imageProcessingResult.hammingThresholdLow
+    hammingThresholdUp.value = imageProcessingResult.hammingThresholdUp
+    ssimThreshold.value = imageProcessingResult.ssimThreshold
 
     // Also update the download service
     const { DownloadService } = await import('../services/downloadService')
@@ -597,6 +752,86 @@ const saveAdvancedSettings = async () => {
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
+/* Slide extraction settings styles */
+.slide-interval-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slide-interval-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.slide-interval-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.interval-hint {
+  font-size: 10px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.verification-control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.verification-count-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count-label {
+  font-size: 11px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.verification-count-select {
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 50px;
+}
+
+.verification-count-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
 .status-section {
   padding: 16px;
   border-top: 1px solid #e0e0e0;
@@ -712,6 +947,12 @@ const saveAdvancedSettings = async () => {
   color: #666;
   margin-bottom: 8px;
   line-height: 1.3;
+}
+
+/* General setting description for main settings */
+.setting-item .setting-description {
+  margin-top: 2px;
+  margin-bottom: 6px;
 }
 
 .concurrent-select {

@@ -15,6 +15,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setMaxConcurrentDownloads: (count: number) => ipcRenderer.invoke('config:setMaxConcurrentDownloads', count),
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => ipcRenderer.invoke('config:setMuteMode', mode),
     setVideoRetryCount: (count: number) => ipcRenderer.invoke('config:setVideoRetryCount', count),
+    // Slide extraction configuration
+    getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),
+    setSlideCheckInterval: (interval: number) => ipcRenderer.invoke('config:setSlideCheckInterval', interval),
+    setSlideDoubleVerification: (enabled: boolean, count?: number) => ipcRenderer.invoke('config:setSlideDoubleVerification', enabled, count),
+    setSlideImageProcessingParams: (params: {
+      hammingThresholdLow?: number;
+      hammingThresholdUp?: number;
+      ssimThreshold?: number;
+    }) => ipcRenderer.invoke('config:setSlideImageProcessingParams', params),
   },
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) =>

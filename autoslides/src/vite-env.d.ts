@@ -79,6 +79,43 @@ interface ElectronAPI {
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
     }>;
+    // Slide extraction configuration
+    getSlideExtractionConfig: () => Promise<{
+      checkInterval: number;
+      enableDoubleVerification: boolean;
+      verificationCount: number;
+      hammingThresholdLow: number;
+      hammingThresholdUp: number;
+      ssimThreshold: number;
+    }>;
+    setSlideCheckInterval: (interval: number) => Promise<{
+      checkInterval: number;
+      enableDoubleVerification: boolean;
+      verificationCount: number;
+      hammingThresholdLow: number;
+      hammingThresholdUp: number;
+      ssimThreshold: number;
+    }>;
+    setSlideDoubleVerification: (enabled: boolean, count?: number) => Promise<{
+      checkInterval: number;
+      enableDoubleVerification: boolean;
+      verificationCount: number;
+      hammingThresholdLow: number;
+      hammingThresholdUp: number;
+      ssimThreshold: number;
+    }>;
+    setSlideImageProcessingParams: (params: {
+      hammingThresholdLow?: number;
+      hammingThresholdUp?: number;
+      ssimThreshold?: number;
+    }) => Promise<{
+      checkInterval: number;
+      enableDoubleVerification: boolean;
+      verificationCount: number;
+      hammingThresholdLow: number;
+      hammingThresholdUp: number;
+      ssimThreshold: number;
+    }>;
   };
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) => Promise<{
