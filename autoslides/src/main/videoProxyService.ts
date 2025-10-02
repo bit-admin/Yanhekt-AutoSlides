@@ -113,7 +113,7 @@ export class VideoProxyService {
       // Process main video (课堂摄像头) if available
       if (session.main_url) {
         const fixedMainUrl = this.fixUrlEscaping(session.main_url);
-        const proxyUrl = `http://localhost:${proxyPort}/?originalUrl=${encodeURIComponent(fixedMainUrl)}&loginToken=${encodeURIComponent(token)}`;
+        const proxyUrl = `http://localhost:${proxyPort}/recorded?originalUrl=${encodeURIComponent(fixedMainUrl)}&loginToken=${encodeURIComponent(token)}`;
 
         result.streams.main = {
           type: "camera",
@@ -126,7 +126,7 @@ export class VideoProxyService {
       // Process VGA video (屏幕录制) if available
       if (session.vga_url) {
         const fixedVgaUrl = this.fixUrlEscaping(session.vga_url);
-        const proxyUrl = `http://localhost:${proxyPort}/?originalUrl=${encodeURIComponent(fixedVgaUrl)}&loginToken=${encodeURIComponent(token)}`;
+        const proxyUrl = `http://localhost:${proxyPort}/recorded?originalUrl=${encodeURIComponent(fixedVgaUrl)}&loginToken=${encodeURIComponent(token)}`;
 
         result.streams.vga = {
           type: "screen",
@@ -259,7 +259,7 @@ export class VideoProxyService {
 
 
           // Handle different types of requests
-          if (pathname === '/') {
+          if (pathname === '/recorded') {
             // Initial m3u8 request with query parameters (recorded video)
             await this.handleM3u8Request(req, res, parsedUrl);
           } else if (pathname === '/live') {
@@ -525,14 +525,18 @@ export class VideoProxyService {
       return;
     }
 
-    // Check if this is a live stream TS request
+    // Check if this is a live stream TS request or recorded stream TS request
     const isLiveStream = pathname.startsWith('/live/');
+    const isRecordedStream = pathname.startsWith('/recorded/');
 
     // Construct the full TS URL
     let tsFileName: string;
     if (isLiveStream) {
       tsFileName = pathname.substring(6); // Remove '/live/' prefix
+    } else if (isRecordedStream) {
+      tsFileName = pathname.substring(10); // Remove '/recorded/' prefix
     } else {
+      // Fallback for backward compatibility (should not happen with new URLs)
       tsFileName = pathname.substring(1); // Remove leading slash
     }
 
@@ -555,7 +559,7 @@ export class VideoProxyService {
         videoHeaders['Host'] = originalHost;
       }
 
-    } else {
+    } else if (isRecordedStream) {
       // Recorded video - use encryption and signing (more aggressive like download service)
       const tokenData = await this.refreshTokenAndSignature();
 
@@ -586,6 +590,29 @@ export class VideoProxyService {
         videoHeaders['Host'] = originalHost;
       }
 
+    } else {
+      // Fallback for backward compatibility - treat as recorded video
+      const tokenData = await this.refreshTokenAndSignature();
+      const freshSignature = this.getSignature();
+      const encryptedUrl = this.encryptURL(tsUrl);
+      const signedUrl = this.addSignatureForUrl(
+        encryptedUrl,
+        tokenData.videoToken!,
+        freshSignature.timestamp,
+        freshSignature.signature
+      );
+
+      videoHeaders = {
+        ...this.BASE_HEADERS,
+        "Host": "cvideo.yanhekt.cn"
+      };
+
+      requestUrl = this.intranetMapping.rewriteUrl(signedUrl);
+
+      if (requestUrl !== signedUrl) {
+        const originalHost = new URL(signedUrl).hostname;
+        videoHeaders['Host'] = originalHost;
+      }
     }
 
     // Create axios instance with proper configuration
@@ -630,7 +657,7 @@ export class VideoProxyService {
           console.log(`TS request got 403, retrying (${retryCount}/${maxRetries}) for: ${tsFileName}`);
 
           // For recorded videos, regenerate signature and token for retry
-          if (!isLiveStream) {
+          if (isRecordedStream || (!isLiveStream && !isRecordedStream)) {
             console.log('Regenerating token and signature for 403 retry...');
             const newTokenData = await this.refreshTokenAndSignature();
             const newFreshSignature = this.getSignature();
@@ -773,7 +800,7 @@ export class VideoProxyService {
   }
 
   /**
-   * Process m3u8 content to rewrite TS URLs
+   * Process m3u8 content to rewrite TS URLs for recorded videos
    */
   private processM3u8Content(content: string, baseUrl: string): string {
     const lines = content.split('\n');
@@ -783,9 +810,9 @@ export class VideoProxyService {
       const line = lines[i];
 
       if (!line.startsWith('#') && line.trim() !== '') {
-        // This is a TS file line - rewrite it to point to our proxy
+        // This is a TS file line - rewrite it to point to our proxy with /recorded/ prefix
         const tsFileName = line.trim();
-        const proxyTsUrl = `http://localhost:${this.proxyPort}/${tsFileName}?baseUrl=${encodeURIComponent(baseUrl)}`;
+        const proxyTsUrl = `http://localhost:${this.proxyPort}/recorded/${tsFileName}?baseUrl=${encodeURIComponent(baseUrl)}`;
         result.push(proxyTsUrl);
       } else {
         // Keep other lines as-is
