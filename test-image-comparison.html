@@ -78,16 +78,42 @@
             border-radius: 4px;
             margin: 20px 0;
         }
-        .config label {
-            display: inline-block;
-            width: 200px;
-            margin: 5px 0;
+        .config {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
         }
-        .config input {
-            width: 100px;
+        .config .threshold-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .config label {
+            font-size: 12px;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+        .config input[type="number"] {
+            width: 80px;
             padding: 5px;
             border: 1px solid #ccc;
             border-radius: 3px;
+            text-align: center;
+        }
+        .config input[type="file"] {
+            margin: 10px 0;
+            padding: 5px;
+        }
+        .hash-value {
+            word-break: break-all;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            background: #f8f9fa;
+            padding: 5px;
+            border-radius: 3px;
+            margin: 5px 0;
         }
     </style>
 </head>
@@ -96,24 +122,44 @@
         <h1>Image Comparison Test - pHash & SSIM Analysis</h1>
         <p>Testing the same algorithms used in AutoSlides slide extraction system.</p>
 
+        <h3>Configuration - Detection Thresholds</h3>
         <div class="config">
-            <h3>Configuration (same as slideExtractor defaults)</h3>
-            <label>Hamming Threshold Low:</label>
-            <input type="number" id="hammingLow" value="0" min="0" max="64"><br>
-            <label>Hamming Threshold Up:</label>
-            <input type="number" id="hammingUp" value="5" min="0" max="64"><br>
-            <label>SSIM Threshold:</label>
-            <input type="number" id="ssimThreshold" value="0.999" min="0" max="1" step="0.001"><br>
+            <div class="threshold-item">
+                <label>64-bit pHash<br>(8x8)</label>
+                <input type="number" id="hash64Threshold" value="5" min="0" max="64">
+            </div>
+            <div class="threshold-item">
+                <label>128-bit pHash<br>(16x8)</label>
+                <input type="number" id="hash128Threshold" value="5" min="0" max="128">
+            </div>
+            <div class="threshold-item">
+                <label>256-bit pHash<br>(16x16)</label>
+                <input type="number" id="hash256Threshold" value="5" min="0" max="256">
+            </div>
+            <div class="threshold-item">
+                <label>512-bit pHash<br>(32x16)</label>
+                <input type="number" id="hash512Threshold" value="5" min="0" max="512">
+            </div>
+            <div class="threshold-item">
+                <label>1024-bit pHash<br>(32x32)</label>
+                <input type="number" id="hash1024Threshold" value="5" min="0" max="1024">
+            </div>
+            <div class="threshold-item">
+                <label>SSIM<br>Threshold</label>
+                <input type="number" id="ssimThreshold" value="0.999" min="0" max="1" step="0.001">
+            </div>
         </div>
 
         <div class="images">
             <div class="image-container">
-                <h3>Image 1: Slide_1759439556848.png</h3>
-                <img id="img1" src="REFERENCE/Slide_1759439556848.png" alt="Slide 1">
+                <h3>Image 1</h3>
+                <input type="file" id="img1File" accept="image/*" onchange="loadImage(1)">
+                <img id="img1" alt="Image 1" style="display: none;">
             </div>
             <div class="image-container">
-                <h3>Image 2: Slide_1759439585765.png</h3>
-                <img id="img2" src="REFERENCE/Slide_1759439585765.png" alt="Slide 2">
+                <h3>Image 2</h3>
+                <input type="file" id="img2File" accept="image/*" onchange="loadImage(2)">
+                <img id="img2" alt="Image 2" style="display: none;">
             </div>
         </div>
 
@@ -125,6 +171,21 @@
     </div>
 
     <script>
+        // Image loading function
+        function loadImage(imageNumber) {
+            const fileInput = document.getElementById(`img${imageNumber}File`);
+            const imgElement = document.getElementById(`img${imageNumber}`);
+
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imgElement.src = e.target.result;
+                    imgElement.style.display = 'block';
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+        }
+
         // Same algorithms as in slideProcessor.worker.ts
 
         function convertToGrayscale(imageData) {
@@ -186,11 +247,15 @@
         }
 
         function extractLowFrequencyCoeffs(dctCoeffs) {
+            return extractLowFrequencyCoeffsWithSize(dctCoeffs, 8, 8);
+        }
+
+        function extractLowFrequencyCoeffsWithSize(dctCoeffs, width, height) {
             const lowFreqCoeffs = [];
 
-            // Extract top-left 8x8 region from 32x32 DCT coefficient matrix
-            for (let u = 0; u < 8; u++) {
-                for (let v = 0; v < 8; v++) {
+            // Extract top-left region from 32x32 DCT coefficient matrix
+            for (let u = 0; u < height; u++) {
+                for (let v = 0; v < width; v++) {
                     const index = u * 32 + v; // Index in 32x32 matrix
                     lowFreqCoeffs.push(dctCoeffs[index]);
                 }
@@ -212,7 +277,8 @@
             }
         }
 
-        function calculatePerceptualHash(imageData) {
+        // Generic pHash calculation with configurable dimensions
+        function calculatePerceptualHashWithSize(imageData, hashWidth, hashHeight) {
             if (!imageData) {
                 console.warn('calculatePerceptualHash: imageData is null');
                 return 0n;
@@ -221,26 +287,51 @@
             // 1. Convert to grayscale first
             const grayscale = convertToGrayscale(imageData);
 
-            // 2. Resize to 32x32
+            // 2. Resize to 32x32 for DCT (keep DCT size consistent)
             const resized = resizeImageData(grayscale, 32, 32);
 
             // 3. Apply DCT transform to 32x32 grayscale image
             const dctCoeffs = applyDCT32x32(resized.data);
 
-            // 4. Extract top-left 8x8 low frequency region from 32x32 DCT result
-            const lowFreqCoeffs = extractLowFrequencyCoeffs(dctCoeffs);
+            // 4. Extract specified region from 32x32 DCT result
+            const lowFreqCoeffs = extractLowFrequencyCoeffsWithSize(dctCoeffs, hashWidth, hashHeight);
 
-            // 5. Exclude DC component, calculate median of remaining 63 coefficients
+            // 5. Exclude DC component, calculate median of remaining coefficients
             const acCoeffs = lowFreqCoeffs.slice(1); // Exclude DC component
             const median = calculateMedian(acCoeffs);
 
-            // 6. Generate 63-bit hash using BigInt for precision
+            // 6. Generate hash using BigInt for precision
             let hash = 0n;
             for (let i = 0; i < acCoeffs.length; i++) {
                 hash = hash * 2n + (acCoeffs[i] >= median ? 1n : 0n);
             }
 
             return hash;
+        }
+
+        // Original 64-bit pHash (8x8 region)
+        function calculatePerceptualHash(imageData) {
+            return calculatePerceptualHashWithSize(imageData, 8, 8);
+        }
+
+        // 128-bit pHash (16x8 region)
+        function calculatePerceptualHash128(imageData) {
+            return calculatePerceptualHashWithSize(imageData, 16, 8);
+        }
+
+        // 256-bit pHash (16x16 region)
+        function calculatePerceptualHash256(imageData) {
+            return calculatePerceptualHashWithSize(imageData, 16, 16);
+        }
+
+        // 512-bit pHash (32x16 region)
+        function calculatePerceptualHash512(imageData) {
+            return calculatePerceptualHashWithSize(imageData, 32, 16);
+        }
+
+        // 1024-bit pHash (32x32 region, full DCT)
+        function calculatePerceptualHash1024(imageData) {
+            return calculatePerceptualHashWithSize(imageData, 32, 32);
         }
 
         function calculateHammingDistance(hash1, hash2) {
@@ -303,24 +394,16 @@
                     return false; // If there are null values, consider no change
                 }
 
-                // Level 1: Calculate perceptual hash
+                // Level 1: Calculate perceptual hash (64-bit for compatibility)
                 const hash1 = calculatePerceptualHash(img1Data);
                 const hash2 = calculatePerceptualHash(img2Data);
 
                 // Calculate Hamming distance
                 const hammingDistance = calculateHammingDistance(hash1, hash2);
 
-                if (hammingDistance > config.hammingThresholdUp) {
-                    // Hash detected significant change
-                    return true;
-                } else if (hammingDistance <= config.hammingThresholdLow) {
-                    // Hash completely identical
-                    return false;
-                } else {
-                    // Boundary case, use SSIM for precise comparison
-                    const ssim = calculateSSIM(img1Data, img2Data);
-                    return ssim < config.ssimThreshold;
-                }
+                // Use SSIM for comparison since we're testing different hash sizes
+                const ssim = calculateSSIM(img1Data, img2Data);
+                return ssim < config.ssimThreshold;
 
             } catch (error) {
                 console.error('Error in compareImages:', error);
@@ -361,32 +444,37 @@
                 const img1 = document.getElementById('img1');
                 const img2 = document.getElementById('img2');
 
-                // Get configuration
+                // Check if images are loaded
+                if (!img1.src || !img2.src) {
+                    results.innerHTML = `<div class="result-item error">
+                        <strong>Error:</strong> Please select both images first.
+                    </div>`;
+                    return;
+                }
+
+                // Get configuration - all hash sizes with their thresholds
                 const config = {
-                    hammingThresholdLow: parseInt(document.getElementById('hammingLow').value),
-                    hammingThresholdUp: parseInt(document.getElementById('hammingUp').value),
                     ssimThreshold: parseFloat(document.getElementById('ssimThreshold').value)
                 };
+
+                // Define all hash sizes to test (always test all)
+                const hashSizes = [
+                    {bits: 64, name: '64-bit (8x8)', func: calculatePerceptualHash, threshold: parseInt(document.getElementById('hash64Threshold').value)},
+                    {bits: 128, name: '128-bit (16x8)', func: calculatePerceptualHash128, threshold: parseInt(document.getElementById('hash128Threshold').value)},
+                    {bits: 256, name: '256-bit (16x16)', func: calculatePerceptualHash256, threshold: parseInt(document.getElementById('hash256Threshold').value)},
+                    {bits: 512, name: '512-bit (32x16)', func: calculatePerceptualHash512, threshold: parseInt(document.getElementById('hash512Threshold').value)},
+                    {bits: 1024, name: '1024-bit (32x32)', func: calculatePerceptualHash1024, threshold: parseInt(document.getElementById('hash1024Threshold').value)}
+                ];
 
                 // Load images as ImageData
                 const img1Data = await loadImageAsImageData(img1);
                 const img2Data = await loadImageAsImageData(img2);
 
-                // Calculate hashes
-                const hash1 = calculatePerceptualHash(img1Data);
-                const hash2 = calculatePerceptualHash(img2Data);
-
-                // Calculate Hamming distance
-                const hammingDistance = calculateHammingDistance(hash1, hash2);
-
                 // Calculate SSIM
                 const ssim = calculateSSIM(img1Data, img2Data);
 
-                // Determine if images are considered different
-                const areImagesDifferent = compareImages(img1Data, img2Data, config);
-
                 // Display results
-                let html = '<h3>Analysis Results</h3>';
+                let html = '<h3>Multi-Resolution pHash Analysis Results</h3>';
 
                 html += `<div class="result-item">
                     <strong>Image 1 Dimensions:</strong> ${img1Data.width} × ${img1Data.height}
@@ -397,51 +485,43 @@
                 </div>`;
 
                 html += `<div class="result-item">
-                    <strong>pHash 1:</strong> ${hash1.toString()} (binary: ${hash1.toString(2).padStart(63, '0')})
-                </div>`;
-
-                html += `<div class="result-item">
-                    <strong>pHash 2:</strong> ${hash2.toString()} (binary: ${hash2.toString(2).padStart(63, '0')})
-                </div>`;
-
-                html += `<div class="result-item">
-                    <strong>Hamming Distance:</strong> ${hammingDistance} bits different
-                </div>`;
-
-                html += `<div class="result-item">
                     <strong>SSIM Score:</strong> ${ssim.toFixed(6)} (1.0 = identical, 0.0 = completely different)
                 </div>`;
 
-                // Decision logic explanation
-                let decisionClass = 'result-item';
-                let decisionText = '';
+                // Test each hash size
+                for (const hashSize of hashSizes) {
+                    const hash1 = hashSize.func(img1Data);
+                    const hash2 = hashSize.func(img2Data);
+                    const hammingDistance = calculateHammingDistance(hash1, hash2);
 
-                if (hammingDistance > config.hammingThresholdUp) {
-                    decisionClass += ' success';
-                    decisionText = `Images are DIFFERENT (Hamming distance ${hammingDistance} > threshold ${config.hammingThresholdUp})`;
-                } else if (hammingDistance <= config.hammingThresholdLow) {
-                    decisionClass += ' error';
-                    decisionText = `Images are SAME (Hamming distance ${hammingDistance} ≤ threshold ${config.hammingThresholdLow})`;
-                } else {
-                    if (ssim < config.ssimThreshold) {
-                        decisionClass += ' success';
-                        decisionText = `Images are DIFFERENT (Hamming in boundary range, SSIM ${ssim.toFixed(6)} < threshold ${config.ssimThreshold})`;
-                    } else {
-                        decisionClass += ' error';
-                        decisionText = `Images are SAME (Hamming in boundary range, SSIM ${ssim.toFixed(6)} ≥ threshold ${config.ssimThreshold})`;
-                    }
+                    const isDifferent = hammingDistance > hashSize.threshold;
+                    const resultClass = isDifferent ? 'result-item success' : 'result-item error';
+
+                    html += `<div class="${resultClass}">
+                        <strong>${hashSize.name} pHash Results (Threshold: ${hashSize.threshold}):</strong><br>
+                        • Hamming Distance: ${hammingDistance} bits different<br>
+                        • Status: ${isDifferent ? 'DIFFERENT' : 'SAME'}<br>
+                        • Hash 1: <div class="hash-value">${hash1.toString()}</div>
+                        • Hash 2: <div class="hash-value">${hash2.toString()}</div>
+                    </div>`;
                 }
 
+                // Final decision based on SSIM
+                const areImagesDifferent = ssim < config.ssimThreshold;
+                const decisionClass = areImagesDifferent ? 'result-item success' : 'result-item error';
+                const decisionText = areImagesDifferent ?
+                    `Images are DIFFERENT (SSIM ${ssim.toFixed(6)} < threshold ${config.ssimThreshold})` :
+                    `Images are SAME (SSIM ${ssim.toFixed(6)} ≥ threshold ${config.ssimThreshold})`;
+
                 html += `<div class="${decisionClass}">
-                    <strong>Final Decision:</strong> ${decisionText}
+                    <strong>SSIM-based Final Decision:</strong> ${decisionText}
                 </div>`;
 
                 // Configuration used
                 html += `<div class="result-item">
                     <strong>Configuration Used:</strong><br>
-                    • Hamming Low: ${config.hammingThresholdLow}<br>
-                    • Hamming Up: ${config.hammingThresholdUp}<br>
-                    • SSIM Threshold: ${config.ssimThreshold}
+                    • SSIM Threshold: ${config.ssimThreshold}<br>
+                    • pHash Thresholds: ${hashSizes.map(h => `${h.name}=${h.threshold}`).join(', ')}
                 </div>`;
 
                 results.innerHTML = html;
