@@ -21,6 +21,14 @@
         button { background: #007bff; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 16px; transition: background-color 0.2s; }
         button:hover { background: #0056b3; }
         button:disabled { background: #6c757d; cursor: not-allowed; }
+        .loading-spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ffffff; border-radius: 50%; border-top-color: transparent; animation: spin 1s ease-in-out infinite; margin-right: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .file-input-wrapper { position: relative; display: inline-block; margin-bottom: 15px; }
+        .file-input-wrapper input[type=file] { position: absolute; left: -9999px; }
+        .file-input-label { display: inline-block; padding: 10px 20px; background: #28a745; color: white; border-radius: 4px; cursor: pointer; font-size: 14px; transition: background-color 0.2s; border: none; }
+        .file-input-label:hover { background: #218838; }
+        .file-input-label:active { background: #1e7e34; }
+        .file-name { display: block; margin-top: 8px; font-size: 12px; color: #666; font-style: italic; }
         .config { background: #e9ecef; padding: 15px; border-radius: 4px; margin: 20px 0; display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
         .config .threshold-item { display: flex; flex-direction: column; align-items: center; }
         .config label { font-size: 13px; margin-bottom: 5px; text-align: center; font-weight: bold; }
@@ -45,8 +53,24 @@
         </div>
 
         <div class="images">
-            <div class="image-container"><h3>Image 1</h3><input type="file" id="img1File" accept="image/*" onchange="loadImage(1)"><img id="img1" alt="Image 1" style="display: none;"></div>
-            <div class="image-container"><h3>Image 2</h3><input type="file" id="img2File" accept="image/*" onchange="loadImage(2)"><img id="img2" alt="Image 2" style="display: none;"></div>
+            <div class="image-container">
+                <h3>Image 1</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" id="img1File" accept="image/*" onchange="loadImage(1)">
+                    <label for="img1File" class="file-input-label">Choose File</label>
+                    <span class="file-name" id="img1FileName">No file selected</span>
+                </div>
+                <img id="img1" alt="Image 1" style="display: none;">
+            </div>
+            <div class="image-container">
+                <h3>Image 2</h3>
+                <div class="file-input-wrapper">
+                    <input type="file" id="img2File" accept="image/*" onchange="loadImage(2)">
+                    <label for="img2File" class="file-input-label">Choose File</label>
+                    <span class="file-name" id="img2FileName">No file selected</span>
+                </div>
+                <img id="img2" alt="Image 2" style="display: none;">
+            </div>
         </div>
 
         <button onclick="analyzeImages()" id="analyzeBtn">Analyze Images</button>
@@ -60,10 +84,20 @@
         function loadImage(imageNumber) {
             const fileInput = document.getElementById(`img${imageNumber}File`);
             const imgElement = document.getElementById(`img${imageNumber}`);
+            const fileNameElement = document.getElementById(`img${imageNumber}FileName`);
+
             if (fileInput.files && fileInput.files[0]) {
+                const file = fileInput.files[0];
+                fileNameElement.textContent = file.name;
+
                 const reader = new FileReader();
-                reader.onload = e => { imgElement.src = e.target.result; imgElement.style.display = 'block'; };
-                reader.readAsDataURL(fileInput.files[0]);
+                reader.onload = e => {
+                    imgElement.src = e.target.result;
+                    imgElement.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                fileNameElement.textContent = 'No file selected';
             }
         }
         
@@ -177,8 +211,11 @@
             const btn = document.getElementById('analyzeBtn');
             const results = document.getElementById('results');
             btn.disabled = true;
-            btn.textContent = 'Analyzing...';
-            results.innerHTML = '<p>Processing, this may take a moment...</p><div class="result-item warning"><strong>Note:</strong> Standard high-bit pHash can be very slow and may cause the page to hang briefly.</div>';
+            btn.innerHTML = '<span class="loading-spinner"></span>Analyzing...';
+            results.innerHTML = '<p>Processing, this may take a moment...</p>';
+
+            // Allow UI to update before starting heavy computation
+            await new Promise(resolve => setTimeout(resolve, 50));
             
             const totalStartTime = performance.now();
             const timings = {};
@@ -272,7 +309,7 @@
                 results.innerHTML = `<div class="result-item error"><strong>Error:</strong> ${error.message}</div>`;
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Analyze Images';
+                btn.innerHTML = 'Analyze Images';
             }
         }
     </script>
