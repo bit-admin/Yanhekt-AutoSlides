@@ -1136,6 +1136,10 @@ const toggleSlideExtraction = async () => {
       // Initialize slide extraction with current course/session info
       await initializeSlideExtraction()
 
+      // Sync with current playback rate before starting extraction
+      slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
+      console.log(`Synced slide extractor with current playback rate: ${currentPlaybackRate.value}x`)
+
       // Start the extraction process
       const success = slideExtractorInstance.value.startExtraction()
       if (!success) {
