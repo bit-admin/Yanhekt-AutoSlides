@@ -405,15 +405,11 @@ const loadVideoStreams = async () => {
 }
 
 const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?: boolean) => {
-  console.log('loadVideoSourceWithPosition called', { seekToTime, shouldAutoPlay })
-
   if (!videoPlayer.value || !currentStreamData.value) {
-    console.warn('Video player or stream data not ready for position restore')
     return
   }
 
   try {
-    console.log('Loading video source with position restore:', currentStreamData.value.url)
 
     // Clean up existing HLS instance
     if (hls.value) {
@@ -425,7 +421,6 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
 
     // Check if HLS is supported
     if (Hls.isSupported()) {
-      console.log('Using HLS.js for playback with position restore')
       hls.value = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
@@ -468,8 +463,6 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
       hls.value.attachMedia(videoPlayer.value)
 
       hls.value.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('HLS manifest parsed successfully for position restore')
-
         setTimeout(() => {
           if (videoPlayer.value) {
             // Set initial playback rate based on mode and saved state
@@ -482,7 +475,6 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
               if (slideExtractorInstance.value) {
                 slideExtractorInstance.value.updatePlaybackRate(targetRate)
               }
-              console.log(`Restored playback rate to ${targetRate}x (saved: ${lastPlaybackRateBeforeError}, current: ${currentPlaybackRate.value})`)
             } else {
               videoPlayer.value.playbackRate = 1
               currentPlaybackRate.value = 1
@@ -505,7 +497,6 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
 
             // Restore position if specified
             if (seekToTime && seekToTime > 0) {
-              console.log(`Restoring playback position to ${seekToTime}`)
               videoPlayer.value.currentTime = seekToTime
             }
 
@@ -514,14 +505,11 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
               // Add a small delay to ensure video is ready
               setTimeout(() => {
                 if (videoPlayer.value) {
-                  videoPlayer.value.play().catch(e => {
-                    console.log('Autoplay prevented during position restore:', e)
+                  videoPlayer.value.play().catch(() => {
                     // Try again after a short delay
                     setTimeout(() => {
                       if (videoPlayer.value) {
-                        videoPlayer.value.play().catch(e2 => {
-                          console.log('Second autoplay attempt failed:', e2)
-                        })
+                        videoPlayer.value.play().catch(() => {})
                       }
                     }, 500)
                   })
@@ -543,33 +531,24 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              console.log(`Network error during restore (attempt ${networkErrorRecoveryCount + 1}/${maxRecoveryAttempts}):`, data.details)
 
               if (networkErrorRecoveryCount < maxRecoveryAttempts) {
                 networkErrorRecoveryCount++
-                console.log('Attempting network error recovery during restore...')
-
                 setTimeout(() => {
                   if (hls.value) {
                     hls.value.startLoad()
                   }
                 }, 1000 * networkErrorRecoveryCount)
               } else {
-                console.error('Max network recovery attempts reached during restore')
                 error.value = 'Network error: Unable to load video after multiple attempts'
-                // Clear retry UI state when showing final error
                 isRetrying.value = false
                 retryMessage.value = ''
-                // Note: Video proxy is managed by reference counting
               }
               break
 
             case Hls.ErrorTypes.MEDIA_ERROR:
-              console.log(`Media error during restore (attempt ${mediaErrorRecoveryCount + 1}/${maxRecoveryAttempts}):`, data.details)
-
               if (mediaErrorRecoveryCount < maxRecoveryAttempts) {
                 mediaErrorRecoveryCount++
-                console.log('Attempting media error recovery during restore...')
 
                 if (data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR ||
                     data.details === Hls.ErrorDetails.BUFFER_FULL_ERROR ||
@@ -578,7 +557,6 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
                   setTimeout(() => {
                     if (hls.value && videoPlayer.value) {
                       const currentTime = videoPlayer.value.currentTime
-                      console.log(`Seeking forward from ${currentTime} to recover from buffer error during restore`)
                       videoPlayer.value.currentTime = currentTime + 0.1
                       hls.value.recoverMediaError()
                     }
@@ -592,43 +570,25 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
                   }, 1000 * mediaErrorRecoveryCount)
                 }
               } else {
-                console.error('Max media recovery attempts reached during restore')
                 error.value = 'Video decoding error: Unable to decode video after multiple attempts'
-                // Clear retry UI state when showing final error
                 isRetrying.value = false
                 retryMessage.value = ''
-                // Note: Video proxy is managed by reference counting
               }
               break
 
             default:
               console.error('Other fatal error during restore:', data.details)
               error.value = 'Video playback error: ' + data.details
-              // Clear retry UI state when showing final error
               isRetrying.value = false
               retryMessage.value = ''
-              // Note: Video proxy is managed by reference counting
               break
           }
         }
       })
 
-      // Add fragment monitoring
-      hls.value.on(Hls.Events.FRAG_LOAD_EMERGENCY_ABORTED, (_event, data) => {
-        console.warn('Fragment load emergency aborted during restore:', data)
-      })
-
-      hls.value.on(Hls.Events.FRAG_LOADING, (_event, data) => {
-        console.log('Loading fragment during restore:', data.frag?.sn, 'URL:', data.frag?.url)
-      })
-
-      hls.value.on(Hls.Events.FRAG_LOADED, (_event, data) => {
-        console.log('Fragment loaded successfully during restore:', data.frag?.sn)
-      })
 
     } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support with position restore
-      console.log('Using native HLS support with position restore')
       videoPlayer.value.src = videoUrl
       videoPlayer.value.load()
 
@@ -644,7 +604,6 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
             if (slideExtractorInstance.value) {
               slideExtractorInstance.value.updatePlaybackRate(targetRate)
             }
-            console.log(`Restored playback rate to ${targetRate}x (native, saved: ${lastPlaybackRateBeforeError}, current: ${currentPlaybackRate.value})`)
           } else {
             videoPlayer.value.playbackRate = 1
             currentPlaybackRate.value = 1
@@ -667,7 +626,6 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
 
           // Restore position if specified
           if (seekToTime && seekToTime > 0) {
-            console.log(`Restoring playback position to ${seekToTime} (native)`)
             videoPlayer.value.currentTime = seekToTime
           }
 
@@ -706,19 +664,11 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
 }
 
 const loadVideoSource = async () => {
-  console.log('loadVideoSource called, checking conditions...')
-  console.log('videoPlayer.value:', !!videoPlayer.value)
-  console.log('currentStreamData.value:', !!currentStreamData.value)
-  console.log('selectedStream.value:', selectedStream.value)
-  console.log('playbackData.value:', !!playbackData.value)
-
   if (!videoPlayer.value || !currentStreamData.value) {
-    console.warn('Video player or stream data not ready')
     return
   }
 
   try {
-    console.log('Loading video source:', currentStreamData.value.url)
 
     // Clean up existing HLS instance
     if (hls.value) {
@@ -730,7 +680,6 @@ const loadVideoSource = async () => {
 
     // Check if HLS is supported
     if (Hls.isSupported()) {
-      console.log('Using HLS.js for playback')
       hls.value = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
@@ -773,7 +722,6 @@ const loadVideoSource = async () => {
       hls.value.attachMedia(videoPlayer.value)
 
       hls.value.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('HLS manifest parsed successfully')
         // Automatically start playback when manifest is ready
         setTimeout(() => {
           if (videoPlayer.value) {
@@ -804,16 +752,11 @@ const loadVideoSource = async () => {
               isVideoMuted.value = false
             }
 
-            videoPlayer.value.play().catch(e => {
-              console.log('Autoplay prevented:', e)
-            })
+            videoPlayer.value.play().catch(() => {})
           }
         }, 100)
       })
 
-      hls.value.on(Hls.Events.MEDIA_ATTACHED, () => {
-        console.log('HLS media attached')
-      })
 
       // Enhanced error handling with retry logic
       let mediaErrorRecoveryCount = 0
@@ -828,12 +771,8 @@ const loadVideoSource = async () => {
           isHlsRecovering = true
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              console.log(`Network error (attempt ${networkErrorRecoveryCount + 1}/${maxRecoveryAttempts}):`, data.details)
-
               if (networkErrorRecoveryCount < maxRecoveryAttempts) {
                 networkErrorRecoveryCount++
-                console.log('Attempting network error recovery...')
-
                 // Wait a bit before retrying
                 setTimeout(() => {
                   if (hls.value) {
@@ -841,21 +780,15 @@ const loadVideoSource = async () => {
                   }
                 }, 1000 * networkErrorRecoveryCount) // Exponential backoff
               } else {
-                console.error('Max network recovery attempts reached')
                 error.value = 'Network error: Unable to load video after multiple attempts'
-                // Clear retry UI state when showing final error
                 isRetrying.value = false
                 retryMessage.value = ''
-                // Note: Video proxy is managed by reference counting
               }
               break
 
             case Hls.ErrorTypes.MEDIA_ERROR:
-              console.log(`Media error (attempt ${mediaErrorRecoveryCount + 1}/${maxRecoveryAttempts}):`, data.details)
-
               if (mediaErrorRecoveryCount < maxRecoveryAttempts) {
                 mediaErrorRecoveryCount++
-                console.log('Attempting media error recovery...')
 
                 // Save current position before recovery
                 const currentPosition = videoPlayer.value?.currentTime || 0
@@ -870,7 +803,6 @@ const loadVideoSource = async () => {
                   setTimeout(() => {
                     if (hls.value && videoPlayer.value) {
                       const skipAmount = 0.5 + (mediaErrorRecoveryCount * 0.5) // Increase skip amount with retries
-                      console.log(`Seeking forward from ${currentPosition} by ${skipAmount}s to recover from buffer error (attempt ${mediaErrorRecoveryCount})`)
                       videoPlayer.value.currentTime = currentPosition + skipAmount
                       hls.value.recoverMediaError()
                     }
@@ -883,7 +815,6 @@ const loadVideoSource = async () => {
                   setTimeout(() => {
                     if (hls.value && videoPlayer.value) {
                       const skipAmount = 1 + (mediaErrorRecoveryCount * 1) // Skip more for append errors
-                      console.log(`Buffer append error - seeking forward from ${currentPosition} by ${skipAmount}s (attempt ${mediaErrorRecoveryCount})`)
 
                       // Clear buffers and seek forward
                       try {
@@ -892,9 +823,7 @@ const loadVideoSource = async () => {
                           if (videoPlayer.value) {
                             videoPlayer.value.currentTime = currentPosition + skipAmount
                             if (wasPlaying) {
-                              videoPlayer.value.play().catch(e => {
-                                console.log('Could not resume playback after buffer append recovery:', e)
-                              })
+                              videoPlayer.value.play().catch(() => {})
                             }
                           }
                           // Clear recovery flag after successful recovery
@@ -911,19 +840,15 @@ const loadVideoSource = async () => {
                   // Other media errors - standard recovery with position restore
                   setTimeout(() => {
                     if (hls.value) {
-                      console.log(`Standard media error recovery for ${data.details} (attempt ${mediaErrorRecoveryCount})`)
                       hls.value.recoverMediaError()
 
                       // Try to restore position after recovery
                       setTimeout(() => {
                         if (videoPlayer.value && currentPosition > 0) {
-                          console.log(`Restoring position to ${currentPosition} after media recovery`)
                           videoPlayer.value.currentTime = currentPosition
 
                           if (wasPlaying) {
-                            videoPlayer.value.play().catch(e => {
-                              console.log('Could not resume playback after recovery:', e)
-                            })
+                            videoPlayer.value.play().catch(() => {})
                           }
                         }
                         // Clear recovery flag after successful recovery
@@ -933,53 +858,27 @@ const loadVideoSource = async () => {
                   }, 500 * mediaErrorRecoveryCount) // Shorter backoff
                 }
               } else {
-                console.error('Max media recovery attempts reached')
                 error.value = 'Video decoding error: Unable to decode video after multiple attempts'
-                // Clear retry UI state when showing final error
                 isRetrying.value = false
                 retryMessage.value = ''
-                // Note: Video proxy is managed by reference counting
               }
               break
 
             default:
               console.error('Other fatal error:', data.details)
               error.value = 'Video playback error: ' + data.details
-              // Clear retry UI state when showing final error
               isRetrying.value = false
               retryMessage.value = ''
-              // Note: Video proxy is managed by reference counting
               break
           }
         } else {
           // Non-fatal errors - log but continue
           console.warn('Non-fatal HLS error:', data.details, data)
-
-          // Handle specific non-fatal errors that might affect playback
-          if (data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR) {
-            console.log('Fragment load error - HLS.js will retry automatically')
-          } else if (data.details === Hls.ErrorDetails.FRAG_DECRYPT_ERROR) {
-            console.log('Fragment decrypt error - may indicate corrupted segment')
-          }
         }
       })
 
-      // Add additional event listeners for better debugging
-      hls.value.on(Hls.Events.FRAG_LOAD_EMERGENCY_ABORTED, (_event, data) => {
-        console.warn('Fragment load emergency aborted:', data)
-      })
-
-      // Add fragment loading progress monitoring
-      hls.value.on(Hls.Events.FRAG_LOADING, (_event, data) => {
-        console.log('Loading fragment:', data.frag?.sn, 'URL:', data.frag?.url)
-      })
-
-      hls.value.on(Hls.Events.FRAG_LOADED, (_event, data) => {
-        console.log('Fragment loaded successfully:', data.frag?.sn)
-      })
     } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
       // Native HLS support (Electron/Chromium fallback)
-      console.log('Using native HLS support')
       videoPlayer.value.src = videoUrl
       videoPlayer.value.load()
 
@@ -1013,9 +912,7 @@ const loadVideoSource = async () => {
             isVideoMuted.value = false
           }
 
-          videoPlayer.value.play().catch(e => {
-            console.log('Autoplay prevented:', e)
-          })
+          videoPlayer.value.play().catch(() => {})
         }
       }, 100)
     } else {
@@ -1024,10 +921,8 @@ const loadVideoSource = async () => {
   } catch (err: any) {
     console.error('Failed to load video source:', err)
     error.value = 'Failed to load video source: ' + err.message
-    // Clear retry UI state when showing final error
     isRetrying.value = false
     retryMessage.value = ''
-    // Note: Video proxy is managed by reference counting
   }
 }
 
@@ -1081,9 +976,7 @@ const switchStream = async () => {
         // Automatically start playback even if previous stream wasn't playing
         try {
           await videoPlayer.value.play()
-        } catch (err) {
-          console.log('Autoplay prevented during stream switch:', err)
-        }
+        } catch (err) {}
       }
     }
   }
@@ -1105,7 +998,6 @@ const changePlaybackRate = () => {
     const playbackRateNumber = Number(currentPlaybackRate.value)
 
     videoPlayer.value.playbackRate = playbackRateNumber
-    console.log(`Playback rate changed to: ${playbackRateNumber}x`)
 
     // Update slide extractor with new playback rate for dynamic interval adjustment
     if (slideExtractorInstance.value) {
@@ -1117,12 +1009,8 @@ const changePlaybackRate = () => {
 // Toggle slide extraction
 const toggleSlideExtraction = async () => {
   if (isSlideExtractionEnabled.value) {
-    // Start slide extraction
-    console.log(`Starting slide extraction for ${props.mode} mode...`)
-
     // Ensure we're on screen recording
     if (!isScreenRecordingSelected.value) {
-      console.warn('Slide extraction can only be enabled for screen recording')
       isSlideExtractionEnabled.value = false
       return
     }
@@ -1138,31 +1026,26 @@ const toggleSlideExtraction = async () => {
 
       // Sync with current playback rate before starting extraction
       slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
-      console.log(`Synced slide extractor with current playback rate: ${currentPlaybackRate.value}x`)
 
       // Start the extraction process
       const success = slideExtractorInstance.value.startExtraction()
       if (!success) {
-        console.error('Failed to start slide extraction')
         isSlideExtractionEnabled.value = false
         return
       }
 
       // Update status
       updateSlideExtractionStatus()
-      console.log(`Slide extraction started successfully for instance: ${instanceId}`)
     } catch (error) {
       console.error('Failed to start slide extraction:', error)
       isSlideExtractionEnabled.value = false
     }
   } else {
     // Stop slide extraction
-    console.log(`Stopping slide extraction for ${props.mode} mode...`)
     if (slideExtractorInstance.value) {
       slideExtractorInstance.value.stopExtraction()
       slideExtractionStatus.value.isRunning = false
     }
-    console.log('Slide extraction stopped')
   }
 }
 
@@ -1188,7 +1071,6 @@ const initializeSlideExtraction = async () => {
 
     // Set up slide extraction output directory
     const slideOutputPath = `${outputDir}/${folderName}`
-    console.log(`Slide extraction output directory: ${slideOutputPath}`)
 
     // Prepare course info for slide extractor
     const courseInfo = {
@@ -1204,8 +1086,6 @@ const initializeSlideExtraction = async () => {
     if (slideExtractorInstance.value) {
       slideExtractorInstance.value.setOutputPath(slideOutputPath, courseInfo)
     }
-
-    console.log('Slide extraction initialized successfully')
 
   } catch (error) {
     console.error('Failed to initialize slide extraction:', error)
@@ -1375,9 +1255,6 @@ const onVideoError = async (event: Event) => {
 }
 
 const onCanPlay = () => {
-  // Video can start playing - but wait to ensure it's actually stable
-  console.log('Video can play - waiting for stable playback before reducing counters')
-
   // Hide retry UI immediately when video can play
   if (isRetrying.value) {
     setTimeout(() => {
@@ -1391,12 +1268,10 @@ const onCanPlay = () => {
     if (videoPlayer.value && !videoPlayer.value.paused && !videoPlayer.value.ended) {
       if (consecutiveErrorsAtSamePosition > 0) {
         consecutiveErrorsAtSamePosition = Math.max(0, consecutiveErrorsAtSamePosition - 1)
-        console.log(`Video stable after canplay - reduced consecutive error count to: ${consecutiveErrorsAtSamePosition}`)
       }
 
       // Reset saved playback rate after successful recovery
       if (lastPlaybackRateBeforeError > 1) {
-        console.log(`Resetting saved playback rate from ${lastPlaybackRateBeforeError} after successful recovery`)
         lastPlaybackRateBeforeError = 1
       }
     }
@@ -1432,7 +1307,6 @@ const formatDuration = (duration: string | number): string => {
 let currentEventListeners: (() => void)[] = []
 
 watch(() => videoPlayer.value, (newPlayer) => {
-  console.log('Video player changed:', !!newPlayer)
   // Clean up old listeners
   currentEventListeners.forEach(cleanup => cleanup())
   currentEventListeners = []
@@ -1449,7 +1323,6 @@ watch(() => videoPlayer.value, (newPlayer) => {
         if (newPlayer && !newPlayer.paused && !newPlayer.ended) {
           if (consecutiveErrorsAtSamePosition > 0) {
             consecutiveErrorsAtSamePosition = Math.max(0, consecutiveErrorsAtSamePosition - 1)
-            console.log(`Video playing stably - reduced consecutive error count to: ${consecutiveErrorsAtSamePosition}`)
           }
         }
       }, 1000) // Wait 1 second of stable playback
@@ -1468,17 +1341,14 @@ watch(() => videoPlayer.value, (newPlayer) => {
         if (stablePlaybackTime >= 2.0) {
           if (videoErrorRetryCount > 0) {
             videoErrorRetryCount = Math.max(0, videoErrorRetryCount - 1)
-            console.log(`2s stable playback - reduced retry count to: ${videoErrorRetryCount}`)
             stablePlaybackTime = 0 // Reset to avoid frequent reductions
           }
           if (consecutiveErrorsAtSamePosition > 1) {
             consecutiveErrorsAtSamePosition = Math.max(0, consecutiveErrorsAtSamePosition - 1)
-            console.log(`2s stable playback - reduced consecutive error count to: ${consecutiveErrorsAtSamePosition}`)
           }
 
           // Reset saved playback rate after stable playback
           if (lastPlaybackRateBeforeError > 1) {
-            console.log(`Resetting saved playback rate from ${lastPlaybackRateBeforeError} after 2s stable playback`)
             lastPlaybackRateBeforeError = 1
           }
         }
@@ -1510,7 +1380,6 @@ watch(() => videoPlayer.value, (newPlayer) => {
 
     // If we have stream data ready, load it now
     if (currentStreamData.value && playbackData.value) {
-      console.log('Video player ready and stream data available, loading video source')
       nextTick(() => {
         loadVideoSource()
       })
@@ -1520,9 +1389,7 @@ watch(() => videoPlayer.value, (newPlayer) => {
 
 // Watch for stream data changes
 watch(() => currentStreamData.value, (newStreamData) => {
-  console.log('Stream data changed:', !!newStreamData)
   if (newStreamData && videoPlayer.value && playbackData.value) {
-    console.log('Stream data ready and video player available, loading video source')
     nextTick(() => {
       loadVideoSource()
     })
@@ -1531,28 +1398,8 @@ watch(() => currentStreamData.value, (newStreamData) => {
 
 // Watch for visibility changes - keep video playing when hidden
 watch(isVisible, (visible) => {
-  console.log(`🎬 PlaybackPage visibility changed: ${visible} (mode: ${props.mode})`)
-
   // Don't pause video when hidden - this is what enables background playback
   // The video continues playing in the background even when the component is not visible
-
-  if (visible && videoPlayer.value) {
-    // When becoming visible, we might want to show current playback state
-    console.log(`▶️ ${props.mode} mode now visible, video playing: ${!videoPlayer.value.paused}`)
-
-    // Slide extraction continues in background, no need to restart
-    if (slideExtractorInstance.value && slideExtractorInstance.value.getStatus().isRunning) {
-      console.log(`🎯 Slide extraction for ${props.mode} mode continues in background`)
-    }
-  } else if (!visible && videoPlayer.value) {
-    // When becoming hidden, log the state but don't stop playback or slide extraction
-    console.log(`🔇 ${props.mode} mode now hidden, video continues playing: ${!videoPlayer.value.paused}`)
-
-    // Ensure slide extraction continues in background
-    if (slideExtractorInstance.value && slideExtractorInstance.value.getStatus().isRunning) {
-      console.log(`🎯 Slide extraction for ${props.mode} mode will continue in background`)
-    }
-  }
 }, { immediate: true })
 
 // Watch for mute mode changes to apply software-level muting
@@ -1569,14 +1416,12 @@ watch(shouldVideoMute, (shouldMute) => {
       videoPlayer.value.removeAttribute('data-muted-by-app')
     }
 
-    console.log(`🔊 ${props.mode} mode mute changed: ${shouldMute} (mode: ${muteMode.value})`)
   }
 }, { immediate: true })
 
 // Watch for stream changes to disable slide extraction if not screen recording
 watch(isScreenRecordingSelected, (isScreenRecording) => {
   if (!isScreenRecording && isSlideExtractionEnabled.value) {
-    console.log('Stream switched away from screen recording, disabling slide extraction')
     isSlideExtractionEnabled.value = false
     if (slideExtractorInstance.value) {
       slideExtractorInstance.value.stopExtraction()
@@ -1617,7 +1462,6 @@ const onSlideExtracted = (event: CustomEvent) => {
   const { instanceId, mode } = event.detail
   // Only handle events from our instance
   if (instanceId === extractorInstanceId.value && mode === props.mode) {
-    console.log(`Slide extracted for ${mode} mode:`, event.detail)
     updateSlideExtractionStatus()
   }
 }
@@ -1626,7 +1470,6 @@ const onSlidesCleared = (event: CustomEvent) => {
   const { instanceId, mode } = event.detail
   // Only handle events from our instance
   if (instanceId === extractorInstanceId.value && mode === props.mode) {
-    console.log(`Slides cleared for ${mode} mode`)
     updateSlideExtractionStatus()
   }
 }
@@ -1636,7 +1479,6 @@ onMounted(async () => {
   // Register video proxy client for independent mode support
   try {
     videoProxyClientId.value = await window.electronAPI.video.registerClient()
-    console.log(`Video proxy client registered for ${props.mode} mode:`, videoProxyClientId.value)
   } catch (error) {
     console.error('Failed to register video proxy client:', error)
   }
@@ -1686,7 +1528,6 @@ onUnmounted(async () => {
   if (videoProxyClientId.value) {
     try {
       await window.electronAPI.video.unregisterClient(videoProxyClientId.value)
-      console.log(`Video proxy client unregistered for ${props.mode} mode:`, videoProxyClientId.value)
     } catch (err) {
       console.error('Failed to unregister video proxy client on unmount:', err)
     }
