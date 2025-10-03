@@ -198,32 +198,6 @@
             <div class="advanced-setting-section">
               <h4>Image Processing</h4>
               <div class="setting-item">
-                <label class="setting-label">Hamming Distance Lower Bound:</label>
-                <div class="setting-description">Lower threshold for perceptual hash comparison (0-10)</div>
-                <input
-                  v-model.number="tempHammingThresholdLow"
-                  type="number"
-                  min="0"
-                  max="10"
-                  step="1"
-                  class="concurrent-select"
-                  @change="updateImageProcessingParams"
-                />
-              </div>
-              <div class="setting-item">
-                <label class="setting-label">Hamming Distance Upper Bound:</label>
-                <div class="setting-description">Upper threshold for perceptual hash comparison (0-20)</div>
-                <input
-                  v-model.number="tempHammingThresholdUp"
-                  type="number"
-                  min="0"
-                  max="20"
-                  step="1"
-                  class="concurrent-select"
-                  @change="updateImageProcessingParams"
-                />
-              </div>
-              <div class="setting-item">
                 <label class="setting-label">SSIM Threshold:</label>
                 <div class="setting-description">Structural similarity threshold for precise comparison (0.9-1.0)</div>
                 <input
@@ -294,11 +268,7 @@ const slideDoubleVerification = ref(true)
 const slideVerificationCount = ref(2)
 
 // Advanced image processing parameters
-const hammingThresholdLow = ref(0)
-const hammingThresholdUp = ref(5)
 const ssimThreshold = ref(0.999)
-const tempHammingThresholdLow = ref(0)
-const tempHammingThresholdUp = ref(5)
 const tempSsimThreshold = ref(0.999)
 
 const tokenManager = new TokenManager()
@@ -393,11 +363,7 @@ const loadConfig = async () => {
     slideVerificationCount.value = slideConfig.verificationCount || 2
 
     // Load advanced image processing parameters
-    hammingThresholdLow.value = slideConfig.hammingThresholdLow || 0
-    hammingThresholdUp.value = slideConfig.hammingThresholdUp || 5
     ssimThreshold.value = slideConfig.ssimThreshold || 0.999
-    tempHammingThresholdLow.value = hammingThresholdLow.value
-    tempHammingThresholdUp.value = hammingThresholdUp.value
     tempSsimThreshold.value = ssimThreshold.value
   } catch (error) {
     console.error('Failed to load config:', error)
@@ -508,8 +474,6 @@ const openAdvancedSettings = () => {
   // Reset temp values to current values when opening modal
   tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   tempVideoRetryCount.value = videoRetryCount.value
-  tempHammingThresholdLow.value = hammingThresholdLow.value
-  tempHammingThresholdUp.value = hammingThresholdUp.value
   tempSsimThreshold.value = ssimThreshold.value
   showAdvancedModal.value = true
 }
@@ -518,8 +482,6 @@ const closeAdvancedSettings = () => {
   // Reset temp values when canceling
   tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   tempVideoRetryCount.value = videoRetryCount.value
-  tempHammingThresholdLow.value = hammingThresholdLow.value
-  tempHammingThresholdUp.value = hammingThresholdUp.value
   tempSsimThreshold.value = ssimThreshold.value
   showAdvancedModal.value = false
 }
@@ -548,12 +510,8 @@ const saveAdvancedSettings = async () => {
 
     // Save image processing parameters
     const imageProcessingResult = await window.electronAPI.config.setSlideImageProcessingParams({
-      hammingThresholdLow: tempHammingThresholdLow.value,
-      hammingThresholdUp: tempHammingThresholdUp.value,
       ssimThreshold: tempSsimThreshold.value
     })
-    hammingThresholdLow.value = imageProcessingResult.hammingThresholdLow
-    hammingThresholdUp.value = imageProcessingResult.hammingThresholdUp
     ssimThreshold.value = imageProcessingResult.ssimThreshold
 
     // Also update the download service

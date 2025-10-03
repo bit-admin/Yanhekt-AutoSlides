@@ -6,7 +6,7 @@
 // Worker message types
 interface WorkerMessage {
   id: string;
-  type: 'compareImages' | 'calculateHash' | 'calculateSSIM' | 'updateConfig';
+  type: 'compareImages' | 'calculateSSIM' | 'updateConfig';
   data: any;
 }
 
@@ -18,15 +18,11 @@ interface WorkerResponse {
 }
 
 interface ImageProcessingConfig {
-  hammingThresholdLow: number;
-  hammingThresholdUp: number;
   ssimThreshold: number;
 }
 
 // Configuration for image comparison (can be updated via updateConfig message)
 let CONFIG: ImageProcessingConfig = {
-  hammingThresholdLow: 0,      // Hamming distance lower bound
-  hammingThresholdUp: 5,       // Hamming distance upper bound
   ssimThreshold: 0.999         // SSIM similarity threshold
 };
 
@@ -66,115 +62,6 @@ function resizeImageData(imageData: ImageData, newWidth: number, newHeight: numb
   return ctx.getImageData(0, 0, newWidth, newHeight);
 }
 
-/**
- * Apply 32x32 DCT transform
- */
-function applyDCT32x32(pixels: Uint8ClampedArray): number[] {
-  const size = 32;
-  const coeffs: number[] = [];
-
-  for (let u = 0; u < size; u++) {
-    for (let v = 0; v < size; v++) {
-      let sum = 0;
-      for (let x = 0; x < size; x++) {
-        for (let y = 0; y < size; y++) {
-          const pixel = pixels[(y * size + x) * 4]; // Take R component (grayscale)
-          sum += pixel *
-                 Math.cos((2 * x + 1) * u * Math.PI / (2 * size)) *
-                 Math.cos((2 * y + 1) * v * Math.PI / (2 * size));
-        }
-      }
-
-      const c_u = u === 0 ? 1 / Math.sqrt(2) : 1;
-      const c_v = v === 0 ? 1 / Math.sqrt(2) : 1;
-      coeffs.push((1 / (size / 2)) * c_u * c_v * sum);
-    }
-  }
-
-  return coeffs;
-}
-
-/**
- * Extract low frequency coefficients from 32x32 DCT result (8x8 top-left region)
- */
-function extractLowFrequencyCoeffs(dctCoeffs: number[]): number[] {
-  const lowFreqCoeffs: number[] = [];
-
-  // Extract top-left 8x8 region from 32x32 DCT coefficient matrix
-  for (let u = 0; u < 8; u++) {
-    for (let v = 0; v < 8; v++) {
-      const index = u * 32 + v; // Index in 32x32 matrix
-      lowFreqCoeffs.push(dctCoeffs[index]);
-    }
-  }
-
-  return lowFreqCoeffs;
-}
-
-/**
- * Calculate median of array
- */
-function calculateMedian(values: number[]): number {
-  if (values.length === 0) return 0;
-
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-
-  if (sorted.length % 2 === 0) {
-    return (sorted[mid - 1] + sorted[mid]) / 2;
-  } else {
-    return sorted[mid];
-  }
-}
-
-/**
- * Calculate perceptual hash (standard pHash method)
- */
-function calculatePerceptualHash(imageData: ImageData): bigint {
-  if (!imageData) {
-    console.warn('calculatePerceptualHash: imageData is null');
-    return 0n;
-  }
-
-  // 1. Convert to grayscale first
-  const grayscale = convertToGrayscale(imageData);
-
-  // 2. Resize to 32x32
-  const resized = resizeImageData(grayscale, 32, 32);
-
-  // 3. Apply DCT transform to 32x32 grayscale image
-  const dctCoeffs = applyDCT32x32(resized.data);
-
-  // 4. Extract top-left 8x8 low frequency region from 32x32 DCT result
-  const lowFreqCoeffs = extractLowFrequencyCoeffs(dctCoeffs);
-
-  // 5. Exclude DC component, calculate median of remaining 63 coefficients
-  const acCoeffs = lowFreqCoeffs.slice(1); // Exclude DC component
-  const median = calculateMedian(acCoeffs);
-
-  // 6. Generate 63-bit hash using BigInt for precision
-  let hash = 0n;
-  for (let i = 0; i < acCoeffs.length; i++) {
-    hash = hash * 2n + (acCoeffs[i] >= median ? 1n : 0n);
-  }
-
-  return hash;
-}
-
-/**
- * Calculate Hamming distance between two hashes
- */
-function calculateHammingDistance(hash1: bigint, hash2: bigint): number {
-  let xor = hash1 ^ hash2;
-  let distance = 0;
-
-  while (xor > 0n) {
-    distance += Number(xor & 1n);
-    xor >>= 1n;
-  }
-
-  return distance;
-}
 
 /**
  * Calculate SSIM (Structural Similarity Index)
@@ -220,7 +107,7 @@ function calculateSSIM(img1Data: ImageData, img2Data: ImageData): number {
 }
 
 /**
- * Compare two images for significant changes (using two-level comparison: pHash + SSIM)
+ * Compare two images for significant changes (using SSIM-only comparison)
  */
 function compareImages(img1Data: ImageData, img2Data: ImageData): boolean {
   try {
@@ -230,24 +117,9 @@ function compareImages(img1Data: ImageData, img2Data: ImageData): boolean {
       return false; // If there are null values, consider no change
     }
 
-    // Level 1: Calculate perceptual hash
-    const hash1 = calculatePerceptualHash(img1Data);
-    const hash2 = calculatePerceptualHash(img2Data);
-
-    // Calculate Hamming distance
-    const hammingDistance = calculateHammingDistance(hash1, hash2);
-
-    if (hammingDistance > CONFIG.hammingThresholdUp) {
-      // Hash detected significant change
-      return true;
-    } else if (hammingDistance <= CONFIG.hammingThresholdLow) {
-      // Hash completely identical
-      return false;
-    } else {
-      // Boundary case, use SSIM for precise comparison
-      const ssim = calculateSSIM(img1Data, img2Data);
-      return ssim < CONFIG.ssimThreshold;
-    }
+    // Use SSIM for precise comparison
+    const ssim = calculateSSIM(img1Data, img2Data);
+    return ssim < CONFIG.ssimThreshold;
 
   } catch (error) {
     console.error('Error in compareImages:', error);
@@ -266,13 +138,6 @@ self.onmessage = function(e: MessageEvent<WorkerMessage>) {
       case 'compareImages': {
         const { img1Data, img2Data } = data;
         result = compareImages(img1Data, img2Data);
-        break;
-      }
-
-      case 'calculateHash': {
-        const { imageData } = data;
-        const hash = calculatePerceptualHash(imageData);
-        result = hash.toString(); // Convert BigInt to string for serialization
         break;
       }
 

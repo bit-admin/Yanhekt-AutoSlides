@@ -5,7 +5,7 @@
 
 interface WorkerMessage {
   id: string;
-  type: 'compareImages' | 'calculateHash' | 'calculateSSIM' | 'updateConfig';
+  type: 'compareImages' | 'calculateSSIM' | 'updateConfig';
   data: unknown;
 }
 
@@ -124,21 +124,6 @@ export class SlideProcessorService {
     }
   }
 
-  /**
-   * Calculate perceptual hash for an image
-   */
-  async calculateHash(imageData: ImageData): Promise<bigint> {
-    try {
-      const result = await this.sendMessage<string>('calculateHash', {
-        imageData
-      });
-      // Convert string representation back to BigInt
-      return BigInt(result);
-    } catch (error) {
-      console.error('Error calculating hash:', error);
-      return 0n;
-    }
-  }
 
   /**
    * Calculate SSIM between two images
@@ -175,8 +160,6 @@ export class SlideProcessorService {
    * Update worker configuration
    */
   async updateConfig(config: {
-    hammingThresholdLow?: number;
-    hammingThresholdUp?: number;
     ssimThreshold?: number;
   }): Promise<boolean> {
     try {

@@ -11,8 +11,6 @@ export interface SlideExtractionConfig {
   verificationCount: number;       // Number of verification attempts
 
   // Advanced image processing parameters
-  hammingThresholdLow: number;     // Hamming distance lower bound
-  hammingThresholdUp: number;      // Hamming distance upper bound
   ssimThreshold: number;           // SSIM similarity threshold
 }
 
@@ -33,9 +31,7 @@ const defaultSlideExtractionConfig: SlideExtractionConfig = {
   enableDoubleVerification: true,   // Enable dual verification
   verificationCount: 2,             // 2 verification attempts
 
-  // Advanced image processing parameters (hardcoded values from reference)
-  hammingThresholdLow: 0,          // Hamming distance lower bound
-  hammingThresholdUp: 5,           // Hamming distance upper bound
+  // Advanced image processing parameters
   ssimThreshold: 0.999             // SSIM similarity threshold
 };
 
@@ -119,18 +115,10 @@ export class ConfigService {
   }
 
   setSlideImageProcessingParams(params: {
-    hammingThresholdLow?: number;
-    hammingThresholdUp?: number;
     ssimThreshold?: number;
   }): void {
     const config: Partial<SlideExtractionConfig> = {};
 
-    if (params.hammingThresholdLow !== undefined) {
-      config.hammingThresholdLow = Math.max(0, Math.min(10, params.hammingThresholdLow));
-    }
-    if (params.hammingThresholdUp !== undefined) {
-      config.hammingThresholdUp = Math.max(0, Math.min(20, params.hammingThresholdUp));
-    }
     if (params.ssimThreshold !== undefined) {
       config.ssimThreshold = Math.max(0.9, Math.min(1.0, params.ssimThreshold));
     }

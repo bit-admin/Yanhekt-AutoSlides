@@ -9,8 +9,6 @@ export interface SlideExtractionConfig {
   checkInterval: number;           // Detection interval in milliseconds
   enableDoubleVerification: boolean; // Enable dual verification
   verificationCount: number;       // Number of verification attempts
-  hammingThresholdLow: number;     // Hamming distance lower bound
-  hammingThresholdUp: number;      // Hamming distance upper bound
   ssimThreshold: number;           // SSIM similarity threshold
 }
 
@@ -38,8 +36,6 @@ export class SlideExtractor {
     checkInterval: 2000,              // 2 seconds
     enableDoubleVerification: true,   // Enable dual verification
     verificationCount: 2,             // 2 verification attempts
-    hammingThresholdLow: 0,          // Hamming distance lower bound
-    hammingThresholdUp: 5,           // Hamming distance upper bound
     ssimThreshold: 0.999             // SSIM similarity threshold
   };
 
@@ -89,15 +85,11 @@ export class SlideExtractor {
         checkInterval: this.getIntervalForRate(this.currentPlaybackRate), // Direct table lookup
         enableDoubleVerification: slideConfig.enableDoubleVerification !== false,
         verificationCount: slideConfig.verificationCount || 2,
-        hammingThresholdLow: slideConfig.hammingThresholdLow || 0,
-        hammingThresholdUp: slideConfig.hammingThresholdUp || 5,
         ssimThreshold: slideConfig.ssimThreshold || 0.999
       };
 
       // Update worker configuration
       await slideProcessorService.updateConfig({
-        hammingThresholdLow: this.config.hammingThresholdLow,
-        hammingThresholdUp: this.config.hammingThresholdUp,
         ssimThreshold: this.config.ssimThreshold
       });
 
@@ -236,13 +228,9 @@ export class SlideExtractor {
     this.config = { ...this.config, ...newConfig };
 
     // Update worker configuration if image processing params changed
-    if (newConfig.hammingThresholdLow !== undefined ||
-        newConfig.hammingThresholdUp !== undefined ||
-        newConfig.ssimThreshold !== undefined) {
+    if (newConfig.ssimThreshold !== undefined) {
       try {
         await slideProcessorService.updateConfig({
-          hammingThresholdLow: this.config.hammingThresholdLow,
-          hammingThresholdUp: this.config.hammingThresholdUp,
           ssimThreshold: this.config.ssimThreshold
         });
       } catch (error) {
