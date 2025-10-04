@@ -245,7 +245,7 @@ const downloadCamera = (session: Session) => {
   DataStore.setSessionData(session.session_id, session)
 
   const added = DownloadService.addToQueue({
-    name: `${props.course?.title}_${session.title}_Camera`,
+    name: `camera_${props.course?.title}_${session.title}`,
     courseTitle: props.course?.title || 'Unknown Course',
     sessionTitle: session.title,
     sessionId: session.session_id,
@@ -265,7 +265,7 @@ const downloadScreen = (session: Session) => {
   DataStore.setSessionData(session.session_id, session)
 
   const added = DownloadService.addToQueue({
-    name: `${props.course?.title}_${session.title}_Screen`,
+    name: `screen_${props.course?.title}_${session.title}`,
     courseTitle: props.course?.title || 'Unknown Course',
     sessionTitle: session.title,
     sessionId: session.session_id,
@@ -293,7 +293,7 @@ const downloadAllCamera = () => {
     DataStore.setSessionData(session.session_id, session)
 
     const added = DownloadService.addToQueue({
-      name: `${props.course?.title}_${session.title}_Camera`,
+      name: `camera_${props.course?.title}_${session.title}`,
       courseTitle: props.course?.title || 'Unknown Course',
       sessionTitle: session.title,
       sessionId: session.session_id,
@@ -317,7 +317,7 @@ const downloadAllScreen = () => {
     DataStore.setSessionData(session.session_id, session)
 
     const added = DownloadService.addToQueue({
-      name: `${props.course?.title}_${session.title}_Screen`,
+      name: `screen_${props.course?.title}_${session.title}`,
       courseTitle: props.course?.title || 'Unknown Course',
       sessionTitle: session.title,
       sessionId: session.session_id,

@@ -92,7 +92,7 @@
 
         <div class="setting-item">
           <label class="setting-label">Slide Detection Interval:</label>
-          <div class="setting-description">How often to check for slide changes (default: 2000ms)</div>
+          <div class="setting-description">The interval will be automatically adjusted based on playback speed (default: 2000ms).</div>
           <div class="slide-interval-group">
             <input
               v-model.number="slideCheckInterval"
@@ -199,16 +199,17 @@
               <h4>Image Processing</h4>
               <div class="setting-item">
                 <label class="setting-label">SSIM Threshold:</label>
-                <div class="setting-description">Structural similarity threshold for precise comparison (0.9-1.0)</div>
+                <div class="setting-description">Higher global structural similarity threshold indicate stricter matching. You can test the detection accuracy in <strong>Menu > Help > SSIM Test.</strong></div>
                 <input
                   v-model.number="tempSsimThreshold"
                   type="number"
                   min="0.9"
                   max="1.0"
-                  step="0.001"
+                  step="0.0001"
                   class="concurrent-select"
                   @change="updateImageProcessingParams"
                 />
+                <div class="setting-description">Adjust <strong>ONLY IF NECESSARY</strong>, as a minor change of 0.001 can significantly impact performance (default: 0.999; alternative: 0.998 for a looser threshold).</div>
               </div>
             </div>
           </div>
