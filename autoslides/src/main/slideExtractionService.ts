@@ -6,6 +6,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
+import { shell } from 'electron';
 
 export class SlideExtractionService {
   /**
@@ -103,7 +104,7 @@ export class SlideExtractionService {
   }
 
   /**
-   * Delete a specific slide file with safety checks
+   * Move a specific slide file to trash with safety checks
    */
   async deleteSlide(outputPath: string, filename: string): Promise<void> {
     try {
@@ -146,11 +147,11 @@ export class SlideExtractionService {
         throw error;
       }
 
-      // Delete the file
-      await fs.unlink(resolvedFilePath);
-      console.log(`Slide deleted successfully: ${resolvedFilePath}`);
+      // Move the file to trash using Electron's shell API
+      await shell.trashItem(resolvedFilePath);
+      console.log(`Slide moved to trash successfully: ${resolvedFilePath}`);
     } catch (error) {
-      console.error('Failed to delete slide:', error);
+      console.error('Failed to move slide to trash:', error);
       throw error;
     }
   }

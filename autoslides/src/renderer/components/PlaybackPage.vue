@@ -168,14 +168,14 @@
         <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0" class="slide-gallery">
           <div class="gallery-header">
             <h3>Extracted Slides ({{ extractedSlides.length }})</h3>
-            <button @click="clearAllSlides" class="clear-all-btn">
+            <button @click="clearAllSlides" class="clear-all-btn" title="Move all slides to trash">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3,6 5,6 21,6"/>
                 <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
                 <line x1="10" y1="11" x2="10" y2="17"/>
                 <line x1="14" y1="11" x2="14" y2="17"/>
               </svg>
-              Clear All
+              Move All to Trash
             </button>
           </div>
           <div class="gallery-grid">
@@ -194,7 +194,7 @@
                 <button
                   @click.stop="deleteSlide(slide)"
                   class="delete-btn"
-                  :title="`Delete ${slide.title}`"
+                  :title="`Move ${slide.title} to trash`"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3,6 5,6 21,6"/>
@@ -224,14 +224,14 @@
         <div class="modal-header">
           <h3>{{ selectedSlide.title }}</h3>
           <div class="modal-actions">
-            <button @click="deleteSlide(selectedSlide)" class="modal-delete-btn">
+            <button @click="deleteSlide(selectedSlide)" class="modal-delete-btn" title="Move slide to trash">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3,6 5,6 21,6"/>
                 <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
                 <line x1="10" y1="11" x2="10" y2="17"/>
                 <line x1="14" y1="11" x2="14" y2="17"/>
               </svg>
-              Delete
+              Move to Trash
             </button>
             <button @click="closeSlideModal" class="modal-close-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1407,13 +1407,13 @@ const deleteSlide = async (slide: ExtractedSlide) => {
   try {
     // Show confirmation dialog
     const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
-      type: 'warning',
-      buttons: ['Cancel', 'Delete'],
+      type: 'question',
+      buttons: ['Cancel', 'Move to Trash'],
       defaultId: 0,
       cancelId: 0,
-      title: 'Delete Slide',
-      message: `Are you sure you want to delete "${slide.title}.png"?`,
-      detail: 'This action cannot be undone. The file will be permanently deleted from your output directory.'
+      title: 'Move Slide to Trash',
+      message: `Are you sure you want to move "${slide.title}.png" to trash?`,
+      detail: 'The file will be moved to your system trash and can be recovered if needed.'
     })
 
     if (confirmed?.response !== 1) {
@@ -1440,11 +1440,11 @@ const deleteSlide = async (slide: ExtractedSlide) => {
       selectedSlide.value = null
     }
 
-    console.log(`Slide deleted: ${slide.title}`)
+    console.log(`Slide moved to trash: ${slide.title}`)
   } catch (error) {
-    console.error('Failed to delete slide:', error)
+    console.error('Failed to move slide to trash:', error)
     // Show error dialog
-    await window.electronAPI.dialog?.showErrorBox?.('Delete Failed', `Failed to delete slide: ${error.message || error}`)
+    await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slide to trash: ${error.message || error}`)
   }
 }
 
@@ -1456,13 +1456,13 @@ const clearAllSlides = async () => {
 
     // Show confirmation dialog
     const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
-      type: 'warning',
-      buttons: ['Cancel', 'Delete All'],
+      type: 'question',
+      buttons: ['Cancel', 'Move All to Trash'],
       defaultId: 0,
       cancelId: 0,
-      title: 'Delete All Slides',
-      message: `Are you sure you want to delete all ${extractedSlides.value.length} slides?`,
-      detail: 'This action cannot be undone. All slide files will be permanently deleted from your output directory.'
+      title: 'Move All Slides to Trash',
+      message: `Are you sure you want to move all ${extractedSlides.value.length} slides to trash?`,
+      detail: 'All slide files will be moved to your system trash and can be recovered if needed.'
     })
 
     if (confirmed?.response !== 1) {
@@ -1492,11 +1492,11 @@ const clearAllSlides = async () => {
       slideExtractorInstance.value.clearSlides()
     }
 
-    console.log('All slides cleared')
+    console.log('All slides moved to trash')
   } catch (error) {
-    console.error('Failed to clear all slides:', error)
+    console.error('Failed to move all slides to trash:', error)
     // Show error dialog
-    await window.electronAPI.dialog?.showErrorBox?.('Clear Failed', `Failed to clear slides: ${error.message || error}`)
+    await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slides to trash: ${error.message || error}`)
   }
 }
 
