@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { MainAuthService } from './main/authService';
@@ -287,6 +287,37 @@ ipcMain.handle('slideExtraction:ensureDirectory', async (event, path: string) =>
     return { success: true };
   } catch (error) {
     console.error('Failed to ensure directory:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('slideExtraction:deleteSlide', async (event, outputPath: string, filename: string) => {
+  try {
+    await slideExtractionService.deleteSlide(outputPath, filename);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to delete slide:', error);
+    throw error;
+  }
+});
+
+// IPC handlers for dialog functionality
+ipcMain.handle('dialog:showMessageBox', async (event, options: any) => {
+  try {
+    const result = await dialog.showMessageBox(options);
+    return result;
+  } catch (error) {
+    console.error('Failed to show message box:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('dialog:showErrorBox', async (event, title: string, content: string) => {
+  try {
+    dialog.showErrorBox(title, content);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to show error box:', error);
     throw error;
   }
 });

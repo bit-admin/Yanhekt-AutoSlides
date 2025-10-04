@@ -103,6 +103,59 @@ export class SlideExtractionService {
   }
 
   /**
+   * Delete a specific slide file with safety checks
+   */
+  async deleteSlide(outputPath: string, filename: string): Promise<void> {
+    try {
+      // Expand tilde in path
+      const expandedPath = outputPath.startsWith('~')
+        ? path.join(os.homedir(), outputPath.slice(1))
+        : outputPath;
+
+      // Validate filename to prevent directory traversal attacks
+      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        throw new Error('Invalid filename: contains path traversal characters');
+      }
+
+      // Ensure filename has .png extension and starts with Slide_
+      if (!filename.endsWith('.png') || !filename.startsWith('Slide_')) {
+        throw new Error('Invalid filename: must be a slide PNG file (Slide_*.png)');
+      }
+
+      // Full file path
+      const filePath = path.join(expandedPath, filename);
+
+      // Verify the file exists and is within the expected directory
+      const resolvedFilePath = path.resolve(filePath);
+      const resolvedOutputPath = path.resolve(expandedPath);
+
+      if (!resolvedFilePath.startsWith(resolvedOutputPath)) {
+        throw new Error('Invalid file path: file is outside the output directory');
+      }
+
+      // Check if file exists
+      try {
+        const stats = await fs.stat(resolvedFilePath);
+        if (!stats.isFile()) {
+          throw new Error('Path is not a file');
+        }
+      } catch (error) {
+        if ((error as any).code === 'ENOENT') {
+          throw new Error('File does not exist');
+        }
+        throw error;
+      }
+
+      // Delete the file
+      await fs.unlink(resolvedFilePath);
+      console.log(`Slide deleted successfully: ${resolvedFilePath}`);
+    } catch (error) {
+      console.error('Failed to delete slide:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Clean up old slide files (optional utility)
    */
   async cleanupOldSlides(dirPath: string, maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): Promise<number> {

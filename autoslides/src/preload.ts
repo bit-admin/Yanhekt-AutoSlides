@@ -73,5 +73,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     saveSlide: (outputPath: string, filename: string, imageBuffer: Uint8Array) =>
       ipcRenderer.invoke('slideExtraction:saveSlide', outputPath, filename, imageBuffer),
     ensureDirectory: (path: string) => ipcRenderer.invoke('slideExtraction:ensureDirectory', path),
+    deleteSlide: (outputPath: string, filename: string) =>
+      ipcRenderer.invoke('slideExtraction:deleteSlide', outputPath, filename),
+  },
+  dialog: {
+    showMessageBox: (options: any) => ipcRenderer.invoke('dialog:showMessageBox', options),
+    showErrorBox: (title: string, content: string) => ipcRenderer.invoke('dialog:showErrorBox', title, content),
   },
 });

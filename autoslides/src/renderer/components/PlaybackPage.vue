@@ -164,6 +164,50 @@
           </div>
         </div>
 
+        <!-- Slide Gallery -->
+        <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0" class="slide-gallery">
+          <div class="gallery-header">
+            <h3>Extracted Slides ({{ extractedSlides.length }})</h3>
+            <button @click="clearAllSlides" class="clear-all-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3,6 5,6 21,6"/>
+                <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+              Clear All
+            </button>
+          </div>
+          <div class="gallery-grid">
+            <div
+              v-for="slide in extractedSlides"
+              :key="slide.id"
+              class="slide-thumbnail"
+              @click="openSlideModal(slide)"
+            >
+              <img :src="slide.dataUrl" :alt="slide.title" />
+              <div class="thumbnail-overlay">
+                <div class="slide-info">
+                  <span class="slide-title">{{ slide.title }}</span>
+                  <span class="slide-time">{{ formatSlideTime(slide.timestamp) }}</span>
+                </div>
+                <button
+                  @click.stop="deleteSlide(slide)"
+                  class="delete-btn"
+                  :title="`Delete ${slide.title}`"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3,6 5,6 21,6"/>
+                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+                    <line x1="10" y1="11" x2="10" y2="17"/>
+                    <line x1="14" y1="11" x2="14" y2="17"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <div v-else class="no-streams">
@@ -173,6 +217,40 @@
         <p>No video streams available</p>
       </div>
     </div>
+
+    <!-- Slide Preview Modal -->
+    <div v-if="selectedSlide" class="slide-modal" @click="closeSlideModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>{{ selectedSlide.title }}</h3>
+          <div class="modal-actions">
+            <button @click="deleteSlide(selectedSlide)" class="modal-delete-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3,6 5,6 21,6"/>
+                <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+              Delete
+            </button>
+            <button @click="closeSlideModal" class="modal-close-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+              Close
+            </button>
+          </div>
+        </div>
+        <div class="modal-body">
+          <img :src="selectedSlide.dataUrl" :alt="selectedSlide.title" class="modal-image" />
+          <div class="slide-metadata">
+            <p><strong>Extracted at:</strong> {{ formatSlideTime(selectedSlide.timestamp) }}</p>
+            <p><strong>File name:</strong> {{ selectedSlide.title }}.png</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -180,7 +258,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { DataStore } from '../services/dataStore'
 import { TokenManager } from '../services/authService'
-import { slideExtractionManager, type SlideExtractor } from '../services/slideExtractor'
+import { slideExtractionManager, type SlideExtractor, type ExtractedSlide } from '../services/slideExtractor'
 import Hls from 'hls.js'
 
 interface Course {
@@ -287,6 +365,10 @@ const slideExtractionStatus = ref({
 })
 const slideExtractorInstance = ref<SlideExtractor | null>(null)
 const extractorInstanceId = ref<string | null>(null)
+
+// Slide gallery state
+const extractedSlides = ref<ExtractedSlide[]>([])
+const selectedSlide = ref<ExtractedSlide | null>(null)
 
 // Computed property to determine if video should be muted based on mode and mute setting
 const shouldVideoMute = computed(() => {
@@ -1303,6 +1385,121 @@ const formatDuration = (duration: string | number): string => {
   }
 }
 
+// Slide gallery methods
+const formatSlideTime = (timestamp: string): string => {
+  try {
+    const date = new Date(timestamp)
+    return date.toLocaleTimeString()
+  } catch {
+    return timestamp
+  }
+}
+
+const openSlideModal = (slide: ExtractedSlide) => {
+  selectedSlide.value = slide
+}
+
+const closeSlideModal = () => {
+  selectedSlide.value = null
+}
+
+const deleteSlide = async (slide: ExtractedSlide) => {
+  try {
+    // Show confirmation dialog
+    const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'warning',
+      buttons: ['Cancel', 'Delete'],
+      defaultId: 0,
+      cancelId: 0,
+      title: 'Delete Slide',
+      message: `Are you sure you want to delete "${slide.title}.png"?`,
+      detail: 'This action cannot be undone. The file will be permanently deleted from your output directory.'
+    })
+
+    if (confirmed?.response !== 1) {
+      return // User cancelled
+    }
+
+    // Get the output path from the slide extractor
+    const outputPath = slideExtractorInstance.value?.getOutputPath()
+    if (!outputPath) {
+      throw new Error('Output path not found')
+    }
+
+    // Delete the file from the file system
+    await window.electronAPI.slideExtraction?.deleteSlide?.(outputPath, `${slide.title}.png`)
+
+    // Remove from local array
+    const index = extractedSlides.value.findIndex(s => s.id === slide.id)
+    if (index !== -1) {
+      extractedSlides.value.splice(index, 1)
+    }
+
+    // Close modal if this slide was being viewed
+    if (selectedSlide.value?.id === slide.id) {
+      selectedSlide.value = null
+    }
+
+    console.log(`Slide deleted: ${slide.title}`)
+  } catch (error) {
+    console.error('Failed to delete slide:', error)
+    // Show error dialog
+    await window.electronAPI.dialog?.showErrorBox?.('Delete Failed', `Failed to delete slide: ${error.message || error}`)
+  }
+}
+
+const clearAllSlides = async () => {
+  try {
+    if (extractedSlides.value.length === 0) {
+      return
+    }
+
+    // Show confirmation dialog
+    const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'warning',
+      buttons: ['Cancel', 'Delete All'],
+      defaultId: 0,
+      cancelId: 0,
+      title: 'Delete All Slides',
+      message: `Are you sure you want to delete all ${extractedSlides.value.length} slides?`,
+      detail: 'This action cannot be undone. All slide files will be permanently deleted from your output directory.'
+    })
+
+    if (confirmed?.response !== 1) {
+      return // User cancelled
+    }
+
+    // Get the output path from the slide extractor
+    const outputPath = slideExtractorInstance.value?.getOutputPath()
+    if (!outputPath) {
+      throw new Error('Output path not found')
+    }
+
+    // Delete all files from the file system
+    const deletePromises = extractedSlides.value.map(slide =>
+      window.electronAPI.slideExtraction?.deleteSlide?.(outputPath, `${slide.title}.png`)
+    )
+    await Promise.all(deletePromises)
+
+    // Clear local array
+    extractedSlides.value = []
+
+    // Close modal if open
+    selectedSlide.value = null
+
+    // Clear slides in the extractor instance
+    if (slideExtractorInstance.value) {
+      slideExtractorInstance.value.clearSlides()
+    }
+
+    console.log('All slides cleared')
+  } catch (error) {
+    console.error('Failed to clear all slides:', error)
+    // Show error dialog
+    await window.electronAPI.dialog?.showErrorBox?.('Clear Failed', `Failed to clear slides: ${error.message || error}`)
+  }
+}
+
 // Watch for play/pause state changes
 let currentEventListeners: (() => void)[] = []
 
@@ -1459,9 +1656,11 @@ const cleanup = () => {
 
 // Slide extraction event handlers
 const onSlideExtracted = (event: CustomEvent) => {
-  const { instanceId, mode } = event.detail
+  const { slide, instanceId, mode } = event.detail
   // Only handle events from our instance
   if (instanceId === extractorInstanceId.value && mode === props.mode) {
+    // Add the new slide to our local array
+    extractedSlides.value.push(slide)
     updateSlideExtractionStatus()
   }
 }
@@ -1470,6 +1669,9 @@ const onSlidesCleared = (event: CustomEvent) => {
   const { instanceId, mode } = event.detail
   // Only handle events from our instance
   if (instanceId === extractorInstanceId.value && mode === props.mode) {
+    // Clear local slides array
+    extractedSlides.value = []
+    selectedSlide.value = null
     updateSlideExtractionStatus()
   }
 }
@@ -1934,6 +2136,242 @@ onUnmounted(async () => {
   color: #28a745;
 }
 
+/* Slide Gallery */
+.slide-gallery {
+  margin-top: 24px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.gallery-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.clear-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  background-color: #dc3545;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clear-all-btn:hover {
+  background-color: #c82333;
+  border-color: #c82333;
+}
+
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.slide-thumbnail {
+  position: relative;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #e9ecef;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.slide-thumbnail:hover {
+  border-color: #007acc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.slide-thumbnail img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
+.thumbnail-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  padding: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.slide-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.slide-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slide-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.delete-btn {
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background-color: rgba(220, 53, 69, 0.8);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.delete-btn:hover {
+  background-color: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+/* Slide Modal */
+.slide-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 12px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.modal-delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  background-color: #dc3545;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-delete-btn:hover {
+  background-color: #c82333;
+  border-color: #c82333;
+}
+
+.modal-close-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #6c757d;
+  border-radius: 4px;
+  background-color: #6c757d;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-close-btn:hover {
+  background-color: #5a6268;
+  border-color: #5a6268;
+}
+
+.modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-image {
+  max-width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.slide-metadata {
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.slide-metadata p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: #666;
+}
+
+.slide-metadata strong {
+  color: #333;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .stream-info {
@@ -1944,6 +2382,32 @@ onUnmounted(async () => {
 
   .video-player {
     min-height: 250px;
+  }
+
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+
+  .slide-thumbnail img {
+    height: 100px;
+  }
+
+  .modal-content {
+    max-width: 95vw;
+    max-height: 95vh;
+  }
+
+  .modal-header {
+    padding: 12px 16px;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .modal-image {
+    max-height: 60vh;
   }
 }
 </style>
