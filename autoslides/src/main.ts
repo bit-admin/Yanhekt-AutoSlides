@@ -68,6 +68,8 @@ const createWindow = () => {
     height: 900,
     minWidth: 1200,
     minHeight: 700,
+    titleBarStyle: 'hiddenInset', // Hide default titlebar but keep traffic lights on macOS
+    frame: process.platform !== 'darwin', // Remove frame on macOS, keep on other platforms
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,

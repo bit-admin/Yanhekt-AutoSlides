@@ -1,5 +1,8 @@
 <template>
   <div class="app">
+    <!-- Custom Title Bar -->
+    <TitleBar />
+
     <div class="layout">
       <div class="left-panel" :style="{ width: leftWidth + 'px' }">
         <LeftPanel />
@@ -20,6 +23,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import TitleBar from './renderer/components/TitleBar.vue'
 import LeftPanel from './renderer/components/LeftPanel.vue'
 import MainContent from './renderer/components/MainContent.vue'
 import RightPanel from './renderer/components/RightPanel.vue'
@@ -142,10 +146,17 @@ onMounted(() => {
 
 .layout {
   display: flex;
-  height: 100%;
+  height: calc(100% - 36px); /* Subtract titlebar height */
   width: 100%;
   background-color: #f5f5f5;
   overflow: hidden;
+}
+
+/* Adjust for macOS titlebar height */
+@media screen and (-webkit-min-device-pixel-ratio: 1) {
+  .layout {
+    height: calc(100% - 32px); /* macOS titlebar is slightly shorter */
+  }
 }
 
 .left-panel {
