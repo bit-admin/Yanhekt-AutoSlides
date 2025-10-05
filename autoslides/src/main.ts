@@ -25,7 +25,27 @@ app.setName('AutoSlides');
 // Create macOS menu template
 const createMenuTemplate = () => {
   const template: Electron.MenuItemConstructorOptions[] = [
-    { label: app.name, submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'services' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] },
+    { label: app.name, submenu: [
+      { role: 'about' },
+      {
+        label: 'Terms and Conditions',
+        click: () => {
+          // In development, use the source directory; in production, use the app directory
+          const termsPath = app.isPackaged
+            ? path.join(process.resourcesPath, 'terms/terms.rtf')
+            : path.join(__dirname, '../../resources/terms/terms.rtf');
+          shell.openPath(termsPath);
+        }
+      },
+      { type: 'separator' },
+      { role: 'services' },
+      { type: 'separator' },
+      { role: 'hide' },
+      { role: 'hideOthers' },
+      { role: 'unhide' },
+      { type: 'separator' },
+      { role: 'quit' }
+    ] },
     { label: 'File', submenu: [{ label: 'New', accelerator: 'CmdOrCtrl+N', enabled: false }, { label: 'Open', accelerator: 'CmdOrCtrl+O', enabled: false }, { type: 'separator' }, { role: 'close' }] },
     { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
     { label: 'View', submenu: [{ role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
