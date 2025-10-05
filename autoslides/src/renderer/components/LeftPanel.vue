@@ -238,6 +238,7 @@ import { ref, onMounted, computed } from 'vue'
 import { AuthService, TokenManager } from '../services/authService'
 import { ApiClient } from '../services/apiClient'
 import { DownloadService } from '../services/downloadService'
+import { TaskQueue, taskQueueState } from '../services/taskQueueService'
 
 const isLoggedIn = ref(false)
 const username = ref('')
@@ -246,7 +247,35 @@ const userNickname = ref('User')
 const userId = ref('user123')
 const connectionMode = ref<'internal' | 'external'>('external')
 const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
-const taskStatus = ref('Ready')
+
+const taskStatus = computed(() => {
+  const stats = taskQueueState.value
+  const queued = stats.queuedCount
+  const inProgress = stats.inProgressCount
+  const completed = stats.completedCount
+  const errors = stats.errorCount
+
+  // Show most relevant status (similar to download status logic)
+  if (stats.isProcessing && inProgress > 0) {
+    const currentTask = stats.currentTask
+    if (currentTask && currentTask.progress > 0) {
+      return `Processing ${currentTask.progress}%, ${queued} queued`
+    } else {
+      return `${inProgress} processing, ${queued} queued`
+    }
+  } else if (queued > 0) {
+    if (stats.isProcessing) {
+      return `Starting tasks... ${queued} queued`
+    } else {
+      return `${queued} queued (paused)`
+    }
+  } else if (completed > 0 || errors > 0) {
+    return `${completed} completed, ${errors} failed`
+  } else {
+    return 'No tasks'
+  }
+})
+
 const downloadQueueStatus = computed(() => {
   const queued = DownloadService.queuedCount
   const active = DownloadService.activeCount
