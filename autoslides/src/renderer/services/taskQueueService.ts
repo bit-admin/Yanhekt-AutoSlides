@@ -106,10 +106,20 @@ class TaskQueueService {
   pauseQueue(): void {
     this.state.isProcessing = false
 
-    // Mark current task as queued if it's in progress
+    // Emit task pause event to notify PlaybackPage to pause video
     if (this.state.currentTaskId) {
       const currentTask = this.state.tasks.find(task => task.id === this.state.currentTaskId)
       if (currentTask && currentTask.status === 'in_progress') {
+        // Emit pause event before changing task status
+        const pauseEvent = new CustomEvent('taskPause', {
+          detail: {
+            taskId: currentTask.id,
+            sessionId: currentTask.sessionId
+          }
+        })
+        window.dispatchEvent(pauseEvent)
+
+        // Mark current task as queued
         currentTask.status = 'queued'
         currentTask.progress = 0
         delete currentTask.startedAt
