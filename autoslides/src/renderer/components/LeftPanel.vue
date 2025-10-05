@@ -112,7 +112,7 @@
         <div class="setting-item">
           <label class="setting-label">Slide Stability Verification</label>
           <div class="setting-description">Prevents false detection from animations by confirming a new slide after it remains unchanged for several consecutive checks (default: 2 checks).</div>
-          <div class="verification-control-row">
+          <div class="verification-unified-control">
             <label class="checkbox-label">
               <input
                 type="checkbox"
@@ -1006,31 +1006,53 @@ const loadManualToken = () => {
   white-space: nowrap;
 }
 
-.verification-control-row {
+.verification-unified-control {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: stretch;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  height: 35px;
+}
+
+.verification-unified-control:hover {
+  background-color: #e9ecef;
+  border-color: #007bff;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 12px;
   color: #333;
   cursor: pointer;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  user-select: none;
+  flex: 1;
 }
 
 .checkbox-label input[type="checkbox"] {
   margin: 0;
   cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #007bff;
 }
 
 .verification-count-control {
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 8px 12px;
+  background-color: rgba(255, 255, 255, 0.7);
+  border-left: 1px solid #ddd;
 }
 
 .count-label {
