@@ -500,25 +500,13 @@ const loadVideoStreams = async () => {
       // Check if we need to initialize task after video loading completes
       if (isTaskMode.value && currentTaskId.value) {
         console.log('Video loaded, checking task initialization for:', currentTaskId.value)
-        // Small delay to ensure everything is properly initialized
-        setTimeout(() => {
-          // Set task speed for playback rate (only for recorded mode)
-          if (videoPlayer.value && props.mode === 'recorded') {
-            currentPlaybackRate.value = taskSpeed.value
-            videoPlayer.value.playbackRate = taskSpeed.value
-
-            // Update slide extractor with task speed
-            if (slideExtractorInstance.value) {
-              slideExtractorInstance.value.updatePlaybackRate(taskSpeed.value)
-            }
-          }
-
-          if (isScreenRecordingSelected.value && !isSlideExtractionEnabled.value) {
-            console.log('Auto-starting slide extraction after video load for task:', currentTaskId.value)
-            isSlideExtractionEnabled.value = true
-            toggleSlideExtraction()
-          }
-        }, 100)
+        // Wait for video to be fully ready before initializing task
+        waitForVideoReady().then(() => {
+          initializeTaskAfterVideoLoad(currentTaskId.value!)
+        }).catch(error => {
+          console.error('Video readiness check failed for task:', currentTaskId.value, error)
+          handleTaskError('Video failed to become ready: ' + error.message)
+        })
       }
     } else {
       throw new Error('No video streams available')
@@ -1759,15 +1747,25 @@ const onSlidesCleared = (event: CustomEvent) => {
 
 // Task queue event handlers
 const onTaskStart = (event: CustomEvent) => {
-  const { taskId, sessionId } = event.detail
+  const { taskId, sessionId, retryCount } = event.detail
 
   // Check if this task is for our session (only for recorded mode)
   if (props.mode === 'recorded' && props.sessionId === sessionId) {
+    // If this is a retry and we already have this task, don't reinitialize
+    if (currentTaskId.value === taskId && isTaskMode.value) {
+      console.log(`Task start retry ${retryCount || 1} for already active task:`, taskId)
+      return
+    }
+
+    console.log(`Task start event received (attempt ${retryCount || 1}) for:`, taskId)
+
     currentTaskId.value = taskId
     isTaskMode.value = true
 
-    // Update task status to in progress
-    TaskQueue.updateTaskStatus(taskId, 'in_progress')
+    // Update task status to in progress (only on first attempt)
+    if (!retryCount || retryCount === 1) {
+      TaskQueue.updateTaskStatus(taskId, 'in_progress')
+    }
 
     // Start the task initialization process
     initializeTask(taskId)
@@ -1813,134 +1811,218 @@ const onTaskResume = (event: CustomEvent) => {
   }
 }
 
-// Initialize task with retry mechanism for video loading
-const initializeTask = async (taskId: string) => {
-  const maxRetries = 10 // Maximum 10 retries (5 seconds total)
-  let retryCount = 0
+// Wait for video to be fully ready for task processing
+const waitForVideoReady = (): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const timeout = 15000 // 15 second timeout
+    const startTime = Date.now()
 
-  const tryInitialize = () => {
-    // Check if video streams are loaded and screen recording is available
-    if (playbackData.value && selectedStream.value && !loading.value) {
-      // Ensure we're on screen recording stream for task mode
-      const screenStreamKey = Object.keys(playbackData.value.streams).find(
-        key => playbackData.value?.streams[key].type === 'screen'
-      )
-
-      if (screenStreamKey && selectedStream.value !== screenStreamKey) {
-        console.log('Switching to screen recording for task:', taskId)
-        selectedStream.value = screenStreamKey
-        // Wait for stream switch to complete before continuing
-        setTimeout(() => tryInitialize(), 500)
-        return false
+    const checkVideoReady = () => {
+      // Check if we've exceeded timeout
+      if (Date.now() - startTime > timeout) {
+        reject(new Error('Video readiness timeout'))
+        return
       }
 
-      // Set task speed for playback rate (only for recorded mode)
-      if (videoPlayer.value && props.mode === 'recorded') {
-        currentPlaybackRate.value = taskSpeed.value
-        videoPlayer.value.playbackRate = taskSpeed.value
-
-        // Update slide extractor with task speed
-        if (slideExtractorInstance.value) {
-          slideExtractorInstance.value.updatePlaybackRate(taskSpeed.value)
-        }
+      // Check all required conditions for video readiness
+      const video = videoPlayer.value
+      if (!video) {
+        setTimeout(checkVideoReady, 100)
+        return
       }
 
-      // Auto-start slide extraction for screen recording (force enable even if not currently selected)
-      if (screenStreamKey && !isSlideExtractionEnabled.value) {
-        console.log('Auto-starting slide extraction for task:', taskId)
-        isSlideExtractionEnabled.value = true
-        toggleSlideExtraction()
+      // Check if video has loaded metadata and is ready to play
+      if (video.readyState < 3) { // HAVE_FUTURE_DATA or higher
+        setTimeout(checkVideoReady, 100)
+        return
       }
 
-      // Auto-play the video if not already playing
-      if (videoPlayer.value && videoPlayer.value.paused) {
-        videoPlayer.value.play().catch(e => {
-          console.log('Auto-play failed for task:', e)
-          // Update task with error if auto-play fails
-          TaskQueue.updateTaskStatus(taskId, 'error', 'Failed to start video playback')
-        })
+      // Check if HLS is ready (if using HLS)
+      if (hls.value && !hls.value.media) {
+        setTimeout(checkVideoReady, 100)
+        return
       }
 
-      // Reset progress tracking for new task
-      lastReportedProgress = -1
+      // Check if we have valid duration
+      if (!video.duration || video.duration === 0 || isNaN(video.duration)) {
+        setTimeout(checkVideoReady, 100)
+        return
+      }
 
-      console.log('Task initialized successfully:', taskId)
-      return true
+      // Check if playback data and stream are ready
+      if (!playbackData.value || !selectedStream.value || loading.value) {
+        setTimeout(checkVideoReady, 100)
+        return
+      }
+
+      // All conditions met - video is ready
+      console.log('Video is fully ready for task processing')
+      resolve()
     }
 
-    // If not ready and we haven't exceeded max retries, try again
-    if (retryCount < maxRetries) {
-      retryCount++
-      console.log(`Task initialization retry ${retryCount}/${maxRetries} for task:`, taskId)
-      setTimeout(tryInitialize, 500) // Retry every 500ms
-      return false
-    }
-
-    // Max retries exceeded
-    console.error('Task initialization failed after max retries:', taskId)
-    TaskQueue.updateTaskStatus(taskId, 'error', 'Video failed to load within timeout')
-    return false
-  }
-
-  // Start the initialization process
-  tryInitialize()
+    // Start checking
+    checkVideoReady()
+  })
 }
 
-// Initialize task resume with current video state
-const initializeTaskResume = async (taskId: string) => {
-  console.log('Resuming task:', taskId)
+// Initialize task after video is confirmed ready
+const initializeTaskAfterVideoLoad = async (taskId: string) => {
+  try {
+    console.log('Initializing task after video load:', taskId)
 
-  // Check if we're still on the correct video source (screen recording)
-  if (!isScreenRecordingSelected.value) {
-    // Try to switch to screen recording if available
+    // Ensure we're on screen recording stream for task mode
     const screenStreamKey = Object.keys(playbackData.value?.streams || {}).find(
       key => playbackData.value?.streams[key].type === 'screen'
     )
 
-    if (screenStreamKey) {
+    if (!screenStreamKey) {
+      throw new Error('No screen recording stream available for task')
+    }
+
+    if (selectedStream.value !== screenStreamKey) {
+      console.log('Switching to screen recording for task:', taskId)
       selectedStream.value = screenStreamKey
       await switchStream()
-    } else {
-      // No screen recording available, mark task as error
-      TaskQueue.updateTaskStatus(taskId, 'error', 'Screen recording not available')
-      currentTaskId.value = null
-      isTaskMode.value = false
-      return
+      // Wait a bit more for stream switch to complete
+      await new Promise(resolve => setTimeout(resolve, 1000))
     }
-  }
 
-  // Set task speed for playback rate
-  if (videoPlayer.value && props.mode === 'recorded') {
-    currentPlaybackRate.value = taskSpeed.value
-    videoPlayer.value.playbackRate = taskSpeed.value
+    // Set task speed for playback rate (only for recorded mode)
+    if (videoPlayer.value && props.mode === 'recorded') {
+      currentPlaybackRate.value = taskSpeed.value
+      videoPlayer.value.playbackRate = taskSpeed.value
+      console.log('Set task playback rate to:', taskSpeed.value)
+    }
+
+    // Initialize slide extraction if not already enabled
+    if (!isSlideExtractionEnabled.value) {
+      console.log('Auto-starting slide extraction for task:', taskId)
+      isSlideExtractionEnabled.value = true
+      await toggleSlideExtraction()
+
+      // Wait for slide extraction to be fully initialized
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Verify slide extraction started successfully
+      if (!slideExtractorInstance.value || !slideExtractionStatus.value.isRunning) {
+        throw new Error('Failed to start slide extraction')
+      }
+    }
 
     // Update slide extractor with task speed
     if (slideExtractorInstance.value) {
       slideExtractorInstance.value.updatePlaybackRate(taskSpeed.value)
     }
-  }
 
-  // Start slide extraction if not already enabled
-  if (!isSlideExtractionEnabled.value) {
-    isSlideExtractionEnabled.value = true
-    await toggleSlideExtraction()
-  }
-
-  // Resume video playback if it was paused
-  if (videoPlayer.value && videoPlayer.value.paused) {
-    try {
-      await videoPlayer.value.play()
-    } catch (error) {
-      console.error('Failed to resume video playback:', error)
-      TaskQueue.updateTaskStatus(taskId, 'error', 'Failed to resume video playback')
-      currentTaskId.value = null
-      isTaskMode.value = false
-      return
+    // Auto-play the video if not already playing
+    if (videoPlayer.value && videoPlayer.value.paused) {
+      try {
+        await videoPlayer.value.play()
+        console.log('Video playback started for task:', taskId)
+      } catch (error) {
+        throw new Error('Failed to start video playback: ' + error)
+      }
     }
-  }
 
-  // Reset progress tracking for resumed task
-  lastReportedProgress = -1
+    // Reset progress tracking for new task
+    lastReportedProgress = -1
+
+    console.log('Task initialized successfully after video load:', taskId)
+  } catch (error) {
+    console.error('Task initialization failed after video load:', taskId, error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    handleTaskError('Task initialization failed: ' + errorMessage)
+  }
+}
+
+// Initialize task with improved error handling and video readiness check
+const initializeTask = async (taskId: string) => {
+  try {
+    console.log('Starting task initialization:', taskId)
+
+    // First check if basic requirements are met
+    if (!playbackData.value || loading.value) {
+      console.log('Video data not ready, waiting for video to load...')
+      // Wait for video to be ready with timeout
+      await waitForVideoReady()
+    }
+
+    // Now initialize the task with the confirmed ready video
+    await initializeTaskAfterVideoLoad(taskId)
+  } catch (error) {
+    console.error('Task initialization failed:', taskId, error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    TaskQueue.updateTaskStatus(taskId, 'error', 'Task initialization failed: ' + errorMessage)
+  }
+}
+
+// Initialize task resume with current video state
+const initializeTaskResume = async (taskId: string) => {
+  try {
+    console.log('Resuming task:', taskId)
+
+    // Wait for video to be ready before resuming
+    await waitForVideoReady()
+
+    // Check if we're still on the correct video source (screen recording)
+    if (!isScreenRecordingSelected.value) {
+      // Try to switch to screen recording if available
+      const screenStreamKey = Object.keys(playbackData.value?.streams || {}).find(
+        key => playbackData.value?.streams[key].type === 'screen'
+      )
+
+      if (screenStreamKey) {
+        selectedStream.value = screenStreamKey
+        await switchStream()
+        // Wait for stream switch to complete
+        await new Promise(resolve => setTimeout(resolve, 1000))
+      } else {
+        throw new Error('Screen recording not available for task resume')
+      }
+    }
+
+    // Set task speed for playback rate
+    if (videoPlayer.value && props.mode === 'recorded') {
+      currentPlaybackRate.value = taskSpeed.value
+      videoPlayer.value.playbackRate = taskSpeed.value
+
+      // Update slide extractor with task speed
+      if (slideExtractorInstance.value) {
+        slideExtractorInstance.value.updatePlaybackRate(taskSpeed.value)
+      }
+    }
+
+    // Start slide extraction if not already enabled
+    if (!isSlideExtractionEnabled.value) {
+      isSlideExtractionEnabled.value = true
+      await toggleSlideExtraction()
+
+      // Wait for slide extraction to initialize
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Verify slide extraction started
+      if (!slideExtractorInstance.value || !slideExtractionStatus.value.isRunning) {
+        throw new Error('Failed to start slide extraction on resume')
+      }
+    }
+
+    // Resume video playback if it was paused
+    if (videoPlayer.value && videoPlayer.value.paused) {
+      await videoPlayer.value.play()
+      console.log('Video playback resumed for task:', taskId)
+    }
+
+    // Reset progress tracking for resumed task
+    lastReportedProgress = -1
+
+    console.log('Task resumed successfully:', taskId)
+  } catch (error) {
+    console.error('Failed to resume task:', taskId, error)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    TaskQueue.updateTaskStatus(taskId, 'error', 'Task resume failed: ' + errorMessage)
+    currentTaskId.value = null
+    isTaskMode.value = false
+  }
 }
 
 // Track last reported progress to avoid unnecessary updates
@@ -1998,6 +2080,24 @@ const completeCurrentTask = () => {
   // Mark task as completed
   TaskQueue.updateTaskStatus(taskId, 'completed')
 
+  // Clean up task state
+  cleanupTaskState()
+}
+
+const handleTaskError = (errorMessage: string) => {
+  if (isTaskMode.value && currentTaskId.value) {
+    console.log('Task error occurred:', currentTaskId.value, errorMessage)
+
+    // Mark task as error - this will trigger automatic continuation to next task
+    TaskQueue.updateTaskStatus(currentTaskId.value, 'error', errorMessage)
+
+    // Clean up task state
+    cleanupTaskState()
+  }
+}
+
+// Clean up task state when task ends (success, error, or cancellation)
+const cleanupTaskState = () => {
   // Reset task mode
   currentTaskId.value = null
   isTaskMode.value = false
@@ -2008,35 +2108,21 @@ const completeCurrentTask = () => {
     toggleSlideExtraction()
   }
 
+  // Clear error state to allow next task to start fresh
+  error.value = null
+  isRetrying.value = false
+  retryMessage.value = ''
+
   // Reset progress tracking
   lastReportedProgress = -1
-}
 
-const handleTaskError = (errorMessage: string) => {
-  if (isTaskMode.value && currentTaskId.value) {
-    console.log('Task error occurred:', currentTaskId.value, errorMessage)
+  // Reset video error counters for fresh start
+  videoErrorRetryCount = 0
+  consecutiveErrorsAtSamePosition = 0
+  lastErrorPosition = -1
+  lastPlaybackRateBeforeError = 1
 
-    // Mark task as error - this will trigger automatic continuation to next task
-    TaskQueue.updateTaskStatus(currentTaskId.value, 'error', errorMessage)
-
-    // Reset task mode (the task queue will handle moving to next task)
-    currentTaskId.value = null
-    isTaskMode.value = false
-
-    // Stop slide extraction
-    if (isSlideExtractionEnabled.value) {
-      isSlideExtractionEnabled.value = false
-      toggleSlideExtraction()
-    }
-
-    // Clear error state to allow next task to start fresh
-    error.value = null
-    isRetrying.value = false
-    retryMessage.value = ''
-
-    // Reset progress tracking
-    lastReportedProgress = -1
-  }
+  console.log('Task state cleaned up')
 }
 
 // Lifecycle

@@ -142,6 +142,7 @@ class TaskQueueService {
 
     const task = this.state.tasks[taskIndex]
 
+
     // If removing current task, stop processing and move to next
     if (task.id === this.state.currentTaskId) {
       // Emit pause event to notify PlaybackPage to stop video and slide extraction
@@ -193,6 +194,7 @@ class TaskQueueService {
     }
   }
 
+
   // Update task progress
   updateTaskProgress(taskId: string, progress: number): void {
     const task = this.state.tasks.find(task => task.id === taskId)
@@ -230,7 +232,7 @@ class TaskQueueService {
     this.emitTaskStartEvent(nextTask)
   }
 
-  // Emit event to start task processing
+  // Emit event to start task processing with improved timing
   private emitTaskStartEvent(task: TaskItem): void {
     // First emit navigation event to go to the session
     const navigationEvent = new CustomEvent('taskNavigation', {
@@ -243,18 +245,55 @@ class TaskQueueService {
     })
     window.dispatchEvent(navigationEvent)
 
-    // Then emit task start event (with a small delay to ensure navigation completes)
-    setTimeout(() => {
+    // Wait for navigation and video loading with progressive delays
+    this.waitForTaskReadiness(task)
+  }
+
+  // Wait for task readiness with progressive retry mechanism
+  private waitForTaskReadiness(task: TaskItem): void {
+    let retryCount = 0
+    const maxRetries = 30 // 30 retries = up to 15 seconds
+    const baseDelay = 500 // Start with 500ms
+
+    const checkAndEmitTaskStart = () => {
+      retryCount++
+
+      // Calculate progressive delay (500ms, 750ms, 1000ms, then 1000ms)
+      const delay = Math.min(baseDelay + (retryCount * 250), 1000)
+
+      console.log(`Task readiness check ${retryCount}/${maxRetries} for task: ${task.id}`)
+
+      // Check if task is still valid and processing
+      const currentTask = this.state.tasks.find(t => t.id === task.id)
+      if (!currentTask || currentTask.status !== 'in_progress' || !this.state.isProcessing) {
+        console.log('Task no longer valid or processing stopped:', task.id)
+        return
+      }
+
+      // Emit task start event
       const taskEvent = new CustomEvent('taskStart', {
         detail: {
           taskId: task.id,
           sessionId: task.sessionId,
           courseTitle: task.courseTitle,
-          sessionTitle: task.sessionTitle
+          sessionTitle: task.sessionTitle,
+          retryCount: retryCount
         }
       })
       window.dispatchEvent(taskEvent)
-    }, 500) // 500ms delay to allow navigation to complete
+
+      // If we haven't reached max retries, schedule another attempt
+      // This allows the PlaybackPage to handle the event and potentially succeed
+      if (retryCount < maxRetries) {
+        setTimeout(checkAndEmitTaskStart, delay)
+      } else {
+        console.warn('Max task start retries reached for task:', task.id)
+        // Don't mark as error here - let the PlaybackPage handle timeout
+      }
+    }
+
+    // Start the first attempt after initial navigation delay
+    setTimeout(checkAndEmitTaskStart, baseDelay)
   }
 
   // Generate unique task ID
