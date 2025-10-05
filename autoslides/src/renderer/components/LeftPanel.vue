@@ -121,7 +121,7 @@
                 v-model="slideDoubleVerification"
                 @change="setSlideDoubleVerification"
               />
-              Enable Stability Check
+              Enable Checks
             </label>
             <div class="verification-count-control" v-if="slideDoubleVerification">
               <span class="count-label">Count:</span>
@@ -1394,22 +1394,377 @@ const loadManualToken = () => {
   border: 1px solid #f5c6cb;
 }
 
-/* Custom scrollbar for advanced settings content */
+/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
+.control-section,
+.advanced-settings-content {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.control-section:hover,
+.advanced-settings-content:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.control-section::-webkit-scrollbar,
 .advanced-settings-content::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
+.control-section::-webkit-scrollbar-track,
 .advanced-settings-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
+  background: transparent;
+  border-radius: 3px;
 }
 
+.control-section::-webkit-scrollbar-thumb,
 .advanced-settings-content::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
+  background: transparent;
+  border-radius: 3px;
+  border: none;
+  transition: background 0.3s ease;
 }
 
+.control-section:hover::-webkit-scrollbar-thumb,
+.advanced-settings-content:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.control-section::-webkit-scrollbar-thumb:hover,
 .advanced-settings-content::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .left-panel {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+  }
+
+  .login-section {
+    border-bottom-color: #404040;
+    background-color: #2d2d2d;
+  }
+
+  .user-info {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .login-form h3, .verifying-state h3, .user-info h3 {
+    color: #e0e0e0;
+  }
+
+  .login-form p, .verifying-state p, .user-info p {
+    color: #b0b0b0;
+  }
+
+  .loading-spinner {
+    border-color: #404040;
+    border-top-color: #4a9eff;
+  }
+
+  .input-field {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .input-field::placeholder {
+    color: #888;
+  }
+
+  .login-btn {
+    background-color: #4a9eff;
+  }
+
+  .login-btn:hover:not(:disabled) {
+    background-color: #3a8eef;
+  }
+
+  .login-btn:disabled {
+    background-color: #555;
+  }
+
+  .logout-btn {
+    color: #ff6b6b;
+    border-color: #ff6b6b;
+  }
+
+  .logout-btn:hover {
+    background-color: #ff6b6b;
+    color: white;
+  }
+
+  .control-section {
+    background-color: #2d2d2d;
+  }
+
+  .control-header h3 {
+    color: #e0e0e0;
+  }
+
+  .advanced-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .advanced-btn:hover {
+    background-color: #3d3d3d;
+  }
+
+  .setting-label {
+    color: #e0e0e0;
+  }
+
+  .setting-description {
+    color: #b0b0b0;
+  }
+
+  .directory-input {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .browse-btn {
+    background-color: #4a9eff;
+  }
+
+  .browse-btn:hover {
+    background-color: #3a8eef;
+  }
+
+  .mode-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .mode-btn:hover {
+    background-color: #3d3d3d;
+  }
+
+  .mode-btn.active {
+    background-color: #4a9eff;
+    color: white;
+    border-color: #4a9eff;
+  }
+
+  .audio-mode-select, .task-speed-select, .verification-count-select, .concurrent-select, .ssim-select {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .audio-mode-select:focus, .task-speed-select:focus, .verification-count-select:focus, .concurrent-select:focus, .ssim-select:focus {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .slide-interval-input-wrapper {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .slide-interval-input-wrapper:focus-within {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .slide-interval-input {
+    color: #e0e0e0;
+  }
+
+  .interval-unit {
+    background-color: #2d2d2d;
+    border-left-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .verification-unified-control {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .verification-unified-control:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .checkbox-label {
+    color: #e0e0e0;
+  }
+
+  .verification-count-control {
+    background-color: rgba(45, 45, 45, 0.7);
+    border-left-color: #404040;
+  }
+
+  .count-label {
+    color: #b0b0b0;
+  }
+
+  .status-section {
+    background-color: #2d2d2d;
+    border-top-color: #404040;
+  }
+
+  .status-label {
+    color: #e0e0e0;
+  }
+
+  .status-value {
+    color: #b0b0b0;
+  }
+
+  .status-value.internal {
+    color: #4caf50;
+  }
+
+  .status-value.external {
+    color: #ffc107;
+  }
+
+  .modal-overlay {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+
+  .modal-content {
+    background-color: #2d2d2d;
+  }
+
+  .modal-header {
+    border-bottom-color: #404040;
+  }
+
+  .modal-header h3 {
+    color: #e0e0e0;
+  }
+
+  .close-btn {
+    color: #e0e0e0;
+  }
+
+  .close-btn:hover {
+    background-color: #3d3d3d;
+  }
+
+  .modal-body {
+    color: #e0e0e0;
+  }
+
+  .advanced-settings-content {
+    background-color: #2d2d2d;
+  }
+
+  .advanced-setting-section h4 {
+    color: #e0e0e0;
+    border-bottom-color: #404040;
+  }
+
+  .modal-actions {
+    background-color: #2d2d2d;
+    border-top-color: #404040;
+  }
+
+  .cancel-btn {
+    background-color: #2d2d2d;
+    color: #b0b0b0;
+    border-color: #404040;
+  }
+
+  .cancel-btn:hover {
+    background-color: #3d3d3d;
+    border-color: #555;
+  }
+
+  .save-btn {
+    background-color: #4a9eff;
+    border-color: #4a9eff;
+  }
+
+  .save-btn:hover {
+    background-color: #3a8eef;
+    border-color: #3a8eef;
+  }
+
+  .token-input {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .token-input:focus {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .token-toggle-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .token-toggle-btn:hover {
+    background-color: #3d3d3d;
+  }
+
+  .verify-token-btn {
+    background-color: #4caf50;
+  }
+
+  .verify-token-btn:hover:not(:disabled) {
+    background-color: #45a049;
+  }
+
+  .verify-token-btn:disabled {
+    background-color: #555;
+  }
+
+  .token-status.success {
+    background-color: #1b4332;
+    color: #4caf50;
+    border-color: #2d5a3d;
+  }
+
+  .token-status.error {
+    background-color: #4a1e1e;
+    color: #ff6b6b;
+    border-color: #5d2a2a;
+  }
+
+  .control-section,
+  .advanced-settings-content {
+    scrollbar-color: transparent transparent;
+  }
+
+  .control-section:hover,
+  .advanced-settings-content:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+
+  .control-section::-webkit-scrollbar-track,
+  .advanced-settings-content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .control-section::-webkit-scrollbar-thumb,
+  .advanced-settings-content::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
+  .control-section:hover::-webkit-scrollbar-thumb,
+  .advanced-settings-content:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .control-section::-webkit-scrollbar-thumb:hover,
+  .advanced-settings-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+  }
 }
 </style>

@@ -52,10 +52,10 @@ const createMenuTemplate = () => {
     { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'close' }, { type: 'separator' }, { role: 'front' }] },
     { label: 'Help', role: 'help', submenu: [
       { label: 'Visit GitHub Repository', click: () => { shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides'); } },
-      { label: 'SSIM Test', click: () => { shell.openExternal('https://learn.ruc.edu.kg/test'); } },
+      { label: 'IT Center Software List', click: () => { shell.openExternal('https://it.ruc.edu.kg/zh/software'); } },
       { type: 'separator' },
       { label: 'Web Version', click: () => { shell.openExternal('https://learn.ruc.edu.kg'); } },
-      { label: 'IT Center Software List', click: () => { shell.openExternal('https://it.ruc.edu.kg/zh/software'); } }
+      { label: 'SSIM Test', click: () => { shell.openExternal('https://learn.ruc.edu.kg/test'); } }
     ] }
   ];
   return template;
