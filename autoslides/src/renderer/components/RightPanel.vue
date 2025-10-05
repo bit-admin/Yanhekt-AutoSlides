@@ -128,20 +128,7 @@
               </svg>
             </div>
             <p>No slide extraction tasks in queue</p>
-            <div class="queue-stats">
-              <div class="stat-item">
-                <span class="stat-label">Queued:</span>
-                <span class="stat-value">{{ taskStats.queuedCount }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Completed:</span>
-                <span class="stat-value">{{ taskStats.completedCount }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Errors:</span>
-                <span class="stat-value">{{ taskStats.errorCount }}</span>
-              </div>
-            </div>
+            <p>Add recorded sessions to queue to automatically extract slides</p>
           </div>
         </div>
       </div>
@@ -259,20 +246,6 @@
               </svg>
             </div>
             <p>No downloads in queue</p>
-            <div class="queue-stats">
-              <div class="stat-item">
-                <span class="stat-label">Active:</span>
-                <span class="stat-value">{{ activeCount }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Completed:</span>
-                <span class="stat-value">{{ completedCount }}</span>
-              </div>
-              <div class="stat-item">
-                <span class="stat-label">Errors:</span>
-                <span class="stat-value">{{ errorCount }}</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -812,5 +785,207 @@ defineExpose({
   font-size: 16px;
   font-weight: 600;
   color: #333;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .right-panel {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+  }
+
+  .content-area {
+    background-color: #1e1e1e;
+  }
+
+  .task-content, .download-content {
+    background-color: #1e1e1e;
+  }
+
+  .navigation-bar {
+    border-bottom-color: #404040;
+    background-color: #2d2d2d;
+  }
+
+  .nav-btn {
+    color: #e0e0e0;
+  }
+
+  .nav-btn:hover {
+    background-color: #404040;
+  }
+
+  .nav-btn.active {
+    background-color: #1e1e1e;
+    color: #4fc3f7;
+    border-bottom-color: #4fc3f7;
+  }
+
+  .section-header h3 {
+    color: #e0e0e0;
+  }
+
+  .control-btn {
+    background-color: #2d2d2d;
+    border-color: #555;
+    color: #e0e0e0;
+  }
+
+  .control-btn:hover {
+    background-color: #404040;
+  }
+
+  .cancel-all-btn {
+    color: #f48fb1;
+    border-color: #f48fb1;
+  }
+
+  .cancel-all-btn:hover {
+    background-color: #4a2c35;
+    border-color: #f06292;
+  }
+
+  .clear-btn {
+    color: #bdbdbd;
+    border-color: #bdbdbd;
+  }
+
+  .clear-btn:hover {
+    background-color: #404040;
+    border-color: #9e9e9e;
+  }
+
+  .start-btn {
+    color: #81c784;
+    border-color: #81c784;
+  }
+
+  .start-btn:hover:not(:disabled) {
+    background-color: #2e4a2e;
+    border-color: #66bb6a;
+  }
+
+  .pause-btn {
+    color: #ffb74d;
+    border-color: #ffb74d;
+  }
+
+  .pause-btn:hover {
+    background-color: #4a3a2a;
+    border-color: #ffa726;
+  }
+
+  .control-btn:disabled:hover {
+    background-color: #2d2d2d;
+    border-color: #555;
+  }
+
+  .task-item, .download-item {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .task-item:hover, .download-item:hover {
+    border-color: #4fc3f7;
+    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
+  }
+
+  .task-item.status-queued, .download-item.status-queued {
+    border-left-color: #bdbdbd;
+  }
+
+  .task-item.status-in_progress {
+    border-left-color: #81c784;
+  }
+
+  .download-item.status-downloading {
+    border-left-color: #4fc3f7;
+  }
+
+  .download-item.status-processing {
+    border-left-color: #ffb74d;
+  }
+
+  .task-item.status-completed, .download-item.status-completed {
+    border-left-color: #81c784;
+  }
+
+  .task-item.status-error, .download-item.status-error {
+    border-left-color: #f48fb1;
+  }
+
+  .status-indicator.status-queued {
+    color: #bdbdbd;
+    background-color: #404040;
+  }
+
+  .status-indicator.status-downloading {
+    color: #4fc3f7;
+    background-color: #1a3a4a;
+  }
+
+  .status-indicator.status-processing {
+    color: #ffb74d;
+    background-color: #4a3a2a;
+  }
+
+  .status-indicator.status-completed {
+    color: #81c784;
+    background-color: #2e4a2e;
+  }
+
+  .status-indicator.status-error {
+    color: #f48fb1;
+    background-color: #4a2c35;
+  }
+
+  .item-name {
+    color: #e0e0e0;
+  }
+
+  .progress-bar {
+    background-color: #404040;
+  }
+
+  .progress-fill {
+    background-color: #4fc3f7;
+  }
+
+  .progress-text {
+    color: #bdbdbd;
+  }
+
+  .cancel-item-btn {
+    color: #f48fb1;
+  }
+
+  .cancel-item-btn:hover {
+    background-color: #4a2c35;
+  }
+
+  .retry-item-btn {
+    color: #81c784;
+  }
+
+  .retry-item-btn:hover {
+    background-color: #2e4a2e;
+  }
+
+  .empty-queue {
+    color: #bdbdbd;
+  }
+
+  .feature-item {
+    background-color: #2d2d2d;
+    color: #bdbdbd;
+  }
+
+  .stat-label {
+    color: #757575;
+  }
+
+  .stat-value {
+    color: #e0e0e0;
+  }
 }
 </style>
