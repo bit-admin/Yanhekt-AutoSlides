@@ -1672,7 +1672,7 @@ watch(() => currentStreamData.value, (newStreamData) => {
 })
 
 // Watch for visibility changes - keep video playing when hidden
-watch(isVisible, (visible) => {
+watch(isVisible, () => {
   // Don't pause video when hidden - this is what enables background playback
   // The video continues playing in the background even when the component is not visible
 }, { immediate: true })
@@ -1772,9 +1772,17 @@ const onTaskStart = (event: CustomEvent) => {
 }
 
 const onTaskPause = (event: CustomEvent) => {
-  if (isTaskMode.value && currentTaskId.value) {
+  const { taskId, sessionId } = event.detail
+
+  // Check if this pause event is for our session (for recorded mode) or if we're in task mode
+  if ((props.mode === 'recorded' && props.sessionId === sessionId) ||
+      (isTaskMode.value && currentTaskId.value === taskId)) {
+
+    console.log('Task pause received for:', taskId)
+
     // Pause video playback if it's playing
     if (videoPlayer.value && !videoPlayer.value.paused) {
+      console.log('Pausing video playback for task:', taskId)
       videoPlayer.value.pause()
     }
 
@@ -1783,6 +1791,7 @@ const onTaskPause = (event: CustomEvent) => {
 
     // Stop slide extraction if running
     if (isSlideExtractionEnabled.value) {
+      console.log('Stopping slide extraction for task:', taskId)
       isSlideExtractionEnabled.value = false
       toggleSlideExtraction()
     }
@@ -1809,6 +1818,19 @@ const initializeTask = async (taskId: string) => {
   const tryInitialize = () => {
     // Check if video streams are loaded and screen recording is available
     if (playbackData.value && selectedStream.value && !loading.value) {
+      // Ensure we're on screen recording stream for task mode
+      const screenStreamKey = Object.keys(playbackData.value.streams).find(
+        key => playbackData.value?.streams[key].type === 'screen'
+      )
+
+      if (screenStreamKey && selectedStream.value !== screenStreamKey) {
+        console.log('Switching to screen recording for task:', taskId)
+        selectedStream.value = screenStreamKey
+        // Wait for stream switch to complete before continuing
+        setTimeout(() => tryInitialize(), 500)
+        return false
+      }
+
       // Set task speed for playback rate (only for recorded mode)
       if (videoPlayer.value && props.mode === 'recorded') {
         currentPlaybackRate.value = taskSpeed.value
@@ -1820,8 +1842,8 @@ const initializeTask = async (taskId: string) => {
         }
       }
 
-      // Auto-start slide extraction for screen recording
-      if (isScreenRecordingSelected.value && !isSlideExtractionEnabled.value) {
+      // Auto-start slide extraction for screen recording (force enable even if not currently selected)
+      if (screenStreamKey && !isSlideExtractionEnabled.value) {
         console.log('Auto-starting slide extraction for task:', taskId)
         isSlideExtractionEnabled.value = true
         toggleSlideExtraction()

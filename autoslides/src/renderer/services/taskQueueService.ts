@@ -144,6 +144,17 @@ class TaskQueueService {
 
     // If removing current task, stop processing and move to next
     if (task.id === this.state.currentTaskId) {
+      // Emit pause event to notify PlaybackPage to stop video and slide extraction
+      if (task.status === 'in_progress') {
+        const pauseEvent = new CustomEvent('taskPause', {
+          detail: {
+            taskId: task.id,
+            sessionId: task.sessionId
+          }
+        })
+        window.dispatchEvent(pauseEvent)
+      }
+
       this.state.currentTaskId = null
       this.state.tasks.splice(taskIndex, 1)
 
