@@ -68,8 +68,8 @@ const createWindow = () => {
     height: 900,
     minWidth: 1200,
     minHeight: 700,
-    titleBarStyle: 'hiddenInset', // Hide default titlebar but keep traffic lights on macOS
-    frame: process.platform !== 'darwin', // Remove frame on macOS, keep on other platforms
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden', // Hide titlebar on all platforms
+    frame: false, // Remove frame on all platforms for custom titlebar
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -375,6 +375,46 @@ ipcMain.handle('dialog:showErrorBox', async (event, title: string, content: stri
     console.error('Failed to show error box:', error);
     throw error;
   }
+});
+
+// IPC handlers for window controls
+ipcMain.handle('window:minimize', async () => {
+  const focusedWindow = BrowserWindow.getFocusedWindow();
+  if (focusedWindow) {
+    focusedWindow.minimize();
+    return { success: true };
+  }
+  return { success: false, error: 'No focused window' };
+});
+
+ipcMain.handle('window:maximize', async () => {
+  const focusedWindow = BrowserWindow.getFocusedWindow();
+  if (focusedWindow) {
+    if (focusedWindow.isMaximized()) {
+      focusedWindow.unmaximize();
+    } else {
+      focusedWindow.maximize();
+    }
+    return { success: true, isMaximized: focusedWindow.isMaximized() };
+  }
+  return { success: false, error: 'No focused window' };
+});
+
+ipcMain.handle('window:close', async () => {
+  const focusedWindow = BrowserWindow.getFocusedWindow();
+  if (focusedWindow) {
+    focusedWindow.close();
+    return { success: true };
+  }
+  return { success: false, error: 'No focused window' };
+});
+
+ipcMain.handle('window:isMaximized', async () => {
+  const focusedWindow = BrowserWindow.getFocusedWindow();
+  if (focusedWindow) {
+    return { isMaximized: focusedWindow.isMaximized() };
+  }
+  return { isMaximized: false };
 });
 
 // In this file you can include the rest of your app's specific main process

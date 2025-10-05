@@ -52,19 +52,38 @@ const handleSearchClick = () => {
 };
 
 // Window control functions for non-macOS platforms
-const minimizeWindow = () => {
-  // This would need IPC implementation for actual window control
-  console.log('Minimize window');
+const minimizeWindow = async () => {
+  try {
+    await (window as any).electronAPI.window.minimize();
+  } catch (error) {
+    console.error('Failed to minimize window:', error);
+  }
 };
 
-const maximizeWindow = () => {
-  // This would need IPC implementation for actual window control
-  console.log('Maximize window');
+const maximizeWindow = async () => {
+  try {
+    const result = await (window as any).electronAPI.window.maximize();
+    if (result.success) {
+      // Update maximize button icon based on window state
+      updateMaximizeIcon(result.isMaximized);
+    }
+  } catch (error) {
+    console.error('Failed to maximize/restore window:', error);
+  }
 };
 
-const closeWindow = () => {
-  // This would need IPC implementation for actual window control
-  console.log('Close window');
+const closeWindow = async () => {
+  try {
+    await (window as any).electronAPI.window.close();
+  } catch (error) {
+    console.error('Failed to close window:', error);
+  }
+};
+
+// Update maximize button icon based on window state
+const updateMaximizeIcon = (isMaximized: boolean) => {
+  // This could be used to change the icon between maximize and restore
+  console.log('Window maximized state:', isMaximized);
 };
 </script>
 
@@ -109,6 +128,11 @@ const closeWindow = () => {
 /* For macOS, offset the search box to account for traffic lights */
 .titlebar.is-macos .titlebar-drag-region {
   margin-left: -85px; /* Half of traffic lights width to center properly */
+}
+
+/* For non-macOS, offset the search box to account for window controls on the right */
+.titlebar:not(.is-macos) .titlebar-drag-region {
+  margin-right: -125px; /* Half of window controls width (138px / 2) to center properly */
 }
 
 .titlebar-drag-region:active {
@@ -178,20 +202,44 @@ const closeWindow = () => {
   justify-content: center;
   cursor: pointer;
   color: #666;
-  transition: background-color 0.2s ease;
+  transition: all 0.15s ease;
+  position: relative;
 }
 
 .control-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.control-button:active {
   background: rgba(0, 0, 0, 0.1);
 }
 
+/* Windows 11 style hover effects */
+.control-button.minimize:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.control-button.maximize:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
 .control-button.close:hover {
-  background: #e81123;
+  background: #c42b1c;
+  color: white;
+}
+
+.control-button.close:active {
+  background: #a23216;
   color: white;
 }
 
 .control-button svg {
   pointer-events: none;
+  transition: transform 0.15s ease;
+}
+
+.control-button:active svg {
+  transform: scale(0.95);
 }
 
 /* Dark mode support */
@@ -234,7 +282,26 @@ const closeWindow = () => {
   }
 
   .control-button:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .control-button:active {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .control-button.minimize:hover,
+  .control-button.maximize:hover {
     background: rgba(255, 255, 255, 0.1);
+  }
+
+  .control-button.close:hover {
+    background: #c42b1c;
+    color: white;
+  }
+
+  .control-button.close:active {
+    background: #a23216;
+    color: white;
   }
 }
 </style>

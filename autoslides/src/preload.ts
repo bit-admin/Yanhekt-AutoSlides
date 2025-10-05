@@ -81,4 +81,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     showMessageBox: (options: any) => ipcRenderer.invoke('dialog:showMessageBox', options),
     showErrorBox: (title: string, content: string) => ipcRenderer.invoke('dialog:showErrorBox', title, content),
   },
+  window: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximize: () => ipcRenderer.invoke('window:maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
+    isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+  },
 });
