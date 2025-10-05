@@ -225,10 +225,21 @@
 
               <div class="item-actions">
                 <button
+                  @click="retryDownload(item.id)"
+                  class="retry-item-btn"
+                  title="Retry"
+                  v-if="item.status === 'error'"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 4v6h6"/>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                  </svg>
+                </button>
+                <button
                   @click="cancelDownload(item.id)"
                   class="cancel-item-btn"
                   title="Cancel"
-                  v-if="item.status !== 'completed'"
+                  v-if="item.status !== 'completed' && item.status !== 'error'"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"/>
@@ -345,6 +356,10 @@ const clearCompleted = () => {
 
 const cancelDownload = (id: string) => {
   DownloadService.removeFromQueue(id)
+}
+
+const retryDownload = (id: string) => {
+  DownloadService.retryDownload(id)
 }
 
 // Listen for tab switching events
@@ -730,6 +745,25 @@ defineExpose({
 
 .cancel-item-btn:hover {
   background-color: #f8d7da;
+}
+
+.retry-item-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background-color: transparent;
+  color: #28a745;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-right: 4px;
+}
+
+.retry-item-btn:hover {
+  background-color: #d4edda;
 }
 
 .empty-queue {

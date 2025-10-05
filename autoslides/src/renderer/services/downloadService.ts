@@ -116,6 +116,31 @@ class DownloadServiceClass {
     })
   }
 
+  retryDownload(id: string): boolean {
+    const item = this.items.find(item => item.id === id)
+    if (!item || item.status !== 'error') {
+      return false // Item not found or not in error state
+    }
+
+    // Reset the item to queued state
+    item.status = 'queued'
+    item.progress = 0
+    item.error = undefined
+    item.startedAt = undefined
+    item.completedAt = undefined
+
+    // Move the item to the end of the queue by removing and re-adding it
+    const index = this.items.indexOf(item)
+    if (index !== -1) {
+      this.items.splice(index, 1)
+      this.items.push(item)
+    }
+
+    // Process the queue to start the retry if there's capacity
+    this.processQueue()
+    return true
+  }
+
   private processQueue(): void {
     const queuedItems = this.items.filter(item => item.status === 'queued')
     const canStart = this.maxConcurrent.value - this.activeDownloads.size

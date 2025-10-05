@@ -141,13 +141,6 @@ class M3u8Downloader {
     this.workDir = path.join(outputDir, name);
     this.filePath = path.join(outputDir, name);
 
-    // Check if file already exists
-    if (fs.existsSync(`${this.filePath}.mp4`)) {
-      console.log(`File '${this.filePath}.mp4' already exists, skip download`);
-      this.progressCallback({ current: 100, total: 100, phase: 2 });
-      return;
-    }
-
     // Create directory if it doesn't exist
     if (!fs.existsSync(path.dirname(this.filePath))) {
       fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
@@ -576,6 +569,7 @@ class M3u8Downloader {
 
       // Use spawn to execute ffmpeg
       this.ffmpegProcess = spawn(ffmpegPath, [
+        '-y', // Overwrite output files without asking
         '-f', 'concat',
         '-safe', '0',
         '-i', concatFilePath,
@@ -663,6 +657,7 @@ class M3u8Downloader {
     const m3u8FilePath = path.resolve(`${this.filePath}.m3u8`);
 
     this.ffmpegProcess = spawn(ffmpegPath, [
+      '-y', // Overwrite output files without asking
       '-allowed_extensions', 'ALL',
       '-i', m3u8FilePath,
       '-c', 'copy',
