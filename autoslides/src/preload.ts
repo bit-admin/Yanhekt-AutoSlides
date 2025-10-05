@@ -16,6 +16,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => ipcRenderer.invoke('config:setMuteMode', mode),
     setVideoRetryCount: (count: number) => ipcRenderer.invoke('config:setVideoRetryCount', count),
     setTaskSpeed: (speed: number) => ipcRenderer.invoke('config:setTaskSpeed', speed),
+    // Theme configuration
+    setThemeMode: (theme: 'system' | 'light' | 'dark') => ipcRenderer.invoke('config:setThemeMode', theme),
+    getThemeMode: () => ipcRenderer.invoke('config:getThemeMode'),
+    isDarkMode: () => ipcRenderer.invoke('config:isDarkMode'),
+    getEffectiveTheme: () => ipcRenderer.invoke('config:getEffectiveTheme'),
     // Slide extraction configuration
     getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),
     setSlideCheckInterval: (interval: number) => ipcRenderer.invoke('config:setSlideCheckInterval', interval),

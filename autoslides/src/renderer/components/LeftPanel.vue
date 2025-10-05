@@ -92,6 +92,17 @@
         </div>
 
         <div class="setting-item">
+          <label class="setting-label">Theme</label>
+          <div class="theme-selector">
+            <select v-model="themeMode" @change="setThemeMode" class="theme-select">
+              <option value="system">Follow System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-item">
           <label class="setting-label">Slide Detection Interval</label>
           <div class="setting-description">The interval will be automatically adjusted based on playback speed (default: 2000ms).</div>
           <div class="slide-interval-group">
@@ -283,6 +294,7 @@ const userNickname = ref('User')
 const userId = ref('user123')
 const connectionMode = ref<'internal' | 'external'>('external')
 const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
+const themeMode = ref<'system' | 'light' | 'dark'>('system')
 
 const taskStatus = computed(() => {
   const stats = taskQueueState.value
@@ -450,6 +462,9 @@ const loadConfig = async () => {
     // Load task configuration
     taskSpeed.value = config.taskSpeed || 10
 
+    // Load theme configuration
+    themeMode.value = config.themeMode || 'system'
+
     // Load advanced image processing parameters
     ssimThreshold.value = slideConfig.ssimThreshold || 0.999
     tempSsimThreshold.value = ssimThreshold.value
@@ -559,6 +574,15 @@ const setTaskSpeed = async () => {
     taskSpeed.value = result.taskSpeed
   } catch (error) {
     console.error('Failed to set task speed:', error)
+  }
+}
+
+const setThemeMode = async () => {
+  try {
+    const result = await window.electronAPI.config.setThemeMode(themeMode.value)
+    themeMode.value = result.themeMode
+  } catch (error) {
+    console.error('Failed to set theme mode:', error)
   }
 }
 
@@ -974,6 +998,27 @@ const loadManualToken = () => {
 }
 
 .audio-mode-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.theme-selector {
+  width: 100%;
+}
+
+.theme-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.theme-select:focus {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
@@ -1554,13 +1599,13 @@ const loadManualToken = () => {
     border-color: #4a9eff;
   }
 
-  .audio-mode-select, .task-speed-select, .verification-count-select, .concurrent-select, .ssim-select {
+  .audio-mode-select, .theme-select, .task-speed-select, .verification-count-select, .concurrent-select, .ssim-select {
     background-color: #2d2d2d;
     border-color: #404040;
     color: #e0e0e0;
   }
 
-  .audio-mode-select:focus, .task-speed-select:focus, .verification-count-select:focus, .concurrent-select:focus, .ssim-select:focus {
+  .audio-mode-select:focus, .theme-select:focus, .task-speed-select:focus, .verification-count-select:focus, .concurrent-select:focus, .ssim-select:focus {
     border-color: #4a9eff;
     box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
   }

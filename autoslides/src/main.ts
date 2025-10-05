@@ -179,6 +179,24 @@ ipcMain.handle('config:setTaskSpeed', async (event, speed: number) => {
   return configService.getConfig();
 });
 
+// IPC handlers for theme configuration
+ipcMain.handle('config:setThemeMode', async (event, theme: 'system' | 'light' | 'dark') => {
+  configService.setThemeMode(theme);
+  return configService.getConfig();
+});
+
+ipcMain.handle('config:getThemeMode', async () => {
+  return configService.getThemeMode();
+});
+
+ipcMain.handle('config:isDarkMode', async () => {
+  return configService.isDarkMode();
+});
+
+ipcMain.handle('config:getEffectiveTheme', async () => {
+  return configService.getEffectiveTheme();
+});
+
 // IPC handlers for slide extraction configuration
 ipcMain.handle('config:getSlideExtractionConfig', async () => {
   return configService.getSlideExtractionConfig();

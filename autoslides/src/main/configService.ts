@@ -3,6 +3,7 @@ import { dialog } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { ThemeService, ThemeMode } from './themeService';
 
 export interface SlideExtractionConfig {
   // User configurable parameters
@@ -23,6 +24,7 @@ export interface AppConfig {
   muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
   videoRetryCount: number;
   taskSpeed: number;
+  themeMode: ThemeMode;
   slideExtraction: SlideExtractionConfig;
 }
 
@@ -43,11 +45,13 @@ const defaultConfig: AppConfig = {
   muteMode: 'normal',
   videoRetryCount: 5,
   taskSpeed: 10,
+  themeMode: 'system',
   slideExtraction: defaultSlideExtractionConfig
 };
 
 export class ConfigService {
   private store: ElectronStore<AppConfig>;
+  private themeService: ThemeService;
 
   constructor() {
     this.store = new ElectronStore<AppConfig>({
@@ -55,7 +59,9 @@ export class ConfigService {
       name: 'autoslides-config'
     });
 
+    this.themeService = new ThemeService();
     this.ensureOutputDirectoryExists();
+    this.initializeTheme();
   }
 
   getConfig(): AppConfig {
@@ -66,6 +72,7 @@ export class ConfigService {
       muteMode: (this.store as any).get('muteMode') as 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded',
       videoRetryCount: (this.store as any).get('videoRetryCount') as number,
       taskSpeed: (this.store as any).get('taskSpeed') as number,
+      themeMode: (this.store as any).get('themeMode') as ThemeMode,
       slideExtraction: (this.store as any).get('slideExtraction') as SlideExtractionConfig
     };
   }
@@ -96,6 +103,23 @@ export class ConfigService {
   setTaskSpeed(speed: number): void {
     const validSpeed = Math.max(1, Math.min(10, speed));
     (this.store as any).set('taskSpeed', validSpeed);
+  }
+
+  setThemeMode(theme: ThemeMode): void {
+    (this.store as any).set('themeMode', theme);
+    this.themeService.setTheme(theme);
+  }
+
+  getThemeMode(): ThemeMode {
+    return (this.store as any).get('themeMode') as ThemeMode;
+  }
+
+  isDarkMode(): boolean {
+    return this.themeService.isDarkMode();
+  }
+
+  getEffectiveTheme(): 'light' | 'dark' {
+    return this.themeService.getEffectiveTheme();
   }
 
   // Slide extraction configuration methods
@@ -166,5 +190,10 @@ export class ConfigService {
     } catch (error) {
       console.error('Failed to create output directory:', error);
     }
+  }
+
+  private initializeTheme(): void {
+    const savedTheme = this.getThemeMode();
+    this.themeService.setTheme(savedTheme);
   }
 }

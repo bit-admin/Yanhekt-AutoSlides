@@ -36,6 +36,7 @@ interface ElectronAPI {
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
       taskSpeed: number;
+      themeMode: 'system' | 'light' | 'dark';
     }>;
     setOutputDirectory: (directory: string) => Promise<{
       outputDirectory: string;
@@ -44,6 +45,7 @@ interface ElectronAPI {
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
       taskSpeed: number;
+      themeMode: 'system' | 'light' | 'dark';
     }>;
     selectOutputDirectory: () => Promise<{
       outputDirectory: string;
@@ -52,6 +54,7 @@ interface ElectronAPI {
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
       taskSpeed: number;
+      themeMode: 'system' | 'light' | 'dark';
     } | null>;
     setConnectionMode: (mode: 'internal' | 'external') => Promise<{
       outputDirectory: string;
@@ -60,6 +63,7 @@ interface ElectronAPI {
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
       taskSpeed: number;
+      themeMode: 'system' | 'light' | 'dark';
     }>;
     setMaxConcurrentDownloads: (count: number) => Promise<{
       outputDirectory: string;
@@ -68,6 +72,7 @@ interface ElectronAPI {
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
       taskSpeed: number;
+      themeMode: 'system' | 'light' | 'dark';
     }>;
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<{
       outputDirectory: string;
@@ -76,6 +81,7 @@ interface ElectronAPI {
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
       taskSpeed: number;
+      themeMode: 'system' | 'light' | 'dark';
     }>;
     setVideoRetryCount: (count: number) => Promise<{
       outputDirectory: string;
@@ -84,6 +90,7 @@ interface ElectronAPI {
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
       taskSpeed: number;
+      themeMode: 'system' | 'light' | 'dark';
     }>;
     setTaskSpeed: (speed: number) => Promise<{
       outputDirectory: string;
@@ -92,7 +99,21 @@ interface ElectronAPI {
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
       taskSpeed: number;
+      themeMode: 'system' | 'light' | 'dark';
     }>;
+    // Theme configuration
+    setThemeMode: (theme: 'system' | 'light' | 'dark') => Promise<{
+      outputDirectory: string;
+      connectionMode: 'internal' | 'external';
+      maxConcurrentDownloads: number;
+      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+      videoRetryCount: number;
+      taskSpeed: number;
+      themeMode: 'system' | 'light' | 'dark';
+    }>;
+    getThemeMode: () => Promise<'system' | 'light' | 'dark'>;
+    isDarkMode: () => Promise<boolean>;
+    getEffectiveTheme: () => Promise<'light' | 'dark'>;
     // Slide extraction configuration
     getSlideExtractionConfig: () => Promise<{
       checkInterval: number;
