@@ -167,20 +167,31 @@ const handleTaskNavigation = (event: CustomEvent) => {
   // Switch to recorded mode
   currentMode.value = 'recorded'
 
-  // Find the course and session data from DataStore
+  // Find the session data from DataStore (should have been stored when task was added)
   const sessionData = DataStore.getSessionData(sessionId)
   if (sessionData) {
-    // Set up the recorded state to navigate to the session
+    // Create a course object that matches the expected interface
+    // This mimics what would normally come from CoursePage
     recordedState.value.selectedCourse = {
-      id: sessionData.course_id || 'unknown',
+      id: sessionData.id, // Use the session's id field
       title: courseTitle,
-      instructor: sessionData.instructor || 'Unknown',
-      time: sessionData.started_at || ''
+      instructor: 'Auto Task', // Indicate this is from automated task
+      time: sessionData.started_at,
+      // Optional properties that PlaybackPage might use
+      status: 1,
+      subtitle: sessionTitle,
+      schedule_started_at: sessionData.started_at,
+      schedule_ended_at: sessionData.ended_at
     }
+
+    // Set the selected session (this is the same object that was stored)
     recordedState.value.selectedSession = sessionData
+
+    // Navigate directly to playback (skipping the sessions page)
     recordedState.value.page = 'playback'
   } else {
     console.error('Session data not found for task navigation:', sessionId)
+    console.error('Make sure the session was properly stored when the task was added to the queue')
   }
 }
 
