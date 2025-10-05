@@ -1586,6 +1586,7 @@ watch(() => videoPlayer.value, (newPlayer) => {
     newPlayer.addEventListener('play', onPlayStart)
     newPlayer.addEventListener('pause', updatePlayingState)
     newPlayer.addEventListener('ended', updatePlayingState)
+    newPlayer.addEventListener('ended', onVideoEnded) // Add task completion detection
     newPlayer.addEventListener('timeupdate', onTimeUpdate)
 
     // Store cleanup function
@@ -1593,6 +1594,7 @@ watch(() => videoPlayer.value, (newPlayer) => {
       newPlayer.removeEventListener('play', onPlayStart)
       newPlayer.removeEventListener('pause', updatePlayingState)
       newPlayer.removeEventListener('ended', updatePlayingState)
+      newPlayer.removeEventListener('ended', onVideoEnded)
       newPlayer.removeEventListener('timeupdate', onTimeUpdate)
     })
 
@@ -1706,7 +1708,7 @@ const onSlidesCleared = (event: CustomEvent) => {
 
 // Task queue event handlers
 const onTaskStart = (event: CustomEvent) => {
-  const { taskId, sessionId, courseTitle, sessionTitle } = event.detail
+  const { taskId, sessionId } = event.detail
 
   // Check if this task is for our session (only for recorded mode)
   if (props.mode === 'recorded' && props.sessionId === sessionId) {
@@ -1776,18 +1778,37 @@ const checkVideoCompletion = () => {
 
   // Check if video is near completion (within 5 seconds or 99% complete)
   if (duration > 0 && (currentTime >= duration - 5 || currentTime / duration >= 0.99)) {
-    // Mark task as completed
-    TaskQueue.updateTaskStatus(currentTaskId.value, 'completed')
+    console.log('Video completion detected via timeupdate for task:', currentTaskId.value)
+    completeCurrentTask()
+  }
+}
 
-    // Reset task mode
-    currentTaskId.value = null
-    isTaskMode.value = false
+// Handle video ended event as backup completion detection
+const onVideoEnded = () => {
+  if (isTaskMode.value && currentTaskId.value) {
+    console.log('Video completion detected via ended event for task:', currentTaskId.value)
+    completeCurrentTask()
+  }
+}
 
-    // Stop slide extraction
-    if (isSlideExtractionEnabled.value) {
-      isSlideExtractionEnabled.value = false
-      toggleSlideExtraction()
-    }
+// Complete the current task (extracted to avoid duplication)
+const completeCurrentTask = () => {
+  if (!isTaskMode.value || !currentTaskId.value) return
+
+  const taskId = currentTaskId.value
+  console.log('Completing task:', taskId)
+
+  // Mark task as completed
+  TaskQueue.updateTaskStatus(taskId, 'completed')
+
+  // Reset task mode
+  currentTaskId.value = null
+  isTaskMode.value = false
+
+  // Stop slide extraction
+  if (isSlideExtractionEnabled.value) {
+    isSlideExtractionEnabled.value = false
+    toggleSlideExtraction()
   }
 }
 
