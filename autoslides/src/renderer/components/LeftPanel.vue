@@ -41,7 +41,7 @@
         <button @click="openAdvancedSettings" class="advanced-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
-            <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
           Advanced Settings
         </button>
@@ -95,17 +95,19 @@
           <label class="setting-label">Slide Detection Interval</label>
           <div class="setting-description">The interval will be automatically adjusted based on playback speed (default: 2000ms).</div>
           <div class="slide-interval-group">
-            <input
-              v-model.number="slideCheckInterval"
-              type="number"
-              min="1000"
-              max="10000"
-              step="500"
-              class="slide-interval-input"
-              @change="setSlideCheckInterval"
-              @blur="validateAndCorrectInterval"
-            />
-            <span class="interval-hint">milliseconds</span>
+            <div class="slide-interval-input-wrapper">
+              <input
+                v-model.number="slideCheckInterval"
+                type="number"
+                min="1000"
+                max="10000"
+                step="500"
+                class="slide-interval-input"
+                @change="setSlideCheckInterval"
+                @blur="validateAndCorrectInterval"
+              />
+              <span class="interval-unit">milliseconds</span>
+            </div>
           </div>
         </div>
 
@@ -180,7 +182,7 @@
               <h4>Authentication</h4>
               <div class="setting-item">
                 <label class="setting-label">Token</label>
-                <div class="setting-description">Manually input your authentication token for direct access</div>
+                <div class="setting-description">Manually input your authentication token for direct access.</div>
                 <div class="token-input-group">
                   <input
                     v-model="manualToken"
@@ -220,7 +222,7 @@
                   min="0.9"
                   max="1.0"
                   step="0.0001"
-                  class="concurrent-select"
+                  class="ssim-select"
                   @change="updateImageProcessingParams"
                 />
                 <div class="setting-description">Adjust <strong>ONLY IF NECESSARY</strong>, as a minor change of 0.001 can significantly impact performance (default: 0.999; alternative: 0.998 for a looser threshold).</div>
@@ -231,7 +233,7 @@
               <h4>Video Playback</h4>
               <div class="setting-item">
                 <label class="setting-label">Video Error Retry Count</label>
-                <div class="setting-description">Number of retry attempts when video playback errors occur</div>
+                <div class="setting-description">Number of retry attempts when video playback errors occur.</div>
                 <select
                   v-model="tempVideoRetryCount"
                   class="concurrent-select"
@@ -246,7 +248,7 @@
               <h4>Download</h4>
               <div class="setting-item">
                 <label class="setting-label">Concurrent Download Limit</label>
-                <div class="setting-description">Maximum number of simultaneous downloads and processing</div>
+                <div class="setting-description">Maximum number of simultaneous downloads and processing.</div>
                 <select
                   v-model="tempMaxConcurrentDownloads"
                   class="concurrent-select"
@@ -869,6 +871,7 @@ const loadManualToken = () => {
   font-size: 12px;
   cursor: pointer;
   transition: background-color 0.2s;
+  color: #333;
 }
 
 .advanced-btn:hover {
@@ -980,29 +983,39 @@ const loadManualToken = () => {
 .slide-interval-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+}
+
+.slide-interval-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+
+.slide-interval-input-wrapper:focus-within {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
 .slide-interval-input {
   flex: 1;
   padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
+  border: none;
+  background-color: transparent;
   font-size: 12px;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.slide-interval-input:focus {
   outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
-.interval-hint {
-  font-size: 10px;
+.interval-unit {
+  padding: 6px 8px;
+  font-size: 11px;
   color: #666;
+  background-color: #f8f9fa;
+  border-left: 1px solid #e0e0e0;
   white-space: nowrap;
 }
 
@@ -1240,6 +1253,22 @@ const loadManualToken = () => {
 }
 
 .concurrent-select:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.ssim-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+  margin-bottom: 4px;
+}
+
+.ssim-select:focus {
   outline: none;
   border-color: #007acc;
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
