@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import { MainAuthService } from './main/authService';
@@ -18,6 +18,28 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 if (started) {
   app.quit();
 }
+
+// Set app name
+app.setName('AutoSlides');
+
+// Create macOS menu template
+const createMenuTemplate = () => {
+  const template: Electron.MenuItemConstructorOptions[] = [
+    { label: app.name, submenu: [{ role: 'about' }, { type: 'separator' }, { role: 'services' }, { type: 'separator' }, { role: 'hide' }, { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' }] },
+    { label: 'File', submenu: [{ label: 'New', accelerator: 'CmdOrCtrl+N', enabled: false }, { label: 'Open', accelerator: 'CmdOrCtrl+O', enabled: false }, { type: 'separator' }, { role: 'close' }] },
+    { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
+    { label: 'View', submenu: [{ role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
+    { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'close' }, { type: 'separator' }, { role: 'front' }] },
+    { label: 'Help', role: 'help', submenu: [
+      { label: 'Visit GitHub Repository', click: () => { shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides'); } },
+      { label: 'SSIM Test', click: () => { shell.openExternal('https://learn.ruc.edu.kg/test'); } },
+      { type: 'separator' },
+      { label: 'Web Version', click: () => { shell.openExternal('https://learn.ruc.edu.kg'); } },
+      { label: 'IT Center Software List', click: () => { shell.openExternal('https://it.ruc.edu.kg/zh/software'); } }
+    ] }
+  ];
+  return template;
+};
 
 const createWindow = () => {
   // Create the browser window.
@@ -51,7 +73,13 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow);
+app.on('ready', () => {
+  // Set up the menu
+  const menu = Menu.buildFromTemplate(createMenuTemplate());
+  Menu.setApplicationMenu(menu);
+
+  createWindow();
+});
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
