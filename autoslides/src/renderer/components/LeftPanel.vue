@@ -8,7 +8,7 @@
       </div>
       <div v-else-if="!isLoggedIn" class="login-form">
         <h3>Sign In</h3>
-        <p>Please sign in to Yanhekt access your account resourses.</p>
+        <p>Please sign in to Yanhekt to access all resources.</p>
         <div class="input-group">
           <input
             v-model="username"
@@ -30,6 +30,7 @@
       <div v-else class="user-info">
         <h3>Hi there, {{ userNickname }}</h3>
         <p>Sign in as {{ userId }}</p>
+        <p>You can now access all resources from Yanhekt.</p>
         <button @click="logout" class="logout-btn">Sign Out</button>
       </div>
     </div>
@@ -135,7 +136,7 @@
 
         <div class="setting-item">
           <label class="setting-label">Task Speed:</label>
-          <div class="setting-description">Playback speed for automated task processing (default: 10x)</div>
+          <div class="setting-description">Playback speed for automated task processing.</div>
           <div class="task-speed-selector">
             <select v-model="taskSpeed" @change="setTaskSpeed" class="task-speed-select">
               <option v-for="i in 10" :key="i" :value="i">{{ i }}x</option>
@@ -716,21 +717,48 @@ const loadManualToken = () => {
   background-color: #f8f9fa;
 }
 
-.login-form h3, .user-info h3, .verifying-state h3 {
+.login-form, .user-info {
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.user-info {
+  padding: 8px 0;
+}
+
+.login-form h3, .verifying-state h3 {
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
 }
 
-.login-form p, .user-info p, .verifying-state p {
+.user-info h3 {
+  margin: 0 0 16px 20px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.login-form p, .verifying-state p {
   margin: 0 0 12px 0;
   font-size: 12px;
+  color: #666;
+}
+
+.user-info p {
+  margin: 0 20px 12px 20px;
+  font-size: 15px;
   color: #666;
 }
 
 .verifying-state {
   text-align: center;
   padding: 20px 0;
+  min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .loading-spinner {
@@ -762,7 +790,7 @@ const loadManualToken = () => {
   font-size: 14px;
 }
 
-.login-btn, .logout-btn {
+.login-btn {
   width: 100%;
   padding: 8px 16px;
   border: none;
@@ -770,6 +798,13 @@ const loadManualToken = () => {
   font-size: 14px;
   cursor: pointer;
   transition: background-color 0.2s;
+}
+
+.logout-btn {
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .login-btn {
@@ -787,12 +822,18 @@ const loadManualToken = () => {
 }
 
 .logout-btn {
-  background-color: #dc3545;
-  color: white;
+  width: auto;
+  background-color: transparent;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+  padding: 6px 16px;
+  align-self: flex-start;
+  margin: 4px 0 4px 20px;
 }
 
 .logout-btn:hover {
-  background-color: #c82333;
+  background-color: #dc3545;
+  color: white;
 }
 
 .control-section {
