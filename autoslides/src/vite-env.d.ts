@@ -287,6 +287,26 @@ interface ElectronAPI {
   slideExtraction: {
     saveSlide: (outputPath: string, filename: string, imageBuffer: Uint8Array) => Promise<{ success: boolean }>;
     ensureDirectory: (path: string) => Promise<{ success: boolean }>;
+    deleteSlide: (filePath: string) => Promise<{ success: boolean }>;
+  };
+  dialog?: {
+    showMessageBox?: (options: {
+      type?: 'none' | 'info' | 'error' | 'question' | 'warning';
+      buttons?: string[];
+      defaultId?: number;
+      title?: string;
+      message?: string;
+      detail?: string;
+      checkboxLabel?: string;
+      checkboxChecked?: boolean;
+      icon?: string;
+      cancelId?: number;
+      noLink?: boolean;
+      normalizeAccessKeys?: boolean;
+    }) => Promise<{
+      response: number;
+      checkboxChecked?: boolean;
+    }>;
   };
 }
 
