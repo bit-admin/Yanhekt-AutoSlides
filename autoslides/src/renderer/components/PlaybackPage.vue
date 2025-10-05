@@ -1502,7 +1502,8 @@ const deleteSlide = async (slide: ExtractedSlide) => {
   } catch (error) {
     console.error('Failed to move slide to trash:', error)
     // Show error dialog
-    await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slide to trash: ${error.message || error}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slide to trash: ${errorMessage}`)
   }
 }
 
@@ -1554,7 +1555,8 @@ const clearAllSlides = async () => {
   } catch (error) {
     console.error('Failed to move all slides to trash:', error)
     // Show error dialog
-    await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slides to trash: ${error.message || error}`)
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slides to trash: ${errorMessage}`)
   }
 }
 

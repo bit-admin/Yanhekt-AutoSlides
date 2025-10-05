@@ -301,7 +301,7 @@ interface ElectronAPI {
   slideExtraction: {
     saveSlide: (outputPath: string, filename: string, imageBuffer: Uint8Array) => Promise<{ success: boolean }>;
     ensureDirectory: (path: string) => Promise<{ success: boolean }>;
-    deleteSlide: (filePath: string) => Promise<{ success: boolean }>;
+    deleteSlide: (outputPath: string, filename: string) => Promise<{ success: boolean }>;
   };
   dialog?: {
     showMessageBox?: (options: {
@@ -321,6 +321,7 @@ interface ElectronAPI {
       response: number;
       checkboxChecked?: boolean;
     }>;
+    showErrorBox?: (title: string, content: string) => Promise<void>;
   };
 }
 
