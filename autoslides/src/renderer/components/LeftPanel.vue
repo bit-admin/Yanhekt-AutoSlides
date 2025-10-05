@@ -176,6 +176,39 @@
         <div class="modal-body">
           <div class="advanced-settings-content">
             <div class="advanced-setting-section">
+              <h4>Authentication</h4>
+              <div class="setting-item">
+                <label class="setting-label">Token:</label>
+                <div class="setting-description">Manually input your authentication token for direct access</div>
+                <div class="token-input-group">
+                  <input
+                    v-model="manualToken"
+                    type="password"
+                    placeholder="Enter your token here..."
+                    class="token-input"
+                    @input="onTokenInput"
+                  />
+                  <button @click="toggleTokenVisibility" class="token-toggle-btn" :title="showToken ? 'Hide token' : 'Show token'">
+                    <svg v-if="showToken" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                    <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                      <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                  </button>
+                  <button @click="verifyManualToken" :disabled="!manualToken || isVerifyingManualToken" class="verify-token-btn">
+                    {{ isVerifyingManualToken ? 'Verifying...' : 'Verify' }}
+                  </button>
+                </div>
+                <div v-if="tokenVerificationStatus" :class="['token-status', tokenVerificationStatus.type]">
+                  {{ tokenVerificationStatus.message }}
+                </div>
+              </div>
+            </div>
+
+            <div class="advanced-setting-section">
               <h4>Download</h4>
               <div class="setting-item">
                 <label class="setting-label">Concurrent Download Limit:</label>
@@ -313,6 +346,12 @@ const taskSpeed = ref(10)
 // Advanced image processing parameters
 const ssimThreshold = ref(0.999)
 const tempSsimThreshold = ref(0.999)
+
+// Manual token authentication
+const manualToken = ref('')
+const showToken = ref(false)
+const isVerifyingManualToken = ref(false)
+const tokenVerificationStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 
 const tokenManager = new TokenManager()
 const authService = new AuthService(tokenManager)
@@ -530,6 +569,12 @@ const openAdvancedSettings = () => {
   tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   tempVideoRetryCount.value = videoRetryCount.value
   tempSsimThreshold.value = ssimThreshold.value
+
+  // Load manual token from localStorage
+  loadManualToken()
+  tokenVerificationStatus.value = null
+  showToken.value = false
+
   showAdvancedModal.value = true
 }
 
@@ -577,6 +622,82 @@ const saveAdvancedSettings = async () => {
   } catch (error) {
     console.error('Failed to save advanced settings:', error)
     alert('Failed to save settings')
+  }
+}
+
+// Manual token authentication methods
+const toggleTokenVisibility = () => {
+  showToken.value = !showToken.value
+  // Update input type dynamically
+  const tokenInput = document.querySelector('.token-input') as HTMLInputElement
+  if (tokenInput) {
+    tokenInput.type = showToken.value ? 'text' : 'password'
+  }
+}
+
+const onTokenInput = () => {
+  // Clear previous verification status when user types
+  tokenVerificationStatus.value = null
+  // Save token to localStorage as user types
+  if (manualToken.value.trim()) {
+    tokenManager.saveToken(manualToken.value.trim())
+  } else {
+    tokenManager.clearToken()
+  }
+}
+
+const verifyManualToken = async () => {
+  if (!manualToken.value.trim()) return
+
+  isVerifyingManualToken.value = true
+  tokenVerificationStatus.value = null
+
+  try {
+    const result = await apiClient.verifyToken(manualToken.value.trim())
+
+    if (result.valid && result.userData) {
+      tokenVerificationStatus.value = {
+        type: 'success',
+        message: `Token verified successfully for ${result.userData.nickname || 'user'}`
+      }
+
+      // Update login state
+      isLoggedIn.value = true
+      userNickname.value = result.userData.nickname || 'User'
+      userId.value = result.userData.badge || 'unknown'
+
+      // Save the verified token
+      tokenManager.saveToken(manualToken.value.trim())
+
+      console.log('Manual token verification successful')
+    } else {
+      tokenVerificationStatus.value = {
+        type: 'error',
+        message: result.networkError ? 'Network error during verification' : 'Invalid token'
+      }
+
+      if (!result.networkError) {
+        // Clear invalid token
+        tokenManager.clearToken()
+        manualToken.value = ''
+      }
+    }
+  } catch (error) {
+    console.error('Token verification error:', error)
+    tokenVerificationStatus.value = {
+      type: 'error',
+      message: 'Verification failed: Network error or server exception'
+    }
+  } finally {
+    isVerifyingManualToken.value = false
+  }
+}
+
+const loadManualToken = () => {
+  // Load existing token from localStorage when opening advanced settings
+  const existingToken = tokenManager.getToken()
+  if (existingToken) {
+    manualToken.value = existingToken
   }
 }
 </script>
@@ -963,10 +1084,12 @@ const saveAdvancedSettings = async () => {
 .modal-content {
   background-color: white;
   border-radius: 8px;
-  width: 400px;
+  width: 600px;
   max-width: 90vw;
   max-height: 80vh;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .modal-header {
@@ -997,12 +1120,18 @@ const saveAdvancedSettings = async () => {
 }
 
 .modal-body {
-  padding: 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   color: #333;
 }
 
 .advanced-settings-content {
-  margin-bottom: 24px;
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  margin-bottom: 0;
 }
 
 .advanced-setting-section {
@@ -1054,8 +1183,10 @@ const saveAdvancedSettings = async () => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  padding-top: 16px;
+  padding: 16px;
   border-top: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+  flex-shrink: 0;
 }
 
 .cancel-btn, .save-btn {
@@ -1086,5 +1217,104 @@ const saveAdvancedSettings = async () => {
 .save-btn:hover {
   background-color: #0056b3;
   border-color: #0056b3;
+}
+
+/* Authentication section styles */
+.token-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.token-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+  font-family: 'Courier New', monospace;
+}
+
+.token-input:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.token-toggle-btn {
+  padding: 6px 8px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.token-toggle-btn:hover {
+  background-color: #e9ecef;
+}
+
+.verify-token-btn {
+  padding: 6px 12px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.verify-token-btn:hover:not(:disabled) {
+  background-color: #218838;
+}
+
+.verify-token-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.token-status {
+  margin-top: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.token-status.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.token-status.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Custom scrollbar for advanced settings content */
+.advanced-settings-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.advanced-settings-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.advanced-settings-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.advanced-settings-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 </style>
