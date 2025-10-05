@@ -48,7 +48,7 @@
       </div>
       <div class="settings-content">
         <div class="setting-item">
-          <label class="setting-label">Output Directory:</label>
+          <label class="setting-label">Output Directory</label>
           <div class="directory-input-group">
             <input
               v-model="outputDirectory"
@@ -62,7 +62,7 @@
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">Connection Mode:</label>
+          <label class="setting-label">Connection Mode</label>
           <div class="mode-toggle">
             <button
               @click="setConnectionMode('internal')"
@@ -80,7 +80,7 @@
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">Audio Mode:</label>
+          <label class="setting-label">Audio Mode</label>
           <div class="audio-mode-selector">
             <select v-model="muteMode" @change="setMuteMode" class="audio-mode-select">
               <option value="normal">Normal</option>
@@ -92,7 +92,7 @@
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">Slide Detection Interval:</label>
+          <label class="setting-label">Slide Detection Interval</label>
           <div class="setting-description">The interval will be automatically adjusted based on playback speed (default: 2000ms).</div>
           <div class="slide-interval-group">
             <input
@@ -110,8 +110,8 @@
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">Slide Verification:</label>
-          <div class="setting-description">Prevent false detection by requiring multiple confirmations</div>
+          <label class="setting-label">Slide Stability Verification</label>
+          <div class="setting-description">Prevents false detection from animations by confirming a new slide after it remains unchanged for several consecutive checks (default: 2 checks).</div>
           <div class="verification-control-row">
             <label class="checkbox-label">
               <input
@@ -119,7 +119,7 @@
                 v-model="slideDoubleVerification"
                 @change="setSlideDoubleVerification"
               />
-              Enable
+              Enable Stability Check
             </label>
             <div class="verification-count-control" v-if="slideDoubleVerification">
               <span class="count-label">Count:</span>
@@ -135,7 +135,7 @@
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">Task Speed:</label>
+          <label class="setting-label">Task Speed</label>
           <div class="setting-description">Playback speed for automated task processing.</div>
           <div class="task-speed-selector">
             <select v-model="taskSpeed" @change="setTaskSpeed" class="task-speed-select">
@@ -148,17 +148,17 @@
 
     <div class="status-section">
       <div class="status-row">
-        <span class="status-label">Connection:</span>
+        <span class="status-label">Connection</span>
         <span :class="['status-value', connectionMode]">
           {{ connectionMode === 'internal' ? 'Internal Network' : 'External Network' }}
         </span>
       </div>
       <div class="status-row">
-        <span class="status-label">Task Status:</span>
+        <span class="status-label">Task Status</span>
         <span class="status-value">{{ taskStatus }}</span>
       </div>
       <div class="status-row">
-        <span class="status-label">Download Queue:</span>
+        <span class="status-label">Download Queue</span>
         <span class="status-value">{{ downloadQueueStatus }}</span>
       </div>
     </div>
@@ -179,7 +179,7 @@
             <div class="advanced-setting-section">
               <h4>Authentication</h4>
               <div class="setting-item">
-                <label class="setting-label">Token:</label>
+                <label class="setting-label">Token</label>
                 <div class="setting-description">Manually input your authentication token for direct access</div>
                 <div class="token-input-group">
                   <input
@@ -210,39 +210,9 @@
             </div>
 
             <div class="advanced-setting-section">
-              <h4>Download</h4>
-              <div class="setting-item">
-                <label class="setting-label">Concurrent Download Limit:</label>
-                <div class="setting-description">Maximum number of simultaneous downloads and processing</div>
-                <select
-                  v-model="tempMaxConcurrentDownloads"
-                  class="concurrent-select"
-                  @change="updateMaxConcurrentDownloads"
-                >
-                  <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="advanced-setting-section">
-              <h4>Video Playback</h4>
-              <div class="setting-item">
-                <label class="setting-label">Video Error Retry Count:</label>
-                <div class="setting-description">Number of retry attempts when video playback errors occur (5-10)</div>
-                <select
-                  v-model="tempVideoRetryCount"
-                  class="concurrent-select"
-                  @change="updateVideoRetryCount"
-                >
-                  <option v-for="i in 6" :key="i" :value="i + 4">{{ i + 4 }}</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="advanced-setting-section">
               <h4>Image Processing</h4>
               <div class="setting-item">
-                <label class="setting-label">SSIM Threshold:</label>
+                <label class="setting-label">SSIM Threshold</label>
                 <div class="setting-description">Higher global structural similarity threshold indicate stricter matching. You can test the detection accuracy in <strong>Menu > Help > SSIM Test.</strong></div>
                 <input
                   v-model.number="tempSsimThreshold"
@@ -254,6 +224,36 @@
                   @change="updateImageProcessingParams"
                 />
                 <div class="setting-description">Adjust <strong>ONLY IF NECESSARY</strong>, as a minor change of 0.001 can significantly impact performance (default: 0.999; alternative: 0.998 for a looser threshold).</div>
+              </div>
+            </div>
+
+            <div class="advanced-setting-section">
+              <h4>Video Playback</h4>
+              <div class="setting-item">
+                <label class="setting-label">Video Error Retry Count</label>
+                <div class="setting-description">Number of retry attempts when video playback errors occur</div>
+                <select
+                  v-model="tempVideoRetryCount"
+                  class="concurrent-select"
+                  @change="updateVideoRetryCount"
+                >
+                  <option v-for="i in 6" :key="i" :value="i + 4">{{ i + 4 }}</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="advanced-setting-section">
+              <h4>Download</h4>
+              <div class="setting-item">
+                <label class="setting-label">Concurrent Download Limit</label>
+                <div class="setting-description">Maximum number of simultaneous downloads and processing</div>
+                <select
+                  v-model="tempMaxConcurrentDownloads"
+                  class="concurrent-select"
+                  @change="updateMaxConcurrentDownloads"
+                >
+                  <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
+                </select>
               </div>
             </div>
           </div>
@@ -726,6 +726,9 @@ const loadManualToken = () => {
 
 .user-info {
   padding: 8px 0;
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
 }
 
 .login-form h3, .verifying-state h3 {
