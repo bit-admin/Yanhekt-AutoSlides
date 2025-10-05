@@ -1607,6 +1607,9 @@ watch(() => videoPlayer.value, (newPlayer) => {
         stablePlaybackTime += (currentTime - lastTimeUpdate)
         lastTimeUpdate = currentTime
 
+        // Update task progress if in task mode
+        updateTaskProgress()
+
         // Check for task completion
         checkVideoCompletion()
 
@@ -1858,6 +1861,9 @@ const initializeTask = async (taskId: string) => {
         })
       }
 
+      // Reset progress tracking for new task
+      lastReportedProgress = -1
+
       console.log('Task initialized successfully:', taskId)
       return true
     }
@@ -1929,6 +1935,33 @@ const initializeTaskResume = async (taskId: string) => {
       TaskQueue.updateTaskStatus(taskId, 'error', 'Failed to resume video playback')
       currentTaskId.value = null
       isTaskMode.value = false
+      return
+    }
+  }
+
+  // Reset progress tracking for resumed task
+  lastReportedProgress = -1
+}
+
+// Track last reported progress to avoid unnecessary updates
+let lastReportedProgress = -1
+
+// Update task progress based on video playback progress
+const updateTaskProgress = () => {
+  if (!isTaskMode.value || !currentTaskId.value || !videoPlayer.value) return
+
+  const video = videoPlayer.value
+  const duration = video.duration
+  const currentTime = video.currentTime
+
+  // Only update progress if we have valid duration and current time
+  if (duration > 0 && currentTime >= 0) {
+    const progressPercentage = Math.min(99, Math.max(0, Math.floor((currentTime / duration) * 100)))
+
+    // Only update if progress has actually changed (avoid unnecessary updates)
+    if (progressPercentage !== lastReportedProgress) {
+      lastReportedProgress = progressPercentage
+      TaskQueue.updateTaskProgress(currentTaskId.value, progressPercentage)
     }
   }
 }
@@ -1974,6 +2007,9 @@ const completeCurrentTask = () => {
     isSlideExtractionEnabled.value = false
     toggleSlideExtraction()
   }
+
+  // Reset progress tracking
+  lastReportedProgress = -1
 }
 
 const handleTaskError = (errorMessage: string) => {
@@ -1997,6 +2033,9 @@ const handleTaskError = (errorMessage: string) => {
     error.value = null
     isRetrying.value = false
     retryMessage.value = ''
+
+    // Reset progress tracking
+    lastReportedProgress = -1
   }
 }
 
