@@ -57,6 +57,7 @@
           @session-selected="handleSessionSelected"
           @back-to-courses="backToCourses"
           @switch-to-download="handleSwitchToDownload"
+          @switch-to-task="handleSwitchToTask"
         />
         <PlaybackPage
           v-else-if="recordedState.page === 'playback'"
@@ -76,10 +77,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import CoursePage from './CoursePage.vue'
 import SessionPage from './SessionPage.vue'
 import PlaybackPage from './PlaybackPage.vue'
+import { DataStore } from '../services/dataStore'
 
 type Mode = 'live' | 'recorded'
 type Page = 'courses' | 'sessions' | 'playback'
@@ -147,11 +149,50 @@ const handleBackFromPlayback = () => {
 
 const emit = defineEmits<{
   switchToDownload: []
+  switchToTask: []
 }>()
 
 const handleSwitchToDownload = () => {
   emit('switchToDownload')
 }
+
+const handleSwitchToTask = () => {
+  emit('switchToTask')
+}
+
+// Task navigation handler
+const handleTaskNavigation = (event: CustomEvent) => {
+  const { taskId, sessionId, courseTitle, sessionTitle } = event.detail
+
+  // Switch to recorded mode
+  currentMode.value = 'recorded'
+
+  // Find the course and session data from DataStore
+  const sessionData = DataStore.getSessionData(sessionId)
+  if (sessionData) {
+    // Set up the recorded state to navigate to the session
+    recordedState.value.selectedCourse = {
+      id: sessionData.course_id || 'unknown',
+      title: courseTitle,
+      instructor: sessionData.instructor || 'Unknown',
+      time: sessionData.started_at || ''
+    }
+    recordedState.value.selectedSession = sessionData
+    recordedState.value.page = 'playback'
+  } else {
+    console.error('Session data not found for task navigation:', sessionId)
+  }
+}
+
+onMounted(() => {
+  // Listen for task navigation events
+  window.addEventListener('taskNavigation', handleTaskNavigation as EventListener)
+})
+
+onUnmounted(() => {
+  // Clean up event listeners
+  window.removeEventListener('taskNavigation', handleTaskNavigation as EventListener)
+})
 </script>
 
 <style scoped>

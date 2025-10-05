@@ -133,6 +133,7 @@ import { ApiClient, type SessionData, type CourseInfoResponse } from '../service
 import { TokenManager } from '../services/authService'
 import { DataStore } from '../services/dataStore'
 import { DownloadService } from '../services/downloadService'
+import { TaskQueue } from '../services/taskQueueService'
 
 interface Course {
   id: string
@@ -153,6 +154,7 @@ const emit = defineEmits<{
   sessionSelected: [session: Session]
   backToCourses: []
   switchToDownload: []
+  switchToTask: []
 }>()
 
 const apiClient = new ApiClient()
@@ -233,11 +235,24 @@ const formatDate = (dateString: string): string => {
   }
 }
 
-// Download functions
+// Task functions
 const addToQueue = (session: Session) => {
-  // TODO: Implement add to queue logic (for future task management)
-  console.log('Add to queue:', session.title)
-  alert('Add to Queue functionality will be implemented in task management')
+  // Store session data for task processing
+  DataStore.setSessionData(session.session_id, session)
+
+  const added = TaskQueue.addToQueue({
+    name: `slides_${props.course?.title}_${session.title}`,
+    courseTitle: props.course?.title || 'Unknown Course',
+    sessionTitle: session.title,
+    sessionId: session.session_id
+  })
+
+  if (!added) {
+    alert('This session is already in the task queue')
+  } else {
+    // Switch to task tab
+    switchToTaskTab()
+  }
 }
 
 const downloadCamera = (session: Session) => {
@@ -281,9 +296,26 @@ const downloadScreen = (session: Session) => {
 }
 
 const addAllToQueue = () => {
-  // TODO: Implement batch add to queue logic
-  console.log('Add all to queue')
-  alert('Add All to Queue functionality will be implemented in task management')
+  let addedCount = 0
+  sessions.value.forEach(session => {
+    // Store session data for task processing
+    DataStore.setSessionData(session.session_id, session)
+
+    const added = TaskQueue.addToQueue({
+      name: `slides_${props.course?.title}_${session.title}`,
+      courseTitle: props.course?.title || 'Unknown Course',
+      sessionTitle: session.title,
+      sessionId: session.session_id
+    })
+    if (added) addedCount++
+  })
+
+  if (addedCount > 0) {
+    switchToTaskTab()
+    alert(`Added ${addedCount} sessions to task queue`)
+  } else {
+    alert('All sessions are already in the task queue')
+  }
 }
 
 const downloadAllCamera = () => {
@@ -338,6 +370,12 @@ const switchToDownloadTab = () => {
   // Emit event to switch to download tab in RightPanel
   // This will be caught by the parent component
   emit('switchToDownload')
+}
+
+const switchToTaskTab = () => {
+  // Emit event to switch to task tab in RightPanel
+  // This will be caught by the parent component
+  emit('switchToTask')
 }
 
 onMounted(() => {

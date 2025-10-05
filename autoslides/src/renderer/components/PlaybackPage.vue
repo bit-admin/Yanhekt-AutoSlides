@@ -259,6 +259,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { DataStore } from '../services/dataStore'
 import { TokenManager } from '../services/authService'
 import { slideExtractionManager, type SlideExtractor, type ExtractedSlide } from '../services/slideExtractor'
+import { TaskQueue } from '../services/taskQueueService'
 import Hls from 'hls.js'
 
 interface Course {
@@ -370,6 +371,10 @@ const extractorInstanceId = ref<string | null>(null)
 const extractedSlides = ref<ExtractedSlide[]>([])
 const selectedSlide = ref<ExtractedSlide | null>(null)
 
+// Task queue state
+const currentTaskId = ref<string | null>(null)
+const isTaskMode = ref(false)
+
 // Computed property to determine if video should be muted based on mode and mute setting
 const shouldVideoMute = computed(() => {
   switch (muteMode.value) {
@@ -469,6 +474,19 @@ const loadVideoStreams = async () => {
       // Wait for next tick to ensure DOM is updated
       await nextTick()
       await loadVideoSource()
+
+      // Check if we need to initialize task after video loading completes
+      if (isTaskMode.value && currentTaskId.value) {
+        console.log('Video loaded, checking task initialization for:', currentTaskId.value)
+        // Small delay to ensure everything is properly initialized
+        setTimeout(() => {
+          if (isScreenRecordingSelected.value && !isSlideExtractionEnabled.value) {
+            console.log('Auto-starting slide extraction after video load for task:', currentTaskId.value)
+            isSlideExtractionEnabled.value = true
+            toggleSlideExtraction()
+          }
+        }, 100)
+      }
     } else {
       throw new Error('No video streams available')
     }
@@ -476,6 +494,7 @@ const loadVideoStreams = async () => {
   } catch (err: any) {
     console.error('Failed to load video streams:', err)
     error.value = err.message || 'Failed to load video streams'
+    handleTaskError(err.message || 'Failed to load video streams')
     // Clear retry UI state when showing final error
     isRetrying.value = false
     retryMessage.value = ''
@@ -625,6 +644,7 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
                 error.value = 'Network error: Unable to load video after multiple attempts'
                 isRetrying.value = false
                 retryMessage.value = ''
+                handleTaskError('Network error: Unable to load video after multiple attempts')
               }
               break
 
@@ -655,6 +675,7 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
                 error.value = 'Video decoding error: Unable to decode video after multiple attempts'
                 isRetrying.value = false
                 retryMessage.value = ''
+                handleTaskError('Video decoding error: Unable to decode video after multiple attempts')
               }
               break
 
@@ -663,6 +684,7 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
               error.value = 'Video playback error: ' + data.details
               isRetrying.value = false
               retryMessage.value = ''
+              handleTaskError('Video playback error: ' + data.details)
               break
           }
         }
@@ -865,6 +887,7 @@ const loadVideoSource = async () => {
                 error.value = 'Network error: Unable to load video after multiple attempts'
                 isRetrying.value = false
                 retryMessage.value = ''
+                handleTaskError('Network error: Unable to load video after multiple attempts')
               }
               break
 
@@ -943,6 +966,7 @@ const loadVideoSource = async () => {
                 error.value = 'Video decoding error: Unable to decode video after multiple attempts'
                 isRetrying.value = false
                 retryMessage.value = ''
+                handleTaskError('Video decoding error: Unable to decode video after multiple attempts')
               }
               break
 
@@ -951,6 +975,7 @@ const loadVideoSource = async () => {
               error.value = 'Video playback error: ' + data.details
               isRetrying.value = false
               retryMessage.value = ''
+              handleTaskError('Video playback error: ' + data.details)
               break
           }
         } else {
@@ -1534,6 +1559,9 @@ watch(() => videoPlayer.value, (newPlayer) => {
         stablePlaybackTime += (currentTime - lastTimeUpdate)
         lastTimeUpdate = currentTime
 
+        // Check for task completion
+        checkVideoCompletion()
+
         // Only reduce counters after 2 seconds of stable playback
         if (stablePlaybackTime >= 2.0) {
           if (videoErrorRetryCount > 0) {
@@ -1676,6 +1704,110 @@ const onSlidesCleared = (event: CustomEvent) => {
   }
 }
 
+// Task queue event handlers
+const onTaskStart = (event: CustomEvent) => {
+  const { taskId, sessionId, courseTitle, sessionTitle } = event.detail
+
+  // Check if this task is for our session (only for recorded mode)
+  if (props.mode === 'recorded' && props.sessionId === sessionId) {
+    currentTaskId.value = taskId
+    isTaskMode.value = true
+
+    // Update task status to in progress
+    TaskQueue.updateTaskStatus(taskId, 'in_progress')
+
+    // Start the task initialization process
+    initializeTask(taskId)
+  }
+}
+
+// Initialize task with retry mechanism for video loading
+const initializeTask = async (taskId: string) => {
+  const maxRetries = 10 // Maximum 10 retries (5 seconds total)
+  let retryCount = 0
+
+  const tryInitialize = () => {
+    // Check if video streams are loaded and screen recording is available
+    if (playbackData.value && selectedStream.value && !loading.value) {
+      // Auto-start slide extraction for screen recording
+      if (isScreenRecordingSelected.value && !isSlideExtractionEnabled.value) {
+        console.log('Auto-starting slide extraction for task:', taskId)
+        isSlideExtractionEnabled.value = true
+        toggleSlideExtraction()
+      }
+
+      // Auto-play the video if not already playing
+      if (videoPlayer.value && videoPlayer.value.paused) {
+        videoPlayer.value.play().catch(e => {
+          console.log('Auto-play failed for task:', e)
+          // Update task with error if auto-play fails
+          TaskQueue.updateTaskStatus(taskId, 'error', 'Failed to start video playback')
+        })
+      }
+
+      console.log('Task initialized successfully:', taskId)
+      return true
+    }
+
+    // If not ready and we haven't exceeded max retries, try again
+    if (retryCount < maxRetries) {
+      retryCount++
+      console.log(`Task initialization retry ${retryCount}/${maxRetries} for task:`, taskId)
+      setTimeout(tryInitialize, 500) // Retry every 500ms
+      return false
+    }
+
+    // Max retries exceeded
+    console.error('Task initialization failed after max retries:', taskId)
+    TaskQueue.updateTaskStatus(taskId, 'error', 'Video failed to load within timeout')
+    return false
+  }
+
+  // Start the initialization process
+  tryInitialize()
+}
+
+const checkVideoCompletion = () => {
+  if (!isTaskMode.value || !currentTaskId.value || !videoPlayer.value) return
+
+  const video = videoPlayer.value
+  const duration = video.duration
+  const currentTime = video.currentTime
+
+  // Check if video is near completion (within 5 seconds or 99% complete)
+  if (duration > 0 && (currentTime >= duration - 5 || currentTime / duration >= 0.99)) {
+    // Mark task as completed
+    TaskQueue.updateTaskStatus(currentTaskId.value, 'completed')
+
+    // Reset task mode
+    currentTaskId.value = null
+    isTaskMode.value = false
+
+    // Stop slide extraction
+    if (isSlideExtractionEnabled.value) {
+      isSlideExtractionEnabled.value = false
+      toggleSlideExtraction()
+    }
+  }
+}
+
+const handleTaskError = (errorMessage: string) => {
+  if (isTaskMode.value && currentTaskId.value) {
+    // Mark task as error
+    TaskQueue.updateTaskStatus(currentTaskId.value, 'error', errorMessage)
+
+    // Reset task mode
+    currentTaskId.value = null
+    isTaskMode.value = false
+
+    // Stop slide extraction
+    if (isSlideExtractionEnabled.value) {
+      isSlideExtractionEnabled.value = false
+      toggleSlideExtraction()
+    }
+  }
+}
+
 // Lifecycle
 onMounted(async () => {
   // Register video proxy client for independent mode support
@@ -1699,6 +1831,9 @@ onMounted(async () => {
   window.addEventListener('slideExtracted', onSlideExtracted as EventListener)
   window.addEventListener('slidesCleared', onSlidesCleared as EventListener)
 
+  // Add task queue event listeners
+  window.addEventListener('taskStart', onTaskStart as EventListener)
+
   // Wait for next tick to ensure video element is in DOM
   await nextTick()
   loadVideoStreams()
@@ -1718,6 +1853,9 @@ onUnmounted(async () => {
   // Remove slide extraction event listeners
   window.removeEventListener('slideExtracted', onSlideExtracted as EventListener)
   window.removeEventListener('slidesCleared', onSlidesCleared as EventListener)
+
+  // Remove task queue event listeners
+  window.removeEventListener('taskStart', onTaskStart as EventListener)
 
   // Clean up HLS
   cleanup()

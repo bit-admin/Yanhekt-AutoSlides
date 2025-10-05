@@ -7,7 +7,7 @@
       <div class="divider left-divider" @mousedown="startResize('left', $event)"></div>
 
       <div class="main-content" :style="{ width: mainWidth + 'px' }">
-        <MainContent @switch-to-download="handleSwitchToDownload" />
+        <MainContent @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
       </div>
       <div class="divider right-divider" @mousedown="startResize('right', $event)"></div>
 
@@ -40,6 +40,12 @@ const rightPanelRef = ref()
 const handleSwitchToDownload = () => {
   if (rightPanelRef.value?.switchToDownload) {
     rightPanelRef.value.switchToDownload()
+  }
+}
+
+const handleSwitchToTask = () => {
+  if (rightPanelRef.value?.switchToTask) {
+    rightPanelRef.value.switchToTask()
   }
 }
 

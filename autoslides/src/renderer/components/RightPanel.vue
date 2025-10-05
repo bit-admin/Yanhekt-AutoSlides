@@ -33,36 +33,113 @@
         <div class="task-content">
           <div class="section-header">
             <h3>Task List</h3>
+            <div class="queue-controls">
+              <button
+                @click="toggleTaskQueue"
+                :class="['control-btn', taskStats.isProcessing ? 'pause-btn' : 'start-btn']"
+                :title="taskStats.isProcessing ? 'Pause Queue' : 'Start Queue'"
+                :disabled="!taskStats.hasQueuedTasks && !taskStats.isProcessing"
+              >
+                <svg v-if="taskStats.isProcessing" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="6" y="4" width="4" height="16"/>
+                  <rect x="14" y="4" width="4" height="16"/>
+                </svg>
+                <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="5,3 19,12 5,21"/>
+                </svg>
+                {{ taskStats.isProcessing ? 'Pause' : 'Start' }}
+              </button>
+              <button @click="clearCompletedTasks" class="control-btn clear-btn" title="Clear Completed">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3,6 5,6 21,6"/>
+                  <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"/>
+                </svg>
+                Clear
+              </button>
+            </div>
           </div>
-          <div class="placeholder-content">
-            <div class="placeholder-icon">
+
+          <div class="task-queue" v-if="taskItems.length > 0">
+            <div
+              v-for="item in taskItems"
+              :key="item.id"
+              class="task-item"
+              :class="[`status-${item.status}`]"
+            >
+              <div class="item-status">
+                <div :class="['status-indicator', `status-${item.status}`]">
+                  <svg v-if="item.status === 'queued'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12,6 12,12 16,14"/>
+                  </svg>
+                  <svg v-else-if="item.status === 'in_progress'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3 8-8"/>
+                    <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
+                  </svg>
+                  <svg v-else-if="item.status === 'completed'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20,6 9,17 4,12"/>
+                  </svg>
+                  <svg v-else-if="item.status === 'error'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                  </svg>
+                </div>
+              </div>
+
+              <div class="item-info">
+                <div class="item-name" :title="item.name">
+                  {{ item.name }}
+                </div>
+                <div class="item-progress">
+                  <div class="progress-bar">
+                    <div class="progress-fill" :style="{ width: `${item.progress}%` }"></div>
+                  </div>
+                  <div class="progress-text">
+                    <span v-if="item.status === 'queued'">Queued</span>
+                    <span v-else-if="item.status === 'in_progress'">Processing {{ item.progress }}%</span>
+                    <span v-else-if="item.status === 'completed'">Completed</span>
+                    <span v-else-if="item.status === 'error'">{{ item.error || 'Error' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="item-actions">
+                <button
+                  @click="removeTask(item.id)"
+                  class="cancel-item-btn"
+                  title="Remove"
+                  v-if="item.status !== 'in_progress'"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="empty-queue">
+            <div class="empty-icon">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                 <path d="M9 11l3 3 8-8"/>
                 <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
               </svg>
             </div>
-            <p>Task management features will be implemented here</p>
-            <div class="feature-list">
-              <div class="feature-item">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="9,11 12,14 22,4"/>
-                  <path d="M21,12v7a2,2 0,0,1-2,2H5a2,2 0,0,1-2-2V5a2,2 0,0,1,2-2h11"/>
-                </svg>
-                <span>Task tracking</span>
+            <p>No slide extraction tasks in queue</p>
+            <div class="queue-stats">
+              <div class="stat-item">
+                <span class="stat-label">Queued:</span>
+                <span class="stat-value">{{ taskStats.queuedCount }}</span>
               </div>
-              <div class="feature-item">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12,6 12,12 16,14"/>
-                </svg>
-                <span>Progress monitoring</span>
+              <div class="stat-item">
+                <span class="stat-label">Completed:</span>
+                <span class="stat-value">{{ taskStats.completedCount }}</span>
               </div>
-              <div class="feature-item">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M14,9V5a3,3 0,0,0-6,0v4"/>
-                  <rect x="2" y="9" width="20" height="12" rx="2" ry="2"/>
-                </svg>
-                <span>Status updates</span>
+              <div class="stat-item">
+                <span class="stat-label">Errors:</span>
+                <span class="stat-value">{{ taskStats.errorCount }}</span>
               </div>
             </div>
           </div>
@@ -195,6 +272,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { DownloadService, type DownloadItem } from '../services/downloadService'
+import { TaskQueue, taskQueueState, type TaskItem } from '../services/taskQueueService'
 
 type Tab = 'task' | 'download'
 
@@ -215,6 +293,10 @@ const downloadState = ref<TabState>({
   initialized: true
 })
 
+// Task management
+const taskItems = computed(() => TaskQueue.tasks)
+const taskStats = computed(() => taskQueueState.value)
+
 // Download management
 const downloadItems = computed(() => DownloadService.downloadItems)
 const activeCount = computed(() => DownloadService.activeCount)
@@ -230,6 +312,28 @@ const switchToDownload = () => {
   currentTab.value = 'download'
 }
 
+// Expose method to switch to task tab from external components
+const switchToTask = () => {
+  currentTab.value = 'task'
+}
+
+// Task controls
+const toggleTaskQueue = () => {
+  if (taskStats.value.isProcessing) {
+    TaskQueue.pauseQueue()
+  } else {
+    TaskQueue.startQueue()
+  }
+}
+
+const clearCompletedTasks = () => {
+  TaskQueue.clearCompleted()
+}
+
+const removeTask = (taskId: string) => {
+  TaskQueue.removeTask(taskId)
+}
+
 // Download controls
 const cancelAllDownloads = () => {
   DownloadService.cancelAll()
@@ -243,23 +347,30 @@ const cancelDownload = (id: string) => {
   DownloadService.removeFromQueue(id)
 }
 
-// Listen for download tab switching events
+// Listen for tab switching events
 const handleDownloadSwitch = () => {
   switchToDownload()
 }
 
+const handleTaskSwitch = () => {
+  switchToTask()
+}
+
 onMounted(() => {
-  // Listen for events to switch to download tab
+  // Listen for events to switch tabs
   window.addEventListener('switchToDownload', handleDownloadSwitch)
+  window.addEventListener('switchToTask', handleTaskSwitch)
 })
 
 onUnmounted(() => {
   window.removeEventListener('switchToDownload', handleDownloadSwitch)
+  window.removeEventListener('switchToTask', handleTaskSwitch)
 })
 
-// Expose the switchToDownload method for parent components
+// Expose methods for parent components
 defineExpose({
-  switchToDownload
+  switchToDownload,
+  switchToTask
 })
 </script>
 
@@ -385,6 +496,36 @@ defineExpose({
   border-color: #545b62;
 }
 
+.start-btn {
+  color: #28a745;
+  border-color: #28a745;
+}
+
+.start-btn:hover:not(:disabled) {
+  background-color: #d4edda;
+  border-color: #1e7e34;
+}
+
+.pause-btn {
+  color: #ffc107;
+  border-color: #ffc107;
+}
+
+.pause-btn:hover {
+  background-color: #fff8e1;
+  border-color: #e0a800;
+}
+
+.control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.control-btn:disabled:hover {
+  background-color: white;
+  border-color: #ddd;
+}
+
 .placeholder-content {
   display: flex;
   flex-direction: column;
@@ -430,14 +571,14 @@ defineExpose({
   opacity: 0.7;
 }
 
-.download-queue {
+.task-queue, .download-queue {
   display: flex;
   flex-direction: column;
   gap: 8px;
   margin-bottom: 16px;
 }
 
-.download-item {
+.task-item, .download-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -448,13 +589,17 @@ defineExpose({
   transition: all 0.2s;
 }
 
-.download-item:hover {
+.task-item:hover, .download-item:hover {
   border-color: #007acc;
   box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
 }
 
-.download-item.status-queued {
+.task-item.status-queued, .download-item.status-queued {
   border-left: 3px solid #6c757d;
+}
+
+.task-item.status-in_progress {
+  border-left: 3px solid #28a745;
 }
 
 .download-item.status-downloading {
@@ -465,11 +610,11 @@ defineExpose({
   border-left: 3px solid #ffc107;
 }
 
-.download-item.status-completed {
+.task-item.status-completed, .download-item.status-completed {
   border-left: 3px solid #28a745;
 }
 
-.download-item.status-error {
+.task-item.status-error, .download-item.status-error {
   border-left: 3px solid #dc3545;
 }
 
