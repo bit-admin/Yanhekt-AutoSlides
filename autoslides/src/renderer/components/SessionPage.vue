@@ -244,7 +244,8 @@ const addToQueue = (session: Session) => {
     name: `slides_${props.course?.title}_${session.title}`,
     courseTitle: props.course?.title || 'Unknown Course',
     sessionTitle: session.title,
-    sessionId: session.session_id
+    sessionId: session.session_id,
+    courseId: props.course?.id || 'unknown'
   })
 
   if (!added) {
@@ -305,7 +306,8 @@ const addAllToQueue = () => {
       name: `slides_${props.course?.title}_${session.title}`,
       courseTitle: props.course?.title || 'Unknown Course',
       sessionTitle: session.title,
-      sessionId: session.session_id
+      sessionId: session.session_id,
+      courseId: props.course?.id || 'unknown'
     })
     if (added) addedCount++
   })

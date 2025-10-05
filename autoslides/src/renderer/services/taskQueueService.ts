@@ -8,6 +8,7 @@ export interface TaskItem {
   courseTitle: string
   sessionTitle: string
   sessionId: string
+  courseId: string
   status: TaskStatus
   progress: number
   error?: string
@@ -66,6 +67,7 @@ class TaskQueueService {
     courseTitle: string
     sessionTitle: string
     sessionId: string
+    courseId: string
   }): boolean {
     // Check if task already exists
     const existingTask = this.state.tasks.find(
@@ -83,6 +85,7 @@ class TaskQueueService {
       courseTitle: taskData.courseTitle,
       sessionTitle: taskData.sessionTitle,
       sessionId: taskData.sessionId,
+      courseId: taskData.courseId,
       status: 'queued',
       progress: 0,
       createdAt: Date.now()
@@ -239,6 +242,7 @@ class TaskQueueService {
       detail: {
         taskId: task.id,
         sessionId: task.sessionId,
+        courseId: task.courseId,
         courseTitle: task.courseTitle,
         sessionTitle: task.sessionTitle
       }
@@ -275,6 +279,7 @@ class TaskQueueService {
         detail: {
           taskId: task.id,
           sessionId: task.sessionId,
+          courseId: task.courseId,
           courseTitle: task.courseTitle,
           sessionTitle: task.sessionTitle,
           retryCount: retryCount

@@ -162,7 +162,7 @@ const handleSwitchToTask = () => {
 
 // Task navigation handler
 const handleTaskNavigation = (event: CustomEvent) => {
-  const { taskId, sessionId, courseTitle, sessionTitle } = event.detail
+  const { taskId, sessionId, courseId, courseTitle, sessionTitle } = event.detail
 
   // Switch to recorded mode
   currentMode.value = 'recorded'
@@ -173,7 +173,7 @@ const handleTaskNavigation = (event: CustomEvent) => {
     // Create a course object that matches the expected interface
     // This mimics what would normally come from CoursePage
     recordedState.value.selectedCourse = {
-      id: sessionData.id, // Use the session's id field
+      id: courseId, // Use the correct course ID from task data
       title: courseTitle,
       instructor: 'Auto Task', // Indicate this is from automated task
       time: sessionData.started_at,
@@ -189,6 +189,14 @@ const handleTaskNavigation = (event: CustomEvent) => {
 
     // Navigate directly to playback (skipping the sessions page)
     recordedState.value.page = 'playback'
+
+    console.log('Task navigation completed:', {
+      taskId,
+      courseId,
+      sessionId,
+      courseTitle,
+      sessionTitle
+    })
   } else {
     console.error('Session data not found for task navigation:', sessionId)
     console.error('Make sure the session was properly stored when the task was added to the queue')
