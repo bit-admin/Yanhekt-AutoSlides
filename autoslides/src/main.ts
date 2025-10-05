@@ -417,5 +417,16 @@ ipcMain.handle('window:isMaximized', async () => {
   return { isMaximized: false };
 });
 
+// Shell handlers
+ipcMain.handle('shell:openExternal', async (_, url: string) => {
+  try {
+    await shell.openExternal(url);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to open external URL:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.
