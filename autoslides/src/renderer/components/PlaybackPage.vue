@@ -792,7 +792,12 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
     }
   } catch (err: any) {
     console.error('Failed to load video source with position:', err)
-    error.value = 'Failed to load video source: ' + err.message
+    const errorMessage = 'Failed to load video source: ' + err.message
+    error.value = errorMessage
+
+    // Handle task error if in task mode - this will continue to next task
+    handleTaskError(errorMessage)
+
     // Clear retry UI state when showing final error
     isRetrying.value = false
     retryMessage.value = ''
@@ -1060,7 +1065,12 @@ const loadVideoSource = async () => {
     }
   } catch (err: any) {
     console.error('Failed to load video source:', err)
-    error.value = 'Failed to load video source: ' + err.message
+    const errorMessage = 'Failed to load video source: ' + err.message
+    error.value = errorMessage
+
+    // Handle task error if in task mode - this will continue to next task
+    handleTaskError(errorMessage)
+
     isRetrying.value = false
     retryMessage.value = ''
   }
@@ -1377,6 +1387,9 @@ const onVideoError = async (event: Event) => {
       userMessage += ` (Failed after ${maxVideoErrorRetries.value} retry attempts)`
     }
     error.value = userMessage
+
+    // Handle task error if in task mode - this will continue to next task
+    handleTaskError(userMessage)
 
     // Clear retry UI state when showing final error
     isRetrying.value = false
@@ -1943,10 +1956,12 @@ const completeCurrentTask = () => {
 
 const handleTaskError = (errorMessage: string) => {
   if (isTaskMode.value && currentTaskId.value) {
-    // Mark task as error
+    console.log('Task error occurred:', currentTaskId.value, errorMessage)
+
+    // Mark task as error - this will trigger automatic continuation to next task
     TaskQueue.updateTaskStatus(currentTaskId.value, 'error', errorMessage)
 
-    // Reset task mode
+    // Reset task mode (the task queue will handle moving to next task)
     currentTaskId.value = null
     isTaskMode.value = false
 
@@ -1955,6 +1970,11 @@ const handleTaskError = (errorMessage: string) => {
       isSlideExtractionEnabled.value = false
       toggleSlideExtraction()
     }
+
+    // Clear error state to allow next task to start fresh
+    error.value = null
+    isRetrying.value = false
+    retryMessage.value = ''
   }
 }
 
