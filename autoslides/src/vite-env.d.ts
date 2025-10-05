@@ -35,7 +35,7 @@ interface ElectronAPI {
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
-      videoRetryCount: number;
+      taskSpeed: number;
     }>;
     setOutputDirectory: (directory: string) => Promise<{
       outputDirectory: string;
@@ -43,6 +43,7 @@ interface ElectronAPI {
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
+      taskSpeed: number;
     }>;
     selectOutputDirectory: () => Promise<{
       outputDirectory: string;
@@ -50,6 +51,7 @@ interface ElectronAPI {
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
+      taskSpeed: number;
     } | null>;
     setConnectionMode: (mode: 'internal' | 'external') => Promise<{
       outputDirectory: string;
@@ -57,6 +59,7 @@ interface ElectronAPI {
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
+      taskSpeed: number;
     }>;
     setMaxConcurrentDownloads: (count: number) => Promise<{
       outputDirectory: string;
@@ -64,6 +67,7 @@ interface ElectronAPI {
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
+      taskSpeed: number;
     }>;
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<{
       outputDirectory: string;
@@ -71,6 +75,7 @@ interface ElectronAPI {
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
+      taskSpeed: number;
     }>;
     setVideoRetryCount: (count: number) => Promise<{
       outputDirectory: string;
@@ -78,6 +83,15 @@ interface ElectronAPI {
       maxConcurrentDownloads: number;
       muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
       videoRetryCount: number;
+      taskSpeed: number;
+    }>;
+    setTaskSpeed: (speed: number) => Promise<{
+      outputDirectory: string;
+      connectionMode: 'internal' | 'external';
+      maxConcurrentDownloads: number;
+      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+      videoRetryCount: number;
+      taskSpeed: number;
     }>;
     // Slide extraction configuration
     getSlideExtractionConfig: () => Promise<{

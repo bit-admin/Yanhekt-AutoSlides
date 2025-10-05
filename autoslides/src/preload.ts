@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setMaxConcurrentDownloads: (count: number) => ipcRenderer.invoke('config:setMaxConcurrentDownloads', count),
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => ipcRenderer.invoke('config:setMuteMode', mode),
     setVideoRetryCount: (count: number) => ipcRenderer.invoke('config:setVideoRetryCount', count),
+    setTaskSpeed: (speed: number) => ipcRenderer.invoke('config:setTaskSpeed', speed),
     // Slide extraction configuration
     getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),
     setSlideCheckInterval: (interval: number) => ipcRenderer.invoke('config:setSlideCheckInterval', interval),

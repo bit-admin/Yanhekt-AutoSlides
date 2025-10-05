@@ -22,6 +22,7 @@ export interface AppConfig {
   maxConcurrentDownloads: number;
   muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
   videoRetryCount: number;
+  taskSpeed: number;
   slideExtraction: SlideExtractionConfig;
 }
 
@@ -41,6 +42,7 @@ const defaultConfig: AppConfig = {
   maxConcurrentDownloads: 5,
   muteMode: 'normal',
   videoRetryCount: 5,
+  taskSpeed: 10,
   slideExtraction: defaultSlideExtractionConfig
 };
 
@@ -63,6 +65,7 @@ export class ConfigService {
       maxConcurrentDownloads: (this.store as any).get('maxConcurrentDownloads') as number,
       muteMode: (this.store as any).get('muteMode') as 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded',
       videoRetryCount: (this.store as any).get('videoRetryCount') as number,
+      taskSpeed: (this.store as any).get('taskSpeed') as number,
       slideExtraction: (this.store as any).get('slideExtraction') as SlideExtractionConfig
     };
   }
@@ -88,6 +91,11 @@ export class ConfigService {
   setVideoRetryCount(count: number): void {
     const validCount = Math.max(5, Math.min(10, count));
     (this.store as any).set('videoRetryCount', validCount);
+  }
+
+  setTaskSpeed(speed: number): void {
+    const validSpeed = Math.max(1, Math.min(10, speed));
+    (this.store as any).set('taskSpeed', validSpeed);
   }
 
   // Slide extraction configuration methods

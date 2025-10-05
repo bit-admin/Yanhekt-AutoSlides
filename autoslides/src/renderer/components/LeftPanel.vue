@@ -132,6 +132,16 @@
             </div>
           </div>
         </div>
+
+        <div class="setting-item">
+          <label class="setting-label">Task Speed:</label>
+          <div class="setting-description">Playback speed for automated task processing (default: 10x)</div>
+          <div class="task-speed-selector">
+            <select v-model="taskSpeed" @change="setTaskSpeed" class="task-speed-select">
+              <option v-for="i in 10" :key="i" :value="i">{{ i }}x</option>
+            </select>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -268,6 +278,9 @@ const slideCheckInterval = ref(2000)
 const slideDoubleVerification = ref(true)
 const slideVerificationCount = ref(2)
 
+// Task configuration
+const taskSpeed = ref(10)
+
 // Advanced image processing parameters
 const ssimThreshold = ref(0.999)
 const tempSsimThreshold = ref(0.999)
@@ -362,6 +375,9 @@ const loadConfig = async () => {
     validateAndCorrectInterval()
     slideDoubleVerification.value = slideConfig.enableDoubleVerification !== false
     slideVerificationCount.value = slideConfig.verificationCount || 2
+
+    // Load task configuration
+    taskSpeed.value = config.taskSpeed || 10
 
     // Load advanced image processing parameters
     ssimThreshold.value = slideConfig.ssimThreshold || 0.999
@@ -463,6 +479,15 @@ const setSlideDoubleVerification = async () => {
     slideVerificationCount.value = result.verificationCount
   } catch (error) {
     console.error('Failed to set slide double verification:', error)
+  }
+}
+
+const setTaskSpeed = async () => {
+  try {
+    const result = await window.electronAPI.config.setTaskSpeed(taskSpeed.value)
+    taskSpeed.value = result.taskSpeed
+  } catch (error) {
+    console.error('Failed to set task speed:', error)
   }
 }
 
@@ -832,6 +857,27 @@ const saveAdvancedSettings = async () => {
 }
 
 .verification-count-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.task-speed-selector {
+  width: 100%;
+}
+
+.task-speed-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.task-speed-select:focus {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);

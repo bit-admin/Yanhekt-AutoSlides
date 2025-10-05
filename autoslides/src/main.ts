@@ -124,6 +124,11 @@ ipcMain.handle('config:setVideoRetryCount', async (event, count: number) => {
   return configService.getConfig();
 });
 
+ipcMain.handle('config:setTaskSpeed', async (event, speed: number) => {
+  configService.setTaskSpeed(speed);
+  return configService.getConfig();
+});
+
 // IPC handlers for slide extraction configuration
 ipcMain.handle('config:getSlideExtractionConfig', async () => {
   return configService.getSlideExtractionConfig();

@@ -1,7 +1,7 @@
 <template>
   <div class="playback-page">
     <div class="header">
-      <button @click="goBack" class="back-btn">
+      <button @click="goBack" class="back-btn" :disabled="shouldDisableControls">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="15,18 9,12 15,6"/>
         </svg>
@@ -79,7 +79,7 @@
         <div class="controls-row">
           <div v-if="Object.keys(playbackData.streams).length > 1 && !isSlideExtractionEnabled" class="stream-selector">
             <label>Select Stream:</label>
-            <select v-model="selectedStream" @change="switchStream">
+            <select v-model="selectedStream" @change="switchStream" :disabled="shouldDisableControls">
               <option v-for="(stream, key) in playbackData.streams" :key="key" :value="key">
                 {{ stream.name }}
               </option>
@@ -93,6 +93,7 @@
                 type="checkbox"
                 v-model="isSlideExtractionEnabled"
                 @change="toggleSlideExtraction"
+                :disabled="shouldDisableControls"
               />
               <span class="toggle-text">Extract Slides</span>
             </label>
@@ -108,7 +109,7 @@
           <!-- Custom Playback Rate Control (only for recorded videos) -->
           <div v-if="props.mode === 'recorded'" class="playback-rate-control">
             <label>Playback speed:</label>
-            <select v-model="currentPlaybackRate" @change="changePlaybackRate">
+            <select v-model="currentPlaybackRate" @change="changePlaybackRate" :disabled="shouldDisableControls">
               <option value="1">1x</option>
               <option value="2">2x</option>
               <option value="3">3x</option>
@@ -121,6 +122,16 @@
               <option value="10">10x</option>
             </select>
           </div>
+        </div>
+
+        <!-- Task Running Warning -->
+        <div v-if="isTaskRunning" class="task-warning">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <path d="M12 9v4"/>
+            <path d="m12 17 .01 0"/>
+          </svg>
+          Task in progress. Controls are disabled. If you exit, the task queue will be paused and current task progress will be lost. To adjust settings, please manually pause the task list.
         </div>
 
         <!-- Playback Speed Warning for External Network -->
@@ -374,6 +385,7 @@ const selectedSlide = ref<ExtractedSlide | null>(null)
 // Task queue state
 const currentTaskId = ref<string | null>(null)
 const isTaskMode = ref(false)
+const taskSpeed = ref(10) // Default task speed
 
 // Computed property to determine if video should be muted based on mode and mute setting
 const shouldVideoMute = computed(() => {
@@ -395,6 +407,16 @@ const isScreenRecordingSelected = computed(() => {
   if (!playbackData.value || !selectedStream.value) return false
   const currentStream = playbackData.value.streams[selectedStream.value]
   return currentStream?.type === 'screen'
+})
+
+// Computed property to check if task is currently running
+const isTaskRunning = computed(() => {
+  return isTaskMode.value && currentTaskId.value !== null
+})
+
+// Computed property to determine if UI controls should be disabled during task execution
+const shouldDisableControls = computed(() => {
+  return isTaskRunning.value
 })
 
 // Initialize TokenManager
@@ -480,6 +502,17 @@ const loadVideoStreams = async () => {
         console.log('Video loaded, checking task initialization for:', currentTaskId.value)
         // Small delay to ensure everything is properly initialized
         setTimeout(() => {
+          // Set task speed for playback rate (only for recorded mode)
+          if (videoPlayer.value && props.mode === 'recorded') {
+            currentPlaybackRate.value = taskSpeed.value
+            videoPlayer.value.playbackRate = taskSpeed.value
+
+            // Update slide extractor with task speed
+            if (slideExtractorInstance.value) {
+              slideExtractorInstance.value.updatePlaybackRate(taskSpeed.value)
+            }
+          }
+
           if (isScreenRecordingSelected.value && !isSlideExtractionEnabled.value) {
             console.log('Auto-starting slide extraction after video load for task:', currentTaskId.value)
             isSlideExtractionEnabled.value = true
@@ -1723,6 +1756,36 @@ const onTaskStart = (event: CustomEvent) => {
   }
 }
 
+const onTaskPause = (event: CustomEvent) => {
+  if (isTaskMode.value && currentTaskId.value) {
+    // Pause video playback if it's playing
+    if (videoPlayer.value && !videoPlayer.value.paused) {
+      videoPlayer.value.pause()
+    }
+
+    // Reset task mode but keep task ID for potential resume
+    isTaskMode.value = false
+
+    // Stop slide extraction if running
+    if (isSlideExtractionEnabled.value) {
+      isSlideExtractionEnabled.value = false
+      toggleSlideExtraction()
+    }
+  }
+}
+
+const onTaskResume = (event: CustomEvent) => {
+  const { taskId, sessionId } = event.detail
+
+  // Check if this is our task and session
+  if (props.mode === 'recorded' && props.sessionId === sessionId && currentTaskId.value === taskId) {
+    isTaskMode.value = true
+
+    // Re-initialize task for resume
+    initializeTaskResume(taskId)
+  }
+}
+
 // Initialize task with retry mechanism for video loading
 const initializeTask = async (taskId: string) => {
   const maxRetries = 10 // Maximum 10 retries (5 seconds total)
@@ -1731,6 +1794,17 @@ const initializeTask = async (taskId: string) => {
   const tryInitialize = () => {
     // Check if video streams are loaded and screen recording is available
     if (playbackData.value && selectedStream.value && !loading.value) {
+      // Set task speed for playback rate (only for recorded mode)
+      if (videoPlayer.value && props.mode === 'recorded') {
+        currentPlaybackRate.value = taskSpeed.value
+        videoPlayer.value.playbackRate = taskSpeed.value
+
+        // Update slide extractor with task speed
+        if (slideExtractorInstance.value) {
+          slideExtractorInstance.value.updatePlaybackRate(taskSpeed.value)
+        }
+      }
+
       // Auto-start slide extraction for screen recording
       if (isScreenRecordingSelected.value && !isSlideExtractionEnabled.value) {
         console.log('Auto-starting slide extraction for task:', taskId)
@@ -1767,6 +1841,59 @@ const initializeTask = async (taskId: string) => {
 
   // Start the initialization process
   tryInitialize()
+}
+
+// Initialize task resume with current video state
+const initializeTaskResume = async (taskId: string) => {
+  console.log('Resuming task:', taskId)
+
+  // Check if we're still on the correct video source (screen recording)
+  if (!isScreenRecordingSelected.value) {
+    // Try to switch to screen recording if available
+    const screenStreamKey = Object.keys(playbackData.value?.streams || {}).find(
+      key => playbackData.value?.streams[key].type === 'screen'
+    )
+
+    if (screenStreamKey) {
+      selectedStream.value = screenStreamKey
+      await switchStream()
+    } else {
+      // No screen recording available, mark task as error
+      TaskQueue.updateTaskStatus(taskId, 'error', 'Screen recording not available')
+      currentTaskId.value = null
+      isTaskMode.value = false
+      return
+    }
+  }
+
+  // Set task speed for playback rate
+  if (videoPlayer.value && props.mode === 'recorded') {
+    currentPlaybackRate.value = taskSpeed.value
+    videoPlayer.value.playbackRate = taskSpeed.value
+
+    // Update slide extractor with task speed
+    if (slideExtractorInstance.value) {
+      slideExtractorInstance.value.updatePlaybackRate(taskSpeed.value)
+    }
+  }
+
+  // Start slide extraction if not already enabled
+  if (!isSlideExtractionEnabled.value) {
+    isSlideExtractionEnabled.value = true
+    await toggleSlideExtraction()
+  }
+
+  // Resume video playback if it was paused
+  if (videoPlayer.value && videoPlayer.value.paused) {
+    try {
+      await videoPlayer.value.play()
+    } catch (error) {
+      console.error('Failed to resume video playback:', error)
+      TaskQueue.updateTaskStatus(taskId, 'error', 'Failed to resume video playback')
+      currentTaskId.value = null
+      isTaskMode.value = false
+    }
+  }
 }
 
 const checkVideoCompletion = () => {
@@ -1838,12 +1965,13 @@ onMounted(async () => {
     console.error('Failed to register video proxy client:', error)
   }
 
-  // Load connection mode, mute mode, and video retry count from config
+  // Load connection mode, mute mode, video retry count, and task speed from config
   try {
     const config = await window.electronAPI.config.get()
     connectionMode.value = config.connectionMode
     muteMode.value = config.muteMode || 'normal'
     maxVideoErrorRetries.value = config.videoRetryCount || 5
+    taskSpeed.value = config.taskSpeed || 10
   } catch (error) {
     console.error('Failed to load config:', error)
   }
@@ -1854,6 +1982,8 @@ onMounted(async () => {
 
   // Add task queue event listeners
   window.addEventListener('taskStart', onTaskStart as EventListener)
+  window.addEventListener('taskPause', onTaskPause as EventListener)
+  window.addEventListener('taskResume', onTaskResume as EventListener)
 
   // Wait for next tick to ensure video element is in DOM
   await nextTick()
@@ -1877,6 +2007,8 @@ onUnmounted(async () => {
 
   // Remove task queue event listeners
   window.removeEventListener('taskStart', onTaskStart as EventListener)
+  window.removeEventListener('taskPause', onTaskPause as EventListener)
+  window.removeEventListener('taskResume', onTaskResume as EventListener)
 
   // Clean up HLS
   cleanup()
@@ -1925,9 +2057,15 @@ onUnmounted(async () => {
   transition: all 0.2s;
 }
 
-.back-btn:hover {
+.back-btn:hover:not(:disabled) {
   border-color: #007acc;
   color: #007acc;
+}
+
+.back-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
 }
 
 .title-info h2 {
@@ -2087,6 +2225,12 @@ onUnmounted(async () => {
   font-size: 14px;
 }
 
+.stream-selector select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+}
+
 .video-container {
   position: relative;
   width: 100%;
@@ -2173,6 +2317,12 @@ onUnmounted(async () => {
   border-color: #007acc;
 }
 
+.playback-rate-control select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+}
+
 .video-player {
   width: 100%;
   height: auto;
@@ -2230,6 +2380,26 @@ onUnmounted(async () => {
   color: #333;
 }
 
+/* Task warning */
+.task-warning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  margin: 12px 0;
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+  color: #856404;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.task-warning svg {
+  flex-shrink: 0;
+  color: #f39c12;
+}
+
 /* Speed warning */
 .speed-warning {
   display: flex;
@@ -2270,6 +2440,16 @@ onUnmounted(async () => {
   width: 16px;
   height: 16px;
   cursor: pointer;
+}
+
+.extraction-toggle input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.extraction-toggle:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .toggle-text {
