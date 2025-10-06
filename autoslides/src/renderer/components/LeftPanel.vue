@@ -764,7 +764,7 @@ const loadManualToken = () => {
 }
 
 .user-info h3 {
-  margin: 0 0 16px 20px;
+  margin: 5px 0 14px 20px;
   font-size: 24px;
   font-weight: 600;
 }
@@ -776,7 +776,7 @@ const loadManualToken = () => {
 }
 
 .user-info p {
-  margin: 0 20px 12px 20px;
+  margin: 0 20px 10px 20px;
   font-size: 15px;
   color: #666;
 }

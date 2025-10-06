@@ -2,7 +2,7 @@
   <div class="course-page">
     <div class="header">
       <div class="title-section">
-        <h2>{{ mode === 'live' ? 'Live' : 'Recorded' }}</h2>
+        <h2>{{ mode === 'live' ? 'Live Streams' : 'Recordings' }}</h2>
       </div>
       <div class="controls-section">
         <div class="search-row">
@@ -66,10 +66,10 @@
 
       <div v-if="showWelcome" class="welcome-page">
         <div class="welcome-content">
+          <h1>Welcome to AutoSlides</h1>
           <div class="welcome-icon">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path v-if="mode === 'live'" d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-              <path v-if="mode === 'live'" d="M22 4L12 14.01l-3-3"/>
+              <path v-if="mode === 'live'" d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
               <rect v-if="mode === 'recorded'" x="2" y="3" width="20" height="14" rx="2" ry="2"/>
               <line v-if="mode === 'recorded'" x1="8" y1="21" x2="16" y2="21"/>
               <line v-if="mode === 'recorded'" x1="12" y1="17" x2="12" y2="21"/>
@@ -77,10 +77,10 @@
           </div>
           <h2>{{ mode === 'live' ? 'Live Courses' : 'Recorded Courses' }}</h2>
           <p v-if="mode === 'live'">
-            Browse and join live streaming courses. Use the search function to find specific courses or get your personal course list.
+            Browse and join live lectures across the entire campus, while also capturing real-time slides.
           </p>
           <p v-if="mode === 'recorded'">
-            Access recorded course sessions. Filter by semester and search through your course history to find the content you need.
+            Access courses recordings, download videos for offline viewing, and extract slides from recordings.
           </p>
         </div>
       </div>
@@ -475,15 +475,25 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   gap: 24px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border-radius: 8px;
+  padding: 10px 24px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 122, 204, 0.1);
 }
 
 .title-section h2 {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: #333;
+  margin: 25px 0 0 25px;
+  font-size: 28px;
+  font-weight: 700;
+  color: #2c3e50;
+  background: linear-gradient(135deg, #007acc 0%, #0056b3 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
 }
 
 .controls-section {
@@ -581,6 +591,7 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding-bottom: 16px;
+  padding-right: 8px; /* Space for scrollbar */
   min-height: 0; /* Important for scrolling */
 }
 
@@ -672,24 +683,36 @@ onUnmounted(() => {
   font-size: 10px;
   color: #666;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .course-location {
   margin: 0 0 3px 0;
   font-size: 10px;
   color: #888;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .course-time {
   margin: 0 0 3px 0;
   font-size: 10px;
   color: #999;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .course-section {
   margin: 0 0 3px 0;
   font-size: 9px;
   color: #aaa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .course-participants {
@@ -697,6 +720,9 @@ onUnmounted(() => {
   font-size: 9px;
   color: #007acc;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .pagination {
@@ -704,8 +730,8 @@ onUnmounted(() => {
   justify-content: center;
   align-items: center;
   gap: 16px;
-  margin-top: 16px;
-  padding: 16px 0;
+  margin-top: 12px;
+  padding: 12px 0;
   border-top: 1px solid #e0e0e0;
   flex-shrink: 0; /* Prevent pagination from shrinking */
   background-color: white; /* Ensure visibility */
@@ -756,6 +782,68 @@ onUnmounted(() => {
 @media (max-width: 600px) {
   .courses-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
+.courses-grid {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.courses-grid:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.courses-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.courses-grid::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.courses-grid::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  border: none;
+  transition: background 0.3s ease;
+}
+
+.courses-grid:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.courses-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .courses-grid {
+    scrollbar-color: transparent transparent;
+  }
+
+  .courses-grid:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+
+  .courses-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .courses-grid::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
+  .courses-grid:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .courses-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
   }
 }
 
@@ -847,6 +935,14 @@ onUnmounted(() => {
   justify-content: center;
   margin-bottom: 24px;
   color: #007acc;
+}
+
+.welcome-content h1 {
+  margin: 0 0 80px 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #333;
+  letter-spacing: -0.5px;
 }
 
 .welcome-content h2 {
