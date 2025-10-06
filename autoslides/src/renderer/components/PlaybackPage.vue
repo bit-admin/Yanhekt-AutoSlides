@@ -1814,8 +1814,10 @@ const onTaskResume = (event: CustomEvent) => {
 // Wait for video to be fully ready for task processing
 const waitForVideoReady = (): Promise<void> => {
   return new Promise((resolve, reject) => {
-    const timeout = 15000 // 15 second timeout
+    const timeout = 20000 // 20 second timeout (increased for HLS stability)
     const startTime = Date.now()
+    let consecutiveReadyChecks = 0
+    const requiredConsecutiveChecks = 3 // Require 3 consecutive successful checks
 
     const checkVideoReady = () => {
       // Check if we've exceeded timeout
@@ -1827,37 +1829,57 @@ const waitForVideoReady = (): Promise<void> => {
       // Check all required conditions for video readiness
       const video = videoPlayer.value
       if (!video) {
-        setTimeout(checkVideoReady, 100)
+        consecutiveReadyChecks = 0
+        setTimeout(checkVideoReady, 200)
         return
       }
 
       // Check if video has loaded metadata and is ready to play
-      if (video.readyState < 3) { // HAVE_FUTURE_DATA or higher
-        setTimeout(checkVideoReady, 100)
+      if (video.readyState < 2) { // HAVE_CURRENT_DATA or higher (more lenient)
+        consecutiveReadyChecks = 0
+        setTimeout(checkVideoReady, 200)
         return
       }
 
-      // Check if HLS is ready (if using HLS)
-      if (hls.value && !hls.value.media) {
-        setTimeout(checkVideoReady, 100)
+      // Check if HLS is ready (if using HLS) - more lenient check
+      if (hls.value && hls.value.media !== video) {
+        consecutiveReadyChecks = 0
+        setTimeout(checkVideoReady, 200)
         return
       }
 
-      // Check if we have valid duration
-      if (!video.duration || video.duration === 0 || isNaN(video.duration)) {
-        setTimeout(checkVideoReady, 100)
+      // Check if we have valid duration (allow for live streams with no duration)
+      if (video.duration && (video.duration === 0 || isNaN(video.duration))) {
+        consecutiveReadyChecks = 0
+        setTimeout(checkVideoReady, 200)
         return
       }
 
       // Check if playback data and stream are ready
       if (!playbackData.value || !selectedStream.value || loading.value) {
-        setTimeout(checkVideoReady, 100)
+        consecutiveReadyChecks = 0
+        setTimeout(checkVideoReady, 200)
         return
       }
 
-      // All conditions met - video is ready
-      console.log('Video is fully ready for task processing')
-      resolve()
+      // Check if there are any current fatal errors
+      if (error.value && error.value.includes('fatal')) {
+        consecutiveReadyChecks = 0
+        setTimeout(checkVideoReady, 200)
+        return
+      }
+
+      // All conditions met - increment consecutive checks
+      consecutiveReadyChecks++
+
+      if (consecutiveReadyChecks >= requiredConsecutiveChecks) {
+        // Video has been stable for required checks - it's ready
+        console.log(`Video is fully ready for task processing (${consecutiveReadyChecks} consecutive checks)`)
+        resolve()
+      } else {
+        // Continue checking for stability
+        setTimeout(checkVideoReady, 200)
+      }
     }
 
     // Start checking
@@ -1866,9 +1888,12 @@ const waitForVideoReady = (): Promise<void> => {
 }
 
 // Initialize task after video is confirmed ready
-const initializeTaskAfterVideoLoad = async (taskId: string) => {
+const initializeTaskAfterVideoLoad = async (taskId: string, retryCount = 0) => {
+  const maxRetries = 3
+  const retryDelay = 2000 // 2 seconds between retries
+
   try {
-    console.log('Initializing task after video load:', taskId)
+    console.log(`Initializing task after video load (attempt ${retryCount + 1}/${maxRetries + 1}):`, taskId)
 
     // Ensure we're on screen recording stream for task mode
     const screenStreamKey = Object.keys(playbackData.value?.streams || {}).find(
@@ -1900,8 +1925,8 @@ const initializeTaskAfterVideoLoad = async (taskId: string) => {
       isSlideExtractionEnabled.value = true
       await toggleSlideExtraction()
 
-      // Wait for slide extraction to be fully initialized
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Wait for slide extraction to be fully initialized with longer timeout
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Verify slide extraction started successfully
       if (!slideExtractorInstance.value || !slideExtractionStatus.value.isRunning) {
@@ -1929,16 +1954,37 @@ const initializeTaskAfterVideoLoad = async (taskId: string) => {
 
     console.log('Task initialized successfully after video load:', taskId)
   } catch (error) {
-    console.error('Task initialization failed after video load:', taskId, error)
+    console.error(`Task initialization failed after video load (attempt ${retryCount + 1}):`, taskId, error)
+
+    // Retry logic for recoverable errors
+    if (retryCount < maxRetries) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+
+      // Check if this is a recoverable error (slide extraction or temporary video issues)
+      const isRecoverableError = errorMessage.includes('Failed to start slide extraction') ||
+                                errorMessage.includes('Failed to start video playback') ||
+                                errorMessage.includes('No screen recording stream available')
+
+      if (isRecoverableError) {
+        console.log(`Retrying task initialization in ${retryDelay}ms (attempt ${retryCount + 2}/${maxRetries + 1})`)
+        await new Promise(resolve => setTimeout(resolve, retryDelay))
+        return initializeTaskAfterVideoLoad(taskId, retryCount + 1)
+      }
+    }
+
+    // Final failure after all retries or non-recoverable error
     const errorMessage = error instanceof Error ? error.message : String(error)
-    handleTaskError('Task initialization failed: ' + errorMessage)
+    handleTaskError(`Task initialization failed after ${retryCount + 1} attempts: ${errorMessage}`)
   }
 }
 
 // Initialize task with improved error handling and video readiness check
-const initializeTask = async (taskId: string) => {
+const initializeTask = async (taskId: string, retryCount = 0) => {
+  const maxRetries = 2
+  const retryDelay = 3000 // 3 seconds between retries
+
   try {
-    console.log('Starting task initialization:', taskId)
+    console.log(`Starting task initialization (attempt ${retryCount + 1}/${maxRetries + 1}):`, taskId)
 
     // First check if basic requirements are met
     if (!playbackData.value || loading.value) {
@@ -1950,9 +1996,24 @@ const initializeTask = async (taskId: string) => {
     // Now initialize the task with the confirmed ready video
     await initializeTaskAfterVideoLoad(taskId)
   } catch (error) {
-    console.error('Task initialization failed:', taskId, error)
+    console.error(`Task initialization failed (attempt ${retryCount + 1}):`, taskId, error)
     const errorMessage = error instanceof Error ? error.message : String(error)
-    TaskQueue.updateTaskStatus(taskId, 'error', 'Task initialization failed: ' + errorMessage)
+
+    // Retry logic for video readiness timeout or recoverable errors
+    if (retryCount < maxRetries) {
+      const isRecoverableError = errorMessage.includes('Video readiness timeout') ||
+                                errorMessage.includes('Failed to start slide extraction') ||
+                                errorMessage.includes('Failed to start video playback')
+
+      if (isRecoverableError) {
+        console.log(`Retrying task initialization in ${retryDelay}ms (attempt ${retryCount + 2}/${maxRetries + 1})`)
+        await new Promise(resolve => setTimeout(resolve, retryDelay))
+        return initializeTask(taskId, retryCount + 1)
+      }
+    }
+
+    // Final failure after all retries or non-recoverable error
+    TaskQueue.updateTaskStatus(taskId, 'error', `Task initialization failed after ${retryCount + 1} attempts: ${errorMessage}`)
   }
 }
 
