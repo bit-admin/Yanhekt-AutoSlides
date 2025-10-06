@@ -1,46 +1,46 @@
 <template>
   <div class="playback-page">
     <div class="header">
-      <button @click="goBack" class="back-btn" :disabled="shouldDisableControls">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15,18 9,12 15,6"/>
-        </svg>
-        Back
-      </button>
-      <div class="title-info">
-        <h2>{{ course?.title || 'Unknown Course' }}</h2>
-        <p v-if="session">{{ session.title }}</p>
-        <p v-if="course?.session?.section_group_title && props.mode === 'live'">{{ course.session.section_group_title }}</p>
-        <div v-if="!isVisible && isPlaying" class="background-mode-indicator">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polygon points="5,3 19,12 5,21"/>
+      <div class="header-main">
+        <button @click="goBack" class="back-btn" :disabled="shouldDisableControls">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15,18 9,12 15,6"/>
           </svg>
-          Playing in background
-        </div>
-
-        <!-- Collapsible Details Section -->
-        <div class="details-toggle">
-          <button @click="showDetails = !showDetails" class="toggle-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showDetails }">
-              <polyline points="6,9 12,15 18,9"/>
+          Back
+        </button>
+        <div class="title-info">
+          <h2>{{ course?.title || 'Unknown Course' }}</h2>
+          <p v-if="session">{{ session.title }}</p>
+          <p v-if="course?.session?.section_group_title && props.mode === 'live'">{{ course.session.section_group_title }}</p>
+          <div v-if="!isVisible && isPlaying" class="background-mode-indicator">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5,3 19,12 5,21"/>
             </svg>
-            {{ showDetails ? 'Hide Details' : 'Show Details' }}
-          </button>
+            Playing in background
+          </div>
         </div>
-
-        <div v-if="showDetails" class="details-section">
-          <div class="detail-item" v-if="course?.instructor">
-            <strong>Instructor:</strong> {{ course.instructor }}
-          </div>
-          <div class="detail-item" v-if="session">
-            <strong>Date:</strong> {{ formatDate(session.started_at) }}
-          </div>
-          <div class="detail-item" v-if="playbackData?.duration">
-            <strong>Duration:</strong> {{ formatDuration(playbackData.duration) }}
-          </div>
-          <div class="detail-item" v-if="currentStreamData">
-            <strong>Current Stream:</strong> {{ currentStreamData.name }} ({{ currentStreamData.type === 'camera' ? 'Camera View' : 'Screen Recording' }})
-          </div>
+        <button @click="toggleCourseDetails" class="expand-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showDetails }">
+            <polyline points="6,9 12,15 18,9"/>
+          </svg>
+        </button>
+      </div>
+      <div v-show="showDetails" class="course-details">
+        <div class="course-detail-item" v-if="course?.instructor">
+          <span class="detail-label">Instructor</span>
+          <span class="detail-value">{{ course.instructor }}</span>
+        </div>
+        <div class="course-detail-item" v-if="session">
+          <span class="detail-label">Date</span>
+          <span class="detail-value">{{ formatDate(session.started_at) }}</span>
+        </div>
+        <div class="course-detail-item" v-if="playbackData?.duration">
+          <span class="detail-label">Duration</span>
+          <span class="detail-value">{{ formatDuration(playbackData.duration) }}</span>
+        </div>
+        <div class="course-detail-item" v-if="currentStreamData">
+          <span class="detail-label">Current Stream</span>
+          <span class="detail-value">{{ currentStreamData.name }} ({{ currentStreamData.type === 'camera' ? 'Camera View' : 'Screen Recording' }})</span>
         </div>
       </div>
     </div>
@@ -431,6 +431,10 @@ const currentStreamData = computed(() => {
 // Methods
 const goBack = () => {
   emit('back')
+}
+
+const toggleCourseDetails = () => {
+  showDetails.value = !showDetails.value
 }
 
 // Helper function to create a serializable copy of an object and fix URL escaping
@@ -2267,10 +2271,18 @@ onUnmounted(async () => {
 }
 
 .header {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.header-main {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 24px;
+  padding: 16px;
 }
 
 .back-btn {
@@ -2296,6 +2308,10 @@ onUnmounted(async () => {
   opacity: 0.5;
   cursor: not-allowed;
   background-color: #f8f9fa;
+}
+
+.title-info {
+  flex: 1;
 }
 
 .title-info h2 {
@@ -2326,6 +2342,61 @@ onUnmounted(async () => {
 
 .background-mode-indicator svg {
   animation: pulse 2s infinite;
+}
+
+.expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.expand-btn:hover {
+  border-color: #007acc;
+  background-color: #f0f8ff;
+}
+
+.expand-btn svg {
+  transition: transform 0.2s;
+}
+
+.expand-btn svg.rotated {
+  transform: rotate(180deg);
+}
+
+.course-details {
+  padding: 16px;
+  border-top: 1px solid #e0e0e0;
+  background-color: white;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.course-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
 }
 
 .content {
@@ -2977,6 +3048,77 @@ onUnmounted(async () => {
 
   .modal-image {
     max-height: 60vh;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .playback-page {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+  }
+
+  .header {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+  }
+
+  .header-main {
+    background-color: #2d2d2d;
+  }
+
+  .back-btn {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    color: #b0b0b0;
+  }
+
+  .back-btn:hover {
+    border-color: #4da6ff;
+    color: #4da6ff;
+  }
+
+  .back-btn:disabled {
+    background-color: #333;
+    border-color: #555;
+    color: #666;
+  }
+
+  .title-info h2 {
+    color: #e0e0e0;
+  }
+
+  .title-info p {
+    color: #b0b0b0;
+  }
+
+  .expand-btn {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    color: #b0b0b0;
+  }
+
+  .expand-btn:hover {
+    border-color: #4da6ff;
+    background-color: #333;
+  }
+
+  .course-details {
+    background-color: #2d2d2d;
+    border-top: 1px solid #404040;
+  }
+
+  .detail-label {
+    color: #b0b0b0;
+  }
+
+  .detail-value {
+    color: #e0e0e0;
+  }
+
+  .background-mode-indicator {
+    background-color: #66cc66;
+    color: #1a1a1a;
   }
 }
 </style>
