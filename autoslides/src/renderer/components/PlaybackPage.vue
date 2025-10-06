@@ -3482,5 +3482,206 @@ onUnmounted(async () => {
     background-color: #333;
     color: #666;
   }
+
+  /* Stream selector dark mode */
+  .stream-selector label {
+    color: #e0e0e0;
+  }
+
+  .stream-selector select {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .stream-selector select:focus {
+    border-color: #4da6ff;
+  }
+
+  .stream-selector select:disabled {
+    background-color: #333;
+    border-color: #555;
+    color: #666;
+  }
+
+  /* Loading and error states dark mode */
+  .loading-state, .error-state, .no-streams {
+    color: #b0b0b0;
+  }
+
+  .error-state svg {
+    color: #ff6b6b;
+  }
+
+  .error-message {
+    color: #e0e0e0;
+  }
+
+  .error-info {
+    background-color: #333;
+    border-left-color: #4da6ff;
+  }
+
+  .playback-position {
+    color: #b0b0b0;
+  }
+
+  .error-suggestion {
+    background-color: #3d3520;
+    border-color: #665c2a;
+  }
+
+  .suggestion-text {
+    color: #d4b942;
+  }
+
+  .retry-btn {
+    background-color: #4da6ff;
+    border-color: #4da6ff;
+    color: #1a1a1a;
+  }
+
+  .retry-btn:hover {
+    background-color: #3399ff;
+    border-color: #3399ff;
+  }
+
+  /* Combined warning dark mode */
+  .combined-warning {
+    background-color: #3d3520;
+    border-color: #665c2a;
+    color: #d4b942;
+  }
+
+  .combined-warning svg {
+    color: #f39c12;
+  }
+
+  /* Video container dark mode */
+  .video-container.collapsed {
+    background-color: #333;
+    border-color: #555;
+  }
+
+  .video-container.collapsed::after {
+    color: #b0b0b0;
+  }
+
+  /* Mute indicator dark mode */
+  .mute-indicator {
+    background-color: rgba(255, 107, 107, 0.9);
+    color: #1a1a1a;
+  }
+
+  /* Retry indicator dark mode */
+  .retry-indicator {
+    background-color: rgba(45, 45, 45, 0.9);
+    color: #e0e0e0;
+  }
+
+  /* Clear all button dark mode */
+  .clear-all-btn {
+    background-color: #ff6b6b;
+    border-color: #ff6b6b;
+  }
+
+  .clear-all-btn:hover {
+    background-color: #ff5252;
+    border-color: #ff5252;
+  }
+
+  /* Slide gallery dark mode */
+  .gallery-grid .slide-thumbnail {
+    background-color: #2d2d2d;
+    border-color: #555;
+  }
+
+  .gallery-grid .slide-thumbnail:hover {
+    border-color: #4da6ff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .thumbnail-overlay {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+  }
+
+  .delete-btn {
+    background-color: rgba(255, 107, 107, 0.8);
+  }
+
+  .delete-btn:hover {
+    background-color: rgba(255, 107, 107, 1);
+  }
+
+  /* Slide modal dark mode */
+  .slide-modal {
+    background-color: rgba(0, 0, 0, 0.9);
+  }
+
+  .modal-content {
+    background-color: #2d2d2d;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-header {
+    background-color: #333;
+    border-bottom-color: #555;
+  }
+
+  .modal-header h3 {
+    color: #e0e0e0;
+  }
+
+  .modal-delete-btn {
+    background-color: #ff6b6b;
+    border-color: #ff6b6b;
+  }
+
+  .modal-delete-btn:hover {
+    background-color: #ff5252;
+    border-color: #ff5252;
+  }
+
+  .modal-close-btn {
+    background-color: #666;
+    border-color: #666;
+  }
+
+  .modal-close-btn:hover {
+    background-color: #777;
+    border-color: #777;
+  }
+
+  .modal-body {
+    background-color: #2d2d2d;
+  }
+
+  .modal-image {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .slide-metadata {
+    background-color: #333;
+    border-color: #555;
+  }
+
+  .slide-metadata p {
+    color: #b0b0b0;
+  }
+
+  .slide-metadata strong {
+    color: #e0e0e0;
+  }
+
+  /* Spinner dark mode */
+  .spinner {
+    border-color: #555;
+    border-top-color: #4da6ff;
+  }
+
+  .retry-spinner {
+    border-color: rgba(224, 224, 224, 0.3);
+    border-top-color: #e0e0e0;
+  }
 }
 </style>
