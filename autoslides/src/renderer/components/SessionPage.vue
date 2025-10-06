@@ -205,7 +205,7 @@ const toggleCourseDetails = () => {
 
 const selectSession = (session: Session) => {
   // Store session data for playback
-  DataStore.setSessionData(session.session_id, session)
+  DataStore.setSessionData(session.session_id.toString(), session)
   emit('sessionSelected', session)
 }
 
@@ -277,13 +277,13 @@ const formatDate = (dateString: string): string => {
 // Task functions
 const addToQueue = (session: Session) => {
   // Store session data for task processing
-  DataStore.setSessionData(session.session_id, session)
+  DataStore.setSessionData(session.session_id.toString(), session)
 
   const added = TaskQueue.addToQueue({
     name: `slides_${props.course?.title}_${session.title}`,
     courseTitle: props.course?.title || $t('sessions.unknownCourse'),
     sessionTitle: session.title,
-    sessionId: session.session_id,
+    sessionId: session.session_id.toString(),
     courseId: props.course?.id || 'unknown'
   })
 
@@ -297,13 +297,13 @@ const addToQueue = (session: Session) => {
 
 const downloadCamera = (session: Session) => {
   // Store session data for download service to access
-  DataStore.setSessionData(session.session_id, session)
+  DataStore.setSessionData(session.session_id.toString(), session)
 
   const added = DownloadService.addToQueue({
     name: `camera_${props.course?.title}_${session.title}`,
     courseTitle: props.course?.title || $t('sessions.unknownCourse'),
     sessionTitle: session.title,
-    sessionId: session.session_id,
+    sessionId: session.session_id.toString(),
     videoType: 'camera'
   })
 
@@ -317,13 +317,13 @@ const downloadCamera = (session: Session) => {
 
 const downloadScreen = (session: Session) => {
   // Store session data for download service to access
-  DataStore.setSessionData(session.session_id, session)
+  DataStore.setSessionData(session.session_id.toString(), session)
 
   const added = DownloadService.addToQueue({
     name: `screen_${props.course?.title}_${session.title}`,
     courseTitle: props.course?.title || $t('sessions.unknownCourse'),
     sessionTitle: session.title,
-    sessionId: session.session_id,
+    sessionId: session.session_id.toString(),
     videoType: 'screen'
   })
 
@@ -339,13 +339,13 @@ const addAllToQueue = () => {
   let addedCount = 0
   sessions.value.forEach(session => {
     // Store session data for task processing
-    DataStore.setSessionData(session.session_id, session)
+    DataStore.setSessionData(session.session_id.toString(), session)
 
     const added = TaskQueue.addToQueue({
       name: `slides_${props.course?.title}_${session.title}`,
       courseTitle: props.course?.title || $t('sessions.unknownCourse'),
       sessionTitle: session.title,
-      sessionId: session.session_id,
+      sessionId: session.session_id.toString(),
       courseId: props.course?.id || 'unknown'
     })
     if (added) addedCount++
@@ -363,13 +363,13 @@ const downloadAllCamera = () => {
   let addedCount = 0
   sessions.value.forEach(session => {
     // Store session data for download service to access
-    DataStore.setSessionData(session.session_id, session)
+    DataStore.setSessionData(session.session_id.toString(), session)
 
     const added = DownloadService.addToQueue({
       name: `camera_${props.course?.title}_${session.title}`,
       courseTitle: props.course?.title || $t('sessions.unknownCourse'),
       sessionTitle: session.title,
-      sessionId: session.session_id,
+      sessionId: session.session_id.toString(),
       videoType: 'camera'
     })
     if (added) addedCount++
@@ -387,13 +387,13 @@ const downloadAllScreen = () => {
   let addedCount = 0
   sessions.value.forEach(session => {
     // Store session data for download service to access
-    DataStore.setSessionData(session.session_id, session)
+    DataStore.setSessionData(session.session_id.toString(), session)
 
     const added = DownloadService.addToQueue({
       name: `screen_${props.course?.title}_${session.title}`,
       courseTitle: props.course?.title || $t('sessions.unknownCourse'),
       sessionTitle: session.title,
-      sessionId: session.session_id,
+      sessionId: session.session_id.toString(),
       videoType: 'screen'
     })
     if (added) addedCount++
