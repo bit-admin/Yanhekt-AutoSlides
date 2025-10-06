@@ -28,7 +28,7 @@ export class LanguageService {
   }
 
   private async applyLanguageMode(mode: LanguageMode): Promise<void> {
-    let actualLocale: 'en' | 'zh'
+    let actualLocale: 'en' | 'zh' | 'ja' | 'ko'
 
     switch (mode) {
       case 'system':
@@ -40,6 +40,12 @@ export class LanguageService {
       case 'zh':
         actualLocale = 'zh'
         break
+      case 'ja':
+        actualLocale = 'ja'
+        break
+      case 'ko':
+        actualLocale = 'ko'
+        break
       default:
         actualLocale = 'en'
     }
@@ -49,11 +55,14 @@ export class LanguageService {
   }
 
   // Get the effective language (what's actually being used)
-  getEffectiveLanguage(): 'en' | 'zh' {
+  getEffectiveLanguage(): 'en' | 'zh' | 'ja' | 'ko' {
     if (this.currentLanguageMode === 'system') {
       return detectSystemLanguage()
     }
-    return this.currentLanguageMode === 'zh' ? 'zh' : 'en'
+    return this.currentLanguageMode === 'en' ? 'en' :
+           this.currentLanguageMode === 'zh' ? 'zh' :
+           this.currentLanguageMode === 'ja' ? 'ja' :
+           this.currentLanguageMode === 'ko' ? 'ko' : 'en'
   }
 }
 

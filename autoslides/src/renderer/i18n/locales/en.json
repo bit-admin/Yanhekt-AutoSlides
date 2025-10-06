@@ -38,6 +38,8 @@
     "language": "Language",
     "english": "English",
     "chinese": "中文",
+    "japanese": "日本語",
+    "korean": "한국어",
     "slideDetectionInterval": "Slide Detection Interval",
     "slideDetectionDescription": "The interval will be automatically adjusted based on playback speed (default: 2000ms).",
     "milliseconds": "milliseconds",

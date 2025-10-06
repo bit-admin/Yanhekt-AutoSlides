@@ -38,6 +38,8 @@
     "language": "语言",
     "english": "English",
     "chinese": "中文",
+    "japanese": "日本語",
+    "korean": "한국어",
     "slideDetectionInterval": "幻灯片检测间隔",
     "slideDetectionDescription": "间隔时间会根据播放速度自动调整（默认：2000毫秒）",
     "milliseconds": "毫秒",

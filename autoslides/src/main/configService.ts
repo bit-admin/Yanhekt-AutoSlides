@@ -15,7 +15,7 @@ export interface SlideExtractionConfig {
   ssimThreshold: number;           // SSIM similarity threshold
 }
 
-export type LanguageMode = 'system' | 'en' | 'zh';
+export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
 
 export interface AppConfig {
   outputDirectory: string;

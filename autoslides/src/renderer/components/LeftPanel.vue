@@ -110,6 +110,8 @@
                   <option value="system">{{ $t('settings.followSystem') }}</option>
                   <option value="en">{{ $t('settings.english') }}</option>
                   <option value="zh">{{ $t('settings.chinese') }}</option>
+                  <option value="ja">日本語</option>
+                  <option value="ko">한국어</option>
                 </select>
               </div>
             </div>
@@ -313,7 +315,7 @@ const userId = ref('user123')
 const connectionMode = ref<'internal' | 'external'>('external')
 const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
 const themeMode = ref<'system' | 'light' | 'dark'>('system')
-const languageMode = ref<'system' | 'en' | 'zh'>('system')
+const languageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
 
 const taskStatus = computed(() => {
   const stats = taskQueueState.value
