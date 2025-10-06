@@ -77,38 +77,18 @@
       <div v-else-if="playbackData" class="video-content" :data-playback-mode="props.mode">
         <!-- Stream Selection and Playback Controls -->
         <div class="controls-row">
-          <div v-if="Object.keys(playbackData.streams).length > 1 && !isSlideExtractionEnabled" class="stream-selector">
-            <label>Select Stream:</label>
-            <select v-model="selectedStream" @change="switchStream" :disabled="shouldDisableControls">
+          <div v-if="Object.keys(playbackData.streams).length > 1" class="stream-selector">
+            <label>Select Stream</label>
+            <select v-model="selectedStream" @change="switchStream" :disabled="shouldDisableControls || isSlideExtractionEnabled">
               <option v-for="(stream, key) in playbackData.streams" :key="key" :value="key">
                 {{ stream.name }}
               </option>
             </select>
           </div>
 
-          <!-- Slide Extraction Controls (only for screen recording) -->
-          <div v-if="isScreenRecordingSelected" class="slide-extraction-control">
-            <label class="extraction-toggle">
-              <input
-                type="checkbox"
-                v-model="isSlideExtractionEnabled"
-                @change="toggleSlideExtraction"
-                :disabled="shouldDisableControls"
-              />
-              <span class="toggle-text">Extract Slides</span>
-            </label>
-            <div v-if="isSlideExtractionEnabled" class="extraction-status">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
-              </svg>
-              <span>{{ slideExtractionStatus.slideCount }} slides extracted</span>
-            </div>
-          </div>
-
           <!-- Custom Playback Rate Control (only for recorded videos) -->
           <div v-if="props.mode === 'recorded'" class="playback-rate-control">
-            <label>Playback speed:</label>
+            <label>Playback speed</label>
             <select v-model="currentPlaybackRate" @change="changePlaybackRate" :disabled="shouldDisableControls">
               <option value="1">1x</option>
               <option value="2">2x</option>
@@ -124,24 +104,21 @@
           </div>
         </div>
 
-        <!-- Task Running Warning -->
-        <div v-if="isTaskRunning" class="task-warning">
+        <!-- Combined Warning Messages -->
+        <div v-if="isTaskRunning || (props.mode === 'recorded' && showSpeedWarning)" class="combined-warning">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
             <path d="M12 9v4"/>
             <path d="m12 17 .01 0"/>
           </svg>
-          Task in progress. Controls are disabled. If you exit, the task queue will be paused and current task progress will be lost. To adjust settings, please manually pause the task list.
-        </div>
-
-        <!-- Playback Speed Warning for External Network -->
-        <div v-if="props.mode === 'recorded' && showSpeedWarning" class="speed-warning">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-            <path d="M12 9v4"/>
-            <path d="m12 17 .01 0"/>
-          </svg>
-          High-speed playback may cause buffering issues. Consider switching to internal network mode for optimal performance at higher speeds.
+          <div class="warning-messages">
+            <div v-if="isTaskRunning" class="warning-message">
+              Task in progress. Controls are disabled. If you exit, the task queue will be paused and current task progress will be lost. To adjust settings, please manually pause the task list.
+            </div>
+            <div v-if="props.mode === 'recorded' && showSpeedWarning" class="warning-message">
+              High-speed playback may cause buffering issues. Consider switching to internal network mode for optimal performance at higher speeds.
+            </div>
+          </div>
         </div>
 
         <!-- Video Player -->
@@ -176,20 +153,55 @@
         </div>
 
         <!-- Slide Gallery -->
-        <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0" class="slide-gallery">
+        <div v-if="isScreenRecordingSelected" class="slide-gallery">
           <div class="gallery-header">
-            <h3>Extracted Slides ({{ extractedSlides.length }})</h3>
-            <button @click="clearAllSlides" class="clear-all-btn" title="Move all slides to trash">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3,6 5,6 21,6"/>
-                <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
-              </svg>
-              Move All to Trash
-            </button>
+            <!-- Slide Extraction Controls -->
+            <div class="slide-extraction-control">
+              <div class="extraction-main">
+                <label class="extraction-toggle">
+                  <input
+                    type="checkbox"
+                    v-model="isSlideExtractionEnabled"
+                    @change="toggleSlideExtraction"
+                    :disabled="shouldDisableControls"
+                  />
+                  <span class="toggle-slider"></span>
+                  <span class="toggle-text">Slide Extraction</span>
+                </label>
+
+                <div class="slide-counter">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <circle cx="9" cy="9" r="2"/>
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  </svg>
+                  <span class="counter-text">
+                    {{ isSlideExtractionEnabled ? extractedSlides.length : 0 }} slides
+                    <span v-if="isSlideExtractionEnabled" class="counter-status">extracted</span>
+                  </span>
+                </div>
+              </div>
+
+              <!-- Clear All Button (only show when slides exist) -->
+              <button
+                v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
+                @click="clearAllSlides"
+                class="clear-all-btn"
+                title="Move all slides to trash"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3,6 5,6 21,6"/>
+                  <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+                  <line x1="10" y1="11" x2="10" y2="17"/>
+                  <line x1="14" y1="11" x2="14" y2="17"/>
+                </svg>
+                Clear All
+              </button>
+            </div>
           </div>
-          <div class="gallery-grid">
+
+          <!-- Gallery Grid (only show when slides exist) -->
+          <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0" class="gallery-grid">
             <div
               v-for="slide in extractedSlides"
               :key="slide.id"
@@ -1472,11 +1484,11 @@ const deleteSlide = async (slide: ExtractedSlide) => {
     const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
       type: 'question',
       buttons: ['Cancel', 'Move to Trash'],
-      defaultId: 0,
+      defaultId: 1,
       cancelId: 0,
-      title: 'Move Slide to Trash',
-      message: `Are you sure you want to move "${slide.title}.png" to trash?`,
-      detail: 'The file will be moved to your system trash and can be recovered if needed.'
+      title: 'Delete Slide',
+      message: `Are you sure you want to delete "${slide.title}.png"?`,
+      detail: 'The file will be moved to your system trash and can be restored if needed.'
     })
 
     if (confirmed?.response !== 1) {
@@ -1522,11 +1534,11 @@ const clearAllSlides = async () => {
     const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
       type: 'question',
       buttons: ['Cancel', 'Move All to Trash'],
-      defaultId: 0,
+      defaultId: 1,
       cancelId: 0,
-      title: 'Move All Slides to Trash',
-      message: `Are you sure you want to move all ${extractedSlides.value.length} slides to trash?`,
-      detail: 'All slide files will be moved to your system trash and can be recovered if needed.'
+      title: 'Delete All Slides',
+      message: `Are you sure you want to delete all ${extractedSlides.value.length} slides?`,
+      detail: 'All slide files will be moved to your system trash and can be restored if needed.'
     })
 
     if (confirmed?.response !== 1) {
@@ -2403,6 +2415,8 @@ onUnmounted(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 /* Loading and Error States */
@@ -2681,10 +2695,10 @@ onUnmounted(async () => {
   color: #333;
 }
 
-/* Task warning */
-.task-warning {
+/* Combined warning */
+.combined-warning {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   padding: 12px 16px;
   margin: 12px 0;
@@ -2696,54 +2710,91 @@ onUnmounted(async () => {
   line-height: 1.4;
 }
 
-.task-warning svg {
+.combined-warning svg {
   flex-shrink: 0;
   color: #f39c12;
+  margin-top: 2px;
 }
 
-/* Speed warning */
-.speed-warning {
+.warning-messages {
+  flex: 1;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
-  padding: 12px 16px;
-  margin: 12px 0;
-  background-color: #fff3cd;
-  border: 1px solid #ffeaa7;
-  border-radius: 6px;
-  color: #856404;
-  font-size: 14px;
-  line-height: 1.4;
 }
 
-.speed-warning svg {
-  flex-shrink: 0;
-  color: #f39c12;
+.warning-message {
+  margin: 0;
 }
 
 /* Slide extraction controls */
 .slide-extraction-control {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
 }
 
+.extraction-main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Beautiful custom toggle switch */
 .extraction-toggle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   cursor: pointer;
   font-weight: 500;
   color: #333;
+  user-select: none;
 }
 
 .extraction-toggle input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+  background-color: #ccc;
+  border-radius: 24px;
+  transition: all 0.3s ease;
   cursor: pointer;
 }
 
-.extraction-toggle input[type="checkbox"]:disabled {
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.extraction-toggle input:checked + .toggle-slider {
+  background-color: #007acc;
+}
+
+.extraction-toggle input:checked + .toggle-slider::before {
+  transform: translateX(24px);
+}
+
+.extraction-toggle input:disabled + .toggle-slider {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -2754,26 +2805,40 @@ onUnmounted(async () => {
 }
 
 .toggle-text {
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   user-select: none;
 }
 
-.extraction-status {
+/* Slide counter */
+.slide-counter {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background-color: #d4edda;
-  border: 1px solid #c3e6cb;
-  border-radius: 4px;
-  color: #155724;
-  font-size: 12px;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 6px;
+  color: #1565c0;
+  font-size: 14px;
   font-weight: 500;
 }
 
-.extraction-status svg {
+.slide-counter svg {
   flex-shrink: 0;
-  color: #28a745;
+  color: #1976d2;
+}
+
+.counter-text {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.counter-status {
+  color: #1565c0;
+  font-weight: 400;
+  opacity: 0.8;
 }
 
 /* Slide Gallery */
@@ -2786,17 +2851,7 @@ onUnmounted(async () => {
 }
 
 .gallery-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 16px;
-}
-
-.gallery-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
 }
 
 .clear-all-btn {
@@ -3051,6 +3106,41 @@ onUnmounted(async () => {
   }
 }
 
+/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
+.content {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.content:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.content::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.content::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  border: none;
+  transition: background 0.3s ease;
+}
+
+.content:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .playback-page {
@@ -3119,6 +3209,68 @@ onUnmounted(async () => {
   .background-mode-indicator {
     background-color: #66cc66;
     color: #1a1a1a;
+  }
+
+  /* Slide extraction controls dark mode */
+  .slide-extraction-control {
+    background-color: #333;
+    border-color: #555;
+  }
+
+  .extraction-toggle {
+    color: #e0e0e0;
+  }
+
+  .toggle-slider {
+    background-color: #555;
+  }
+
+  .extraction-toggle input:checked + .toggle-slider {
+    background-color: #4da6ff;
+  }
+
+  .slide-counter {
+    background-color: #1a2332;
+    border-color: #2d4a66;
+    color: #4da6ff;
+  }
+
+  .slide-counter svg {
+    color: #66b3ff;
+  }
+
+  .counter-status {
+    color: #4da6ff;
+  }
+
+  .slide-gallery {
+    background-color: #333;
+    border-color: #555;
+  }
+
+  /* Scrollbar styles for dark mode */
+  .content {
+    scrollbar-color: transparent transparent;
+  }
+
+  .content:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+
+  .content::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .content::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
+  .content:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
   }
 }
 </style>
