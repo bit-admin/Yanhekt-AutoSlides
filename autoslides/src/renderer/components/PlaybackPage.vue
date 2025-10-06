@@ -120,10 +120,26 @@
               <option value="10">10x</option>
             </select>
           </div>
+
+          <!-- Picture in Picture Toggle -->
+          <div class="pip-control">
+            <button
+              class="pip-button"
+              @click="togglePictureInPicture"
+              :disabled="shouldDisableControls || !videoPlayer"
+              :title="isPictureInPicture ? 'Exit Picture in Picture' : 'Enter Picture in Picture'"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-top: 1px;">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <rect x="14" y="12" width="6" height="4" rx="1" fill="currentColor"/>
+              </svg>
+              <span>{{ isPictureInPicture ? 'Exit PiP' : 'Pic-in-Pic' }}</span>
+            </button>
+          </div>
         </div>
 
         <!-- Video Player -->
-        <div class="video-container">
+        <div class="video-container" :class="{ 'collapsed': isVideoContainerCollapsed }">
           <video
             ref="videoPlayer"
             class="video-player"
@@ -135,6 +151,8 @@
             @error="onVideoError"
             @canplay="onCanPlay"
             @volumechange="preventUnmute"
+            @enterpictureinpicture="onEnterPictureInPicture"
+            @leavepictureinpicture="onLeavePictureInPicture"
           >
             Your browser does not support the video tag.
           </video>
@@ -400,6 +418,10 @@ const currentTaskId = ref<string | null>(null)
 const isTaskMode = ref(false)
 const taskSpeed = ref(10) // Default task speed
 
+// Picture in Picture state
+const isPictureInPicture = ref(false)
+const isVideoContainerCollapsed = ref(false)
+
 // Computed property to determine if video should be muted based on mode and mute setting
 const shouldVideoMute = computed(() => {
   switch (muteMode.value) {
@@ -448,6 +470,33 @@ const goBack = () => {
 
 const toggleCourseDetails = () => {
   showDetails.value = !showDetails.value
+}
+
+// Picture in Picture methods
+const togglePictureInPicture = async () => {
+  if (!videoPlayer.value) return
+
+  try {
+    if (isPictureInPicture.value) {
+      // Exit PiP mode
+      await document.exitPictureInPicture()
+    } else {
+      // Enter PiP mode
+      await videoPlayer.value.requestPictureInPicture()
+    }
+  } catch (error) {
+    console.error('Picture in Picture error:', error)
+  }
+}
+
+const onEnterPictureInPicture = () => {
+  isPictureInPicture.value = true
+  isVideoContainerCollapsed.value = true
+}
+
+const onLeavePictureInPicture = () => {
+  isPictureInPicture.value = false
+  isVideoContainerCollapsed.value = false
 }
 
 // Helper function to create a serializable copy of an object and fix URL escaping
@@ -1538,7 +1587,7 @@ const clearAllSlides = async () => {
       defaultId: 1,
       cancelId: 0,
       title: 'Delete All Slides',
-      message: `Are you sure you want to delete all ${extractedSlides.value.length} slides?`,
+      message: `Are you sure you want to delete all ${extractedSlides.value.length} slide(s)?`,
       detail: 'All slide files will be moved to your system trash and can be restored if needed.'
     })
 
@@ -2257,6 +2306,15 @@ onUnmounted(async () => {
   window.removeEventListener('taskPause', onTaskPause as EventListener)
   window.removeEventListener('taskResume', onTaskResume as EventListener)
 
+  // Clean up Picture in Picture if active
+  if (isPictureInPicture.value && document.pictureInPictureElement) {
+    try {
+      await document.exitPictureInPicture()
+    } catch (error) {
+      console.error('Error exiting Picture in Picture on unmount:', error)
+    }
+  }
+
   // Clean up HLS
   cleanup()
 
@@ -2581,6 +2639,32 @@ onUnmounted(async () => {
   border-top: none;
   border-radius: 0;
   overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.video-container.collapsed {
+  height: 60px;
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-container.collapsed .video-player {
+  display: none;
+}
+
+.video-container.collapsed .mute-indicator,
+.video-container.collapsed .retry-indicator {
+  display: none;
+}
+
+.video-container.collapsed::after {
+  content: "Video playing in Picture in Picture mode";
+  color: #6c757d;
+  font-size: 14px;
+  font-style: italic;
 }
 
 .mute-indicator {
@@ -2665,6 +2749,41 @@ onUnmounted(async () => {
   opacity: 0.5;
   cursor: not-allowed;
   background-color: #f8f9fa;
+}
+
+/* Picture in Picture Control */
+.pip-control {
+  display: flex;
+  align-items: center;
+}
+
+.pip-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pip-button:hover:not(:disabled) {
+  background-color: #f8f9fa;
+  border-color: #007acc;
+}
+
+.pip-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+}
+
+.pip-button svg {
+  flex-shrink: 0;
 }
 
 .video-player {
@@ -3325,6 +3444,43 @@ onUnmounted(async () => {
 
   .content::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3) !important;
+  }
+
+  /* Picture in Picture Control Dark Mode */
+  .pip-button {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .pip-button:hover:not(:disabled) {
+    background-color: #333;
+    border-color: #4da6ff;
+  }
+
+  .pip-button:disabled {
+    background-color: #333;
+    border-color: #555;
+    color: #666;
+  }
+
+  .playback-rate-control label {
+    color: #e0e0e0;
+  }
+
+  .playback-rate-control select {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .playback-rate-control select:focus {
+    border-color: #4da6ff;
+  }
+
+  .playback-rate-control select:disabled {
+    background-color: #333;
+    color: #666;
   }
 }
 </style>
