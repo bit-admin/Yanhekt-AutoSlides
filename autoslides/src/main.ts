@@ -10,6 +10,34 @@ import { FFmpegService } from './main/ffmpegService';
 import { M3u8DownloadService } from './main/m3u8DownloadService';
 import { slideExtractionService } from './main/slideExtractionService';
 
+// Import translation files for main process
+import enTranslations from './renderer/i18n/locales/en.json';
+import zhTranslations from './renderer/i18n/locales/zh.json';
+
+// Translation function for main process
+const getTranslation = (key: string): string => {
+  const languageMode = configService.getLanguageMode();
+  let locale: 'en' | 'zh' = 'en';
+
+  if (languageMode === 'zh') {
+    locale = 'zh';
+  } else if (languageMode === 'system') {
+    // Detect system language
+    const systemLang = app.getLocale();
+    locale = systemLang.startsWith('zh') ? 'zh' : 'en';
+  }
+
+  const translations = locale === 'zh' ? zhTranslations : enTranslations;
+  const keys = key.split('.');
+  let result: any = translations;
+
+  for (const k of keys) {
+    result = result?.[k];
+  }
+
+  return result || key;
+};
+
 // Declare Vite dev server variables that are injected during build
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
@@ -22,13 +50,21 @@ if (started) {
 // Set app name
 app.setName('AutoSlides');
 
+// Function to update the application menu
+const updateApplicationMenu = () => {
+  if (process.platform === 'darwin') {
+    const menu = Menu.buildFromTemplate(createMenuTemplate());
+    Menu.setApplicationMenu(menu);
+  }
+};
+
 // Create macOS menu template
 const createMenuTemplate = () => {
   const template: Electron.MenuItemConstructorOptions[] = [
     { label: app.name, submenu: [
       { role: 'about' },
       {
-        label: 'Terms and Conditions',
+        label: 'Legal Notices',
         click: () => {
           // In development, use the source directory; in production, use the app directory
           const termsPath = app.isPackaged
@@ -51,11 +87,11 @@ const createMenuTemplate = () => {
     { label: 'View', submenu: [{ role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
     { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'close' }, { type: 'separator' }, { role: 'front' }] },
     { label: 'Help', role: 'help', submenu: [
-      { label: 'Visit GitHub Repository', click: () => { shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides'); } },
-      { label: 'IT Center Software List', click: () => { shell.openExternal('https://it.ruc.edu.kg/zh/software'); } },
+      { label: getTranslation('titlebar.visitGitHub'), click: () => { shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides'); } },
+      { label: getTranslation('titlebar.itCenterSoftware'), click: () => { shell.openExternal('https://it.ruc.edu.kg/zh/software'); } },
       { type: 'separator' },
-      { label: 'Web Version', click: () => { shell.openExternal('https://learn.ruc.edu.kg'); } },
-      { label: 'SSIM Test', click: () => { shell.openExternal('https://learn.ruc.edu.kg/test'); } }
+      { label: getTranslation('titlebar.webVersion'), click: () => { shell.openExternal('https://learn.ruc.edu.kg'); } },
+      { label: getTranslation('titlebar.ssimTest'), click: () => { shell.openExternal('https://learn.ruc.edu.kg/test'); } }
     ] }
   ];
   return template;
@@ -98,8 +134,7 @@ const createWindow = () => {
 app.on('ready', () => {
   // Set up the menu only on macOS, disable on other platforms
   if (process.platform === 'darwin') {
-    const menu = Menu.buildFromTemplate(createMenuTemplate());
-    Menu.setApplicationMenu(menu);
+    updateApplicationMenu();
   } else {
     // Disable native menu on non-macOS platforms
     Menu.setApplicationMenu(null);
@@ -205,6 +240,8 @@ ipcMain.handle('config:getEffectiveTheme', async () => {
 // IPC handlers for language configuration
 ipcMain.handle('config:setLanguageMode', async (event, language: 'system' | 'en' | 'zh') => {
   configService.setLanguageMode(language);
+  // Update the application menu with new language
+  updateApplicationMenu();
   return configService.getConfig();
 });
 
