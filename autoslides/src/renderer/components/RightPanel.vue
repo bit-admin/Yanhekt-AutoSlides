@@ -988,4 +988,66 @@ defineExpose({
     color: #e0e0e0;
   }
 }
+
+/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
+.tab-container {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.tab-container:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.tab-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tab-container::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.tab-container::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  border: none;
+  transition: background 0.3s ease;
+}
+
+.tab-container:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.tab-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Dark mode scrollbar styles */
+@media (prefers-color-scheme: dark) {
+  .tab-container {
+    scrollbar-color: transparent transparent;
+  }
+
+  .tab-container:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+
+  .tab-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .tab-container::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
+  .tab-container:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .tab-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+  }
+}
 </style>

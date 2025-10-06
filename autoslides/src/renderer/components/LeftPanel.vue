@@ -135,7 +135,6 @@
               Enable Checks
             </label>
             <div class="verification-count-control" v-if="slideDoubleVerification">
-              <span class="count-label">Count:</span>
               <select
                 v-model="slideVerificationCount"
                 @change="setSlideDoubleVerification"
@@ -143,6 +142,7 @@
               >
                 <option v-for="i in 5" :key="i" :value="i">{{ i }}</option>
               </select>
+              <span class="count-label">Count(s)</span>
             </div>
           </div>
         </div>
@@ -1522,11 +1522,11 @@ const loadManualToken = () => {
   }
 
   .login-btn {
-    background-color: #4a9eff;
+    background-color: #2563eb;
   }
 
   .login-btn:hover:not(:disabled) {
-    background-color: #3a8eef;
+    background-color: #1d4ed8;
   }
 
   .login-btn:disabled {

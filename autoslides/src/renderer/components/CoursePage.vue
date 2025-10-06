@@ -221,10 +221,6 @@ const searchCourses = async () => {
   try {
     if (props.mode === 'live') {
       const keyword = searchQuery.value.trim()
-      if (!keyword) {
-        errorMessage.value = 'Please enter a search keyword'
-        return
-      }
 
       const response: LiveListResponse = await apiClient.searchLiveList(token, keyword, currentPage.value, coursesPerPage)
       courses.value = response.data.map(transformLiveStreamToCourse)
