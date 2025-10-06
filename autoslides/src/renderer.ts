@@ -29,6 +29,8 @@
 import './index.css';
 import { createApp } from 'vue';
 import App from './App.vue';
+import { i18n } from './renderer/i18n';
 
 const app = createApp(App);
+app.use(i18n);
 app.mount('#app');

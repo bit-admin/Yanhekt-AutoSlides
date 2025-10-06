@@ -202,6 +202,16 @@ ipcMain.handle('config:getEffectiveTheme', async () => {
   return configService.getEffectiveTheme();
 });
 
+// IPC handlers for language configuration
+ipcMain.handle('config:setLanguageMode', async (event, language: 'system' | 'en' | 'zh') => {
+  configService.setLanguageMode(language);
+  return configService.getConfig();
+});
+
+ipcMain.handle('config:getLanguageMode', async () => {
+  return configService.getLanguageMode();
+});
+
 // IPC handlers for slide extraction configuration
 ipcMain.handle('config:getSlideExtractionConfig', async () => {
   return configService.getSlideExtractionConfig();

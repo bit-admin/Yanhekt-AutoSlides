@@ -21,6 +21,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getThemeMode: () => ipcRenderer.invoke('config:getThemeMode'),
     isDarkMode: () => ipcRenderer.invoke('config:isDarkMode'),
     getEffectiveTheme: () => ipcRenderer.invoke('config:getEffectiveTheme'),
+    // Language configuration
+    setLanguageMode: (language: 'system' | 'en' | 'zh') => ipcRenderer.invoke('config:setLanguageMode', language),
+    getLanguageMode: () => ipcRenderer.invoke('config:getLanguageMode'),
     // Slide extraction configuration
     getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),
     setSlideCheckInterval: (interval: number) => ipcRenderer.invoke('config:setSlideCheckInterval', interval),

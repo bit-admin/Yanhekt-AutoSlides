@@ -9,7 +9,7 @@
           <path d="M9 11l3 3 8-8"/>
           <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
         </svg>
-        Task
+        {{ $t('navigation.task') }}
       </button>
       <button
         :class="['nav-btn', { active: currentTab === 'download' }]"
@@ -20,7 +20,7 @@
           <polyline points="7,10 12,15 17,10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
-        Download
+        {{ $t('navigation.download') }}
       </button>
     </div>
 
@@ -32,7 +32,7 @@
       >
         <div class="task-content">
           <div class="section-header">
-            <h3>Task List</h3>
+            <h3>{{ $t('tasks.taskList') }}</h3>
             <div class="queue-controls">
               <button
                 @click="toggleTaskQueue"
@@ -47,14 +47,14 @@
                 <svg v-else width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polygon points="5,3 19,12 5,21"/>
                 </svg>
-                {{ taskStats.isProcessing ? 'Pause' : 'Start' }}
+                {{ taskStats.isProcessing ? $t('tasks.pause') : $t('tasks.start') }}
               </button>
               <button @click="clearCompletedTasks" class="control-btn clear-btn" title="Clear Completed">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3,6 5,6 21,6"/>
                   <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"/>
                 </svg>
-                Clear
+                {{ $t('tasks.clear') }}
               </button>
             </div>
           </div>
@@ -96,10 +96,10 @@
                     <div class="progress-fill" :style="{ width: `${item.progress}%` }"></div>
                   </div>
                   <div class="progress-text">
-                    <span v-if="item.status === 'queued'">Queued</span>
-                    <span v-else-if="item.status === 'in_progress'">Processing {{ item.progress }}%</span>
-                    <span v-else-if="item.status === 'completed'">Completed</span>
-                    <span v-else-if="item.status === 'error'">{{ item.error || 'Error' }}</span>
+                    <span v-if="item.status === 'queued'">{{ $t('tasks.queued') }}</span>
+                    <span v-else-if="item.status === 'in_progress'">{{ $t('tasks.processing') }} {{ item.progress }}%</span>
+                    <span v-else-if="item.status === 'completed'">{{ $t('tasks.completed') }}</span>
+                    <span v-else-if="item.status === 'error'">{{ item.error || $t('tasks.error') }}</span>
                   </div>
                 </div>
               </div>
@@ -127,8 +127,8 @@
                 <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
               </svg>
             </div>
-            <p>No slide extraction tasks in queue</p>
-            <p>Add recorded sessions to queue to automatically extract slides</p>
+            <p>{{ $t('tasks.noTasks') }}</p>
+            <p>{{ $t('tasks.noTasksDescription') }}</p>
           </div>
         </div>
       </div>
@@ -140,21 +140,21 @@
       >
         <div class="download-content">
           <div class="section-header">
-            <h3>Download List</h3>
+            <h3>{{ $t('downloads.downloadList') }}</h3>
             <div class="queue-controls">
               <button @click="cancelAllDownloads" class="control-btn cancel-all-btn" title="Cancel All">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="18" y1="6" x2="6" y2="18"/>
                   <line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
-                Cancel All
+                {{ $t('downloads.cancelAll') }}
               </button>
               <button @click="clearCompleted" class="control-btn clear-btn" title="Clear Completed">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3,6 5,6 21,6"/>
                   <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"/>
                 </svg>
-                Clear
+                {{ $t('downloads.clear') }}
               </button>
             </div>
           </div>
@@ -201,11 +201,11 @@
                     <div class="progress-fill" :style="{ width: `${item.progress}%` }"></div>
                   </div>
                   <div class="progress-text">
-                    <span v-if="item.status === 'queued'">Queued</span>
-                    <span v-else-if="item.status === 'downloading'">Downloading {{ item.progress }}%</span>
-                    <span v-else-if="item.status === 'processing'">Processing {{ item.progress }}%</span>
-                    <span v-else-if="item.status === 'completed'">Completed</span>
-                    <span v-else-if="item.status === 'error'">{{ item.error || 'Error' }}</span>
+                    <span v-if="item.status === 'queued'">{{ $t('downloads.queued') }}</span>
+                    <span v-else-if="item.status === 'downloading'">{{ $t('downloads.downloading') }} {{ item.progress }}%</span>
+                    <span v-else-if="item.status === 'processing'">{{ $t('downloads.processing') }} {{ item.progress }}%</span>
+                    <span v-else-if="item.status === 'completed'">{{ $t('downloads.completed') }}</span>
+                    <span v-else-if="item.status === 'error'">{{ item.error || $t('downloads.error') }}</span>
                   </div>
                 </div>
               </div>
@@ -245,7 +245,7 @@
                 <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
             </div>
-            <p>No downloads in queue</p>
+            <p>{{ $t('downloads.noDownloads') }}</p>
           </div>
         </div>
       </div>

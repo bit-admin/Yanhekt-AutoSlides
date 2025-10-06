@@ -15,6 +15,8 @@ export interface SlideExtractionConfig {
   ssimThreshold: number;           // SSIM similarity threshold
 }
 
+export type LanguageMode = 'system' | 'en' | 'zh';
+
 export interface AppConfig {
   outputDirectory: string;
   connectionMode: 'internal' | 'external';
@@ -25,6 +27,7 @@ export interface AppConfig {
   videoRetryCount: number;
   taskSpeed: number;
   themeMode: ThemeMode;
+  languageMode: LanguageMode;
   slideExtraction: SlideExtractionConfig;
 }
 
@@ -46,6 +49,7 @@ const defaultConfig: AppConfig = {
   videoRetryCount: 5,
   taskSpeed: 10,
   themeMode: 'system',
+  languageMode: 'system',
   slideExtraction: defaultSlideExtractionConfig
 };
 
@@ -73,6 +77,7 @@ export class ConfigService {
       videoRetryCount: (this.store as any).get('videoRetryCount') as number,
       taskSpeed: (this.store as any).get('taskSpeed') as number,
       themeMode: (this.store as any).get('themeMode') as ThemeMode,
+      languageMode: (this.store as any).get('languageMode') as LanguageMode,
       slideExtraction: (this.store as any).get('slideExtraction') as SlideExtractionConfig
     };
   }
@@ -120,6 +125,14 @@ export class ConfigService {
 
   getEffectiveTheme(): 'light' | 'dark' {
     return this.themeService.getEffectiveTheme();
+  }
+
+  setLanguageMode(language: LanguageMode): void {
+    (this.store as any).set('languageMode', language);
+  }
+
+  getLanguageMode(): LanguageMode {
+    return (this.store as any).get('languageMode') as LanguageMode;
   }
 
   // Slide extraction configuration methods

@@ -6,7 +6,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
-          Back to Courses
+          {{ $t('sessions.backToCourses') }}
         </button>
         <h2>{{ course?.title }}</h2>
         <button @click="toggleCourseDetails" class="expand-btn">
@@ -17,24 +17,24 @@
       </div>
       <div v-show="showCourseDetails" class="course-details">
         <div class="course-detail-item">
-          <span class="detail-label">Instructor</span>
+          <span class="detail-label">{{ $t('playback.instructor') }}</span>
           <span class="detail-value">{{ course?.instructor }}</span>
         </div>
         <div v-if="course?.classrooms" class="course-detail-item">
-          <span class="detail-label">Classrooms</span>
+          <span class="detail-label">{{ $t('sessions.classrooms') }}</span>
           <span class="detail-value">{{ course.classrooms.map(c => c.name).join(', ') }}</span>
         </div>
         <div class="course-detail-item">
-          <span class="detail-label">Time</span>
+          <span class="detail-label">{{ $t('sessions.time') }}</span>
           <span class="detail-value">{{ course?.time }}</span>
         </div>
         <div v-if="course?.college_name" class="course-detail-item">
-          <span class="detail-label">College</span>
+          <span class="detail-label">{{ $t('sessions.college') }}</span>
           <span class="detail-value">{{ course.college_name }}</span>
         </div>
         <div v-if="course?.participant_count !== undefined" class="course-detail-item">
-          <span class="detail-label">Participants</span>
-          <span class="detail-value">{{ course.participant_count }} participants</span>
+          <span class="detail-label">{{ $t('sessions.participants') }}</span>
+          <span class="detail-value">{{ course.participant_count }} {{ $t('sessions.participantsCount') }}</span>
         </div>
       </div>
     </div>
@@ -51,13 +51,13 @@
 
       <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
-        <p>Loading sessions...</p>
+        <p>{{ $t('sessions.loadingSessions') }}</p>
       </div>
 
       <div v-else-if="!errorMessage" class="main-content">
 
         <div v-if="sessions.length === 0" class="no-sessions">
-          <p>No sessions found for this course.</p>
+          <p>{{ $t('sessions.noSessions') }}</p>
         </div>
 
         <div v-else class="sessions-container">
@@ -70,14 +70,14 @@
                 <line x1="16" y1="17" x2="8" y2="17"/>
                 <line x1="10" y1="9" x2="8" y2="9"/>
               </svg>
-              Add All to Tasks
+              {{ $t('sessions.addAllToTasks') }}
             </button>
             <button @click="downloadAllCamera" class="batch-btn download-camera-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                 <circle cx="12" cy="13" r="4"/>
               </svg>
-              Download All Camera
+              {{ $t('sessions.downloadAllCamera') }}
             </button>
             <button @click="downloadAllScreen" class="batch-btn download-screen-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -85,7 +85,7 @@
                 <line x1="8" y1="21" x2="16" y2="21"/>
                 <line x1="12" y1="17" x2="12" y2="21"/>
               </svg>
-              Download All Screen
+              {{ $t('sessions.downloadAllScreen') }}
             </button>
           </div>
           <div class="sessions-list">
@@ -105,7 +105,7 @@
                   <div class="session-title">{{ session.title }}</div>
                   <div class="session-meta">
                     <span v-if="session.week_number && session.day" class="session-time">
-                      Week {{ session.week_number }}, {{ getDayName(session.day) }}
+                      {{ $t('sessions.week') }}{{ session.week_number }}{{ $t('sessions.week') === '第' ? '周' : '' }}, {{ getDayName(session.day) }}
                     </span>
                     <span v-if="session.duration" class="session-duration">
                       {{ formatDuration(session.duration) }}
@@ -125,14 +125,14 @@
                     <line x1="16" y1="17" x2="8" y2="17"/>
                     <line x1="10" y1="9" x2="8" y2="9"/>
                   </svg>
-                  <span class="action-text">Task</span>
+                  <span class="action-text">{{ $t('sessions.task') }}</span>
                 </button>
                 <button @click.stop="downloadCamera(session)" class="action-btn camera-btn" title="Download Camera">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                   </svg>
-                  <span class="action-text">Camera</span>
+                  <span class="action-text">{{ $t('sessions.camera') }}</span>
                 </button>
                 <button @click.stop="downloadScreen(session)" class="action-btn screen-btn" title="Download Screen">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -140,7 +140,7 @@
                     <line x1="8" y1="21" x2="16" y2="21"/>
                     <line x1="12" y1="17" x2="12" y2="21"/>
                   </svg>
-                  <span class="action-text">Screen</span>
+                  <span class="action-text">{{ $t('sessions.screen') }}</span>
                 </button>
               </div>
             </div>
@@ -153,6 +153,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ApiClient, type SessionData, type CourseInfoResponse } from '../services/apiClient'
 import { TokenManager } from '../services/authService'
 import { DataStore } from '../services/dataStore'
@@ -184,6 +185,8 @@ const emit = defineEmits<{
   switchToTask: []
 }>()
 
+const { t: $t } = useI18n()
+
 const apiClient = new ApiClient()
 const tokenManager = new TokenManager()
 const sessions = ref<Session[]>([])
@@ -208,13 +211,13 @@ const selectSession = (session: Session) => {
 
 const loadCourseSessions = async () => {
   if (!props.course) {
-    errorMessage.value = 'No course selected'
+    errorMessage.value = $t('sessions.noCourseSelected')
     return
   }
 
   const token = tokenManager.getToken()
   if (!token) {
-    errorMessage.value = 'Please login first'
+    errorMessage.value = $t('sessions.pleaseLoginFirst')
     return
   }
 
@@ -227,7 +230,7 @@ const loadCourseSessions = async () => {
     sessions.value = response.videos
   } catch (error: any) {
     console.error('Failed to load course sessions:', error)
-    errorMessage.value = error.message || 'Failed to load course sessions'
+    errorMessage.value = error.message || $t('sessions.failedToLoadSessions')
     sessions.value = []
   } finally {
     isLoading.value = false
@@ -248,8 +251,12 @@ const formatDuration = (seconds: number): string => {
 }
 
 const getDayName = (day: number): string => {
-  const dayNames = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-  return dayNames[day] || `Day ${day}`
+  const dayNames = ['', 'sessions.monday', 'sessions.tuesday', 'sessions.wednesday', 'sessions.thursday', 'sessions.friday', 'sessions.saturday', 'sessions.sunday']
+  const dayKey = dayNames[day]
+  if (dayKey) {
+    return $t(dayKey)
+  }
+  return `${$t('sessions.day')} ${day}`
 }
 
 const formatDate = (dateString: string): string => {
@@ -274,14 +281,14 @@ const addToQueue = (session: Session) => {
 
   const added = TaskQueue.addToQueue({
     name: `slides_${props.course?.title}_${session.title}`,
-    courseTitle: props.course?.title || 'Unknown Course',
+    courseTitle: props.course?.title || $t('sessions.unknownCourse'),
     sessionTitle: session.title,
     sessionId: session.session_id,
     courseId: props.course?.id || 'unknown'
   })
 
   if (!added) {
-    alert('This session is already in the task queue')
+    alert($t('sessions.alreadyInTaskQueue'))
   } else {
     // Switch to task tab
     switchToTaskTab()
@@ -294,14 +301,14 @@ const downloadCamera = (session: Session) => {
 
   const added = DownloadService.addToQueue({
     name: `camera_${props.course?.title}_${session.title}`,
-    courseTitle: props.course?.title || 'Unknown Course',
+    courseTitle: props.course?.title || $t('sessions.unknownCourse'),
     sessionTitle: session.title,
     sessionId: session.session_id,
     videoType: 'camera'
   })
 
   if (!added) {
-    alert('This camera video is already in the download queue')
+    alert($t('sessions.alreadyInDownloadQueue'))
   } else {
     // Switch to download tab
     switchToDownloadTab()
@@ -314,14 +321,14 @@ const downloadScreen = (session: Session) => {
 
   const added = DownloadService.addToQueue({
     name: `screen_${props.course?.title}_${session.title}`,
-    courseTitle: props.course?.title || 'Unknown Course',
+    courseTitle: props.course?.title || $t('sessions.unknownCourse'),
     sessionTitle: session.title,
     sessionId: session.session_id,
     videoType: 'screen'
   })
 
   if (!added) {
-    alert('This screen video is already in the download queue')
+    alert($t('sessions.alreadyInDownloadQueueScreen'))
   } else {
     // Switch to download tab
     switchToDownloadTab()
@@ -336,7 +343,7 @@ const addAllToQueue = () => {
 
     const added = TaskQueue.addToQueue({
       name: `slides_${props.course?.title}_${session.title}`,
-      courseTitle: props.course?.title || 'Unknown Course',
+      courseTitle: props.course?.title || $t('sessions.unknownCourse'),
       sessionTitle: session.title,
       sessionId: session.session_id,
       courseId: props.course?.id || 'unknown'
@@ -346,9 +353,9 @@ const addAllToQueue = () => {
 
   if (addedCount > 0) {
     switchToTaskTab()
-    alert(`Added ${addedCount} sessions to task queue`)
+    alert($t('sessions.addedToTaskQueue', { count: addedCount }))
   } else {
-    alert('All sessions are already in the task queue')
+    alert($t('sessions.allInTaskQueue'))
   }
 }
 
@@ -360,7 +367,7 @@ const downloadAllCamera = () => {
 
     const added = DownloadService.addToQueue({
       name: `camera_${props.course?.title}_${session.title}`,
-      courseTitle: props.course?.title || 'Unknown Course',
+      courseTitle: props.course?.title || $t('sessions.unknownCourse'),
       sessionTitle: session.title,
       sessionId: session.session_id,
       videoType: 'camera'
@@ -370,9 +377,9 @@ const downloadAllCamera = () => {
 
   if (addedCount > 0) {
     switchToDownloadTab()
-    alert(`Added ${addedCount} camera videos to download queue`)
+    alert($t('sessions.addedToDownloadQueue', { count: addedCount }))
   } else {
-    alert('All camera videos are already in the download queue')
+    alert($t('sessions.allInDownloadQueue'))
   }
 }
 
@@ -384,7 +391,7 @@ const downloadAllScreen = () => {
 
     const added = DownloadService.addToQueue({
       name: `screen_${props.course?.title}_${session.title}`,
-      courseTitle: props.course?.title || 'Unknown Course',
+      courseTitle: props.course?.title || $t('sessions.unknownCourse'),
       sessionTitle: session.title,
       sessionId: session.session_id,
       videoType: 'screen'
@@ -394,9 +401,9 @@ const downloadAllScreen = () => {
 
   if (addedCount > 0) {
     switchToDownloadTab()
-    alert(`Added ${addedCount} screen videos to download queue`)
+    alert($t('sessions.addedToDownloadQueueScreen', { count: addedCount }))
   } else {
-    alert('All screen videos are already in the download queue')
+    alert($t('sessions.allInDownloadQueueScreen'))
   }
 }
 

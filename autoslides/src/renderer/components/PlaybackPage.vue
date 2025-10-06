@@ -6,17 +6,17 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
-          Back
+          {{ $t('playback.back') }}
         </button>
         <div class="title-info">
-          <h2>{{ course?.title || 'Unknown Course' }}</h2>
+          <h2>{{ course?.title || $t('playback.unknownCourse') }}</h2>
           <p v-if="session">{{ session.title }}</p>
           <p v-if="course?.session?.section_group_title && props.mode === 'live'">{{ course.session.section_group_title }}</p>
           <div v-if="!isVisible && isPlaying" class="background-mode-indicator">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="5,3 19,12 5,21"/>
             </svg>
-            Playing in background
+            {{ $t('playback.playingInBackground') }}
           </div>
         </div>
         <button @click="toggleCourseDetails" class="expand-btn">
@@ -27,20 +27,20 @@
       </div>
       <div v-show="showDetails" class="course-details">
         <div class="course-detail-item" v-if="course?.instructor">
-          <span class="detail-label">Instructor</span>
+          <span class="detail-label">{{ $t('playback.instructor') }}</span>
           <span class="detail-value">{{ course.instructor }}</span>
         </div>
         <div class="course-detail-item" v-if="session">
-          <span class="detail-label">Date</span>
+          <span class="detail-label">{{ $t('playback.date') }}</span>
           <span class="detail-value">{{ formatDate(session.started_at) }}</span>
         </div>
         <div class="course-detail-item" v-if="playbackData?.duration">
-          <span class="detail-label">Duration</span>
+          <span class="detail-label">{{ $t('playback.duration') }}</span>
           <span class="detail-value">{{ formatDuration(playbackData.duration) }}</span>
         </div>
         <div class="course-detail-item" v-if="currentStreamData">
-          <span class="detail-label">Current Stream</span>
-          <span class="detail-value">{{ currentStreamData.name }} ({{ currentStreamData.type === 'camera' ? 'Camera View' : 'Screen Recording' }})</span>
+          <span class="detail-label">{{ $t('playback.currentStream') }}</span>
+          <span class="detail-value">{{ currentStreamData.name }} ({{ currentStreamData.type === 'camera' ? $t('playback.cameraView') : $t('playback.screenRecording') }})</span>
         </div>
       </div>
     </div>
@@ -48,7 +48,7 @@
     <div class="content">
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
-        <p>Loading video streams...</p>
+        <p>{{ $t('playback.loadingVideoStreams') }}</p>
       </div>
 
       <div v-else-if="error" class="error-state">
@@ -61,17 +61,16 @@
           <p class="error-message">{{ error }}</p>
           <div v-if="lastPlaybackPosition > 0" class="error-info">
             <p class="playback-position">
-              <strong>Last played position:</strong> {{ formatDuration(Math.floor(lastPlaybackPosition)) }}
+              <strong>{{ $t('playback.lastPlayedPosition') }}</strong> {{ formatDuration(Math.floor(lastPlaybackPosition)) }}
             </p>
           </div>
           <div v-if="error.includes('Failed after') || error.includes('retry attempts')" class="error-suggestion">
             <p class="suggestion-text">
-              This may be due to video quality issues or network problems.
-              Consider downloading this video for offline viewing to avoid playback interruptions.
+              {{ $t('playback.networkProblems') }}
             </p>
           </div>
         </div>
-        <button @click="retryLoad" class="retry-btn">Retry</button>
+        <button @click="retryLoad" class="retry-btn">{{ $t('playback.retry') }}</button>
       </div>
 
       <div v-else-if="playbackData" class="video-content" :data-playback-mode="props.mode">
@@ -85,10 +84,10 @@
           </svg>
           <div class="warning-messages">
             <div v-if="isTaskRunning" class="warning-message">
-              Task in progress. Controls are disabled. If you exit, the task queue will be paused and current task progress will be lost. To adjust settings, please manually pause the task list.
+              {{ $t('playback.taskInProgress') }}
             </div>
             <div v-if="props.mode === 'recorded' && showSpeedWarning" class="warning-message">
-              High-speed playback may cause buffering issues. Consider switching to internal network mode for optimal performance at higher speeds.
+              {{ $t('playback.highSpeedWarning') }}
             </div>
           </div>
         </div>
@@ -96,7 +95,7 @@
         <!-- Stream Selection and Playback Controls -->
         <div class="controls-row">
           <div v-if="Object.keys(playbackData.streams).length > 1" class="stream-selector">
-            <label>Select Stream</label>
+            <label>{{ $t('playback.selectStream') }}</label>
             <select v-model="selectedStream" @change="switchStream" :disabled="shouldDisableControls || isSlideExtractionEnabled">
               <option v-for="(stream, key) in playbackData.streams" :key="key" :value="key">
                 {{ stream.name }}
@@ -106,7 +105,7 @@
 
           <!-- Custom Playback Rate Control (only for recorded videos) -->
           <div v-if="props.mode === 'recorded'" class="playback-rate-control">
-            <label>Playback speed</label>
+            <label>{{ $t('playback.playbackSpeed') }}</label>
             <select v-model="currentPlaybackRate" @change="changePlaybackRate" :disabled="shouldDisableControls">
               <option value="1">1x</option>
               <option value="2">2x</option>
@@ -127,19 +126,19 @@
               class="pip-button"
               @click="togglePictureInPicture"
               :disabled="shouldDisableControls || !videoPlayer"
-              :title="isPictureInPicture ? 'Exit Picture in Picture' : 'Enter Picture in Picture'"
+              :title="isPictureInPicture ? $t('playback.exitPictureInPicture') : $t('playback.enterPictureInPicture')"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-top: 1px;">
                 <rect x="2" y="3" width="20" height="14" rx="2"/>
                 <rect x="14" y="12" width="6" height="4" rx="1" fill="currentColor"/>
               </svg>
-              <span>{{ isPictureInPicture ? 'Exit PiP' : 'Pic-in-Pic' }}</span>
+              <span>{{ isPictureInPicture ? $t('playback.exitPiP') : $t('playback.picInPic') }}</span>
             </button>
           </div>
         </div>
 
         <!-- Video Player -->
-        <div class="video-container" :class="{ 'collapsed': isVideoContainerCollapsed }">
+        <div class="video-container" :class="{ 'collapsed': isVideoContainerCollapsed }" :data-pip-message="$t('playback.videoPlayingInPiP')">
           <video
             ref="videoPlayer"
             class="video-player"
@@ -154,7 +153,7 @@
             @enterpictureinpicture="onEnterPictureInPicture"
             @leavepictureinpicture="onLeavePictureInPicture"
           >
-            Your browser does not support the video tag.
+            {{ $t('playback.browserNotSupported') }}
           </video>
           <div v-if="shouldVideoMute" class="mute-indicator">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -162,7 +161,7 @@
               <line x1="23" y1="9" x2="17" y2="15"/>
               <line x1="17" y1="9" x2="23" y2="15"/>
             </svg>
-            <span>{{ muteMode === 'mute_all' ? 'Muted by App' : muteMode === 'mute_live' ? 'Live Muted' : 'Recorded Muted' }}</span>
+            <span>{{ muteMode === 'mute_all' ? $t('playback.mutedByApp') : muteMode === 'mute_live' ? $t('playback.liveMuted') : $t('playback.recordedMuted') }}</span>
           </div>
           <!-- Retry Indicator -->
           <div v-if="isRetrying" class="retry-indicator">
@@ -185,7 +184,7 @@
                     :disabled="shouldDisableControls"
                   />
                   <span class="toggle-slider"></span>
-                  <span class="toggle-text">Slide Extraction</span>
+                  <span class="toggle-text">{{ $t('playback.slideExtraction') }}</span>
                 </label>
 
                 <div class="slide-counter">
@@ -195,8 +194,8 @@
                     <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
                   </svg>
                   <span class="counter-text">
-                    {{ isSlideExtractionEnabled ? extractedSlides.length : 0 }} slides
-                    <span v-if="isSlideExtractionEnabled" class="counter-status">extracted</span>
+                    {{ isSlideExtractionEnabled ? extractedSlides.length : 0 }} {{ $t('playback.slides') }}
+                    <span v-if="isSlideExtractionEnabled" class="counter-status">{{ $t('playback.extracted') }}</span>
                   </span>
                 </div>
               </div>
@@ -214,7 +213,7 @@
                   <line x1="10" y1="11" x2="10" y2="17"/>
                   <line x1="14" y1="11" x2="14" y2="17"/>
                 </svg>
-                Clear All
+                {{ $t('playback.clearAll') }}
               </button>
             </div>
           </div>
@@ -256,7 +255,7 @@
         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <polygon points="5,3 19,12 5,21"/>
         </svg>
-        <p>No video streams available</p>
+        <p>{{ $t('playback.noVideoStreams') }}</p>
       </div>
     </div>
 
@@ -273,22 +272,22 @@
                 <line x1="10" y1="11" x2="10" y2="17"/>
                 <line x1="14" y1="11" x2="14" y2="17"/>
               </svg>
-              Move to Trash
+              {{ $t('playback.moveToTrash') }}
             </button>
             <button @click="closeSlideModal" class="modal-close-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"/>
                 <line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
-              Close
+              {{ $t('playback.close') }}
             </button>
           </div>
         </div>
         <div class="modal-body">
           <img :src="selectedSlide.dataUrl" :alt="selectedSlide.title" class="modal-image" />
           <div class="slide-metadata">
-            <p><strong>Extracted at:</strong> {{ formatSlideTime(selectedSlide.timestamp) }}</p>
-            <p><strong>File name:</strong> {{ selectedSlide.title }}.png</p>
+            <p><strong>{{ $t('playback.extractedAt') }}</strong> {{ formatSlideTime(selectedSlide.timestamp) }}</p>
+            <p><strong>{{ $t('playback.fileName') }}</strong> {{ selectedSlide.title }}.png</p>
           </div>
         </div>
       </div>
@@ -2661,7 +2660,7 @@ onUnmounted(async () => {
 }
 
 .video-container.collapsed::after {
-  content: "Video playing in Picture in Picture mode";
+  content: attr(data-pip-message);
   color: #6c757d;
   font-size: 14px;
   font-style: italic;

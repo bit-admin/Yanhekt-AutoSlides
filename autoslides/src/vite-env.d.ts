@@ -37,6 +37,7 @@ interface ElectronAPI {
       videoRetryCount: number;
       taskSpeed: number;
       themeMode: 'system' | 'light' | 'dark';
+      languageMode: 'system' | 'en' | 'zh';
     }>;
     setOutputDirectory: (directory: string) => Promise<{
       outputDirectory: string;
@@ -46,6 +47,7 @@ interface ElectronAPI {
       videoRetryCount: number;
       taskSpeed: number;
       themeMode: 'system' | 'light' | 'dark';
+      languageMode: 'system' | 'en' | 'zh';
     }>;
     selectOutputDirectory: () => Promise<{
       outputDirectory: string;
@@ -55,6 +57,7 @@ interface ElectronAPI {
       videoRetryCount: number;
       taskSpeed: number;
       themeMode: 'system' | 'light' | 'dark';
+      languageMode: 'system' | 'en' | 'zh';
     } | null>;
     setConnectionMode: (mode: 'internal' | 'external') => Promise<{
       outputDirectory: string;
@@ -64,6 +67,7 @@ interface ElectronAPI {
       videoRetryCount: number;
       taskSpeed: number;
       themeMode: 'system' | 'light' | 'dark';
+      languageMode: 'system' | 'en' | 'zh';
     }>;
     setMaxConcurrentDownloads: (count: number) => Promise<{
       outputDirectory: string;
@@ -73,6 +77,7 @@ interface ElectronAPI {
       videoRetryCount: number;
       taskSpeed: number;
       themeMode: 'system' | 'light' | 'dark';
+      languageMode: 'system' | 'en' | 'zh';
     }>;
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<{
       outputDirectory: string;
@@ -82,6 +87,7 @@ interface ElectronAPI {
       videoRetryCount: number;
       taskSpeed: number;
       themeMode: 'system' | 'light' | 'dark';
+      languageMode: 'system' | 'en' | 'zh';
     }>;
     setVideoRetryCount: (count: number) => Promise<{
       outputDirectory: string;
@@ -91,6 +97,7 @@ interface ElectronAPI {
       videoRetryCount: number;
       taskSpeed: number;
       themeMode: 'system' | 'light' | 'dark';
+      languageMode: 'system' | 'en' | 'zh';
     }>;
     setTaskSpeed: (speed: number) => Promise<{
       outputDirectory: string;
@@ -100,6 +107,7 @@ interface ElectronAPI {
       videoRetryCount: number;
       taskSpeed: number;
       themeMode: 'system' | 'light' | 'dark';
+      languageMode: 'system' | 'en' | 'zh';
     }>;
     // Theme configuration
     setThemeMode: (theme: 'system' | 'light' | 'dark') => Promise<{
@@ -110,10 +118,23 @@ interface ElectronAPI {
       videoRetryCount: number;
       taskSpeed: number;
       themeMode: 'system' | 'light' | 'dark';
+      languageMode: 'system' | 'en' | 'zh';
     }>;
     getThemeMode: () => Promise<'system' | 'light' | 'dark'>;
     isDarkMode: () => Promise<boolean>;
     getEffectiveTheme: () => Promise<'light' | 'dark'>;
+    // Language configuration
+    setLanguageMode: (language: 'system' | 'en' | 'zh') => Promise<{
+      outputDirectory: string;
+      connectionMode: 'internal' | 'external';
+      maxConcurrentDownloads: number;
+      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+      videoRetryCount: number;
+      taskSpeed: number;
+      themeMode: 'system' | 'light' | 'dark';
+      languageMode: 'system' | 'en' | 'zh';
+    }>;
+    getLanguageMode: () => Promise<'system' | 'en' | 'zh'>;
     // Slide extraction configuration
     getSlideExtractionConfig: () => Promise<{
       checkInterval: number;

@@ -8,7 +8,7 @@
         <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
         </svg>
-        Live
+        {{ $t('navigation.live') }}
         <span v-if="liveState.page === 'playback'" class="playback-indicator">●</span>
       </button>
       <button
@@ -20,7 +20,7 @@
           <line x1="8" y1="21" x2="16" y2="21"/>
           <line x1="12" y1="17" x2="12" y2="21"/>
         </svg>
-        Recorded
+        {{ $t('navigation.recorded') }}
         <span v-if="recordedState.page === 'playback'" class="playback-indicator">●</span>
       </button>
     </div>

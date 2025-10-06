@@ -2,14 +2,14 @@
   <div class="course-page">
     <div class="header">
       <div class="title-section">
-        <h2>{{ mode === 'live' ? 'Live Streams' : 'Recordings' }}</h2>
+        <h2>{{ mode === 'live' ? $t('courses.title.liveStreams') : $t('courses.title.recordings') }}</h2>
       </div>
       <div class="controls-section">
         <div class="search-row">
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Search courses..."
+            :placeholder="$t('courses.search.placeholder')"
             class="search-input"
           />
           <div v-if="mode === 'recorded'" class="semester-selector">
@@ -38,7 +38,7 @@
               <circle cx="11" cy="11" r="8"/>
               <path d="m21 21-4.35-4.35"/>
             </svg>
-            Search
+            {{ $t('courses.search.button') }}
           </button>
         </div>
         <div class="fetch-row">
@@ -48,7 +48,7 @@
               <polyline points="7,10 12,15 17,10"/>
               <line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            Get Personal Course List
+            {{ $t('courses.actions.getPersonalCourseList') }}
           </button>
         </div>
       </div>
@@ -66,8 +66,8 @@
 
       <div v-if="showWelcome" class="welcome-page">
         <div class="welcome-content">
-          <h1>Welcome to AutoSlides</h1>
-          <p>Designed for BIT students</p>
+          <h1>{{ $t('courses.welcome.title') }}</h1>
+          <p>{{ $t('courses.welcome.subtitle') }}</p>
           <div class="welcome-icon">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path v-if="mode === 'live'" d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
@@ -76,19 +76,19 @@
               <line v-if="mode === 'recorded'" x1="12" y1="17" x2="12" y2="21"/>
             </svg>
           </div>
-          <h2>{{ mode === 'live' ? 'Live Courses' : 'Recorded Courses' }}</h2>
+          <h2>{{ mode === 'live' ? $t('courses.welcome.liveTitle') : $t('courses.welcome.recordedTitle') }}</h2>
           <p v-if="mode === 'live'">
-            Browse and join live lectures across the entire campus, while also capturing real-time slides.
+            {{ $t('courses.welcome.liveDescription') }}
           </p>
           <p v-if="mode === 'recorded'">
-            Access courses recordings, download videos for offline viewing, and extract slides from recordings.
+            {{ $t('courses.welcome.recordedDescription') }}
           </p>
         </div>
       </div>
 
       <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
-        <p>Loading courses...</p>
+        <p>{{ $t('courses.loading') }}</p>
       </div>
 
       <div v-else-if="!errorMessage && !showWelcome" class="courses-grid">
@@ -115,7 +115,7 @@
             <p class="course-section" v-if="mode === 'live' && course.session?.section_group_title">{{ course.session.section_group_title }}</p>
             <p class="course-section" v-if="mode === 'recorded' && course.college_name">{{ course.college_name }}</p>
             <p class="course-participants" v-if="course.participant_count !== undefined">
-              {{ course.participant_count }} participants
+              {{ course.participant_count }} {{ $t('courses.info.participants') }}
             </p>
           </div>
         </div>
@@ -148,6 +148,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ApiClient, type LiveStream, type LiveListResponse, type CourseData, type CourseListResponse, type SemesterOption } from '../services/apiClient'
 import { TokenManager } from '../services/authService'
 import { DataStore } from '../services/dataStore'
@@ -185,6 +186,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   courseSelected: [course: Course]
 }>()
+
+const { t } = useI18n()
 
 const apiClient = new ApiClient()
 const tokenManager = new TokenManager()
@@ -345,10 +348,10 @@ const getStatusClass = (status?: number): string => {
 
 const getStatusText = (status?: number): string => {
   switch (status) {
-    case 0: return 'Ended'
-    case 1: return 'Live'
-    case 2: return 'Upcoming'
-    default: return 'Unknown'
+    case 0: return t('courses.status.ended')
+    case 1: return t('courses.status.live')
+    case 2: return t('courses.status.upcoming')
+    default: return t('courses.status.unknown')
   }
 }
 
@@ -405,12 +408,12 @@ const toggleSemesterDropdown = () => {
 
 const updateSemesterDropdownText = () => {
   if (selectedSemesters.value.length === 0) {
-    semesterDropdownText.value = 'All Semesters'
+    semesterDropdownText.value = t('courses.semester.allSemesters')
   } else if (selectedSemesters.value.length === 1) {
     const semester = availableSemesters.value.find(s => s.id === selectedSemesters.value[0])
-    semesterDropdownText.value = semester ? semester.labelEn : `${selectedSemesters.value.length} selected`
+    semesterDropdownText.value = semester ? semester.labelEn : `${selectedSemesters.value.length} ${t('courses.semester.selected')}`
   } else {
-    semesterDropdownText.value = `${selectedSemesters.value.length} selected`
+    semesterDropdownText.value = `${selectedSemesters.value.length} ${t('courses.semester.selected')}`
   }
 }
 
@@ -429,7 +432,7 @@ const resetPageState = () => {
   totalPages.value = 1
   searchQuery.value = ''
   selectedSemesters.value = []
-  semesterDropdownText.value = 'All Semesters'
+  semesterDropdownText.value = t('courses.semester.allSemesters')
   showSemesterDropdown.value = false
   errorMessage.value = ''
   showWelcome.value = true

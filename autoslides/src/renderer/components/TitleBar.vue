@@ -6,55 +6,55 @@
     <!-- Menu bar for non-macOS platforms -->
     <div v-if="!isMacOS" class="menu-bar">
       <div class="menu-item" @click="toggleFileMenu" ref="fileMenuTrigger">
-        File
+        {{ $t('titlebar.file') }}
         <div v-if="showFileMenu" class="dropdown-menu" @click.stop>
-          <div class="menu-option" @click="showAbout">About AutoSlides</div>
+          <div class="menu-option" @click="showAbout">{{ $t('titlebar.aboutAutoSlides') }}</div>
           <div class="menu-separator"></div>
-          <div class="menu-option disabled">New <span class="shortcut">Ctrl+N</span></div>
-          <div class="menu-option disabled">Open <span class="shortcut">Ctrl+O</span></div>
+          <div class="menu-option disabled">{{ $t('titlebar.new') }} <span class="shortcut">Ctrl+N</span></div>
+          <div class="menu-option disabled">{{ $t('titlebar.open') }} <span class="shortcut">Ctrl+O</span></div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="closeWindow">Close</div>
+          <div class="menu-option" @click="closeWindow">{{ $t('titlebar.close') }}</div>
         </div>
       </div>
 
       <div class="menu-item" @click="toggleEditMenu" ref="editMenuTrigger">
-        Edit
+        {{ $t('titlebar.edit') }}
         <div v-if="showEditMenu" class="dropdown-menu" @click.stop>
-          <div class="menu-option" @click="executeEdit('undo')">Undo <span class="shortcut">Ctrl+Z</span></div>
-          <div class="menu-option" @click="executeEdit('redo')">Redo <span class="shortcut">Ctrl+Y</span></div>
+          <div class="menu-option" @click="executeEdit('undo')">{{ $t('titlebar.undo') }} <span class="shortcut">Ctrl+Z</span></div>
+          <div class="menu-option" @click="executeEdit('redo')">{{ $t('titlebar.redo') }} <span class="shortcut">Ctrl+Y</span></div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="executeEdit('cut')">Cut <span class="shortcut">Ctrl+X</span></div>
-          <div class="menu-option" @click="executeEdit('copy')">Copy <span class="shortcut">Ctrl+C</span></div>
-          <div class="menu-option" @click="executeEdit('paste')">Paste <span class="shortcut">Ctrl+V</span></div>
-          <div class="menu-option" @click="executeEdit('selectAll')">Select All <span class="shortcut">Ctrl+A</span></div>
+          <div class="menu-option" @click="executeEdit('cut')">{{ $t('titlebar.cut') }} <span class="shortcut">Ctrl+X</span></div>
+          <div class="menu-option" @click="executeEdit('copy')">{{ $t('titlebar.copy') }} <span class="shortcut">Ctrl+C</span></div>
+          <div class="menu-option" @click="executeEdit('paste')">{{ $t('titlebar.paste') }} <span class="shortcut">Ctrl+V</span></div>
+          <div class="menu-option" @click="executeEdit('selectAll')">{{ $t('titlebar.selectAll') }} <span class="shortcut">Ctrl+A</span></div>
         </div>
       </div>
 
       <div class="menu-item" @click="toggleViewMenu" ref="viewMenuTrigger">
-        View
+        {{ $t('titlebar.view') }}
         <div v-if="showViewMenu" class="dropdown-menu" @click.stop>
-          <div class="menu-option" @click="menuReload">Reload <span class="shortcut">Ctrl+R</span></div>
-          <div class="menu-option" @click="menuForceReload">Force Reload <span class="shortcut">Ctrl+Shift+R</span></div>
-          <div class="menu-option" @click="menuToggleDevTools">Toggle DevTools <span class="shortcut">F12</span></div>
+          <div class="menu-option" @click="menuReload">{{ $t('titlebar.reload') }} <span class="shortcut">Ctrl+R</span></div>
+          <div class="menu-option" @click="menuForceReload">{{ $t('titlebar.forceReload') }} <span class="shortcut">Ctrl+Shift+R</span></div>
+          <div class="menu-option" @click="menuToggleDevTools">{{ $t('titlebar.toggleDevTools') }} <span class="shortcut">F12</span></div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="menuResetZoom">Reset Zoom <span class="shortcut">Ctrl+0</span></div>
-          <div class="menu-option" @click="menuZoomIn">Zoom In <span class="shortcut">Ctrl++</span></div>
-          <div class="menu-option" @click="menuZoomOut">Zoom Out <span class="shortcut">Ctrl+-</span></div>
+          <div class="menu-option" @click="menuResetZoom">{{ $t('titlebar.resetZoom') }} <span class="shortcut">Ctrl+0</span></div>
+          <div class="menu-option" @click="menuZoomIn">{{ $t('titlebar.zoomIn') }} <span class="shortcut">Ctrl++</span></div>
+          <div class="menu-option" @click="menuZoomOut">{{ $t('titlebar.zoomOut') }} <span class="shortcut">Ctrl+-</span></div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="menuToggleFullscreen">Toggle Fullscreen <span class="shortcut">F11</span></div>
+          <div class="menu-option" @click="menuToggleFullscreen">{{ $t('titlebar.toggleFullscreen') }} <span class="shortcut">F11</span></div>
         </div>
       </div>
 
       <div class="menu-item" @click="toggleHelpMenu" ref="helpMenuTrigger">
-        Help
+        {{ $t('titlebar.help') }}
         <div v-if="showHelpMenu" class="dropdown-menu" @click.stop>
-          <div class="menu-option" @click="openGitHub">Visit GitHub Repository</div>
-          <div class="menu-option" @click="openITCenter">IT Center Software List</div>
+          <div class="menu-option" @click="openGitHub">{{ $t('titlebar.visitGitHub') }}</div>
+          <div class="menu-option" @click="openITCenter">{{ $t('titlebar.itCenterSoftware') }}</div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="openWebVersion">Web Version</div>
-          <div class="menu-option" @click="openSSIMTest">SSIM Test</div>
+          <div class="menu-option" @click="openWebVersion">{{ $t('titlebar.webVersion') }}</div>
+          <div class="menu-option" @click="openSSIMTest">{{ $t('titlebar.ssimTest') }}</div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="openTermsAndConditions">Terms and Conditions</div>
+          <div class="menu-option" @click="openTermsAndConditions">{{ $t('titlebar.termsAndConditions') }}</div>
         </div>
       </div>
     </div>
@@ -63,12 +63,12 @@
     <div class="titlebar-drag-region">
       <!-- Left link buttons -->
       <div class="link-buttons left">
-        <button class="link-button" @click="openGitHub" title="Visit GitHub Repository">
+        <button class="link-button" @click="openGitHub" :title="$t('titlebar.visitGitHub')">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
             <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
           </svg>
         </button>
-        <button class="link-button" @click="openITCenter" title="IT Center Software List">
+        <button class="link-button" @click="openITCenter" :title="$t('titlebar.itCenterSoftware')">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
             <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
           </svg>
@@ -85,12 +85,12 @@
 
       <!-- Right link buttons -->
       <div class="link-buttons right">
-        <button class="link-button" @click="openWebVersion" title="Web Version">
+        <button class="link-button" @click="openWebVersion" :title="$t('titlebar.webVersion')">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
             <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm7.5-6.923c-.67.204-1.335.82-1.887 1.855A7.97 7.97 0 0 0 5.145 4H7.5V1.077zM4.09 4a9.267 9.267 0 0 1 .64-1.539 6.7 6.7 0 0 1 .597-.933A7.025 7.025 0 0 0 2.255 4H4.09zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a6.958 6.958 0 0 0-.656 2.5h2.49zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5H4.847zM8.5 5v2.5h2.99a12.495 12.495 0 0 0-.337-2.5H8.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5H4.51zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5H8.5zM5.145 12c.138.386.295.744.468 1.068.552 1.035 1.218 1.65 1.887 1.855V12H5.145zm.182 2.472a6.696 6.696 0 0 1-.597-.933A9.268 9.268 0 0 1 4.09 12H2.255a7.024 7.024 0 0 0 3.072 2.472zM3.82 11a13.652 13.652 0 0 1-.312-2.5h-2.49c.062.89.291 1.733.656 2.5H3.82zm6.853 3.472A7.024 7.024 0 0 0 13.745 12H11.91a9.27 9.27 0 0 1-.64 1.539 6.688 6.688 0 0 1-.597.933zM8.5 12v2.923c.67-.204 1.335-.82 1.887-1.855.173-.324.33-.682.468-1.068H8.5zm3.68-1h2.146c.365-.767.594-1.61.656-2.5h-2.49a13.65 13.65 0 0 1-.312 2.5zm2.802-6.5h-2.49A13.65 13.65 0 0 1 12.18 5h2.146c-.365-.767-.594-1.61-.656-2.5zM11.27 2.461c.247.464.462.98.64 1.539h1.835a7.024 7.024 0 0 0-3.072-2.472c.218.284.418.598.597.933zM10.855 4a7.966 7.966 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077V4h2.355z"/>
           </svg>
         </button>
-        <button class="link-button" @click="openSSIMTest" title="SSIM Test">
+        <button class="link-button" @click="openSSIMTest" :title="$t('titlebar.ssimTest')">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
             <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
             <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
@@ -101,17 +101,17 @@
 
     <!-- Window controls for non-macOS -->
     <div v-if="!isMacOS" class="window-controls">
-      <button class="control-button minimize" @click="minimizeWindow" title="Minimize">
+      <button class="control-button minimize" @click="minimizeWindow" :title="$t('titlebar.minimize')">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <rect x="2" y="5" width="8" height="2" fill="currentColor"/>
         </svg>
       </button>
-      <button class="control-button maximize" @click="maximizeWindow" title="Maximize">
+      <button class="control-button maximize" @click="maximizeWindow" :title="$t('titlebar.maximize')">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <rect x="2" y="2" width="8" height="8" stroke="currentColor" stroke-width="1" fill="none"/>
         </svg>
       </button>
-      <button class="control-button close" @click="closeWindow" title="Close">
+      <button class="control-button close" @click="closeWindow" :title="$t('titlebar.close')">
         <svg width="12" height="12" viewBox="0 0 12 12">
           <path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5"/>
         </svg>
@@ -122,6 +122,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+
+const { t: $t } = useI18n();
 
 const isMacOS = ref(false);
 
@@ -342,10 +345,10 @@ const showAbout = async () => {
   try {
     await (window as any).electronAPI.dialog.showMessageBox({
       type: 'info',
-      title: 'About AutoSlides',
-      message: 'AutoSlides',
-      detail: 'Version 4.0.0 (4.0.0)\n\n© 2025 bit-admin. All rights reserved.',
-      buttons: ['OK']
+      title: $t('titlebar.aboutTitle'),
+      message: $t('titlebar.aboutMessage'),
+      detail: $t('titlebar.aboutDetail'),
+      buttons: [$t('titlebar.ok')]
     });
   } catch (error) {
     console.error('Failed to show about dialog:', error);

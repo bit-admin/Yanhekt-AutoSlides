@@ -2,53 +2,53 @@
   <div class="left-panel">
     <div class="login-section">
       <div v-if="isVerifyingToken" class="verifying-state">
-        <h3>Verifying...</h3>
-        <p>Verifying login status, please wait...</p>
+        <h3>{{ $t('auth.verifying') }}</h3>
+        <p>{{ $t('auth.verifyingMessage') }}</p>
         <div class="loading-spinner"></div>
       </div>
       <div v-else-if="!isLoggedIn" class="login-form">
-        <h3>Sign In</h3>
-        <p>Please sign in to Yanhekt to access all resources.</p>
+        <h3>{{ $t('auth.signIn') }}</h3>
+        <p>{{ $t('auth.signInMessage') }}</p>
         <div class="input-group">
           <input
             v-model="username"
             type="text"
-            placeholder="Username"
+            :placeholder="$t('auth.username')"
             class="input-field"
           />
           <input
             v-model="password"
             type="password"
-            placeholder="Password"
+            :placeholder="$t('auth.password')"
             class="input-field"
           />
         </div>
         <button @click="login" :disabled="isLoading" class="login-btn">
-          {{ isLoading ? 'Signing In...' : 'Sign In' }}
+          {{ isLoading ? $t('auth.signingIn') : $t('auth.signIn') }}
         </button>
       </div>
       <div v-else class="user-info">
-        <h3>Hi there, {{ userNickname }}</h3>
-        <p>Sign in as {{ userId }}</p>
-        <p>You can now access all resources from Yanhekt.</p>
-        <button @click="logout" class="logout-btn">Sign Out</button>
+        <h3>{{ $t('auth.hiThere', { nickname: userNickname }) }}</h3>
+        <p>{{ $t('auth.signInAs', { userId: userId }) }}</p>
+        <p>{{ $t('auth.accessMessage') }}</p>
+        <button @click="logout" class="logout-btn">{{ $t('auth.signOut') }}</button>
       </div>
     </div>
 
     <div class="control-section">
       <div class="control-header">
-        <h3>Settings</h3>
+        <h3>{{ $t('settings.settings') }}</h3>
         <button @click="openAdvancedSettings" class="advanced-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
-          Advanced Settings
+          {{ $t('settings.advancedSettings') }}
         </button>
       </div>
       <div class="settings-content">
         <div class="setting-item">
-          <label class="setting-label">Output Directory</label>
+          <label class="setting-label">{{ $t('settings.outputDirectory') }}</label>
           <div class="directory-input-group">
             <input
               v-model="outputDirectory"
@@ -57,54 +57,65 @@
               class="directory-input"
               :title="outputDirectory"
             />
-            <button @click="selectOutputDirectory" class="browse-btn">Browse</button>
+            <button @click="selectOutputDirectory" class="browse-btn">{{ $t('settings.browse') }}</button>
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">Connection Mode</label>
+          <label class="setting-label">{{ $t('settings.connectionMode') }}</label>
           <div class="mode-toggle">
             <button
               @click="setConnectionMode('internal')"
               :class="['mode-btn', { active: connectionMode === 'internal' }]"
             >
-              Internal Network
+              {{ $t('settings.internalNetwork') }}
             </button>
             <button
               @click="setConnectionMode('external')"
               :class="['mode-btn', { active: connectionMode === 'external' }]"
             >
-              External Network
+              {{ $t('settings.externalNetwork') }}
             </button>
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">Audio Mode</label>
+          <label class="setting-label">{{ $t('settings.audioMode') }}</label>
           <div class="audio-mode-selector">
             <select v-model="muteMode" @change="setMuteMode" class="audio-mode-select">
-              <option value="normal">Normal</option>
-              <option value="mute_all">Mute All</option>
-              <option value="mute_live">Mute Live</option>
-              <option value="mute_recorded">Mute Recorded</option>
+              <option value="normal">{{ $t('settings.normal') }}</option>
+              <option value="mute_all">{{ $t('settings.muteAll') }}</option>
+              <option value="mute_live">{{ $t('settings.muteLive') }}</option>
+              <option value="mute_recorded">{{ $t('settings.muteRecorded') }}</option>
             </select>
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">Theme</label>
+          <label class="setting-label">{{ $t('settings.theme') }}</label>
           <div class="theme-selector">
             <select v-model="themeMode" @change="setThemeMode" class="theme-select">
-              <option value="system">Follow System</option>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
+              <option value="system">{{ $t('settings.followSystem') }}</option>
+              <option value="light">{{ $t('settings.light') }}</option>
+              <option value="dark">{{ $t('settings.dark') }}</option>
             </select>
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">Slide Detection Interval</label>
-          <div class="setting-description">The interval will be automatically adjusted based on playback speed (default: 2000ms).</div>
+          <label class="setting-label">{{ $t('settings.language') }}</label>
+          <div class="language-selector">
+            <select v-model="languageMode" @change="setLanguageMode" class="language-select">
+              <option value="system">{{ $t('settings.followSystem') }}</option>
+              <option value="en">{{ $t('settings.english') }}</option>
+              <option value="zh">{{ $t('settings.chinese') }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">{{ $t('settings.slideDetectionInterval') }}</label>
+          <div class="setting-description">{{ $t('settings.slideDetectionDescription') }}</div>
           <div class="slide-interval-group">
             <div class="slide-interval-input-wrapper">
               <input
@@ -117,14 +128,14 @@
                 @change="setSlideCheckInterval"
                 @blur="validateAndCorrectInterval"
               />
-              <span class="interval-unit">milliseconds</span>
+              <span class="interval-unit">{{ $t('settings.milliseconds') }}</span>
             </div>
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">Slide Stability Verification</label>
-          <div class="setting-description">Prevents false detection from animations by confirming a new slide after it remains unchanged for several consecutive checks (default: 2 checks).</div>
+          <label class="setting-label">{{ $t('settings.slideStabilityVerification') }}</label>
+          <div class="setting-description">{{ $t('settings.slideStabilityDescription') }}</div>
           <div class="verification-unified-control">
             <label class="checkbox-label">
               <input
@@ -132,7 +143,7 @@
                 v-model="slideDoubleVerification"
                 @change="setSlideDoubleVerification"
               />
-              Enable Checks
+              {{ $t('settings.enableChecks') }}
             </label>
             <div class="verification-count-control" v-if="slideDoubleVerification">
               <select
@@ -142,14 +153,14 @@
               >
                 <option v-for="i in 5" :key="i" :value="i">{{ i }}</option>
               </select>
-              <span class="count-label">Count(s)</span>
+              <span class="count-label">{{ $t('settings.counts') }}</span>
             </div>
           </div>
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">Task Speed</label>
-          <div class="setting-description">Playback speed for automated task processing.</div>
+          <label class="setting-label">{{ $t('settings.taskSpeed') }}</label>
+          <div class="setting-description">{{ $t('settings.taskSpeedDescription') }}</div>
           <div class="task-speed-selector">
             <select v-model="taskSpeed" @change="setTaskSpeed" class="task-speed-select">
               <option v-for="i in 10" :key="i" :value="i">{{ i }}x</option>
@@ -161,17 +172,17 @@
 
     <div class="status-section">
       <div class="status-row">
-        <span class="status-label">Connection</span>
+        <span class="status-label">{{ $t('status.connection') }}</span>
         <span :class="['status-value', connectionMode]">
-          {{ connectionMode === 'internal' ? 'Internal Network' : 'External Network' }}
+          {{ connectionMode === 'internal' ? $t('settings.internalNetwork') : $t('settings.externalNetwork') }}
         </span>
       </div>
       <div class="status-row">
-        <span class="status-label">Task Status</span>
+        <span class="status-label">{{ $t('status.taskStatus') }}</span>
         <span class="status-value">{{ taskStatus }}</span>
       </div>
       <div class="status-row">
-        <span class="status-label">Download Queue</span>
+        <span class="status-label">{{ $t('status.downloadQueue') }}</span>
         <span class="status-value">{{ downloadQueueStatus }}</span>
       </div>
     </div>
@@ -179,7 +190,7 @@
     <div v-if="showAdvancedModal" class="modal-overlay" @click="closeAdvancedSettings">
       <div class="modal-content" @click.stop>
         <div class="modal-header">
-          <h3>Advanced Settings</h3>
+          <h3>{{ $t('settings.advancedSettings') }}</h3>
           <button @click="closeAdvancedSettings" class="close-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/>
@@ -190,19 +201,19 @@
         <div class="modal-body">
           <div class="advanced-settings-content">
             <div class="advanced-setting-section">
-              <h4>Authentication</h4>
+              <h4>{{ $t('advanced.authentication') }}</h4>
               <div class="setting-item">
-                <label class="setting-label">Token</label>
-                <div class="setting-description">Manually input your authentication token for direct access.</div>
+                <label class="setting-label">{{ $t('advanced.token') }}</label>
+                <div class="setting-description">{{ $t('advanced.tokenDescription') }}</div>
                 <div class="token-input-group">
                   <input
                     v-model="manualToken"
                     type="password"
-                    placeholder="Enter your token here..."
+                    :placeholder="$t('advanced.tokenPlaceholder')"
                     class="token-input"
                     @input="onTokenInput"
                   />
-                  <button @click="toggleTokenVisibility" class="token-toggle-btn" :title="showToken ? 'Hide token' : 'Show token'">
+                  <button @click="toggleTokenVisibility" class="token-toggle-btn" :title="showToken ? $t('advanced.hideToken') : $t('advanced.showToken')">
                     <svg v-if="showToken" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
                       <line x1="1" y1="1" x2="23" y2="23"/>
@@ -213,7 +224,7 @@
                     </svg>
                   </button>
                   <button @click="verifyManualToken" :disabled="!manualToken || isVerifyingManualToken" class="verify-token-btn">
-                    {{ isVerifyingManualToken ? 'Verifying...' : 'Verify' }}
+                    {{ isVerifyingManualToken ? $t('advanced.verifying') : $t('advanced.verify') }}
                   </button>
                 </div>
                 <div v-if="tokenVerificationStatus" :class="['token-status', tokenVerificationStatus.type]">
@@ -223,10 +234,10 @@
             </div>
 
             <div class="advanced-setting-section">
-              <h4>Image Processing</h4>
+              <h4>{{ $t('advanced.imageProcessing') }}</h4>
               <div class="setting-item">
-                <label class="setting-label">SSIM Threshold</label>
-                <div class="setting-description">Higher global structural similarity threshold indicate stricter matching. You can test the detection accuracy in <strong>Menu > Help > SSIM Test.</strong></div>
+                <label class="setting-label">{{ $t('advanced.ssimThreshold') }}</label>
+                <div class="setting-description">{{ $t('advanced.ssimDescription') }}</div>
                 <input
                   v-model.number="tempSsimThreshold"
                   type="number"
@@ -236,15 +247,15 @@
                   class="ssim-select"
                   @change="updateImageProcessingParams"
                 />
-                <div class="setting-description">Adjust <strong>ONLY IF NECESSARY</strong>, as a minor change of 0.001 can significantly impact performance (default: 0.999; alternative: 0.998 for a looser threshold).</div>
+                <div class="setting-description">{{ $t('advanced.ssimWarning') }}</div>
               </div>
             </div>
 
             <div class="advanced-setting-section">
-              <h4>Video Playback</h4>
+              <h4>{{ $t('advanced.videoPlayback') }}</h4>
               <div class="setting-item">
-                <label class="setting-label">Video Error Retry Count</label>
-                <div class="setting-description">Number of retry attempts when video playback errors occur.</div>
+                <label class="setting-label">{{ $t('advanced.videoErrorRetryCount') }}</label>
+                <div class="setting-description">{{ $t('advanced.videoErrorDescription') }}</div>
                 <select
                   v-model="tempVideoRetryCount"
                   class="concurrent-select"
@@ -256,10 +267,10 @@
             </div>
 
             <div class="advanced-setting-section">
-              <h4>Download</h4>
+              <h4>{{ $t('advanced.download') }}</h4>
               <div class="setting-item">
-                <label class="setting-label">Concurrent Download Limit</label>
-                <div class="setting-description">Maximum number of simultaneous downloads and processing.</div>
+                <label class="setting-label">{{ $t('advanced.concurrentDownloadLimit') }}</label>
+                <div class="setting-description">{{ $t('advanced.concurrentDownloadDescription') }}</div>
                 <select
                   v-model="tempMaxConcurrentDownloads"
                   class="concurrent-select"
@@ -271,8 +282,8 @@
             </div>
           </div>
           <div class="modal-actions">
-            <button @click="closeAdvancedSettings" class="cancel-btn">Cancel</button>
-            <button @click="saveAdvancedSettings" class="save-btn">Save</button>
+            <button @click="closeAdvancedSettings" class="cancel-btn">{{ $t('advanced.cancel') }}</button>
+            <button @click="saveAdvancedSettings" class="save-btn">{{ $t('advanced.save') }}</button>
           </div>
         </div>
       </div>
@@ -282,10 +293,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { AuthService, TokenManager } from '../services/authService'
 import { ApiClient } from '../services/apiClient'
 import { DownloadService } from '../services/downloadService'
 import { TaskQueue, taskQueueState } from '../services/taskQueueService'
+import { languageService } from '../services/languageService'
+
+const { t } = useI18n()
 
 const isLoggedIn = ref(false)
 const username = ref('')
@@ -295,6 +310,7 @@ const userId = ref('user123')
 const connectionMode = ref<'internal' | 'external'>('external')
 const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
 const themeMode = ref<'system' | 'light' | 'dark'>('system')
+const languageMode = ref<'system' | 'en' | 'zh'>('system')
 
 const taskStatus = computed(() => {
   const stats = taskQueueState.value
@@ -320,7 +336,7 @@ const taskStatus = computed(() => {
   } else if (completed > 0 || errors > 0) {
     return `${completed} completed, ${errors} failed`
   } else {
-    return 'No tasks'
+    return t('status.noTasks')
   }
 })
 
@@ -338,7 +354,7 @@ const downloadQueueStatus = computed(() => {
   } else if (completed > 0 || errors > 0) {
     return `${completed} done, ${errors} failed`
   } else {
-    return 'No downloads'
+    return t('status.noDownloads')
   }
 })
 const showAdvancedModal = ref(false)
@@ -465,6 +481,11 @@ const loadConfig = async () => {
     // Load theme configuration
     themeMode.value = config.themeMode || 'system'
 
+    // Load language configuration
+    languageMode.value = config.languageMode || 'system'
+    // Initialize language service
+    await languageService.initialize()
+
     // Load advanced image processing parameters
     ssimThreshold.value = slideConfig.ssimThreshold || 0.999
     tempSsimThreshold.value = ssimThreshold.value
@@ -583,6 +604,17 @@ const setThemeMode = async () => {
     themeMode.value = result.themeMode
   } catch (error) {
     console.error('Failed to set theme mode:', error)
+  }
+}
+
+const setLanguageMode = async () => {
+  try {
+    const result = await window.electronAPI.config.setLanguageMode(languageMode.value)
+    languageMode.value = result.languageMode
+    // Update the language service
+    await languageService.setLanguageMode(languageMode.value)
+  } catch (error) {
+    console.error('Failed to set language mode:', error)
   }
 }
 
@@ -1019,6 +1051,27 @@ const loadManualToken = () => {
 }
 
 .theme-select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.language-selector {
+  width: 100%;
+}
+
+.language-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.language-select:focus {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
@@ -1599,13 +1652,13 @@ const loadManualToken = () => {
     border-color: #2563eb;
   }
 
-  .audio-mode-select, .theme-select, .task-speed-select, .verification-count-select, .concurrent-select, .ssim-select {
+  .audio-mode-select, .theme-select, .language-select, .task-speed-select, .verification-count-select, .concurrent-select, .ssim-select {
     background-color: #2d2d2d;
     border-color: #404040;
     color: #e0e0e0;
   }
 
-  .audio-mode-select:focus, .theme-select:focus, .task-speed-select:focus, .verification-count-select:focus, .concurrent-select:focus, .ssim-select:focus {
+  .audio-mode-select:focus, .theme-select:focus, .language-select:focus, .task-speed-select:focus, .verification-count-select:focus, .concurrent-select:focus, .ssim-select:focus {
     border-color: #4a9eff;
     box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
   }
