@@ -67,6 +67,7 @@
       <div v-if="showWelcome" class="welcome-page">
         <div class="welcome-content">
           <h1>Welcome to AutoSlides</h1>
+          <p>Designed for BIT students</p>
           <div class="welcome-icon">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path v-if="mode === 'live'" d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
@@ -859,7 +860,7 @@ onUnmounted(() => {
 }
 
 .welcome-content h1 {
-  margin: 0 0 80px 0;
+  margin: 0 0 16px 0;
   font-size: 32px;
   font-weight: 700;
   color: #333;
@@ -874,7 +875,7 @@ onUnmounted(() => {
 }
 
 .welcome-content p {
-  margin: 0 0 32px 0;
+  margin: 16px 0 50px 0;
   font-size: 16px;
   line-height: 1.5;
   color: #666;

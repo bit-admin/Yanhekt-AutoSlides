@@ -1,13 +1,42 @@
 <template>
   <div class="session-page">
     <div class="header">
-      <button @click="goBack" class="back-btn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="15,18 9,12 15,6"/>
-        </svg>
-        Back to Courses
-      </button>
-      <h2>{{ course?.title }} - Sessions</h2>
+      <div class="header-main">
+        <button @click="goBack" class="back-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15,18 9,12 15,6"/>
+          </svg>
+          Back to Courses
+        </button>
+        <h2>{{ course?.title }}</h2>
+        <button @click="toggleCourseDetails" class="expand-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showCourseDetails }">
+            <polyline points="6,9 12,15 18,9"/>
+          </svg>
+        </button>
+      </div>
+      <div v-show="showCourseDetails" class="course-details">
+        <div class="course-detail-item">
+          <span class="detail-label">Instructor</span>
+          <span class="detail-value">{{ course?.instructor }}</span>
+        </div>
+        <div v-if="course?.classrooms" class="course-detail-item">
+          <span class="detail-label">Classrooms</span>
+          <span class="detail-value">{{ course.classrooms.map(c => c.name).join(', ') }}</span>
+        </div>
+        <div class="course-detail-item">
+          <span class="detail-label">Time</span>
+          <span class="detail-value">{{ course?.time }}</span>
+        </div>
+        <div v-if="course?.college_name" class="course-detail-item">
+          <span class="detail-label">College</span>
+          <span class="detail-value">{{ course.college_name }}</span>
+        </div>
+        <div v-if="course?.participant_count !== undefined" class="course-detail-item">
+          <span class="detail-label">Participants</span>
+          <span class="detail-value">{{ course.participant_count }} participants</span>
+        </div>
+      </div>
     </div>
 
     <div class="content">
@@ -26,11 +55,6 @@
       </div>
 
       <div v-else-if="!errorMessage" class="main-content">
-        <div class="course-details">
-          <p class="course-info">Course: {{ course?.title }}</p>
-          <p class="instructor-info">Instructor: {{ course?.instructor }}</p>
-          <p class="professor-info" v-if="courseInfo?.professor">Professor: {{ courseInfo.professor }}</p>
-        </div>
 
         <div v-if="sessions.length === 0" class="no-sessions">
           <p>No sessions found for this course.</p>
@@ -140,6 +164,9 @@ interface Course {
   title: string
   instructor: string
   time: string
+  classrooms?: { name: string }[]
+  college_name?: string
+  participant_count?: number
 }
 
 interface Session extends SessionData {
@@ -163,9 +190,14 @@ const sessions = ref<Session[]>([])
 const courseInfo = ref<CourseInfoResponse | null>(null)
 const isLoading = ref(false)
 const errorMessage = ref('')
+const showCourseDetails = ref(false)
 
 const goBack = () => {
   emit('backToCourses')
+}
+
+const toggleCourseDetails = () => {
+  showCourseDetails.value = !showCourseDetails.value
 }
 
 const selectSession = (session: Session) => {
@@ -394,10 +426,18 @@ onMounted(() => {
 }
 
 .header {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+
+.header-main {
   display: flex;
   align-items: center;
   gap: 16px;
-  margin-bottom: 24px;
+  padding: 16px;
 }
 
 .back-btn {
@@ -424,6 +464,62 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 600;
   color: #333;
+  flex: 1;
+}
+
+.expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.expand-btn:hover {
+  border-color: #007acc;
+  background-color: #f0f8ff;
+}
+
+.expand-btn svg {
+  transition: transform 0.2s;
+}
+
+.expand-btn svg.rotated {
+  transform: rotate(180deg);
+}
+
+.course-details {
+  padding: 16px;
+  border-top: 1px solid #e0e0e0;
+  background-color: white;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.course-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
 }
 
 .content {
@@ -709,18 +805,6 @@ onMounted(() => {
   100% { transform: rotate(360deg); }
 }
 
-.course-details {
-  margin-bottom: 24px;
-  padding: 16px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-}
-
-.course-info, .instructor-info, .professor-info {
-  margin: 8px 0;
-  font-size: 14px;
-  color: #666;
-}
 
 .no-sessions {
   text-align: center;
