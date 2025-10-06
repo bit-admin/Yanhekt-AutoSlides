@@ -813,4 +813,263 @@ onMounted(() => {
   font-style: italic;
 }
 
+/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
+.sessions-list {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.sessions-list:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.sessions-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sessions-list::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.sessions-list::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  border: none;
+  transition: background 0.3s ease;
+}
+
+.sessions-list:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.sessions-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .session-page {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+  }
+
+  .header {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+  }
+
+  .header-main {
+    background-color: #2d2d2d;
+  }
+
+  .header h2 {
+    color: #e0e0e0;
+  }
+
+  .back-btn {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    color: #b0b0b0;
+  }
+
+  .back-btn:hover {
+    border-color: #4da6ff;
+    color: #4da6ff;
+  }
+
+  .expand-btn {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    color: #b0b0b0;
+  }
+
+  .expand-btn:hover {
+    border-color: #4da6ff;
+    background-color: #333;
+  }
+
+  .course-details {
+    background-color: #2d2d2d;
+    border-top: 1px solid #404040;
+  }
+
+  .detail-label {
+    color: #b0b0b0;
+  }
+
+  .detail-value {
+    color: #e0e0e0;
+  }
+
+  .error-message {
+    background-color: #3d1a1a;
+    border: 1px solid #5d2d2d;
+    color: #ff6b6b;
+  }
+
+  .spinner {
+    border: 3px solid #404040;
+    border-top: 3px solid #4da6ff;
+  }
+
+  .sessions-container {
+    background-color: #2d2d2d;
+  }
+
+  .sessions-list {
+    background-color: #333;
+  }
+
+  .session-item {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+  }
+
+  .session-item:hover {
+    background-color: #1a2332;
+  }
+
+  .session-icon {
+    background-color: #1a2332;
+    color: #4da6ff;
+  }
+
+  .session-title {
+    color: #e0e0e0;
+  }
+
+  .session-meta {
+    color: #b0b0b0;
+  }
+
+  .session-time {
+    color: #4da6ff;
+  }
+
+  .session-duration {
+    color: #b0b0b0;
+  }
+
+  .session-date {
+    color: #999;
+  }
+
+  .batch-actions {
+    background-color: #333;
+    border: 1px solid #404040;
+  }
+
+  .batch-btn {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+  }
+
+  .batch-btn:hover {
+    border-color: #4da6ff;
+    background-color: #1a2332;
+  }
+
+  .add-all-btn {
+    color: #66cc66;
+    border-color: #66cc66;
+  }
+
+  .add-all-btn:hover {
+    background-color: #1a3d1a;
+    border-color: #4dcc4d;
+  }
+
+  .download-camera-btn {
+    color: #4da6ff;
+    border-color: #4da6ff;
+  }
+
+  .download-camera-btn:hover {
+    background-color: #1a2332;
+    border-color: #66b3ff;
+  }
+
+  .download-screen-btn {
+    color: #cc99ff;
+    border-color: #cc99ff;
+  }
+
+  .download-screen-btn:hover {
+    background-color: #2d1a3d;
+    border-color: #d9b3ff;
+  }
+
+  .action-btn {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+  }
+
+  .action-btn:hover {
+    background-color: #333;
+  }
+
+  .add-btn {
+    color: #66cc66;
+    border-color: #66cc66;
+  }
+
+  .add-btn:hover {
+    background-color: #1a3d1a;
+    border-color: #4dcc4d;
+  }
+
+  .camera-btn {
+    color: #4da6ff;
+    border-color: #4da6ff;
+  }
+
+  .camera-btn:hover {
+    background-color: #1a2332;
+    border-color: #66b3ff;
+  }
+
+  .screen-btn {
+    color: #cc99ff;
+    border-color: #cc99ff;
+  }
+
+  .screen-btn:hover {
+    background-color: #2d1a3d;
+    border-color: #d9b3ff;
+  }
+
+  .no-sessions {
+    color: #b0b0b0;
+  }
+
+  /* Scrollbar styles for dark mode */
+  .sessions-list {
+    scrollbar-color: transparent transparent;
+  }
+
+  .sessions-list:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+
+  .sessions-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .sessions-list::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
+  .sessions-list:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .sessions-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+  }
+}
+
 </style>
