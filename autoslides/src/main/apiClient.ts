@@ -388,57 +388,80 @@ export class ApiClient {
     }
   }
 
-  // Calculate semester ID based on school year and semester number
-  static calculateSemesterId(schoolYear: number, semesterNumber: number): number {
-    if (typeof schoolYear !== 'number' || semesterNumber < 1 || semesterNumber > 2) {
-      throw new Error('Invalid school year or semester number');
-    }
-    return (schoolYear - 1977) * 2 + semesterNumber;
-  }
-
-  // Generate available semesters from 2020-2021 to current year
+  // Hardcoded semester list based on actual API IDs
   static getAvailableSemesters(): SemesterOption[] {
-    const currentDate = new Date();
-    const currentYear = currentDate.getFullYear();
-    const currentMonth = currentDate.getMonth() + 1; // getMonth() returns 0-11
-
-    // Determine current semester based on date
-    // Fall semester: Aug 1 to Feb 1 (next year)
-    // Spring semester: Feb 1 to Aug 1 (same year)
-    let currentSchoolYear = currentYear;
-    if (currentMonth >= 8 || (currentMonth <= 1)) {
-      // Fall semester or early Spring semester
-      if (currentMonth <= 1) {
-        currentSchoolYear = currentYear - 1; // We're in Spring of school year that started last year
-      }
-    }
-
-    const semesters: SemesterOption[] = [];
-
-    // Start from 2020-2021 school year to current school year
-    for (let year = 2020; year <= currentSchoolYear; year++) {
-      // Fall semester (first semester)
-      const firstSemesterId = this.calculateSemesterId(year, 1);
-      semesters.push({
-        id: firstSemesterId,
-        label: `${year}-${year + 1} 第一学期`,
-        labelEn: `${year} Fall`,
-        schoolYear: year,
+    const semesters: SemesterOption[] = [
+      // 2025 academic year
+      {
+        id: 100,
+        label: `2025-2026 第一学期`,
+        labelEn: `2025 Fall`,
+        schoolYear: 2025,
         semester: 1
-      });
-
-      // Spring semester (second semester)
-      const secondSemesterId = this.calculateSemesterId(year, 2);
-      semesters.push({
-        id: secondSemesterId,
-        label: `${year}-${year + 1} 第二学期`,
-        labelEn: `${year + 1} Spring`,
-        schoolYear: year,
+      },
+      {
+        id: 96,
+        label: `2024-2025 第二学期`,
+        labelEn: `2025 Spring`,
+        schoolYear: 2024,
         semester: 2
-      });
-    }
+      },
+      // 2024 academic year
+      {
+        id: 95,
+        label: `2024-2025 第一学期`,
+        labelEn: `2024 Fall`,
+        schoolYear: 2024,
+        semester: 1
+      },
+      {
+        id: 94,
+        label: `2023-2024 第二学期`,
+        labelEn: `2024 Spring`,
+        schoolYear: 2023,
+        semester: 2
+      },
+      // 2023 academic year
+      {
+        id: 92,
+        label: `2023-2024 第一学期`,
+        labelEn: `2023 Fall`,
+        schoolYear: 2023,
+        semester: 1
+      },
+      {
+        id: 91,
+        label: `2022-2023 第二学期`,
+        labelEn: `2023 Spring`,
+        schoolYear: 2022,
+        semester: 2
+      },
+      // 2022 academic year
+      {
+        id: 89,
+        label: `2022-2023 第一学期`,
+        labelEn: `2022 Fall`,
+        schoolYear: 2022,
+        semester: 1
+      },
+      {
+        id: 86,
+        label: `2021-2022 第二学期`,
+        labelEn: `2022 Spring`,
+        schoolYear: 2021,
+        semester: 2
+      },
+      // 2021 academic year
+      {
+        id: 85,
+        label: `2021-2022 第一学期`,
+        labelEn: `2021 Fall`,
+        schoolYear: 2021,
+        semester: 1
+      }
+    ];
 
-    return semesters.reverse(); // Show most recent semesters first
+    return semesters; // Already in reverse chronological order (most recent first)
   }
 
   async getVideoToken(token: string): Promise<string> {
