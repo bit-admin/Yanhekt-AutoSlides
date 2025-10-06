@@ -259,7 +259,7 @@ ipcMain.handle('api:getCourseInfo', async (event, courseId: string, token: strin
 });
 
 ipcMain.handle('api:getAvailableSemesters', async () => {
-  return MainApiClient.getAvailableSemesters();
+  return await apiClient.getAvailableSemesters();
 });
 
 // IPC handlers for video proxy

@@ -414,7 +414,7 @@ const updateSemesterDropdownText = () => {
     const semester = availableSemesters.value.find(s => s.id === selectedSemesters.value[0])
     semesterDropdownText.value = semester ? semester.labelEn : `${selectedSemesters.value.length} selected`
   } else {
-    semesterDropdownText.value = `${selectedSemesters.value.length} semesters selected`
+    semesterDropdownText.value = `${selectedSemesters.value.length} selected`
   }
 }
 

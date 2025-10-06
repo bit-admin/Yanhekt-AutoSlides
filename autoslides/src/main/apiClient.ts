@@ -89,6 +89,22 @@ export interface SemesterOption {
   semester: number;
 }
 
+export interface TagItem {
+  id: number;
+  parent_id: number;
+  name: string;
+  show_type: number;
+  param: string;
+  sort: number;
+  children?: TagItem[];
+}
+
+export interface TagListResponse {
+  code: number;
+  message: string;
+  data: TagItem[];
+}
+
 export class ApiClient {
   private readonly MAGIC = "1138b69dfef641d9d7ba49137d2d4875";
   private readonly BASE_HEADERS = {
@@ -388,10 +404,80 @@ export class ApiClient {
     }
   }
 
-  // Hardcoded semester list based on actual API IDs
-  static getAvailableSemesters(): SemesterOption[] {
-    const semesters: SemesterOption[] = [
-      // 2025 academic year
+  // Parse semester name to extract school year and semester info
+  private static parseSemesterName(name: string): { schoolYear: number; semester: number; labelEn: string } {
+    // Parse format like "2025-2026 第一学期" or "2024-2025 第二学期"
+    const match = name.match(/(\d{4})-(\d{4})\s+(第[一二]学期)/);
+    if (!match) {
+      return { schoolYear: 0, semester: 1, labelEn: name };
+    }
+
+    const startYear = parseInt(match[1]);
+    const endYear = parseInt(match[2]);
+    const semesterText = match[3];
+
+    const semester = semesterText === '第一学期' ? 1 : 2;
+    const schoolYear = startYear; // Use the starting year of the academic year
+
+    // Generate English label
+    let labelEn: string;
+    if (semester === 1) {
+      labelEn = `${startYear} Fall`;
+    } else {
+      labelEn = `${endYear} Spring`;
+    }
+
+    return { schoolYear, semester, labelEn };
+  }
+
+  // Get available semesters dynamically from API
+  async getAvailableSemesters(): Promise<SemesterOption[]> {
+    try {
+      const tagResponse = await this.getTagList();
+
+      if (tagResponse.code !== 0) {
+        throw new Error(`Failed to get tag list: ${tagResponse.message}`);
+      }
+
+      // Find the semester tag (id: 4, param: "semesters")
+      const semesterTag = tagResponse.data.find(tag => tag.param === 'semesters');
+      if (!semesterTag || !semesterTag.children) {
+        throw new Error('Semester information not found in tag list');
+      }
+
+      // Convert semester children to SemesterOption format
+      const semesters: SemesterOption[] = semesterTag.children.map(child => {
+        const { schoolYear, semester, labelEn } = ApiClient.parseSemesterName(child.name);
+
+        return {
+          id: child.id,
+          label: child.name,
+          labelEn: labelEn,
+          schoolYear: schoolYear,
+          semester: semester
+        };
+      });
+
+      // Sort by sort field (descending) to show most recent first
+      semesters.sort((a, b) => {
+        const aChild = semesterTag.children!.find(c => c.id === a.id);
+        const bChild = semesterTag.children!.find(c => c.id === b.id);
+        return (bChild?.sort || 0) - (aChild?.sort || 0);
+      });
+
+      return semesters;
+    } catch (error: unknown) {
+      console.error('Failed to get available semesters:', error);
+
+      // Fallback to hardcoded list if API fails
+      console.warn('Falling back to hardcoded semester list');
+      return this.getFallbackSemesters();
+    }
+  }
+
+  // Fallback hardcoded semester list
+  private getFallbackSemesters(): SemesterOption[] {
+    return [
       {
         id: 100,
         label: `2025-2026 第一学期`,
@@ -406,7 +492,6 @@ export class ApiClient {
         schoolYear: 2024,
         semester: 2
       },
-      // 2024 academic year
       {
         id: 95,
         label: `2024-2025 第一学期`,
@@ -421,47 +506,37 @@ export class ApiClient {
         schoolYear: 2023,
         semester: 2
       },
-      // 2023 academic year
       {
         id: 92,
         label: `2023-2024 第一学期`,
         labelEn: `2023 Fall`,
         schoolYear: 2023,
         semester: 1
-      },
-      {
-        id: 91,
-        label: `2022-2023 第二学期`,
-        labelEn: `2023 Spring`,
-        schoolYear: 2022,
-        semester: 2
-      },
-      // 2022 academic year
-      {
-        id: 89,
-        label: `2022-2023 第一学期`,
-        labelEn: `2022 Fall`,
-        schoolYear: 2022,
-        semester: 1
-      },
-      {
-        id: 86,
-        label: `2021-2022 第二学期`,
-        labelEn: `2022 Spring`,
-        schoolYear: 2021,
-        semester: 2
-      },
-      // 2021 academic year
-      {
-        id: 85,
-        label: `2021-2022 第一学期`,
-        labelEn: `2021 Fall`,
-        schoolYear: 2021,
-        semester: 1
       }
     ];
+  }
 
-    return semesters; // Already in reverse chronological order (most recent first)
+  async getTagList(): Promise<TagListResponse> {
+    try {
+      const url = "https://cbiz.yanhekt.cn/v1/tag/list?with_sub=true";
+      const { headers } = this.createHeaders(''); // No token needed for tag list
+
+      // Remove Authorization header since it's not needed
+      delete headers["Authorization"];
+
+      const response = await axios.get(url, {
+        headers,
+        timeout: 10000,
+        validateStatus: function (status) {
+          return status < 500;
+        }
+      });
+
+      return response.data;
+    } catch (error: unknown) {
+      console.error('Failed to get tag list:', error);
+      throw error;
+    }
   }
 
   async getVideoToken(token: string): Promise<string> {
