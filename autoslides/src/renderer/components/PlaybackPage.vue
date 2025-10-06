@@ -75,6 +75,24 @@
       </div>
 
       <div v-else-if="playbackData" class="video-content" :data-playback-mode="props.mode">
+
+        <!-- Combined Warning Messages -->
+        <div v-if="isTaskRunning || (props.mode === 'recorded' && showSpeedWarning)" class="combined-warning">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <path d="M12 9v4"/>
+            <path d="m12 17 .01 0"/>
+          </svg>
+          <div class="warning-messages">
+            <div v-if="isTaskRunning" class="warning-message">
+              Task in progress. Controls are disabled. If you exit, the task queue will be paused and current task progress will be lost. To adjust settings, please manually pause the task list.
+            </div>
+            <div v-if="props.mode === 'recorded' && showSpeedWarning" class="warning-message">
+              High-speed playback may cause buffering issues. Consider switching to internal network mode for optimal performance at higher speeds.
+            </div>
+          </div>
+        </div>
+
         <!-- Stream Selection and Playback Controls -->
         <div class="controls-row">
           <div v-if="Object.keys(playbackData.streams).length > 1" class="stream-selector">
@@ -101,23 +119,6 @@
               <option value="9">9x</option>
               <option value="10">10x</option>
             </select>
-          </div>
-        </div>
-
-        <!-- Combined Warning Messages -->
-        <div v-if="isTaskRunning || (props.mode === 'recorded' && showSpeedWarning)" class="combined-warning">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
-            <path d="M12 9v4"/>
-            <path d="m12 17 .01 0"/>
-          </svg>
-          <div class="warning-messages">
-            <div v-if="isTaskRunning" class="warning-message">
-              Task in progress. Controls are disabled. If you exit, the task queue will be paused and current task progress will be lost. To adjust settings, please manually pause the task list.
-            </div>
-            <div v-if="props.mode === 'recorded' && showSpeedWarning" class="warning-message">
-              High-speed playback may cause buffering issues. Consider switching to internal network mode for optimal performance at higher speeds.
-            </div>
           </div>
         </div>
 
@@ -2508,7 +2509,32 @@ onUnmounted(async () => {
 .video-content {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
+}
+
+/* Video content group - controls, video, and gallery header form a visual unit */
+.video-content .controls-row {
+  margin-bottom: 0;
+}
+
+.video-content .video-container {
+  margin-bottom: 0;
+}
+
+.video-content .slide-gallery {
+  margin-top: 0;
+}
+
+.video-content .slide-gallery .gallery-header {
+  margin-bottom: 16px;
+  border-top: none;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* Compact spacing for warning when it appears before the main content group */
+.video-content .combined-warning + .controls-row {
+  margin-top: 0;
 }
 
 .controls-row {
@@ -2517,7 +2543,8 @@ onUnmounted(async () => {
   align-items: center;
   padding: 12px;
   background-color: #f8f9fa;
-  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  border-radius: 8px 8px 0 0;
   gap: 16px;
 }
 
@@ -2550,7 +2577,9 @@ onUnmounted(async () => {
   position: relative;
   width: 100%;
   background-color: #000;
-  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  border-top: none;
+  border-radius: 0;
   overflow: hidden;
 }
 
@@ -2701,7 +2730,7 @@ onUnmounted(async () => {
   align-items: flex-start;
   gap: 8px;
   padding: 12px 16px;
-  margin: 12px 0;
+  margin: 0 0 8px 0;
   background-color: #fff3cd;
   border: 1px solid #ffeaa7;
   border-radius: 6px;
@@ -2734,8 +2763,14 @@ onUnmounted(async () => {
   align-items: center;
   padding: 16px;
   background-color: #f8f9fa;
-  border-radius: 8px;
   border: 1px solid #e9ecef;
+  border-radius: 0 0 8px 8px;
+}
+
+/* When gallery is part of the video content group, adjust the control styling */
+.video-content .slide-gallery .slide-extraction-control {
+  border-radius: 0 0 8px 8px;
+  border-top: 1px solid #dee2e6;
 }
 
 .extraction-main {
@@ -2844,10 +2879,16 @@ onUnmounted(async () => {
 /* Slide Gallery */
 .slide-gallery {
   margin-top: 24px;
-  padding: 16px;
   background-color: #f8f9fa;
-  border-radius: 8px;
   border: 1px solid #e9ecef;
+  border-radius: 8px;
+}
+
+/* When gallery is part of the video content group */
+.video-content .slide-gallery {
+  margin-top: 0;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
 }
 
 .gallery-header {
@@ -3246,6 +3287,19 @@ onUnmounted(async () => {
   .slide-gallery {
     background-color: #333;
     border-color: #555;
+  }
+
+  .controls-row {
+    background-color: #333;
+    border-color: #555;
+  }
+
+  .video-container {
+    border-color: #555;
+  }
+
+  .video-content .slide-gallery .slide-extraction-control {
+    border-top-color: #666;
   }
 
   /* Scrollbar styles for dark mode */
