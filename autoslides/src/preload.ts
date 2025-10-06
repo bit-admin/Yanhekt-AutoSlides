@@ -95,4 +95,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
   },
+  menu: {
+    openTermsAndConditions: () => ipcRenderer.invoke('menu:openTermsAndConditions'),
+    reload: () => ipcRenderer.invoke('menu:reload'),
+    forceReload: () => ipcRenderer.invoke('menu:forceReload'),
+    toggleDevTools: () => ipcRenderer.invoke('menu:toggleDevTools'),
+    resetZoom: () => ipcRenderer.invoke('menu:resetZoom'),
+    zoomIn: () => ipcRenderer.invoke('menu:zoomIn'),
+    zoomOut: () => ipcRenderer.invoke('menu:zoomOut'),
+    toggleFullscreen: () => ipcRenderer.invoke('menu:toggleFullscreen'),
+  },
 });
