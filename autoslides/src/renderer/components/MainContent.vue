@@ -283,4 +283,36 @@ onUnmounted(() => {
   50% { opacity: 0.5; }
 }
 
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .main-content {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+  }
+
+  .navigation-bar {
+    border-bottom: 1px solid #404040;
+    background-color: #2d2d2d;
+  }
+
+  .nav-btn {
+    color: #b0b0b0;
+  }
+
+  .nav-btn:hover {
+    background-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .nav-btn.active {
+    background-color: #1a1a1a;
+    border-bottom-color: #4da6ff;
+    color: #4da6ff;
+  }
+
+  .playback-indicator {
+    color: #66cc66;
+  }
+}
+
 </style>

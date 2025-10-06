@@ -124,7 +124,7 @@ const updateSizes = () => {
 }
 
 onMounted(() => {
-  // 使用 nextTick 确保DOM已经渲染完成
+  // Use nextTick to ensure the DOM has been rendered.
   nextTick(() => {
     updateSizes()
   })
@@ -190,5 +190,43 @@ onMounted(() => {
 
 .divider:active {
   background-color: #005a9e;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .app {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+  }
+
+  .layout {
+    background-color: #1a1a1a;
+  }
+
+  .left-panel {
+    background-color: #2d2d2d;
+    border-right: 1px solid #404040;
+  }
+
+  .main-content {
+    background-color: #1a1a1a;
+  }
+
+  .right-panel {
+    background-color: #2d2d2d;
+    border-left: 1px solid #404040;
+  }
+
+  .divider {
+    background-color: #404040;
+  }
+
+  .divider:hover {
+    background-color: #4da6ff;
+  }
+
+  .divider:active {
+    background-color: #0080ff;
+  }
 }
 </style>
