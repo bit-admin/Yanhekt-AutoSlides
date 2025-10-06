@@ -768,260 +768,6 @@ onUnmounted(() => {
   text-align: center;
 }
 
-@media (max-width: 1200px) {
-  .courses-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 900px) {
-  .courses-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 600px) {
-  .courses-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
-.courses-grid {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-.courses-grid:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
-.courses-grid::-webkit-scrollbar {
-  width: 6px;
-}
-
-.courses-grid::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.courses-grid::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  border: none;
-  transition: background 0.3s ease;
-}
-
-.courses-grid:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.courses-grid::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3) !important;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .course-page {
-    background-color: #1a1a1a;
-    color: #e0e0e0;
-  }
-
-  .header {
-    background: linear-gradient(135deg, #2d2d2d 0%, #1f1f1f 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .title-section h2 {
-    color: #e0e0e0;
-    background: linear-gradient(135deg, #4da6ff 0%, #0080ff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 2px 4px rgba(77, 166, 255, 0.2);
-  }
-
-  .search-input {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #e0e0e0;
-  }
-
-  .search-input::placeholder {
-    color: #888;
-  }
-
-  .search-input:focus {
-    border-color: #4da6ff;
-    outline: none;
-  }
-
-  .search-btn, .fetch-btn {
-    background-color: #4da6ff;
-    border: 1px solid #4da6ff;
-    color: #ffffff;
-  }
-
-  .search-btn:hover, .fetch-btn:hover {
-    background-color: #0080ff;
-    border-color: #0080ff;
-  }
-
-  .error-message {
-    background-color: #3d1a1a;
-    border: 1px solid #5d2d2d;
-    color: #ff6b6b;
-  }
-
-  .spinner {
-    border: 3px solid #404040;
-    border-top: 3px solid #4da6ff;
-  }
-
-  .course-card {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #e0e0e0;
-  }
-
-  .course-card:hover {
-    border-color: #4da6ff;
-    box-shadow: 0 2px 8px rgba(77, 166, 255, 0.2);
-  }
-
-  .course-title {
-    color: #e0e0e0;
-  }
-
-  .course-instructor {
-    color: #b0b0b0;
-  }
-
-  .course-location {
-    color: #999;
-  }
-
-  .course-time {
-    color: #888;
-  }
-
-  .course-section {
-    color: #777;
-  }
-
-  .course-participants {
-    color: #4da6ff;
-  }
-
-  .status-ended {
-    background-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .status-live {
-    background-color: #1a3d1a;
-    color: #66cc66;
-  }
-
-  .status-upcoming {
-    background-color: #3d3d1a;
-    color: #cccc66;
-  }
-
-  .status-unknown {
-    background-color: #333;
-    color: #999;
-  }
-
-  .course-id {
-    background-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .pagination {
-    border-top: 1px solid #404040;
-    background-color: #1a1a1a;
-  }
-
-  .page-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #e0e0e0;
-  }
-
-  .page-btn:hover:not(:disabled) {
-    border-color: #4da6ff;
-    background-color: #333;
-  }
-
-  .page-info {
-    color: #b0b0b0;
-  }
-
-  .semester-dropdown-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #e0e0e0;
-  }
-
-  .semester-dropdown-btn:hover {
-    border-color: #4da6ff;
-  }
-
-  .semester-dropdown {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  }
-
-  .semester-option:hover {
-    background-color: #404040;
-  }
-
-  .welcome-content h1 {
-    color: #e0e0e0;
-  }
-
-  .welcome-content h2 {
-    color: #e0e0e0;
-  }
-
-  .welcome-content p {
-    color: #b0b0b0;
-  }
-
-  .welcome-icon {
-    color: #4da6ff;
-  }
-
-  /* Scrollbar styles for dark mode */
-  .courses-grid {
-    scrollbar-color: transparent transparent;
-  }
-
-  .courses-grid:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .courses-grid::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .courses-grid::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .courses-grid:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .courses-grid::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-  }
-}
-
 /* Semester selector styles */
 .semester-selector {
   position: relative;
@@ -1132,6 +878,260 @@ onUnmounted(() => {
   font-size: 16px;
   line-height: 1.5;
   color: #666;
+}
+
+@media (max-width: 1200px) {
+  .courses-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .courses-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .courses-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
+.courses-grid {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.courses-grid:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.courses-grid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.courses-grid::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.courses-grid::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  border: none;
+  transition: background 0.3s ease;
+}
+
+.courses-grid:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.courses-grid::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .course-page {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #2d2d2d 0%, #1f1f1f 100%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  .title-section h2 {
+    color: #e0e0e0;
+    background: linear-gradient(135deg, #4da6ff 0%, #0080ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 2px 4px rgba(77, 166, 255, 0.2);
+  }
+
+  .search-input {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+  }
+
+  .search-input::placeholder {
+    color: #888;
+  }
+
+  .search-input:focus {
+    border-color: #4da6ff;
+    outline: none;
+  }
+
+  .search-btn, .fetch-btn {
+    background-color: #2563eb;
+    border: 1px solid #2563eb;
+    color: #ffffff;
+  }
+
+  .search-btn:hover, .fetch-btn:hover {
+    background-color: #1d4ed8;
+    border-color: #1d4ed8;
+  }
+
+  .error-message {
+    background-color: #3d1a1a;
+    border: 1px solid #5d2d2d;
+    color: #ff6b6b;
+  }
+
+  .spinner {
+    border: 3px solid #404040;
+    border-top: 3px solid #4da6ff;
+  }
+
+  .course-card {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+  }
+
+  .course-card:hover {
+    border-color: #4da6ff;
+    box-shadow: 0 2px 8px rgba(77, 166, 255, 0.2);
+  }
+
+  .course-title {
+    color: #e0e0e0;
+  }
+
+  .course-instructor {
+    color: #b0b0b0;
+  }
+
+  .course-location {
+    color: #999;
+  }
+
+  .course-time {
+    color: #888;
+  }
+
+  .course-section {
+    color: #777;
+  }
+
+  .course-participants {
+    color: #4da6ff;
+  }
+
+  .status-ended {
+    background-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .status-live {
+    background-color: #1a3d1a;
+    color: #66cc66;
+  }
+
+  .status-upcoming {
+    background-color: #3d3d1a;
+    color: #cccc66;
+  }
+
+  .status-unknown {
+    background-color: #333;
+    color: #999;
+  }
+
+  .course-id {
+    background-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .pagination {
+    border-top: 1px solid #404040;
+    background-color: #2d2d2d;
+  }
+
+  .page-btn {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+  }
+
+  .page-btn:hover:not(:disabled) {
+    border-color: #4da6ff;
+    background-color: #333;
+  }
+
+  .page-info {
+    color: #b0b0b0;
+  }
+
+  .semester-dropdown-btn {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    color: #e0e0e0;
+  }
+
+  .semester-dropdown-btn:hover {
+    border-color: #4da6ff;
+  }
+
+  .semester-dropdown {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+
+  .semester-option:hover {
+    background-color: #404040;
+  }
+
+  .welcome-content h1 {
+    color: #e0e0e0;
+  }
+
+  .welcome-content h2 {
+    color: #e0e0e0;
+  }
+
+  .welcome-content p {
+    color: #b0b0b0;
+  }
+
+  .welcome-icon {
+    color: #4da6ff;
+  }
+
+  /* Scrollbar styles for dark mode */
+  .courses-grid {
+    scrollbar-color: transparent transparent;
+  }
+
+  .courses-grid:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+
+  .courses-grid::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .courses-grid::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
+  .courses-grid:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .courses-grid::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+  }
 }
 
 </style>

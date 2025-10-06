@@ -1576,11 +1576,11 @@ const loadManualToken = () => {
   }
 
   .browse-btn {
-    background-color: #4a9eff;
+    background-color: #2563eb;
   }
 
   .browse-btn:hover {
-    background-color: #3a8eef;
+    background-color: #1d4ed8;
   }
 
   .mode-btn {
@@ -1594,9 +1594,9 @@ const loadManualToken = () => {
   }
 
   .mode-btn.active {
-    background-color: #4a9eff;
+    background-color: #2563eb;
     color: white;
-    border-color: #4a9eff;
+    border-color: #2563eb;
   }
 
   .audio-mode-select, .theme-select, .task-speed-select, .verification-count-select, .concurrent-select, .ssim-select {
