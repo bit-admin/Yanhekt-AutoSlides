@@ -92,24 +92,27 @@
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">{{ $t('settings.theme') }}</label>
-          <div class="theme-selector">
-            <select v-model="themeMode" @change="setThemeMode" class="theme-select">
-              <option value="system">{{ $t('settings.followSystem') }}</option>
-              <option value="light">{{ $t('settings.light') }}</option>
-              <option value="dark">{{ $t('settings.dark') }}</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label">{{ $t('settings.language') }}</label>
-          <div class="language-selector">
-            <select v-model="languageMode" @change="setLanguageMode" class="language-select">
-              <option value="system">{{ $t('settings.followSystem') }}</option>
-              <option value="en">{{ $t('settings.english') }}</option>
-              <option value="zh">{{ $t('settings.chinese') }}</option>
-            </select>
+          <div class="theme-language-row">
+            <div class="theme-language-item">
+              <label class="setting-label">{{ $t('settings.theme') }}</label>
+              <div class="theme-selector">
+                <select v-model="themeMode" @change="setThemeMode" class="theme-select">
+                  <option value="system">{{ $t('settings.followSystem') }}</option>
+                  <option value="light">{{ $t('settings.light') }}</option>
+                  <option value="dark">{{ $t('settings.dark') }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="theme-language-item">
+              <label class="setting-label">{{ $t('settings.language') }}</label>
+              <div class="language-selector">
+                <select v-model="languageMode" @change="setLanguageMode" class="language-select">
+                  <option value="system">{{ $t('settings.followSystem') }}</option>
+                  <option value="en">{{ $t('settings.english') }}</option>
+                  <option value="zh">{{ $t('settings.chinese') }}</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1075,6 +1078,19 @@ const loadManualToken = () => {
   outline: none;
   border-color: #007bff;
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.theme-language-row {
+  display: flex;
+  gap: 12px;
+}
+
+.theme-language-item {
+  flex: 1;
+}
+
+.theme-language-item .setting-label {
+  margin-bottom: 6px;
 }
 
 /* Slide extraction settings styles */

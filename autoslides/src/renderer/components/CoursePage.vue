@@ -187,7 +187,7 @@ const emit = defineEmits<{
   courseSelected: [course: Course]
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const apiClient = new ApiClient()
 const tokenManager = new TokenManager()
@@ -203,7 +203,7 @@ const errorMessage = ref('')
 const availableSemesters = ref<SemesterOption[]>([])
 const selectedSemesters = ref<number[]>([])
 const showSemesterDropdown = ref(false)
-const semesterDropdownText = ref('All Semesters')
+const semesterDropdownText = ref('')
 const showWelcome = ref(true)
 
 const paginatedCourses = computed(() => {
@@ -447,6 +447,9 @@ watch(() => props.mode, async () => {
 })
 
 onMounted(async () => {
+  // Initialize semester dropdown text with proper translation
+  semesterDropdownText.value = t('courses.semester.allSemesters')
+
   if (props.mode === 'recorded') {
     await loadAvailableSemesters()
     document.addEventListener('click', handleClickOutside)
@@ -454,6 +457,11 @@ onMounted(async () => {
 
   // Show welcome page initially, don't auto-load data
   showWelcome.value = true
+})
+
+// Watch for language changes and update semester dropdown text
+watch(() => locale.value, () => {
+  semesterDropdownText.value = t('courses.semester.allSemesters')
 })
 
 onUnmounted(() => {

@@ -105,7 +105,7 @@
                   <div class="session-title">{{ session.title }}</div>
                   <div class="session-meta">
                     <span v-if="session.week_number && session.day" class="session-time">
-                      {{ $t('sessions.week') }}{{ session.week_number }}{{ $t('sessions.week') === '第' ? '周' : '' }}, {{ getDayName(session.day) }}
+                      {{ $t('sessions.week') }} {{ session.week_number }}{{ $t('sessions.week') === '第' ? '周' : '' }}, {{ getDayName(session.day) }}
                     </span>
                     <span v-if="session.duration" class="session-duration">
                       {{ formatDuration(session.duration) }}
