@@ -206,6 +206,9 @@ const showSemesterDropdown = ref(false)
 const semesterDropdownText = ref('')
 const showWelcome = ref(true)
 
+// Track the last action to determine which function to call for pagination
+const lastAction = ref<'search' | 'personal' | null>(null)
+
 const paginatedCourses = computed(() => {
   return courses.value
 })
@@ -220,6 +223,7 @@ const searchCourses = async () => {
   showWelcome.value = false
   isLoading.value = true
   errorMessage.value = ''
+  lastAction.value = 'search' // Track that this was a search action
 
   try {
     if (props.mode === 'live') {
@@ -261,6 +265,7 @@ const fetchPersonalCourses = async () => {
   showWelcome.value = false
   isLoading.value = true
   errorMessage.value = ''
+  lastAction.value = 'personal' // Track that this was a personal courses action
 
   try {
     if (props.mode === 'live') {
@@ -383,8 +388,8 @@ const goToPage = async (page: number) => {
   if (page >= 1 && page <= totalPages.value && page !== currentPage.value) {
     currentPage.value = page
 
-    // Re-fetch data for the new page
-    if (searchQuery.value.trim() || (props.mode === 'recorded' && selectedSemesters.value.length > 0)) {
+    // Re-fetch data for the new page based on the last action performed
+    if (lastAction.value === 'search') {
       await searchCourses()
     } else {
       await fetchPersonalCourses()
@@ -436,6 +441,7 @@ const resetPageState = () => {
   showSemesterDropdown.value = false
   errorMessage.value = ''
   showWelcome.value = true
+  lastAction.value = null // Reset the last action tracking
 }
 
 // Watch for mode changes and reset state

@@ -196,6 +196,121 @@
             let xor = hash1 ^ hash2; let distance = 0;
             while (xor > 0n) { distance += Number(xor & 1n); xor >>= 1n; } return distance;
         }
+
+        // --- VARIANCE OF LAPLACIAN BLUR DETECTION ---
+        function calculateVarianceOfLaplacian(imageData) {
+            // Convert to grayscale first
+            const grayscale = convertToGrayscale(imageData);
+            const width = grayscale.width;
+            const height = grayscale.height;
+            const data = grayscale.data;
+
+            // Laplacian kernel: [[0, -1, 0], [-1, 4, -1], [0, -1, 0]]
+            const laplacianValues = [];
+
+            // Apply Laplacian filter (skip border pixels to avoid edge effects)
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const center = (y * width + x) * 4;
+                    const top = ((y - 1) * width + x) * 4;
+                    const bottom = ((y + 1) * width + x) * 4;
+                    const left = (y * width + (x - 1)) * 4;
+                    const right = (y * width + (x + 1)) * 4;
+
+                    // Apply Laplacian kernel
+                    const laplacian = 4 * data[center] - data[top] - data[bottom] - data[left] - data[right];
+                    laplacianValues.push(laplacian);
+                }
+            }
+
+            // Calculate variance of Laplacian values
+            if (laplacianValues.length === 0) return 0;
+
+            const mean = laplacianValues.reduce((sum, val) => sum + val, 0) / laplacianValues.length;
+            const variance = laplacianValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / laplacianValues.length;
+
+            return variance;
+        }
+
+        // --- GRAYSCALE HISTOGRAM ENTROPY ---
+        function calculateGrayscaleHistogramEntropy(imageData) {
+            // Convert to grayscale first
+            const grayscale = convertToGrayscale(imageData);
+            const data = grayscale.data;
+
+            // Build histogram (256 bins for grayscale values 0-255)
+            const histogram = new Array(256).fill(0);
+            const totalPixels = grayscale.width * grayscale.height;
+
+            // Count pixel intensities
+            for (let i = 0; i < data.length; i += 4) {
+                const grayValue = Math.round(data[i]); // R, G, B are all the same in grayscale
+                histogram[grayValue]++;
+            }
+
+            // Calculate entropy: H = -Σ(p * log2(p))
+            let entropy = 0;
+            for (let i = 0; i < 256; i++) {
+                if (histogram[i] > 0) {
+                    const probability = histogram[i] / totalPixels;
+                    entropy -= probability * Math.log2(probability);
+                }
+            }
+
+            return entropy;
+        }
+
+        // --- HIGH-PASS FILTER NOISE DETECTION ---
+        function calculateHighPassNoiseLevel(imageData) {
+            // Convert to grayscale first
+            const grayscale = convertToGrayscale(imageData);
+            const width = grayscale.width;
+            const height = grayscale.height;
+            const data = grayscale.data;
+
+            // High-pass filter kernel (emphasizes rapid changes/noise)
+            // Using a 3x3 high-pass kernel: [[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]
+            const highPassValues = [];
+
+            // Apply high-pass filter (skip border pixels to avoid edge effects)
+            for (let y = 1; y < height - 1; y++) {
+                for (let x = 1; x < width - 1; x++) {
+                    const center = (y * width + x) * 4;
+
+                    // Get 3x3 neighborhood
+                    const neighbors = [
+                        ((y - 1) * width + (x - 1)) * 4, // top-left
+                        ((y - 1) * width + x) * 4,       // top
+                        ((y - 1) * width + (x + 1)) * 4, // top-right
+                        (y * width + (x - 1)) * 4,       // left
+                        (y * width + (x + 1)) * 4,       // right
+                        ((y + 1) * width + (x - 1)) * 4, // bottom-left
+                        ((y + 1) * width + x) * 4,       // bottom
+                        ((y + 1) * width + (x + 1)) * 4  // bottom-right
+                    ];
+
+                    // Apply high-pass kernel: center * 8 - sum of all neighbors
+                    let neighborSum = 0;
+                    for (const neighborIdx of neighbors) {
+                        neighborSum += data[neighborIdx];
+                    }
+
+                    const highPassValue = 8 * data[center] - neighborSum;
+                    highPassValues.push(Math.abs(highPassValue)); // Use absolute value for noise magnitude
+                }
+            }
+
+            // Calculate statistics of high-pass response
+            if (highPassValues.length === 0) return 0;
+
+            // Use standard deviation of high-pass response as noise measure
+            const mean = highPassValues.reduce((sum, val) => sum + val, 0) / highPassValues.length;
+            const variance = highPassValues.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / highPassValues.length;
+            const stdDev = Math.sqrt(variance);
+
+            // Return a combination of mean and standard deviation for robust noise estimation
+            return mean + stdDev * 0.5; // Weighted combination
+        }
         
         function loadImageAsImageData(img) {
             return new Promise((resolve, reject) => {
@@ -232,8 +347,47 @@
                 const img2Data = await loadImageAsImageData(img2);
                 timings.img2Load = performance.now() - startTime;
                 
-                let html = `<h4>Image Dimensions</h4>
-                    <div class="result-item"><strong>Image 1:</strong> ${img1Data.width}×${img1Data.height} | <strong>Image 2:</strong> ${img2Data.width}×${img2Data.height}</div>`;
+                // Calculate image quality metrics for display in Image Information
+                startTime = performance.now();
+                const img1BlurScore = calculateVarianceOfLaplacian(img1Data);
+                timings.img1Blur = performance.now() - startTime;
+
+                startTime = performance.now();
+                const img2BlurScore = calculateVarianceOfLaplacian(img2Data);
+                timings.img2Blur = performance.now() - startTime;
+
+                startTime = performance.now();
+                const img1Entropy = calculateGrayscaleHistogramEntropy(img1Data);
+                timings.img1Entropy = performance.now() - startTime;
+
+                startTime = performance.now();
+                const img2Entropy = calculateGrayscaleHistogramEntropy(img2Data);
+                timings.img2Entropy = performance.now() - startTime;
+
+                startTime = performance.now();
+                const img1NoiseLevel = calculateHighPassNoiseLevel(img1Data);
+                timings.img1Noise = performance.now() - startTime;
+
+                startTime = performance.now();
+                const img2NoiseLevel = calculateHighPassNoiseLevel(img2Data);
+                timings.img2Noise = performance.now() - startTime;
+
+                let html = `<h4>Image Information</h4>
+                    <div class="result-item">
+                        <strong>Dimensions:</strong> Image 1: ${img1Data.width}×${img1Data.height} | Image 2: ${img2Data.width}×${img2Data.height}
+                    </div>
+                    <div class="result-item">
+                        <strong>Variance of Laplacian (blur detection):</strong> Image 1: ${img1BlurScore.toFixed(2)} | Image 2: ${img2BlurScore.toFixed(2)}
+                        <div style="margin-top: 5px; font-size: 12px; color: #666;">Higher values indicate sharper images</div>
+                    </div>
+                    <div class="result-item">
+                        <strong>High-Pass Noise Level:</strong> Image 1: ${img1NoiseLevel.toFixed(2)} | Image 2: ${img2NoiseLevel.toFixed(2)}
+                        <div style="margin-top: 5px; font-size: 12px; color: #666;">Higher values indicate more noise/grain in the image</div>
+                    </div>
+                    <div class="result-item">
+                        <strong>Histogram Entropy:</strong> Image 1: ${img1Entropy.toFixed(3)} bits | Image 2: ${img2Entropy.toFixed(3)} bits
+                        <div style="margin-top: 5px; font-size: 12px; color: #666;">Higher entropy indicates more complex/detailed images (max: 8.0 bits)</div>
+                    </div>`;
 
                 // --- SSIM Analysis ---
                 html += `<h2>SSIM Analysis</h2>`;
@@ -261,6 +415,7 @@
                         • Algorithm: Structural Similarity Index with sliding window
                     </div>
                 </div>`;
+
 
                 // --- Standard pHash Analysis ---
                 html += `<h2>Standard pHash Analysis</h2>`;
@@ -290,6 +445,9 @@
                     <h3>Performance Breakdown</h3>
                     <ul>
                         <li><strong>Image Data Loading (Img1/Img2):</strong> ${timings.img1Load.toFixed(2)}ms / ${timings.img2Load.toFixed(2)}ms</li>
+                        <li><strong>Blur Detection (Img1/Img2):</strong> ${timings.img1Blur.toFixed(2)}ms / ${timings.img2Blur.toFixed(2)}ms</li>
+                        <li><strong>Noise Detection (Img1/Img2):</strong> ${timings.img1Noise.toFixed(2)}ms / ${timings.img2Noise.toFixed(2)}ms</li>
+                        <li><strong>Histogram Entropy (Img1/Img2):</strong> ${timings.img1Entropy.toFixed(2)}ms / ${timings.img2Entropy.toFixed(2)}ms</li>
                         <li><strong>Global SSIM Calculation:</strong> ${timings.globalSSIM.toFixed(2)} ms</li>
                         <li><strong>Standard SSIM Calculation:</strong> ${timings.standardSSIM.toFixed(2)} ms</li>
                         <hr>
