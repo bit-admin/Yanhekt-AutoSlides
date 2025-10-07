@@ -41,14 +41,15 @@
     "japanese": "日本語",
     "korean": "한국어",
     "slideDetectionInterval": "슬라이드 감지 간격",
-    "slideDetectionDescription": "간격은 재생 속도에 따라 자동으로 조정됩니다 (기본값: 2000ms).",
+    "slideDetectionDescription": "간격은 재생 속도에 따라 자동으로 조정됩니다.",
     "milliseconds": "밀리초",
     "slideStabilityVerification": "슬라이드 안정성 검증",
-    "slideStabilityDescription": "애니메이션으로 인한 잘못된 감지를 방지하기 위해 새 슬라이드가 연속적으로 여러 번 확인된 후 변경되지 않음을 확인합니다 (기본값: 2회).",
+    "slideStabilityDescription": "애니메이션으로 인한 잘못된 감지를 방지하기 위해 새 슬라이드가 연속적으로 여러 번 확인된 후 변경되지 않음을 확인합니다.",
     "enableChecks": "확인 활성화",
     "counts": "회",
     "taskSpeed": "작업 속도",
-    "taskSpeedDescription": "자동 작업 처리의 재생 속도."
+    "taskSpeedDescription": "자동 작업 처리의 재생 속도.",
+    "resetToDefault": "기본값으로 재설정"
   },
   "status": {
     "connection": "연결",
@@ -69,7 +70,13 @@
     "imageProcessing": "이미지 처리",
     "ssimThreshold": "SSIM 임계값",
     "ssimDescription": "더 높은 전역 구조적 유사성 임계값은 더 엄격한 매칭을 나타냅니다. 메뉴 > 도움말 > SSIM 테스트에서 감지 정확도를 테스트할 수 있습니다.",
-    "ssimWarning": "필요한 경우에만 조정하세요. 0.001의 작은 변경도 성능에 크게 영향을 줄 수 있습니다 (기본값: 0.999; 대안: 더 느슨한 임계값의 경우 0.998).",
+    "ssimWarning": "필요한 경우에만 조정하세요. 0.001의 작은 변경도 성능에 크게 영향을 줄 수 있습니다.",
+    "ssimPresets": {
+      "default": "기본값 (0.9987)",
+      "strict": "엄격 (0.999)",
+      "loose": "느슨함 (0.9982)",
+      "custom": "사용자 정의"
+    },
     "videoPlayback": "비디오 재생",
     "videoErrorRetryCount": "비디오 오류 재시도 횟수",
     "videoErrorDescription": "비디오 재생 오류가 발생했을 때의 재시도 횟수.",

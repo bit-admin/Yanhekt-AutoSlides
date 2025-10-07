@@ -119,7 +119,17 @@
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">{{ $t('settings.slideDetectionInterval') }}</label>
+          <div class="setting-label-with-reset">
+            <label class="setting-label">{{ $t('settings.slideDetectionInterval') }}</label>
+            <button @click="resetSlideDetectionInterval" class="reset-btn" :title="$t('settings.resetToDefault')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M3 21v-5h5"/>
+              </svg>
+            </button>
+          </div>
           <div class="setting-description">{{ $t('settings.slideDetectionDescription') }}</div>
           <div class="slide-interval-group">
             <div class="slide-interval-input-wrapper">
@@ -139,7 +149,17 @@
         </div>
 
         <div class="setting-item">
-          <label class="setting-label">{{ $t('settings.slideStabilityVerification') }}</label>
+          <div class="setting-label-with-reset">
+            <label class="setting-label">{{ $t('settings.slideStabilityVerification') }}</label>
+            <button @click="resetSlideStabilityVerification" class="reset-btn" :title="$t('settings.resetToDefault')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M3 21v-5h5"/>
+              </svg>
+            </button>
+          </div>
           <div class="setting-description">{{ $t('settings.slideStabilityDescription') }}</div>
           <div class="verification-unified-control">
             <label class="checkbox-label">
@@ -243,15 +263,28 @@
               <div class="setting-item">
                 <label class="setting-label">{{ $t('advanced.ssimThreshold') }}</label>
                 <div class="setting-description">{{ $t('advanced.ssimDescription') }}</div>
-                <input
-                  v-model.number="tempSsimThreshold"
-                  type="number"
-                  min="0.9"
-                  max="1.0"
-                  step="0.0001"
-                  class="ssim-select"
-                  @change="updateImageProcessingParams"
-                />
+                <div class="ssim-input-group">
+                  <input
+                    v-model.number="tempSsimThreshold"
+                    type="number"
+                    min="0.9"
+                    max="1.0"
+                    step="0.0001"
+                    class="ssim-input"
+                    @input="onSsimInputChange"
+                    @change="updateImageProcessingParams"
+                  />
+                  <select
+                    v-model="ssimPreset"
+                    @change="onSsimPresetChange"
+                    class="ssim-preset-select"
+                  >
+                    <option value="default">{{ $t('advanced.ssimPresets.default') }}</option>
+                    <option value="strict">{{ $t('advanced.ssimPresets.strict') }}</option>
+                    <option value="loose">{{ $t('advanced.ssimPresets.loose') }}</option>
+                    <option value="custom">{{ $t('advanced.ssimPresets.custom') }}</option>
+                  </select>
+                </div>
                 <div class="setting-description">{{ $t('advanced.ssimWarning') }}</div>
               </div>
             </div>
@@ -380,8 +413,9 @@ const slideVerificationCount = ref(2)
 const taskSpeed = ref(10)
 
 // Advanced image processing parameters
-const ssimThreshold = ref(0.999)
-const tempSsimThreshold = ref(0.999)
+const ssimThreshold = ref(0.9987)
+const tempSsimThreshold = ref(0.9987)
+const ssimPreset = ref('default')
 
 // Manual token authentication
 const manualToken = ref('')
@@ -492,7 +526,7 @@ const loadConfig = async () => {
     await languageService.initialize()
 
     // Load advanced image processing parameters
-    ssimThreshold.value = slideConfig.ssimThreshold || 0.999
+    ssimThreshold.value = slideConfig.ssimThreshold || 0.9987
     tempSsimThreshold.value = ssimThreshold.value
   } catch (error) {
     console.error('Failed to load config:', error)
@@ -594,6 +628,27 @@ const setSlideDoubleVerification = async () => {
   }
 }
 
+// Reset methods for slide settings
+const resetSlideDetectionInterval = async () => {
+  try {
+    slideCheckInterval.value = 2000
+    validateAndCorrectInterval()
+    await setSlideCheckInterval()
+  } catch (error) {
+    console.error('Failed to reset slide detection interval:', error)
+  }
+}
+
+const resetSlideStabilityVerification = async () => {
+  try {
+    slideDoubleVerification.value = true
+    slideVerificationCount.value = 2
+    await setSlideDoubleVerification()
+  } catch (error) {
+    console.error('Failed to reset slide stability verification:', error)
+  }
+}
+
 const setTaskSpeed = async () => {
   try {
     const result = await window.electronAPI.config.setTaskSpeed(taskSpeed.value)
@@ -634,6 +689,18 @@ const openAdvancedSettings = () => {
   tempVideoRetryCount.value = videoRetryCount.value
   tempSsimThreshold.value = ssimThreshold.value
 
+  // Initialize SSIM preset based on current value
+  const value = ssimThreshold.value
+  if (value === 0.9987) {
+    ssimPreset.value = 'default'
+  } else if (value === 0.999) {
+    ssimPreset.value = 'strict'
+  } else if (value === 0.9982) {
+    ssimPreset.value = 'loose'
+  } else {
+    ssimPreset.value = 'custom'
+  }
+
   // Load manual token from localStorage
   loadManualToken()
   tokenVerificationStatus.value = null
@@ -660,6 +727,36 @@ const updateVideoRetryCount = () => {
 
 const updateImageProcessingParams = () => {
   // This is called when the inputs change, but we don't save until "Save" is clicked
+}
+
+// SSIM preset handling methods
+const onSsimPresetChange = () => {
+  const presetValues: Record<string, number> = {
+    'default': 0.9987,
+    'strict': 0.999,
+    'loose': 0.9982,
+    'custom': tempSsimThreshold.value
+  }
+
+  if (ssimPreset.value !== 'custom') {
+    tempSsimThreshold.value = presetValues[ssimPreset.value]
+    updateImageProcessingParams()
+  }
+}
+
+const onSsimInputChange = () => {
+  // When user manually changes the input, determine which preset it matches
+  const value = tempSsimThreshold.value
+
+  if (value === 0.9987) {
+    ssimPreset.value = 'default'
+  } else if (value === 0.999) {
+    ssimPreset.value = 'strict'
+  } else if (value === 0.9982) {
+    ssimPreset.value = 'loose'
+  } else {
+    ssimPreset.value = 'custom'
+  }
 }
 
 const saveAdvancedSettings = async () => {
@@ -957,6 +1054,38 @@ const loadManualToken = () => {
   font-weight: 500;
   color: #333;
   margin-bottom: 6px;
+}
+
+.setting-label-with-reset {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.reset-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  color: #666;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+.reset-btn:hover {
+  background-color: #f0f0f0;
+  color: #333;
+  opacity: 1;
+}
+
+.reset-btn svg {
+  width: 12px;
+  height: 12px;
 }
 
 .directory-input-group {
@@ -1390,6 +1519,46 @@ const loadManualToken = () => {
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
+.ssim-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.ssim-preset-select {
+  flex: 0 0 auto;
+  min-width: 140px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.ssim-preset-select:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.ssim-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+}
+
+.ssim-input:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -1636,6 +1805,15 @@ const loadManualToken = () => {
     color: #e0e0e0;
   }
 
+  .reset-btn {
+    color: #b0b0b0;
+  }
+
+  .reset-btn:hover {
+    background-color: #3d3d3d;
+    color: #e0e0e0;
+  }
+
   .setting-description {
     color: #b0b0b0;
   }
@@ -1670,13 +1848,13 @@ const loadManualToken = () => {
     border-color: #2563eb;
   }
 
-  .audio-mode-select, .theme-select, .language-select, .task-speed-select, .verification-count-select, .concurrent-select, .ssim-select {
+  .audio-mode-select, .theme-select, .language-select, .task-speed-select, .verification-count-select, .concurrent-select, .ssim-select, .ssim-preset-select, .ssim-input {
     background-color: #2d2d2d;
     border-color: #404040;
     color: #e0e0e0;
   }
 
-  .audio-mode-select:focus, .theme-select:focus, .language-select:focus, .task-speed-select:focus, .verification-count-select:focus, .concurrent-select:focus, .ssim-select:focus {
+  .audio-mode-select:focus, .theme-select:focus, .language-select:focus, .task-speed-select:focus, .verification-count-select:focus, .concurrent-select:focus, .ssim-select:focus, .ssim-preset-select:focus, .ssim-input:focus {
     border-color: #4a9eff;
     box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
   }

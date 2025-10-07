@@ -41,14 +41,15 @@
     "japanese": "日本語",
     "korean": "한국어",
     "slideDetectionInterval": "幻灯片检测间隔",
-    "slideDetectionDescription": "间隔时间会根据播放速度自动调整（默认：2000毫秒）",
+    "slideDetectionDescription": "间隔时间会根据播放速度自动调整",
     "milliseconds": "毫秒",
     "slideStabilityVerification": "幻灯片稳定性复核",
-    "slideStabilityDescription": "演讲者通常将停留在同一幻灯片一段时间进行讲解，通过确认新幻灯片是否在连续若干次的检查中保持不变，可排除动画、视频、轻微移动等内容（默认：2次检查）",
+    "slideStabilityDescription": "演讲者通常将停留在同一幻灯片一段时间进行讲解，通过确认新幻灯片是否在连续若干次的检查中保持不变，可排除动画、视频、轻微移动等内容",
     "enableChecks": "启用检查",
     "counts": "次",
     "taskSpeed": "任务速度",
-    "taskSpeedDescription": "自动处理任务时的播放速度"
+    "taskSpeedDescription": "自动处理任务时的播放速度",
+    "resetToDefault": "恢复默认"
   },
   "status": {
     "connection": "连接状态",
@@ -69,7 +70,13 @@
     "imageProcessing": "图像处理",
     "ssimThreshold": "SSIM 阈值",
     "ssimDescription": "更高的全局结构相似性阈值表示更严格的匹配。您可以在 菜单 > 帮助 > SSIM 测试 中测试检测精度",
-    "ssimWarning": "仅在必要时调整。即便 0.001 的微小变化也可能显著影响性能（默认：0.999；备选：0.998 用于更宽松的阈值）",
+    "ssimWarning": "仅在必要时调整。即便 0.001 的微小变化也可能显著影响性能",
+    "ssimPresets": {
+      "default": "默认 (0.9987)",
+      "strict": "严格 (0.999)",
+      "loose": "宽松 (0.9982)",
+      "custom": "自定义"
+    },
     "videoPlayback": "视频播放",
     "videoErrorRetryCount": "视频错误重试次数",
     "videoErrorDescription": "视频播放错误时的重试次数",

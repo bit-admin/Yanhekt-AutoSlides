@@ -9,13 +9,13 @@
     "verifying": "確認中...",
     "verifyingMessage": "ログイン状態を確認しています。お待ちください...",
     "signIn": "サインイン",
-    "signInMessage": "すべてのリソースにアクセスするには、Yanhektにサインインしてください。",
+    "signInMessage": "すべてのリソースにアクセスするには、Yanhektにサインインしてください",
     "username": "ユーザー名",
     "password": "パスワード",
     "signingIn": "サインイン中...",
     "hiThere": "こんにちは、{nickname}さん",
     "signInAs": "{userId}としてサインイン",
-    "accessMessage": "Yanhektのすべてのリソースにアクセスできるようになりました。",
+    "accessMessage": "Yanhektのすべてのリソースにアクセスできるようになりました",
     "signOut": "サインアウト"
   },
   "settings": {
@@ -41,14 +41,15 @@
     "japanese": "日本語",
     "korean": "한국어",
     "slideDetectionInterval": "スライド検出間隔",
-    "slideDetectionDescription": "間隔は再生速度に基づいて自動調整されます（デフォルト：2000ms）。",
+    "slideDetectionDescription": "間隔は再生速度に基づいて自動調整されます",
     "milliseconds": "ミリ秒",
     "slideStabilityVerification": "スライド安定性検証",
-    "slideStabilityDescription": "アニメーションによる誤検出を防ぐため、新しいスライドが連続して数回変更されないことを確認します（デフォルト：2回）。",
+    "slideStabilityDescription": "アニメーションによる誤検出を防ぐため、新しいスライドが連続して数回変更されないことを確認します",
     "enableChecks": "チェックを有効にする",
     "counts": "回",
     "taskSpeed": "タスク速度",
-    "taskSpeedDescription": "自動タスク処理の再生速度。"
+    "taskSpeedDescription": "自動タスク処理の再生速度",
+    "resetToDefault": "デフォルトにリセット"
   },
   "status": {
     "connection": "接続",
@@ -60,7 +61,7 @@
   "advanced": {
     "authentication": "認証",
     "token": "トークン",
-    "tokenDescription": "直接アクセスのために認証トークンを手動で入力してください。",
+    "tokenDescription": "直接アクセスのために認証トークンを手動で入力してください",
     "tokenPlaceholder": "トークンをここに入力...",
     "hideToken": "トークンを隠す",
     "showToken": "トークンを表示",
@@ -68,14 +69,20 @@
     "verifying": "確認中...",
     "imageProcessing": "画像処理",
     "ssimThreshold": "SSIM閾値",
-    "ssimDescription": "より高いグローバル構造類似性閾値は、より厳密なマッチングを示します。メニュー > ヘルプ > SSIMテストで検出精度をテストできます。",
-    "ssimWarning": "必要な場合のみ調整してください。0.001の小さな変更でもパフォーマンスに大きく影響する可能性があります（デフォルト：0.999；代替：より緩い閾値の場合は0.998）。",
+    "ssimDescription": "より高いグローバル構造類似性閾値は、より厳密なマッチングを示します。メニュー > ヘルプ > SSIMテストで検出精度をテストできます",
+    "ssimWarning": "必要な場合のみ調整してください。0.001の小さな変更でもパフォーマンスに大きく影響する可能性があります",
+    "ssimPresets": {
+      "default": "デフォルト (0.9987)",
+      "strict": "厳密 (0.999)",
+      "loose": "緩い (0.9982)",
+      "custom": "カスタム"
+    },
     "videoPlayback": "ビデオ再生",
     "videoErrorRetryCount": "ビデオエラー再試行回数",
-    "videoErrorDescription": "ビデオ再生エラーが発生した際の再試行回数。",
+    "videoErrorDescription": "ビデオ再生エラーが発生した際の再試行回数",
     "download": "ダウンロード",
     "concurrentDownloadLimit": "同時ダウンロード制限",
-    "concurrentDownloadDescription": "同時ダウンロードと処理の最大数。",
+    "concurrentDownloadDescription": "同時ダウンロードと処理の最大数",
     "cancel": "キャンセル",
     "save": "保存"
   },
@@ -100,8 +107,8 @@
       "subtitle": "BIT学生向けに設計",
       "liveTitle": "ライブコース",
       "recordedTitle": "録画コース",
-      "liveDescription": "キャンパス全体のライブ講義を閲覧・参加し、リアルタイムでスライドをキャプチャします。",
-      "recordedDescription": "コース録画にアクセスし、オフライン視聴用にビデオをダウンロードし、録画からスライドを抽出します。"
+      "liveDescription": "キャンパス全体のライブ講義を閲覧・参加し、リアルタイムでスライドをキャプチャします",
+      "recordedDescription": "コース録画にアクセスし、オフライン視聴用にビデオをダウンロードし、録画からスライドを抽出します"
     },
     "status": {
       "ended": "終了",
@@ -153,7 +160,7 @@
     "screenRecording": "画面録画",
     "loadingVideoStreams": "ビデオストリームを読み込み中...",
     "lastPlayedPosition": "最後の再生位置：",
-    "networkProblems": "これはビデオ品質の問題やネットワークの問題が原因の可能性があります。再生の中断を避けるため、このビデオをオフライン視聴用にダウンロードすることを検討してください。",
+    "networkProblems": "これはビデオ品質の問題やネットワークの問題が原因の可能性があります。再生の中断を避けるため、このビデオをオフライン視聴用にダウンロードすることを検討してください",
     "retry": "再試行",
     "selectStream": "ストリームを選択",
     "playbackSpeed": "再生速度",
@@ -161,7 +168,7 @@
     "enterPictureInPicture": "ピクチャーインピクチャーに入る",
     "exitPiP": "PiPを終了",
     "picInPic": "ピクチャーインピクチャー",
-    "browserNotSupported": "お使いのブラウザはビデオタグをサポートしていません。",
+    "browserNotSupported": "お使いのブラウザはビデオタグをサポートしていません",
     "mutedByApp": "アプリによってミュート",
     "liveMuted": "ライブミュート",
     "recordedMuted": "録画ミュート",
@@ -174,8 +181,8 @@
     "extractedAt": "抽出時刻：",
     "fileName": "ファイル名：",
     "noVideoStreams": "利用可能なビデオストリームがありません",
-    "taskInProgress": "タスク進行中。コントロールが無効になっています。終了すると、タスクキューが一時停止され、現在のタスクの進行状況が失われます。設定を調整するには、手動でタスクリストを一時停止してください。",
-    "highSpeedWarning": "高速再生はバッファリングの問題を引き起こす可能性があります。より高い速度での最適なパフォーマンスのために、内部ネットワークモードへの切り替えを検討してください。",
+    "taskInProgress": "タスク進行中。コントロールが無効になっています。終了すると、タスクキューが一時停止され、現在のタスクの進行状況が失われます。設定を調整するには、手動でタスクリストを一時停止してください",
+    "highSpeedWarning": "高速再生はバッファリングの問題を引き起こす可能性があります。より高い速度での最適なパフォーマンスのために、内部ネットワークモードへの切り替えを検討してください",
     "videoPlayingInPiP": "ピクチャーインピクチャーモードでビデオを再生中"
   },
   "sessions": {
@@ -186,7 +193,7 @@
     "participants": "参加者",
     "participantsCount": "参加者",
     "loadingSessions": "セッションを読み込み中...",
-    "noSessions": "このコースのセッションが見つかりません。",
+    "noSessions": "このコースのセッションが見つかりません",
     "addAllToTasks": "すべてをタスクに追加",
     "downloadAllCamera": "すべてのカメラをダウンロード",
     "downloadAllScreen": "すべての画面をダウンロード",

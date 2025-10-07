@@ -41,14 +41,15 @@
     "japanese": "日本語",
     "korean": "한국어",
     "slideDetectionInterval": "Slide Detection Interval",
-    "slideDetectionDescription": "The interval will be automatically adjusted based on playback speed (default: 2000ms).",
+    "slideDetectionDescription": "The interval will be automatically adjusted based on playback speed.",
     "milliseconds": "milliseconds",
     "slideStabilityVerification": "Slide Stability Verification",
-    "slideStabilityDescription": "Prevents false detection from animations by confirming a new slide after it remains unchanged for several consecutive checks (default: 2 checks).",
+    "slideStabilityDescription": "Prevents false detection from animations by confirming a new slide after it remains unchanged for several consecutive checks.",
     "enableChecks": "Enable Checks",
     "counts": "Count(s)",
     "taskSpeed": "Task Speed",
-    "taskSpeedDescription": "Playback speed for automated task processing."
+    "taskSpeedDescription": "Playback speed for automated task processing.",
+    "resetToDefault": "Reset to default"
   },
   "status": {
     "connection": "Connection",
@@ -69,7 +70,13 @@
     "imageProcessing": "Image Processing",
     "ssimThreshold": "SSIM Threshold",
     "ssimDescription": "Higher global structural similarity threshold indicate stricter matching. You can test the detection accuracy in Menu > Help > SSIM Test.",
-    "ssimWarning": "Adjust ONLY IF NECESSARY, as a minor change of 0.001 can significantly impact performance (default: 0.999; alternative: 0.998 for a looser threshold).",
+    "ssimWarning": "Adjust ONLY IF NECESSARY, as a minor change of 0.001 can significantly impact performance.",
+    "ssimPresets": {
+      "default": "Default (0.9987)",
+      "strict": "Strict (0.999)",
+      "loose": "Loose (0.9982)",
+      "custom": "Custom"
+    },
     "videoPlayback": "Video Playback",
     "videoErrorRetryCount": "Video Error Retry Count",
     "videoErrorDescription": "Number of retry attempts when video playback errors occur.",
