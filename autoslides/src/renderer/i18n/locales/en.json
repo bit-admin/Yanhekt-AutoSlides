@@ -72,9 +72,10 @@
     "ssimDescription": "Higher global structural similarity threshold indicate stricter matching. You can test the detection accuracy in Menu > Help > SSIM Test.",
     "ssimWarning": "Adjust ONLY IF NECESSARY, as a minor change of 0.001 can significantly impact performance.",
     "ssimPresets": {
-      "default": "Default (0.9987)",
-      "strict": "Strict (0.999)",
-      "loose": "Loose (0.9982)",
+      "adaptive": "Adaptive",
+      "strict": "Strict",
+      "normal": "Normal",
+      "loose": "Loose",
       "custom": "Custom"
     },
     "videoPlayback": "Video Playback",

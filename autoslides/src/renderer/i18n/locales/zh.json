@@ -72,9 +72,10 @@
     "ssimDescription": "更高的全局结构相似性阈值表示更严格的匹配。您可以在 菜单 > 帮助 > SSIM 测试 中测试检测精度",
     "ssimWarning": "仅在必要时调整。即便 0.001 的微小变化也可能显著影响性能",
     "ssimPresets": {
-      "default": "默认 (0.9987)",
-      "strict": "严格 (0.999)",
-      "loose": "宽松 (0.9982)",
+      "adaptive": "自适应",
+      "strict": "严格",
+      "normal": "标准",
+      "loose": "宽松",
       "custom": "自定义"
     },
     "videoPlayback": "视频播放",

@@ -279,8 +279,9 @@
                     @change="onSsimPresetChange"
                     class="ssim-preset-select"
                   >
-                    <option value="default">{{ $t('advanced.ssimPresets.default') }}</option>
+                    <option value="adaptive">{{ $t('advanced.ssimPresets.adaptive') }}</option>
                     <option value="strict">{{ $t('advanced.ssimPresets.strict') }}</option>
+                    <option value="normal">{{ $t('advanced.ssimPresets.normal') }}</option>
                     <option value="loose">{{ $t('advanced.ssimPresets.loose') }}</option>
                     <option value="custom">{{ $t('advanced.ssimPresets.custom') }}</option>
                   </select>
@@ -337,6 +338,7 @@ import { ApiClient } from '../services/apiClient'
 import { DownloadService } from '../services/downloadService'
 import { TaskQueue, taskQueueState } from '../services/taskQueueService'
 import { languageService } from '../services/languageService'
+import { ssimThresholdService, type SsimPresetType } from '../services/ssimThresholdService'
 
 const { t } = useI18n()
 
@@ -415,7 +417,7 @@ const taskSpeed = ref(10)
 // Advanced image processing parameters
 const ssimThreshold = ref(0.9987)
 const tempSsimThreshold = ref(0.9987)
-const ssimPreset = ref('default')
+const ssimPreset = ref<SsimPresetType>('adaptive')
 
 // Manual token authentication
 const manualToken = ref('')
@@ -526,7 +528,7 @@ const loadConfig = async () => {
     await languageService.initialize()
 
     // Load advanced image processing parameters
-    ssimThreshold.value = slideConfig.ssimThreshold || 0.9987
+    ssimThreshold.value = slideConfig.ssimThreshold || ssimThresholdService.getThresholdValue('adaptive')
     tempSsimThreshold.value = ssimThreshold.value
   } catch (error) {
     console.error('Failed to load config:', error)
@@ -691,15 +693,7 @@ const openAdvancedSettings = () => {
 
   // Initialize SSIM preset based on current value
   const value = ssimThreshold.value
-  if (value === 0.9987) {
-    ssimPreset.value = 'default'
-  } else if (value === 0.999) {
-    ssimPreset.value = 'strict'
-  } else if (value === 0.9982) {
-    ssimPreset.value = 'loose'
-  } else {
-    ssimPreset.value = 'custom'
-  }
+  ssimPreset.value = ssimThresholdService.getPresetFromValue(value)
 
   // Load manual token from localStorage
   loadManualToken()
@@ -731,15 +725,8 @@ const updateImageProcessingParams = () => {
 
 // SSIM preset handling methods
 const onSsimPresetChange = () => {
-  const presetValues: Record<string, number> = {
-    'default': 0.9987,
-    'strict': 0.999,
-    'loose': 0.9982,
-    'custom': tempSsimThreshold.value
-  }
-
   if (ssimPreset.value !== 'custom') {
-    tempSsimThreshold.value = presetValues[ssimPreset.value]
+    tempSsimThreshold.value = ssimThresholdService.getThresholdValue(ssimPreset.value)
     updateImageProcessingParams()
   }
 }
@@ -747,16 +734,7 @@ const onSsimPresetChange = () => {
 const onSsimInputChange = () => {
   // When user manually changes the input, determine which preset it matches
   const value = tempSsimThreshold.value
-
-  if (value === 0.9987) {
-    ssimPreset.value = 'default'
-  } else if (value === 0.999) {
-    ssimPreset.value = 'strict'
-  } else if (value === 0.9982) {
-    ssimPreset.value = 'loose'
-  } else {
-    ssimPreset.value = 'custom'
-  }
+  ssimPreset.value = ssimThresholdService.getPresetFromValue(value)
 }
 
 const saveAdvancedSettings = async () => {

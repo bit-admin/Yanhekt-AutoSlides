@@ -72,9 +72,10 @@
     "ssimDescription": "더 높은 전역 구조적 유사성 임계값은 더 엄격한 매칭을 나타냅니다. 메뉴 > 도움말 > SSIM 테스트에서 감지 정확도를 테스트할 수 있습니다.",
     "ssimWarning": "필요한 경우에만 조정하세요. 0.001의 작은 변경도 성능에 크게 영향을 줄 수 있습니다.",
     "ssimPresets": {
-      "default": "기본값 (0.9987)",
-      "strict": "엄격 (0.999)",
-      "loose": "느슨함 (0.9982)",
+      "adaptive": "적응형",
+      "strict": "엄격",
+      "normal": "표준",
+      "loose": "느슨함",
       "custom": "사용자 정의"
     },
     "videoPlayback": "비디오 재생",
