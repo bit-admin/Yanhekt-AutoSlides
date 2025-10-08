@@ -172,6 +172,19 @@ const ffmpegService = new FFmpegService();
 const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService, apiClient);
 const powerManagementService = new PowerManagementService();
 
+// Initialize power management based on config
+const initializePowerManagement = async () => {
+  const shouldPreventSleep = configService.getPreventSystemSleep();
+  if (shouldPreventSleep) {
+    await powerManagementService.preventSleep();
+  }
+};
+
+// Initialize power management when app is ready
+app.whenReady().then(() => {
+  initializePowerManagement();
+});
+
 // IPC handlers for authentication
 ipcMain.handle('auth:login', async (event, username: string, password: string) => {
   return await authService.loginAndGetToken(username, password);
@@ -254,6 +267,14 @@ ipcMain.handle('config:getLanguageMode', async () => {
 
 ipcMain.handle('config:setPreventSystemSleep', async (event, prevent: boolean) => {
   configService.setPreventSystemSleep(prevent);
+
+  // Apply the power management setting immediately
+  if (prevent) {
+    await powerManagementService.preventSleep();
+  } else {
+    await powerManagementService.allowSleep();
+  }
+
   return configService.getConfig();
 });
 
