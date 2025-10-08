@@ -30,6 +30,7 @@ export interface AppConfig {
   taskSpeed: number;
   themeMode: ThemeMode;
   languageMode: LanguageMode;
+  preventSystemSleep: boolean;
   slideExtraction: SlideExtractionConfig;
 }
 
@@ -54,6 +55,7 @@ const defaultConfig: AppConfig = {
   taskSpeed: 10,
   themeMode: 'system',
   languageMode: 'system',
+  preventSystemSleep: false,
   slideExtraction: defaultSlideExtractionConfig
 };
 
@@ -82,6 +84,7 @@ export class ConfigService {
       taskSpeed: (this.store as any).get('taskSpeed') as number,
       themeMode: (this.store as any).get('themeMode') as ThemeMode,
       languageMode: (this.store as any).get('languageMode') as LanguageMode,
+      preventSystemSleep: (this.store as any).get('preventSystemSleep') as boolean,
       slideExtraction: (this.store as any).get('slideExtraction') as SlideExtractionConfig
     };
   }
@@ -137,6 +140,14 @@ export class ConfigService {
 
   getLanguageMode(): LanguageMode {
     return (this.store as any).get('languageMode') as LanguageMode;
+  }
+
+  setPreventSystemSleep(prevent: boolean): void {
+    (this.store as any).set('preventSystemSleep', prevent);
+  }
+
+  getPreventSystemSleep(): boolean {
+    return (this.store as any).get('preventSystemSleep') as boolean;
   }
 
   // Slide extraction configuration methods

@@ -9,6 +9,7 @@ import { VideoProxyService } from './main/videoProxyService';
 import { FFmpegService } from './main/ffmpegService';
 import { M3u8DownloadService } from './main/m3u8DownloadService';
 import { slideExtractionService } from './main/slideExtractionService';
+import { PowerManagementService } from './main/powerManagementService';
 
 // Import translation files for main process
 import enTranslations from './renderer/i18n/locales/en.json';
@@ -168,6 +169,7 @@ const intranetMappingService = new IntranetMappingService(configService);
 const videoProxyService = new VideoProxyService(apiClient, intranetMappingService);
 const ffmpegService = new FFmpegService();
 const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService, apiClient);
+const powerManagementService = new PowerManagementService();
 
 // IPC handlers for authentication
 ipcMain.handle('auth:login', async (event, username: string, password: string) => {
@@ -247,6 +249,11 @@ ipcMain.handle('config:setLanguageMode', async (event, language: 'system' | 'en'
 
 ipcMain.handle('config:getLanguageMode', async () => {
   return configService.getLanguageMode();
+});
+
+ipcMain.handle('config:setPreventSystemSleep', async (event, prevent: boolean) => {
+  configService.setPreventSystemSleep(prevent);
+  return configService.getConfig();
 });
 
 // IPC handlers for slide extraction configuration
@@ -611,6 +618,42 @@ ipcMain.handle('menu:toggleFullscreen', async () => {
     console.error('Failed to toggle fullscreen:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
+});
+
+// IPC handlers for power management
+ipcMain.handle('powerManagement:preventSleep', async () => {
+  try {
+    const success = await powerManagementService.preventSleep();
+    return { success };
+  } catch (error) {
+    console.error('Failed to prevent system sleep:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+ipcMain.handle('powerManagement:allowSleep', async () => {
+  try {
+    const success = await powerManagementService.allowSleep();
+    return { success };
+  } catch (error) {
+    console.error('Failed to allow system sleep:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+ipcMain.handle('powerManagement:isPreventingSleep', async () => {
+  try {
+    const isPreventing = powerManagementService.isPreventingSleep();
+    return { isPreventing };
+  } catch (error) {
+    console.error('Failed to check sleep prevention status:', error);
+    return { isPreventing: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+// Cleanup power management service when app is quitting
+app.on('before-quit', () => {
+  powerManagementService.cleanup();
 });
 
 // In this file you can include the rest of your app's specific main process

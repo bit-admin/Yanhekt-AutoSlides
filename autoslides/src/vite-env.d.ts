@@ -10,6 +10,18 @@ declare module '*.vue' {
   export default component
 }
 
+interface AppConfig {
+  outputDirectory: string;
+  connectionMode: 'internal' | 'external';
+  maxConcurrentDownloads: number;
+  muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
+  videoRetryCount: number;
+  taskSpeed: number;
+  themeMode: 'system' | 'light' | 'dark';
+  languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
+  preventSystemSleep: boolean;
+}
+
 interface ElectronAPI {
   auth: {
     login: (username: string, password: string) => Promise<{
@@ -29,112 +41,24 @@ interface ElectronAPI {
     }>;
   };
   config: {
-    get: () => Promise<{
-      outputDirectory: string;
-      connectionMode: 'internal' | 'external';
-      maxConcurrentDownloads: number;
-      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-      videoRetryCount: number;
-      taskSpeed: number;
-      themeMode: 'system' | 'light' | 'dark';
-      languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
-    }>;
-    setOutputDirectory: (directory: string) => Promise<{
-      outputDirectory: string;
-      connectionMode: 'internal' | 'external';
-      maxConcurrentDownloads: number;
-      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-      videoRetryCount: number;
-      taskSpeed: number;
-      themeMode: 'system' | 'light' | 'dark';
-      languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
-    }>;
-    selectOutputDirectory: () => Promise<{
-      outputDirectory: string;
-      connectionMode: 'internal' | 'external';
-      maxConcurrentDownloads: number;
-      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-      videoRetryCount: number;
-      taskSpeed: number;
-      themeMode: 'system' | 'light' | 'dark';
-      languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
-    } | null>;
-    setConnectionMode: (mode: 'internal' | 'external') => Promise<{
-      outputDirectory: string;
-      connectionMode: 'internal' | 'external';
-      maxConcurrentDownloads: number;
-      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-      videoRetryCount: number;
-      taskSpeed: number;
-      themeMode: 'system' | 'light' | 'dark';
-      languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
-    }>;
-    setMaxConcurrentDownloads: (count: number) => Promise<{
-      outputDirectory: string;
-      connectionMode: 'internal' | 'external';
-      maxConcurrentDownloads: number;
-      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-      videoRetryCount: number;
-      taskSpeed: number;
-      themeMode: 'system' | 'light' | 'dark';
-      languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
-    }>;
-    setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<{
-      outputDirectory: string;
-      connectionMode: 'internal' | 'external';
-      maxConcurrentDownloads: number;
-      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-      videoRetryCount: number;
-      taskSpeed: number;
-      themeMode: 'system' | 'light' | 'dark';
-      languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
-    }>;
-    setVideoRetryCount: (count: number) => Promise<{
-      outputDirectory: string;
-      connectionMode: 'internal' | 'external';
-      maxConcurrentDownloads: number;
-      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-      videoRetryCount: number;
-      taskSpeed: number;
-      themeMode: 'system' | 'light' | 'dark';
-      languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
-    }>;
-    setTaskSpeed: (speed: number) => Promise<{
-      outputDirectory: string;
-      connectionMode: 'internal' | 'external';
-      maxConcurrentDownloads: number;
-      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-      videoRetryCount: number;
-      taskSpeed: number;
-      themeMode: 'system' | 'light' | 'dark';
-      languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
-    }>;
+    get: () => Promise<AppConfig>;
+    setOutputDirectory: (directory: string) => Promise<AppConfig>;
+    selectOutputDirectory: () => Promise<AppConfig | null>;
+    setConnectionMode: (mode: 'internal' | 'external') => Promise<AppConfig>;
+    setMaxConcurrentDownloads: (count: number) => Promise<AppConfig>;
+    setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<AppConfig>;
+    setVideoRetryCount: (count: number) => Promise<AppConfig>;
+    setTaskSpeed: (speed: number) => Promise<AppConfig>;
     // Theme configuration
-    setThemeMode: (theme: 'system' | 'light' | 'dark') => Promise<{
-      outputDirectory: string;
-      connectionMode: 'internal' | 'external';
-      maxConcurrentDownloads: number;
-      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-      videoRetryCount: number;
-      taskSpeed: number;
-      themeMode: 'system' | 'light' | 'dark';
-      languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
-    }>;
+    setThemeMode: (theme: 'system' | 'light' | 'dark') => Promise<AppConfig>;
     getThemeMode: () => Promise<'system' | 'light' | 'dark'>;
     isDarkMode: () => Promise<boolean>;
     getEffectiveTheme: () => Promise<'light' | 'dark'>;
     // Language configuration
-    setLanguageMode: (language: 'system' | 'en' | 'zh' | 'ja' | 'ko') => Promise<{
-      outputDirectory: string;
-      connectionMode: 'internal' | 'external';
-      maxConcurrentDownloads: number;
-      muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-      videoRetryCount: number;
-      taskSpeed: number;
-      themeMode: 'system' | 'light' | 'dark';
-      languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
-    }>;
+    setLanguageMode: (language: 'system' | 'en' | 'zh' | 'ja' | 'ko') => Promise<AppConfig>;
     getLanguageMode: () => Promise<'system' | 'en' | 'zh' | 'ja' | 'ko'>;
+    // Power management configuration
+    setPreventSystemSleep: (prevent: boolean) => Promise<AppConfig>;
     // Slide extraction configuration
     getSlideExtractionConfig: () => Promise<{
       checkInterval: number;
@@ -373,6 +297,11 @@ interface ElectronAPI {
       checkboxChecked?: boolean;
     }>;
     showErrorBox?: (title: string, content: string) => Promise<void>;
+  };
+  powerManagement: {
+    preventSleep: () => Promise<{ success: boolean; error?: string }>;
+    allowSleep: () => Promise<{ success: boolean; error?: string }>;
+    isPreventingSleep: () => Promise<{ isPreventing: boolean; error?: string }>;
   };
 }
 

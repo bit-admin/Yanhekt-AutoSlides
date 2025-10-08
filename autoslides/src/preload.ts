@@ -24,6 +24,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // Language configuration
     setLanguageMode: (language: 'system' | 'en' | 'zh') => ipcRenderer.invoke('config:setLanguageMode', language),
     getLanguageMode: () => ipcRenderer.invoke('config:getLanguageMode'),
+    // Power management configuration
+    setPreventSystemSleep: (prevent: boolean) => ipcRenderer.invoke('config:setPreventSystemSleep', prevent),
     // Slide extraction configuration
     getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),
     setSlideCheckInterval: (interval: number) => ipcRenderer.invoke('config:setSlideCheckInterval', interval),
@@ -108,5 +110,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     zoomIn: () => ipcRenderer.invoke('menu:zoomIn'),
     zoomOut: () => ipcRenderer.invoke('menu:zoomOut'),
     toggleFullscreen: () => ipcRenderer.invoke('menu:toggleFullscreen'),
+  },
+  powerManagement: {
+    preventSleep: () => ipcRenderer.invoke('powerManagement:preventSleep'),
+    allowSleep: () => ipcRenderer.invoke('powerManagement:allowSleep'),
+    isPreventingSleep: () => ipcRenderer.invoke('powerManagement:isPreventingSleep'),
   },
 });

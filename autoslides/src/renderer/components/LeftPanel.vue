@@ -322,6 +322,20 @@
                   <option v-for="i in 6" :key="i" :value="i + 4">{{ i + 4 }}</option>
                 </select>
               </div>
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.preventSystemSleep') }}</label>
+                <div class="setting-description">{{ $t('advanced.preventSystemSleepDescription') }}</div>
+                <div class="prevent-sleep-control">
+                  <label class="checkbox-label">
+                    <input
+                      type="checkbox"
+                      v-model="preventSystemSleep"
+                      @change="setPreventSystemSleep"
+                    />
+                    {{ $t('advanced.enablePreventSleep') }}
+                  </label>
+                </div>
+              </div>
             </div>
 
             <div class="advanced-setting-section">
@@ -424,6 +438,7 @@ const maxConcurrentDownloads = ref(5)
 const tempMaxConcurrentDownloads = ref(5)
 const videoRetryCount = ref(5)
 const tempVideoRetryCount = ref(5)
+const preventSystemSleep = ref(false)
 
 // Slide extraction configuration
 const slideCheckInterval = ref(2000)
@@ -545,6 +560,9 @@ const loadConfig = async () => {
     languageMode.value = config.languageMode || 'system'
     // Initialize language service
     await languageService.initialize()
+
+    // Load prevent system sleep configuration
+    preventSystemSleep.value = config.preventSystemSleep || false
 
     // Load advanced image processing parameters
     isUpdatingProgrammatically = true
@@ -702,6 +720,22 @@ const setLanguageMode = async () => {
     await languageService.setLanguageMode(languageMode.value)
   } catch (error) {
     console.error('Failed to set language mode:', error)
+  }
+}
+
+const setPreventSystemSleep = async () => {
+  try {
+    const result = await window.electronAPI.config.setPreventSystemSleep(preventSystemSleep.value)
+    preventSystemSleep.value = result.preventSystemSleep
+
+    // Also call the power management API to immediately apply the setting
+    if (preventSystemSleep.value) {
+      await window.electronAPI.powerManagement.preventSleep()
+    } else {
+      await window.electronAPI.powerManagement.allowSleep()
+    }
+  } catch (error) {
+    console.error('Failed to set prevent system sleep:', error)
   }
 }
 
@@ -1127,6 +1161,7 @@ const loadManualToken = () => {
 
 .setting-item:last-child {
   margin-bottom: 0;
+  margin-top: 6px;
 }
 
 .setting-label {
@@ -2242,6 +2277,64 @@ const loadManualToken = () => {
   .control-section::-webkit-scrollbar-thumb:hover,
   .advanced-settings-content::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3) !important;
+  }
+}
+
+/* Prevent sleep control styles */
+.prevent-sleep-control {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  height: 35px;
+}
+
+.prevent-sleep-control:hover {
+  background-color: #e9ecef;
+  border-color: #007bff;
+}
+
+.prevent-sleep-control .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  user-select: none;
+  flex: 1;
+}
+
+.prevent-sleep-control .checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #007bff;
+}
+
+/* Dark mode support for prevent sleep control */
+@media (prefers-color-scheme: dark) {
+  .prevent-sleep-control {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .prevent-sleep-control:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .prevent-sleep-control .checkbox-label {
+    color: #e0e0e0;
   }
 }
 </style>
