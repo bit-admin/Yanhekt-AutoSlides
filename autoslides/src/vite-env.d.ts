@@ -143,6 +143,8 @@ interface ElectronAPI {
       hammingThresholdLow: number;
       hammingThresholdUp: number;
       ssimThreshold: number;
+      ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
+      isAdaptiveMode?: boolean;
     }>;
     setSlideCheckInterval: (interval: number) => Promise<{
       checkInterval: number;
@@ -151,6 +153,8 @@ interface ElectronAPI {
       hammingThresholdLow: number;
       hammingThresholdUp: number;
       ssimThreshold: number;
+      ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
+      isAdaptiveMode?: boolean;
     }>;
     setSlideDoubleVerification: (enabled: boolean, count?: number) => Promise<{
       checkInterval: number;
@@ -159,11 +163,14 @@ interface ElectronAPI {
       hammingThresholdLow: number;
       hammingThresholdUp: number;
       ssimThreshold: number;
+      ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
+      isAdaptiveMode?: boolean;
     }>;
     setSlideImageProcessingParams: (params: {
       hammingThresholdLow?: number;
       hammingThresholdUp?: number;
       ssimThreshold?: number;
+      ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
     }) => Promise<{
       checkInterval: number;
       enableDoubleVerification: boolean;
@@ -171,6 +178,8 @@ interface ElectronAPI {
       hammingThresholdLow: number;
       hammingThresholdUp: number;
       ssimThreshold: number;
+      ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
+      isAdaptiveMode?: boolean;
     }>;
   };
   api: {

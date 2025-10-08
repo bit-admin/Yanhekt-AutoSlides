@@ -530,6 +530,10 @@ const loadConfig = async () => {
     // Load advanced image processing parameters
     ssimThreshold.value = slideConfig.ssimThreshold || ssimThresholdService.getThresholdValue('adaptive')
     tempSsimThreshold.value = ssimThreshold.value
+
+    // Load SSIM preset mode from config
+    const savedPresetMode = slideConfig.ssimPresetMode || 'adaptive'
+    ssimPreset.value = savedPresetMode
   } catch (error) {
     console.error('Failed to load config:', error)
   }
@@ -749,7 +753,8 @@ const saveAdvancedSettings = async () => {
 
     // Save image processing parameters
     const imageProcessingResult = await window.electronAPI.config.setSlideImageProcessingParams({
-      ssimThreshold: tempSsimThreshold.value
+      ssimThreshold: tempSsimThreshold.value,
+      ssimPresetMode: ssimPreset.value
     })
     ssimThreshold.value = imageProcessingResult.ssimThreshold
 

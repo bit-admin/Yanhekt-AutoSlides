@@ -32,6 +32,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       hammingThresholdLow?: number;
       hammingThresholdUp?: number;
       ssimThreshold?: number;
+      ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
     }) => ipcRenderer.invoke('config:setSlideImageProcessingParams', params),
   },
   api: {
