@@ -16,23 +16,27 @@
         </button>
       </div>
       <div v-show="showCourseDetails" class="course-details">
-        <div class="course-detail-item">
+        <div class="course-detail-item" v-if="course?.instructor">
           <span class="detail-label">{{ $t('playback.instructor') }}</span>
-          <span class="detail-value">{{ course?.instructor }}</span>
+          <span class="detail-value">{{ course.instructor }}</span>
         </div>
-        <div v-if="course?.classrooms" class="course-detail-item">
+        <div class="course-detail-item" v-if="course?.professors && course.professors.length > 0">
+          <span class="detail-label">{{ $t('playback.professors') }}</span>
+          <span class="detail-value">{{ course.professors.join(', ') }}</span>
+        </div>
+        <div class="course-detail-item" v-if="course?.time">
+          <span class="detail-label">{{ $t('sessions.academicTerm') }}</span>
+          <span class="detail-value">{{ course.time }}</span>
+        </div>
+        <div class="course-detail-item" v-if="course?.classrooms && course.classrooms.length > 0">
           <span class="detail-label">{{ $t('sessions.classrooms') }}</span>
           <span class="detail-value">{{ course.classrooms.map(c => c.name).join(', ') }}</span>
         </div>
-        <div class="course-detail-item">
-          <span class="detail-label">{{ $t('sessions.time') }}</span>
-          <span class="detail-value">{{ course?.time }}</span>
-        </div>
-        <div v-if="course?.college_name" class="course-detail-item">
+        <div class="course-detail-item" v-if="course?.college_name">
           <span class="detail-label">{{ $t('sessions.college') }}</span>
           <span class="detail-value">{{ course.college_name }}</span>
         </div>
-        <div v-if="course?.participant_count !== undefined" class="course-detail-item">
+        <div class="course-detail-item" v-if="course?.participant_count !== undefined">
           <span class="detail-label">{{ $t('sessions.participants') }}</span>
           <span class="detail-value">{{ course.participant_count }} {{ $t('sessions.participantsCount') }}</span>
         </div>
@@ -168,6 +172,9 @@ interface Course {
   classrooms?: { name: string }[]
   college_name?: string
   participant_count?: number
+  professors?: string[]
+  school_year?: string
+  semester?: string
 }
 
 interface Session extends SessionData {
@@ -204,8 +211,20 @@ const toggleCourseDetails = () => {
 }
 
 const selectSession = (session: Session) => {
-  // Store session data for playback
-  DataStore.setSessionData(session.session_id.toString(), session)
+  // Store session data with complete course information for playback
+  if (props.course) {
+    DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
+      id: props.course.id,
+      title: props.course.title,
+      instructor: props.course.instructor,
+      time: props.course.time,
+      classrooms: props.course.classrooms,
+      college_name: props.course.college_name,
+      participant_count: props.course.participant_count
+    })
+  } else {
+    DataStore.setSessionData(session.session_id.toString(), session)
+  }
   emit('sessionSelected', session)
 }
 
@@ -276,8 +295,20 @@ const formatDate = (dateString: string): string => {
 
 // Task functions
 const addToQueue = (session: Session) => {
-  // Store session data for task processing
-  DataStore.setSessionData(session.session_id.toString(), session)
+  // Store session data with complete course information for task processing
+  if (props.course) {
+    DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
+      id: props.course.id,
+      title: props.course.title,
+      instructor: props.course.instructor,
+      time: props.course.time,
+      classrooms: props.course.classrooms,
+      college_name: props.course.college_name,
+      participant_count: props.course.participant_count
+    })
+  } else {
+    DataStore.setSessionData(session.session_id.toString(), session)
+  }
 
   const added = TaskQueue.addToQueue({
     name: `slides_${props.course?.title}_${session.title}`,
@@ -296,8 +327,20 @@ const addToQueue = (session: Session) => {
 }
 
 const downloadCamera = (session: Session) => {
-  // Store session data for download service to access
-  DataStore.setSessionData(session.session_id.toString(), session)
+  // Store session data with complete course information for download service to access
+  if (props.course) {
+    DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
+      id: props.course.id,
+      title: props.course.title,
+      instructor: props.course.instructor,
+      time: props.course.time,
+      classrooms: props.course.classrooms,
+      college_name: props.course.college_name,
+      participant_count: props.course.participant_count
+    })
+  } else {
+    DataStore.setSessionData(session.session_id.toString(), session)
+  }
 
   const added = DownloadService.addToQueue({
     name: `camera_${props.course?.title}_${session.title}`,
@@ -316,8 +359,20 @@ const downloadCamera = (session: Session) => {
 }
 
 const downloadScreen = (session: Session) => {
-  // Store session data for download service to access
-  DataStore.setSessionData(session.session_id.toString(), session)
+  // Store session data with complete course information for download service to access
+  if (props.course) {
+    DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
+      id: props.course.id,
+      title: props.course.title,
+      instructor: props.course.instructor,
+      time: props.course.time,
+      classrooms: props.course.classrooms,
+      college_name: props.course.college_name,
+      participant_count: props.course.participant_count
+    })
+  } else {
+    DataStore.setSessionData(session.session_id.toString(), session)
+  }
 
   const added = DownloadService.addToQueue({
     name: `screen_${props.course?.title}_${session.title}`,
@@ -338,8 +393,20 @@ const downloadScreen = (session: Session) => {
 const addAllToQueue = () => {
   let addedCount = 0
   sessions.value.forEach(session => {
-    // Store session data for task processing
-    DataStore.setSessionData(session.session_id.toString(), session)
+    // Store session data with complete course information for task processing
+    if (props.course) {
+      DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
+        id: props.course.id,
+        title: props.course.title,
+        instructor: props.course.instructor,
+        time: props.course.time,
+        classrooms: props.course.classrooms,
+        college_name: props.course.college_name,
+        participant_count: props.course.participant_count
+      })
+    } else {
+      DataStore.setSessionData(session.session_id.toString(), session)
+    }
 
     const added = TaskQueue.addToQueue({
       name: `slides_${props.course?.title}_${session.title}`,
@@ -362,8 +429,20 @@ const addAllToQueue = () => {
 const downloadAllCamera = () => {
   let addedCount = 0
   sessions.value.forEach(session => {
-    // Store session data for download service to access
-    DataStore.setSessionData(session.session_id.toString(), session)
+    // Store session data with complete course information for download service to access
+    if (props.course) {
+      DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
+        id: props.course.id,
+        title: props.course.title,
+        instructor: props.course.instructor,
+        time: props.course.time,
+        classrooms: props.course.classrooms,
+        college_name: props.course.college_name,
+        participant_count: props.course.participant_count
+      })
+    } else {
+      DataStore.setSessionData(session.session_id.toString(), session)
+    }
 
     const added = DownloadService.addToQueue({
       name: `camera_${props.course?.title}_${session.title}`,
@@ -386,8 +465,20 @@ const downloadAllCamera = () => {
 const downloadAllScreen = () => {
   let addedCount = 0
   sessions.value.forEach(session => {
-    // Store session data for download service to access
-    DataStore.setSessionData(session.session_id.toString(), session)
+    // Store session data with complete course information for download service to access
+    if (props.course) {
+      DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
+        id: props.course.id,
+        title: props.course.title,
+        instructor: props.course.instructor,
+        time: props.course.time,
+        classrooms: props.course.classrooms,
+        college_name: props.course.college_name,
+        participant_count: props.course.participant_count
+      })
+    } else {
+      DataStore.setSessionData(session.session_id.toString(), session)
+    }
 
     const added = DownloadService.addToQueue({
       name: `screen_${props.course?.title}_${session.title}`,

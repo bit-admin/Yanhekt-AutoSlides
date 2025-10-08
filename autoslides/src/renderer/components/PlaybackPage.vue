@@ -30,8 +30,28 @@
           <span class="detail-label">{{ $t('playback.instructor') }}</span>
           <span class="detail-value">{{ course.instructor }}</span>
         </div>
+        <div class="course-detail-item" v-if="course?.professors && course.professors.length > 0">
+          <span class="detail-label">{{ $t('playback.professors') }}</span>
+          <span class="detail-value">{{ course.professors.join(', ') }}</span>
+        </div>
+        <div class="course-detail-item" v-if="course?.time">
+          <span class="detail-label">{{ $t('sessions.academicTerm') }}</span>
+          <span class="detail-value">{{ course.time }}</span>
+        </div>
+        <div class="course-detail-item" v-if="course?.classrooms && course.classrooms.length > 0">
+          <span class="detail-label">{{ $t('sessions.classrooms') }}</span>
+          <span class="detail-value">{{ course.classrooms.map(c => c.name).join(', ') }}</span>
+        </div>
+        <div class="course-detail-item" v-if="course?.college_name">
+          <span class="detail-label">{{ $t('sessions.college') }}</span>
+          <span class="detail-value">{{ course.college_name }}</span>
+        </div>
+        <div class="course-detail-item" v-if="course?.participant_count !== undefined">
+          <span class="detail-label">{{ $t('sessions.participants') }}</span>
+          <span class="detail-value">{{ course.participant_count }} {{ $t('sessions.participantsCount') }}</span>
+        </div>
         <div class="course-detail-item" v-if="session">
-          <span class="detail-label">{{ $t('playback.date') }}</span>
+          <span class="detail-label">{{ $t('playback.sessionDate') }}</span>
           <span class="detail-value">{{ formatDate(session.started_at) }}</span>
         </div>
         <div class="course-detail-item" v-if="playbackData?.duration">

@@ -10,6 +10,19 @@ export interface SessionDataWithMeta extends SessionData {
   // Additional metadata for playback
   timestamp?: number;
   checksum?: string;
+  // Course information for complete context
+  courseInfo?: {
+    id: string;
+    title: string;
+    instructor: string;
+    time: string;
+    classrooms?: { name: string }[];
+    college_name?: string;
+    participant_count?: number;
+    professors?: string[];
+    school_year?: string;
+    semester?: string;
+  };
 }
 
 export class DataStore {
@@ -75,6 +88,29 @@ export class DataStore {
       ...data,
       timestamp: Date.now(),
       checksum: this.generateChecksum(sessionId)
+    };
+    localStorage.setItem(key, JSON.stringify(dataWithTimestamp));
+  }
+
+  // Store session data with course information for complete context
+  static setSessionDataWithCourse(sessionId: string, data: SessionData, courseInfo: {
+    id: string;
+    title: string;
+    instructor: string;
+    time: string;
+    classrooms?: { name: string }[];
+    college_name?: string;
+    participant_count?: number;
+    professors?: string[];
+    school_year?: string;
+    semester?: string;
+  }): void {
+    const key = this.SESSION_PREFIX + sessionId;
+    const dataWithTimestamp: SessionDataWithMeta = {
+      ...data,
+      timestamp: Date.now(),
+      checksum: this.generateChecksum(sessionId),
+      courseInfo: courseInfo
     };
     localStorage.setItem(key, JSON.stringify(dataWithTimestamp));
   }

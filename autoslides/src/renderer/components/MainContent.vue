@@ -179,17 +179,24 @@ const handleTaskNavigation = (event: CustomEvent) => {
   const sessionData = DataStore.getSessionData(sessionId)
   if (sessionData) {
     // Create a course object that matches the expected interface
-    // This mimics what would normally come from CoursePage
+    // Use complete course information if available, otherwise fall back to task data
+    const courseInfo = sessionData.courseInfo
     recordedState.value.selectedCourse = {
       id: courseId, // Use the correct course ID from task data
       title: courseTitle,
-      instructor: 'Auto Task', // Indicate this is from automated task
-      time: sessionData.started_at,
-      // Optional properties that PlaybackPage might use
+      instructor: courseInfo?.instructor || 'Auto Task', // Use real instructor if available
+      time: courseInfo?.time || sessionData.started_at,
+      // Include all available course information
       status: 1,
       subtitle: sessionTitle,
       schedule_started_at: sessionData.started_at,
-      schedule_ended_at: sessionData.ended_at
+      schedule_ended_at: sessionData.ended_at,
+      classrooms: courseInfo?.classrooms,
+      college_name: courseInfo?.college_name,
+      participant_count: courseInfo?.participant_count,
+      professors: courseInfo?.professors,
+      school_year: courseInfo?.school_year,
+      semester: courseInfo?.semester
     }
 
     // Set the selected session (this is the same object that was stored)
