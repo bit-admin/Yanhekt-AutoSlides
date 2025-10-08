@@ -78,6 +78,19 @@
       "loose": "緩い",
       "custom": "カスタム"
     },
+    "classroomRules": {
+      "title": "アダプティブ教室ルール",
+      "description": "アダプティブモード使用時、SSIM閾値は教室の場所に基づいて自動調整されます：",
+      "rule1": {
+        "condition": "教室に\"综教\"が含まれる",
+        "action": "緩い閾値を使用 (0.9982)"
+      },
+      "rule2": {
+        "condition": "教室に\"理教\"が含まれる",
+        "action": "緩い閾値を使用 (0.9982)"
+      },
+      "reason": "これらの建物は設備が古く、画面録画の品質が劣るため、より緩い閾値が適用されます。"
+    },
     "videoPlayback": "ビデオ再生",
     "videoErrorRetryCount": "ビデオエラー再試行回数",
     "videoErrorDescription": "ビデオ再生エラーが発生した際の再試行回数",

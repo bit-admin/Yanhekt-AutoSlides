@@ -78,6 +78,19 @@
       "loose": "Loose",
       "custom": "Custom"
     },
+    "classroomRules": {
+      "title": "Adaptive Classroom Rules",
+      "description": "When using Adaptive mode, SSIM threshold is automatically adjusted based on classroom location:",
+      "rule1": {
+        "condition": "Classroom contains \"Comprehensive Teaching Building\"",
+        "action": "Use Loose threshold (0.9982)"
+      },
+      "rule2": {
+        "condition": "Classroom contains \"Science Teaching Building\"",
+        "action": "Use Loose threshold (0.9982)"
+      },
+      "reason": "These buildings have older equipment and poorer screen recording quality, requiring a more lenient threshold."
+    },
     "videoPlayback": "Video Playback",
     "videoErrorRetryCount": "Video Error Retry Count",
     "videoErrorDescription": "Number of retry attempts when video playback errors occur.",

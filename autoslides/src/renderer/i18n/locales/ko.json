@@ -78,6 +78,19 @@
       "loose": "느슨함",
       "custom": "사용자 정의"
     },
+    "classroomRules": {
+      "title": "적응형 교실 규칙",
+      "description": "적응형 모드 사용 시, SSIM 임계값이 교실 위치에 따라 자동으로 조정됩니다:",
+      "rule1": {
+        "condition": "교실에 \"综教\"가 포함됨",
+        "action": "느슨한 임계값 사용 (0.9982)"
+      },
+      "rule2": {
+        "condition": "교실에 \"理教\"가 포함됨",
+        "action": "느슨한 임계값 사용 (0.9982)"
+      },
+      "reason": "이러한 건물들은 장비가 오래되어 화면 녹화 품질이 떨어지므로, 더 관대한 임계값이 적용됩니다."
+    },
     "videoPlayback": "비디오 재생",
     "videoErrorRetryCount": "비디오 오류 재시도 횟수",
     "videoErrorDescription": "비디오 재생 오류가 발생했을 때의 재시도 횟수.",

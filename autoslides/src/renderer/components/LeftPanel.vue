@@ -287,6 +287,25 @@
                   </select>
                 </div>
                 <div class="setting-description">{{ $t('advanced.ssimWarning') }}</div>
+
+                <!-- Classroom Rules Information -->
+                <div class="classroom-rules-info">
+                  <div class="rules-title">{{ $t('advanced.classroomRules.title') }}</div>
+                  <div class="rules-description">{{ $t('advanced.classroomRules.description') }}</div>
+                  <ul class="rules-list">
+                    <li class="rule-item">
+                      <span class="rule-condition">{{ $t('advanced.classroomRules.rule1.condition') }}</span>
+                      <span class="rule-arrow">→</span>
+                      <span class="rule-action">{{ $t('advanced.classroomRules.rule1.action') }}</span>
+                    </li>
+                    <li class="rule-item">
+                      <span class="rule-condition">{{ $t('advanced.classroomRules.rule2.condition') }}</span>
+                      <span class="rule-arrow">→</span>
+                      <span class="rule-action">{{ $t('advanced.classroomRules.rule2.action') }}</span>
+                    </li>
+                  </ul>
+                  <div class="rules-reason">{{ $t('advanced.classroomRules.reason') }}</div>
+                </div>
               </div>
             </div>
 
@@ -1611,6 +1630,75 @@ const loadManualToken = () => {
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
+/* Classroom Rules Styles */
+.classroom-rules-info {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.rules-title {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.rules-description {
+  color: #6c757d;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.rules-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  padding: 4px 0;
+}
+
+.rule-condition {
+  color: #495057;
+  font-weight: 500;
+  background-color: #e3f2fd;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.rule-arrow {
+  margin: 0 8px;
+  color: #6c757d;
+  font-weight: bold;
+}
+
+.rule-action {
+  color: #28a745;
+  font-weight: 500;
+  background-color: #d4edda;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.rules-reason {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #dee2e6;
+  color: #6c757d;
+  font-style: italic;
+  line-height: 1.4;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -1909,6 +1997,39 @@ const loadManualToken = () => {
   .audio-mode-select:focus, .theme-select:focus, .language-select:focus, .task-speed-select:focus, .verification-count-select:focus, .concurrent-select:focus, .ssim-select:focus, .ssim-preset-select:focus, .ssim-input:focus {
     border-color: #4a9eff;
     box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  /* Classroom Rules Dark Theme */
+  .classroom-rules-info {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .rules-title {
+    color: #e0e0e0;
+  }
+
+  .rules-description {
+    color: #b0b0b0;
+  }
+
+  .rule-condition {
+    color: #e0e0e0;
+    background-color: #1a2332;
+  }
+
+  .rule-arrow {
+    color: #b0b0b0;
+  }
+
+  .rule-action {
+    color: #4caf50;
+    background-color: #1b2e1b;
+  }
+
+  .rules-reason {
+    border-top-color: #404040;
+    color: #b0b0b0;
   }
 
   .slide-interval-input-wrapper {
