@@ -9,13 +9,13 @@
     "verifying": "验证中...",
     "verifyingMessage": "正在验证登录状态，请稍候...",
     "signIn": "登录",
-    "signInMessage": "请登录延河课堂以访问所有资源。",
+    "signInMessage": "请登录延河课堂以访问所有资源",
     "username": "用户名",
     "password": "密码",
     "signingIn": "登录中...",
     "hiThere": "你好，{nickname}",
     "signInAs": "登录身份：{userId}",
-    "accessMessage": "现可访问延河课堂的所有资源。",
+    "accessMessage": "您现可访问延河课堂的所有资源",
     "signOut": "退出登录"
   },
   "settings": {
