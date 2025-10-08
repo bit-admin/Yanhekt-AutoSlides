@@ -710,12 +710,12 @@ onMounted(() => {
   loadConfig()
 
   // Add event listener for adaptive threshold changes
-  window.addEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as EventListener)
+  window.addEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as unknown as EventListener)
 })
 
 onUnmounted(() => {
   // Remove event listener for adaptive threshold changes
-  window.removeEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as EventListener)
+  window.removeEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as unknown as EventListener)
 })
 
 const openAdvancedSettings = () => {
@@ -805,7 +805,7 @@ const updateThresholdProgrammatically = (newValue: number) => {
 }
 
 // Handle adaptive threshold changes from classroom rules
-const onAdaptiveThresholdChanged = (event: CustomEvent) => {
+const onAdaptiveThresholdChanged = async (event: CustomEvent) => {
   const { newThreshold, classrooms } = event.detail
 
   // Only update if we're currently in adaptive mode
@@ -818,9 +818,19 @@ const onAdaptiveThresholdChanged = (event: CustomEvent) => {
     // Update the threshold programmatically to avoid triggering preset mode changes
     updateThresholdProgrammatically(newThreshold)
 
-    // Also update the main threshold value and save to config
+    // Also update the main threshold value
     ssimThreshold.value = newThreshold
-    updateImageProcessingParams()
+
+    // Immediately save the new threshold to config so slide extractor can use it
+    try {
+      const imageProcessingResult = await window.electronAPI.config.setSlideImageProcessingParams({
+        ssimThreshold: newThreshold,
+        ssimPresetMode: ssimPreset.value
+      })
+      console.log('Classroom-based SSIM threshold saved to config:', imageProcessingResult.ssimThreshold)
+    } catch (error) {
+      console.error('Failed to save classroom-based SSIM threshold to config:', error)
+    }
   }
 }
 
