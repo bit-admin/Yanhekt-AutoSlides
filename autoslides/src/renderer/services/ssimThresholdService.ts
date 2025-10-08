@@ -150,6 +150,11 @@ export class SsimThresholdService {
       return SSIM_PRESET_VALUES.loose
     }
 
+    // Rule 3: If classrooms contain "研楼", return loose value
+    if (classroomNames.includes('研楼')) {
+      return SSIM_PRESET_VALUES.loose
+    }
+
     // No rules matched
     return null
   }

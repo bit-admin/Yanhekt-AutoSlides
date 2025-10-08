@@ -303,6 +303,11 @@
                       <span class="rule-arrow">→</span>
                       <span class="rule-action">{{ $t('advanced.classroomRules.rule2.action') }}</span>
                     </li>
+                    <li class="rule-item">
+                      <span class="rule-condition">{{ $t('advanced.classroomRules.rule3.condition') }}</span>
+                      <span class="rule-arrow">→</span>
+                      <span class="rule-action">{{ $t('advanced.classroomRules.rule3.action') }}</span>
+                    </li>
                   </ul>
                   <div class="rules-reason">{{ $t('advanced.classroomRules.reason') }}</div>
                 </div>

@@ -89,6 +89,10 @@
         "condition": "Classroom contains \"Science Teaching Building\"",
         "action": "Use Loose threshold (0.998)"
       },
+      "rule3": {
+        "condition": "Classroom contains \"Graduate Teaching Building\"",
+        "action": "Use Loose threshold (0.998)"
+      },
       "reason": "These buildings have older equipment and poorer screen recording quality, requiring a more lenient threshold."
     },
     "videoPlayback": "Video Playback",
