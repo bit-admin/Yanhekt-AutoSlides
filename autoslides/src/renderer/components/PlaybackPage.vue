@@ -321,6 +321,7 @@ import { DataStore } from '../services/dataStore'
 import { TokenManager } from '../services/authService'
 import { slideExtractionManager, type SlideExtractor, type ExtractedSlide } from '../services/slideExtractor'
 import { TaskQueue } from '../services/taskQueueService'
+import { ssimThresholdService } from '../services/ssimThresholdService'
 import Hls from 'hls.js'
 
 interface Course {
@@ -1272,9 +1273,30 @@ const toggleSlideExtraction = async () => {
   }
 }
 
+// Update SSIM threshold based on classroom information
+const updateSSIMThresholdForClassrooms = () => {
+  try {
+    // Get classroom information from course data
+    const classrooms = props.course?.classrooms
+
+    if (classrooms && classrooms.length > 0) {
+      console.log('Setting classroom context for SSIM threshold:', classrooms.map(c => c.name).join(', '))
+      ssimThresholdService.setCurrentClassrooms(classrooms)
+    } else {
+      console.log('No classroom information available, clearing SSIM classroom context')
+      ssimThresholdService.setCurrentClassrooms(null)
+    }
+  } catch (error) {
+    console.error('Failed to update SSIM threshold for classrooms:', error)
+  }
+}
+
 // Initialize slide extraction with course/session context
 const initializeSlideExtraction = async () => {
   try {
+    // Update SSIM threshold based on classroom information before starting extraction
+    updateSSIMThresholdForClassrooms()
+
     // Get output directory from config
     const config = await window.electronAPI.config.get()
     const outputDir = config.outputDirectory || '~/Downloads/AutoSlides'
@@ -1789,6 +1811,11 @@ watch(isSlideExtractionEnabled, (enabled) => {
   }
 })
 
+// Watch for course changes to update SSIM threshold
+watch(() => props.course, () => {
+  updateSSIMThresholdForClassrooms()
+}, { immediate: true })
+
 // Function to prevent user from unmuting when app mute mode is active
 const preventUnmute = (event: Event) => {
   if (shouldVideoMute.value && videoPlayer.value) {
@@ -1980,6 +2007,15 @@ const initializeTaskAfterVideoLoad = async (taskId: string, retryCount = 0) => {
   try {
     console.log(`Initializing task after video load (attempt ${retryCount + 1}/${maxRetries + 1}):`, taskId)
 
+    // Update SSIM threshold based on classroom information from stored session data
+    if (props.sessionId) {
+      const sessionData = DataStore.getSessionData(props.sessionId)
+      if (sessionData?.courseInfo?.classrooms) {
+        console.log('Setting classroom context for task SSIM threshold:', sessionData.courseInfo.classrooms.map(c => c.name).join(', '))
+        ssimThresholdService.setCurrentClassrooms(sessionData.courseInfo.classrooms)
+      }
+    }
+
     // Ensure we're on screen recording stream for task mode
     const screenStreamKey = Object.keys(playbackData.value?.streams || {}).find(
       key => playbackData.value?.streams[key].type === 'screen'
@@ -2106,6 +2142,15 @@ const initializeTask = async (taskId: string, retryCount = 0) => {
 const initializeTaskResume = async (taskId: string) => {
   try {
     console.log('Resuming task:', taskId)
+
+    // Update SSIM threshold based on classroom information from stored session data
+    if (props.sessionId) {
+      const sessionData = DataStore.getSessionData(props.sessionId)
+      if (sessionData?.courseInfo?.classrooms) {
+        console.log('Setting classroom context for resumed task SSIM threshold:', sessionData.courseInfo.classrooms.map(c => c.name).join(', '))
+        ssimThresholdService.setCurrentClassrooms(sessionData.courseInfo.classrooms)
+      }
+    }
 
     // Wait for video to be ready before resuming
     await waitForVideoReady()
@@ -2290,6 +2335,9 @@ onMounted(async () => {
   } catch (error) {
     console.error('Failed to load config:', error)
   }
+
+  // Update SSIM threshold based on classroom information
+  updateSSIMThresholdForClassrooms()
 
   // Add slide extraction event listeners
   window.addEventListener('slideExtracted', onSlideExtracted as EventListener)

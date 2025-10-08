@@ -331,7 +331,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { AuthService, TokenManager } from '../services/authService'
 import { ApiClient } from '../services/apiClient'
@@ -528,8 +528,10 @@ const loadConfig = async () => {
     await languageService.initialize()
 
     // Load advanced image processing parameters
+    isUpdatingProgrammatically = true
     ssimThreshold.value = slideConfig.ssimThreshold || ssimThresholdService.getThresholdValue('adaptive')
     tempSsimThreshold.value = ssimThreshold.value
+    isUpdatingProgrammatically = false
 
     // Load SSIM preset mode from config
     const savedPresetMode = slideConfig.ssimPresetMode || 'adaptive'
@@ -687,17 +689,29 @@ const setLanguageMode = async () => {
 onMounted(() => {
   verifyExistingToken()
   loadConfig()
+
+  // Add event listener for adaptive threshold changes
+  window.addEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as EventListener)
+})
+
+onUnmounted(() => {
+  // Remove event listener for adaptive threshold changes
+  window.removeEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as EventListener)
 })
 
 const openAdvancedSettings = () => {
   // Reset temp values to current values when opening modal
   tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   tempVideoRetryCount.value = videoRetryCount.value
-  tempSsimThreshold.value = ssimThreshold.value
 
-  // Initialize SSIM preset based on current value
-  const value = ssimThreshold.value
-  ssimPreset.value = ssimThresholdService.getPresetFromValue(value)
+  // Set programmatic update flag to prevent mode switching during initialization
+  isUpdatingProgrammatically = true
+  tempSsimThreshold.value = ssimThreshold.value
+  isUpdatingProgrammatically = false
+
+  // Don't reinitialize SSIM preset - it should already be correctly loaded from config
+  // The ssimPreset.value should maintain the value loaded from config (adaptive, normal, etc.)
+  // Only update the threshold display value, not the preset mode
 
   // Load manual token from localStorage
   loadManualToken()
@@ -728,18 +742,73 @@ const updateImageProcessingParams = () => {
 }
 
 // SSIM preset handling methods
+let isUpdatingProgrammatically = false
+
 const onSsimPresetChange = () => {
   if (ssimPreset.value !== 'custom') {
+    isUpdatingProgrammatically = true
     tempSsimThreshold.value = ssimThresholdService.getThresholdValue(ssimPreset.value)
+    isUpdatingProgrammatically = false
     updateImageProcessingParams()
   }
 }
 
 const onSsimInputChange = () => {
-  // When user manually changes the input, determine which preset it matches
-  const value = tempSsimThreshold.value
-  ssimPreset.value = ssimThresholdService.getPresetFromValue(value)
+  // Only update preset mode if this is a manual user input, not a programmatic update
+  if (!isUpdatingProgrammatically) {
+    const value = tempSsimThreshold.value
+    const detectedPreset = ssimThresholdService.getPresetFromValue(value)
+
+    // Special handling for adaptive mode:
+    // If current mode is adaptive and the detected preset would be 'normal' or other non-adaptive,
+    // only switch if the user explicitly changed the value to match another preset exactly
+    if (ssimPreset.value === 'adaptive' && detectedPreset !== 'adaptive') {
+      // Only switch away from adaptive if the value exactly matches another preset
+      // This prevents automatic switching when adaptive mode dynamically adjusts the value
+      if (detectedPreset !== 'custom') {
+        ssimPreset.value = detectedPreset
+      } else {
+        // If it doesn't match any preset exactly, it's custom
+        ssimPreset.value = 'custom'
+      }
+    } else {
+      // For non-adaptive modes, use normal detection logic
+      ssimPreset.value = detectedPreset
+    }
+  }
 }
+
+// Method to update threshold value programmatically (for adaptive mode dynamic updates)
+const updateThresholdProgrammatically = (newValue: number) => {
+  isUpdatingProgrammatically = true
+  tempSsimThreshold.value = newValue
+  isUpdatingProgrammatically = false
+}
+
+// Handle adaptive threshold changes from classroom rules
+const onAdaptiveThresholdChanged = (event: CustomEvent) => {
+  const { newThreshold, classrooms } = event.detail
+
+  // Only update if we're currently in adaptive mode
+  if (ssimPreset.value === 'adaptive') {
+    console.log('Adaptive SSIM threshold updated due to classroom rules:', {
+      newThreshold,
+      classrooms: classrooms?.map((c: { name: string }) => c.name).join(', ') || 'none'
+    })
+
+    // Update the threshold programmatically to avoid triggering preset mode changes
+    updateThresholdProgrammatically(newThreshold)
+
+    // Also update the main threshold value and save to config
+    ssimThreshold.value = newThreshold
+    updateImageProcessingParams()
+  }
+}
+
+// Export for potential future use by other components
+defineExpose({
+  updateThresholdProgrammatically
+})
 
 const saveAdvancedSettings = async () => {
   try {

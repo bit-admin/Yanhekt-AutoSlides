@@ -29,8 +29,11 @@ export const SSIM_PRESET_VALUES: SsimPresetConfig = {
  */
 export class SsimThresholdService {
   private static instance: SsimThresholdService
+  private currentClassrooms: { name: string }[] | null = null
 
-  private constructor() {}
+  private constructor() {
+    // Private constructor for singleton pattern
+  }
 
   public static getInstance(): SsimThresholdService {
     if (!SsimThresholdService.instance) {
@@ -62,9 +65,15 @@ export class SsimThresholdService {
 
   /**
    * Determine which preset matches a given threshold value
+   * Note: This method should primarily be used for user input validation,
+   * not for determining the current preset mode from config.
+   *
+   * Adaptive mode must be explicitly selected by the user and cannot be
+   * automatically matched from input values.
    */
   public getPresetFromValue(value: number): SsimPresetType {
-    // Check exact matches first
+    // Check exact matches with fixed presets first
+    // Adaptive mode is never auto-matched - it must be explicitly selected
     if (value === SSIM_PRESET_VALUES.strict) {
       return 'strict'
     }
@@ -75,13 +84,9 @@ export class SsimThresholdService {
       return 'loose'
     }
 
-    // For adaptive, check if it matches the current adaptive value
-    const adaptiveValue = this.calculateAdaptiveThreshold()
-    if (value === adaptiveValue) {
-      return 'adaptive'
-    }
-
-    // If no exact match, it's custom
+    // If no exact match with fixed presets, it's custom
+    // Note: We don't check adaptive values here because adaptive mode
+    // must be explicitly selected by the user, not auto-detected from values
     return 'custom'
   }
 
@@ -95,17 +100,21 @@ export class SsimThresholdService {
   /**
    * Calculate adaptive threshold based on current conditions
    *
-   * TODO: Implement adaptive logic based on:
+   * Implements classroom-based rules and other adaptive logic:
+   * - Classroom location-based rules (priority order)
    * - Video quality
    * - Network conditions
    * - Historical performance
    * - User preferences
-   *
-   * For now, returns normal value as fallback
    */
   private calculateAdaptiveThreshold(): number {
-    // Placeholder for adaptive logic
-    // Currently returns normal value
+    // Apply classroom-based rules first (highest priority)
+    const classroomThreshold = this.getClassroomBasedThreshold(this.currentClassrooms || undefined)
+    if (classroomThreshold !== null) {
+      return classroomThreshold
+    }
+
+    // If no classroom rules match, return normal value as fallback
     return SSIM_PRESET_VALUES.normal
 
     // Future implementation might consider:
@@ -114,6 +123,35 @@ export class SsimThresholdService {
     // - Previous detection accuracy
     // - Time of day / system load
     // - User's historical preferences
+  }
+
+  /**
+   * Get threshold based on classroom location rules
+   * Rules are applied in order, first match wins
+   *
+   * @param classrooms - Array of classroom objects with name property
+   * @returns threshold value or null if no rules match
+   */
+  public getClassroomBasedThreshold(classrooms?: { name: string }[]): number | null {
+    if (!classrooms || classrooms.length === 0) {
+      return null
+    }
+
+    // Combine all classroom names for rule checking
+    const classroomNames = classrooms.map(c => c.name).join(' ')
+
+    // Rule 1: If classrooms contain "综教", return loose value
+    if (classroomNames.includes('综教')) {
+      return SSIM_PRESET_VALUES.loose
+    }
+
+    // Rule 2: If classrooms contain "理教", return loose value
+    if (classroomNames.includes('理教')) {
+      return SSIM_PRESET_VALUES.loose
+    }
+
+    // No rules matched
+    return null
   }
 
   /**
@@ -135,6 +173,55 @@ export class SsimThresholdService {
    */
   public isValidThreshold(value: number): boolean {
     return value >= 0.9 && value <= 1.0
+  }
+
+  /**
+   * Update the adaptive threshold value dynamically
+   * This method should be called when adaptive mode needs to adjust the threshold
+   * based on runtime conditions (for future implementation)
+   */
+  public updateAdaptiveThreshold(newValue: number): void {
+    if (this.isValidThreshold(newValue)) {
+      SSIM_PRESET_VALUES.adaptive = newValue
+      console.log(`Adaptive threshold updated to: ${newValue}`)
+    } else {
+      console.warn(`Invalid adaptive threshold value: ${newValue}`)
+    }
+  }
+
+  /**
+   * Set current classroom information for adaptive threshold calculation
+   *
+   * @param classrooms - Array of classroom objects with name property
+   */
+  public setCurrentClassrooms(classrooms: { name: string }[] | null): void {
+    this.currentClassrooms = classrooms
+    console.log('Updated classroom context for SSIM threshold:', classrooms?.map(c => c.name).join(', ') || 'none')
+
+    // If adaptive mode is being used, notify UI components about the threshold change
+    this.notifyAdaptiveThresholdChange()
+  }
+
+  /**
+   * Notify UI components about adaptive threshold changes
+   * This triggers programmatic updates in LeftPanel.vue
+   */
+  private notifyAdaptiveThresholdChange(): void {
+    // Dispatch a custom event to notify components about adaptive threshold changes
+    const event = new CustomEvent('adaptiveThresholdChanged', {
+      detail: {
+        newThreshold: this.calculateAdaptiveThreshold(),
+        classrooms: this.currentClassrooms
+      }
+    })
+    window.dispatchEvent(event)
+  }
+
+  /**
+   * Get current classroom information
+   */
+  public getCurrentClassrooms(): { name: string }[] | null {
+    return this.currentClassrooms
   }
 
   /**
