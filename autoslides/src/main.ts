@@ -290,6 +290,9 @@ ipcMain.handle('intranet:setEnabled', async (event, enabled: boolean) => {
 ipcMain.handle('intranet:getStatus', async () => {
   return intranetMappingService.getNetworkStatus();
 });
+ipcMain.handle('intranet:getMappings', async () => {
+  return intranetMappingService.getMappings();
+});
 
 // IPC handlers for live streams
 ipcMain.handle('api:getPersonalLiveList', async (event, token: string, page?: number, pageSize?: number) => {

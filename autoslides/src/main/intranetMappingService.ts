@@ -21,7 +21,7 @@ export class IntranetMappingService {
   constructor(configService: ConfigService) {
     this.configService = configService;
 
-    // Default mappings based on REFERENCE/intranetMapping.js
+    // Default mappings
     this.mappings = {
       'cbiz.yanhekt.cn': {
         type: 'loadbalance',
@@ -259,6 +259,13 @@ export class IntranetMappingService {
       enabled: this.enabled,
       mappingCount: Object.keys(this.mappings).length
     };
+  }
+
+  /**
+   * Get all intranet mappings for display purposes
+   */
+  getMappings(): IntranetMappings {
+    return { ...this.mappings };
   }
 
   /**

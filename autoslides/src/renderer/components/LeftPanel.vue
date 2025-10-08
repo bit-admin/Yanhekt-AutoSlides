@@ -352,6 +352,54 @@
                 </select>
               </div>
             </div>
+
+            <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.intranetMapping') }}</h4>
+              <div class="setting-item">
+                <div class="setting-description">{{ $t('advanced.intranetMappingDescription') }}</div>
+                <div class="intranet-mapping-list">
+                  <div v-for="(mapping, domain) in intranetMappings" :key="String(domain)" class="mapping-item">
+                    <div class="mapping-header" @click="toggleMappingExpanded(String(domain))">
+                      <div class="mapping-domain">{{ domain }}</div>
+                      <div class="mapping-type">
+                        <span class="type-badge" :class="mapping.type">
+                          {{ mapping.type === 'single' ? $t('advanced.singleIP') : $t('advanced.loadBalance') }}
+                        </span>
+                      </div>
+                      <div class="mapping-expand-icon" :class="{ expanded: expandedMappings[String(domain)] }">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <polyline points="6,9 12,15 18,9"></polyline>
+                        </svg>
+                      </div>
+                    </div>
+                    <div v-if="expandedMappings[String(domain)]" class="mapping-details">
+                      <div v-if="mapping.type === 'single'" class="single-ip-details">
+                        <div class="detail-row">
+                          <span class="detail-label">{{ $t('advanced.ipAddresses') }}:</span>
+                          <span class="detail-value">{{ mapping.ip }}</span>
+                        </div>
+                      </div>
+                      <div v-else class="load-balance-details">
+                        <div class="detail-row">
+                          <span class="detail-label">{{ $t('advanced.strategy') }}:</span>
+                          <span class="detail-value">
+                            {{ getStrategyDisplayName(mapping.strategy) }}
+                          </span>
+                        </div>
+                        <div class="detail-row">
+                          <span class="detail-label">{{ $t('advanced.ipAddresses') }}:</span>
+                          <div class="ip-list">
+                            <span v-for="(ip, index) in mapping.ips" :key="ip" class="ip-item">
+                              {{ ip }}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="modal-actions">
             <button @click="closeAdvancedSettings" class="cancel-btn">{{ $t('advanced.cancel') }}</button>
@@ -458,6 +506,18 @@ const manualToken = ref('')
 const showToken = ref(false)
 const isVerifyingManualToken = ref(false)
 const tokenVerificationStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
+
+// Intranet mapping display
+interface IntranetMapping {
+  type: 'single' | 'loadbalance';
+  ip?: string;
+  ips?: string[];
+  strategy?: 'round_robin' | 'random' | 'first_available';
+  currentIndex?: number;
+}
+
+const intranetMappings = ref<{ [domain: string]: IntranetMapping }>({})
+const expandedMappings = ref<{ [domain: string]: boolean }>({})
 
 const tokenManager = new TokenManager()
 const authService = new AuthService(tokenManager)
@@ -771,6 +831,9 @@ const openAdvancedSettings = () => {
   tokenVerificationStatus.value = null
   showToken.value = false
 
+  // Load intranet mappings
+  loadIntranetMappings()
+
   showAdvancedModal.value = true
 }
 
@@ -974,6 +1037,33 @@ const loadManualToken = () => {
   const existingToken = tokenManager.getToken()
   if (existingToken) {
     manualToken.value = existingToken
+  }
+}
+
+// Intranet mapping methods
+const loadIntranetMappings = async () => {
+  try {
+    const mappings = await window.electronAPI.intranet.getMappings()
+    intranetMappings.value = mappings
+  } catch (error) {
+    console.error('Failed to load intranet mappings:', error)
+  }
+}
+
+const toggleMappingExpanded = (domain: string) => {
+  expandedMappings.value[domain] = !expandedMappings.value[domain]
+}
+
+const getStrategyDisplayName = (strategy?: string) => {
+  switch (strategy) {
+    case 'round_robin':
+      return t('advanced.roundRobin')
+    case 'random':
+      return t('advanced.random')
+    case 'first_available':
+      return t('advanced.firstAvailable')
+    default:
+      return strategy || t('advanced.roundRobin')
   }
 }
 </script>
@@ -2335,6 +2425,204 @@ const loadManualToken = () => {
 
   .prevent-sleep-control .checkbox-label {
     color: #e0e0e0;
+  }
+}
+
+/* Intranet mapping styles - Compact version */
+.intranet-mapping-list {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  background-color: #f8f9fa;
+  font-size: 11px;
+}
+
+.mapping-item {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.mapping-item:last-child {
+  border-bottom: none;
+}
+
+.mapping-header {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  background-color: white;
+  min-height: 28px;
+}
+
+.mapping-header:hover {
+  background-color: #f8f9fa;
+}
+
+.mapping-domain {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 500;
+  color: #333;
+  font-family: 'Courier New', monospace;
+  line-height: 1.2;
+}
+
+.mapping-type {
+  margin-right: 8px;
+}
+
+.type-badge {
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+
+.type-badge.single {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.type-badge.loadbalance {
+  background-color: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.mapping-expand-icon {
+  transition: transform 0.2s ease;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.mapping-expand-icon.expanded {
+  transform: rotate(180deg);
+}
+
+.mapping-expand-icon svg {
+  width: 10px;
+  height: 10px;
+}
+
+.mapping-details {
+  padding: 8px 10px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #e0e0e0;
+}
+
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 4px;
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  font-weight: 500;
+  color: #666;
+  min-width: 60px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  color: #333;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+}
+
+.ip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-items: flex-start;
+}
+
+.ip-item {
+  padding: 2px 6px;
+  background-color: #e9ecef;
+  border-radius: 3px;
+  font-size: 9px;
+  font-family: 'Courier New', monospace;
+  color: #495057;
+  display: inline-block;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+/* Dark mode support for intranet mapping - Compact version */
+@media (prefers-color-scheme: dark) {
+  .intranet-mapping-list {
+    border-color: #404040;
+    background-color: #2d2d2d;
+  }
+
+  .mapping-item {
+    border-bottom-color: #404040;
+  }
+
+  .mapping-header {
+    background-color: #2d2d2d;
+    min-height: 28px;
+  }
+
+  .mapping-header:hover {
+    background-color: #3d3d3d;
+  }
+
+  .mapping-domain {
+    color: #e0e0e0;
+    font-size: 11px;
+  }
+
+  .type-badge.single {
+    background-color: #1a2332;
+    color: #64b5f6;
+  }
+
+  .type-badge.loadbalance {
+    background-color: #2d1b2e;
+    color: #ba68c8;
+  }
+
+  .mapping-expand-icon {
+    color: #b0b0b0;
+  }
+
+  .mapping-details {
+    background-color: #2d2d2d;
+    border-top-color: #404040;
+    padding: 8px 10px;
+  }
+
+  .detail-label {
+    color: #b0b0b0;
+    font-size: 10px;
+  }
+
+  .detail-value {
+    color: #e0e0e0;
+    font-size: 10px;
+  }
+
+  .ip-item {
+    background-color: #404040;
+    color: #e0e0e0;
+    font-size: 9px;
+    padding: 2px 6px;
+    white-space: nowrap;
   }
 }
 </style>

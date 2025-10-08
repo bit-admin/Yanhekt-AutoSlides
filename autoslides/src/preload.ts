@@ -54,6 +54,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   intranet: {
     setEnabled: (enabled: boolean) => ipcRenderer.invoke('intranet:setEnabled', enabled),
     getStatus: () => ipcRenderer.invoke('intranet:getStatus'),
+    getMappings: () => ipcRenderer.invoke('intranet:getMappings'),
   },
   video: {
     getLiveStreamUrls: (stream: any, token: string) =>
