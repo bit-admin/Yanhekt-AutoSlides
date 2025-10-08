@@ -117,4 +117,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     allowSleep: () => ipcRenderer.invoke('powerManagement:allowSleep'),
     isPreventingSleep: () => ipcRenderer.invoke('powerManagement:isPreventingSleep'),
   },
+  cache: {
+    getStats: () => ipcRenderer.invoke('cache:getStats'),
+    clear: () => ipcRenderer.invoke('cache:clear'),
+    resetAllData: () => ipcRenderer.invoke('cache:resetAllData'),
+  },
+  app: {
+    restart: () => ipcRenderer.invoke('app:restart'),
+  },
 });

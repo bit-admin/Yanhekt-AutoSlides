@@ -298,7 +298,11 @@ export class SlideExtractor {
     }
 
     this.resetVerificationState();
-    console.log('Slide extraction stopped');
+
+    // Clean up memory after stopping extraction
+    this.cleanupMemory();
+
+    console.log('Slide extraction stopped and memory cleaned');
   }
 
   /**
@@ -736,6 +740,36 @@ export class SlideExtractor {
       tableSize: this.intervalTable.size,
       entries
     };
+  }
+
+  /**
+   * Clean up memory used by image data
+   */
+  private cleanupMemory(): void {
+    // Clear image data references to help garbage collection
+    this.lastImageData = null;
+    this.potentialNewImageData = null;
+
+    // Clear image data from extracted slides but keep metadata
+    this.extractedSlides.forEach(slide => {
+      // Keep the slide metadata but clear the heavy image data
+      if (slide.imageData) {
+        // Set to null to help garbage collection
+        (slide as any).imageData = null;
+      }
+    });
+
+    // Suggest garbage collection if available (development/debugging)
+    if (typeof window !== 'undefined' && (window as any).gc) {
+      try {
+        (window as any).gc();
+        console.log('Manual garbage collection triggered');
+      } catch (e) {
+        // Ignore errors - gc() might not be available
+      }
+    }
+
+    console.log(`Memory cleanup completed for instance ${this.instanceId}`);
   }
 
   /**

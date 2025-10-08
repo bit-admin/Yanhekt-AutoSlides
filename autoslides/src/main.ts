@@ -10,6 +10,7 @@ import { FFmpegService } from './main/ffmpegService';
 import { M3u8DownloadService } from './main/m3u8DownloadService';
 import { slideExtractionService } from './main/slideExtractionService';
 import { PowerManagementService } from './main/powerManagementService';
+import { cacheManagementService } from './main/cacheManagementService';
 
 // Import translation files for main process
 import enTranslations from './renderer/i18n/locales/en.json';
@@ -657,6 +658,63 @@ ipcMain.handle('powerManagement:isPreventingSleep', async () => {
 // Cleanup power management service when app is quitting
 app.on('before-quit', () => {
   powerManagementService.cleanup();
+});
+
+// ============================================================================
+// Cache Management IPC Handlers
+// ============================================================================
+
+ipcMain.handle('cache:getStats', async () => {
+  try {
+    const stats = await cacheManagementService.getStats();
+    return stats;
+  } catch (error) {
+    console.error('Failed to get cache stats:', error);
+    return {
+      totalSize: 0,
+      tempFiles: 0
+    };
+  }
+});
+
+ipcMain.handle('cache:clear', async () => {
+  try {
+    const result = await cacheManagementService.clearCache();
+    return result;
+  } catch (error) {
+    console.error('Failed to clear cache:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+});
+
+ipcMain.handle('cache:resetAllData', async () => {
+  try {
+    const result = await cacheManagementService.resetAllData();
+    return result;
+  } catch (error) {
+    console.error('Failed to reset all data:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+});
+
+// ============================================================================
+// App Management IPC Handlers
+// ============================================================================
+
+ipcMain.handle('app:restart', async () => {
+  try {
+    app.relaunch();
+    app.exit(0);
+  } catch (error) {
+    console.error('Failed to restart app:', error);
+    throw error;
+  }
 });
 
 // In this file you can include the rest of your app's specific main process

@@ -322,6 +322,25 @@ interface ElectronAPI {
     zoomOut: () => Promise<void>;
     toggleFullscreen: () => Promise<void>;
   };
+
+  cache?: {
+    getStats: () => Promise<{
+      totalSize: number;
+      tempFiles: number;
+    }>;
+    clear: () => Promise<{
+      success: boolean;
+      error?: string;
+    }>;
+    resetAllData: () => Promise<{
+      success: boolean;
+      error?: string;
+    }>;
+  };
+
+  app?: {
+    restart: () => Promise<void>;
+  };
 }
 
 declare global {

@@ -354,6 +354,66 @@
             </div>
 
             <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.cacheManagement') }}</h4>
+              <div class="setting-item">
+                <div class="setting-description">{{ $t('advanced.cacheManagementDescription') }}</div>
+                <div class="cache-stats">
+                  <div class="cache-stat-item">
+                    <span class="cache-stat-label">{{ $t('advanced.cacheSize') }}</span>
+                    <span class="cache-stat-value">{{ formatCacheSize(cacheStats.totalSize) }}</span>
+                  </div>
+                  <div class="cache-stat-item">
+                    <span class="cache-stat-label">{{ $t('advanced.totalFiles') }}</span>
+                    <span class="cache-stat-value">{{ cacheStats.tempFiles }}</span>
+                  </div>
+                </div>
+                <div class="cache-actions">
+                  <button
+                    @click="refreshCacheStats"
+                    :disabled="isRefreshingCache"
+                    class="cache-refresh-btn"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                      <path d="M21 3v5h-5"/>
+                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                      <path d="M3 21v-5h5"/>
+                    </svg>
+                    {{ isRefreshingCache ? $t('advanced.refreshing') : $t('advanced.refresh') }}
+                  </button>
+                  <button
+                    @click="clearCache"
+                    :disabled="isClearingCache || cacheStats.totalSize === 0"
+                    class="cache-clear-btn"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3,6 5,6 21,6"/>
+                      <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+                      <line x1="10" y1="11" x2="10" y2="17"/>
+                      <line x1="14" y1="11" x2="14" y2="17"/>
+                    </svg>
+                    {{ isClearingCache ? $t('advanced.clearing') : $t('advanced.clearCache') }}
+                  </button>
+                  <button
+                    @click="resetAllData"
+                    :disabled="isResettingData"
+                    class="cache-reset-btn"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                      <path d="m2 17 10 5 10-5"/>
+                      <path d="m2 12 10 5 10-5"/>
+                    </svg>
+                    {{ isResettingData ? $t('advanced.resetting') : $t('advanced.resetAllData') }}
+                  </button>
+                </div>
+                <div v-if="cacheOperationStatus" :class="['cache-status', cacheOperationStatus.type]">
+                  {{ cacheOperationStatus.message }}
+                </div>
+              </div>
+            </div>
+
+            <div class="advanced-setting-section">
               <h4>{{ $t('advanced.intranetMapping') }}</h4>
               <div class="setting-item">
                 <div class="setting-description">{{ $t('advanced.intranetMappingDescription') }}</div>
@@ -518,6 +578,22 @@ interface IntranetMapping {
 
 const intranetMappings = ref<{ [domain: string]: IntranetMapping }>({})
 const expandedMappings = ref<{ [domain: string]: boolean }>({})
+
+// Cache management state
+interface CacheStats {
+  totalSize: number;
+  tempFiles: number;
+}
+
+const cacheStats = ref<CacheStats>({
+  totalSize: 0,
+  tempFiles: 0
+})
+
+const isRefreshingCache = ref(false)
+const isClearingCache = ref(false)
+const isResettingData = ref(false)
+const cacheOperationStatus = ref<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null)
 
 const tokenManager = new TokenManager()
 const authService = new AuthService(tokenManager)
@@ -834,6 +910,10 @@ const openAdvancedSettings = () => {
   // Load intranet mappings
   loadIntranetMappings()
 
+  // Load cache statistics
+  refreshCacheStats()
+  cacheOperationStatus.value = null
+
   showAdvancedModal.value = true
 }
 
@@ -1064,6 +1144,150 @@ const getStrategyDisplayName = (strategy?: string) => {
       return t('advanced.firstAvailable')
     default:
       return strategy || t('advanced.roundRobin')
+  }
+}
+
+// Cache management methods
+const formatCacheSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const refreshCacheStats = async () => {
+  isRefreshingCache.value = true
+  cacheOperationStatus.value = null
+
+  try {
+    const stats = await window.electronAPI.cache?.getStats?.()
+    if (stats) {
+      cacheStats.value = {
+        totalSize: stats.totalSize || 0,
+        tempFiles: stats.tempFiles || 0
+      }
+    }
+  } catch (error) {
+    console.error('Failed to refresh cache stats:', error)
+    cacheOperationStatus.value = {
+      type: 'error',
+      message: t('advanced.cacheStatsError')
+    }
+  } finally {
+    isRefreshingCache.value = false
+  }
+}
+
+const clearCache = async () => {
+  // Show confirmation dialog
+  const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'question',
+    buttons: [t('advanced.cancel'), t('advanced.clearCache')],
+    defaultId: 1,
+    cancelId: 0,
+    title: t('advanced.clearCacheTitle'),
+    message: t('advanced.clearCacheMessage'),
+    detail: t('advanced.clearCacheDetail')
+  })
+
+  if (confirmed?.response !== 1) {
+    return // User cancelled
+  }
+
+  isClearingCache.value = true
+  cacheOperationStatus.value = null
+
+  try {
+    const result = await window.electronAPI.cache?.clear?.()
+    if (result?.success) {
+      cacheOperationStatus.value = {
+        type: 'success',
+        message: t('advanced.cacheClearSuccess')
+      }
+      // Refresh stats after clearing
+      await refreshCacheStats()
+    } else {
+      throw new Error(result?.error || 'Unknown error')
+    }
+  } catch (error) {
+    console.error('Failed to clear cache:', error)
+    cacheOperationStatus.value = {
+      type: 'error',
+      message: t('advanced.cacheClearError')
+    }
+  } finally {
+    isClearingCache.value = false
+  }
+}
+
+const resetAllData = async () => {
+  // Show confirmation dialog with strong warning
+  const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'warning',
+    buttons: [t('advanced.cancel'), t('advanced.resetAllData')],
+    defaultId: 0,
+    cancelId: 0,
+    title: t('advanced.resetAllDataTitle'),
+    message: t('advanced.resetAllDataMessage'),
+    detail: t('advanced.resetAllDataDetail')
+  })
+
+  if (confirmed?.response !== 1) {
+    return // User cancelled
+  }
+
+  // Second confirmation for safety
+  const doubleConfirmed = await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'error',
+    buttons: [t('advanced.cancel'), t('advanced.confirmReset')],
+    defaultId: 0,
+    cancelId: 0,
+    title: t('advanced.finalConfirmation'),
+    message: t('advanced.finalConfirmationMessage'),
+    detail: t('advanced.finalConfirmationDetail')
+  })
+
+  if (doubleConfirmed?.response !== 1) {
+    return // User cancelled
+  }
+
+  isResettingData.value = true
+  cacheOperationStatus.value = null
+
+  try {
+    const result = await window.electronAPI.cache?.resetAllData?.()
+    if (result?.success) {
+      cacheOperationStatus.value = {
+        type: 'success',
+        message: t('advanced.resetSuccess')
+      }
+
+      // Show restart dialog
+      const shouldRestart = await window.electronAPI.dialog?.showMessageBox?.({
+        type: 'info',
+        buttons: [t('advanced.restartLater'), t('advanced.restartNow')],
+        defaultId: 1,
+        title: t('advanced.restartRequired'),
+        message: t('advanced.restartRequiredMessage'),
+        detail: t('advanced.restartRequiredDetail')
+      })
+
+      if (shouldRestart?.response === 1) {
+        // Restart the application
+        await window.electronAPI.app?.restart?.()
+      }
+    } else {
+      throw new Error(result?.error || 'Unknown error')
+    }
+  } catch (error) {
+    console.error('Failed to reset all data:', error)
+    cacheOperationStatus.value = {
+      type: 'error',
+      message: t('advanced.resetError')
+    }
+  } finally {
+    isResettingData.value = false
   }
 }
 </script>
@@ -2623,6 +2847,192 @@ const getStrategyDisplayName = (strategy?: string) => {
     font-size: 9px;
     padding: 2px 6px;
     white-space: nowrap;
+  }
+}
+
+/* Cache management styles */
+.cache-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+
+.cache-stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.cache-stat-label {
+  color: #666;
+  font-weight: 500;
+}
+
+.cache-stat-value {
+  color: #333;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.cache-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.cache-refresh-btn, .cache-clear-btn, .cache-reset-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+.cache-refresh-btn {
+  background-color: #f8f9fa;
+  border-color: #ddd;
+  color: #666;
+}
+
+.cache-refresh-btn:hover:not(:disabled) {
+  background-color: #e9ecef;
+  border-color: #007acc;
+  color: #007acc;
+}
+
+.cache-clear-btn {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #212529;
+}
+
+.cache-clear-btn:hover:not(:disabled) {
+  background-color: #e0a800;
+  border-color: #e0a800;
+}
+
+.cache-reset-btn {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+.cache-reset-btn:hover:not(:disabled) {
+  background-color: #c82333;
+  border-color: #c82333;
+}
+
+.cache-refresh-btn:disabled,
+.cache-clear-btn:disabled,
+.cache-reset-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cache-status {
+  margin-top: 8px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.cache-status.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.cache-status.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.cache-status.warning {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+/* Dark mode support for cache management */
+@media (prefers-color-scheme: dark) {
+  .cache-stats {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .cache-stat-label {
+    color: #b0b0b0;
+  }
+
+  .cache-stat-value {
+    color: #e0e0e0;
+  }
+
+  .cache-refresh-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .cache-refresh-btn:hover:not(:disabled) {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+    color: #4a9eff;
+  }
+
+  .cache-clear-btn {
+    background-color: #f39c12;
+    border-color: #f39c12;
+    color: #1a1a1a;
+  }
+
+  .cache-clear-btn:hover:not(:disabled) {
+    background-color: #e67e22;
+    border-color: #e67e22;
+  }
+
+  .cache-reset-btn {
+    background-color: #e74c3c;
+    border-color: #e74c3c;
+  }
+
+  .cache-reset-btn:hover:not(:disabled) {
+    background-color: #c0392b;
+    border-color: #c0392b;
+  }
+
+  .cache-status.success {
+    background-color: #1b4332;
+    color: #4caf50;
+    border-color: #2d5a3d;
+  }
+
+  .cache-status.error {
+    background-color: #4a1e1e;
+    color: #ff6b6b;
+    border-color: #5d2a2a;
+  }
+
+  .cache-status.warning {
+    background-color: #3d3520;
+    color: #f39c12;
+    border-color: #665c2a;
   }
 }
 </style>

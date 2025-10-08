@@ -21,7 +21,7 @@ export const SSIM_PRESET_VALUES: SsimPresetConfig = {
   adaptive: 0.9987, // Default to normal value, but can be dynamically adjusted
   strict: 0.999,
   normal: 0.9987,
-  loose: 0.9982
+  loose: 0.998
 }
 
 /**
