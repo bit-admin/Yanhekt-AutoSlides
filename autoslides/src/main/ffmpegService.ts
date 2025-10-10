@@ -7,12 +7,26 @@ export class FFmpegService {
   }
 
   private initializeFfmpegPath(): void {
-    // Use ffmpeg-static npm package
     try {
-      // Dynamic import to handle optional dependency
+      // In packaged app, check extraResource first
+      if (process.resourcesPath) {
+        const path = require('path');
+        const fs = require('fs');
+
+        // Try extraResource path first (packaged app)
+        const extraResourcePath = path.join(process.resourcesPath, 'ffmpeg-static', 'ffmpeg');
+        if (fs.existsSync(extraResourcePath)) {
+          this.ffmpegPath = extraResourcePath;
+          console.log('FFmpeg path (extraResource):', this.ffmpegPath);
+          return;
+        }
+      }
+
+      // Fallback to ffmpeg-static npm package (development)
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const ffmpegStatic = require('ffmpeg-static');
       this.ffmpegPath = ffmpegStatic;
+      console.log('FFmpeg path (npm package):', this.ffmpegPath);
     } catch (error) {
       console.error('ffmpeg-static not available:', error);
       this.ffmpegPath = null;

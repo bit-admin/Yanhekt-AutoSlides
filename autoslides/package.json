@@ -45,9 +45,7 @@
     "electron-store": "^10.1.0",
     "hls.js": "^1.6.13",
     "vue": "^3.5.21",
-    "vue-i18n": "^9.14.5"
-  },
-  "optionalDependencies": {
+    "vue-i18n": "^9.14.5",
     "ffmpeg-static": "^5.2.0"
   }
 }

@@ -3,6 +3,7 @@ import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
+import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const config: ForgeConfig = {
@@ -16,7 +17,9 @@ const config: ForgeConfig = {
     // Include all necessary resources
     extraResource: [
       // Always include terms.rtf
-      'resources/terms'
+      'resources/terms',
+      // Include FFmpeg binary for all platforms
+      'node_modules/ffmpeg-static'
     ]
   },
   rebuildConfig: {},
@@ -35,6 +38,7 @@ const config: ForgeConfig = {
     })
   ],
   plugins: [
+    new AutoUnpackNativesPlugin({}),
     new VitePlugin({
       // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
       // If you are familiar with Vite configuration, it will look really familiar.
