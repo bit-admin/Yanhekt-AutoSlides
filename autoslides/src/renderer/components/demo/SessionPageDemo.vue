@@ -8,7 +8,7 @@
           </svg>
           {{ $t('sessions.backToCourses') }}
         </button>
-        <h2>{{ demoCourseName }}</h2>
+        <h2>{{ t('demo.course.title') }}</h2>
         <button @click="toggleCourseDetails" class="expand-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showCourseDetails }">
             <polyline points="6,9 12,15 18,9"/>
@@ -18,19 +18,19 @@
       <div v-show="showCourseDetails" class="course-details">
         <div class="course-detail-item">
           <span class="detail-label">{{ $t('playback.instructor') }}</span>
-          <span class="detail-value">张教授</span>
+          <span class="detail-value">{{ t('demo.course.instructor') }}</span>
         </div>
         <div class="course-detail-item">
           <span class="detail-label">{{ $t('sessions.academicTerm') }}</span>
-          <span class="detail-value">2024 Fall</span>
+          <span class="detail-value">{{ t('demo.course.term') }}</span>
         </div>
         <div class="course-detail-item">
           <span class="detail-label">{{ $t('sessions.classrooms') }}</span>
-          <span class="detail-value">教学楼A101</span>
+          <span class="detail-value">{{ t('demo.course.classroom') }}</span>
         </div>
         <div class="course-detail-item">
           <span class="detail-label">{{ $t('sessions.college') }}</span>
-          <span class="detail-value">数学学院</span>
+          <span class="detail-value">{{ t('demo.course.college') }}</span>
         </div>
         <div class="course-detail-item">
           <span class="detail-label">{{ $t('sessions.participants') }}</span>
@@ -137,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 interface MockSession {
@@ -155,73 +155,72 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const demoCourseName = ref('高等数学A(1)')
 const isLoading = ref(false)
 const showCourseDetails = ref(false)
 
 // Mock session data (8 sessions as requested)
-const mockSessions = ref<MockSession[]>([
+const mockSessions = computed<MockSession[]>(() => [
   {
     id: '001',
-    title: '第一章：函数与极限 - 函数的概念',
+    title: t('demo.sessions.functionalAnalysis.chapter1.concept'),
     week: 1,
-    day: '周一',
+    day: t('demo.days.monday'),
     duration: '90m',
     date: 'Sep 2, 2024, 08:00'
   },
   {
     id: '002',
-    title: '第一章：函数与极限 - 数列的极限',
+    title: t('demo.sessions.functionalAnalysis.chapter1.properties'),
     week: 1,
-    day: '周三',
+    day: t('demo.days.wednesday'),
     duration: '90m',
     date: 'Sep 4, 2024, 08:00'
   },
   {
     id: '003',
-    title: '第一章：函数与极限 - 函数的极限',
+    title: t('demo.sessions.functionalAnalysis.chapter1.completeness'),
     week: 2,
-    day: '周一',
+    day: t('demo.days.monday'),
     duration: '90m',
     date: 'Sep 9, 2024, 08:00'
   },
   {
     id: '004',
-    title: '第一章：函数与极限 - 无穷小与无穷大',
+    title: t('demo.sessions.functionalAnalysis.chapter2.banachSpaces'),
     week: 2,
-    day: '周三',
+    day: t('demo.days.wednesday'),
     duration: '90m',
     date: 'Sep 11, 2024, 08:00'
   },
   {
     id: '005',
-    title: '第二章：导数与微分 - 导数的概念',
+    title: t('demo.sessions.functionalAnalysis.chapter2.linearOperators'),
     week: 3,
-    day: '周一',
+    day: t('demo.days.monday'),
     duration: '90m',
     date: 'Sep 16, 2024, 08:00'
   },
   {
     id: '006',
-    title: '第二章：导数与微分 - 函数的求导法则',
+    title: t('demo.sessions.functionalAnalysis.chapter2.dualSpaces'),
     week: 3,
-    day: '周三',
+    day: t('demo.days.wednesday'),
     duration: '90m',
     date: 'Sep 18, 2024, 08:00'
   },
   {
     id: '007',
-    title: '第二章：导数与微分 - 高阶导数',
+    title: t('demo.sessions.functionalAnalysis.chapter3.hilbertSpaces'),
     week: 4,
-    day: '周一',
+    day: t('demo.days.monday'),
     duration: '90m',
     date: 'Sep 23, 2024, 08:00'
   },
   {
     id: '008',
-    title: '第二章：导数与微分 - 隐函数及由参数方程所确定的函数的导数',
+    title: t('demo.sessions.functionalAnalysis.chapter3.orthogonality'),
     week: 4,
-    day: '周三',
+    day: t('demo.days.wednesday'),
     duration: '90m',
     date: 'Sep 25, 2024, 08:00'
   }

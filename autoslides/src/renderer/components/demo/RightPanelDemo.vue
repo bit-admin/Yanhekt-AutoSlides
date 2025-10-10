@@ -179,51 +179,53 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 type Tab = 'task' | 'download'
 
+const { t } = useI18n()
 const currentTab = ref<Tab>('task')
 
 // Mock task items for demo
-const mockTaskItems = ref([
+const mockTaskItems = computed(() => [
   {
     id: 'task-1',
-    name: '高等数学 - 第1章 函数与极限',
+    name: t('demo.tasks.functionalAnalysis.chapter1'),
     status: 'completed',
     progress: 100
   },
   {
     id: 'task-2',
-    name: '线性代数 - 第2章 矩阵运算',
+    name: t('demo.tasks.functionalAnalysis.chapter2'),
     status: 'in_progress',
     progress: 66
   },
   {
     id: 'task-3',
-    name: '概率论与数理统计 - 第3章 随机变量',
+    name: t('demo.tasks.realAnalysis.chapter3'),
     status: 'queued',
     progress: 0
   }
 ])
 
 // Mock download items for demo
-const mockDownloadItems = ref([
+const mockDownloadItems = computed(() => [
   {
     id: 'download-1',
-    name: '计算机网络 - 第4章 网络层协议',
+    name: t('demo.downloads.complexAnalysis.chapter5'),
     status: 'completed',
     progress: 100
   },
   {
     id: 'download-2',
-    name: '数据结构 - 第5章 树与二叉树',
+    name: t('demo.downloads.complexAnalysis.chapter6'),
     status: 'downloading',
     progress: 66
   },
   {
     id: 'download-3',
-    name: '操作系统 - 第6章 进程管理',
+    name: t('demo.downloads.abstractAlgebra.chapter7'),
     status: 'queued',
     progress: 0
   }

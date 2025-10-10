@@ -395,13 +395,14 @@
   },
   "demo": {
     "course": {
-      "title": "Advanced Computer Graphics",
+      "title": "Functional Analysis",
       "instructor": "Prof. Zhang",
       "term": "2024 Fall",
-      "classroom": "Computer Building A205"
+      "classroom": "Mathematics Building A205",
+      "college": "School of Mathematics"
     },
     "session": {
-      "title": "Week 8 - 3D Rendering Techniques"
+      "title": "Week 8 - Banach Spaces and Linear Operators"
     },
     "stream": {
       "camera": "Camera View",
@@ -413,6 +414,149 @@
     "slide": {
       "preview": "Slide Preview",
       "fullPreview": "Full Slide Preview"
+    },
+    "courses": {
+      "functionalAnalysis": {
+        "title": "Functional Analysis",
+        "instructor": "Prof. Zhang",
+        "location": "Mathematics Building A301",
+        "college": "School of Mathematics"
+      },
+      "realAnalysis": {
+        "title": "Real Analysis",
+        "instructor": "Prof. Li",
+        "location": "Mathematics Building B203",
+        "college": "School of Mathematics"
+      },
+      "complexAnalysis": {
+        "title": "Complex Analysis",
+        "instructor": "Prof. Wang",
+        "location": "Mathematics Building A205",
+        "college": "School of Mathematics"
+      },
+      "abstractAlgebra": {
+        "title": "Abstract Algebra",
+        "instructor": "Prof. Chen",
+        "location": "Mathematics Building C102",
+        "college": "School of Mathematics"
+      },
+      "differentialGeometry": {
+        "title": "Differential Geometry",
+        "instructor": "Prof. Liu",
+        "location": "Mathematics Building B301",
+        "college": "School of Mathematics"
+      },
+      "algebraicTopology": {
+        "title": "Algebraic Topology",
+        "instructor": "Prof. Wu",
+        "location": "Mathematics Building A103",
+        "college": "School of Mathematics"
+      },
+      "numberTheory": {
+        "title": "Number Theory",
+        "instructor": "Prof. Zhao",
+        "location": "Mathematics Building C201",
+        "college": "School of Mathematics"
+      },
+      "partialDifferentialEquations": {
+        "title": "Partial Differential Equations",
+        "instructor": "Prof. Sun",
+        "location": "Mathematics Building B105",
+        "college": "School of Mathematics"
+      },
+      "measureTheory": {
+        "title": "Measure Theory",
+        "instructor": "Prof. Zhou",
+        "location": "Mathematics Building A207",
+        "college": "School of Mathematics"
+      },
+      "algebraicGeometry": {
+        "title": "Algebraic Geometry",
+        "instructor": "Prof. Feng",
+        "location": "Mathematics Building C301",
+        "college": "School of Mathematics"
+      },
+      "harmonicAnalysis": {
+        "title": "Harmonic Analysis",
+        "instructor": "Prof. Zheng",
+        "location": "Mathematics Building B207",
+        "college": "School of Mathematics"
+      },
+      "operatorTheory": {
+        "title": "Operator Theory",
+        "instructor": "Prof. He",
+        "location": "Mathematics Building A109",
+        "college": "School of Mathematics"
+      },
+      "stochasticProcesses": {
+        "title": "Stochastic Processes",
+        "instructor": "Prof. Ma",
+        "location": "Mathematics Building C105",
+        "college": "School of Mathematics"
+      },
+      "mathematicalLogic": {
+        "title": "Mathematical Logic",
+        "instructor": "Prof. Han",
+        "location": "Mathematics Building B303",
+        "college": "School of Mathematics"
+      },
+      "categoryTheory": {
+        "title": "Category Theory",
+        "instructor": "Prof. Xie",
+        "location": "Mathematics Building A211",
+        "college": "School of Mathematics"
+      },
+      "homologicalAlgebra": {
+        "title": "Homological Algebra",
+        "instructor": "Prof. Guo",
+        "location": "Mathematics Building C203",
+        "college": "School of Mathematics"
+      }
+    },
+    "tasks": {
+      "functionalAnalysis": {
+        "chapter1": "Functional Analysis - Chapter 1: Normed Spaces",
+        "chapter2": "Functional Analysis - Chapter 2: Banach Spaces"
+      },
+      "realAnalysis": {
+        "chapter3": "Real Analysis - Chapter 3: Measure and Integration",
+        "chapter4": "Real Analysis - Chapter 4: Lebesgue Integration"
+      }
+    },
+    "downloads": {
+      "complexAnalysis": {
+        "chapter5": "Complex Analysis - Chapter 5: Cauchy's Theorem",
+        "chapter6": "Complex Analysis - Chapter 6: Residue Theory"
+      },
+      "abstractAlgebra": {
+        "chapter7": "Abstract Algebra - Chapter 7: Group Theory",
+        "chapter8": "Abstract Algebra - Chapter 8: Ring Theory"
+      }
+    },
+    "sessions": {
+      "functionalAnalysis": {
+        "chapter1": {
+          "concept": "Chapter 1: Normed Spaces - Basic Concepts",
+          "properties": "Chapter 1: Normed Spaces - Properties and Examples",
+          "completeness": "Chapter 1: Normed Spaces - Completeness"
+        },
+        "chapter2": {
+          "banachSpaces": "Chapter 2: Banach Spaces - Definition and Examples",
+          "linearOperators": "Chapter 2: Banach Spaces - Linear Operators",
+          "dualSpaces": "Chapter 2: Banach Spaces - Dual Spaces"
+        },
+        "chapter3": {
+          "hilbertSpaces": "Chapter 3: Hilbert Spaces - Inner Product Spaces",
+          "orthogonality": "Chapter 3: Hilbert Spaces - Orthogonality and Projections"
+        }
+      }
+    },
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday"
     }
   }
 }

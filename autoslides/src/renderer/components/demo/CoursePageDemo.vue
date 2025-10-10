@@ -83,7 +83,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 interface Course {
@@ -110,150 +110,150 @@ const searchQuery = ref('')
 const isLoading = ref(false)
 const showWelcome = ref(true)
 
-// Mock course data for demo (16 courses as requested)
-const mockCourses = ref<Course[]>([
+// Mock course data for demo (16 mathematics courses)
+const mockCourses = computed<Course[]>(() => [
   {
     id: '001',
-    title: '高等数学A(1)',
-    instructor: '张教授',
-    location: '教学楼A101',
+    title: t('demo.courses.functionalAnalysis.title'),
+    instructor: t('demo.courses.functionalAnalysis.instructor'),
+    location: t('demo.courses.functionalAnalysis.location'),
     time: '2024 Fall',
-    college: '数学学院',
+    college: t('demo.courses.functionalAnalysis.college'),
     participants: 120
   },
   {
     id: '002',
-    title: '线性代数',
-    instructor: '李教授',
-    location: '教学楼B203',
+    title: t('demo.courses.realAnalysis.title'),
+    instructor: t('demo.courses.realAnalysis.instructor'),
+    location: t('demo.courses.realAnalysis.location'),
     time: '2024 Fall',
-    college: '数学学院',
+    college: t('demo.courses.realAnalysis.college'),
     participants: 95
   },
   {
     id: '003',
-    title: '大学物理',
-    instructor: '王教授',
-    location: '物理楼301',
+    title: t('demo.courses.complexAnalysis.title'),
+    instructor: t('demo.courses.complexAnalysis.instructor'),
+    location: t('demo.courses.complexAnalysis.location'),
     time: '2024 Fall',
-    college: '物理学院',
+    college: t('demo.courses.complexAnalysis.college'),
     participants: 150
   },
   {
     id: '004',
-    title: '程序设计基础',
-    instructor: '陈教授',
-    location: '计算机楼A205',
+    title: t('demo.courses.abstractAlgebra.title'),
+    instructor: t('demo.courses.abstractAlgebra.instructor'),
+    location: t('demo.courses.abstractAlgebra.location'),
     time: '2024 Fall',
-    college: '计算机学院',
+    college: t('demo.courses.abstractAlgebra.college'),
     participants: 180
   },
   {
     id: '005',
-    title: '数据结构与算法',
-    instructor: '刘教授',
-    location: '计算机楼B301',
+    title: t('demo.courses.differentialGeometry.title'),
+    instructor: t('demo.courses.differentialGeometry.instructor'),
+    location: t('demo.courses.differentialGeometry.location'),
     time: '2024 Fall',
-    college: '计算机学院',
+    college: t('demo.courses.differentialGeometry.college'),
     participants: 160
   },
   {
     id: '006',
-    title: '大学英语',
-    instructor: 'Smith教授',
-    location: '外语楼201',
+    title: t('demo.courses.algebraicTopology.title'),
+    instructor: t('demo.courses.algebraicTopology.instructor'),
+    location: t('demo.courses.algebraicTopology.location'),
     time: '2024 Fall',
-    college: '外国语学院',
+    college: t('demo.courses.algebraicTopology.college'),
     participants: 80
   },
   {
     id: '007',
-    title: '概率论与数理统计',
-    instructor: '赵教授',
-    location: '教学楼C102',
+    title: t('demo.courses.numberTheory.title'),
+    instructor: t('demo.courses.numberTheory.instructor'),
+    location: t('demo.courses.numberTheory.location'),
     time: '2024 Fall',
-    college: '数学学院',
+    college: t('demo.courses.numberTheory.college'),
     participants: 110
   },
   {
     id: '008',
-    title: '电路分析',
-    instructor: '孙教授',
-    location: '电子楼A301',
+    title: t('demo.courses.partialDifferentialEquations.title'),
+    instructor: t('demo.courses.partialDifferentialEquations.instructor'),
+    location: t('demo.courses.partialDifferentialEquations.location'),
     time: '2024 Fall',
-    college: '电子工程学院',
+    college: t('demo.courses.partialDifferentialEquations.college'),
     participants: 90
   },
   {
     id: '009',
-    title: '机械制图',
-    instructor: '周教授',
-    location: '机械楼B205',
+    title: t('demo.courses.measureTheory.title'),
+    instructor: t('demo.courses.measureTheory.instructor'),
+    location: t('demo.courses.measureTheory.location'),
     time: '2024 Fall',
-    college: '机械工程学院',
+    college: t('demo.courses.measureTheory.college'),
     participants: 75
   },
   {
     id: '010',
-    title: '有机化学',
-    instructor: '吴教授',
-    location: '化学楼301',
+    title: t('demo.courses.algebraicGeometry.title'),
+    instructor: t('demo.courses.algebraicGeometry.instructor'),
+    location: t('demo.courses.algebraicGeometry.location'),
     time: '2024 Fall',
-    college: '化学学院',
+    college: t('demo.courses.algebraicGeometry.college'),
     participants: 65
   },
   {
     id: '011',
-    title: '微观经济学',
-    instructor: '郑教授',
-    location: '经管楼A201',
+    title: t('demo.courses.harmonicAnalysis.title'),
+    instructor: t('demo.courses.harmonicAnalysis.instructor'),
+    location: t('demo.courses.harmonicAnalysis.location'),
     time: '2024 Fall',
-    college: '经济管理学院',
+    college: t('demo.courses.harmonicAnalysis.college'),
     participants: 140
   },
   {
     id: '012',
-    title: '心理学导论',
-    instructor: '冯教授',
-    location: '文科楼B301',
+    title: t('demo.courses.operatorTheory.title'),
+    instructor: t('demo.courses.operatorTheory.instructor'),
+    location: t('demo.courses.operatorTheory.location'),
     time: '2024 Fall',
-    college: '心理学院',
+    college: t('demo.courses.operatorTheory.college'),
     participants: 85
   },
   {
     id: '013',
-    title: '中国近现代史纲要',
-    instructor: '何教授',
-    location: '人文楼201',
+    title: t('demo.courses.stochasticProcesses.title'),
+    instructor: t('demo.courses.stochasticProcesses.instructor'),
+    location: t('demo.courses.stochasticProcesses.location'),
     time: '2024 Fall',
-    college: '马克思主义学院',
+    college: t('demo.courses.stochasticProcesses.college'),
     participants: 200
   },
   {
     id: '014',
-    title: '体育',
-    instructor: '马教练',
-    location: '体育馆',
+    title: t('demo.courses.mathematicalLogic.title'),
+    instructor: t('demo.courses.mathematicalLogic.instructor'),
+    location: t('demo.courses.mathematicalLogic.location'),
     time: '2024 Fall',
-    college: '体育学院',
+    college: t('demo.courses.mathematicalLogic.college'),
     participants: 50
   },
   {
     id: '015',
-    title: '艺术鉴赏',
-    instructor: '韩教授',
-    location: '艺术楼A101',
+    title: t('demo.courses.categoryTheory.title'),
+    instructor: t('demo.courses.categoryTheory.instructor'),
+    location: t('demo.courses.categoryTheory.location'),
     time: '2024 Fall',
-    college: '艺术学院',
+    college: t('demo.courses.categoryTheory.college'),
     participants: 60
   },
   {
     id: '016',
-    title: '创新创业基础',
-    instructor: '谢教授',
-    location: '创业中心201',
+    title: t('demo.courses.homologicalAlgebra.title'),
+    instructor: t('demo.courses.homologicalAlgebra.instructor'),
+    location: t('demo.courses.homologicalAlgebra.location'),
     time: '2024 Fall',
-    college: '创新创业学院',
+    college: t('demo.courses.homologicalAlgebra.college'),
     participants: 100
   }
 ])

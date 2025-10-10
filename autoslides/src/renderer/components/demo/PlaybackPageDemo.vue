@@ -33,7 +33,7 @@
         </div>
         <div class="course-detail-item">
           <span class="detail-label">{{ $t('playback.duration') }}</span>
-          <span class="detail-value">1:45:30</span>
+          <span class="detail-value">{{ formatDuration(totalTime) }}</span>
         </div>
       </div>
     </div>
@@ -267,6 +267,18 @@ const openSlideModal = (slide: any) => {
 
 const closeSlideModal = () => {
   selectedSlide.value = null
+}
+
+const formatDuration = (seconds: number): string => {
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const remainingSeconds = seconds % 60
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
+  } else {
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+  }
 }
 
 // Simulate video progress
