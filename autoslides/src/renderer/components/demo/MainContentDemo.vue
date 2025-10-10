@@ -68,9 +68,14 @@ const switchMode = (mode: Mode) => {
   currentMode.value = mode
 }
 
+const emit = defineEmits<{
+  courseSelected: [course: any]
+}>()
+
 const handleCourseSelected = (course: any) => {
-  // Demo mode - no actual navigation
+  // Demo mode - emit event to parent to navigate to PlaybackPage
   console.log('Demo: Course selected', course)
+  emit('courseSelected', course)
 }
 
 // Expose switchMode method for parent component

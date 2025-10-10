@@ -120,6 +120,24 @@ export function useTour() {
             }
           },
           {
+            element: '.content',
+            popover: {
+              title: t('tour.steps.playbackContent.title'),
+              description: t('tour.steps.playbackContent.description'),
+              side: 'top',
+              align: 'center'
+            }
+          },
+          {
+            element: '.slide-gallery',
+            popover: {
+              title: t('tour.steps.slideGallery.title'),
+              description: t('tour.steps.slideGallery.description'),
+              side: 'top',
+              align: 'center'
+            }
+          },
+          {
             element: '.search-box',
             popover: {
               title: t('tour.steps.searchButton.title'),
@@ -202,6 +220,25 @@ export function useTour() {
             window.dispatchEvent(new CustomEvent('tour-switch-to-download-mode'))
 
             // Wait for mode switch before continuing
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 200)
+            return // Prevent default next behavior
+          }
+
+          if (step.element === '.right-panel[data-tab="download"]') {
+            // Switch to PlaybackPage demo mode after download panel step
+            window.dispatchEvent(new CustomEvent('tour-switch-to-playback-demo'))
+
+            // Wait for playback page to load before continuing
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 1000)
+            return // Prevent default next behavior
+          }
+
+          if (step.element === '.content') {
+            // Focus on slide gallery for next step - no action needed, just continue
             setTimeout(() => {
               tourInstance.value?.moveNext()
             }, 200)

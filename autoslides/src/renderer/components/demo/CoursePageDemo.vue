@@ -61,6 +61,7 @@
           v-for="course in mockCourses"
           :key="course.id"
           class="course-card course-card-demo"
+          @click="selectCourse(course)"
         >
           <div class="course-id">
             #{{ course.id }}
@@ -441,13 +442,13 @@ defineExpose({
 }
 
 .course-card-demo {
-  cursor: default !important;
-  pointer-events: none;
+  cursor: pointer !important;
+  pointer-events: auto;
 }
 
 .course-card-demo:hover {
-  border-color: #e0e0e0 !important;
-  box-shadow: none !important;
+  border-color: #007acc !important;
+  box-shadow: 0 2px 8px rgba(0, 122, 204, 0.1) !important;
 }
 
 .course-id {

@@ -11,8 +11,9 @@
       <div class="divider left-divider" @mousedown="startResize('left', $event)"></div>
 
       <div class="main-content" :style="{ width: mainWidth + 'px' }">
-        <SessionPageDemo v-if="isDemoMode && showSessionDemo" ref="sessionPageDemoRef" @back-to-courses="handleBackToCourses" />
-        <MainContentDemo v-else-if="isDemoMode && showMainDemo" ref="mainContentDemoRef" />
+        <PlaybackPageDemo v-if="isDemoMode && showPlaybackDemo" ref="playbackPageDemoRef" @back="handleBackFromPlayback" />
+        <SessionPageDemo v-else-if="isDemoMode && showSessionDemo" ref="sessionPageDemoRef" @back-to-courses="handleBackToCourses" />
+        <MainContentDemo v-else-if="isDemoMode && showMainDemo" ref="mainContentDemoRef" @course-selected="handleCourseSelectedFromMain" />
         <MainContent v-else @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
       </div>
       <div class="divider right-divider" @mousedown="startResize('right', $event)"></div>
@@ -33,6 +34,7 @@ import LeftPanelDemo from './renderer/components/demo/LeftPanelDemo.vue'
 import MainContent from './renderer/components/MainContent.vue'
 import MainContentDemo from './renderer/components/demo/MainContentDemo.vue'
 import SessionPageDemo from './renderer/components/demo/SessionPageDemo.vue'
+import PlaybackPageDemo from './renderer/components/demo/PlaybackPageDemo.vue'
 import RightPanel from './renderer/components/RightPanel.vue'
 import RightPanelDemo from './renderer/components/demo/RightPanelDemo.vue'
 import { useTour } from './renderer/composables/useTour'
@@ -53,9 +55,11 @@ const rightPanelDemoRef = ref()
 const leftPanelDemoRef = ref()
 const mainContentDemoRef = ref()
 const sessionPageDemoRef = ref()
+const playbackPageDemoRef = ref()
 const isDemoMode = ref(false)
 const showMainDemo = ref(false)
 const showSessionDemo = ref(false)
+const showPlaybackDemo = ref(false)
 const showRightPanelDemo = ref(false)
 const { checkFirstVisit, showWelcomePopup } = useTour()
 
@@ -148,6 +152,7 @@ const handleDemoModeToggle = (event: CustomEvent) => {
     // Reset demo states when enabling demo mode
     showMainDemo.value = false
     showSessionDemo.value = false
+    showPlaybackDemo.value = false
     showRightPanelDemo.value = false
     nextTick(() => {
       if (leftPanelDemoRef.value) {
@@ -158,6 +163,7 @@ const handleDemoModeToggle = (event: CustomEvent) => {
     // Reset all demo states when exiting demo mode
     showMainDemo.value = false
     showSessionDemo.value = false
+    showPlaybackDemo.value = false
     showRightPanelDemo.value = false
     if (leftPanelDemoRef.value) {
       leftPanelDemoRef.value.resetDemo()
@@ -211,6 +217,24 @@ const handleSwitchToDownloadMode = () => {
   })
 }
 
+const handleSwitchToPlaybackDemo = () => {
+  showMainDemo.value = false
+  showSessionDemo.value = false
+  showRightPanelDemo.value = false
+  showPlaybackDemo.value = true
+}
+
+const handleBackFromPlayback = () => {
+  showPlaybackDemo.value = false
+  showRightPanelDemo.value = true
+}
+
+const handleCourseSelectedFromMain = (course: any) => {
+  // Navigate to PlaybackPage demo when a course is selected
+  showMainDemo.value = false
+  showPlaybackDemo.value = true
+}
+
 onMounted(() => {
   // Use nextTick to ensure the DOM has been rendered.
   nextTick(() => {
@@ -234,6 +258,7 @@ onMounted(() => {
   window.addEventListener('tour-switch-to-session-demo', handleSwitchToSessionDemo)
   window.addEventListener('tour-switch-to-right-panel-demo', handleSwitchToRightPanelDemo)
   window.addEventListener('tour-switch-to-download-mode', handleSwitchToDownloadMode)
+  window.addEventListener('tour-switch-to-playback-demo', handleSwitchToPlaybackDemo)
 
   onUnmounted(() => {
     window.removeEventListener('resize', updateSizes)
@@ -245,6 +270,7 @@ onMounted(() => {
     window.removeEventListener('tour-switch-to-session-demo', handleSwitchToSessionDemo)
     window.removeEventListener('tour-switch-to-right-panel-demo', handleSwitchToRightPanelDemo)
     window.removeEventListener('tour-switch-to-download-mode', handleSwitchToDownloadMode)
+    window.removeEventListener('tour-switch-to-playback-demo', handleSwitchToPlaybackDemo)
   })
 })
 </script>

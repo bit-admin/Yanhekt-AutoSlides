@@ -382,7 +382,37 @@
       "rightPanelDownload": {
         "title": "Download Management",
         "description": "This is the Download panel where you can manage your video download queue. Monitor download progress and manage completed downloads from this interface."
+      },
+      "playbackContent": {
+        "title": "Video Playback",
+        "description": "This is the main playback interface where you can watch course videos. The interface includes video controls, stream selection, and playback speed adjustment. The black area simulates the video player in this demo."
+      },
+      "slideGallery": {
+        "title": "Slide Gallery",
+        "description": "When slide extraction is enabled for screen recordings, extracted slides appear here. You can view, manage, and delete slides from this gallery. The demo shows the slide extraction feature in action."
       }
+    }
+  },
+  "demo": {
+    "course": {
+      "title": "Advanced Computer Graphics",
+      "instructor": "Prof. Zhang",
+      "term": "2024 Fall",
+      "classroom": "Computer Building A205"
+    },
+    "session": {
+      "title": "Week 8 - 3D Rendering Techniques"
+    },
+    "stream": {
+      "camera": "Camera View",
+      "screen": "Screen Recording"
+    },
+    "video": {
+      "playing": "Demo Video Playing"
+    },
+    "slide": {
+      "preview": "Slide Preview",
+      "fullPreview": "Full Slide Preview"
     }
   }
 }
