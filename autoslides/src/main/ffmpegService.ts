@@ -15,7 +15,8 @@ export class FFmpegService {
       // In packaged app, check extraResource first
       if (process.resourcesPath) {
         // Try extraResource path first (packaged app)
-        const extraResourcePath = path.join(process.resourcesPath, 'ffmpeg-static', 'ffmpeg');
+        const ffmpegBinary = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
+        const extraResourcePath = path.join(process.resourcesPath, 'ffmpeg-static', ffmpegBinary);
         if (fs.existsSync(extraResourcePath)) {
           this.ffmpegPath = extraResourcePath;
           console.log('FFmpeg path (extraResource):', this.ffmpegPath);
