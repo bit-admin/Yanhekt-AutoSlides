@@ -44,7 +44,7 @@
         <div class="controls-row">
           <div class="stream-selector">
             <label>{{ $t('playback.selectStream') }}</label>
-            <select v-model="selectedStream">
+            <select v-model="selectedStream" class="demo-disabled">
               <option value="camera">{{ $t('demo.stream.camera') }}</option>
               <option value="screen">{{ $t('demo.stream.screen') }}</option>
             </select>
@@ -52,7 +52,7 @@
 
           <div class="playback-rate-control">
             <label>{{ $t('playback.playbackSpeed') }}</label>
-            <select v-model="currentPlaybackRate">
+            <select v-model="currentPlaybackRate" class="demo-disabled">
               <option value="1">1x</option>
               <option value="2">2x</option>
               <option value="3">3x</option>
@@ -61,7 +61,7 @@
           </div>
 
           <div class="pip-control">
-            <button class="pip-button">
+            <button class="pip-button demo-disabled">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="2" y="3" width="20" height="14" rx="2"/>
                 <rect x="14" y="12" width="6" height="4" rx="1" fill="currentColor"/>
@@ -92,10 +92,11 @@
           <div class="gallery-header">
             <div class="slide-extraction-control">
               <div class="extraction-main">
-                <label class="extraction-toggle">
+                <label class="extraction-toggle demo-disabled">
                   <input
                     type="checkbox"
                     v-model="isSlideExtractionEnabled"
+                    disabled
                   />
                   <span class="toggle-slider"></span>
                   <span class="toggle-text">{{ $t('playback.slideExtraction') }}</span>
@@ -116,7 +117,7 @@
 
               <button
                 v-if="isSlideExtractionEnabled && mockSlides.length > 0"
-                class="clear-all-btn"
+                class="clear-all-btn demo-disabled"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3,6 5,6 21,6"/>
@@ -134,8 +135,7 @@
             <div
               v-for="slide in mockSlides"
               :key="slide.id"
-              class="slide-thumbnail"
-              @click="openSlideModal(slide)"
+              class="slide-thumbnail demo-disabled"
             >
               <div class="mock-slide-image">
                 <div class="slide-placeholder">
@@ -152,7 +152,7 @@
                   <span class="slide-title">{{ slide.title }}</span>
                   <span class="slide-time">{{ slide.time }}</span>
                 </div>
-                <button class="delete-btn">
+                <button class="delete-btn demo-disabled">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="3,6 5,6 21,6"/>
                     <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
@@ -173,7 +173,7 @@
         <div class="modal-header">
           <h3>{{ selectedSlide.title }}</h3>
           <div class="modal-actions">
-            <button class="modal-delete-btn">
+            <button class="modal-delete-btn demo-disabled">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3,6 5,6 21,6"/>
                 <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
@@ -261,8 +261,9 @@ const formatTime = (seconds: number): string => {
   }
 }
 
+// Demo mode - modal functionality disabled
 const openSlideModal = (slide: any) => {
-  selectedSlide.value = slide
+  // Disabled in demo mode
 }
 
 const closeSlideModal = () => {
@@ -927,5 +928,34 @@ onUnmounted(() => {
 
 .slide-metadata strong {
   color: #333;
+}
+
+/* Demo mode disabled styles */
+.demo-disabled {
+  pointer-events: none !important;
+  cursor: default !important;
+  opacity: 0.8 !important;
+}
+
+.demo-disabled:hover {
+  background-color: inherit !important;
+  border-color: inherit !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.slide-thumbnail.demo-disabled:hover {
+  border-color: #e9ecef !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.extraction-toggle.demo-disabled {
+  cursor: default !important;
+  opacity: 0.8 !important;
+}
+
+.extraction-toggle.demo-disabled .toggle-slider {
+  cursor: default !important;
 }
 </style>

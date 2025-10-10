@@ -9,14 +9,48 @@ import 'driver.js/dist/driver.css'
 const tourInstance = ref<Driver | null>(null)
 const isFirstVisit = ref(true)
 const isDemoMode = ref(false)
+const originalTheme = ref<string | null>(null)
 
 export function useTour() {
   const { t } = useI18n()
 
-  const initializeTour = () => {
+  // Theme management functions
+  const saveCurrentTheme = async () => {
+    try {
+      const currentTheme = await window.electronAPI.config.getThemeMode()
+      originalTheme.value = currentTheme
+    } catch (error) {
+      console.error('Failed to get current theme:', error)
+    }
+  }
+
+  const setLightMode = async () => {
+    try {
+      await window.electronAPI.config.setThemeMode('light')
+    } catch (error) {
+      console.error('Failed to set light mode:', error)
+    }
+  }
+
+  const restoreOriginalTheme = async () => {
+    if (originalTheme.value) {
+      try {
+        await window.electronAPI.config.setThemeMode(originalTheme.value)
+        originalTheme.value = null
+      } catch (error) {
+        console.error('Failed to restore original theme:', error)
+      }
+    }
+  }
+
+  const initializeTour = async () => {
     if (tourInstance.value) {
       tourInstance.value.destroy()
     }
+
+    // Save current theme and switch to light mode
+    await saveCurrentTheme()
+    await setLightMode()
 
     // Enable demo mode when starting tour
     isDemoMode.value = true
@@ -28,6 +62,8 @@ export function useTour() {
     setTimeout(() => {
       tourInstance.value = driver({
         showProgress: true,
+        allowClose: true,
+        overlayClickNext: false,
         steps: [
           {
             element: '.login-section',
@@ -248,11 +284,14 @@ export function useTour() {
           // Continue to next step for other elements
           tourInstance.value?.moveNext()
         },
-        onDestroyed: () => {
+        onDestroyed: async () => {
           // Tour completed or destroyed
           isFirstVisit.value = false
           isDemoMode.value = false
           markTourAsSeen()
+
+          // Restore original theme
+          await restoreOriginalTheme()
 
           // Exit demo mode
           window.dispatchEvent(new CustomEvent('tour-demo-mode', { detail: { enabled: false } }))
@@ -266,23 +305,28 @@ export function useTour() {
     }, 200)
   }
 
-  const showWelcomePopup = () => {
+  const showWelcomePopup = async () => {
     if (tourInstance.value) {
       tourInstance.value.destroy()
     }
+
+    // Save current theme and switch to light mode for welcome popup
+    await saveCurrentTheme()
+    await setLightMode()
 
     // Create welcome popup - use a modal-style approach
     tourInstance.value = driver({
       showProgress: false,
       allowClose: true,
+      overlayClickNext: false,
       steps: [
         {
           popover: {
             title: t('tour.welcome.title'),
             description: t('tour.welcome.description') +
-              `<div style="margin-top: 16px;">
-                <button id="tour-continue" style="background: #007acc; color: white; border: none; padding: 8px 16px; border-radius: 4px; margin-right: 8px; cursor: pointer;">${t('tour.welcome.continue')}</button>
-                <button id="tour-skip" style="background: #f3f3f3; color: #333; border: 1px solid #ccc; padding: 8px 16px; border-radius: 4px; cursor: pointer;">${t('tour.welcome.skip')}</button>
+              `<div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
+                <button id="tour-skip" style="background: none; color: #666; border: none; padding: 8px 16px; cursor: pointer; text-decoration: underline; font-size: 14px;">${t('tour.welcome.skip')}</button>
+                <button id="tour-continue" style="background: #007acc; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">${t('tour.welcome.continue')}</button>
               </div>`,
             showButtons: []
           }
@@ -296,17 +340,19 @@ export function useTour() {
       const skipBtn = document.getElementById('tour-skip')
 
       if (continueBtn) {
-        continueBtn.addEventListener('click', () => {
+        continueBtn.addEventListener('click', async () => {
           tourInstance.value?.destroy()
-          startMainTour()
+          await startMainTour()
         })
       }
 
       if (skipBtn) {
-        skipBtn.addEventListener('click', () => {
+        skipBtn.addEventListener('click', async () => {
           tourInstance.value?.destroy()
           isFirstVisit.value = false
           markTourAsSeen()
+          // Restore theme when skipping
+          await restoreOriginalTheme()
         })
       }
     }, 100)
@@ -314,8 +360,8 @@ export function useTour() {
     tourInstance.value.drive()
   }
 
-  const startMainTour = () => {
-    initializeTour()
+  const startMainTour = async () => {
+    await initializeTour()
   }
 
   const restartTour = () => {
