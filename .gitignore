@@ -156,7 +156,4 @@ CLAUDE.md
 .claude
 
 # FFmpeg executable
-autoslides/resources/ffmpeg/ffmpeg.exe
-
-# Terms of Service
-autoslides/resources/terms/terms.rtf
+autoslides/resources/
