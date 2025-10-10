@@ -42,9 +42,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('api:getPersonalLiveList', token, page, pageSize),
     searchLiveList: (token: string, keyword: string, page?: number, pageSize?: number) =>
       ipcRenderer.invoke('api:searchLiveList', token, keyword, page, pageSize),
-    getCourseList: (token: string, options: any) =>
+    getCourseList: (token: string, options: Record<string, unknown>) =>
       ipcRenderer.invoke('api:getCourseList', token, options),
-    getPersonalCourseList: (token: string, options: any) =>
+    getPersonalCourseList: (token: string, options: Record<string, unknown>) =>
       ipcRenderer.invoke('api:getPersonalCourseList', token, options),
     getCourseInfo: (courseId: string, token: string) =>
       ipcRenderer.invoke('api:getCourseInfo', courseId, token),
@@ -57,9 +57,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getMappings: () => ipcRenderer.invoke('intranet:getMappings'),
   },
   video: {
-    getLiveStreamUrls: (stream: any, token: string) =>
+    getLiveStreamUrls: (stream: Record<string, unknown>, token: string) =>
       ipcRenderer.invoke('video:getLiveStreamUrls', stream, token),
-    getVideoPlaybackUrls: (session: any, token: string) =>
+    getVideoPlaybackUrls: (session: Record<string, unknown>, token: string) =>
       ipcRenderer.invoke('video:getVideoPlaybackUrls', session, token),
     registerClient: () => ipcRenderer.invoke('video:registerClient'),
     unregisterClient: (clientId: string) => ipcRenderer.invoke('video:unregisterClient', clientId),
@@ -90,7 +90,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('slideExtraction:deleteSlide', outputPath, filename),
   },
   dialog: {
-    showMessageBox: (options: any) => ipcRenderer.invoke('dialog:showMessageBox', options),
+    showMessageBox: (options: Electron.MessageBoxOptions) => ipcRenderer.invoke('dialog:showMessageBox', options),
     showErrorBox: (title: string, content: string) => ipcRenderer.invoke('dialog:showErrorBox', title, content),
   },
   window: {

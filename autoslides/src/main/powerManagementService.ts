@@ -2,7 +2,7 @@ import { powerSaveBlocker } from 'electron';
 
 export class PowerManagementService {
   private blockerId: number | null = null;
-  private isBlocking: boolean = false;
+  private isBlocking = false;
 
   /**
    * Prevent the system from going to sleep

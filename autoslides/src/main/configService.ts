@@ -23,7 +23,7 @@ export interface AppConfig {
   outputDirectory: string;
   connectionMode: 'internal' | 'external';
   intranetMode?: boolean;
-  intranetMappings?: any;
+  intranetMappings?: Record<string, string>;
   maxConcurrentDownloads: number;
   muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
   videoRetryCount: number;
@@ -76,54 +76,54 @@ export class ConfigService {
 
   getConfig(): AppConfig {
     return {
-      outputDirectory: (this.store as any).get('outputDirectory') as string,
-      connectionMode: (this.store as any).get('connectionMode') as 'internal' | 'external',
-      maxConcurrentDownloads: (this.store as any).get('maxConcurrentDownloads') as number,
-      muteMode: (this.store as any).get('muteMode') as 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded',
-      videoRetryCount: (this.store as any).get('videoRetryCount') as number,
-      taskSpeed: (this.store as any).get('taskSpeed') as number,
-      themeMode: (this.store as any).get('themeMode') as ThemeMode,
-      languageMode: (this.store as any).get('languageMode') as LanguageMode,
-      preventSystemSleep: (this.store as any).get('preventSystemSleep') as boolean,
-      slideExtraction: (this.store as any).get('slideExtraction') as SlideExtractionConfig
+      outputDirectory: this.store.get('outputDirectory'),
+      connectionMode: this.store.get('connectionMode'),
+      maxConcurrentDownloads: this.store.get('maxConcurrentDownloads'),
+      muteMode: this.store.get('muteMode'),
+      videoRetryCount: this.store.get('videoRetryCount'),
+      taskSpeed: this.store.get('taskSpeed'),
+      themeMode: this.store.get('themeMode'),
+      languageMode: this.store.get('languageMode'),
+      preventSystemSleep: this.store.get('preventSystemSleep'),
+      slideExtraction: this.store.get('slideExtraction')
     };
   }
 
   setOutputDirectory(directory: string): void {
-    (this.store as any).set('outputDirectory', directory);
+    this.store.set('outputDirectory', directory);
     this.ensureOutputDirectoryExists();
   }
 
   setConnectionMode(mode: 'internal' | 'external'): void {
-    (this.store as any).set('connectionMode', mode);
+    this.store.set('connectionMode', mode);
   }
 
   setMaxConcurrentDownloads(count: number): void {
     const validCount = Math.max(1, Math.min(10, count));
-    (this.store as any).set('maxConcurrentDownloads', validCount);
+    this.store.set('maxConcurrentDownloads', validCount);
   }
 
   setMuteMode(mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'): void {
-    (this.store as any).set('muteMode', mode);
+    this.store.set('muteMode', mode);
   }
 
   setVideoRetryCount(count: number): void {
     const validCount = Math.max(5, Math.min(10, count));
-    (this.store as any).set('videoRetryCount', validCount);
+    this.store.set('videoRetryCount', validCount);
   }
 
   setTaskSpeed(speed: number): void {
     const validSpeed = Math.max(1, Math.min(10, speed));
-    (this.store as any).set('taskSpeed', validSpeed);
+    this.store.set('taskSpeed', validSpeed);
   }
 
   setThemeMode(theme: ThemeMode): void {
-    (this.store as any).set('themeMode', theme);
+    this.store.set('themeMode', theme);
     this.themeService.setTheme(theme);
   }
 
   getThemeMode(): ThemeMode {
-    return (this.store as any).get('themeMode') as ThemeMode;
+    return this.store.get('themeMode');
   }
 
   isDarkMode(): boolean {
@@ -135,30 +135,30 @@ export class ConfigService {
   }
 
   setLanguageMode(language: LanguageMode): void {
-    (this.store as any).set('languageMode', language);
+    this.store.set('languageMode', language);
   }
 
   getLanguageMode(): LanguageMode {
-    return (this.store as any).get('languageMode') as LanguageMode;
+    return this.store.get('languageMode');
   }
 
   setPreventSystemSleep(prevent: boolean): void {
-    (this.store as any).set('preventSystemSleep', prevent);
+    this.store.set('preventSystemSleep', prevent);
   }
 
   getPreventSystemSleep(): boolean {
-    return (this.store as any).get('preventSystemSleep') as boolean;
+    return this.store.get('preventSystemSleep');
   }
 
   // Slide extraction configuration methods
   getSlideExtractionConfig(): SlideExtractionConfig {
-    return (this.store as any).get('slideExtraction') as SlideExtractionConfig;
+    return this.store.get('slideExtraction');
   }
 
   setSlideExtractionConfig(config: Partial<SlideExtractionConfig>): void {
     const currentConfig = this.getSlideExtractionConfig();
     const updatedConfig = { ...currentConfig, ...config };
-    (this.store as any).set('slideExtraction', updatedConfig);
+    this.store.set('slideExtraction', updatedConfig);
   }
 
   setSlideCheckInterval(interval: number): void {
@@ -227,7 +227,7 @@ export class ConfigService {
   async selectOutputDirectory(): Promise<string | null> {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],
-      defaultPath: (this.store as any).get('outputDirectory') as string
+      defaultPath: this.store.get('outputDirectory')
     });
 
     if (!result.canceled && result.filePaths.length > 0) {
@@ -240,15 +240,15 @@ export class ConfigService {
   }
 
   get<K extends keyof AppConfig>(key: K, defaultValue?: AppConfig[K]): AppConfig[K] {
-    return (this.store as any).get(key, defaultValue);
+    return this.store.get(key, defaultValue);
   }
 
   set<K extends keyof AppConfig>(key: K, value: AppConfig[K]): void {
-    (this.store as any).set(key, value);
+    this.store.set(key, value);
   }
 
   private ensureOutputDirectoryExists(): void {
-    const outputDir = (this.store as any).get('outputDirectory') as string;
+    const outputDir = this.store.get('outputDirectory');
     try {
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });

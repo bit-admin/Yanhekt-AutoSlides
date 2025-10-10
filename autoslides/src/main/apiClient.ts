@@ -169,10 +169,17 @@ export class ApiClient {
     }
   }
 
-  private async makeRequest(method: string, url: string, token: string, data?: any): Promise<any> {
+  private async makeRequest(method: string, url: string, token: string, data?: Record<string, unknown>): Promise<unknown> {
     const { headers } = this.createHeaders(token);
 
-    const config: any = {
+    const config: {
+      method: string;
+      url: string;
+      headers: Record<string, string>;
+      timeout: number;
+      validateStatus: (status: number) => boolean;
+      data?: Record<string, unknown>;
+    } = {
       method,
       url,
       headers,
@@ -371,7 +378,7 @@ export class ApiClient {
         professor = courseData.data.professors[0].name.trim();
       }
 
-      const formattedVideos = videoList.map((video: any) => {
+      const formattedVideos = videoList.map((video: Record<string, unknown>) => {
         const realVideoId = video.videos && video.videos.length > 0 ? video.videos[0].id : null;
         const videoData = video.videos && video.videos.length > 0 ? video.videos[0] : null;
         const mainUrl = videoData ? videoData.main : null;
@@ -460,8 +467,8 @@ export class ApiClient {
 
       // Sort by sort field (descending) to show most recent first
       semesters.sort((a, b) => {
-        const aChild = semesterTag.children!.find(c => c.id === a.id);
-        const bChild = semesterTag.children!.find(c => c.id === b.id);
+        const aChild = semesterTag.children?.find(c => c.id === a.id);
+        const bChild = semesterTag.children?.find(c => c.id === b.id);
         return (bChild?.sort || 0) - (aChild?.sort || 0);
       });
 

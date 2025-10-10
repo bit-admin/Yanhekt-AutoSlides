@@ -155,7 +155,7 @@ export function useTour() {
             }
           }
         ],
-        onNextClick: (element, step, options) => {
+        onNextClick: (element, step, _options) => {
           // Handle demo state transitions
           if (step.element === '.login-section') {
             // Transition to logged in state before moving to next step

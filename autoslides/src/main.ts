@@ -31,13 +31,13 @@ const getTranslation = (key: string): string => {
 
   const translations = locale === 'zh' ? zhTranslations : enTranslations;
   const keys = key.split('.');
-  let result: any = translations;
+  let result: unknown = translations;
 
   for (const k of keys) {
-    result = result?.[k];
+    result = (result as Record<string, unknown>)?.[k];
   }
 
-  return result || key;
+  return (typeof result === 'string' ? result : key);
 };
 
 // Declare Vite dev server variables that are injected during build
@@ -338,11 +338,11 @@ ipcMain.handle('api:searchLiveList', async (event, token: string, keyword: strin
 });
 
 // IPC handlers for recorded courses
-ipcMain.handle('api:getCourseList', async (event, token: string, options: any) => {
+ipcMain.handle('api:getCourseList', async (event, token: string, options: Record<string, unknown>) => {
   return await apiClient.getCourseList(token, options);
 });
 
-ipcMain.handle('api:getPersonalCourseList', async (event, token: string, options: any) => {
+ipcMain.handle('api:getPersonalCourseList', async (event, token: string, options: Record<string, unknown>) => {
   return await apiClient.getPersonalCourseList(token, options);
 });
 
@@ -355,7 +355,7 @@ ipcMain.handle('api:getAvailableSemesters', async () => {
 });
 
 // IPC handlers for video proxy
-ipcMain.handle('video:getLiveStreamUrls', async (event, stream: any, token: string) => {
+ipcMain.handle('video:getLiveStreamUrls', async (event, stream: Record<string, unknown>, token: string) => {
   try {
     return await videoProxyService.getLiveStreamUrls(stream, token);
   } catch (error) {
@@ -364,7 +364,7 @@ ipcMain.handle('video:getLiveStreamUrls', async (event, stream: any, token: stri
   }
 });
 
-ipcMain.handle('video:getVideoPlaybackUrls', async (event, session: any, token: string) => {
+ipcMain.handle('video:getVideoPlaybackUrls', async (event, session: Record<string, unknown>, token: string) => {
   try {
     return await videoProxyService.getVideoPlaybackUrls(session, token);
   } catch (error) {
@@ -472,7 +472,7 @@ ipcMain.handle('slideExtraction:deleteSlide', async (event, outputPath: string, 
 });
 
 // IPC handlers for dialog functionality
-ipcMain.handle('dialog:showMessageBox', async (event, options: any) => {
+ipcMain.handle('dialog:showMessageBox', async (event, options: Electron.MessageBoxOptions) => {
   try {
     const result = await dialog.showMessageBox(options);
     return result;

@@ -43,25 +43,6 @@ function convertToGrayscale(imageData: ImageData): ImageData {
   return new ImageData(data, imageData.width, imageData.height);
 }
 
-/**
- * Resize ImageData to specified dimensions
- */
-function resizeImageData(imageData: ImageData, newWidth: number, newHeight: number): ImageData {
-  // Create off-screen canvas for resizing
-  const canvas = new OffscreenCanvas(newWidth, newHeight);
-  const ctx = canvas.getContext('2d')!;
-
-  // Create temporary canvas for original image
-  const tempCanvas = new OffscreenCanvas(imageData.width, imageData.height);
-  const tempCtx = tempCanvas.getContext('2d')!;
-  tempCtx.putImageData(imageData, 0, 0);
-
-  // Resize and draw
-  ctx.drawImage(tempCanvas, 0, 0, newWidth, newHeight);
-
-  return ctx.getImageData(0, 0, newWidth, newHeight);
-}
-
 
 /**
  * Calculate SSIM (Structural Similarity Index)
