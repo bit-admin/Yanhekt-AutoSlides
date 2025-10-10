@@ -1,10 +1,11 @@
 # AutoSlides 
 
 **AutoSlides** 是为北京理工大学延河课堂设计的第三方客户端。基于 Electron 构建，提供了一个全面的解决方案，从屏幕录制中自动提取幻灯片，下载录播课程。
+- **Web 版本**：https://learn.ruc.edu.kg
+
+> AutoSlides is a third-party tool developed independently by its contributors. It is NOT an official website of, and is NOT affiliated with, associated with, endorsed by, or in any way connected to Beijing Institute of Technology (BIT), or any of their subsidiaries or affiliates. All product and company names are trademarks™ or registered® trademarks of their respective holders.
 
 ## 🚀 快速开始
-
-### 面向用户
 
 1. **下载** - 获取适用于您的平台的安装程序（macOS 的 DMG、Windows 的 EXE）
 
@@ -13,9 +14,19 @@
      ```bash
      sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app
      ```
+     **为什么这很必要？**
+      - macOS 将下载的应用程序标记为“隔离”以确保安全
+      - AutoSlides 未使用 Apple 开发者证书签名
+      - 删除隔离属性允许应用程序正常运行
    - **Windows**：运行安装程序并按照向导操作
 
-3. **旧版本迁移提示** - 如果您曾下载过v3.3.0及之前的版本，建议您彻底删除旧版本重新安装
+3. **旧版本迁移提示** - AutoSlides 在 v4.0.0 进行了主要重构，如果您曾下载过 v3.3.0 及之前的版本，建议您彻底删除旧版本重新安装；或者，你也可以移除旧版本的支持文件：
+   - **macOS**：在终端运行：
+      ```bash
+      rm -rf ~/Library/Application\ Support/AutoSlides
+      ```
+   或者查找并移除`~/Library/Application\ Support/AutoSlides`。
+   - **Windows**：请查找并移除：` C:\Users<你的用户名>\AppData\Roaming\AutoSlides` 或 `C:\ProgramData\AutoSlides`
 
 4. **开始使用**
    - 在主面板中浏览课程
@@ -23,135 +34,110 @@
    - 排队多个会话以进行批量处理
    - 下载视频以供离线查看
 
-### 面向开发者
-
-```bash
-# 克隆并设置
-git clone https://github.com/bit-admin/Yanhekt-AutoSlides.git
-cd AutoSlides/autoslides
-npm install
-
-# 启动开发
-npm start
-```
-
-有关详细说明，请参见 [开发设置](#-development-setup)。
-
----
-
-## 📑 目录
-
-- [核心功能](#-core-features)
-- [安装指南](#-installation-guide) - **Mac 用户：重要 xattr 命令**
-- [用户指南](#-user-guide) - 完整使用说明
-- [配置](#-configuration) - 所有设置说明
-- [测试工具](#-testing-and-quality-assurance) - test-image-comparison.html
-- [技术文档](#-technical-architecture) - 架构和 report.pdf
-- [支持](#-support)
-
----
-
 ## 🎯 核心功能
 
 ### 📺 双模式视频流媒体
-- **实时流媒体**：对正在进行的教育会话进行实时访问
-- **录制播放**：按需查看存档课程内容
-- **独立操作**：两种模式可以同时运行，具有单独的状态管理
+- **独立操作**：直播及录播两种模式可以同时运行，具有单独的状态管理
 - **后台播放**：在切换模式时继续视频播放
 
 ### 🖼️ 智能幻灯片提取
 - **自动检测**：使用 SSIM（结构相似性指数）进行实时幻灯片变化检测
 - **动态阈值系统**：5 个智能预设模式（自适应、严格、正常、宽松、自定义）
-  - **自适应模式**：基于课堂位置和上下文自动调整
+  - **自适应模式**：基于教室位置自动调整
   - **课堂感知**：针对不同教学楼的特殊优化
-  - **面向未来**：可扩展用于视频质量、网络条件等
-- **Web Worker 处理**：用于最佳性能的无阻塞图像分析
 - **双重验证**：可选择的多帧验证以减少误报
 - **自适应速度**：基于播放速度（1x-10x）动态调整间隔
-- **智能过滤**：验证图像内容以避免捕获黑色帧或加载屏幕
 
 ### 📥 高级下载系统
-- **并发下载**：可配置并行下载限制（1-10 个同时）
+- **并发下载**：可配置并行下载限制（1-10 个同时下载）
 - **HLS 流处理**：本机 M3U8 播放列表解析和 TS 段下载
 - **FFmpeg 集成**：自动视频处理和格式转换
-- **进度跟踪**：带有阶段指示器的实时下载进度
-- **重试逻辑**：强大的错误处理和自动重试机制
-- **电源管理**：在活动下载期间自动防止系统休眠
 
 ### 🎯 任务队列管理
 - **批量处理**：排队多个课程以进行自动幻灯片提取
 - **顺序执行**：一次一个处理，具有可配置的播放速度
-- **进度监控**：实时任务进度和状态跟踪
 - **错误恢复**：自动错误处理和任务继续
-- **电源管理**：在任务队列处理期间防止系统休眠
 
 ### 🌐 网络灵活性
-- **外部模式**：直接互联网访问以进行标准使用
-- **内部模式**：具有 IP 映射的内部代理用于机构网络
-- **反热链保护**：针对录制内容的复杂基于令牌的身份验证
+- **内网模式**：校园网内访问使用 IP 映射的内部代理优化网络性能
+- **处理服务器防盗链防护**：处理服务器针对录制内容的复杂基于令牌的身份验证
 - **动态令牌刷新**：自动凭据续订以实现不间断访问
 
-## 🏗️ 技术架构
+## ⚙️ 配置
 
-### 进程架构
-```
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│   主进程        │◄──►│ 渲染器进程      │◄──►│   Web Workers    │
-│                 │    │                  │    │                 │
-│ • 系统 API      │    │ • Vue 3 UI       │    │ • 图像处理      │
-│ • 文件 I/O      │    │ • 用户界面      │    │ • SSIM 计算     │
-│ • 视频代理      │    │ • 事件处理      │    │ • 幻灯片检测    │
-│ • 下载          │    │ • 状态管理      │    │                 │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-```
+### 快速参考
 
-### 核心服务
+| 设置 | 默认 | 范围/选项 | 描述 |
+|---------|---------|---------------|-------------|
+| **输出目录** | `~/Downloads/AutoSlides` | 任何有效路径 | 保存幻灯片和视频的位置 |
+| **连接模式** | 外部 | 外部/内部 | 网络路由模式 |
+| **语言** | 系统 | 系统/英语/中文 | UI 语言 |
+| **主题** | 系统 | 系统/浅色/深色 | 应用程序主题 |
+| **下载并发数** | 5 | 1-10 | 同时下载 |
+| **任务速度** | 10x | 1x-10x | 任务队列的播放速度 |
+| **静音模式** | 正常 | 正常/全部/直播/录播 | 音频静音行为 |
+| **检查间隔** | 2000ms | 1000-10000ms | 幻灯片检测频率 |
+| **SSIM 阈值模式** | 自适应 | 自适应/严格/正常/宽松/自定义 | 阈值预设模式 |
+| **SSIM 阈值值** | 0.9987 | 0.990-0.9999 | 自定义相似度阈值 |
+| **双重验证** | 启用 | 启用/禁用 | 多帧确认 |
+| **验证计数** | 2 | 1-10 | 要验证的帧 |
 
-#### 主进程服务
-- **`MainAuthService`**：安全身份验证和令牌管理
-- **`MainApiClient`**：具有重试逻辑的后端 API 通信
-- **`ConfigService`**：使用 electron-store 的应用程序配置
-- **`VideoProxyService`**：带有 DRM 绕过的视频流媒体代理
-- **`IntranetMappingService`**：机构环境的网络路由
-- **`FFmpegService`**：跨平台视频处理
-- **`M3u8DownloadService`**：具有并发工作者的 HLS 流下载
-- **`SlideExtractionService`**：主进程幻灯片提取协调
-- **`CacheManagementService`**：缓存清理和存储管理
-- **`PowerManagementService`**：播放/下载期间系统休眠预防
-- **`ThemeService`**：系统主题检测和同步
+### 应用程序设置
+应用程序提供广泛的配置选项：
 
-#### 渲染器进程服务
-- **`SlideExtractor`**：幻灯片检测和提取核心逻辑
-- **`SsimThresholdService`**：具有自适应预设的动态 SSIM 阈值管理
-- **`SlideProcessorService`**：Web Worker 通信接口
-- **`TaskQueueService`**：批量处理任务管理
-- **`DownloadService`**：下载队列和进度管理
-- **`LanguageService`**：i18n 语言检测和管理
-- **`AuthService`**：渲染器端身份验证包装器
-- **`ApiClient`**：渲染器端 API 通信包装器
-- **`DataStore`**：跨组件数据共享和持久化
+#### 基本设置
+- **输出目录**：默认 `~/Downloads/AutoSlides`
+  - 所有幻灯片和下载视频保存在此处
+  - 按课程和会话组织
+  - 点击“更改输出目录”进行自定义
 
-### UI 架构
-应用程序具有三面板布局，具有可调整大小的分隔符：
+- **连接模式**：外部（直接）或内部（代理）
+  - **外部**：用于家庭/公共互联网
+  - **内部**：用于校园网内访问
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        标题栏                              │
-├──────────────┬─────────────────────────┬────────────────────┤
-│              │                         │                    │
-│  左面板      │      主内容             │    右面板          │
-│              │                         │                    │
-│ • 身份验证   │ • 课程浏览器           │ • 任务队列          │
-│ • 设置       │ • 视频播放器           │ • 下载              │
-│ • 状态       │ • 导航                  │ • 进度             │
-│              │                         │                    │
-└──────────────┴─────────────────────────┴────────────────────┘
-```
+#### 高级设置
+- **下载并发数**：1-10 个同时下载
+- **任务速度**：1x-10x 播放速度用于批量处理
+- **静音模式**：音频行为控制
+  - **正常**：所有内容播放音频
+  - **全部静音**：所有音频静音（系统范围）
+  - **直播静音**：仅实时流静音
+  - **录播静音**：仅录制内容静音
+
+#### 图像处理参数
+- **检查间隔**：检测频率（默认：2000ms）
+  - 检查幻灯片变化的频率
+  - 基于播放速度自动调整
+
+- **SSIM 阈值模式**：智能阈值选择（默认：自适应），具有五个预设模式：
+  1. **自适应模式**（推荐）🌟
+     - **教室位置规则**（自动应用）：
+       - "综教"→ 宽松 (0.998)
+       - "理教"→ 宽松 (0.998)
+       - "研楼"→ 宽松 (0.998)
+       - 其他位置 → 正常 (0.9987)
+  2. **严格模式** (0.999)
+  3. **正常模式** (0.9987)
+  4. **宽松模式** (0.998)
+  5. **自定义模式**
+     - 在 0.990 和 0.9999 之间设置任何值
+     - 使用 `test-image-comparison.html` 查找最佳值
+     - 需要手动校准
+
+- **双重验证**：启用/禁用多帧确认
+  - 默认启用
+  - 显著减少误报
+  - 高度推荐用于准确性
+
+- **验证计数**：确认帧数（默认：2）
+  - 仅在启用双重验证时使用
+  - 更高 = 更多确认 = 更少误报
+  - 推荐：2-3 帧
 
 ## 🔬 图像处理技术
 
 ### SSIM 基础的幻灯片检测
-应用程序使用基于结构相似性指数 (SSIM) 的复杂图像比较算法来检测幻灯片变化。完整技术细节可在 **report.pdf** 中找到。
+应用程序使用基于结构相似性指数 (SSIM) 的复杂图像比较算法来检测幻灯片变化。同时，为了最小化误报，系统实现了双重验证机制。完整技术细节可在 `report.pdf` 中找到。
 
 ```typescript
 // 核心 SSIM 计算（简化）
@@ -174,13 +160,6 @@ function calculateSSIM(img1: ImageData, img2: ImageData): number {
 }
 ```
 
-### 算法性能
-基于 **report.pdf** 中记录的测试和可通过 **test-image-comparison.html** 验证：
-- **高准确性**：99.9% 相似度阈值以实现精确变化检测
-- **性能**：每帧比较 ~2-5ms 处理时间
-- **可靠性**：对光照变化和轻微变化具有鲁棒性
-- **可扩展性**：即使在 10x 播放速度下也能高效处理
-
 ### 测试算法
 
 您可以自己测试和校准 SSIM 算法：
@@ -190,471 +169,21 @@ function calculateSSIM(img1: ImageData, img2: ImageData): number {
 3. **查看结果**：查看 SSIM 分数和处理时间
 4. **校准设置**：为您的内容找到最佳阈值
 
-有关详细说明，请参见 [测试和质量保证](#-testing-and-quality-assurance)。
-
-### 双重验证系统
-为了最小化误报，系统实现了双重验证机制：
-1. **初始检测**：SSIM 比较识别潜在幻灯片变化
-2. **验证阶段**：分析多个连续帧以确认稳定性
-3. **确认**：只有稳定的变化才保存为新幻灯片
-
-有关完整技术分析，请参见 **report.pdf**。
-
-## 📦 安装指南
-
-### 面向最终用户
-
-#### macOS 安装
-
-1. **下载应用程序**
-   - 从发布页面下载 `.dmg` 文件或分发渠道
-   - 在 `~/Downloads` 中找到下载的文件
-
-2. **安装应用程序**
-   ```bash
-   # 打开 DMG 文件
-   open AutoSlides-*.dmg
-
-   # 将 AutoSlides.app 拖到 Applications 文件夹
-   ```
-
-3. **⚠️ 重要：删除 macOS 隔离属性**
-
-   由于 macOS Gatekeeper 安全措施，您**必须**在首次启动前删除隔离属性：
-
-   ```bash
-   # 在终端运行：
-   sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app
-   ```
-
-   **为什么这很必要？**
-   - macOS 将下载的应用程序标记为“隔离”以确保安全
-   - AutoSlides 包含捆绑的二进制文件（FFmpeg）可能被阻止
-   - 删除隔离属性允许应用程序正常运行
-
-   **替代方法（如果上述方法不起作用）：**
-   ```bash
-   # 删除所有扩展属性
-   sudo xattr -cr /Applications/AutoSlides.app
-   ```
-
-4. **启动应用程序**
-   - 从 Applications 文件夹或 Spotlight 打开 AutoSlides
-   - 首次启动时，macOS 可能会要求确认 - 点击“打开”
-
-#### Windows 安装
-
-1. **下载安装程序**
-   - 从发布页面下载 `.exe` 安装程序
-
-2. **运行安装程序**
-   - 双击安装程序
-   - 按照安装向导操作
-   - Windows SmartScreen 可能会显示警告 - 点击“更多信息” → “运行”
-
-3. **启动应用程序**
-   - AutoSlides 将在“开始”菜单中可用
-   - 自动创建桌面快捷方式
-
-### 系统要求
-
-#### 最低要求
-- **OS**：macOS 10.13+ 或 Windows 10+
-- **RAM**：4GB（推荐 8GB）
-- **磁盘空间**：应用程序 500MB + 下载内容的空间
-- **网络**：稳定的互联网连接（推荐 10Mbps+）
-
-#### 推荐要求
-- **OS**：macOS 12+（Apple Silicon 优化）或 Windows 11
-- **RAM**：16GB 以实现最佳性能，同时进行并发下载
-- **磁盘空间**：10GB+ 用于大量幻灯片库
-- **网络**：50Mbps+ 用于实时流媒体和并发下载
-
----
-
-## 📖 用户指南
-
-### 首次设置
-
-1. **启动 AutoSlides** - 从 Applications/Start Menu 打开应用程序
-
-2. **身份验证**（左面板）
-   - 输入您的用户名和密码
-   - 点击“登录”进行身份验证
-   - 您的会话将保存以供将来使用
-
-3. **配置输出目录**（左面板 → 设置）
-   - 默认：`~/Downloads/AutoSlides`
-   - 点击“更改输出目录”进行自定义
-   - 所有幻灯片和下载将保存在此处
-
-4. **选择连接模式**（左面板 → 设置）
-   - **外部模式**：用于家庭/公共互联网（推荐）
-   - **内部模式**：用于具有内部网访问的机构网络
-
-### 使用应用程序
-
-#### 观看实时流
-
-1. **访问实时内容**（主内容面板）
-   - 点击顶部的“实时”选项卡
-   - 在课程列表中浏览可用实时流
-   - 点击流以开始播放
-
-2. **启用幻灯片提取**
-   - 在视频播放器控件中切换“启用幻灯片提取”
-   - 当检测到变化时，幻灯片将自动捕获
-   - 进度在右侧面板中实时显示
-
-3. **调整播放设置**
-   - 播放器界面中的音量控制
-   - 设置中提供静音选项（左面板）
-
-#### 观看录制视频
-
-1. **浏览课程**（主内容面板）
-   - 点击顶部的“录制”选项卡
-   - 使用搜索和过滤器查找课程
-   - 点击课程以查看可用会话
-
-2. **选择会话**
-   - 从可用录制会话中选择
-   - 点击“播放”以立即播放
-   - 点击“下载”以保存供离线查看
-
-3. **播放控件**
-   - 标准视频控件（播放/暂停、寻道、音量）
-   - 速度控制：1x 到 10x 播放速度
-   - 根据需要切换幻灯片提取
-
-#### 批量幻灯片提取（任务队列）
-
-任务队列允许您从多个录制会话自动提取幻灯片：
-
-1. **添加任务**（主内容 → 录制模式）
-   - 浏览到课程
-   - 在会话卡上点击“添加到任务队列”
-   - 可以排队多个会话
-
-2. **配置任务设置**（右侧面板 → 任务队列）
-   - 设置播放速度（1x-10x）以加快处理
-   - 更高速度处理更快，但可能错过微妙变化
-   - 推荐：3x-5x 以实现最佳平衡
-
-3. **开始处理**
-   - 在右侧面板中点击“开始队列”
-   - 任务顺序处理（一次一个）
-   - 实时监控进度
-
-4. **任务管理**
-   - 查看任务状态：待处理、处理中、已完成、失败
-   - 如需要，从队列中移除任务
-   - 错误后自动继续
-
-#### 下载视频
-
-1. **下载单个视频**
-   - 导航到课程会话
-   - 点击“下载”按钮
-   - 下载立即开始
-
-2. **并发下载**
-   - 在设置中配置最大并发下载（默认：3）
-   - 范围：1-10 个同时下载
-   - 在速度与系统资源之间平衡
-
-3. **监控下载**（右侧面板 → 下载）
-   - 实时进度跟踪
-   - 阶段指示器：下载、处理、已完成
-   - 自动 FFmpeg 转换为 MP4
-
-4. **下载管理**
-   - 当前不支持暂停/恢复（下载是原子的）
-   - 失败下载可以重试
-   - 在输出目录中检查下载位置
-
-### 高级功能
-
-#### 动态 SSIM 阈值系统
-
-AutoSlides 具有一个智能阈值管理系统，可自动优化幻灯片检测：
-
-**理解阈值模式：**
-
-SSIM 阈值确定两个图像必须有多相似才能被视为“相同幻灯片”。更高的阈值意味着更严格的匹配。
-
-1. **何时使用自适应模式**（默认）
-   - 推荐用于大多数用户
-   - 基于课堂位置自动调整
-   - 示例：课程在“综教”中自动使用宽松阈值
-   - 无需手动干预无缝工作
-   - 最佳用于：不同位置的各种内容
-
-2. **何时使用严格模式**
-   - 您正在获取重复或非常相似的幻灯片
-   - 幻灯片纯粹是静态的（无动画）
-   - 您希望最大精度、最小误报
-   - 示例：录制静态 PowerPoint 演示
-
-3. **何时使用正常模式**
-   - 具有典型幻灯片转换的标准讲座
-   - 无特殊要求
-   - 无论位置如何都要一致行为
-   - 示例：一般课程内容
-
-4. **何时使用宽松模式**
-   - 经常错过幻灯片变化
-   - 幻灯片具有动画或视频元素
-   - 视频质量差或多变
-   - 灯光频繁变化
-   - 示例：动画演示、质量多变的讲座录制
-
-5. **何时使用自定义模式**
-   - 具有特定要求的高级用户
-   - 测试不同阈值以进行优化
-   - 处理异常内容类型
-   - 使用 `test-image-comparison.html` 查找完美值
-
-**自适应模式详情：**
-
-自适应模式使用基于课堂位置的智能规则：
-- **“综教”教室** → 使用宽松阈值 (0.998)
-- **“理教”教室** → 使用宽松阈值 (0.998)
-- **“研楼”教室** → 使用宽松阈值 (0.998)
-- **其他位置** → 使用正常阈值 (0.9987)
-
-当您开始播放时，这些规则将自动应用。您将在设置面板中实时看到阈值调整。
-
-**如何切换模式：**
-
-1. 打开设置（左面板）
-2. 查找“SSIM 阈值模式”下拉菜单
-3. 选择您的首选模式
-4. 更改立即生效
-5. 在非自定义模式下观看阈值值更新
-
-#### 幻灯片提取配置
-
-在设置中微调幻灯片检测（左面板 → 高级设置）：
-
-1. **检查间隔**（默认：2000ms）
-   - 检查幻灯片变化的频率
-   - 较低值 = 更频繁检查 = 更高 CPU 使用
-   - 推荐：1000-3000ms
-
-2. **SSIM 阈值**（默认：0.999）
-   - 检测变化的相似度阈值
-   - 更高值 = 更严格匹配 = 更少捕获
-   - 范围：0.990-0.9999
-   - 推荐：演示为 0.999，动态内容为 0.995
-
-3. **双重验证**（默认：启用）
-   - 在多个帧上确认幻灯片变化
-   - 显著减少误报
-   - 检测延迟略微（~1-2 秒）
-
-4. **验证计数**（默认：2）
-   - 启用双重验证时要验证的帧数
-   - 更高值 = 更多确认 = 更少误报
-   - 推荐：2-3 帧
-
-#### 网络配置
-
-**外部模式**（默认）
-- 直接互联网连接
-- 最适合家庭/公共网络
-- 自动 CDN 选择
-
-**内部模式**（高级）
-- 用于机构网络
-- 使用具有 IP 映射的内部代理
-- 更快的校园内访问
-- 需要适当的网络配置
-
-#### 静音模式
-
-在设置中配置音频行为：
-- **正常**：所有内容播放音频
-- **全部静音**：所有音频静音
-- **实时静音**：仅实时流静音
-- **录制静音**：仅录制内容静音
-
-#### 语言和主题
-
-- **语言**：系统（自动检测）、英语、中文、日语、韩语
-  - 4 种完全支持的语言
-  - 通过 `languageService.ts` 自动 OS 区域设置检测
-  - 可手动选择
-- **主题**：系统（自动检测）、浅色、深色
-  - 通过 `themeService.ts` 系统主题同步
-  - OS 更改时自动主题更新
-- 设置立即生效
-
-### 提示和最佳实践
-
-#### 针对最佳幻灯片提取
-
-1. **使用自适应阈值模式**（推荐）
-   - 从自适应模式开始 - 它自动处理大多数场景
-   - 让系统基于课堂位置调整
-   - 仅在注意到特定问题时切换模式
-
-2. **为您的内容选择正确的模式**
-   - **静态幻灯片**：如果自适应捕获太多重复，请尝试严格模式
-   - **动画内容**：如果错过变化，请使用宽松模式
-   - **混合内容**：坚持自适应以实现自动调整
-   - **测试**：使用自定义模式和 `test-image-comparison.html`
-
-3. **使用适当的播放速度**
-   - 1x-2x 用于具有动画的复杂幻灯片
-   - 3x-5x 用于标准演示
-   - 5x-10x 用于简单幻灯片或复习
-   - 更高的速度与自适应/宽松模式更好配合
-
-4. **配置 SSIM 阈值**（如果使用自定义模式）
-   - 较低阈值 (0.995) 用于频繁变化的内容
-   - 较高阈值 (0.9995) 用于静态演示
-   - 使用 `test-image-comparison.html` 进行校准
-   - 参见自适应模式中的课堂推荐
-
-5. **监控性能**
-   - 在提取期间观看 CPU 使用情况
-   - 如果系统速度慢，请调整检查间隔
-   - 关闭其他资源密集型应用程序
-   - 启用双重验证以提高准确性
-
-#### 针对高效下载
-
-1. **并发下载限制**
-   - 慢速互联网 (< 10Mbps) 为 1-2
-   - 中等互联网 (10-50Mbps) 为 3-5
-   - 快速互联网 (50+ Mbps) 为 5-10
-
-2. **磁盘空间管理**
-   - 定期监控输出目录大小
-   - 视频以原始质量存储
-   - 对于大型库，请考虑外部存储
-
-3. **网络考虑**
-   - 使用外部模式以获得最佳 CDN 性能
-   - 在校园内切换到内部模式以加快速度
-   - 如需要，请避免 VPN
-
-#### 故障排除
-
-**应用程序无法启动（macOS）**
-- 确保删除隔离属性：`sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app`
-- 在 Console.app 中检查错误消息
-- 尝试删除所有属性：`sudo xattr -cr /Applications/AutoSlides.app`
-
-**视频无法播放**
-- 重新登录以验证身份验证（如果需要）
-- 检查互联网连接
-- 尝试切换连接模式（内部 ↔ 外部）
-- 检查会话是否仍然可用
-
-**未捕获幻灯片**
-- 在播放器控件中启用幻灯片提取
-- 如果使用严格/正常，请尝试自适应或宽松
-- 在自定义模式中降低 SSIM 阈值（尝试 0.995）
-- 验证输出目录是否可写
-- 监控控制台以查找错误
-- 检查双重验证是否太严格
-
-**捕获太多相似/重复幻灯片**
-- 从宽松切换到正常或严格模式
-- 在自定义模式中增加 SSIM 阈值（尝试 0.9995）
-- 启用双重验证
-- 将验证计数增加到 3-4 帧
-- 减少检查间隔频率
-
-**下载失败**
-- 检查互联网连接稳定性
-- 降低并发下载计数
-- 验证足够的磁盘空间
-- 尝试重新身份验证
-
-**高 CPU/内存使用**
-- 降低检查间隔（增加到 3000ms+）
-- 降低并发下载
-- 暂时禁用双重验证
-- 关闭其他资源密集型应用
-
----
-
-## 🚀 开发设置
-
-### 先决条件
-- **Node.js** 18+ 与 npm
-- **Python** 3.x（用于原生模块编译）
-- **Git** 用于版本控制
-- **FFmpeg**（macOS：通过 npm，Windows：捆绑）
-
-### 安装
-```bash
-# 克隆仓库
-git clone https://github.com/bit-admin/Yanhekt-AutoSlides.git
-cd AutoSlides
-
-# 导航到主应用程序目录
-cd autoslides
-
-# 安装依赖
-npm install
-
-# 启动开发服务器
-npm start
-```
-
-### 构建命令
-```bash
-# 开发
-npm start                 # 在开发模式下启动 Electron
-npm run lint             # 为代码质量运行 ESLint
-
-# 生产
-npm run package          # 为当前平台打包
-npm run make            # 创建分发包 (DMG/EXE)
-npm run publish         # 发布到配置的渠道
-```
-
-### 平台特定注释
-
-#### macOS 开发
-- 使用 npm 安装的 FFmpeg 进行开发
-- 支持 Apple Silicon 和 Intel 架构
-- 包括原生菜单栏集成
-- DMG 打包器在 `forge.config.ts` 中配置
-
-#### Windows 分发
-- 从 `resources/ffmpeg/` 捆绑 FFmpeg 二进制文件
-- 在 `forge.config.ts` 中配置跨平台构建
-- 支持 x64 架构
-- 配置了 Squirrel.Windows 安装程序
-
-## 📁 项目结构
+## 📁 项目主要结构
 
 ```
 AutoSlides/
 ├── autoslides/                # 主应用程序目录
 │   ├── src/
 │   │   ├── main/                    # 主进程 (Node.js)
-│   │   │   ├── main.ts             # 应用程序入口点
 │   │   │   ├── authService.ts      # 身份验证管理
 │   │   │   ├── apiClient.ts        # 后端 API 通信
-│   │   │   ├── configService.ts    # 配置管理
 │   │   │   ├── videoProxyService.ts # 视频流媒体代理
 │   │   │   ├── intranetMappingService.ts # 网络路由
 │   │   │   ├── ffmpegService.ts    # 视频处理
-│   │   │   ├── m3u8DownloadService.ts # HLS 下载
-│   │   │   ├── slideExtractionService.ts # 主进程幻灯片提取
-│   │   │   ├── cacheManagementService.ts # 缓存和存储管理
-│   │   │   ├── powerManagementService.ts # 电源/休眠预防
-│   │   │   └── themeService.ts     # 系统主题检测
+│   │   │   └── m3u8DownloadService.ts # HLS 下载
 │   │   │
 │   │   ├── renderer/               # 渲染器进程 (Vue.js)
-│   │   │   ├── App.vue            # 根 Vue 组件
-│   │   │   ├── renderer.ts        # 渲染器入口点
 │   │   │   │
 │   │   │   ├── components/         # Vue 组件
 │   │   │   │   ├── TitleBar.vue    # 自定义窗口标题栏
@@ -666,542 +195,89 @@ AutoSlides/
 │   │   │   │   └── SessionPage.vue # 会话选择
 │   │   │   │
 │   │   │   ├── services/           # 渲染器服务
-│   │   │   │   ├── authService.ts  # 渲染器身份验证包装器
-│   │   │   │   ├── apiClient.ts    # 渲染器 API 包装器
 │   │   │   │   ├── slideExtractor.ts # 幻灯片检测逻辑
 │   │   │   │   ├── slideProcessorService.ts # Web Worker 接口
 │   │   │   │   ├── ssimThresholdService.ts # 动态 SSIM 阈值
 │   │   │   │   ├── taskQueueService.ts # 任务管理
 │   │   │   │   ├── downloadService.ts # 下载协调
-│   │   │   │   ├── languageService.ts # i18n 语言管理
 │   │   │   │   └── dataStore.ts    # 状态管理
 │   │   │   │
 │   │   │   ├── workers/            # Web Workers
 │   │   │   │   └── slideProcessor.worker.ts # 图像处理
-│   │   │   │
-│   │   │   └── i18n/              # 国际化
-│   │   │       ├── index.ts       # i18n 配置
-│   │   │       └── locales/
-│   │   │           ├── en.json    # 英语翻译
-│   │   │           ├── zh.json    # 中文翻译
-│   │   │           ├── ja.json    # 日语翻译
-│   │   │           └── ko.json    # 韩语翻译
 │   │   │
-│   │   ├── preload.ts             # 安全 IPC 桥
-│   │   └── vite-env.d.ts          # Vite TypeScript 定义
+│   │   ├── main.ts                # 应用程序入口点
+│   │   └── preload.ts             # 安全 IPC 桥
 │   │
-│   ├── resources/                 # 静态资源
-│   │   ├── ffmpeg/               # Windows FFmpeg 二进制文件
-│   │   │   ├── ffmpeg.exe        # FFmpeg 编码器
-│   │   │   └── ffprobe.exe       # FFmpeg 探测工具
-│   │   └── terms/                # 法律文档
-│   │       └── terms.html        # 服务条款
-│   │
-│   ├── forge.config.ts           # Electron Forge 配置
-│   ├── vite.main.config.ts       # 主进程 Vite 配置
-│   ├── vite.renderer.config.ts   # 渲染器进程 Vite 配置
-│   ├── vite.preload.config.ts    # 预加载脚本 Vite 配置
-│   ├── tsconfig.json             # TypeScript 配置
 │   └── package.json              # 依赖和脚本
 │
 ├── test-image-comparison.html    # 🧪 图像处理测试工具
 ├── report.pdf                     # 📄 技术性能报告
-├── README.md                      # 📖 此文件
-├── CLAUDE.md                      # 🤖 Claude Code 项目说明
 └── LICENSE                        # ⚖️ Apache 2.0 许可证
 ```
-
-### 关键文件和目录
-
-#### 应用程序核心
-- **`autoslides/src/main/`** - 后端服务、IPC 处理程序、系统集成
-- **`autoslides/src/renderer/`** - Vue 3 UI、组件和客户端逻辑
-- **`autoslides/src/preload.ts`** - 暴露安全 API 到渲染器的安全桥
-- **`autoslides/src/App.vue`** - 具有布局结构的根 Vue 组件
-- **`autoslides/src/renderer.ts`** - 渲染器进程入口点
-
-#### UI 组件
-- **`TitleBar.vue`** - 自定义窗口控件（最小化、最大化、关闭）
-- **`LeftPanel.vue`** - 身份验证、设置和系统状态
-- **`MainContent.vue`** - 主导航和内容切换
-- **`RightPanel.vue`** - 任务队列和下载管理
-- **`CoursePage.vue`** - 课程列表和搜索界面
-- **`PlaybackPage.vue`** - 具有幻灯片提取控件的视频播放器
-
-#### 核心服务（主进程）
-- **`slideExtractionService.ts`** - 从主进程协调幻灯片提取
-- **`cacheManagementService.ts`** - 管理应用程序缓存和存储清理
-- **`powerManagementService.ts`** - 在活动任务期间防止系统休眠
-- **`themeService.ts`** - 检测和应用系统主题偏好
-
-#### 核心服务（渲染器进程）
-- **`ssimThresholdService.ts`** - 具有 5 个智能预设的动态 SSIM 阈值
-- **`slideProcessorService.ts`** - 管理 Web Worker 以进行图像处理
-- **`languageService.ts`** - 处理 i18n 语言检测和切换
-- **`authService.ts`** - 渲染器端身份验证接口
-- **`apiClient.ts`** - 渲染器端 API 通信层
-
-#### 国际化
-- **`i18n/index.ts`** - Vue-i18n 配置和设置
-- **`locales/en.json`** - 英语翻译（默认）
-- **`locales/zh.json`** - 简体中文翻译
-- **`locales/ja.json`** - 日语翻译
-- **`locales/ko.json`** - 韩语翻译
-
-应用程序支持 4 种语言，具有自动系统区域设置检测。
-
-#### 测试和文档
-- **`test-image-comparison.html`** - 交互式 SSIM 算法测试工具
-  - 测试不同的 SSIM 阈值
-  - 视觉比较图像
-  - 测量算法性能
-  - 校准幻灯片检测设置
-
-- **`report.pdf`** - 全面技术文档
-  - 算法性能分析
-  - SSIM 准确性基准
-  - 系统架构细节
-  - 优化建议
-
-#### 配置文件
-- **`forge.config.ts`** - Electron Forge 构建和打包配置
-- **`vite.*.config.ts`** - 每个进程的 Vite 捆绑器配置
-- **`tsconfig.json`** - TypeScript 编译器设置
-
-## ⚙️ 配置
-
-### 快速参考
-
-| 设置 | 默认 | 范围/选项 | 描述 |
-|---------|---------|---------------|-------------|
-| **输出目录** | `~/Downloads/AutoSlides` | 任何有效路径 | 保存幻灯片和视频的位置 |
-| **连接模式** | 外部 | 外部/内部 | 网络路由模式 |
-| **语言** | 系统 | 系统/英语/中文/日语/韩语 | UI 语言 |
-| **主题** | 系统 | 系统/浅色/深色 | 应用程序主题 |
-| **下载并发性** | 3 | 1-10 | 同时下载 |
-| **任务速度** | 3x | 1x-10x | 任务队列的播放速度 |
-| **静音模式** | 正常 | 正常/全部/实时/录制 | 音频静音行为 |
-| **检查间隔** | 2000ms | 500-10000ms | 幻灯片检测频率 |
-| **SSIM 阈值模式** | 自适应 | 自适应/严格/正常/宽松/自定义 | 阈值预设模式 |
-| **SSIM 阈值值** | 0.9987 | 0.990-0.9999 | 自定义相似度阈值 |
-| **双重验证** | 启用 | 启用/禁用 | 多帧确认 |
-| **验证计数** | 2 | 1-10 | 要验证的帧 |
-
-### 应用程序设置
-应用程序提供广泛的配置选项：
-
-#### 基本设置
-- **输出目录**：默认 `~/Downloads/AutoSlides`
-  - 所有幻灯片和下载视频保存在此处
-  - 按课程和会话组织
-  - 点击“更改输出目录”进行自定义
-  - 确保足够的磁盘空间
-
-- **连接模式**：外部（直接）或内部（代理）
-  - **外部**：用于家庭/公共互联网（推荐）
-  - **内部**：用于具有内部网访问的机构网络
-  - 需要重启才能生效
-
-- **语言**：系统、英语、中文、日语或韩语
-  - 系统：基于 OS 区域设置自动检测
-  - 支持英语、中文、日语、韩语
-  - 更改立即生效
-  - 包括所有 UI 元素和消息
-  - 由 `languageService.ts` 管理
-
-- **主题**：系统、浅色或深色
-  - 系统：遵循 OS 主题偏好
-  - 影响整个应用程序界面
-  - 更改立即生效
-
-#### 高级设置
-- **下载并发性**：1-10 个同时下载
-  - 在网络速度与系统资源之间平衡
-  - 推荐：大多数用户 3-5
-  - 更快互联网的更高值
-
-- **任务速度**：1x-10x 播放速度用于批量处理
-  - 由任务队列用于自动提取
-  - 更高速度 = 更快处理
-  - 在非常高速度 (>8x) 下可能错过变化
-
-- **静音模式**：音频行为控制
-  - **正常**：所有内容播放音频
-  - **全部静音**：所有音频静音（系统范围）
-  - **实时静音**：仅实时流静音
-  - **录制静音**：仅录制内容静音
-
-#### 图像处理参数
-- **检查间隔**：检测频率（默认：2000ms）
-  - 检查幻灯片变化的频率
-  - 较低 = 更频繁检查 = 更高 CPU
-  - 推荐：1000-3000ms
-  - 基于播放速度自动调整
-
-- **SSIM 阈值模式**：智能阈值选择（默认：自适应）
-
-  AutoSlides 具有一个**高级动态 SSIM 阈值系统**，具有五个预设模式：
-
-  1. **自适应模式**（推荐）🌟
-     - **智能课堂-based 调整**
-     - 基于上下文自动选择最佳阈值
-     - **课堂规则**（自动应用）：
-       - "综教"（综合教学楼）→ 宽松 (0.998)
-       - "理教"（科学教学楼）→ 宽松 (0.998)
-       - "研楼"（研究楼）→ 宽松 (0.998)
-       - 其他位置 → 正常 (0.9987)
-     - 面向未来，可用于其他自适应因素：
-       - 视频质量检测
-       - 网络稳定性监控
-       - 历史检测准确性
-       - 系统性能指标
-     - 默认值：0.9987（基于课堂调整）
-
-  2. **严格模式** (0.999)
-     - 最高精度，最小误报
-     - 最适合：静态演示幻灯片，动画最小
-     - 使用时：幻灯片很少变化，需要最大精度
-     - 权衡：可能错过微妙幻灯片过渡
-
-  3. **正常模式** (0.9987)
-     - 平衡精度和灵敏度
-     - 最适合：具有标准幻灯片过渡的典型讲座
-     - 使用时：标准演示内容
-     - 推荐的基准用于大多数用户
-
-  4. **宽松模式** (0.998)
-     - 更高的灵敏度，更宽松的匹配
-     - 最适合：动画内容、视频-heavy 幻灯片、视频质量差
-     - 使用时：幻灯片具有动态元素或灯光变化
-     - 自动用于某些课堂位置（参见自适应模式）
-     - 权衡：稍高的误报率
-
-  5. **自定义模式**
-     - 在 0.990 和 0.9999 之间设置任何值
-     - 用于具有特定要求的高级用户
-     - 使用 `test-image-comparison.html` 查找最佳值
-     - 需要手动校准
-
-  **如何选择：**
-  - **从自适应开始** - 在大多数场景中工作最佳
-  - **切换到严格** - 如果获得太多相似幻灯片
-  - **切换到宽松** - 如果错过幻灯片变化
-  - **使用自定义** - 用于特定内容要求
-
-  **技术实现：**
-  - 由 `ssimThresholdService.ts` 管理（单例模式）
-  - 课堂信息从会话元数据自动提取
-  - 基于上下文的实时阈值调整
-  - 可扩展架构用于未来增强
-
-- **SSIM 阈值值**：手动阈值覆盖（默认：0.9987）
-  - 仅在自定义模式中使用
-  - 更高 = 更严格匹配 = 更少捕获
-  - 范围：0.990（非常宽松）到 0.9999（非常严格）
-  - 使用 `test-image-comparison.html` 校准
-  - 参见 `report.pdf` 以获取技术分析
-
-- **双重验证**：启用/禁用多帧确认
-  - 默认启用
-  - 显著减少误报
-  - 小延迟在检测中（~1-2 秒）
-  - 高度推荐用于准确性
-  - 与所有阈值模式配合工作
-
-- **验证计数**：确认帧数（默认：2）
-  - 仅在启用双重验证时使用
-  - 更高 = 更多确认 = 更少误报
-  - 推荐：2-3 帧
-  - 更高值增加检测延迟
-
-### 配置存储
-设置使用 `electron-store` 持久化，具有自动加密：
-```typescript
-// 示例配置结构
-interface AppConfig {
-  outputDirectory: string;
-  connectionMode: 'internal' | 'external';
-  maxConcurrentDownloads: number;
-  slideExtraction: {
-    checkInterval: number;
-    ssimThresholdMode: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
-    ssimThreshold: number; // 在自定义模式中使用
-    enableDoubleVerification: boolean;
-    verificationCount: number;
-  };
-}
-```
-
-## 🔧 API 集成
-
-### 身份验证流程
-```typescript
-// 登录过程
-const token = await authService.loginAndGetToken(username, password);
-const userData = await apiClient.verifyToken(token);
-
-// 令牌持久化
-localStorage.setItem('authToken', token);
-```
-
-### 视频流访问
-```typescript
-// 实时流
-const liveStreams = await apiClient.getPersonalLiveList(token);
-const streamUrls = await videoProxyService.getLiveStreamUrls(stream, token);
-
-// 录制内容
-const courses = await apiClient.getPersonalCourseList(token, options);
-const sessions = await apiClient.getCourseInfo(courseId, token);
-const playbackUrls = await videoProxyService.getVideoPlaybackUrls(session, token);
-```
-
-## 🎨 用户界面
-
-### 国际化
-应用程序支持多种语言，具有自动系统检测：
-- **英语**：默认后备语言
-- **中文（简体）**：完整翻译覆盖 (中文)
-- **日语**：完整翻译覆盖 (日本語)
-- **韩语**：完整翻译覆盖 (한국어)
-- **系统检测**：基于 OS 区域设置的自动语言选择
-- **手动覆盖**：用户可以在设置中手动选择首选语言
-
-### 响应式设计
-- **可调整面板**：拖动分隔符调整布局
-- **最小大小**：强制执行最小宽度以实现可用性
-- **窗口管理**：具有原生控件自定义标题栏
-
-### 无障碍性
-- **键盘导航**：完整键盘支持
-- **屏幕阅读器**：语义 HTML 结构
-- **高对比度**：深色模式支持
-- **可扩展 UI**：用于更好可见性的缩放支持
-
-## 📊 性能优化
-
-### 内存管理
-- **Web Workers**：卸载图像处理以防止 UI 阻塞
-- **延迟加载**：按需加载组件
-- **资源清理**：视频元素和工作者的自动清理
-- **内存监控**：内置内存使用跟踪
-- **缓存管理**：通过 `cacheManagementService.ts` 自动缓存清理
-  - 临时文件的定期清理
-  - 可配置缓存大小限制
-  - 智能保留策略
-
-### 系统集成
-- **电源管理**：在关键操作期间防止系统休眠
-  - 下载期间自动休眠预防
-  - 任务队列处理期间智能唤醒锁
-  - 空闲时自动释放
-  - 由 `powerManagementService.ts` 管理
-- **主题同步**：通过 `themeService.ts` 自动主题更新
-  - 实时 OS 主题检测
-  - 无需重启的无缝浅色/深色模式切换
-
-### 网络优化
-- **连接池化**：为效率重用 HTTP 连接
-- **重试逻辑**：失败请求的指数退避
-- **缓存**：API 响应和令牌的智能缓存
-- **压缩**：API 通信的 Gzip 压缩
-
-### 视频处理
-- **硬件加速**：如果可用，使用 FFmpeg 硬件编码
-- **并发处理**：并行 TS 段下载
-- **流优化**：自适应比特率选择
-- **缓冲管理**：用于平滑播放的智能缓冲
-
-## 🔒 安全功能
-
-### 身份验证安全
-- **令牌加密**：安全令牌存储，具有加密
-- **会话管理**：自动令牌刷新和验证
-- **安全通信**：仅 HTTPS API 通信
-- **凭据保护**：无明文密码存储
-
-### 视频内容保护
-- **反热链绕过**：针对合法访问的复杂 DRM 规避
-- **动态签名**：基于时间的签名生成
-- **代理隔离**：沙盒视频代理服务
-- **网络安全**：证书验证的安全内部网路由
-
-## 🧪 测试和质量保证
-
-### 图像处理测试
-
-项目包括 SSIM 算法的全面测试工具：
-
-#### 使用 test-image-comparison.html
-
-此独立 HTML 工具允许您测试和校准 SSIM 算法：
-
-1. **打开测试工具**
-   ```bash
-   # 在默认浏览器中打开
-   open test-image-comparison.html
-
-   # 在 Windows 上
-   start test-image-comparison.html
-   ```
-
-2. **加载测试图像**
-   - 点击“选择文件”用于图像 1（参考图像）
-   - 点击“选择文件”用于图像 2（比较图像）
-   - 图像并排显示
-
-3. **比较图像**
-   - 点击“比较图像”按钮
-   - 查看 SSIM 分数（0-1，其中 1 = 相同）
-   - 在毫秒中查看处理时间
-   - 显示视觉差异突出显示
-
-4. **校准阈值**
-   - 使用您课程中的真实幻灯片进行测试
-   - 比较连续幻灯片（应为 > 0.999 SSIM）
-   - 比较不同幻灯片（应为 < 0.999 SSIM）
-   - 根据结果调整应用程序阈值
-
-5. **性能测试**
-   - 使用不同图像大小测试
-   - 测量您的用例的处理时间
-   - 验证可接受性能 (< 10ms 推荐)
-
-**使用案例用于测试：**
-- **阈值校准**：为您的内容查找最佳 SSIM 阈值
-- **性能验证**：确保足够快用于实时提取
-- **算法验证**：确认 SSIM 正确识别变化
-- **调试**：测试未检测的棘手幻灯片
-
-### 技术报告
-
-包含的 **report.pdf** 提供全面技术文档：
-
-- **算法分析**：SSIM 实现的详细数学和实现
-- **性能基准**：跨不同图像大小的处理时间
-- **准确性测试**：使用真实数据的误报/误报率
-- **比较研究**：SSIM 与其他算法（pHash 等）
-- **优化技术**：Web Worker 实现细节
-- **系统架构**：完整技术架构图
-
-**report.pdf 中的关键发现：**
-- SSIM 阈值 0.999 提供 0.999% 准确性的最佳平衡
-- 平均处理时间：每帧比较 2-5ms
-- Web Worker 实现防止 UI 阻塞
-- 双重验证将误报减少 95%
-
-### 代码质量
-- **TypeScript**：完整类型安全和编译时错误检查
-- **ESLint**：自动代码风格和质量强制执行
-- **Vue DevTools**：开发调试和性能分析
-- **Electron DevTools**：主进程调试和检查
-
-## 📈 性能指标
-
-基于测试和包含的性能报告：
-
-### 图像处理性能
-- **SSIM 计算**：每帧比较 2-5ms
-- **内存使用**：图像处理工作者 ~50MB
-- **CPU 影响**：活动提取期间 <5% CPU 使用
-- **准确性**：0.999% 精度，0.1% 误报率
-
-### 下载性能
-- **并发流**：最多 10 个同时下载
-- **网络效率**：95%+ 带宽利用率
-- **错误恢复**：<1% 具有重试逻辑的失败率
-- **处理速度**：实时 FFmpeg 转换
-
-### 应用程序性能
-- **启动时间**：<3 秒冷启动
-- **内存占用**：~200MB 基础使用
-- **UI 响应性**：60fps 接口渲染
-- **后台处理**：非阻塞操作
-
-## 🤝 贡献
-
-### 开发指南
-1. **代码风格**：遵循 TypeScript 和 Vue.js 最佳实践
-2. **测试**：包括图像处理算法的新测试
-3. **文档**：更新 README 以获取显著更改
-4. **性能**：分析更改以获取性能影响
-
-### 提交更改
-1. 分叉仓库
-2. 创建功能分支
-3. 实施具有测试的更改
-4. 提交具有详细描述的拉取请求
 
 ## 📄 许可证
 
 此项目根据 Apache License 2.0 获得许可。请参见 `LICENSE` 文件以获取详细信息。
 
-## 🔗 相关资源
+## TERMS AND CONDITIONS
 
-### 项目文档
-- **`test-image-comparison.html`** - SSIM 算法测试工具（包含在仓库中）
-- **`report.pdf`** - 技术性能和架构报告（包含在仓库中）
-- **`CLAUDE.md`** - Claude Code 的项目说明（包含在仓库中）
+By downloading, installing, or using this software ("Software"), you ("User") signify your agreement to be legally bound by these Terms and Conditions ("Terms"). If you do not agree to these Terms, you are not permitted to install or use the Software.
 
-### 外部链接
-- **GitHub 仓库**：https://github.com/bit-admin/Yanhekt-AutoSlides
-- **Web 版本**：https://learn.ruc.edu.kg
-- **在线 SSIM 测试**：https://learn.ruc.edu.kg/test
-- **IT 中心软件**：https://it.ruc.edu.kg/zh/software
+### 1. Definitions
 
-### 文档索引
-- 安装指南：[📦 安装指南](#-installation-guide)
-- 用户指南：[📖 用户指南](#-user-guide)
-- 图像测试：[🧪 测试和质量保证](#-testing-and-quality-assurance)
-- 技术细节：请参见 `report.pdf` 以获取完整分析
-- 开发设置：[🚀 开发设置](#-development-setup)
+**"Software"** refers to the software application provided by the Developer designed to interact with the Platform.
 
-## 📞 支持
+**"Platform"** refers to the "Yanhe Classroom" platform of the Beijing Institute of Technology ("BIT").
 
-### 获取帮助
+**"Content"** refers to all course resources available on the Platform, including but not limited to videos, documents, images, and audio files.
 
-对于技术支持或问题：
+**"Developer"** refers to the creator and owner of the Software.
 
-1. **阅读文档**
-   - 检查此 README 以获取全面用户指南
-   - 查看 `report.pdf` 以获取技术细节
-   - 咨询上述故障排除部分
+### 2. Permitted Use and Scope of Service
 
-2. **测试和调试**
-   - 使用 `test-image-comparison.html` 调试 SSIM 问题
-   - 检查应用程序日志（应用菜单中的帮助 → 查看日志）
-   - 尝试调整配置参数
+The Software is a technical tool designed exclusively to facilitate the download of Content from the Platform. The User's right to use the Software is contingent upon the User having the necessary legal rights and permissions from BIT and/or the relevant rights holders to access and download such Content.
 
-3. **社区支持**
-   - 检查 GitHub Issues 以获取类似问题
-   - 搜索现有讨论
-   - 查看关闭的议题以获取解决方案
+The Software acts solely as a technical intermediary. It does not store, modify, host, or distribute any Content. All downloaded materials originate directly from the Platform's servers at the User's explicit direction.
 
-4. **报告议题**
-   - 在 GitHub 上打开新议题，包括：
-     - 问题的详细描述
-     - 重现步骤
-     - 系统信息（OS、版本）
-     - 相关日志或屏幕截图
-     - 预期与实际行为
+### 3. Intellectual Property Rights
 
-### 常见资源
+The User acknowledges and agrees that all right, title, and interest in and to the Content are the intellectual property of their original authors, BIT, or respective rights holders. The Developer claims no ownership or rights to the Content and assumes no liability for the IP status of any material on the Platform. The User is solely responsible for complying with the Platform's terms of service, intellectual property policies, and all applicable international and domestic copyright laws.
 
-- **安装问题**：请参见 [📦 安装指南](#-installation-guide)
-- **使用问题**：请参见 [📖 用户指南](#-user-guide)
-- **性能问题**：请参见 [📈 性能指标](#-performance-metrics)
-- **算法问题**：请参考 `report.pdf`
-- **测试工具**：使用 `test-image-comparison.html`
+### 4. User Obligations and Prohibited Conduct
 
-### 开发支持
+The User agrees not to use the Software for any purpose that is unlawful or prohibited by these Terms. The User is solely responsible for their conduct and any Content they download. Prohibited activities include, but are not limited to:
 
-对于为项目做出贡献的开发者：
-- 查看 `CLAUDE.md` 以获取项目架构
-- 遵循 TypeScript/Vue.js 最佳实践
-- 在提交更改之前运行 `npm run lint`
-- 为新功能包括测试
-- 根据需要更新文档
+a. Reproducing, distributing, publicly performing, modifying, or creating derivative works from any Content without explicit authorization from the rightful owner;
 
----
+b. Using the Content for any commercial purpose;
 
-**AutoSlides** 代表了教育内容访问和自动幻灯片提取的复杂方法，结合先进的计算机视觉算法和强大的视频流媒体技术，为教育内容消费提供无与伦比的用户体验。
+c. Reverse-engineering, decompiling, or attempting to discover the source code of the Software or the Platform;
+
+d. Using the Software to infringe upon the intellectual property rights or other legal rights of any third party, including BIT, content creators, or other rights holders.
+
+Any breach of these obligations may result in the termination of the User's right to use the Software and may expose the User to civil and/or criminal liability. The User agrees that they bear sole legal responsibility for any disputes arising from their use of the Software.
+
+### 5. Disclaimer of Warranties
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE SOFTWARE IS PROVIDED **"AS IS"** AND **"AS AVAILABLE"**, WITH ALL FAULTS AND WITHOUT WARRANTY OF ANY KIND. THE DEVELOPER EXPRESSLY DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.
+
+THE DEVELOPER DOES NOT WARRANT THAT THE SOFTWARE WILL MEET THE USER'S REQUIREMENTS, BE UNINTERRUPTED, OR BE ERROR-FREE, NOR DOES THE DEVELOPER MAKE ANY WARRANTY AS TO THE LEGALITY, ACCURACY, OR AVAILABILITY OF THE PLATFORM OR ITS CONTENT.
+
+### 6. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE DEVELOPER BE LIABLE FOR ANY DIRECT, INDIRECT, PUNITIVE, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES, INCLUDING WITHOUT LIMITATION, DAMAGES FOR LOSS OF DATA, LOSS OF PROFITS, BUSINESS INTERRUPTION, INTELLECTUAL PROPERTY DISPUTES, OR ANY OTHER COMMERCIAL DAMAGES OR LOSSES, ARISING OUT OF OR IN ANY WAY RELATED TO THE USE OR INABILITY TO USE THE SOFTWARE, HOWEVER CAUSED, REGARDLESS OF THE THEORY OF LIABILITY (CONTRACT, TORT, OR OTHERWISE) AND EVEN IF THE DEVELOPER HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+### 7. Indemnification
+
+The User agrees to indemnify, defend, and hold harmless the Developer and its affiliates from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable attorneys' fees) arising out of or in any way connected with the User's: (a) access to or use of the Software; (b) violation of these Terms; or (c) violation of any third-party right, including any intellectual property right.
+
+### 8. General Provisions
+
+
+**Governing Law:** These Terms shall be governed by and construed in accordance with the laws of Hong Kong SAR, without regard to its conflict of law principles.
+
+**Severability:** If any provision of these Terms is held to be unenforceable or invalid, such provision will be changed and interpreted to accomplish the objectives of such provision to the greatest extent possible under applicable law, and the remaining provisions will continue in full force and effect.
+
+**Entire Agreement:** These Terms constitute the entire agreement between the User and the Developer regarding the use of the Software and supersede all prior agreements and understandings.
+
+**Contact Information:** For technical or legal inquiries, please contact info@ruc.edu.kg.
