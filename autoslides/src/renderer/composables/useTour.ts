@@ -57,6 +57,33 @@ export function useTour() {
             }
           },
           {
+            element: '.navigation-bar',
+            popover: {
+              title: t('tour.steps.modeSwitch.title'),
+              description: t('tour.steps.modeSwitch.description'),
+              side: 'bottom',
+              align: 'center'
+            }
+          },
+          {
+            element: '.controls-section',
+            popover: {
+              title: t('tour.steps.searchRow.title'),
+              description: t('tour.steps.searchRow.description'),
+              side: 'bottom',
+              align: 'start'
+            }
+          },
+          {
+            element: '#tour-course-list',
+            popover: {
+              title: t('tour.steps.courseList.title'),
+              description: t('tour.steps.courseList.description'),
+              side: 'top',
+              align: 'center'
+            }
+          },
+          {
             element: '.search-box',
             popover: {
               title: t('tour.steps.searchButton.title'),
@@ -76,6 +103,39 @@ export function useTour() {
             setTimeout(() => {
               tourInstance.value?.moveNext()
             }, 100)
+            return // Prevent default next behavior
+          }
+
+          if (step.element === '.connection-mode-setting') {
+            // Switch to MainContent demo mode after connection mode step
+            window.dispatchEvent(new CustomEvent('tour-switch-to-main-demo'))
+
+            // Wait for demo components to load before continuing
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 300)
+            return // Prevent default next behavior
+          }
+
+          if (step.element === '.navigation-bar') {
+            // Switch to recorded mode for next step
+            window.dispatchEvent(new CustomEvent('tour-switch-to-recorded'))
+
+            // Wait for mode switch before continuing
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 200)
+            return // Prevent default next behavior
+          }
+
+          if (step.element === '.controls-section') {
+            // Trigger demo search to show course list
+            window.dispatchEvent(new CustomEvent('tour-demo-search'))
+
+            // Wait for course list to appear before continuing
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 1200) // Longer wait for loading animation
             return // Prevent default next behavior
           }
 

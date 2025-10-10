@@ -11,7 +11,8 @@
       <div class="divider left-divider" @mousedown="startResize('left', $event)"></div>
 
       <div class="main-content" :style="{ width: mainWidth + 'px' }">
-        <MainContent @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
+        <MainContentDemo v-if="isDemoMode && showMainDemo" ref="mainContentDemoRef" />
+        <MainContent v-else @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
       </div>
       <div class="divider right-divider" @mousedown="startResize('right', $event)"></div>
 
@@ -28,6 +29,7 @@ import TitleBar from './renderer/components/TitleBar.vue'
 import LeftPanel from './renderer/components/LeftPanel.vue'
 import LeftPanelDemo from './renderer/components/demo/LeftPanelDemo.vue'
 import MainContent from './renderer/components/MainContent.vue'
+import MainContentDemo from './renderer/components/demo/MainContentDemo.vue'
 import RightPanel from './renderer/components/RightPanel.vue'
 import { useTour } from './renderer/composables/useTour'
 
@@ -44,7 +46,9 @@ let containerWidth = 0
 
 const rightPanelRef = ref()
 const leftPanelDemoRef = ref()
+const mainContentDemoRef = ref()
 const isDemoMode = ref(false)
+const showMainDemo = ref(false)
 const { checkFirstVisit, showWelcomePopup } = useTour()
 
 const handleSwitchToDownload = () => {
@@ -133,15 +137,19 @@ const updateSizes = () => {
 const handleDemoModeToggle = (event: CustomEvent) => {
   isDemoMode.value = event.detail.enabled
   if (event.detail.enabled) {
-    // Ensure demo starts in login state when enabled
+    // Reset demo states when enabling demo mode
+    showMainDemo.value = false
     nextTick(() => {
       if (leftPanelDemoRef.value) {
         leftPanelDemoRef.value.resetDemo()
       }
     })
-  } else if (leftPanelDemoRef.value) {
-    // Reset demo state when exiting demo mode
-    leftPanelDemoRef.value.resetDemo()
+  } else {
+    // Reset all demo states when exiting demo mode
+    showMainDemo.value = false
+    if (leftPanelDemoRef.value) {
+      leftPanelDemoRef.value.resetDemo()
+    }
   }
 }
 
@@ -149,6 +157,24 @@ const handleDemoLogin = () => {
   if (leftPanelDemoRef.value) {
     leftPanelDemoRef.value.loginDemo()
   }
+}
+
+const handleSwitchToMainDemo = () => {
+  showMainDemo.value = true
+}
+
+const handleSwitchToRecorded = () => {
+  nextTick(() => {
+    if (mainContentDemoRef.value && mainContentDemoRef.value.switchMode) {
+      // Switch to recorded mode in the demo component
+      mainContentDemoRef.value.switchMode('recorded')
+    }
+  })
+}
+
+const handleDemoSearch = () => {
+  // Dispatch event to CoursePageDemo component to trigger search
+  window.dispatchEvent(new CustomEvent('demo-trigger-search'))
 }
 
 onMounted(() => {
@@ -168,11 +194,17 @@ onMounted(() => {
   window.addEventListener('resize', updateSizes)
   window.addEventListener('tour-demo-mode', handleDemoModeToggle as EventListener)
   window.addEventListener('tour-demo-login', handleDemoLogin)
+  window.addEventListener('tour-switch-to-main-demo', handleSwitchToMainDemo)
+  window.addEventListener('tour-switch-to-recorded', handleSwitchToRecorded)
+  window.addEventListener('tour-demo-search', handleDemoSearch)
 
   onUnmounted(() => {
     window.removeEventListener('resize', updateSizes)
     window.removeEventListener('tour-demo-mode', handleDemoModeToggle as EventListener)
     window.removeEventListener('tour-demo-login', handleDemoLogin)
+    window.removeEventListener('tour-switch-to-main-demo', handleSwitchToMainDemo)
+    window.removeEventListener('tour-switch-to-recorded', handleSwitchToRecorded)
+    window.removeEventListener('tour-demo-search', handleDemoSearch)
   })
 })
 </script>

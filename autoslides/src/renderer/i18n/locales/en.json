@@ -334,6 +334,10 @@
       "continue": "Continue",
       "skip": "Skip Tour"
     },
+    "liveMode": {
+      "title": "Live Mode",
+      "description": "This mode is for accessing live streaming courses. You can join ongoing lectures and capture slides in real-time."
+    },
     "steps": {
       "searchButton": {
         "title": "Restart Tour",
@@ -350,6 +354,18 @@
       "connectionMode": {
         "title": "Connection Mode",
         "description": "When you're on campus network, you can enable Internal Network mode for better connection experience and faster access to course resources."
+      },
+      "modeSwitch": {
+        "title": "Mode Selection",
+        "description": "Switch between Live and Recorded modes. Live mode is for real-time streaming, while Recorded mode gives you access to course recordings."
+      },
+      "searchRow": {
+        "title": "Search & Personal Courses",
+        "description": "Use the search bar to find specific courses, or click 'Get Personal Course List' to access your enrolled courses. This helps you quickly locate the content you need."
+      },
+      "courseList": {
+        "title": "Course Gallery",
+        "description": "Browse through available courses in this grid view. Each card shows course details including instructor, location, and participant count. Click any course to access its content."
       }
     }
   }
