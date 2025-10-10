@@ -1,5 +1,4 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
-import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
@@ -16,24 +15,11 @@ const config: ForgeConfig = {
     // Include all necessary resources
     extraResource: [
       // Always include terms.rtf
-      'resources/terms',
-      // Include ffmpeg for Windows builds
-      ...(process.platform === 'win32' || process.env.npm_config_target_platform === 'win32' ? [
-        'resources/ffmpeg'
-      ] : [])
+      'resources/terms'
     ]
   },
   rebuildConfig: {},
   makers: [
-    // Windows NSIS installer
-    new MakerSquirrel({
-      name: 'AutoSlides',
-      authors: 'BIT-admin',
-      description: 'AutoSlides is an open-source desktop application that automates the creation of slideshows from images and videos.',
-      setupIcon: 'resources/img/icon.ico',
-      loadingGif: 'resources/img/icon.ico',
-      noMsi: true
-    }),
     // macOS DMG
     new MakerDMG({
       name: 'AutoSlides',
