@@ -28,7 +28,12 @@ const config: ForgeConfig = {
     new MakerDMG({
       name: 'AutoSlides',
       icon: 'resources/img/icon.icns',
-      format: 'ULFO'
+      format: 'ULFO',
+      background: './build/background.png',
+      contents: [
+        { x: 405, y: 210, type: 'link', path: '/Applications' },
+        { x: 135, y: 210, type: 'file', path: './out/AutoSlides-darwin-arm64/AutoSlides.app' }
+      ]
     }),
     // Windows Squirrel
     new MakerSquirrel({

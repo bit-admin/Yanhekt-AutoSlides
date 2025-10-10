@@ -15,9 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            platform: macOS
-            artifact_pattern: "**/*.dmg"
           - os: windows-latest
             platform: Windows
             artifact_pattern: "**/*.exe"
@@ -93,7 +90,6 @@ jobs:
           ## AutoSlides Release ${{ github.ref_name }}
 
           ### Downloads
-          - **macOS**: Download the `.dmg` file
           - **Windows**: Download the `.exe` file
 
           ### Changes
