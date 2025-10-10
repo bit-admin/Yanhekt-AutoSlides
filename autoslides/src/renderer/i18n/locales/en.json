@@ -374,6 +374,14 @@
       "batchActions": {
         "title": "Batch Operations",
         "description": "Use these buttons to perform batch operations on all sessions. You can add all sessions to the automation task queue, or download all camera/screen recordings at once."
+      },
+      "rightPanelTask": {
+        "title": "Task Management",
+        "description": "This is the Task panel where you can manage your slide extraction queue. Here you can see completed tasks and tasks in progress, with real-time progress tracking."
+      },
+      "rightPanelDownload": {
+        "title": "Download Management",
+        "description": "This is the Download panel where you can manage your video download queue. Monitor download progress and manage completed downloads from this interface."
       }
     }
   }

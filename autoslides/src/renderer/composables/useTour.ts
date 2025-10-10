@@ -102,6 +102,24 @@ export function useTour() {
             }
           },
           {
+            element: '.right-panel[data-tab="task"]',
+            popover: {
+              title: t('tour.steps.rightPanelTask.title'),
+              description: t('tour.steps.rightPanelTask.description'),
+              side: 'left',
+              align: 'center'
+            }
+          },
+          {
+            element: '.right-panel[data-tab="download"]',
+            popover: {
+              title: t('tour.steps.rightPanelDownload.title'),
+              description: t('tour.steps.rightPanelDownload.description'),
+              side: 'left',
+              align: 'center'
+            }
+          },
+          {
             element: '.search-box',
             popover: {
               title: t('tour.steps.searchButton.title'),
@@ -165,6 +183,28 @@ export function useTour() {
             setTimeout(() => {
               tourInstance.value?.moveNext()
             }, 1000)
+            return // Prevent default next behavior
+          }
+
+          if (step.element === '#tour-batch-actions') {
+            // Switch to RightPanel demo mode after batch actions step
+            window.dispatchEvent(new CustomEvent('tour-switch-to-right-panel-demo'))
+
+            // Wait for right panel demo to load before continuing
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 300)
+            return // Prevent default next behavior
+          }
+
+          if (step.element === '.right-panel[data-tab="task"]') {
+            // Switch to download mode for next step
+            window.dispatchEvent(new CustomEvent('tour-switch-to-download-mode'))
+
+            // Wait for mode switch before continuing
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 200)
             return // Prevent default next behavior
           }
 

@@ -18,7 +18,8 @@
       <div class="divider right-divider" @mousedown="startResize('right', $event)"></div>
 
       <div class="right-panel" :style="{ width: rightWidth + 'px' }">
-        <RightPanel ref="rightPanelRef" />
+        <RightPanelDemo v-if="isDemoMode && showRightPanelDemo" ref="rightPanelDemoRef" />
+        <RightPanel v-else ref="rightPanelRef" />
       </div>
     </div>
   </div>
@@ -31,9 +32,9 @@ import LeftPanel from './renderer/components/LeftPanel.vue'
 import LeftPanelDemo from './renderer/components/demo/LeftPanelDemo.vue'
 import MainContent from './renderer/components/MainContent.vue'
 import MainContentDemo from './renderer/components/demo/MainContentDemo.vue'
-// @ts-ignore
 import SessionPageDemo from './renderer/components/demo/SessionPageDemo.vue'
 import RightPanel from './renderer/components/RightPanel.vue'
+import RightPanelDemo from './renderer/components/demo/RightPanelDemo.vue'
 import { useTour } from './renderer/composables/useTour'
 
 const leftWidth = ref(320)
@@ -48,12 +49,14 @@ let startRightWidth = 0
 let containerWidth = 0
 
 const rightPanelRef = ref()
+const rightPanelDemoRef = ref()
 const leftPanelDemoRef = ref()
 const mainContentDemoRef = ref()
 const sessionPageDemoRef = ref()
 const isDemoMode = ref(false)
 const showMainDemo = ref(false)
 const showSessionDemo = ref(false)
+const showRightPanelDemo = ref(false)
 const { checkFirstVisit, showWelcomePopup } = useTour()
 
 const handleSwitchToDownload = () => {
@@ -145,6 +148,7 @@ const handleDemoModeToggle = (event: CustomEvent) => {
     // Reset demo states when enabling demo mode
     showMainDemo.value = false
     showSessionDemo.value = false
+    showRightPanelDemo.value = false
     nextTick(() => {
       if (leftPanelDemoRef.value) {
         leftPanelDemoRef.value.resetDemo()
@@ -154,6 +158,7 @@ const handleDemoModeToggle = (event: CustomEvent) => {
     // Reset all demo states when exiting demo mode
     showMainDemo.value = false
     showSessionDemo.value = false
+    showRightPanelDemo.value = false
     if (leftPanelDemoRef.value) {
       leftPanelDemoRef.value.resetDemo()
     }
@@ -194,6 +199,18 @@ const handleBackToCourses = () => {
   showMainDemo.value = true
 }
 
+const handleSwitchToRightPanelDemo = () => {
+  showRightPanelDemo.value = true
+}
+
+const handleSwitchToDownloadMode = () => {
+  nextTick(() => {
+    if (rightPanelDemoRef.value && rightPanelDemoRef.value.switchToDownload) {
+      rightPanelDemoRef.value.switchToDownload()
+    }
+  })
+}
+
 onMounted(() => {
   // Use nextTick to ensure the DOM has been rendered.
   nextTick(() => {
@@ -215,6 +232,8 @@ onMounted(() => {
   window.addEventListener('tour-switch-to-recorded', handleSwitchToRecorded)
   window.addEventListener('tour-demo-search', handleDemoSearch)
   window.addEventListener('tour-switch-to-session-demo', handleSwitchToSessionDemo)
+  window.addEventListener('tour-switch-to-right-panel-demo', handleSwitchToRightPanelDemo)
+  window.addEventListener('tour-switch-to-download-mode', handleSwitchToDownloadMode)
 
   onUnmounted(() => {
     window.removeEventListener('resize', updateSizes)
@@ -224,6 +243,8 @@ onMounted(() => {
     window.removeEventListener('tour-switch-to-recorded', handleSwitchToRecorded)
     window.removeEventListener('tour-demo-search', handleDemoSearch)
     window.removeEventListener('tour-switch-to-session-demo', handleSwitchToSessionDemo)
+    window.removeEventListener('tour-switch-to-right-panel-demo', handleSwitchToRightPanelDemo)
+    window.removeEventListener('tour-switch-to-download-mode', handleSwitchToDownloadMode)
   })
 })
 </script>
