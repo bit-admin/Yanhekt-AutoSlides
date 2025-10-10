@@ -330,13 +330,9 @@
   "tour": {
     "welcome": {
       "title": "Welcome to AutoSlides!",
-      "description": "Let's take a quick tour to help you get started with the application.",
+      "description": "Let's take a quick UI tour to help you get started with the application.",
       "continue": "Continue",
-      "skip": "Skip Tour"
-    },
-    "liveMode": {
-      "title": "Live Mode",
-      "description": "This mode is for accessing live streaming courses. You can join ongoing lectures and capture slides in real-time."
+      "skip": "Skip"
     },
     "steps": {
       "searchButton": {
@@ -365,11 +361,11 @@
       },
       "courseList": {
         "title": "Course Gallery",
-        "description": "Browse through available courses in this grid view. Each card shows course details including instructor, location, and participant count. Click any course to access its content."
+        "description": "Browse through available courses in this grid view. Click any course to access its content."
       },
       "sessionsContainer": {
         "title": "Course Sessions",
-        "description": "Here you can view all available sessions for the selected course. Each session shows the week, day, duration, and date information. This gives you a complete overview of the course schedule."
+        "description": "Here you can view all available sessions for the selected course. Your can play the recording, add it to the slide extraction task list or download camera and screen recording."
       },
       "batchActions": {
         "title": "Batch Operations",
@@ -385,11 +381,11 @@
       },
       "playbackContent": {
         "title": "Video Playback",
-        "description": "This is the main playback interface where you can watch course videos. The interface includes video controls, stream selection, and playback speed adjustment. The black area simulates the video player in this demo."
+        "description": "This is the main playback interface where you can watch course videos. The interface includes video controls, stream selection, and playback speed adjustment."
       },
       "slideGallery": {
         "title": "Slide Gallery",
-        "description": "When slide extraction is enabled for screen recordings, extracted slides appear here. You can view, manage, and delete slides from this gallery. The demo shows the slide extraction feature in action."
+        "description": "When slide extraction is enabled for screen recordings, extracted slides appear here. You can view, manage, and delete slides from this gallery."
       }
     }
   },

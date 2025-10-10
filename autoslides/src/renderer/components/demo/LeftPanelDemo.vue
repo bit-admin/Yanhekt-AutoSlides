@@ -77,9 +77,6 @@
           <div class="audio-mode-selector">
             <select class="audio-mode-select" disabled>
               <option value="normal">{{ $t('settings.normal') }}</option>
-              <option value="mute_all">{{ $t('settings.muteAll') }}</option>
-              <option value="mute_live">{{ $t('settings.muteLive') }}</option>
-              <option value="mute_recorded">{{ $t('settings.muteRecorded') }}</option>
             </select>
           </div>
         </div>
@@ -91,8 +88,6 @@
               <div class="theme-selector">
                 <select class="theme-select" disabled>
                   <option value="system">{{ $t('settings.followSystem') }}</option>
-                  <option value="light">{{ $t('settings.light') }}</option>
-                  <option value="dark">{{ $t('settings.dark') }}</option>
                 </select>
               </div>
             </div>
@@ -101,10 +96,6 @@
               <div class="language-selector">
                 <select class="language-select" disabled>
                   <option value="system">{{ $t('settings.followSystem') }}</option>
-                  <option value="en">{{ $t('settings.english') }}</option>
-                  <option value="zh">{{ $t('settings.chinese') }}</option>
-                  <option value="ja">日本語</option>
-                  <option value="ko">한국어</option>
                 </select>
               </div>
             </div>

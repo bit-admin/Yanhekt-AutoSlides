@@ -326,5 +326,233 @@
     "aboutMessage": "AutoSlides",
     "aboutDetail": "バージョン 4.0.0 (4.0.0)\n\n© 2025 bit-admin. All rights reserved.",
     "ok": "OK"
+  },
+  "tour": {
+    "welcome": {
+      "title": "AutoSlidesへようこそ！",
+      "description": "アプリケーションの使い方を学ぶために、簡単なUIツアーを行いましょう。",
+      "continue": "続行",
+      "skip": "スキップ"
+    },
+    "steps": {
+      "searchButton": {
+        "title": "ツアーを再開",
+        "description": "この検索ボタンをいつでもクリックして、アプリケーションツアーを再開し、インターフェースのナビゲーションヘルプを取得できます。"
+      },
+      "loginSection": {
+        "title": "認証",
+        "description": "ここでサインインしてAutoSlidesのすべての機能にアクセスします。認証情報を入力して開始してください。"
+      },
+      "leftPanel": {
+        "title": "コントロールパネル",
+        "description": "ログインしました！この左パネルはコントロールセンターで、さまざまな設定を変更し、設定を調整し、アプリケーションの状態を監視できます。"
+      },
+      "connectionMode": {
+        "title": "接続モード",
+        "description": "キャンパスネットワークにいる場合、内部ネットワークモードを有効にして、より良い接続体験とコースリソースへの高速アクセスを得ることができます。"
+      },
+      "modeSwitch": {
+        "title": "モード選択",
+        "description": "ライブモードと録画モードを切り替えます。ライブモードはリアルタイムストリーミング用で、録画モードはコース録画にアクセスできます。"
+      },
+      "searchRow": {
+        "title": "検索と個人コース",
+        "description": "検索バーを使用して特定のコースを見つけるか、「個人コースリストを取得」をクリックして登録済みのコースにアクセスします。これにより、必要なコンテンツを素早く見つけることができます。"
+      },
+      "courseList": {
+        "title": "コースギャラリー",
+        "description": "このグリッドビューで利用可能なコースを閲覧します。任意のコースをクリックしてそのコンテンツにアクセスします。"
+      },
+      "sessionsContainer": {
+        "title": "コースセッション",
+        "description": "ここで選択したコースの利用可能なすべてのセッションを表示できます。録画を再生したり、スライド抽出タスクリストに追加したり、カメラと画面録画をダウンロードしたりできます。"
+      },
+      "batchActions": {
+        "title": "バッチ操作",
+        "description": "これらのボタンを使用してすべてのセッションでバッチ操作を実行します。すべてのセッションを自動化タスクキューに追加したり、すべてのカメラ/画面録画を一度にダウンロードしたりできます。"
+      },
+      "rightPanelTask": {
+        "title": "タスク管理",
+        "description": "これはスライド抽出キューを管理できるタスクパネルです。ここで完了したタスクと進行中のタスクをリアルタイムの進行状況追跡とともに確認できます。"
+      },
+      "rightPanelDownload": {
+        "title": "ダウンロード管理",
+        "description": "これはビデオダウンロードキューを管理できるダウンロードパネルです。このインターフェースからダウンロードの進行状況を監視し、完了したダウンロードを管理します。"
+      },
+      "playbackContent": {
+        "title": "ビデオ再生",
+        "description": "これはコースビデオを視聴できるメイン再生インターフェースです。インターフェースにはビデオコントロール、ストリーム選択、再生速度調整が含まれています。"
+      },
+      "slideGallery": {
+        "title": "スライドギャラリー",
+        "description": "画面録画でスライド抽出が有効になっている場合、抽出されたスライドがここに表示されます。このギャラリーからスライドを表示、管理、削除できます。"
+      }
+    }
+  },
+  "demo": {
+    "course": {
+      "title": "関数解析",
+      "instructor": "張教授",
+      "term": "2024年秋学期",
+      "classroom": "数学棟A205",
+      "college": "数学学院"
+    },
+    "session": {
+      "title": "第8週 - バナッハ空間と線形作用素"
+    },
+    "stream": {
+      "camera": "カメラビュー",
+      "screen": "画面録画"
+    },
+    "video": {
+      "playing": "デモビデオ再生中"
+    },
+    "slide": {
+      "preview": "スライドプレビュー",
+      "fullPreview": "フルスライドプレビュー"
+    },
+    "courses": {
+      "functionalAnalysis": {
+        "title": "関数解析",
+        "instructor": "張教授",
+        "location": "数学棟A301",
+        "college": "数学学院"
+      },
+      "realAnalysis": {
+        "title": "実解析",
+        "instructor": "李教授",
+        "location": "数学棟B203",
+        "college": "数学学院"
+      },
+      "complexAnalysis": {
+        "title": "複素解析",
+        "instructor": "王教授",
+        "location": "数学棟A205",
+        "college": "数学学院"
+      },
+      "abstractAlgebra": {
+        "title": "抽象代数",
+        "instructor": "陳教授",
+        "location": "数学棟C102",
+        "college": "数学学院"
+      },
+      "differentialGeometry": {
+        "title": "微分幾何学",
+        "instructor": "劉教授",
+        "location": "数学棟B301",
+        "college": "数学学院"
+      },
+      "algebraicTopology": {
+        "title": "代数的位相幾何学",
+        "instructor": "呉教授",
+        "location": "数学棟A103",
+        "college": "数学学院"
+      },
+      "numberTheory": {
+        "title": "数論",
+        "instructor": "趙教授",
+        "location": "数学棟C201",
+        "college": "数学学院"
+      },
+      "partialDifferentialEquations": {
+        "title": "偏微分方程式",
+        "instructor": "孫教授",
+        "location": "数学棟B105",
+        "college": "数学学院"
+      },
+      "measureTheory": {
+        "title": "測度論",
+        "instructor": "周教授",
+        "location": "数学棟A207",
+        "college": "数学学院"
+      },
+      "algebraicGeometry": {
+        "title": "代数幾何学",
+        "instructor": "馮教授",
+        "location": "数学棟C301",
+        "college": "数学学院"
+      },
+      "harmonicAnalysis": {
+        "title": "調和解析",
+        "instructor": "鄭教授",
+        "location": "数学棟B207",
+        "college": "数学学院"
+      },
+      "operatorTheory": {
+        "title": "作用素論",
+        "instructor": "何教授",
+        "location": "数学棟A109",
+        "college": "数学学院"
+      },
+      "stochasticProcesses": {
+        "title": "確率過程",
+        "instructor": "馬教授",
+        "location": "数学棟C105",
+        "college": "数学学院"
+      },
+      "mathematicalLogic": {
+        "title": "数理論理学",
+        "instructor": "韓教授",
+        "location": "数学棟B303",
+        "college": "数学学院"
+      },
+      "categoryTheory": {
+        "title": "圏論",
+        "instructor": "謝教授",
+        "location": "数学棟A211",
+        "college": "数学学院"
+      },
+      "homologicalAlgebra": {
+        "title": "ホモロジー代数",
+        "instructor": "郭教授",
+        "location": "数学棟C203",
+        "college": "数学学院"
+      }
+    },
+    "tasks": {
+      "functionalAnalysis": {
+        "chapter1": "関数解析 - 第1章：ノルム空間",
+        "chapter2": "関数解析 - 第2章：バナッハ空間"
+      },
+      "realAnalysis": {
+        "chapter3": "実解析 - 第3章：測度と積分",
+        "chapter4": "実解析 - 第4章：ルベーグ積分"
+      }
+    },
+    "downloads": {
+      "complexAnalysis": {
+        "chapter5": "複素解析 - 第5章：コーシーの定理",
+        "chapter6": "複素解析 - 第6章：留数定理"
+      },
+      "abstractAlgebra": {
+        "chapter7": "抽象代数 - 第7章：群論",
+        "chapter8": "抽象代数 - 第8章：環論"
+      }
+    },
+    "sessions": {
+      "functionalAnalysis": {
+        "chapter1": {
+          "concept": "第1章：ノルム空間 - 基本概念",
+          "properties": "第1章：ノルム空間 - 性質と例",
+          "completeness": "第1章：ノルム空間 - 完全性"
+        },
+        "chapter2": {
+          "banachSpaces": "第2章：バナッハ空間 - 定義と例",
+          "linearOperators": "第2章：バナッハ空間 - 線形作用素",
+          "dualSpaces": "第2章：バナッハ空間 - 双対空間"
+        },
+        "chapter3": {
+          "hilbertSpaces": "第3章：ヒルベルト空間 - 内積空間",
+          "orthogonality": "第3章：ヒルベルト空間 - 直交性と射影"
+        }
+      }
+    },
+    "days": {
+      "monday": "月曜日",
+      "tuesday": "火曜日",
+      "wednesday": "水曜日",
+      "thursday": "木曜日",
+      "friday": "金曜日"
+    }
   }
 }

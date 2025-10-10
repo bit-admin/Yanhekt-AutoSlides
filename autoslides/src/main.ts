@@ -253,6 +253,18 @@ ipcMain.handle('config:getEffectiveTheme', async () => {
   return configService.getEffectiveTheme();
 });
 
+// IPC handlers for tour theme management
+ipcMain.handle('tour:forceLightTheme', async () => {
+  const originalTheme = configService.getThemeMode();
+  configService.setThemeMode('light');
+  return originalTheme;
+});
+
+ipcMain.handle('tour:restoreTheme', async (event, originalTheme: 'system' | 'light' | 'dark') => {
+  configService.setThemeMode(originalTheme);
+  return configService.getConfig();
+});
+
 // IPC handlers for language configuration
 ipcMain.handle('config:setLanguageMode', async (event, language: 'system' | 'en' | 'zh') => {
   configService.setLanguageMode(language);

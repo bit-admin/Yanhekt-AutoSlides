@@ -1,9 +1,8 @@
 <template>
   <div class="main-content">
     <div class="navigation-bar">
-      <button
+      <button  disabled
         :class="['nav-btn', { active: currentMode === 'live' }]"
-        @click="switchMode('live')"
         id="tour-live-mode"
       >
         <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -11,9 +10,8 @@
         </svg>
         {{ $t('navigation.live') }}
       </button>
-      <button
+      <button disabled
         :class="['nav-btn', { active: currentMode === 'recorded' }]"
-        @click="switchMode('recorded')"
         id="tour-recorded-mode"
       >
         <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -26,22 +24,6 @@
     </div>
 
     <div class="content-area">
-      <!-- Live Mode Components -->
-      <div
-        :class="['mode-container', { 'mode-hidden': currentMode !== 'live' }]"
-        data-mode="live"
-      >
-        <div class="demo-placeholder">
-          <div class="demo-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
-            </svg>
-          </div>
-          <h3>{{ $t('tour.liveMode.title') }}</h3>
-          <p>{{ $t('tour.liveMode.description') }}</p>
-        </div>
-      </div>
-
       <!-- Recorded Mode Components -->
       <div
         :class="['mode-container', { 'mode-hidden': currentMode !== 'recorded' }]"

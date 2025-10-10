@@ -326,5 +326,233 @@
     "aboutMessage": "AutoSlides",
     "aboutDetail": "版本 4.0.0 (4.0.0)\n\n© 2025 bit-admin. 保留所有权利。",
     "ok": "确定"
+  },
+  "tour": {
+    "welcome": {
+      "title": "欢迎使用 AutoSlides！",
+      "description": "让我们进行一个简单的界面导览，帮助您开始使用应用程序。",
+      "continue": "继续",
+      "skip": "跳过"
+    },
+    "steps": {
+      "searchButton": {
+        "title": "重新开始导览",
+        "description": "随时点击此搜索按钮重新开始应用程序导览，获取界面导航帮助。"
+      },
+      "loginSection": {
+        "title": "身份验证",
+        "description": "在这里登录以访问 AutoSlides 的所有功能。输入您的凭据开始使用。"
+      },
+      "leftPanel": {
+        "title": "控制面板",
+        "description": "您已登录！这个左侧面板是您的控制中心，您可以在这里修改各种设置、调整偏好设置并监控应用程序状态。"
+      },
+      "connectionMode": {
+        "title": "连接模式",
+        "description": "当您在校园网络中时，可以启用内网模式以获得更好的连接体验和更快的课程资源访问速度。"
+      },
+      "modeSwitch": {
+        "title": "模式选择",
+        "description": "在直播和录播模式之间切换。直播模式用于实时流媒体，录播模式让您访问课程录像。"
+      },
+      "searchRow": {
+        "title": "搜索和个人课程",
+        "description": "使用搜索栏查找特定课程，或点击\"获取个人课程列表\"访问您已注册的课程。这有助于您快速找到所需的内容。"
+      },
+      "courseList": {
+        "title": "课程画廊",
+        "description": "在此网格视图中浏览可用课程。点击任何课程以访问其内容。"
+      },
+      "sessionsContainer": {
+        "title": "课程节次",
+        "description": "在这里您可以查看所选课程的所有可用节次。您可以播放录像、将其添加到幻灯片提取任务列表或下载摄像头和屏幕录像。"
+      },
+      "batchActions": {
+        "title": "批量操作",
+        "description": "使用这些按钮对所有课节执行批量操作。您可以将所有课节添加到自动化任务队列，或一次性下载所有摄像头/屏幕录像。"
+      },
+      "rightPanelTask": {
+        "title": "任务管理",
+        "description": "这是任务面板，您可以在这里管理幻灯片提取队列。您可以查看已完成的任务和正在进行的任务，并进行实时进度跟踪。"
+      },
+      "rightPanelDownload": {
+        "title": "下载管理",
+        "description": "这是下载面板，您可以在这里管理视频下载队列。从此界面监控下载进度并管理已完成的下载。"
+      },
+      "playbackContent": {
+        "title": "视频播放",
+        "description": "这是主要的播放界面，您可以在这里观看课程视频。界面包括视频控件、流选择和播放速度调整。"
+      },
+      "slideGallery": {
+        "title": "幻灯片画廊",
+        "description": "当为屏幕录像启用幻灯片提取时，提取的幻灯片会出现在这里。您可以从此画廊查看、管理和删除幻灯片。"
+      }
+    }
+  },
+  "demo": {
+    "course": {
+      "title": "泛函分析",
+      "instructor": "张教授",
+      "term": "2024年秋季学期",
+      "classroom": "数学楼A205",
+      "college": "数学学院"
+    },
+    "session": {
+      "title": "第8周 - 巴拿赫空间与线性算子"
+    },
+    "stream": {
+      "camera": "摄像头视角",
+      "screen": "屏幕录制"
+    },
+    "video": {
+      "playing": "演示视频播放中"
+    },
+    "slide": {
+      "preview": "幻灯片预览",
+      "fullPreview": "完整幻灯片预览"
+    },
+    "courses": {
+      "functionalAnalysis": {
+        "title": "泛函分析",
+        "instructor": "张教授",
+        "location": "数学楼A301",
+        "college": "数学学院"
+      },
+      "realAnalysis": {
+        "title": "实分析",
+        "instructor": "李教授",
+        "location": "数学楼B203",
+        "college": "数学学院"
+      },
+      "complexAnalysis": {
+        "title": "复分析",
+        "instructor": "王教授",
+        "location": "数学楼A205",
+        "college": "数学学院"
+      },
+      "abstractAlgebra": {
+        "title": "抽象代数",
+        "instructor": "陈教授",
+        "location": "数学楼C102",
+        "college": "数学学院"
+      },
+      "differentialGeometry": {
+        "title": "微分几何",
+        "instructor": "刘教授",
+        "location": "数学楼B301",
+        "college": "数学学院"
+      },
+      "algebraicTopology": {
+        "title": "代数拓扑",
+        "instructor": "吴教授",
+        "location": "数学楼A103",
+        "college": "数学学院"
+      },
+      "numberTheory": {
+        "title": "数论",
+        "instructor": "赵教授",
+        "location": "数学楼C201",
+        "college": "数学学院"
+      },
+      "partialDifferentialEquations": {
+        "title": "偏微分方程",
+        "instructor": "孙教授",
+        "location": "数学楼B105",
+        "college": "数学学院"
+      },
+      "measureTheory": {
+        "title": "测度论",
+        "instructor": "周教授",
+        "location": "数学楼A207",
+        "college": "数学学院"
+      },
+      "algebraicGeometry": {
+        "title": "代数几何",
+        "instructor": "冯教授",
+        "location": "数学楼C301",
+        "college": "数学学院"
+      },
+      "harmonicAnalysis": {
+        "title": "调和分析",
+        "instructor": "郑教授",
+        "location": "数学楼B207",
+        "college": "数学学院"
+      },
+      "operatorTheory": {
+        "title": "算子理论",
+        "instructor": "何教授",
+        "location": "数学楼A109",
+        "college": "数学学院"
+      },
+      "stochasticProcesses": {
+        "title": "随机过程",
+        "instructor": "马教授",
+        "location": "数学楼C105",
+        "college": "数学学院"
+      },
+      "mathematicalLogic": {
+        "title": "数理逻辑",
+        "instructor": "韩教授",
+        "location": "数学楼B303",
+        "college": "数学学院"
+      },
+      "categoryTheory": {
+        "title": "范畴论",
+        "instructor": "谢教授",
+        "location": "数学楼A211",
+        "college": "数学学院"
+      },
+      "homologicalAlgebra": {
+        "title": "同调代数",
+        "instructor": "郭教授",
+        "location": "数学楼C203",
+        "college": "数学学院"
+      }
+    },
+    "tasks": {
+      "functionalAnalysis": {
+        "chapter1": "泛函分析 - 第1章：赋范空间",
+        "chapter2": "泛函分析 - 第2章：巴拿赫空间"
+      },
+      "realAnalysis": {
+        "chapter3": "实分析 - 第3章：测度与积分",
+        "chapter4": "实分析 - 第4章：勒贝格积分"
+      }
+    },
+    "downloads": {
+      "complexAnalysis": {
+        "chapter5": "复分析 - 第5章：柯西定理",
+        "chapter6": "复分析 - 第6章：留数定理"
+      },
+      "abstractAlgebra": {
+        "chapter7": "抽象代数 - 第7章：群论",
+        "chapter8": "抽象代数 - 第8章：环论"
+      }
+    },
+    "sessions": {
+      "functionalAnalysis": {
+        "chapter1": {
+          "concept": "第1章：赋范空间 - 基本概念",
+          "properties": "第1章：赋范空间 - 性质与例子",
+          "completeness": "第1章：赋范空间 - 完备性"
+        },
+        "chapter2": {
+          "banachSpaces": "第2章：巴拿赫空间 - 定义与例子",
+          "linearOperators": "第2章：巴拿赫空间 - 线性算子",
+          "dualSpaces": "第2章：巴拿赫空间 - 对偶空间"
+        },
+        "chapter3": {
+          "hilbertSpaces": "第3章：希尔伯特空间 - 内积空间",
+          "orthogonality": "第3章：希尔伯特空间 - 正交性与投影"
+        }
+      }
+    },
+    "days": {
+      "monday": "周一",
+      "tuesday": "周二",
+      "wednesday": "周三",
+      "thursday": "周四",
+      "friday": "周五"
+    }
   }
 }

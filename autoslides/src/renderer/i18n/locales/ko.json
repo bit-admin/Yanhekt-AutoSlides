@@ -326,5 +326,233 @@
     "aboutMessage": "AutoSlides",
     "aboutDetail": "버전 4.0.0 (4.0.0)\n\n© 2025 bit-admin. All rights reserved.",
     "ok": "확인"
+  },
+  "tour": {
+    "welcome": {
+      "title": "AutoSlides에 오신 것을 환영합니다!",
+      "description": "애플리케이션 사용법을 배우기 위해 간단한 UI 투어를 진행해보겠습니다.",
+      "continue": "계속",
+      "skip": "건너뛰기"
+    },
+    "steps": {
+      "searchButton": {
+        "title": "투어 다시 시작",
+        "description": "이 검색 버튼을 언제든지 클릭하여 애플리케이션 투어를 다시 시작하고 인터페이스 탐색 도움말을 받을 수 있습니다."
+      },
+      "loginSection": {
+        "title": "인증",
+        "description": "여기서 로그인하여 AutoSlides의 모든 기능에 액세스합니다. 자격 증명을 입력하여 시작하세요."
+      },
+      "leftPanel": {
+        "title": "제어판",
+        "description": "로그인했습니다! 이 왼쪽 패널은 다양한 설정을 수정하고, 기본 설정을 조정하며, 애플리케이션 상태를 모니터링할 수 있는 제어 센터입니다."
+      },
+      "connectionMode": {
+        "title": "연결 모드",
+        "description": "캠퍼스 네트워크에 있을 때 내부 네트워크 모드를 활성화하여 더 나은 연결 경험과 강의 리소스에 대한 빠른 액세스를 얻을 수 있습니다."
+      },
+      "modeSwitch": {
+        "title": "모드 선택",
+        "description": "라이브 모드와 녹화 모드 간에 전환합니다. 라이브 모드는 실시간 스트리밍용이고, 녹화 모드는 강의 녹화에 액세스할 수 있습니다."
+      },
+      "searchRow": {
+        "title": "검색 및 개인 강의",
+        "description": "검색 바를 사용하여 특정 강의를 찾거나 '개인 강의 목록 가져오기'를 클릭하여 등록된 강의에 액세스하세요. 이를 통해 필요한 콘텐츠를 빠르게 찾을 수 있습니다."
+      },
+      "courseList": {
+        "title": "강의 갤러리",
+        "description": "이 그리드 뷰에서 사용 가능한 강의를 탐색합니다. 임의의 강의를 클릭하여 해당 콘텐츠에 액세스하세요."
+      },
+      "sessionsContainer": {
+        "title": "강의 세션",
+        "description": "여기서 선택한 강의의 사용 가능한 모든 세션을 볼 수 있습니다. 녹화를 재생하거나, 슬라이드 추출 작업 목록에 추가하거나, 카메라 및 화면 녹화를 다운로드할 수 있습니다."
+      },
+      "batchActions": {
+        "title": "일괄 작업",
+        "description": "이 버튼들을 사용하여 모든 세션에서 일괄 작업을 수행합니다. 모든 세션을 자동화 작업 대기열에 추가하거나 모든 카메라/화면 녹화를 한 번에 다운로드할 수 있습니다."
+      },
+      "rightPanelTask": {
+        "title": "작업 관리",
+        "description": "이것은 슬라이드 추출 대기열을 관리할 수 있는 작업 패널입니다. 여기서 완료된 작업과 진행 중인 작업을 실시간 진행 상황 추적과 함께 볼 수 있습니다."
+      },
+      "rightPanelDownload": {
+        "title": "다운로드 관리",
+        "description": "이것은 비디오 다운로드 대기열을 관리할 수 있는 다운로드 패널입니다. 이 인터페이스에서 다운로드 진행 상황을 모니터링하고 완료된 다운로드를 관리하세요."
+      },
+      "playbackContent": {
+        "title": "비디오 재생",
+        "description": "이것은 강의 비디오를 시청할 수 있는 메인 재생 인터페이스입니다. 인터페이스에는 비디오 컨트롤, 스트림 선택 및 재생 속도 조정이 포함되어 있습니다."
+      },
+      "slideGallery": {
+        "title": "슬라이드 갤러리",
+        "description": "화면 녹화에서 슬라이드 추출이 활성화된 경우 추출된 슬라이드가 여기에 나타납니다. 이 갤러리에서 슬라이드를 보고, 관리하고, 삭제할 수 있습니다."
+      }
+    }
+  },
+  "demo": {
+    "course": {
+      "title": "함수해석학",
+      "instructor": "장 교수",
+      "term": "2024년 가을학기",
+      "classroom": "수학관 A205",
+      "college": "수학대학"
+    },
+    "session": {
+      "title": "8주차 - 바나흐 공간과 선형 연산자"
+    },
+    "stream": {
+      "camera": "카메라 뷰",
+      "screen": "화면 녹화"
+    },
+    "video": {
+      "playing": "데모 비디오 재생 중"
+    },
+    "slide": {
+      "preview": "슬라이드 미리보기",
+      "fullPreview": "전체 슬라이드 미리보기"
+    },
+    "courses": {
+      "functionalAnalysis": {
+        "title": "함수해석학",
+        "instructor": "장 교수",
+        "location": "수학관 A301",
+        "college": "수학대학"
+      },
+      "realAnalysis": {
+        "title": "실해석학",
+        "instructor": "이 교수",
+        "location": "수학관 B203",
+        "college": "수학대학"
+      },
+      "complexAnalysis": {
+        "title": "복소해석학",
+        "instructor": "왕 교수",
+        "location": "수학관 A205",
+        "college": "수학대학"
+      },
+      "abstractAlgebra": {
+        "title": "추상대수학",
+        "instructor": "진 교수",
+        "location": "수학관 C102",
+        "college": "수학대학"
+      },
+      "differentialGeometry": {
+        "title": "미분기하학",
+        "instructor": "류 교수",
+        "location": "수학관 B301",
+        "college": "수학대학"
+      },
+      "algebraicTopology": {
+        "title": "대수적 위상수학",
+        "instructor": "오 교수",
+        "location": "수학관 A103",
+        "college": "수학대학"
+      },
+      "numberTheory": {
+        "title": "정수론",
+        "instructor": "조 교수",
+        "location": "수학관 C201",
+        "college": "수학대학"
+      },
+      "partialDifferentialEquations": {
+        "title": "편미분방정식",
+        "instructor": "손 교수",
+        "location": "수학관 B105",
+        "college": "수학대학"
+      },
+      "measureTheory": {
+        "title": "측도론",
+        "instructor": "주 교수",
+        "location": "수학관 A207",
+        "college": "수학대학"
+      },
+      "algebraicGeometry": {
+        "title": "대수기하학",
+        "instructor": "풍 교수",
+        "location": "수학관 C301",
+        "college": "수학대학"
+      },
+      "harmonicAnalysis": {
+        "title": "조화해석학",
+        "instructor": "정 교수",
+        "location": "수학관 B207",
+        "college": "수학대학"
+      },
+      "operatorTheory": {
+        "title": "연산자론",
+        "instructor": "하 교수",
+        "location": "수학관 A109",
+        "college": "수학대학"
+      },
+      "stochasticProcesses": {
+        "title": "확률과정론",
+        "instructor": "마 교수",
+        "location": "수학관 C105",
+        "college": "수학대학"
+      },
+      "mathematicalLogic": {
+        "title": "수리논리학",
+        "instructor": "한 교수",
+        "location": "수학관 B303",
+        "college": "수학대학"
+      },
+      "categoryTheory": {
+        "title": "범주론",
+        "instructor": "사 교수",
+        "location": "수학관 A211",
+        "college": "수학대학"
+      },
+      "homologicalAlgebra": {
+        "title": "호몰로지 대수학",
+        "instructor": "곽 교수",
+        "location": "수학관 C203",
+        "college": "수학대학"
+      }
+    },
+    "tasks": {
+      "functionalAnalysis": {
+        "chapter1": "함수해석학 - 1장: 노름공간",
+        "chapter2": "함수해석학 - 2장: 바나흐 공간"
+      },
+      "realAnalysis": {
+        "chapter3": "실해석학 - 3장: 측도와 적분",
+        "chapter4": "실해석학 - 4장: 르베그 적분"
+      }
+    },
+    "downloads": {
+      "complexAnalysis": {
+        "chapter5": "복소해석학 - 5장: 코시의 정리",
+        "chapter6": "복소해석학 - 6장: 유수 정리"
+      },
+      "abstractAlgebra": {
+        "chapter7": "추상대수학 - 7장: 군론",
+        "chapter8": "추상대수학 - 8장: 환론"
+      }
+    },
+    "sessions": {
+      "functionalAnalysis": {
+        "chapter1": {
+          "concept": "1장: 노름공간 - 기본 개념",
+          "properties": "1장: 노름공간 - 성질과 예제",
+          "completeness": "1장: 노름공간 - 완전성"
+        },
+        "chapter2": {
+          "banachSpaces": "2장: 바나흐 공간 - 정의와 예제",
+          "linearOperators": "2장: 바나흐 공간 - 선형 연산자",
+          "dualSpaces": "2장: 바나흐 공간 - 쌍대 공간"
+        },
+        "chapter3": {
+          "hilbertSpaces": "3장: 힐베르트 공간 - 내적 공간",
+          "orthogonality": "3장: 힐베르트 공간 - 직교성과 사영"
+        }
+      }
+    },
+    "days": {
+      "monday": "월요일",
+      "tuesday": "화요일",
+      "wednesday": "수요일",
+      "thursday": "목요일",
+      "friday": "금요일"
+    }
   }
 }

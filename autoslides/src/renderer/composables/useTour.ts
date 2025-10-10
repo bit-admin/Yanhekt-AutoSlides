@@ -9,48 +9,22 @@ import 'driver.js/dist/driver.css'
 const tourInstance = ref<Driver | null>(null)
 const isFirstVisit = ref(true)
 const isDemoMode = ref(false)
-const originalTheme = ref<string | null>(null)
 
 export function useTour() {
   const { t } = useI18n()
-
-  // Theme management functions
-  const saveCurrentTheme = async () => {
-    try {
-      const currentTheme = await window.electronAPI.config.getThemeMode()
-      originalTheme.value = currentTheme
-    } catch (error) {
-      console.error('Failed to get current theme:', error)
-    }
-  }
-
-  const setLightMode = async () => {
-    try {
-      await window.electronAPI.config.setThemeMode('light')
-    } catch (error) {
-      console.error('Failed to set light mode:', error)
-    }
-  }
-
-  const restoreOriginalTheme = async () => {
-    if (originalTheme.value) {
-      try {
-        await window.electronAPI.config.setThemeMode(originalTheme.value)
-        originalTheme.value = null
-      } catch (error) {
-        console.error('Failed to restore original theme:', error)
-      }
-    }
-  }
+  let originalTheme: 'system' | 'light' | 'dark' | null = null
 
   const initializeTour = async () => {
     if (tourInstance.value) {
       tourInstance.value.destroy()
     }
 
-    // Save current theme and switch to light mode
-    await saveCurrentTheme()
-    await setLightMode()
+    // Force light theme for tour and store original theme
+    try {
+      originalTheme = await (window as any).electronAPI.tour.forceLightTheme()
+    } catch (error) {
+      console.error('Failed to force light theme:', error)
+    }
 
     // Enable demo mode when starting tour
     isDemoMode.value = true
@@ -62,8 +36,6 @@ export function useTour() {
     setTimeout(() => {
       tourInstance.value = driver({
         showProgress: true,
-        allowClose: true,
-        overlayClickNext: false,
         steps: [
           {
             element: '.login-section',
@@ -291,7 +263,13 @@ export function useTour() {
           markTourAsSeen()
 
           // Restore original theme
-          await restoreOriginalTheme()
+          if (originalTheme) {
+            try {
+              await (window as any).electronAPI.tour.restoreTheme(originalTheme)
+            } catch (error) {
+              console.error('Failed to restore theme:', error)
+            }
+          }
 
           // Exit demo mode
           window.dispatchEvent(new CustomEvent('tour-demo-mode', { detail: { enabled: false } }))
@@ -310,23 +288,25 @@ export function useTour() {
       tourInstance.value.destroy()
     }
 
-    // Save current theme and switch to light mode for welcome popup
-    await saveCurrentTheme()
-    await setLightMode()
+    // Force light theme for welcome popup and store original theme
+    try {
+      originalTheme = await (window as any).electronAPI.tour.forceLightTheme()
+    } catch (error) {
+      console.error('Failed to force light theme:', error)
+    }
 
     // Create welcome popup - use a modal-style approach
     tourInstance.value = driver({
       showProgress: false,
       allowClose: true,
-      overlayClickNext: false,
       steps: [
         {
           popover: {
             title: t('tour.welcome.title'),
             description: t('tour.welcome.description') +
               `<div style="margin-top: 16px; display: flex; justify-content: space-between; align-items: center;">
-                <button id="tour-skip" style="background: none; color: #666; border: none; padding: 8px 16px; cursor: pointer; text-decoration: underline; font-size: 14px;">${t('tour.welcome.skip')}</button>
-                <button id="tour-continue" style="background: #007acc; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">${t('tour.welcome.continue')}</button>
+                <button id="tour-skip" style="background: none; color: #666; border: none; padding: 8px 0; cursor: pointer; text-decoration: underline; font-size: 14px;">${t('tour.welcome.skip')}</button>
+                <button id="tour-continue" style="background: #007acc; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px;">${t('tour.welcome.continue')}</button>
               </div>`,
             showButtons: []
           }
@@ -340,9 +320,9 @@ export function useTour() {
       const skipBtn = document.getElementById('tour-skip')
 
       if (continueBtn) {
-        continueBtn.addEventListener('click', async () => {
+        continueBtn.addEventListener('click', () => {
           tourInstance.value?.destroy()
-          await startMainTour()
+          startMainTour()
         })
       }
 
@@ -351,8 +331,6 @@ export function useTour() {
           tourInstance.value?.destroy()
           isFirstVisit.value = false
           markTourAsSeen()
-          // Restore theme when skipping
-          await restoreOriginalTheme()
         })
       }
     }, 100)
@@ -360,8 +338,8 @@ export function useTour() {
     tourInstance.value.drive()
   }
 
-  const startMainTour = async () => {
-    await initializeTour()
+  const startMainTour = () => {
+    initializeTour()
   }
 
   const restartTour = () => {

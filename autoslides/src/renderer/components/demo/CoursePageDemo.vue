@@ -13,7 +13,7 @@
             class="search-input"
             readonly
           />
-          <button class="search-btn" @click="demoSearch">
+          <button class="search-btn" disabled>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"/>
               <path d="m21 21-4.35-4.35"/>
@@ -22,7 +22,7 @@
           </button>
         </div>
         <div class="fetch-row">
-          <button class="fetch-btn" @click="demoFetchPersonal">
+          <button class="fetch-btn" disabled>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7,10 12,15 17,10"/>
@@ -61,7 +61,6 @@
           v-for="course in mockCourses"
           :key="course.id"
           class="course-card course-card-demo"
-          @click="selectCourse(course)"
         >
           <div class="course-id">
             #{{ course.id }}
