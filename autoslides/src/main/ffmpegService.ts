@@ -1,4 +1,8 @@
 
+import path from 'path';
+import fs from 'fs';
+import ffmpegStatic from 'ffmpeg-static';
+
 export class FFmpegService {
   private ffmpegPath: string | null = null;
 
@@ -10,9 +14,6 @@ export class FFmpegService {
     try {
       // In packaged app, check extraResource first
       if (process.resourcesPath) {
-        const path = require('path');
-        const fs = require('fs');
-
         // Try extraResource path first (packaged app)
         const extraResourcePath = path.join(process.resourcesPath, 'ffmpeg-static', 'ffmpeg');
         if (fs.existsSync(extraResourcePath)) {
@@ -23,8 +24,6 @@ export class FFmpegService {
       }
 
       // Fallback to ffmpeg-static npm package (development)
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const ffmpegStatic = require('ffmpeg-static');
       this.ffmpegPath = ffmpegStatic;
       console.log('FFmpeg path (npm package):', this.ffmpegPath);
     } catch (error) {
