@@ -27,6 +27,7 @@ import TitleBar from './renderer/components/TitleBar.vue'
 import LeftPanel from './renderer/components/LeftPanel.vue'
 import MainContent from './renderer/components/MainContent.vue'
 import RightPanel from './renderer/components/RightPanel.vue'
+import { useTour } from './renderer/composables/useTour'
 
 const leftWidth = ref(320)
 const rightWidth = ref(320)
@@ -40,6 +41,7 @@ let startRightWidth = 0
 let containerWidth = 0
 
 const rightPanelRef = ref()
+const { checkFirstVisit, showWelcomePopup } = useTour()
 
 const handleSwitchToDownload = () => {
   if (rightPanelRef.value?.switchToDownload) {
@@ -127,6 +129,14 @@ onMounted(() => {
   // Use nextTick to ensure the DOM has been rendered.
   nextTick(() => {
     updateSizes()
+
+    // Check if this is the first visit and show welcome popup
+    if (checkFirstVisit()) {
+      // Wait a bit for the UI to fully render
+      setTimeout(() => {
+        showWelcomePopup()
+      }, 500)
+    }
   })
 
   window.addEventListener('resize', updateSizes)

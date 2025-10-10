@@ -123,8 +123,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useTour } from '../composables/useTour';
 
 const { t: $t } = useI18n();
+const { restartTour } = useTour();
 
 const isMacOS = ref(false);
 
@@ -190,8 +192,8 @@ const toggleHelpMenu = () => {
 
 // Search box click handler
 const handleSearchClick = () => {
-  // Placeholder for future search functionality
-  console.log('Search box clicked');
+  // Restart the UI tour
+  restartTour();
 };
 
 // Window control functions for non-macOS platforms

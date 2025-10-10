@@ -326,5 +326,19 @@
     "aboutMessage": "AutoSlides",
     "aboutDetail": "Version 4.0.0 (4.0.0)\n\n© 2025 bit-admin. All rights reserved.",
     "ok": "OK"
+  },
+  "tour": {
+    "welcome": {
+      "title": "Welcome to AutoSlides!",
+      "description": "Let's take a quick tour to help you get started with the application.",
+      "continue": "Continue",
+      "skip": "Skip Tour"
+    },
+    "steps": {
+      "searchButton": {
+        "title": "Restart Tour",
+        "description": "Click this search button anytime to restart the application tour and get help navigating the interface."
+      }
+    }
   }
 }
