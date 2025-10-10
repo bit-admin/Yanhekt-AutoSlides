@@ -1,8 +1,6 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerSquirrel } from '@electron-forge/maker-squirrel';
-import { MakerZIP } from '@electron-forge/maker-zip';
-import { MakerDeb } from '@electron-forge/maker-deb';
-import { MakerRpm } from '@electron-forge/maker-rpm';
+import { MakerDMG } from '@electron-forge/maker-dmg';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
@@ -10,21 +8,38 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 const config: ForgeConfig = {
   packagerConfig: {
     asar: true,
-    // Only include ffmpeg resources for Windows builds
-    extraResource: process.platform === 'win32' || process.env.npm_config_target_platform === 'win32' ? [
-      {
-        from: 'resources/ffmpeg',
-        to: 'ffmpeg',
-        filter: ['**/*']
-      }
-    ] : []
+    name: 'AutoSlides',
+    executableName: 'AutoSlides',
+    appBundleId: 'com.bitadmin.autoslides',
+    appCategoryType: 'public.app-category.education',
+    icon: 'resources/img/icon', // Will use .icns on macOS, .ico on Windows
+    // Include all necessary resources
+    extraResource: [
+      // Always include terms.rtf
+      'resources/terms',
+      // Include ffmpeg for Windows builds
+      ...(process.platform === 'win32' || process.env.npm_config_target_platform === 'win32' ? [
+        'resources/ffmpeg'
+      ] : [])
+    ]
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({}),
-    new MakerZIP({}, ['darwin']),
-    new MakerRpm({}),
-    new MakerDeb({}),
+    // Windows NSIS installer
+    new MakerSquirrel({
+      name: 'AutoSlides',
+      authors: 'BIT-admin',
+      description: 'AutoSlides is an open-source desktop application that automates the creation of slideshows from images and videos.',
+      setupIcon: 'resources/img/icon.ico',
+      loadingGif: 'resources/img/icon.ico',
+      noMsi: true
+    }),
+    // macOS DMG
+    new MakerDMG({
+      name: 'AutoSlides',
+      icon: 'resources/img/icon.icns',
+      format: 'ULFO'
+    }),
   ],
   plugins: [
     new VitePlugin({

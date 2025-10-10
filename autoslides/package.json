@@ -1,8 +1,8 @@
 {
   "name": "autoslides",
-  "productName": "autoslides",
-  "version": "1.0.0",
-  "description": "My Electron application description",
+  "productName": "AutoSlides",
+  "version": "4.0.0",
+  "description": "AutoSlides is an open-source desktop application that automates the creation of slideshows from images and videos. It offers a user-friendly interface, customizable templates, and supports various media formats to help users create engaging presentations effortlessly.",
   "main": ".vite/build/main.js",
   "scripts": {
     "start": "electron-forge start",
@@ -18,10 +18,8 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@electron-forge/cli": "^7.9.0",
-    "@electron-forge/maker-deb": "^7.9.0",
-    "@electron-forge/maker-rpm": "^7.9.0",
-    "@electron-forge/maker-squirrel": "^7.9.0",
-    "@electron-forge/maker-zip": "^7.9.0",
+    "@electron-forge/maker-dmg": "^7.10.2",
+    "@electron-forge/maker-squirrel": "^7.10.2",
     "@electron-forge/plugin-auto-unpack-natives": "^7.9.0",
     "@electron-forge/plugin-fuses": "^7.9.0",
     "@electron-forge/plugin-vite": "^7.9.0",
@@ -34,6 +32,7 @@
     "electron": "38.1.2",
     "eslint": "^8.57.1",
     "eslint-plugin-import": "^2.32.0",
+    "terser": "^5.44.0",
     "typescript": "^5.9.2",
     "vite": "^5.4.20",
     "vue-tsc": "^3.0.8"
