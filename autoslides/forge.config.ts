@@ -1,5 +1,6 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { MakerDMG } from '@electron-forge/maker-dmg';
+import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
@@ -26,6 +27,12 @@ const config: ForgeConfig = {
       icon: 'resources/img/icon.icns',
       format: 'ULFO'
     }),
+    // Windows Squirrel
+    new MakerSquirrel({
+      name: 'AutoSlides',
+      setupIcon: 'resources/img/icon.ico',
+      setupExe: 'AutoSlides-Setup.exe'
+    })
   ],
   plugins: [
     new VitePlugin({
