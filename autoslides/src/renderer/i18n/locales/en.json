@@ -366,6 +366,14 @@
       "courseList": {
         "title": "Course Gallery",
         "description": "Browse through available courses in this grid view. Each card shows course details including instructor, location, and participant count. Click any course to access its content."
+      },
+      "sessionsContainer": {
+        "title": "Course Sessions",
+        "description": "Here you can view all available sessions for the selected course. Each session shows the week, day, duration, and date information. This gives you a complete overview of the course schedule."
+      },
+      "batchActions": {
+        "title": "Batch Operations",
+        "description": "Use these buttons to perform batch operations on all sessions. You can add all sessions to the automation task queue, or download all camera/screen recordings at once."
       }
     }
   }

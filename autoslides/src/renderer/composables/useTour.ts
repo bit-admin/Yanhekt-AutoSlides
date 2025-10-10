@@ -84,6 +84,24 @@ export function useTour() {
             }
           },
           {
+            element: '#tour-sessions-container',
+            popover: {
+              title: t('tour.steps.sessionsContainer.title'),
+              description: t('tour.steps.sessionsContainer.description'),
+              side: 'top',
+              align: 'center'
+            }
+          },
+          {
+            element: '#tour-batch-actions',
+            popover: {
+              title: t('tour.steps.batchActions.title'),
+              description: t('tour.steps.batchActions.description'),
+              side: 'bottom',
+              align: 'center'
+            }
+          },
+          {
             element: '.search-box',
             popover: {
               title: t('tour.steps.searchButton.title'),
@@ -136,6 +154,17 @@ export function useTour() {
             setTimeout(() => {
               tourInstance.value?.moveNext()
             }, 1200) // Longer wait for loading animation
+            return // Prevent default next behavior
+          }
+
+          if (step.element === '#tour-course-list') {
+            // Switch to SessionPage demo mode after course list step
+            window.dispatchEvent(new CustomEvent('tour-switch-to-session-demo'))
+
+            // Wait for session page to load before continuing
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 1000)
             return // Prevent default next behavior
           }
 

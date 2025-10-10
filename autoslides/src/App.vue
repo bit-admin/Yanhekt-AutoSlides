@@ -11,7 +11,8 @@
       <div class="divider left-divider" @mousedown="startResize('left', $event)"></div>
 
       <div class="main-content" :style="{ width: mainWidth + 'px' }">
-        <MainContentDemo v-if="isDemoMode && showMainDemo" ref="mainContentDemoRef" />
+        <SessionPageDemo v-if="isDemoMode && showSessionDemo" ref="sessionPageDemoRef" @back-to-courses="handleBackToCourses" />
+        <MainContentDemo v-else-if="isDemoMode && showMainDemo" ref="mainContentDemoRef" />
         <MainContent v-else @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
       </div>
       <div class="divider right-divider" @mousedown="startResize('right', $event)"></div>
@@ -30,6 +31,8 @@ import LeftPanel from './renderer/components/LeftPanel.vue'
 import LeftPanelDemo from './renderer/components/demo/LeftPanelDemo.vue'
 import MainContent from './renderer/components/MainContent.vue'
 import MainContentDemo from './renderer/components/demo/MainContentDemo.vue'
+// @ts-ignore
+import SessionPageDemo from './renderer/components/demo/SessionPageDemo.vue'
 import RightPanel from './renderer/components/RightPanel.vue'
 import { useTour } from './renderer/composables/useTour'
 
@@ -47,8 +50,10 @@ let containerWidth = 0
 const rightPanelRef = ref()
 const leftPanelDemoRef = ref()
 const mainContentDemoRef = ref()
+const sessionPageDemoRef = ref()
 const isDemoMode = ref(false)
 const showMainDemo = ref(false)
+const showSessionDemo = ref(false)
 const { checkFirstVisit, showWelcomePopup } = useTour()
 
 const handleSwitchToDownload = () => {
@@ -139,6 +144,7 @@ const handleDemoModeToggle = (event: CustomEvent) => {
   if (event.detail.enabled) {
     // Reset demo states when enabling demo mode
     showMainDemo.value = false
+    showSessionDemo.value = false
     nextTick(() => {
       if (leftPanelDemoRef.value) {
         leftPanelDemoRef.value.resetDemo()
@@ -147,6 +153,7 @@ const handleDemoModeToggle = (event: CustomEvent) => {
   } else {
     // Reset all demo states when exiting demo mode
     showMainDemo.value = false
+    showSessionDemo.value = false
     if (leftPanelDemoRef.value) {
       leftPanelDemoRef.value.resetDemo()
     }
@@ -177,6 +184,16 @@ const handleDemoSearch = () => {
   window.dispatchEvent(new CustomEvent('demo-trigger-search'))
 }
 
+const handleSwitchToSessionDemo = () => {
+  showMainDemo.value = false
+  showSessionDemo.value = true
+}
+
+const handleBackToCourses = () => {
+  showSessionDemo.value = false
+  showMainDemo.value = true
+}
+
 onMounted(() => {
   // Use nextTick to ensure the DOM has been rendered.
   nextTick(() => {
@@ -197,6 +214,7 @@ onMounted(() => {
   window.addEventListener('tour-switch-to-main-demo', handleSwitchToMainDemo)
   window.addEventListener('tour-switch-to-recorded', handleSwitchToRecorded)
   window.addEventListener('tour-demo-search', handleDemoSearch)
+  window.addEventListener('tour-switch-to-session-demo', handleSwitchToSessionDemo)
 
   onUnmounted(() => {
     window.removeEventListener('resize', updateSizes)
@@ -205,6 +223,7 @@ onMounted(() => {
     window.removeEventListener('tour-switch-to-main-demo', handleSwitchToMainDemo)
     window.removeEventListener('tour-switch-to-recorded', handleSwitchToRecorded)
     window.removeEventListener('tour-demo-search', handleDemoSearch)
+    window.removeEventListener('tour-switch-to-session-demo', handleSwitchToSessionDemo)
   })
 })
 </script>
