@@ -8,6 +8,7 @@ import 'driver.js/dist/driver.css'
 
 const tourInstance = ref<Driver | null>(null)
 const isFirstVisit = ref(true)
+const isDemoMode = ref(false)
 
 export function useTour() {
   const { t } = useI18n()
@@ -17,25 +18,86 @@ export function useTour() {
       tourInstance.value.destroy()
     }
 
-    tourInstance.value = driver({
-      showProgress: true,
-      steps: [
-        {
-          element: '.search-box',
-          popover: {
-            title: t('tour.steps.searchButton.title'),
-            description: t('tour.steps.searchButton.description'),
-            side: 'bottom',
-            align: 'center'
+    // Enable demo mode when starting tour
+    isDemoMode.value = true
+
+    // Emit event to switch to demo mode and ensure demo starts in login state
+    window.dispatchEvent(new CustomEvent('tour-demo-mode', { detail: { enabled: true } }))
+
+    // Wait a bit for demo mode to be enabled and DOM to update
+    setTimeout(() => {
+      tourInstance.value = driver({
+        showProgress: true,
+        steps: [
+          {
+            element: '.login-section',
+            popover: {
+              title: t('tour.steps.loginSection.title'),
+              description: t('tour.steps.loginSection.description'),
+              side: 'right',
+              align: 'start'
+            }
+          },
+          {
+            element: '.left-panel',
+            popover: {
+              title: t('tour.steps.leftPanel.title'),
+              description: t('tour.steps.leftPanel.description'),
+              side: 'right',
+              align: 'center'
+            }
+          },
+          {
+            element: '.connection-mode-setting',
+            popover: {
+              title: t('tour.steps.connectionMode.title'),
+              description: t('tour.steps.connectionMode.description'),
+              side: 'right',
+              align: 'start'
+            }
+          },
+          {
+            element: '.search-box',
+            popover: {
+              title: t('tour.steps.searchButton.title'),
+              description: t('tour.steps.searchButton.description'),
+              side: 'bottom',
+              align: 'center'
+            }
           }
+        ],
+        onNextClick: (element, step, options) => {
+          // Handle demo state transitions
+          if (step.element === '.login-section') {
+            // Transition to logged in state before moving to next step
+            window.dispatchEvent(new CustomEvent('tour-demo-login'))
+
+            // Wait for demo state to update before continuing
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 100)
+            return // Prevent default next behavior
+          }
+
+          // Continue to next step for other elements
+          tourInstance.value?.moveNext()
+        },
+        onDestroyed: () => {
+          // Tour completed or destroyed
+          isFirstVisit.value = false
+          isDemoMode.value = false
+          markTourAsSeen()
+
+          // Exit demo mode
+          window.dispatchEvent(new CustomEvent('tour-demo-mode', { detail: { enabled: false } }))
         }
-      ],
-      onDestroyed: () => {
-        // Tour completed or destroyed
-        isFirstVisit.value = false
-        markTourAsSeen()
+      })
+
+      // Start the tour
+      if (tourInstance.value) {
+        tourInstance.value.drive()
       }
-    })
+    }, 200)
   }
 
   const showWelcomePopup = () => {
@@ -88,9 +150,6 @@ export function useTour() {
 
   const startMainTour = () => {
     initializeTour()
-    if (tourInstance.value) {
-      tourInstance.value.drive()
-    }
   }
 
   const restartTour = () => {
@@ -116,6 +175,7 @@ export function useTour() {
   return {
     tourInstance,
     isFirstVisit,
+    isDemoMode,
     initializeTour,
     showWelcomePopup,
     startMainTour,

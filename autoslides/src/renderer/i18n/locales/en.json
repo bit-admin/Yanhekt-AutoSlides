@@ -338,6 +338,18 @@
       "searchButton": {
         "title": "Restart Tour",
         "description": "Click this search button anytime to restart the application tour and get help navigating the interface."
+      },
+      "loginSection": {
+        "title": "Authentication",
+        "description": "This is where you sign in to access all AutoSlides features. Enter your credentials to get started."
+      },
+      "leftPanel": {
+        "title": "Control Panel",
+        "description": "Now you're logged in! This left panel is your control center where you can modify various settings, adjust preferences, and monitor the application status."
+      },
+      "connectionMode": {
+        "title": "Connection Mode",
+        "description": "When you're on campus network, you can enable Internal Network mode for better connection experience and faster access to course resources."
       }
     }
   }

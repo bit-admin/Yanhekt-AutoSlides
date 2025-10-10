@@ -5,7 +5,8 @@
 
     <div class="layout">
       <div class="left-panel" :style="{ width: leftWidth + 'px' }">
-        <LeftPanel />
+        <LeftPanelDemo v-if="isDemoMode" ref="leftPanelDemoRef" />
+        <LeftPanel v-else />
       </div>
       <div class="divider left-divider" @mousedown="startResize('left', $event)"></div>
 
@@ -25,6 +26,7 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import TitleBar from './renderer/components/TitleBar.vue'
 import LeftPanel from './renderer/components/LeftPanel.vue'
+import LeftPanelDemo from './renderer/components/demo/LeftPanelDemo.vue'
 import MainContent from './renderer/components/MainContent.vue'
 import RightPanel from './renderer/components/RightPanel.vue'
 import { useTour } from './renderer/composables/useTour'
@@ -41,6 +43,8 @@ let startRightWidth = 0
 let containerWidth = 0
 
 const rightPanelRef = ref()
+const leftPanelDemoRef = ref()
+const isDemoMode = ref(false)
 const { checkFirstVisit, showWelcomePopup } = useTour()
 
 const handleSwitchToDownload = () => {
@@ -125,6 +129,28 @@ const updateSizes = () => {
   }
 }
 
+// Demo mode event handlers
+const handleDemoModeToggle = (event: CustomEvent) => {
+  isDemoMode.value = event.detail.enabled
+  if (event.detail.enabled) {
+    // Ensure demo starts in login state when enabled
+    nextTick(() => {
+      if (leftPanelDemoRef.value) {
+        leftPanelDemoRef.value.resetDemo()
+      }
+    })
+  } else if (leftPanelDemoRef.value) {
+    // Reset demo state when exiting demo mode
+    leftPanelDemoRef.value.resetDemo()
+  }
+}
+
+const handleDemoLogin = () => {
+  if (leftPanelDemoRef.value) {
+    leftPanelDemoRef.value.loginDemo()
+  }
+}
+
 onMounted(() => {
   // Use nextTick to ensure the DOM has been rendered.
   nextTick(() => {
@@ -140,9 +166,13 @@ onMounted(() => {
   })
 
   window.addEventListener('resize', updateSizes)
+  window.addEventListener('tour-demo-mode', handleDemoModeToggle as EventListener)
+  window.addEventListener('tour-demo-login', handleDemoLogin)
 
   onUnmounted(() => {
     window.removeEventListener('resize', updateSizes)
+    window.removeEventListener('tour-demo-mode', handleDemoModeToggle as EventListener)
+    window.removeEventListener('tour-demo-login', handleDemoLogin)
   })
 })
 </script>
