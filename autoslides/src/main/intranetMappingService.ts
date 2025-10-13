@@ -90,7 +90,26 @@ export class IntranetMappingService {
     const savedMappings = this.configService.get('intranetMappings', {}) || {};
 
     // Merge with defaults to ensure all default mappings are present
-    this.mappings = { ...this.mappings, ...savedMappings };
+    // Only merge if savedMappings contains valid IntranetMapping objects
+    if (this.isValidIntranetMappings(savedMappings)) {
+      this.mappings = { ...this.mappings, ...savedMappings };
+    }
+  }
+
+  /**
+   * Validate that the saved mappings are valid IntranetMappings
+   */
+  private isValidIntranetMappings(mappings: Record<string, unknown>): mappings is IntranetMappings {
+    for (const [, value] of Object.entries(mappings)) {
+      if (typeof value !== 'object' || value === null) {
+        return false;
+      }
+      const mapping = value as Record<string, unknown>;
+      if (!mapping.type || (mapping.type !== 'single' && mapping.type !== 'loadbalance')) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

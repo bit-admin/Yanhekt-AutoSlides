@@ -105,6 +105,51 @@ export interface TagListResponse {
   data: TagItem[];
 }
 
+// Base API response interface
+interface BaseApiResponse {
+  code: number | string;
+  message: string;
+}
+
+// API response interfaces for different endpoints
+interface LiveListApiResponse extends BaseApiResponse {
+  data: LiveListResponse;
+}
+
+interface CourseListApiResponse extends BaseApiResponse {
+  data: CourseListResponse;
+}
+
+interface CourseInfoApiResponse extends BaseApiResponse {
+  data: {
+    name_zh: string;
+    professors: Array<{ name: string }>;
+  };
+}
+
+interface SessionListApiResponse extends BaseApiResponse {
+  data: Array<{
+    id: string;
+    title: string;
+    week_number: number;
+    day: number;
+    started_at: string;
+    ended_at: string;
+    videos: Array<{
+      id: string;
+      duration: string;
+      main: string;
+      vga: string;
+    }>;
+  }>;
+}
+
+interface VideoTokenApiResponse extends BaseApiResponse {
+  data: {
+    token: string;
+  };
+}
+
 export class ApiClient {
   private readonly MAGIC = "1138b69dfef641d9d7ba49137d2d4875";
   private readonly BASE_HEADERS = {
@@ -200,7 +245,8 @@ export class ApiClient {
   async getLiveList(token: string, page = 1, pageSize = 16, userRelationshipType = 0): Promise<LiveListResponse> {
     try {
       const url = `https://cbiz.yanhekt.cn/v2/live/list?page=${page}&page_size=${pageSize}&user_relationship_type=${userRelationshipType}`;
-      const data = await this.makeRequest('GET', url, token);
+      const response = await this.makeRequest('GET', url, token);
+      const data = response as LiveListApiResponse;
 
       if (data.code !== 0 && data.code !== "0") {
         let errorMessage = data.message;
@@ -229,7 +275,8 @@ export class ApiClient {
     try {
       const encodedKeyword = encodeURIComponent(keyword);
       const url = `https://cbiz.yanhekt.cn/v2/live/list?page=${page}&page_size=${pageSize}&keyword=${encodedKeyword}`;
-      const data = await this.makeRequest('GET', url, token);
+      const response = await this.makeRequest('GET', url, token);
+      const data = response as LiveListApiResponse;
 
       if (data.code !== 0 && data.code !== "0") {
         let errorMessage = data.message;
@@ -279,7 +326,8 @@ export class ApiClient {
       }
 
       const url = `https://cbiz.yanhekt.cn/v2/course/list?${params.toString()}`;
-      const data = await this.makeRequest('GET', url, token);
+      const response = await this.makeRequest('GET', url, token);
+      const data = response as CourseListApiResponse;
 
       if (data.code !== 0 && data.code !== "0") {
         let errorMessage = data.message;
@@ -317,7 +365,8 @@ export class ApiClient {
       params.append('with_introduction', 'true');
 
       const url = `https://cbiz.yanhekt.cn/v2/course/private/list?${params.toString()}`;
-      const data = await this.makeRequest('GET', url, token);
+      const response = await this.makeRequest('GET', url, token);
+      const data = response as CourseListApiResponse;
 
       if (data.code !== 0 && data.code !== "0") {
         let errorMessage = data.message;
@@ -341,7 +390,8 @@ export class ApiClient {
   async getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
     try {
       const courseApiUrl = `https://cbiz.yanhekt.cn/v1/course?id=${courseId}&with_professor_badges=true`;
-      const courseData = await this.makeRequest('GET', courseApiUrl, token);
+      const courseResponse = await this.makeRequest('GET', courseApiUrl, token);
+      const courseData = courseResponse as CourseInfoApiResponse;
 
       if (courseData.code !== 0 && courseData.code !== "0") {
         let errorMessage = courseData.message;
@@ -359,7 +409,8 @@ export class ApiClient {
       }
 
       const sessionApiUrl = `https://cbiz.yanhekt.cn/v2/course/session/list?course_id=${courseId}`;
-      const sessionData = await this.makeRequest('GET', sessionApiUrl, token);
+      const sessionResponse = await this.makeRequest('GET', sessionApiUrl, token);
+      const sessionData = sessionResponse as SessionListApiResponse;
 
       if (sessionData.code !== 0 && sessionData.code !== "0") {
         throw new Error(`Failed to get course sessions: ${sessionData.message}`);
@@ -378,17 +429,17 @@ export class ApiClient {
         professor = courseData.data.professors[0].name.trim();
       }
 
-      const formattedVideos = videoList.map((video: Record<string, unknown>) => {
-        const realVideoId = video.videos && video.videos.length > 0 ? video.videos[0].id : null;
+      const formattedVideos = videoList.map((video) => {
+        const realVideoId = video.videos && video.videos.length > 0 ? video.videos[0].id : '';
         const videoData = video.videos && video.videos.length > 0 ? video.videos[0] : null;
-        const mainUrl = videoData ? videoData.main : null;
-        const vgaUrl = videoData ? videoData.vga : null;
+        const mainUrl = videoData ? videoData.main : '';
+        const vgaUrl = videoData ? videoData.vga : '';
 
         return {
           session_id: video.id,
           video_id: realVideoId,
           title: video.title,
-          duration: videoData ? parseInt(videoData.duration) : null,
+          duration: videoData ? parseInt(videoData.duration) : 0,
           week_number: video.week_number,
           day: video.day,
           started_at: video.started_at,
@@ -549,7 +600,8 @@ export class ApiClient {
   async getVideoToken(token: string): Promise<string> {
     try {
       const url = "https://cbiz.yanhekt.cn/v1/auth/video/token?id=0";
-      const data = await this.makeRequest('GET', url, token);
+      const response = await this.makeRequest('GET', url, token);
+      const data = response as VideoTokenApiResponse;
 
       if (data.code !== 0 && data.code !== "0") {
         let errorMessage = data.message;

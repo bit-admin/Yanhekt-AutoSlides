@@ -60,11 +60,11 @@ const defaultConfig: AppConfig = {
 };
 
 export class ConfigService {
-  private store: ElectronStore<AppConfig>;
+  private store: any; // Using any to bypass incorrect type definitions in electron-store v10+
   private themeService: ThemeService;
 
   constructor() {
-    this.store = new ElectronStore<AppConfig>({
+    this.store = new ElectronStore({
       defaults: defaultConfig,
       name: 'autoslides-config'
     });
