@@ -312,6 +312,23 @@
                   <div class="rules-reason">{{ $t('advanced.classroomRules.reason') }}</div>
                 </div>
               </div>
+
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.pHashThreshold') }}</label>
+                <div class="setting-description">{{ $t('advanced.pHashDescription') }}</div>
+                <div class="phash-threshold-input-wrapper">
+                  <input
+                    v-model.number="tempPHashThreshold"
+                    type="number"
+                    min="0"
+                    max="256"
+                    step="1"
+                    class="phash-threshold-input"
+                    @change="updateImageProcessingParams"
+                  />
+                  <span class="threshold-unit">{{ $t('advanced.hammingDistance') }}</span>
+                </div>
+              </div>
             </div>
 
             <div class="advanced-setting-section">
@@ -566,6 +583,10 @@ const ssimThreshold = ref(0.9987)
 const tempSsimThreshold = ref(0.9987)
 const ssimPreset = ref<SsimPresetType>('adaptive')
 
+// pHash threshold configuration
+const pHashThreshold = ref(10)
+const tempPHashThreshold = ref(10)
+
 // Manual token authentication
 const manualToken = ref('')
 const showToken = ref(false)
@@ -714,6 +735,10 @@ const loadConfig = async () => {
     // Load SSIM preset mode from config
     const savedPresetMode = slideConfig.ssimPresetMode || 'adaptive'
     ssimPreset.value = savedPresetMode
+
+    // Load pHash threshold from config
+    pHashThreshold.value = slideConfig.pHashThreshold || 10
+    tempPHashThreshold.value = pHashThreshold.value
   } catch (error) {
     console.error('Failed to load config:', error)
   }
@@ -901,6 +926,7 @@ const openAdvancedSettings = () => {
   // Set programmatic update flag to prevent mode switching during initialization
   isUpdatingProgrammatically = true
   tempSsimThreshold.value = ssimThreshold.value
+  tempPHashThreshold.value = pHashThreshold.value
   isUpdatingProgrammatically = false
 
   // Don't reinitialize SSIM preset - it should already be correctly loaded from config
@@ -927,6 +953,7 @@ const closeAdvancedSettings = () => {
   tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   tempVideoRetryCount.value = videoRetryCount.value
   tempSsimThreshold.value = ssimThreshold.value
+  tempPHashThreshold.value = pHashThreshold.value
   showAdvancedModal.value = false
 }
 
@@ -1034,9 +1061,11 @@ const saveAdvancedSettings = async () => {
     // Save image processing parameters
     const imageProcessingResult = await window.electronAPI.config.setSlideImageProcessingParams({
       ssimThreshold: tempSsimThreshold.value,
-      ssimPresetMode: ssimPreset.value
+      ssimPresetMode: ssimPreset.value,
+      pHashThreshold: tempPHashThreshold.value
     })
     ssimThreshold.value = imageProcessingResult.ssimThreshold
+    pHashThreshold.value = imageProcessingResult.pHashThreshold || tempPHashThreshold.value
 
     // Also update the download service
     const { DownloadService } = await import('../services/downloadService')
@@ -1994,6 +2023,41 @@ const resetAllData = async () => {
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
+/* pHash threshold input styles */
+.phash-threshold-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+
+.phash-threshold-input-wrapper:focus-within {
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.phash-threshold-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  background-color: transparent;
+  font-size: 12px;
+  outline: none;
+}
+
+.threshold-unit {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #666;
+  background-color: #f8f9fa;
+  border-left: 1px solid #e0e0e0;
+  white-space: nowrap;
+}
+
 /* Classroom Rules Styles */
 .classroom-rules-info {
   margin-top: 12px;
@@ -2352,7 +2416,7 @@ const resetAllData = async () => {
     border-color: #2563eb;
   }
 
-  .audio-mode-select, .theme-select, .language-select, .task-speed-select, .verification-count-select, .concurrent-select, .ssim-select, .ssim-preset-select, .ssim-input {
+  .audio-mode-select, .theme-select, .language-select, .task-speed-select, .verification-count-select, .concurrent-select, .ssim-select, .ssim-preset-select, .ssim-input, .phash-threshold-input {
     background-color: #2d2d2d;
     border-color: #404040;
     color: #e0e0e0;
@@ -2361,6 +2425,27 @@ const resetAllData = async () => {
   .audio-mode-select:focus, .theme-select:focus, .language-select:focus, .task-speed-select:focus, .verification-count-select:focus, .concurrent-select:focus, .ssim-select:focus, .ssim-preset-select:focus, .ssim-input:focus {
     border-color: #4a9eff;
     box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  /* pHash threshold input dark mode */
+  .phash-threshold-input-wrapper {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .phash-threshold-input-wrapper:focus-within {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .phash-threshold-input {
+    color: #e0e0e0;
+  }
+
+  .threshold-unit {
+    background-color: #2d2d2d;
+    border-left-color: #404040;
+    color: #b0b0b0;
   }
 
   /* Classroom Rules Dark Theme */

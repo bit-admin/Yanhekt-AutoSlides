@@ -15,6 +15,9 @@ export interface SlideExtractionConfig {
   ssimThreshold: number;           // SSIM similarity threshold
   ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom'; // SSIM preset mode
   isAdaptiveMode?: boolean;        // Whether currently in adaptive mode
+
+  // Post-processing parameters
+  pHashThreshold: number;          // pHash Hamming distance threshold for post-processing
 }
 
 export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
@@ -43,7 +46,10 @@ const defaultSlideExtractionConfig: SlideExtractionConfig = {
   // Advanced image processing parameters
   ssimThreshold: 0.9987,           // SSIM similarity threshold (default to normal)
   ssimPresetMode: 'adaptive',      // Default to adaptive mode
-  isAdaptiveMode: true             // Start in adaptive mode
+  isAdaptiveMode: true,            // Start in adaptive mode
+
+  // Post-processing parameters
+  pHashThreshold: 10               // pHash Hamming distance threshold (default: 10)
 };
 
 const defaultConfig: AppConfig = {
@@ -177,6 +183,7 @@ export class ConfigService {
   setSlideImageProcessingParams(params: {
     ssimThreshold?: number;
     ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
+    pHashThreshold?: number;
   }): void {
     const config: Partial<SlideExtractionConfig> = {};
 
@@ -187,6 +194,10 @@ export class ConfigService {
     if (params.ssimPresetMode !== undefined) {
       config.ssimPresetMode = params.ssimPresetMode;
       config.isAdaptiveMode = params.ssimPresetMode === 'adaptive';
+    }
+
+    if (params.pHashThreshold !== undefined) {
+      config.pHashThreshold = Math.max(0, Math.min(256, Math.round(params.pHashThreshold)));
     }
 
     this.setSlideExtractionConfig(config);
@@ -222,6 +233,17 @@ export class ConfigService {
     }
 
     this.setSlideExtractionConfig(config);
+  }
+
+  // pHash threshold management
+  setPHashThreshold(threshold: number): void {
+    const validThreshold = Math.max(0, Math.min(256, Math.round(threshold)));
+    this.setSlideExtractionConfig({ pHashThreshold: validThreshold });
+  }
+
+  getPHashThreshold(): number {
+    const config = this.getSlideExtractionConfig();
+    return config.pHashThreshold || 10;
   }
 
   async selectOutputDirectory(): Promise<string | null> {

@@ -95,6 +95,9 @@
       },
       "reason": "上述教学楼设备老旧，屏幕录制视频质量较差，适用更宽松的阈值"
     },
+    "pHashThreshold": "pHash汉明距离阈值 (256位)",
+    "pHashDescription": "用于后处理功能中pHash比较的汉明距离阈值。较低的值表示更严格的相似性检测。",
+    "hammingDistance": "汉明距离",
     "videoPlayback": "视频播放",
     "videoErrorRetryCount": "视频错误重试次数",
     "videoErrorDescription": "视频播放错误时的重试次数",

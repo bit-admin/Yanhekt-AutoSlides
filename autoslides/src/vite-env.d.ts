@@ -35,6 +35,7 @@ interface SlideExtractionConfig {
   ssimThreshold: number;
   ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
   isAdaptiveMode?: boolean;
+  pHashThreshold: number;
 }
 
 interface SlideImageProcessingParams {
@@ -42,6 +43,7 @@ interface SlideImageProcessingParams {
   hammingThresholdUp?: number;
   ssimThreshold?: number;
   ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
+  pHashThreshold?: number;
 }
 
 // ============================================================================

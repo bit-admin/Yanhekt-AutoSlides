@@ -220,21 +220,40 @@
                 </div>
               </div>
 
-              <!-- Clear All Button (only show when slides exist) -->
-              <button
-                v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
-                @click="clearAllSlides"
-                class="clear-all-btn"
-                title="Move all slides to trash"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="3,6 5,6 21,6"/>
-                  <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
-                  <line x1="10" y1="11" x2="10" y2="17"/>
-                  <line x1="14" y1="11" x2="14" y2="17"/>
-                </svg>
-                {{ $t('playback.clearAll') }}
-              </button>
+              <div class="slide-actions">
+                <!-- Post-processing Button (only show when slides exist) -->
+                <button
+                  v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
+                  @click="executePostProcessing"
+                  class="post-process-btn"
+                  :disabled="isPostProcessing"
+                  title="Execute post-processing on all saved slides"
+                >
+                  <svg v-if="!isPostProcessing" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="m2 17 10 5 10-5"/>
+                    <path d="m2 12 10 5 10-5"/>
+                  </svg>
+                  <div v-else class="processing-spinner"></div>
+                  {{ isPostProcessing ? '处理中...' : '执行后处理' }}
+                </button>
+
+                <!-- Clear All Button (only show when slides exist) -->
+                <button
+                  v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
+                  @click="clearAllSlides"
+                  class="clear-all-btn"
+                  title="Move all slides to trash"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3,6 5,6 21,6"/>
+                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+                    <line x1="10" y1="11" x2="10" y2="17"/>
+                    <line x1="14" y1="11" x2="14" y2="17"/>
+                  </svg>
+                  {{ $t('playback.clearAll') }}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -432,6 +451,9 @@ const extractorInstanceId = ref<string | null>(null)
 // Slide gallery state
 const extractedSlides = ref<ExtractedSlide[]>([])
 const selectedSlide = ref<ExtractedSlide | null>(null)
+
+// Post-processing state
+const isPostProcessing = ref(false)
 
 // Task queue state
 const currentTaskId = ref<string | null>(null)
@@ -1665,6 +1687,141 @@ const clearAllSlides = async () => {
     // Show error dialog
     const errorMessage = error instanceof Error ? error.message : String(error)
     await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slides to trash: ${errorMessage}`)
+  }
+}
+
+// Execute post-processing on all saved slides
+const executePostProcessing = async () => {
+  try {
+    if (extractedSlides.value.length === 0) {
+      return
+    }
+
+    // Get the output path from the slide extractor
+    const outputPath = slideExtractorInstance.value?.getOutputPath()
+    if (!outputPath) {
+      throw new Error('Output path not found')
+    }
+
+    isPostProcessing.value = true
+    console.log(`Starting post-processing for ${extractedSlides.value.length} slides...`)
+
+    // Create post-processing worker to calculate pHash for all saved images
+    const worker = new Worker(new URL('../workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
+
+    // Process each slide individually to avoid memory issues
+    const results: Array<{ filename: string; pHash: string; error?: string }> = []
+    let processedCount = 0
+
+    for (const slide of extractedSlides.value) {
+      try {
+        const filename = `${slide.title}.png`
+        const filePath = `${outputPath}/${filename}`
+
+        // Load image data from file via main process
+        const imageBuffer = await window.electronAPI.slideExtraction?.loadSlideImage?.(filePath)
+        if (!imageBuffer) {
+          throw new Error('Failed to load image data')
+        }
+
+        // Convert buffer to ImageData
+        const blob = new Blob([imageBuffer], { type: 'image/png' })
+        const imageBitmap = await createImageBitmap(blob)
+
+        // Create canvas and get ImageData
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        if (!ctx) throw new Error('Failed to get 2D context')
+
+        canvas.width = imageBitmap.width
+        canvas.height = imageBitmap.height
+        ctx.drawImage(imageBitmap, 0, 0)
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+
+        imageBitmap.close()
+
+        // Calculate pHash using worker
+        const pHashPromise = new Promise<string>((resolve, reject) => {
+          const messageId = `pHash_${Date.now()}_${Math.random()}`
+
+          const messageHandler = (event: MessageEvent) => {
+            const { id, success, result, error } = event.data
+            if (id === messageId) {
+              worker.removeEventListener('message', messageHandler)
+              if (success) {
+                resolve(result)
+              } else {
+                reject(new Error(error))
+              }
+            }
+          }
+
+          worker.addEventListener('message', messageHandler)
+          worker.postMessage({
+            id: messageId,
+            type: 'calculatePHash',
+            data: { imageData }
+          })
+        })
+
+        const pHash = await pHashPromise
+
+        results.push({
+          filename,
+          pHash
+        })
+
+        processedCount++
+        console.log(`Processed ${filename} (${processedCount}/${extractedSlides.value.length}): pHash = ${pHash}`)
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        console.error(`Failed to process ${slide.title}:`, errorMessage)
+
+        results.push({
+          filename: `${slide.title}.png`,
+          pHash: '',
+          error: errorMessage
+        })
+      }
+    }
+
+    worker.terminate()
+
+    // Save results to JSON file via main process
+    const resultsData = {
+      timestamp: new Date().toISOString(),
+      totalSlides: extractedSlides.value.length,
+      processedSlides: results.filter(r => !r.error).length,
+      failedSlides: results.filter(r => r.error).length,
+      results: results
+    }
+
+    const resultsFilePath = `${outputPath}/pHash_results.json`
+    await window.electronAPI.slideExtraction?.savePostProcessingResults?.(resultsFilePath, resultsData)
+
+    console.log('Post-processing completed successfully:', {
+      totalSlides: resultsData.totalSlides,
+      processedSlides: resultsData.processedSlides,
+      failedSlides: resultsData.failedSlides,
+      resultsFile: resultsFilePath
+    })
+
+    // Show success dialog
+    await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'info',
+      title: 'Post-processing Completed',
+      message: `Post-processing completed successfully!`,
+      detail: `Processed: ${resultsData.processedSlides}/${resultsData.totalSlides} slides\nResults saved to: pHash_results.json`
+    })
+
+  } catch (error) {
+    console.error('Failed to execute post-processing:', error)
+    // Show error dialog
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    await window.electronAPI.dialog?.showErrorBox?.('Post-processing Failed', `Failed to execute post-processing: ${errorMessage}`)
+  } finally {
+    isPostProcessing.value = false
   }
 }
 
@@ -2953,6 +3110,12 @@ onUnmounted(async () => {
   border-radius: 0 0 8px 8px;
 }
 
+.slide-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 /* When gallery is part of the video content group, adjust the control styling */
 .video-content .slide-gallery .slide-extraction-control {
   border-radius: 0 0 8px 8px;
@@ -3079,6 +3242,41 @@ onUnmounted(async () => {
 
 .gallery-header {
   margin-bottom: 16px;
+}
+
+.post-process-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #007acc;
+  border-radius: 4px;
+  background-color: #007acc;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.post-process-btn:hover:not(:disabled) {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+
+.post-process-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.processing-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 .clear-all-btn {
@@ -3644,6 +3842,29 @@ onUnmounted(async () => {
   .retry-indicator {
     background-color: rgba(45, 45, 45, 0.9);
     color: #e0e0e0;
+  }
+
+  /* Post-processing button dark mode */
+  .post-process-btn {
+    background-color: #4da6ff;
+    border-color: #4da6ff;
+    color: #1a1a1a;
+  }
+
+  .post-process-btn:hover:not(:disabled) {
+    background-color: #3399ff;
+    border-color: #3399ff;
+  }
+
+  .post-process-btn:disabled {
+    background-color: #666;
+    border-color: #666;
+    color: #999;
+  }
+
+  .processing-spinner {
+    border-color: rgba(26, 26, 26, 0.3);
+    border-top-color: #1a1a1a;
   }
 
   /* Clear all button dark mode */
