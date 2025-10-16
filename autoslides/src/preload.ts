@@ -35,7 +35,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       hammingThresholdUp?: number;
       ssimThreshold?: number;
       ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
+      pHashThreshold?: number;
     }) => ipcRenderer.invoke('config:setSlideImageProcessingParams', params),
+    // pHash exclusion list management
+    getPHashExclusionList: () => ipcRenderer.invoke('config:getPHashExclusionList'),
+    addPHashExclusionItem: (name: string, pHash: string) => ipcRenderer.invoke('config:addPHashExclusionItem', name, pHash),
+    removePHashExclusionItem: (id: string) => ipcRenderer.invoke('config:removePHashExclusionItem', id),
+    updatePHashExclusionItemName: (id: string, newName: string) => ipcRenderer.invoke('config:updatePHashExclusionItemName', id, newName),
+    clearPHashExclusionList: () => ipcRenderer.invoke('config:clearPHashExclusionList'),
+    selectImageForExclusion: () => ipcRenderer.invoke('config:selectImageForExclusion'),
   },
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) =>

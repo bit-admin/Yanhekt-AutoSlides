@@ -310,9 +310,69 @@ ipcMain.handle('config:setSlideImageProcessingParams', async (event, params: {
   hammingThresholdUp?: number;
   ssimThreshold?: number;
   ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
+  pHashThreshold?: number;
 }) => {
   configService.setSlideImageProcessingParams(params);
   return configService.getSlideExtractionConfig();
+});
+
+// IPC handlers for pHash exclusion list management
+ipcMain.handle('config:getPHashExclusionList', async () => {
+  return configService.getPHashExclusionList();
+});
+
+ipcMain.handle('config:addPHashExclusionItem', async (event, name: string, pHash: string) => {
+  return configService.addPHashExclusionItem(name, pHash);
+});
+
+ipcMain.handle('config:removePHashExclusionItem', async (event, id: string) => {
+  return configService.removePHashExclusionItem(id);
+});
+
+ipcMain.handle('config:updatePHashExclusionItemName', async (event, id: string, newName: string) => {
+  return configService.updatePHashExclusionItemName(id, newName);
+});
+
+ipcMain.handle('config:clearPHashExclusionList', async () => {
+  configService.clearPHashExclusionList();
+  return configService.getPHashExclusionList();
+});
+
+// IPC handler for selecting image file and calculating pHash
+ipcMain.handle('config:selectImageForExclusion', async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [
+        { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'bmp', 'gif', 'webp'] }
+      ],
+      title: 'Select Image for Exclusion List'
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      const imagePath = result.filePaths[0];
+
+      // Read the image file
+      const fs = require('fs');
+      const imageBuffer = fs.readFileSync(imagePath);
+
+      // Return the image data for pHash calculation in renderer process
+      return {
+        success: true,
+        imagePath,
+        imageBuffer: Array.from(imageBuffer), // Convert to array for IPC transfer
+        fileName: require('path').basename(imagePath)
+      };
+    }
+
+    return { success: false, canceled: true };
+  } catch (error) {
+    console.error('Failed to select image for exclusion:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
 });
 
 // IPC handlers for intranet mapping

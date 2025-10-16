@@ -26,6 +26,13 @@ interface AppConfig {
   preventSystemSleep: boolean;
 }
 
+interface PHashExclusionItem {
+  id: string;
+  name: string;
+  pHash: string;
+  createdAt: number;
+}
+
 interface SlideExtractionConfig {
   checkInterval: number;
   enableDoubleVerification: boolean;
@@ -36,6 +43,7 @@ interface SlideExtractionConfig {
   ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
   isAdaptiveMode?: boolean;
   pHashThreshold: number;
+  pHashExclusionList: PHashExclusionItem[];
 }
 
 interface SlideImageProcessingParams {
@@ -248,6 +256,21 @@ interface ElectronAPI {
     setSlideCheckInterval: (interval: number) => Promise<SlideExtractionConfig>;
     setSlideDoubleVerification: (enabled: boolean, count?: number) => Promise<SlideExtractionConfig>;
     setSlideImageProcessingParams: (params: SlideImageProcessingParams) => Promise<SlideExtractionConfig>;
+
+    // pHash exclusion list management
+    getPHashExclusionList: () => Promise<PHashExclusionItem[]>;
+    addPHashExclusionItem: (name: string, pHash: string) => Promise<PHashExclusionItem>;
+    removePHashExclusionItem: (id: string) => Promise<boolean>;
+    updatePHashExclusionItemName: (id: string, newName: string) => Promise<boolean>;
+    clearPHashExclusionList: () => Promise<PHashExclusionItem[]>;
+    selectImageForExclusion: () => Promise<{
+      success: boolean;
+      canceled?: boolean;
+      error?: string;
+      imagePath?: string;
+      imageBuffer?: number[];
+      fileName?: string;
+    }>;
   };
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStreamData>>;

@@ -329,6 +329,81 @@
                   <span class="threshold-unit">{{ $t('advanced.hammingDistance') }}</span>
                 </div>
               </div>
+
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.pHashExclusionList') }}</label>
+                <div class="setting-description">{{ $t('advanced.pHashExclusionDescription') }}</div>
+
+                <!-- Exclusion list display -->
+                <div class="exclusion-list-container">
+                  <div v-if="pHashExclusionList.length === 0" class="exclusion-list-empty">
+                    {{ $t('advanced.noExclusionItems') }}
+                  </div>
+                  <div v-else class="exclusion-list">
+                    <div
+                      v-for="item in pHashExclusionList"
+                      :key="item.id"
+                      class="exclusion-item"
+                    >
+                      <div class="exclusion-item-info">
+                        <div class="exclusion-item-name">{{ item.name }}</div>
+                        <div class="exclusion-item-hash">{{ item.pHash.substring(0, 16) }}...</div>
+                        <div class="exclusion-item-date">{{ formatDate(item.createdAt) }}</div>
+                      </div>
+                      <div class="exclusion-item-actions">
+                        <button
+                          @click="editExclusionItemName(item)"
+                          class="exclusion-edit-btn"
+                          :title="$t('advanced.editName')"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                          </svg>
+                        </button>
+                        <button
+                          @click="removeExclusionItem(item.id)"
+                          class="exclusion-remove-btn"
+                          :title="$t('advanced.removeItem')"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3,6 5,6 21,6"/>
+                            <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Add new exclusion item -->
+                <div class="exclusion-actions">
+                  <button
+                    @click="addExclusionItem"
+                    :disabled="isAddingExclusion"
+                    class="exclusion-add-btn"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="12" y1="5" x2="12" y2="19"/>
+                      <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    {{ isAddingExclusion ? $t('advanced.processing') : $t('advanced.addExclusionItem') }}
+                  </button>
+                  <button
+                    v-if="pHashExclusionList.length > 0"
+                    @click="clearExclusionList"
+                    class="exclusion-clear-btn"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3,6 5,6 21,6"/>
+                      <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+                      <line x1="10" y1="11" x2="10" y2="17"/>
+                      <line x1="14" y1="11" x2="14" y2="17"/>
+                    </svg>
+                    {{ $t('advanced.clearAll') }}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div class="advanced-setting-section">
@@ -490,11 +565,44 @@
         </div>
       </div>
     </div>
+
+    <!-- Custom Name Input Dialog -->
+    <div v-if="showNameInputModal" class="modal-overlay" @click="cancelNameInput">
+      <div class="modal-content name-input-modal" @click.stop>
+        <div class="modal-header">
+          <h3>{{ $t('advanced.enterExclusionName') }}</h3>
+          <button @click="cancelNameInput" class="close-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="name-input-content">
+            <label class="setting-label">{{ $t('advanced.exclusionItemName') }}</label>
+            <input
+              v-model="nameInputValue"
+              type="text"
+              class="name-input-field"
+              :placeholder="$t('advanced.enterNamePlaceholder')"
+              @keyup.enter="confirmNameInput"
+              @keyup.escape="cancelNameInput"
+              ref="nameInputField"
+            />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button @click="cancelNameInput" class="cancel-btn">{{ $t('advanced.cancel') }}</button>
+          <button @click="confirmNameInput" :disabled="!nameInputValue.trim()" class="save-btn">{{ $t('advanced.confirm') }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { AuthService, TokenManager } from '../services/authService'
 import { ApiClient } from '../services/apiClient'
@@ -586,6 +694,22 @@ const ssimPreset = ref<SsimPresetType>('adaptive')
 // pHash threshold configuration
 const pHashThreshold = ref(10)
 const tempPHashThreshold = ref(10)
+
+// pHash exclusion list configuration
+interface PHashExclusionItem {
+  id: string
+  name: string
+  pHash: string
+  createdAt: number
+}
+
+const pHashExclusionList = ref<PHashExclusionItem[]>([])
+const isAddingExclusion = ref(false)
+
+// Custom input dialog state
+const showNameInputModal = ref(false)
+const nameInputValue = ref('')
+const nameInputCallback = ref<((name: string | null) => void) | null>(null)
 
 // Manual token authentication
 const manualToken = ref('')
@@ -739,6 +863,9 @@ const loadConfig = async () => {
     // Load pHash threshold from config
     pHashThreshold.value = slideConfig.pHashThreshold || 10
     tempPHashThreshold.value = pHashThreshold.value
+
+    // Load pHash exclusion list
+    await loadPHashExclusionList()
   } catch (error) {
     console.error('Failed to load config:', error)
   }
@@ -918,7 +1045,7 @@ onUnmounted(() => {
   window.removeEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as unknown as EventListener)
 })
 
-const openAdvancedSettings = () => {
+const openAdvancedSettings = async () => {
   // Reset temp values to current values when opening modal
   tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   tempVideoRetryCount.value = videoRetryCount.value
@@ -944,6 +1071,9 @@ const openAdvancedSettings = () => {
   // Load cache statistics
   refreshCacheStats()
   cacheOperationStatus.value = null
+
+  // Load pHash exclusion list
+  await loadPHashExclusionList()
 
   showAdvancedModal.value = true
 }
@@ -1323,6 +1453,226 @@ const resetAllData = async () => {
   } finally {
     isResettingData.value = false
   }
+}
+
+// pHash exclusion list management methods
+const loadPHashExclusionList = async () => {
+  try {
+    const exclusionList = await window.electronAPI.config.getPHashExclusionList()
+    pHashExclusionList.value = exclusionList || []
+  } catch (error) {
+    console.error('Failed to load pHash exclusion list:', error)
+    pHashExclusionList.value = []
+  }
+}
+
+const addExclusionItem = async () => {
+  if (isAddingExclusion.value) return
+
+  isAddingExclusion.value = true
+  try {
+    // Select image file
+    const result = await window.electronAPI.config.selectImageForExclusion()
+
+    if (!result.success) {
+      if (!result.canceled) {
+        console.error('Failed to select image:', result.error)
+        alert('Failed to select image: ' + (result.error || 'Unknown error'))
+      }
+      return
+    }
+
+    // Check if required data is available
+    if (!result.imageBuffer || !result.fileName) {
+      console.error('Missing image data or filename')
+      alert('Failed to process selected image: Missing data')
+      return
+    }
+
+    // Convert array back to Uint8Array
+    const imageBuffer = new Uint8Array(result.imageBuffer)
+
+    // Create image from buffer for pHash calculation
+    const blob = new Blob([imageBuffer])
+    const imageUrl = URL.createObjectURL(blob)
+
+    try {
+      const img = new Image()
+      await new Promise((resolve, reject) => {
+        img.onload = resolve
+        img.onerror = reject
+        img.src = imageUrl
+      })
+
+      // Create canvas and get ImageData
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Failed to get canvas context')
+
+      ctx.drawImage(img, 0, 0)
+      const imageData = ctx.getImageData(0, 0, img.width, img.height)
+
+      // Calculate pHash using the postProcessor worker
+      const pHash = await calculatePHashWithWorker(imageData)
+
+      // Prompt for name using custom dialog
+      const defaultName = result.fileName.replace(/\.[^/.]+$/, '')
+      const name = await showNameInputDialog(defaultName)
+      if (!name || !name.trim()) {
+        return // User canceled or entered empty name
+      }
+
+      // Add to exclusion list
+      await window.electronAPI.config.addPHashExclusionItem(name.trim(), pHash)
+
+      // Reload the list
+      await loadPHashExclusionList()
+
+      console.log('Added exclusion item:', { name: name.trim(), pHash })
+    } finally {
+      URL.revokeObjectURL(imageUrl)
+    }
+  } catch (error) {
+    console.error('Failed to add exclusion item:', error)
+    alert('Failed to add exclusion item: ' + (error instanceof Error ? error.message : 'Unknown error'))
+  } finally {
+    isAddingExclusion.value = false
+  }
+}
+
+const calculatePHashWithWorker = (imageData: ImageData): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('../workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
+
+    const messageId = `phash_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+
+    const timeout = setTimeout(() => {
+      worker.terminate()
+      reject(new Error('pHash calculation timeout'))
+    }, 30000) // 30 second timeout
+
+    worker.onmessage = (e) => {
+      clearTimeout(timeout)
+      worker.terminate()
+
+      const { id, success, result, error } = e.data
+      if (id === messageId) {
+        if (success) {
+          resolve(result)
+        } else {
+          reject(new Error(error || 'pHash calculation failed'))
+        }
+      }
+    }
+
+    worker.onerror = (error) => {
+      clearTimeout(timeout)
+      worker.terminate()
+      reject(error)
+    }
+
+    worker.postMessage({
+      id: messageId,
+      type: 'calculatePHash',
+      data: { imageData }
+    })
+  })
+}
+
+const removeExclusionItem = async (id: string) => {
+  try {
+    const success = await window.electronAPI.config.removePHashExclusionItem(id)
+    if (success) {
+      await loadPHashExclusionList()
+    } else {
+      console.error('Failed to remove exclusion item')
+    }
+  } catch (error) {
+    console.error('Failed to remove exclusion item:', error)
+  }
+}
+
+const editExclusionItemName = async (item: PHashExclusionItem) => {
+  const newName = await showNameInputDialog(item.name)
+  if (newName && newName.trim() && newName.trim() !== item.name) {
+    try {
+      const success = await window.electronAPI.config.updatePHashExclusionItemName(item.id, newName.trim())
+      if (success) {
+        await loadPHashExclusionList()
+      } else {
+        console.error('Failed to update exclusion item name')
+      }
+    } catch (error) {
+      console.error('Failed to update exclusion item name:', error)
+    }
+  }
+}
+
+const clearExclusionList = async () => {
+  try {
+    const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'question',
+      buttons: [t('advanced.cancel'), t('advanced.clearAll')],
+      defaultId: 1,
+      cancelId: 0,
+      title: t('advanced.clearExclusionListTitle'),
+      message: t('advanced.clearExclusionListMessage'),
+      detail: t('advanced.clearExclusionListDetail')
+    })
+
+    if (confirmed?.response === 1) {
+      await window.electronAPI.config.clearPHashExclusionList()
+      await loadPHashExclusionList()
+    }
+  } catch (error) {
+    console.error('Failed to clear exclusion list:', error)
+  }
+}
+
+const formatDate = (timestamp: number): string => {
+  return new Date(timestamp).toLocaleDateString()
+}
+
+// Custom input dialog methods
+const showNameInputDialog = (defaultValue: string = ''): Promise<string | null> => {
+  return new Promise((resolve) => {
+    nameInputValue.value = defaultValue
+    nameInputCallback.value = resolve
+    showNameInputModal.value = true
+
+    // Focus the input field after the modal is shown
+    nextTick(() => {
+      const inputField = document.querySelector('.name-input-field') as HTMLInputElement
+      if (inputField) {
+        inputField.focus()
+        inputField.select()
+      }
+    })
+  })
+}
+
+const confirmNameInput = () => {
+  const callback = nameInputCallback.value
+  if (callback) {
+    callback(nameInputValue.value.trim() || null)
+  }
+  closeNameInputDialog()
+}
+
+const cancelNameInput = () => {
+  const callback = nameInputCallback.value
+  if (callback) {
+    callback(null)
+  }
+  closeNameInputDialog()
+}
+
+const closeNameInputDialog = () => {
+  showNameInputModal.value = false
+  nameInputValue.value = ''
+  nameInputCallback.value = null
 }
 </script>
 
@@ -3123,6 +3473,287 @@ const resetAllData = async () => {
     background-color: #3d3520;
     color: #f39c12;
     border-color: #665c2a;
+  }
+}
+
+/* pHash exclusion list styles */
+.exclusion-list-container {
+  margin-bottom: 12px;
+}
+
+.exclusion-list-empty {
+  padding: 12px;
+  text-align: center;
+  color: #666;
+  font-size: 11px;
+  font-style: italic;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+}
+
+.exclusion-list {
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.exclusion-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e9ecef;
+  background-color: white;
+  transition: background-color 0.2s;
+}
+
+.exclusion-item:last-child {
+  border-bottom: none;
+}
+
+.exclusion-item:hover {
+  background-color: #f8f9fa;
+}
+
+.exclusion-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.exclusion-item-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exclusion-item-hash {
+  font-size: 10px;
+  color: #666;
+  font-family: 'Courier New', monospace;
+  margin-bottom: 2px;
+}
+
+.exclusion-item-date {
+  font-size: 10px;
+  color: #999;
+}
+
+.exclusion-item-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.exclusion-edit-btn, .exclusion-remove-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.exclusion-edit-btn {
+  color: #007acc;
+}
+
+.exclusion-edit-btn:hover {
+  background-color: #007acc;
+  color: white;
+  border-color: #007acc;
+}
+
+.exclusion-remove-btn {
+  color: #dc3545;
+}
+
+.exclusion-remove-btn:hover {
+  background-color: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.exclusion-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.exclusion-add-btn, .exclusion-clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+.exclusion-add-btn {
+  background-color: #28a745;
+  border-color: #28a745;
+  color: white;
+}
+
+.exclusion-add-btn:hover:not(:disabled) {
+  background-color: #218838;
+  border-color: #218838;
+}
+
+.exclusion-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.exclusion-clear-btn {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #212529;
+}
+
+.exclusion-clear-btn:hover {
+  background-color: #e0a800;
+  border-color: #e0a800;
+}
+
+/* Dark mode support for pHash exclusion list */
+@media (prefers-color-scheme: dark) {
+  .exclusion-list-empty {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .exclusion-list {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .exclusion-item {
+    background-color: #2d2d2d;
+    border-bottom-color: #404040;
+  }
+
+  .exclusion-item:hover {
+    background-color: #3d3d3d;
+  }
+
+  .exclusion-item-name {
+    color: #e0e0e0;
+  }
+
+  .exclusion-item-hash {
+    color: #b0b0b0;
+  }
+
+  .exclusion-item-date {
+    color: #888;
+  }
+
+  .exclusion-edit-btn, .exclusion-remove-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .exclusion-edit-btn {
+    color: #4a9eff;
+  }
+
+  .exclusion-edit-btn:hover {
+    background-color: #4a9eff;
+    color: white;
+    border-color: #4a9eff;
+  }
+
+  .exclusion-remove-btn {
+    color: #ff6b6b;
+  }
+
+  .exclusion-remove-btn:hover {
+    background-color: #ff6b6b;
+    color: white;
+    border-color: #ff6b6b;
+  }
+
+  .exclusion-add-btn {
+    background-color: #4caf50;
+    border-color: #4caf50;
+  }
+
+  .exclusion-add-btn:hover:not(:disabled) {
+    background-color: #45a049;
+    border-color: #45a049;
+  }
+
+  .exclusion-clear-btn {
+    background-color: #f39c12;
+    border-color: #f39c12;
+    color: #1a1a1a;
+  }
+
+  .exclusion-clear-btn:hover {
+    background-color: #e67e22;
+    border-color: #e67e22;
+  }
+}
+
+/* Custom name input dialog styles */
+.name-input-modal {
+  width: 400px;
+  max-width: 90vw;
+}
+
+.name-input-content {
+  padding: 16px;
+}
+
+.name-input-field {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background-color: white;
+  margin-top: 8px;
+}
+
+.name-input-field:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+/* Dark mode support for name input dialog */
+@media (prefers-color-scheme: dark) {
+  .name-input-field {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .name-input-field:focus {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .name-input-field::placeholder {
+    color: #888;
   }
 }
 </style>

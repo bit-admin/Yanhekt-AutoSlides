@@ -5,6 +5,13 @@ import * as fs from 'fs';
 import * as os from 'os';
 import { ThemeService, ThemeMode } from './themeService';
 
+export interface PHashExclusionItem {
+  id: string;                      // Unique identifier for the exclusion item
+  name: string;                    // User-defined name for the exclusion item
+  pHash: string;                   // 256-bit pHash value as hex string
+  createdAt: number;               // Timestamp when the item was created
+}
+
 export interface SlideExtractionConfig {
   // User configurable parameters
   checkInterval: number;           // Detection interval in milliseconds
@@ -18,6 +25,7 @@ export interface SlideExtractionConfig {
 
   // Post-processing parameters
   pHashThreshold: number;          // pHash Hamming distance threshold for post-processing
+  pHashExclusionList: PHashExclusionItem[]; // List of images to exclude from post-processing
 }
 
 export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
@@ -49,7 +57,8 @@ const defaultSlideExtractionConfig: SlideExtractionConfig = {
   isAdaptiveMode: true,            // Start in adaptive mode
 
   // Post-processing parameters
-  pHashThreshold: 10               // pHash Hamming distance threshold (default: 10)
+  pHashThreshold: 10,              // pHash Hamming distance threshold (default: 10)
+  pHashExclusionList: []           // Empty exclusion list by default
 };
 
 const defaultConfig: AppConfig = {
@@ -244,6 +253,58 @@ export class ConfigService {
   getPHashThreshold(): number {
     const config = this.getSlideExtractionConfig();
     return config.pHashThreshold || 10;
+  }
+
+  // pHash exclusion list management
+  getPHashExclusionList(): PHashExclusionItem[] {
+    const config = this.getSlideExtractionConfig();
+    return config.pHashExclusionList || [];
+  }
+
+  addPHashExclusionItem(name: string, pHash: string): PHashExclusionItem {
+    const exclusionList = this.getPHashExclusionList();
+    const newItem: PHashExclusionItem = {
+      id: `exclusion_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+      name: name.trim(),
+      pHash: pHash,
+      createdAt: Date.now()
+    };
+
+    const updatedList = [...exclusionList, newItem];
+    this.setSlideExtractionConfig({ pHashExclusionList: updatedList });
+
+    return newItem;
+  }
+
+  removePHashExclusionItem(id: string): boolean {
+    const exclusionList = this.getPHashExclusionList();
+    const initialLength = exclusionList.length;
+    const updatedList = exclusionList.filter(item => item.id !== id);
+
+    if (updatedList.length !== initialLength) {
+      this.setSlideExtractionConfig({ pHashExclusionList: updatedList });
+      return true;
+    }
+
+    return false;
+  }
+
+  updatePHashExclusionItemName(id: string, newName: string): boolean {
+    const exclusionList = this.getPHashExclusionList();
+    const itemIndex = exclusionList.findIndex(item => item.id === id);
+
+    if (itemIndex !== -1) {
+      const updatedList = [...exclusionList];
+      updatedList[itemIndex] = { ...updatedList[itemIndex], name: newName.trim() };
+      this.setSlideExtractionConfig({ pHashExclusionList: updatedList });
+      return true;
+    }
+
+    return false;
+  }
+
+  clearPHashExclusionList(): void {
+    this.setSlideExtractionConfig({ pHashExclusionList: [] });
   }
 
   async selectOutputDirectory(): Promise<string | null> {
