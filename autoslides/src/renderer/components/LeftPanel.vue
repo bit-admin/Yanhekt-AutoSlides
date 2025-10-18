@@ -331,6 +331,50 @@
               </div>
 
               <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.enableDownsampling') }}</label>
+                <div class="setting-description">{{ $t('advanced.downsamplingDescription') }}</div>
+                <div class="downsampling-controls">
+                  <label class="checkbox-label">
+                    <input
+                      v-model="enableDownsampling"
+                      type="checkbox"
+                      @change="updateImageProcessingParams"
+                    />
+                    {{ $t('advanced.enableDownsampling') }}
+                  </label>
+                  <div v-if="enableDownsampling" class="downsampling-resolution">
+                    <div class="resolution-inputs">
+                      <div class="resolution-input-group">
+                        <label class="resolution-label">{{ $t('advanced.downsampleWidth') }}</label>
+                        <input
+                          v-model.number="downsampleWidth"
+                          type="number"
+                          min="160"
+                          max="1920"
+                          step="10"
+                          class="resolution-input"
+                          @change="updateImageProcessingParams"
+                        />
+                      </div>
+                      <span class="resolution-separator">×</span>
+                      <div class="resolution-input-group">
+                        <label class="resolution-label">{{ $t('advanced.downsampleHeight') }}</label>
+                        <input
+                          v-model.number="downsampleHeight"
+                          type="number"
+                          min="90"
+                          max="1080"
+                          step="10"
+                          class="resolution-input"
+                          @change="updateImageProcessingParams"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-item">
                 <label class="setting-label">{{ $t('advanced.pHashExclusionList') }}</label>
                 <div class="setting-description">{{ $t('advanced.pHashExclusionDescription') }}</div>
 
@@ -695,6 +739,11 @@ const ssimPreset = ref<SsimPresetType>('adaptive')
 const pHashThreshold = ref(10)
 const tempPHashThreshold = ref(10)
 
+// Downsampling configuration
+const enableDownsampling = ref(true)
+const downsampleWidth = ref(480)
+const downsampleHeight = ref(270)
+
 // pHash exclusion list configuration
 interface PHashExclusionItem {
   id: string
@@ -863,6 +912,11 @@ const loadConfig = async () => {
     // Load pHash threshold from config
     pHashThreshold.value = slideConfig.pHashThreshold || 10
     tempPHashThreshold.value = pHashThreshold.value
+
+    // Load downsampling configuration from config
+    enableDownsampling.value = slideConfig.enableDownsampling !== undefined ? slideConfig.enableDownsampling : true
+    downsampleWidth.value = slideConfig.downsampleWidth || 480
+    downsampleHeight.value = slideConfig.downsampleHeight || 270
 
     // Load pHash exclusion list
     await loadPHashExclusionList()
@@ -1192,7 +1246,10 @@ const saveAdvancedSettings = async () => {
     const imageProcessingResult = await window.electronAPI.config.setSlideImageProcessingParams({
       ssimThreshold: tempSsimThreshold.value,
       ssimPresetMode: ssimPreset.value,
-      pHashThreshold: tempPHashThreshold.value
+      pHashThreshold: tempPHashThreshold.value,
+      enableDownsampling: enableDownsampling.value,
+      downsampleWidth: downsampleWidth.value,
+      downsampleHeight: downsampleHeight.value
     })
     ssimThreshold.value = imageProcessingResult.ssimThreshold
     pHashThreshold.value = imageProcessingResult.pHashThreshold || tempPHashThreshold.value
@@ -2408,6 +2465,59 @@ const closeNameInputDialog = () => {
   white-space: nowrap;
 }
 
+/* Downsampling controls styles */
+.downsampling-controls {
+  margin-top: 8px;
+}
+
+.downsampling-resolution {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.resolution-inputs {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.resolution-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.resolution-label {
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+}
+
+.resolution-input {
+  width: 80px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+}
+
+.resolution-input:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.resolution-separator {
+  font-size: 14px;
+  font-weight: bold;
+  color: #666;
+  margin-top: 18px;
+}
+
 /* Classroom Rules Styles */
 .classroom-rules-info {
   margin-top: 12px;
@@ -2795,6 +2905,31 @@ const closeNameInputDialog = () => {
   .threshold-unit {
     background-color: #2d2d2d;
     border-left-color: #404040;
+    color: #b0b0b0;
+  }
+
+  /* Downsampling controls dark mode */
+  .downsampling-resolution {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .resolution-label {
+    color: #b0b0b0;
+  }
+
+  .resolution-input {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .resolution-input:focus {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .resolution-separator {
     color: #b0b0b0;
   }
 

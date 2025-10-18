@@ -19,11 +19,17 @@ interface WorkerResponse {
 
 interface ImageProcessingConfig {
   ssimThreshold: number;
+  enableDownsampling: boolean;
+  downsampleWidth: number;
+  downsampleHeight: number;
 }
 
 // Configuration for image comparison (can be updated via updateConfig message)
 let CONFIG: ImageProcessingConfig = {
-  ssimThreshold: 0.999         // SSIM similarity threshold
+  ssimThreshold: 0.999,         // SSIM similarity threshold
+  enableDownsampling: true,     // Enable downsampling by default
+  downsampleWidth: 480,         // Default downsample width
+  downsampleHeight: 270         // Default downsample height
 };
 
 /**
@@ -41,6 +47,33 @@ function convertToGrayscale(imageData: ImageData): ImageData {
   }
 
   return new ImageData(data, imageData.width, imageData.height);
+}
+
+/**
+ * Resize ImageData to new dimensions
+ * Uses canvas-based downsampling for performance
+ */
+function resizeImageData(imageData: ImageData, newWidth: number, newHeight: number): ImageData {
+  // Create temporary canvas for the original image
+  const tempCanvas = new OffscreenCanvas(imageData.width, imageData.height);
+  const tempCtx = tempCanvas.getContext('2d');
+  if (!tempCtx) {
+    throw new Error('Failed to get 2D context for temporary canvas');
+  }
+  tempCtx.putImageData(imageData, 0, 0);
+
+  // Create target canvas with new dimensions
+  const targetCanvas = new OffscreenCanvas(newWidth, newHeight);
+  const targetCtx = targetCanvas.getContext('2d');
+  if (!targetCtx) {
+    throw new Error('Failed to get 2D context for target canvas');
+  }
+
+  // Draw resized image
+  targetCtx.drawImage(tempCanvas, 0, 0, newWidth, newHeight);
+
+  // Get and return the resized image data
+  return targetCtx.getImageData(0, 0, newWidth, newHeight);
 }
 
 
@@ -98,8 +131,17 @@ function compareImages(img1Data: ImageData, img2Data: ImageData): boolean {
       return false; // If there are null values, consider no change
     }
 
+    // Apply downsampling if enabled
+    let processedImg1 = img1Data;
+    let processedImg2 = img2Data;
+
+    if (CONFIG.enableDownsampling) {
+      processedImg1 = resizeImageData(img1Data, CONFIG.downsampleWidth, CONFIG.downsampleHeight);
+      processedImg2 = resizeImageData(img2Data, CONFIG.downsampleWidth, CONFIG.downsampleHeight);
+    }
+
     // Use SSIM for precise comparison
-    const ssim = calculateSSIM(img1Data, img2Data);
+    const ssim = calculateSSIM(processedImg1, processedImg2);
     return ssim < CONFIG.ssimThreshold;
 
   } catch (error) {

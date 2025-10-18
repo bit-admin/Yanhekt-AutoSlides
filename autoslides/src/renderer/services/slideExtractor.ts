@@ -10,6 +10,9 @@ export interface SlideExtractionConfig {
   enableDoubleVerification: boolean; // Enable dual verification
   verificationCount: number;       // Number of verification attempts
   ssimThreshold: number;           // SSIM similarity threshold
+  enableDownsampling: boolean;     // Enable downsampling before SSIM calculation
+  downsampleWidth: number;         // Target width for downsampling
+  downsampleHeight: number;        // Target height for downsampling
 }
 
 export interface ExtractedSlide {
@@ -36,7 +39,10 @@ export class SlideExtractor {
     checkInterval: 2000,              // 2 seconds
     enableDoubleVerification: true,   // Enable dual verification
     verificationCount: 2,             // 2 verification attempts
-    ssimThreshold: 0.999             // SSIM similarity threshold
+    ssimThreshold: 0.999,            // SSIM similarity threshold
+    enableDownsampling: true,        // Enable downsampling by default
+    downsampleWidth: 480,            // Default downsample width
+    downsampleHeight: 270            // Default downsample height
   };
 
   // Playback rate tracking for dynamic interval adjustment
@@ -85,12 +91,18 @@ export class SlideExtractor {
         checkInterval: this.getIntervalForRate(this.currentPlaybackRate), // Direct table lookup
         enableDoubleVerification: slideConfig.enableDoubleVerification !== false,
         verificationCount: slideConfig.verificationCount || 2,
-        ssimThreshold: slideConfig.ssimThreshold || 0.999
+        ssimThreshold: slideConfig.ssimThreshold || 0.999,
+        enableDownsampling: slideConfig.enableDownsampling !== undefined ? slideConfig.enableDownsampling : true,
+        downsampleWidth: slideConfig.downsampleWidth || 480,
+        downsampleHeight: slideConfig.downsampleHeight || 270
       };
 
       // Update worker configuration
       await slideProcessorService.updateConfig({
-        ssimThreshold: this.config.ssimThreshold
+        ssimThreshold: this.config.ssimThreshold,
+        enableDownsampling: this.config.enableDownsampling,
+        downsampleWidth: this.config.downsampleWidth,
+        downsampleHeight: this.config.downsampleHeight
       });
 
       console.log('Slide extraction config loaded:', this.config);
@@ -228,10 +240,16 @@ export class SlideExtractor {
     this.config = { ...this.config, ...newConfig };
 
     // Update worker configuration if image processing params changed
-    if (newConfig.ssimThreshold !== undefined) {
+    if (newConfig.ssimThreshold !== undefined ||
+        newConfig.enableDownsampling !== undefined ||
+        newConfig.downsampleWidth !== undefined ||
+        newConfig.downsampleHeight !== undefined) {
       try {
         await slideProcessorService.updateConfig({
-          ssimThreshold: this.config.ssimThreshold
+          ssimThreshold: this.config.ssimThreshold,
+          enableDownsampling: this.config.enableDownsampling,
+          downsampleWidth: this.config.downsampleWidth,
+          downsampleHeight: this.config.downsampleHeight
         });
       } catch (error) {
         console.error('Failed to update worker config:', error);

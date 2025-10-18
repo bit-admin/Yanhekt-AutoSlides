@@ -161,6 +161,9 @@ export class SlideProcessorService {
    */
   async updateConfig(config: {
     ssimThreshold?: number;
+    enableDownsampling?: boolean;
+    downsampleWidth?: number;
+    downsampleHeight?: number;
   }): Promise<boolean> {
     try {
       return await this.sendMessage<boolean>('updateConfig', { config });

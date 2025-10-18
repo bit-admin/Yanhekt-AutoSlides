@@ -36,6 +36,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ssimThreshold?: number;
       ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
       pHashThreshold?: number;
+      enableDownsampling?: boolean;
+      downsampleWidth?: number;
+      downsampleHeight?: number;
     }) => ipcRenderer.invoke('config:setSlideImageProcessingParams', params),
     // pHash exclusion list management
     getPHashExclusionList: () => ipcRenderer.invoke('config:getPHashExclusionList'),

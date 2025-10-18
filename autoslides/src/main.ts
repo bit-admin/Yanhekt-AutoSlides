@@ -311,6 +311,9 @@ ipcMain.handle('config:setSlideImageProcessingParams', async (event, params: {
   ssimThreshold?: number;
   ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
   pHashThreshold?: number;
+  enableDownsampling?: boolean;
+  downsampleWidth?: number;
+  downsampleHeight?: number;
 }) => {
   configService.setSlideImageProcessingParams(params);
   return configService.getSlideExtractionConfig();

@@ -23,6 +23,11 @@ export interface SlideExtractionConfig {
   ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom'; // SSIM preset mode
   isAdaptiveMode?: boolean;        // Whether currently in adaptive mode
 
+  // Downsampling parameters for SSIM
+  enableDownsampling: boolean;     // Enable downsampling before SSIM calculation
+  downsampleWidth: number;         // Target width for downsampling
+  downsampleHeight: number;        // Target height for downsampling
+
   // Post-processing parameters
   pHashThreshold: number;          // pHash Hamming distance threshold for post-processing
   pHashExclusionList: PHashExclusionItem[]; // List of images to exclude from post-processing
@@ -55,6 +60,11 @@ const defaultSlideExtractionConfig: SlideExtractionConfig = {
   ssimThreshold: 0.9987,           // SSIM similarity threshold (default to normal)
   ssimPresetMode: 'adaptive',      // Default to adaptive mode
   isAdaptiveMode: true,            // Start in adaptive mode
+
+  // Downsampling parameters
+  enableDownsampling: true,        // Enable downsampling by default
+  downsampleWidth: 480,            // Default downsample width
+  downsampleHeight: 270,           // Default downsample height
 
   // Post-processing parameters
   pHashThreshold: 10,              // pHash Hamming distance threshold (default: 10)
@@ -193,6 +203,9 @@ export class ConfigService {
     ssimThreshold?: number;
     ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
     pHashThreshold?: number;
+    enableDownsampling?: boolean;
+    downsampleWidth?: number;
+    downsampleHeight?: number;
   }): void {
     const config: Partial<SlideExtractionConfig> = {};
 
@@ -207,6 +220,18 @@ export class ConfigService {
 
     if (params.pHashThreshold !== undefined) {
       config.pHashThreshold = Math.max(0, Math.min(256, Math.round(params.pHashThreshold)));
+    }
+
+    if (params.enableDownsampling !== undefined) {
+      config.enableDownsampling = params.enableDownsampling;
+    }
+
+    if (params.downsampleWidth !== undefined) {
+      config.downsampleWidth = Math.max(160, Math.min(1920, Math.round(params.downsampleWidth)));
+    }
+
+    if (params.downsampleHeight !== undefined) {
+      config.downsampleHeight = Math.max(90, Math.min(1080, Math.round(params.downsampleHeight)));
     }
 
     this.setSlideExtractionConfig(config);

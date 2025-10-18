@@ -42,6 +42,9 @@ interface SlideExtractionConfig {
   ssimThreshold: number;
   ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
   isAdaptiveMode?: boolean;
+  enableDownsampling: boolean;
+  downsampleWidth: number;
+  downsampleHeight: number;
   pHashThreshold: number;
   pHashExclusionList: PHashExclusionItem[];
 }
@@ -52,6 +55,9 @@ interface SlideImageProcessingParams {
   ssimThreshold?: number;
   ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
   pHashThreshold?: number;
+  enableDownsampling?: boolean;
+  downsampleWidth?: number;
+  downsampleHeight?: number;
 }
 
 // ============================================================================
