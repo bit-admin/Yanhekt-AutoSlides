@@ -534,6 +534,26 @@ ipcMain.handle('slideExtraction:deleteSlide', async (event, outputPath: string, 
   }
 });
 
+ipcMain.handle('slideExtraction:loadSlideImage', async (event, filePath: string) => {
+  try {
+    const imageBuffer = await slideExtractionService.loadSlideImage(filePath);
+    return imageBuffer;
+  } catch (error) {
+    console.error('Failed to load slide image:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('slideExtraction:savePostProcessingResults', async (event, filePath: string, data: any) => {
+  try {
+    await slideExtractionService.savePostProcessingResults(filePath, data);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to save post-processing results:', error);
+    throw error;
+  }
+});
+
 // IPC handlers for dialog functionality
 ipcMain.handle('dialog:showMessageBox', async (event, options: Electron.MessageBoxOptions) => {
   try {

@@ -235,7 +235,7 @@
                     <path d="m2 12 10 5 10-5"/>
                   </svg>
                   <div v-else class="processing-spinner"></div>
-                  {{ isPostProcessing ? '处理中...' : '执行后处理' }}
+                  {{ isPostProcessing ? $t('playback.postProcessing') : $t('playback.postProcess') }}
                 </button>
 
                 <!-- Clear All Button (only show when slides exist) -->
@@ -1591,21 +1591,23 @@ const closeSlideModal = () => {
   selectedSlide.value = null
 }
 
-const deleteSlide = async (slide: ExtractedSlide) => {
+const deleteSlide = async (slide: ExtractedSlide, showConfirmation: boolean = true) => {
   try {
-    // Show confirmation dialog
-    const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
-      type: 'question',
-      buttons: ['Cancel', 'Move to Trash'],
-      defaultId: 1,
-      cancelId: 0,
-      title: 'Delete Slide',
-      message: `Are you sure you want to delete "${slide.title}.png"?`,
-      detail: 'The file will be moved to your system trash and can be restored if needed.'
-    })
+    // Show confirmation dialog if requested
+    if (showConfirmation) {
+      const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
+        type: 'question',
+        buttons: ['Cancel', 'Move to Trash'],
+        defaultId: 1,
+        cancelId: 0,
+        title: 'Delete Slide',
+        message: `Are you sure you want to delete "${slide.title}.png"?`,
+        detail: 'The file will be moved to your system trash and can be restored if needed.'
+      })
 
-    if (confirmed?.response !== 1) {
-      return // User cancelled
+      if (confirmed?.response !== 1) {
+        return // User cancelled
+      }
     }
 
     // Get the output path from the slide extractor
@@ -1703,42 +1705,59 @@ const executePostProcessing = async () => {
       throw new Error('Output path not found')
     }
 
+    // Get pHash configuration
+    const config = await window.electronAPI.config?.getSlideExtractionConfig?.()
+    if (!config) {
+      throw new Error('Failed to get slide extraction configuration')
+    }
+
+    const pHashThreshold = config.pHashThreshold || 10
+    const exclusionList = config.pHashExclusionList || []
+
     isPostProcessing.value = true
     console.log(`Starting post-processing for ${extractedSlides.value.length} slides...`)
+    console.log(`Using pHash threshold: ${pHashThreshold}, exclusion list items: ${exclusionList.length}`)
 
     // Create post-processing worker to calculate pHash for all saved images
     const worker = new Worker(new URL('../workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
 
+    // Helper function to calculate Hamming distance using worker
+    const calculateHammingDistanceWithWorker = (hash1: string, hash2: string): Promise<number> => {
+      return new Promise((resolve, reject) => {
+        const messageId = `hamming_${Date.now()}_${Math.random()}`
+
+        const messageHandler = (event: MessageEvent) => {
+          const { id, success, result, error } = event.data
+          if (id === messageId) {
+            worker.removeEventListener('message', messageHandler)
+            if (success) {
+              resolve(result)
+            } else {
+              reject(new Error(error))
+            }
+          }
+        }
+
+        worker.addEventListener('message', messageHandler)
+        worker.postMessage({
+          id: messageId,
+          type: 'calculateHammingDistance',
+          data: { hash1, hash2 }
+        })
+      })
+    }
+
     // Process each slide individually to avoid memory issues
-    const results: Array<{ filename: string; pHash: string; error?: string }> = []
+    const results: Array<{ filename: string; pHash: string; excluded?: boolean; excludedReason?: string; error?: string }> = []
+    const deletedSlides: string[] = []
     let processedCount = 0
 
     for (const slide of extractedSlides.value) {
       try {
         const filename = `${slide.title}.png`
-        const filePath = `${outputPath}/${filename}`
 
-        // Load image data from file via main process
-        const imageBuffer = await window.electronAPI.slideExtraction?.loadSlideImage?.(filePath)
-        if (!imageBuffer) {
-          throw new Error('Failed to load image data')
-        }
-
-        // Convert buffer to ImageData
-        const blob = new Blob([imageBuffer], { type: 'image/png' })
-        const imageBitmap = await createImageBitmap(blob)
-
-        // Create canvas and get ImageData
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        if (!ctx) throw new Error('Failed to get 2D context')
-
-        canvas.width = imageBitmap.width
-        canvas.height = imageBitmap.height
-        ctx.drawImage(imageBitmap, 0, 0)
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-
-        imageBitmap.close()
+        // Use the ImageData that's already in memory - no need to reload from file!
+        const imageData = slide.imageData
 
         // Calculate pHash using worker
         const pHashPromise = new Promise<string>((resolve, reject) => {
@@ -1766,13 +1785,54 @@ const executePostProcessing = async () => {
 
         const pHash = await pHashPromise
 
-        results.push({
-          filename,
-          pHash
-        })
+        // Check against exclusion list
+        let shouldExclude = false
+        let excludedReason = ''
+
+        for (const exclusionItem of exclusionList) {
+          try {
+            const hammingDistance = await calculateHammingDistanceWithWorker(pHash, exclusionItem.pHash)
+            if (hammingDistance <= pHashThreshold) {
+              shouldExclude = true
+              excludedReason = `Similar to excluded item "${exclusionItem.name}" (Hamming distance: ${hammingDistance})`
+              console.log(`Slide ${filename} excluded: ${excludedReason}`)
+              break
+            }
+          } catch (error) {
+            console.warn(`Failed to calculate Hamming distance for exclusion item "${exclusionItem.name}":`, error)
+          }
+        }
+
+        // If slide should be excluded, delete it
+        if (shouldExclude) {
+          try {
+            await deleteSlide(slide, false) // false = don't show confirmation dialog
+            deletedSlides.push(filename)
+            results.push({
+              filename,
+              pHash,
+              excluded: true,
+              excludedReason
+            })
+          } catch (deleteError) {
+            console.error(`Failed to delete excluded slide ${filename}:`, deleteError)
+            results.push({
+              filename,
+              pHash,
+              excluded: false,
+              error: `Failed to delete: ${deleteError instanceof Error ? deleteError.message : String(deleteError)}`
+            })
+          }
+        } else {
+          results.push({
+            filename,
+            pHash,
+            excluded: false
+          })
+        }
 
         processedCount++
-        console.log(`Processed ${filename} (${processedCount}/${extractedSlides.value.length}): pHash = ${pHash}`)
+        console.log(`Processed ${filename} (${processedCount}/${extractedSlides.value.length}): pHash = ${pHash}${shouldExclude ? ' [EXCLUDED]' : ''}`)
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error)
@@ -1788,23 +1848,18 @@ const executePostProcessing = async () => {
 
     worker.terminate()
 
-    // Save results to JSON file via main process
-    const resultsData = {
-      timestamp: new Date().toISOString(),
-      totalSlides: extractedSlides.value.length,
-      processedSlides: results.filter(r => !r.error).length,
-      failedSlides: results.filter(r => r.error).length,
-      results: results
-    }
-
-    const resultsFilePath = `${outputPath}/pHash_results.json`
-    await window.electronAPI.slideExtraction?.savePostProcessingResults?.(resultsFilePath, resultsData)
+    // Calculate summary statistics
+    const totalSlides = extractedSlides.value.length
+    const processedSlides = results.filter(r => !r.error).length
+    const failedSlides = results.filter(r => r.error).length
+    const excludedSlides = results.filter(r => r.excluded).length
 
     console.log('Post-processing completed successfully:', {
-      totalSlides: resultsData.totalSlides,
-      processedSlides: resultsData.processedSlides,
-      failedSlides: resultsData.failedSlides,
-      resultsFile: resultsFilePath
+      totalSlides,
+      processedSlides,
+      failedSlides,
+      excludedSlides,
+      deletedSlides: deletedSlides.length
     })
 
     // Show success dialog
@@ -1812,7 +1867,7 @@ const executePostProcessing = async () => {
       type: 'info',
       title: 'Post-processing Completed',
       message: `Post-processing completed successfully!`,
-      detail: `Processed: ${resultsData.processedSlides}/${resultsData.totalSlides} slides\nResults saved to: pHash_results.json`
+      detail: `Processed: ${processedSlides}/${totalSlides} slides\nExcluded and deleted: ${excludedSlides} slides${failedSlides > 0 ? `\nFailed: ${failedSlides} slides` : ''}`
     })
 
   } catch (error) {

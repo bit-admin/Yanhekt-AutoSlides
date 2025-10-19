@@ -319,6 +319,8 @@ interface ElectronAPI {
     saveSlide: (outputPath: string, filename: string, imageBuffer: Uint8Array) => Promise<SlideOperationResponse>;
     ensureDirectory: (path: string) => Promise<SlideOperationResponse>;
     deleteSlide: (outputPath: string, filename: string) => Promise<SlideOperationResponse>;
+    loadSlideImage: (filePath: string) => Promise<Uint8Array>;
+    savePostProcessingResults: (filePath: string, data: any) => Promise<void>;
   };
 
   dialog?: {

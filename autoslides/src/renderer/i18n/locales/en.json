@@ -265,6 +265,8 @@
     "slides": "slides",
     "extracted": "extracted",
     "clearAll": "Clear All",
+    "postProcess": "Post-process",
+    "postProcessing": "Processing...",
     "moveToTrash": "Move to Trash",
     "close": "Close",
     "extractedAt": "Extracted at:",

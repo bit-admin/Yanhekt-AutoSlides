@@ -157,6 +157,62 @@ export class SlideExtractionService {
   }
 
   /**
+   * Load slide image from file system
+   */
+  async loadSlideImage(filePath: string): Promise<Uint8Array> {
+    try {
+      // Expand tilde in path
+      const expandedPath = filePath.startsWith('~')
+        ? path.join(os.homedir(), filePath.slice(1))
+        : filePath;
+
+      // Validate file path to prevent directory traversal attacks
+      const resolvedFilePath = path.resolve(expandedPath);
+
+      // Check if file exists and is a file
+      const stats = await fs.stat(resolvedFilePath);
+      if (!stats.isFile()) {
+        throw new Error('Path is not a file');
+      }
+
+      // Read the file as buffer
+      const buffer = await fs.readFile(resolvedFilePath);
+      console.log(`Slide image loaded successfully: ${resolvedFilePath}`);
+
+      return new Uint8Array(buffer);
+    } catch (error) {
+      console.error('Failed to load slide image:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save post-processing results to file system
+   */
+  async savePostProcessingResults(filePath: string, data: any): Promise<void> {
+    try {
+      // Expand tilde in path
+      const expandedPath = filePath.startsWith('~')
+        ? path.join(os.homedir(), filePath.slice(1))
+        : filePath;
+
+      // Ensure directory exists
+      const dirPath = path.dirname(expandedPath);
+      await this.ensureDirectory(dirPath);
+
+      // Convert data to JSON string
+      const jsonData = JSON.stringify(data, null, 2);
+
+      // Write JSON data to file
+      await fs.writeFile(expandedPath, jsonData, 'utf8');
+      console.log(`Post-processing results saved successfully: ${expandedPath}`);
+    } catch (error) {
+      console.error('Failed to save post-processing results:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Clean up old slide files (optional utility)
    */
   async cleanupOldSlides(dirPath: string, maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): Promise<number> {

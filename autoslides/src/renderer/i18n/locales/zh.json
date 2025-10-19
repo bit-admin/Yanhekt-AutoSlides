@@ -265,6 +265,8 @@
     "slides": "张幻灯片",
     "extracted": "已提取",
     "clearAll": "全部清除",
+    "postProcess": "执行后处理",
+    "postProcessing": "处理中...",
     "moveToTrash": "移至废纸篓",
     "close": "关闭",
     "extractedAt": "提取时间：",

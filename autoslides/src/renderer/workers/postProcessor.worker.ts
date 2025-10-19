@@ -6,7 +6,7 @@
 // Worker message types
 interface WorkerMessage {
   id?: string;
-  type: 'calculatePHash';
+  type: 'calculatePHash' | 'calculateHammingDistance';
   data: any;
 }
 
@@ -134,6 +134,35 @@ function calculatePHashForImage(imageData: ImageData): string {
   return pHash.toString(16).padStart(64, '0'); // 256 bits = 64 hex chars
 }
 
+/**
+ * Calculate Hamming distance between two 256-bit pHash values
+ * @param hash1 First pHash as hex string (64 characters)
+ * @param hash2 Second pHash as hex string (64 characters)
+ * @returns Hamming distance (number of different bits)
+ */
+function calculateHammingDistance(hash1: string, hash2: string): number {
+  if (hash1.length !== 64 || hash2.length !== 64) {
+    throw new Error('pHash strings must be exactly 64 characters (256 bits)');
+  }
+
+  let distance = 0;
+
+  // Compare each hex character (4 bits at a time)
+  for (let i = 0; i < 64; i++) {
+    const char1 = parseInt(hash1[i], 16);
+    const char2 = parseInt(hash2[i], 16);
+
+    // XOR the 4-bit values and count set bits
+    let xor = char1 ^ char2;
+    while (xor) {
+      distance += xor & 1;
+      xor >>= 1;
+    }
+  }
+
+  return distance;
+}
+
 // Message handler
 self.onmessage = async function(e: MessageEvent<WorkerMessage>) {
   const { id, type, data } = e.data;
@@ -145,6 +174,12 @@ self.onmessage = async function(e: MessageEvent<WorkerMessage>) {
       case 'calculatePHash': {
         const { imageData } = data;
         result = calculatePHashForImage(imageData);
+        break;
+      }
+
+      case 'calculateHammingDistance': {
+        const { hash1, hash2 } = data;
+        result = calculateHammingDistance(hash1, hash2);
         break;
       }
 
