@@ -10,6 +10,8 @@ export interface PHashExclusionItem {
   name: string;                    // User-defined name for the exclusion item
   pHash: string;                   // 256-bit pHash value as hex string
   createdAt: number;               // Timestamp when the item was created
+  isPreset?: boolean;              // Whether this is a preset item (cannot be deleted)
+  isEnabled?: boolean;             // Whether this preset item is enabled (only for presets)
 }
 
 export interface SlideExtractionConfig {
@@ -68,7 +70,32 @@ const defaultSlideExtractionConfig: SlideExtractionConfig = {
 
   // Post-processing parameters
   pHashThreshold: 10,              // pHash Hamming distance threshold (default: 10)
-  pHashExclusionList: []           // Empty exclusion list by default
+  pHashExclusionList: [            // Default preset exclusion items
+    {
+      id: 'preset_no_signal',
+      name: 'No Signal',
+      pHash: '4ccccccc33333333cccccccc33333333cccccccccccc333333336666ccccdccc',
+      createdAt: 0,
+      isPreset: true,
+      isEnabled: true
+    },
+    {
+      id: 'preset_black_screen',
+      name: 'Black Screen',
+      pHash: '4118adfc4b08ba71510bbf680718b166c99a96d6d718cee474f3fcb52a1c7d4a',
+      createdAt: 0,
+      isPreset: true,
+      isEnabled: true
+    },
+    {
+      id: 'preset_desktop',
+      name: 'Desktop',
+      pHash: '5555f4f43d0a1f0b3b8ec4f1c2e43f070932f0fcc07c3c093d0bcf07c3969b93',
+      createdAt: 0,
+      isPreset: true,
+      isEnabled: true
+    }
+  ]
 };
 
 const defaultConfig: AppConfig = {
@@ -283,7 +310,21 @@ export class ConfigService {
   // pHash exclusion list management
   getPHashExclusionList(): PHashExclusionItem[] {
     const config = this.getSlideExtractionConfig();
-    return config.pHashExclusionList || [];
+    const userList = config.pHashExclusionList || [];
+
+    // Get default presets
+    const defaultPresets = defaultSlideExtractionConfig.pHashExclusionList;
+
+    // Merge presets with user items, preserving user's preset enable/disable state
+    const presets = defaultPresets.map(preset => {
+      const existingPreset = userList.find(item => item.id === preset.id);
+      return existingPreset || preset;
+    });
+
+    // Add user-created items (non-presets)
+    const userItems = userList.filter(item => !item.isPreset);
+
+    return [...presets, ...userItems];
   }
 
   addPHashExclusionItem(name: string, pHash: string): PHashExclusionItem {
@@ -302,16 +343,34 @@ export class ConfigService {
   }
 
   removePHashExclusionItem(id: string): boolean {
-    const exclusionList = this.getPHashExclusionList();
-    const initialLength = exclusionList.length;
-    const updatedList = exclusionList.filter(item => item.id !== id);
+    const config = this.getSlideExtractionConfig();
+    const userList = config.pHashExclusionList || [];
 
-    if (updatedList.length !== initialLength) {
+    // Find the item to remove/disable
+    const item = this.getPHashExclusionList().find(item => item.id === id);
+    if (!item) return false;
+
+    if (item.isPreset) {
+      // For preset items, toggle the enabled state
+      const existingPresetIndex = userList.findIndex(item => item.id === id);
+      let updatedList = [...userList];
+
+      if (existingPresetIndex >= 0) {
+        // Update existing preset state
+        updatedList[existingPresetIndex] = { ...item, isEnabled: !item.isEnabled };
+      } else {
+        // Add preset with disabled state
+        updatedList.push({ ...item, isEnabled: false });
+      }
+
+      this.setSlideExtractionConfig({ pHashExclusionList: updatedList });
+      return true;
+    } else {
+      // For user items, actually remove them
+      const updatedList = userList.filter(item => item.id !== id);
       this.setSlideExtractionConfig({ pHashExclusionList: updatedList });
       return true;
     }
-
-    return false;
   }
 
   updatePHashExclusionItemName(id: string, newName: string): boolean {

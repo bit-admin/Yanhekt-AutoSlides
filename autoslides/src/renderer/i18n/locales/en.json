@@ -95,7 +95,7 @@
       },
       "reason": "These buildings have older equipment and poorer screen recording quality, requiring a more lenient threshold."
     },
-    "pHashThreshold": "pHash Hamming Distance Threshold (256-bit)",
+    "pHashThreshold": "Hamming Distance Threshold for pHash (256-bit)",
     "pHashDescription": "Hamming distance threshold for pHash comparison in post-processing. Lower values indicate stricter similarity detection.",
     "hammingDistance": "Hamming Distance",
     "pHashExclusionList": "pHash Exclusion List",
@@ -104,6 +104,9 @@
     "addExclusionItem": "Add Exclusion Item",
     "editName": "Edit Name",
     "removeItem": "Remove Item",
+    "enableItem": "Enable",
+    "disableItem": "Disable",
+    "presetLabel": "Preset",
     "clearAll": "Clear All",
     "processing": "Processing...",
     "clearExclusionListTitle": "Clear Exclusion List",

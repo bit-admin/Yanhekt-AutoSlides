@@ -370,15 +370,21 @@
                     <div
                       v-for="item in pHashExclusionList"
                       :key="item.id"
-                      class="exclusion-item"
+                      :class="['exclusion-item', {
+                        'preset-item': item.isPreset,
+                        'disabled-item': item.isPreset && !item.isEnabled
+                      }]"
                     >
                       <div class="exclusion-item-info">
-                        <div class="exclusion-item-name">{{ item.name }}</div>
-                        <div class="exclusion-item-hash">{{ item.pHash.substring(0, 16) }}...</div>
-                        <div class="exclusion-item-date">{{ formatDate(item.createdAt) }}</div>
+                        <div class="exclusion-item-name">
+                          <span v-if="item.isPreset" class="preset-badge">{{ $t('advanced.presetLabel') }}</span>
+                          {{ item.name }}
+                        </div>
+                        <div class="exclusion-item-hash" :title="item.pHash">{{ item.pHash }}</div>
                       </div>
                       <div class="exclusion-item-actions">
                         <button
+                          v-if="!item.isPreset"
                           @click="editExclusionItemName(item)"
                           class="exclusion-edit-btn"
                           :title="$t('advanced.editName')"
@@ -390,10 +396,20 @@
                         </button>
                         <button
                           @click="removeExclusionItem(item.id)"
-                          class="exclusion-remove-btn"
-                          :title="$t('advanced.removeItem')"
+                          :class="item.isPreset ? 'exclusion-toggle-btn' : 'exclusion-remove-btn'"
+                          :title="item.isPreset ? (item.isEnabled ? $t('advanced.disableItem') : $t('advanced.enableItem')) : $t('advanced.removeItem')"
                         >
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <svg v-if="item.isPreset" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <template v-if="item.isEnabled">
+                              <circle cx="12" cy="12" r="10"/>
+                              <path d="M9 12l2 2 4-4"/>
+                            </template>
+                            <template v-else>
+                              <circle cx="12" cy="12" r="10"/>
+                              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+                            </template>
+                          </svg>
+                          <svg v-else width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3,6 5,6 21,6"/>
                             <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
                           </svg>
@@ -573,7 +589,7 @@
                         <div class="detail-row">
                           <span class="detail-label">{{ $t('advanced.ipAddresses') }}:</span>
                           <div class="ip-list">
-                            <span v-for="(ip, index) in mapping.ips" :key="ip" class="ip-item">
+                            <span v-for="ip in mapping.ips" :key="ip" class="ip-item">
                               {{ ip }}
                             </span>
                           </div>
@@ -634,7 +650,7 @@ import { useI18n } from 'vue-i18n'
 import { AuthService, TokenManager } from '../services/authService'
 import { ApiClient } from '../services/apiClient'
 import { DownloadService } from '../services/downloadService'
-import { TaskQueue, taskQueueState } from '../services/taskQueueService'
+import { taskQueueState } from '../services/taskQueueService'
 import { languageService } from '../services/languageService'
 import { ssimThresholdService, type SsimPresetType } from '../services/ssimThresholdService'
 
@@ -742,6 +758,8 @@ interface PHashExclusionItem {
   name: string
   pHash: string
   createdAt: number
+  isPreset?: boolean
+  isEnabled?: boolean
 }
 
 const pHashExclusionList = ref<PHashExclusionItem[]>([])
@@ -1694,9 +1712,6 @@ const clearExclusionList = async () => {
   }
 }
 
-const formatDate = (timestamp: number): string => {
-  return new Date(timestamp).toLocaleDateString()
-}
 
 // Custom input dialog methods
 const showNameInputDialog = (defaultValue: string = ''): Promise<string | null> => {
@@ -3775,6 +3790,20 @@ const closeNameInputDialog = () => {
   background-color: #f8f9fa;
 }
 
+.exclusion-item.preset-item {
+  border-left: 3px solid #007acc;
+}
+
+.exclusion-item.disabled-item {
+  opacity: 0.6;
+  background-color: #f8f9fa;
+}
+
+.exclusion-item.disabled-item .exclusion-item-name,
+.exclusion-item.disabled-item .exclusion-item-hash {
+  color: #999;
+}
+
 .exclusion-item-info {
   flex: 1;
   min-width: 0;
@@ -3788,6 +3817,21 @@ const closeNameInputDialog = () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.preset-badge {
+  font-size: 9px;
+  font-weight: 600;
+  color: #007acc;
+  background-color: #e3f2fd;
+  padding: 2px 6px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
 }
 
 .exclusion-item-hash {
@@ -3795,12 +3839,12 @@ const closeNameInputDialog = () => {
   color: #666;
   font-family: 'Courier New', monospace;
   margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-all;
 }
 
-.exclusion-item-date {
-  font-size: 10px;
-  color: #999;
-}
 
 .exclusion-item-actions {
   display: flex;
@@ -3808,7 +3852,7 @@ const closeNameInputDialog = () => {
   margin-left: 8px;
 }
 
-.exclusion-edit-btn, .exclusion-remove-btn {
+.exclusion-edit-btn, .exclusion-remove-btn, .exclusion-toggle-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3839,6 +3883,16 @@ const closeNameInputDialog = () => {
   background-color: #dc3545;
   color: white;
   border-color: #dc3545;
+}
+
+.exclusion-toggle-btn {
+  color: #28a745;
+}
+
+.exclusion-toggle-btn:hover {
+  background-color: #28a745;
+  color: white;
+  border-color: #28a745;
 }
 
 .exclusion-actions {
@@ -3915,15 +3969,26 @@ const closeNameInputDialog = () => {
     color: #e0e0e0;
   }
 
+  .preset-badge {
+    color: #4a9eff;
+    background-color: #1a2332;
+  }
+
+  .exclusion-item.preset-item {
+    border-left-color: #4a9eff;
+  }
+
+  .exclusion-item.disabled-item .exclusion-item-name,
+  .exclusion-item.disabled-item .exclusion-item-hash {
+    color: #666;
+  }
+
   .exclusion-item-hash {
     color: #b0b0b0;
   }
 
-  .exclusion-item-date {
-    color: #888;
-  }
 
-  .exclusion-edit-btn, .exclusion-remove-btn {
+  .exclusion-edit-btn, .exclusion-remove-btn, .exclusion-toggle-btn {
     background-color: #2d2d2d;
     border-color: #404040;
   }
@@ -3946,6 +4011,16 @@ const closeNameInputDialog = () => {
     background-color: #ff6b6b;
     color: white;
     border-color: #ff6b6b;
+  }
+
+  .exclusion-toggle-btn {
+    color: #4caf50;
+  }
+
+  .exclusion-toggle-btn:hover {
+    background-color: #4caf50;
+    color: white;
+    border-color: #4caf50;
   }
 
   .exclusion-add-btn {
