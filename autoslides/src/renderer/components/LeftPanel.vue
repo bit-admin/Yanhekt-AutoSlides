@@ -28,10 +28,24 @@
         </button>
       </div>
       <div v-else class="user-info">
-        <h3>{{ $t('auth.hiThere', { nickname: userNickname }) }}</h3>
-        <p>{{ $t('auth.signInAs', { userId: userId }) }}</p>
+        <h3>{{ $t('auth.hiThere', { nickname: isNicknameMasked ? 'ʕ•ᴥ•ʔ' : userNickname }) }}</h3>
+        <p>{{ $t('auth.signInAs', { userId: isUserIdMasked ? '•••••••••••' : userId }) }}</p>
         <p>{{ $t('auth.accessMessage') }}</p>
         <button @click="logout" class="logout-btn">{{ $t('auth.signOut') }}</button>
+
+        <!-- Hidden clickable areas for toggling mask -->
+        <div
+          v-if="isNicknameMasked"
+          class="mask-toggle nickname-mask-toggle"
+          @click="toggleNicknameMask"
+          :title="$t('auth.clickToShow')"
+        ></div>
+        <div
+          v-if="isUserIdMasked"
+          class="mask-toggle userid-mask-toggle"
+          @click="toggleUserIdMask"
+          :title="$t('auth.clickToShow')"
+        ></div>
       </div>
     </div>
 
@@ -661,6 +675,46 @@ const username = ref('')
 const password = ref('')
 const userNickname = ref('User')
 const userId = ref('user123')
+
+// Masking state for user info
+const isNicknameMasked = ref(false)
+const isUserIdMasked = ref(false)
+let maskingTimer: NodeJS.Timeout | null = null
+
+// Functions for masking user info
+const startMaskingTimer = () => {
+  // Clear any existing timer
+  if (maskingTimer) {
+    clearTimeout(maskingTimer)
+  }
+
+  // Reset masking state
+  isNicknameMasked.value = false
+  isUserIdMasked.value = false
+
+  // Start 5-second timer to mask user info
+  maskingTimer = setTimeout(() => {
+    isNicknameMasked.value = true
+    isUserIdMasked.value = true
+  }, 5000)
+}
+
+const toggleNicknameMask = () => {
+  isNicknameMasked.value = !isNicknameMasked.value
+}
+
+const toggleUserIdMask = () => {
+  isUserIdMasked.value = !isUserIdMasked.value
+}
+
+const clearMaskingTimer = () => {
+  if (maskingTimer) {
+    clearTimeout(maskingTimer)
+    maskingTimer = null
+  }
+  isNicknameMasked.value = false
+  isUserIdMasked.value = false
+}
 const connectionMode = ref<'internal' | 'external'>('external')
 const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
 const themeMode = ref<'system' | 'light' | 'dark'>('system')
@@ -822,6 +876,7 @@ const login = async () => {
         isLoggedIn.value = true
         userNickname.value = verificationResult.userData.nickname || username.value
         userId.value = verificationResult.userData.badge || 'unknown'
+        startMaskingTimer() // Start the 5-second masking timer
         console.log('Login successful')
       } else {
         console.error('Token verification failed after login')
@@ -841,6 +896,7 @@ const login = async () => {
 
 const logout = () => {
   tokenManager.clearToken()
+  clearMaskingTimer() // Clear masking timer and reset state
   isLoggedIn.value = false
   username.value = ''
   password.value = ''
@@ -859,6 +915,7 @@ const verifyExistingToken = async () => {
       isLoggedIn.value = true
       userNickname.value = result.userData.nickname || 'User'
       userId.value = result.userData.badge || 'unknown'
+      startMaskingTimer() // Start the 5-second masking timer
       console.log('Existing token verified successfully')
     } else {
       if (!result.networkError) {
@@ -1113,6 +1170,8 @@ onMounted(() => {
 onUnmounted(() => {
   // Remove event listener for adaptive threshold changes
   window.removeEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as unknown as EventListener)
+  // Clear masking timer to prevent memory leaks
+  clearMaskingTimer()
 })
 
 const openAdvancedSettings = async () => {
@@ -1329,6 +1388,7 @@ const verifyManualToken = async () => {
       isLoggedIn.value = true
       userNickname.value = result.userData.nickname || 'User'
       userId.value = result.userData.badge || 'unknown'
+      startMaskingTimer() // Start the 5-second masking timer
 
       // Save the verified token
       tokenManager.saveToken(manualToken.value.trim())
@@ -1804,6 +1864,40 @@ const closeNameInputDialog = () => {
   margin: 0 20px 10px 20px;
   font-size: 15px;
   color: #666;
+}
+
+/* Mask toggle styles */
+.user-info {
+  position: relative;
+}
+
+.mask-toggle {
+  position: absolute;
+  cursor: pointer;
+  background-color: transparent;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  z-index: 10;
+}
+
+.mask-toggle:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.nickname-mask-toggle {
+  /* Position over the nickname area in h3 */
+  top: 5px;
+  left: 20px;
+  right: 20px;
+  height: 32px;
+}
+
+.userid-mask-toggle {
+  /* Position over the userId area in first p tag */
+  top: 47px;
+  left: 20px;
+  right: 20px;
+  height: 25px;
 }
 
 .verifying-state {
@@ -2797,6 +2891,10 @@ const closeNameInputDialog = () => {
 
   .login-form p, .verifying-state p, .user-info p {
     color: #b0b0b0;
+  }
+
+  .mask-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1);
   }
 
   .loading-spinner {
