@@ -314,6 +314,33 @@
               </div>
 
               <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.enableDownsampling') }}</label>
+                <div class="setting-description">{{ $t('advanced.downsamplingDescription') }}</div>
+                <div class="downsampling-controls">
+                  <div class="downsampling-control">
+                    <label class="checkbox-label">
+                      <input
+                        v-model="enableDownsampling"
+                        type="checkbox"
+                        @change="updateImageProcessingParams"
+                      />
+                      {{ $t('advanced.enableDownsampling') }}
+                    </label>
+                    <div v-if="enableDownsampling" class="downsampling-presets">
+                      <button
+                        v-for="preset in downsamplingPresets"
+                        :key="preset.key"
+                        @click="selectDownsamplingPreset(preset)"
+                        :class="['preset-btn', { active: selectedDownsamplingPreset === preset.key }]"
+                      >
+                        {{ preset.label }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-item">
                 <label class="setting-label">{{ $t('advanced.pHashThreshold') }}</label>
                 <div class="setting-description">{{ $t('advanced.pHashDescription') }}</div>
                 <div class="phash-threshold-input-wrapper">
@@ -327,50 +354,6 @@
                     @change="updateImageProcessingParams"
                   />
                   <span class="threshold-unit">{{ $t('advanced.hammingDistance') }}</span>
-                </div>
-              </div>
-
-              <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.enableDownsampling') }}</label>
-                <div class="setting-description">{{ $t('advanced.downsamplingDescription') }}</div>
-                <div class="downsampling-controls">
-                  <label class="checkbox-label">
-                    <input
-                      v-model="enableDownsampling"
-                      type="checkbox"
-                      @change="updateImageProcessingParams"
-                    />
-                    {{ $t('advanced.enableDownsampling') }}
-                  </label>
-                  <div v-if="enableDownsampling" class="downsampling-resolution">
-                    <div class="resolution-inputs">
-                      <div class="resolution-input-group">
-                        <label class="resolution-label">{{ $t('advanced.downsampleWidth') }}</label>
-                        <input
-                          v-model.number="downsampleWidth"
-                          type="number"
-                          min="160"
-                          max="1920"
-                          step="10"
-                          class="resolution-input"
-                          @change="updateImageProcessingParams"
-                        />
-                      </div>
-                      <span class="resolution-separator">×</span>
-                      <div class="resolution-input-group">
-                        <label class="resolution-label">{{ $t('advanced.downsampleHeight') }}</label>
-                        <input
-                          v-model.number="downsampleHeight"
-                          type="number"
-                          min="90"
-                          max="1080"
-                          step="10"
-                          class="resolution-input"
-                          @change="updateImageProcessingParams"
-                        />
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -743,6 +726,15 @@ const tempPHashThreshold = ref(10)
 const enableDownsampling = ref(true)
 const downsampleWidth = ref(480)
 const downsampleHeight = ref(270)
+const selectedDownsamplingPreset = ref('480x270')
+
+// Downsampling presets
+const downsamplingPresets = [
+  { key: '320x180', label: '320×180', width: 320, height: 180 },
+  { key: '480x270', label: '480×270', width: 480, height: 270 },
+  { key: '640x360', label: '640×360', width: 640, height: 360 },
+  { key: '800x450', label: '800×450', width: 800, height: 450 }
+]
 
 // pHash exclusion list configuration
 interface PHashExclusionItem {
@@ -917,6 +909,12 @@ const loadConfig = async () => {
     enableDownsampling.value = slideConfig.enableDownsampling !== undefined ? slideConfig.enableDownsampling : true
     downsampleWidth.value = slideConfig.downsampleWidth || 480
     downsampleHeight.value = slideConfig.downsampleHeight || 270
+
+    // Determine selected preset based on loaded values
+    const currentPreset = downsamplingPresets.find(preset =>
+      preset.width === downsampleWidth.value && preset.height === downsampleHeight.value
+    )
+    selectedDownsamplingPreset.value = currentPreset ? currentPreset.key : '480x270'
 
     // Load pHash exclusion list
     await loadPHashExclusionList()
@@ -1151,6 +1149,14 @@ const updateVideoRetryCount = () => {
 
 const updateImageProcessingParams = () => {
   // This is called when the inputs change, but we don't save until "Save" is clicked
+}
+
+// Downsampling preset selection method
+const selectDownsamplingPreset = (preset: { key: string; label: string; width: number; height: number }) => {
+  selectedDownsamplingPreset.value = preset.key
+  downsampleWidth.value = preset.width
+  downsampleHeight.value = preset.height
+  updateImageProcessingParams()
 }
 
 // SSIM preset handling methods
@@ -2343,6 +2349,10 @@ const closeNameInputDialog = () => {
 }
 
 .advanced-setting-section .setting-item {
+  margin-bottom: 20px;
+}
+
+.advanced-setting-section .setting-item:last-child {
   margin-bottom: 0;
 }
 
@@ -3210,6 +3220,80 @@ const closeNameInputDialog = () => {
   accent-color: #007bff;
 }
 
+/* Downsampling control styles - modified to accommodate presets */
+.downsampling-control {
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  min-height: 35px;
+}
+
+.downsampling-control:hover {
+  background-color: #e9ecef;
+  border-color: #007bff;
+}
+
+.downsampling-control .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  user-select: none;
+  height: 35px;
+}
+
+.downsampling-control .checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #007bff;
+}
+
+/* Downsampling presets styles */
+.downsampling-presets {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-top: 1px solid #e0e0e0;
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.preset-btn {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #666;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.preset-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #007bff;
+  color: #007bff;
+}
+
+.preset-btn.active {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: white;
+}
+
 /* Dark mode support for prevent sleep control */
 @media (prefers-color-scheme: dark) {
   .prevent-sleep-control {
@@ -3224,6 +3308,44 @@ const closeNameInputDialog = () => {
 
   .prevent-sleep-control .checkbox-label {
     color: #e0e0e0;
+  }
+
+  /* Dark mode support for downsampling control */
+  .downsampling-control {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .downsampling-control:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .downsampling-control .checkbox-label {
+    color: #e0e0e0;
+  }
+
+  .downsampling-presets {
+    border-top-color: #404040;
+    background-color: rgba(45, 45, 45, 0.7);
+  }
+
+  .preset-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .preset-btn:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+    color: #4a9eff;
+  }
+
+  .preset-btn.active {
+    background-color: #4a9eff;
+    border-color: #4a9eff;
+    color: white;
   }
 }
 
