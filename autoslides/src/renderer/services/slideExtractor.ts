@@ -34,6 +34,10 @@ export class SlideExtractor {
   private mode: 'live' | 'recorded';
   private videoElementSelector: string;
 
+  // Buffering state management
+  private isBuffering = false;
+  private isPausedDueToBuffering = false;
+
   // Configuration with default values
   private config: SlideExtractionConfig = {
     checkInterval: 2000,              // 2 seconds
@@ -373,6 +377,12 @@ export class SlideExtractor {
    */
   private async captureAndCompare(): Promise<void> {
     try {
+      // Skip capture if paused due to buffering
+      if (this.isPausedDueToBuffering) {
+        console.log('Skipping capture due to buffering');
+        return;
+      }
+
       const video = this.getVideoElement();
       if (!video) {
         console.warn('Video element not available during capture');
@@ -685,6 +695,35 @@ export class SlideExtractor {
   }
 
   /**
+   * Pause verification due to buffering
+   */
+  pauseForBuffering(): void {
+    if (this.isRunning && !this.isPausedDueToBuffering) {
+      this.isPausedDueToBuffering = true;
+      this.isBuffering = true;
+      console.log(`SlideExtractor ${this.instanceId}: Paused verification due to buffering`);
+    }
+  }
+
+  /**
+   * Resume verification after buffering
+   */
+  resumeAfterBuffering(): void {
+    if (this.isRunning && this.isPausedDueToBuffering) {
+      this.isPausedDueToBuffering = false;
+      this.isBuffering = false;
+      console.log(`SlideExtractor ${this.instanceId}: Resumed verification after buffering`);
+    }
+  }
+
+  /**
+   * Check if currently paused due to buffering
+   */
+  isPausedForBuffering(): boolean {
+    return this.isPausedDueToBuffering;
+  }
+
+  /**
    * Get extraction status
    */
   getStatus(): {
@@ -695,6 +734,8 @@ export class SlideExtractor {
     playbackRate: number;
     currentCheckInterval: number;
     baseCheckInterval: number;
+    isBuffering: boolean;
+    isPausedDueToBuffering: boolean;
   } {
     return {
       isRunning: this.isRunning,
@@ -703,7 +744,9 @@ export class SlideExtractor {
       currentVerification: this.currentVerification,
       playbackRate: this.currentPlaybackRate,
       currentCheckInterval: this.config.checkInterval,
-      baseCheckInterval: this.baseCheckInterval
+      baseCheckInterval: this.baseCheckInterval,
+      isBuffering: this.isBuffering,
+      isPausedDueToBuffering: this.isPausedDueToBuffering
     };
   }
 

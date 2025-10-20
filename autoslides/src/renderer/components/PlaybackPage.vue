@@ -473,6 +473,7 @@ const wakeLock = ref<WakeLockSentinel | null>(null)
 const performanceMonitorInterval = ref<NodeJS.Timeout | null>(null)
 const preventSystemSleep = ref(false) // Configuration setting for enabling performance optimizations
 
+
 // Computed property to determine if video should be muted based on mode and mute setting
 const shouldVideoMute = computed(() => {
   switch (muteMode.value) {
@@ -701,6 +702,7 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
       hls.value.loadSource(videoUrl)
       hls.value.attachMedia(videoPlayer.value)
 
+
       hls.value.on(Hls.Events.MANIFEST_PARSED, () => {
         setTimeout(() => {
           if (videoPlayer.value) {
@@ -758,6 +760,7 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
           }
         }, 100)
       })
+
 
       // Add the same enhanced error handling as the original function
       let mediaErrorRecoveryCount = 0
@@ -829,69 +832,6 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
       })
 
 
-    } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
-      // Native HLS support with position restore
-      videoPlayer.value.src = videoUrl
-      videoPlayer.value.load()
-
-      setTimeout(() => {
-        if (videoPlayer.value) {
-          // Set initial playback rate based on mode and saved state
-          if (props.mode === 'recorded') {
-            // Use saved playback rate if available (from error recovery), otherwise use current setting
-            const targetRate = lastPlaybackRateBeforeError > 1 ? lastPlaybackRateBeforeError : currentPlaybackRate.value
-            videoPlayer.value.playbackRate = targetRate
-            currentPlaybackRate.value = targetRate
-            // Update slide extractor with restored playback rate
-            if (slideExtractorInstance.value) {
-              slideExtractorInstance.value.updatePlaybackRate(targetRate)
-            }
-          } else {
-            videoPlayer.value.playbackRate = 1
-            currentPlaybackRate.value = 1
-            // Update slide extractor with live mode playback rate
-            if (slideExtractorInstance.value) {
-              slideExtractorInstance.value.updatePlaybackRate(1)
-            }
-          }
-
-          // Apply mute settings
-          if (shouldVideoMute.value) {
-            videoPlayer.value.volume = 0
-            videoPlayer.value.setAttribute('data-muted-by-app', 'true')
-            isVideoMuted.value = true
-          } else {
-            videoPlayer.value.volume = 1
-            videoPlayer.value.removeAttribute('data-muted-by-app')
-            isVideoMuted.value = false
-          }
-
-          // Restore position if specified
-          if (seekToTime && seekToTime > 0) {
-            videoPlayer.value.currentTime = seekToTime
-          }
-
-          // Auto-play if requested
-          if (shouldAutoPlay !== false) {
-            // Add a small delay to ensure video is ready
-            setTimeout(() => {
-              if (videoPlayer.value) {
-                videoPlayer.value.play().catch(e => {
-                  console.log('Autoplay prevented during native position restore:', e)
-                  // Try again after a short delay
-                  setTimeout(() => {
-                    if (videoPlayer.value) {
-                      videoPlayer.value.play().catch(e2 => {
-                        console.log('Second native autoplay attempt failed:', e2)
-                      })
-                    }
-                  }, 500)
-                })
-              }
-            }, 200)
-          }
-        }
-      }, 100)
     } else {
       throw new Error('HLS is not supported in this browser')
     }
@@ -1003,6 +943,7 @@ const loadVideoSource = async () => {
           }
         }, 100)
       })
+
 
 
       // Enhanced error handling with retry logic
@@ -1127,44 +1068,6 @@ const loadVideoSource = async () => {
         }
       })
 
-    } else if (videoPlayer.value.canPlayType('application/vnd.apple.mpegurl')) {
-      // Native HLS support (Electron/Chromium fallback)
-      videoPlayer.value.src = videoUrl
-      videoPlayer.value.load()
-
-      // Automatically start playback for native HLS
-      setTimeout(() => {
-        if (videoPlayer.value) {
-          // Set initial playback rate based on mode
-          if (props.mode === 'recorded') {
-            videoPlayer.value.playbackRate = currentPlaybackRate.value
-            // Update slide extractor with current playback rate
-            if (slideExtractorInstance.value) {
-              slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
-            }
-          } else {
-            videoPlayer.value.playbackRate = 1
-            currentPlaybackRate.value = 1
-            // Update slide extractor with live mode playback rate
-            if (slideExtractorInstance.value) {
-              slideExtractorInstance.value.updatePlaybackRate(1)
-            }
-          }
-
-          // Apply mute settings
-          if (shouldVideoMute.value) {
-            videoPlayer.value.volume = 0
-            videoPlayer.value.setAttribute('data-muted-by-app', 'true')
-            isVideoMuted.value = true
-          } else {
-            videoPlayer.value.volume = 1
-            videoPlayer.value.removeAttribute('data-muted-by-app')
-            isVideoMuted.value = false
-          }
-
-          videoPlayer.value.play().catch(() => {})
-        }
-      }, 100)
     } else {
       throw new Error('HLS is not supported in this browser')
     }
@@ -2136,6 +2039,21 @@ watch(() => videoPlayer.value, (newPlayer) => {
       }
     }
 
+    // Add buffering detection for slide extraction
+    const onWaiting = () => {
+      console.log('Video waiting (buffering) - pausing slide verification')
+      if (slideExtractorInstance.value && isSlideExtractionEnabled.value) {
+        slideExtractorInstance.value.pauseForBuffering()
+      }
+    }
+
+    const onCanPlay = () => {
+      console.log('Video can play - resuming slide verification')
+      if (slideExtractorInstance.value && isSlideExtractionEnabled.value) {
+        slideExtractorInstance.value.resumeAfterBuffering()
+      }
+    }
+
     const onPauseOrEnd = () => {
       updatePlayingState()
       // Stop performance optimization mechanisms when video stops
@@ -2149,6 +2067,9 @@ watch(() => videoPlayer.value, (newPlayer) => {
     newPlayer.addEventListener('ended', onPauseOrEnd)
     newPlayer.addEventListener('ended', onVideoEnded) // Add task completion detection
     newPlayer.addEventListener('timeupdate', onTimeUpdate)
+    newPlayer.addEventListener('waiting', onWaiting) // Buffering detection
+    newPlayer.addEventListener('canplay', onCanPlay) // Resume after buffering
+    newPlayer.addEventListener('canplaythrough', onCanPlay) // Resume after buffering
 
     // Store cleanup function
     currentEventListeners.push(() => {
@@ -2157,6 +2078,9 @@ watch(() => videoPlayer.value, (newPlayer) => {
       newPlayer.removeEventListener('ended', onPauseOrEnd)
       newPlayer.removeEventListener('ended', onVideoEnded)
       newPlayer.removeEventListener('timeupdate', onTimeUpdate)
+      newPlayer.removeEventListener('waiting', onWaiting)
+      newPlayer.removeEventListener('canplay', onCanPlay)
+      newPlayer.removeEventListener('canplaythrough', onCanPlay)
     })
 
     // Apply mute settings immediately when video player is ready
@@ -2997,6 +2921,7 @@ onUnmounted(async () => {
       console.error('Error exiting Picture in Picture on unmount:', error)
     }
   }
+
 
   // Clean up HLS
   cleanup()
