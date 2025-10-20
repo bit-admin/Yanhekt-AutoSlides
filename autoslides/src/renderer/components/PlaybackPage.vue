@@ -464,6 +464,13 @@ const taskSpeed = ref(10) // Default task speed
 const isPictureInPicture = ref(false)
 const isVideoContainerCollapsed = ref(false)
 
+// Performance optimization state for background playback
+const isDocumentVisible = ref(true)
+const keepAliveInterval = ref<NodeJS.Timeout | null>(null)
+const wakeLock = ref<WakeLockSentinel | null>(null)
+const performanceMonitorInterval = ref<NodeJS.Timeout | null>(null)
+const preventSystemSleep = ref(false) // Configuration setting for enabling performance optimizations
+
 // Computed property to determine if video should be muted based on mode and mute setting
 const shouldVideoMute = computed(() => {
   switch (muteMode.value) {
@@ -1895,6 +1902,12 @@ watch(() => videoPlayer.value, (newPlayer) => {
 
     const onPlayStart = () => {
       updatePlayingState()
+
+      // Start performance optimization mechanisms when video starts playing
+      startKeepAlive()
+      requestWakeLock()
+      requestPowerManagement()
+
       // Wait a bit before reducing counters to ensure stable playback
       setTimeout(() => {
         if (newPlayer && !newPlayer.paused && !newPlayer.ended) {
@@ -1941,17 +1954,25 @@ watch(() => videoPlayer.value, (newPlayer) => {
       }
     }
 
+    const onPauseOrEnd = () => {
+      updatePlayingState()
+      // Stop performance optimization mechanisms when video stops
+      stopKeepAlive()
+      releaseWakeLock()
+      releasePowerManagement()
+    }
+
     newPlayer.addEventListener('play', onPlayStart)
-    newPlayer.addEventListener('pause', updatePlayingState)
-    newPlayer.addEventListener('ended', updatePlayingState)
+    newPlayer.addEventListener('pause', onPauseOrEnd)
+    newPlayer.addEventListener('ended', onPauseOrEnd)
     newPlayer.addEventListener('ended', onVideoEnded) // Add task completion detection
     newPlayer.addEventListener('timeupdate', onTimeUpdate)
 
     // Store cleanup function
     currentEventListeners.push(() => {
       newPlayer.removeEventListener('play', onPlayStart)
-      newPlayer.removeEventListener('pause', updatePlayingState)
-      newPlayer.removeEventListener('ended', updatePlayingState)
+      newPlayer.removeEventListener('pause', onPauseOrEnd)
+      newPlayer.removeEventListener('ended', onPauseOrEnd)
       newPlayer.removeEventListener('ended', onVideoEnded)
       newPlayer.removeEventListener('timeupdate', onTimeUpdate)
     })
@@ -2528,6 +2549,165 @@ const cleanupTaskState = () => {
   console.log('Task state cleaned up')
 }
 
+// Performance optimization functions for background playback
+const handleVisibilityChange = () => {
+  isDocumentVisible.value = !document.hidden
+
+  if (document.hidden) {
+    console.log('Page hidden - maintaining video performance with enhanced monitoring')
+    // Start enhanced monitoring when page is hidden
+    startPerformanceMonitoring()
+  } else {
+    console.log('Page visible - normal operation')
+    // Stop enhanced monitoring when page is visible
+    stopPerformanceMonitoring()
+  }
+}
+
+// Keep-alive mechanism to prevent browser throttling
+const startKeepAlive = () => {
+  if (!preventSystemSleep.value) {
+    console.log('Keep-alive mechanism disabled (preventSystemSleep is off)')
+    return
+  }
+
+  if (keepAliveInterval.value) return
+
+  console.log('Starting keep-alive mechanism for background playback')
+  keepAliveInterval.value = setInterval(() => {
+    if (videoPlayer.value && !videoPlayer.value.paused) {
+      const currentTime = videoPlayer.value.currentTime
+      const expectedRate = currentPlaybackRate.value
+
+      // Check if playback rate has been throttled
+      if (Math.abs(videoPlayer.value.playbackRate - expectedRate) > 0.01) {
+        console.log(`Playback rate drift detected: ${videoPlayer.value.playbackRate} vs expected ${expectedRate}, correcting...`)
+        videoPlayer.value.playbackRate = expectedRate
+      }
+
+      // Light activity to prevent throttling
+      if (currentTime > 0) {
+        // This helps maintain JavaScript execution priority
+        performance.mark(`keepalive-${Date.now()}`)
+      }
+    }
+  }, 3000) // Check every 3 seconds
+}
+
+const stopKeepAlive = () => {
+  if (keepAliveInterval.value) {
+    clearInterval(keepAliveInterval.value)
+    keepAliveInterval.value = null
+    console.log('Keep-alive mechanism stopped')
+  }
+}
+
+// Enhanced performance monitoring for background playback
+const startPerformanceMonitoring = () => {
+  if (!preventSystemSleep.value) {
+    console.log('Enhanced performance monitoring disabled (preventSystemSleep is off)')
+    return
+  }
+
+  if (performanceMonitorInterval.value) return
+
+  console.log('Starting enhanced performance monitoring')
+  performanceMonitorInterval.value = setInterval(() => {
+    if (videoPlayer.value && !videoPlayer.value.paused) {
+      const video = videoPlayer.value
+      const currentTime = video.currentTime
+      const buffered = video.buffered
+
+      // Check buffering health
+      let bufferedAhead = 0
+      for (let i = 0; i < buffered.length; i++) {
+        if (buffered.start(i) <= currentTime && buffered.end(i) > currentTime) {
+          bufferedAhead = buffered.end(i) - currentTime
+          break
+        }
+      }
+
+      // Log performance metrics when in background
+      if (document.hidden) {
+        console.log(`Background playback status: time=${currentTime.toFixed(1)}s, rate=${video.playbackRate}x, buffered=${bufferedAhead.toFixed(1)}s ahead`)
+
+        // If buffer is getting low in background, this might indicate throttling
+        if (bufferedAhead < 10 && hls.value) {
+          console.log('Low buffer detected in background, requesting more data')
+          // Trigger HLS to load more segments
+          try {
+            hls.value.startLoad()
+          } catch (e) {
+            // Ignore errors, this is just a hint to HLS
+          }
+        }
+      }
+    }
+  }, 10000) // Check every 10 seconds when in background
+}
+
+const stopPerformanceMonitoring = () => {
+  if (performanceMonitorInterval.value) {
+    clearInterval(performanceMonitorInterval.value)
+    performanceMonitorInterval.value = null
+    console.log('Enhanced performance monitoring stopped')
+  }
+}
+
+// Wake Lock API support for preventing screen sleep
+const requestWakeLock = async () => {
+  if (!preventSystemSleep.value) {
+    console.log('Wake lock disabled (preventSystemSleep is off)')
+    return
+  }
+
+  try {
+    if ('wakeLock' in navigator && !wakeLock.value) {
+      wakeLock.value = await (navigator as any).wakeLock.request('screen')
+      console.log('Wake lock acquired to prevent screen sleep')
+
+      wakeLock.value?.addEventListener('release', () => {
+        console.log('Wake lock released')
+        wakeLock.value = null
+      })
+    }
+  } catch (err) {
+    console.log('Wake lock request failed (not supported or denied):', err)
+  }
+}
+
+const releaseWakeLock = () => {
+  if (wakeLock.value) {
+    wakeLock.value.release()
+    wakeLock.value = null
+    console.log('Wake lock manually released')
+  }
+}
+
+// Power management integration
+const requestPowerManagement = async () => {
+  if (!preventSystemSleep.value) {
+    console.log('System sleep prevention disabled (preventSystemSleep is off)')
+    return
+  }
+
+  try {
+    await window.electronAPI.powerManagement?.preventSleep?.()
+    console.log('System sleep prevention requested')
+  } catch (err) {
+    console.log('Power management request failed:', err)
+  }
+}
+
+const releasePowerManagement = async () => {
+  try {
+    await window.electronAPI.powerManagement?.allowSleep?.()
+    console.log('System sleep prevention released')
+  } catch (err) {
+    console.log('Power management release failed:', err)
+  }
+}
+
 // Lifecycle
 onMounted(async () => {
   // Register video proxy client for independent mode support
@@ -2537,13 +2717,15 @@ onMounted(async () => {
     console.error('Failed to register video proxy client:', error)
   }
 
-  // Load connection mode, mute mode, video retry count, and task speed from config
+  // Load connection mode, mute mode, video retry count, task speed, and prevent system sleep setting from config
   try {
     const config = await window.electronAPI.config.get()
     connectionMode.value = config.connectionMode
     muteMode.value = config.muteMode || 'normal'
     maxVideoErrorRetries.value = config.videoRetryCount || 5
     taskSpeed.value = config.taskSpeed || 10
+    preventSystemSleep.value = config.preventSystemSleep || false
+    console.log('Performance optimization setting (preventSystemSleep):', preventSystemSleep.value)
   } catch (error) {
     console.error('Failed to load config:', error)
   }
@@ -2559,6 +2741,9 @@ onMounted(async () => {
   window.addEventListener('taskStart', onTaskStart as EventListener)
   window.addEventListener('taskPause', onTaskPause as EventListener)
   window.addEventListener('taskResume', onTaskResume as EventListener)
+
+  // Add page visibility change listener for background performance optimization
+  document.addEventListener('visibilitychange', handleVisibilityChange)
 
   // Wait for next tick to ensure video element is in DOM
   await nextTick()
@@ -2584,6 +2769,15 @@ onUnmounted(async () => {
   window.removeEventListener('taskStart', onTaskStart as EventListener)
   window.removeEventListener('taskPause', onTaskPause as EventListener)
   window.removeEventListener('taskResume', onTaskResume as EventListener)
+
+  // Remove page visibility change listener
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+
+  // Clean up performance optimization mechanisms
+  stopKeepAlive()
+  stopPerformanceMonitoring()
+  releaseWakeLock()
+  releasePowerManagement()
 
   // Clean up Picture in Picture if active
   if (isPictureInPicture.value && document.pictureInPictureElement) {
