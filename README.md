@@ -1,13 +1,16 @@
 # AutoSlides 
 
 **AutoSlides** 是为北京理工大学延河课堂设计的第三方客户端。基于 Electron 构建，提供了一个全面的解决方案，从屏幕录制中自动提取幻灯片，下载录播课程。
-- **Web 版本**：https://learn.ruc.edu.kg
+- **Web 版本**：https://learn.ruc.edu.kg - 您也可使用网页版观看全校直播课程，运行幻灯片提取<sup>1</sup>，记录笔记并导出为文档。
 
-> AutoSlides is a third-party tool developed independently by its contributors. It is NOT an official website of, and is NOT affiliated with, associated with, endorsed by, or in any way connected to Beijing Institute of Technology (BIT), or any of their subsidiaries or affiliates. All product and company names are trademarks™ or registered® trademarks of their respective holders.
+> AutoSlides is a third-party tool developed independently by its contributors. It is NOT an official client of, and is NOT affiliated with, associated with, endorsed by, or in any way connected to Beijing Institute of Technology (BIT), or any of their subsidiaries or affiliates. All product and company names are trademarks™ or registered® trademarks of their respective holders.
+
+---
+<sup>1</sup> 网页版使用简化的图像处理算法，准确率可能低于桌面版。
 
 ## 🚀 快速开始
 
-1. **下载** - 获取适用于您的平台的安装程序（macOS 的 DMG、Windows 的 EXE）
+1. **下载** - 前往 [release 页面](https://github.com/bit-admin/Yanhekt-AutoSlides/releases)获取适用于您的平台的安装程序（macOS 的 DMG、Windows 的 EXE）
 
 2. **安装**
    - **macOS**：将文件拖到 Applications 文件夹后，在终端运行：
