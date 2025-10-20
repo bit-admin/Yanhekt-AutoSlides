@@ -360,7 +360,7 @@ export class ConfigService {
     if (item.isPreset) {
       // For preset items, toggle the enabled state
       const existingPresetIndex = userList.findIndex(item => item.id === id);
-      let updatedList = [...userList];
+      const updatedList = [...userList];
 
       if (existingPresetIndex >= 0) {
         // Update existing preset state

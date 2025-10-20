@@ -280,7 +280,8 @@
     "noVideoStreams": "No video streams available",
     "taskInProgress": "Task in progress. Controls are disabled. If you exit, the task queue will be paused and current task progress will be lost. To adjust settings, please manually pause the task list.",
     "highSpeedWarning": "High-speed playback may cause buffering issues. Consider switching to internal network mode for optimal performance at higher speeds.",
-    "videoPlayingInPiP": "Video playing in Picture in Picture mode"
+    "videoPlayingInPiP": "Video playing in Picture in Picture mode",
+    "refresh": "Refresh"
   },
   "sessions": {
     "backToCourses": "Back to Courses",

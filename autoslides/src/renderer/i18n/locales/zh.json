@@ -280,7 +280,8 @@
     "noVideoStreams": "无可用视频流",
     "taskInProgress": "任务进行中。控件已禁用。如果退出，任务队列将暂停，当前任务进度将丢失。要调整设置，请手动暂停任务列表。",
     "highSpeedWarning": "高速播放可能导致缓冲问题。建议切换到内网模式以获得更高速度下的最佳性能。",
-    "videoPlayingInPiP": "视频正在画中画模式下播放"
+    "videoPlayingInPiP": "视频正在画中画模式下播放",
+    "refresh": "刷新"
   },
   "sessions": {
     "backToCourses": "返回课程",

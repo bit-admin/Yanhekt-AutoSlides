@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron';
 import path from 'node:path';
+import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
 import { MainAuthService } from './main/authService';
 import { MainApiClient } from './main/apiClient';
@@ -361,7 +362,6 @@ ipcMain.handle('config:selectImageForExclusion', async () => {
       const imagePath = result.filePaths[0];
 
       // Read the image file
-      const fs = require('fs');
       const imageBuffer = fs.readFileSync(imagePath);
 
       // Return the image data for pHash calculation in renderer process
@@ -369,7 +369,7 @@ ipcMain.handle('config:selectImageForExclusion', async () => {
         success: true,
         imagePath,
         imageBuffer: Array.from(imageBuffer), // Convert to array for IPC transfer
-        fileName: require('path').basename(imagePath)
+        fileName: path.basename(imagePath)
       };
     }
 
