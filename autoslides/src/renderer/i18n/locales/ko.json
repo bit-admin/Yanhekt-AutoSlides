@@ -49,6 +49,9 @@
     "counts": "회",
     "taskSpeed": "작업 속도",
     "taskSpeedDescription": "자동 작업 처리의 재생 속도.",
+    "autoPostProcessing": "자동 후처리",
+    "autoPostProcessingDescription": "작업 완료 시 자동으로 후처리를 실행합니다.",
+    "enableAutoPostProcessing": "자동 후처리 활성화",
     "resetToDefault": "기본값으로 재설정"
   },
   "status": {

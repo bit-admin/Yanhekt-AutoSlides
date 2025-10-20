@@ -49,6 +49,9 @@
     "counts": "次",
     "taskSpeed": "任务速度",
     "taskSpeedDescription": "自动处理任务时的播放速度",
+    "autoPostProcessing": "自动后处理",
+    "autoPostProcessingDescription": "任务完成时自动执行后处理",
+    "enableAutoPostProcessing": "启用自动后处理",
     "resetToDefault": "恢复默认"
   },
   "status": {

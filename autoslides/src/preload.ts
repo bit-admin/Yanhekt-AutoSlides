@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => ipcRenderer.invoke('config:setMuteMode', mode),
     setVideoRetryCount: (count: number) => ipcRenderer.invoke('config:setVideoRetryCount', count),
     setTaskSpeed: (speed: number) => ipcRenderer.invoke('config:setTaskSpeed', speed),
+    setAutoPostProcessing: (enabled: boolean) => ipcRenderer.invoke('config:setAutoPostProcessing', enabled),
     // Theme configuration
     setThemeMode: (theme: 'system' | 'light' | 'dark') => ipcRenderer.invoke('config:setThemeMode', theme),
     getThemeMode: () => ipcRenderer.invoke('config:getThemeMode'),

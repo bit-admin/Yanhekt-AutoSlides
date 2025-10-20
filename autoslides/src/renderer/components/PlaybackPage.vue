@@ -454,11 +454,13 @@ const selectedSlide = ref<ExtractedSlide | null>(null)
 
 // Post-processing state
 const isPostProcessing = ref(false)
+const taskCompletionInProgress = ref<string | null>(null)
 
 // Task queue state
 const currentTaskId = ref<string | null>(null)
 const isTaskMode = ref(false)
 const taskSpeed = ref(10) // Default task speed
+const autoPostProcessing = ref(true) // Default auto post-processing enabled
 
 // Picture in Picture state
 const isPictureInPicture = ref(false)
@@ -1699,6 +1701,186 @@ const clearAllSlides = async () => {
   }
 }
 
+// Execute post-processing for task mode (without dialogs)
+const executePostProcessingForTask = async () => {
+  if (extractedSlides.value.length === 0) {
+    return
+  }
+
+  // Get the output path from the slide extractor
+  const outputPath = slideExtractorInstance.value?.getOutputPath()
+  if (!outputPath) {
+    throw new Error('Output path not found')
+  }
+
+  // Get pHash configuration
+  const config = await window.electronAPI.config?.getSlideExtractionConfig?.()
+  if (!config) {
+    throw new Error('Failed to get slide extraction configuration')
+  }
+
+  const pHashThreshold = config.pHashThreshold || 10
+  const exclusionList = config.pHashExclusionList || []
+
+  console.log(`Starting auto post-processing for ${extractedSlides.value.length} slides...`)
+  console.log(`Using pHash threshold: ${pHashThreshold}, exclusion list items: ${exclusionList.length}`)
+
+  // Create post-processing worker to calculate pHash for all saved images
+  const worker = new Worker(new URL('../workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
+
+  // Helper function to calculate Hamming distance using worker
+  const calculateHammingDistanceWithWorker = (hash1: string, hash2: string): Promise<number> => {
+    return new Promise((resolve, reject) => {
+      const messageId = `hamming_${Date.now()}_${Math.random()}`
+
+      const messageHandler = (event: MessageEvent) => {
+        const { id, success, result, error } = event.data
+        if (id === messageId) {
+          worker.removeEventListener('message', messageHandler)
+          if (success) {
+            resolve(result)
+          } else {
+            reject(new Error(error))
+          }
+        }
+      }
+
+      worker.addEventListener('message', messageHandler)
+      worker.postMessage({
+        id: messageId,
+        type: 'calculateHammingDistance',
+        data: { hash1, hash2 }
+      })
+    })
+  }
+
+  // Process each slide individually to avoid memory issues
+  const results: Array<{ filename: string; pHash: string; excluded?: boolean; excludedReason?: string; error?: string }> = []
+  const deletedSlides: string[] = []
+  let processedCount = 0
+
+  for (const slide of extractedSlides.value) {
+    try {
+      const filename = `${slide.title}.png`
+
+      // Use the ImageData that's already in memory - no need to reload from file!
+      const imageData = slide.imageData
+
+      // Check if imageData is still valid (not cleaned up)
+      if (!imageData || !imageData.data) {
+        console.warn(`Skipping slide ${slide.title}: ImageData has been cleaned up`)
+        results.push({
+          filename: `${slide.title}.png`,
+          pHash: '',
+          error: 'ImageData has been cleaned up'
+        })
+        continue
+      }
+
+      // Calculate pHash using worker
+      const pHashPromise = new Promise<string>((resolve, reject) => {
+        const messageId = `pHash_${Date.now()}_${Math.random()}`
+
+        const messageHandler = (event: MessageEvent) => {
+          const { id, success, result, error } = event.data
+          if (id === messageId) {
+            worker.removeEventListener('message', messageHandler)
+            if (success) {
+              resolve(result)
+            } else {
+              reject(new Error(error))
+            }
+          }
+        }
+
+        worker.addEventListener('message', messageHandler)
+        worker.postMessage({
+          id: messageId,
+          type: 'calculatePHash',
+          data: { imageData }
+        })
+      })
+
+      const pHash = await pHashPromise
+
+      // Check against exclusion list
+      let shouldExclude = false
+      let excludedReason = ''
+
+      for (const exclusionItem of exclusionList) {
+        try {
+          const hammingDistance = await calculateHammingDistanceWithWorker(pHash, exclusionItem.pHash)
+          if (hammingDistance <= pHashThreshold) {
+            shouldExclude = true
+            excludedReason = `Similar to excluded item "${exclusionItem.name}" (Hamming distance: ${hammingDistance})`
+            console.log(`Slide ${filename} excluded: ${excludedReason}`)
+            break
+          }
+        } catch (error) {
+          console.warn(`Failed to calculate Hamming distance for exclusion item "${exclusionItem.name}":`, error)
+        }
+      }
+
+      // If slide should be excluded, delete it
+      if (shouldExclude) {
+        try {
+          await deleteSlide(slide, false) // false = don't show confirmation dialog
+          deletedSlides.push(filename)
+          results.push({
+            filename,
+            pHash,
+            excluded: true,
+            excludedReason
+          })
+        } catch (deleteError) {
+          console.error(`Failed to delete excluded slide ${filename}:`, deleteError)
+          results.push({
+            filename,
+            pHash,
+            excluded: false,
+            error: `Failed to delete: ${deleteError instanceof Error ? deleteError.message : String(deleteError)}`
+          })
+        }
+      } else {
+        results.push({
+          filename,
+          pHash,
+          excluded: false
+        })
+      }
+
+      processedCount++
+      console.log(`Processed ${filename} (${processedCount}/${extractedSlides.value.length}): pHash = ${pHash}${shouldExclude ? ' [EXCLUDED]' : ''}`)
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error(`Failed to process ${slide.title}:`, errorMessage)
+
+      results.push({
+        filename: `${slide.title}.png`,
+        pHash: '',
+        error: errorMessage
+      })
+    }
+  }
+
+  worker.terminate()
+
+  // Calculate summary statistics
+  const totalSlides = extractedSlides.value.length
+  const processedSlides = results.filter(r => !r.error).length
+  const failedSlides = results.filter(r => r.error).length
+  const excludedSlides = results.filter(r => r.excluded).length
+
+  console.log('Auto post-processing completed successfully:', {
+    totalSlides,
+    processedSlides,
+    failedSlides,
+    excludedSlides,
+    deletedSlides: deletedSlides.length
+  })
+}
+
 // Execute post-processing on all saved slides
 const executePostProcessing = async () => {
   try {
@@ -2495,17 +2677,41 @@ const onVideoEnded = () => {
 }
 
 // Complete the current task (extracted to avoid duplication)
-const completeCurrentTask = () => {
+const completeCurrentTask = async () => {
   if (!isTaskMode.value || !currentTaskId.value) return
 
   const taskId = currentTaskId.value
+
+  // Prevent multiple completions of the same task
+  if (taskCompletionInProgress.value === taskId) {
+    console.log('Task completion already in progress for:', taskId)
+    return
+  }
+
+  taskCompletionInProgress.value = taskId
   console.log('Completing task:', taskId)
+
+  // Check if auto post-processing is enabled and we have slides to process
+  if (autoPostProcessing.value && isSlideExtractionEnabled.value && extractedSlides.value.length > 0) {
+    console.log('Auto post-processing enabled, executing post-processing for task:', taskId)
+    try {
+      // Execute post-processing automatically without showing dialog
+      await executePostProcessingForTask()
+      console.log('Auto post-processing completed successfully for task:', taskId)
+    } catch (error) {
+      console.error('Auto post-processing failed for task:', taskId, error)
+      // Continue with task completion even if post-processing fails
+    }
+  }
 
   // Mark task as completed
   TaskQueue.updateTaskStatus(taskId, 'completed')
 
   // Clean up task state
   cleanupTaskState()
+
+  // Clear completion flag
+  taskCompletionInProgress.value = null
 }
 
 const handleTaskError = (errorMessage: string) => {
@@ -2526,10 +2732,13 @@ const cleanupTaskState = () => {
   currentTaskId.value = null
   isTaskMode.value = false
 
-  // Stop slide extraction
+  // Stop slide extraction (but delay to allow post-processing to complete)
   if (isSlideExtractionEnabled.value) {
     isSlideExtractionEnabled.value = false
-    toggleSlideExtraction()
+    // Delay the actual cleanup to allow post-processing to access ImageData
+    setTimeout(() => {
+      toggleSlideExtraction()
+    }, 100)
   }
 
   // Clear error state to allow next task to start fresh
@@ -2724,6 +2933,7 @@ onMounted(async () => {
     muteMode.value = config.muteMode || 'normal'
     maxVideoErrorRetries.value = config.videoRetryCount || 5
     taskSpeed.value = config.taskSpeed || 10
+    autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
     preventSystemSleep.value = config.preventSystemSleep || false
     console.log('Performance optimization setting (preventSystemSleep):', preventSystemSleep.value)
   } catch (error) {

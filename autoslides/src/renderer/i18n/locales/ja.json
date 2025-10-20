@@ -49,6 +49,9 @@
     "counts": "回",
     "taskSpeed": "タスク速度",
     "taskSpeedDescription": "自動タスク処理の再生速度",
+    "autoPostProcessing": "自動後処理",
+    "autoPostProcessingDescription": "タスク完了時に自動的に後処理を実行",
+    "enableAutoPostProcessing": "自動後処理を有効にする",
     "resetToDefault": "デフォルトにリセット"
   },
   "status": {

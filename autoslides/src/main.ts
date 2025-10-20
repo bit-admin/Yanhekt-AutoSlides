@@ -235,6 +235,11 @@ ipcMain.handle('config:setTaskSpeed', async (event, speed: number) => {
   return configService.getConfig();
 });
 
+ipcMain.handle('config:setAutoPostProcessing', async (event, enabled: boolean) => {
+  configService.setAutoPostProcessing(enabled);
+  return configService.getConfig();
+});
+
 // IPC handlers for theme configuration
 ipcMain.handle('config:setThemeMode', async (event, theme: 'system' | 'light' | 'dark') => {
   configService.setThemeMode(theme);

@@ -49,6 +49,9 @@
     "counts": "Count(s)",
     "taskSpeed": "Task Speed",
     "taskSpeedDescription": "Playback speed for automated task processing.",
+    "autoPostProcessing": "Auto Post-Processing",
+    "autoPostProcessingDescription": "Automatically execute post-processing when task completes.",
+    "enableAutoPostProcessing": "Enable Auto Post-Processing",
     "resetToDefault": "Reset to default"
   },
   "status": {

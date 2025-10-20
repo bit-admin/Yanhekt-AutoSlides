@@ -21,6 +21,7 @@ interface AppConfig {
   muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
   videoRetryCount: number;
   taskSpeed: number;
+  autoPostProcessing: boolean;
   themeMode: 'system' | 'light' | 'dark';
   languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
   preventSystemSleep: boolean;
@@ -245,6 +246,7 @@ interface ElectronAPI {
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<AppConfig>;
     setVideoRetryCount: (count: number) => Promise<AppConfig>;
     setTaskSpeed: (speed: number) => Promise<AppConfig>;
+    setAutoPostProcessing: (enabled: boolean) => Promise<AppConfig>;
     setPreventSystemSleep: (prevent: boolean) => Promise<AppConfig>;
 
     // Theme configuration

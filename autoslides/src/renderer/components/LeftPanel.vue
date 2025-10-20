@@ -38,13 +38,11 @@
           v-if="isNicknameMasked"
           class="mask-toggle nickname-mask-toggle"
           @click="toggleNicknameMask"
-          :title="$t('auth.clickToShow')"
         ></div>
         <div
           v-if="isUserIdMasked"
           class="mask-toggle userid-mask-toggle"
           @click="toggleUserIdMask"
-          :title="$t('auth.clickToShow')"
         ></div>
       </div>
     </div>
@@ -204,6 +202,21 @@
             <select v-model="taskSpeed" @change="setTaskSpeed" class="task-speed-select">
               <option v-for="i in 10" :key="i" :value="i">{{ i }}x</option>
             </select>
+          </div>
+        </div>
+
+        <div class="setting-item">
+          <label class="setting-label">{{ $t('settings.autoPostProcessing') }}</label>
+          <div class="setting-description">{{ $t('settings.autoPostProcessingDescription') }}</div>
+          <div class="auto-post-processing-control">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="autoPostProcessing"
+                @change="setAutoPostProcessing"
+              />
+              {{ $t('settings.enableAutoPostProcessing') }}
+            </label>
           </div>
         </div>
       </div>
@@ -782,6 +795,7 @@ const slideVerificationCount = ref(2)
 
 // Task configuration
 const taskSpeed = ref(10)
+const autoPostProcessing = ref(true)
 
 // Advanced image processing parameters
 const ssimThreshold = ref(0.9987)
@@ -954,6 +968,7 @@ const loadConfig = async () => {
 
     // Load task configuration
     taskSpeed.value = config.taskSpeed || 10
+    autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
 
     // Load theme configuration
     themeMode.value = config.themeMode || 'system'
@@ -1120,6 +1135,15 @@ const setTaskSpeed = async () => {
     taskSpeed.value = result.taskSpeed
   } catch (error) {
     console.error('Failed to set task speed:', error)
+  }
+}
+
+const setAutoPostProcessing = async () => {
+  try {
+    const result = await window.electronAPI.config.setAutoPostProcessing(autoPostProcessing.value)
+    autoPostProcessing.value = result.autoPostProcessing
+  } catch (error) {
+    console.error('Failed to set auto post-processing:', error)
   }
 }
 
@@ -2343,6 +2367,47 @@ const closeNameInputDialog = () => {
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
+/* Auto post-processing control styles */
+.auto-post-processing-control {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  height: 35px;
+}
+
+.auto-post-processing-control:hover {
+  background-color: #e9ecef;
+  border-color: #007bff;
+}
+
+.auto-post-processing-control .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  user-select: none;
+  flex: 1;
+}
+
+.auto-post-processing-control .checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #007bff;
+}
+
 .status-section {
   padding: 16px;
   border-top: 1px solid #e0e0e0;
@@ -3459,6 +3524,21 @@ const closeNameInputDialog = () => {
     background-color: #4a9eff;
     border-color: #4a9eff;
     color: white;
+  }
+
+  /* Dark mode support for auto post-processing control */
+  .auto-post-processing-control {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .auto-post-processing-control:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .auto-post-processing-control .checkbox-label {
+    color: #e0e0e0;
   }
 }
 

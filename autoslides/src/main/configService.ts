@@ -46,6 +46,7 @@ export interface AppConfig {
   muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
   videoRetryCount: number;
   taskSpeed: number;
+  autoPostProcessing: boolean;
   themeMode: ThemeMode;
   languageMode: LanguageMode;
   preventSystemSleep: boolean;
@@ -105,6 +106,7 @@ const defaultConfig: AppConfig = {
   muteMode: 'normal',
   videoRetryCount: 5,
   taskSpeed: 10,
+  autoPostProcessing: true,
   themeMode: 'system',
   languageMode: 'system',
   preventSystemSleep: false,
@@ -134,6 +136,7 @@ export class ConfigService {
       muteMode: this.store.get('muteMode'),
       videoRetryCount: this.store.get('videoRetryCount'),
       taskSpeed: this.store.get('taskSpeed'),
+      autoPostProcessing: this.store.get('autoPostProcessing'),
       themeMode: this.store.get('themeMode'),
       languageMode: this.store.get('languageMode'),
       preventSystemSleep: this.store.get('preventSystemSleep'),
@@ -167,6 +170,10 @@ export class ConfigService {
   setTaskSpeed(speed: number): void {
     const validSpeed = Math.max(1, Math.min(10, speed));
     this.store.set('taskSpeed', validSpeed);
+  }
+
+  setAutoPostProcessing(enabled: boolean): void {
+    this.store.set('autoPostProcessing', enabled);
   }
 
   setThemeMode(theme: ThemeMode): void {
