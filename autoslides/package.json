@@ -1,7 +1,7 @@
 {
   "name": "autoslides",
   "productName": "AutoSlides",
-  "version": "4.0.1",
+  "version": "4.0.2",
   "description": "AutoSlides is an open-source desktop application that automates the creation of slideshows from images and videos. It offers a user-friendly interface, customizable templates, and supports various media formats to help users create engaging presentations effortlessly.",
   "main": ".vite/build/main.js",
   "scripts": {
