@@ -113,6 +113,7 @@ const createWindow = () => {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
+      backgroundThrottling: false, // Disable background throttling to prevent Chrome from limiting JS execution
     },
   });
 
