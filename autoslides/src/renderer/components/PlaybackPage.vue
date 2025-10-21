@@ -474,12 +474,17 @@ const autoPostProcessing = ref(true) // Default auto post-processing enabled
 const isPictureInPicture = ref(false)
 const isVideoContainerCollapsed = ref(false)
 
-// Performance optimization state for background playback
+// Performance optimization state for background playbook
 const isDocumentVisible = ref(true)
 const keepAliveInterval = ref<NodeJS.Timeout | null>(null)
 const wakeLock = ref<WakeLockSentinel | null>(null)
 const performanceMonitorInterval = ref<NodeJS.Timeout | null>(null)
 const preventSystemSleep = ref(false) // Configuration setting for enabling performance optimizations
+
+// Silent audio stream to prevent Chrome throttling in live mode
+const silentAudioContext = ref<AudioContext | null>(null)
+const silentAudioSource = ref<AudioBufferSourceNode | null>(null)
+const silentAudioGain = ref<GainNode | null>(null)
 
 
 // Computed property to determine if video should be muted based on mode and mute setting
@@ -2031,6 +2036,11 @@ watch(() => videoPlayer.value, (newPlayer) => {
       requestWakeLock()
       requestPowerManagement()
 
+      // Start silent audio to prevent Chrome throttling when muted
+      if (shouldVideoMute.value) {
+        startSilentAudio()
+      }
+
       // Wait a bit before reducing counters to ensure stable playback
       setTimeout(() => {
         if (newPlayer && !newPlayer.paused && !newPlayer.ended) {
@@ -2081,7 +2091,13 @@ watch(() => videoPlayer.value, (newPlayer) => {
     const onWaiting = () => {
       console.log('Video waiting (buffering) - pausing slide verification')
       if (slideExtractorInstance.value && isSlideExtractionEnabled.value) {
-        slideExtractorInstance.value.pauseForBuffering()
+        // Only pause slide extraction during buffering in recorded mode
+        // Live mode continues extraction to avoid missing slides due to network fluctuations
+        if (props.mode === 'recorded') {
+          slideExtractorInstance.value.pauseForBuffering()
+        } else {
+          console.log('Live mode: continuing slide extraction during buffering')
+        }
       }
     }
 
@@ -2098,6 +2114,7 @@ watch(() => videoPlayer.value, (newPlayer) => {
       stopKeepAlive()
       releaseWakeLock()
       releasePowerManagement()
+      stopSilentAudio()
     }
 
     newPlayer.addEventListener('play', onPlayStart)
@@ -2162,8 +2179,14 @@ watch(shouldVideoMute, (shouldMute) => {
     // Disable/enable the built-in mute controls
     if (shouldMute) {
       videoPlayer.value.setAttribute('data-muted-by-app', 'true')
+
+      // Start silent audio to prevent Chrome throttling (both live and recorded modes)
+      startSilentAudio()
     } else {
       videoPlayer.value.removeAttribute('data-muted-by-app')
+
+      // Stop silent audio when not muted
+      stopSilentAudio()
     }
 
   }
@@ -2879,6 +2902,90 @@ const releasePowerManagement = async () => {
   }
 }
 
+// Silent audio stream management to prevent Chrome throttling in live mode
+const createSilentAudio = () => {
+  try {
+    // Create audio context
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+
+    // Create a 1-second buffer of silence
+    const sampleRate = audioContext.sampleRate
+    const buffer = audioContext.createBuffer(1, sampleRate, sampleRate)
+    // Buffer is already filled with zeros (silence)
+
+    // Create buffer source
+    const source = audioContext.createBufferSource()
+    source.buffer = buffer
+    source.loop = true // Loop the silent audio
+
+    // Create gain node for volume control (set to 0 for complete silence)
+    const gainNode = audioContext.createGain()
+    gainNode.gain.value = 0 // Completely silent
+
+    // Connect the audio graph
+    source.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+
+    return { audioContext, source, gainNode }
+  } catch (error) {
+    console.error('Failed to create silent audio:', error)
+    return null
+  }
+}
+
+const startSilentAudio = () => {
+  // Only start silent audio when video should be muted (both live and recorded modes)
+  if (!shouldVideoMute.value) {
+    return
+  }
+
+  // Don't start if already running
+  if (silentAudioContext.value && silentAudioSource.value) {
+    return
+  }
+
+  try {
+    const audioSetup = createSilentAudio()
+    if (!audioSetup) {
+      return
+    }
+
+    const { audioContext, source, gainNode } = audioSetup
+
+    // Store references
+    silentAudioContext.value = audioContext
+    silentAudioSource.value = source
+    silentAudioGain.value = gainNode
+
+    // Start the silent audio
+    source.start()
+
+    console.log(`Started silent audio stream to prevent Chrome throttling in ${props.mode} mode`)
+  } catch (error) {
+    console.error('Failed to start silent audio:', error)
+  }
+}
+
+const stopSilentAudio = () => {
+  try {
+    if (silentAudioSource.value) {
+      silentAudioSource.value.stop()
+      silentAudioSource.value = null
+    }
+
+    if (silentAudioContext.value) {
+      silentAudioContext.value.close()
+      silentAudioContext.value = null
+    }
+
+    silentAudioGain.value = null
+
+    console.log('Stopped silent audio stream')
+  } catch (error) {
+    console.error('Failed to stop silent audio:', error)
+  }
+}
+
 // Lifecycle
 onMounted(async () => {
   // Register video proxy client for independent mode support
@@ -2896,7 +3003,7 @@ onMounted(async () => {
     maxVideoErrorRetries.value = config.videoRetryCount || 5
     taskSpeed.value = config.taskSpeed || 10
     autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
-    preventSystemSleep.value = config.preventSystemSleep || false
+    preventSystemSleep.value = config.preventSystemSleep !== undefined ? config.preventSystemSleep : true
     console.log('Performance optimization setting (preventSystemSleep):', preventSystemSleep.value)
   } catch (error) {
     console.error('Failed to load config:', error)
@@ -2950,6 +3057,7 @@ onUnmounted(async () => {
   stopPerformanceMonitoring()
   releaseWakeLock()
   releasePowerManagement()
+  stopSilentAudio()
 
   // Clean up Picture in Picture if active
   if (isPictureInPicture.value && document.pictureInPictureElement) {

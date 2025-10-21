@@ -109,7 +109,7 @@ const defaultConfig: AppConfig = {
   autoPostProcessing: true,
   themeMode: 'system',
   languageMode: 'system',
-  preventSystemSleep: false,
+  preventSystemSleep: true,
   slideExtraction: defaultSlideExtractionConfig
 };
 

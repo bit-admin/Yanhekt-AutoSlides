@@ -786,7 +786,7 @@ const maxConcurrentDownloads = ref(5)
 const tempMaxConcurrentDownloads = ref(5)
 const videoRetryCount = ref(5)
 const tempVideoRetryCount = ref(5)
-const preventSystemSleep = ref(false)
+const preventSystemSleep = ref(true)
 
 // Slide extraction configuration
 const slideCheckInterval = ref(2000)
@@ -979,7 +979,7 @@ const loadConfig = async () => {
     await languageService.initialize()
 
     // Load prevent system sleep configuration
-    preventSystemSleep.value = config.preventSystemSleep || false
+    preventSystemSleep.value = config.preventSystemSleep !== undefined ? config.preventSystemSleep : true
 
     // Load advanced image processing parameters
     isUpdatingProgrammatically = true
