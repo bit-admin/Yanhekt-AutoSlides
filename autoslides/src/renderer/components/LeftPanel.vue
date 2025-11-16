@@ -955,6 +955,8 @@ const loadConfig = async () => {
     muteMode.value = config.muteMode || 'normal'
     maxConcurrentDownloads.value = config.maxConcurrentDownloads || 5
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
+    // Initialize DownloadService with the configured max concurrent downloads
+    DownloadService.setMaxConcurrent(maxConcurrentDownloads.value)
     videoRetryCount.value = config.videoRetryCount || 5
     tempVideoRetryCount.value = videoRetryCount.value
 
