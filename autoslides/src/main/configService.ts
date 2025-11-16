@@ -331,7 +331,8 @@ export class ConfigService {
     // Add user-created items (non-presets)
     const userItems = userList.filter(item => !item.isPreset);
 
-    return [...presets, ...userItems];
+    // Filter to only return enabled items (non-presets or presets with isEnabled !== false)
+    return [...presets, ...userItems].filter(item => !item.isPreset || item.isEnabled !== false);
   }
 
   addPHashExclusionItem(name: string, pHash: string): PHashExclusionItem {

@@ -99,10 +99,10 @@
       "reason": "上述教学楼设备老旧，屏幕录制视频质量较差，适用更宽松的阈值"
     },
     "pHashThreshold": "256 位 pHash 汉明距离阈值",
-    "pHashDescription": "用于后处理功能中 pHash 比较的汉明距离阈值。较低的值表示更严格的相似性检测。",
+    "pHashDescription": "用于后处理功能中 pHash 比较的汉明距离阈值。较低的值表示更严格的相似性检测",
     "hammingDistance": "汉明距离",
     "pHashExclusionList": "pHash 排除列表",
-    "pHashExclusionDescription": "管理要从幻灯片检测中排除的图像哈希列表。匹配这些哈希的图像将在后处理过程中被忽略。",
+    "pHashExclusionDescription": "管理要从幻灯片检测中排除的图像哈希列表。匹配这些哈希的图像将在后处理过程中被忽略",
     "noExclusionItems": "无排除项目",
     "addExclusionItem": "添加排除项目",
     "editName": "编辑名称",
