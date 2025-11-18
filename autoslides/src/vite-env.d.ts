@@ -32,6 +32,8 @@ interface PHashExclusionItem {
   name: string;
   pHash: string;
   createdAt: number;
+  isPreset?: boolean;
+  isEnabled?: boolean;
 }
 
 interface SlideExtractionConfig {
