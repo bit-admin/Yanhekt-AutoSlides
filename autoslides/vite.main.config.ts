@@ -15,7 +15,7 @@ export default defineConfig({
       }
     },
     rollupOptions: {
-      external: ['electron', 'fs', 'path', 'os', 'crypto', 'stream', 'util', 'events']
+      external: ['electron', 'fs', 'path', 'os', 'crypto', 'stream', 'util', 'events', 'ffmpeg-static']
     }
   }
 });
