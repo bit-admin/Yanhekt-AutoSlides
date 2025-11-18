@@ -1666,7 +1666,8 @@ const executePostProcessingForTask = async () => {
   }
 
   const pHashThreshold = config.pHashThreshold || 10
-  const exclusionList = config.pHashExclusionList || []
+  // Filter exclusion list to only include enabled items (non-presets or presets with isEnabled !== false)
+  const exclusionList = (config.pHashExclusionList || []).filter(item => !item.isPreset || item.isEnabled !== false)
 
   console.log(`Starting auto post-processing for ${extractedSlides.value.length} slides...`)
   console.log(`Using pHash threshold: ${pHashThreshold}, exclusion list items: ${exclusionList.length}`)
@@ -1847,7 +1848,8 @@ const executePostProcessing = async () => {
     }
 
     const pHashThreshold = config.pHashThreshold || 10
-    const exclusionList = config.pHashExclusionList || []
+    // Filter exclusion list to only include enabled items (non-presets or presets with isEnabled !== false)
+    const exclusionList = (config.pHashExclusionList || []).filter(item => !item.isPreset || item.isEnabled !== false)
 
     isPostProcessing.value = true
     console.log(`Starting post-processing for ${extractedSlides.value.length} slides...`)

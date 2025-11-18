@@ -70,7 +70,14 @@ export class SlideExtractor {
 
     // Build initial interval table with default base interval
     this.buildIntervalTable();
-    // Initialize with default config and load from config service
+
+    // Load user configuration from config service asynchronously
+    // NOTE: This is called without await to avoid blocking constructor.
+    // The extractor will start with sensible defaults (defined at lines 42-50)
+    // and automatically switch to user config once loaded (~10-50ms).
+    // This design prioritizes quick initialization over config synchronization,
+    // which is acceptable since defaults are reasonable and the switch happens
+    // nearly instantly (within the first few extraction cycles).
     this.loadConfigFromService();
 
     console.log(`SlideExtractor instance created: ${this.instanceId} (mode: ${mode})`);

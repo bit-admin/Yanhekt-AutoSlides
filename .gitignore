@@ -151,6 +151,6 @@ build/
 
 # AI
 REFERENCE/
-instruction.md
+instruction*.md
 CLAUDE.md
 .claude
