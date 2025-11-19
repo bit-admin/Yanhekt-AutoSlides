@@ -153,4 +153,5 @@ build/
 REFERENCE/
 instruction*.md
 CLAUDE.md
+GEMINI.md
 .claude

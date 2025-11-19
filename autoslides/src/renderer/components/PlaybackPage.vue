@@ -1701,23 +1701,21 @@ const executePostProcessingForTask = async () => {
     })
   }
 
-  // Process each slide individually to avoid memory issues
-  const results: Array<{ filename: string; pHash: string; excluded?: boolean; excludedReason?: string; error?: string }> = []
-  const deletedSlides: string[] = []
-  let processedCount = 0
+  // Step 1: Calculate pHash for all slides first
+  console.log('Step 1: Calculating pHash for all slides...')
+  const slideHashes: Array<{ slide: ExtractedSlide; filename: string; pHash: string; error?: string }> = []
 
   for (const slide of extractedSlides.value) {
     try {
       const filename = `${slide.title}.png`
-
-      // Use the ImageData that's already in memory - no need to reload from file!
       const imageData = slide.imageData
 
       // Check if imageData is still valid (not cleaned up)
       if (!imageData || !imageData.data) {
         console.warn(`Skipping slide ${slide.title}: ImageData has been cleaned up`)
-        results.push({
-          filename: `${slide.title}.png`,
+        slideHashes.push({
+          slide,
+          filename,
           pHash: '',
           error: 'ImageData has been cleaned up'
         })
@@ -1749,6 +1747,95 @@ const executePostProcessingForTask = async () => {
       })
 
       const pHash = await pHashPromise
+      slideHashes.push({ slide, filename, pHash })
+      console.log(`Calculated pHash for ${filename}: ${pHash}`)
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      console.error(`Failed to calculate pHash for ${slide.title}:`, errorMessage)
+      slideHashes.push({
+        slide,
+        filename: `${slide.title}.png`,
+        pHash: '',
+        error: errorMessage
+      })
+    }
+  }
+
+  // Step 2: Remove duplicates among all slides (keep only first occurrence)
+  console.log('Step 2: Removing duplicate slides...')
+  const seenHashes = new Map<string, string>() // pHash -> first filename
+  const duplicatesToDelete: Array<{ slide: ExtractedSlide; filename: string; pHash: string; duplicateOf: string }> = []
+
+  for (const item of slideHashes) {
+    if (item.error || !item.pHash) continue
+
+    // Check if we've seen a similar hash before
+    let isDuplicate = false
+    let duplicateOf = ''
+
+    for (const [seenHash, seenFilename] of seenHashes.entries()) {
+      try {
+        const hammingDistance = await calculateHammingDistanceWithWorker(item.pHash, seenHash)
+        if (hammingDistance <= pHashThreshold) {
+          isDuplicate = true
+          duplicateOf = seenFilename
+          console.log(`Duplicate detected: ${item.filename} is similar to ${seenFilename} (Hamming distance: ${hammingDistance})`)
+          break
+        }
+      } catch (error) {
+        console.warn(`Failed to calculate Hamming distance between ${item.filename} and ${seenFilename}:`, error)
+      }
+    }
+
+    if (isDuplicate) {
+      duplicatesToDelete.push({ ...item, duplicateOf })
+    } else {
+      // First occurrence - remember this hash
+      seenHashes.set(item.pHash, item.filename)
+    }
+  }
+
+  // Delete duplicate slides
+  for (const duplicate of duplicatesToDelete) {
+    try {
+      await deleteSlide(duplicate.slide, false) // false = don't show confirmation dialog
+      console.log(`Deleted duplicate slide: ${duplicate.filename} (duplicate of ${duplicate.duplicateOf})`)
+    } catch (deleteError) {
+      console.error(`Failed to delete duplicate slide ${duplicate.filename}:`, deleteError)
+    }
+  }
+
+  // Step 3: Check remaining slides against exclusion list
+  console.log('Step 3: Checking remaining slides against exclusion list...')
+  const results: Array<{ filename: string; pHash: string; excluded?: boolean; excludedReason?: string; duplicate?: boolean; duplicateOf?: string; error?: string }> = []
+  const deletedSlides: string[] = []
+  let processedCount = 0
+
+  for (const item of slideHashes) {
+    try {
+      const { slide, filename, pHash, error } = item
+
+      // Skip if there was an error calculating pHash
+      if (error) {
+        results.push({ filename, pHash, error })
+        continue
+      }
+
+      // Check if this was already deleted as a duplicate
+      const wasDuplicate = duplicatesToDelete.some(d => d.filename === filename)
+      if (wasDuplicate) {
+        const duplicateInfo = duplicatesToDelete.find(d => d.filename === filename)!
+        results.push({
+          filename,
+          pHash,
+          duplicate: true,
+          duplicateOf: duplicateInfo.duplicateOf
+        })
+        deletedSlides.push(filename)
+        processedCount++
+        continue
+      }
 
       // Check against exclusion list
       let shouldExclude = false
@@ -1797,15 +1884,15 @@ const executePostProcessingForTask = async () => {
       }
 
       processedCount++
-      console.log(`Processed ${filename} (${processedCount}/${extractedSlides.value.length}): pHash = ${pHash}${shouldExclude ? ' [EXCLUDED]' : ''}`)
+      console.log(`Processed ${filename} (${processedCount}/${slideHashes.length}): pHash = ${pHash}${shouldExclude ? ' [EXCLUDED]' : ''}`)
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
-      console.error(`Failed to process ${slide.title}:`, errorMessage)
+      console.error(`Failed to process slide:`, errorMessage)
 
       results.push({
-        filename: `${slide.title}.png`,
-        pHash: '',
+        filename: item.filename,
+        pHash: item.pHash || '',
         error: errorMessage
       })
     }
@@ -1817,12 +1904,14 @@ const executePostProcessingForTask = async () => {
   const totalSlides = extractedSlides.value.length
   const processedSlides = results.filter(r => !r.error).length
   const failedSlides = results.filter(r => r.error).length
+  const duplicateSlides = results.filter(r => r.duplicate).length
   const excludedSlides = results.filter(r => r.excluded).length
 
   console.log('Auto post-processing completed successfully:', {
     totalSlides,
     processedSlides,
     failedSlides,
+    duplicateSlides,
     excludedSlides,
     deletedSlides: deletedSlides.length
   })
@@ -1884,17 +1973,26 @@ const executePostProcessing = async () => {
       })
     }
 
-    // Process each slide individually to avoid memory issues
-    const results: Array<{ filename: string; pHash: string; excluded?: boolean; excludedReason?: string; error?: string }> = []
-    const deletedSlides: string[] = []
-    let processedCount = 0
+    // Step 1: Calculate pHash for all slides first
+    console.log('Step 1: Calculating pHash for all slides...')
+    const slideHashes: Array<{ slide: ExtractedSlide; filename: string; pHash: string; error?: string }> = []
 
     for (const slide of extractedSlides.value) {
       try {
         const filename = `${slide.title}.png`
-
-        // Use the ImageData that's already in memory - no need to reload from file!
         const imageData = slide.imageData
+
+        // Check if imageData is still valid (not cleaned up)
+        if (!imageData || !imageData.data) {
+          console.warn(`Skipping slide ${slide.title}: ImageData has been cleaned up`)
+          slideHashes.push({
+            slide,
+            filename,
+            pHash: '',
+            error: 'ImageData has been cleaned up'
+          })
+          continue
+        }
 
         // Calculate pHash using worker
         const pHashPromise = new Promise<string>((resolve, reject) => {
@@ -1921,6 +2019,95 @@ const executePostProcessing = async () => {
         })
 
         const pHash = await pHashPromise
+        slideHashes.push({ slide, filename, pHash })
+        console.log(`Calculated pHash for ${filename}: ${pHash}`)
+
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        console.error(`Failed to calculate pHash for ${slide.title}:`, errorMessage)
+        slideHashes.push({
+          slide,
+          filename: `${slide.title}.png`,
+          pHash: '',
+          error: errorMessage
+        })
+      }
+    }
+
+    // Step 2: Remove duplicates among all slides (keep only first occurrence)
+    console.log('Step 2: Removing duplicate slides...')
+    const seenHashes = new Map<string, string>() // pHash -> first filename
+    const duplicatesToDelete: Array<{ slide: ExtractedSlide; filename: string; pHash: string; duplicateOf: string }> = []
+
+    for (const item of slideHashes) {
+      if (item.error || !item.pHash) continue
+
+      // Check if we've seen a similar hash before
+      let isDuplicate = false
+      let duplicateOf = ''
+
+      for (const [seenHash, seenFilename] of seenHashes.entries()) {
+        try {
+          const hammingDistance = await calculateHammingDistanceWithWorker(item.pHash, seenHash)
+          if (hammingDistance <= pHashThreshold) {
+            isDuplicate = true
+            duplicateOf = seenFilename
+            console.log(`Duplicate detected: ${item.filename} is similar to ${seenFilename} (Hamming distance: ${hammingDistance})`)
+            break
+          }
+        } catch (error) {
+          console.warn(`Failed to calculate Hamming distance between ${item.filename} and ${seenFilename}:`, error)
+        }
+      }
+
+      if (isDuplicate) {
+        duplicatesToDelete.push({ ...item, duplicateOf })
+      } else {
+        // First occurrence - remember this hash
+        seenHashes.set(item.pHash, item.filename)
+      }
+    }
+
+    // Delete duplicate slides
+    for (const duplicate of duplicatesToDelete) {
+      try {
+        await deleteSlide(duplicate.slide, false) // false = don't show confirmation dialog
+        console.log(`Deleted duplicate slide: ${duplicate.filename} (duplicate of ${duplicate.duplicateOf})`)
+      } catch (deleteError) {
+        console.error(`Failed to delete duplicate slide ${duplicate.filename}:`, deleteError)
+      }
+    }
+
+    // Step 3: Check remaining slides against exclusion list
+    console.log('Step 3: Checking remaining slides against exclusion list...')
+    const results: Array<{ filename: string; pHash: string; excluded?: boolean; excludedReason?: string; duplicate?: boolean; duplicateOf?: string; error?: string }> = []
+    const deletedSlides: string[] = []
+    let processedCount = 0
+
+    for (const item of slideHashes) {
+      try {
+        const { slide, filename, pHash, error } = item
+
+        // Skip if there was an error calculating pHash
+        if (error) {
+          results.push({ filename, pHash, error })
+          continue
+        }
+
+        // Check if this was already deleted as a duplicate
+        const wasDuplicate = duplicatesToDelete.some(d => d.filename === filename)
+        if (wasDuplicate) {
+          const duplicateInfo = duplicatesToDelete.find(d => d.filename === filename)!
+          results.push({
+            filename,
+            pHash,
+            duplicate: true,
+            duplicateOf: duplicateInfo.duplicateOf
+          })
+          deletedSlides.push(filename)
+          processedCount++
+          continue
+        }
 
         // Check against exclusion list
         let shouldExclude = false
@@ -1969,15 +2156,15 @@ const executePostProcessing = async () => {
         }
 
         processedCount++
-        console.log(`Processed ${filename} (${processedCount}/${extractedSlides.value.length}): pHash = ${pHash}${shouldExclude ? ' [EXCLUDED]' : ''}`)
+        console.log(`Processed ${filename} (${processedCount}/${slideHashes.length}): pHash = ${pHash}${shouldExclude ? ' [EXCLUDED]' : ''}`)
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error)
-        console.error(`Failed to process ${slide.title}:`, errorMessage)
+        console.error(`Failed to process slide:`, errorMessage)
 
         results.push({
-          filename: `${slide.title}.png`,
-          pHash: '',
+          filename: item.filename,
+          pHash: item.pHash || '',
           error: errorMessage
         })
       }
@@ -1989,12 +2176,14 @@ const executePostProcessing = async () => {
     const totalSlides = extractedSlides.value.length
     const processedSlides = results.filter(r => !r.error).length
     const failedSlides = results.filter(r => r.error).length
+    const duplicateSlides = results.filter(r => r.duplicate).length
     const excludedSlides = results.filter(r => r.excluded).length
 
     console.log('Post-processing completed successfully:', {
       totalSlides,
       processedSlides,
       failedSlides,
+      duplicateSlides,
       excludedSlides,
       deletedSlides: deletedSlides.length
     })
@@ -2004,7 +2193,7 @@ const executePostProcessing = async () => {
       type: 'info',
       title: 'Post-processing Completed',
       message: `Post-processing completed successfully!`,
-      detail: `Processed: ${processedSlides}/${totalSlides} slides\nExcluded and deleted: ${excludedSlides} slides${failedSlides > 0 ? `\nFailed: ${failedSlides} slides` : ''}`
+      detail: `Processed: ${processedSlides}/${totalSlides} slides\nDuplicates removed: ${duplicateSlides} slides\nExcluded and deleted: ${excludedSlides} slides${failedSlides > 0 ? `\nFailed: ${failedSlides} slides` : ''}`
     })
 
   } catch (error) {
