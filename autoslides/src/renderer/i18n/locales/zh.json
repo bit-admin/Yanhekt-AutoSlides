@@ -62,7 +62,14 @@
     "noDownloads": "无下载"
   },
   "advanced": {
+    "tabs": {
+      "general": "一般",
+      "imageProcessing": "图像处理",
+      "playback": "播放及下载",
+      "network": "网络"
+    },
     "authentication": "身份验证",
+    "appearance": "外观",
     "token": "令牌",
     "tokenDescription": "手动输入您的身份验证令牌以直接访问",
     "tokenPlaceholder": "在此输入您的令牌...",

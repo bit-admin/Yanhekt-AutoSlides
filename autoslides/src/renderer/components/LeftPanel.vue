@@ -104,33 +104,6 @@
         </div>
 
         <div class="setting-item">
-          <div class="theme-language-row">
-            <div class="theme-language-item">
-              <label class="setting-label">{{ $t('settings.theme') }}</label>
-              <div class="theme-selector">
-                <select v-model="themeMode" @change="setThemeMode" class="theme-select">
-                  <option value="system">{{ $t('settings.followSystem') }}</option>
-                  <option value="light">{{ $t('settings.light') }}</option>
-                  <option value="dark">{{ $t('settings.dark') }}</option>
-                </select>
-              </div>
-            </div>
-            <div class="theme-language-item">
-              <label class="setting-label">{{ $t('settings.language') }}</label>
-              <div class="language-selector">
-                <select v-model="languageMode" @change="setLanguageMode" class="language-select">
-                  <option value="system">{{ $t('settings.followSystem') }}</option>
-                  <option value="en">{{ $t('settings.english') }}</option>
-                  <option value="zh">{{ $t('settings.chinese') }}</option>
-                  <option value="ja">日本語</option>
-                  <option value="ko">한국어</option>
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="setting-item">
           <div class="setting-label-with-reset">
             <label class="setting-label">{{ $t('settings.slideDetectionInterval') }}</label>
             <button @click="resetSlideDetectionInterval" class="reset-btn" :title="$t('settings.resetToDefault')">
@@ -251,7 +224,31 @@
           </button>
         </div>
         <div class="modal-body">
+          <!-- Tab Navigation -->
+          <div class="advanced-tabs">
+            <button
+              v-for="tab in advancedSettingsTabs"
+              :key="tab.id"
+              @click="activeAdvancedTab = tab.id"
+              :class="['tab-btn', { active: activeAdvancedTab === tab.id }]"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path v-if="tab.id === 'general'" d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                <circle v-if="tab.id === 'general'" cx="12" cy="12" r="3"/>
+                <path v-if="tab.id === 'imageProcessing'" d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                <circle v-if="tab.id === 'imageProcessing'" cx="12" cy="13" r="3"/>
+                <polygon v-if="tab.id === 'playback'" points="5 3 19 12 5 21 5 3"/>
+                <path v-if="tab.id === 'network'" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/>
+                <path v-if="tab.id === 'network'" d="M2 12h20"/>
+                <path v-if="tab.id === 'network'" d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+              {{ $t(`advanced.tabs.${tab.id}`) }}
+            </button>
+          </div>
+
           <div class="advanced-settings-content">
+            <!-- General Tab -->
+            <div v-show="activeAdvancedTab === 'general'" class="tab-content">
             <div class="advanced-setting-section">
               <h4>{{ $t('advanced.authentication') }}</h4>
               <div class="setting-item">
@@ -285,6 +282,99 @@
               </div>
             </div>
 
+            <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.appearance') }}</h4>
+              <div class="setting-item">
+                <div class="theme-language-row">
+                  <div class="theme-language-item">
+                    <label class="setting-label">{{ $t('settings.theme') }}</label>
+                    <div class="theme-selector">
+                      <select v-model="tempThemeMode" class="theme-select">
+                        <option value="system">{{ $t('settings.followSystem') }}</option>
+                        <option value="light">{{ $t('settings.light') }}</option>
+                        <option value="dark">{{ $t('settings.dark') }}</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="theme-language-item">
+                    <label class="setting-label">{{ $t('settings.language') }}</label>
+                    <div class="language-selector">
+                      <select v-model="tempLanguageMode" class="language-select">
+                        <option value="system">{{ $t('settings.followSystem') }}</option>
+                        <option value="en">{{ $t('settings.english') }}</option>
+                        <option value="zh">{{ $t('settings.chinese') }}</option>
+                        <option value="ja">日本語</option>
+                        <option value="ko">한국어</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.cacheManagement') }}</h4>
+              <div class="setting-item">
+                <div class="setting-description">{{ $t('advanced.cacheManagementDescription') }}</div>
+                <div class="cache-stats">
+                  <div class="cache-stat-item">
+                    <span class="cache-stat-label">{{ $t('advanced.cacheSize') }}</span>
+                    <span class="cache-stat-value">{{ formatCacheSize(cacheStats.totalSize) }}</span>
+                  </div>
+                  <div class="cache-stat-item">
+                    <span class="cache-stat-label">{{ $t('advanced.totalFiles') }}</span>
+                    <span class="cache-stat-value">{{ cacheStats.tempFiles }}</span>
+                  </div>
+                </div>
+                <div class="cache-actions">
+                  <button
+                    @click="refreshCacheStats"
+                    :disabled="isRefreshingCache"
+                    class="cache-refresh-btn"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                      <path d="M21 3v5h-5"/>
+                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                      <path d="M3 21v-5h5"/>
+                    </svg>
+                    {{ isRefreshingCache ? $t('advanced.refreshing') : $t('advanced.refresh') }}
+                  </button>
+                  <button
+                    @click="clearCache"
+                    :disabled="isClearingCache || cacheStats.totalSize === 0"
+                    class="cache-clear-btn"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="3,6 5,6 21,6"/>
+                      <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
+                      <line x1="10" y1="11" x2="10" y2="17"/>
+                      <line x1="14" y1="11" x2="14" y2="17"/>
+                    </svg>
+                    {{ isClearingCache ? $t('advanced.clearing') : $t('advanced.clearCache') }}
+                  </button>
+                  <button
+                    @click="resetAllData"
+                    :disabled="isResettingData"
+                    class="cache-reset-btn"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                      <path d="m2 17 10 5 10-5"/>
+                      <path d="m2 12 10 5 10-5"/>
+                    </svg>
+                    {{ isResettingData ? $t('advanced.resetting') : $t('advanced.resetAllData') }}
+                  </button>
+                </div>
+                <div v-if="cacheOperationStatus" :class="['cache-status', cacheOperationStatus.type]">
+                  {{ cacheOperationStatus.message }}
+                </div>
+              </div>
+            </div>
+            </div>
+
+            <!-- Image Processing Tab -->
+            <div v-show="activeAdvancedTab === 'imageProcessing'" class="tab-content">
             <div class="advanced-setting-section">
               <h4>{{ $t('advanced.imageProcessing') }}</h4>
               <div class="setting-item">
@@ -475,7 +565,10 @@
                 </div>
               </div>
             </div>
+            </div>
 
+            <!-- Playback Tab -->
+            <div v-show="activeAdvancedTab === 'playback'" class="tab-content">
             <div class="advanced-setting-section">
               <h4>{{ $t('advanced.videoPlayback') }}</h4>
               <div class="setting-item">
@@ -519,67 +612,10 @@
                 </select>
               </div>
             </div>
-
-            <div class="advanced-setting-section">
-              <h4>{{ $t('advanced.cacheManagement') }}</h4>
-              <div class="setting-item">
-                <div class="setting-description">{{ $t('advanced.cacheManagementDescription') }}</div>
-                <div class="cache-stats">
-                  <div class="cache-stat-item">
-                    <span class="cache-stat-label">{{ $t('advanced.cacheSize') }}</span>
-                    <span class="cache-stat-value">{{ formatCacheSize(cacheStats.totalSize) }}</span>
-                  </div>
-                  <div class="cache-stat-item">
-                    <span class="cache-stat-label">{{ $t('advanced.totalFiles') }}</span>
-                    <span class="cache-stat-value">{{ cacheStats.tempFiles }}</span>
-                  </div>
-                </div>
-                <div class="cache-actions">
-                  <button
-                    @click="refreshCacheStats"
-                    :disabled="isRefreshingCache"
-                    class="cache-refresh-btn"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                      <path d="M21 3v5h-5"/>
-                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                      <path d="M3 21v-5h5"/>
-                    </svg>
-                    {{ isRefreshingCache ? $t('advanced.refreshing') : $t('advanced.refresh') }}
-                  </button>
-                  <button
-                    @click="clearCache"
-                    :disabled="isClearingCache || cacheStats.totalSize === 0"
-                    class="cache-clear-btn"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polyline points="3,6 5,6 21,6"/>
-                      <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
-                      <line x1="10" y1="11" x2="10" y2="17"/>
-                      <line x1="14" y1="11" x2="14" y2="17"/>
-                    </svg>
-                    {{ isClearingCache ? $t('advanced.clearing') : $t('advanced.clearCache') }}
-                  </button>
-                  <button
-                    @click="resetAllData"
-                    :disabled="isResettingData"
-                    class="cache-reset-btn"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                      <path d="m2 17 10 5 10-5"/>
-                      <path d="m2 12 10 5 10-5"/>
-                    </svg>
-                    {{ isResettingData ? $t('advanced.resetting') : $t('advanced.resetAllData') }}
-                  </button>
-                </div>
-                <div v-if="cacheOperationStatus" :class="['cache-status', cacheOperationStatus.type]">
-                  {{ cacheOperationStatus.message }}
-                </div>
-              </div>
             </div>
 
+            <!-- Network Tab -->
+            <div v-show="activeAdvancedTab === 'network'" class="tab-content">
             <div class="advanced-setting-section">
               <h4>{{ $t('advanced.intranetMapping') }}</h4>
               <div class="setting-item">
@@ -626,6 +662,7 @@
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
           <div class="modal-actions">
@@ -732,6 +769,8 @@ const connectionMode = ref<'internal' | 'external'>('external')
 const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
 const themeMode = ref<'system' | 'light' | 'dark'>('system')
 const languageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
+const tempThemeMode = ref<'system' | 'light' | 'dark'>('system')
+const tempLanguageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
 
 const taskStatus = computed(() => {
   const stats = taskQueueState.value
@@ -779,6 +818,17 @@ const downloadQueueStatus = computed(() => {
   }
 })
 const showAdvancedModal = ref(false)
+
+// Advanced settings tabs
+type AdvancedTabId = 'general' | 'imageProcessing' | 'playback' | 'network'
+const activeAdvancedTab = ref<AdvancedTabId>('general')
+const advancedSettingsTabs = [
+  { id: 'general' as AdvancedTabId },
+  { id: 'imageProcessing' as AdvancedTabId },
+  { id: 'playback' as AdvancedTabId },
+  { id: 'network' as AdvancedTabId }
+]
+
 const isLoading = ref(false)
 const isVerifyingToken = ref(false)
 const outputDirectory = ref('')
@@ -1149,26 +1199,6 @@ const setAutoPostProcessing = async () => {
   }
 }
 
-const setThemeMode = async () => {
-  try {
-    const result = await window.electronAPI.config.setThemeMode(themeMode.value)
-    themeMode.value = result.themeMode
-  } catch (error) {
-    console.error('Failed to set theme mode:', error)
-  }
-}
-
-const setLanguageMode = async () => {
-  try {
-    const result = await window.electronAPI.config.setLanguageMode(languageMode.value)
-    languageMode.value = result.languageMode
-    // Update the language service
-    await languageService.setLanguageMode(languageMode.value)
-  } catch (error) {
-    console.error('Failed to set language mode:', error)
-  }
-}
-
 const setPreventSystemSleep = async () => {
   try {
     const result = await window.electronAPI.config.setPreventSystemSleep(preventSystemSleep.value)
@@ -1204,6 +1234,8 @@ const openAdvancedSettings = async () => {
   // Reset temp values to current values when opening modal
   tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
   tempVideoRetryCount.value = videoRetryCount.value
+  tempThemeMode.value = themeMode.value
+  tempLanguageMode.value = languageMode.value
 
   // Set programmatic update flag to prevent mode switching during initialization
   isUpdatingProgrammatically = true
@@ -1239,6 +1271,8 @@ const closeAdvancedSettings = () => {
   tempVideoRetryCount.value = videoRetryCount.value
   tempSsimThreshold.value = ssimThreshold.value
   tempPHashThreshold.value = pHashThreshold.value
+  tempThemeMode.value = themeMode.value
+  tempLanguageMode.value = languageMode.value
   showAdvancedModal.value = false
 }
 
@@ -1362,6 +1396,19 @@ const saveAdvancedSettings = async () => {
     })
     ssimThreshold.value = imageProcessingResult.ssimThreshold
     pHashThreshold.value = imageProcessingResult.pHashThreshold || tempPHashThreshold.value
+
+    // Save theme mode if changed
+    if (tempThemeMode.value !== themeMode.value) {
+      const themeResult = await window.electronAPI.config.setThemeMode(tempThemeMode.value)
+      themeMode.value = themeResult.themeMode
+    }
+
+    // Save language mode if changed
+    if (tempLanguageMode.value !== languageMode.value) {
+      const langResult = await window.electronAPI.config.setLanguageMode(tempLanguageMode.value)
+      languageMode.value = langResult.languageMode
+      await languageService.setLanguageMode(tempLanguageMode.value)
+    }
 
     // Also update the download service
     const { DownloadService } = await import('../services/downloadService')
@@ -2504,6 +2551,51 @@ const closeNameInputDialog = () => {
   color: #333;
 }
 
+/* Advanced Settings Tabs */
+.advanced-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #fafafa;
+  flex-shrink: 0;
+}
+
+.advanced-tabs .tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #666;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: -1px;
+}
+
+.advanced-tabs .tab-btn:hover {
+  color: #333;
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.advanced-tabs .tab-btn.active {
+  color: #007acc;
+  border-bottom-color: #007acc;
+  background-color: white;
+}
+
+.advanced-tabs .tab-btn svg {
+  flex-shrink: 0;
+}
+
+.tab-content {
+  display: flex;
+  flex-direction: column;
+}
+
 .advanced-settings-content {
   flex: 1;
   overflow-y: auto;
@@ -3246,6 +3338,26 @@ const closeNameInputDialog = () => {
 
   .modal-body {
     color: #e0e0e0;
+  }
+
+  .advanced-tabs {
+    background-color: #252525;
+    border-bottom-color: #404040;
+  }
+
+  .advanced-tabs .tab-btn {
+    color: #999;
+  }
+
+  .advanced-tabs .tab-btn:hover {
+    color: #e0e0e0;
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .advanced-tabs .tab-btn.active {
+    color: #4a9eff;
+    border-bottom-color: #4a9eff;
+    background-color: #2d2d2d;
   }
 
   .advanced-settings-content {

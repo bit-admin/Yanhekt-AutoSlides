@@ -62,7 +62,14 @@
     "noDownloads": "다운로드 없음"
   },
   "advanced": {
+    "tabs": {
+      "general": "일반",
+      "imageProcessing": "이미지 처리",
+      "playback": "재생 및 다운로드",
+      "network": "네트워크"
+    },
     "authentication": "인증",
+    "appearance": "외관",
     "token": "토큰",
     "tokenDescription": "직접 액세스를 위해 인증 토큰을 수동으로 입력하세요.",
     "tokenPlaceholder": "토큰을 여기에 입력하세요...",

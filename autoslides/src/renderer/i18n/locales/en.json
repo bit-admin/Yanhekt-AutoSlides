@@ -62,7 +62,14 @@
     "noDownloads": "No downloads"
   },
   "advanced": {
+    "tabs": {
+      "general": "General",
+      "imageProcessing": "Image Processing",
+      "playback": "Playback & Download",
+      "network": "Network"
+    },
     "authentication": "Authentication",
+    "appearance": "Appearance",
     "token": "Token",
     "tokenDescription": "Manually input your authentication token for direct access.",
     "tokenPlaceholder": "Enter your token here...",

@@ -62,7 +62,14 @@
     "noDownloads": "ダウンロードなし"
   },
   "advanced": {
+    "tabs": {
+      "general": "一般",
+      "imageProcessing": "画像処理",
+      "playback": "再生とダウンロード",
+      "network": "ネットワーク"
+    },
     "authentication": "認証",
+    "appearance": "外観",
     "token": "トークン",
     "tokenDescription": "直接アクセスのために認証トークンを手動で入力してください",
     "tokenPlaceholder": "トークンをここに入力...",
