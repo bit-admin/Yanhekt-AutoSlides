@@ -241,6 +241,14 @@
                 <path v-if="tab.id === 'network'" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/>
                 <path v-if="tab.id === 'network'" d="M2 12h20"/>
                 <path v-if="tab.id === 'network'" d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                <!-- AI tab icon (brain/chip) -->
+                <rect v-if="tab.id === 'ai'" x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                <path v-if="tab.id === 'ai'" d="M9 9h.01"/>
+                <path v-if="tab.id === 'ai'" d="M15 9h.01"/>
+                <path v-if="tab.id === 'ai'" d="M9 15h.01"/>
+                <path v-if="tab.id === 'ai'" d="M15 15h.01"/>
+                <path v-if="tab.id === 'ai'" d="M12 9v6"/>
+                <path v-if="tab.id === 'ai'" d="M9 12h6"/>
               </svg>
               {{ $t(`advanced.tabs.${tab.id}`) }}
             </button>
@@ -689,6 +697,141 @@
               </div>
             </div>
             </div>
+
+            <!-- AI Tab -->
+            <div v-show="activeAdvancedTab === 'ai'" class="tab-content">
+            <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.ai.serviceSettings') }}</h4>
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.ai.serviceType') }}</label>
+                <div class="setting-description">{{ $t('advanced.ai.serviceTypeDescription') }}</div>
+                <div class="ai-service-type-selector">
+                  <button
+                    @click="tempAiServiceType = 'builtin'"
+                    :class="['mode-btn', { active: tempAiServiceType === 'builtin' }]"
+                  >
+                    {{ $t('advanced.ai.builtin') }}
+                  </button>
+                  <button
+                    @click="tempAiServiceType = 'custom'"
+                    :class="['mode-btn', { active: tempAiServiceType === 'custom' }]"
+                  >
+                    {{ $t('advanced.ai.custom') }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Custom API Settings (shown only when custom is selected) -->
+              <div v-if="tempAiServiceType === 'custom'" class="custom-api-settings">
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.ai.apiBaseUrl') }}</label>
+                  <div class="setting-description">{{ $t('advanced.ai.apiBaseUrlDescription') }}</div>
+                  <div class="api-url-input-group">
+                    <input
+                      v-model="tempAiCustomApiBaseUrl"
+                      type="text"
+                      class="api-url-input"
+                      :placeholder="$t('advanced.ai.apiBaseUrlPlaceholder')"
+                    />
+                    <select v-model="selectedApiUrlPreset" @change="onApiUrlPresetChange" class="api-url-preset-select">
+                      <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
+                      <option v-for="preset in apiUrlPresets" :key="preset.url" :value="preset.url">
+                        {{ preset.label }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.ai.apiKey') }}</label>
+                  <div class="setting-description">{{ $t('advanced.ai.apiKeyDescription') }}</div>
+                  <div class="api-key-input-group">
+                    <input
+                      v-model="tempAiCustomApiKey"
+                      :type="showApiKey ? 'text' : 'password'"
+                      class="api-key-input"
+                      :placeholder="$t('advanced.ai.apiKeyPlaceholder')"
+                    />
+                    <button @click="showApiKey = !showApiKey" class="api-key-toggle-btn" :title="showApiKey ? $t('advanced.hideToken') : $t('advanced.showToken')">
+                      <svg v-if="showApiKey" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                        <line x1="1" y1="1" x2="23" y2="23"/>
+                      </svg>
+                      <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.ai.modelName') }}</label>
+                  <div class="setting-description">{{ $t('advanced.ai.modelNameDescription') }}</div>
+                  <div class="model-name-input-group">
+                    <input
+                      v-model="tempAiCustomModelName"
+                      type="text"
+                      class="model-name-input"
+                      :placeholder="$t('advanced.ai.modelNamePlaceholder')"
+                    />
+                    <select v-model="selectedModelPreset" @change="onModelPresetChange" class="model-preset-select">
+                      <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
+                      <option v-for="preset in modelPresets" :key="preset.name" :value="preset.name">
+                        {{ preset.label }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.ai.prompts') }}</h4>
+
+              <div class="setting-item">
+                <div class="setting-label-with-reset">
+                  <label class="setting-label">{{ $t('advanced.ai.promptLive') }}</label>
+                  <button @click="resetAiPrompt('live')" class="reset-btn" :title="$t('settings.resetToDefault')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                      <path d="M21 3v5h-5"/>
+                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                      <path d="M3 21v-5h5"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="setting-description">{{ $t('advanced.ai.promptLiveDescription') }}</div>
+                <textarea
+                  v-model="tempAiPromptLive"
+                  class="ai-prompt-textarea"
+                  rows="6"
+                  :placeholder="$t('advanced.ai.promptPlaceholder')"
+                ></textarea>
+              </div>
+
+              <div class="setting-item">
+                <div class="setting-label-with-reset">
+                  <label class="setting-label">{{ $t('advanced.ai.promptRecorded') }}</label>
+                  <button @click="resetAiPrompt('recorded')" class="reset-btn" :title="$t('settings.resetToDefault')">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                      <path d="M21 3v5h-5"/>
+                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                      <path d="M3 21v-5h5"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="setting-description">{{ $t('advanced.ai.promptRecordedDescription') }}</div>
+                <textarea
+                  v-model="tempAiPromptRecorded"
+                  class="ai-prompt-textarea"
+                  rows="6"
+                  :placeholder="$t('advanced.ai.promptPlaceholder')"
+                ></textarea>
+              </div>
+            </div>
+            </div>
           </div>
           <div class="modal-actions">
             <button @click="closeAdvancedSettings" class="cancel-btn">{{ $t('advanced.cancel') }}</button>
@@ -845,13 +988,14 @@ const downloadQueueStatus = computed(() => {
 const showAdvancedModal = ref(false)
 
 // Advanced settings tabs
-type AdvancedTabId = 'general' | 'imageProcessing' | 'playback' | 'network'
+type AdvancedTabId = 'general' | 'imageProcessing' | 'playback' | 'network' | 'ai'
 const activeAdvancedTab = ref<AdvancedTabId>('general')
 const advancedSettingsTabs = [
   { id: 'general' as AdvancedTabId },
   { id: 'imageProcessing' as AdvancedTabId },
   { id: 'playback' as AdvancedTabId },
-  { id: 'network' as AdvancedTabId }
+  { id: 'network' as AdvancedTabId },
+  { id: 'ai' as AdvancedTabId }
 ]
 
 const isLoading = ref(false)
@@ -950,6 +1094,41 @@ const isRefreshingCache = ref(false)
 const isClearingCache = ref(false)
 const isResettingData = ref(false)
 const cacheOperationStatus = ref<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null)
+
+// AI filtering configuration
+type AIServiceType = 'builtin' | 'custom'
+const aiServiceType = ref<AIServiceType>('builtin')
+const tempAiServiceType = ref<AIServiceType>('builtin')
+const aiCustomApiBaseUrl = ref('')
+const tempAiCustomApiBaseUrl = ref('')
+const aiCustomApiKey = ref('')
+const tempAiCustomApiKey = ref('')
+const aiCustomModelName = ref('')
+const tempAiCustomModelName = ref('')
+const showApiKey = ref(false)
+const selectedApiUrlPreset = ref('')
+const selectedModelPreset = ref('')
+
+// AI prompts
+const aiPromptLive = ref('')
+const tempAiPromptLive = ref('')
+const aiPromptRecorded = ref('')
+const tempAiPromptRecorded = ref('')
+
+// AI API URL presets
+const apiUrlPresets = [
+  { label: 'ModelScope', url: 'https://api-inference.modelscope.cn/v1' },
+  { label: 'GitHub Copilot', url: 'https://api.githubcopilot.com' },
+  { label: 'LM Studio (Local)', url: 'http://localhost:1234/v1' }
+]
+
+// AI model presets
+const modelPresets = [
+  { label: 'Qwen3-VL-235B', name: 'Qwen/Qwen3-VL-235B-A22B-Instruct' },
+  { label: 'Qwen3-VL-30B', name: 'Qwen/Qwen3-VL-30B-A3B-Instruct' },
+  { label: 'Qwen3-VL-8B', name: 'Qwen/Qwen3-VL-8B-Instruct' },
+  { label: 'GPT-4.1', name: 'gpt-4.1' }
+]
 
 const tokenManager = new TokenManager()
 const authService = new AuthService(tokenManager)
@@ -1295,6 +1474,13 @@ const openAdvancedSettings = async () => {
   // Load pHash exclusion list
   await loadPHashExclusionList()
 
+  // Load AI settings
+  await loadAISettings()
+  // Reset preset selectors
+  selectedApiUrlPreset.value = ''
+  selectedModelPreset.value = ''
+  showApiKey.value = false
+
   showAdvancedModal.value = true
 }
 
@@ -1457,6 +1643,28 @@ const saveAdvancedSettings = async () => {
       const langResult = await window.electronAPI.config.setLanguageMode(tempLanguageMode.value)
       languageMode.value = langResult.languageMode
       await languageService.setLanguageMode(tempLanguageMode.value)
+    }
+
+    // Save AI filtering settings
+    await window.electronAPI.config.setAIFilteringConfig({
+      serviceType: tempAiServiceType.value,
+      customApiBaseUrl: tempAiCustomApiBaseUrl.value,
+      customApiKey: tempAiCustomApiKey.value,
+      customModelName: tempAiCustomModelName.value
+    })
+    aiServiceType.value = tempAiServiceType.value
+    aiCustomApiBaseUrl.value = tempAiCustomApiBaseUrl.value
+    aiCustomApiKey.value = tempAiCustomApiKey.value
+    aiCustomModelName.value = tempAiCustomModelName.value
+
+    // Save AI prompts
+    if (tempAiPromptLive.value !== aiPromptLive.value) {
+      await window.electronAPI.config.setAIPrompt('live', tempAiPromptLive.value)
+      aiPromptLive.value = tempAiPromptLive.value
+    }
+    if (tempAiPromptRecorded.value !== aiPromptRecorded.value) {
+      await window.electronAPI.config.setAIPrompt('recorded', tempAiPromptRecorded.value)
+      aiPromptRecorded.value = tempAiPromptRecorded.value
     }
 
     // Also update the download service
@@ -1715,6 +1923,62 @@ const resetAllData = async () => {
     }
   } finally {
     isResettingData.value = false
+  }
+}
+
+// AI settings methods
+const onApiUrlPresetChange = () => {
+  if (selectedApiUrlPreset.value) {
+    tempAiCustomApiBaseUrl.value = selectedApiUrlPreset.value
+  }
+}
+
+const onModelPresetChange = () => {
+  if (selectedModelPreset.value) {
+    tempAiCustomModelName.value = selectedModelPreset.value
+  }
+}
+
+const resetAiPrompt = async (type: 'live' | 'recorded') => {
+  try {
+    const defaultPrompt = await window.electronAPI.config.resetAIPrompt(type)
+    if (type === 'live') {
+      tempAiPromptLive.value = defaultPrompt
+      aiPromptLive.value = defaultPrompt
+    } else {
+      tempAiPromptRecorded.value = defaultPrompt
+      aiPromptRecorded.value = defaultPrompt
+    }
+  } catch (error) {
+    console.error(`Failed to reset AI prompt for ${type}:`, error)
+  }
+}
+
+const loadAISettings = async () => {
+  try {
+    // Load AI filtering config
+    const aiConfig = await window.electronAPI.config.getAIFilteringConfig()
+    if (aiConfig) {
+      aiServiceType.value = aiConfig.serviceType || 'builtin'
+      tempAiServiceType.value = aiConfig.serviceType || 'builtin'
+      aiCustomApiBaseUrl.value = aiConfig.customApiBaseUrl || ''
+      tempAiCustomApiBaseUrl.value = aiConfig.customApiBaseUrl || ''
+      aiCustomApiKey.value = aiConfig.customApiKey || ''
+      tempAiCustomApiKey.value = aiConfig.customApiKey || ''
+      aiCustomModelName.value = aiConfig.customModelName || ''
+      tempAiCustomModelName.value = aiConfig.customModelName || ''
+    }
+
+    // Load AI prompts
+    const prompts = await window.electronAPI.config.getAIPrompts()
+    if (prompts) {
+      aiPromptLive.value = prompts.live || ''
+      tempAiPromptLive.value = prompts.live || ''
+      aiPromptRecorded.value = prompts.recorded || ''
+      tempAiPromptRecorded.value = prompts.recorded || ''
+    }
+  } catch (error) {
+    console.error('Failed to load AI settings:', error)
   }
 }
 
@@ -4478,6 +4742,152 @@ const closeNameInputDialog = () => {
   }
 
   .name-input-field::placeholder {
+    color: #888;
+  }
+}
+
+/* AI Settings Tab Styles */
+.ai-service-type-selector {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.custom-api-settings {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.api-url-input-group,
+.api-key-input-group,
+.model-name-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.api-url-input,
+.api-key-input,
+.model-name-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+  background-color: white;
+  min-width: 0;
+}
+
+.api-url-input:focus,
+.api-key-input:focus,
+.model-name-input:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.api-url-preset-select,
+.model-preset-select {
+  flex: 0 0 auto;
+  min-width: 130px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.api-key-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  color: #666;
+}
+
+.api-key-toggle-btn:hover {
+  background-color: #f5f5f5;
+  color: #333;
+}
+
+.ai-prompt-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+  background-color: white;
+  resize: vertical;
+  min-height: 100px;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.ai-prompt-textarea:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+/* Dark mode support for AI settings */
+@media (prefers-color-scheme: dark) {
+  .custom-api-settings {
+    border-top-color: #404040;
+  }
+
+  .api-url-input,
+  .api-key-input,
+  .model-name-input {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .api-url-input:focus,
+  .api-key-input:focus,
+  .model-name-input:focus {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .api-url-preset-select,
+  .model-preset-select {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .api-key-toggle-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #aaa;
+  }
+
+  .api-key-toggle-btn:hover {
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+  }
+
+  .ai-prompt-textarea {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .ai-prompt-textarea:focus {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .ai-prompt-textarea::placeholder {
     color: #888;
   }
 }

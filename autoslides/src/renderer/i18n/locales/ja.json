@@ -66,7 +66,8 @@
       "general": "一般",
       "imageProcessing": "画像処理",
       "playback": "再生とダウンロード",
-      "network": "ネットワーク"
+      "network": "ネットワーク",
+      "ai": "AI"
     },
     "authentication": "認証",
     "appearance": "外観",
@@ -189,7 +190,31 @@
     "random": "ランダム",
     "firstAvailable": "最初の利用可能",
     "cancel": "キャンセル",
-    "save": "保存"
+    "save": "保存",
+    "ai": {
+      "serviceSettings": "AIサービス設定",
+      "serviceType": "サービスタイプ",
+      "serviceTypeDescription": "内蔵AIサービスを使用するか、カスタムOpenAI互換APIを設定するかを選択します。",
+      "builtin": "内蔵",
+      "custom": "カスタム",
+      "apiBaseUrl": "APIベースURL",
+      "apiBaseUrlDescription": "OpenAI互換APIエンドポイントのベースURL。",
+      "apiBaseUrlPlaceholder": "https://api.example.com/v1",
+      "selectPreset": "プリセットを選択...",
+      "apiKey": "APIキー",
+      "apiKeyDescription": "サービス認証用のAPIキー。",
+      "apiKeyPlaceholder": "APIキーを入力...",
+      "modelName": "モデル名",
+      "modelNameDescription": "画像分類に使用するモデル。",
+      "modelNamePlaceholder": "モデル名を入力...",
+      "prompts": "AIプロンプト",
+      "promptLive": "ライブモードのプロンプト",
+      "promptLiveDescription": "ライブストリーミング中のスライド分類に使用するプロンプト。一度に1つの画像を処理します。",
+      "promptRecorded": "録画モードのプロンプト",
+      "promptRecordedDescription": "録画からのスライド分類に使用するプロンプト。複数の画像をバッチ処理します。",
+      "promptPlaceholder": "AIプロンプトを入力...",
+      "resetPrompt": "デフォルトにリセット"
+    }
   },
   "courses": {
     "title": {

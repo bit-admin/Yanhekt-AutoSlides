@@ -66,7 +66,8 @@
       "general": "General",
       "imageProcessing": "Image Processing",
       "playback": "Playback & Download",
-      "network": "Network"
+      "network": "Network",
+      "ai": "AI"
     },
     "authentication": "Authentication",
     "appearance": "Appearance",
@@ -189,7 +190,31 @@
     "random": "Random",
     "firstAvailable": "First Available",
     "cancel": "Cancel",
-    "save": "Save"
+    "save": "Save",
+    "ai": {
+      "serviceSettings": "AI Service Settings",
+      "serviceType": "Service Type",
+      "serviceTypeDescription": "Choose between built-in AI service or configure a custom OpenAI-compatible API.",
+      "builtin": "Built-in",
+      "custom": "Custom",
+      "apiBaseUrl": "API Base URL",
+      "apiBaseUrlDescription": "The base URL of the OpenAI-compatible API endpoint.",
+      "apiBaseUrlPlaceholder": "https://api.example.com/v1",
+      "selectPreset": "Select Preset...",
+      "apiKey": "API Key",
+      "apiKeyDescription": "Your API key for authentication with the service.",
+      "apiKeyPlaceholder": "Enter your API key...",
+      "modelName": "Model Name",
+      "modelNameDescription": "The model to use for image classification.",
+      "modelNamePlaceholder": "Enter model name...",
+      "prompts": "AI Prompts",
+      "promptLive": "Prompt for Live Mode",
+      "promptLiveDescription": "The prompt used for classifying slides during live streaming. This processes one image at a time.",
+      "promptRecorded": "Prompt for Recorded Mode",
+      "promptRecordedDescription": "The prompt used for classifying slides from recordings. This processes multiple images in batch.",
+      "promptPlaceholder": "Enter the AI prompt...",
+      "resetPrompt": "Reset to Default"
+    }
   },
   "courses": {
     "title": {

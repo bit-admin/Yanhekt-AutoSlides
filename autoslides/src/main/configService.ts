@@ -39,6 +39,15 @@ export interface SlideExtractionConfig {
 
 export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
 
+export type AIServiceType = 'builtin' | 'custom';
+
+export interface AIFilteringConfig {
+  serviceType: AIServiceType;
+  customApiBaseUrl: string;
+  customApiKey: string;
+  customModelName: string;
+}
+
 export interface AppConfig {
   outputDirectory: string;
   connectionMode: 'internal' | 'external';
@@ -53,6 +62,7 @@ export interface AppConfig {
   languageMode: LanguageMode;
   preventSystemSleep: boolean;
   slideExtraction: SlideExtractionConfig;
+  aiFiltering: AIFilteringConfig;
 }
 
 const defaultSlideExtractionConfig: SlideExtractionConfig = {
@@ -103,6 +113,13 @@ const defaultSlideExtractionConfig: SlideExtractionConfig = {
   enableExclusionList: true        // Enable exclusion list phase by default
 };
 
+const defaultAIFilteringConfig: AIFilteringConfig = {
+  serviceType: 'builtin',
+  customApiBaseUrl: '',
+  customApiKey: '',
+  customModelName: ''
+};
+
 const defaultConfig: AppConfig = {
   outputDirectory: path.join(os.homedir(), 'Downloads', 'AutoSlides'),
   connectionMode: 'external',
@@ -114,7 +131,8 @@ const defaultConfig: AppConfig = {
   themeMode: 'system',
   languageMode: 'system',
   preventSystemSleep: true,
-  slideExtraction: defaultSlideExtractionConfig
+  slideExtraction: defaultSlideExtractionConfig,
+  aiFiltering: defaultAIFilteringConfig
 };
 
 export class ConfigService {
@@ -144,7 +162,8 @@ export class ConfigService {
       themeMode: this.store.get('themeMode'),
       languageMode: this.store.get('languageMode'),
       preventSystemSleep: this.store.get('preventSystemSleep'),
-      slideExtraction: this.store.get('slideExtraction')
+      slideExtraction: this.store.get('slideExtraction'),
+      aiFiltering: this.store.get('aiFiltering') || defaultAIFilteringConfig
     };
   }
 
@@ -400,6 +419,33 @@ export class ConfigService {
 
   clearPHashExclusionList(): void {
     this.setSlideExtractionConfig({ pHashExclusionList: [] });
+  }
+
+  // AI Filtering configuration methods
+  getAIFilteringConfig(): AIFilteringConfig {
+    return this.store.get('aiFiltering') || defaultAIFilteringConfig;
+  }
+
+  setAIFilteringConfig(config: Partial<AIFilteringConfig>): void {
+    const currentConfig = this.getAIFilteringConfig();
+    const updatedConfig = { ...currentConfig, ...config };
+    this.store.set('aiFiltering', updatedConfig);
+  }
+
+  setAIServiceType(serviceType: AIServiceType): void {
+    this.setAIFilteringConfig({ serviceType });
+  }
+
+  setAICustomApiBaseUrl(url: string): void {
+    this.setAIFilteringConfig({ customApiBaseUrl: url.trim() });
+  }
+
+  setAICustomApiKey(apiKey: string): void {
+    this.setAIFilteringConfig({ customApiKey: apiKey });
+  }
+
+  setAICustomModelName(modelName: string): void {
+    this.setAIFilteringConfig({ customModelName: modelName.trim() });
   }
 
   async selectOutputDirectory(): Promise<string | null> {

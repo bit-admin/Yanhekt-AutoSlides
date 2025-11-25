@@ -52,6 +52,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     updatePHashExclusionItemName: (id: string, newName: string) => ipcRenderer.invoke('config:updatePHashExclusionItemName', id, newName),
     clearPHashExclusionList: () => ipcRenderer.invoke('config:clearPHashExclusionList'),
     selectImageForExclusion: () => ipcRenderer.invoke('config:selectImageForExclusion'),
+    // AI filtering configuration
+    getAIFilteringConfig: () => ipcRenderer.invoke('config:getAIFilteringConfig'),
+    setAIFilteringConfig: (config: {
+      serviceType?: 'builtin' | 'custom';
+      customApiBaseUrl?: string;
+      customApiKey?: string;
+      customModelName?: string;
+    }) => ipcRenderer.invoke('config:setAIFilteringConfig', config),
+    // AI prompts management
+    getAIPrompts: () => ipcRenderer.invoke('config:getAIPrompts'),
+    getAIPrompt: (type: 'live' | 'recorded') => ipcRenderer.invoke('config:getAIPrompt', type),
+    setAIPrompt: (type: 'live' | 'recorded', prompt: string) => ipcRenderer.invoke('config:setAIPrompt', type, prompt),
+    resetAIPrompt: (type: 'live' | 'recorded') => ipcRenderer.invoke('config:resetAIPrompt', type),
+    getDefaultAIPrompt: (type: 'live' | 'recorded') => ipcRenderer.invoke('config:getDefaultAIPrompt', type),
   },
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) =>

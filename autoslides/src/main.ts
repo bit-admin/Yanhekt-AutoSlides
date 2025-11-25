@@ -12,6 +12,8 @@ import { M3u8DownloadService } from './main/m3u8DownloadService';
 import { slideExtractionService } from './main/slideExtractionService';
 import { PowerManagementService } from './main/powerManagementService';
 import { cacheManagementService } from './main/cacheManagementService';
+import { AIPromptsService } from './main/aiPromptsService';
+import type { AIServiceType } from './main/configService';
 
 // Import translation files for main process
 import enTranslations from './renderer/i18n/locales/en.json';
@@ -173,6 +175,7 @@ const videoProxyService = new VideoProxyService(apiClient, intranetMappingServic
 const ffmpegService = new FFmpegService();
 const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService, apiClient);
 const powerManagementService = new PowerManagementService();
+const aiPromptsService = new AIPromptsService();
 
 // Initialize power management based on config
 const initializePowerManagement = async () => {
@@ -391,6 +394,43 @@ ipcMain.handle('config:selectImageForExclusion', async () => {
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
+});
+
+// IPC handlers for AI filtering configuration
+ipcMain.handle('config:getAIFilteringConfig', async () => {
+  return configService.getAIFilteringConfig();
+});
+
+ipcMain.handle('config:setAIFilteringConfig', async (event, config: {
+  serviceType?: AIServiceType;
+  customApiBaseUrl?: string;
+  customApiKey?: string;
+  customModelName?: string;
+}) => {
+  configService.setAIFilteringConfig(config);
+  return configService.getAIFilteringConfig();
+});
+
+// IPC handlers for AI prompts management
+ipcMain.handle('config:getAIPrompts', async () => {
+  return aiPromptsService.getPrompts();
+});
+
+ipcMain.handle('config:getAIPrompt', async (event, type: 'live' | 'recorded') => {
+  return aiPromptsService.getPrompt(type);
+});
+
+ipcMain.handle('config:setAIPrompt', async (event, type: 'live' | 'recorded', prompt: string) => {
+  aiPromptsService.setPrompt(type, prompt);
+  return aiPromptsService.getPrompts();
+});
+
+ipcMain.handle('config:resetAIPrompt', async (event, type: 'live' | 'recorded') => {
+  return aiPromptsService.resetPrompt(type);
+});
+
+ipcMain.handle('config:getDefaultAIPrompt', async (event, type: 'live' | 'recorded') => {
+  return aiPromptsService.getDefaultPrompt(type);
 });
 
 // IPC handlers for intranet mapping

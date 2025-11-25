@@ -66,7 +66,8 @@
       "general": "일반",
       "imageProcessing": "이미지 처리",
       "playback": "재생 및 다운로드",
-      "network": "네트워크"
+      "network": "네트워크",
+      "ai": "AI"
     },
     "authentication": "인증",
     "appearance": "외관",
@@ -189,7 +190,31 @@
     "random": "랜덤",
     "firstAvailable": "첫 번째 사용 가능",
     "cancel": "취소",
-    "save": "저장"
+    "save": "저장",
+    "ai": {
+      "serviceSettings": "AI 서비스 설정",
+      "serviceType": "서비스 유형",
+      "serviceTypeDescription": "내장 AI 서비스를 사용하거나 사용자 정의 OpenAI 호환 API를 구성할 수 있습니다.",
+      "builtin": "내장",
+      "custom": "사용자 정의",
+      "apiBaseUrl": "API 기본 URL",
+      "apiBaseUrlDescription": "OpenAI 호환 API 엔드포인트의 기본 URL입니다.",
+      "apiBaseUrlPlaceholder": "https://api.example.com/v1",
+      "selectPreset": "프리셋 선택...",
+      "apiKey": "API 키",
+      "apiKeyDescription": "서비스 인증을 위한 API 키입니다.",
+      "apiKeyPlaceholder": "API 키를 입력하세요...",
+      "modelName": "모델 이름",
+      "modelNameDescription": "이미지 분류에 사용할 모델입니다.",
+      "modelNamePlaceholder": "모델 이름을 입력하세요...",
+      "prompts": "AI 프롬프트",
+      "promptLive": "라이브 모드 프롬프트",
+      "promptLiveDescription": "라이브 스트리밍 중 슬라이드 분류에 사용되는 프롬프트입니다. 한 번에 하나의 이미지를 처리합니다.",
+      "promptRecorded": "녹화 모드 프롬프트",
+      "promptRecordedDescription": "녹화된 영상의 슬라이드 분류에 사용되는 프롬프트입니다. 여러 이미지를 일괄 처리합니다.",
+      "promptPlaceholder": "AI 프롬프트를 입력하세요...",
+      "resetPrompt": "기본값으로 재설정"
+    }
   },
   "courses": {
     "title": {

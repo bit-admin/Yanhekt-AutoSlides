@@ -66,7 +66,8 @@
       "general": "一般",
       "imageProcessing": "图像处理",
       "playback": "播放及下载",
-      "network": "网络"
+      "network": "网络",
+      "ai": "AI"
     },
     "authentication": "身份验证",
     "appearance": "外观",
@@ -189,7 +190,31 @@
     "random": "随机",
     "firstAvailable": "首个可用",
     "cancel": "取消",
-    "save": "保存"
+    "save": "保存",
+    "ai": {
+      "serviceSettings": "AI 服务设置",
+      "serviceType": "服务类型",
+      "serviceTypeDescription": "选择使用内置 AI 服务或配置自定义 OpenAI 兼容 API",
+      "builtin": "内置",
+      "custom": "自定义",
+      "apiBaseUrl": "API 基础 URL",
+      "apiBaseUrlDescription": "OpenAI 兼容 API 端点的基础 URL",
+      "apiBaseUrlPlaceholder": "https://api.example.com/v1",
+      "selectPreset": "选择预设...",
+      "apiKey": "API 密钥",
+      "apiKeyDescription": "用于服务身份验证的 API 密钥",
+      "apiKeyPlaceholder": "输入您的 API 密钥...",
+      "modelName": "模型名称",
+      "modelNameDescription": "用于图像分类的模型",
+      "modelNamePlaceholder": "输入模型名称...",
+      "prompts": "AI 提示词",
+      "promptLive": "直播模式提示词",
+      "promptLiveDescription": "用于直播流中幻灯片分类的提示词。每次处理一张图像。",
+      "promptRecorded": "录播模式提示词",
+      "promptRecordedDescription": "用于录播内容中幻灯片分类的提示词。批量处理多张图像。",
+      "promptPlaceholder": "输入 AI 提示词...",
+      "resetPrompt": "重置为默认值"
+    }
   },
   "courses": {
     "title": {
