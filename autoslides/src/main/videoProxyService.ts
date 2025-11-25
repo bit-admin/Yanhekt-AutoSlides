@@ -319,50 +319,112 @@ export class VideoProxyService {
       "Host": this.extractHostFromUrl(originalUrl as string)
     };
 
-    // Rewrite URL for intranet mode if needed
-    const requestUrl = this.intranetMapping.rewriteUrl(originalUrl as string);
-
-    // Add Host header if URL was rewritten
-    if (requestUrl !== originalUrl) {
+    // Add Host header for intranet mode
+    if (this.intranetMapping.isEnabled()) {
       const originalHost = new URL(originalUrl as string).hostname;
       liveHeaders['Host'] = originalHost;
     }
 
-    // Create axios instance with proper configuration
-    const axiosConfig: any = {
-      headers: liveHeaders,
-      timeout: 30000,
-      validateStatus: function (status: number) {
-        return status < 500; // Accept all status codes below 500
+    // Retry logic with IP failover for intranet mode
+    let retryCount = 0;
+    const maxRetries = 3;
+    let lastError: any = null;
+
+    while (retryCount <= maxRetries) {
+      try {
+        // Rewrite URL for intranet mode - this will try different IPs on each retry due to round-robin
+        const requestUrl = this.intranetMapping.rewriteUrl(originalUrl as string);
+
+        // Create axios instance with proper configuration
+        // Use shorter timeout for live streams to fail fast and try next IP
+        const axiosConfig: any = {
+          headers: liveHeaders,
+          timeout: this.intranetMapping.isEnabled() ? 8000 : 30000, // 8s for intranet, 30s for external
+          validateStatus: function (status: number) {
+            return status < 500; // Accept all status codes below 500
+          }
+        };
+
+        // Add HTTPS agent for intranet mode if needed
+        if (this.intranetMapping.isEnabled()) {
+          axiosConfig.httpsAgent = new https.Agent({
+            rejectUnauthorized: false
+          });
+        }
+
+        // Proxy the request
+        const response = await axios.get(requestUrl, axiosConfig);
+
+        if (response.status !== 200) {
+          // Non-200 status, try next IP if in intranet mode
+          if (this.intranetMapping.isEnabled() && retryCount < maxRetries) {
+            // Mark current IP as failed to trigger round-robin to next IP
+            try {
+              const urlObj = new URL(requestUrl);
+              const domain = new URL(originalUrl as string).hostname;
+              this.intranetMapping.markIPFailed(urlObj.hostname, domain);
+            } catch (e) {
+              // Ignore URL parsing errors
+            }
+            retryCount++;
+            console.log(`Live M3U8 got status ${response.status}, trying next IP (${retryCount}/${maxRetries})`);
+            continue;
+          }
+          res.writeHead(response.status, { 'Content-Type': 'text/plain' });
+          res.end(`Live M3U8 request failed with status ${response.status}`);
+          return;
+        }
+
+        // Get m3u8 content and process it
+        let content = response.data;
+
+        // Process m3u8 content to rewrite TS URLs to point to our proxy
+        content = this.processLiveM3u8Content(content, originalUrl as string);
+
+        // Return processed m3u8 content
+        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+        res.writeHead(200);
+        res.end(content);
+        return;
+
+      } catch (error: any) {
+        lastError = error;
+
+        // Mark current IP as failed for intranet mode
+        if (this.intranetMapping.isEnabled()) {
+          try {
+            const requestUrl = this.intranetMapping.rewriteUrl(originalUrl as string);
+            const urlObj = new URL(requestUrl);
+            const domain = new URL(originalUrl as string).hostname;
+            this.intranetMapping.markIPFailed(urlObj.hostname, domain);
+          } catch (e) {
+            // Ignore URL parsing errors
+          }
+        }
+
+        if (retryCount < maxRetries) {
+          retryCount++;
+          console.log(`Live M3U8 request failed, trying next IP (${retryCount}/${maxRetries}):`, error.message);
+          // Small delay before retry
+          await new Promise(resolve => setTimeout(resolve, 500));
+          continue;
+        }
+
+        // All retries exhausted
+        console.error(`Live M3U8 request failed after ${retryCount} retries:`, {
+          message: error.message,
+          code: error.code,
+          originalUrl: originalUrl
+        });
+        res.writeHead(502, { 'Content-Type': 'text/plain' });
+        res.end(`Live M3U8 request failed: ${error.message}`);
+        return;
       }
-    };
-
-    // Add HTTPS agent for intranet mode if needed
-    if (this.intranetMapping.isEnabled()) {
-      axiosConfig.httpsAgent = new https.Agent({
-        rejectUnauthorized: false
-      });
     }
 
-    // Proxy the request
-    const response = await axios.get(requestUrl, axiosConfig);
-
-    if (response.status !== 200) {
-      res.writeHead(response.status, { 'Content-Type': 'text/plain' });
-      res.end(`Live M3U8 request failed with status ${response.status}`);
-      return;
-    }
-
-    // Get m3u8 content and process it
-    let content = response.data;
-
-    // Process m3u8 content to rewrite TS URLs to point to our proxy
-    content = this.processLiveM3u8Content(content, originalUrl as string);
-
-    // Return processed m3u8 content
-    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-    res.writeHead(200);
-    res.end(content);
+    // Should not reach here, but handle just in case
+    res.writeHead(502, { 'Content-Type': 'text/plain' });
+    res.end(`Live M3U8 request failed after ${maxRetries} retries: ${lastError?.message || 'Unknown error'}`);
   }
 
   /**

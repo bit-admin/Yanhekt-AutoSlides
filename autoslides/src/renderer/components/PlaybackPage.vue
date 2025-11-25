@@ -787,6 +787,84 @@ const loadVideoStreams = async () => {
   }
 }
 
+// Helper function to get mode-specific HLS configuration
+const getHlsConfig = (mode: 'live' | 'recorded') => {
+  // Base config shared between modes
+  const baseConfig = {
+    enableWorker: true,
+    debug: false,
+    startFragPrefetch: true,
+    testBandwidth: false,
+    progressive: false,
+    maxBufferHole: 0.5,
+    nudgeOffset: 0.1,
+    nudgeMaxRetry: 3,
+    maxFragLookUpTolerance: 0.25,
+    minAutoBitrate: 0
+  }
+
+  if (mode === 'live') {
+    // Live mode: optimized for fast startup and low latency
+    return {
+      ...baseConfig,
+      lowLatencyMode: true,
+      // Minimal buffering for fast startup - start playing ASAP
+      backBufferLength: 10,
+      maxBufferLength: 10,
+      maxMaxBufferLength: 20,
+      maxBufferSize: 20 * 1000 * 1000, // 20MB - smaller for live
+      // Live-specific settings for staying close to live edge
+      liveSyncDuration: 3, // Stay 3 seconds behind live edge
+      liveMaxLatencyDuration: 10, // Max 10 seconds behind before seeking to live
+      liveDurationInfinity: true, // Treat live streams as infinite duration
+      // Faster timeouts for live - fail fast and retry
+      fragLoadingTimeOut: 8000,
+      fragLoadingMaxRetry: 3,
+      fragLoadingRetryDelay: 500,
+      fragLoadingMaxRetryTimeout: 16000,
+      levelLoadingTimeOut: 5000,
+      levelLoadingMaxRetry: 3,
+      levelLoadingRetryDelay: 500,
+      levelLoadingMaxRetryTimeout: 16000,
+      manifestLoadingTimeOut: 5000,
+      manifestLoadingMaxRetry: 3,
+      manifestLoadingRetryDelay: 500,
+      manifestLoadingMaxRetryTimeout: 16000,
+      // Faster stall recovery for live
+      highBufferWatchdogPeriod: 1,
+      maxStarvationDelay: 2,
+      maxLoadingDelay: 2
+    }
+  } else {
+    // Recorded mode: optimized for stability and smooth playback
+    return {
+      ...baseConfig,
+      lowLatencyMode: false,
+      backBufferLength: 30,
+      maxBufferLength: 30,
+      maxMaxBufferLength: 60,
+      maxBufferSize: 60 * 1000 * 1000, // 60MB
+      // More generous timeouts for recorded content
+      fragLoadingTimeOut: 20000,
+      fragLoadingMaxRetry: 6,
+      fragLoadingRetryDelay: 1000,
+      fragLoadingMaxRetryTimeout: 64000,
+      levelLoadingTimeOut: 10000,
+      levelLoadingMaxRetry: 4,
+      levelLoadingRetryDelay: 1000,
+      levelLoadingMaxRetryTimeout: 64000,
+      manifestLoadingTimeOut: 10000,
+      manifestLoadingMaxRetry: 6,
+      manifestLoadingRetryDelay: 1000,
+      manifestLoadingMaxRetryTimeout: 64000,
+      // Standard stall recovery
+      highBufferWatchdogPeriod: 2,
+      maxStarvationDelay: 4,
+      maxLoadingDelay: 4
+    }
+  }
+}
+
 const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?: boolean) => {
   if (!videoPlayer.value || !currentStreamData.value) {
     return
@@ -804,43 +882,7 @@ const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?:
 
     // Check if HLS is supported
     if (Hls.isSupported()) {
-      hls.value = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: 30,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        debug: false,
-        // Enhanced error recovery settings
-        fragLoadingTimeOut: 20000,
-        fragLoadingMaxRetry: 6,
-        fragLoadingRetryDelay: 1000,
-        fragLoadingMaxRetryTimeout: 64000,
-        levelLoadingTimeOut: 10000,
-        levelLoadingMaxRetry: 4,
-        levelLoadingRetryDelay: 1000,
-        levelLoadingMaxRetryTimeout: 64000,
-        // Manifest loading retry settings
-        manifestLoadingTimeOut: 10000,
-        manifestLoadingMaxRetry: 6,
-        manifestLoadingRetryDelay: 1000,
-        manifestLoadingMaxRetryTimeout: 64000,
-        // Additional resilience settings
-        startFragPrefetch: true,
-        testBandwidth: false,
-        progressive: false,
-        // Buffer settings for better error recovery
-        maxBufferSize: 60 * 1000 * 1000, // 60MB
-        maxBufferHole: 0.5,
-        highBufferWatchdogPeriod: 2,
-        nudgeOffset: 0.1,
-        nudgeMaxRetry: 3,
-        maxFragLookUpTolerance: 0.25,
-        // Stall detection and recovery
-        maxStarvationDelay: 4,
-        maxLoadingDelay: 4,
-        minAutoBitrate: 0
-      })
+      hls.value = new Hls(getHlsConfig(props.mode))
 
       hls.value.loadSource(videoUrl)
       hls.value.attachMedia(videoPlayer.value)
@@ -1010,43 +1052,7 @@ const loadVideoSource = async () => {
 
     // Check if HLS is supported
     if (Hls.isSupported()) {
-      hls.value = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: 30,
-        maxBufferLength: 30,
-        maxMaxBufferLength: 60,
-        debug: false,
-        // Enhanced error recovery settings
-        fragLoadingTimeOut: 20000,
-        fragLoadingMaxRetry: 6,
-        fragLoadingRetryDelay: 1000,
-        fragLoadingMaxRetryTimeout: 64000,
-        levelLoadingTimeOut: 10000,
-        levelLoadingMaxRetry: 4,
-        levelLoadingRetryDelay: 1000,
-        levelLoadingMaxRetryTimeout: 64000,
-        // Manifest loading retry settings
-        manifestLoadingTimeOut: 10000,
-        manifestLoadingMaxRetry: 6,
-        manifestLoadingRetryDelay: 1000,
-        manifestLoadingMaxRetryTimeout: 64000,
-        // Additional resilience settings
-        startFragPrefetch: true,
-        testBandwidth: false,
-        progressive: false,
-        // Buffer settings for better error recovery
-        maxBufferSize: 60 * 1000 * 1000, // 60MB
-        maxBufferHole: 0.5,
-        highBufferWatchdogPeriod: 2,
-        nudgeOffset: 0.1,
-        nudgeMaxRetry: 3,
-        maxFragLookUpTolerance: 0.25,
-        // Stall detection and recovery
-        maxStarvationDelay: 4,
-        maxLoadingDelay: 4,
-        minAutoBitrate: 0
-      })
+      hls.value = new Hls(getHlsConfig(props.mode))
 
       hls.value.loadSource(videoUrl)
       hls.value.attachMedia(videoPlayer.value)
