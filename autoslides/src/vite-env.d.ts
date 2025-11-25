@@ -50,6 +50,8 @@ interface SlideExtractionConfig {
   downsampleHeight: number;
   pHashThreshold: number;
   pHashExclusionList: PHashExclusionItem[];
+  enableDuplicateRemoval: boolean;
+  enableExclusionList: boolean;
 }
 
 interface SlideImageProcessingParams {
@@ -263,6 +265,10 @@ interface ElectronAPI {
 
     // Slide extraction configuration
     getSlideExtractionConfig: () => Promise<SlideExtractionConfig>;
+    setSlideExtractionConfig: (config: {
+      enableDuplicateRemoval?: boolean;
+      enableExclusionList?: boolean;
+    }) => Promise<SlideExtractionConfig>;
     setSlideCheckInterval: (interval: number) => Promise<SlideExtractionConfig>;
     setSlideDoubleVerification: (enabled: boolean, count?: number) => Promise<SlideExtractionConfig>;
     setSlideImageProcessingParams: (params: SlideImageProcessingParams) => Promise<SlideExtractionConfig>;

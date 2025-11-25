@@ -265,6 +265,84 @@
             </div>
           </div>
 
+          <!-- Post-processing Status Bar (always visible when slides exist) -->
+          <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0" class="post-process-status-bar">
+            <div class="status-bar-content">
+              <!-- Phase 1: Duplicate Removal -->
+              <div class="phase-progress-item">
+                <div class="phase-header">
+                  <span class="phase-name">{{ $t('playback.postProcessStatus.phase1Name') }}</span>
+                  <span v-if="postProcessStatus.phase1Skipped" class="phase-status skipped">
+                    {{ $t('playback.postProcessStatus.disabled') }}
+                  </span>
+                  <span v-else-if="postProcessStatus.currentPhase === 'phase1'" class="phase-status active">
+                    {{ postProcessStatus.currentIndex }}/{{ postProcessStatus.totalCount }}
+                  </span>
+                  <span v-else-if="postProcessStatus.duplicatesRemoved > 0" class="phase-status completed">
+                    -{{ postProcessStatus.duplicatesRemoved }}
+                  </span>
+                </div>
+                <div class="phase-progress-bar" :class="{ disabled: postProcessStatus.phase1Skipped }">
+                  <div
+                    class="phase-progress-fill"
+                    :class="{
+                      'active': postProcessStatus.currentPhase === 'phase1',
+                      'completed': postProcessStatus.currentPhase !== 'idle' && postProcessStatus.currentPhase !== 'phase1' && !postProcessStatus.phase1Skipped
+                    }"
+                    :style="{
+                      width: postProcessStatus.phase1Skipped ? '0%' :
+                             postProcessStatus.currentPhase === 'phase1' ? `${(postProcessStatus.currentIndex / postProcessStatus.totalCount) * 100}%` :
+                             (postProcessStatus.currentPhase === 'phase2' || postProcessStatus.currentPhase === 'completed') ? '100%' : '0%'
+                    }"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Phase 2: Exclusion List -->
+              <div class="phase-progress-item">
+                <div class="phase-header">
+                  <span class="phase-name">{{ $t('playback.postProcessStatus.phase2Name') }}</span>
+                  <span v-if="postProcessStatus.phase2Skipped" class="phase-status skipped">
+                    {{ $t('playback.postProcessStatus.disabled') }}
+                  </span>
+                  <span v-else-if="postProcessStatus.currentPhase === 'phase2'" class="phase-status active">
+                    {{ postProcessStatus.currentIndex }}/{{ postProcessStatus.totalCount }}
+                  </span>
+                  <span v-else-if="postProcessStatus.excludedRemoved > 0" class="phase-status completed">
+                    -{{ postProcessStatus.excludedRemoved }}
+                  </span>
+                </div>
+                <div class="phase-progress-bar" :class="{ disabled: postProcessStatus.phase2Skipped }">
+                  <div
+                    class="phase-progress-fill"
+                    :class="{
+                      'active': postProcessStatus.currentPhase === 'phase2',
+                      'completed': postProcessStatus.currentPhase === 'completed' && !postProcessStatus.phase2Skipped
+                    }"
+                    :style="{
+                      width: postProcessStatus.phase2Skipped ? '0%' :
+                             postProcessStatus.currentPhase === 'phase2' ? `${(postProcessStatus.currentIndex / postProcessStatus.totalCount) * 100}%` :
+                             postProcessStatus.currentPhase === 'completed' ? '100%' : '0%'
+                    }"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Phase 3: AI Processing (placeholder) -->
+              <div class="phase-progress-item">
+                <div class="phase-header">
+                  <span class="phase-name">{{ $t('playback.postProcessStatus.phase3Name') }}</span>
+                  <span class="phase-status placeholder">
+                    {{ $t('playback.postProcessStatus.comingSoon') }}
+                  </span>
+                </div>
+                <div class="phase-progress-bar disabled placeholder">
+                  <div class="phase-progress-fill"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Gallery Grid (only show when slides exist) -->
           <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0" class="gallery-grid">
             <div
@@ -469,6 +547,28 @@ const currentTaskId = ref<string | null>(null)
 const isTaskMode = ref(false)
 const taskSpeed = ref(10) // Default task speed
 const autoPostProcessing = ref(true) // Default auto post-processing enabled
+
+// Post-processing status state
+interface PostProcessStatus {
+  isProcessing: boolean
+  currentPhase: 'idle' | 'phase1' | 'phase2' | 'completed'
+  currentIndex: number
+  totalCount: number
+  duplicatesRemoved: number
+  excludedRemoved: number
+  phase1Skipped: boolean
+  phase2Skipped: boolean
+}
+const postProcessStatus = ref<PostProcessStatus>({
+  isProcessing: false,
+  currentPhase: 'idle',
+  currentIndex: 0,
+  totalCount: 0,
+  duplicatesRemoved: 0,
+  excludedRemoved: 0,
+  phase1Skipped: false,
+  phase2Skipped: false
+})
 
 // Picture in Picture state
 const isPictureInPicture = ref(false)
@@ -1937,12 +2037,28 @@ const executePostProcessing = async () => {
     }
 
     const pHashThreshold = config.pHashThreshold || 10
+    const enableDuplicateRemoval = config.enableDuplicateRemoval !== false
+    const enableExclusionListPhase = config.enableExclusionList !== false
     // Filter exclusion list to only include enabled items (non-presets or presets with isEnabled !== false)
-    const exclusionList = (config.pHashExclusionList || []).filter(item => !item.isPreset || item.isEnabled !== false)
+    const exclusionList = (config.pHashExclusionList || []).filter((item: { isPreset?: boolean; isEnabled?: boolean }) => !item.isPreset || item.isEnabled !== false)
 
     isPostProcessing.value = true
+
+    // Reset and initialize post-processing status
+    postProcessStatus.value = {
+      isProcessing: true,
+      currentPhase: 'idle',
+      currentIndex: 0,
+      totalCount: extractedSlides.value.length,
+      duplicatesRemoved: 0,
+      excludedRemoved: 0,
+      phase1Skipped: !enableDuplicateRemoval,
+      phase2Skipped: !enableExclusionListPhase
+    }
+
     console.log(`Starting post-processing for ${extractedSlides.value.length} slides...`)
     console.log(`Using pHash threshold: ${pHashThreshold}, exclusion list items: ${exclusionList.length}`)
+    console.log(`Phases enabled: duplicate removal=${enableDuplicateRemoval}, exclusion list=${enableExclusionListPhase}`)
 
     // Create post-processing worker to calculate pHash for all saved images
     const worker = new Worker(new URL('../workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
@@ -2035,142 +2151,192 @@ const executePostProcessing = async () => {
     }
 
     // Step 2: Remove duplicates among all slides (keep only first occurrence)
-    console.log('Step 2: Removing duplicate slides...')
-    const seenHashes = new Map<string, string>() // pHash -> first filename
     const duplicatesToDelete: Array<{ slide: ExtractedSlide; filename: string; pHash: string; duplicateOf: string }> = []
 
-    for (const item of slideHashes) {
-      if (item.error || !item.pHash) continue
+    if (enableDuplicateRemoval) {
+      console.log('Step 2: Removing duplicate slides...')
+      postProcessStatus.value.currentPhase = 'phase1'
+      postProcessStatus.value.currentIndex = 0
 
-      // Check if we've seen a similar hash before
-      let isDuplicate = false
-      let duplicateOf = ''
+      const seenHashes = new Map<string, string>() // pHash -> first filename
 
-      for (const [seenHash, seenFilename] of seenHashes.entries()) {
-        try {
-          const hammingDistance = await calculateHammingDistanceWithWorker(item.pHash, seenHash)
-          if (hammingDistance <= pHashThreshold) {
-            isDuplicate = true
-            duplicateOf = seenFilename
-            console.log(`Duplicate detected: ${item.filename} is similar to ${seenFilename} (Hamming distance: ${hammingDistance})`)
-            break
-          }
-        } catch (error) {
-          console.warn(`Failed to calculate Hamming distance between ${item.filename} and ${seenFilename}:`, error)
-        }
-      }
+      for (let i = 0; i < slideHashes.length; i++) {
+        const item = slideHashes[i]
+        postProcessStatus.value.currentIndex = i + 1
 
-      if (isDuplicate) {
-        duplicatesToDelete.push({ ...item, duplicateOf })
-      } else {
-        // First occurrence - remember this hash
-        seenHashes.set(item.pHash, item.filename)
-      }
-    }
+        if (item.error || !item.pHash) continue
 
-    // Delete duplicate slides
-    for (const duplicate of duplicatesToDelete) {
-      try {
-        await deleteSlide(duplicate.slide, false) // false = don't show confirmation dialog
-        console.log(`Deleted duplicate slide: ${duplicate.filename} (duplicate of ${duplicate.duplicateOf})`)
-      } catch (deleteError) {
-        console.error(`Failed to delete duplicate slide ${duplicate.filename}:`, deleteError)
-      }
-    }
+        // Check if we've seen a similar hash before
+        let isDuplicate = false
+        let duplicateOf = ''
 
-    // Step 3: Check remaining slides against exclusion list
-    console.log('Step 3: Checking remaining slides against exclusion list...')
-    const results: Array<{ filename: string; pHash: string; excluded?: boolean; excludedReason?: string; duplicate?: boolean; duplicateOf?: string; error?: string }> = []
-    const deletedSlides: string[] = []
-    let processedCount = 0
-
-    for (const item of slideHashes) {
-      try {
-        const { slide, filename, pHash, error } = item
-
-        // Skip if there was an error calculating pHash
-        if (error) {
-          results.push({ filename, pHash, error })
-          continue
-        }
-
-        // Check if this was already deleted as a duplicate
-        const wasDuplicate = duplicatesToDelete.some(d => d.filename === filename)
-        if (wasDuplicate) {
-          const duplicateInfo = duplicatesToDelete.find(d => d.filename === filename)!
-          results.push({
-            filename,
-            pHash,
-            duplicate: true,
-            duplicateOf: duplicateInfo.duplicateOf
-          })
-          deletedSlides.push(filename)
-          processedCount++
-          continue
-        }
-
-        // Check against exclusion list
-        let shouldExclude = false
-        let excludedReason = ''
-
-        for (const exclusionItem of exclusionList) {
+        for (const [seenHash, seenFilename] of seenHashes.entries()) {
           try {
-            const hammingDistance = await calculateHammingDistanceWithWorker(pHash, exclusionItem.pHash)
+            const hammingDistance = await calculateHammingDistanceWithWorker(item.pHash, seenHash)
             if (hammingDistance <= pHashThreshold) {
-              shouldExclude = true
-              excludedReason = `Similar to excluded item "${exclusionItem.name}" (Hamming distance: ${hammingDistance})`
-              console.log(`Slide ${filename} excluded: ${excludedReason}`)
+              isDuplicate = true
+              duplicateOf = seenFilename
+              console.log(`Duplicate detected: ${item.filename} is similar to ${seenFilename} (Hamming distance: ${hammingDistance})`)
               break
             }
           } catch (error) {
-            console.warn(`Failed to calculate Hamming distance for exclusion item "${exclusionItem.name}":`, error)
+            console.warn(`Failed to calculate Hamming distance between ${item.filename} and ${seenFilename}:`, error)
           }
         }
 
-        // If slide should be excluded, delete it
-        if (shouldExclude) {
-          try {
-            await deleteSlide(slide, false) // false = don't show confirmation dialog
-            deletedSlides.push(filename)
+        if (isDuplicate) {
+          duplicatesToDelete.push({ ...item, duplicateOf })
+        } else {
+          // First occurrence - remember this hash
+          seenHashes.set(item.pHash, item.filename)
+        }
+      }
+
+      // Delete duplicate slides
+      for (const duplicate of duplicatesToDelete) {
+        try {
+          await deleteSlide(duplicate.slide, false) // false = don't show confirmation dialog
+          postProcessStatus.value.duplicatesRemoved++
+          console.log(`Deleted duplicate slide: ${duplicate.filename} (duplicate of ${duplicate.duplicateOf})`)
+        } catch (deleteError) {
+          console.error(`Failed to delete duplicate slide ${duplicate.filename}:`, deleteError)
+        }
+      }
+    } else {
+      console.log('Step 2: Duplicate removal skipped (disabled)')
+    }
+
+    // Step 3: Check remaining slides against exclusion list
+    const results: Array<{ filename: string; pHash: string; excluded?: boolean; excludedReason?: string; duplicate?: boolean; duplicateOf?: string; error?: string }> = []
+    const deletedSlides: string[] = []
+
+    if (enableExclusionListPhase) {
+      console.log('Step 3: Checking remaining slides against exclusion list...')
+      postProcessStatus.value.currentPhase = 'phase2'
+      postProcessStatus.value.currentIndex = 0
+
+      for (let i = 0; i < slideHashes.length; i++) {
+        const item = slideHashes[i]
+        postProcessStatus.value.currentIndex = i + 1
+
+        try {
+          const { slide, filename, pHash, error } = item
+
+          // Skip if there was an error calculating pHash
+          if (error) {
+            results.push({ filename, pHash, error })
+            continue
+          }
+
+          // Check if this was already deleted as a duplicate
+          const wasDuplicate = duplicatesToDelete.some(d => d.filename === filename)
+          if (wasDuplicate) {
+            const duplicateInfo = duplicatesToDelete.find(d => d.filename === filename)!
             results.push({
               filename,
               pHash,
-              excluded: true,
-              excludedReason
+              duplicate: true,
+              duplicateOf: duplicateInfo.duplicateOf
             })
-          } catch (deleteError) {
-            console.error(`Failed to delete excluded slide ${filename}:`, deleteError)
+            deletedSlides.push(filename)
+            continue
+          }
+
+          // Check against exclusion list
+          let shouldExclude = false
+          let excludedReason = ''
+
+          for (const exclusionItem of exclusionList) {
+            try {
+              const hammingDistance = await calculateHammingDistanceWithWorker(pHash, exclusionItem.pHash)
+              if (hammingDistance <= pHashThreshold) {
+                shouldExclude = true
+                excludedReason = `Similar to excluded item "${exclusionItem.name}" (Hamming distance: ${hammingDistance})`
+                console.log(`Slide ${filename} excluded: ${excludedReason}`)
+                break
+              }
+            } catch (error) {
+              console.warn(`Failed to calculate Hamming distance for exclusion item "${exclusionItem.name}":`, error)
+            }
+          }
+
+          // If slide should be excluded, delete it
+          if (shouldExclude) {
+            try {
+              await deleteSlide(slide, false) // false = don't show confirmation dialog
+              deletedSlides.push(filename)
+              postProcessStatus.value.excludedRemoved++
+              results.push({
+                filename,
+                pHash,
+                excluded: true,
+                excludedReason
+              })
+            } catch (deleteError) {
+              console.error(`Failed to delete excluded slide ${filename}:`, deleteError)
+              results.push({
+                filename,
+                pHash,
+                excluded: false,
+                error: `Failed to delete: ${deleteError instanceof Error ? deleteError.message : String(deleteError)}`
+              })
+            }
+          } else {
             results.push({
               filename,
               pHash,
-              excluded: false,
-              error: `Failed to delete: ${deleteError instanceof Error ? deleteError.message : String(deleteError)}`
+              excluded: false
             })
           }
-        } else {
+
+          console.log(`Processed ${filename} (${i + 1}/${slideHashes.length}): pHash = ${pHash}${shouldExclude ? ' [EXCLUDED]' : ''}`)
+
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          console.error(`Failed to process slide:`, errorMessage)
+
           results.push({
-            filename,
-            pHash,
-            excluded: false
+            filename: item.filename,
+            pHash: item.pHash || '',
+            error: errorMessage
           })
         }
-
-        processedCount++
-        console.log(`Processed ${filename} (${processedCount}/${slideHashes.length}): pHash = ${pHash}${shouldExclude ? ' [EXCLUDED]' : ''}`)
-
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error)
-        console.error(`Failed to process slide:`, errorMessage)
-
-        results.push({
-          filename: item.filename,
-          pHash: item.pHash || '',
-          error: errorMessage
-        })
+      }
+    } else {
+      console.log('Step 3: Exclusion list check skipped (disabled)')
+      // Still need to populate results for slides that were duplicates
+      for (const item of slideHashes) {
+        const wasDuplicate = duplicatesToDelete.some(d => d.filename === item.filename)
+        if (wasDuplicate) {
+          const duplicateInfo = duplicatesToDelete.find(d => d.filename === item.filename)!
+          results.push({
+            filename: item.filename,
+            pHash: item.pHash,
+            duplicate: true,
+            duplicateOf: duplicateInfo.duplicateOf
+          })
+          deletedSlides.push(item.filename)
+        } else if (!item.error) {
+          results.push({
+            filename: item.filename,
+            pHash: item.pHash,
+            excluded: false
+          })
+        } else {
+          results.push({
+            filename: item.filename,
+            pHash: item.pHash || '',
+            error: item.error
+          })
+        }
       }
     }
 
     worker.terminate()
+
+    // Update status to completed
+    postProcessStatus.value.currentPhase = 'completed'
+    postProcessStatus.value.isProcessing = false
 
     // Calculate summary statistics
     const totalSlides = extractedSlides.value.length
@@ -2198,6 +2364,9 @@ const executePostProcessing = async () => {
 
   } catch (error) {
     console.error('Failed to execute post-processing:', error)
+    // Reset status on error
+    postProcessStatus.value.isProcessing = false
+    postProcessStatus.value.currentPhase = 'idle'
     // Show error dialog
     const errorMessage = error instanceof Error ? error.message : String(error)
     await window.electronAPI.dialog?.showErrorBox?.('Post-processing Failed', `Failed to execute post-processing: ${errorMessage}`)
@@ -3553,7 +3722,7 @@ onUnmounted(async () => {
 }
 
 .video-content .slide-gallery .gallery-header {
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   border-top: none;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
@@ -3986,7 +4155,7 @@ onUnmounted(async () => {
 }
 
 .gallery-header {
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .post-process-btn {
@@ -4013,6 +4182,110 @@ onUnmounted(async () => {
   cursor: not-allowed;
   background-color: #6c757d;
   border-color: #6c757d;
+}
+
+/* Post-processing status bar styles */
+.post-process-status-bar {
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.status-bar-content {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  font-size: 11px;
+}
+
+.phase-progress-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.phase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.phase-name {
+  font-weight: 500;
+  color: #333;
+  font-size: 10px;
+}
+
+.phase-status {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.phase-status.active {
+  background-color: #007acc;
+  color: white;
+}
+
+.phase-status.completed {
+  background-color: #28a745;
+  color: white;
+}
+
+.phase-status.skipped {
+  background-color: #e2e3e5;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.phase-status.placeholder {
+  background-color: #e2e3e5;
+  color: #999;
+  font-style: italic;
+}
+
+.phase-progress-bar {
+  height: 4px;
+  background-color: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.phase-progress-bar.disabled {
+  background-color: #f0f0f0;
+}
+
+.phase-progress-bar.placeholder {
+  background: repeating-linear-gradient(
+    45deg,
+    #f0f0f0,
+    #f0f0f0 4px,
+    #e8e8e8 4px,
+    #e8e8e8 8px
+  );
+}
+
+.phase-progress-fill {
+  height: 100%;
+  background-color: #e0e0e0;
+  transition: width 0.3s ease;
+}
+
+.phase-progress-fill.active {
+  background-color: #007acc;
+  animation: progressPulse 1.5s infinite;
+}
+
+.phase-progress-fill.completed {
+  background-color: #28a745;
+}
+
+@keyframes progressPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 .processing-spinner {
@@ -4622,6 +4895,66 @@ onUnmounted(async () => {
     background-color: #666;
     border-color: #666;
     color: #999;
+  }
+
+  /* Post-processing status bar dark mode */
+  .post-process-status-bar {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .phase-name {
+    color: #e0e0e0;
+  }
+
+  .phase-status.active {
+    background-color: #4da6ff;
+    color: #1a1a1a;
+  }
+
+  .phase-status.completed {
+    background-color: #28a745;
+    color: white;
+  }
+
+  .phase-status.skipped {
+    background-color: #3d3d3d;
+    color: #888;
+  }
+
+  .phase-status.placeholder {
+    background-color: #3d3d3d;
+    color: #666;
+  }
+
+  .phase-progress-bar {
+    background-color: #404040;
+  }
+
+  .phase-progress-bar.disabled {
+    background-color: #363636;
+  }
+
+  .phase-progress-bar.placeholder {
+    background: repeating-linear-gradient(
+      45deg,
+      #363636,
+      #363636 4px,
+      #404040 4px,
+      #404040 8px
+    );
+  }
+
+  .phase-progress-fill {
+    background-color: #404040;
+  }
+
+  .phase-progress-fill.active {
+    background-color: #4da6ff;
+  }
+
+  .phase-progress-fill.completed {
+    background-color: #28a745;
   }
 
   .processing-spinner {

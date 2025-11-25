@@ -29,6 +29,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setPreventSystemSleep: (prevent: boolean) => ipcRenderer.invoke('config:setPreventSystemSleep', prevent),
     // Slide extraction configuration
     getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),
+    setSlideExtractionConfig: (config: {
+      enableDuplicateRemoval?: boolean;
+      enableExclusionList?: boolean;
+    }) => ipcRenderer.invoke('config:setSlideExtractionConfig', config),
     setSlideCheckInterval: (interval: number) => ipcRenderer.invoke('config:setSlideCheckInterval', interval),
     setSlideDoubleVerification: (enabled: boolean, count?: number) => ipcRenderer.invoke('config:setSlideDoubleVerification', enabled, count),
     setSlideImageProcessingParams: (params: {

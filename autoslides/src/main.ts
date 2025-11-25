@@ -326,6 +326,15 @@ ipcMain.handle('config:setSlideImageProcessingParams', async (event, params: {
   return configService.getSlideExtractionConfig();
 });
 
+// IPC handler for setting slide extraction config (partial updates)
+ipcMain.handle('config:setSlideExtractionConfig', async (event, config: {
+  enableDuplicateRemoval?: boolean;
+  enableExclusionList?: boolean;
+}) => {
+  configService.setSlideExtractionConfig(config);
+  return configService.getSlideExtractionConfig();
+});
+
 // IPC handlers for pHash exclusion list management
 ipcMain.handle('config:getPHashExclusionList', async () => {
   return configService.getPHashExclusionList();

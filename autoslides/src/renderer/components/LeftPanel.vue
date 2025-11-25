@@ -456,6 +456,31 @@
                   </div>
                 </div>
               </div>
+            </div>
+
+            <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.postProcessing') }}</h4>
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.postProcessingPhases') }}</label>
+                <div class="post-processing-phases-list">
+                  <label class="phase-toggle-item">
+                    <input
+                      type="checkbox"
+                      v-model="enableDuplicateRemoval"
+                      @change="updatePostProcessingPhases"
+                    />
+                    <span class="phase-toggle-text">{{ $t('advanced.enableDuplicateRemoval') }}</span>
+                  </label>
+                  <label class="phase-toggle-item">
+                    <input
+                      type="checkbox"
+                      v-model="enableExclusionList"
+                      @change="updatePostProcessingPhases"
+                    />
+                    <span class="phase-toggle-text">{{ $t('advanced.enableExclusionList') }}</span>
+                  </label>
+                </div>
+              </div>
 
               <div class="setting-item">
                 <label class="setting-label">{{ $t('advanced.pHashThreshold') }}</label>
@@ -856,6 +881,10 @@ const ssimPreset = ref<SsimPresetType>('adaptive')
 const pHashThreshold = ref(10)
 const tempPHashThreshold = ref(10)
 
+// Post-processing phases configuration
+const enableDuplicateRemoval = ref(true)
+const enableExclusionList = ref(true)
+
 // Downsampling configuration
 const enableDownsampling = ref(true)
 const downsampleWidth = ref(480)
@@ -1046,6 +1075,10 @@ const loadConfig = async () => {
     // Load pHash threshold from config
     pHashThreshold.value = slideConfig.pHashThreshold || 10
     tempPHashThreshold.value = pHashThreshold.value
+
+    // Load post-processing phases configuration
+    enableDuplicateRemoval.value = slideConfig.enableDuplicateRemoval !== undefined ? slideConfig.enableDuplicateRemoval : true
+    enableExclusionList.value = slideConfig.enableExclusionList !== undefined ? slideConfig.enableExclusionList : true
 
     // Load downsampling configuration from config
     enableDownsampling.value = slideConfig.enableDownsampling !== undefined ? slideConfig.enableDownsampling : true
@@ -1286,6 +1319,22 @@ const updateVideoRetryCount = () => {
 
 const updateImageProcessingParams = () => {
   // This is called when the inputs change, but we don't save until "Save" is clicked
+}
+
+// Update post-processing phases configuration
+const updatePostProcessingPhases = async () => {
+  try {
+    await window.electronAPI.config?.setSlideExtractionConfig?.({
+      enableDuplicateRemoval: enableDuplicateRemoval.value,
+      enableExclusionList: enableExclusionList.value
+    })
+    console.log('Post-processing phases updated:', {
+      enableDuplicateRemoval: enableDuplicateRemoval.value,
+      enableExclusionList: enableExclusionList.value
+    })
+  } catch (error) {
+    console.error('Failed to update post-processing phases:', error)
+  }
 }
 
 // Downsampling preset selection method
@@ -2455,6 +2504,43 @@ const closeNameInputDialog = () => {
   width: 16px;
   height: 16px;
   accent-color: #007bff;
+}
+
+/* Post-processing phases list styles */
+.post-processing-phases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.phase-toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.phase-toggle-item:hover {
+  background-color: #f0f0f0;
+  border-color: #ccc;
+}
+
+.phase-toggle-item input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+  accent-color: #007bff;
+}
+
+.phase-toggle-text {
+  font-size: 12px;
+  color: #333;
 }
 
 .status-section {
@@ -3652,6 +3738,21 @@ const closeNameInputDialog = () => {
   }
 
   .auto-post-processing-control .checkbox-label {
+    color: #e0e0e0;
+  }
+
+  /* Dark mode support for post-processing phases list */
+  .phase-toggle-item {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .phase-toggle-item:hover {
+    background-color: #3d3d3d;
+    border-color: #505050;
+  }
+
+  .phase-toggle-text {
     color: #e0e0e0;
   }
 }

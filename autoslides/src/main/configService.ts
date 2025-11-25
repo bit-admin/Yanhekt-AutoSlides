@@ -33,6 +33,8 @@ export interface SlideExtractionConfig {
   // Post-processing parameters
   pHashThreshold: number;          // pHash Hamming distance threshold for post-processing
   pHashExclusionList: PHashExclusionItem[]; // List of images to exclude from post-processing
+  enableDuplicateRemoval: boolean; // Enable duplicate removal phase in post-processing
+  enableExclusionList: boolean;    // Enable exclusion list phase in post-processing
 }
 
 export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
@@ -96,7 +98,9 @@ const defaultSlideExtractionConfig: SlideExtractionConfig = {
       isPreset: true,
       isEnabled: true
     }
-  ]
+  ],
+  enableDuplicateRemoval: true,    // Enable duplicate removal phase by default
+  enableExclusionList: true        // Enable exclusion list phase by default
 };
 
 const defaultConfig: AppConfig = {
