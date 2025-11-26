@@ -46,6 +46,7 @@ export interface AIFilteringConfig {
   customApiBaseUrl: string;
   customApiKey: string;
   customModelName: string;
+  rateLimit: number; // requests per minute, default 10
 }
 
 export interface AppConfig {
@@ -117,7 +118,8 @@ const defaultAIFilteringConfig: AIFilteringConfig = {
   serviceType: 'builtin',
   customApiBaseUrl: '',
   customApiKey: '',
-  customModelName: ''
+  customModelName: '',
+  rateLimit: 10 // default 10 requests per minute
 };
 
 const defaultConfig: AppConfig = {
@@ -446,6 +448,19 @@ export class ConfigService {
 
   setAICustomModelName(modelName: string): void {
     this.setAIFilteringConfig({ customModelName: modelName.trim() });
+  }
+
+  setAIRateLimit(rateLimit: number): void {
+    // For built-in service, cap at 10 requests per minute
+    const config = this.getAIFilteringConfig();
+    const maxLimit = config.serviceType === 'builtin' ? 10 : 60;
+    const validRateLimit = Math.max(1, Math.min(maxLimit, Math.round(rateLimit)));
+    this.setAIFilteringConfig({ rateLimit: validRateLimit });
+  }
+
+  getAIRateLimit(): number {
+    const config = this.getAIFilteringConfig();
+    return config.rateLimit || 10;
   }
 
   async selectOutputDirectory(): Promise<string | null> {

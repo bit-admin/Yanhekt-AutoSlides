@@ -704,7 +704,10 @@
               <h4>{{ $t('advanced.ai.serviceSettings') }}</h4>
               <div class="setting-item">
                 <label class="setting-label">{{ $t('advanced.ai.serviceType') }}</label>
-                <div class="setting-description">{{ $t('advanced.ai.serviceTypeDescription') }}</div>
+                <div class="setting-description">
+                  {{ $t('advanced.ai.serviceTypeDescription') }}
+                  <a href="#" @click.prevent="openCustomServiceDocs" class="external-link">{{ $t('advanced.ai.customServiceDocsLink') }}</a>
+                </div>
                 <div class="ai-service-type-selector">
                   <button
                     @click="tempAiServiceType = 'builtin'"
@@ -840,6 +843,26 @@
                         {{ preset.label }}
                       </option>
                     </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Rate Limit Setting -->
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.ai.rateLimit') }}</label>
+                <div class="setting-description">
+                  {{ $t('advanced.ai.rateLimitDescription') }}<span v-if="tempAiServiceType === 'builtin'" class="rate-limit-hint"> {{ $t('advanced.ai.rateLimitBuiltinHint') }}</span>
+                </div>
+                <div class="slide-interval-group">
+                  <div class="slide-interval-input-wrapper">
+                    <input
+                      v-model.number="tempAiRateLimit"
+                      type="number"
+                      min="1"
+                      :max="maxAiRateLimit"
+                      class="slide-interval-input"
+                    />
+                    <span class="interval-unit">{{ $t('advanced.ai.rateLimitUnit') }}</span>
                   </div>
                 </div>
               </div>
@@ -1044,6 +1067,12 @@ const downloadQueueStatus = computed(() => {
     return t('status.noDownloads')
   }
 })
+
+// Max rate limit depends on service type: 10 for built-in, 60 for custom
+const maxAiRateLimit = computed(() => {
+  return tempAiServiceType.value === 'builtin' ? 10 : 60
+})
+
 const showAdvancedModal = ref(false)
 
 // Advanced settings tabs
@@ -1164,6 +1193,8 @@ const aiCustomApiKey = ref('')
 const tempAiCustomApiKey = ref('')
 const aiCustomModelName = ref('')
 const tempAiCustomModelName = ref('')
+const aiRateLimit = ref(10)
+const tempAiRateLimit = ref(10)
 const showApiKey = ref(false)
 const selectedApiUrlPreset = ref('')
 const selectedModelPreset = ref('')
@@ -1715,16 +1746,23 @@ const saveAdvancedSettings = async () => {
     }
 
     // Save AI filtering settings
+    // Ensure rate limit respects max based on service type
+    const effectiveRateLimit = tempAiServiceType.value === 'builtin'
+      ? Math.min(tempAiRateLimit.value, 10)
+      : tempAiRateLimit.value
     await window.electronAPI.config.setAIFilteringConfig({
       serviceType: tempAiServiceType.value,
       customApiBaseUrl: tempAiCustomApiBaseUrl.value,
       customApiKey: tempAiCustomApiKey.value,
-      customModelName: tempAiCustomModelName.value
+      customModelName: tempAiCustomModelName.value,
+      rateLimit: effectiveRateLimit
     })
     aiServiceType.value = tempAiServiceType.value
     aiCustomApiBaseUrl.value = tempAiCustomApiBaseUrl.value
     aiCustomApiKey.value = tempAiCustomApiKey.value
     aiCustomModelName.value = tempAiCustomModelName.value
+    aiRateLimit.value = effectiveRateLimit
+    tempAiRateLimit.value = effectiveRateLimit
 
     // Save AI prompts
     if (tempAiPromptLive.value !== aiPromptLive.value) {
@@ -2036,6 +2074,8 @@ const loadAISettings = async () => {
       tempAiCustomApiKey.value = aiConfig.customApiKey || ''
       aiCustomModelName.value = aiConfig.customModelName || ''
       tempAiCustomModelName.value = aiConfig.customModelName || ''
+      aiRateLimit.value = aiConfig.rateLimit || 10
+      tempAiRateLimit.value = aiConfig.rateLimit || 10
     }
 
     // Load AI prompts
@@ -2082,6 +2122,15 @@ const refreshBuiltinModel = async () => {
     builtinModelName.value = ''
   } finally {
     isLoadingBuiltinModel.value = false
+  }
+}
+
+// Open external link for custom AI service documentation
+const openCustomServiceDocs = async () => {
+  try {
+    await (window as any).electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/docs')
+  } catch (error) {
+    console.error('Failed to open custom service docs:', error)
   }
 }
 
@@ -3088,6 +3137,16 @@ const closeNameInputDialog = () => {
 .setting-item .setting-description {
   margin-top: 2px;
   margin-bottom: 6px;
+}
+
+.external-link {
+  color: #007acc;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.external-link:hover {
+  text-decoration: underline;
 }
 
 .concurrent-select {
@@ -4918,6 +4977,12 @@ const closeNameInputDialog = () => {
 .api-key-toggle-btn:hover {
   background-color: #f5f5f5;
   color: #333;
+}
+
+.rate-limit-hint {
+  color: #e67700;
+  font-size: 10px;
+  margin-left: 4px;
 }
 
 .ai-prompt-textarea {

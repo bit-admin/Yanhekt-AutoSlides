@@ -70,6 +70,7 @@ interface AIFilteringConfig {
   customApiBaseUrl: string;
   customApiKey: string;
   customModelName: string;
+  rateLimit: number; // requests per minute, default 10
 }
 
 interface AIPrompts {

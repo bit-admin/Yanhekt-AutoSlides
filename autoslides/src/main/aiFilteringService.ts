@@ -58,10 +58,49 @@ const BUILTIN_FALLBACK_MODEL = 'gpt-4.1';
 export class AIFilteringService {
   private configService: ConfigService;
   private aiPromptsService: AIPromptsService;
+  private requestTimestamps: number[] = []; // timestamps of recent requests
 
   constructor(configService: ConfigService, aiPromptsService: AIPromptsService) {
     this.configService = configService;
     this.aiPromptsService = aiPromptsService;
+  }
+
+  /**
+   * Check if rate limit allows a new request, and wait if necessary
+   * Returns the wait time in ms if rate limited, 0 if request can proceed immediately
+   */
+  private async enforceRateLimit(): Promise<void> {
+    const config = this.configService.getAIFilteringConfig();
+    const rateLimit = config.rateLimit || 10;
+    const now = Date.now();
+    const oneMinuteAgo = now - 60000;
+
+    // Clean up old timestamps
+    this.requestTimestamps = this.requestTimestamps.filter(ts => ts > oneMinuteAgo);
+
+    // Check if we're at the limit
+    if (this.requestTimestamps.length >= rateLimit) {
+      // Calculate wait time until the oldest request expires
+      const oldestTimestamp = this.requestTimestamps[0];
+      const waitTime = oldestTimestamp + 60000 - now + 100; // Add 100ms buffer
+      if (waitTime > 0) {
+        console.log(`[AI] Rate limit reached (${rateLimit}/min), waiting ${waitTime}ms`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        // Clean up again after waiting
+        this.requestTimestamps = this.requestTimestamps.filter(ts => ts > Date.now() - 60000);
+      }
+    }
+
+    // Record this request
+    this.requestTimestamps.push(Date.now());
+  }
+
+  /**
+   * Get the current rate limit
+   */
+  getRateLimit(): number {
+    const config = this.configService.getAIFilteringConfig();
+    return config.rateLimit || 10;
   }
 
   /**
@@ -216,6 +255,9 @@ export class AIFilteringService {
     modelOverride?: string
   ): Promise<AIFilteringResult> {
     try {
+      // Enforce rate limit before making request
+      await this.enforceRateLimit();
+
       const apiConfig = this.getApiConfig(token);
       const prompt = this.aiPromptsService.getPrompt(type);
       const model = modelOverride || apiConfig.model;
@@ -281,6 +323,9 @@ export class AIFilteringService {
     modelOverride?: string
   ): Promise<AIFilteringResult> {
     try {
+      // Enforce rate limit before making request
+      await this.enforceRateLimit();
+
       const apiConfig = this.getApiConfig(token);
       const prompt = this.aiPromptsService.getPrompt(type);
       const model = modelOverride || apiConfig.model;
