@@ -202,6 +202,8 @@
       "loadingModel": "Loading model info...",
       "modelNotLoggedIn": "Please log in to view model info",
       "modelFetchFailed": "Failed to fetch model info",
+      "modelCloudflareBlocked": "Connection blocked",
+      "cloudflareHint": "To use the built-in AI service, please disable your proxy or VPN and try again.",
       "modelUnknown": "Unknown",
       "refreshModel": "Refresh",
       "apiBaseUrl": "API Base URL",

@@ -734,6 +734,17 @@
                     <div v-else-if="builtinModelError === 'notLoggedIn'" class="model-error">
                       <span>{{ $t('advanced.ai.modelNotLoggedIn') }}</span>
                     </div>
+                    <div v-else-if="builtinModelError === 'cloudflareBlocked'" class="model-error cloudflare-error">
+                      <span>{{ $t('advanced.ai.modelCloudflareBlocked') }}</span>
+                      <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                          <path d="M21 3v5h-5"/>
+                          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                          <path d="M3 21v-5h5"/>
+                        </svg>
+                      </button>
+                    </div>
                     <div v-else-if="builtinModelError === 'fetchFailed'" class="model-error">
                       <span>{{ $t('advanced.ai.modelFetchFailed') }}</span>
                       <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
@@ -756,6 +767,15 @@
                         </svg>
                       </button>
                     </div>
+                  </div>
+                  <!-- Cloudflare warning hint -->
+                  <div v-if="builtinModelError === 'cloudflareBlocked'" class="cloudflare-hint">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" y1="8" x2="12" y2="12"/>
+                      <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>{{ $t('advanced.ai.cloudflareHint') }}</span>
                   </div>
                 </div>
               </div>
@@ -1194,6 +1214,8 @@ const login = async () => {
         userId.value = verificationResult.userData.badge || 'unknown'
         startMaskingTimer() // Start the 5-second masking timer
         console.log('Login successful')
+        // Refresh built-in model after login (non-blocking)
+        refreshBuiltinModel()
       } else {
         console.error('Token verification failed after login')
         alert('Login failed: Token verification failed')
@@ -1474,6 +1496,9 @@ const setPreventSystemSleep = async () => {
 onMounted(() => {
   verifyExistingToken()
   loadConfig()
+
+  // Load built-in model name in background (non-blocking)
+  refreshBuiltinModel()
 
   // Add event listener for adaptive threshold changes
   window.addEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as unknown as EventListener)
@@ -2021,11 +2046,7 @@ const loadAISettings = async () => {
       aiPromptRecorded.value = prompts.recorded || ''
       tempAiPromptRecorded.value = prompts.recorded || ''
     }
-
-    // Load built-in model name if using built-in service
-    if (aiServiceType.value === 'builtin') {
-      await refreshBuiltinModel()
-    }
+    // Note: Built-in model is loaded once at app launch, not here
   } catch (error) {
     console.error('Failed to load AI settings:', error)
   }
@@ -2034,18 +2055,29 @@ const loadAISettings = async () => {
 const refreshBuiltinModel = async () => {
   const token = tokenManager.getToken()
   if (!token) {
+    console.log('[AI] refreshBuiltinModel: No token available')
     builtinModelError.value = 'notLoggedIn'
     return
   }
 
+  console.log('[AI] refreshBuiltinModel: Fetching model name...')
   isLoadingBuiltinModel.value = true
   builtinModelError.value = ''
 
   try {
     const modelName = await window.electronAPI.ai.getBuiltinModelName(token)
-    builtinModelName.value = modelName
+    console.log('[AI] refreshBuiltinModel: API response:', modelName)
+
+    // Check if response is HTML (Cloudflare challenge page)
+    if (modelName && (modelName.includes('<!DOCTYPE') || modelName.includes('<html') || modelName.includes('Just a moment'))) {
+      console.error('[AI] refreshBuiltinModel: Received Cloudflare challenge page, likely blocked by proxy/VPN')
+      builtinModelError.value = 'cloudflareBlocked'
+      builtinModelName.value = ''
+    } else {
+      builtinModelName.value = modelName
+    }
   } catch (error) {
-    console.error('Failed to fetch built-in model name:', error)
+    console.error('[AI] refreshBuiltinModel: Failed to fetch built-in model name:', error)
     builtinModelError.value = 'fetchFailed'
     builtinModelName.value = ''
   } finally {
@@ -4988,6 +5020,29 @@ const closeNameInputDialog = () => {
   color: #333;
 }
 
+.cloudflare-error {
+  flex-wrap: wrap;
+}
+
+.cloudflare-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #856404;
+  line-height: 1.4;
+}
+
+.cloudflare-hint svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
 /* Dark mode support for AI settings */
 @media (prefers-color-scheme: dark) {
   .custom-api-settings {
@@ -5075,6 +5130,12 @@ const closeNameInputDialog = () => {
   .refresh-btn:hover {
     background-color: #404040;
     color: #e0e0e0;
+  }
+
+  .cloudflare-hint {
+    background-color: #4a3f00;
+    border-color: #6b5a00;
+    color: #ffd54f;
   }
 }
 </style>

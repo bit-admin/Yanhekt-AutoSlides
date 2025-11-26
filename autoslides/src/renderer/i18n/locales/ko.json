@@ -202,6 +202,8 @@
       "loadingModel": "모델 정보 로딩 중...",
       "modelNotLoggedIn": "모델 정보를 보려면 로그인하세요",
       "modelFetchFailed": "모델 정보를 가져오지 못했습니다",
+      "modelCloudflareBlocked": "연결이 차단됨",
+      "cloudflareHint": "내장 AI 서비스를 사용하려면 프록시 또는 VPN을 비활성화한 후 다시 시도하세요.",
       "modelUnknown": "알 수 없음",
       "refreshModel": "새로고침",
       "apiBaseUrl": "API 기본 URL",

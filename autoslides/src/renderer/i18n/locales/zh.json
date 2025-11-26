@@ -202,6 +202,8 @@
       "loadingModel": "正在加载模型信息...",
       "modelNotLoggedIn": "请登录以查看模型信息",
       "modelFetchFailed": "获取模型信息失败",
+      "modelCloudflareBlocked": "连接被阻止",
+      "cloudflareHint": "要使用内置 AI 服务，请关闭代理或 VPN 后重试。",
       "modelUnknown": "未知",
       "refreshModel": "刷新",
       "apiBaseUrl": "API 基础 URL",

@@ -202,6 +202,8 @@
       "loadingModel": "モデル情報を読み込み中...",
       "modelNotLoggedIn": "モデル情報を表示するにはログインしてください",
       "modelFetchFailed": "モデル情報の取得に失敗しました",
+      "modelCloudflareBlocked": "接続がブロックされました",
+      "cloudflareHint": "内蔵AIサービスを使用するには、プロキシまたはVPNを無効にしてから再試行してください。",
       "modelUnknown": "不明",
       "refreshModel": "更新",
       "apiBaseUrl": "APIベースURL",
