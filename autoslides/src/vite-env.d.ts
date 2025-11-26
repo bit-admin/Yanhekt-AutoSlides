@@ -65,6 +65,32 @@ interface SlideImageProcessingParams {
   downsampleHeight?: number;
 }
 
+interface AIFilteringConfig {
+  serviceType: 'builtin' | 'custom';
+  customApiBaseUrl: string;
+  customApiKey: string;
+  customModelName: string;
+}
+
+interface AIPrompts {
+  live: string;
+  recorded: string;
+}
+
+interface AIClassificationResult {
+  classification: 'slide' | 'not_slide';
+}
+
+interface AIBatchClassificationResult {
+  [key: string]: 'slide' | 'not_slide';
+}
+
+interface AIFilteringResult {
+  success: boolean;
+  result?: AIClassificationResult | AIBatchClassificationResult;
+  error?: string;
+}
+
 // ============================================================================
 // API Response Types
 // ============================================================================
@@ -287,6 +313,17 @@ interface ElectronAPI {
       imageBuffer?: number[];
       fileName?: string;
     }>;
+
+    // AI filtering configuration
+    getAIFilteringConfig: () => Promise<AIFilteringConfig>;
+    setAIFilteringConfig: (config: Partial<AIFilteringConfig>) => Promise<AIFilteringConfig>;
+
+    // AI prompts management
+    getAIPrompts: () => Promise<AIPrompts>;
+    getAIPrompt: (type: 'live' | 'recorded') => Promise<string>;
+    setAIPrompt: (type: 'live' | 'recorded', prompt: string) => Promise<string>;
+    resetAIPrompt: (type: 'live' | 'recorded') => Promise<string>;
+    getDefaultAIPrompt: (type: 'live' | 'recorded') => Promise<string>;
   };
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStreamData>>;
@@ -383,6 +420,29 @@ interface ElectronAPI {
 
   app?: {
     restart: () => Promise<void>;
+  };
+
+  tour?: {
+    forceLightTheme: () => Promise<void>;
+    restoreTheme: (originalTheme: 'system' | 'light' | 'dark') => Promise<void>;
+  };
+
+  ai: {
+    classifySingleImage: (
+      base64Image: string,
+      type: 'live' | 'recorded',
+      token?: string,
+      modelOverride?: string
+    ) => Promise<AIFilteringResult>;
+    classifyMultipleImages: (
+      base64Images: string[],
+      type: 'live' | 'recorded',
+      token?: string,
+      modelOverride?: string
+    ) => Promise<AIFilteringResult>;
+    getBuiltinModelName: (token: string) => Promise<string>;
+    isConfigured: (token?: string) => Promise<boolean>;
+    getServiceType: () => Promise<'builtin' | 'custom'>;
   };
 }
 

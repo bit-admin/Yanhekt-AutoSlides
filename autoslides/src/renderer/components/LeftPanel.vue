@@ -721,6 +721,45 @@
                 </div>
               </div>
 
+              <!-- Built-in Model Info (shown only when builtin is selected) -->
+              <div v-if="tempAiServiceType === 'builtin'" class="builtin-model-info">
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.ai.builtinModel') }}</label>
+                  <div class="setting-description">{{ $t('advanced.ai.builtinModelDescription') }}</div>
+                  <div class="builtin-model-display">
+                    <div v-if="isLoadingBuiltinModel" class="model-loading">
+                      <div class="loading-spinner-small"></div>
+                      <span>{{ $t('advanced.ai.loadingModel') }}</span>
+                    </div>
+                    <div v-else-if="builtinModelError === 'notLoggedIn'" class="model-error">
+                      <span>{{ $t('advanced.ai.modelNotLoggedIn') }}</span>
+                    </div>
+                    <div v-else-if="builtinModelError === 'fetchFailed'" class="model-error">
+                      <span>{{ $t('advanced.ai.modelFetchFailed') }}</span>
+                      <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                          <path d="M21 3v5h-5"/>
+                          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                          <path d="M3 21v-5h5"/>
+                        </svg>
+                      </button>
+                    </div>
+                    <div v-else class="model-name-display">
+                      <span class="model-name">{{ builtinModelName || $t('advanced.ai.modelUnknown') }}</span>
+                      <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                          <path d="M21 3v5h-5"/>
+                          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                          <path d="M3 21v-5h5"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <!-- Custom API Settings (shown only when custom is selected) -->
               <div v-if="tempAiServiceType === 'custom'" class="custom-api-settings">
                 <div class="setting-item">
@@ -1114,6 +1153,11 @@ const aiPromptLive = ref('')
 const tempAiPromptLive = ref('')
 const aiPromptRecorded = ref('')
 const tempAiPromptRecorded = ref('')
+
+// Built-in model info
+const builtinModelName = ref('')
+const isLoadingBuiltinModel = ref(false)
+const builtinModelError = ref('')
 
 // AI API URL presets
 const apiUrlPresets = [
@@ -1977,8 +2021,35 @@ const loadAISettings = async () => {
       aiPromptRecorded.value = prompts.recorded || ''
       tempAiPromptRecorded.value = prompts.recorded || ''
     }
+
+    // Load built-in model name if using built-in service
+    if (aiServiceType.value === 'builtin') {
+      await refreshBuiltinModel()
+    }
   } catch (error) {
     console.error('Failed to load AI settings:', error)
+  }
+}
+
+const refreshBuiltinModel = async () => {
+  const token = tokenManager.getToken()
+  if (!token) {
+    builtinModelError.value = 'notLoggedIn'
+    return
+  }
+
+  isLoadingBuiltinModel.value = true
+  builtinModelError.value = ''
+
+  try {
+    const modelName = await window.electronAPI.ai.getBuiltinModelName(token)
+    builtinModelName.value = modelName
+  } catch (error) {
+    console.error('Failed to fetch built-in model name:', error)
+    builtinModelError.value = 'fetchFailed'
+    builtinModelName.value = ''
+  } finally {
+    isLoadingBuiltinModel.value = false
   }
 }
 
@@ -4837,6 +4908,86 @@ const closeNameInputDialog = () => {
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
+/* Built-in model display styles */
+.builtin-model-info {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.builtin-model-display {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+  padding: 10px 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  min-height: 20px;
+}
+
+.model-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  font-size: 13px;
+}
+
+.loading-spinner-small {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #e0e0e0;
+  border-top: 2px solid #007acc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.model-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #dc3545;
+  font-size: 13px;
+}
+
+.model-name-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.model-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #666;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.refresh-btn:hover {
+  background-color: #e0e0e0;
+  color: #333;
+}
+
 /* Dark mode support for AI settings */
 @media (prefers-color-scheme: dark) {
   .custom-api-settings {
@@ -4889,6 +5040,41 @@ const closeNameInputDialog = () => {
 
   .ai-prompt-textarea::placeholder {
     color: #888;
+  }
+
+  .builtin-model-info {
+    border-top-color: #404040;
+  }
+
+  .builtin-model-display {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .model-loading {
+    color: #aaa;
+  }
+
+  .loading-spinner-small {
+    border-color: #404040;
+    border-top-color: #4a9eff;
+  }
+
+  .model-error {
+    color: #ff6b6b;
+  }
+
+  .model-name {
+    color: #e0e0e0;
+  }
+
+  .refresh-btn {
+    color: #aaa;
+  }
+
+  .refresh-btn:hover {
+    background-color: #404040;
+    color: #e0e0e0;
   }
 }
 </style>

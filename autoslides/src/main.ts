@@ -13,6 +13,7 @@ import { slideExtractionService } from './main/slideExtractionService';
 import { PowerManagementService } from './main/powerManagementService';
 import { cacheManagementService } from './main/cacheManagementService';
 import { AIPromptsService } from './main/aiPromptsService';
+import { AIFilteringService } from './main/aiFilteringService';
 import type { AIServiceType } from './main/configService';
 
 // Import translation files for main process
@@ -176,6 +177,7 @@ const ffmpegService = new FFmpegService();
 const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService, apiClient);
 const powerManagementService = new PowerManagementService();
 const aiPromptsService = new AIPromptsService();
+const aiFilteringService = new AIFilteringService(configService, aiPromptsService);
 
 // Initialize power management based on config
 const initializePowerManagement = async () => {
@@ -431,6 +433,27 @@ ipcMain.handle('config:resetAIPrompt', async (event, type: 'live' | 'recorded') 
 
 ipcMain.handle('config:getDefaultAIPrompt', async (event, type: 'live' | 'recorded') => {
   return aiPromptsService.getDefaultPrompt(type);
+});
+
+// IPC handlers for AI filtering service
+ipcMain.handle('ai:classifySingleImage', async (event, base64Image: string, type: 'live' | 'recorded', token?: string, modelOverride?: string) => {
+  return aiFilteringService.classifySingleImage(base64Image, type, token, modelOverride);
+});
+
+ipcMain.handle('ai:classifyMultipleImages', async (event, base64Images: string[], type: 'live' | 'recorded', token?: string, modelOverride?: string) => {
+  return aiFilteringService.classifyMultipleImages(base64Images, type, token, modelOverride);
+});
+
+ipcMain.handle('ai:getBuiltinModelName', async (event, token: string) => {
+  return aiFilteringService.getBuiltinModelName(token);
+});
+
+ipcMain.handle('ai:isConfigured', async (event, token?: string) => {
+  return aiFilteringService.isConfigured(token);
+});
+
+ipcMain.handle('ai:getServiceType', async () => {
+  return aiFilteringService.getServiceType();
 });
 
 // IPC handlers for intranet mapping
