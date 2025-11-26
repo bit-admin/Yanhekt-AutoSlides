@@ -758,6 +758,14 @@ const loadVideoStreams = async () => {
       await nextTick()
       await loadVideoSource()
 
+      // Auto-refresh for live mode with internal connection to work around proxy startup timing
+      if (props.mode === 'live' && connectionMode.value === 'internal') {
+        setTimeout(() => {
+          console.log('Auto-refreshing live stream for internal connection mode')
+          loadVideoSource()
+        }, 1000)
+      }
+
       // Check if we need to initialize task after video loading completes
       if (isTaskMode.value && currentTaskId.value) {
         console.log('Video loaded, checking task initialization for:', currentTaskId.value)
