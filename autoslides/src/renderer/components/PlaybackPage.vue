@@ -104,7 +104,7 @@
       <div v-else-if="playbackData" class="video-content" :data-playback-mode="props.mode">
 
         <!-- Combined Warning Messages -->
-        <div v-if="isTaskRunning || (props.mode === 'recorded' && showSpeedWarning)" class="combined-warning">
+        <div v-if="isTaskRunning || (props.mode === 'recorded' && showSpeedWarning) || aiFilteringError.type !== 'none'" class="combined-warning">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
             <path d="M12 9v4"/>
@@ -116,6 +116,22 @@
             </div>
             <div v-if="props.mode === 'recorded' && showSpeedWarning" class="warning-message">
               {{ $t('playback.highSpeedWarning') }}
+            </div>
+            <div v-if="aiFilteringError.type === '403'" class="warning-message ai-error">
+              {{ $t('playback.aiError403') }}
+              <button @click="dismissAIError" class="dismiss-btn" :title="$t('playback.dismiss')">×</button>
+            </div>
+            <div v-if="aiFilteringError.type === '413'" class="warning-message ai-error">
+              {{ $t('playback.aiError413') }}
+              <button @click="dismissAIError" class="dismiss-btn" :title="$t('playback.dismiss')">×</button>
+            </div>
+            <div v-if="aiFilteringError.type === 'http'" class="warning-message ai-error">
+              {{ $t('playback.aiErrorHttp', { code: aiFilteringError.httpCode }) }}
+              <button @click="dismissAIError" class="dismiss-btn" :title="$t('playback.dismiss')">×</button>
+            </div>
+            <div v-if="aiFilteringError.type === 'unknown'" class="warning-message ai-error">
+              {{ $t('playback.aiErrorUnknown') }}
+              <button @click="dismissAIError" class="dismiss-btn" :title="$t('playback.dismiss')">×</button>
             </div>
           </div>
         </div>
@@ -571,6 +587,14 @@ const aiBatchSize = ref(4) // Default AI batch size for recorded mode
 // Recorded mode AI batch processing
 const recordedModeSlidesForAIBatch = ref<ExtractedSlide[]>([]) // Slides pending AI batch processing
 const aiFilteringInProgress = ref(false) // Flag to track if AI filtering is in progress
+
+// AI filtering error state
+interface AIFilteringError {
+  type: 'none' | '403' | '413' | 'http' | 'unknown'
+  httpCode?: number
+  message?: string
+}
+const aiFilteringError = ref<AIFilteringError>({ type: 'none' })
 
 // Post-processing status state
 interface PostProcessStatus {
@@ -2444,8 +2468,13 @@ const executePostProcessing = async () => {
               } else {
                 console.log(`AI kept slide: ${slide.title} (classified as slide)`)
               }
+              // Clear any previous error on success
+              aiFilteringError.value = { type: 'none' }
             } else {
               console.warn(`AI classification failed for ${slide.title}:`, result.error)
+              // Parse and set error
+              const parsedError = parseAIError(result)
+              aiFilteringError.value = parsedError
             }
           } else {
             // Multiple images classification
@@ -2482,8 +2511,13 @@ const executePostProcessing = async () => {
                   console.log(`AI kept slide: ${slide.title} (classified as slide)`)
                 }
               }
+              // Clear any previous error on success
+              aiFilteringError.value = { type: 'none' }
             } else {
               console.warn(`AI batch classification failed:`, result.error)
+              // Parse and set error
+              const parsedError = parseAIError(result)
+              aiFilteringError.value = parsedError
               // Mark all slides in batch with their aiDecision as null (to retry later if needed)
               batch.forEach(slide => {
                 slide.aiDecision = null
@@ -2492,6 +2526,9 @@ const executePostProcessing = async () => {
           }
         } catch (aiError) {
           console.error(`AI filtering error for batch:`, aiError)
+          // Parse and set error
+          const parsedError = parseAIError(aiError)
+          aiFilteringError.value = parsedError
         }
       }
     } else {
@@ -2934,17 +2971,86 @@ const processLiveModeSlide = async (slide: ExtractedSlide) => {
           } else {
             console.log(`[Live Post-Processing] AI kept: ${slide.title} (classified as slide)`)
           }
+          // Clear any previous error on success
+          aiFilteringError.value = { type: 'none' }
         } else {
           console.warn(`[Live Post-Processing] AI classification failed for ${slide.title}:`, result.error)
+          // Parse and set error
+          const parsedError = parseAIError(result)
+          aiFilteringError.value = parsedError
         }
       } catch (aiError) {
         console.error(`[Live Post-Processing] AI filtering error for ${slide.title}:`, aiError)
+        // Parse and set error
+        const parsedError = parseAIError(aiError)
+        aiFilteringError.value = parsedError
       }
     }
 
   } catch (error) {
     console.error(`[Live Post-Processing] Error processing slide ${slide.title}:`, error)
   }
+}
+
+// Parse AI filtering error from result or exception
+const parseAIError = (error: unknown): AIFilteringError => {
+  // Check if it's an AIFilteringResult with error message
+  if (error && typeof error === 'object' && 'error' in error) {
+    const errorMessage = (error as { error?: string }).error || ''
+
+    // Parse HTTP status code from error message
+    const httpCodeMatch = errorMessage.match(/HTTP\s*(\d{3})/i) || errorMessage.match(/status[:\s]*(\d{3})/i)
+    if (httpCodeMatch) {
+      const httpCode = parseInt(httpCodeMatch[1], 10)
+      if (httpCode === 403) {
+        return { type: '403', httpCode: 403, message: errorMessage }
+      } else if (httpCode === 413) {
+        return { type: '413', httpCode: 413, message: errorMessage }
+      } else {
+        return { type: 'http', httpCode, message: errorMessage }
+      }
+    }
+
+    // Check for specific error patterns
+    if (errorMessage.includes('403') || errorMessage.toLowerCase().includes('forbidden')) {
+      return { type: '403', httpCode: 403, message: errorMessage }
+    }
+    if (errorMessage.includes('413') || errorMessage.toLowerCase().includes('payload too large') || errorMessage.toLowerCase().includes('entity too large')) {
+      return { type: '413', httpCode: 413, message: errorMessage }
+    }
+
+    return { type: 'unknown', message: errorMessage }
+  }
+
+  // Check if it's an Error object
+  if (error instanceof Error) {
+    const errorMessage = error.message
+
+    if (errorMessage.includes('403') || errorMessage.toLowerCase().includes('forbidden')) {
+      return { type: '403', httpCode: 403, message: errorMessage }
+    }
+    if (errorMessage.includes('413') || errorMessage.toLowerCase().includes('payload too large')) {
+      return { type: '413', httpCode: 413, message: errorMessage }
+    }
+
+    // Try to extract HTTP code
+    const httpCodeMatch = errorMessage.match(/(\d{3})/)
+    if (httpCodeMatch) {
+      const httpCode = parseInt(httpCodeMatch[1], 10)
+      if (httpCode >= 400 && httpCode < 600) {
+        return { type: 'http', httpCode, message: errorMessage }
+      }
+    }
+
+    return { type: 'unknown', message: errorMessage }
+  }
+
+  return { type: 'unknown', message: String(error) }
+}
+
+// Dismiss AI error warning
+const dismissAIError = () => {
+  aiFilteringError.value = { type: 'none' }
 }
 
 // Process batch of slides for recorded mode AI filtering
@@ -2998,13 +3104,21 @@ const processRecordedModeAIBatch = async () => {
           console.log(`[Recorded AI Batch] AI kept: ${slide.title} (classified as slide)`)
         }
       }
+      // Clear any previous error on success
+      aiFilteringError.value = { type: 'none' }
     } else {
       console.warn(`[Recorded AI Batch] AI batch classification failed:`, result.error)
+      // Parse and set error
+      const parsedError = parseAIError(result)
+      aiFilteringError.value = parsedError
       // Put slides back in queue if classification failed
       recordedModeSlidesForAIBatch.value.unshift(...validSlides)
     }
   } catch (aiError) {
     console.error(`[Recorded AI Batch] AI filtering error:`, aiError)
+    // Parse and set error
+    const parsedError = parseAIError(aiError)
+    aiFilteringError.value = parsedError
   } finally {
     aiFilteringInProgress.value = false
   }
@@ -4423,6 +4537,43 @@ onUnmounted(async () => {
 
 .warning-message {
   margin: 0;
+}
+
+.warning-message.ai-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #c0392b;
+}
+
+[data-theme="dark"] .warning-message.ai-error {
+  color: #e74c3c;
+}
+
+.warning-message .dismiss-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.warning-message .dismiss-btn:hover {
+  opacity: 1;
+  color: #333;
+}
+
+[data-theme="dark"] .warning-message .dismiss-btn {
+  color: #aaa;
+}
+
+[data-theme="dark"] .warning-message .dismiss-btn:hover {
+  color: #fff;
 }
 
 /* Slide extraction controls */
