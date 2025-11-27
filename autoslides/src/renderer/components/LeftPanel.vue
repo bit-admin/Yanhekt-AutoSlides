@@ -997,608 +997,216 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { AuthService, TokenManager } from '../services/authService'
-import { ApiClient } from '../services/apiClient'
-import { DownloadService } from '../services/downloadService'
-import { taskQueueState } from '../services/taskQueueService'
-import { languageService } from '../services/languageService'
-import { ssimThresholdService, type SsimPresetType } from '../services/ssimThresholdService'
+import { useAuth } from '../composables/useAuth'
+import { useSettings } from '../composables/useSettings'
+import { useAdvancedSettings } from '../composables/useAdvancedSettings'
+import { useCacheManagement } from '../composables/useCacheManagement'
+import { useAISettings } from '../composables/useAISettings'
+import { usePHashExclusion } from '../composables/usePHashExclusion'
 
 const { t } = useI18n()
 
-const isLoggedIn = ref(false)
-const username = ref('')
-const password = ref('')
-const userNickname = ref('User')
-const userId = ref('user123')
-
-// Masking state for user info
-const isNicknameMasked = ref(false)
-const isUserIdMasked = ref(false)
-let maskingTimer: NodeJS.Timeout | null = null
-
-// Functions for masking user info
-const startMaskingTimer = () => {
-  // Clear any existing timer
-  if (maskingTimer) {
-    clearTimeout(maskingTimer)
-  }
-
-  // Reset masking state
-  isNicknameMasked.value = false
-  isUserIdMasked.value = false
-
-  // Start 5-second timer to mask user info
-  maskingTimer = setTimeout(() => {
-    isNicknameMasked.value = true
-    isUserIdMasked.value = true
-  }, 5000)
-}
-
-const toggleNicknameMask = () => {
-  isNicknameMasked.value = !isNicknameMasked.value
-}
-
-const toggleUserIdMask = () => {
-  isUserIdMasked.value = !isUserIdMasked.value
-}
-
-const clearMaskingTimer = () => {
-  if (maskingTimer) {
-    clearTimeout(maskingTimer)
-    maskingTimer = null
-  }
-  isNicknameMasked.value = false
-  isUserIdMasked.value = false
-}
-const connectionMode = ref<'internal' | 'external'>('external')
-const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
-const themeMode = ref<'system' | 'light' | 'dark'>('system')
-const languageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
-const tempThemeMode = ref<'system' | 'light' | 'dark'>('system')
-const tempLanguageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
-
-const taskStatus = computed(() => {
-  const stats = taskQueueState.value
-  const queued = stats.queuedCount
-  const inProgress = stats.inProgressCount
-  const completed = stats.completedCount
-  const errors = stats.errorCount
-
-  // Show most relevant status (similar to download status logic)
-  if (stats.isProcessing && inProgress > 0) {
-    const currentTask = stats.currentTask
-    if (currentTask && currentTask.progress > 0) {
-      return `Processing ${currentTask.progress}%, ${queued} queued`
-    } else {
-      return `${inProgress} processing, ${queued} queued`
-    }
-  } else if (queued > 0) {
-    if (stats.isProcessing) {
-      return `Starting tasks... ${queued} queued`
-    } else {
-      return `${queued} queued (paused)`
-    }
-  } else if (completed > 0 || errors > 0) {
-    return `${completed} completed, ${errors} failed`
-  } else {
-    return t('status.noTasks')
-  }
+// Initialize composables
+const auth = useAuth(() => {
+  // On login success, refresh the built-in model
+  aiSettings.refreshBuiltinModel()
 })
 
-const downloadQueueStatus = computed(() => {
-  const queued = DownloadService.queuedCount
-  const active = DownloadService.activeCount
-  const completed = DownloadService.completedCount
-  const errors = DownloadService.errorCount
+const settings = useSettings()
 
-  // Show most relevant status
-  if (active > 0) {
-    return `${active} downloading, ${queued} queued`
-  } else if (queued > 0) {
-    return `${queued} queued`
-  } else if (completed > 0 || errors > 0) {
-    return `${completed} done, ${errors} failed`
-  } else {
-    return t('status.noDownloads')
-  }
+const cacheManagement = useCacheManagement()
+
+const pHashExclusion = usePHashExclusion()
+
+const aiSettings = useAISettings({
+  tokenManager: auth.tokenManager
 })
 
-// Max rate limit depends on service type: 10 for built-in, 60 for custom
-const maxAiRateLimit = computed(() => {
-  return tempAiServiceType.value === 'builtin' ? 10 : 60
-})
-
-const showAdvancedModal = ref(false)
-
-// Advanced settings tabs
-type AdvancedTabId = 'general' | 'imageProcessing' | 'playback' | 'network' | 'ai'
-const activeAdvancedTab = ref<AdvancedTabId>('general')
-const advancedSettingsTabs = [
-  { id: 'general' as AdvancedTabId },
-  { id: 'imageProcessing' as AdvancedTabId },
-  { id: 'playback' as AdvancedTabId },
-  { id: 'network' as AdvancedTabId },
-  { id: 'ai' as AdvancedTabId }
-]
-
-const isLoading = ref(false)
-const isVerifyingToken = ref(false)
-const outputDirectory = ref('')
-const maxConcurrentDownloads = ref(5)
-const tempMaxConcurrentDownloads = ref(5)
-const videoRetryCount = ref(5)
-const tempVideoRetryCount = ref(5)
-const preventSystemSleep = ref(true)
-
-// Slide extraction configuration
-const slideCheckInterval = ref(2000)
-const slideDoubleVerification = ref(true)
-const slideVerificationCount = ref(2)
-
-// Task configuration
-const taskSpeed = ref(10)
-const autoPostProcessing = ref(true)
-const autoPostProcessingLive = ref(true)
-
-// AI Filtering configuration
-const enableAIFiltering = ref(true)
-
-// Advanced image processing parameters
-const ssimThreshold = ref(0.9987)
-const tempSsimThreshold = ref(0.9987)
-const ssimPreset = ref<SsimPresetType>('adaptive')
-
-// pHash threshold configuration
-const pHashThreshold = ref(10)
-const tempPHashThreshold = ref(10)
-
-// Post-processing phases configuration
-const enableDuplicateRemoval = ref(true)
-const enableExclusionList = ref(true)
-
-// Downsampling configuration
-const enableDownsampling = ref(true)
-const downsampleWidth = ref(480)
-const downsampleHeight = ref(270)
-const selectedDownsamplingPreset = ref('480x270')
-
-// Downsampling presets
-const downsamplingPresets = [
-  { key: '320x180', label: '320×180', width: 320, height: 180 },
-  { key: '480x270', label: '480×270', width: 480, height: 270 },
-  { key: '640x360', label: '640×360', width: 640, height: 360 },
-  { key: '800x450', label: '800×450', width: 800, height: 450 }
-]
-
-// pHash exclusion list configuration
-interface PHashExclusionItem {
-  id: string
-  name: string
-  pHash: string
-  createdAt: number
-  isPreset?: boolean
-  isEnabled?: boolean
-}
-
-const pHashExclusionList = ref<PHashExclusionItem[]>([])
-const isAddingExclusion = ref(false)
-
-// Custom input dialog state
-const showNameInputModal = ref(false)
-const nameInputValue = ref('')
-const nameInputCallback = ref<((name: string | null) => void) | null>(null)
-
-// Manual token authentication
-const manualToken = ref('')
-const showToken = ref(false)
-const isVerifyingManualToken = ref(false)
-const tokenVerificationStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
-
-// Intranet mapping display
-interface IntranetMapping {
-  type: 'single' | 'loadbalance';
-  ip?: string;
-  ips?: string[];
-  strategy?: 'round_robin' | 'random' | 'first_available';
-  currentIndex?: number;
-}
-
-const intranetMappings = ref<{ [domain: string]: IntranetMapping }>({})
-const expandedMappings = ref<{ [domain: string]: boolean }>({})
-
-// Cache management state
-interface CacheStats {
-  totalSize: number;
-  tempFiles: number;
-}
-
-const cacheStats = ref<CacheStats>({
-  totalSize: 0,
-  tempFiles: 0
-})
-
-const isRefreshingCache = ref(false)
-const isClearingCache = ref(false)
-const isResettingData = ref(false)
-const cacheOperationStatus = ref<{ type: 'success' | 'error' | 'warning'; message: string } | null>(null)
-
-// AI filtering configuration
-type AIServiceType = 'builtin' | 'custom'
-const aiServiceType = ref<AIServiceType>('builtin')
-const tempAiServiceType = ref<AIServiceType>('builtin')
-const aiCustomApiBaseUrl = ref('')
-const tempAiCustomApiBaseUrl = ref('')
-const aiCustomApiKey = ref('')
-const tempAiCustomApiKey = ref('')
-const aiCustomModelName = ref('')
-const tempAiCustomModelName = ref('')
-const aiRateLimit = ref(10)
-const tempAiRateLimit = ref(10)
-const aiBatchSize = ref(4)
-const tempAiBatchSize = ref(4)
-const showApiKey = ref(false)
-const selectedApiUrlPreset = ref('')
-const selectedModelPreset = ref('')
-
-// AI prompts
-const aiPromptLive = ref('')
-const tempAiPromptLive = ref('')
-const aiPromptRecorded = ref('')
-const tempAiPromptRecorded = ref('')
-
-// Built-in model info
-const builtinModelName = ref('')
-const isLoadingBuiltinModel = ref(false)
-const builtinModelError = ref('')
-
-// AI API URL presets
-const apiUrlPresets = [
-  { label: 'ModelScope', url: 'https://api-inference.modelscope.cn/v1' },
-  { label: 'GitHub Copilot', url: 'https://api.githubcopilot.com' },
-  { label: 'LM Studio (Local)', url: 'http://localhost:1234/v1' }
-]
-
-// AI model presets
-const modelPresets = [
-  { label: 'Qwen3-VL-235B', name: 'Qwen/Qwen3-VL-235B-A22B-Instruct' },
-  { label: 'Qwen3-VL-30B', name: 'Qwen/Qwen3-VL-30B-A3B-Instruct' },
-  { label: 'Qwen3-VL-8B', name: 'Qwen/Qwen3-VL-8B-Instruct' },
-  { label: 'GPT-4.1', name: 'gpt-4.1' }
-]
-
-const tokenManager = new TokenManager()
-const authService = new AuthService(tokenManager)
-const apiClient = new ApiClient()
-
-const login = async () => {
-  if (!username.value || !password.value) return
-
-  isLoading.value = true
-  try {
-    const result = await authService.loginAndGetToken(username.value, password.value)
-
-    if (result.success && result.token) {
-      const verificationResult = await apiClient.verifyToken(result.token)
-
-      if (verificationResult.valid && verificationResult.userData) {
-        isLoggedIn.value = true
-        userNickname.value = verificationResult.userData.nickname || username.value
-        userId.value = verificationResult.userData.badge || 'unknown'
-        startMaskingTimer() // Start the 5-second masking timer
-        console.log('Login successful')
-        // Refresh built-in model after login (non-blocking)
-        refreshBuiltinModel()
-      } else {
-        console.error('Token verification failed after login')
-        alert('Login failed: Token verification failed')
-      }
-    } else {
-      console.error('Login failed:', result.error)
-      alert(`Login failed: ${result.error}`)
-    }
-  } catch (error) {
-    console.error('Login error:', error)
-    alert('Login failed: Network error or server exception')
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const logout = () => {
-  tokenManager.clearToken()
-  clearMaskingTimer() // Clear masking timer and reset state
-  isLoggedIn.value = false
-  username.value = ''
-  password.value = ''
-  userNickname.value = 'User'
-  userId.value = 'user123'
-}
-
-const verifyExistingToken = async () => {
-  const token = tokenManager.getToken()
-  if (!token) return
-
-  isVerifyingToken.value = true
-  try {
-    const result = await apiClient.verifyToken(token)
-    if (result.valid && result.userData) {
-      isLoggedIn.value = true
-      userNickname.value = result.userData.nickname || 'User'
-      userId.value = result.userData.badge || 'unknown'
-      startMaskingTimer() // Start the 5-second masking timer
-      console.log('Existing token verified successfully')
-    } else {
-      if (!result.networkError) {
-        tokenManager.clearToken()
-        console.log('Existing token is invalid, cleared')
-      } else {
-        console.log('Network error during token verification, keeping token')
-      }
-    }
-  } catch (error) {
-    console.error('Token verification error:', error)
-    tokenManager.clearToken()
-  } finally {
-    isVerifyingToken.value = false
-  }
-}
-
-const loadConfig = async () => {
-  try {
-    const config = await window.electronAPI.config.get()
-    outputDirectory.value = config.outputDirectory
-    connectionMode.value = config.connectionMode
-    muteMode.value = config.muteMode || 'normal'
-    maxConcurrentDownloads.value = config.maxConcurrentDownloads || 5
-    tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
-    // Initialize DownloadService with the configured max concurrent downloads
-    DownloadService.setMaxConcurrent(maxConcurrentDownloads.value)
-    videoRetryCount.value = config.videoRetryCount || 5
-    tempVideoRetryCount.value = videoRetryCount.value
-
-    // Load slide extraction configuration
-    const slideConfig = await window.electronAPI.config.getSlideExtractionConfig()
-    slideCheckInterval.value = slideConfig.checkInterval || 2000
-    // Validate loaded value to ensure it meets new requirements
-    validateAndCorrectInterval()
-    slideDoubleVerification.value = slideConfig.enableDoubleVerification !== false
-    slideVerificationCount.value = slideConfig.verificationCount || 2
-
-    // Load task configuration
-    taskSpeed.value = config.taskSpeed || 10
-    autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
-    autoPostProcessingLive.value = config.autoPostProcessingLive !== undefined ? config.autoPostProcessingLive : true
-    enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
-
-    // Load theme configuration
-    themeMode.value = config.themeMode || 'system'
-
-    // Load language configuration
-    languageMode.value = config.languageMode || 'system'
-    // Initialize language service
-    await languageService.initialize()
-
-    // Load prevent system sleep configuration
-    preventSystemSleep.value = config.preventSystemSleep !== undefined ? config.preventSystemSleep : true
-
-    // Load advanced image processing parameters
-    isUpdatingProgrammatically = true
-    ssimThreshold.value = slideConfig.ssimThreshold || ssimThresholdService.getThresholdValue('adaptive')
-    tempSsimThreshold.value = ssimThreshold.value
-    isUpdatingProgrammatically = false
-
-    // Load SSIM preset mode from config
-    const savedPresetMode = slideConfig.ssimPresetMode || 'adaptive'
-    ssimPreset.value = savedPresetMode
-
-    // Load pHash threshold from config
-    pHashThreshold.value = slideConfig.pHashThreshold || 10
-    tempPHashThreshold.value = pHashThreshold.value
-
-    // Load post-processing phases configuration
-    enableDuplicateRemoval.value = slideConfig.enableDuplicateRemoval !== undefined ? slideConfig.enableDuplicateRemoval : true
-    enableExclusionList.value = slideConfig.enableExclusionList !== undefined ? slideConfig.enableExclusionList : true
-
-    // Load downsampling configuration from config
-    enableDownsampling.value = slideConfig.enableDownsampling !== undefined ? slideConfig.enableDownsampling : true
-    downsampleWidth.value = slideConfig.downsampleWidth || 480
-    downsampleHeight.value = slideConfig.downsampleHeight || 270
-
-    // Determine selected preset based on loaded values
-    const currentPreset = downsamplingPresets.find(preset =>
-      preset.width === downsampleWidth.value && preset.height === downsampleHeight.value
-    )
-    selectedDownsamplingPreset.value = currentPreset ? currentPreset.key : '480x270'
-
-    // Load pHash exclusion list
-    await loadPHashExclusionList()
-  } catch (error) {
-    console.error('Failed to load config:', error)
-  }
-}
-
-const selectOutputDirectory = async () => {
-  try {
-    const result = await window.electronAPI.config.selectOutputDirectory()
-    if (result) {
-      outputDirectory.value = result.outputDirectory
-    }
-  } catch (error) {
-    console.error('Failed to select output directory:', error)
-  }
-}
-
-const setConnectionMode = async (mode: 'internal' | 'external') => {
-  try {
-    const result = await window.electronAPI.config.setConnectionMode(mode)
-    connectionMode.value = result.connectionMode
-  } catch (error) {
-    console.error('Failed to set connection mode:', error)
-  }
-}
-
-const setMuteMode = async () => {
-  try {
-    const result = await window.electronAPI.config.setMuteMode(muteMode.value)
-    muteMode.value = result.muteMode
-  } catch (error) {
-    console.error('Failed to set mute mode:', error)
-  }
-}
-
-// Slide extraction configuration methods
-const validateAndCorrectInterval = () => {
-  // Ensure the value is a valid number
-  if (isNaN(slideCheckInterval.value) || slideCheckInterval.value === null || slideCheckInterval.value === undefined) {
-    slideCheckInterval.value = 2000 // Default value
-    return
-  }
-
-  // Convert to integer to avoid floating point issues
-  let value = Math.round(slideCheckInterval.value)
-
-  // Enforce minimum and maximum bounds
-  if (value < 1000) {
-    value = 1000
-  } else if (value > 10000) {
-    value = 10000
-  }
-
-  // Round to nearest 500 multiple
-  const remainder = value % 500
-  if (remainder !== 0) {
-    // Round to nearest 500 multiple
-    if (remainder <= 250) {
-      value = value - remainder // Round down (including exactly 250)
-    } else {
-      value = value + (500 - remainder) // Round up
-    }
-  }
-
-  // Ensure we don't go below minimum after rounding
-  if (value < 1000) {
-    value = 1000
-  }
-
-  // Update the value if it was corrected
-  if (value !== slideCheckInterval.value) {
-    slideCheckInterval.value = value
-    console.log(`Slide check interval corrected to: ${value}ms`)
-  }
-}
-
-const setSlideCheckInterval = async () => {
-  try {
-    // Validate and correct the value before saving
-    validateAndCorrectInterval()
-
-    const result = await window.electronAPI.config.setSlideCheckInterval(slideCheckInterval.value)
-    slideCheckInterval.value = result.checkInterval
-  } catch (error) {
-    console.error('Failed to set slide check interval:', error)
-  }
-}
-
-const setSlideDoubleVerification = async () => {
-  try {
-    const result = await window.electronAPI.config.setSlideDoubleVerification(
-      slideDoubleVerification.value,
-      slideVerificationCount.value
-    )
-    slideDoubleVerification.value = result.enableDoubleVerification
-    slideVerificationCount.value = result.verificationCount
-  } catch (error) {
-    console.error('Failed to set slide double verification:', error)
-  }
-}
-
-// Reset methods for slide settings
-const resetSlideDetectionInterval = async () => {
-  try {
-    slideCheckInterval.value = 2000
-    validateAndCorrectInterval()
-    await setSlideCheckInterval()
-  } catch (error) {
-    console.error('Failed to reset slide detection interval:', error)
-  }
-}
-
-const resetSlideStabilityVerification = async () => {
-  try {
-    slideDoubleVerification.value = true
-    slideVerificationCount.value = 2
-    await setSlideDoubleVerification()
-  } catch (error) {
-    console.error('Failed to reset slide stability verification:', error)
-  }
-}
-
-const setTaskSpeed = async () => {
-  try {
-    const result = await window.electronAPI.config.setTaskSpeed(taskSpeed.value)
-    taskSpeed.value = result.taskSpeed
-  } catch (error) {
-    console.error('Failed to set task speed:', error)
-  }
-}
-
-const setAutoPostProcessing = async () => {
-  try {
-    const result = await window.electronAPI.config.setAutoPostProcessing(autoPostProcessing.value)
-    autoPostProcessing.value = result.autoPostProcessing
-  } catch (error) {
-    console.error('Failed to set auto post-processing:', error)
-  }
-}
-
-const setAutoPostProcessingLive = async () => {
-  try {
-    const result = await window.electronAPI.config.setAutoPostProcessingLive(autoPostProcessingLive.value)
-    autoPostProcessingLive.value = result.autoPostProcessingLive
-  } catch (error) {
-    console.error('Failed to set auto post-processing for live:', error)
-  }
-}
-
-const setEnableAIFiltering = async () => {
-  try {
-    const result = await window.electronAPI.config.setEnableAIFiltering(enableAIFiltering.value)
-    enableAIFiltering.value = result.enableAIFiltering
-  } catch (error) {
-    console.error('Failed to set enable AI filtering:', error)
-  }
-}
-
-const updateAiBatchSize = () => {
-  // Ensure batch size is within valid range (1-10)
-  tempAiBatchSize.value = Math.max(1, Math.min(10, Math.round(tempAiBatchSize.value)))
-}
-
-const setPreventSystemSleep = async () => {
-  try {
-    const result = await window.electronAPI.config.setPreventSystemSleep(preventSystemSleep.value)
-    preventSystemSleep.value = result.preventSystemSleep
-
-    // Also call the power management API to immediately apply the setting
-    if (preventSystemSleep.value) {
-      await window.electronAPI.powerManagement.preventSleep()
-    } else {
-      await window.electronAPI.powerManagement.allowSleep()
-    }
-  } catch (error) {
-    console.error('Failed to set prevent system sleep:', error)
-  }
-}
-
-onMounted(() => {
-  verifyExistingToken()
-  loadConfig()
+const advancedSettings = useAdvancedSettings(
+  {
+    maxConcurrentDownloads: settings.maxConcurrentDownloads,
+    videoRetryCount: settings.videoRetryCount,
+    themeMode: settings.themeMode,
+    languageMode: settings.languageMode,
+    preventSystemSleep: settings.preventSystemSleep,
+    enableAIFiltering: settings.enableAIFiltering
+  },
+  // onOpenModal callback
+  async () => {
+    auth.loadManualToken()
+    auth.tokenVerificationStatus.value = null
+    auth.showToken.value = false
+    cacheManagement.refreshCacheStats()
+    cacheManagement.resetOperationStatus()
+    await pHashExclusion.loadPHashExclusionList()
+    await aiSettings.loadAISettings()
+    aiSettings.resetTempValues()
+  },
+  // onSaveSettings callback
+  async () => {
+    await aiSettings.saveAISettings()
+  },
+  t
+)
+
+// Destructure for template usage
+// Auth
+const {
+  isLoggedIn,
+  username,
+  password,
+  userNickname,
+  userId,
+  isLoading,
+  isVerifyingToken,
+  isNicknameMasked,
+  isUserIdMasked,
+  manualToken,
+  showToken,
+  isVerifyingManualToken,
+  tokenVerificationStatus,
+  login,
+  logout,
+  toggleNicknameMask,
+  toggleUserIdMask,
+  toggleTokenVisibility,
+  onTokenInput,
+  verifyManualToken
+} = auth
+
+// Settings
+const {
+  outputDirectory,
+  connectionMode,
+  muteMode,
+  slideCheckInterval,
+  slideDoubleVerification,
+  slideVerificationCount,
+  taskSpeed,
+  autoPostProcessing,
+  autoPostProcessingLive,
+  enableAIFiltering,
+  preventSystemSleep,
+  taskStatus,
+  downloadQueueStatus,
+  selectOutputDirectory,
+  setConnectionMode,
+  setMuteMode,
+  setSlideCheckInterval,
+  validateAndCorrectInterval,
+  setSlideDoubleVerification,
+  resetSlideDetectionInterval,
+  resetSlideStabilityVerification,
+  setTaskSpeed,
+  setAutoPostProcessing,
+  setAutoPostProcessingLive,
+  setEnableAIFiltering,
+  setPreventSystemSleep
+} = settings
+
+// Advanced Settings
+const {
+  showAdvancedModal,
+  activeAdvancedTab,
+  advancedSettingsTabs,
+  tempMaxConcurrentDownloads,
+  tempVideoRetryCount,
+  tempThemeMode,
+  tempLanguageMode,
+  ssimThreshold,
+  tempSsimThreshold,
+  ssimPreset,
+  pHashThreshold: _pHashThreshold,
+  tempPHashThreshold,
+  enableDuplicateRemoval,
+  enableExclusionList,
+  enableDownsampling,
+  downsampleWidth: _downsampleWidth,
+  downsampleHeight: _downsampleHeight,
+  selectedDownsamplingPreset,
+  downsamplingPresets,
+  intranetMappings,
+  expandedMappings,
+  openAdvancedSettings,
+  closeAdvancedSettings,
+  saveAdvancedSettings,
+  updateImageProcessingParams,
+  updatePostProcessingPhases,
+  selectDownsamplingPreset,
+  onSsimPresetChange,
+  onSsimInputChange,
+  updateThresholdProgrammatically,
+  onAdaptiveThresholdChanged,
+  toggleMappingExpanded,
+  getStrategyDisplayName,
+  updateMaxConcurrentDownloads,
+  updateVideoRetryCount
+} = advancedSettings
+
+// Cache Management
+const {
+  cacheStats,
+  isRefreshingCache,
+  isClearingCache,
+  isResettingData,
+  cacheOperationStatus,
+  refreshCacheStats,
+  clearCache,
+  resetAllData,
+  formatCacheSize
+} = cacheManagement
+
+// AI Settings
+const {
+  tempAiServiceType,
+  tempAiCustomApiBaseUrl,
+  tempAiCustomApiKey,
+  tempAiCustomModelName,
+  showApiKey,
+  tempAiRateLimit,
+  tempAiBatchSize,
+  maxAiRateLimit,
+  tempAiPromptLive,
+  tempAiPromptRecorded,
+  builtinModelName,
+  isLoadingBuiltinModel,
+  builtinModelError,
+  apiUrlPresets,
+  modelPresets,
+  selectedApiUrlPreset,
+  selectedModelPreset,
+  refreshBuiltinModel,
+  onApiUrlPresetChange,
+  onModelPresetChange,
+  resetAiPrompt,
+  updateAiBatchSize,
+  openCustomServiceDocs
+} = aiSettings
+
+// pHash Exclusion
+const {
+  pHashExclusionList,
+  isAddingExclusion,
+  showNameInputModal,
+  nameInputValue,
+  addExclusionItem,
+  removeExclusionItem,
+  editExclusionItemName,
+  clearExclusionList,
+  confirmNameInput,
+  cancelNameInput
+} = pHashExclusion
+
+// Lifecycle hooks
+onMounted(async () => {
+  auth.verifyExistingToken()
+  await settings.loadConfig()
+  await advancedSettings.loadImageProcessingConfig()
 
   // Load built-in model name in background (non-blocking)
-  refreshBuiltinModel()
+  aiSettings.refreshBuiltinModel()
 
   // Add event listener for adaptive threshold changes
   window.addEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as unknown as EventListener)
@@ -1608,824 +1216,13 @@ onUnmounted(() => {
   // Remove event listener for adaptive threshold changes
   window.removeEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as unknown as EventListener)
   // Clear masking timer to prevent memory leaks
-  clearMaskingTimer()
+  auth.clearMaskingTimer()
 })
-
-const openAdvancedSettings = async () => {
-  // Reset temp values to current values when opening modal
-  tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
-  tempVideoRetryCount.value = videoRetryCount.value
-  tempThemeMode.value = themeMode.value
-  tempLanguageMode.value = languageMode.value
-
-  // Set programmatic update flag to prevent mode switching during initialization
-  isUpdatingProgrammatically = true
-  tempSsimThreshold.value = ssimThreshold.value
-  tempPHashThreshold.value = pHashThreshold.value
-  isUpdatingProgrammatically = false
-
-  // Don't reinitialize SSIM preset - it should already be correctly loaded from config
-  // The ssimPreset.value should maintain the value loaded from config (adaptive, normal, etc.)
-  // Only update the threshold display value, not the preset mode
-
-  // Load manual token from localStorage
-  loadManualToken()
-  tokenVerificationStatus.value = null
-  showToken.value = false
-
-  // Load intranet mappings
-  loadIntranetMappings()
-
-  // Load cache statistics
-  refreshCacheStats()
-  cacheOperationStatus.value = null
-
-  // Load pHash exclusion list
-  await loadPHashExclusionList()
-
-  // Load AI settings
-  await loadAISettings()
-  // Reset preset selectors
-  selectedApiUrlPreset.value = ''
-  selectedModelPreset.value = ''
-  showApiKey.value = false
-
-  showAdvancedModal.value = true
-}
-
-const closeAdvancedSettings = () => {
-  // Reset temp values when canceling
-  tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
-  tempVideoRetryCount.value = videoRetryCount.value
-  tempSsimThreshold.value = ssimThreshold.value
-  tempPHashThreshold.value = pHashThreshold.value
-  tempThemeMode.value = themeMode.value
-  tempLanguageMode.value = languageMode.value
-  showAdvancedModal.value = false
-}
-
-const updateMaxConcurrentDownloads = () => {
-  // This is called when the select changes, but we don't save until "Save" is clicked
-}
-
-const updateVideoRetryCount = () => {
-  // This is called when the select changes, but we don't save until "Save" is clicked
-}
-
-const updateImageProcessingParams = () => {
-  // This is called when the inputs change, but we don't save until "Save" is clicked
-}
-
-// Update post-processing phases configuration
-const updatePostProcessingPhases = async () => {
-  try {
-    await window.electronAPI.config?.setSlideExtractionConfig?.({
-      enableDuplicateRemoval: enableDuplicateRemoval.value,
-      enableExclusionList: enableExclusionList.value
-    })
-    console.log('Post-processing phases updated:', {
-      enableDuplicateRemoval: enableDuplicateRemoval.value,
-      enableExclusionList: enableExclusionList.value
-    })
-  } catch (error) {
-    console.error('Failed to update post-processing phases:', error)
-  }
-}
-
-// Downsampling preset selection method
-const selectDownsamplingPreset = (preset: { key: string; label: string; width: number; height: number }) => {
-  selectedDownsamplingPreset.value = preset.key
-  downsampleWidth.value = preset.width
-  downsampleHeight.value = preset.height
-  updateImageProcessingParams()
-}
-
-// SSIM preset handling methods
-let isUpdatingProgrammatically = false
-
-const onSsimPresetChange = () => {
-  if (ssimPreset.value !== 'custom') {
-    isUpdatingProgrammatically = true
-    tempSsimThreshold.value = ssimThresholdService.getThresholdValue(ssimPreset.value)
-    isUpdatingProgrammatically = false
-    updateImageProcessingParams()
-  }
-}
-
-const onSsimInputChange = () => {
-  // Only update preset mode if this is a manual user input, not a programmatic update
-  if (!isUpdatingProgrammatically) {
-    const value = tempSsimThreshold.value
-    const detectedPreset = ssimThresholdService.getPresetFromValue(value)
-
-    // Special handling for adaptive mode:
-    // If current mode is adaptive and the detected preset would be 'normal' or other non-adaptive,
-    // only switch if the user explicitly changed the value to match another preset exactly
-    if (ssimPreset.value === 'adaptive' && detectedPreset !== 'adaptive') {
-      // Only switch away from adaptive if the value exactly matches another preset
-      // This prevents automatic switching when adaptive mode dynamically adjusts the value
-      if (detectedPreset !== 'custom') {
-        ssimPreset.value = detectedPreset
-      } else {
-        // If it doesn't match any preset exactly, it's custom
-        ssimPreset.value = 'custom'
-      }
-    } else {
-      // For non-adaptive modes, use normal detection logic
-      ssimPreset.value = detectedPreset
-    }
-  }
-}
-
-// Method to update threshold value programmatically (for adaptive mode dynamic updates)
-const updateThresholdProgrammatically = (newValue: number) => {
-  isUpdatingProgrammatically = true
-  tempSsimThreshold.value = newValue
-  isUpdatingProgrammatically = false
-}
-
-// Handle adaptive threshold changes from classroom rules
-const onAdaptiveThresholdChanged = async (event: CustomEvent) => {
-  const { newThreshold, classrooms } = event.detail
-
-  // Only update if we're currently in adaptive mode
-  if (ssimPreset.value === 'adaptive') {
-    console.log('Adaptive SSIM threshold updated due to classroom rules:', {
-      newThreshold,
-      classrooms: classrooms?.map((c: { name: string }) => c.name).join(', ') || 'none'
-    })
-
-    // Update the threshold programmatically to avoid triggering preset mode changes
-    updateThresholdProgrammatically(newThreshold)
-
-    // Also update the main threshold value
-    ssimThreshold.value = newThreshold
-
-    // Immediately save the new threshold to config so slide extractor can use it
-    try {
-      const imageProcessingResult = await window.electronAPI.config.setSlideImageProcessingParams({
-        ssimThreshold: newThreshold,
-        ssimPresetMode: ssimPreset.value
-      })
-      console.log('Classroom-based SSIM threshold saved to config:', imageProcessingResult.ssimThreshold)
-    } catch (error) {
-      console.error('Failed to save classroom-based SSIM threshold to config:', error)
-    }
-  }
-}
 
 // Export for potential future use by other components
 defineExpose({
   updateThresholdProgrammatically
 })
-
-const saveAdvancedSettings = async () => {
-  try {
-    // Save concurrent downloads setting
-    const downloadResult = await window.electronAPI.config.setMaxConcurrentDownloads(tempMaxConcurrentDownloads.value)
-    maxConcurrentDownloads.value = downloadResult.maxConcurrentDownloads
-
-    // Save video retry count setting
-    const retryResult = await window.electronAPI.config.setVideoRetryCount(tempVideoRetryCount.value)
-    videoRetryCount.value = retryResult.videoRetryCount
-
-    // Save image processing parameters
-    const imageProcessingResult = await window.electronAPI.config.setSlideImageProcessingParams({
-      ssimThreshold: tempSsimThreshold.value,
-      ssimPresetMode: ssimPreset.value,
-      pHashThreshold: tempPHashThreshold.value,
-      enableDownsampling: enableDownsampling.value,
-      downsampleWidth: downsampleWidth.value,
-      downsampleHeight: downsampleHeight.value
-    })
-    ssimThreshold.value = imageProcessingResult.ssimThreshold
-    pHashThreshold.value = imageProcessingResult.pHashThreshold || tempPHashThreshold.value
-
-    // Save theme mode if changed
-    if (tempThemeMode.value !== themeMode.value) {
-      const themeResult = await window.electronAPI.config.setThemeMode(tempThemeMode.value)
-      themeMode.value = themeResult.themeMode
-    }
-
-    // Save language mode if changed
-    if (tempLanguageMode.value !== languageMode.value) {
-      const langResult = await window.electronAPI.config.setLanguageMode(tempLanguageMode.value)
-      languageMode.value = langResult.languageMode
-      await languageService.setLanguageMode(tempLanguageMode.value)
-    }
-
-    // Save AI filtering settings
-    // Ensure rate limit respects max based on service type
-    const effectiveRateLimit = tempAiServiceType.value === 'builtin'
-      ? Math.min(tempAiRateLimit.value, 10)
-      : tempAiRateLimit.value
-    // Ensure batch size is within valid range
-    const effectiveBatchSize = Math.max(1, Math.min(10, tempAiBatchSize.value))
-    await window.electronAPI.config.setAIFilteringConfig({
-      serviceType: tempAiServiceType.value,
-      customApiBaseUrl: tempAiCustomApiBaseUrl.value,
-      customApiKey: tempAiCustomApiKey.value,
-      customModelName: tempAiCustomModelName.value,
-      rateLimit: effectiveRateLimit,
-      batchSize: effectiveBatchSize
-    })
-    aiServiceType.value = tempAiServiceType.value
-    aiCustomApiBaseUrl.value = tempAiCustomApiBaseUrl.value
-    aiCustomApiKey.value = tempAiCustomApiKey.value
-    aiCustomModelName.value = tempAiCustomModelName.value
-    aiRateLimit.value = effectiveRateLimit
-    tempAiRateLimit.value = effectiveRateLimit
-    aiBatchSize.value = effectiveBatchSize
-    tempAiBatchSize.value = effectiveBatchSize
-
-    // Save AI prompts
-    if (tempAiPromptLive.value !== aiPromptLive.value) {
-      await window.electronAPI.config.setAIPrompt('live', tempAiPromptLive.value)
-      aiPromptLive.value = tempAiPromptLive.value
-    }
-    if (tempAiPromptRecorded.value !== aiPromptRecorded.value) {
-      await window.electronAPI.config.setAIPrompt('recorded', tempAiPromptRecorded.value)
-      aiPromptRecorded.value = tempAiPromptRecorded.value
-    }
-
-    // Also update the download service
-    const { DownloadService } = await import('../services/downloadService')
-    DownloadService.setMaxConcurrent(maxConcurrentDownloads.value)
-
-    showAdvancedModal.value = false
-  } catch (error) {
-    console.error('Failed to save advanced settings:', error)
-    alert('Failed to save settings')
-  }
-}
-
-// Manual token authentication methods
-const toggleTokenVisibility = () => {
-  showToken.value = !showToken.value
-  // Update input type dynamically
-  const tokenInput = document.querySelector('.token-input') as HTMLInputElement
-  if (tokenInput) {
-    tokenInput.type = showToken.value ? 'text' : 'password'
-  }
-}
-
-const onTokenInput = () => {
-  // Clear previous verification status when user types
-  tokenVerificationStatus.value = null
-  // Save token to localStorage as user types
-  if (manualToken.value.trim()) {
-    tokenManager.saveToken(manualToken.value.trim())
-  } else {
-    tokenManager.clearToken()
-  }
-}
-
-const verifyManualToken = async () => {
-  if (!manualToken.value.trim()) return
-
-  isVerifyingManualToken.value = true
-  tokenVerificationStatus.value = null
-
-  try {
-    const result = await apiClient.verifyToken(manualToken.value.trim())
-
-    if (result.valid && result.userData) {
-      tokenVerificationStatus.value = {
-        type: 'success',
-        message: `Token verified successfully for ${result.userData.nickname || 'user'}`
-      }
-
-      // Update login state
-      isLoggedIn.value = true
-      userNickname.value = result.userData.nickname || 'User'
-      userId.value = result.userData.badge || 'unknown'
-      startMaskingTimer() // Start the 5-second masking timer
-
-      // Save the verified token
-      tokenManager.saveToken(manualToken.value.trim())
-
-      console.log('Manual token verification successful')
-    } else {
-      tokenVerificationStatus.value = {
-        type: 'error',
-        message: result.networkError ? 'Network error during verification' : 'Invalid token'
-      }
-
-      if (!result.networkError) {
-        // Clear invalid token
-        tokenManager.clearToken()
-        manualToken.value = ''
-      }
-    }
-  } catch (error) {
-    console.error('Token verification error:', error)
-    tokenVerificationStatus.value = {
-      type: 'error',
-      message: 'Verification failed: Network error or server exception'
-    }
-  } finally {
-    isVerifyingManualToken.value = false
-  }
-}
-
-const loadManualToken = () => {
-  // Load existing token from localStorage when opening advanced settings
-  const existingToken = tokenManager.getToken()
-  if (existingToken) {
-    manualToken.value = existingToken
-  }
-}
-
-// Intranet mapping methods
-const loadIntranetMappings = async () => {
-  try {
-    const mappings = await window.electronAPI.intranet.getMappings()
-    intranetMappings.value = mappings
-  } catch (error) {
-    console.error('Failed to load intranet mappings:', error)
-  }
-}
-
-const toggleMappingExpanded = (domain: string) => {
-  expandedMappings.value[domain] = !expandedMappings.value[domain]
-}
-
-const getStrategyDisplayName = (strategy?: string) => {
-  switch (strategy) {
-    case 'round_robin':
-      return t('advanced.roundRobin')
-    case 'random':
-      return t('advanced.random')
-    case 'first_available':
-      return t('advanced.firstAvailable')
-    default:
-      return strategy || t('advanced.roundRobin')
-  }
-}
-
-// Cache management methods
-const formatCacheSize = (bytes: number): string => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
-
-const refreshCacheStats = async () => {
-  isRefreshingCache.value = true
-  cacheOperationStatus.value = null
-
-  try {
-    const stats = await window.electronAPI.cache?.getStats?.()
-    if (stats) {
-      cacheStats.value = {
-        totalSize: stats.totalSize || 0,
-        tempFiles: stats.tempFiles || 0
-      }
-    }
-  } catch (error) {
-    console.error('Failed to refresh cache stats:', error)
-    cacheOperationStatus.value = {
-      type: 'error',
-      message: t('advanced.cacheStatsError')
-    }
-  } finally {
-    isRefreshingCache.value = false
-  }
-}
-
-const clearCache = async () => {
-  // Show confirmation dialog
-  const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
-    type: 'question',
-    buttons: [t('advanced.cancel'), t('advanced.clearCache')],
-    defaultId: 1,
-    cancelId: 0,
-    title: t('advanced.clearCacheTitle'),
-    message: t('advanced.clearCacheMessage'),
-    detail: t('advanced.clearCacheDetail')
-  })
-
-  if (confirmed?.response !== 1) {
-    return // User cancelled
-  }
-
-  isClearingCache.value = true
-  cacheOperationStatus.value = null
-
-  try {
-    const result = await window.electronAPI.cache?.clear?.()
-    if (result?.success) {
-      cacheOperationStatus.value = {
-        type: 'success',
-        message: t('advanced.cacheClearSuccess')
-      }
-      // Refresh stats after clearing
-      await refreshCacheStats()
-    } else {
-      throw new Error(result?.error || 'Unknown error')
-    }
-  } catch (error) {
-    console.error('Failed to clear cache:', error)
-    cacheOperationStatus.value = {
-      type: 'error',
-      message: t('advanced.cacheClearError')
-    }
-  } finally {
-    isClearingCache.value = false
-  }
-}
-
-const resetAllData = async () => {
-  // Show confirmation dialog with strong warning
-  const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
-    type: 'warning',
-    buttons: [t('advanced.cancel'), t('advanced.resetAllData')],
-    defaultId: 0,
-    cancelId: 0,
-    title: t('advanced.resetAllDataTitle'),
-    message: t('advanced.resetAllDataMessage'),
-    detail: t('advanced.resetAllDataDetail')
-  })
-
-  if (confirmed?.response !== 1) {
-    return // User cancelled
-  }
-
-  // Second confirmation for safety
-  const doubleConfirmed = await window.electronAPI.dialog?.showMessageBox?.({
-    type: 'error',
-    buttons: [t('advanced.cancel'), t('advanced.confirmReset')],
-    defaultId: 0,
-    cancelId: 0,
-    title: t('advanced.finalConfirmation'),
-    message: t('advanced.finalConfirmationMessage'),
-    detail: t('advanced.finalConfirmationDetail')
-  })
-
-  if (doubleConfirmed?.response !== 1) {
-    return // User cancelled
-  }
-
-  isResettingData.value = true
-  cacheOperationStatus.value = null
-
-  try {
-    const result = await window.electronAPI.cache?.resetAllData?.()
-    if (result?.success) {
-      cacheOperationStatus.value = {
-        type: 'success',
-        message: t('advanced.resetSuccess')
-      }
-
-      // Show restart dialog
-      const shouldRestart = await window.electronAPI.dialog?.showMessageBox?.({
-        type: 'info',
-        buttons: [t('advanced.restartLater'), t('advanced.restartNow')],
-        defaultId: 1,
-        title: t('advanced.restartRequired'),
-        message: t('advanced.restartRequiredMessage'),
-        detail: t('advanced.restartRequiredDetail')
-      })
-
-      if (shouldRestart?.response === 1) {
-        // Restart the application
-        await window.electronAPI.app?.restart?.()
-      }
-    } else {
-      throw new Error(result?.error || 'Unknown error')
-    }
-  } catch (error) {
-    console.error('Failed to reset all data:', error)
-    cacheOperationStatus.value = {
-      type: 'error',
-      message: t('advanced.resetError')
-    }
-  } finally {
-    isResettingData.value = false
-  }
-}
-
-// AI settings methods
-const onApiUrlPresetChange = () => {
-  if (selectedApiUrlPreset.value) {
-    tempAiCustomApiBaseUrl.value = selectedApiUrlPreset.value
-  }
-}
-
-const onModelPresetChange = () => {
-  if (selectedModelPreset.value) {
-    tempAiCustomModelName.value = selectedModelPreset.value
-  }
-}
-
-const resetAiPrompt = async (type: 'live' | 'recorded') => {
-  try {
-    const defaultPrompt = await window.electronAPI.config.resetAIPrompt(type)
-    if (type === 'live') {
-      tempAiPromptLive.value = defaultPrompt
-      aiPromptLive.value = defaultPrompt
-    } else {
-      tempAiPromptRecorded.value = defaultPrompt
-      aiPromptRecorded.value = defaultPrompt
-    }
-  } catch (error) {
-    console.error(`Failed to reset AI prompt for ${type}:`, error)
-  }
-}
-
-const loadAISettings = async () => {
-  try {
-    // Load AI filtering config
-    const aiConfig = await window.electronAPI.config.getAIFilteringConfig()
-    if (aiConfig) {
-      aiServiceType.value = aiConfig.serviceType || 'builtin'
-      tempAiServiceType.value = aiConfig.serviceType || 'builtin'
-      aiCustomApiBaseUrl.value = aiConfig.customApiBaseUrl || ''
-      tempAiCustomApiBaseUrl.value = aiConfig.customApiBaseUrl || ''
-      aiCustomApiKey.value = aiConfig.customApiKey || ''
-      tempAiCustomApiKey.value = aiConfig.customApiKey || ''
-      aiCustomModelName.value = aiConfig.customModelName || ''
-      tempAiCustomModelName.value = aiConfig.customModelName || ''
-      aiRateLimit.value = aiConfig.rateLimit || 10
-      tempAiRateLimit.value = aiConfig.rateLimit || 10
-      aiBatchSize.value = aiConfig.batchSize || 4
-      tempAiBatchSize.value = aiConfig.batchSize || 4
-    }
-
-    // Load AI prompts
-    const prompts = await window.electronAPI.config.getAIPrompts()
-    if (prompts) {
-      aiPromptLive.value = prompts.live || ''
-      tempAiPromptLive.value = prompts.live || ''
-      aiPromptRecorded.value = prompts.recorded || ''
-      tempAiPromptRecorded.value = prompts.recorded || ''
-    }
-    // Note: Built-in model is loaded once at app launch, not here
-  } catch (error) {
-    console.error('Failed to load AI settings:', error)
-  }
-}
-
-const refreshBuiltinModel = async () => {
-  const token = tokenManager.getToken()
-  if (!token) {
-    console.log('[AI] refreshBuiltinModel: No token available')
-    builtinModelError.value = 'notLoggedIn'
-    return
-  }
-
-  console.log('[AI] refreshBuiltinModel: Fetching model name...')
-  isLoadingBuiltinModel.value = true
-  builtinModelError.value = ''
-
-  try {
-    const modelName = await window.electronAPI.ai.getBuiltinModelName(token)
-    console.log('[AI] refreshBuiltinModel: API response:', modelName)
-
-    // Check if response is HTML (Cloudflare challenge page)
-    if (modelName && (modelName.includes('<!DOCTYPE') || modelName.includes('<html') || modelName.includes('Just a moment'))) {
-      console.error('[AI] refreshBuiltinModel: Received Cloudflare challenge page, likely blocked by proxy/VPN')
-      builtinModelError.value = 'cloudflareBlocked'
-      builtinModelName.value = ''
-    } else {
-      builtinModelName.value = modelName
-    }
-  } catch (error) {
-    console.error('[AI] refreshBuiltinModel: Failed to fetch built-in model name:', error)
-    builtinModelError.value = 'fetchFailed'
-    builtinModelName.value = ''
-  } finally {
-    isLoadingBuiltinModel.value = false
-  }
-}
-
-// Open external link for custom AI service documentation
-const openCustomServiceDocs = async () => {
-  try {
-    await (window as any).electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/docs')
-  } catch (error) {
-    console.error('Failed to open custom service docs:', error)
-  }
-}
-
-// pHash exclusion list management methods
-const loadPHashExclusionList = async () => {
-  try {
-    const exclusionList = await window.electronAPI.config.getPHashExclusionList()
-    pHashExclusionList.value = exclusionList || []
-  } catch (error) {
-    console.error('Failed to load pHash exclusion list:', error)
-    pHashExclusionList.value = []
-  }
-}
-
-const addExclusionItem = async () => {
-  if (isAddingExclusion.value) return
-
-  isAddingExclusion.value = true
-  try {
-    // Select image file
-    const result = await window.electronAPI.config.selectImageForExclusion()
-
-    if (!result.success) {
-      if (!result.canceled) {
-        console.error('Failed to select image:', result.error)
-        alert('Failed to select image: ' + (result.error || 'Unknown error'))
-      }
-      return
-    }
-
-    // Check if required data is available
-    if (!result.imageBuffer || !result.fileName) {
-      console.error('Missing image data or filename')
-      alert('Failed to process selected image: Missing data')
-      return
-    }
-
-    // Convert array back to Uint8Array
-    const imageBuffer = new Uint8Array(result.imageBuffer)
-
-    // Create image from buffer for pHash calculation
-    const blob = new Blob([imageBuffer])
-    const imageUrl = URL.createObjectURL(blob)
-
-    try {
-      const img = new Image()
-      await new Promise((resolve, reject) => {
-        img.onload = resolve
-        img.onerror = reject
-        img.src = imageUrl
-      })
-
-      // Create canvas and get ImageData
-      const canvas = document.createElement('canvas')
-      canvas.width = img.width
-      canvas.height = img.height
-      const ctx = canvas.getContext('2d')
-      if (!ctx) throw new Error('Failed to get canvas context')
-
-      ctx.drawImage(img, 0, 0)
-      const imageData = ctx.getImageData(0, 0, img.width, img.height)
-
-      // Calculate pHash using the postProcessor worker
-      const pHash = await calculatePHashWithWorker(imageData)
-
-      // Prompt for name using custom dialog
-      const defaultName = result.fileName.replace(/\.[^/.]+$/, '')
-      const name = await showNameInputDialog(defaultName)
-      if (!name || !name.trim()) {
-        return // User canceled or entered empty name
-      }
-
-      // Add to exclusion list
-      await window.electronAPI.config.addPHashExclusionItem(name.trim(), pHash)
-
-      // Reload the list
-      await loadPHashExclusionList()
-
-      console.log('Added exclusion item:', { name: name.trim(), pHash })
-    } finally {
-      URL.revokeObjectURL(imageUrl)
-    }
-  } catch (error) {
-    console.error('Failed to add exclusion item:', error)
-    alert('Failed to add exclusion item: ' + (error instanceof Error ? error.message : 'Unknown error'))
-  } finally {
-    isAddingExclusion.value = false
-  }
-}
-
-const calculatePHashWithWorker = (imageData: ImageData): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const worker = new Worker(new URL('../workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
-
-    const messageId = `phash_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
-
-    const timeout = setTimeout(() => {
-      worker.terminate()
-      reject(new Error('pHash calculation timeout'))
-    }, 30000) // 30 second timeout
-
-    worker.onmessage = (e) => {
-      clearTimeout(timeout)
-      worker.terminate()
-
-      const { id, success, result, error } = e.data
-      if (id === messageId) {
-        if (success) {
-          resolve(result)
-        } else {
-          reject(new Error(error || 'pHash calculation failed'))
-        }
-      }
-    }
-
-    worker.onerror = (error) => {
-      clearTimeout(timeout)
-      worker.terminate()
-      reject(error)
-    }
-
-    worker.postMessage({
-      id: messageId,
-      type: 'calculatePHash',
-      data: { imageData }
-    })
-  })
-}
-
-const removeExclusionItem = async (id: string) => {
-  try {
-    const success = await window.electronAPI.config.removePHashExclusionItem(id)
-    if (success) {
-      await loadPHashExclusionList()
-    } else {
-      console.error('Failed to remove exclusion item')
-    }
-  } catch (error) {
-    console.error('Failed to remove exclusion item:', error)
-  }
-}
-
-const editExclusionItemName = async (item: PHashExclusionItem) => {
-  const newName = await showNameInputDialog(item.name)
-  if (newName && newName.trim() && newName.trim() !== item.name) {
-    try {
-      const success = await window.electronAPI.config.updatePHashExclusionItemName(item.id, newName.trim())
-      if (success) {
-        await loadPHashExclusionList()
-      } else {
-        console.error('Failed to update exclusion item name')
-      }
-    } catch (error) {
-      console.error('Failed to update exclusion item name:', error)
-    }
-  }
-}
-
-const clearExclusionList = async () => {
-  try {
-    const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
-      type: 'question',
-      buttons: [t('advanced.cancel'), t('advanced.clearAll')],
-      defaultId: 1,
-      cancelId: 0,
-      title: t('advanced.clearExclusionListTitle'),
-      message: t('advanced.clearExclusionListMessage'),
-      detail: t('advanced.clearExclusionListDetail')
-    })
-
-    if (confirmed?.response === 1) {
-      await window.electronAPI.config.clearPHashExclusionList()
-      await loadPHashExclusionList()
-    }
-  } catch (error) {
-    console.error('Failed to clear exclusion list:', error)
-  }
-}
-
-
-// Custom input dialog methods
-const showNameInputDialog = (defaultValue: string = ''): Promise<string | null> => {
-  return new Promise((resolve) => {
-    nameInputValue.value = defaultValue
-    nameInputCallback.value = resolve
-    showNameInputModal.value = true
-
-    // Focus the input field after the modal is shown
-    nextTick(() => {
-      const inputField = document.querySelector('.name-input-field') as HTMLInputElement
-      if (inputField) {
-        inputField.focus()
-        inputField.select()
-      }
-    })
-  })
-}
-
-const confirmNameInput = () => {
-  const callback = nameInputCallback.value
-  if (callback) {
-    callback(nameInputValue.value.trim() || null)
-  }
-  closeNameInputDialog()
-}
-
-const cancelNameInput = () => {
-  const callback = nameInputCallback.value
-  if (callback) {
-    callback(null)
-  }
-  closeNameInputDialog()
-}
-
-const closeNameInputDialog = () => {
-  showNameInputModal.value = false
-  nameInputValue.value = ''
-  nameInputCallback.value = null
-}
 </script>
 
 <style scoped>
