@@ -52,6 +52,9 @@
     "autoPostProcessing": "自動後処理",
     "autoPostProcessingDescription": "タスク完了時に自動的に後処理を実行",
     "enableAutoPostProcessing": "自動後処理を有効にする",
+    "autoPostProcessingLive": "ライブ自動後処理",
+    "autoPostProcessingLiveDescription": "ライブモードで新しいスライドが保存される度に自動的に後処理を実行",
+    "enableAutoPostProcessingLive": "ライブ自動後処理を有効にする",
     "resetToDefault": "デフォルトにリセット"
   },
   "status": {
@@ -116,6 +119,8 @@
     "enableDuplicateRemovalDescription": "すべてのキャプチャされたスライド間でpHash値を比較して重複スライドを除去します。",
     "enableExclusionList": "除外リストを有効化",
     "enableExclusionListDescription": "pHash除外リストの項目と一致するスライドを除去します。",
+    "enableAIFiltering": "AIフィルタリングを有効化",
+    "enableAIFilteringDescription": "AIを使用して非スライド画像を分類・フィルタリングします。",
     "pHashExclusionList": "pHash除外リスト",
     "pHashExclusionDescription": "スライド検出から除外する画像ハッシュのリストを管理します。これらのハッシュに一致する画像は後処理中に無視されます。",
     "noExclusionItems": "除外項目なし",

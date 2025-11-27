@@ -59,6 +59,8 @@ export interface AppConfig {
   videoRetryCount: number;
   taskSpeed: number;
   autoPostProcessing: boolean;
+  autoPostProcessingLive: boolean;
+  enableAIFiltering: boolean;
   themeMode: ThemeMode;
   languageMode: LanguageMode;
   preventSystemSleep: boolean;
@@ -130,6 +132,8 @@ const defaultConfig: AppConfig = {
   videoRetryCount: 5,
   taskSpeed: 10,
   autoPostProcessing: true,
+  autoPostProcessingLive: true,
+  enableAIFiltering: true,
   themeMode: 'system',
   languageMode: 'system',
   preventSystemSleep: true,
@@ -161,6 +165,8 @@ export class ConfigService {
       videoRetryCount: this.store.get('videoRetryCount'),
       taskSpeed: this.store.get('taskSpeed'),
       autoPostProcessing: this.store.get('autoPostProcessing'),
+      autoPostProcessingLive: this.store.get('autoPostProcessingLive') ?? true,
+      enableAIFiltering: this.store.get('enableAIFiltering') ?? true,
       themeMode: this.store.get('themeMode'),
       languageMode: this.store.get('languageMode'),
       preventSystemSleep: this.store.get('preventSystemSleep'),
@@ -199,6 +205,22 @@ export class ConfigService {
 
   setAutoPostProcessing(enabled: boolean): void {
     this.store.set('autoPostProcessing', enabled);
+  }
+
+  setAutoPostProcessingLive(enabled: boolean): void {
+    this.store.set('autoPostProcessingLive', enabled);
+  }
+
+  getAutoPostProcessingLive(): boolean {
+    return this.store.get('autoPostProcessingLive') ?? true;
+  }
+
+  setEnableAIFiltering(enabled: boolean): void {
+    this.store.set('enableAIFiltering', enabled);
+  }
+
+  getEnableAIFiltering(): boolean {
+    return this.store.get('enableAIFiltering') ?? true;
   }
 
   setThemeMode(theme: ThemeMode): void {

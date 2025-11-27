@@ -22,6 +22,8 @@ interface AppConfig {
   videoRetryCount: number;
   taskSpeed: number;
   autoPostProcessing: boolean;
+  autoPostProcessingLive: boolean;
+  enableAIFiltering: boolean;
   themeMode: 'system' | 'light' | 'dark';
   languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
   preventSystemSleep: boolean;
@@ -278,6 +280,10 @@ interface ElectronAPI {
     setVideoRetryCount: (count: number) => Promise<AppConfig>;
     setTaskSpeed: (speed: number) => Promise<AppConfig>;
     setAutoPostProcessing: (enabled: boolean) => Promise<AppConfig>;
+    setAutoPostProcessingLive: (enabled: boolean) => Promise<AppConfig>;
+    getAutoPostProcessingLive: () => Promise<boolean>;
+    setEnableAIFiltering: (enabled: boolean) => Promise<AppConfig>;
+    getEnableAIFiltering: () => Promise<boolean>;
     setPreventSystemSleep: (prevent: boolean) => Promise<AppConfig>;
 
     // Theme configuration

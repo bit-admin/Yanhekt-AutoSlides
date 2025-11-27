@@ -52,6 +52,9 @@
     "autoPostProcessing": "Auto Post-Processing",
     "autoPostProcessingDescription": "Automatically execute post-processing when task completes.",
     "enableAutoPostProcessing": "Enable Auto Post-Processing",
+    "autoPostProcessingLive": "Auto Post-Processing for Live",
+    "autoPostProcessingLiveDescription": "Automatically execute post-processing when each new slide is saved in live mode.",
+    "enableAutoPostProcessingLive": "Enable Auto Post-Processing for Live",
     "resetToDefault": "Reset to default"
   },
   "status": {
@@ -116,6 +119,8 @@
     "enableDuplicateRemovalDescription": "Remove duplicate slides by comparing pHash values between all captured slides.",
     "enableExclusionList": "Enable Exclusion List",
     "enableExclusionListDescription": "Remove slides that match items in the pHash exclusion list.",
+    "enableAIFiltering": "Enable AI Filtering",
+    "enableAIFilteringDescription": "Use AI to classify and filter out non-slide images.",
     "pHashExclusionList": "pHash Exclusion List",
     "pHashExclusionDescription": "Manage a list of image hashes to exclude from slide detection. Images matching these hashes will be ignored during post-processing.",
     "noExclusionItems": "No exclusion items",

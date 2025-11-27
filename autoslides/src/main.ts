@@ -247,6 +247,24 @@ ipcMain.handle('config:setAutoPostProcessing', async (event, enabled: boolean) =
   return configService.getConfig();
 });
 
+ipcMain.handle('config:setAutoPostProcessingLive', async (event, enabled: boolean) => {
+  configService.setAutoPostProcessingLive(enabled);
+  return configService.getConfig();
+});
+
+ipcMain.handle('config:getAutoPostProcessingLive', async () => {
+  return configService.getAutoPostProcessingLive();
+});
+
+ipcMain.handle('config:setEnableAIFiltering', async (event, enabled: boolean) => {
+  configService.setEnableAIFiltering(enabled);
+  return configService.getConfig();
+});
+
+ipcMain.handle('config:getEnableAIFiltering', async () => {
+  return configService.getEnableAIFiltering();
+});
+
 // IPC handlers for theme configuration
 ipcMain.handle('config:setThemeMode', async (event, theme: 'system' | 'light' | 'dark') => {
   configService.setThemeMode(theme);

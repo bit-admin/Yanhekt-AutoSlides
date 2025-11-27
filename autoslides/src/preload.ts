@@ -17,6 +17,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setVideoRetryCount: (count: number) => ipcRenderer.invoke('config:setVideoRetryCount', count),
     setTaskSpeed: (speed: number) => ipcRenderer.invoke('config:setTaskSpeed', speed),
     setAutoPostProcessing: (enabled: boolean) => ipcRenderer.invoke('config:setAutoPostProcessing', enabled),
+    setAutoPostProcessingLive: (enabled: boolean) => ipcRenderer.invoke('config:setAutoPostProcessingLive', enabled),
+    getAutoPostProcessingLive: () => ipcRenderer.invoke('config:getAutoPostProcessingLive'),
+    setEnableAIFiltering: (enabled: boolean) => ipcRenderer.invoke('config:setEnableAIFiltering', enabled),
+    getEnableAIFiltering: () => ipcRenderer.invoke('config:getEnableAIFiltering'),
     // Theme configuration
     setThemeMode: (theme: 'system' | 'light' | 'dark') => ipcRenderer.invoke('config:setThemeMode', theme),
     getThemeMode: () => ipcRenderer.invoke('config:getThemeMode'),

@@ -292,7 +292,7 @@
                     :style="{
                       width: postProcessStatus.phase1Skipped ? '0%' :
                              postProcessStatus.currentPhase === 'phase1' ? `${(postProcessStatus.currentIndex / postProcessStatus.totalCount) * 100}%` :
-                             (postProcessStatus.currentPhase === 'phase2' || postProcessStatus.currentPhase === 'completed') ? '100%' : '0%'
+                             (postProcessStatus.currentPhase === 'phase2' || postProcessStatus.currentPhase === 'phase3' || postProcessStatus.currentPhase === 'completed') ? '100%' : '0%'
                     }"
                   ></div>
                 </div>
@@ -317,27 +317,44 @@
                     class="phase-progress-fill"
                     :class="{
                       'active': postProcessStatus.currentPhase === 'phase2',
-                      'completed': postProcessStatus.currentPhase === 'completed' && !postProcessStatus.phase2Skipped
+                      'completed': (postProcessStatus.currentPhase === 'phase3' || postProcessStatus.currentPhase === 'completed') && !postProcessStatus.phase2Skipped
                     }"
                     :style="{
                       width: postProcessStatus.phase2Skipped ? '0%' :
                              postProcessStatus.currentPhase === 'phase2' ? `${(postProcessStatus.currentIndex / postProcessStatus.totalCount) * 100}%` :
-                             postProcessStatus.currentPhase === 'completed' ? '100%' : '0%'
+                             (postProcessStatus.currentPhase === 'phase3' || postProcessStatus.currentPhase === 'completed') ? '100%' : '0%'
                     }"
                   ></div>
                 </div>
               </div>
 
-              <!-- Phase 3: AI Processing (placeholder) -->
+              <!-- Phase 3: AI Processing -->
               <div class="phase-progress-item">
                 <div class="phase-header">
                   <span class="phase-name">{{ $t('playback.postProcessStatus.phase3Name') }}</span>
-                  <span class="phase-status placeholder">
-                    {{ $t('playback.postProcessStatus.comingSoon') }}
+                  <span v-if="postProcessStatus.phase3Skipped" class="phase-status skipped">
+                    {{ $t('playback.postProcessStatus.disabled') }}
+                  </span>
+                  <span v-else-if="postProcessStatus.currentPhase === 'phase3'" class="phase-status active">
+                    {{ postProcessStatus.currentIndex }}/{{ postProcessStatus.totalCount }}
+                  </span>
+                  <span v-else-if="postProcessStatus.aiFiltered > 0" class="phase-status completed">
+                    -{{ postProcessStatus.aiFiltered }}
                   </span>
                 </div>
-                <div class="phase-progress-bar disabled placeholder">
-                  <div class="phase-progress-fill"></div>
+                <div class="phase-progress-bar" :class="{ disabled: postProcessStatus.phase3Skipped }">
+                  <div
+                    class="phase-progress-fill"
+                    :class="{
+                      'active': postProcessStatus.currentPhase === 'phase3',
+                      'completed': postProcessStatus.currentPhase === 'completed' && !postProcessStatus.phase3Skipped
+                    }"
+                    :style="{
+                      width: postProcessStatus.phase3Skipped ? '0%' :
+                             postProcessStatus.currentPhase === 'phase3' ? `${(postProcessStatus.currentIndex / postProcessStatus.totalCount) * 100}%` :
+                             postProcessStatus.currentPhase === 'completed' ? '100%' : '0%'
+                    }"
+                  ></div>
                 </div>
               </div>
             </div>
@@ -547,17 +564,25 @@ const currentTaskId = ref<string | null>(null)
 const isTaskMode = ref(false)
 const taskSpeed = ref(10) // Default task speed
 const autoPostProcessing = ref(true) // Default auto post-processing enabled
+const autoPostProcessingLive = ref(true) // Default auto post-processing for live enabled
+const enableAIFiltering = ref(true) // Default AI filtering enabled
+
+// Recorded mode AI batch processing
+const recordedModeSlidesForAIBatch = ref<ExtractedSlide[]>([]) // Slides pending AI batch processing
+const aiFilteringInProgress = ref(false) // Flag to track if AI filtering is in progress
 
 // Post-processing status state
 interface PostProcessStatus {
   isProcessing: boolean
-  currentPhase: 'idle' | 'phase1' | 'phase2' | 'completed'
+  currentPhase: 'idle' | 'phase1' | 'phase2' | 'phase3' | 'completed'
   currentIndex: number
   totalCount: number
   duplicatesRemoved: number
   excludedRemoved: number
+  aiFiltered: number
   phase1Skipped: boolean
   phase2Skipped: boolean
+  phase3Skipped: boolean
 }
 const postProcessStatus = ref<PostProcessStatus>({
   isProcessing: false,
@@ -566,8 +591,10 @@ const postProcessStatus = ref<PostProcessStatus>({
   totalCount: 0,
   duplicatesRemoved: 0,
   excludedRemoved: 0,
+  aiFiltered: 0,
   phase1Skipped: false,
-  phase2Skipped: false
+  phase2Skipped: false,
+  phase3Skipped: false
 })
 
 // Picture in Picture state
@@ -2056,6 +2083,9 @@ const executePostProcessing = async () => {
     // Filter exclusion list to only include enabled items (non-presets or presets with isEnabled !== false)
     const exclusionList = (config.pHashExclusionList || []).filter((item: { isPreset?: boolean; isEnabled?: boolean }) => !item.isPreset || item.isEnabled !== false)
 
+    // Get AI filtering configuration
+    const enableAIFilteringPhase = await window.electronAPI.config?.getEnableAIFiltering?.() ?? true
+
     isPostProcessing.value = true
 
     // Reset and initialize post-processing status
@@ -2066,13 +2096,15 @@ const executePostProcessing = async () => {
       totalCount: extractedSlides.value.length,
       duplicatesRemoved: 0,
       excludedRemoved: 0,
+      aiFiltered: 0,
       phase1Skipped: !enableDuplicateRemoval,
-      phase2Skipped: !enableExclusionListPhase
+      phase2Skipped: !enableExclusionListPhase,
+      phase3Skipped: !enableAIFilteringPhase
     }
 
     console.log(`Starting post-processing for ${extractedSlides.value.length} slides...`)
     console.log(`Using pHash threshold: ${pHashThreshold}, exclusion list items: ${exclusionList.length}`)
-    console.log(`Phases enabled: duplicate removal=${enableDuplicateRemoval}, exclusion list=${enableExclusionListPhase}`)
+    console.log(`Phases enabled: duplicate removal=${enableDuplicateRemoval}, exclusion list=${enableExclusionListPhase}, AI filtering=${enableAIFilteringPhase}`)
 
     // Create post-processing worker to calculate pHash for all saved images
     const worker = new Worker(new URL('../workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
@@ -2348,6 +2380,119 @@ const executePostProcessing = async () => {
 
     worker.terminate()
 
+    // Step 4: AI filtering - Send images to AI for classification
+    if (enableAIFilteringPhase) {
+      console.log('Step 4: AI filtering - classifying remaining slides...')
+      postProcessStatus.value.currentPhase = 'phase3'
+      postProcessStatus.value.currentIndex = 0
+
+      // Get remaining slides (not deleted in previous phases)
+      const remainingSlides = extractedSlides.value.filter(slide => {
+        const filename = `${slide.title}.png`
+        return !deletedSlides.includes(filename)
+      })
+
+      // Filter slides that need AI classification (aiDecision is null or undefined)
+      const slidesNeedingAI = remainingSlides.filter(slide => slide.aiDecision === null || slide.aiDecision === undefined)
+
+      postProcessStatus.value.totalCount = slidesNeedingAI.length
+
+      // Get token for built-in service
+      const token = tokenManager.getToken() || undefined
+
+      // Determine batch size based on mode (live mode: 1, recorded mode: 4)
+      const batchSize = props.mode === 'live' ? 1 : 4
+      const promptType = props.mode as 'live' | 'recorded'
+
+      // Process slides in batches
+      for (let i = 0; i < slidesNeedingAI.length; i += batchSize) {
+        const batch = slidesNeedingAI.slice(i, i + batchSize)
+        postProcessStatus.value.currentIndex = Math.min(i + batchSize, slidesNeedingAI.length)
+
+        try {
+          if (batch.length === 1) {
+            // Single image classification
+            const slide = batch[0]
+            // Extract base64 from dataUrl (remove data:image/png;base64, prefix)
+            const base64Image = slide.dataUrl.replace(/^data:image\/\w+;base64,/, '')
+
+            const result = await window.electronAPI.ai.classifySingleImage(
+              base64Image,
+              promptType,
+              token
+            )
+
+            if (result.success && result.result) {
+              const classification = (result.result as { classification: 'slide' | 'not_slide' }).classification
+              slide.aiDecision = classification
+
+              if (classification === 'not_slide') {
+                // Delete the slide if AI classifies it as not a slide
+                try {
+                  await deleteSlide(slide, false)
+                  deletedSlides.push(`${slide.title}.png`)
+                  postProcessStatus.value.aiFiltered++
+                  console.log(`AI filtered slide: ${slide.title} (classified as not_slide)`)
+                } catch (deleteError) {
+                  console.error(`Failed to delete AI-filtered slide ${slide.title}:`, deleteError)
+                }
+              } else {
+                console.log(`AI kept slide: ${slide.title} (classified as slide)`)
+              }
+            } else {
+              console.warn(`AI classification failed for ${slide.title}:`, result.error)
+            }
+          } else {
+            // Multiple images classification
+            const base64Images = batch.map(slide => slide.dataUrl.replace(/^data:image\/\w+;base64,/, ''))
+
+            const result = await window.electronAPI.ai.classifyMultipleImages(
+              base64Images,
+              promptType,
+              token
+            )
+
+            if (result.success && result.result) {
+              const batchResult = result.result as { [key: string]: 'slide' | 'not_slide' }
+
+              // Process each image in the batch
+              for (let j = 0; j < batch.length; j++) {
+                const slide = batch[j]
+                const imageKey = `image_${j + 1}`
+                const classification = batchResult[imageKey] || 'slide' // Default to slide if no classification
+
+                slide.aiDecision = classification
+
+                if (classification === 'not_slide') {
+                  // Delete the slide if AI classifies it as not a slide
+                  try {
+                    await deleteSlide(slide, false)
+                    deletedSlides.push(`${slide.title}.png`)
+                    postProcessStatus.value.aiFiltered++
+                    console.log(`AI filtered slide: ${slide.title} (classified as not_slide)`)
+                  } catch (deleteError) {
+                    console.error(`Failed to delete AI-filtered slide ${slide.title}:`, deleteError)
+                  }
+                } else {
+                  console.log(`AI kept slide: ${slide.title} (classified as slide)`)
+                }
+              }
+            } else {
+              console.warn(`AI batch classification failed:`, result.error)
+              // Mark all slides in batch with their aiDecision as null (to retry later if needed)
+              batch.forEach(slide => {
+                slide.aiDecision = null
+              })
+            }
+          }
+        } catch (aiError) {
+          console.error(`AI filtering error for batch:`, aiError)
+        }
+      }
+    } else {
+      console.log('Step 4: AI filtering skipped (disabled)')
+    }
+
     // Update status to completed
     postProcessStatus.value.currentPhase = 'completed'
     postProcessStatus.value.isProcessing = false
@@ -2358,6 +2503,7 @@ const executePostProcessing = async () => {
     const failedSlides = results.filter(r => r.error).length
     const duplicateSlides = results.filter(r => r.duplicate).length
     const excludedSlides = results.filter(r => r.excluded).length
+    const aiFilteredSlides = postProcessStatus.value.aiFiltered
 
     console.log('Post-processing completed successfully:', {
       totalSlides,
@@ -2365,6 +2511,7 @@ const executePostProcessing = async () => {
       failedSlides,
       duplicateSlides,
       excludedSlides,
+      aiFilteredSlides,
       deletedSlides: deletedSlides.length
     })
 
@@ -2373,7 +2520,7 @@ const executePostProcessing = async () => {
       type: 'info',
       title: 'Post-processing Completed',
       message: `Post-processing completed successfully!`,
-      detail: `Processed: ${processedSlides}/${totalSlides} slides\nDuplicates removed: ${duplicateSlides} slides\nExcluded and deleted: ${excludedSlides} slides${failedSlides > 0 ? `\nFailed: ${failedSlides} slides` : ''}`
+      detail: `Processed: ${processedSlides}/${totalSlides} slides\nDuplicates removed: ${duplicateSlides} slides\nExcluded and deleted: ${excludedSlides} slides\nAI filtered: ${aiFilteredSlides} slides${failedSlides > 0 ? `\nFailed: ${failedSlides} slides` : ''}`
     })
 
   } catch (error) {
@@ -2610,13 +2757,251 @@ const cleanup = () => {
 }
 
 // Slide extraction event handlers
-const onSlideExtracted = (event: CustomEvent) => {
+const onSlideExtracted = async (event: CustomEvent) => {
   const { slide, instanceId, mode } = event.detail
   // Only handle events from our instance
   if (instanceId === extractorInstanceId.value && mode === props.mode) {
     // Add the new slide to our local array
     extractedSlides.value.push(slide)
     updateSlideExtractionStatus()
+
+    // In live mode, trigger auto post-processing if enabled
+    if (props.mode === 'live' && autoPostProcessingLive.value && !isPostProcessing.value) {
+      await processLiveModeSlide(slide)
+    }
+
+    // In recorded mode, queue slides for batch AI filtering
+    if (props.mode === 'recorded' && enableAIFiltering.value && !aiFilteringInProgress.value) {
+      // Add slide to batch queue if it hasn't been AI processed
+      if (slide.aiDecision === null || slide.aiDecision === undefined) {
+        recordedModeSlidesForAIBatch.value.push(slide)
+
+        // When we have 4 slides, trigger batch AI processing
+        if (recordedModeSlidesForAIBatch.value.length >= 4) {
+          await processRecordedModeAIBatch()
+        }
+      }
+    }
+  }
+}
+
+// Process a single slide in live mode (post-processing phases 1, 2, 3)
+const processLiveModeSlide = async (slide: ExtractedSlide) => {
+  try {
+    const outputPath = slideExtractorInstance.value?.getOutputPath()
+    if (!outputPath) return
+
+    // Get pHash configuration
+    const config = await window.electronAPI.config?.getSlideExtractionConfig?.()
+    if (!config) return
+
+    const pHashThreshold = config.pHashThreshold || 10
+    const enableDuplicateRemoval = config.enableDuplicateRemoval !== false
+    const enableExclusionListPhase = config.enableExclusionList !== false
+    const exclusionList = (config.pHashExclusionList || []).filter((item: { isPreset?: boolean; isEnabled?: boolean }) => !item.isPreset || item.isEnabled !== false)
+
+    // Create post-processing worker
+    const worker = new Worker(new URL('../workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
+
+    // Helper function to calculate pHash using worker
+    const calculatePHashWithWorker = (imageData: ImageData): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const messageId = `pHash_live_${Date.now()}_${Math.random()}`
+
+        const messageHandler = (event: MessageEvent) => {
+          const { id, success, result, error } = event.data
+          if (id === messageId) {
+            worker.removeEventListener('message', messageHandler)
+            if (success) {
+              resolve(result)
+            } else {
+              reject(new Error(error))
+            }
+          }
+        }
+
+        worker.addEventListener('message', messageHandler)
+        worker.postMessage({
+          id: messageId,
+          type: 'calculatePHash',
+          data: { imageData }
+        })
+      })
+    }
+
+    // Helper function to calculate Hamming distance using worker
+    const calculateHammingDistanceWithWorker = (hash1: string, hash2: string): Promise<number> => {
+      return new Promise((resolve, reject) => {
+        const messageId = `hamming_live_${Date.now()}_${Math.random()}`
+
+        const messageHandler = (event: MessageEvent) => {
+          const { id, success, result, error } = event.data
+          if (id === messageId) {
+            worker.removeEventListener('message', messageHandler)
+            if (success) {
+              resolve(result)
+            } else {
+              reject(new Error(error))
+            }
+          }
+        }
+
+        worker.addEventListener('message', messageHandler)
+        worker.postMessage({
+          id: messageId,
+          type: 'calculateHammingDistance',
+          data: { hash1, hash2 }
+        })
+      })
+    }
+
+    // Check if imageData is valid
+    if (!slide.imageData || !slide.imageData.data) {
+      console.warn(`[Live Post-Processing] Skipping slide ${slide.title}: ImageData has been cleaned up`)
+      worker.terminate()
+      return
+    }
+
+    // Calculate pHash for the new slide
+    const pHash = await calculatePHashWithWorker(slide.imageData)
+    console.log(`[Live Post-Processing] Calculated pHash for ${slide.title}: ${pHash}`)
+
+    // Phase 1: Check for duplicates against existing slides (except itself)
+    if (enableDuplicateRemoval) {
+      const otherSlides = extractedSlides.value.filter(s => s.id !== slide.id && s.imageData && s.imageData.data)
+
+      for (const otherSlide of otherSlides) {
+        try {
+          const otherPHash = await calculatePHashWithWorker(otherSlide.imageData)
+          const hammingDistance = await calculateHammingDistanceWithWorker(pHash, otherPHash)
+
+          if (hammingDistance <= pHashThreshold) {
+            console.log(`[Live Post-Processing] Duplicate detected: ${slide.title} is similar to ${otherSlide.title} (Hamming distance: ${hammingDistance})`)
+            await deleteSlide(slide, false)
+            worker.terminate()
+            return
+          }
+        } catch (error) {
+          console.warn(`[Live Post-Processing] Failed to compare with ${otherSlide.title}:`, error)
+        }
+      }
+    }
+
+    // Phase 2: Check against exclusion list
+    if (enableExclusionListPhase) {
+      for (const exclusionItem of exclusionList) {
+        try {
+          const hammingDistance = await calculateHammingDistanceWithWorker(pHash, exclusionItem.pHash)
+          if (hammingDistance <= pHashThreshold) {
+            console.log(`[Live Post-Processing] Excluded: ${slide.title} is similar to "${exclusionItem.name}" (Hamming distance: ${hammingDistance})`)
+            await deleteSlide(slide, false)
+            worker.terminate()
+            return
+          }
+        } catch (error) {
+          console.warn(`[Live Post-Processing] Failed to compare with exclusion item "${exclusionItem.name}":`, error)
+        }
+      }
+    }
+
+    worker.terminate()
+
+    // Phase 3: AI filtering (only if not already processed)
+    if (enableAIFiltering.value && (slide.aiDecision === null || slide.aiDecision === undefined)) {
+      try {
+        const token = tokenManager.getToken() || undefined
+        const base64Image = slide.dataUrl.replace(/^data:image\/\w+;base64,/, '')
+
+        const result = await window.electronAPI.ai.classifySingleImage(
+          base64Image,
+          'live',
+          token
+        )
+
+        if (result.success && result.result) {
+          const classification = (result.result as { classification: 'slide' | 'not_slide' }).classification
+          slide.aiDecision = classification
+
+          if (classification === 'not_slide') {
+            console.log(`[Live Post-Processing] AI filtered: ${slide.title} (classified as not_slide)`)
+            await deleteSlide(slide, false)
+            return
+          } else {
+            console.log(`[Live Post-Processing] AI kept: ${slide.title} (classified as slide)`)
+          }
+        } else {
+          console.warn(`[Live Post-Processing] AI classification failed for ${slide.title}:`, result.error)
+        }
+      } catch (aiError) {
+        console.error(`[Live Post-Processing] AI filtering error for ${slide.title}:`, aiError)
+      }
+    }
+
+  } catch (error) {
+    console.error(`[Live Post-Processing] Error processing slide ${slide.title}:`, error)
+  }
+}
+
+// Process batch of slides for recorded mode AI filtering
+const processRecordedModeAIBatch = async () => {
+  if (aiFilteringInProgress.value || recordedModeSlidesForAIBatch.value.length === 0) return
+
+  aiFilteringInProgress.value = true
+
+  try {
+    // Take up to 4 slides from the queue
+    const batch = recordedModeSlidesForAIBatch.value.splice(0, 4)
+    const validSlides = batch.filter(slide =>
+      slide.aiDecision === null || slide.aiDecision === undefined
+    )
+
+    if (validSlides.length === 0) {
+      aiFilteringInProgress.value = false
+      return
+    }
+
+    console.log(`[Recorded AI Batch] Processing ${validSlides.length} slides...`)
+
+    const token = tokenManager.getToken() || undefined
+    const base64Images = validSlides.map(slide => slide.dataUrl.replace(/^data:image\/\w+;base64,/, ''))
+
+    const result = await window.electronAPI.ai.classifyMultipleImages(
+      base64Images,
+      'recorded',
+      token
+    )
+
+    if (result.success && result.result) {
+      const batchResult = result.result as { [key: string]: 'slide' | 'not_slide' }
+
+      // Process each image in the batch
+      for (let j = 0; j < validSlides.length; j++) {
+        const slide = validSlides[j]
+        const imageKey = `image_${j + 1}`
+        const classification = batchResult[imageKey] || 'slide' // Default to slide if no classification
+
+        slide.aiDecision = classification
+
+        if (classification === 'not_slide') {
+          try {
+            await deleteSlide(slide, false)
+            console.log(`[Recorded AI Batch] AI filtered: ${slide.title} (classified as not_slide)`)
+          } catch (deleteError) {
+            console.error(`[Recorded AI Batch] Failed to delete AI-filtered slide ${slide.title}:`, deleteError)
+          }
+        } else {
+          console.log(`[Recorded AI Batch] AI kept: ${slide.title} (classified as slide)`)
+        }
+      }
+    } else {
+      console.warn(`[Recorded AI Batch] AI batch classification failed:`, result.error)
+      // Put slides back in queue if classification failed
+      recordedModeSlidesForAIBatch.value.unshift(...validSlides)
+    }
+  } catch (aiError) {
+    console.error(`[Recorded AI Batch] AI filtering error:`, aiError)
+  } finally {
+    aiFilteringInProgress.value = false
   }
 }
 
@@ -3377,6 +3762,8 @@ onMounted(async () => {
     maxVideoErrorRetries.value = config.videoRetryCount || 5
     taskSpeed.value = config.taskSpeed || 10
     autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
+    autoPostProcessingLive.value = config.autoPostProcessingLive !== undefined ? config.autoPostProcessingLive : true
+    enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
     preventSystemSleep.value = config.preventSystemSleep !== undefined ? config.preventSystemSleep : true
     console.log('Performance optimization setting (preventSystemSleep):', preventSystemSleep.value)
   } catch (error) {
@@ -3387,7 +3774,7 @@ onMounted(async () => {
   updateSSIMThresholdForClassrooms()
 
   // Add slide extraction event listeners
-  window.addEventListener('slideExtracted', onSlideExtracted as EventListener)
+  window.addEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.addEventListener('slidesCleared', onSlidesCleared as EventListener)
 
   // Add task queue event listeners
@@ -3415,7 +3802,7 @@ onUnmounted(async () => {
   }
 
   // Remove slide extraction event listeners
-  window.removeEventListener('slideExtracted', onSlideExtracted as EventListener)
+  window.removeEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.removeEventListener('slidesCleared', onSlidesCleared as EventListener)
 
   // Remove task queue event listeners

@@ -52,6 +52,9 @@
     "autoPostProcessing": "자동 후처리",
     "autoPostProcessingDescription": "작업 완료 시 자동으로 후처리를 실행합니다.",
     "enableAutoPostProcessing": "자동 후처리 활성화",
+    "autoPostProcessingLive": "라이브 자동 후처리",
+    "autoPostProcessingLiveDescription": "라이브 모드에서 새 슬라이드가 저장될 때마다 자동으로 후처리를 실행합니다.",
+    "enableAutoPostProcessingLive": "라이브 자동 후처리 활성화",
     "resetToDefault": "기본값으로 재설정"
   },
   "status": {
@@ -116,6 +119,8 @@
     "enableDuplicateRemovalDescription": "모든 캡처된 슬라이드 간의 pHash 값을 비교하여 중복 슬라이드를 제거합니다.",
     "enableExclusionList": "제외 목록 활성화",
     "enableExclusionListDescription": "pHash 제외 목록의 항목과 일치하는 슬라이드를 제거합니다.",
+    "enableAIFiltering": "AI 필터링 활성화",
+    "enableAIFilteringDescription": "AI를 사용하여 슬라이드가 아닌 이미지를 분류하고 필터링합니다.",
     "pHashExclusionList": "pHash 제외 목록",
     "pHashExclusionDescription": "슬라이드 검출에서 제외할 이미지 해시 목록을 관리합니다. 이러한 해시와 일치하는 이미지는 후처리 중에 무시됩니다.",
     "noExclusionItems": "제외 항목 없음",

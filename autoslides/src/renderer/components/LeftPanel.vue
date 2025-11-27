@@ -192,6 +192,21 @@
             </label>
           </div>
         </div>
+
+        <div class="setting-item">
+          <label class="setting-label">{{ $t('settings.autoPostProcessingLive') }}</label>
+          <div class="setting-description">{{ $t('settings.autoPostProcessingLiveDescription') }}</div>
+          <div class="auto-post-processing-control">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="autoPostProcessingLive"
+                @change="setAutoPostProcessingLive"
+              />
+              {{ $t('settings.enableAutoPostProcessingLive') }}
+            </label>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -486,6 +501,14 @@
                       @change="updatePostProcessingPhases"
                     />
                     <span class="phase-toggle-text">{{ $t('advanced.enableExclusionList') }}</span>
+                  </label>
+                  <label class="phase-toggle-item">
+                    <input
+                      type="checkbox"
+                      v-model="enableAIFiltering"
+                      @change="setEnableAIFiltering"
+                    />
+                    <span class="phase-toggle-text">{{ $t('advanced.enableAIFiltering') }}</span>
                   </label>
                 </div>
               </div>
@@ -1103,6 +1126,10 @@ const slideVerificationCount = ref(2)
 // Task configuration
 const taskSpeed = ref(10)
 const autoPostProcessing = ref(true)
+const autoPostProcessingLive = ref(true)
+
+// AI Filtering configuration
+const enableAIFiltering = ref(true)
 
 // Advanced image processing parameters
 const ssimThreshold = ref(0.9987)
@@ -1326,6 +1353,8 @@ const loadConfig = async () => {
     // Load task configuration
     taskSpeed.value = config.taskSpeed || 10
     autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
+    autoPostProcessingLive.value = config.autoPostProcessingLive !== undefined ? config.autoPostProcessingLive : true
+    enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
 
     // Load theme configuration
     themeMode.value = config.themeMode || 'system'
@@ -1505,6 +1534,24 @@ const setAutoPostProcessing = async () => {
     autoPostProcessing.value = result.autoPostProcessing
   } catch (error) {
     console.error('Failed to set auto post-processing:', error)
+  }
+}
+
+const setAutoPostProcessingLive = async () => {
+  try {
+    const result = await window.electronAPI.config.setAutoPostProcessingLive(autoPostProcessingLive.value)
+    autoPostProcessingLive.value = result.autoPostProcessingLive
+  } catch (error) {
+    console.error('Failed to set auto post-processing for live:', error)
+  }
+}
+
+const setEnableAIFiltering = async () => {
+  try {
+    const result = await window.electronAPI.config.setEnableAIFiltering(enableAIFiltering.value)
+    enableAIFiltering.value = result.enableAIFiltering
+  } catch (error) {
+    console.error('Failed to set enable AI filtering:', error)
   }
 }
 

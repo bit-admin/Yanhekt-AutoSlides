@@ -52,6 +52,9 @@
     "autoPostProcessing": "自动后处理",
     "autoPostProcessingDescription": "任务完成时自动执行后处理",
     "enableAutoPostProcessing": "启用自动后处理",
+    "autoPostProcessingLive": "直播自动后处理",
+    "autoPostProcessingLiveDescription": "直播模式下每保存一张幻灯片时自动执行后处理",
+    "enableAutoPostProcessingLive": "启用直播自动后处理",
     "resetToDefault": "恢复默认"
   },
   "status": {
@@ -116,6 +119,8 @@
     "enableDuplicateRemovalDescription": "通过比较所有已截取幻灯片的 pHash 值来去除重复幻灯片",
     "enableExclusionList": "启用排除列表",
     "enableExclusionListDescription": "去除与 pHash 排除列表中的项目匹配的幻灯片",
+    "enableAIFiltering": "启用 AI 过滤",
+    "enableAIFilteringDescription": "使用 AI 分类并过滤非幻灯片图像",
     "pHashExclusionList": "pHash 排除列表",
     "pHashExclusionDescription": "管理要从幻灯片检测中排除的图像哈希列表。匹配这些哈希的图像将在后处理过程中被忽略",
     "noExclusionItems": "无排除项目",
