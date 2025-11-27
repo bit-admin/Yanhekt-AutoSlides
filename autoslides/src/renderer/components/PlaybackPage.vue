@@ -785,10 +785,12 @@ const loadVideoStreams = async () => {
       await nextTick()
       await loadVideoSource()
 
-      // Auto-refresh for live mode with internal connection to work around proxy startup timing
-      if (props.mode === 'live' && connectionMode.value === 'internal') {
+      // Auto-refresh for live mode with internal connection on first load only
+      // This works around proxy startup timing - only needed once after app launch
+      if (props.mode === 'live' && connectionMode.value === 'internal' && !window.__liveProxyWarmedUp) {
+        window.__liveProxyWarmedUp = true
         setTimeout(() => {
-          console.log('Auto-refreshing live stream for internal connection mode')
+          console.log('Auto-refreshing live stream for internal connection mode (first time warmup)')
           loadVideoSource()
         }, 1000)
       }
