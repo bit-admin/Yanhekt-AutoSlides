@@ -206,7 +206,7 @@ export class ApiClient {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ token })
-            }).catch(() => {});
+            }).catch(() => { /* fire-and-forget, ignore errors */ });
           } catch {
             // Silently ignore any errors
           }

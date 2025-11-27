@@ -454,70 +454,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import { DataStore } from '../services/dataStore'
-import { TokenManager } from '../services/authService'
-import { slideExtractionManager, type SlideExtractor, type ExtractedSlide } from '../services/slideExtractor'
-import { TaskQueue } from '../services/taskQueueService'
-import { ssimThresholdService } from '../services/ssimThresholdService'
-import Hls from 'hls.js'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'vue'
+import type { Course, Session } from '../types/playback'
+import { useVideoPlayer } from '../composables/useVideoPlayer'
+import { useSlideExtraction } from '../composables/useSlideExtraction'
+import { usePostProcessing } from '../composables/usePostProcessing'
+import { useTaskQueue } from '../composables/useTaskQueue'
+import { usePerformanceOptimization } from '../composables/usePerformanceOptimization'
+import { useSlideGallery } from '../composables/useSlideGallery'
 
-interface Course {
-  id: string
-  title: string
-  instructor: string
-  time: string
-  status?: number
-  subtitle?: string
-  schedule_started_at?: string
-  schedule_ended_at?: string
-  participant_count?: number
-  session?: {
-    professor?: {
-      name: string;
-    };
-    section_group_title?: string;
-  };
-  target?: string; // Camera stream URL
-  target_vga?: string; // Screen stream URL
-  // Record mode specific fields
-  professors?: string[];
-  classrooms?: { name: string }[];
-  school_year?: string;
-  semester?: string;
-  college_name?: string;
-}
-
-interface Session {
-  id: string
-  session_id: string
-  video_id: string
-  title: string
-  duration: number
-  week_number: number
-  day: number
-  started_at: string
-  ended_at: string
-  main_url?: string
-  vga_url?: string
-}
-
-interface VideoStream {
-  type: 'camera' | 'screen'
-  name: string
-  url: string
-  original_url: string
-}
-
-interface PlaybackData {
-  session_id?: string
-  stream_id?: string
-  video_id?: string
-  title: string
-  duration?: string
-  streams: { [key: string]: VideoStream }
-}
-
+// Props
 const props = defineProps<{
   course: Course | null
   session?: Session | null
@@ -527,208 +473,120 @@ const props = defineProps<{
   isVisible?: boolean
 }>()
 
-// Default isVisible to true for backward compatibility
-const isVisible = computed(() => props.isVisible ?? true)
-
+// Emits
 const emit = defineEmits<{
   back: []
 }>()
 
-// Reactive state
-const loading = ref(true)
-const error = ref<string | null>(null)
-const playbackData = ref<PlaybackData | null>(null)
-const selectedStream = ref<string>('')
-const isPlaying = ref(false)
-const videoPlayer = ref<HTMLVideoElement | null>(null)
-const hls = ref<Hls | null>(null)
-const currentPlaybackRate = ref(1)
-const connectionMode = ref<'internal' | 'external'>('external')
-const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
-const isVideoMuted = ref(false)
+// Default isVisible to true for backward compatibility
+const isVisible = computed(() => props.isVisible ?? true)
 
-// Video proxy client management for independent mode support
-const videoProxyClientId = ref<string | null>(null)
+// Local UI state
 const showDetails = ref(false)
-const isRetrying = ref(false)
-const retryMessage = ref('')
-const showSpeedWarning = computed(() => {
-  return connectionMode.value === 'external' && currentPlaybackRate.value > 2
-})
-
-// Slide extraction state
-const isSlideExtractionEnabled = ref(false)
-const slideExtractionStatus = ref({
-  isRunning: false,
-  slideCount: 0,
-  verificationState: 'none',
-  currentVerification: 0
-})
-const slideExtractorInstance = ref<SlideExtractor | null>(null)
-const extractorInstanceId = ref<string | null>(null)
-
-// Slide gallery state
-const extractedSlides = ref<ExtractedSlide[]>([])
-const selectedSlide = ref<ExtractedSlide | null>(null)
-
-// Post-processing state
-const isPostProcessing = ref(false)
-const taskCompletionInProgress = ref<string | null>(null)
-
-// Task queue state
-const currentTaskId = ref<string | null>(null)
-const isTaskMode = ref(false)
-const taskSpeed = ref(10) // Default task speed
-const autoPostProcessing = ref(true) // Default auto post-processing enabled
-const autoPostProcessingLive = ref(true) // Default auto post-processing for live enabled
-const enableAIFiltering = ref(true) // Default AI filtering enabled
-const aiBatchSize = ref(4) // Default AI batch size for recorded mode
-
-// AI filtering error state
-interface AIFilteringError {
-  type: 'none' | '403' | '413' | 'http' | 'unknown'
-  httpCode?: number
-  message?: string
-}
-const aiFilteringError = ref<AIFilteringError>({ type: 'none' })
-
-// Post-processing status state
-interface PostProcessStatus {
-  isProcessing: boolean
-  currentPhase: 'idle' | 'phase1' | 'phase2' | 'phase3' | 'completed'
-  currentIndex: number
-  totalCount: number
-  duplicatesRemoved: number
-  excludedRemoved: number
-  aiFiltered: number
-  phase1Skipped: boolean
-  phase2Skipped: boolean
-  phase3Skipped: boolean
-}
-const postProcessStatus = ref<PostProcessStatus>({
-  isProcessing: false,
-  currentPhase: 'idle',
-  currentIndex: 0,
-  totalCount: 0,
-  duplicatesRemoved: 0,
-  excludedRemoved: 0,
-  aiFiltered: 0,
-  phase1Skipped: false,
-  phase2Skipped: false,
-  phase3Skipped: false
-})
-
-// Picture in Picture state
 const isPictureInPicture = ref(false)
 const isVideoContainerCollapsed = ref(false)
 
-// Performance optimization state for background playbook
-const isDocumentVisible = ref(true)
-const keepAliveInterval = ref<NodeJS.Timeout | null>(null)
-const wakeLock = ref<WakeLockSentinel | null>(null)
-const performanceMonitorInterval = ref<NodeJS.Timeout | null>(null)
-const preventSystemSleep = ref(false) // Configuration setting for enabling performance optimizations
+// Convert props to refs for composables
+const courseRef = toRef(props, 'course')
+const sessionRef = computed(() => props.session ?? null)
 
-// Silent audio stream to prevent Chrome throttling in live mode
-const silentAudioContext = ref<AudioContext | null>(null)
-const silentAudioSource = ref<AudioBufferSourceNode | null>(null)
-const silentAudioGain = ref<GainNode | null>(null)
-
-
-// Computed property to determine if video should be muted based on mode and mute setting
-const shouldVideoMute = computed(() => {
-  switch (muteMode.value) {
-    case 'mute_all':
-      return true
-    case 'mute_live':
-      return props.mode === 'live'
-    case 'mute_recorded':
-      return props.mode === 'recorded'
-    case 'normal':
-    default:
-      return false
-  }
+// Initialize slide extraction composable first (needed by other composables)
+const slideExtraction = useSlideExtraction({
+  mode: props.mode,
+  course: courseRef,
+  session: sessionRef,
+  currentPlaybackRate: ref(1) // Will be synced after videoPlayer init
 })
 
-// Computed property to check if screen recording is selected
-const isScreenRecordingSelected = computed(() => {
-  if (!playbackData.value || !selectedStream.value) return false
-  const currentStream = playbackData.value.streams[selectedStream.value]
-  return currentStream?.type === 'screen'
+// Initialize slide gallery composable
+const slideGallery = useSlideGallery({
+  extractedSlides: slideExtraction.extractedSlides,
+  slideExtractorInstance: slideExtraction.slideExtractorInstance
 })
 
-// Computed property to check if task is currently running
-const isTaskRunning = computed(() => {
-  return isTaskMode.value && currentTaskId.value !== null
+// Initialize video player composable
+const videoPlayerComposable = useVideoPlayer({
+  mode: props.mode,
+  streamId: props.streamId,
+  sessionId: props.sessionId,
+  course: courseRef,
+  session: sessionRef,
+  slideExtractorInstance: slideExtraction.slideExtractorInstance
 })
 
-// Computed property to determine if UI controls should be disabled during task execution
-const shouldDisableControls = computed(() => {
-  return isTaskRunning.value
+// Expose videoPlayer ref for template binding
+const videoPlayer = videoPlayerComposable.videoPlayer
+
+// Initialize post-processing composable
+const postProcessing = usePostProcessing({
+  mode: props.mode,
+  extractedSlides: slideExtraction.extractedSlides,
+  slideExtractorInstance: slideExtraction.slideExtractorInstance,
+  deleteSlide: slideGallery.deleteSlide
 })
 
-// Initialize TokenManager
-const tokenManager = new TokenManager()
-
-// Computed properties
-const currentStreamData = computed(() => {
-  if (!playbackData.value || !selectedStream.value) return null
-  return playbackData.value.streams[selectedStream.value]
+// Initialize task queue composable
+const taskQueue = useTaskQueue({
+  mode: props.mode,
+  sessionId: props.sessionId,
+  videoPlayer: videoPlayerComposable.videoPlayer,
+  hls: videoPlayerComposable.hls,
+  playbackData: videoPlayerComposable.playbackData,
+  selectedStream: videoPlayerComposable.selectedStream,
+  loading: videoPlayerComposable.loading,
+  error: videoPlayerComposable.error,
+  currentPlaybackRate: videoPlayerComposable.currentPlaybackRate,
+  isSlideExtractionEnabled: slideExtraction.isSlideExtractionEnabled,
+  slideExtractorInstance: slideExtraction.slideExtractorInstance,
+  slideExtractionStatus: slideExtraction.slideExtractionStatus,
+  extractedSlides: slideExtraction.extractedSlides,
+  isRetrying: videoPlayerComposable.isRetrying,
+  retryMessage: videoPlayerComposable.retryMessage,
+  autoPostProcessing: postProcessing.autoPostProcessing,
+  switchStream: videoPlayerComposable.switchStream,
+  toggleSlideExtraction: slideExtraction.toggleSlideExtraction,
+  executePostProcessing: postProcessing.executePostProcessing,
+  resetErrorCounters: videoPlayerComposable.resetErrorCounters
 })
 
-// Methods
-const goBack = () => {
-  emit('back')
-}
+// Initialize performance optimization composable
+const performanceOptimization = usePerformanceOptimization({
+  mode: props.mode,
+  videoPlayer: videoPlayerComposable.videoPlayer,
+  hls: videoPlayerComposable.hls,
+  currentPlaybackRate: videoPlayerComposable.currentPlaybackRate,
+  shouldVideoMute: videoPlayerComposable.shouldVideoMute
+})
 
-const toggleCourseDetails = () => {
-  showDetails.value = !showDetails.value
-}
+// Expose state from composables for template
+const { loading, error, playbackData, selectedStream, isPlaying, currentPlaybackRate, muteMode, isRetrying, retryMessage, shouldVideoMute, isScreenRecordingSelected, currentStreamData, showSpeedWarning } = videoPlayerComposable
+const { isSlideExtractionEnabled, extractedSlides } = slideExtraction
+const { isPostProcessing, postProcessStatus, aiFilteringError } = postProcessing
+const { isTaskRunning, shouldDisableControls } = taskQueue
+const { selectedSlide } = slideGallery
 
+// Methods exposed to template
+const goBack = () => emit('back')
+const toggleCourseDetails = () => { showDetails.value = !showDetails.value }
 const refreshPage = () => {
-  // Reset all state and reload the video streams
-  loading.value = true
-  error.value = null
-
-  // Stop slide extraction if running
-  if (isSlideExtractionEnabled.value && slideExtractorInstance.value) {
-    isSlideExtractionEnabled.value = false
-    slideExtractorInstance.value.stopExtraction()
-    slideExtractionStatus.value.isRunning = false
-  }
-
-  // Clear extracted slides
-  extractedSlides.value = []
-  selectedSlide.value = null
-
-  // Reset video error counters
-  videoErrorRetryCount = 0
-  consecutiveErrorsAtSamePosition = 0
-  lastErrorPosition = -1
-  lastPlaybackRateBeforeError = 1
-
-  // Clear retry UI state
-  isRetrying.value = false
-  retryMessage.value = ''
-
-  // Reload video streams
-  loadVideoStreams()
+  videoPlayerComposable.error.value = null
+  videoPlayerComposable.resetErrorCounters()
+  videoPlayerComposable.loadVideoStreams()
 }
 
 // Picture in Picture methods
 const togglePictureInPicture = async () => {
-  if (!videoPlayer.value) return
+  const video = videoPlayer.value
+  if (!video) return
 
   try {
-    if (isPictureInPicture.value) {
-      // Exit PiP mode
+    if (document.pictureInPictureElement) {
       await document.exitPictureInPicture()
     } else {
-      // Enter PiP mode
-      await videoPlayer.value.requestPictureInPicture()
+      await video.requestPictureInPicture()
     }
   } catch (error) {
-    console.error('Picture in Picture error:', error)
+    console.error('Error toggling Picture in Picture:', error)
   }
 }
 
@@ -742,936 +600,17 @@ const onLeavePictureInPicture = () => {
   isVideoContainerCollapsed.value = false
 }
 
-// Helper function to create a serializable copy of an object and fix URL escaping
-const createSerializableCopy = (obj: any): any => {
-  const copy = JSON.parse(JSON.stringify(obj))
-
-  // Fix URL escaping issues
-  const fixUrls = (item: any): any => {
-    if (typeof item === 'string' && item.includes('\\/\\/')) {
-      return item.replace(/\\\//g, '/')
-    }
-    if (typeof item === 'object' && item !== null) {
-      for (const key in item) {
-        item[key] = fixUrls(item[key])
-      }
-    }
-    return item
-  }
-
-  return fixUrls(copy)
-}
-
-const loadVideoStreams = async () => {
-  try {
-    loading.value = true
-    error.value = null
-
-    const token = tokenManager.getToken()
-    if (!token) {
-      throw new Error('Authentication token not found')
-    }
-
-    let result: PlaybackData
-
-    if (props.mode === 'live' && props.streamId) {
-      // Load live stream data
-      const streamData = DataStore.getStreamData(props.streamId)
-      if (!streamData) {
-        throw new Error('Stream data not found')
-      }
-
-      // Create a serializable copy to avoid IPC cloning issues
-      const serializableStreamData = createSerializableCopy(streamData)
-      result = await window.electronAPI.video.getLiveStreamUrls(serializableStreamData, token)
-    } else if (props.mode === 'recorded' && props.session) {
-      // Load recorded video data
-      // Create a serializable copy to avoid IPC cloning issues
-      const serializableSession = createSerializableCopy(props.session)
-      result = await window.electronAPI.video.getVideoPlaybackUrls(serializableSession, token)
-    } else {
-      throw new Error('Invalid playback parameters')
-    }
-
-    playbackData.value = result
-
-    // Select default stream - prefer screen recording
-    const streamKeys = Object.keys(result.streams)
-    if (streamKeys.length > 0) {
-      // Find screen recording stream first
-      const screenStream = streamKeys.find(key => result.streams[key].type === 'screen')
-      selectedStream.value = screenStream || streamKeys[0]
-
-      // Wait for next tick to ensure DOM is updated
-      await nextTick()
-      await loadVideoSource()
-
-      // Auto-refresh for live mode with internal connection on first load only
-      // This works around proxy startup timing - only needed once after app launch
-      if (props.mode === 'live' && connectionMode.value === 'internal' && !window.__liveProxyWarmedUp) {
-        window.__liveProxyWarmedUp = true
-        setTimeout(() => {
-          console.log('Auto-refreshing live stream for internal connection mode (first time warmup)')
-          loadVideoSource()
-        }, 1000)
-      }
-
-      // Check if we need to initialize task after video loading completes
-      if (isTaskMode.value && currentTaskId.value) {
-        console.log('Video loaded, checking task initialization for:', currentTaskId.value)
-        // Wait for video to be fully ready before initializing task
-        waitForVideoReady().then(() => {
-          initializeTaskAfterVideoLoad(currentTaskId.value!)
-        }).catch(error => {
-          console.error('Video readiness check failed for task:', currentTaskId.value, error)
-          handleTaskError('Video failed to become ready: ' + error.message)
-        })
-      }
-    } else {
-      throw new Error('No video streams available')
-    }
-
-  } catch (err: any) {
-    console.error('Failed to load video streams:', err)
-    error.value = err.message || 'Failed to load video streams'
-    handleTaskError(err.message || 'Failed to load video streams')
-    // Clear retry UI state when showing final error
-    isRetrying.value = false
-    retryMessage.value = ''
-    // Note: Video proxy is managed by reference counting and will be stopped
-    // automatically when all clients are unregistered
-  } finally {
-    loading.value = false
-  }
-}
-
-// Helper function to get mode-specific HLS configuration
-const getHlsConfig = (mode: 'live' | 'recorded') => {
-  // Base config shared between modes
-  const baseConfig = {
-    enableWorker: true,
-    debug: false,
-    startFragPrefetch: true,
-    testBandwidth: false,
-    progressive: false,
-    maxBufferHole: 0.5,
-    nudgeOffset: 0.1,
-    nudgeMaxRetry: 3,
-    maxFragLookUpTolerance: 0.25,
-    minAutoBitrate: 0
-  }
-
-  if (mode === 'live') {
-    // Live mode: optimized for fast startup and low latency
-    return {
-      ...baseConfig,
-      lowLatencyMode: true,
-      // Minimal buffering for fast startup - start playing ASAP
-      backBufferLength: 10,
-      maxBufferLength: 10,
-      maxMaxBufferLength: 20,
-      maxBufferSize: 20 * 1000 * 1000, // 20MB - smaller for live
-      // Live-specific settings for staying close to live edge
-      liveSyncDuration: 3, // Stay 3 seconds behind live edge
-      liveMaxLatencyDuration: 10, // Max 10 seconds behind before seeking to live
-      liveDurationInfinity: true, // Treat live streams as infinite duration
-      // Faster timeouts for live - fail fast and retry
-      fragLoadingTimeOut: 8000,
-      fragLoadingMaxRetry: 3,
-      fragLoadingRetryDelay: 500,
-      fragLoadingMaxRetryTimeout: 16000,
-      levelLoadingTimeOut: 5000,
-      levelLoadingMaxRetry: 3,
-      levelLoadingRetryDelay: 500,
-      levelLoadingMaxRetryTimeout: 16000,
-      manifestLoadingTimeOut: 5000,
-      manifestLoadingMaxRetry: 3,
-      manifestLoadingRetryDelay: 500,
-      manifestLoadingMaxRetryTimeout: 16000,
-      // Faster stall recovery for live
-      highBufferWatchdogPeriod: 1,
-      maxStarvationDelay: 2,
-      maxLoadingDelay: 2
-    }
-  } else {
-    // Recorded mode: optimized for stability and smooth playback
-    return {
-      ...baseConfig,
-      lowLatencyMode: false,
-      backBufferLength: 30,
-      maxBufferLength: 30,
-      maxMaxBufferLength: 60,
-      maxBufferSize: 60 * 1000 * 1000, // 60MB
-      // More generous timeouts for recorded content
-      fragLoadingTimeOut: 20000,
-      fragLoadingMaxRetry: 6,
-      fragLoadingRetryDelay: 1000,
-      fragLoadingMaxRetryTimeout: 64000,
-      levelLoadingTimeOut: 10000,
-      levelLoadingMaxRetry: 4,
-      levelLoadingRetryDelay: 1000,
-      levelLoadingMaxRetryTimeout: 64000,
-      manifestLoadingTimeOut: 10000,
-      manifestLoadingMaxRetry: 6,
-      manifestLoadingRetryDelay: 1000,
-      manifestLoadingMaxRetryTimeout: 64000,
-      // Standard stall recovery
-      highBufferWatchdogPeriod: 2,
-      maxStarvationDelay: 4,
-      maxLoadingDelay: 4
-    }
-  }
-}
-
-const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?: boolean) => {
-  if (!videoPlayer.value || !currentStreamData.value) {
-    return
-  }
-
-  try {
-
-    // Clean up existing HLS instance
-    if (hls.value) {
-      hls.value.destroy()
-      hls.value = null
-    }
-
-    const videoUrl = currentStreamData.value.url
-
-    // Check if HLS is supported
-    if (Hls.isSupported()) {
-      hls.value = new Hls(getHlsConfig(props.mode))
-
-      hls.value.loadSource(videoUrl)
-      hls.value.attachMedia(videoPlayer.value)
-
-
-      hls.value.on(Hls.Events.MANIFEST_PARSED, () => {
-        setTimeout(() => {
-          if (videoPlayer.value) {
-            // Set initial playback rate based on mode and saved state
-            if (props.mode === 'recorded') {
-              // Use saved playback rate if available (from error recovery), otherwise use current setting
-              const targetRate = lastPlaybackRateBeforeError > 1 ? lastPlaybackRateBeforeError : currentPlaybackRate.value
-              videoPlayer.value.playbackRate = targetRate
-              currentPlaybackRate.value = targetRate
-              // Update slide extractor with restored playback rate
-              if (slideExtractorInstance.value) {
-                slideExtractorInstance.value.updatePlaybackRate(targetRate)
-              }
-            } else {
-              videoPlayer.value.playbackRate = 1
-              currentPlaybackRate.value = 1
-              // Update slide extractor with live mode playback rate
-              if (slideExtractorInstance.value) {
-                slideExtractorInstance.value.updatePlaybackRate(1)
-              }
-            }
-
-            // Apply mute settings
-            if (shouldVideoMute.value) {
-              videoPlayer.value.volume = 0
-              videoPlayer.value.setAttribute('data-muted-by-app', 'true')
-              isVideoMuted.value = true
-            } else {
-              videoPlayer.value.volume = 1
-              videoPlayer.value.removeAttribute('data-muted-by-app')
-              isVideoMuted.value = false
-            }
-
-            // Restore position if specified
-            if (seekToTime && seekToTime > 0) {
-              videoPlayer.value.currentTime = seekToTime
-            }
-
-            // Auto-play if requested or if was playing before error
-            if (shouldAutoPlay !== false) {
-              // Add a small delay to ensure video is ready
-              setTimeout(() => {
-                if (videoPlayer.value) {
-                  videoPlayer.value.play().catch(() => {
-                    // Try again after a short delay
-                    setTimeout(() => {
-                      if (videoPlayer.value) {
-                        videoPlayer.value.play().catch(() => {})
-                      }
-                    }, 500)
-                  })
-                }
-              }, 200)
-            }
-          }
-        }, 100)
-      })
-
-
-      // Add the same enhanced error handling as the original function
-      let mediaErrorRecoveryCount = 0
-      let networkErrorRecoveryCount = 0
-      const maxRecoveryAttempts = 3
-
-      hls.value.on(Hls.Events.ERROR, async (event, data) => {
-        console.error('HLS error during position restore:', event, data)
-
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-
-              if (networkErrorRecoveryCount < maxRecoveryAttempts) {
-                networkErrorRecoveryCount++
-                setTimeout(() => {
-                  if (hls.value) {
-                    hls.value.startLoad()
-                  }
-                }, 1000 * networkErrorRecoveryCount)
-              } else {
-                error.value = 'Network error: Unable to load video after multiple attempts'
-                isRetrying.value = false
-                retryMessage.value = ''
-                handleTaskError('Network error: Unable to load video after multiple attempts')
-              }
-              break
-
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              if (mediaErrorRecoveryCount < maxRecoveryAttempts) {
-                mediaErrorRecoveryCount++
-
-                if (data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR ||
-                    data.details === Hls.ErrorDetails.BUFFER_FULL_ERROR ||
-                    data.details === Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
-
-                  setTimeout(() => {
-                    if (hls.value && videoPlayer.value) {
-                      const currentTime = videoPlayer.value.currentTime
-                      videoPlayer.value.currentTime = currentTime + 0.1
-                      hls.value.recoverMediaError()
-                    }
-                  }, 500)
-
-                } else {
-                  setTimeout(() => {
-                    if (hls.value) {
-                      hls.value.recoverMediaError()
-                    }
-                  }, 1000 * mediaErrorRecoveryCount)
-                }
-              } else {
-                error.value = 'Video decoding error: Unable to decode video after multiple attempts'
-                isRetrying.value = false
-                retryMessage.value = ''
-                handleTaskError('Video decoding error: Unable to decode video after multiple attempts')
-              }
-              break
-
-            default:
-              console.error('Other fatal error during restore:', data.details)
-              error.value = 'Video playback error: ' + data.details
-              isRetrying.value = false
-              retryMessage.value = ''
-              handleTaskError('Video playback error: ' + data.details)
-              break
-          }
-        }
-      })
-
-
-    } else {
-      throw new Error('HLS is not supported in this browser')
-    }
-  } catch (err: any) {
-    console.error('Failed to load video source with position:', err)
-    const errorMessage = 'Failed to load video source: ' + err.message
-    error.value = errorMessage
-
-    // Handle task error if in task mode - this will continue to next task
-    handleTaskError(errorMessage)
-
-    // Clear retry UI state when showing final error
-    isRetrying.value = false
-    retryMessage.value = ''
-    // Note: Video proxy is managed by reference counting
-  }
-}
-
-const loadVideoSource = async () => {
-  if (!videoPlayer.value || !currentStreamData.value) {
-    return
-  }
-
-  try {
-
-    // Clean up existing HLS instance
-    if (hls.value) {
-      hls.value.destroy()
-      hls.value = null
-    }
-
-    const videoUrl = currentStreamData.value.url
-
-    // Check if HLS is supported
-    if (Hls.isSupported()) {
-      hls.value = new Hls(getHlsConfig(props.mode))
-
-      hls.value.loadSource(videoUrl)
-      hls.value.attachMedia(videoPlayer.value)
-
-      hls.value.on(Hls.Events.MANIFEST_PARSED, () => {
-        // Automatically start playback when manifest is ready
-        setTimeout(() => {
-          if (videoPlayer.value) {
-            // Set initial playback rate based on mode
-            if (props.mode === 'recorded') {
-              videoPlayer.value.playbackRate = currentPlaybackRate.value
-              // Update slide extractor with current playback rate
-              if (slideExtractorInstance.value) {
-                slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
-              }
-            } else {
-              videoPlayer.value.playbackRate = 1
-              currentPlaybackRate.value = 1
-              // Update slide extractor with live mode playback rate
-              if (slideExtractorInstance.value) {
-                slideExtractorInstance.value.updatePlaybackRate(1)
-              }
-            }
-
-            // Apply mute settings
-            if (shouldVideoMute.value) {
-              videoPlayer.value.volume = 0
-              videoPlayer.value.setAttribute('data-muted-by-app', 'true')
-              isVideoMuted.value = true
-            } else {
-              videoPlayer.value.volume = 1
-              videoPlayer.value.removeAttribute('data-muted-by-app')
-              isVideoMuted.value = false
-            }
-
-            videoPlayer.value.play().catch(() => {})
-          }
-        }, 100)
-      })
-
-
-
-      // Enhanced error handling with retry logic
-      let mediaErrorRecoveryCount = 0
-      let networkErrorRecoveryCount = 0
-      const maxRecoveryAttempts = 3
-
-      hls.value.on(Hls.Events.ERROR, async (event, data) => {
-        console.error('HLS error:', event, data)
-
-        if (data.fatal) {
-          // Set recovery flag to coordinate with video error handling
-          isHlsRecovering = true
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              if (networkErrorRecoveryCount < maxRecoveryAttempts) {
-                networkErrorRecoveryCount++
-                // Wait a bit before retrying
-                setTimeout(() => {
-                  if (hls.value) {
-                    hls.value.startLoad()
-                  }
-                }, 1000 * networkErrorRecoveryCount) // Exponential backoff
-              } else {
-                error.value = 'Network error: Unable to load video after multiple attempts'
-                isRetrying.value = false
-                retryMessage.value = ''
-                handleTaskError('Network error: Unable to load video after multiple attempts')
-              }
-              break
-
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              if (mediaErrorRecoveryCount < maxRecoveryAttempts) {
-                mediaErrorRecoveryCount++
-
-                // Save current position before recovery
-                const currentPosition = videoPlayer.value?.currentTime || 0
-                const wasPlaying = videoPlayer.value ? !videoPlayer.value.paused : false
-
-                // For decode errors, try different recovery strategies
-                if (data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR ||
-                    data.details === Hls.ErrorDetails.BUFFER_FULL_ERROR ||
-                    data.details === Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
-
-                  // Buffer-related errors - try to recover by seeking slightly forward
-                  setTimeout(() => {
-                    if (hls.value && videoPlayer.value) {
-                      const skipAmount = 0.5 + (mediaErrorRecoveryCount * 0.5) // Increase skip amount with retries
-                      videoPlayer.value.currentTime = currentPosition + skipAmount
-                      hls.value.recoverMediaError()
-                    }
-                  }, 500)
-
-                } else if (data.details === Hls.ErrorDetails.BUFFER_APPEND_ERROR ||
-                           data.details === Hls.ErrorDetails.BUFFER_APPENDING_ERROR) {
-
-                  // Buffer append errors - more aggressive recovery
-                  setTimeout(() => {
-                    if (hls.value && videoPlayer.value) {
-                      const skipAmount = 1 + (mediaErrorRecoveryCount * 1) // Skip more for append errors
-
-                      // Clear buffers and seek forward
-                      try {
-                        hls.value.recoverMediaError()
-                        setTimeout(() => {
-                          if (videoPlayer.value) {
-                            videoPlayer.value.currentTime = currentPosition + skipAmount
-                            if (wasPlaying) {
-                              videoPlayer.value.play().catch(() => {})
-                            }
-                          }
-                          // Clear recovery flag after successful recovery
-                          isHlsRecovering = false
-                        }, 500)
-                      } catch (e) {
-                        console.error('Error during buffer append recovery:', e)
-                        isHlsRecovering = false
-                      }
-                    }
-                  }, 200) // Faster response for buffer errors
-
-                } else {
-                  // Other media errors - standard recovery with position restore
-                  setTimeout(() => {
-                    if (hls.value) {
-                      hls.value.recoverMediaError()
-
-                      // Try to restore position after recovery
-                      setTimeout(() => {
-                        if (videoPlayer.value && currentPosition > 0) {
-                          videoPlayer.value.currentTime = currentPosition
-
-                          if (wasPlaying) {
-                            videoPlayer.value.play().catch(() => {})
-                          }
-                        }
-                        // Clear recovery flag after successful recovery
-                        isHlsRecovering = false
-                      }, 1000)
-                    }
-                  }, 500 * mediaErrorRecoveryCount) // Shorter backoff
-                }
-              } else {
-                error.value = 'Video decoding error: Unable to decode video after multiple attempts'
-                isRetrying.value = false
-                retryMessage.value = ''
-                handleTaskError('Video decoding error: Unable to decode video after multiple attempts')
-              }
-              break
-
-            default:
-              console.error('Other fatal error:', data.details)
-              error.value = 'Video playback error: ' + data.details
-              isRetrying.value = false
-              retryMessage.value = ''
-              handleTaskError('Video playback error: ' + data.details)
-              break
-          }
-        } else {
-          // Non-fatal errors - log but continue
-          console.warn('Non-fatal HLS error:', data.details, data)
-        }
-      })
-
-    } else {
-      throw new Error('HLS is not supported in this browser')
-    }
-  } catch (err: any) {
-    console.error('Failed to load video source:', err)
-    const errorMessage = 'Failed to load video source: ' + err.message
-    error.value = errorMessage
-
-    // Handle task error if in task mode - this will continue to next task
-    handleTaskError(errorMessage)
-
-    isRetrying.value = false
-    retryMessage.value = ''
-  }
-}
-
-const switchStream = async () => {
-  if (videoPlayer.value) {
-    const wasPlaying = !videoPlayer.value.paused
-    const currentTime = videoPlayer.value.currentTime
-
-    // Wait for next tick to ensure DOM is updated
-    await nextTick()
-    await loadVideoSource()
-
-    // Try to maintain playback position and state
-    if (videoPlayer.value) {
-      videoPlayer.value.currentTime = currentTime
-
-      // Restore playback rate only for recorded videos
-      if (props.mode === 'recorded') {
-        videoPlayer.value.playbackRate = currentPlaybackRate.value
-        // Update slide extractor with current playback rate
-        if (slideExtractorInstance.value) {
-          slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
-        }
-      } else {
-        videoPlayer.value.playbackRate = 1
-        currentPlaybackRate.value = 1
-        // Update slide extractor with live mode playback rate
-        if (slideExtractorInstance.value) {
-          slideExtractorInstance.value.updatePlaybackRate(1)
-        }
-      }
-
-      // Apply mute settings after stream switch
-      if (shouldVideoMute.value) {
-        videoPlayer.value.volume = 0
-        videoPlayer.value.setAttribute('data-muted-by-app', 'true')
-        isVideoMuted.value = true
-      } else {
-        videoPlayer.value.volume = 1
-        videoPlayer.value.removeAttribute('data-muted-by-app')
-        isVideoMuted.value = false
-      }
-
-      if (wasPlaying) {
-        try {
-          await videoPlayer.value.play()
-        } catch (err) {
-          console.warn('Could not resume playback:', err)
-        }
-      } else {
-        // Automatically start playback even if previous stream wasn't playing
-        try {
-          await videoPlayer.value.play()
-        } catch (err) {}
-      }
-    }
-  }
-}
-
-
-const retryLoad = () => {
-  // Clear error state before retrying
-  error.value = null
-  // Reset playback position for fresh start
-  lastPlaybackPosition = 0
-  loadVideoStreams()
-}
-
-// Change playback rate
-const changePlaybackRate = () => {
-  if (videoPlayer.value) {
-    // Convert to number to ensure proper type handling
-    const playbackRateNumber = Number(currentPlaybackRate.value)
-
-    videoPlayer.value.playbackRate = playbackRateNumber
-
-    // Update slide extractor with new playback rate for dynamic interval adjustment
-    if (slideExtractorInstance.value) {
-      slideExtractorInstance.value.updatePlaybackRate(playbackRateNumber)
-    }
-  }
-}
-
-// Toggle slide extraction
-const toggleSlideExtraction = async () => {
-  if (isSlideExtractionEnabled.value) {
-    // Ensure we're on screen recording
-    if (!isScreenRecordingSelected.value) {
-      isSlideExtractionEnabled.value = false
-      return
-    }
-
-    try {
-      // Get or create extractor instance for this mode
-      const instanceId = `${props.mode}_${props.course?.id || 'unknown'}_${Date.now()}`
-      slideExtractorInstance.value = slideExtractionManager.getExtractor(props.mode, instanceId)
-      extractorInstanceId.value = instanceId
-
-      // Initialize slide extraction with current course/session info
-      await initializeSlideExtraction()
-
-      // Sync with current playback rate before starting extraction
-      slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
-
-      // Start the extraction process
-      const success = slideExtractorInstance.value.startExtraction()
-      if (!success) {
-        isSlideExtractionEnabled.value = false
-        return
-      }
-
-      // Update status
-      updateSlideExtractionStatus()
-    } catch (error) {
-      console.error('Failed to start slide extraction:', error)
-      isSlideExtractionEnabled.value = false
-    }
-  } else {
-    // Stop slide extraction
-    if (slideExtractorInstance.value) {
-      slideExtractorInstance.value.stopExtraction()
-      slideExtractionStatus.value.isRunning = false
-    }
-  }
-}
-
-// Update SSIM threshold based on classroom information
-const updateSSIMThresholdForClassrooms = () => {
-  try {
-    // Get classroom information from course data
-    const classrooms = props.course?.classrooms
-
-    if (classrooms && classrooms.length > 0) {
-      console.log('Setting classroom context for SSIM threshold:', classrooms.map(c => c.name).join(', '))
-      ssimThresholdService.setCurrentClassrooms(classrooms)
-    } else {
-      console.log('No classroom information available, clearing SSIM classroom context')
-      ssimThresholdService.setCurrentClassrooms(null)
-    }
-  } catch (error) {
-    console.error('Failed to update SSIM threshold for classrooms:', error)
-  }
-}
-
-// Initialize slide extraction with course/session context
-const initializeSlideExtraction = async () => {
-  try {
-    // Update SSIM threshold based on classroom information before starting extraction
-    updateSSIMThresholdForClassrooms()
-
-    // Get output directory from config
-    const config = await window.electronAPI.config.get()
-    const outputDir = config.outputDirectory || '~/Downloads/AutoSlides'
-
-    // Create folder name based on course and session info
-    let folderName = 'slides'
-
-    if (props.course?.title) {
-      folderName += `_${sanitizeFileName(props.course.title)}`
-    }
-
-    if (props.session?.title) {
-      folderName += `_${sanitizeFileName(props.session.title)}`
-    } else if (props.course?.session?.section_group_title && props.mode === 'live') {
-      folderName += `_${sanitizeFileName(props.course.session.section_group_title)}`
-    }
-
-    // Set up slide extraction output directory
-    const slideOutputPath = `${outputDir}/${folderName}`
-
-    // Prepare course info for slide extractor
-    const courseInfo = {
-      courseName: props.course?.title,
-      sessionTitle: props.session?.title || props.course?.session?.section_group_title,
-      mode: props.mode
-    }
-
-    // Ensure the output directory exists
-    await window.electronAPI.slideExtraction.ensureDirectory(slideOutputPath)
-
-    // Store the output path and course info for later use when saving slides
-    if (slideExtractorInstance.value) {
-      slideExtractorInstance.value.setOutputPath(slideOutputPath, courseInfo)
-    }
-
-  } catch (error) {
-    console.error('Failed to initialize slide extraction:', error)
-    throw error
-  }
-}
-
-// Sanitize filename by removing special characters
-const sanitizeFileName = (name: string): string => {
-  return name
-    .replace(/[<>:"/\\|?*]/g, '') // Remove invalid filename characters
-    .replace(/\s+/g, '_') // Replace spaces with underscores
-    .replace(/_{2,}/g, '_') // Replace multiple underscores with single
-    .trim()
-}
-
-// Update slide extraction status
-const updateSlideExtractionStatus = () => {
-  if (slideExtractorInstance.value) {
-    const status = slideExtractorInstance.value.getStatus()
-    slideExtractionStatus.value = {
-      isRunning: status.isRunning,
-      slideCount: status.slideCount,
-      verificationState: status.verificationState,
-      currentVerification: status.currentVerification
-    }
-  }
-}
-
-// Video event handlers
-const onLoadStart = () => {
-  // Video load started
-}
-
-const onLoadedMetadata = () => {
-  // Video metadata loaded
-}
-
-// Enhanced video error handling with retry logic
-let videoErrorRetryCount = 0
-const maxVideoErrorRetries = ref(5) // Will be loaded from config
-let lastPlaybackPosition = 0
-let wasPlayingBeforeError = false
-let lastPlaybackRateBeforeError = 1 // Save playback rate before error
-let consecutiveErrorsAtSamePosition = 0
-let lastErrorPosition = -1
-let isHlsRecovering = false // Flag to coordinate HLS and video error recovery
-
-const onVideoError = async (event: Event) => {
-  const target = event.target as HTMLVideoElement
-  const errorCode = target.error?.code
-  const errorMessage = target.error?.message
-
-  // If HLS is currently recovering, let it handle the error first
-  if (isHlsRecovering) {
-    console.log('HLS is recovering, deferring video error handling...')
-    setTimeout(() => {
-      if (isHlsRecovering) {
-        console.log('HLS recovery timeout, proceeding with video error handling')
-        isHlsRecovering = false
-        onVideoError(event) // Retry after HLS recovery timeout
-      }
-    }, 2000)
-    return
-  }
-
-  // Save current playback state before error
-  if (target.currentTime > 0) {
-    lastPlaybackPosition = target.currentTime
-    wasPlayingBeforeError = !target.paused
-    lastPlaybackRateBeforeError = target.playbackRate // Save current playback rate
-  }
-
-  // Track consecutive errors at the same position
-  // Use 4.5 second threshold - if errors occur within 4.5s, consider them at same position
-  // This accounts for 1s + 3s = 4s of skipping, plus small buffer
-  if (Math.abs(lastPlaybackPosition - lastErrorPosition) < 4.5) {
-    consecutiveErrorsAtSamePosition++
-  } else {
-    consecutiveErrorsAtSamePosition = 1
-    lastErrorPosition = lastPlaybackPosition
-  }
-
-  console.error('Video error:', {
-    errorCode,
-    errorMessage,
-    retryCount: videoErrorRetryCount,
-    currentTime: target.currentTime,
-    wasPlaying: wasPlayingBeforeError,
-    consecutiveErrors: consecutiveErrorsAtSamePosition,
-    lastErrorPos: lastErrorPosition
-  })
-
-  let userMessage = 'Video playback error'
-  let shouldRetry = false
-
-  switch (errorCode) {
-    case 1: // MEDIA_ERR_ABORTED
-      userMessage = 'Video playback was aborted'
-      break
-    case 2: // MEDIA_ERR_NETWORK
-      userMessage = 'Network error occurred while loading video'
-      shouldRetry = true
-      break
-    case 3: // MEDIA_ERR_DECODE
-      userMessage = 'Video decoding error'
-      shouldRetry = true
-      break
-    case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-      userMessage = 'Video format not supported'
-      break
-  }
-
-  // Attempt retry for certain error types
-  if (shouldRetry && videoErrorRetryCount < maxVideoErrorRetries.value) {
-    videoErrorRetryCount++
-
-    // Calculate smart skip amount based on consecutive errors
-    // Pattern: 1s, 3s, 5s, 5s, 5s... (since TS segment is 20s)
-    let skipAmount = 0
-    if (errorCode === 3) { // DECODE error
-      if (consecutiveErrorsAtSamePosition === 1) {
-        skipAmount = 1 // First error: skip 1 second
-      } else if (consecutiveErrorsAtSamePosition === 2) {
-        skipAmount = 3 // Second error: skip 3 seconds
-      } else {
-        skipAmount = 5 // Third error and beyond: skip 5 seconds
-      }
-    }
-
-    const targetPosition = lastPlaybackPosition + skipAmount
-    console.log(`Attempting video error recovery (attempt ${videoErrorRetryCount}/${maxVideoErrorRetries.value}) - skipping from ${lastPlaybackPosition} to ${targetPosition} (skip: ${skipAmount}s, consecutive errors: ${consecutiveErrorsAtSamePosition})`)
-
-    // Show retry UI
-    isRetrying.value = true
-    retryMessage.value = `Recovering from playback error... (${videoErrorRetryCount}/${maxVideoErrorRetries.value})`
-
-    setTimeout(() => {
-      if (videoPlayer.value && currentStreamData.value) {
-        console.log('Retrying video load after error...')
-
-        // Ensure we pass the correct autoplay state (always true for retries)
-        loadVideoSourceWithPosition(targetPosition, true) // Force autoplay on retry
-      }
-    }, 1000 + (500 * videoErrorRetryCount)) // Shorter backoff for faster recovery
-  } else {
-    // Max retries reached or non-retryable error
-    if (videoErrorRetryCount >= maxVideoErrorRetries.value) {
-      userMessage += ` (Failed after ${maxVideoErrorRetries.value} retry attempts)`
-    }
-    error.value = userMessage
-
-    // Handle task error if in task mode - this will continue to next task
-    handleTaskError(userMessage)
-
-    // Clear retry UI state when showing final error
-    isRetrying.value = false
-    retryMessage.value = ''
-
-    // Note: Video proxy is managed by reference counting
-
-    // Reset counters for next video
-    videoErrorRetryCount = 0
-    // Don't reset lastPlaybackPosition here - keep it for error display
-    wasPlayingBeforeError = false
-    lastPlaybackRateBeforeError = 1
-    consecutiveErrorsAtSamePosition = 0
-    lastErrorPosition = -1
-  }
-}
-
-const onCanPlay = () => {
-  // Hide retry UI immediately when video can play
-  if (isRetrying.value) {
-    setTimeout(() => {
-      isRetrying.value = false
-      retryMessage.value = ''
-    }, 500) // Small delay to show success
-  }
-
-  // Wait a bit longer before reducing counters to ensure video is truly stable
-  setTimeout(() => {
-    if (videoPlayer.value && !videoPlayer.value.paused && !videoPlayer.value.ended) {
-      if (consecutiveErrorsAtSamePosition > 0) {
-        consecutiveErrorsAtSamePosition = Math.max(0, consecutiveErrorsAtSamePosition - 1)
-      }
-
-      // Reset saved playback rate after successful recovery
-      if (lastPlaybackRateBeforeError > 1) {
-        lastPlaybackRateBeforeError = 1
-      }
-    }
-  }, 1500) // Wait 1.5 seconds to ensure stability
-}
+// Delegate methods to composables
+const { switchStream, changePlaybackRate, retryLoad, onLoadStart, onLoadedMetadata, onVideoError, onCanPlay, preventUnmute } = videoPlayerComposable
+const { toggleSlideExtraction } = slideExtraction
+const { executePostProcessing, dismissAIError } = postProcessing
+const { openSlideModal, closeSlideModal, deleteSlide, clearAllSlides, formatSlideTime } = slideGallery
 
 // Utility functions
 const formatDate = (dateString: string): string => {
   try {
     const date = new Date(dateString)
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
+    return date.toLocaleString()
   } catch {
     return dateString
   }
@@ -1679,568 +618,20 @@ const formatDate = (dateString: string): string => {
 
 const formatDuration = (duration: string | number): string => {
   const seconds = typeof duration === 'string' ? parseInt(duration) : duration
-  if (isNaN(seconds)) return 'Unknown'
-
+  if (isNaN(seconds)) return duration.toString()
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
-  const remainingSeconds = seconds % 60
-
+  const secs = seconds % 60
   if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`
-  } else {
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+    return `${hours}h ${minutes}m ${secs}s`
   }
+  return `${minutes}m ${secs}s`
 }
 
-// Slide gallery methods
-const formatSlideTime = (timestamp: string): string => {
-  try {
-    const date = new Date(timestamp)
-    return date.toLocaleTimeString()
-  } catch {
-    return timestamp
-  }
-}
+// Track last playback position for error display
+const lastPlaybackPosition = computed(() => videoPlayerComposable.lastPlaybackPosition)
 
-const openSlideModal = (slide: ExtractedSlide) => {
-  selectedSlide.value = slide
-}
-
-const closeSlideModal = () => {
-  selectedSlide.value = null
-}
-
-const deleteSlide = async (slide: ExtractedSlide, showConfirmation: boolean = true) => {
-  try {
-    // Show confirmation dialog if requested
-    if (showConfirmation) {
-      const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
-        type: 'question',
-        buttons: ['Cancel', 'Move to Trash'],
-        defaultId: 1,
-        cancelId: 0,
-        title: 'Delete Slide',
-        message: `Are you sure you want to delete "${slide.title}.png"?`,
-        detail: 'The file will be moved to your system trash and can be restored if needed.'
-      })
-
-      if (confirmed?.response !== 1) {
-        return // User cancelled
-      }
-    }
-
-    // Get the output path from the slide extractor
-    const outputPath = slideExtractorInstance.value?.getOutputPath()
-    if (!outputPath) {
-      throw new Error('Output path not found')
-    }
-
-    // Delete the file from the file system
-    await window.electronAPI.slideExtraction?.deleteSlide?.(outputPath, `${slide.title}.png`)
-
-    // Remove from local array
-    const index = extractedSlides.value.findIndex(s => s.id === slide.id)
-    if (index !== -1) {
-      extractedSlides.value.splice(index, 1)
-    }
-
-    // Close modal if this slide was being viewed
-    if (selectedSlide.value?.id === slide.id) {
-      selectedSlide.value = null
-    }
-
-    console.log(`Slide moved to trash: ${slide.title}`)
-  } catch (error) {
-    console.error('Failed to move slide to trash:', error)
-    // Show error dialog
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slide to trash: ${errorMessage}`)
-  }
-}
-
-const clearAllSlides = async () => {
-  try {
-    if (extractedSlides.value.length === 0) {
-      return
-    }
-
-    // Show confirmation dialog
-    const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
-      type: 'question',
-      buttons: ['Cancel', 'Move All to Trash'],
-      defaultId: 1,
-      cancelId: 0,
-      title: 'Delete All Slides',
-      message: `Are you sure you want to delete all ${extractedSlides.value.length} slide(s)?`,
-      detail: 'All slide files will be moved to your system trash and can be restored if needed.'
-    })
-
-    if (confirmed?.response !== 1) {
-      return // User cancelled
-    }
-
-    // Get the output path from the slide extractor
-    const outputPath = slideExtractorInstance.value?.getOutputPath()
-    if (!outputPath) {
-      throw new Error('Output path not found')
-    }
-
-    // Delete all files from the file system
-    const deletePromises = extractedSlides.value.map(slide =>
-      window.electronAPI.slideExtraction?.deleteSlide?.(outputPath, `${slide.title}.png`)
-    )
-    await Promise.all(deletePromises)
-
-    // Clear local array
-    extractedSlides.value = []
-
-    // Close modal if open
-    selectedSlide.value = null
-
-    // Clear slides in the extractor instance
-    if (slideExtractorInstance.value) {
-      slideExtractorInstance.value.clearSlides()
-    }
-
-    console.log('All slides moved to trash')
-  } catch (error) {
-    console.error('Failed to move all slides to trash:', error)
-    // Show error dialog
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slides to trash: ${errorMessage}`)
-  }
-}
-
-// Type definitions for post-processing
-interface SlideHash {
-  slide: ExtractedSlide
-  filename: string
-  pHash: string
-  error?: string
-}
-
-interface DuplicateInfo {
-  slide: ExtractedSlide
-  filename: string
-  pHash: string
-  duplicateOf: string
-}
-
-interface PostProcessingConfig {
-  pHashThreshold: number
-  enableDuplicateRemoval: boolean
-  enableExclusionList: boolean
-  enableAIFiltering: boolean
-  exclusionList: Array<{ name: string; pHash: string }>
-}
-
-// Create a worker helper for pHash operations
-const createWorkerHelpers = (worker: Worker) => {
-  const calculatePHash = (imageData: ImageData): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const messageId = `pHash_${Date.now()}_${Math.random()}`
-      const messageHandler = (event: MessageEvent) => {
-        const { id, success, result, error } = event.data
-        if (id === messageId) {
-          worker.removeEventListener('message', messageHandler)
-          success ? resolve(result) : reject(new Error(error))
-        }
-      }
-      worker.addEventListener('message', messageHandler)
-      worker.postMessage({ id: messageId, type: 'calculatePHash', data: { imageData } })
-    })
-  }
-
-  const calculateHammingDistance = (hash1: string, hash2: string): Promise<number> => {
-    return new Promise((resolve, reject) => {
-      const messageId = `hamming_${Date.now()}_${Math.random()}`
-      const messageHandler = (event: MessageEvent) => {
-        const { id, success, result, error } = event.data
-        if (id === messageId) {
-          worker.removeEventListener('message', messageHandler)
-          success ? resolve(result) : reject(new Error(error))
-        }
-      }
-      worker.addEventListener('message', messageHandler)
-      worker.postMessage({ id: messageId, type: 'calculateHammingDistance', data: { hash1, hash2 } })
-    })
-  }
-
-  return { calculatePHash, calculateHammingDistance }
-}
-
-// Calculate pHash for all slides
-const calculateAllSlideHashes = async (
-  slides: ExtractedSlide[],
-  calculatePHash: (imageData: ImageData) => Promise<string>
-): Promise<SlideHash[]> => {
-  console.log('Calculating pHash for all slides...')
-  const slideHashes: SlideHash[] = []
-
-  for (const slide of slides) {
-    const filename = `${slide.title}.png`
-    try {
-      if (!slide.imageData?.data) {
-        console.warn(`Skipping slide ${slide.title}: ImageData has been cleaned up`)
-        slideHashes.push({ slide, filename, pHash: '', error: 'ImageData has been cleaned up' })
-        continue
-      }
-      const pHash = await calculatePHash(slide.imageData)
-      slideHashes.push({ slide, filename, pHash })
-      console.log(`Calculated pHash for ${filename}: ${pHash}`)
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      console.error(`Failed to calculate pHash for ${slide.title}:`, errorMessage)
-      slideHashes.push({ slide, filename, pHash: '', error: errorMessage })
-    }
-  }
-  return slideHashes
-}
-
-// Phase 1: Remove duplicate slides
-const removeDuplicateSlides = async (
-  slideHashes: SlideHash[],
-  pHashThreshold: number,
-  calculateHammingDistance: (hash1: string, hash2: string) => Promise<number>
-): Promise<DuplicateInfo[]> => {
-  console.log('Phase 1: Removing duplicate slides...')
-  postProcessStatus.value.currentPhase = 'phase1'
-  postProcessStatus.value.currentIndex = 0
-
-  const seenHashes = new Map<string, string>()
-  const duplicatesToDelete: DuplicateInfo[] = []
-
-  for (let i = 0; i < slideHashes.length; i++) {
-    const item = slideHashes[i]
-    postProcessStatus.value.currentIndex = i + 1
-
-    if (item.error || !item.pHash) continue
-
-    let isDuplicate = false
-    let duplicateOf = ''
-
-    for (const [seenHash, seenFilename] of seenHashes.entries()) {
-      try {
-        const hammingDistance = await calculateHammingDistance(item.pHash, seenHash)
-        if (hammingDistance <= pHashThreshold) {
-          isDuplicate = true
-          duplicateOf = seenFilename
-          console.log(`Duplicate detected: ${item.filename} is similar to ${seenFilename} (Hamming distance: ${hammingDistance})`)
-          break
-        }
-      } catch (error) {
-        console.warn(`Failed to calculate Hamming distance between ${item.filename} and ${seenFilename}:`, error)
-      }
-    }
-
-    if (isDuplicate) {
-      duplicatesToDelete.push({ ...item, duplicateOf })
-    } else {
-      seenHashes.set(item.pHash, item.filename)
-    }
-  }
-
-  // Delete duplicate slides
-  for (const duplicate of duplicatesToDelete) {
-    try {
-      await deleteSlide(duplicate.slide, false)
-      postProcessStatus.value.duplicatesRemoved++
-      console.log(`Deleted duplicate slide: ${duplicate.filename} (duplicate of ${duplicate.duplicateOf})`)
-    } catch (deleteError) {
-      console.error(`Failed to delete duplicate slide ${duplicate.filename}:`, deleteError)
-    }
-  }
-
-  return duplicatesToDelete
-}
-
-// Phase 2: Check slides against exclusion list
-const checkExclusionList = async (
-  slideHashes: SlideHash[],
-  duplicatesToDelete: DuplicateInfo[],
-  exclusionList: Array<{ name: string; pHash: string }>,
-  pHashThreshold: number,
-  calculateHammingDistance: (hash1: string, hash2: string) => Promise<number>
-): Promise<string[]> => {
-  console.log('Phase 2: Checking slides against exclusion list...')
-  postProcessStatus.value.currentPhase = 'phase2'
-  postProcessStatus.value.currentIndex = 0
-
-  const deletedSlides: string[] = []
-
-  for (let i = 0; i < slideHashes.length; i++) {
-    const item = slideHashes[i]
-    postProcessStatus.value.currentIndex = i + 1
-
-    const { slide, filename, pHash, error } = item
-
-    if (error) continue
-
-    // Skip if already deleted as duplicate
-    if (duplicatesToDelete.some(d => d.filename === filename)) {
-      deletedSlides.push(filename)
-      continue
-    }
-
-    // Check against exclusion list
-    let shouldExclude = false
-    let excludedReason = ''
-
-    for (const exclusionItem of exclusionList) {
-      try {
-        const hammingDistance = await calculateHammingDistance(pHash, exclusionItem.pHash)
-        if (hammingDistance <= pHashThreshold) {
-          shouldExclude = true
-          excludedReason = `Similar to excluded item "${exclusionItem.name}" (Hamming distance: ${hammingDistance})`
-          console.log(`Slide ${filename} excluded: ${excludedReason}`)
-          break
-        }
-      } catch (error) {
-        console.warn(`Failed to calculate Hamming distance for exclusion item "${exclusionItem.name}":`, error)
-      }
-    }
-
-    if (shouldExclude) {
-      try {
-        await deleteSlide(slide, false)
-        deletedSlides.push(filename)
-        postProcessStatus.value.excludedRemoved++
-      } catch (deleteError) {
-        console.error(`Failed to delete excluded slide ${filename}:`, deleteError)
-      }
-    }
-
-    console.log(`Processed ${filename} (${i + 1}/${slideHashes.length}): pHash = ${pHash}${shouldExclude ? ' [EXCLUDED]' : ''}`)
-  }
-
-  return deletedSlides
-}
-
-// Phase 3: AI filtering
-const runAIFiltering = async (
-  deletedSlides: string[],
-  mode: 'live' | 'recorded'
-): Promise<void> => {
-  console.log('Phase 3: AI filtering - classifying remaining slides...')
-  postProcessStatus.value.currentPhase = 'phase3'
-  postProcessStatus.value.currentIndex = 0
-
-  // Get remaining slides (not deleted in previous phases)
-  const remainingSlides = extractedSlides.value.filter(slide => {
-    const filename = `${slide.title}.png`
-    return !deletedSlides.includes(filename)
-  })
-
-  // Filter slides that need AI classification
-  const slidesNeedingAI = remainingSlides.filter(slide => slide.aiDecision === null || slide.aiDecision === undefined)
-  postProcessStatus.value.totalCount = slidesNeedingAI.length
-
-  const token = tokenManager.getToken() || undefined
-  const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
-  const batchSize = mode === 'live' ? 1 : (aiConfig?.batchSize || 4)
-
-  for (let i = 0; i < slidesNeedingAI.length; i += batchSize) {
-    const batch = slidesNeedingAI.slice(i, i + batchSize)
-    postProcessStatus.value.currentIndex = Math.min(i + batchSize, slidesNeedingAI.length)
-
-    try {
-      if (batch.length === 1) {
-        await classifySingleSlide(batch[0], mode, token, deletedSlides)
-      } else {
-        await classifyBatchSlides(batch, mode, token, deletedSlides)
-      }
-    } catch (aiError) {
-      console.error(`AI filtering error for batch:`, aiError)
-      aiFilteringError.value = parseAIError(aiError)
-    }
-  }
-}
-
-// Classify a single slide with AI
-const classifySingleSlide = async (
-  slide: ExtractedSlide,
-  mode: 'live' | 'recorded',
-  token: string | undefined,
-  deletedSlides: string[]
-): Promise<void> => {
-  const base64Image = slide.dataUrl.replace(/^data:image\/\w+;base64,/, '')
-  const result = await window.electronAPI.ai.classifySingleImage(base64Image, mode, token)
-
-  if (result.success && result.result) {
-    const classification = (result.result as { classification: 'slide' | 'not_slide' }).classification
-    slide.aiDecision = classification
-
-    if (classification === 'not_slide') {
-      try {
-        await deleteSlide(slide, false)
-        deletedSlides.push(`${slide.title}.png`)
-        postProcessStatus.value.aiFiltered++
-        console.log(`AI filtered slide: ${slide.title} (classified as not_slide)`)
-      } catch (deleteError) {
-        console.error(`Failed to delete AI-filtered slide ${slide.title}:`, deleteError)
-      }
-    } else {
-      console.log(`AI kept slide: ${slide.title} (classified as slide)`)
-    }
-    aiFilteringError.value = { type: 'none' }
-  } else {
-    console.warn(`AI classification failed for ${slide.title}:`, result.error)
-    aiFilteringError.value = parseAIError(result)
-  }
-}
-
-// Classify multiple slides with AI
-const classifyBatchSlides = async (
-  batch: ExtractedSlide[],
-  mode: 'live' | 'recorded',
-  token: string | undefined,
-  deletedSlides: string[]
-): Promise<void> => {
-  const base64Images = batch.map(slide => slide.dataUrl.replace(/^data:image\/\w+;base64,/, ''))
-  const result = await window.electronAPI.ai.classifyMultipleImages(base64Images, mode, token)
-
-  if (result.success && result.result) {
-    const batchResult = result.result as { [key: string]: 'slide' | 'not_slide' }
-
-    for (let j = 0; j < batch.length; j++) {
-      const slide = batch[j]
-      const classification = batchResult[`image_${j + 1}`] || 'slide'
-      slide.aiDecision = classification
-
-      if (classification === 'not_slide') {
-        try {
-          await deleteSlide(slide, false)
-          deletedSlides.push(`${slide.title}.png`)
-          postProcessStatus.value.aiFiltered++
-          console.log(`AI filtered slide: ${slide.title} (classified as not_slide)`)
-        } catch (deleteError) {
-          console.error(`Failed to delete AI-filtered slide ${slide.title}:`, deleteError)
-        }
-      } else {
-        console.log(`AI kept slide: ${slide.title} (classified as slide)`)
-      }
-    }
-    aiFilteringError.value = { type: 'none' }
-  } else {
-    console.warn(`AI batch classification failed:`, result.error)
-    aiFilteringError.value = parseAIError(result)
-    batch.forEach(slide => { slide.aiDecision = null })
-  }
-}
-
-// Execute post-processing on all saved slides
-// showResultDialog: if false, skip the result dialog (for auto mode)
-const executePostProcessing = async (showResultDialog: boolean = true) => {
-  try {
-    if (extractedSlides.value.length === 0) return
-
-    const outputPath = slideExtractorInstance.value?.getOutputPath()
-    if (!outputPath) throw new Error('Output path not found')
-
-    // Get configuration
-    const config = await window.electronAPI.config?.getSlideExtractionConfig?.()
-    if (!config) throw new Error('Failed to get slide extraction configuration')
-
-    const ppConfig: PostProcessingConfig = {
-      pHashThreshold: config.pHashThreshold || 10,
-      enableDuplicateRemoval: config.enableDuplicateRemoval !== false,
-      enableExclusionList: config.enableExclusionList !== false,
-      enableAIFiltering: await window.electronAPI.config?.getEnableAIFiltering?.() ?? true,
-      exclusionList: (config.pHashExclusionList || []).filter(
-        (item: { isPreset?: boolean; isEnabled?: boolean }) => !item.isPreset || item.isEnabled !== false
-      )
-    }
-
-    isPostProcessing.value = true
-
-    // Initialize status
-    postProcessStatus.value = {
-      isProcessing: true,
-      currentPhase: 'idle',
-      currentIndex: 0,
-      totalCount: extractedSlides.value.length,
-      duplicatesRemoved: 0,
-      excludedRemoved: 0,
-      aiFiltered: 0,
-      phase1Skipped: !ppConfig.enableDuplicateRemoval,
-      phase2Skipped: !ppConfig.enableExclusionList,
-      phase3Skipped: !ppConfig.enableAIFiltering
-    }
-
-    console.log(`Starting post-processing for ${extractedSlides.value.length} slides...`)
-    console.log(`Phases enabled: duplicate=${ppConfig.enableDuplicateRemoval}, exclusion=${ppConfig.enableExclusionList}, AI=${ppConfig.enableAIFiltering}`)
-
-    // Create worker and helpers
-    const worker = new Worker(new URL('../workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
-    const { calculatePHash, calculateHammingDistance } = createWorkerHelpers(worker)
-
-    // Calculate pHash for all slides
-    const slideHashes = await calculateAllSlideHashes(extractedSlides.value, calculatePHash)
-
-    // Phase 1: Remove duplicates
-    let duplicatesToDelete: DuplicateInfo[] = []
-    if (ppConfig.enableDuplicateRemoval) {
-      duplicatesToDelete = await removeDuplicateSlides(slideHashes, ppConfig.pHashThreshold, calculateHammingDistance)
-    } else {
-      console.log('Phase 1: Duplicate removal skipped (disabled)')
-    }
-
-    // Phase 2: Check exclusion list
-    let deletedSlides: string[] = []
-    if (ppConfig.enableExclusionList) {
-      deletedSlides = await checkExclusionList(
-        slideHashes, duplicatesToDelete, ppConfig.exclusionList,
-        ppConfig.pHashThreshold, calculateHammingDistance
-      )
-    } else {
-      console.log('Phase 2: Exclusion list check skipped (disabled)')
-      // Still track deleted duplicates
-      deletedSlides = duplicatesToDelete.map(d => d.filename)
-    }
-
-    worker.terminate()
-
-    // Phase 3: AI filtering
-    if (ppConfig.enableAIFiltering) {
-      await runAIFiltering(deletedSlides, props.mode as 'live' | 'recorded')
-    } else {
-      console.log('Phase 3: AI filtering skipped (disabled)')
-    }
-
-    // Complete
-    postProcessStatus.value.currentPhase = 'completed'
-    postProcessStatus.value.isProcessing = false
-
-    const stats = {
-      total: extractedSlides.value.length,
-      duplicates: postProcessStatus.value.duplicatesRemoved,
-      excluded: postProcessStatus.value.excludedRemoved,
-      aiFiltered: postProcessStatus.value.aiFiltered
-    }
-
-    console.log('Post-processing completed:', stats)
-
-    if (showResultDialog) {
-      await window.electronAPI.dialog?.showMessageBox?.({
-        type: 'info',
-        title: 'Post-processing Completed',
-        message: 'Post-processing completed successfully!',
-        detail: `Duplicates removed: ${stats.duplicates}\nExcluded: ${stats.excluded}\nAI filtered: ${stats.aiFiltered}`
-      })
-    }
-
-  } catch (error) {
-    console.error('Failed to execute post-processing:', error)
-    postProcessStatus.value.isProcessing = false
-    postProcessStatus.value.currentPhase = 'idle'
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    await window.electronAPI.dialog?.showErrorBox?.('Post-processing Failed', `Failed to execute post-processing: ${errorMessage}`)
-  } finally {
-    isPostProcessing.value = false
-  }
-}
-
-// Watch for play/pause state changes
+// Watch effects
 let currentEventListeners: (() => void)[] = []
 
 watch(() => videoPlayer.value, (newPlayer) => {
@@ -2250,130 +641,76 @@ watch(() => videoPlayer.value, (newPlayer) => {
 
   if (newPlayer) {
     const updatePlayingState = () => {
-      isPlaying.value = !newPlayer.paused
+      videoPlayerComposable.isPlaying.value = !newPlayer.paused
     }
 
     const onPlayStart = () => {
       updatePlayingState()
-
-      // Start performance optimization mechanisms when video starts playing
-      startKeepAlive()
-      requestWakeLock()
-      requestPowerManagement()
-
-      // Start silent audio to prevent Chrome throttling when muted
+      performanceOptimization.startKeepAlive()
+      performanceOptimization.requestWakeLock()
+      performanceOptimization.requestPowerManagement()
       if (shouldVideoMute.value) {
-        startSilentAudio()
+        performanceOptimization.startSilentAudio()
       }
-
-      // Wait a bit before reducing counters to ensure stable playback
-      setTimeout(() => {
-        if (newPlayer && !newPlayer.paused && !newPlayer.ended) {
-          if (consecutiveErrorsAtSamePosition > 0) {
-            consecutiveErrorsAtSamePosition = Math.max(0, consecutiveErrorsAtSamePosition - 1)
-          }
-        }
-      }, 1000) // Wait 1 second of stable playback
     }
 
-    let lastTimeUpdate = 0
-    let stablePlaybackTime = 0
     const onTimeUpdate = () => {
-      const currentTime = newPlayer.currentTime
-      // Track stable playback time (continuous progress without errors)
-      if (currentTime > lastTimeUpdate + 0.1) { // 100ms progress
-        stablePlaybackTime += (currentTime - lastTimeUpdate)
-        lastTimeUpdate = currentTime
-
-        // Update task progress if in task mode
-        updateTaskProgress()
-
-        // Check for task completion
-        checkVideoCompletion()
-
-        // Only reduce counters after 2 seconds of stable playback
-        if (stablePlaybackTime >= 2.0) {
-          if (videoErrorRetryCount > 0) {
-            videoErrorRetryCount = Math.max(0, videoErrorRetryCount - 1)
-            stablePlaybackTime = 0 // Reset to avoid frequent reductions
-          }
-          if (consecutiveErrorsAtSamePosition > 1) {
-            consecutiveErrorsAtSamePosition = Math.max(0, consecutiveErrorsAtSamePosition - 1)
-          }
-
-          // Reset saved playback rate after stable playback
-          if (lastPlaybackRateBeforeError > 1) {
-            lastPlaybackRateBeforeError = 1
-          }
-        }
-      } else {
-        // Reset stable playback time if no progress (might indicate buffering/stalling)
-        stablePlaybackTime = 0
-      }
+      taskQueue.updateTaskProgress()
+      taskQueue.checkVideoCompletion()
     }
 
-    // Add buffering detection for slide extraction
     const onWaiting = () => {
-      console.log('Video waiting (buffering) - pausing slide verification')
-      if (slideExtractorInstance.value && isSlideExtractionEnabled.value) {
-        // Only pause slide extraction during buffering in recorded mode
-        // Live mode continues extraction to avoid missing slides due to network fluctuations
+      if (slideExtraction.slideExtractorInstance.value && isSlideExtractionEnabled.value) {
         if (props.mode === 'recorded') {
-          slideExtractorInstance.value.pauseForBuffering()
-        } else {
-          console.log('Live mode: continuing slide extraction during buffering')
+          slideExtraction.slideExtractorInstance.value.pauseForBuffering()
         }
       }
     }
 
-    const onCanPlay = () => {
-      console.log('Video can play - resuming slide verification')
-      if (slideExtractorInstance.value && isSlideExtractionEnabled.value) {
-        slideExtractorInstance.value.resumeAfterBuffering()
+    const onCanPlayHandler = () => {
+      if (slideExtraction.slideExtractorInstance.value && isSlideExtractionEnabled.value) {
+        slideExtraction.slideExtractorInstance.value.resumeAfterBuffering()
       }
     }
 
     const onPauseOrEnd = () => {
       updatePlayingState()
-      // Stop performance optimization mechanisms when video stops
-      stopKeepAlive()
-      releaseWakeLock()
-      releasePowerManagement()
-      stopSilentAudio()
+      performanceOptimization.stopKeepAlive()
+      performanceOptimization.releaseWakeLock()
+      performanceOptimization.releasePowerManagement()
+      performanceOptimization.stopSilentAudio()
     }
 
     newPlayer.addEventListener('play', onPlayStart)
     newPlayer.addEventListener('pause', onPauseOrEnd)
     newPlayer.addEventListener('ended', onPauseOrEnd)
-    newPlayer.addEventListener('ended', onVideoEnded) // Add task completion detection
+    newPlayer.addEventListener('ended', taskQueue.onVideoEnded)
     newPlayer.addEventListener('timeupdate', onTimeUpdate)
-    newPlayer.addEventListener('waiting', onWaiting) // Buffering detection
-    newPlayer.addEventListener('canplay', onCanPlay) // Resume after buffering
-    newPlayer.addEventListener('canplaythrough', onCanPlay) // Resume after buffering
+    newPlayer.addEventListener('waiting', onWaiting)
+    newPlayer.addEventListener('canplay', onCanPlayHandler)
+    newPlayer.addEventListener('canplaythrough', onCanPlayHandler)
 
-    // Store cleanup function
     currentEventListeners.push(() => {
       newPlayer.removeEventListener('play', onPlayStart)
       newPlayer.removeEventListener('pause', onPauseOrEnd)
       newPlayer.removeEventListener('ended', onPauseOrEnd)
-      newPlayer.removeEventListener('ended', onVideoEnded)
+      newPlayer.removeEventListener('ended', taskQueue.onVideoEnded)
       newPlayer.removeEventListener('timeupdate', onTimeUpdate)
       newPlayer.removeEventListener('waiting', onWaiting)
-      newPlayer.removeEventListener('canplay', onCanPlay)
-      newPlayer.removeEventListener('canplaythrough', onCanPlay)
+      newPlayer.removeEventListener('canplay', onCanPlayHandler)
+      newPlayer.removeEventListener('canplaythrough', onCanPlayHandler)
     })
 
     // Apply mute settings immediately when video player is ready
     if (shouldVideoMute.value) {
       newPlayer.volume = 0
       newPlayer.setAttribute('data-muted-by-app', 'true')
-      isVideoMuted.value = true
     }
 
     // If we have stream data ready, load it now
     if (currentStreamData.value && playbackData.value) {
       nextTick(() => {
-        loadVideoSource()
+        videoPlayerComposable.loadVideoSource()
       })
     }
   }
@@ -2383,1158 +720,120 @@ watch(() => videoPlayer.value, (newPlayer) => {
 watch(() => currentStreamData.value, (newStreamData) => {
   if (newStreamData && videoPlayer.value && playbackData.value) {
     nextTick(() => {
-      loadVideoSource()
+      videoPlayerComposable.loadVideoSource()
     })
   }
 })
 
-// Watch for visibility changes - keep video playing when hidden
-watch(isVisible, () => {
-  // Don't pause video when hidden - this is what enables background playback
-  // The video continues playing in the background even when the component is not visible
-}, { immediate: true })
-
-// Watch for mute mode changes to apply software-level muting
+// Watch for mute mode changes
 watch(shouldVideoMute, (shouldMute) => {
   if (videoPlayer.value) {
-    // Apply software-level muting by setting volume to 0
     videoPlayer.value.volume = shouldMute ? 0 : 1
-    isVideoMuted.value = shouldMute
-
-    // Disable/enable the built-in mute controls
     if (shouldMute) {
       videoPlayer.value.setAttribute('data-muted-by-app', 'true')
-
-      // Start silent audio to prevent Chrome throttling (both live and recorded modes)
-      startSilentAudio()
+      performanceOptimization.startSilentAudio()
     } else {
       videoPlayer.value.removeAttribute('data-muted-by-app')
-
-      // Stop silent audio when not muted
-      stopSilentAudio()
+      performanceOptimization.stopSilentAudio()
     }
-
   }
 }, { immediate: true })
 
 // Watch for stream changes to disable slide extraction if not screen recording
 watch(isScreenRecordingSelected, (isScreenRecording) => {
   if (!isScreenRecording && isSlideExtractionEnabled.value) {
-    isSlideExtractionEnabled.value = false
-    if (slideExtractorInstance.value) {
-      slideExtractorInstance.value.stopExtraction()
+    slideExtraction.isSlideExtractionEnabled.value = false
+    if (slideExtraction.slideExtractorInstance.value) {
+      slideExtraction.slideExtractorInstance.value.stopExtraction()
     }
-    slideExtractionStatus.value.isRunning = false
+    slideExtraction.slideExtractionStatus.value.isRunning = false
   }
 })
 
-// Watch for slide extraction toggle to update playback rate
+// Watch for slide extraction toggle
 watch(isSlideExtractionEnabled, (enabled) => {
-  if (enabled && videoPlayer.value && slideExtractorInstance.value) {
-    // Update slide extractor with current playback rate when enabled
-    slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
+  if (enabled && videoPlayer.value && slideExtraction.slideExtractorInstance.value) {
+    slideExtraction.slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
   }
 })
 
 // Watch for course changes to update SSIM threshold
 watch(() => props.course, () => {
-  updateSSIMThresholdForClassrooms()
+  slideExtraction.updateSSIMThresholdForClassrooms()
 }, { immediate: true })
 
-// Function to prevent user from unmuting when app mute mode is active
-const preventUnmute = (event: Event) => {
-  if (shouldVideoMute.value && videoPlayer.value) {
-    // Prevent the default unmute behavior
-    event.preventDefault()
-    // Immediately set volume back to 0
-    videoPlayer.value.volume = 0
-    videoPlayer.value.muted = false // Keep the muted attribute false so controls remain visible
-  }
-}
-
-// Cleanup function
-const cleanup = () => {
-  if (hls.value) {
-    hls.value.destroy()
-    hls.value = null
-  }
-}
-
-// Slide extraction event handlers
+// Handle slide extracted event for post-processing
 const onSlideExtracted = async (event: CustomEvent) => {
   const { slide, instanceId, mode } = event.detail
-  // Only handle events from our instance
-  if (instanceId === extractorInstanceId.value && mode === props.mode) {
-    // Add the new slide to our local array
-    extractedSlides.value.push(slide)
-    updateSlideExtractionStatus()
-
-    // In live mode, trigger auto post-processing if enabled
-    if (props.mode === 'live' && autoPostProcessingLive.value && !isPostProcessing.value) {
-      await processLiveModeSlide(slide)
+  if (instanceId === slideExtraction.extractorInstanceId.value && mode === props.mode) {
+    slideExtraction.extractedSlides.value.push(slide)
+    slideExtraction.updateSlideExtractionStatus()
+    
+    // Live mode auto post-processing
+    if (props.mode === 'live' && postProcessing.autoPostProcessingLive.value && !postProcessing.isPostProcessing.value) {
+      await postProcessing.processLiveModeSlide(slide)
     }
-
-    // In recorded mode, trigger full post-processing when batch is ready (only in task mode)
-    if (props.mode === 'recorded' && isTaskMode.value && autoPostProcessing.value && !isPostProcessing.value) {
-      // Count slides that haven't been post-processed yet
-      const unprocessedSlides = extractedSlides.value.filter(s =>
-        s.aiDecision === null || s.aiDecision === undefined
-      )
-
-      // When we have enough unprocessed slides, trigger full post-processing
-      if (unprocessedSlides.length >= aiBatchSize.value) {
-        await executePostProcessing(false)
+    
+    // Recorded mode batch post-processing
+    if (props.mode === 'recorded' && taskQueue.isTaskMode.value && postProcessing.autoPostProcessing.value && !postProcessing.isPostProcessing.value) {
+      const unprocessedSlides = slideExtraction.extractedSlides.value.filter(s => s.aiDecision === null || s.aiDecision === undefined)
+      if (unprocessedSlides.length >= postProcessing.aiBatchSize.value) {
+        await postProcessing.executePostProcessing(false)
       }
     }
   }
-}
-
-// Process a single slide in live mode (post-processing phases 1, 2, 3)
-const processLiveModeSlide = async (slide: ExtractedSlide) => {
-  try {
-    const outputPath = slideExtractorInstance.value?.getOutputPath()
-    if (!outputPath) return
-
-    // Get pHash configuration
-    const config = await window.electronAPI.config?.getSlideExtractionConfig?.()
-    if (!config) return
-
-    const pHashThreshold = config.pHashThreshold || 10
-    const enableDuplicateRemoval = config.enableDuplicateRemoval !== false
-    const enableExclusionListPhase = config.enableExclusionList !== false
-    const exclusionList = (config.pHashExclusionList || []).filter((item: { isPreset?: boolean; isEnabled?: boolean }) => !item.isPreset || item.isEnabled !== false)
-
-    // Create post-processing worker
-    const worker = new Worker(new URL('../workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
-
-    // Helper function to calculate pHash using worker
-    const calculatePHashWithWorker = (imageData: ImageData): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const messageId = `pHash_live_${Date.now()}_${Math.random()}`
-
-        const messageHandler = (event: MessageEvent) => {
-          const { id, success, result, error } = event.data
-          if (id === messageId) {
-            worker.removeEventListener('message', messageHandler)
-            if (success) {
-              resolve(result)
-            } else {
-              reject(new Error(error))
-            }
-          }
-        }
-
-        worker.addEventListener('message', messageHandler)
-        worker.postMessage({
-          id: messageId,
-          type: 'calculatePHash',
-          data: { imageData }
-        })
-      })
-    }
-
-    // Helper function to calculate Hamming distance using worker
-    const calculateHammingDistanceWithWorker = (hash1: string, hash2: string): Promise<number> => {
-      return new Promise((resolve, reject) => {
-        const messageId = `hamming_live_${Date.now()}_${Math.random()}`
-
-        const messageHandler = (event: MessageEvent) => {
-          const { id, success, result, error } = event.data
-          if (id === messageId) {
-            worker.removeEventListener('message', messageHandler)
-            if (success) {
-              resolve(result)
-            } else {
-              reject(new Error(error))
-            }
-          }
-        }
-
-        worker.addEventListener('message', messageHandler)
-        worker.postMessage({
-          id: messageId,
-          type: 'calculateHammingDistance',
-          data: { hash1, hash2 }
-        })
-      })
-    }
-
-    // Check if imageData is valid
-    if (!slide.imageData || !slide.imageData.data) {
-      console.warn(`[Live Post-Processing] Skipping slide ${slide.title}: ImageData has been cleaned up`)
-      worker.terminate()
-      return
-    }
-
-    // Calculate pHash for the new slide
-    const pHash = await calculatePHashWithWorker(slide.imageData)
-    console.log(`[Live Post-Processing] Calculated pHash for ${slide.title}: ${pHash}`)
-
-    // Phase 1: Check for duplicates against existing slides (except itself)
-    if (enableDuplicateRemoval) {
-      const otherSlides = extractedSlides.value.filter(s => s.id !== slide.id && s.imageData && s.imageData.data)
-
-      for (const otherSlide of otherSlides) {
-        try {
-          const otherPHash = await calculatePHashWithWorker(otherSlide.imageData)
-          const hammingDistance = await calculateHammingDistanceWithWorker(pHash, otherPHash)
-
-          if (hammingDistance <= pHashThreshold) {
-            console.log(`[Live Post-Processing] Duplicate detected: ${slide.title} is similar to ${otherSlide.title} (Hamming distance: ${hammingDistance})`)
-            await deleteSlide(slide, false)
-            worker.terminate()
-            return
-          }
-        } catch (error) {
-          console.warn(`[Live Post-Processing] Failed to compare with ${otherSlide.title}:`, error)
-        }
-      }
-    }
-
-    // Phase 2: Check against exclusion list
-    if (enableExclusionListPhase) {
-      for (const exclusionItem of exclusionList) {
-        try {
-          const hammingDistance = await calculateHammingDistanceWithWorker(pHash, exclusionItem.pHash)
-          if (hammingDistance <= pHashThreshold) {
-            console.log(`[Live Post-Processing] Excluded: ${slide.title} is similar to "${exclusionItem.name}" (Hamming distance: ${hammingDistance})`)
-            await deleteSlide(slide, false)
-            worker.terminate()
-            return
-          }
-        } catch (error) {
-          console.warn(`[Live Post-Processing] Failed to compare with exclusion item "${exclusionItem.name}":`, error)
-        }
-      }
-    }
-
-    worker.terminate()
-
-    // Phase 3: AI filtering (only if not already processed)
-    if (enableAIFiltering.value && (slide.aiDecision === null || slide.aiDecision === undefined)) {
-      try {
-        const token = tokenManager.getToken() || undefined
-        const base64Image = slide.dataUrl.replace(/^data:image\/\w+;base64,/, '')
-
-        const result = await window.electronAPI.ai.classifySingleImage(
-          base64Image,
-          'live',
-          token
-        )
-
-        if (result.success && result.result) {
-          const classification = (result.result as { classification: 'slide' | 'not_slide' }).classification
-          slide.aiDecision = classification
-
-          if (classification === 'not_slide') {
-            console.log(`[Live Post-Processing] AI filtered: ${slide.title} (classified as not_slide)`)
-            await deleteSlide(slide, false)
-            return
-          } else {
-            console.log(`[Live Post-Processing] AI kept: ${slide.title} (classified as slide)`)
-          }
-          // Clear any previous error on success
-          aiFilteringError.value = { type: 'none' }
-        } else {
-          console.warn(`[Live Post-Processing] AI classification failed for ${slide.title}:`, result.error)
-          // Parse and set error
-          const parsedError = parseAIError(result)
-          aiFilteringError.value = parsedError
-        }
-      } catch (aiError) {
-        console.error(`[Live Post-Processing] AI filtering error for ${slide.title}:`, aiError)
-        // Parse and set error
-        const parsedError = parseAIError(aiError)
-        aiFilteringError.value = parsedError
-      }
-    }
-
-  } catch (error) {
-    console.error(`[Live Post-Processing] Error processing slide ${slide.title}:`, error)
-  }
-}
-
-// Parse AI filtering error from result or exception
-const parseAIError = (error: unknown): AIFilteringError => {
-  // Check if it's an AIFilteringResult with error message
-  if (error && typeof error === 'object' && 'error' in error) {
-    const errorMessage = (error as { error?: string }).error || ''
-
-    // Parse HTTP status code from error message
-    const httpCodeMatch = errorMessage.match(/HTTP\s*(\d{3})/i) || errorMessage.match(/status[:\s]*(\d{3})/i)
-    if (httpCodeMatch) {
-      const httpCode = parseInt(httpCodeMatch[1], 10)
-      if (httpCode === 403) {
-        return { type: '403', httpCode: 403, message: errorMessage }
-      } else if (httpCode === 413) {
-        return { type: '413', httpCode: 413, message: errorMessage }
-      } else {
-        return { type: 'http', httpCode, message: errorMessage }
-      }
-    }
-
-    // Check for specific error patterns
-    if (errorMessage.includes('403') || errorMessage.toLowerCase().includes('forbidden')) {
-      return { type: '403', httpCode: 403, message: errorMessage }
-    }
-    if (errorMessage.includes('413') || errorMessage.toLowerCase().includes('payload too large') || errorMessage.toLowerCase().includes('entity too large')) {
-      return { type: '413', httpCode: 413, message: errorMessage }
-    }
-
-    return { type: 'unknown', message: errorMessage }
-  }
-
-  // Check if it's an Error object
-  if (error instanceof Error) {
-    const errorMessage = error.message
-
-    if (errorMessage.includes('403') || errorMessage.toLowerCase().includes('forbidden')) {
-      return { type: '403', httpCode: 403, message: errorMessage }
-    }
-    if (errorMessage.includes('413') || errorMessage.toLowerCase().includes('payload too large')) {
-      return { type: '413', httpCode: 413, message: errorMessage }
-    }
-
-    // Try to extract HTTP code
-    const httpCodeMatch = errorMessage.match(/(\d{3})/)
-    if (httpCodeMatch) {
-      const httpCode = parseInt(httpCodeMatch[1], 10)
-      if (httpCode >= 400 && httpCode < 600) {
-        return { type: 'http', httpCode, message: errorMessage }
-      }
-    }
-
-    return { type: 'unknown', message: errorMessage }
-  }
-
-  return { type: 'unknown', message: String(error) }
-}
-
-// Dismiss AI error warning
-const dismissAIError = () => {
-  aiFilteringError.value = { type: 'none' }
 }
 
 const onSlidesCleared = (event: CustomEvent) => {
   const { instanceId, mode } = event.detail
-  // Only handle events from our instance
-  if (instanceId === extractorInstanceId.value && mode === props.mode) {
-    // Clear local slides array
-    extractedSlides.value = []
-    selectedSlide.value = null
-    updateSlideExtractionStatus()
-  }
-}
-
-// Task queue event handlers
-const onTaskStart = (event: CustomEvent) => {
-  const { taskId, sessionId, retryCount } = event.detail
-
-  // Check if this task is for our session (only for recorded mode)
-  if (props.mode === 'recorded' && props.sessionId === sessionId) {
-    // If this is a retry and we already have this task, don't reinitialize
-    if (currentTaskId.value === taskId && isTaskMode.value) {
-      console.log(`Task start retry ${retryCount || 1} for already active task:`, taskId)
-      return
-    }
-
-    console.log(`Task start event received (attempt ${retryCount || 1}) for:`, taskId)
-
-    currentTaskId.value = taskId
-    isTaskMode.value = true
-
-    // Update task status to in progress (only on first attempt)
-    if (!retryCount || retryCount === 1) {
-      TaskQueue.updateTaskStatus(taskId, 'in_progress')
-    }
-
-    // Start the task initialization process
-    initializeTask(taskId)
-  }
-}
-
-const onTaskPause = (event: CustomEvent) => {
-  const { taskId, sessionId } = event.detail
-
-  // Check if this pause event is for our session (for recorded mode) or if we're in task mode
-  if ((props.mode === 'recorded' && props.sessionId === sessionId) ||
-      (isTaskMode.value && currentTaskId.value === taskId)) {
-
-    console.log('Task pause received for:', taskId)
-
-    // Pause video playback if it's playing
-    if (videoPlayer.value && !videoPlayer.value.paused) {
-      console.log('Pausing video playback for task:', taskId)
-      videoPlayer.value.pause()
-    }
-
-    // Reset task mode but keep task ID for potential resume
-    isTaskMode.value = false
-
-    // Stop slide extraction if running
-    if (isSlideExtractionEnabled.value) {
-      console.log('Stopping slide extraction for task:', taskId)
-      isSlideExtractionEnabled.value = false
-      toggleSlideExtraction()
-    }
-  }
-}
-
-const onTaskResume = (event: CustomEvent) => {
-  const { taskId, sessionId } = event.detail
-
-  // Check if this is our task and session
-  if (props.mode === 'recorded' && props.sessionId === sessionId && currentTaskId.value === taskId) {
-    isTaskMode.value = true
-
-    // Re-initialize task for resume
-    initializeTaskResume(taskId)
-  }
-}
-
-// Wait for video to be fully ready for task processing
-const waitForVideoReady = (): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    const timeout = 20000 // 20 second timeout (increased for HLS stability)
-    const startTime = Date.now()
-    let consecutiveReadyChecks = 0
-    const requiredConsecutiveChecks = 3 // Require 3 consecutive successful checks
-
-    const checkVideoReady = () => {
-      // Check if we've exceeded timeout
-      if (Date.now() - startTime > timeout) {
-        reject(new Error('Video readiness timeout'))
-        return
-      }
-
-      // Check all required conditions for video readiness
-      const video = videoPlayer.value
-      if (!video) {
-        consecutiveReadyChecks = 0
-        setTimeout(checkVideoReady, 200)
-        return
-      }
-
-      // Check if video has loaded metadata and is ready to play
-      if (video.readyState < 2) { // HAVE_CURRENT_DATA or higher (more lenient)
-        consecutiveReadyChecks = 0
-        setTimeout(checkVideoReady, 200)
-        return
-      }
-
-      // Check if HLS is ready (if using HLS) - more lenient check
-      if (hls.value && hls.value.media !== video) {
-        consecutiveReadyChecks = 0
-        setTimeout(checkVideoReady, 200)
-        return
-      }
-
-      // Check if we have valid duration (allow for live streams with no duration)
-      if (video.duration && (video.duration === 0 || isNaN(video.duration))) {
-        consecutiveReadyChecks = 0
-        setTimeout(checkVideoReady, 200)
-        return
-      }
-
-      // Check if playback data and stream are ready
-      if (!playbackData.value || !selectedStream.value || loading.value) {
-        consecutiveReadyChecks = 0
-        setTimeout(checkVideoReady, 200)
-        return
-      }
-
-      // Check if there are any current fatal errors
-      if (error.value && error.value.includes('fatal')) {
-        consecutiveReadyChecks = 0
-        setTimeout(checkVideoReady, 200)
-        return
-      }
-
-      // All conditions met - increment consecutive checks
-      consecutiveReadyChecks++
-
-      if (consecutiveReadyChecks >= requiredConsecutiveChecks) {
-        // Video has been stable for required checks - it's ready
-        console.log(`Video is fully ready for task processing (${consecutiveReadyChecks} consecutive checks)`)
-        resolve()
-      } else {
-        // Continue checking for stability
-        setTimeout(checkVideoReady, 200)
-      }
-    }
-
-    // Start checking
-    checkVideoReady()
-  })
-}
-
-// Initialize task after video is confirmed ready
-const initializeTaskAfterVideoLoad = async (taskId: string, retryCount = 0) => {
-  const maxRetries = 3
-  const retryDelay = 2000 // 2 seconds between retries
-
-  try {
-    console.log(`Initializing task after video load (attempt ${retryCount + 1}/${maxRetries + 1}):`, taskId)
-
-    // Update SSIM threshold based on classroom information from stored session data
-    if (props.sessionId) {
-      const sessionData = DataStore.getSessionData(props.sessionId)
-      if (sessionData?.courseInfo?.classrooms) {
-        console.log('Setting classroom context for task SSIM threshold:', sessionData.courseInfo.classrooms.map(c => c.name).join(', '))
-        ssimThresholdService.setCurrentClassrooms(sessionData.courseInfo.classrooms)
-      }
-    }
-
-    // Ensure we're on screen recording stream for task mode
-    const screenStreamKey = Object.keys(playbackData.value?.streams || {}).find(
-      key => playbackData.value?.streams[key].type === 'screen'
-    )
-
-    if (!screenStreamKey) {
-      throw new Error('No screen recording stream available for task')
-    }
-
-    if (selectedStream.value !== screenStreamKey) {
-      console.log('Switching to screen recording for task:', taskId)
-      selectedStream.value = screenStreamKey
-      await switchStream()
-      // Wait a bit more for stream switch to complete
-      await new Promise(resolve => setTimeout(resolve, 1000))
-    }
-
-    // Set task speed for playback rate (only for recorded mode)
-    if (videoPlayer.value && props.mode === 'recorded') {
-      currentPlaybackRate.value = taskSpeed.value
-      videoPlayer.value.playbackRate = taskSpeed.value
-      console.log('Set task playback rate to:', taskSpeed.value)
-    }
-
-    // Initialize slide extraction if not already enabled
-    if (!isSlideExtractionEnabled.value) {
-      console.log('Auto-starting slide extraction for task:', taskId)
-      isSlideExtractionEnabled.value = true
-      await toggleSlideExtraction()
-
-      // Wait for slide extraction to be fully initialized with longer timeout
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Verify slide extraction started successfully
-      if (!slideExtractorInstance.value || !slideExtractionStatus.value.isRunning) {
-        throw new Error('Failed to start slide extraction')
-      }
-    }
-
-    // Update slide extractor with task speed
-    if (slideExtractorInstance.value) {
-      slideExtractorInstance.value.updatePlaybackRate(taskSpeed.value)
-    }
-
-    // Auto-play the video if not already playing
-    if (videoPlayer.value && videoPlayer.value.paused) {
-      try {
-        await videoPlayer.value.play()
-        console.log('Video playback started for task:', taskId)
-      } catch (error) {
-        throw new Error('Failed to start video playback: ' + error)
-      }
-    }
-
-    // Reset progress tracking for new task
-    lastReportedProgress = -1
-
-    console.log('Task initialized successfully after video load:', taskId)
-  } catch (error) {
-    console.error(`Task initialization failed after video load (attempt ${retryCount + 1}):`, taskId, error)
-
-    // Retry logic for recoverable errors
-    if (retryCount < maxRetries) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-
-      // Check if this is a recoverable error (slide extraction or temporary video issues)
-      const isRecoverableError = errorMessage.includes('Failed to start slide extraction') ||
-                                errorMessage.includes('Failed to start video playback') ||
-                                errorMessage.includes('No screen recording stream available')
-
-      if (isRecoverableError) {
-        console.log(`Retrying task initialization in ${retryDelay}ms (attempt ${retryCount + 2}/${maxRetries + 1})`)
-        await new Promise(resolve => setTimeout(resolve, retryDelay))
-        return initializeTaskAfterVideoLoad(taskId, retryCount + 1)
-      }
-    }
-
-    // Final failure after all retries or non-recoverable error
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    handleTaskError(`Task initialization failed after ${retryCount + 1} attempts: ${errorMessage}`)
-  }
-}
-
-// Initialize task with improved error handling and video readiness check
-const initializeTask = async (taskId: string, retryCount = 0) => {
-  const maxRetries = 2
-  const retryDelay = 3000 // 3 seconds between retries
-
-  try {
-    console.log(`Starting task initialization (attempt ${retryCount + 1}/${maxRetries + 1}):`, taskId)
-
-    // First check if basic requirements are met
-    if (!playbackData.value || loading.value) {
-      console.log('Video data not ready, waiting for video to load...')
-      // Wait for video to be ready with timeout
-      await waitForVideoReady()
-    }
-
-    // Now initialize the task with the confirmed ready video
-    await initializeTaskAfterVideoLoad(taskId)
-  } catch (error) {
-    console.error(`Task initialization failed (attempt ${retryCount + 1}):`, taskId, error)
-    const errorMessage = error instanceof Error ? error.message : String(error)
-
-    // Retry logic for video readiness timeout or recoverable errors
-    if (retryCount < maxRetries) {
-      const isRecoverableError = errorMessage.includes('Video readiness timeout') ||
-                                errorMessage.includes('Failed to start slide extraction') ||
-                                errorMessage.includes('Failed to start video playback')
-
-      if (isRecoverableError) {
-        console.log(`Retrying task initialization in ${retryDelay}ms (attempt ${retryCount + 2}/${maxRetries + 1})`)
-        await new Promise(resolve => setTimeout(resolve, retryDelay))
-        return initializeTask(taskId, retryCount + 1)
-      }
-    }
-
-    // Final failure after all retries or non-recoverable error
-    TaskQueue.updateTaskStatus(taskId, 'error', `Task initialization failed after ${retryCount + 1} attempts: ${errorMessage}`)
-  }
-}
-
-// Initialize task resume with current video state
-const initializeTaskResume = async (taskId: string) => {
-  try {
-    console.log('Resuming task:', taskId)
-
-    // Update SSIM threshold based on classroom information from stored session data
-    if (props.sessionId) {
-      const sessionData = DataStore.getSessionData(props.sessionId)
-      if (sessionData?.courseInfo?.classrooms) {
-        console.log('Setting classroom context for resumed task SSIM threshold:', sessionData.courseInfo.classrooms.map(c => c.name).join(', '))
-        ssimThresholdService.setCurrentClassrooms(sessionData.courseInfo.classrooms)
-      }
-    }
-
-    // Wait for video to be ready before resuming
-    await waitForVideoReady()
-
-    // Check if we're still on the correct video source (screen recording)
-    if (!isScreenRecordingSelected.value) {
-      // Try to switch to screen recording if available
-      const screenStreamKey = Object.keys(playbackData.value?.streams || {}).find(
-        key => playbackData.value?.streams[key].type === 'screen'
-      )
-
-      if (screenStreamKey) {
-        selectedStream.value = screenStreamKey
-        await switchStream()
-        // Wait for stream switch to complete
-        await new Promise(resolve => setTimeout(resolve, 1000))
-      } else {
-        throw new Error('Screen recording not available for task resume')
-      }
-    }
-
-    // Set task speed for playback rate
-    if (videoPlayer.value && props.mode === 'recorded') {
-      currentPlaybackRate.value = taskSpeed.value
-      videoPlayer.value.playbackRate = taskSpeed.value
-
-      // Update slide extractor with task speed
-      if (slideExtractorInstance.value) {
-        slideExtractorInstance.value.updatePlaybackRate(taskSpeed.value)
-      }
-    }
-
-    // Start slide extraction if not already enabled
-    if (!isSlideExtractionEnabled.value) {
-      isSlideExtractionEnabled.value = true
-      await toggleSlideExtraction()
-
-      // Wait for slide extraction to initialize
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      // Verify slide extraction started
-      if (!slideExtractorInstance.value || !slideExtractionStatus.value.isRunning) {
-        throw new Error('Failed to start slide extraction on resume')
-      }
-    }
-
-    // Resume video playback if it was paused
-    if (videoPlayer.value && videoPlayer.value.paused) {
-      await videoPlayer.value.play()
-      console.log('Video playback resumed for task:', taskId)
-    }
-
-    // Reset progress tracking for resumed task
-    lastReportedProgress = -1
-
-    console.log('Task resumed successfully:', taskId)
-  } catch (error) {
-    console.error('Failed to resume task:', taskId, error)
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    TaskQueue.updateTaskStatus(taskId, 'error', 'Task resume failed: ' + errorMessage)
-    currentTaskId.value = null
-    isTaskMode.value = false
-  }
-}
-
-// Track last reported progress to avoid unnecessary updates
-let lastReportedProgress = -1
-
-// Update task progress based on video playback progress
-const updateTaskProgress = () => {
-  if (!isTaskMode.value || !currentTaskId.value || !videoPlayer.value) return
-
-  const video = videoPlayer.value
-  const duration = video.duration
-  const currentTime = video.currentTime
-
-  // Only update progress if we have valid duration and current time
-  if (duration > 0 && currentTime >= 0) {
-    const progressPercentage = Math.min(99, Math.max(0, Math.floor((currentTime / duration) * 100)))
-
-    // Only update if progress has actually changed (avoid unnecessary updates)
-    if (progressPercentage !== lastReportedProgress) {
-      lastReportedProgress = progressPercentage
-      TaskQueue.updateTaskProgress(currentTaskId.value, progressPercentage)
-    }
-  }
-}
-
-const checkVideoCompletion = () => {
-  if (!isTaskMode.value || !currentTaskId.value || !videoPlayer.value) return
-
-  const video = videoPlayer.value
-  const duration = video.duration
-  const currentTime = video.currentTime
-
-  // Check if video is near completion (within 5 seconds or 99% complete)
-  if (duration > 0 && (currentTime >= duration - 5 || currentTime / duration >= 0.99)) {
-    console.log('Video completion detected via timeupdate for task:', currentTaskId.value)
-    completeCurrentTask()
-  }
-}
-
-// Handle video ended event as backup completion detection
-const onVideoEnded = () => {
-  if (isTaskMode.value && currentTaskId.value) {
-    console.log('Video completion detected via ended event for task:', currentTaskId.value)
-    completeCurrentTask()
-  }
-}
-
-// Complete the current task (extracted to avoid duplication)
-const completeCurrentTask = async () => {
-  if (!isTaskMode.value || !currentTaskId.value) return
-
-  const taskId = currentTaskId.value
-
-  // Prevent multiple completions of the same task
-  if (taskCompletionInProgress.value === taskId) {
-    console.log('Task completion already in progress for:', taskId)
-    return
-  }
-
-  taskCompletionInProgress.value = taskId
-  console.log('Completing task:', taskId)
-
-  // Check if auto post-processing is enabled and we have slides to process
-  if (autoPostProcessing.value && isSlideExtractionEnabled.value && extractedSlides.value.length > 0) {
-    console.log('Auto post-processing enabled, executing post-processing for task:', taskId)
-    try {
-      // Execute post-processing automatically (without result dialog)
-      await executePostProcessing(false)
-      console.log('Auto post-processing completed successfully for task:', taskId)
-    } catch (error) {
-      console.error('Auto post-processing failed for task:', taskId, error)
-      // Continue with task completion even if post-processing fails
-    }
-  }
-
-  // Mark task as completed
-  TaskQueue.updateTaskStatus(taskId, 'completed')
-
-  // Clean up task state
-  cleanupTaskState()
-
-  // Clear completion flag
-  taskCompletionInProgress.value = null
-}
-
-const handleTaskError = (errorMessage: string) => {
-  if (isTaskMode.value && currentTaskId.value) {
-    console.log('Task error occurred:', currentTaskId.value, errorMessage)
-
-    // Mark task as error - this will trigger automatic continuation to next task
-    TaskQueue.updateTaskStatus(currentTaskId.value, 'error', errorMessage)
-
-    // Clean up task state
-    cleanupTaskState()
-  }
-}
-
-// Clean up task state when task ends (success, error, or cancellation)
-const cleanupTaskState = () => {
-  // Reset task mode
-  currentTaskId.value = null
-  isTaskMode.value = false
-
-  // Stop slide extraction (but delay to allow post-processing to complete)
-  if (isSlideExtractionEnabled.value) {
-    isSlideExtractionEnabled.value = false
-    // Delay the actual cleanup to allow post-processing to access ImageData
-    setTimeout(() => {
-      toggleSlideExtraction()
-    }, 100)
-  }
-
-  // Clear error state to allow next task to start fresh
-  error.value = null
-  isRetrying.value = false
-  retryMessage.value = ''
-
-  // Reset progress tracking
-  lastReportedProgress = -1
-
-  // Reset video error counters for fresh start
-  videoErrorRetryCount = 0
-  consecutiveErrorsAtSamePosition = 0
-  lastErrorPosition = -1
-  lastPlaybackRateBeforeError = 1
-
-  console.log('Task state cleaned up')
-}
-
-// Performance optimization functions for background playback
-const handleVisibilityChange = () => {
-  isDocumentVisible.value = !document.hidden
-
-  if (document.hidden) {
-    console.log('Page hidden - maintaining video performance with enhanced monitoring')
-    // Start enhanced monitoring when page is hidden
-    startPerformanceMonitoring()
-  } else {
-    console.log('Page visible - normal operation')
-    // Stop enhanced monitoring when page is visible
-    stopPerformanceMonitoring()
-  }
-}
-
-// Keep-alive mechanism to prevent browser throttling
-const startKeepAlive = () => {
-  if (!preventSystemSleep.value) {
-    console.log('Keep-alive mechanism disabled (preventSystemSleep is off)')
-    return
-  }
-
-  if (keepAliveInterval.value) return
-
-  console.log('Starting keep-alive mechanism for background playback')
-  keepAliveInterval.value = setInterval(() => {
-    if (videoPlayer.value && !videoPlayer.value.paused) {
-      const currentTime = videoPlayer.value.currentTime
-      const expectedRate = currentPlaybackRate.value
-
-      // Check if playback rate has been throttled
-      if (Math.abs(videoPlayer.value.playbackRate - expectedRate) > 0.01) {
-        console.log(`Playback rate drift detected: ${videoPlayer.value.playbackRate} vs expected ${expectedRate}, correcting...`)
-        videoPlayer.value.playbackRate = expectedRate
-      }
-
-      // Light activity to prevent throttling
-      if (currentTime > 0) {
-        // This helps maintain JavaScript execution priority
-        performance.mark(`keepalive-${Date.now()}`)
-      }
-    }
-  }, 3000) // Check every 3 seconds
-}
-
-const stopKeepAlive = () => {
-  if (keepAliveInterval.value) {
-    clearInterval(keepAliveInterval.value)
-    keepAliveInterval.value = null
-    console.log('Keep-alive mechanism stopped')
-  }
-}
-
-// Enhanced performance monitoring for background playback
-const startPerformanceMonitoring = () => {
-  if (!preventSystemSleep.value) {
-    console.log('Enhanced performance monitoring disabled (preventSystemSleep is off)')
-    return
-  }
-
-  if (performanceMonitorInterval.value) return
-
-  console.log('Starting enhanced performance monitoring')
-  performanceMonitorInterval.value = setInterval(() => {
-    if (videoPlayer.value && !videoPlayer.value.paused) {
-      const video = videoPlayer.value
-      const currentTime = video.currentTime
-      const buffered = video.buffered
-
-      // Check buffering health
-      let bufferedAhead = 0
-      for (let i = 0; i < buffered.length; i++) {
-        if (buffered.start(i) <= currentTime && buffered.end(i) > currentTime) {
-          bufferedAhead = buffered.end(i) - currentTime
-          break
-        }
-      }
-
-      // Log performance metrics when in background
-      if (document.hidden) {
-        console.log(`Background playback status: time=${currentTime.toFixed(1)}s, rate=${video.playbackRate}x, buffered=${bufferedAhead.toFixed(1)}s ahead`)
-
-        // If buffer is getting low in background, this might indicate throttling
-        if (bufferedAhead < 10 && hls.value) {
-          console.log('Low buffer detected in background, requesting more data')
-          // Trigger HLS to load more segments
-          try {
-            hls.value.startLoad()
-          } catch (e) {
-            // Ignore errors, this is just a hint to HLS
-          }
-        }
-      }
-    }
-  }, 10000) // Check every 10 seconds when in background
-}
-
-const stopPerformanceMonitoring = () => {
-  if (performanceMonitorInterval.value) {
-    clearInterval(performanceMonitorInterval.value)
-    performanceMonitorInterval.value = null
-    console.log('Enhanced performance monitoring stopped')
-  }
-}
-
-// Wake Lock API support for preventing screen sleep
-const requestWakeLock = async () => {
-  if (!preventSystemSleep.value) {
-    console.log('Wake lock disabled (preventSystemSleep is off)')
-    return
-  }
-
-  try {
-    if ('wakeLock' in navigator && !wakeLock.value) {
-      wakeLock.value = await (navigator as any).wakeLock.request('screen')
-      console.log('Wake lock acquired to prevent screen sleep')
-
-      wakeLock.value?.addEventListener('release', () => {
-        console.log('Wake lock released')
-        wakeLock.value = null
-      })
-    }
-  } catch (err) {
-    console.log('Wake lock request failed (not supported or denied):', err)
-  }
-}
-
-const releaseWakeLock = () => {
-  if (wakeLock.value) {
-    wakeLock.value.release()
-    wakeLock.value = null
-    console.log('Wake lock manually released')
-  }
-}
-
-// Power management integration
-const requestPowerManagement = async () => {
-  if (!preventSystemSleep.value) {
-    console.log('System sleep prevention disabled (preventSystemSleep is off)')
-    return
-  }
-
-  try {
-    await window.electronAPI.powerManagement?.preventSleep?.()
-    console.log('System sleep prevention requested')
-  } catch (err) {
-    console.log('Power management request failed:', err)
-  }
-}
-
-const releasePowerManagement = async () => {
-  try {
-    await window.electronAPI.powerManagement?.allowSleep?.()
-    console.log('System sleep prevention released')
-  } catch (err) {
-    console.log('Power management release failed:', err)
-  }
-}
-
-// Silent audio stream management to prevent Chrome throttling in live mode
-const createSilentAudio = () => {
-  try {
-    // Create audio context
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-
-    // Create a 1-second buffer of silence
-    const sampleRate = audioContext.sampleRate
-    const buffer = audioContext.createBuffer(1, sampleRate, sampleRate)
-    // Buffer is already filled with zeros (silence)
-
-    // Create buffer source
-    const source = audioContext.createBufferSource()
-    source.buffer = buffer
-    source.loop = true // Loop the silent audio
-
-    // Create gain node for volume control (set to 0 for complete silence)
-    const gainNode = audioContext.createGain()
-    gainNode.gain.value = 0 // Completely silent
-
-    // Connect the audio graph
-    source.connect(gainNode)
-    gainNode.connect(audioContext.destination)
-
-    return { audioContext, source, gainNode }
-  } catch (error) {
-    console.error('Failed to create silent audio:', error)
-    return null
-  }
-}
-
-const startSilentAudio = () => {
-  // Only start silent audio when video should be muted (both live and recorded modes)
-  if (!shouldVideoMute.value) {
-    return
-  }
-
-  // Don't start if already running
-  if (silentAudioContext.value && silentAudioSource.value) {
-    return
-  }
-
-  try {
-    const audioSetup = createSilentAudio()
-    if (!audioSetup) {
-      return
-    }
-
-    const { audioContext, source, gainNode } = audioSetup
-
-    // Store references
-    silentAudioContext.value = audioContext
-    silentAudioSource.value = source
-    silentAudioGain.value = gainNode
-
-    // Start the silent audio
-    source.start()
-
-    console.log(`Started silent audio stream to prevent Chrome throttling in ${props.mode} mode`)
-  } catch (error) {
-    console.error('Failed to start silent audio:', error)
-  }
-}
-
-const stopSilentAudio = () => {
-  try {
-    if (silentAudioSource.value) {
-      silentAudioSource.value.stop()
-      silentAudioSource.value = null
-    }
-
-    if (silentAudioContext.value) {
-      silentAudioContext.value.close()
-      silentAudioContext.value = null
-    }
-
-    silentAudioGain.value = null
-
-    console.log('Stopped silent audio stream')
-  } catch (error) {
-    console.error('Failed to stop silent audio:', error)
+  if (instanceId === slideExtraction.extractorInstanceId.value && mode === props.mode) {
+    slideExtraction.extractedSlides.value = []
+    slideGallery.selectedSlide.value = null
+    slideExtraction.updateSlideExtractionStatus()
   }
 }
 
 // Lifecycle
 onMounted(async () => {
-  // Register video proxy client for independent mode support
-  try {
-    videoProxyClientId.value = await window.electronAPI.video.registerClient()
-  } catch (error) {
-    console.error('Failed to register video proxy client:', error)
-  }
+  // Register video proxy client
+  await videoPlayerComposable.registerClient()
 
-  // Load connection mode, mute mode, video retry count, task speed, and prevent system sleep setting from config
-  try {
-    const config = await window.electronAPI.config.get()
-    connectionMode.value = config.connectionMode
-    muteMode.value = config.muteMode || 'normal'
-    maxVideoErrorRetries.value = config.videoRetryCount || 5
-    taskSpeed.value = config.taskSpeed || 10
-    autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
-    autoPostProcessingLive.value = config.autoPostProcessingLive !== undefined ? config.autoPostProcessingLive : true
-    enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
-    preventSystemSleep.value = config.preventSystemSleep !== undefined ? config.preventSystemSleep : true
-    console.log('Performance optimization setting (preventSystemSleep):', preventSystemSleep.value)
-
-    // Load AI filtering config for batch size
-    const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
-    if (aiConfig) {
-      aiBatchSize.value = aiConfig.batchSize || 4
-    }
-  } catch (error) {
-    console.error('Failed to load config:', error)
-  }
+  // Load config
+  await videoPlayerComposable.initConfig()
+  await taskQueue.initConfig()
+  await postProcessing.initConfig()
+  await performanceOptimization.initConfig()
 
   // Update SSIM threshold based on classroom information
-  updateSSIMThresholdForClassrooms()
+  slideExtraction.updateSSIMThresholdForClassrooms()
 
-  // Add slide extraction event listeners
+  // Add event listeners
   window.addEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.addEventListener('slidesCleared', onSlidesCleared as EventListener)
-
-  // Add task queue event listeners
-  window.addEventListener('taskStart', onTaskStart as EventListener)
-  window.addEventListener('taskPause', onTaskPause as EventListener)
-  window.addEventListener('taskResume', onTaskResume as EventListener)
-
-  // Add page visibility change listener for background performance optimization
-  document.addEventListener('visibilitychange', handleVisibilityChange)
+  taskQueue.setupEventListeners()
+  performanceOptimization.setupEventListeners()
 
   // Wait for next tick to ensure video element is in DOM
   await nextTick()
-  loadVideoStreams()
+  videoPlayerComposable.loadVideoStreams()
 })
 
 onUnmounted(async () => {
   // Stop slide extraction if running
-  if (isSlideExtractionEnabled.value && slideExtractorInstance.value) {
-    slideExtractorInstance.value.stopExtraction()
+  if (isSlideExtractionEnabled.value && slideExtraction.slideExtractorInstance.value) {
+    slideExtraction.slideExtractorInstance.value.stopExtraction()
   }
 
-  // Clean up extractor instance if it was created specifically for this component
-  if (extractorInstanceId.value) {
-    slideExtractionManager.removeExtractor(extractorInstanceId.value)
-  }
+  // Cleanup slide extraction
+  slideExtraction.cleanupSlideExtraction()
 
-  // Remove slide extraction event listeners
+  // Remove event listeners
   window.removeEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.removeEventListener('slidesCleared', onSlidesCleared as EventListener)
+  taskQueue.removeEventListeners()
 
-  // Remove task queue event listeners
-  window.removeEventListener('taskStart', onTaskStart as EventListener)
-  window.removeEventListener('taskPause', onTaskPause as EventListener)
-  window.removeEventListener('taskResume', onTaskResume as EventListener)
-
-  // Remove page visibility change listener
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
-
-  // Clean up performance optimization mechanisms
-  stopKeepAlive()
-  stopPerformanceMonitoring()
-  releaseWakeLock()
-  releasePowerManagement()
-  stopSilentAudio()
+  // Clean up performance optimization
+  await performanceOptimization.cleanupAll()
 
   // Clean up Picture in Picture if active
   if (isPictureInPicture.value && document.pictureInPictureElement) {
@@ -3545,22 +844,15 @@ onUnmounted(async () => {
     }
   }
 
-
   // Clean up HLS
-  cleanup()
+  videoPlayerComposable.cleanup()
 
   // Clean up event listeners
   currentEventListeners.forEach(cleanupFn => cleanupFn())
   currentEventListeners = []
 
-  // Unregister video proxy client for independent mode support
-  if (videoProxyClientId.value) {
-    try {
-      await window.electronAPI.video.unregisterClient(videoProxyClientId.value)
-    } catch (err) {
-      console.error('Failed to unregister video proxy client on unmount:', err)
-    }
-  }
+  // Unregister video proxy client
+  await videoPlayerComposable.unregisterClient()
 })
 </script>
 
