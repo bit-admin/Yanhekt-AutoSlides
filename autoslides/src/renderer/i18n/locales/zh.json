@@ -50,11 +50,12 @@
     "taskSpeed": "任务速度",
     "taskSpeedDescription": "自动处理任务时的播放速度",
     "autoPostProcessing": "自动后处理",
-    "autoPostProcessingDescription": "任务完成时自动执行后处理",
+    "autoPostProcessingDescription": "幻灯片提取完成后自动执行后处理",
     "enableAutoPostProcessing": "启用自动后处理",
+    "enableAutoPostProcessingRecorded": "录播模式（仅限任务模式）",
     "autoPostProcessingLive": "直播自动后处理",
     "autoPostProcessingLiveDescription": "直播模式下每保存一张幻灯片时自动执行后处理",
-    "enableAutoPostProcessingLive": "启用直播自动后处理",
+    "enableAutoPostProcessingLive": "直播模式（每保存一张幻灯片时）",
     "resetToDefault": "恢复默认"
   },
   "status": {
@@ -121,6 +122,7 @@
     "enableExclusionListDescription": "去除与 pHash 排除列表中的项目匹配的幻灯片",
     "enableAIFiltering": "启用 AI 过滤",
     "enableAIFilteringDescription": "使用 AI 分类并过滤非幻灯片图像",
+    "aiFilteringReminder": "AI 可能出错，您可以从回收站中恢复被误删的图像",
     "pHashExclusionList": "pHash 排除列表",
     "pHashExclusionDescription": "管理要从幻灯片检测中排除的图像哈希列表。匹配这些哈希的图像将在后处理过程中被忽略",
     "noExclusionItems": "无排除项目",

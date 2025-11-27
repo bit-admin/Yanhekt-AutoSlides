@@ -584,10 +584,6 @@ const autoPostProcessingLive = ref(true) // Default auto post-processing for liv
 const enableAIFiltering = ref(true) // Default AI filtering enabled
 const aiBatchSize = ref(4) // Default AI batch size for recorded mode
 
-// Recorded mode AI batch processing
-const recordedModeSlidesForAIBatch = ref<ExtractedSlide[]>([]) // Slides pending AI batch processing
-const aiFilteringInProgress = ref(false) // Flag to track if AI filtering is in progress
-
 // AI filtering error state
 interface AIFilteringError {
   type: 'none' | '403' | '413' | 'http' | 'unknown'
@@ -1815,276 +1811,6 @@ const clearAllSlides = async () => {
   }
 }
 
-// Execute post-processing for task mode (without dialogs)
-const executePostProcessingForTask = async () => {
-  if (extractedSlides.value.length === 0) {
-    return
-  }
-
-  // Get the output path from the slide extractor
-  const outputPath = slideExtractorInstance.value?.getOutputPath()
-  if (!outputPath) {
-    throw new Error('Output path not found')
-  }
-
-  // Get pHash configuration
-  const config = await window.electronAPI.config?.getSlideExtractionConfig?.()
-  if (!config) {
-    throw new Error('Failed to get slide extraction configuration')
-  }
-
-  const pHashThreshold = config.pHashThreshold || 10
-  // Filter exclusion list to only include enabled items (non-presets or presets with isEnabled !== false)
-  const exclusionList = (config.pHashExclusionList || []).filter(item => !item.isPreset || item.isEnabled !== false)
-
-  console.log(`Starting auto post-processing for ${extractedSlides.value.length} slides...`)
-  console.log(`Using pHash threshold: ${pHashThreshold}, exclusion list items: ${exclusionList.length}`)
-
-  // Create post-processing worker to calculate pHash for all saved images
-  const worker = new Worker(new URL('../workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
-
-  // Helper function to calculate Hamming distance using worker
-  const calculateHammingDistanceWithWorker = (hash1: string, hash2: string): Promise<number> => {
-    return new Promise((resolve, reject) => {
-      const messageId = `hamming_${Date.now()}_${Math.random()}`
-
-      const messageHandler = (event: MessageEvent) => {
-        const { id, success, result, error } = event.data
-        if (id === messageId) {
-          worker.removeEventListener('message', messageHandler)
-          if (success) {
-            resolve(result)
-          } else {
-            reject(new Error(error))
-          }
-        }
-      }
-
-      worker.addEventListener('message', messageHandler)
-      worker.postMessage({
-        id: messageId,
-        type: 'calculateHammingDistance',
-        data: { hash1, hash2 }
-      })
-    })
-  }
-
-  // Step 1: Calculate pHash for all slides first
-  console.log('Step 1: Calculating pHash for all slides...')
-  const slideHashes: Array<{ slide: ExtractedSlide; filename: string; pHash: string; error?: string }> = []
-
-  for (const slide of extractedSlides.value) {
-    try {
-      const filename = `${slide.title}.png`
-      const imageData = slide.imageData
-
-      // Check if imageData is still valid (not cleaned up)
-      if (!imageData || !imageData.data) {
-        console.warn(`Skipping slide ${slide.title}: ImageData has been cleaned up`)
-        slideHashes.push({
-          slide,
-          filename,
-          pHash: '',
-          error: 'ImageData has been cleaned up'
-        })
-        continue
-      }
-
-      // Calculate pHash using worker
-      const pHashPromise = new Promise<string>((resolve, reject) => {
-        const messageId = `pHash_${Date.now()}_${Math.random()}`
-
-        const messageHandler = (event: MessageEvent) => {
-          const { id, success, result, error } = event.data
-          if (id === messageId) {
-            worker.removeEventListener('message', messageHandler)
-            if (success) {
-              resolve(result)
-            } else {
-              reject(new Error(error))
-            }
-          }
-        }
-
-        worker.addEventListener('message', messageHandler)
-        worker.postMessage({
-          id: messageId,
-          type: 'calculatePHash',
-          data: { imageData }
-        })
-      })
-
-      const pHash = await pHashPromise
-      slideHashes.push({ slide, filename, pHash })
-      console.log(`Calculated pHash for ${filename}: ${pHash}`)
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      console.error(`Failed to calculate pHash for ${slide.title}:`, errorMessage)
-      slideHashes.push({
-        slide,
-        filename: `${slide.title}.png`,
-        pHash: '',
-        error: errorMessage
-      })
-    }
-  }
-
-  // Step 2: Remove duplicates among all slides (keep only first occurrence)
-  console.log('Step 2: Removing duplicate slides...')
-  const seenHashes = new Map<string, string>() // pHash -> first filename
-  const duplicatesToDelete: Array<{ slide: ExtractedSlide; filename: string; pHash: string; duplicateOf: string }> = []
-
-  for (const item of slideHashes) {
-    if (item.error || !item.pHash) continue
-
-    // Check if we've seen a similar hash before
-    let isDuplicate = false
-    let duplicateOf = ''
-
-    for (const [seenHash, seenFilename] of seenHashes.entries()) {
-      try {
-        const hammingDistance = await calculateHammingDistanceWithWorker(item.pHash, seenHash)
-        if (hammingDistance <= pHashThreshold) {
-          isDuplicate = true
-          duplicateOf = seenFilename
-          console.log(`Duplicate detected: ${item.filename} is similar to ${seenFilename} (Hamming distance: ${hammingDistance})`)
-          break
-        }
-      } catch (error) {
-        console.warn(`Failed to calculate Hamming distance between ${item.filename} and ${seenFilename}:`, error)
-      }
-    }
-
-    if (isDuplicate) {
-      duplicatesToDelete.push({ ...item, duplicateOf })
-    } else {
-      // First occurrence - remember this hash
-      seenHashes.set(item.pHash, item.filename)
-    }
-  }
-
-  // Delete duplicate slides
-  for (const duplicate of duplicatesToDelete) {
-    try {
-      await deleteSlide(duplicate.slide, false) // false = don't show confirmation dialog
-      console.log(`Deleted duplicate slide: ${duplicate.filename} (duplicate of ${duplicate.duplicateOf})`)
-    } catch (deleteError) {
-      console.error(`Failed to delete duplicate slide ${duplicate.filename}:`, deleteError)
-    }
-  }
-
-  // Step 3: Check remaining slides against exclusion list
-  console.log('Step 3: Checking remaining slides against exclusion list...')
-  const results: Array<{ filename: string; pHash: string; excluded?: boolean; excludedReason?: string; duplicate?: boolean; duplicateOf?: string; error?: string }> = []
-  const deletedSlides: string[] = []
-  let processedCount = 0
-
-  for (const item of slideHashes) {
-    try {
-      const { slide, filename, pHash, error } = item
-
-      // Skip if there was an error calculating pHash
-      if (error) {
-        results.push({ filename, pHash, error })
-        continue
-      }
-
-      // Check if this was already deleted as a duplicate
-      const wasDuplicate = duplicatesToDelete.some(d => d.filename === filename)
-      if (wasDuplicate) {
-        const duplicateInfo = duplicatesToDelete.find(d => d.filename === filename)!
-        results.push({
-          filename,
-          pHash,
-          duplicate: true,
-          duplicateOf: duplicateInfo.duplicateOf
-        })
-        deletedSlides.push(filename)
-        processedCount++
-        continue
-      }
-
-      // Check against exclusion list
-      let shouldExclude = false
-      let excludedReason = ''
-
-      for (const exclusionItem of exclusionList) {
-        try {
-          const hammingDistance = await calculateHammingDistanceWithWorker(pHash, exclusionItem.pHash)
-          if (hammingDistance <= pHashThreshold) {
-            shouldExclude = true
-            excludedReason = `Similar to excluded item "${exclusionItem.name}" (Hamming distance: ${hammingDistance})`
-            console.log(`Slide ${filename} excluded: ${excludedReason}`)
-            break
-          }
-        } catch (error) {
-          console.warn(`Failed to calculate Hamming distance for exclusion item "${exclusionItem.name}":`, error)
-        }
-      }
-
-      // If slide should be excluded, delete it
-      if (shouldExclude) {
-        try {
-          await deleteSlide(slide, false) // false = don't show confirmation dialog
-          deletedSlides.push(filename)
-          results.push({
-            filename,
-            pHash,
-            excluded: true,
-            excludedReason
-          })
-        } catch (deleteError) {
-          console.error(`Failed to delete excluded slide ${filename}:`, deleteError)
-          results.push({
-            filename,
-            pHash,
-            excluded: false,
-            error: `Failed to delete: ${deleteError instanceof Error ? deleteError.message : String(deleteError)}`
-          })
-        }
-      } else {
-        results.push({
-          filename,
-          pHash,
-          excluded: false
-        })
-      }
-
-      processedCount++
-      console.log(`Processed ${filename} (${processedCount}/${slideHashes.length}): pHash = ${pHash}${shouldExclude ? ' [EXCLUDED]' : ''}`)
-
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      console.error(`Failed to process slide:`, errorMessage)
-
-      results.push({
-        filename: item.filename,
-        pHash: item.pHash || '',
-        error: errorMessage
-      })
-    }
-  }
-
-  worker.terminate()
-
-  // Calculate summary statistics
-  const totalSlides = extractedSlides.value.length
-  const processedSlides = results.filter(r => !r.error).length
-  const failedSlides = results.filter(r => r.error).length
-  const duplicateSlides = results.filter(r => r.duplicate).length
-  const excludedSlides = results.filter(r => r.excluded).length
-
-  console.log('Auto post-processing completed successfully:', {
-    totalSlides,
-    processedSlides,
-    failedSlides,
-    duplicateSlides,
-    excludedSlides,
-    deletedSlides: deletedSlides.length
-  })
-}
-
 // Execute post-processing on all saved slides
 const executePostProcessing = async () => {
   try {
@@ -2812,16 +2538,16 @@ const onSlideExtracted = async (event: CustomEvent) => {
       await processLiveModeSlide(slide)
     }
 
-    // In recorded mode, queue slides for batch AI filtering
-    if (props.mode === 'recorded' && enableAIFiltering.value && !aiFilteringInProgress.value) {
-      // Add slide to batch queue if it hasn't been AI processed
-      if (slide.aiDecision === null || slide.aiDecision === undefined) {
-        recordedModeSlidesForAIBatch.value.push(slide)
+    // In recorded mode, trigger full post-processing when batch is ready (only in task mode)
+    if (props.mode === 'recorded' && isTaskMode.value && autoPostProcessing.value && !isPostProcessing.value) {
+      // Count slides that haven't been post-processed yet
+      const unprocessedSlides = extractedSlides.value.filter(s =>
+        s.aiDecision === null || s.aiDecision === undefined
+      )
 
-        // When we have enough slides (based on config), trigger batch AI processing
-        if (recordedModeSlidesForAIBatch.value.length >= aiBatchSize.value) {
-          await processRecordedModeAIBatch()
-        }
+      // When we have enough unprocessed slides, trigger full post-processing
+      if (unprocessedSlides.length >= aiBatchSize.value) {
+        await executePostProcessing()
       }
     }
   }
@@ -3051,77 +2777,6 @@ const parseAIError = (error: unknown): AIFilteringError => {
 // Dismiss AI error warning
 const dismissAIError = () => {
   aiFilteringError.value = { type: 'none' }
-}
-
-// Process batch of slides for recorded mode AI filtering
-const processRecordedModeAIBatch = async () => {
-  if (aiFilteringInProgress.value || recordedModeSlidesForAIBatch.value.length === 0) return
-
-  aiFilteringInProgress.value = true
-
-  try {
-    // Take up to batchSize slides from the queue
-    const batch = recordedModeSlidesForAIBatch.value.splice(0, aiBatchSize.value)
-    const validSlides = batch.filter(slide =>
-      slide.aiDecision === null || slide.aiDecision === undefined
-    )
-
-    if (validSlides.length === 0) {
-      aiFilteringInProgress.value = false
-      return
-    }
-
-    console.log(`[Recorded AI Batch] Processing ${validSlides.length} slides...`)
-
-    const token = tokenManager.getToken() || undefined
-    const base64Images = validSlides.map(slide => slide.dataUrl.replace(/^data:image\/\w+;base64,/, ''))
-
-    const result = await window.electronAPI.ai.classifyMultipleImages(
-      base64Images,
-      'recorded',
-      token
-    )
-
-    if (result.success && result.result) {
-      const batchResult = result.result as { [key: string]: 'slide' | 'not_slide' }
-
-      // Process each image in the batch
-      for (let j = 0; j < validSlides.length; j++) {
-        const slide = validSlides[j]
-        const imageKey = `image_${j + 1}`
-        const classification = batchResult[imageKey] || 'slide' // Default to slide if no classification
-
-        slide.aiDecision = classification
-
-        if (classification === 'not_slide') {
-          try {
-            await deleteSlide(slide, false)
-            console.log(`[Recorded AI Batch] AI filtered: ${slide.title} (classified as not_slide)`)
-          } catch (deleteError) {
-            console.error(`[Recorded AI Batch] Failed to delete AI-filtered slide ${slide.title}:`, deleteError)
-          }
-        } else {
-          console.log(`[Recorded AI Batch] AI kept: ${slide.title} (classified as slide)`)
-        }
-      }
-      // Clear any previous error on success
-      aiFilteringError.value = { type: 'none' }
-    } else {
-      console.warn(`[Recorded AI Batch] AI batch classification failed:`, result.error)
-      // Parse and set error
-      const parsedError = parseAIError(result)
-      aiFilteringError.value = parsedError
-      // Put slides back in queue if classification failed
-      recordedModeSlidesForAIBatch.value.unshift(...validSlides)
-    }
-  } catch (aiError) {
-    console.error(`[Recorded AI Batch] AI filtering error:`, aiError)
-    // Parse and set error
-    const parsedError = parseAIError(aiError)
-    aiFilteringError.value = parsedError
-  } finally {
-    aiFilteringInProgress.value = false
-  }
 }
 
 const onSlidesCleared = (event: CustomEvent) => {
@@ -3558,8 +3213,8 @@ const completeCurrentTask = async () => {
   if (autoPostProcessing.value && isSlideExtractionEnabled.value && extractedSlides.value.length > 0) {
     console.log('Auto post-processing enabled, executing post-processing for task:', taskId)
     try {
-      // Execute post-processing automatically without showing dialog
-      await executePostProcessingForTask()
+      // Execute post-processing automatically
+      await executePostProcessing()
       console.log('Auto post-processing completed successfully for task:', taskId)
     } catch (error) {
       console.error('Auto post-processing failed for task:', taskId, error)

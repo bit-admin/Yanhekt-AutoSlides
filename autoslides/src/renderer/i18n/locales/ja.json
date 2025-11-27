@@ -50,11 +50,12 @@
     "taskSpeed": "タスク速度",
     "taskSpeedDescription": "自動タスク処理の再生速度",
     "autoPostProcessing": "自動後処理",
-    "autoPostProcessingDescription": "タスク完了時に自動的に後処理を実行",
+    "autoPostProcessingDescription": "スライド抽出完了後に自動的に後処理を実行",
     "enableAutoPostProcessing": "自動後処理を有効にする",
+    "enableAutoPostProcessingRecorded": "録画モード（タスクモードのみ）",
     "autoPostProcessingLive": "ライブ自動後処理",
     "autoPostProcessingLiveDescription": "ライブモードで新しいスライドが保存される度に自動的に後処理を実行",
-    "enableAutoPostProcessingLive": "ライブ自動後処理を有効にする",
+    "enableAutoPostProcessingLive": "ライブモード（スライド保存時）",
     "resetToDefault": "デフォルトにリセット"
   },
   "status": {
@@ -121,6 +122,7 @@
     "enableExclusionListDescription": "pHash除外リストの項目と一致するスライドを除去します。",
     "enableAIFiltering": "AIフィルタリングを有効化",
     "enableAIFilteringDescription": "AIを使用して非スライド画像を分類・フィルタリングします。",
+    "aiFilteringReminder": "AIは間違いを起こす可能性があります。誤って削除された画像はゴミ箱から復元できます。",
     "pHashExclusionList": "pHash除外リスト",
     "pHashExclusionDescription": "スライド検出から除外する画像ハッシュのリストを管理します。これらのハッシュに一致する画像は後処理中に無視されます。",
     "noExclusionItems": "除外項目なし",

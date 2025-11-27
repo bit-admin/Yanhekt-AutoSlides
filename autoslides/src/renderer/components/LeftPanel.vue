@@ -185,25 +185,18 @@
             <label class="checkbox-label">
               <input
                 type="checkbox"
-                v-model="autoPostProcessing"
-                @change="setAutoPostProcessing"
-              />
-              {{ $t('settings.enableAutoPostProcessing') }}
-            </label>
-          </div>
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label">{{ $t('settings.autoPostProcessingLive') }}</label>
-          <div class="setting-description">{{ $t('settings.autoPostProcessingLiveDescription') }}</div>
-          <div class="auto-post-processing-control">
-            <label class="checkbox-label">
-              <input
-                type="checkbox"
                 v-model="autoPostProcessingLive"
                 @change="setAutoPostProcessingLive"
               />
               {{ $t('settings.enableAutoPostProcessingLive') }}
+            </label>
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                v-model="autoPostProcessing"
+                @change="setAutoPostProcessing"
+              />
+              {{ $t('settings.enableAutoPostProcessingRecorded') }}
             </label>
           </div>
         </div>
@@ -510,6 +503,9 @@
                     />
                     <span class="phase-toggle-text">{{ $t('advanced.enableAIFiltering') }}</span>
                   </label>
+                </div>
+                <div v-if="enableAIFiltering" class="setting-description ai-reminder">
+                  {{ $t('advanced.aiFilteringReminder') }}
                 </div>
               </div>
 
@@ -2964,13 +2960,12 @@ const closeNameInputDialog = () => {
 /* Auto post-processing control styles */
 .auto-post-processing-control {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   background-color: #f8f9fa;
   border: 1px solid #ddd;
   border-radius: 6px;
   overflow: hidden;
   transition: all 0.2s ease;
-  height: 35px;
 }
 
 .auto-post-processing-control:hover {
@@ -2991,7 +2986,10 @@ const closeNameInputDialog = () => {
   border-radius: 0;
   transition: none;
   user-select: none;
-  flex: 1;
+}
+
+.auto-post-processing-control .checkbox-label:not(:last-child) {
+  border-bottom: 1px solid #ddd;
 }
 
 .auto-post-processing-control .checkbox-label input[type="checkbox"] {
@@ -4245,6 +4243,10 @@ const closeNameInputDialog = () => {
 
   .auto-post-processing-control .checkbox-label {
     color: #e0e0e0;
+  }
+
+  .auto-post-processing-control .checkbox-label:not(:last-child) {
+    border-bottom-color: #404040;
   }
 
   /* Dark mode support for post-processing phases list */

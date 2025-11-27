@@ -50,11 +50,12 @@
     "taskSpeed": "Task Speed",
     "taskSpeedDescription": "Playback speed for automated task processing.",
     "autoPostProcessing": "Auto Post-Processing",
-    "autoPostProcessingDescription": "Automatically execute post-processing when task completes.",
+    "autoPostProcessingDescription": "Automatically run post-processing after slide extraction completes.",
     "enableAutoPostProcessing": "Enable Auto Post-Processing",
+    "enableAutoPostProcessingRecorded": "Recorded Mode (Only in Task Mode)",
     "autoPostProcessingLive": "Auto Post-Processing for Live",
     "autoPostProcessingLiveDescription": "Automatically execute post-processing when each new slide is saved in live mode.",
-    "enableAutoPostProcessingLive": "Enable Auto Post-Processing for Live",
+    "enableAutoPostProcessingLive": "Live Mode (When Each Slide Is Saved)",
     "resetToDefault": "Reset to default"
   },
   "status": {
@@ -121,6 +122,7 @@
     "enableExclusionListDescription": "Remove slides that match items in the pHash exclusion list.",
     "enableAIFiltering": "Enable AI Filtering",
     "enableAIFilteringDescription": "Use AI to classify and filter out non-slide images.",
+    "aiFilteringReminder": "AI can make mistakes. You can restore incorrectly removed images from the trash folder.",
     "pHashExclusionList": "pHash Exclusion List",
     "pHashExclusionDescription": "Manage a list of image hashes to exclude from slide detection. Images matching these hashes will be ignored during post-processing.",
     "noExclusionItems": "No exclusion items",
