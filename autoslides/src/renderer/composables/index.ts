@@ -15,3 +15,6 @@ export { useAdvancedSettings, type UseAdvancedSettingsOptions, type UseAdvancedS
 export { useCacheManagement, type UseCacheManagementReturn, type CacheStats } from './useCacheManagement'
 export { useAISettings, type UseAISettingsOptions, type UseAISettingsReturn, type AIServiceType, type ApiUrlPreset, type ModelPreset } from './useAISettings'
 export { usePHashExclusion, type UsePHashExclusionReturn, type PHashExclusionItem } from './usePHashExclusion'
+
+// CoursePage composables
+export { useCourseList, type UseCourseListOptions, type UseCourseListReturn, type Course } from './useCourseList'

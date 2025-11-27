@@ -94,7 +94,7 @@ export function usePHashExclusion(): UsePHashExclusionReturn {
   }
 
   // Show name input dialog
-  const showNameInputDialog = (defaultValue: string = ''): Promise<string | null> => {
+  const showNameInputDialog = (defaultValue = ''): Promise<string | null> => {
     return new Promise((resolve) => {
       nameInputValue.value = defaultValue
       nameInputCallback.value = resolve
