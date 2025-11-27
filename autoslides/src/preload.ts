@@ -63,7 +63,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
       customApiBaseUrl?: string;
       customApiKey?: string;
       customModelName?: string;
+      batchSize?: number;
     }) => ipcRenderer.invoke('config:setAIFilteringConfig', config),
+    setAIBatchSize: (batchSize: number) => ipcRenderer.invoke('config:setAIBatchSize', batchSize),
+    getAIBatchSize: () => ipcRenderer.invoke('config:getAIBatchSize'),
     // AI prompts management
     getAIPrompts: () => ipcRenderer.invoke('config:getAIPrompts'),
     getAIPrompt: (type: 'live' | 'recorded') => ipcRenderer.invoke('config:getAIPrompt', type),

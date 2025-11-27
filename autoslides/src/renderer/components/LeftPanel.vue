@@ -889,6 +889,25 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Batch Size Setting -->
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.ai.batchSize') }}</label>
+                <div class="setting-description">{{ $t('advanced.ai.batchSizeDescription') }}</div>
+                <div class="slide-interval-group">
+                  <div class="slide-interval-input-wrapper">
+                    <input
+                      v-model.number="tempAiBatchSize"
+                      type="number"
+                      min="1"
+                      max="10"
+                      class="slide-interval-input"
+                      @change="updateAiBatchSize"
+                    />
+                    <span class="interval-unit">{{ $t('advanced.ai.batchSizeUnit') }}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="advanced-setting-section">
@@ -1222,6 +1241,8 @@ const aiCustomModelName = ref('')
 const tempAiCustomModelName = ref('')
 const aiRateLimit = ref(10)
 const tempAiRateLimit = ref(10)
+const aiBatchSize = ref(4)
+const tempAiBatchSize = ref(4)
 const showApiKey = ref(false)
 const selectedApiUrlPreset = ref('')
 const selectedModelPreset = ref('')
@@ -1555,6 +1576,11 @@ const setEnableAIFiltering = async () => {
   }
 }
 
+const updateAiBatchSize = () => {
+  // Ensure batch size is within valid range (1-10)
+  tempAiBatchSize.value = Math.max(1, Math.min(10, Math.round(tempAiBatchSize.value)))
+}
+
 const setPreventSystemSleep = async () => {
   try {
     const result = await window.electronAPI.config.setPreventSystemSleep(preventSystemSleep.value)
@@ -1797,12 +1823,15 @@ const saveAdvancedSettings = async () => {
     const effectiveRateLimit = tempAiServiceType.value === 'builtin'
       ? Math.min(tempAiRateLimit.value, 10)
       : tempAiRateLimit.value
+    // Ensure batch size is within valid range
+    const effectiveBatchSize = Math.max(1, Math.min(10, tempAiBatchSize.value))
     await window.electronAPI.config.setAIFilteringConfig({
       serviceType: tempAiServiceType.value,
       customApiBaseUrl: tempAiCustomApiBaseUrl.value,
       customApiKey: tempAiCustomApiKey.value,
       customModelName: tempAiCustomModelName.value,
-      rateLimit: effectiveRateLimit
+      rateLimit: effectiveRateLimit,
+      batchSize: effectiveBatchSize
     })
     aiServiceType.value = tempAiServiceType.value
     aiCustomApiBaseUrl.value = tempAiCustomApiBaseUrl.value
@@ -1810,6 +1839,8 @@ const saveAdvancedSettings = async () => {
     aiCustomModelName.value = tempAiCustomModelName.value
     aiRateLimit.value = effectiveRateLimit
     tempAiRateLimit.value = effectiveRateLimit
+    aiBatchSize.value = effectiveBatchSize
+    tempAiBatchSize.value = effectiveBatchSize
 
     // Save AI prompts
     if (tempAiPromptLive.value !== aiPromptLive.value) {
@@ -2123,6 +2154,8 @@ const loadAISettings = async () => {
       tempAiCustomModelName.value = aiConfig.customModelName || ''
       aiRateLimit.value = aiConfig.rateLimit || 10
       tempAiRateLimit.value = aiConfig.rateLimit || 10
+      aiBatchSize.value = aiConfig.batchSize || 4
+      tempAiBatchSize.value = aiConfig.batchSize || 4
     }
 
     // Load AI prompts
@@ -5055,6 +5088,7 @@ const closeNameInputDialog = () => {
 /* Built-in model display styles */
 .builtin-model-info {
   margin-top: 16px;
+  margin-bottom: 16px;
   padding-top: 16px;
   border-top: 1px solid #e0e0e0;
 }

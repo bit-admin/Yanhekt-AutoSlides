@@ -73,6 +73,7 @@ interface AIFilteringConfig {
   customApiKey: string;
   customModelName: string;
   rateLimit: number; // requests per minute, default 10
+  batchSize: number; // number of images per batch for recorded mode, default 4
 }
 
 interface AIPrompts {
@@ -324,6 +325,8 @@ interface ElectronAPI {
     // AI filtering configuration
     getAIFilteringConfig: () => Promise<AIFilteringConfig>;
     setAIFilteringConfig: (config: Partial<AIFilteringConfig>) => Promise<AIFilteringConfig>;
+    setAIBatchSize: (batchSize: number) => Promise<AIFilteringConfig>;
+    getAIBatchSize: () => Promise<number>;
 
     // AI prompts management
     getAIPrompts: () => Promise<AIPrompts>;

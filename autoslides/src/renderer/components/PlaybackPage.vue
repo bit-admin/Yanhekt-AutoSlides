@@ -566,6 +566,7 @@ const taskSpeed = ref(10) // Default task speed
 const autoPostProcessing = ref(true) // Default auto post-processing enabled
 const autoPostProcessingLive = ref(true) // Default auto post-processing for live enabled
 const enableAIFiltering = ref(true) // Default AI filtering enabled
+const aiBatchSize = ref(4) // Default AI batch size for recorded mode
 
 // Recorded mode AI batch processing
 const recordedModeSlidesForAIBatch = ref<ExtractedSlide[]>([]) // Slides pending AI batch processing
@@ -2402,8 +2403,10 @@ const executePostProcessing = async () => {
       // Get token for built-in service
       const token = tokenManager.getToken() || undefined
 
-      // Determine batch size based on mode (live mode: 1, recorded mode: 4)
-      const batchSize = props.mode === 'live' ? 1 : 4
+      // Get batch size from config (live mode: 1, recorded mode: from config, default 4)
+      const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
+      const configBatchSize = aiConfig?.batchSize || 4
+      const batchSize = props.mode === 'live' ? 1 : configBatchSize
       const promptType = props.mode as 'live' | 'recorded'
 
       // Process slides in batches
@@ -2778,8 +2781,8 @@ const onSlideExtracted = async (event: CustomEvent) => {
       if (slide.aiDecision === null || slide.aiDecision === undefined) {
         recordedModeSlidesForAIBatch.value.push(slide)
 
-        // When we have 4 slides, trigger batch AI processing
-        if (recordedModeSlidesForAIBatch.value.length >= 4) {
+        // When we have enough slides (based on config), trigger batch AI processing
+        if (recordedModeSlidesForAIBatch.value.length >= aiBatchSize.value) {
           await processRecordedModeAIBatch()
         }
       }
@@ -2951,8 +2954,8 @@ const processRecordedModeAIBatch = async () => {
   aiFilteringInProgress.value = true
 
   try {
-    // Take up to 4 slides from the queue
-    const batch = recordedModeSlidesForAIBatch.value.splice(0, 4)
+    // Take up to batchSize slides from the queue
+    const batch = recordedModeSlidesForAIBatch.value.splice(0, aiBatchSize.value)
     const validSlides = batch.filter(slide =>
       slide.aiDecision === null || slide.aiDecision === undefined
     )
@@ -3768,6 +3771,12 @@ onMounted(async () => {
     enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
     preventSystemSleep.value = config.preventSystemSleep !== undefined ? config.preventSystemSleep : true
     console.log('Performance optimization setting (preventSystemSleep):', preventSystemSleep.value)
+
+    // Load AI filtering config for batch size
+    const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
+    if (aiConfig) {
+      aiBatchSize.value = aiConfig.batchSize || 4
+    }
   } catch (error) {
     console.error('Failed to load config:', error)
   }

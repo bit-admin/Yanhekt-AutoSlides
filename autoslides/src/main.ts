@@ -426,9 +426,19 @@ ipcMain.handle('config:setAIFilteringConfig', async (event, config: {
   customApiBaseUrl?: string;
   customApiKey?: string;
   customModelName?: string;
+  batchSize?: number;
 }) => {
   configService.setAIFilteringConfig(config);
   return configService.getAIFilteringConfig();
+});
+
+ipcMain.handle('config:setAIBatchSize', async (event, batchSize: number) => {
+  configService.setAIBatchSize(batchSize);
+  return configService.getAIFilteringConfig();
+});
+
+ipcMain.handle('config:getAIBatchSize', async () => {
+  return configService.getAIBatchSize();
 });
 
 // IPC handlers for AI prompts management

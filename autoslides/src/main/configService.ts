@@ -47,6 +47,7 @@ export interface AIFilteringConfig {
   customApiKey: string;
   customModelName: string;
   rateLimit: number; // requests per minute, default 10
+  batchSize: number; // number of images per batch for recorded mode, default 4
 }
 
 export interface AppConfig {
@@ -121,7 +122,8 @@ const defaultAIFilteringConfig: AIFilteringConfig = {
   customApiBaseUrl: '',
   customApiKey: '',
   customModelName: '',
-  rateLimit: 10 // default 10 requests per minute
+  rateLimit: 10, // default 10 requests per minute
+  batchSize: 4 // default 4 images per batch for recorded mode
 };
 
 const defaultConfig: AppConfig = {
@@ -483,6 +485,17 @@ export class ConfigService {
   getAIRateLimit(): number {
     const config = this.getAIFilteringConfig();
     return config.rateLimit || 10;
+  }
+
+  setAIBatchSize(batchSize: number): void {
+    // Batch size must be between 1 and 10
+    const validBatchSize = Math.max(1, Math.min(10, Math.round(batchSize)));
+    this.setAIFilteringConfig({ batchSize: validBatchSize });
+  }
+
+  getAIBatchSize(): number {
+    const config = this.getAIFilteringConfig();
+    return config.batchSize || 4;
   }
 
   async selectOutputDirectory(): Promise<string | null> {
