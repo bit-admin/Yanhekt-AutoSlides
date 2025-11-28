@@ -20,6 +20,10 @@ export interface PostProcessStatus {
   phase1Skipped: boolean
   phase2Skipped: boolean
   phase3Skipped: boolean
+  // AI progress tracking for 3-color progress bar
+  aiCompleted: number    // Slides with aiDecision set
+  aiInProgress: number   // Current batch size being processed
+  aiTotal: number        // Total extracted slides (denominator)
 }
 
 export interface SlideHash {
@@ -87,7 +91,10 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     aiFiltered: 0,
     phase1Skipped: false,
     phase2Skipped: false,
-    phase3Skipped: false
+    phase3Skipped: false,
+    aiCompleted: 0,
+    aiInProgress: 0,
+    aiTotal: 0
   })
   const aiFilteringError = ref<AIFilteringError>({ type: 'none' })
   const enableAIFiltering = ref(true)
@@ -368,6 +375,14 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     const slidesNeedingAI = remainingSlides.filter(slide => slide.aiDecision === null || slide.aiDecision === undefined)
     postProcessStatus.value.totalCount = slidesNeedingAI.length
 
+    // Update AI progress tracking: aiTotal is total extracted slides
+    postProcessStatus.value.aiTotal = extractedSlides.value.length
+    // Count how many already have AI decisions
+    postProcessStatus.value.aiCompleted = extractedSlides.value.filter(
+      slide => slide.aiDecision !== null && slide.aiDecision !== undefined
+    ).length
+    postProcessStatus.value.aiInProgress = 0
+
     const token = tokenManager.getToken() || undefined
     const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
     const batchSize = filterMode === 'live' ? 1 : (aiConfig?.batchSize || 4)
@@ -375,6 +390,12 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     for (let i = 0; i < slidesNeedingAI.length; i += batchSize) {
       const batch = slidesNeedingAI.slice(i, i + batchSize)
       postProcessStatus.value.currentIndex = Math.min(i + batchSize, slidesNeedingAI.length)
+
+      // Update aiTotal in case new slides were extracted during processing
+      postProcessStatus.value.aiTotal = extractedSlides.value.length
+
+      // Set in-progress count before sending request
+      postProcessStatus.value.aiInProgress = batch.length
 
       try {
         if (batch.length === 1) {
@@ -386,6 +407,13 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
         console.error(`AI filtering error for batch:`, aiError)
         aiFilteringError.value = parseAIError(aiError)
       }
+
+      // Update completed count after batch finishes (whether success or failure)
+      postProcessStatus.value.aiCompleted = extractedSlides.value.filter(
+        slide => slide.aiDecision !== null && slide.aiDecision !== undefined
+      ).length
+      // Reset in-progress after batch completes
+      postProcessStatus.value.aiInProgress = 0
     }
   }
 
@@ -439,7 +467,10 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
         aiFiltered: 0,
         phase1Skipped: !ppConfig.enableDuplicateRemoval,
         phase2Skipped: !ppConfig.enableExclusionList,
-        phase3Skipped: !ppConfig.enableAIFiltering
+        phase3Skipped: !ppConfig.enableAIFiltering,
+        aiCompleted: 0,
+        aiInProgress: 0,
+        aiTotal: extractedSlides.value.length
       }
 
       console.log(`Starting post-processing for ${extractedSlides.value.length} slides...`)

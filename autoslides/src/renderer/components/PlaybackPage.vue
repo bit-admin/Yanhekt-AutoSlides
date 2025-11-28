@@ -351,24 +351,30 @@
                   <span v-if="postProcessStatus.phase3Skipped" class="phase-status skipped">
                     {{ $t('playback.postProcessStatus.disabled') }}
                   </span>
-                  <span v-else-if="postProcessStatus.currentPhase === 'phase3'" class="phase-status active">
-                    {{ postProcessStatus.currentIndex }}/{{ postProcessStatus.totalCount }}
+                  <span v-else-if="postProcessStatus.currentPhase === 'phase3' || postProcessStatus.aiTotal > 0" class="phase-status" :class="{ active: postProcessStatus.currentPhase === 'phase3' }">
+                    {{ postProcessStatus.aiCompleted }}/{{ postProcessStatus.aiTotal }}
                   </span>
                   <span v-else-if="postProcessStatus.aiFiltered > 0" class="phase-status completed">
                     -{{ postProcessStatus.aiFiltered }}
                   </span>
                 </div>
-                <div class="phase-progress-bar" :class="{ disabled: postProcessStatus.phase3Skipped }">
+                <div class="phase-progress-bar three-color" :class="{ disabled: postProcessStatus.phase3Skipped }">
+                  <!-- Green: completed AI decisions -->
                   <div
-                    class="phase-progress-fill"
-                    :class="{
-                      'active': postProcessStatus.currentPhase === 'phase3',
-                      'completed': postProcessStatus.currentPhase === 'completed' && !postProcessStatus.phase3Skipped
-                    }"
+                    class="phase-progress-fill completed"
                     :style="{
-                      width: postProcessStatus.phase3Skipped ? '0%' :
-                             postProcessStatus.currentPhase === 'phase3' ? `${(postProcessStatus.currentIndex / postProcessStatus.totalCount) * 100}%` :
-                             postProcessStatus.currentPhase === 'completed' ? '100%' : '0%'
+                      width: postProcessStatus.phase3Skipped || postProcessStatus.aiTotal === 0 ? '0%' :
+                             `${(postProcessStatus.aiCompleted / postProcessStatus.aiTotal) * 100}%`
+                    }"
+                  ></div>
+                  <!-- Blue: in-progress batch -->
+                  <div
+                    class="phase-progress-fill in-progress"
+                    :style="{
+                      left: postProcessStatus.aiTotal === 0 ? '0%' :
+                            `${(postProcessStatus.aiCompleted / postProcessStatus.aiTotal) * 100}%`,
+                      width: postProcessStatus.phase3Skipped || postProcessStatus.aiTotal === 0 ? '0%' :
+                             `${(postProcessStatus.aiInProgress / postProcessStatus.aiTotal) * 100}%`
                     }"
                   ></div>
                 </div>
@@ -1726,6 +1732,29 @@ onUnmounted(async () => {
   background-color: #28a745;
 }
 
+/* 3-color progress bar for AI processing */
+.phase-progress-bar.three-color {
+  position: relative;
+}
+
+.phase-progress-bar.three-color .phase-progress-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+}
+
+.phase-progress-bar.three-color .phase-progress-fill.completed {
+  left: 0;
+  background-color: #28a745;
+  z-index: 2;
+}
+
+.phase-progress-bar.three-color .phase-progress-fill.in-progress {
+  background-color: #007acc;
+  animation: progressPulse 1.5s infinite;
+  z-index: 1;
+}
+
 @keyframes progressPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
@@ -2398,6 +2427,15 @@ onUnmounted(async () => {
 
   .phase-progress-fill.completed {
     background-color: #28a745;
+  }
+
+  /* 3-color progress bar for AI processing (dark theme) */
+  .phase-progress-bar.three-color .phase-progress-fill.completed {
+    background-color: #28a745;
+  }
+
+  .phase-progress-bar.three-color .phase-progress-fill.in-progress {
+    background-color: #4da6ff;
   }
 
   .processing-spinner {
