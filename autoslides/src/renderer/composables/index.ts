@@ -18,3 +18,6 @@ export { usePHashExclusion, type UsePHashExclusionReturn, type PHashExclusionIte
 
 // CoursePage composables
 export { useCourseList, type UseCourseListOptions, type UseCourseListReturn, type Course } from './useCourseList'
+
+// SessionPage composables
+export { useSessionPage, type UseSessionPageOptions, type UseSessionPageReturn, type SessionCourse, type Session } from './useSessionPage'

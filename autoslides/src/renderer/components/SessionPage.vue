@@ -156,33 +156,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ApiClient, type SessionData, type CourseInfoResponse } from '../services/apiClient'
-import { TokenManager } from '../services/authService'
-import { DataStore } from '../services/dataStore'
-import { DownloadService } from '../services/downloadService'
-import { TaskQueue } from '../services/taskQueueService'
-
-interface Course {
-  id: string
-  title: string
-  instructor: string
-  time: string
-  classrooms?: { name: string }[]
-  college_name?: string
-  participant_count?: number
-  professors?: string[]
-  school_year?: string
-  semester?: string
-}
-
-interface Session extends SessionData {
-  // Extends SessionData from API client
-}
+import { useSessionPage, type SessionCourse, type Session } from '../composables'
 
 const props = defineProps<{
-  course: Course | null
+  course: SessionCourse | null
 }>()
 
 const emit = defineEmits<{
@@ -192,323 +171,34 @@ const emit = defineEmits<{
   switchToTask: []
 }>()
 
-const { t: $t } = useI18n()
+const { t } = useI18n()
 
-const apiClient = new ApiClient()
-const tokenManager = new TokenManager()
-const sessions = ref<Session[]>([])
-const courseInfo = ref<CourseInfoResponse | null>(null)
-const isLoading = ref(false)
-const errorMessage = ref('')
-const showCourseDetails = ref(false)
-
-const goBack = () => {
-  emit('backToCourses')
-}
-
-const toggleCourseDetails = () => {
-  showCourseDetails.value = !showCourseDetails.value
-}
-
-const selectSession = (session: Session) => {
-  // Store session data with complete course information for playback
-  if (props.course) {
-    DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
-      id: props.course.id,
-      title: props.course.title,
-      instructor: props.course.instructor,
-      time: props.course.time,
-      classrooms: props.course.classrooms,
-      college_name: props.course.college_name,
-      participant_count: props.course.participant_count
-    })
-  } else {
-    DataStore.setSessionData(session.session_id.toString(), session)
-  }
-  emit('sessionSelected', session)
-}
-
-const loadCourseSessions = async () => {
-  if (!props.course) {
-    errorMessage.value = $t('sessions.noCourseSelected')
-    return
-  }
-
-  const token = tokenManager.getToken()
-  if (!token) {
-    errorMessage.value = $t('sessions.pleaseLoginFirst')
-    return
-  }
-
-  isLoading.value = true
-  errorMessage.value = ''
-
-  try {
-    const response = await apiClient.getCourseInfo(props.course.id, token)
-    courseInfo.value = response
-    sessions.value = response.videos
-  } catch (error: any) {
-    console.error('Failed to load course sessions:', error)
-    errorMessage.value = error.message || $t('sessions.failedToLoadSessions')
-    sessions.value = []
-  } finally {
-    isLoading.value = false
-  }
-}
-
-const formatDuration = (seconds: number): string => {
-  if (!seconds || seconds === 0) return 'N/A'
-
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`
-  } else {
-    return `${minutes}m`
-  }
-}
-
-const getDayName = (day: number): string => {
-  const dayNames = ['', 'sessions.monday', 'sessions.tuesday', 'sessions.wednesday', 'sessions.thursday', 'sessions.friday', 'sessions.saturday', 'sessions.sunday']
-  const dayKey = dayNames[day]
-  if (dayKey) {
-    return $t(dayKey)
-  }
-  return `${$t('sessions.day')} ${day}`
-}
-
-const formatDate = (dateString: string): string => {
-  try {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  } catch {
-    return dateString
-  }
-}
-
-// Task functions
-const addToQueue = (session: Session) => {
-  // Store session data with complete course information for task processing
-  if (props.course) {
-    DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
-      id: props.course.id,
-      title: props.course.title,
-      instructor: props.course.instructor,
-      time: props.course.time,
-      classrooms: props.course.classrooms,
-      college_name: props.course.college_name,
-      participant_count: props.course.participant_count
-    })
-  } else {
-    DataStore.setSessionData(session.session_id.toString(), session)
-  }
-
-  const added = TaskQueue.addToQueue({
-    name: `slides_${props.course?.title}_${session.title}`,
-    courseTitle: props.course?.title || $t('sessions.unknownCourse'),
-    sessionTitle: session.title,
-    sessionId: session.session_id.toString(),
-    courseId: props.course?.id || 'unknown'
-  })
-
-  if (!added) {
-    alert($t('sessions.alreadyInTaskQueue'))
-  } else {
-    // Switch to task tab
-    switchToTaskTab()
-  }
-}
-
-const downloadCamera = (session: Session) => {
-  // Store session data with complete course information for download service to access
-  if (props.course) {
-    DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
-      id: props.course.id,
-      title: props.course.title,
-      instructor: props.course.instructor,
-      time: props.course.time,
-      classrooms: props.course.classrooms,
-      college_name: props.course.college_name,
-      participant_count: props.course.participant_count
-    })
-  } else {
-    DataStore.setSessionData(session.session_id.toString(), session)
-  }
-
-  const added = DownloadService.addToQueue({
-    name: `camera_${props.course?.title}_${session.title}`,
-    courseTitle: props.course?.title || $t('sessions.unknownCourse'),
-    sessionTitle: session.title,
-    sessionId: session.session_id.toString(),
-    videoType: 'camera'
-  })
-
-  if (!added) {
-    alert($t('sessions.alreadyInDownloadQueue'))
-  } else {
-    // Switch to download tab
-    switchToDownloadTab()
-  }
-}
-
-const downloadScreen = (session: Session) => {
-  // Store session data with complete course information for download service to access
-  if (props.course) {
-    DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
-      id: props.course.id,
-      title: props.course.title,
-      instructor: props.course.instructor,
-      time: props.course.time,
-      classrooms: props.course.classrooms,
-      college_name: props.course.college_name,
-      participant_count: props.course.participant_count
-    })
-  } else {
-    DataStore.setSessionData(session.session_id.toString(), session)
-  }
-
-  const added = DownloadService.addToQueue({
-    name: `screen_${props.course?.title}_${session.title}`,
-    courseTitle: props.course?.title || $t('sessions.unknownCourse'),
-    sessionTitle: session.title,
-    sessionId: session.session_id.toString(),
-    videoType: 'screen'
-  })
-
-  if (!added) {
-    alert($t('sessions.alreadyInDownloadQueueScreen'))
-  } else {
-    // Switch to download tab
-    switchToDownloadTab()
-  }
-}
-
-const addAllToQueue = () => {
-  let addedCount = 0
-  sessions.value.forEach(session => {
-    // Store session data with complete course information for task processing
-    if (props.course) {
-      DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
-        id: props.course.id,
-        title: props.course.title,
-        instructor: props.course.instructor,
-        time: props.course.time,
-        classrooms: props.course.classrooms,
-        college_name: props.course.college_name,
-        participant_count: props.course.participant_count
-      })
-    } else {
-      DataStore.setSessionData(session.session_id.toString(), session)
-    }
-
-    const added = TaskQueue.addToQueue({
-      name: `slides_${props.course?.title}_${session.title}`,
-      courseTitle: props.course?.title || $t('sessions.unknownCourse'),
-      sessionTitle: session.title,
-      sessionId: session.session_id.toString(),
-      courseId: props.course?.id || 'unknown'
-    })
-    if (added) addedCount++
-  })
-
-  if (addedCount > 0) {
-    switchToTaskTab()
-    alert($t('sessions.addedToTaskQueue', { count: addedCount }))
-  } else {
-    alert($t('sessions.allInTaskQueue'))
-  }
-}
-
-const downloadAllCamera = () => {
-  let addedCount = 0
-  sessions.value.forEach(session => {
-    // Store session data with complete course information for download service to access
-    if (props.course) {
-      DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
-        id: props.course.id,
-        title: props.course.title,
-        instructor: props.course.instructor,
-        time: props.course.time,
-        classrooms: props.course.classrooms,
-        college_name: props.course.college_name,
-        participant_count: props.course.participant_count
-      })
-    } else {
-      DataStore.setSessionData(session.session_id.toString(), session)
-    }
-
-    const added = DownloadService.addToQueue({
-      name: `camera_${props.course?.title}_${session.title}`,
-      courseTitle: props.course?.title || $t('sessions.unknownCourse'),
-      sessionTitle: session.title,
-      sessionId: session.session_id.toString(),
-      videoType: 'camera'
-    })
-    if (added) addedCount++
-  })
-
-  if (addedCount > 0) {
-    switchToDownloadTab()
-    alert($t('sessions.addedToDownloadQueue', { count: addedCount }))
-  } else {
-    alert($t('sessions.allInDownloadQueue'))
-  }
-}
-
-const downloadAllScreen = () => {
-  let addedCount = 0
-  sessions.value.forEach(session => {
-    // Store session data with complete course information for download service to access
-    if (props.course) {
-      DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
-        id: props.course.id,
-        title: props.course.title,
-        instructor: props.course.instructor,
-        time: props.course.time,
-        classrooms: props.course.classrooms,
-        college_name: props.course.college_name,
-        participant_count: props.course.participant_count
-      })
-    } else {
-      DataStore.setSessionData(session.session_id.toString(), session)
-    }
-
-    const added = DownloadService.addToQueue({
-      name: `screen_${props.course?.title}_${session.title}`,
-      courseTitle: props.course?.title || $t('sessions.unknownCourse'),
-      sessionTitle: session.title,
-      sessionId: session.session_id.toString(),
-      videoType: 'screen'
-    })
-    if (added) addedCount++
-  })
-
-  if (addedCount > 0) {
-    switchToDownloadTab()
-    alert($t('sessions.addedToDownloadQueueScreen', { count: addedCount }))
-  } else {
-    alert($t('sessions.allInDownloadQueueScreen'))
-  }
-}
-
-const switchToDownloadTab = () => {
-  // Emit event to switch to download tab in RightPanel
-  // This will be caught by the parent component
-  emit('switchToDownload')
-}
-
-const switchToTaskTab = () => {
-  // Emit event to switch to task tab in RightPanel
-  // This will be caught by the parent component
-  emit('switchToTask')
-}
+const {
+  sessions,
+  isLoading,
+  errorMessage,
+  showCourseDetails,
+  goBack,
+  selectSession,
+  toggleCourseDetails,
+  loadCourseSessions,
+  addToQueue,
+  downloadCamera,
+  downloadScreen,
+  addAllToQueue,
+  downloadAllCamera,
+  downloadAllScreen,
+  formatDuration,
+  getDayName,
+  formatDate
+} = useSessionPage({
+  course: toRef(() => props.course),
+  t,
+  onSessionSelected: (session) => emit('sessionSelected', session),
+  onBackToCourses: () => emit('backToCourses'),
+  onSwitchToDownload: () => emit('switchToDownload'),
+  onSwitchToTask: () => emit('switchToTask')
+})
 
 onMounted(() => {
   loadCourseSessions()
