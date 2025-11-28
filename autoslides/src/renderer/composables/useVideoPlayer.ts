@@ -1,5 +1,5 @@
 import { ref, shallowRef, computed, nextTick, type Ref, type ShallowRef, type ComputedRef } from 'vue'
-import Hls from 'hls.js'
+import Hls, { Events, ErrorTypes, ErrorDetails } from 'hls.js'
 import { DataStore } from '../services/dataStore'
 import { TokenManager } from '../services/authService'
 import type { SlideExtractor } from '../services/slideExtractor'
@@ -21,12 +21,20 @@ export interface PlaybackData {
   streams: { [key: string]: VideoStream }
 }
 
+// Session input type matching the video proxy service
+export interface SessionInput {
+  session_id?: string;
+  video_id?: string;
+  title: string;
+  duration?: string | number;
+  main_url?: string;
+  vga_url?: string;
+}
+
 export interface UseVideoPlayerOptions {
   mode: 'live' | 'recorded'
   streamId?: string
-  sessionId?: string
-  course: Ref<any>
-  session: Ref<any>
+  session: Ref<SessionInput | null>
   slideExtractorInstance: Ref<SlideExtractor | null>
   onTaskError?: (message: string) => void
 }
@@ -90,7 +98,7 @@ export interface UseVideoPlayerReturn {
 }
 
 export function useVideoPlayer(options: UseVideoPlayerOptions) {
-  const { mode, streamId, sessionId, course, session, slideExtractorInstance, onTaskError } = options
+  const { mode, streamId, session, slideExtractorInstance, onTaskError } = options
 
   // TokenManager instance
   const tokenManager = new TokenManager()
@@ -314,7 +322,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         hls.value.loadSource(videoUrl)
         hls.value.attachMedia(videoPlayer.value)
 
-        hls.value.on(Hls.Events.MANIFEST_PARSED, () => {
+        hls.value.on(Events.MANIFEST_PARSED, () => {
           setTimeout(() => {
             if (videoPlayer.value) {
               if (mode === 'recorded') {
@@ -367,12 +375,12 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         let networkErrorRecoveryCount = 0
         const maxRecoveryAttempts = 3
 
-        hls.value.on(Hls.Events.ERROR, async (_event, data) => {
+        hls.value.on(Events.ERROR, async (_event, data) => {
           console.error('HLS error during position restore:', _event, data)
 
           if (data.fatal) {
             switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
+              case ErrorTypes.NETWORK_ERROR:
                 if (networkErrorRecoveryCount < maxRecoveryAttempts) {
                   networkErrorRecoveryCount++
                   setTimeout(() => {
@@ -388,13 +396,13 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
                 }
                 break
 
-              case Hls.ErrorTypes.MEDIA_ERROR:
+              case ErrorTypes.MEDIA_ERROR:
                 if (mediaErrorRecoveryCount < maxRecoveryAttempts) {
                   mediaErrorRecoveryCount++
 
-                  if (data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR ||
-                      data.details === Hls.ErrorDetails.BUFFER_FULL_ERROR ||
-                      data.details === Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
+                  if (data.details === ErrorDetails.BUFFER_STALLED_ERROR ||
+                      data.details === ErrorDetails.BUFFER_FULL_ERROR ||
+                      data.details === ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
                     setTimeout(() => {
                       if (hls.value && videoPlayer.value) {
                         const currentTime = videoPlayer.value.currentTime
@@ -460,7 +468,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         hls.value.loadSource(videoUrl)
         hls.value.attachMedia(videoPlayer.value)
 
-        hls.value.on(Hls.Events.MANIFEST_PARSED, () => {
+        hls.value.on(Events.MANIFEST_PARSED, () => {
           setTimeout(() => {
             if (videoPlayer.value) {
               if (mode === 'recorded') {
@@ -495,13 +503,13 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         let networkErrorRecoveryCount = 0
         const maxRecoveryAttempts = 3
 
-        hls.value.on(Hls.Events.ERROR, async (_event, data) => {
+        hls.value.on(Events.ERROR, async (_event, data) => {
           console.error('HLS error:', _event, data)
 
           if (data.fatal) {
             isHlsRecovering = true
             switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
+              case ErrorTypes.NETWORK_ERROR:
                 if (networkErrorRecoveryCount < maxRecoveryAttempts) {
                   networkErrorRecoveryCount++
                   setTimeout(() => {
@@ -517,16 +525,16 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
                 }
                 break
 
-              case Hls.ErrorTypes.MEDIA_ERROR:
+              case ErrorTypes.MEDIA_ERROR:
                 if (mediaErrorRecoveryCount < maxRecoveryAttempts) {
                   mediaErrorRecoveryCount++
 
                   const currentPosition = videoPlayer.value?.currentTime || 0
                   const wasPlaying = videoPlayer.value ? !videoPlayer.value.paused : false
 
-                  if (data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR ||
-                      data.details === Hls.ErrorDetails.BUFFER_FULL_ERROR ||
-                      data.details === Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
+                  if (data.details === ErrorDetails.BUFFER_STALLED_ERROR ||
+                      data.details === ErrorDetails.BUFFER_FULL_ERROR ||
+                      data.details === ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
                     setTimeout(() => {
                       if (hls.value && videoPlayer.value) {
                         const skipAmount = 0.5 + (mediaErrorRecoveryCount * 0.5)
@@ -534,8 +542,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
                         hls.value.recoverMediaError()
                       }
                     }, 500)
-                  } else if (data.details === Hls.ErrorDetails.BUFFER_APPEND_ERROR ||
-                             data.details === Hls.ErrorDetails.BUFFER_APPENDING_ERROR) {
+                  } else if (data.details === ErrorDetails.BUFFER_APPEND_ERROR ||
+                             data.details === ErrorDetails.BUFFER_APPENDING_ERROR) {
                     setTimeout(() => {
                       if (hls.value && videoPlayer.value) {
                         const skipAmount = 1 + (mediaErrorRecoveryCount * 1)

@@ -507,8 +507,6 @@ const slideGallery = useSlideGallery({
 const videoPlayerComposable = useVideoPlayer({
   mode: props.mode,
   streamId: props.streamId,
-  sessionId: props.sessionId,
-  course: courseRef,
   session: sessionRef,
   slideExtractorInstance: slideExtraction.slideExtractorInstance
 })

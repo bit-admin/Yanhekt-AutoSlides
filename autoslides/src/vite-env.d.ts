@@ -99,6 +99,48 @@ interface AIFilteringResult {
 // API Response Types
 // ============================================================================
 
+// API Request Options
+interface CourseListOptions {
+  semesters?: number[];
+  page?: number;
+  pageSize?: number;
+}
+
+interface PersonalCourseListOptions {
+  page?: number;
+  pageSize?: number;
+}
+
+// Video Proxy Input Types
+interface LiveStreamInput {
+  id?: string;
+  live_id?: string;
+  title: string;
+  target?: string;
+  target_vga?: string;
+}
+
+interface RecordedSessionInput {
+  session_id?: string;
+  video_id?: string;
+  title: string;
+  duration?: string | number;
+  main_url?: string;
+  vga_url?: string;
+}
+
+// Post-processing result data structure
+interface PostProcessingResultData {
+  originalCount: number;
+  filteredCount: number;
+  removedCount: number;
+  slides: Array<{
+    id: string;
+    filename: string;
+    timestamp: string;
+  }>;
+}
+
 interface AuthResponse {
   success: boolean;
   token?: string;
@@ -338,8 +380,8 @@ interface ElectronAPI {
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStreamData>>;
     searchLiveList: (token: string, keyword: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStreamData>>;
-    getCourseList: (token: string, options: any) => Promise<PaginatedResponse<CourseData>>;
-    getPersonalCourseList: (token: string, options: any) => Promise<PaginatedResponse<CourseData>>;
+    getCourseList: (token: string, options: CourseListOptions) => Promise<PaginatedResponse<CourseData>>;
+    getPersonalCourseList: (token: string, options: PersonalCourseListOptions) => Promise<PaginatedResponse<CourseData>>;
     getCourseInfo: (courseId: string, token: string) => Promise<CourseInfoResponse>;
     getAvailableSemesters: () => Promise<SemesterInfo[]>;
   };
@@ -350,8 +392,8 @@ interface ElectronAPI {
   };
 
   video: {
-    getLiveStreamUrls: (stream: any, token: string) => Promise<VideoStreamResponse>;
-    getVideoPlaybackUrls: (session: any, token: string) => Promise<VideoStreamResponse>;
+    getLiveStreamUrls: (stream: LiveStreamInput, token: string) => Promise<VideoStreamResponse>;
+    getVideoPlaybackUrls: (session: RecordedSessionInput, token: string) => Promise<VideoStreamResponse>;
     registerClient: () => Promise<string>;
     unregisterClient: (clientId: string) => Promise<void>;
     stopProxy: () => Promise<void>;
@@ -377,7 +419,7 @@ interface ElectronAPI {
     ensureDirectory: (path: string) => Promise<SlideOperationResponse>;
     deleteSlide: (outputPath: string, filename: string) => Promise<SlideOperationResponse>;
     loadSlideImage: (filePath: string) => Promise<Uint8Array>;
-    savePostProcessingResults: (filePath: string, data: any) => Promise<void>;
+    savePostProcessingResults: (filePath: string, data: PostProcessingResultData) => Promise<void>;
   };
 
   dialog?: {

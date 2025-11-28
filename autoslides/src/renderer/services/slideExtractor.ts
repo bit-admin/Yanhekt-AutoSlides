@@ -406,7 +406,7 @@ export class SlideExtractor {
 
       // First capture, save directly
       if (!this.lastImageData) {
-        await this.saveSlide(imageData, `Slide 1`);
+        await this.saveSlide(imageData);
         this.lastImageData = imageData;
         return;
       }
@@ -451,8 +451,7 @@ export class SlideExtractor {
         console.log(`Verification ${this.currentVerification}/${this.config.verificationCount} passed`);
       } else {
         // All verifications passed, save slide
-        const slideNumber = this.extractedSlides.length + 1;
-        await this.saveSlide(this.potentialNewImageData, `Slide ${slideNumber}`);
+        await this.saveSlide(this.potentialNewImageData);
         this.lastImageData = this.potentialNewImageData;
         this.resetVerificationState();
         console.log('All verifications passed, slide saved');
@@ -475,8 +474,7 @@ export class SlideExtractor {
         console.log('Change detected, starting verification...');
       } else {
         // Save directly
-        const slideNumber = this.extractedSlides.length + 1;
-        await this.saveSlide(imageData, `Slide ${slideNumber}`);
+        await this.saveSlide(imageData);
         this.lastImageData = imageData;
         console.log('Change detected, slide saved directly');
       }
@@ -575,7 +573,7 @@ export class SlideExtractor {
   /**
    * Save extracted slide
    */
-  private async saveSlide(imageData: ImageData, _title: string): Promise<void> {
+  private async saveSlide(imageData: ImageData): Promise<void> {
     try {
       // Convert ImageData to canvas and generate data URL
       const canvas = document.createElement('canvas');

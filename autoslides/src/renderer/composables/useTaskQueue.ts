@@ -4,7 +4,7 @@ import { TaskQueue } from '../services/taskQueueService'
 import { ssimThresholdService } from '../services/ssimThresholdService'
 import type { SlideExtractor } from '../services/slideExtractor'
 import type { PlaybackData } from './useVideoPlayer'
-import Hls from 'hls.js'
+import type Hls from 'hls.js'
 
 export interface UseTaskQueueOptions {
   mode: 'live' | 'recorded'

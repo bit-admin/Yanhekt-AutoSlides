@@ -1,6 +1,6 @@
 import * as http from 'http';
 import * as url from 'url';
-import axios from 'axios';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import * as crypto from 'crypto';
 import * as https from 'https';
 import { ApiClient } from './apiClient';
@@ -28,6 +28,24 @@ export interface TokenCache {
   signature: string | null;
   lastRefresh: number;
   refreshInterval: number;
+}
+
+// Input types for service methods
+export interface LiveStreamInput {
+  id?: string;
+  live_id?: string;
+  title: string;
+  target?: string;
+  target_vga?: string;
+}
+
+export interface RecordedSessionInput {
+  session_id?: string;
+  video_id?: string;
+  title: string;
+  duration?: string | number;
+  main_url?: string;
+  vga_url?: string;
 }
 
 export class VideoProxyService {
@@ -91,7 +109,7 @@ export class VideoProxyService {
   /**
    * Get video playback URLs with anti-hotlink protection for recorded videos
    */
-  async getVideoPlaybackUrls(session: any, token: string): Promise<VideoPlaybackUrls> {
+  async getVideoPlaybackUrls(session: RecordedSessionInput, token: string): Promise<VideoPlaybackUrls> {
     try {
       // Start proxy server if not already running
       const proxyPort = await this.startVideoProxy();
@@ -106,7 +124,7 @@ export class VideoProxyService {
         session_id: session.session_id,
         video_id: session.video_id,
         title: session.title,
-        duration: session.duration,
+        duration: session.duration !== undefined ? String(session.duration) : undefined,
         streams: {}
       };
 
@@ -153,7 +171,7 @@ export class VideoProxyService {
   /**
    * Get live stream playback URLs with proxy support
    */
-  async getLiveStreamUrls(stream: any, token: string): Promise<VideoPlaybackUrls> {
+  async getLiveStreamUrls(stream: LiveStreamInput, token: string): Promise<VideoPlaybackUrls> {
     try {
       // Store the login token for dynamic token refresh
       this.loginToken = token;
@@ -314,7 +332,7 @@ export class VideoProxyService {
     this.loginToken = loginToken as string;
 
     // Set proper headers for live stream request
-    const liveHeaders: any = {
+    const liveHeaders: Record<string, string> = {
       ...this.BASE_HEADERS,
       "Host": this.extractHostFromUrl(originalUrl as string)
     };
@@ -328,7 +346,7 @@ export class VideoProxyService {
     // Retry logic with IP failover for intranet mode
     let retryCount = 0;
     const maxRetries = 3;
-    let lastError: any = null;
+    let lastError: Error | null = null;
 
     while (retryCount <= maxRetries) {
       try {
@@ -337,7 +355,7 @@ export class VideoProxyService {
 
         // Create axios instance with proper configuration
         // Use shorter timeout for live streams to fail fast and try next IP
-        const axiosConfig: any = {
+        const axiosConfig: AxiosRequestConfig = {
           headers: liveHeaders,
           timeout: this.intranetMapping.isEnabled() ? 8000 : 30000, // 8s for intranet, 30s for external
           validateStatus: function (status: number) {
@@ -457,7 +475,7 @@ export class VideoProxyService {
     );
 
     // Set proper headers for video request
-    const videoHeaders: any = {
+    const videoHeaders: Record<string, string> = {
       ...this.BASE_HEADERS,
       "Host": "cvideo.yanhekt.cn"
     };
@@ -490,19 +508,20 @@ export class VideoProxyService {
     // Proxy the request with retry logic for 403 errors
     let retryCount = 0;
     const maxRetries = 3;
-    let response: any;
+    let response: AxiosResponse | undefined;
 
     while (retryCount <= maxRetries) {
       try {
-        response = await axios.get(requestUrl, axiosConfig);
+        const currentResponse = await axios.get(requestUrl, axiosConfig);
+        response = currentResponse;
 
-        if (response.status === 200) {
+        if (currentResponse.status === 200) {
           break; // Success, exit retry loop
-        } else if (response.status === 403 && retryCount < maxRetries) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        } else if (currentResponse.status === 403 && retryCount < maxRetries) {
+          throw new Error(`HTTP ${currentResponse.status}: ${currentResponse.statusText}`);
         } else {
-          res.writeHead(response.status, { 'Content-Type': 'text/plain' });
-          res.end(`M3U8 request failed with status ${response.status}`);
+          res.writeHead(currentResponse.status, { 'Content-Type': 'text/plain' });
+          res.end(`M3U8 request failed with status ${currentResponse.status}`);
           return;
         }
 
@@ -561,7 +580,13 @@ export class VideoProxyService {
       }
     }
 
-    // Get m3u8 content and process it
+    // Get m3u8 content and process it - response is guaranteed here due to loop logic
+    if (!response) {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Failed to get M3U8 response');
+      return;
+    }
+
     let content = response.data;
 
     // Process m3u8 content to rewrite TS URLs to point to our proxy
@@ -605,7 +630,7 @@ export class VideoProxyService {
     const tsUrl = this.resolveUrl(baseUrl as string, tsFileName);
 
     let requestUrl: string;
-    let videoHeaders: any;
+    let videoHeaders: Record<string, string>;
 
     if (isLiveStream) {
       // Live stream - no encryption/signing needed, just use original URL with intranet mapping

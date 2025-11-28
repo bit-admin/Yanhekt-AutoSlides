@@ -6,7 +6,7 @@ import { MainAuthService } from './main/authService';
 import { MainApiClient } from './main/apiClient';
 import { ConfigService } from './main/configService';
 import { IntranetMappingService } from './main/intranetMappingService';
-import { VideoProxyService } from './main/videoProxyService';
+import { VideoProxyService, LiveStreamInput, RecordedSessionInput } from './main/videoProxyService';
 import { FFmpegService } from './main/ffmpegService';
 import { M3u8DownloadService } from './main/m3u8DownloadService';
 import { slideExtractionService } from './main/slideExtractionService';
@@ -524,7 +524,7 @@ ipcMain.handle('api:getAvailableSemesters', async () => {
 });
 
 // IPC handlers for video proxy
-ipcMain.handle('video:getLiveStreamUrls', async (event, stream: Record<string, unknown>, token: string) => {
+ipcMain.handle('video:getLiveStreamUrls', async (_event, stream: LiveStreamInput, token: string) => {
   try {
     return await videoProxyService.getLiveStreamUrls(stream, token);
   } catch (error) {
@@ -533,7 +533,7 @@ ipcMain.handle('video:getLiveStreamUrls', async (event, stream: Record<string, u
   }
 });
 
-ipcMain.handle('video:getVideoPlaybackUrls', async (event, session: Record<string, unknown>, token: string) => {
+ipcMain.handle('video:getVideoPlaybackUrls', async (_event, session: RecordedSessionInput, token: string) => {
   try {
     return await videoProxyService.getVideoPlaybackUrls(session, token);
   } catch (error) {
