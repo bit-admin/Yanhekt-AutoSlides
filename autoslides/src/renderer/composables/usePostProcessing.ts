@@ -63,7 +63,6 @@ export interface UsePostProcessingReturn {
 
   // Methods
   executePostProcessing: (showResultDialog?: boolean) => Promise<void>
-  processLiveModeSlide: (slide: ExtractedSlide) => Promise<void>
   parseAIError: (error: unknown) => AIFilteringError
   dismissAIError: () => void
   initConfig: () => Promise<void>
@@ -77,6 +76,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
   // State
   const isPostProcessing = ref(false)
+  const pendingAIPhase = ref(false) // Flag for queued AI phase when auto-triggered during processing
   const postProcessStatus = ref<PostProcessStatus>({
     isProcessing: false,
     currentPhase: 'idle',
@@ -394,6 +394,20 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     try {
       if (extractedSlides.value.length === 0) return
 
+      // Handle concurrent triggers
+      if (isPostProcessing.value) {
+        if (showResultDialog) {
+          // Manual trigger while processing - ignore (debounce)
+          console.log('Post-processing already in progress, ignoring manual trigger')
+          return
+        } else {
+          // Auto trigger while processing - queue AI phase for later
+          console.log('Post-processing already in progress, queuing AI phase')
+          pendingAIPhase.value = true
+          return
+        }
+      }
+
       const outputPath = slideExtractorInstance.value?.getOutputPath()
       if (!outputPath) throw new Error('Output path not found')
 
@@ -412,6 +426,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       }
 
       isPostProcessing.value = true
+      pendingAIPhase.value = false // Clear any pending flag when starting
 
       // Initialize status
       postProcessStatus.value = {
@@ -459,9 +474,19 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
       worker.terminate()
 
-      // Phase 3: AI filtering
+      // Phase 3: AI filtering (with pending queue support)
       if (ppConfig.enableAIFiltering) {
-        await runAIFiltering(deletedSlides, mode)
+        // Run AI filtering, and keep running while there are pending requests
+        do {
+          pendingAIPhase.value = false // Clear flag before running
+          await runAIFiltering(deletedSlides, mode)
+          // If pendingAIPhase was set during runAIFiltering, loop again
+          // Reset deletedSlides for re-run (all previously deleted slides are still deleted)
+          if (pendingAIPhase.value) {
+            console.log('Processing pending AI phase request...')
+            deletedSlides = [] // Reset for new AI-only pass
+          }
+        } while (pendingAIPhase.value)
       } else {
         console.log('Phase 3: AI filtering skipped (disabled)')
       }
@@ -496,171 +521,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       await window.electronAPI.dialog?.showErrorBox?.('Post-processing Failed', `Failed to execute post-processing: ${errorMessage}`)
     } finally {
       isPostProcessing.value = false
-    }
-  }
-
-  // Process a single slide in live mode (post-processing phases 1, 2, 3)
-  const processLiveModeSlide = async (slide: ExtractedSlide) => {
-    try {
-      const outputPath = slideExtractorInstance.value?.getOutputPath()
-      if (!outputPath) return
-
-      // Get pHash configuration
-      const config = await window.electronAPI.config?.getSlideExtractionConfig?.()
-      if (!config) return
-
-      const pHashThreshold = config.pHashThreshold || 10
-      const enableDuplicateRemoval = config.enableDuplicateRemoval !== false
-      const enableExclusionListPhase = config.enableExclusionList !== false
-      const exclusionList = (config.pHashExclusionList || []).filter((item: { isPreset?: boolean; isEnabled?: boolean }) => !item.isPreset || item.isEnabled !== false)
-
-      // Create post-processing worker
-      const worker = new Worker(new URL('../workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
-
-      // Helper function to calculate pHash using worker
-      const calculatePHashWithWorker = (imageData: ImageData): Promise<string> => {
-        return new Promise((resolve, reject) => {
-          const messageId = `pHash_live_${Date.now()}_${Math.random()}`
-
-          const messageHandler = (event: MessageEvent) => {
-            const { id, success, result, error } = event.data
-            if (id === messageId) {
-              worker.removeEventListener('message', messageHandler)
-              if (success) {
-                resolve(result)
-              } else {
-                reject(new Error(error))
-              }
-            }
-          }
-
-          worker.addEventListener('message', messageHandler)
-          worker.postMessage({
-            id: messageId,
-            type: 'calculatePHash',
-            data: { imageData }
-          })
-        })
-      }
-
-      // Helper function to calculate Hamming distance using worker
-      const calculateHammingDistanceWithWorker = (hash1: string, hash2: string): Promise<number> => {
-        return new Promise((resolve, reject) => {
-          const messageId = `hamming_live_${Date.now()}_${Math.random()}`
-
-          const messageHandler = (event: MessageEvent) => {
-            const { id, success, result, error } = event.data
-            if (id === messageId) {
-              worker.removeEventListener('message', messageHandler)
-              if (success) {
-                resolve(result)
-              } else {
-                reject(new Error(error))
-              }
-            }
-          }
-
-          worker.addEventListener('message', messageHandler)
-          worker.postMessage({
-            id: messageId,
-            type: 'calculateHammingDistance',
-            data: { hash1, hash2 }
-          })
-        })
-      }
-
-      // Check if imageData is valid
-      if (!slide.imageData || !slide.imageData.data) {
-        console.warn(`[Live Post-Processing] Skipping slide ${slide.title}: ImageData has been cleaned up`)
-        worker.terminate()
-        return
-      }
-
-      // Calculate pHash for the new slide
-      const pHash = await calculatePHashWithWorker(slide.imageData)
-      console.log(`[Live Post-Processing] Calculated pHash for ${slide.title}: ${pHash}`)
-
-      // Phase 1: Check for duplicates against existing slides (except itself)
-      if (enableDuplicateRemoval) {
-        const otherSlides = extractedSlides.value.filter(s => s.id !== slide.id && s.imageData && s.imageData.data)
-
-        for (const otherSlide of otherSlides) {
-          try {
-            const otherPHash = await calculatePHashWithWorker(otherSlide.imageData)
-            const hammingDistance = await calculateHammingDistanceWithWorker(pHash, otherPHash)
-
-            if (hammingDistance <= pHashThreshold) {
-              console.log(`[Live Post-Processing] Duplicate detected: ${slide.title} is similar to ${otherSlide.title} (Hamming distance: ${hammingDistance})`)
-              await deleteSlide(slide, false)
-              worker.terminate()
-              return
-            }
-          } catch (error) {
-            console.warn(`[Live Post-Processing] Failed to compare with ${otherSlide.title}:`, error)
-          }
-        }
-      }
-
-      // Phase 2: Check against exclusion list
-      if (enableExclusionListPhase) {
-        for (const exclusionItem of exclusionList) {
-          try {
-            const hammingDistance = await calculateHammingDistanceWithWorker(pHash, exclusionItem.pHash)
-            if (hammingDistance <= pHashThreshold) {
-              console.log(`[Live Post-Processing] Excluded: ${slide.title} is similar to "${exclusionItem.name}" (Hamming distance: ${hammingDistance})`)
-              await deleteSlide(slide, false)
-              worker.terminate()
-              return
-            }
-          } catch (error) {
-            console.warn(`[Live Post-Processing] Failed to compare with exclusion item "${exclusionItem.name}":`, error)
-          }
-        }
-      }
-
-      worker.terminate()
-
-      // Phase 3: AI filtering (only if not already processed)
-      if (enableAIFiltering.value && (slide.aiDecision === null || slide.aiDecision === undefined)) {
-        try {
-          const token = tokenManager.getToken() || undefined
-          const base64Image = slide.dataUrl.replace(/^data:image\/\w+;base64,/, '')
-
-          const result = await window.electronAPI.ai.classifySingleImage(
-            base64Image,
-            'live',
-            token
-          )
-
-          if (result.success && result.result) {
-            const classification = (result.result as { classification: 'slide' | 'not_slide' }).classification
-            slide.aiDecision = classification
-
-            if (classification === 'not_slide') {
-              console.log(`[Live Post-Processing] AI filtered: ${slide.title} (classified as not_slide)`)
-              await deleteSlide(slide, false)
-              return
-            } else {
-              console.log(`[Live Post-Processing] AI kept: ${slide.title} (classified as slide)`)
-            }
-            // Clear any previous error on success
-            aiFilteringError.value = { type: 'none' }
-          } else {
-            console.warn(`[Live Post-Processing] AI classification failed for ${slide.title}:`, result.error)
-            // Parse and set error
-            const parsedError = parseAIError(result)
-            aiFilteringError.value = parsedError
-          }
-        } catch (aiError) {
-          console.error(`[Live Post-Processing] AI filtering error for ${slide.title}:`, aiError)
-          // Parse and set error
-          const parsedError = parseAIError(aiError)
-          aiFilteringError.value = parsedError
-        }
-      }
-
-    } catch (error) {
-      console.error(`[Live Post-Processing] Error processing slide ${slide.title}:`, error)
+      pendingAIPhase.value = false // Clear pending flag on completion
     }
   }
 
@@ -755,7 +616,6 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
     // Methods
     executePostProcessing,
-    processLiveModeSlide,
     parseAIError,
     dismissAIError,
     initConfig

@@ -59,6 +59,7 @@ export class AIFilteringService {
   private configService: ConfigService;
   private aiPromptsService: AIPromptsService;
   private requestTimestamps: number[] = []; // timestamps of recent requests
+  private rateLimitLock: Promise<void> = Promise.resolve(); // mutex for rate limiting
 
   constructor(configService: ConfigService, aiPromptsService: AIPromptsService) {
     this.configService = configService;
@@ -67,32 +68,52 @@ export class AIFilteringService {
 
   /**
    * Check if rate limit allows a new request, and wait if necessary
-   * Returns the wait time in ms if rate limited, 0 if request can proceed immediately
+   * Uses a promise chain to serialize concurrent requests and prevent race conditions
    */
   private async enforceRateLimit(): Promise<void> {
-    const config = this.configService.getAIFilteringConfig();
-    const rateLimit = config.rateLimit || 10;
-    const now = Date.now();
-    const oneMinuteAgo = now - 60000;
+    // Chain this request to prevent race conditions
+    // Each call waits for previous calls to complete before checking/updating timestamps
+    const previousLock = this.rateLimitLock;
 
-    // Clean up old timestamps
-    this.requestTimestamps = this.requestTimestamps.filter(ts => ts > oneMinuteAgo);
+    // Create a new promise that we'll resolve when this request is done
+    let resolveCurrentLock: () => void;
+    const currentLock = new Promise<void>(resolve => {
+      resolveCurrentLock = resolve;
+    });
+    this.rateLimitLock = currentLock;
 
-    // Check if we're at the limit
-    if (this.requestTimestamps.length >= rateLimit) {
-      // Calculate wait time until the oldest request expires
-      const oldestTimestamp = this.requestTimestamps[0];
-      const waitTime = oldestTimestamp + 60000 - now + 100; // Add 100ms buffer
-      if (waitTime > 0) {
-        console.log(`[AI] Rate limit reached (${rateLimit}/min), waiting ${waitTime}ms`);
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-        // Clean up again after waiting
-        this.requestTimestamps = this.requestTimestamps.filter(ts => ts > Date.now() - 60000);
+    // Wait for previous requests to complete their rate limit check
+    await previousLock;
+
+    try {
+      const config = this.configService.getAIFilteringConfig();
+      const rateLimit = config.rateLimit || 10;
+      const now = Date.now();
+      const oneMinuteAgo = now - 60000;
+
+      // Clean up old timestamps
+      this.requestTimestamps = this.requestTimestamps.filter(ts => ts > oneMinuteAgo);
+
+      // Check if we're at the limit
+      if (this.requestTimestamps.length >= rateLimit) {
+        // Calculate wait time until the oldest request expires
+        const oldestTimestamp = this.requestTimestamps[0];
+        const waitTime = oldestTimestamp + 60000 - now + 100; // Add 100ms buffer
+        if (waitTime > 0) {
+          console.log(`[AI] Rate limit reached (${rateLimit}/min), waiting ${waitTime}ms`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          // Clean up again after waiting
+          this.requestTimestamps = this.requestTimestamps.filter(ts => ts > Date.now() - 60000);
+        }
       }
-    }
 
-    // Record this request
-    this.requestTimestamps.push(Date.now());
+      // Record this request
+      this.requestTimestamps.push(Date.now());
+    } finally {
+      // Release the lock so next request can proceed
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      resolveCurrentLock!();
+    }
   }
 
   /**
@@ -125,7 +146,19 @@ export class AIFilteringService {
   }
 
   /**
+   * Check if response data contains Cloudflare challenge page
+   */
+  private isCloudflareBlocked(data: unknown): boolean {
+    const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
+    return dataStr.includes('<!DOCTYPE') ||
+           dataStr.includes('<html') ||
+           dataStr.includes('Just a moment') ||
+           dataStr.includes('cf-mitigated');
+  }
+
+  /**
    * Fetch the model name for the built-in service
+   * @throws Error with specific message for cloudflare blocks or fetch failures
    */
   async getBuiltinModelName(token: string): Promise<string> {
     try {
@@ -137,6 +170,12 @@ export class AIFilteringService {
         timeout: 10000
       });
 
+      // Check for Cloudflare challenge page in response
+      if (this.isCloudflareBlocked(response.data)) {
+        console.error('Received Cloudflare challenge page, likely blocked by proxy/VPN');
+        throw new Error('cloudflareBlocked');
+      }
+
       // API returns: {"model":"gpt-4.1"}
       if (response.data && response.data.model) {
         return response.data.model;
@@ -144,8 +183,21 @@ export class AIFilteringService {
 
       return BUILTIN_FALLBACK_MODEL;
     } catch (error) {
+      // Re-throw cloudflare error
+      if (error instanceof Error && error.message === 'cloudflareBlocked') {
+        throw error;
+      }
+
+      // Check if axios error response contains Cloudflare block (403 with HTML)
+      if (error instanceof AxiosError && error.response) {
+        if (this.isCloudflareBlocked(error.response.data)) {
+          console.error('Received Cloudflare challenge page (403), likely blocked by proxy/VPN');
+          throw new Error('cloudflareBlocked');
+        }
+      }
+
       console.error('Failed to fetch built-in model name:', error);
-      return BUILTIN_FALLBACK_MODEL;
+      throw new Error('fetchFailed');
     }
   }
 

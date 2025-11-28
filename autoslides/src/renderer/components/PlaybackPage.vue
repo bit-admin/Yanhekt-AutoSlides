@@ -770,7 +770,7 @@ const onSlideExtracted = async (event: CustomEvent) => {
     
     // Live mode auto post-processing
     if (props.mode === 'live' && postProcessing.autoPostProcessingLive.value && !postProcessing.isPostProcessing.value) {
-      await postProcessing.processLiveModeSlide(slide)
+      await postProcessing.executePostProcessing(false)
     }
     
     // Recorded mode batch post-processing

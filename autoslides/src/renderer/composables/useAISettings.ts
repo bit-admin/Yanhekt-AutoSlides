@@ -214,17 +214,15 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     try {
       const modelName = await window.electronAPI.ai.getBuiltinModelName(token)
       console.log('[AI] refreshBuiltinModel: API response:', modelName)
-
-      if (modelName && (modelName.includes('<!DOCTYPE') || modelName.includes('<html') || modelName.includes('Just a moment'))) {
-        console.error('[AI] refreshBuiltinModel: Received Cloudflare challenge page, likely blocked by proxy/VPN')
-        builtinModelError.value = 'cloudflareBlocked'
-        builtinModelName.value = ''
-      } else {
-        builtinModelName.value = modelName
-      }
+      builtinModelName.value = modelName
     } catch (error) {
       console.error('[AI] refreshBuiltinModel: Failed to fetch built-in model name:', error)
-      builtinModelError.value = 'fetchFailed'
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      if (errorMessage.includes('cloudflareBlocked')) {
+        builtinModelError.value = 'cloudflareBlocked'
+      } else {
+        builtinModelError.value = 'fetchFailed'
+      }
       builtinModelName.value = ''
     } finally {
       isLoadingBuiltinModel.value = false

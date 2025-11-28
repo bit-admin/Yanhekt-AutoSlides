@@ -1,10 +1,10 @@
 import { defineConfig } from 'vite';
 
 // https://vitejs.dev/config
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   build: {
-    minify: 'terser',
-    terserOptions: {
+    minify: mode === 'production' ? 'terser' : false,
+    terserOptions: mode === 'production' ? {
       compress: {
         drop_console: true,
         drop_debugger: true,
@@ -13,9 +13,9 @@ export default defineConfig({
       format: {
         comments: false
       }
-    },
+    } : undefined,
     rollupOptions: {
       external: ['electron']
     }
   }
-});
+}));

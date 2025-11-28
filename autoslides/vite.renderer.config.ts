@@ -2,11 +2,11 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 
 // https://vitejs.dev/config
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [vue()],
   build: {
-    minify: 'terser',
-    terserOptions: {
+    minify: mode === 'production' ? 'terser' : false,
+    terserOptions: mode === 'production' ? {
       compress: {
         drop_console: true,
         drop_debugger: true,
@@ -15,7 +15,7 @@ export default defineConfig({
       format: {
         comments: false
       }
-    },
+    } : undefined,
     rollupOptions: {
       external: ['electron'],
       output: {
@@ -43,4 +43,4 @@ export default defineConfig({
   server: {
     port: 5173
   }
-});
+}));
