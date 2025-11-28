@@ -455,9 +455,8 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'vue'
-import type { Course, Session } from '../types/playback'
 import { useVideoPlayer } from '../composables/useVideoPlayer'
-import { useSlideExtraction } from '../composables/useSlideExtraction'
+import { useSlideExtraction, type Course, type Session } from '../composables/useSlideExtraction'
 import { usePostProcessing } from '../composables/usePostProcessing'
 import { useTaskQueue } from '../composables/useTaskQueue'
 import { usePerformanceOptimization } from '../composables/usePerformanceOptimization'

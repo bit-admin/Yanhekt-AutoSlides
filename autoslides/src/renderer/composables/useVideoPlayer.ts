@@ -2,8 +2,24 @@ import { ref, shallowRef, computed, nextTick, type Ref, type ShallowRef, type Co
 import Hls from 'hls.js'
 import { DataStore } from '../services/dataStore'
 import { TokenManager } from '../services/authService'
-import type { PlaybackData, VideoStream } from '../types/playback'
 import type { SlideExtractor } from '../services/slideExtractor'
+
+// Types for video player
+export interface VideoStream {
+  type: 'camera' | 'screen'
+  name: string
+  url: string
+  original_url: string
+}
+
+export interface PlaybackData {
+  session_id?: string
+  stream_id?: string
+  video_id?: string
+  title: string
+  duration?: string
+  streams: { [key: string]: VideoStream }
+}
 
 export interface UseVideoPlayerOptions {
   mode: 'live' | 'recorded'
@@ -264,15 +280,6 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
 
         await nextTick()
         await loadVideoSource()
-
-        // Auto-refresh for live mode with internal connection on first load only
-        if (mode === 'live' && connectionMode.value === 'internal' && !(window as any).__liveProxyWarmedUp) {
-          (window as any).__liveProxyWarmedUp = true
-          setTimeout(() => {
-            console.log('Auto-refreshing live stream for internal connection mode (first time warmup)')
-            loadVideoSource()
-          }, 1000)
-        }
       } else {
         throw new Error('No video streams available')
       }

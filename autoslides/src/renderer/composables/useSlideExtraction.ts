@@ -1,7 +1,54 @@
 import { ref, shallowRef, type Ref, type ShallowRef } from 'vue'
 import { slideExtractionManager, type SlideExtractor, type ExtractedSlide } from '../services/slideExtractor'
 import { ssimThresholdService } from '../services/ssimThresholdService'
-import type { SlideExtractionStatus, Course, Session } from '../types/playback'
+
+// Types for slide extraction
+export interface SlideExtractionStatus {
+  isRunning: boolean
+  slideCount: number
+  verificationState: string
+  currentVerification: number
+}
+
+export interface Course {
+  id: string
+  title: string
+  instructor: string
+  time: string
+  status?: number
+  subtitle?: string
+  schedule_started_at?: string
+  schedule_ended_at?: string
+  participant_count?: number
+  session?: {
+    professor?: {
+      name: string
+    }
+    section_group_title?: string
+  }
+  target?: string // Camera stream URL
+  target_vga?: string // Screen stream URL
+  // Record mode specific fields
+  professors?: string[]
+  classrooms?: { name: string }[]
+  school_year?: string
+  semester?: string
+  college_name?: string
+}
+
+export interface Session {
+  id: string
+  session_id: string
+  video_id: string
+  title: string
+  duration: number
+  week_number: number
+  day: number
+  started_at: string
+  ended_at: string
+  main_url?: string
+  vga_url?: string
+}
 
 export interface UseSlideExtractionOptions {
   mode: 'live' | 'recorded'

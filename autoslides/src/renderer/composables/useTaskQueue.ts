@@ -2,8 +2,8 @@ import { ref, computed, type Ref, type ShallowRef, type ComputedRef } from 'vue'
 import { DataStore } from '../services/dataStore'
 import { TaskQueue } from '../services/taskQueueService'
 import { ssimThresholdService } from '../services/ssimThresholdService'
-import type { PlaybackData } from '../types/playback'
 import type { SlideExtractor } from '../services/slideExtractor'
+import type { PlaybackData } from './useVideoPlayer'
 import Hls from 'hls.js'
 
 export interface UseTaskQueueOptions {

@@ -1,9 +1,9 @@
 // Composables index - export all composables for easy importing
 
 // PlaybackPage composables
-export { useVideoPlayer, type UseVideoPlayerOptions, type UseVideoPlayerReturn } from './useVideoPlayer'
-export { useSlideExtraction, type UseSlideExtractionOptions, type UseSlideExtractionReturn } from './useSlideExtraction'
-export { usePostProcessing, type UsePostProcessingOptions, type UsePostProcessingReturn } from './usePostProcessing'
+export { useVideoPlayer, type UseVideoPlayerOptions, type UseVideoPlayerReturn, type VideoStream, type PlaybackData } from './useVideoPlayer'
+export { useSlideExtraction, type UseSlideExtractionOptions, type UseSlideExtractionReturn, type SlideExtractionStatus, type Course as PlaybackCourse, type Session as PlaybackSession } from './useSlideExtraction'
+export { usePostProcessing, type UsePostProcessingOptions, type UsePostProcessingReturn, type AIFilteringError, type PostProcessStatus, type SlideHash, type DuplicateInfo, type PostProcessingConfig } from './usePostProcessing'
 export { useTaskQueue, type UseTaskQueueOptions, type UseTaskQueueReturn } from './useTaskQueue'
 export { usePerformanceOptimization, type UsePerformanceOptimizationOptions, type UsePerformanceOptimizationReturn } from './usePerformanceOptimization'
 export { useSlideGallery, type UseSlideGalleryOptions, type UseSlideGalleryReturn } from './useSlideGallery'

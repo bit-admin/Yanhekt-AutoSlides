@@ -1,7 +1,48 @@
 import { ref, type Ref, type ShallowRef } from 'vue'
 import { TokenManager } from '../services/authService'
 import type { ExtractedSlide, SlideExtractor } from '../services/slideExtractor'
-import type { PostProcessStatus, AIFilteringError, SlideHash, DuplicateInfo, PostProcessingConfig } from '../types/playback'
+
+// Types for post-processing
+export interface AIFilteringError {
+  type: 'none' | '403' | '413' | 'http' | 'unknown'
+  httpCode?: number
+  message?: string
+}
+
+export interface PostProcessStatus {
+  isProcessing: boolean
+  currentPhase: 'idle' | 'phase1' | 'phase2' | 'phase3' | 'completed'
+  currentIndex: number
+  totalCount: number
+  duplicatesRemoved: number
+  excludedRemoved: number
+  aiFiltered: number
+  phase1Skipped: boolean
+  phase2Skipped: boolean
+  phase3Skipped: boolean
+}
+
+export interface SlideHash {
+  slide: ExtractedSlide
+  filename: string
+  pHash: string
+  error?: string
+}
+
+export interface DuplicateInfo {
+  slide: ExtractedSlide
+  filename: string
+  pHash: string
+  duplicateOf: string
+}
+
+export interface PostProcessingConfig {
+  pHashThreshold: number
+  enableDuplicateRemoval: boolean
+  enableExclusionList: boolean
+  enableAIFiltering: boolean
+  exclusionList: Array<{ name: string; pHash: string }>
+}
 
 export interface UsePostProcessingOptions {
   mode: 'live' | 'recorded'
