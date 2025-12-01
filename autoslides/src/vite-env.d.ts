@@ -399,6 +399,7 @@ interface ElectronAPI {
     registerClient: () => Promise<string>;
     unregisterClient: (clientId: string) => Promise<void>;
     stopProxy: () => Promise<void>;
+    stopSignatureLoop: () => Promise<void>;
   };
 
   ffmpeg: {

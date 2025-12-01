@@ -193,6 +193,7 @@
             @loadedmetadata="onLoadedMetadata"
             @error="onVideoError"
             @canplay="onCanPlay"
+            @ended="onEnded"
             @volumechange="preventUnmute"
             @enterpictureinpicture="onEnterPictureInPicture"
             @leavepictureinpicture="onLeavePictureInPicture"
@@ -604,7 +605,7 @@ const onLeavePictureInPicture = () => {
 }
 
 // Delegate methods to composables
-const { switchStream, changePlaybackRate, retryLoad, onLoadStart, onLoadedMetadata, onVideoError, onCanPlay, preventUnmute } = videoPlayerComposable
+const { switchStream, changePlaybackRate, retryLoad, onLoadStart, onLoadedMetadata, onVideoError, onCanPlay, onEnded, preventUnmute } = videoPlayerComposable
 const { toggleSlideExtraction } = slideExtraction
 const { executePostProcessing, dismissAIError } = postProcessing
 const { openSlideModal, closeSlideModal, deleteSlide, clearAllSlides, formatSlideTime } = slideGallery

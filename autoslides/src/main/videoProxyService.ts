@@ -838,11 +838,23 @@ export class VideoProxyService {
   }
 
   /**
-   * Refresh video token and signature (simplified version for consistent behavior)
+   * Refresh video token and signature (with caching to avoid excessive API calls)
    */
   private async refreshTokenAndSignature(): Promise<TokenCache> {
     try {
-      // Always get fresh token and signature (like m3u8DownloadService)
+      const now = Date.now();
+      const timeSinceLastRefresh = now - this.tokenCache.lastRefresh;
+
+      // Return cached token if still valid (within refresh interval)
+      if (this.tokenCache.videoToken && timeSinceLastRefresh < this.tokenCache.refreshInterval) {
+        // Still update signature for each request (signature is local, no API call)
+        const { timestamp, signature } = this.getSignature();
+        this.tokenCache.timestamp = timestamp;
+        this.tokenCache.signature = signature;
+        return this.tokenCache;
+      }
+
+      // Token expired or not cached, get fresh token
       const videoToken = await this.getToken();
       const { timestamp, signature } = this.getSignature();
 
@@ -979,6 +991,15 @@ export class VideoProxyService {
     // For backward compatibility, we'll force stop if called directly
     // But this breaks independence, so it should be avoided
     this.forceStopVideoProxy();
+  }
+
+  /**
+   * Stop only the signature update loop (called when playback ends)
+   * This stops token refresh without stopping the proxy server
+   */
+  stopSignatureLoop(): void {
+    console.log('Stopping signature update loop (playback ended)');
+    this.stopUpdateSignatureLoop();
   }
 
   /**

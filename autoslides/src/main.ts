@@ -573,6 +573,16 @@ ipcMain.handle('video:stopProxy', async () => {
   }
 });
 
+ipcMain.handle('video:stopSignatureLoop', async () => {
+  try {
+    videoProxyService.stopSignatureLoop();
+    console.log('Video signature loop stopped');
+  } catch (error) {
+    console.error('Failed to stop signature loop:', error);
+    throw error;
+  }
+});
+
 // IPC handlers for FFmpeg
 ipcMain.handle('ffmpeg:getPath', async () => {
   return ffmpegService.getFfmpegPath();

@@ -101,6 +101,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     registerClient: () => ipcRenderer.invoke('video:registerClient'),
     unregisterClient: (clientId: string) => ipcRenderer.invoke('video:unregisterClient', clientId),
     stopProxy: () => ipcRenderer.invoke('video:stopProxy'),
+    stopSignatureLoop: () => ipcRenderer.invoke('video:stopSignatureLoop'),
   },
   ffmpeg: {
     getPath: () => ipcRenderer.invoke('ffmpeg:getPath'),

@@ -88,6 +88,7 @@ export interface UseVideoPlayerReturn {
   onLoadedMetadata: () => void
   onVideoError: (event: Event) => Promise<void>
   onCanPlay: () => void
+  onEnded: () => Promise<void>
   preventUnmute: (event: Event) => void
 
   // Utility
@@ -821,6 +822,15 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     }, 1500)
   }
 
+  const onEnded = async () => {
+    console.log('Video playback ended, stopping signature loop')
+    try {
+      await window.electronAPI.video.stopSignatureLoop()
+    } catch (err) {
+      console.error('Failed to stop signature loop on video end:', err)
+    }
+  }
+
   const preventUnmute = (event: Event) => {
     if (shouldVideoMute.value && videoPlayer.value) {
       event.preventDefault()
@@ -923,6 +933,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     onLoadedMetadata,
     onVideoError,
     onCanPlay,
+    onEnded,
     preventUnmute,
 
     // Utility
