@@ -904,6 +904,22 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Image Resize Setting -->
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.ai.imageResize') }}</label>
+                <div class="setting-description">{{ $t('advanced.ai.imageResizeDescription') }}</div>
+                <div class="downsampling-presets">
+                  <button
+                    v-for="preset in imageResizePresets"
+                    :key="preset.key"
+                    @click="selectedImageResizePreset = preset.key; onImageResizePresetChange()"
+                    :class="['preset-btn', { active: selectedImageResizePreset === preset.key }]"
+                  >
+                    {{ preset.label }}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <div class="advanced-setting-section">
@@ -1168,6 +1184,9 @@ const {
   tempAiRateLimit,
   tempAiBatchSize,
   maxAiRateLimit,
+  selectedImageResizePreset,
+  imageResizePresets,
+  onImageResizePresetChange,
   tempAiPromptLive,
   tempAiPromptRecorded,
   builtinModelName,

@@ -213,6 +213,88 @@ export class SlideExtractionService {
   }
 
   /**
+   * Read slide image as base64 string
+   */
+  async readSlideAsBase64(outputPath: string, filename: string): Promise<string> {
+    try {
+      // Expand tilde in path
+      const expandedPath = outputPath.startsWith('~')
+        ? path.join(os.homedir(), outputPath.slice(1))
+        : outputPath;
+
+      // Validate filename to prevent directory traversal attacks
+      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        throw new Error('Invalid filename: contains path traversal characters');
+      }
+
+      // Ensure filename has .png extension and starts with Slide_
+      if (!filename.endsWith('.png') || !filename.startsWith('Slide_')) {
+        throw new Error('Invalid filename: must be a slide PNG file (Slide_*.png)');
+      }
+
+      // Full file path
+      const filePath = path.join(expandedPath, filename);
+
+      // Verify the file exists and is within the expected directory
+      const resolvedFilePath = path.resolve(filePath);
+      const resolvedOutputPath = path.resolve(expandedPath);
+
+      if (!resolvedFilePath.startsWith(resolvedOutputPath)) {
+        throw new Error('Invalid file path: file is outside the output directory');
+      }
+
+      // Check if file exists
+      const stats = await fs.stat(resolvedFilePath);
+      if (!stats.isFile()) {
+        throw new Error('Path is not a file');
+      }
+
+      // Read the file and convert to base64
+      const buffer = await fs.readFile(resolvedFilePath);
+      const base64 = buffer.toString('base64');
+
+      console.log(`Slide read as base64 successfully: ${resolvedFilePath}`);
+      return base64;
+    } catch (error) {
+      console.error('Failed to read slide as base64:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * List all slide files in a directory
+   */
+  async listSlides(outputPath: string): Promise<string[]> {
+    try {
+      // Expand tilde in path
+      const expandedPath = outputPath.startsWith('~')
+        ? path.join(os.homedir(), outputPath.slice(1))
+        : outputPath;
+
+      // Check if directory exists
+      const dirExists = await this.directoryExists(expandedPath);
+      if (!dirExists) {
+        return [];
+      }
+
+      // Read directory and filter for slide files
+      const files = await fs.readdir(expandedPath);
+      const slideFiles = files.filter(file =>
+        file.startsWith('Slide_') && file.endsWith('.png')
+      );
+
+      // Sort by filename (which includes timestamp)
+      slideFiles.sort();
+
+      console.log(`Found ${slideFiles.length} slides in ${expandedPath}`);
+      return slideFiles;
+    } catch (error) {
+      console.error('Failed to list slides:', error);
+      return [];
+    }
+  }
+
+  /**
    * Clean up old slide files (optional utility)
    */
   async cleanupOldSlides(dirPath: string, maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): Promise<number> {

@@ -1,4 +1,5 @@
 import { reactive, computed } from 'vue'
+import { PostProcessingService, type PostProcessJob } from './postProcessingService'
 
 export type TaskStatus = 'queued' | 'in_progress' | 'error' | 'completed'
 
@@ -15,6 +16,10 @@ export interface TaskItem {
   createdAt: number
   startedAt?: number
   completedAt?: number
+  // Post-processing tracking
+  postProcessJobId?: string
+  outputPath?: string
+  extractedSlideFiles?: string[]
 }
 
 export interface TaskQueueState {
@@ -319,6 +324,40 @@ class TaskQueueService {
   // Check if queue is empty
   get isEmpty(): boolean {
     return this.state.tasks.length === 0
+  }
+
+  // Start post-processing for a completed task
+  startPostProcessing(taskId: string, outputPath: string, imageFiles: string[]): string | null {
+    const task = this.state.tasks.find(t => t.id === taskId)
+    if (!task) {
+      console.warn(`[TaskQueue] Cannot start post-processing: task ${taskId} not found`)
+      return null
+    }
+
+    if (imageFiles.length === 0) {
+      console.log(`[TaskQueue] No images to post-process for task ${taskId}`)
+      return null
+    }
+
+    // Store info on the task
+    task.outputPath = outputPath
+    task.extractedSlideFiles = imageFiles
+
+    // Create post-processing job
+    const jobId = PostProcessingService.addJob(taskId, outputPath, imageFiles)
+    task.postProcessJobId = jobId
+
+    console.log(`[TaskQueue] Started post-processing job ${jobId} for task ${taskId}`)
+    return jobId
+  }
+
+  // Get post-processing job for a task
+  getPostProcessJob(taskId: string): PostProcessJob | undefined {
+    const task = this.state.tasks.find(t => t.id === taskId)
+    if (!task || !task.postProcessJobId) {
+      return undefined
+    }
+    return PostProcessingService.getJob(task.postProcessJobId)
   }
 }
 

@@ -74,6 +74,8 @@ interface AIFilteringConfig {
   customModelName: string;
   rateLimit: number; // requests per minute, default 10
   batchSize: number; // number of images per batch for recorded mode, default 4
+  imageResizeWidth: number; // width to resize images before sending to AI, default 768
+  imageResizeHeight: number; // height to resize images before sending to AI, default 432
 }
 
 interface AIPrompts {
@@ -418,6 +420,8 @@ interface ElectronAPI {
     saveSlide: (outputPath: string, filename: string, imageBuffer: Uint8Array) => Promise<SlideOperationResponse>;
     ensureDirectory: (path: string) => Promise<SlideOperationResponse>;
     deleteSlide: (outputPath: string, filename: string) => Promise<SlideOperationResponse>;
+    readSlideAsBase64: (outputPath: string, filename: string) => Promise<string>;
+    listSlides: (outputPath: string) => Promise<string[]>;
     loadSlideImage: (filePath: string) => Promise<Uint8Array>;
     savePostProcessingResults: (filePath: string, data: PostProcessingResultData) => Promise<void>;
   };

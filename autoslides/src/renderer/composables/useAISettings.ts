@@ -13,6 +13,13 @@ export interface ModelPreset {
   name: string
 }
 
+export interface ImageResizePreset {
+  key: string
+  label: string
+  width: number
+  height: number
+}
+
 export interface UseAISettingsOptions {
   tokenManager: TokenManager
 }
@@ -38,6 +45,14 @@ export interface UseAISettingsReturn {
   tempAiBatchSize: Ref<number>
   maxAiRateLimit: ComputedRef<number>
 
+  // Image resize settings
+  aiImageResizeWidth: Ref<number>
+  tempAiImageResizeWidth: Ref<number>
+  aiImageResizeHeight: Ref<number>
+  tempAiImageResizeHeight: Ref<number>
+  selectedImageResizePreset: Ref<string>
+  imageResizePresets: ImageResizePreset[]
+
   // AI prompts
   aiPromptLive: Ref<string>
   tempAiPromptLive: Ref<string>
@@ -61,6 +76,7 @@ export interface UseAISettingsReturn {
   refreshBuiltinModel: () => Promise<void>
   onApiUrlPresetChange: () => void
   onModelPresetChange: () => void
+  onImageResizePresetChange: () => void
   resetAiPrompt: (type: 'live' | 'recorded') => Promise<void>
   updateAiBatchSize: () => void
   openCustomServiceDocs: () => Promise<void>
@@ -93,6 +109,21 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
   const maxAiRateLimit = computed(() => {
     return tempAiServiceType.value === 'builtin' ? 10 : 60
   })
+
+  // Image resize settings
+  const aiImageResizeWidth = ref(768)
+  const tempAiImageResizeWidth = ref(768)
+  const aiImageResizeHeight = ref(432)
+  const tempAiImageResizeHeight = ref(432)
+  const selectedImageResizePreset = ref('768x432')
+
+  // Image resize presets
+  const imageResizePresets: ImageResizePreset[] = [
+    { key: '1920x1080', label: 'Original (1920x1080)', width: 1920, height: 1080 },
+    { key: '1024x576', label: '1024x576', width: 1024, height: 576 },
+    { key: '768x432', label: '768x432 (Default)', width: 768, height: 432 },
+    { key: '512x288', label: '512x288', width: 512, height: 288 }
+  ]
 
   // AI prompts
   const aiPromptLive = ref('')
@@ -139,6 +170,18 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
         tempAiRateLimit.value = aiConfig.rateLimit || 10
         aiBatchSize.value = aiConfig.batchSize || 4
         tempAiBatchSize.value = aiConfig.batchSize || 4
+
+        // Load image resize settings
+        aiImageResizeWidth.value = aiConfig.imageResizeWidth || 768
+        tempAiImageResizeWidth.value = aiConfig.imageResizeWidth || 768
+        aiImageResizeHeight.value = aiConfig.imageResizeHeight || 432
+        tempAiImageResizeHeight.value = aiConfig.imageResizeHeight || 432
+
+        // Find matching preset
+        const matchingPreset = imageResizePresets.find(
+          p => p.width === aiImageResizeWidth.value && p.height === aiImageResizeHeight.value
+        )
+        selectedImageResizePreset.value = matchingPreset?.key || '768x432'
       }
 
       const prompts = await window.electronAPI.config.getAIPrompts()
@@ -170,7 +213,9 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
         customApiKey: tempAiCustomApiKey.value,
         customModelName: tempAiCustomModelName.value,
         rateLimit: effectiveRateLimit,
-        batchSize: effectiveBatchSize
+        batchSize: effectiveBatchSize,
+        imageResizeWidth: tempAiImageResizeWidth.value,
+        imageResizeHeight: tempAiImageResizeHeight.value
       })
 
       // Update actual values
@@ -182,6 +227,8 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
       tempAiRateLimit.value = effectiveRateLimit
       aiBatchSize.value = effectiveBatchSize
       tempAiBatchSize.value = effectiveBatchSize
+      aiImageResizeWidth.value = tempAiImageResizeWidth.value
+      aiImageResizeHeight.value = tempAiImageResizeHeight.value
 
       // Save AI prompts
       if (tempAiPromptLive.value !== aiPromptLive.value) {
@@ -242,6 +289,15 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     }
   }
 
+  // Image resize preset handler
+  const onImageResizePresetChange = () => {
+    const preset = imageResizePresets.find(p => p.key === selectedImageResizePreset.value)
+    if (preset) {
+      tempAiImageResizeWidth.value = preset.width
+      tempAiImageResizeHeight.value = preset.height
+    }
+  }
+
   // Reset AI prompt
   const resetAiPrompt = async (type: 'live' | 'recorded') => {
     try {
@@ -280,10 +336,17 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     tempAiCustomModelName.value = aiCustomModelName.value
     tempAiRateLimit.value = aiRateLimit.value
     tempAiBatchSize.value = aiBatchSize.value
+    tempAiImageResizeWidth.value = aiImageResizeWidth.value
+    tempAiImageResizeHeight.value = aiImageResizeHeight.value
     tempAiPromptLive.value = aiPromptLive.value
     tempAiPromptRecorded.value = aiPromptRecorded.value
     selectedApiUrlPreset.value = ''
     selectedModelPreset.value = ''
+    // Find matching preset for image resize
+    const matchingPreset = imageResizePresets.find(
+      p => p.width === aiImageResizeWidth.value && p.height === aiImageResizeHeight.value
+    )
+    selectedImageResizePreset.value = matchingPreset?.key || '768x432'
     showApiKey.value = false
   }
 
@@ -308,6 +371,14 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     tempAiBatchSize,
     maxAiRateLimit,
 
+    // Image resize settings
+    aiImageResizeWidth,
+    tempAiImageResizeWidth,
+    aiImageResizeHeight,
+    tempAiImageResizeHeight,
+    selectedImageResizePreset,
+    imageResizePresets,
+
     // AI prompts
     aiPromptLive,
     tempAiPromptLive,
@@ -331,6 +402,7 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     refreshBuiltinModel,
     onApiUrlPresetChange,
     onModelPresetChange,
+    onImageResizePresetChange,
     resetAiPrompt,
     updateAiBatchSize,
     openCustomServiceDocs,

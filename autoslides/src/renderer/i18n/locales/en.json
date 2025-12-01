@@ -231,6 +231,8 @@
       "batchSize": "Batch Size",
       "batchSizeDescription": "Number of images per AI request in recorded mode. Smaller values improve AI accuracy, while larger values may trigger 413 payload errors.",
       "batchSizeUnit": "images/request",
+      "imageResize": "Image Resize for AI",
+      "imageResizeDescription": "Resize images before sending to AI. Smaller images reduce payload size and API costs.",
       "prompts": "AI Prompts",
       "promptLive": "Prompt for Live Mode",
       "promptLiveDescription": "The prompt used for classifying slides during live streaming. This processes one image at a time.",
@@ -287,7 +289,12 @@
     "completed": "Completed",
     "error": "Error",
     "noTasks": "No slide extraction tasks in queue",
-    "noTasksDescription": "Add recorded sessions to queue to automatically extract slides"
+    "noTasksDescription": "Add recorded sessions to queue to automatically extract slides",
+    "aiQueued": "AI queued",
+    "aiProcessing": "AI Processing",
+    "aiDone": "AI done",
+    "aiFailed": "AI failed",
+    "failedCount": "{count} failed"
   },
   "downloads": {
     "downloadList": "Download List",

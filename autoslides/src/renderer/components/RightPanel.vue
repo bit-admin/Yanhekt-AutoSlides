@@ -102,6 +102,26 @@
                     <span v-else-if="item.status === 'error'">{{ item.error || $t('tasks.error') }}</span>
                   </div>
                 </div>
+                <!-- Post-processing status indicator -->
+                <div v-if="getPostProcessJob(item.id)" class="post-process-status" :class="[`pp-status-${getPostProcessJob(item.id)?.status}`]">
+                  <svg v-if="getPostProcessJob(item.id)?.status === 'processing'" class="pp-icon spinning" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 2a10 10 0 0 1 10 10"/>
+                  </svg>
+                  <svg v-else-if="getPostProcessJob(item.id)?.status === 'completed'" class="pp-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20,6 9,17 4,12"/>
+                  </svg>
+                  <svg v-else-if="getPostProcessJob(item.id)?.status === 'failed'" class="pp-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                  </svg>
+                  <svg v-else class="pp-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12,6 12,12 16,14"/>
+                  </svg>
+                  <span class="pp-text">{{ getPostProcessStatusText(getPostProcessJob(item.id)) }}</span>
+                </div>
               </div>
 
               <div class="item-actions">
@@ -257,6 +277,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { DownloadService, type DownloadItem } from '../services/downloadService'
 import { TaskQueue, taskQueueState, type TaskItem } from '../services/taskQueueService'
+import { PostProcessingService, postProcessingState, type PostProcessJob } from '../services/postProcessingService'
 
 type Tab = 'task' | 'download'
 
@@ -280,6 +301,32 @@ const downloadState = ref<TabState>({
 // Task management
 const taskItems = computed(() => TaskQueue.tasks)
 const taskStats = computed(() => taskQueueState.value)
+
+// Get post-processing job for a task
+const getPostProcessJob = (taskId: string): PostProcessJob | undefined => {
+  return TaskQueue.getPostProcessJob(taskId)
+}
+
+// Format post-processing status
+const getPostProcessStatusText = (job: PostProcessJob | undefined): string => {
+  if (!job) return ''
+
+  switch (job.status) {
+    case 'queued':
+      return 'AI queued'
+    case 'processing':
+      return `AI ${job.progress.completed + job.progress.failed}/${job.progress.total}`
+    case 'completed':
+      if (job.progress.failed > 0) {
+        return `AI done (${job.progress.failed} failed)`
+      }
+      return 'AI done'
+    case 'failed':
+      return 'AI failed'
+    default:
+      return ''
+  }
+}
 
 // Download management
 const downloadItems = computed(() => DownloadService.downloadItems)
@@ -698,6 +745,52 @@ defineExpose({
   color: #666;
 }
 
+/* Post-processing status indicator */
+.post-process-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  background-color: #f0f0f0;
+  color: #666;
+  width: fit-content;
+}
+
+.post-process-status.pp-status-queued {
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+
+.post-process-status.pp-status-processing {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.post-process-status.pp-status-completed {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.post-process-status.pp-status-failed {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.pp-icon {
+  flex-shrink: 0;
+}
+
+.pp-icon.spinning {
+  animation: spin 1s linear infinite;
+}
+
+.pp-text {
+  white-space: nowrap;
+}
+
 .item-actions {
   flex-shrink: 0;
 }
@@ -953,6 +1046,32 @@ defineExpose({
 
   .progress-text {
     color: #bdbdbd;
+  }
+
+  /* Post-processing status dark mode */
+  .post-process-status {
+    background-color: #404040;
+    color: #bdbdbd;
+  }
+
+  .post-process-status.pp-status-queued {
+    background-color: #3a3a3a;
+    color: #9e9e9e;
+  }
+
+  .post-process-status.pp-status-processing {
+    background-color: #1a3a4a;
+    color: #4fc3f7;
+  }
+
+  .post-process-status.pp-status-completed {
+    background-color: #2e4a2e;
+    color: #81c784;
+  }
+
+  .post-process-status.pp-status-failed {
+    background-color: #4a2c35;
+    color: #f48fb1;
   }
 
   .cancel-item-btn {

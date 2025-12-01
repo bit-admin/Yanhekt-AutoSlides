@@ -231,6 +231,8 @@
       "batchSize": "批量大小",
       "batchSizeDescription": "录播模式下每次 AI 请求处理的图像数量。较小的值可提高 AI 准确性，较大的值可能触发 413 负载过大错误。",
       "batchSizeUnit": "张/请求",
+      "imageResize": "AI 图像缩放",
+      "imageResizeDescription": "发送至 AI 前缩放图像。较小的图像可减少负载大小和 API 成本。",
       "prompts": "AI 提示词",
       "promptLive": "直播模式提示词",
       "promptLiveDescription": "用于直播流中幻灯片分类的提示词。每次处理一张图像。",
@@ -287,7 +289,12 @@
     "completed": "已完成",
     "error": "错误",
     "noTasks": "幻灯片提取任务队列为空",
-    "noTasksDescription": "将录播课程添加到队列以自动提取幻灯片"
+    "noTasksDescription": "将录播课程添加到队列以自动提取幻灯片",
+    "aiQueued": "AI 排队中",
+    "aiProcessing": "AI 处理中",
+    "aiDone": "AI 完成",
+    "aiFailed": "AI 失败",
+    "failedCount": "{count} 失败"
   },
   "downloads": {
     "downloadList": "下载列表",

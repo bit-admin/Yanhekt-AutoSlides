@@ -125,6 +125,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ensureDirectory: (path: string) => ipcRenderer.invoke('slideExtraction:ensureDirectory', path),
     deleteSlide: (outputPath: string, filename: string) =>
       ipcRenderer.invoke('slideExtraction:deleteSlide', outputPath, filename),
+    readSlideAsBase64: (outputPath: string, filename: string) =>
+      ipcRenderer.invoke('slideExtraction:readSlideAsBase64', outputPath, filename),
+    listSlides: (outputPath: string) =>
+      ipcRenderer.invoke('slideExtraction:listSlides', outputPath),
   },
   dialog: {
     showMessageBox: (options: Electron.MessageBoxOptions) => ipcRenderer.invoke('dialog:showMessageBox', options),

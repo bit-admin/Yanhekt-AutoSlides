@@ -281,8 +281,9 @@
             </div>
           </div>
 
-          <!-- Post-processing Status Bar (always visible when slides exist) -->
-          <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0" class="post-process-status-bar">
+          <!-- Post-processing Status Bar (only visible for manual post-processing or live mode) -->
+          <!-- In recorded task mode, post-processing progress is shown in RightPanel.vue -->
+          <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0 && (mode === 'live' || !isTaskRunning)" class="post-process-status-bar">
             <div class="status-bar-content">
               <!-- Phase 1: Duplicate Removal -->
               <div class="phase-progress-item">
@@ -548,7 +549,6 @@ const taskQueue = useTaskQueue({
   autoPostProcessing: postProcessing.autoPostProcessing,
   switchStream: videoPlayerComposable.switchStream,
   toggleSlideExtraction: slideExtraction.toggleSlideExtraction,
-  executePostProcessing: postProcessing.executePostProcessing,
   resetErrorCounters: videoPlayerComposable.resetErrorCounters
 })
 
@@ -771,19 +771,14 @@ const onSlideExtracted = async (event: CustomEvent) => {
   if (instanceId === slideExtraction.extractorInstanceId.value && mode === props.mode) {
     slideExtraction.extractedSlides.value.push(slide)
     slideExtraction.updateSlideExtractionStatus()
-    
-    // Live mode auto post-processing
+
+    // Live mode auto post-processing (unchanged)
     if (props.mode === 'live' && postProcessing.autoPostProcessingLive.value && !postProcessing.isPostProcessing.value) {
       await postProcessing.executePostProcessing(false)
     }
-    
-    // Recorded mode batch post-processing
-    if (props.mode === 'recorded' && taskQueue.isTaskMode.value && postProcessing.autoPostProcessing.value && !postProcessing.isPostProcessing.value) {
-      const unprocessedSlides = slideExtraction.extractedSlides.value.filter(s => s.aiDecision === null || s.aiDecision === undefined)
-      if (unprocessedSlides.length >= postProcessing.aiBatchSize.value) {
-        await postProcessing.executePostProcessing(false)
-      }
-    }
+
+    // Note: Recorded mode batch post-processing is now handled by PostProcessingService
+    // after task completion (non-blocking, runs in parallel with next task)
   }
 }
 

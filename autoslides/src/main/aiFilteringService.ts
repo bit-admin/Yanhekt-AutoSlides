@@ -2,6 +2,21 @@ import axios, { AxiosError } from 'axios';
 import { ConfigService } from './configService';
 import { AIPromptsService, AIPromptType } from './aiPromptsService';
 
+// Debug logging flag - set to true for detailed logging
+const DEBUG = false;
+
+const debugLog = (...args: unknown[]) => {
+  if (DEBUG) {
+    console.log('[AI:DEBUG]', ...args);
+  }
+};
+
+const debugError = (...args: unknown[]) => {
+  if (DEBUG) {
+    console.error('[AI:DEBUG:ERROR]', ...args);
+  }
+};
+
 export interface ClassificationResult {
   classification: 'slide' | 'not_slide';
 }
@@ -234,21 +249,83 @@ export class AIFilteringService {
 
     const headers = this.buildHeaders(baseUrl, apiKey, hasImages);
 
-    const response = await axios.post<ChatCompletionResponse>(
-      `${baseUrl}/chat/completions`,
-      {
-        model,
-        messages,
-        max_tokens: 100,
-        temperature: 0
-      },
-      {
-        headers,
-        timeout: 30000 // 30 seconds for vision requests
-      }
-    );
+    // Calculate payload size for debugging
+    const requestBody = {
+      model,
+      messages,
+      max_tokens: 100,
+      temperature: 0
+    };
+    const payloadSize = JSON.stringify(requestBody).length;
 
-    return response.data;
+    debugLog('Making chat completion request', {
+      url: `${baseUrl}/chat/completions`,
+      model,
+      hasImages,
+      messageCount: messages.length,
+      payloadSizeBytes: payloadSize,
+      payloadSizeMB: (payloadSize / 1024 / 1024).toFixed(2)
+    });
+
+    // Log image sizes if present
+    if (hasImages) {
+      messages.forEach((msg, idx) => {
+        if (Array.isArray(msg.content)) {
+          msg.content.forEach((part, partIdx) => {
+            if (part.type === 'image_url' && part.image_url) {
+              const urlLength = part.image_url.url.length;
+              debugLog(`Message[${idx}] Part[${partIdx}] image size`, {
+                urlLength,
+                estimatedBase64SizeKB: (urlLength * 0.75 / 1024).toFixed(2)
+              });
+            }
+          });
+        }
+      });
+    }
+
+    const startTime = Date.now();
+
+    try {
+      const response = await axios.post<ChatCompletionResponse>(
+        `${baseUrl}/chat/completions`,
+        requestBody,
+        {
+          headers,
+          timeout: 30000 // 30 seconds for vision requests
+        }
+      );
+
+      const endTime = Date.now();
+      debugLog('Chat completion response received', {
+        duration: `${endTime - startTime}ms`,
+        status: response.status,
+        model: response.data.model,
+        finishReason: response.data.choices[0]?.finish_reason,
+        usage: response.data.usage,
+        responseContent: response.data.choices[0]?.message?.content
+      });
+
+      return response.data;
+    } catch (error) {
+      const endTime = Date.now();
+      if (error instanceof AxiosError) {
+        debugError('Chat completion request failed', {
+          duration: `${endTime - startTime}ms`,
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          errorCode: error.code,
+          errorMessage: error.message,
+          responseData: error.response?.data
+        });
+      } else {
+        debugError('Chat completion request failed (non-axios)', {
+          duration: `${endTime - startTime}ms`,
+          error
+        });
+      }
+      throw error;
+    }
   }
 
   /**
@@ -306,13 +383,28 @@ export class AIFilteringService {
     token?: string,
     modelOverride?: string
   ): Promise<AIFilteringResult> {
+    debugLog('classifySingleImage called', {
+      type,
+      hasToken: !!token,
+      modelOverride,
+      imageSize: base64Image.length,
+      imageSizeKB: (base64Image.length / 1024).toFixed(2)
+    });
+
     try {
       // Enforce rate limit before making request
       await this.enforceRateLimit();
+      debugLog('Rate limit passed');
 
       const apiConfig = this.getApiConfig(token);
       const prompt = this.aiPromptsService.getPrompt(type);
       const model = modelOverride || apiConfig.model;
+
+      debugLog('API config retrieved', {
+        baseUrl: apiConfig.baseUrl,
+        model,
+        promptLength: prompt.length
+      });
 
       // Ensure base64 image has proper data URL prefix
       const imageUrl = base64Image.startsWith('data:')
@@ -343,11 +435,15 @@ export class AIFilteringService {
       );
 
       const responseContent = response.choices[0]?.message?.content || '';
+      debugLog('Parsing single classification result', { responseContent });
+
       const result = this.parseClassificationResult(responseContent);
 
       if (result) {
+        debugLog('Classification successful', result);
         return { success: true, result };
       } else {
+        debugError('Failed to parse classification result', { responseContent });
         return {
           success: false,
           error: `Failed to parse AI response: ${responseContent}`
@@ -355,12 +451,18 @@ export class AIFilteringService {
       }
     } catch (error) {
       const errorMessage = error instanceof AxiosError
-        ? error.response?.data?.error?.message || error.message
+        ? `HTTP ${error.response?.status}: ${error.response?.data?.error?.message || error.message}`
         : error instanceof Error
           ? error.message
           : 'Unknown error';
 
-      console.error('AI classification error:', errorMessage);
+      debugError('classifySingleImage failed', {
+        errorMessage,
+        isAxiosError: error instanceof AxiosError,
+        status: error instanceof AxiosError ? error.response?.status : undefined,
+        responseData: error instanceof AxiosError ? error.response?.data : undefined
+      });
+
       return { success: false, error: errorMessage };
     }
   }
@@ -374,20 +476,37 @@ export class AIFilteringService {
     token?: string,
     modelOverride?: string
   ): Promise<AIFilteringResult> {
+    debugLog('classifyMultipleImages called', {
+      imageCount: base64Images.length,
+      type,
+      hasToken: !!token,
+      modelOverride,
+      imageSizes: base64Images.map(img => img.length),
+      totalSizeKB: (base64Images.reduce((acc, img) => acc + img.length, 0) / 1024).toFixed(2)
+    });
+
     try {
       // Enforce rate limit before making request
       await this.enforceRateLimit();
+      debugLog('Rate limit passed');
 
       const apiConfig = this.getApiConfig(token);
       const prompt = this.aiPromptsService.getPrompt(type);
       const model = modelOverride || apiConfig.model;
+
+      debugLog('API config retrieved', {
+        baseUrl: apiConfig.baseUrl,
+        model,
+        promptLength: prompt.length
+      });
 
       // Build content array with prompt and all images
       const contentParts: ContentPart[] = [
         { type: 'text', text: prompt }
       ];
 
-      for (const base64Image of base64Images) {
+      for (let i = 0; i < base64Images.length; i++) {
+        const base64Image = base64Images[i];
         const imageUrl = base64Image.startsWith('data:')
           ? base64Image
           : `data:image/png;base64,${base64Image}`;
@@ -398,6 +517,9 @@ export class AIFilteringService {
             url: imageUrl,
             detail: 'low'
           }
+        });
+        debugLog(`Added image ${i + 1}/${base64Images.length}`, {
+          sizeKB: (base64Image.length / 1024).toFixed(2)
         });
       }
 
@@ -416,11 +538,15 @@ export class AIFilteringService {
       );
 
       const responseContent = response.choices[0]?.message?.content || '';
+      debugLog('Parsing batch classification result', { responseContent });
+
       const result = this.parseBatchClassificationResult(responseContent);
 
       if (result) {
+        debugLog('Batch classification successful', result);
         return { success: true, result };
       } else {
+        debugError('Failed to parse batch classification result', { responseContent });
         return {
           success: false,
           error: `Failed to parse AI batch response: ${responseContent}`
@@ -428,12 +554,18 @@ export class AIFilteringService {
       }
     } catch (error) {
       const errorMessage = error instanceof AxiosError
-        ? error.response?.data?.error?.message || error.message
+        ? `HTTP ${error.response?.status}: ${error.response?.data?.error?.message || error.message}`
         : error instanceof Error
           ? error.message
           : 'Unknown error';
 
-      console.error('AI batch classification error:', errorMessage);
+      debugError('classifyMultipleImages failed', {
+        errorMessage,
+        isAxiosError: error instanceof AxiosError,
+        status: error instanceof AxiosError ? error.response?.status : undefined,
+        responseData: error instanceof AxiosError ? error.response?.data : undefined
+      });
+
       return { success: false, error: errorMessage };
     }
   }

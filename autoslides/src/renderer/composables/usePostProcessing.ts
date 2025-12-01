@@ -101,6 +101,39 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
   const autoPostProcessing = ref(true)
   const autoPostProcessingLive = ref(true)
   const aiBatchSize = ref(4)
+  const aiImageResizeWidth = ref(768)
+  const aiImageResizeHeight = ref(432)
+
+  // Helper function to resize a base64 image using Canvas
+  const resizeBase64Image = async (
+    dataUrl: string,
+    targetWidth: number,
+    targetHeight: number
+  ): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => {
+        // Skip resize if target is same or larger than original
+        if (targetWidth >= img.width && targetHeight >= img.height) {
+          resolve(dataUrl)
+          return
+        }
+
+        const canvas = document.createElement('canvas')
+        canvas.width = targetWidth
+        canvas.height = targetHeight
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'))
+          return
+        }
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight)
+        resolve(canvas.toDataURL('image/png'))
+      }
+      img.onerror = () => reject(new Error('Failed to load image for resize'))
+      img.src = dataUrl
+    })
+  }
 
   // Create a worker helper for pHash operations
   const createWorkerHelpers = (worker: Worker) => {
@@ -291,30 +324,62 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     token: string | undefined,
     deletedSlides: string[]
   ): Promise<void> => {
-    const base64Image = slide.dataUrl.replace(/^data:image\/\w+;base64,/, '')
-    const result = await window.electronAPI.ai.classifySingleImage(base64Image, classifyMode, token)
-
-    if (result.success && result.result) {
-      const classification = (result.result as { classification: 'slide' | 'not_slide' }).classification
-      slide.aiDecision = classification
-
-      if (classification === 'not_slide') {
-        try {
-          await deleteSlide(slide, false)
-          deletedSlides.push(`${slide.title}.png`)
-          postProcessStatus.value.aiFiltered++
-          console.log(`AI filtered slide: ${slide.title} (classified as not_slide)`)
-        } catch (deleteError) {
-          console.error(`Failed to delete AI-filtered slide ${slide.title}:`, deleteError)
-        }
-      } else {
-        console.log(`AI kept slide: ${slide.title} (classified as slide)`)
+    // Resize image if needed
+    let processedDataUrl = slide.dataUrl
+    if (aiImageResizeWidth.value < 1920 || aiImageResizeHeight.value < 1080) {
+      try {
+        processedDataUrl = await resizeBase64Image(
+          slide.dataUrl,
+          aiImageResizeWidth.value,
+          aiImageResizeHeight.value
+        )
+      } catch (resizeError) {
+        console.warn(`Failed to resize image for ${slide.title}, using original:`, resizeError)
       }
-      aiFilteringError.value = { type: 'none' }
-    } else {
-      console.warn(`AI classification failed for ${slide.title}:`, result.error)
-      aiFilteringError.value = parseAIError(result)
     }
+
+    const base64Image = processedDataUrl.replace(/^data:image\/\w+;base64,/, '')
+
+    // Use appropriate API based on mode:
+    // - 'live' mode uses classifySingleImage (expects {"classification": ...})
+    // - 'recorded' mode uses classifyMultipleImages (expects {"image_0": ...})
+    let classification: 'slide' | 'not_slide'
+
+    if (classifyMode === 'live') {
+      const result = await window.electronAPI.ai.classifySingleImage(base64Image, classifyMode, token)
+      if (!result.success || !result.result) {
+        console.warn(`AI classification failed for ${slide.title}:`, result.error)
+        aiFilteringError.value = parseAIError(result)
+        return
+      }
+      classification = (result.result as { classification: 'slide' | 'not_slide' }).classification
+    } else {
+      // recorded mode - always use batch API even for single image
+      const result = await window.electronAPI.ai.classifyMultipleImages([base64Image], classifyMode, token)
+      if (!result.success || !result.result) {
+        console.warn(`AI classification failed for ${slide.title}:`, result.error)
+        aiFilteringError.value = parseAIError(result)
+        return
+      }
+      const batchResult = result.result as { [key: string]: 'slide' | 'not_slide' }
+      classification = batchResult['image_0'] || 'slide'
+    }
+
+    slide.aiDecision = classification
+
+    if (classification === 'not_slide') {
+      try {
+        await deleteSlide(slide, false)
+        deletedSlides.push(`${slide.title}.png`)
+        postProcessStatus.value.aiFiltered++
+        console.log(`AI filtered slide: ${slide.title} (classified as not_slide)`)
+      } catch (deleteError) {
+        console.error(`Failed to delete AI-filtered slide ${slide.title}:`, deleteError)
+      }
+    } else {
+      console.log(`AI kept slide: ${slide.title} (classified as slide)`)
+    }
+    aiFilteringError.value = { type: 'none' }
   }
 
   // Classify multiple slides with AI
@@ -324,7 +389,24 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     token: string | undefined,
     deletedSlides: string[]
   ): Promise<void> => {
-    const base64Images = batch.map(slide => slide.dataUrl.replace(/^data:image\/\w+;base64,/, ''))
+    // Resize images if needed
+    const base64Images: string[] = []
+    for (const slide of batch) {
+      let processedDataUrl = slide.dataUrl
+      if (aiImageResizeWidth.value < 1920 || aiImageResizeHeight.value < 1080) {
+        try {
+          processedDataUrl = await resizeBase64Image(
+            slide.dataUrl,
+            aiImageResizeWidth.value,
+            aiImageResizeHeight.value
+          )
+        } catch (resizeError) {
+          console.warn(`Failed to resize image for ${slide.title}, using original:`, resizeError)
+        }
+      }
+      base64Images.push(processedDataUrl.replace(/^data:image\/\w+;base64,/, ''))
+    }
+
     const result = await window.electronAPI.ai.classifyMultipleImages(base64Images, classifyMode, token)
 
     if (result.success && result.result) {
@@ -332,7 +414,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
       for (let j = 0; j < batch.length; j++) {
         const slide = batch[j]
-        const classification = batchResult[`image_${j + 1}`] || 'slide'
+        const classification = batchResult[`image_${j}`] || 'slide'
         slide.aiDecision = classification
 
         if (classification === 'not_slide') {
@@ -625,10 +707,12 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       autoPostProcessingLive.value = config.autoPostProcessingLive !== undefined ? config.autoPostProcessingLive : true
       enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
 
-      // Load AI filtering config for batch size
+      // Load AI filtering config for batch size and image resize
       const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
       if (aiConfig) {
         aiBatchSize.value = aiConfig.batchSize || 4
+        aiImageResizeWidth.value = aiConfig.imageResizeWidth || 768
+        aiImageResizeHeight.value = aiConfig.imageResizeHeight || 432
       }
     } catch (error) {
       console.error('Failed to load post-processing config:', error)

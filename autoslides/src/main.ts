@@ -640,6 +640,26 @@ ipcMain.handle('slideExtraction:deleteSlide', async (event, outputPath: string, 
   }
 });
 
+ipcMain.handle('slideExtraction:readSlideAsBase64', async (event, outputPath: string, filename: string) => {
+  try {
+    const base64 = await slideExtractionService.readSlideAsBase64(outputPath, filename);
+    return base64;
+  } catch (error) {
+    console.error('Failed to read slide as base64:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('slideExtraction:listSlides', async (event, outputPath: string) => {
+  try {
+    const slides = await slideExtractionService.listSlides(outputPath);
+    return slides;
+  } catch (error) {
+    console.error('Failed to list slides:', error);
+    throw error;
+  }
+});
+
 ipcMain.handle('slideExtraction:loadSlideImage', async (event, filePath: string) => {
   try {
     const imageBuffer = await slideExtractionService.loadSlideImage(filePath);

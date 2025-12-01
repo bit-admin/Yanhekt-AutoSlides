@@ -25,7 +25,6 @@ export interface UseTaskQueueOptions {
   autoPostProcessing: Ref<boolean>
   switchStream: () => Promise<void>
   toggleSlideExtraction: () => Promise<void>
-  executePostProcessing: (showResultDialog?: boolean) => Promise<void>
   resetErrorCounters: () => void
 }
 
@@ -79,7 +78,6 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     autoPostProcessing,
     switchStream,
     toggleSlideExtraction,
-    executePostProcessing,
     resetErrorCounters
   } = options
 
@@ -417,13 +415,25 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     taskCompletionInProgress.value = taskId
     console.log('Completing task:', taskId)
 
+    // Get slide extraction info for post-processing (non-blocking)
     if (autoPostProcessing.value && isSlideExtractionEnabled.value && extractedSlides.value.length > 0) {
-      console.log('Auto post-processing enabled, executing post-processing for task:', taskId)
+      console.log('Auto post-processing enabled, queuing post-processing for task:', taskId)
       try {
-        await executePostProcessing(false)
-        console.log('Auto post-processing completed successfully for task:', taskId)
+        // Get output path from slide extractor
+        const outputPath = slideExtractorInstance.value?.getOutputPath()
+        if (outputPath) {
+          // Collect filenames from extracted slides
+          const imageFiles = extractedSlides.value.map(slide => `${slide.title}.png`)
+
+          // Start post-processing asynchronously (non-blocking)
+          // This will run in parallel with the next task
+          TaskQueue.startPostProcessing(taskId, outputPath, imageFiles)
+          console.log('Post-processing job queued for task:', taskId)
+        } else {
+          console.warn('No output path available for post-processing')
+        }
       } catch (ppError) {
-        console.error('Auto post-processing failed for task:', taskId, ppError)
+        console.error('Failed to queue post-processing for task:', taskId, ppError)
       }
     }
 
