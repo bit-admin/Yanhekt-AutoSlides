@@ -1,29 +1,19 @@
 import { reactive, computed } from 'vue'
 import { TokenManager } from './authService'
 
-// Debug logging flag - set to true for detailed logging
-const DEBUG = false
-
-const debugLog = (...args: unknown[]) => {
-  if (DEBUG) {
-    console.log('[PostProcessing:DEBUG]', ...args)
-  }
-}
-
-const debugError = (...args: unknown[]) => {
-  if (DEBUG) {
-    console.error('[PostProcessing:DEBUG:ERROR]', ...args)
-  }
-}
-
 // Types for post-processing jobs
 export type PostProcessJobStatus = 'queued' | 'processing' | 'completed' | 'failed'
+export type PostProcessPhase = 'idle' | 'phase1' | 'phase2' | 'phase3' | 'completed'
 
 export interface PostProcessJobProgress {
-  completed: number    // Successfully processed images
-  failed: number       // Failed images (after retries)
-  total: number        // Total images to process
-  retrying: number     // Currently retrying
+  phase: PostProcessPhase
+  currentIndex: number
+  total: number
+  duplicatesRemoved: number
+  excludedRemoved: number
+  aiFiltered: number
+  failed: number
+  retrying: number
 }
 
 export interface JobError {
@@ -51,8 +41,24 @@ export interface PostProcessingServiceState {
   isProcessing: boolean
 }
 
-// Batch processing result
-interface BatchResult {
+// Configuration for post-processing
+interface PostProcessingConfig {
+  pHashThreshold: number
+  enableDuplicateRemoval: boolean
+  enableExclusionList: boolean
+  enableAIFiltering: boolean
+  exclusionList: Array<{ name: string; pHash: string; isEnabled?: boolean }>
+}
+
+// Slide hash info
+interface SlideHashInfo {
+  filename: string
+  pHash: string
+  error?: string
+}
+
+// Batch processing result for AI phase
+interface AIBatchResult {
   successful: string[]      // Files classified as 'slide' (kept)
   notSlide: string[]        // Files classified as 'not_slide' (to delete)
   failed: string[]          // Files that failed after retries
@@ -87,40 +93,6 @@ class PostProcessingServiceClass {
   // Image resize config (loaded from AI settings)
   private imageResizeWidth = 768
   private imageResizeHeight = 432
-
-  // Helper function to resize a base64 image using Canvas
-  private async resizeBase64Image(
-    base64: string,
-    targetWidth: number,
-    targetHeight: number
-  ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => {
-        // Skip resize if target is same or larger than original
-        if (targetWidth >= img.width && targetHeight >= img.height) {
-          resolve(base64)
-          return
-        }
-
-        const canvas = document.createElement('canvas')
-        canvas.width = targetWidth
-        canvas.height = targetHeight
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          reject(new Error('Failed to get canvas context'))
-          return
-        }
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight)
-        // Return just the base64 part (without data:image/png;base64, prefix)
-        const resizedDataUrl = canvas.toDataURL('image/png')
-        resolve(resizedDataUrl.replace(/^data:image\/\w+;base64,/, ''))
-      }
-      img.onerror = () => reject(new Error('Failed to load image for resize'))
-      // Add the data URL prefix for the Image to load
-      img.src = `data:image/png;base64,${base64}`
-    })
-  }
 
   // Computed properties
   get jobs() {
@@ -159,8 +131,6 @@ class PostProcessingServiceClass {
 
   // Add a new post-processing job
   addJob(taskId: string, outputPath: string, imageFiles: string[]): string {
-    debugLog('addJob called', { taskId, outputPath, imageFilesCount: imageFiles.length, imageFiles })
-
     // Check if job for this task already exists and is not completed/failed
     const existingJob = this.state.jobs.find(
       job => job.taskId === taskId && (job.status === 'queued' || job.status === 'processing')
@@ -168,7 +138,6 @@ class PostProcessingServiceClass {
 
     if (existingJob) {
       console.log(`[PostProcessing] Job already exists for task ${taskId}, skipping`)
-      debugLog('Existing job found, skipping', existingJob)
       return existingJob.id
     }
 
@@ -180,9 +149,13 @@ class PostProcessingServiceClass {
       imageFiles,
       status: 'queued',
       progress: {
-        completed: 0,
-        failed: 0,
+        phase: 'idle',
+        currentIndex: 0,
         total: imageFiles.length,
+        duplicatesRemoved: 0,
+        excludedRemoved: 0,
+        aiFiltered: 0,
+        failed: 0,
         retrying: 0
       },
       errors: [],
@@ -191,7 +164,6 @@ class PostProcessingServiceClass {
 
     this.state.jobs.push(job)
     console.log(`[PostProcessing] Added job ${jobId} for task ${taskId} with ${imageFiles.length} images`)
-    debugLog('Job created', job)
 
     // Start processing if not already running
     this.startProcessing()
@@ -236,61 +208,131 @@ class PostProcessingServiceClass {
     }
   }
 
-  // Process a single job
+  // Process a single job with all 3 phases
   private async processJob(job: PostProcessJob): Promise<void> {
     console.log(`[PostProcessing] Starting job ${job.id}`)
     job.status = 'processing'
     job.startedAt = Date.now()
 
-    try {
-      // Get AI config
-      const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
-      const batchSize = aiConfig?.batchSize || 4
-      const enableAIFiltering = await window.electronAPI.config?.getEnableAIFiltering?.() ?? true
+    let worker: Worker | null = null
 
-      // Update image resize config
+    try {
+      // Load configuration
+      const config = await this.loadConfig()
+
+      // Load AI config for image resize
+      const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
       this.imageResizeWidth = aiConfig?.imageResizeWidth || 768
       this.imageResizeHeight = aiConfig?.imageResizeHeight || 432
+      const aiBatchSize = aiConfig?.batchSize || 4
 
-      if (!enableAIFiltering) {
-        console.log(`[PostProcessing] AI filtering disabled, marking job as completed`)
-        job.status = 'completed'
-        job.completedAt = Date.now()
-        job.progress.completed = job.progress.total
-        return
-      }
+      // Track deleted files to exclude from later phases
+      const deletedFiles = new Set<string>()
 
-      const token = this.tokenManager.getToken() || undefined
+      // Create worker for pHash calculations (needed for phases 1 and 2)
+      if (config.enableDuplicateRemoval || config.enableExclusionList) {
+        worker = new Worker(
+          new URL('../workers/postProcessor.worker.ts', import.meta.url),
+          { type: 'module' }
+        )
+        const { calculatePHash, calculateHammingDistance } = this.createWorkerHelpers(worker)
 
-      // Process images with retry logic
-      const result = await this.processImagesWithRetry(
-        job,
-        batchSize,
-        token
-      )
+        // Calculate pHash for all images
+        console.log('[PostProcessing] Calculating pHash for all images...')
+        const slideHashes = await this.calculateAllHashes(job, calculatePHash)
 
-      // Delete images classified as not_slide
-      for (const filename of result.notSlide) {
-        try {
-          await window.electronAPI.slideExtraction.deleteSlide(job.outputPath, filename)
-          console.log(`[PostProcessing] Deleted not_slide: ${filename}`)
-        } catch (deleteError) {
-          console.error(`[PostProcessing] Failed to delete ${filename}:`, deleteError)
+        // Phase 1: Remove duplicates
+        if (config.enableDuplicateRemoval) {
+          job.progress.phase = 'phase1'
+          job.progress.currentIndex = 0
+          console.log('[PostProcessing] Phase 1: Removing duplicates...')
+
+          const duplicates = await this.removeDuplicates(
+            job,
+            slideHashes,
+            config.pHashThreshold,
+            calculateHammingDistance
+          )
+
+          for (const filename of duplicates) {
+            deletedFiles.add(filename)
+          }
+        } else {
+          console.log('[PostProcessing] Phase 1: Duplicate removal disabled, skipping')
         }
+
+        // Phase 2: Check exclusion list
+        if (config.enableExclusionList && config.exclusionList.length > 0) {
+          job.progress.phase = 'phase2'
+          job.progress.currentIndex = 0
+          console.log('[PostProcessing] Phase 2: Checking exclusion list...')
+
+          const excluded = await this.checkExclusionList(
+            job,
+            slideHashes,
+            deletedFiles,
+            config.exclusionList,
+            config.pHashThreshold,
+            calculateHammingDistance
+          )
+
+          for (const filename of excluded) {
+            deletedFiles.add(filename)
+          }
+        } else {
+          console.log('[PostProcessing] Phase 2: Exclusion list disabled or empty, skipping')
+        }
+
+        // Terminate worker after pHash operations
+        worker.terminate()
+        worker = null
       }
 
-      // Update job status
-      job.completedAt = Date.now()
-      if (result.failed.length > 0 && result.successful.length === 0 && result.notSlide.length === 0) {
-        job.status = 'failed'
+      // Phase 3: AI Classification
+      if (config.enableAIFiltering) {
+        job.progress.phase = 'phase3'
+        job.progress.currentIndex = 0
+        console.log('[PostProcessing] Phase 3: AI classification...')
+
+        // Get remaining files (not deleted in previous phases)
+        const remainingFiles = job.imageFiles.filter(f => !deletedFiles.has(f))
+        job.progress.total = remainingFiles.length
+
+        if (remainingFiles.length > 0) {
+          const token = this.tokenManager.getToken() || undefined
+          const aiResult = await this.processAIClassification(
+            job,
+            remainingFiles,
+            aiBatchSize,
+            token
+          )
+
+          // Delete images classified as not_slide
+          for (const filename of aiResult.notSlide) {
+            try {
+              await window.electronAPI.slideExtraction.deleteSlide(job.outputPath, filename)
+              console.log(`[PostProcessing] Deleted not_slide: ${filename}`)
+            } catch (deleteError) {
+              console.error(`[PostProcessing] Failed to delete ${filename}:`, deleteError)
+            }
+          }
+
+          job.progress.failed = aiResult.failed.length
+        }
       } else {
-        job.status = 'completed'
+        console.log('[PostProcessing] Phase 3: AI filtering disabled, skipping')
       }
+
+      // Complete
+      job.progress.phase = 'completed'
+      job.status = 'completed'
+      job.completedAt = Date.now()
 
       console.log(`[PostProcessing] Job ${job.id} completed:`, {
-        kept: result.successful.length,
-        deleted: result.notSlide.length,
-        failed: result.failed.length
+        duplicatesRemoved: job.progress.duplicatesRemoved,
+        excludedRemoved: job.progress.excludedRemoved,
+        aiFiltered: job.progress.aiFiltered,
+        failed: job.progress.failed
       })
 
     } catch (error) {
@@ -303,42 +345,252 @@ class PostProcessingServiceClass {
         message: error instanceof Error ? error.message : String(error),
         retryCount: 0
       })
+    } finally {
+      if (worker) {
+        worker.terminate()
+      }
     }
   }
 
-  // Process images with sophisticated retry logic
-  private async processImagesWithRetry(
+  // Load post-processing configuration
+  private async loadConfig(): Promise<PostProcessingConfig> {
+    const slideConfig = await window.electronAPI.config?.getSlideExtractionConfig?.()
+    const enableAIFiltering = await window.electronAPI.config?.getEnableAIFiltering?.() ?? true
+
+    return {
+      pHashThreshold: slideConfig?.pHashThreshold || 10,
+      enableDuplicateRemoval: slideConfig?.enableDuplicateRemoval !== false,
+      enableExclusionList: slideConfig?.enableExclusionList !== false,
+      enableAIFiltering,
+      exclusionList: (slideConfig?.pHashExclusionList || []).filter(
+        (item: { isPreset?: boolean; isEnabled?: boolean }) =>
+          !item.isPreset || item.isEnabled !== false
+      )
+    }
+  }
+
+  // Create worker helpers for pHash operations
+  private createWorkerHelpers(worker: Worker) {
+    const calculatePHash = (imageData: ImageData): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const messageId = `pHash_${Date.now()}_${Math.random()}`
+        const messageHandler = (event: MessageEvent) => {
+          const { id, success, result, error } = event.data
+          if (id === messageId) {
+            worker.removeEventListener('message', messageHandler)
+            success ? resolve(result) : reject(new Error(error))
+          }
+        }
+        worker.addEventListener('message', messageHandler)
+        worker.postMessage({ id: messageId, type: 'calculatePHash', data: { imageData } })
+      })
+    }
+
+    const calculateHammingDistance = (hash1: string, hash2: string): Promise<number> => {
+      return new Promise((resolve, reject) => {
+        const messageId = `hamming_${Date.now()}_${Math.random()}`
+        const messageHandler = (event: MessageEvent) => {
+          const { id, success, result, error } = event.data
+          if (id === messageId) {
+            worker.removeEventListener('message', messageHandler)
+            success ? resolve(result) : reject(new Error(error))
+          }
+        }
+        worker.addEventListener('message', messageHandler)
+        worker.postMessage({ id: messageId, type: 'calculateHammingDistance', data: { hash1, hash2 } })
+      })
+    }
+
+    return { calculatePHash, calculateHammingDistance }
+  }
+
+  // Read a PNG file and convert to ImageData for pHash calculation
+  private async readImageAsImageData(outputPath: string, filename: string): Promise<ImageData | null> {
+    try {
+      const base64 = await window.electronAPI.slideExtraction.readSlideAsBase64(outputPath, filename)
+
+      return new Promise((resolve) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          canvas.width = img.width
+          canvas.height = img.height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            resolve(null)
+            return
+          }
+          ctx.drawImage(img, 0, 0)
+          resolve(ctx.getImageData(0, 0, img.width, img.height))
+        }
+        img.onerror = () => resolve(null)
+        img.src = `data:image/png;base64,${base64}`
+      })
+    } catch (error) {
+      console.error(`[PostProcessing] Failed to read image ${filename}:`, error)
+      return null
+    }
+  }
+
+  // Calculate pHash for all images
+  private async calculateAllHashes(
     job: PostProcessJob,
+    calculatePHash: (imageData: ImageData) => Promise<string>
+  ): Promise<SlideHashInfo[]> {
+    const slideHashes: SlideHashInfo[] = []
+
+    for (let i = 0; i < job.imageFiles.length; i++) {
+      const filename = job.imageFiles[i]
+      job.progress.currentIndex = i + 1
+
+      try {
+        const imageData = await this.readImageAsImageData(job.outputPath, filename)
+        if (!imageData) {
+          console.warn(`[PostProcessing] Failed to read image ${filename}`)
+          slideHashes.push({ filename, pHash: '', error: 'Failed to read image' })
+          continue
+        }
+
+        const pHash = await calculatePHash(imageData)
+        slideHashes.push({ filename, pHash })
+        console.log(`[PostProcessing] Calculated pHash for ${filename}: ${pHash.substring(0, 16)}...`)
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        console.error(`[PostProcessing] Failed to calculate pHash for ${filename}:`, errorMessage)
+        slideHashes.push({ filename, pHash: '', error: errorMessage })
+      }
+    }
+
+    return slideHashes
+  }
+
+  // Phase 1: Remove duplicate slides
+  private async removeDuplicates(
+    job: PostProcessJob,
+    slideHashes: SlideHashInfo[],
+    pHashThreshold: number,
+    calculateHammingDistance: (hash1: string, hash2: string) => Promise<number>
+  ): Promise<string[]> {
+    const seenHashes = new Map<string, string>() // pHash -> filename
+    const duplicatesToDelete: string[] = []
+
+    for (let i = 0; i < slideHashes.length; i++) {
+      const item = slideHashes[i]
+      job.progress.currentIndex = i + 1
+
+      if (item.error || !item.pHash) continue
+
+      let isDuplicate = false
+      let duplicateOf = ''
+
+      for (const [seenHash, seenFilename] of seenHashes.entries()) {
+        try {
+          const hammingDistance = await calculateHammingDistance(item.pHash, seenHash)
+          if (hammingDistance <= pHashThreshold) {
+            isDuplicate = true
+            duplicateOf = seenFilename
+            console.log(`[PostProcessing] Duplicate: ${item.filename} similar to ${seenFilename} (distance: ${hammingDistance})`)
+            break
+          }
+        } catch (error) {
+          console.warn(`[PostProcessing] Failed to calculate Hamming distance:`, error)
+        }
+      }
+
+      if (isDuplicate) {
+        duplicatesToDelete.push(item.filename)
+        try {
+          await window.electronAPI.slideExtraction.deleteSlide(job.outputPath, item.filename)
+          job.progress.duplicatesRemoved++
+          console.log(`[PostProcessing] Deleted duplicate: ${item.filename} (duplicate of ${duplicateOf})`)
+        } catch (deleteError) {
+          console.error(`[PostProcessing] Failed to delete duplicate ${item.filename}:`, deleteError)
+        }
+      } else {
+        seenHashes.set(item.pHash, item.filename)
+      }
+    }
+
+    return duplicatesToDelete
+  }
+
+  // Phase 2: Check slides against exclusion list
+  private async checkExclusionList(
+    job: PostProcessJob,
+    slideHashes: SlideHashInfo[],
+    alreadyDeleted: Set<string>,
+    exclusionList: Array<{ name: string; pHash: string }>,
+    pHashThreshold: number,
+    calculateHammingDistance: (hash1: string, hash2: string) => Promise<number>
+  ): Promise<string[]> {
+    const excludedFiles: string[] = []
+
+    for (let i = 0; i < slideHashes.length; i++) {
+      const item = slideHashes[i]
+      job.progress.currentIndex = i + 1
+
+      // Skip if already deleted or has error
+      if (alreadyDeleted.has(item.filename) || item.error || !item.pHash) continue
+
+      let shouldExclude = false
+      let excludedReason = ''
+
+      for (const exclusionItem of exclusionList) {
+        try {
+          const hammingDistance = await calculateHammingDistance(item.pHash, exclusionItem.pHash)
+          if (hammingDistance <= pHashThreshold) {
+            shouldExclude = true
+            excludedReason = `Similar to "${exclusionItem.name}" (distance: ${hammingDistance})`
+            console.log(`[PostProcessing] Excluded: ${item.filename} - ${excludedReason}`)
+            break
+          }
+        } catch (error) {
+          console.warn(`[PostProcessing] Failed to check exclusion for ${item.filename}:`, error)
+        }
+      }
+
+      if (shouldExclude) {
+        excludedFiles.push(item.filename)
+        try {
+          await window.electronAPI.slideExtraction.deleteSlide(job.outputPath, item.filename)
+          job.progress.excludedRemoved++
+        } catch (deleteError) {
+          console.error(`[PostProcessing] Failed to delete excluded ${item.filename}:`, deleteError)
+        }
+      }
+    }
+
+    return excludedFiles
+  }
+
+  // Phase 3: AI Classification with retry logic
+  private async processAIClassification(
+    job: PostProcessJob,
+    files: string[],
     batchSize: number,
     token: string | undefined
-  ): Promise<BatchResult> {
-    const result: BatchResult = {
+  ): Promise<AIBatchResult> {
+    const result: AIBatchResult = {
       successful: [],
       notSlide: [],
       failed: [],
       pending413: []
     }
 
-    // Divide images into batches
+    // Divide into batches
     const batches: string[][] = []
-    for (let i = 0; i < job.imageFiles.length; i += batchSize) {
-      batches.push(job.imageFiles.slice(i, i + batchSize))
+    for (let i = 0; i < files.length; i += batchSize) {
+      batches.push(files.slice(i, i + batchSize))
     }
 
-    console.log(`[PostProcessing] Processing ${job.imageFiles.length} images in ${batches.length} batches`)
-
-    // Track pending 413 batches
-    const pending413Batches: string[][] = []
+    console.log(`[PostProcessing] AI processing ${files.length} images in ${batches.length} batches`)
 
     // Process each batch
+    const pending413Batches: string[][] = []
+
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i]
-      const batchResult = await this.processBatchWithRetry(
-        job,
-        batch,
-        token,
-        batchSize // original batch size for 413 splitting reference
-      )
+      const batchResult = await this.processAIBatchWithRetry(job, batch, token, batchSize)
 
       result.successful.push(...batchResult.successful)
       result.notSlide.push(...batchResult.notSlide)
@@ -348,49 +600,34 @@ class PostProcessingServiceClass {
         pending413Batches.push(...batchResult.pending413)
       }
 
-      // Update progress
-      job.progress.completed = result.successful.length + result.notSlide.length
-      job.progress.failed = result.failed.length
+      job.progress.currentIndex = Math.min((i + 1) * batchSize, files.length)
+      job.progress.aiFiltered = result.notSlide.length
     }
 
     // Process 413 pending batches with smaller sizes
     if (pending413Batches.length > 0) {
       console.log(`[PostProcessing] Processing ${pending413Batches.length} pending 413 batches`)
-      const pending413Result = await this.process413Batches(
-        job,
-        pending413Batches,
-        token,
-        batchSize
-      )
+      const pending413Result = await this.process413Batches(job, pending413Batches, token, batchSize)
+
       result.successful.push(...pending413Result.successful)
       result.notSlide.push(...pending413Result.notSlide)
       result.failed.push(...pending413Result.failed)
 
-      job.progress.completed = result.successful.length + result.notSlide.length
-      job.progress.failed = result.failed.length
+      job.progress.aiFiltered = result.notSlide.length
     }
 
     return result
   }
 
-  // Process a single batch with retry logic
-  private async processBatchWithRetry(
+  // Process a single AI batch with retry logic
+  private async processAIBatchWithRetry(
     job: PostProcessJob,
     batch: string[],
     token: string | undefined,
     originalBatchSize: number,
     retryCount = 0
-  ): Promise<BatchResult> {
-    debugLog('processBatchWithRetry called', {
-      jobId: job.id,
-      batchSize: batch.length,
-      batch,
-      hasToken: !!token,
-      originalBatchSize,
-      retryCount
-    })
-
-    const result: BatchResult = {
+  ): Promise<AIBatchResult> {
+    const result: AIBatchResult = {
       successful: [],
       notSlide: [],
       failed: [],
@@ -400,23 +637,10 @@ class PostProcessingServiceClass {
     const maxRetries = 2
 
     try {
-      // Read images from files
-      debugLog('Reading images from files...', { outputPath: job.outputPath, files: batch })
-      const base64Images = await this.readImagesAsBase64(job.outputPath, batch)
-      debugLog('Images read result', {
-        totalRequested: batch.length,
-        successfullyRead: base64Images.filter(Boolean).length,
-        failedToRead: base64Images.filter(x => !x).length
-      })
+      // Read and resize images
+      const base64Images = await this.readAndResizeImages(job.outputPath, batch)
 
-      if (base64Images.length === 0) {
-        // All images failed to read
-        debugError('All images failed to read')
-        result.failed.push(...batch)
-        return result
-      }
-
-      // Filter out images that failed to read
+      // Filter out failed reads
       const validBatch: string[] = []
       const validBase64: string[] = []
       for (let i = 0; i < batch.length; i++) {
@@ -430,70 +654,25 @@ class PostProcessingServiceClass {
       }
 
       if (validBatch.length === 0) {
-        debugError('No valid images after filtering')
         return result
       }
 
-      // Resize images if needed (reduces payload size for AI)
-      const resizedBase64: string[] = []
-      if (this.imageResizeWidth < 1920 || this.imageResizeHeight < 1080) {
-        debugLog('Resizing images before AI classification', {
-          targetWidth: this.imageResizeWidth,
-          targetHeight: this.imageResizeHeight
-        })
-        for (let i = 0; i < validBase64.length; i++) {
-          try {
-            const resized = await this.resizeBase64Image(
-              validBase64[i],
-              this.imageResizeWidth,
-              this.imageResizeHeight
-            )
-            resizedBase64.push(resized)
-          } catch (resizeError) {
-            console.warn(`[PostProcessing] Failed to resize image ${validBatch[i]}, using original:`, resizeError)
-            resizedBase64.push(validBase64[i])
-          }
-        }
-      } else {
-        // No resize needed, use original
-        resizedBase64.push(...validBase64)
-      }
-
-      // Update in-progress count
       job.progress.retrying = validBatch.length
 
-      // Call AI classification - always use batch API in recorded mode
-      debugLog('Calling AI classification', {
-        imageCount: validBatch.length,
-        imageSizes: resizedBase64.map(b64 => b64.length)
-      })
-
-      const startTime = Date.now()
-
-      debugLog('Calling classifyMultipleImages...')
+      // Always use batch API in recorded mode (even for single image)
       const aiResult = await window.electronAPI.ai.classifyMultipleImages(
-        resizedBase64,
+        validBase64,
         'recorded',
         token
       ) as AIClassificationResult
 
-      const endTime = Date.now()
-      debugLog('AI classification response received', {
-        duration: `${endTime - startTime}ms`,
-        success: aiResult.success,
-        hasResult: !!aiResult.result,
-        error: aiResult.error,
-        result: aiResult.result
-      })
-
       job.progress.retrying = 0
 
       if (aiResult.success && aiResult.result) {
-        // Process successful result - always use batch format (zero-based indexing)
+        // Process results - always use batch format (image_0, image_1, etc.)
         for (let j = 0; j < validBatch.length; j++) {
           const key = `image_${j}`
           const classification = aiResult.result[key] || 'slide'
-          debugLog('Batch image classification', { filename: validBatch[j], key, classification })
           if (classification === 'slide') {
             result.successful.push(validBatch[j])
           } else {
@@ -503,32 +682,19 @@ class PostProcessingServiceClass {
       } else {
         // Handle error
         const errorInfo = this.parseError(aiResult.error)
-        debugError('AI classification failed', { errorInfo, rawError: aiResult.error })
 
         if (errorInfo.type === '413') {
-          // Queue for smaller batch retry
-          debugLog('413 error - queuing for smaller batch retry')
           result.pending413.push(validBatch)
         } else if ((errorInfo.type === '403' || errorInfo.type === 'network') && retryCount < maxRetries) {
-          // Retry for 403 and network errors
           console.log(`[PostProcessing] Retrying batch due to ${errorInfo.type} (attempt ${retryCount + 1}/${maxRetries})`)
-          debugLog('Retrying batch', { errorType: errorInfo.type, retryCount, maxRetries })
           job.progress.retrying = validBatch.length
-          await this.delay(1000 * (retryCount + 1)) // Exponential backoff
-          const retryResult = await this.processBatchWithRetry(
-            job,
-            validBatch,
-            token,
-            originalBatchSize,
-            retryCount + 1
-          )
+          await this.delay(1000 * (retryCount + 1))
+          const retryResult = await this.processAIBatchWithRetry(job, validBatch, token, originalBatchSize, retryCount + 1)
           result.successful.push(...retryResult.successful)
           result.notSlide.push(...retryResult.notSlide)
           result.failed.push(...retryResult.failed)
           result.pending413.push(...retryResult.pending413)
         } else {
-          // Mark as failed after max retries
-          debugError('Max retries exceeded or non-retryable error', { errorInfo, retryCount })
           result.failed.push(...validBatch)
           for (const filename of validBatch) {
             job.errors.push({
@@ -541,19 +707,13 @@ class PostProcessingServiceClass {
         }
       }
     } catch (error) {
-      debugError('Exception during batch processing', error)
+      job.progress.retrying = 0
       const errorInfo = this.parseError(error)
 
       if ((errorInfo.type === '403' || errorInfo.type === 'network') && retryCount < maxRetries) {
-        console.log(`[PostProcessing] Retrying batch due to exception ${errorInfo.type} (attempt ${retryCount + 1}/${maxRetries})`)
+        console.log(`[PostProcessing] Retrying batch due to exception ${errorInfo.type}`)
         await this.delay(1000 * (retryCount + 1))
-        const retryResult = await this.processBatchWithRetry(
-          job,
-          batch,
-          token,
-          originalBatchSize,
-          retryCount + 1
-        )
+        const retryResult = await this.processAIBatchWithRetry(job, batch, token, originalBatchSize, retryCount + 1)
         result.successful.push(...retryResult.successful)
         result.notSlide.push(...retryResult.notSlide)
         result.failed.push(...retryResult.failed)
@@ -573,7 +733,6 @@ class PostProcessingServiceClass {
       }
     }
 
-    debugLog('processBatchWithRetry result', result)
     return result
   }
 
@@ -583,37 +742,27 @@ class PostProcessingServiceClass {
     batches: string[][],
     token: string | undefined,
     originalBatchSize: number
-  ): Promise<BatchResult> {
-    const result: BatchResult = {
+  ): Promise<AIBatchResult> {
+    const result: AIBatchResult = {
       successful: [],
       notSlide: [],
       failed: [],
       pending413: []
     }
 
-    // Min batch size is batchSize - 2, but at least 1
     const minBatchSize = Math.max(1, originalBatchSize - 2)
 
     for (const batch of batches) {
       const newSize = Math.ceil(batch.length / 2)
 
       if (newSize < minBatchSize || batch.length === 1) {
-        // Can't split further, process individually or mark as failed
-        if (batch.length === 1) {
-          // Try one more time with single image
-          const singleResult = await this.processBatchWithRetry(
-            job,
-            batch,
-            token,
-            originalBatchSize,
-            0 // Reset retry count for smaller batch
-          )
-
-          // If still 413, mark as failed
+        // Process individually
+        for (const file of batch) {
+          const singleResult = await this.processAIBatchWithRetry(job, [file], token, originalBatchSize, 0)
           if (singleResult.pending413.length > 0) {
-            result.failed.push(...batch)
+            result.failed.push(file)
             job.errors.push({
-              filename: batch[0],
+              filename: file,
               errorType: '413',
               message: 'Payload too large even for single image',
               retryCount: 0
@@ -623,30 +772,6 @@ class PostProcessingServiceClass {
             result.notSlide.push(...singleResult.notSlide)
             result.failed.push(...singleResult.failed)
           }
-        } else {
-          // Process each image individually as last resort
-          for (const file of batch) {
-            const singleResult = await this.processBatchWithRetry(
-              job,
-              [file],
-              token,
-              originalBatchSize,
-              0
-            )
-            if (singleResult.pending413.length > 0) {
-              result.failed.push(file)
-              job.errors.push({
-                filename: file,
-                errorType: '413',
-                message: 'Payload too large even for single image',
-                retryCount: 0
-              })
-            } else {
-              result.successful.push(...singleResult.successful)
-              result.notSlide.push(...singleResult.notSlide)
-              result.failed.push(...singleResult.failed)
-            }
-          }
         }
       } else {
         // Split into smaller batches
@@ -655,36 +780,23 @@ class PostProcessingServiceClass {
           newBatches.push(batch.slice(i, i + newSize))
         }
 
-        console.log(`[PostProcessing] Splitting 413 batch of ${batch.length} into ${newBatches.length} batches of ~${newSize}`)
+        console.log(`[PostProcessing] Splitting 413 batch of ${batch.length} into ${newBatches.length} batches`)
 
         for (const smallerBatch of newBatches) {
-          const batchResult = await this.processBatchWithRetry(
-            job,
-            smallerBatch,
-            token,
-            originalBatchSize,
-            0 // Reset retry count for smaller batch
-          )
+          const batchResult = await this.processAIBatchWithRetry(job, smallerBatch, token, originalBatchSize, 0)
 
           result.successful.push(...batchResult.successful)
           result.notSlide.push(...batchResult.notSlide)
           result.failed.push(...batchResult.failed)
 
-          // Handle nested 413 by recursive call
           if (batchResult.pending413.length > 0) {
-            const nestedResult = await this.process413Batches(
-              job,
-              batchResult.pending413,
-              token,
-              originalBatchSize
-            )
+            const nestedResult = await this.process413Batches(job, batchResult.pending413, token, originalBatchSize)
             result.successful.push(...nestedResult.successful)
             result.notSlide.push(...nestedResult.notSlide)
             result.failed.push(...nestedResult.failed)
           }
 
-          job.progress.completed = result.successful.length + result.notSlide.length
-          job.progress.failed = result.failed.length
+          job.progress.aiFiltered = result.notSlide.length
         }
       }
     }
@@ -692,13 +804,23 @@ class PostProcessingServiceClass {
     return result
   }
 
-  // Read images from files as base64
-  private async readImagesAsBase64(outputPath: string, filenames: string[]): Promise<(string | null)[]> {
+  // Read images and resize for AI processing
+  private async readAndResizeImages(outputPath: string, filenames: string[]): Promise<(string | null)[]> {
     const results: (string | null)[] = []
 
     for (const filename of filenames) {
       try {
-        const base64 = await window.electronAPI.slideExtraction.readSlideAsBase64(outputPath, filename)
+        let base64 = await window.electronAPI.slideExtraction.readSlideAsBase64(outputPath, filename)
+
+        // Resize if needed
+        if (this.imageResizeWidth < 1920 || this.imageResizeHeight < 1080) {
+          try {
+            base64 = await this.resizeBase64Image(base64, this.imageResizeWidth, this.imageResizeHeight)
+          } catch {
+            // Use original if resize fails
+          }
+        }
+
         results.push(base64)
       } catch (error) {
         console.error(`[PostProcessing] Failed to read image ${filename}:`, error)
@@ -707,6 +829,37 @@ class PostProcessingServiceClass {
     }
 
     return results
+  }
+
+  // Helper function to resize a base64 image
+  private async resizeBase64Image(
+    base64: string,
+    targetWidth: number,
+    targetHeight: number
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => {
+        if (targetWidth >= img.width && targetHeight >= img.height) {
+          resolve(base64)
+          return
+        }
+
+        const canvas = document.createElement('canvas')
+        canvas.width = targetWidth
+        canvas.height = targetHeight
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'))
+          return
+        }
+        ctx.drawImage(img, 0, 0, targetWidth, targetHeight)
+        const resizedDataUrl = canvas.toDataURL('image/png')
+        resolve(resizedDataUrl.replace(/^data:image\/\w+;base64,/, ''))
+      }
+      img.onerror = () => reject(new Error('Failed to load image for resize'))
+      img.src = `data:image/png;base64,${base64}`
+    })
   }
 
   // Parse error to determine type
@@ -725,17 +878,14 @@ class PostProcessingServiceClass {
 
     const lowerMessage = errorMessage.toLowerCase()
 
-    // Check for 413
     if (errorMessage.includes('413') || lowerMessage.includes('payload too large') || lowerMessage.includes('entity too large')) {
       return { type: '413', message: errorMessage }
     }
 
-    // Check for 403
     if (errorMessage.includes('403') || lowerMessage.includes('forbidden')) {
       return { type: '403', message: errorMessage }
     }
 
-    // Check for network errors
     if (lowerMessage.includes('network') ||
         lowerMessage.includes('econnreset') ||
         lowerMessage.includes('econnrefused') ||
@@ -744,7 +894,6 @@ class PostProcessingServiceClass {
       return { type: 'network', message: errorMessage }
     }
 
-    // Check for other HTTP errors
     const httpCodeMatch = errorMessage.match(/(\d{3})/)
     if (httpCodeMatch) {
       const code = parseInt(httpCodeMatch[1], 10)

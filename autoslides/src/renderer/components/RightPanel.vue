@@ -311,18 +311,32 @@ const getPostProcessJob = (taskId: string): PostProcessJob | undefined => {
 const getPostProcessStatusText = (job: PostProcessJob | undefined): string => {
   if (!job) return ''
 
+  const { progress } = job
+
   switch (job.status) {
     case 'queued':
-      return 'AI queued'
+      return 'PP queued'
     case 'processing':
-      return `AI ${job.progress.completed + job.progress.failed}/${job.progress.total}`
-    case 'completed':
-      if (job.progress.failed > 0) {
-        return `AI done (${job.progress.failed} failed)`
+      switch (progress.phase) {
+        case 'phase1':
+          return `Dup ${progress.currentIndex}/${job.imageFiles.length}`
+        case 'phase2':
+          return `Excl ${progress.currentIndex}/${job.imageFiles.length}`
+        case 'phase3':
+          return `AI ${progress.currentIndex}/${progress.total}`
+        default:
+          return 'Processing...'
       }
-      return 'AI done'
+    case 'completed': {
+      const parts: string[] = []
+      if (progress.duplicatesRemoved > 0) parts.push(`-${progress.duplicatesRemoved} dup`)
+      if (progress.excludedRemoved > 0) parts.push(`-${progress.excludedRemoved} excl`)
+      if (progress.aiFiltered > 0) parts.push(`-${progress.aiFiltered} AI`)
+      if (progress.failed > 0) parts.push(`${progress.failed} fail`)
+      return parts.length > 0 ? `Done: ${parts.join(', ')}` : 'Done'
+    }
     case 'failed':
-      return 'AI failed'
+      return 'PP failed'
     default:
       return ''
   }

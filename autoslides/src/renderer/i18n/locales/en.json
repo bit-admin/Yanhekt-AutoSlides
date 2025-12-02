@@ -290,11 +290,16 @@
     "error": "Error",
     "noTasks": "No slide extraction tasks in queue",
     "noTasksDescription": "Add recorded sessions to queue to automatically extract slides",
-    "aiQueued": "AI queued",
-    "aiProcessing": "AI Processing",
-    "aiDone": "AI done",
-    "aiFailed": "AI failed",
-    "failedCount": "{count} failed"
+    "ppQueued": "PP queued",
+    "ppProcessing": "Processing...",
+    "ppDone": "Done",
+    "ppFailed": "PP failed",
+    "phase1": "Dup",
+    "phase2": "Excl",
+    "phase3": "AI",
+    "duplicates": "dup",
+    "excluded": "excl",
+    "failed": "fail"
   },
   "downloads": {
     "downloadList": "Download List",

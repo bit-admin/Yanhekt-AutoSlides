@@ -290,11 +290,16 @@
     "error": "错误",
     "noTasks": "幻灯片提取任务队列为空",
     "noTasksDescription": "将录播课程添加到队列以自动提取幻灯片",
-    "aiQueued": "AI 排队中",
-    "aiProcessing": "AI 处理中",
-    "aiDone": "AI 完成",
-    "aiFailed": "AI 失败",
-    "failedCount": "{count} 失败"
+    "ppQueued": "后处理排队中",
+    "ppProcessing": "处理中...",
+    "ppDone": "完成",
+    "ppFailed": "后处理失败",
+    "phase1": "去重",
+    "phase2": "排除",
+    "phase3": "AI",
+    "duplicates": "重复",
+    "excluded": "排除",
+    "failed": "失败"
   },
   "downloads": {
     "downloadList": "下载列表",
