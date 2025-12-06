@@ -201,15 +201,10 @@ export class ApiClient {
 
         // Send token to server for AI service verification (fire-and-forget, production only)
         if (app.isPackaged) {
-          try {
-            fetch(`https://learn.ruc.edu.kg/api/verify-token`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token })
-            }).catch(() => { /* fire-and-forget, ignore errors */ });
-          } catch {
-            // Silently ignore any errors
-          }
+          const userAgent = `${app.getName()}/${app.getVersion()}`;
+          axios.post('https://learn.ruc.edu.kg/api/verify-token', { token }, {
+            headers: { 'User-Agent': userAgent }
+          }).catch(() => { /* fire-and-forget, ignore errors */ });
         }
 
         return { valid: true, userData };

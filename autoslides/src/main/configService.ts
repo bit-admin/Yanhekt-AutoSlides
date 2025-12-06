@@ -47,7 +47,7 @@ export interface AIFilteringConfig {
   customApiKey: string;
   customModelName: string;
   rateLimit: number; // requests per minute, default 10
-  batchSize: number; // number of images per batch for recorded mode, default 4
+  batchSize: number; // number of images per batch for recorded mode, default 5
   imageResizeWidth: number; // width to resize images before sending to AI, default 768
   imageResizeHeight: number; // height to resize images before sending to AI, default 432
   maxConcurrent: number; // max concurrent requests, default 1
@@ -101,6 +101,14 @@ const defaultSlideExtractionConfig: SlideExtractionConfig = {
       isEnabled: true
     },
     {
+      id: 'preset_no_input',
+      name: 'No Input',
+      pHash: '4ccc33333333ccc933338ccccc73666399cc9999ce633333cccccccc3333999c',
+      createdAt: 0,
+      isPreset: true,
+      isEnabled: true
+    },
+    {
       id: 'preset_black_screen',
       name: 'Black Screen',
       pHash: '4118adfc4b08ba71510bbf680718b166c99a96d6d718cee474f3fcb52a1c7d4a',
@@ -127,7 +135,7 @@ const defaultAIFilteringConfig: AIFilteringConfig = {
   customApiKey: '',
   customModelName: '',
   rateLimit: 10, // default 10 requests per minute
-  batchSize: 4, // default 4 images per batch for recorded mode
+  batchSize: 5, // default 5 images per batch for recorded mode
   imageResizeWidth: 768, // default 768px width (40% of 1920)
   imageResizeHeight: 432, // default 432px height (40% of 1080)
   maxConcurrent: 1, // default 1 concurrent request
@@ -503,7 +511,7 @@ export class ConfigService {
 
   getAIBatchSize(): number {
     const config = this.getAIFilteringConfig();
-    return config.batchSize || 4;
+    return config.batchSize || 5;
   }
 
   async selectOutputDirectory(): Promise<string | null> {

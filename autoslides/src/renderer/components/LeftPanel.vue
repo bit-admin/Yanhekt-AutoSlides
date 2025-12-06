@@ -747,7 +747,6 @@
               <div v-if="tempAiServiceType === 'builtin'" class="builtin-model-info">
                 <div class="setting-item">
                   <label class="setting-label">{{ $t('advanced.ai.builtinModel') }}</label>
-                  <div class="setting-description">{{ $t('advanced.ai.builtinModelDescription') }}</div>
                   <div class="builtin-model-display">
                     <div v-if="isLoadingBuiltinModel" class="model-loading">
                       <div class="loading-spinner-small"></div>
@@ -4075,7 +4074,7 @@ defineExpose({
 .builtin-disclaimer {
   margin-top: 12px;
   padding: 10px 12px;
-  font-size: 11px;
+  font-size: 10px;
   color: #888;
   line-height: 1.5;
   background-color: rgba(0, 0, 0, 0.03);

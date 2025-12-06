@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import Bottleneck from 'bottleneck';
+import { app } from 'electron';
 import { ConfigService } from './configService';
 import { AIPromptsService, AIPromptType } from './aiPromptsService';
 
@@ -166,7 +167,8 @@ export class AIFilteringService {
       const response = await axios.get(`${BUILTIN_API_BASE_URL}/model`, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'User-Agent': `${app.getName()}/${app.getVersion()}`
         },
         timeout: 10000
       });
@@ -210,6 +212,11 @@ export class AIFilteringService {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
     };
+
+    // Add User-Agent for built-in service
+    if (baseUrl === BUILTIN_API_BASE_URL) {
+      headers['User-Agent'] = `${app.getName()}/${app.getVersion()}`;
+    }
 
     // Handle Copilot-Vision-Request header for GitHub Copilot API
     if (baseUrl === 'https://api.githubcopilot.com' && hasImages) {

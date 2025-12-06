@@ -131,10 +131,10 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
 
   // Image resize presets
   const imageResizePresets: ImageResizePreset[] = [
-    { key: '1920x1080', label: 'Original (1920x1080)', width: 1920, height: 1080 },
+    { key: '512x288', label: '512x288', width: 512, height: 288 },
+    { key: '768x432', label: '768x432', width: 768, height: 432 },
     { key: '1024x576', label: '1024x576', width: 1024, height: 576 },
-    { key: '768x432', label: '768x432 (Default)', width: 768, height: 432 },
-    { key: '512x288', label: '512x288', width: 512, height: 288 }
+    { key: '1920x1080', label: '1920x1080', width: 1920, height: 1080 }
   ]
 
   // AI prompts
@@ -180,8 +180,8 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
         tempAiCustomModelName.value = aiConfig.customModelName || ''
         aiRateLimit.value = aiConfig.rateLimit || 10
         tempAiRateLimit.value = aiConfig.rateLimit || 10
-        aiBatchSize.value = aiConfig.batchSize || 4
-        tempAiBatchSize.value = aiConfig.batchSize || 4
+        aiBatchSize.value = aiConfig.batchSize || 5
+        tempAiBatchSize.value = aiConfig.batchSize || 5
 
         // Load concurrency control settings
         aiMaxConcurrent.value = aiConfig.maxConcurrent || 1

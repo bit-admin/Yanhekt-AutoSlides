@@ -467,7 +467,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
     const token = tokenManager.getToken() || undefined
     const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
-    const batchSize = filterMode === 'live' ? 1 : (aiConfig?.batchSize || 4)
+    const batchSize = filterMode === 'live' ? 1 : (aiConfig?.batchSize || 5)
 
     for (let i = 0; i < slidesNeedingAI.length; i += batchSize) {
       const batch = slidesNeedingAI.slice(i, i + batchSize)
@@ -710,7 +710,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       // Load AI filtering config for batch size and image resize
       const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
       if (aiConfig) {
-        aiBatchSize.value = aiConfig.batchSize || 4
+        aiBatchSize.value = aiConfig.batchSize || 5
         aiImageResizeWidth.value = aiConfig.imageResizeWidth || 768
         aiImageResizeHeight.value = aiConfig.imageResizeHeight || 432
       }

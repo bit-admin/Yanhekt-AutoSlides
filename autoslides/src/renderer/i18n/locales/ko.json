@@ -206,7 +206,6 @@
       "builtin": "내장",
       "custom": "사용자 정의",
       "builtinModel": "내장 모델",
-      "builtinModelDescription": "내장 서비스에서 현재 사용 가능한 AI 모델입니다.",
       "loadingModel": "모델 정보 로딩 중...",
       "modelNotLoggedIn": "모델 정보를 보려면 로그인하세요",
       "modelFetchFailed": "모델 정보를 가져오지 못했습니다",

@@ -99,8 +99,12 @@ export class SlideExtractor {
         console.log(`Base interval changed to ${newBaseInterval}ms, interval table rebuilt`);
       }
 
+      // Calculate the correct interval based on current playback rate
+      // This ensures we respect any playback rate that was set before config loaded
+      const correctInterval = this.getIntervalForRate(this.currentPlaybackRate);
+
       this.config = {
-        checkInterval: this.getIntervalForRate(this.currentPlaybackRate), // Direct table lookup
+        checkInterval: correctInterval,
         enableDoubleVerification: slideConfig.enableDoubleVerification !== false,
         verificationCount: slideConfig.verificationCount || 2,
         ssimThreshold: slideConfig.ssimThreshold || 0.999,
@@ -117,7 +121,13 @@ export class SlideExtractor {
         downsampleHeight: this.config.downsampleHeight
       });
 
-      console.log('Slide extraction config loaded:', this.config);
+      console.log(`Slide extraction config loaded (playbackRate=${this.currentPlaybackRate}x):`, this.config);
+
+      // If extraction is already running with a different interval, update it
+      if (this.isRunning && this.captureInterval) {
+        this.restartExtractionWithNewInterval();
+        console.log(`Extraction interval updated to ${correctInterval}ms after config load`);
+      }
     } catch (error) {
       console.error('Failed to load slide extraction config:', error);
     }
@@ -184,32 +194,28 @@ export class SlideExtractor {
    * Ultra-fast O(1) table lookup - no calculations needed
    */
   updatePlaybackRate(playbackRate: number): void {
-    if (this.currentPlaybackRate === playbackRate) {
-      return; // No change needed
-    }
-
     const oldRate = this.currentPlaybackRate;
     const oldInterval = this.config.checkInterval;
 
     // Direct table lookup - no calculation needed!
     const newInterval = this.getIntervalForRate(playbackRate);
 
-    // Only proceed if the interval actually changed
-    if (newInterval === oldInterval) {
-      // Update playback rate but no need to restart extraction
-      this.currentPlaybackRate = playbackRate;
-      console.log(`Playback rate changed: ${oldRate}x -> ${playbackRate}x, interval unchanged: ${newInterval}ms (no restart needed)`);
-      return;
-    }
-
-    // Update both playback rate and interval
+    // Always update playback rate to ensure it's tracked
     this.currentPlaybackRate = playbackRate;
+
+    // Always update config.checkInterval to ensure startExtraction uses the correct value
+    // This is critical for when playback rate is set BEFORE starting extraction
     this.config.checkInterval = newInterval;
+
+    // Only log and restart if something actually changed
+    if (oldRate === playbackRate && oldInterval === newInterval) {
+      return; // No change needed
+    }
 
     console.log(`Playback rate changed: ${oldRate}x -> ${playbackRate}x, interval: ${oldInterval}ms -> ${newInterval}ms (table lookup)`);
 
     // Only restart extraction if it's currently running and interval changed
-    if (this.isRunning) {
+    if (this.isRunning && oldInterval !== newInterval) {
       this.restartExtractionWithNewInterval();
     }
   }

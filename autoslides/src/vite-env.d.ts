@@ -73,7 +73,7 @@ interface AIFilteringConfig {
   customApiKey: string;
   customModelName: string;
   rateLimit: number; // requests per minute, default 10
-  batchSize: number; // number of images per batch for recorded mode, default 4
+  batchSize: number; // number of images per batch for recorded mode, default 5
   imageResizeWidth: number; // width to resize images before sending to AI, default 768
   imageResizeHeight: number; // height to resize images before sending to AI, default 432
   maxConcurrent: number; // max concurrent requests, default 1

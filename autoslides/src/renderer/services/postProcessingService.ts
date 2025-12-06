@@ -224,7 +224,7 @@ class PostProcessingServiceClass {
       const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
       this.imageResizeWidth = aiConfig?.imageResizeWidth || 768
       this.imageResizeHeight = aiConfig?.imageResizeHeight || 432
-      const aiBatchSize = aiConfig?.batchSize || 4
+      const aiBatchSize = aiConfig?.batchSize || 5
 
       // Track deleted files to exclude from later phases
       const deletedFiles = new Set<string>()

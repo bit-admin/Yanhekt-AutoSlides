@@ -497,12 +497,16 @@ const isVideoContainerCollapsed = ref(false)
 const courseRef = toRef(props, 'course')
 const sessionRef = computed(() => props.session ?? null)
 
+// Create shared playback rate ref that will be updated by video player
+// and used by slide extraction for interval calculation
+const sharedPlaybackRate = ref(1)
+
 // Initialize slide extraction composable first (needed by other composables)
 const slideExtraction = useSlideExtraction({
   mode: props.mode,
   course: courseRef,
   session: sessionRef,
-  currentPlaybackRate: ref(1) // Will be synced after videoPlayer init
+  currentPlaybackRate: sharedPlaybackRate
 })
 
 // Initialize slide gallery composable
@@ -518,6 +522,12 @@ const videoPlayerComposable = useVideoPlayer({
   session: sessionRef,
   slideExtractorInstance: slideExtraction.slideExtractorInstance
 })
+
+// Sync sharedPlaybackRate with video player's currentPlaybackRate
+// This ensures slide extraction uses the correct interval when started
+watch(videoPlayerComposable.currentPlaybackRate, (newRate) => {
+  sharedPlaybackRate.value = newRate
+}, { immediate: true })
 
 // Expose videoPlayer ref for template binding
 const videoPlayer = videoPlayerComposable.videoPlayer

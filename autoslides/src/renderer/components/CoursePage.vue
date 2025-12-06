@@ -11,6 +11,7 @@
             type="text"
             :placeholder="$t('courses.search.placeholder')"
             class="search-input"
+            @keyup.enter="searchCourses"
           />
           <div v-if="mode === 'recorded'" class="semester-selector">
             <button @click="toggleSemesterDropdown" class="semester-dropdown-btn">

@@ -206,7 +206,6 @@
       "builtin": "Built-in",
       "custom": "Custom",
       "builtinModel": "Built-in Model",
-      "builtinModelDescription": "The AI model currently available for the built-in service.",
       "loadingModel": "Loading model info...",
       "modelNotLoggedIn": "Please log in to view model info",
       "modelFetchFailed": "Failed to fetch model info",
