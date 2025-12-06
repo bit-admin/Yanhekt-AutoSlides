@@ -8,7 +8,7 @@
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make:mac": "electron-forge package && dropdmg --config-name 'AutoSlides' out/AutoSlides-darwin-arm64/AutoSlides.app",
-    "make:win": "electron-builder --win --config electron-builder.yml",
+    "make:win": "electron-forge package --platform=win32 --arch=x64 && electron-builder --win --config electron-builder.yml --prepackaged out/AutoSlides-win32-x64",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx ."
   },

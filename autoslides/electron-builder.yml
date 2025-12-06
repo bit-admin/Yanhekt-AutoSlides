@@ -2,27 +2,10 @@ appId: com.bitadmin.autoslides
 productName: AutoSlides
 copyright: Copyright © 2024 BIT-admin
 
-# Use the pre-packaged Electron app from Forge
-# electron-builder will read from package.json for main entry
+# Output directory for installer
 directories:
   buildResources: resources
   output: out/make
-
-# Files to include (electron-builder will package from current directory)
-files:
-  - .vite/**/*
-  - package.json
-
-# Extra resources to include in the app
-extraResources:
-  - from: resources/terms
-    to: terms
-    filter:
-      - "**/*"
-  - from: node_modules/ffmpeg-static
-    to: ffmpeg-static
-    filter:
-      - "**/*"
 
 # Windows configuration
 win:
@@ -86,8 +69,5 @@ nsis:
 # Compression settings
 compression: maximum
 
-# Enable asar for production
-asar: true
-
-# Disable auto-updating (if needed, you can enable later)
+# Disable auto-updating publishing
 publish: null
