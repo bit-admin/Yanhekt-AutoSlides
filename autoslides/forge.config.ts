@@ -1,6 +1,4 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
-import { MakerDMG } from '@electron-forge/maker-dmg';
-import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
@@ -24,23 +22,8 @@ const config: ForgeConfig = {
   },
   rebuildConfig: {},
   makers: [
-    // macOS DMG
-    new MakerDMG({
-      name: 'AutoSlides',
-      icon: 'resources/img/icon.icns',
-      format: 'ULFO',
-      background: './build/background.png',
-      contents: [
-        { x: 405, y: 210, type: 'link', path: '/Applications' },
-        { x: 135, y: 210, type: 'file', path: './out/AutoSlides-darwin-arm64/AutoSlides.app' }
-      ]
-    }),
-    // Windows Squirrel
-    new MakerSquirrel({
-      name: 'AutoSlides',
-      setupIcon: 'resources/img/icon.ico',
-      setupExe: 'AutoSlides-Setup.exe'
-    })
+    // macOS: Use `npm run package` then DropDMG manually
+    // Windows: Use `npm run make:win` (electron-builder with NSIS, see electron-builder.yml)
   ],
   plugins: [
     new AutoUnpackNativesPlugin({}),

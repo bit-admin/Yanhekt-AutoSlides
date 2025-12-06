@@ -5,16 +5,8 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform: Windows
-            artifact_pattern: "**/*.exe"
+  build-windows:
+    runs-on: windows-latest
 
     steps:
     - name: Checkout code
@@ -23,7 +15,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '22'
         cache: 'npm'
         cache-dependency-path: autoslides/package-lock.json
 
@@ -37,10 +29,10 @@ jobs:
         cd autoslides
         npm run lint
 
-    - name: Build application
+    - name: Build NSIS installer
       run: |
         cd autoslides
-        npm run make
+        npm run make:win
       env:
         # Disable code signing for CI builds
         CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -48,11 +40,12 @@ jobs:
     - name: List build output
       run: |
         cd autoslides
-        find out/make -type f -name "*" | head -20
+        Get-ChildItem -Path out -Recurse -File -Include "*.exe" | Select-Object FullName, Length | Format-Table -AutoSize
+      shell: pwsh
 
-    - name: Upload artifacts
+    - name: Upload NSIS Installer
       uses: actions/upload-artifact@v4
       with:
-        name: AutoSlides-${{ matrix.platform }}
-        path: autoslides/out/make/${{ matrix.artifact_pattern }}
+        name: AutoSlides-Windows-Setup
+        path: autoslides/out/make/*.exe
         retention-days: 30

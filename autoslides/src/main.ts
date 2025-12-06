@@ -1,7 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
-import started from 'electron-squirrel-startup';
 import { MainAuthService } from './main/authService';
 import { MainApiClient } from './main/apiClient';
 import { ConfigService } from './main/configService';
@@ -47,11 +46,6 @@ const getTranslation = (key: string): string => {
 // Declare Vite dev server variables that are injected during build
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
-
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-if (started) {
-  app.quit();
-}
 
 // Set app name
 app.setName('AutoSlides');

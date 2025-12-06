@@ -1,0 +1,93 @@
+appId: com.bitadmin.autoslides
+productName: AutoSlides
+copyright: Copyright © 2024 BIT-admin
+
+# Use the pre-packaged Electron app from Forge
+# electron-builder will read from package.json for main entry
+directories:
+  buildResources: resources
+  output: out/make
+
+# Files to include (electron-builder will package from current directory)
+files:
+  - .vite/**/*
+  - package.json
+
+# Extra resources to include in the app
+extraResources:
+  - from: resources/terms
+    to: terms
+    filter:
+      - "**/*"
+  - from: node_modules/ffmpeg-static
+    to: ffmpeg-static
+    filter:
+      - "**/*"
+
+# Windows configuration
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: resources/img/icon.ico
+  artifactName: ${productName}-Setup-${version}.${ext}
+
+# NSIS installer configuration
+nsis:
+  # Use assisted installer (not one-click) for more control
+  oneClick: false
+
+  # Install for all users (per-machine) by default - installs to C:\Program Files
+  perMachine: true
+
+  # Allow user to change installation directory
+  allowToChangeInstallationDirectory: true
+
+  # Allow elevation for installation
+  allowElevation: true
+
+  # Create desktop shortcut
+  createDesktopShortcut: true
+
+  # Create Start Menu shortcut
+  createStartMenuShortcut: true
+
+  # Shortcut name
+  shortcutName: AutoSlides
+
+  # Run application after installation finishes
+  runAfterFinish: true
+
+  # Delete app data on uninstall (clean uninstall)
+  deleteAppDataOnUninstall: true
+
+  # Installer icons
+  installerIcon: resources/img/icon.ico
+  uninstallerIcon: resources/img/icon.ico
+
+  # Include uninstaller
+  uninstallDisplayName: AutoSlides
+
+  # License file (will be shown during installation)
+  license: resources/terms/terms.rtf
+
+  # Language settings - support multiple languages
+  unicode: true
+
+  # Menu category
+  menuCategory: true
+
+  # Installer language selection
+  installerLanguages:
+    - en_US
+    - zh_CN
+
+# Compression settings
+compression: maximum
+
+# Enable asar for production
+asar: true
+
+# Disable auto-updating (if needed, you can enable later)
+publish: null
