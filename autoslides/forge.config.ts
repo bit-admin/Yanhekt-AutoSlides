@@ -1,8 +1,10 @@
 import type { ForgeConfig } from '@electron-forge/shared-types';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
-import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+
+// Check if we're running in development mode (npm start)
+const isDev = process.argv.some(arg => arg.includes('electron-forge-start'));
 
 const config: ForgeConfig = {
   packagerConfig: {
@@ -26,7 +28,6 @@ const config: ForgeConfig = {
     // Windows: Use `npm run make:win` (electron-builder with NSIS, see electron-builder.yml)
   ],
   plugins: [
-    new AutoUnpackNativesPlugin({}),
     new VitePlugin({
       // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
       // If you are familiar with Vite configuration, it will look really familiar.
@@ -52,7 +53,8 @@ const config: ForgeConfig = {
     }),
     // Fuses are used to enable/disable various Electron functionality
     // at package time, before code signing the application
-    new FusesPlugin({
+    // Only include during packaging to avoid plugin conflict with VitePlugin during dev
+    ...(!isDev ? [new FusesPlugin({
       version: FuseVersion.V1,
       [FuseV1Options.RunAsNode]: false,
       [FuseV1Options.EnableCookieEncryption]: true,
@@ -60,7 +62,7 @@ const config: ForgeConfig = {
       [FuseV1Options.EnableNodeCliInspectArguments]: false,
       [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
-    }),
+    })] : []),
   ],
 };
 
