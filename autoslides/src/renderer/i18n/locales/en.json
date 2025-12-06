@@ -46,7 +46,7 @@
     "slideStabilityVerification": "Slide Stability Verification",
     "slideStabilityDescription": "Prevents false detection from animations by confirming a new slide after it remains unchanged for several consecutive checks.",
     "enableChecks": "Enable Checks",
-    "counts": "Count(s)",
+    "counts": "Counts",
     "taskSpeed": "Task Speed",
     "taskSpeedDescription": "Playback speed for automated task processing.",
     "autoPostProcessing": "Auto Post-Processing",
@@ -142,7 +142,7 @@
     "enterNamePlaceholder": "Enter a name for this exclusion item...",
     "confirm": "Confirm",
     "enableDownsampling": "Enable Downsampling",
-    "downsamplingDescription": "Downsample images before SSIM calculation to improve performance while maintaining accuracy.",
+    "downsamplingDescription": "Downsample images before SSIM calculation for anti-aliasing to improve detection accuracy.",
     "downsampleWidth": "Downsample Width",
     "downsampleHeight": "Downsample Height",
     "downsampleResolution": "Downsample Resolution",
@@ -236,11 +236,12 @@
       "minTimeUnit": "milliseconds",
       "prompts": "AI Prompts",
       "promptLive": "Prompt for Live Mode",
-      "promptLiveDescription": "The prompt used for classifying slides during live streaming. This processes one image at a time.",
+      "promptLiveDescription": "Processes one image at a time. Expected response: {\"classification\": \"slide\"} or {\"classification\": \"not_slide\"}",
       "promptRecorded": "Prompt for Recorded Mode",
-      "promptRecordedDescription": "The prompt used for classifying slides from recordings. This processes multiple images in batch.",
+      "promptRecordedDescription": "Processes multiple images in batch. Expected response: {\"image_0\": \"slide\", \"image_1\": \"not_slide\", \"image_2\": \"slide\", ...}",
       "promptPlaceholder": "Enter the AI prompt...",
-      "resetPrompt": "Reset to Default"
+      "resetPrompt": "Reset to Default",
+      "builtinDisclaimer": "This service is provided by the developer free of charge and on an \"as is\" basis. We make no warranties, express or implied, regarding the continuity or stability of the service, and we may modify or interrupt the service at any time without prior notice. The user agrees to use the service in a reasonable, fair, and non-commercial manner."
     }
   },
   "courses": {

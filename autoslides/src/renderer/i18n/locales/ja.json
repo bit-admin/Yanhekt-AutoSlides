@@ -142,7 +142,7 @@
     "enterNamePlaceholder": "この除外項目の名前を入力してください...",
     "confirm": "確認",
     "enableDownsampling": "ダウンサンプリングを有効にする",
-    "downsamplingDescription": "SSIM計算前に画像をダウンサンプリングして、精度を保ちながらパフォーマンスを向上させます。",
+    "downsamplingDescription": "SSIM計算前に画像をダウンサンプリングしてアンチエイリアス処理を行い、検出精度を向上させます。",
     "downsampleWidth": "ダウンサンプル幅",
     "downsampleHeight": "ダウンサンプル高さ",
     "downsampleResolution": "ダウンサンプル解像度",
@@ -236,11 +236,12 @@
       "minTimeUnit": "ミリ秒",
       "prompts": "AIプロンプト",
       "promptLive": "ライブモードのプロンプト",
-      "promptLiveDescription": "ライブストリーミング中のスライド分類に使用するプロンプト。一度に1つの画像を処理します。",
+      "promptLiveDescription": "一度に1つの画像を処理します。期待される応答: {\"classification\": \"slide\"} または {\"classification\": \"not_slide\"}",
       "promptRecorded": "録画モードのプロンプト",
-      "promptRecordedDescription": "録画からのスライド分類に使用するプロンプト。複数の画像をバッチ処理します。",
+      "promptRecordedDescription": "複数の画像をバッチ処理します。期待される応答: {\"image_0\": \"slide\", \"image_1\": \"not_slide\", \"image_2\": \"slide\", ...}",
       "promptPlaceholder": "AIプロンプトを入力...",
-      "resetPrompt": "デフォルトにリセット"
+      "resetPrompt": "デフォルトにリセット",
+      "builtinDisclaimer": "本サービスは開発者により無料で「現状のまま」提供されています。サービスの継続性や安定性について、明示的または黙示的な保証は一切行いません。事前の通知なくサービスを変更または中断する場合があります。ユーザーは、合理的かつ公正で非商用的な方法でサービスを利用することに同意するものとします。"
     }
   },
   "courses": {

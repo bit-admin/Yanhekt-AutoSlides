@@ -800,6 +800,10 @@
                     <span>{{ $t('advanced.ai.cloudflareHint') }}</span>
                   </div>
                 </div>
+                <!-- Built-in service disclaimer -->
+                <div class="builtin-disclaimer">
+                  {{ $t('advanced.ai.builtinDisclaimer') }}
+                </div>
               </div>
 
               <!-- Custom API Settings (shown only when custom is selected) -->
@@ -4068,6 +4072,16 @@ defineExpose({
   margin-top: 1px;
 }
 
+.builtin-disclaimer {
+  margin-top: 12px;
+  padding: 10px 12px;
+  font-size: 11px;
+  color: #888;
+  line-height: 1.5;
+  background-color: rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
+}
+
 /* Dark mode support for AI settings */
 @media (prefers-color-scheme: dark) {
   .custom-api-settings {
@@ -4161,6 +4175,11 @@ defineExpose({
     background-color: #4a3f00;
     border-color: #6b5a00;
     color: #ffd54f;
+  }
+
+  .builtin-disclaimer {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #888;
   }
 }
 </style>

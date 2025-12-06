@@ -142,7 +142,7 @@
     "enterNamePlaceholder": "이 제외 항목의 이름을 입력하세요...",
     "confirm": "확인",
     "enableDownsampling": "다운샘플링 활성화",
-    "downsamplingDescription": "SSIM 계산 전에 이미지를 다운샘플링하여 정확도를 유지하면서 성능을 향상시킵니다.",
+    "downsamplingDescription": "SSIM 계산 전에 이미지를 다운샘플링하여 안티앨리어싱 처리로 검출 정확도를 향상시킵니다.",
     "downsampleWidth": "다운샘플 너비",
     "downsampleHeight": "다운샘플 높이",
     "downsampleResolution": "다운샘플 해상도",
@@ -236,11 +236,12 @@
       "minTimeUnit": "밀리초",
       "prompts": "AI 프롬프트",
       "promptLive": "라이브 모드 프롬프트",
-      "promptLiveDescription": "라이브 스트리밍 중 슬라이드 분류에 사용되는 프롬프트입니다. 한 번에 하나의 이미지를 처리합니다.",
+      "promptLiveDescription": "한 번에 하나의 이미지를 처리합니다. 예상 응답: {\"classification\": \"slide\"} 또는 {\"classification\": \"not_slide\"}",
       "promptRecorded": "녹화 모드 프롬프트",
-      "promptRecordedDescription": "녹화된 영상의 슬라이드 분류에 사용되는 프롬프트입니다. 여러 이미지를 일괄 처리합니다.",
+      "promptRecordedDescription": "여러 이미지를 일괄 처리합니다. 예상 응답: {\"image_0\": \"slide\", \"image_1\": \"not_slide\", \"image_2\": \"slide\", ...}",
       "promptPlaceholder": "AI 프롬프트를 입력하세요...",
-      "resetPrompt": "기본값으로 재설정"
+      "resetPrompt": "기본값으로 재설정",
+      "builtinDisclaimer": "이 서비스는 개발자가 무료로 \"있는 그대로\" 제공합니다. 서비스의 지속성이나 안정성에 대해 명시적 또는 묵시적 보증을 제공하지 않으며, 사전 통지 없이 언제든지 서비스를 수정하거나 중단할 수 있습니다. 사용자는 합리적이고 공정하며 비상업적인 방식으로 서비스를 사용하는 데 동의합니다."
     }
   },
   "courses": {
