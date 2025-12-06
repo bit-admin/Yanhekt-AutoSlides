@@ -50,6 +50,8 @@ export interface AIFilteringConfig {
   batchSize: number; // number of images per batch for recorded mode, default 4
   imageResizeWidth: number; // width to resize images before sending to AI, default 768
   imageResizeHeight: number; // height to resize images before sending to AI, default 432
+  maxConcurrent: number; // max concurrent requests, default 1
+  minTime: number; // minimum time between requests in ms, default 6000
 }
 
 export interface AppConfig {
@@ -127,7 +129,9 @@ const defaultAIFilteringConfig: AIFilteringConfig = {
   rateLimit: 10, // default 10 requests per minute
   batchSize: 4, // default 4 images per batch for recorded mode
   imageResizeWidth: 768, // default 768px width (40% of 1920)
-  imageResizeHeight: 432 // default 432px height (40% of 1080)
+  imageResizeHeight: 432, // default 432px height (40% of 1080)
+  maxConcurrent: 1, // default 1 concurrent request
+  minTime: 6000 // default 6000ms between requests
 };
 
 const defaultConfig: AppConfig = {

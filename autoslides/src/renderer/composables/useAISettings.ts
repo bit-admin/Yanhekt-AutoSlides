@@ -45,6 +45,12 @@ export interface UseAISettingsReturn {
   tempAiBatchSize: Ref<number>
   maxAiRateLimit: ComputedRef<number>
 
+  // Concurrency control
+  aiMaxConcurrent: Ref<number>
+  tempAiMaxConcurrent: Ref<number>
+  aiMinTime: Ref<number>
+  tempAiMinTime: Ref<number>
+
   // Image resize settings
   aiImageResizeWidth: Ref<number>
   tempAiImageResizeWidth: Ref<number>
@@ -104,6 +110,12 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
   const tempAiRateLimit = ref(10)
   const aiBatchSize = ref(4)
   const tempAiBatchSize = ref(4)
+
+  // Concurrency control
+  const aiMaxConcurrent = ref(1)
+  const tempAiMaxConcurrent = ref(1)
+  const aiMinTime = ref(6000)
+  const tempAiMinTime = ref(6000)
 
   // Max rate limit depends on service type
   const maxAiRateLimit = computed(() => {
@@ -171,6 +183,12 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
         aiBatchSize.value = aiConfig.batchSize || 4
         tempAiBatchSize.value = aiConfig.batchSize || 4
 
+        // Load concurrency control settings
+        aiMaxConcurrent.value = aiConfig.maxConcurrent || 1
+        tempAiMaxConcurrent.value = aiConfig.maxConcurrent || 1
+        aiMinTime.value = aiConfig.minTime || 6000
+        tempAiMinTime.value = aiConfig.minTime || 6000
+
         // Load image resize settings
         aiImageResizeWidth.value = aiConfig.imageResizeWidth || 768
         tempAiImageResizeWidth.value = aiConfig.imageResizeWidth || 768
@@ -207,6 +225,10 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
       // Ensure batch size is within valid range
       const effectiveBatchSize = Math.max(1, Math.min(10, tempAiBatchSize.value))
 
+      // Ensure concurrency control values are within valid range
+      const effectiveMaxConcurrent = Math.max(1, Math.min(10, tempAiMaxConcurrent.value))
+      const effectiveMinTime = Math.max(0, Math.min(60000, tempAiMinTime.value))
+
       await window.electronAPI.config.setAIFilteringConfig({
         serviceType: tempAiServiceType.value,
         customApiBaseUrl: tempAiCustomApiBaseUrl.value,
@@ -215,7 +237,9 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
         rateLimit: effectiveRateLimit,
         batchSize: effectiveBatchSize,
         imageResizeWidth: tempAiImageResizeWidth.value,
-        imageResizeHeight: tempAiImageResizeHeight.value
+        imageResizeHeight: tempAiImageResizeHeight.value,
+        maxConcurrent: effectiveMaxConcurrent,
+        minTime: effectiveMinTime
       })
 
       // Update actual values
@@ -227,6 +251,10 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
       tempAiRateLimit.value = effectiveRateLimit
       aiBatchSize.value = effectiveBatchSize
       tempAiBatchSize.value = effectiveBatchSize
+      aiMaxConcurrent.value = effectiveMaxConcurrent
+      tempAiMaxConcurrent.value = effectiveMaxConcurrent
+      aiMinTime.value = effectiveMinTime
+      tempAiMinTime.value = effectiveMinTime
       aiImageResizeWidth.value = tempAiImageResizeWidth.value
       aiImageResizeHeight.value = tempAiImageResizeHeight.value
 
@@ -336,6 +364,8 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     tempAiCustomModelName.value = aiCustomModelName.value
     tempAiRateLimit.value = aiRateLimit.value
     tempAiBatchSize.value = aiBatchSize.value
+    tempAiMaxConcurrent.value = aiMaxConcurrent.value
+    tempAiMinTime.value = aiMinTime.value
     tempAiImageResizeWidth.value = aiImageResizeWidth.value
     tempAiImageResizeHeight.value = aiImageResizeHeight.value
     tempAiPromptLive.value = aiPromptLive.value
@@ -370,6 +400,12 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     aiBatchSize,
     tempAiBatchSize,
     maxAiRateLimit,
+
+    // Concurrency control
+    aiMaxConcurrent,
+    tempAiMaxConcurrent,
+    aiMinTime,
+    tempAiMinTime,
 
     // Image resize settings
     aiImageResizeWidth,

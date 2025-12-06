@@ -75,6 +75,8 @@ These are normal artifacts from screen recordings of presentations and should NO
 
 **System and media:**
 - Desktop screenshots showing icons, taskbars, dock, or multiple windows
+- **Specific Institutional Desktop Wallpapers:** Desktop backgrounds displaying static schedules or help text, specifically containing the Chinese titles "**北京理工大学上课时间表**" or "**教学小助手**". These are informational wallpapers found on classroom computers, often accompanied by a Windows taskbar at the bottom. They are NOT presentation slides.
+- File explorers or folder views
 - File explorers or folder views
 - Settings or control panels
 - Image viewers or photo galleries
@@ -160,6 +162,8 @@ These are normal artifacts from screen recordings of presentations and should NO
 
 **System and media:**
 - Desktop screenshots showing icons, taskbars, dock, or multiple windows
+- **Specific Institutional Desktop Wallpapers:** Desktop backgrounds displaying static schedules or help text, specifically containing the Chinese titles "**北京理工大学上课时间表**" or "**教学小助手**". These are informational wallpapers found on classroom computers, often accompanied by a Windows taskbar at the bottom. They are NOT presentation slides.
+- File explorers or folder views
 - File explorers or folder views
 - Settings or control panels
 - Image viewers or photo galleries

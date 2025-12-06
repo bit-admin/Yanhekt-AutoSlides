@@ -301,8 +301,8 @@
             <div class="advanced-setting-section">
               <h4>{{ $t('advanced.appearance') }}</h4>
               <div class="setting-item">
-                <div class="theme-language-row">
-                  <div class="theme-language-item">
+                <div class="two-col-row">
+                  <div class="two-col-item">
                     <label class="setting-label">{{ $t('settings.theme') }}</label>
                     <div class="theme-selector">
                       <select v-model="tempThemeMode" class="theme-select">
@@ -312,7 +312,7 @@
                       </select>
                     </div>
                   </div>
-                  <div class="theme-language-item">
+                  <div class="two-col-item">
                     <label class="setting-label">{{ $t('settings.language') }}</label>
                     <div class="language-selector">
                       <select v-model="tempLanguageMode" class="language-select">
@@ -806,7 +806,6 @@
               <div v-if="tempAiServiceType === 'custom'" class="custom-api-settings">
                 <div class="setting-item">
                   <label class="setting-label">{{ $t('advanced.ai.apiBaseUrl') }}</label>
-                  <div class="setting-description">{{ $t('advanced.ai.apiBaseUrlDescription') }}</div>
                   <div class="api-url-input-group">
                     <input
                       v-model="tempAiCustomApiBaseUrl"
@@ -825,7 +824,6 @@
 
                 <div class="setting-item">
                   <label class="setting-label">{{ $t('advanced.ai.apiKey') }}</label>
-                  <div class="setting-description">{{ $t('advanced.ai.apiKeyDescription') }}</div>
                   <div class="api-key-input-group">
                     <input
                       v-model="tempAiCustomApiKey"
@@ -848,7 +846,6 @@
 
                 <div class="setting-item">
                   <label class="setting-label">{{ $t('advanced.ai.modelName') }}</label>
-                  <div class="setting-description">{{ $t('advanced.ai.modelNameDescription') }}</div>
                   <div class="model-name-input-group">
                     <input
                       v-model="tempAiCustomModelName"
@@ -865,42 +862,91 @@
                   </div>
                 </div>
               </div>
+            </div>
 
-              <!-- Rate Limit Setting -->
+            <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.ai.requestSettings') }}</h4>
+              <div v-if="tempAiServiceType === 'builtin'" class="rate-limit-hint">
+                {{ $t('advanced.ai.rateLimitBuiltinHint') }}
+              </div>
+              <div v-else class="rate-limit-hint">
+                {{ $t('advanced.ai.rateLimitCustomHint') }}
+              </div>
+
               <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.ai.rateLimit') }}</label>
-                <div class="setting-description">
-                  {{ $t('advanced.ai.rateLimitDescription') }}<span v-if="tempAiServiceType === 'builtin'" class="rate-limit-hint"> {{ $t('advanced.ai.rateLimitBuiltinHint') }}</span>
-                </div>
-                <div class="slide-interval-group">
-                  <div class="slide-interval-input-wrapper">
-                    <input
-                      v-model.number="tempAiRateLimit"
-                      type="number"
-                      min="1"
-                      :max="maxAiRateLimit"
-                      class="slide-interval-input"
-                    />
-                    <span class="interval-unit">{{ $t('advanced.ai.rateLimitUnit') }}</span>
+                <div class="two-col-row">
+                  <!-- Rate Limit Setting -->
+                  <div class="two-col-item">
+                    <label class="setting-label">{{ $t('advanced.ai.rateLimit') }}</label>
+                    <div class="slide-interval-group">
+                      <div class="slide-interval-input-wrapper">
+                        <input
+                          v-model.number="tempAiRateLimit"
+                          type="number"
+                          min="1"
+                          :max="maxAiRateLimit"
+                          class="slide-interval-input"
+                        />
+                        <span class="interval-unit">{{ $t('advanced.ai.rateLimitUnit') }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Max Concurrent Requests Setting -->
+                  <div class="two-col-item">
+                    <label class="setting-label">{{ $t('advanced.ai.maxConcurrent') }}</label>
+                    <div class="slide-interval-group">
+                      <div class="slide-interval-input-wrapper">
+                        <input
+                          v-model.number="tempAiMaxConcurrent"
+                          type="number"
+                          min="1"
+                          max="10"
+                          class="slide-interval-input"
+                        />
+                        <span class="interval-unit">{{ $t('advanced.ai.maxConcurrentUnit') }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Batch Size Setting -->
               <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.ai.batchSize') }}</label>
-                <div class="setting-description">{{ $t('advanced.ai.batchSizeDescription') }}</div>
-                <div class="slide-interval-group">
-                  <div class="slide-interval-input-wrapper">
-                    <input
-                      v-model.number="tempAiBatchSize"
-                      type="number"
-                      min="1"
-                      max="10"
-                      class="slide-interval-input"
-                      @change="updateAiBatchSize"
-                    />
-                    <span class="interval-unit">{{ $t('advanced.ai.batchSizeUnit') }}</span>
+                <div class="two-col-row">
+                  <!-- Min Time Between Requests Setting -->
+                  <div class="two-col-item">
+                    <label class="setting-label">{{ $t('advanced.ai.minTime') }}</label>
+                    <div class="slide-interval-group">
+                      <div class="slide-interval-input-wrapper">
+                        <input
+                          v-model.number="tempAiMinTime"
+                          type="number"
+                          min="0"
+                          max="60000"
+                          step="100"
+                          class="slide-interval-input"
+                        />
+                        <span class="interval-unit">{{ $t('advanced.ai.minTimeUnit') }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Batch Size Setting -->
+                  <div class="two-col-item">
+                    <label class="setting-label">{{ $t('advanced.ai.batchSize') }}</label>
+                    <div class="slide-interval-group">
+                      <div class="slide-interval-input-wrapper">
+                        <input
+                          v-model.number="tempAiBatchSize"
+                          type="number"
+                          min="1"
+                          max="10"
+                          class="slide-interval-input"
+                          @change="updateAiBatchSize"
+                        />
+                        <span class="interval-unit">{{ $t('advanced.ai.batchSizeUnit') }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -908,17 +954,21 @@
               <!-- Image Resize Setting -->
               <div class="setting-item">
                 <label class="setting-label">{{ $t('advanced.ai.imageResize') }}</label>
-                <div class="setting-description">{{ $t('advanced.ai.imageResizeDescription') }}</div>
-                <div class="downsampling-presets">
-                  <button
-                    v-for="preset in imageResizePresets"
-                    :key="preset.key"
-                    @click="selectedImageResizePreset = preset.key; onImageResizePresetChange()"
-                    :class="['preset-btn', { active: selectedImageResizePreset === preset.key }]"
-                  >
-                    {{ preset.label }}
-                  </button>
+                <div class="downsampling-controls">
+                  <div class="downsampling-control">
+                    <div class="downsampling-presets no-border-top">
+                      <button
+                        v-for="preset in imageResizePresets"
+                        :key="preset.key"
+                        @click="selectedImageResizePreset = preset.key; onImageResizePresetChange()"
+                        :class="['preset-btn', { active: selectedImageResizePreset === preset.key }]"
+                      >
+                        {{ preset.label }}
+                      </button>
+                    </div>
+                  </div>
                 </div>
+                <div class="setting-description">{{ $t('advanced.ai.requestSettingsHint') }}</div>
               </div>
             </div>
 
@@ -1184,6 +1234,8 @@ const {
   tempAiRateLimit,
   tempAiBatchSize,
   maxAiRateLimit,
+  tempAiMaxConcurrent,
+  tempAiMinTime,
   selectedImageResizePreset,
   imageResizePresets,
   onImageResizePresetChange,
@@ -1627,16 +1679,16 @@ defineExpose({
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
-.theme-language-row {
+.two-col-row {
   display: flex;
   gap: 12px;
 }
 
-.theme-language-item {
+.two-col-item {
   flex: 1;
 }
 
-.theme-language-item .setting-label {
+.two-col-item .setting-label {
   margin-bottom: 6px;
 }
 
@@ -2031,6 +2083,11 @@ defineExpose({
 .setting-item .setting-description {
   margin-top: 2px;
   margin-bottom: 6px;
+}
+
+/* Setting description after controls needs more top margin */
+.downsampling-controls + .setting-description {
+  margin-top: 8px;
 }
 
 .external-link {
@@ -2968,6 +3025,10 @@ defineExpose({
   background-color: rgba(255, 255, 255, 0.7);
 }
 
+.downsampling-presets.no-border-top {
+  border-top: none;
+}
+
 .preset-btn {
   padding: 4px 8px;
   border: 1px solid #ddd;
@@ -3878,9 +3939,10 @@ defineExpose({
 }
 
 .rate-limit-hint {
+  font-size: 11px;
   color: #e67700;
-  font-size: 10px;
-  margin-left: 4px;
+  line-height: 1.4;
+  margin-bottom: 16px;
 }
 
 .ai-prompt-textarea {
@@ -3906,7 +3968,6 @@ defineExpose({
 /* Built-in model display styles */
 .builtin-model-info {
   margin-top: 16px;
-  margin-bottom: 16px;
   padding-top: 16px;
   border-top: 1px solid #e0e0e0;
 }

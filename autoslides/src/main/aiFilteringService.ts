@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+import Bottleneck from 'bottleneck';
 import { ConfigService } from './configService';
 import { AIPromptsService, AIPromptType } from './aiPromptsService';
 
@@ -73,62 +74,47 @@ const BUILTIN_FALLBACK_MODEL = 'gpt-4.1';
 export class AIFilteringService {
   private configService: ConfigService;
   private aiPromptsService: AIPromptsService;
-  private requestTimestamps: number[] = []; // timestamps of recent requests
-  private rateLimitLock: Promise<void> = Promise.resolve(); // mutex for rate limiting
+  private limiter: Bottleneck;
 
   constructor(configService: ConfigService, aiPromptsService: AIPromptsService) {
     this.configService = configService;
     this.aiPromptsService = aiPromptsService;
+
+    // Initialize Bottleneck limiter with rate limiting and concurrency control
+    const config = this.configService.getAIFilteringConfig();
+    const rateLimit = config.rateLimit || 10;
+    const maxConcurrent = config.maxConcurrent || 1;
+    const minTime = config.minTime || 6000;
+
+    this.limiter = new Bottleneck({
+      maxConcurrent,                       // Max concurrent requests (default: 1)
+      minTime,                             // Min time between requests in ms (default: 6000)
+      reservoir: rateLimit,                // RPM limit
+      reservoirRefreshAmount: rateLimit,   // Refresh to full limit
+      reservoirRefreshInterval: 60000      // Refresh every minute
+    });
+
+    // Log when rate limit is reached
+    this.limiter.on('depleted', () => {
+      console.log('[AI] Rate limit reservoir depleted, waiting for refresh');
+    });
   }
 
   /**
-   * Check if rate limit allows a new request, and wait if necessary
-   * Uses a promise chain to serialize concurrent requests and prevent race conditions
+   * Update the limiter settings when config changes
    */
-  private async enforceRateLimit(): Promise<void> {
-    // Chain this request to prevent race conditions
-    // Each call waits for previous calls to complete before checking/updating timestamps
-    const previousLock = this.rateLimitLock;
-
-    // Create a new promise that we'll resolve when this request is done
-    let resolveCurrentLock: () => void;
-    const currentLock = new Promise<void>(resolve => {
-      resolveCurrentLock = resolve;
+  updateRateLimitConfig(): void {
+    const config = this.configService.getAIFilteringConfig();
+    const rateLimit = config.rateLimit || 10;
+    const maxConcurrent = config.maxConcurrent || 1;
+    const minTime = config.minTime || 6000;
+    this.limiter.updateSettings({
+      reservoir: rateLimit,
+      reservoirRefreshAmount: rateLimit,
+      maxConcurrent,
+      minTime
     });
-    this.rateLimitLock = currentLock;
-
-    // Wait for previous requests to complete their rate limit check
-    await previousLock;
-
-    try {
-      const config = this.configService.getAIFilteringConfig();
-      const rateLimit = config.rateLimit || 10;
-      const now = Date.now();
-      const oneMinuteAgo = now - 60000;
-
-      // Clean up old timestamps
-      this.requestTimestamps = this.requestTimestamps.filter(ts => ts > oneMinuteAgo);
-
-      // Check if we're at the limit
-      if (this.requestTimestamps.length >= rateLimit) {
-        // Calculate wait time until the oldest request expires
-        const oldestTimestamp = this.requestTimestamps[0];
-        const waitTime = oldestTimestamp + 60000 - now + 100; // Add 100ms buffer
-        if (waitTime > 0) {
-          console.log(`[AI] Rate limit reached (${rateLimit}/min), waiting ${waitTime}ms`);
-          await new Promise(resolve => setTimeout(resolve, waitTime));
-          // Clean up again after waiting
-          this.requestTimestamps = this.requestTimestamps.filter(ts => ts > Date.now() - 60000);
-        }
-      }
-
-      // Record this request
-      this.requestTimestamps.push(Date.now());
-    } finally {
-      // Release the lock so next request can proceed
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      resolveCurrentLock!();
-    }
+    debugLog('Rate limit config updated', { rateLimit, maxConcurrent, minTime });
   }
 
   /**
@@ -391,80 +377,80 @@ export class AIFilteringService {
       imageSizeKB: (base64Image.length / 1024).toFixed(2)
     });
 
-    try {
-      // Enforce rate limit before making request
-      await this.enforceRateLimit();
-      debugLog('Rate limit passed');
+    return this.limiter.schedule(async () => {
+      try {
+        debugLog('Rate limit passed, executing request');
 
-      const apiConfig = this.getApiConfig(token);
-      const prompt = this.aiPromptsService.getPrompt(type);
-      const model = modelOverride || apiConfig.model;
+        const apiConfig = this.getApiConfig(token);
+        const prompt = this.aiPromptsService.getPrompt(type);
+        const model = modelOverride || apiConfig.model;
 
-      debugLog('API config retrieved', {
-        baseUrl: apiConfig.baseUrl,
-        model,
-        promptLength: prompt.length
-      });
+        debugLog('API config retrieved', {
+          baseUrl: apiConfig.baseUrl,
+          model,
+          promptLength: prompt.length
+        });
 
-      // Ensure base64 image has proper data URL prefix
-      const imageUrl = base64Image.startsWith('data:')
-        ? base64Image
-        : `data:image/png;base64,${base64Image}`;
+        // Ensure base64 image has proper data URL prefix
+        const imageUrl = base64Image.startsWith('data:')
+          ? base64Image
+          : `data:image/png;base64,${base64Image}`;
 
-      const messages: ChatMessage[] = [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            {
-              type: 'image_url',
-              image_url: {
-                url: imageUrl,
-                detail: 'low' // Use low detail for faster processing
+        const messages: ChatMessage[] = [
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: prompt },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: imageUrl,
+                  detail: 'low' // Use low detail for faster processing
+                }
               }
-            }
-          ]
+            ]
+          }
+        ];
+
+        const response = await this.makeChatCompletionRequest(
+          apiConfig.baseUrl,
+          apiConfig.apiKey,
+          model,
+          messages
+        );
+
+        const responseContent = response.choices[0]?.message?.content || '';
+        debugLog('Parsing single classification result', { responseContent });
+
+        const result = this.parseClassificationResult(responseContent);
+
+        if (result) {
+          debugLog('Classification successful', result);
+          return { success: true, result };
+        } else {
+          debugError('Failed to parse classification result', { responseContent });
+          return {
+            success: false,
+            error: `Failed to parse AI response: ${responseContent}`
+          };
         }
-      ];
+      } catch (error) {
+        const errorMessage = error instanceof AxiosError
+          ? `HTTP ${error.response?.status}: ${error.response?.data?.error?.message || error.message}`
+          : error instanceof Error
+            ? error.message
+            : 'Unknown error';
 
-      const response = await this.makeChatCompletionRequest(
-        apiConfig.baseUrl,
-        apiConfig.apiKey,
-        model,
-        messages
-      );
+        debugError('classifySingleImage failed', {
+          errorMessage,
+          isAxiosError: error instanceof AxiosError,
+          status: error instanceof AxiosError ? error.response?.status : undefined,
+          responseData: error instanceof AxiosError ? error.response?.data : undefined
+        });
 
-      const responseContent = response.choices[0]?.message?.content || '';
-      debugLog('Parsing single classification result', { responseContent });
-
-      const result = this.parseClassificationResult(responseContent);
-
-      if (result) {
-        debugLog('Classification successful', result);
-        return { success: true, result };
-      } else {
-        debugError('Failed to parse classification result', { responseContent });
-        return {
-          success: false,
-          error: `Failed to parse AI response: ${responseContent}`
-        };
+        return { success: false, error: errorMessage };
       }
-    } catch (error) {
-      const errorMessage = error instanceof AxiosError
-        ? `HTTP ${error.response?.status}: ${error.response?.data?.error?.message || error.message}`
-        : error instanceof Error
-          ? error.message
-          : 'Unknown error';
-
-      debugError('classifySingleImage failed', {
-        errorMessage,
-        isAxiosError: error instanceof AxiosError,
-        status: error instanceof AxiosError ? error.response?.status : undefined,
-        responseData: error instanceof AxiosError ? error.response?.data : undefined
-      });
-
-      return { success: false, error: errorMessage };
-    }
+    });
   }
 
   /**
@@ -485,89 +471,89 @@ export class AIFilteringService {
       totalSizeKB: (base64Images.reduce((acc, img) => acc + img.length, 0) / 1024).toFixed(2)
     });
 
-    try {
-      // Enforce rate limit before making request
-      await this.enforceRateLimit();
-      debugLog('Rate limit passed');
+    return this.limiter.schedule(async () => {
+      try {
+        debugLog('Rate limit passed, executing request');
 
-      const apiConfig = this.getApiConfig(token);
-      const prompt = this.aiPromptsService.getPrompt(type);
-      const model = modelOverride || apiConfig.model;
+        const apiConfig = this.getApiConfig(token);
+        const prompt = this.aiPromptsService.getPrompt(type);
+        const model = modelOverride || apiConfig.model;
 
-      debugLog('API config retrieved', {
-        baseUrl: apiConfig.baseUrl,
-        model,
-        promptLength: prompt.length
-      });
-
-      // Build content array with prompt and all images
-      const contentParts: ContentPart[] = [
-        { type: 'text', text: prompt }
-      ];
-
-      for (let i = 0; i < base64Images.length; i++) {
-        const base64Image = base64Images[i];
-        const imageUrl = base64Image.startsWith('data:')
-          ? base64Image
-          : `data:image/png;base64,${base64Image}`;
-
-        contentParts.push({
-          type: 'image_url',
-          image_url: {
-            url: imageUrl,
-            detail: 'low'
-          }
+        debugLog('API config retrieved', {
+          baseUrl: apiConfig.baseUrl,
+          model,
+          promptLength: prompt.length
         });
-        debugLog(`Added image ${i + 1}/${base64Images.length}`, {
-          sizeKB: (base64Image.length / 1024).toFixed(2)
-        });
-      }
 
-      const messages: ChatMessage[] = [
-        {
-          role: 'user',
-          content: contentParts
+        // Build content array with prompt and all images
+        const contentParts: ContentPart[] = [
+          { type: 'text', text: prompt }
+        ];
+
+        for (let i = 0; i < base64Images.length; i++) {
+          const base64Image = base64Images[i];
+          const imageUrl = base64Image.startsWith('data:')
+            ? base64Image
+            : `data:image/png;base64,${base64Image}`;
+
+          contentParts.push({
+            type: 'image_url',
+            image_url: {
+              url: imageUrl,
+              detail: 'low'
+            }
+          });
+          debugLog(`Added image ${i + 1}/${base64Images.length}`, {
+            sizeKB: (base64Image.length / 1024).toFixed(2)
+          });
         }
-      ];
 
-      const response = await this.makeChatCompletionRequest(
-        apiConfig.baseUrl,
-        apiConfig.apiKey,
-        model,
-        messages
-      );
+        const messages: ChatMessage[] = [
+          {
+            role: 'user',
+            content: contentParts
+          }
+        ];
 
-      const responseContent = response.choices[0]?.message?.content || '';
-      debugLog('Parsing batch classification result', { responseContent });
+        const response = await this.makeChatCompletionRequest(
+          apiConfig.baseUrl,
+          apiConfig.apiKey,
+          model,
+          messages
+        );
 
-      const result = this.parseBatchClassificationResult(responseContent);
+        const responseContent = response.choices[0]?.message?.content || '';
+        debugLog('Parsing batch classification result', { responseContent });
 
-      if (result) {
-        debugLog('Batch classification successful', result);
-        return { success: true, result };
-      } else {
-        debugError('Failed to parse batch classification result', { responseContent });
-        return {
-          success: false,
-          error: `Failed to parse AI batch response: ${responseContent}`
-        };
+        const result = this.parseBatchClassificationResult(responseContent);
+
+        if (result) {
+          debugLog('Batch classification successful', result);
+          return { success: true, result };
+        } else {
+          debugError('Failed to parse batch classification result', { responseContent });
+          return {
+            success: false,
+            error: `Failed to parse AI batch response: ${responseContent}`
+          };
+        }
+      } catch (error) {
+        const errorMessage = error instanceof AxiosError
+          ? `HTTP ${error.response?.status}: ${error.response?.data?.error?.message || error.message}`
+          : error instanceof Error
+            ? error.message
+            : 'Unknown error';
+
+        debugError('classifyMultipleImages failed', {
+          errorMessage,
+          isAxiosError: error instanceof AxiosError,
+          status: error instanceof AxiosError ? error.response?.status : undefined,
+          responseData: error instanceof AxiosError ? error.response?.data : undefined
+        });
+
+        return { success: false, error: errorMessage };
       }
-    } catch (error) {
-      const errorMessage = error instanceof AxiosError
-        ? `HTTP ${error.response?.status}: ${error.response?.data?.error?.message || error.message}`
-        : error instanceof Error
-          ? error.message
-          : 'Unknown error';
-
-      debugError('classifyMultipleImages failed', {
-        errorMessage,
-        isAxiosError: error instanceof AxiosError,
-        status: error instanceof AxiosError ? error.response?.status : undefined,
-        responseData: error instanceof AxiosError ? error.response?.data : undefined
-      });
-
-      return { success: false, error: errorMessage };
-    }
+    });
   }
 
   /**

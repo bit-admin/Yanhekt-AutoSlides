@@ -64,6 +64,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       customApiKey?: string;
       customModelName?: string;
       batchSize?: number;
+      maxConcurrent?: number;
+      minTime?: number;
     }) => ipcRenderer.invoke('config:setAIFilteringConfig', config),
     setAIBatchSize: (batchSize: number) => ipcRenderer.invoke('config:setAIBatchSize', batchSize),
     getAIBatchSize: () => ipcRenderer.invoke('config:getAIBatchSize'),

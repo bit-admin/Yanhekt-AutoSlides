@@ -76,6 +76,8 @@ interface AIFilteringConfig {
   batchSize: number; // number of images per batch for recorded mode, default 4
   imageResizeWidth: number; // width to resize images before sending to AI, default 768
   imageResizeHeight: number; // height to resize images before sending to AI, default 432
+  maxConcurrent: number; // max concurrent requests, default 1
+  minTime: number; // minimum time between requests in ms, default 6000
 }
 
 interface AIPrompts {
