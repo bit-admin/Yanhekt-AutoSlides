@@ -7,6 +7,10 @@ directories:
   buildResources: resources
   output: out/make
 
+# Override the default installation path to use just "AutoSlides" instead of "BIT-admin\AutoSlides"
+# This sets the default to C:\Program Files\AutoSlides
+appPublisherName: AutoSlides
+
 # Windows configuration
 win:
   target:
