@@ -17,24 +17,37 @@
 
 !macro customInit
   ; Check for old Squirrel installation in %LocalAppData%\AutoSlides
-  IfFileExists "$LOCALAPPDATA\AutoSlides\*.*" 0 noOldInstall
-    MessageBox MB_YESNO|MB_ICONQUESTION "A previous version of AutoSlides was found in $LOCALAPPDATA\AutoSlides.$\r$\n$\r$\nThis appears to be an older Squirrel-based installation. Would you like to remove it before continuing?" IDYES removeOld IDNO noOldInstall
+  ; Look for the AutoSlides.exe or Update.exe which Squirrel creates
+  IfFileExists "$LOCALAPPDATA\AutoSlides\AutoSlides.exe" oldSquirrelFound
+  IfFileExists "$LOCALAPPDATA\AutoSlides\Update.exe" oldSquirrelFound
+  IfFileExists "$LOCALAPPDATA\AutoSlides\app-*\*.*" oldSquirrelFound
+  Goto noOldInstall
+
+  oldSquirrelFound:
+    MessageBox MB_YESNO|MB_ICONQUESTION "A previous version of AutoSlides was found at:$\r$\n$LOCALAPPDATA\AutoSlides$\r$\n$\r$\nThis appears to be an older installation. Would you like to remove it before continuing?$\r$\n$\r$\n(Recommended: Yes)" IDYES removeOld IDNO noOldInstall
 
   removeOld:
-    ; Remove the old Squirrel installation directory
+    ; Remove the old Squirrel installation directory recursively
     RMDir /r "$LOCALAPPDATA\AutoSlides"
 
     ; Also remove Squirrel shortcuts from Desktop and Start Menu
     Delete "$DESKTOP\AutoSlides.lnk"
     Delete "$SMPROGRAMS\AutoSlides.lnk"
+    RMDir /r "$SMPROGRAMS\AutoSlides"
 
     ; Remove Squirrel uninstall registry entries if they exist
     SetRegView 64
     DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\AutoSlides"
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\AutoSlides"
+    DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\com.squirrel.AutoSlides.AutoSlides"
+    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\com.squirrel.AutoSlides.AutoSlides"
     SetRegView 32
     DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\AutoSlides"
     DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\AutoSlides"
+    DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\com.squirrel.AutoSlides.AutoSlides"
+    DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\com.squirrel.AutoSlides.AutoSlides"
+
+    MessageBox MB_OK|MB_ICONINFORMATION "Old installation removed successfully."
 
   noOldInstall:
 !macroend

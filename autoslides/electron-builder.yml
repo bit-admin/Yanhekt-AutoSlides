@@ -53,7 +53,7 @@ nsis:
   uninstallDisplayName: AutoSlides
 
   # License file (will be shown during installation)
-  license: resources/terms/terms.rtf
+  license: resources/license.rtf
 
   # Custom NSIS script to set install directory to C:\Program Files\AutoSlides
   include: resources/installer.nsh
