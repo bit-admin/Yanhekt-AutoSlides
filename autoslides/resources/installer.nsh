@@ -17,18 +17,20 @@
 
 !macro customInit
   ; Check for old Squirrel installation in %LocalAppData%\AutoSlides
-  ; Look for the AutoSlides.exe or Update.exe which Squirrel creates
-  IfFileExists "$LOCALAPPDATA\AutoSlides\AutoSlides.exe" oldSquirrelFound
-  IfFileExists "$LOCALAPPDATA\AutoSlides\Update.exe" oldSquirrelFound
-  IfFileExists "$LOCALAPPDATA\AutoSlides\app-*\*.*" oldSquirrelFound
+  Var /GLOBAL _OldInstallPath
+  ExpandEnvStrings $_OldInstallPath "%LOCALAPPDATA%\AutoSlides"
+
+  ; Check for old Squirrel installation
+  IfFileExists "$_OldInstallPath\AutoSlides.exe" oldSquirrelFound
+  IfFileExists "$_OldInstallPath\Update.exe" oldSquirrelFound
   Goto noOldInstall
 
   oldSquirrelFound:
-    MessageBox MB_YESNO|MB_ICONQUESTION "A previous version of AutoSlides was found at:$\r$\n$LOCALAPPDATA\AutoSlides$\r$\n$\r$\nThis appears to be an older installation. Would you like to remove it before continuing?$\r$\n$\r$\n(Recommended: Yes)" IDYES removeOld IDNO noOldInstall
+    MessageBox MB_YESNO|MB_ICONQUESTION "A previous version of AutoSlides was found at:$\r$\n$_OldInstallPath$\r$\n$\r$\nThis appears to be an older installation. Would you like to remove it before continuing?" IDYES removeOld IDNO noOldInstall
 
   removeOld:
     ; Remove the old Squirrel installation directory recursively
-    RMDir /r "$LOCALAPPDATA\AutoSlides"
+    RMDir /r "$_OldInstallPath"
 
     ; Also remove Squirrel shortcuts from Desktop and Start Menu
     Delete "$DESKTOP\AutoSlides.lnk"
