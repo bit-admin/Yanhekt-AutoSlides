@@ -235,9 +235,10 @@
       "minTimeUnit": "ミリ秒",
       "prompts": "AIプロンプト",
       "promptLive": "ライブモードのプロンプト",
-      "promptLiveDescription": "一度に1つの画像を処理します。期待される応答: {\"classification\": \"slide\"} または {\"classification\": \"not_slide\"}",
+      "promptLiveDescription": "一度に1つの画像を処理します。期待される応答：",
+      "or": "または",
       "promptRecorded": "録画モードのプロンプト",
-      "promptRecordedDescription": "複数の画像をバッチ処理します。期待される応答: {\"image_0\": \"slide\", \"image_1\": \"not_slide\", \"image_2\": \"slide\", ...}",
+      "promptRecordedDescription": "複数の画像をバッチ処理します。期待される応答：",
       "promptPlaceholder": "AIプロンプトを入力...",
       "resetPrompt": "デフォルトにリセット",
       "builtinDisclaimer": "本サービスは開発者により無料で「現状のまま」提供されています。サービスの継続性や安定性について、明示的または黙示的な保証は一切行いません。事前の通知なくサービスを変更または中断する場合があります。ユーザーは、合理的かつ公正で非商用的な方法でサービスを利用することに同意するものとします。"

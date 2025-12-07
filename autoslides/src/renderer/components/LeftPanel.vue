@@ -990,7 +990,10 @@
                     </svg>
                   </button>
                 </div>
-                <div class="setting-description">{{ $t('advanced.ai.promptLiveDescription') }}</div>
+                <div class="setting-description">
+                  {{ $t('advanced.ai.promptLiveDescription') }}
+                  <code class="json-example">{"classification": "slide"}</code> {{ $t('advanced.ai.or') }} <code class="json-example">{"classification": "not_slide"}</code>
+                </div>
                 <textarea
                   v-model="tempAiPromptLive"
                   class="ai-prompt-textarea"
@@ -1011,7 +1014,10 @@
                     </svg>
                   </button>
                 </div>
-                <div class="setting-description">{{ $t('advanced.ai.promptRecordedDescription') }}</div>
+                <div class="setting-description">
+                  {{ $t('advanced.ai.promptRecordedDescription') }}
+                  <code class="json-example">{"image_0": "slide", "image_1": "not_slide", ...}</code>
+                </div>
                 <textarea
                   v-model="tempAiPromptRecorded"
                   class="ai-prompt-textarea"
@@ -2082,6 +2088,16 @@ defineExpose({
   line-height: 1.3;
 }
 
+.setting-description .json-example {
+  font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 10px;
+  background-color: rgba(0, 0, 0, 0.06);
+  padding: 2px 5px;
+  border-radius: 3px;
+  color: #333;
+  white-space: nowrap;
+}
+
 /* General setting description for main settings */
 .setting-item .setting-description {
   margin-top: 2px;
@@ -2592,6 +2608,11 @@ defineExpose({
 
   .setting-description {
     color: #b0b0b0;
+  }
+
+  .setting-description .json-example {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #e0e0e0;
   }
 
   .directory-input {

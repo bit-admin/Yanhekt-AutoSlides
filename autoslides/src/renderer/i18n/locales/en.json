@@ -235,9 +235,10 @@
       "minTimeUnit": "milliseconds",
       "prompts": "AI Prompts",
       "promptLive": "Prompt for Live Mode",
-      "promptLiveDescription": "Processes one image at a time. Expected response: {\"classification\": \"slide\"} or {\"classification\": \"not_slide\"}",
+      "promptLiveDescription": "Processes one image at a time. Expected response:",
+      "or": "or",
       "promptRecorded": "Prompt for Recorded Mode",
-      "promptRecordedDescription": "Processes multiple images in batch. Expected response: {\"image_0\": \"slide\", \"image_1\": \"not_slide\", \"image_2\": \"slide\", ...}",
+      "promptRecordedDescription": "Processes multiple images in batch. Expected response:",
       "promptPlaceholder": "Enter the AI prompt...",
       "resetPrompt": "Reset to Default",
       "builtinDisclaimer": "This service is provided by the developer free of charge and on an \"as is\" basis. We make no warranties, express or implied, regarding the continuity or stability of the service, and we may modify or interrupt the service at any time without prior notice. The user agrees to use the service in a reasonable, fair, and non-commercial manner."

@@ -235,9 +235,10 @@
       "minTimeUnit": "毫秒",
       "prompts": "AI 提示词",
       "promptLive": "直播模式提示词",
-      "promptLiveDescription": "每次处理一张图像。期望响应: {\"classification\": \"slide\"} 或 {\"classification\": \"not_slide\"}",
+      "promptLiveDescription": "每次处理一张图像。期望响应：",
+      "or": "或",
       "promptRecorded": "录播模式提示词",
-      "promptRecordedDescription": "批量处理多张图像。期望响应: {\"image_0\": \"slide\", \"image_1\": \"not_slide\", \"image_2\": \"slide\", ...}",
+      "promptRecordedDescription": "批量处理多张图像。期望响应：",
       "promptPlaceholder": "输入 AI 提示词...",
       "resetPrompt": "重置为默认值",
       "builtinDisclaimer": "本服务由开发者免费且“按现状”提供。我们不对服务的持续性或稳定性作出任何明示或暗示的保证，并可能在不事先通知的情况下随时修改或中断服务。用户同意以合理、公平、非商业的方式使用本服务。"
