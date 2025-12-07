@@ -258,17 +258,35 @@ class TaskQueueService {
     this.waitForTaskReadiness(task)
   }
 
+  // Track acknowledged tasks to stop retry loops
+  private acknowledgedTasks = new Set<string>()
+
+  // Acknowledge that a task has been successfully started by the PlaybackPage
+  acknowledgeTaskStart(taskId: string): void {
+    this.acknowledgedTasks.add(taskId)
+    console.log('Task start acknowledged:', taskId)
+  }
+
   // Wait for task readiness with progressive retry mechanism
   private waitForTaskReadiness(task: TaskItem): void {
     let retryCount = 0
     const maxRetries = 30 // 30 retries = up to 15 seconds
     const baseDelay = 500 // Start with 500ms
 
+    // Clear any previous acknowledgment for this task
+    this.acknowledgedTasks.delete(task.id)
+
     const checkAndEmitTaskStart = () => {
       retryCount++
 
       // Calculate progressive delay (500ms, 750ms, 1000ms, then 1000ms)
       const delay = Math.min(baseDelay + (retryCount * 250), 1000)
+
+      // Check if task has been acknowledged - stop retrying
+      if (this.acknowledgedTasks.has(task.id)) {
+        console.log('Task start already acknowledged, stopping retries:', task.id)
+        return
+      }
 
       console.log(`Task readiness check ${retryCount}/${maxRetries} for task: ${task.id}`)
 

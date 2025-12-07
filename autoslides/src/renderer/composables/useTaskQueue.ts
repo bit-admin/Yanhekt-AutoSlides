@@ -480,7 +480,8 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
 
     if (mode === 'recorded' && sessionId === eventSessionId) {
       if (currentTaskId.value === taskId && isTaskMode.value) {
-        console.log(`Task start retry ${retryCount || 1} for already active task:`, taskId)
+        // Task already active, just acknowledge to stop retries
+        TaskQueue.acknowledgeTaskStart(taskId)
         return
       }
 
@@ -488,6 +489,9 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
 
       currentTaskId.value = taskId
       isTaskMode.value = true
+
+      // Acknowledge task start to stop retry loop
+      TaskQueue.acknowledgeTaskStart(taskId)
 
       if (!retryCount || retryCount === 1) {
         TaskQueue.updateTaskStatus(taskId, 'in_progress')
