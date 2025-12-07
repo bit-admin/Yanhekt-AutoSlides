@@ -375,6 +375,7 @@
     "highSpeedWarning": "High-speed playback may cause buffering issues. Consider switching to internal network mode for optimal performance at higher speeds.",
     "aiError403": "AI filtering failed: Access denied (403). If using the built-in service, please disable VPN or proxy.",
     "aiError413": "AI filtering failed: Request too large (413). Please reduce the Batch Size in Advanced Settings > AI tab.",
+    "aiError429": "AI filtering failed: Rate limit exceeded (429). Please adjust rate limit settings or try again later.",
     "aiErrorHttp": "AI filtering failed: HTTP error {code}. Please check your API configuration.",
     "aiErrorUnknown": "AI filtering failed: An unexpected error occurred. Please check the console for details.",
     "dismiss": "Dismiss",

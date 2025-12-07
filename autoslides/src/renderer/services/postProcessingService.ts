@@ -18,7 +18,7 @@ export interface PostProcessJobProgress {
 
 export interface JobError {
   filename: string
-  errorType: 'network' | '403' | '413' | 'http' | 'unknown'
+  errorType: 'network' | '403' | '413' | '429' | 'http' | 'unknown'
   message: string
   retryCount: number
 }
@@ -67,7 +67,7 @@ interface AIBatchResult {
 
 // Error info for retry logic
 interface ErrorInfo {
-  type: 'network' | '403' | '413' | 'http' | 'unknown'
+  type: 'network' | '403' | '413' | '429' | 'http' | 'unknown'
   message: string
 }
 
@@ -685,16 +685,21 @@ class PostProcessingServiceClass {
 
         if (errorInfo.type === '413') {
           result.pending413.push(validBatch)
-        } else if ((errorInfo.type === '403' || errorInfo.type === 'network') && retryCount < maxRetries) {
-          console.log(`[PostProcessing] Retrying batch due to ${errorInfo.type} (attempt ${retryCount + 1}/${maxRetries})`)
+        } else if ((errorInfo.type === '403' || errorInfo.type === 'network' || errorInfo.type === '429') && retryCount < maxRetries) {
+          // Use longer delay for 429 rate limiting
+          const delay = errorInfo.type === '429'
+            ? 10000 * (retryCount + 1)  // 10s, 20s, 30s for rate limits
+            : 1000 * (retryCount + 1)   // 1s, 2s, 3s for other errors
+          console.log(`[PostProcessing] Retrying batch due to ${errorInfo.type} (attempt ${retryCount + 1}/${maxRetries}, delay ${delay}ms)`)
           job.progress.retrying = validBatch.length
-          await this.delay(1000 * (retryCount + 1))
+          await this.delay(delay)
           const retryResult = await this.processAIBatchWithRetry(job, validBatch, token, originalBatchSize, retryCount + 1)
           result.successful.push(...retryResult.successful)
           result.notSlide.push(...retryResult.notSlide)
           result.failed.push(...retryResult.failed)
           result.pending413.push(...retryResult.pending413)
         } else {
+          console.warn(`[PostProcessing] Batch failed with ${errorInfo.type}: ${errorInfo.message}`)
           result.failed.push(...validBatch)
           for (const filename of validBatch) {
             job.errors.push({
@@ -710,9 +715,13 @@ class PostProcessingServiceClass {
       job.progress.retrying = 0
       const errorInfo = this.parseError(error)
 
-      if ((errorInfo.type === '403' || errorInfo.type === 'network') && retryCount < maxRetries) {
-        console.log(`[PostProcessing] Retrying batch due to exception ${errorInfo.type}`)
-        await this.delay(1000 * (retryCount + 1))
+      if ((errorInfo.type === '403' || errorInfo.type === 'network' || errorInfo.type === '429') && retryCount < maxRetries) {
+        // Use longer delay for 429 rate limiting
+        const delay = errorInfo.type === '429'
+          ? 10000 * (retryCount + 1)  // 10s, 20s, 30s for rate limits
+          : 1000 * (retryCount + 1)   // 1s, 2s, 3s for other errors
+        console.log(`[PostProcessing] Retrying batch due to exception ${errorInfo.type} (delay ${delay}ms)`)
+        await this.delay(delay)
         const retryResult = await this.processAIBatchWithRetry(job, batch, token, originalBatchSize, retryCount + 1)
         result.successful.push(...retryResult.successful)
         result.notSlide.push(...retryResult.notSlide)
@@ -721,6 +730,7 @@ class PostProcessingServiceClass {
       } else if (errorInfo.type === '413') {
         result.pending413.push(batch)
       } else {
+        console.warn(`[PostProcessing] Batch failed with ${errorInfo.type}: ${errorInfo.message}`)
         result.failed.push(...batch)
         for (const filename of batch) {
           job.errors.push({
@@ -884,6 +894,10 @@ class PostProcessingServiceClass {
 
     if (errorMessage.includes('403') || lowerMessage.includes('forbidden')) {
       return { type: '403', message: errorMessage }
+    }
+
+    if (errorMessage.includes('429') || lowerMessage.includes('too many requests') || lowerMessage.includes('rate limit')) {
+      return { type: '429', message: errorMessage }
     }
 
     if (lowerMessage.includes('network') ||

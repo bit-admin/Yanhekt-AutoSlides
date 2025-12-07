@@ -125,6 +125,10 @@
               {{ $t('playback.aiError413') }}
               <button @click="dismissAIError" class="dismiss-btn" :title="$t('playback.dismiss')">×</button>
             </div>
+            <div v-if="aiFilteringError.type === '429'" class="warning-message ai-error">
+              {{ $t('playback.aiError429') }}
+              <button @click="dismissAIError" class="dismiss-btn" :title="$t('playback.dismiss')">×</button>
+            </div>
             <div v-if="aiFilteringError.type === 'http'" class="warning-message ai-error">
               {{ $t('playback.aiErrorHttp', { code: aiFilteringError.httpCode }) }}
               <button @click="dismissAIError" class="dismiss-btn" :title="$t('playback.dismiss')">×</button>

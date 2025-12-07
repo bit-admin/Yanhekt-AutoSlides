@@ -4,7 +4,7 @@ import type { ExtractedSlide, SlideExtractor } from '../services/slideExtractor'
 
 // Types for post-processing
 export interface AIFilteringError {
-  type: 'none' | '403' | '413' | 'http' | 'unknown'
+  type: 'none' | '403' | '413' | '429' | 'http' | 'unknown'
   httpCode?: number
   message?: string
 }
@@ -652,6 +652,8 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
           return { type: '403', httpCode: 403, message: errorMessage }
         } else if (httpCode === 413) {
           return { type: '413', httpCode: 413, message: errorMessage }
+        } else if (httpCode === 429) {
+          return { type: '429', httpCode: 429, message: errorMessage }
         } else {
           return { type: 'http', httpCode, message: errorMessage }
         }
@@ -663,6 +665,9 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       }
       if (errorMessage.includes('413') || errorMessage.toLowerCase().includes('payload too large') || errorMessage.toLowerCase().includes('entity too large')) {
         return { type: '413', httpCode: 413, message: errorMessage }
+      }
+      if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('too many requests') || errorMessage.toLowerCase().includes('rate limit')) {
+        return { type: '429', httpCode: 429, message: errorMessage }
       }
 
       return { type: 'unknown', message: errorMessage }
@@ -677,6 +682,9 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       }
       if (errorMessage.includes('413') || errorMessage.toLowerCase().includes('payload too large')) {
         return { type: '413', httpCode: 413, message: errorMessage }
+      }
+      if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('too many requests') || errorMessage.toLowerCase().includes('rate limit')) {
+        return { type: '429', httpCode: 429, message: errorMessage }
       }
 
       // Try to extract HTTP code
