@@ -146,7 +146,7 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
   }
 
   // Search and fetch methods
-  const searchCourses = async () => {
+  const searchCourses = async (resetPage = true) => {
     const token = tokenManager.getToken()
     if (!token) {
       errorMessage.value = 'Please login first'
@@ -157,6 +157,11 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
     isLoading.value = true
     errorMessage.value = ''
     lastAction.value = 'search'
+
+    // Reset to page 1 for new searches, but not when navigating pages
+    if (resetPage) {
+      currentPage.value = 1
+    }
 
     try {
       if (mode.value === 'live') {
@@ -186,7 +191,7 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
     }
   }
 
-  const fetchPersonalCourses = async () => {
+  const fetchPersonalCourses = async (resetPage = true) => {
     const token = tokenManager.getToken()
     if (!token) {
       errorMessage.value = 'Please login first'
@@ -197,6 +202,11 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
     isLoading.value = true
     errorMessage.value = ''
     lastAction.value = 'personal'
+
+    // Reset to page 1 for new fetches, but not when navigating pages
+    if (resetPage) {
+      currentPage.value = 1
+    }
 
     try {
       if (mode.value === 'live') {
@@ -228,9 +238,9 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
       currentPage.value = page
 
       if (lastAction.value === 'search') {
-        await searchCourses()
+        await searchCourses(false) // Don't reset page when navigating
       } else {
-        await fetchPersonalCourses()
+        await fetchPersonalCourses(false) // Don't reset page when navigating
       }
     }
   }
