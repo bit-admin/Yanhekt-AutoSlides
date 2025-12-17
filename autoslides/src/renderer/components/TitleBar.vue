@@ -377,7 +377,9 @@ const checkForUpdates = async () => {
         title: $t('titlebar.updateCheckFailed'),
         message: $t('titlebar.updateCheckFailedMessage'),
         detail: $t('titlebar.updateCheckFailedDetail', { error: result.error }),
-        buttons: [$t('titlebar.ok')]
+        buttons: [$t('titlebar.ok')],
+        defaultId: 0,
+        cancelId: 0
       });
       return;
     }
@@ -392,7 +394,9 @@ const checkForUpdates = async () => {
           currentVersion: result.currentVersion,
           latestVersion: result.latestVersion
         }),
-        buttons: [$t('titlebar.openDownloadPage'), $t('titlebar.cancel')]
+        buttons: [$t('titlebar.openDownloadPage'), $t('titlebar.cancel')],
+        defaultId: 0,
+        cancelId: 1
       });
 
       if (response.response === 0) {
@@ -406,7 +410,9 @@ const checkForUpdates = async () => {
         title: $t('titlebar.noUpdateAvailable'),
         message: $t('titlebar.noUpdateMessage'),
         detail: $t('titlebar.noUpdateDetail', { currentVersion: result.currentVersion }),
-        buttons: [$t('titlebar.ok')]
+        buttons: [$t('titlebar.ok')],
+        defaultId: 0,
+        cancelId: 0
       });
     }
   } catch (error) {
