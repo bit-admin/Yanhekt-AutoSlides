@@ -63,79 +63,172 @@
             <div
               v-for="item in taskItems"
               :key="item.id"
-              class="task-item"
-              :class="[`status-${item.status}`]"
+              class="task-item-wrapper"
             >
-              <div class="item-status">
-                <div :class="['status-indicator', `status-${item.status}`]">
-                  <svg v-if="item.status === 'queued'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12,6 12,12 16,14"/>
-                  </svg>
-                  <svg v-else-if="item.status === 'in_progress'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M9 11l3 3 8-8"/>
-                    <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
-                  </svg>
-                  <svg v-else-if="item.status === 'completed'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="20,6 9,17 4,12"/>
-                  </svg>
-                  <svg v-else-if="item.status === 'error'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="15" y1="9" x2="9" y2="15"/>
-                    <line x1="9" y1="9" x2="15" y2="15"/>
-                  </svg>
+              <!-- Main Task Item -->
+              <div
+                class="task-item"
+                :class="[`status-${item.status}`]"
+              >
+                <div class="item-status">
+                  <div :class="['status-indicator', `status-${item.status}`]">
+                    <svg v-if="item.status === 'queued'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <polyline points="12,6 12,12 16,14"/>
+                    </svg>
+                    <svg v-else-if="item.status === 'in_progress'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M9 11l3 3 8-8"/>
+                      <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
+                    </svg>
+                    <svg v-else-if="item.status === 'completed'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polyline points="20,6 9,17 4,12"/>
+                    </svg>
+                    <svg v-else-if="item.status === 'error'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="15" y1="9" x2="9" y2="15"/>
+                      <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                  </div>
+                </div>
+
+                <div class="item-info">
+                  <div class="item-name" :title="item.name">
+                    {{ item.name }}
+                  </div>
+                  <div class="item-progress">
+                    <div class="progress-bar">
+                      <div class="progress-fill" :style="{ width: `${item.progress}%` }"></div>
+                    </div>
+                    <div class="progress-text">
+                      <span v-if="item.status === 'queued'">{{ $t('tasks.queued') }}</span>
+                      <span v-else-if="item.status === 'in_progress'">{{ $t('tasks.processing') }} {{ item.progress }}%</span>
+                      <span v-else-if="item.status === 'completed'">{{ $t('tasks.completed') }}</span>
+                      <span v-else-if="item.status === 'error'">{{ item.error || $t('tasks.error') }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="item-actions">
+                  <button
+                    @click="removeTask(item.id)"
+                    class="cancel-item-btn"
+                    title="Remove"
+                    v-if="item.status !== 'in_progress'"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <line x1="18" y1="6" x2="6" y2="18"/>
+                      <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
 
-              <div class="item-info">
-                <div class="item-name" :title="item.name">
-                  {{ item.name }}
-                </div>
-                <div class="item-progress">
-                  <div class="progress-bar">
-                    <div class="progress-fill" :style="{ width: `${item.progress}%` }"></div>
+              <!-- Affiliated Post-Processing Panel -->
+              <div
+                v-if="getPostProcessJob(item.id) && autoPostProcessing"
+                class="post-process-affiliated-panel"
+                :class="[`pp-status-${getPostProcessJob(item.id)?.status}`]"
+              >
+                <div class="pp-panel-content">
+                  <!-- Phase 1: Duplicate Removal -->
+                  <div class="pp-phase-item">
+                    <div class="pp-phase-header">
+                      <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase1NameShort') }}</span>
+                      <span
+                        v-if="getPostProcessJob(item.id)!.progress.phase === 'phase1'"
+                        class="pp-phase-status active"
+                      >
+                        {{ getPostProcessJob(item.id)!.progress.currentIndex }}/{{ getPostProcessJob(item.id)!.progress.total }}
+                      </span>
+                      <span
+                        v-else-if="isPhaseCompleted(getPostProcessJob(item.id)!, 'phase1') && getPostProcessJob(item.id)!.progress.duplicatesRemoved > 0"
+                        class="pp-phase-status completed"
+                      >
+                        -{{ getPostProcessJob(item.id)!.progress.duplicatesRemoved }}
+                      </span>
+                    </div>
+                    <div class="pp-phase-bar">
+                      <div
+                        class="pp-phase-fill"
+                        :class="{
+                          'active': getPostProcessJob(item.id)!.progress.phase === 'phase1',
+                          'completed': isPhaseCompleted(getPostProcessJob(item.id)!, 'phase1')
+                        }"
+                        :style="{ width: `${getPhaseProgress(getPostProcessJob(item.id)!, 'phase1')}%` }"
+                      ></div>
+                    </div>
                   </div>
-                  <div class="progress-text">
-                    <span v-if="item.status === 'queued'">{{ $t('tasks.queued') }}</span>
-                    <span v-else-if="item.status === 'in_progress'">{{ $t('tasks.processing') }} {{ item.progress }}%</span>
-                    <span v-else-if="item.status === 'completed'">{{ $t('tasks.completed') }}</span>
-                    <span v-else-if="item.status === 'error'">{{ item.error || $t('tasks.error') }}</span>
-                  </div>
-                </div>
-                <!-- Post-processing status indicator -->
-                <div v-if="getPostProcessJob(item.id)" class="post-process-status" :class="[`pp-status-${getPostProcessJob(item.id)?.status}`]">
-                  <svg v-if="getPostProcessJob(item.id)?.status === 'processing'" class="pp-icon spinning" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 2a10 10 0 0 1 10 10"/>
-                  </svg>
-                  <svg v-else-if="getPostProcessJob(item.id)?.status === 'completed'" class="pp-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="20,6 9,17 4,12"/>
-                  </svg>
-                  <svg v-else-if="getPostProcessJob(item.id)?.status === 'failed'" class="pp-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="15" y1="9" x2="9" y2="15"/>
-                    <line x1="9" y1="9" x2="15" y2="15"/>
-                  </svg>
-                  <svg v-else class="pp-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12,6 12,12 16,14"/>
-                  </svg>
-                  <span class="pp-text">{{ getPostProcessStatusText(getPostProcessJob(item.id)) }}</span>
-                </div>
-              </div>
 
-              <div class="item-actions">
-                <button
-                  @click="removeTask(item.id)"
-                  class="cancel-item-btn"
-                  title="Remove"
-                  v-if="item.status !== 'in_progress'"
-                >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                  </svg>
-                </button>
+                  <!-- Phase 2: Exclusion List -->
+                  <div class="pp-phase-item">
+                    <div class="pp-phase-header">
+                      <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase2NameShort') }}</span>
+                      <span
+                        v-if="getPostProcessJob(item.id)!.progress.phase === 'phase2'"
+                        class="pp-phase-status active"
+                      >
+                        {{ getPostProcessJob(item.id)!.progress.currentIndex }}/{{ getPostProcessJob(item.id)!.progress.total }}
+                      </span>
+                      <span
+                        v-else-if="isPhaseCompleted(getPostProcessJob(item.id)!, 'phase2') && getPostProcessJob(item.id)!.progress.excludedRemoved > 0"
+                        class="pp-phase-status completed"
+                      >
+                        -{{ getPostProcessJob(item.id)!.progress.excludedRemoved }}
+                      </span>
+                    </div>
+                    <div class="pp-phase-bar">
+                      <div
+                        class="pp-phase-fill"
+                        :class="{
+                          'active': getPostProcessJob(item.id)!.progress.phase === 'phase2',
+                          'completed': isPhaseCompleted(getPostProcessJob(item.id)!, 'phase2')
+                        }"
+                        :style="{ width: `${getPhaseProgress(getPostProcessJob(item.id)!, 'phase2')}%` }"
+                      ></div>
+                    </div>
+                  </div>
+
+                  <!-- Phase 3: AI Classification -->
+                  <div class="pp-phase-item">
+                    <div class="pp-phase-header">
+                      <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase3NameShort') }}</span>
+                      <span
+                        v-if="getPostProcessJob(item.id)!.progress.phase === 'phase3'"
+                        class="pp-phase-status active"
+                      >
+                        {{ getPostProcessJob(item.id)!.progress.currentIndex }}/{{ getPostProcessJob(item.id)!.progress.total }}
+                      </span>
+                      <span
+                        v-else-if="isPhaseCompleted(getPostProcessJob(item.id)!, 'phase3') && getPostProcessJob(item.id)!.progress.aiFiltered > 0"
+                        class="pp-phase-status completed"
+                      >
+                        -{{ getPostProcessJob(item.id)!.progress.aiFiltered }}
+                      </span>
+                    </div>
+                    <div class="pp-phase-bar three-color">
+                      <!-- Green: completed progress -->
+                      <div
+                        class="pp-phase-fill"
+                        :class="{
+                          'active': getPostProcessJob(item.id)!.progress.phase === 'phase3',
+                          'completed': isPhaseCompleted(getPostProcessJob(item.id)!, 'phase3')
+                        }"
+                        :style="{
+                          width: `${getAIProgress(getPostProcessJob(item.id)!)}%`
+                        }"
+                      ></div>
+                      <!-- Blue: in-progress batch overlay (shows current batch being processed) -->
+                      <div
+                        v-if="getPostProcessJob(item.id)!.progress.phase === 'phase3' && getAIInProgressWidth(getPostProcessJob(item.id)!) > 0"
+                        class="pp-phase-fill in-progress"
+                        :style="{
+                          left: `${getAIProgress(getPostProcessJob(item.id)!)}%`,
+                          width: `${getAIInProgressWidth(getPostProcessJob(item.id)!)}%`
+                        }"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -278,6 +371,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { DownloadService, type DownloadItem } from '../services/downloadService'
 import { TaskQueue, taskQueueState, type TaskItem } from '../services/taskQueueService'
 import { PostProcessingService, postProcessingState, type PostProcessJob } from '../services/postProcessingService'
+import { useI18n } from 'vue-i18n'
 
 type Tab = 'task' | 'download'
 
@@ -287,7 +381,9 @@ interface TabState {
   initialized: boolean;
 }
 
+const { t } = useI18n()
 const currentTab = ref<Tab>('task')
+const autoPostProcessing = ref<boolean>(true)
 
 // Maintain independent state for each tab
 const taskState = ref<TabState>({
@@ -307,39 +403,55 @@ const getPostProcessJob = (taskId: string): PostProcessJob | undefined => {
   return TaskQueue.getPostProcessJob(taskId)
 }
 
-// Format post-processing status
-const getPostProcessStatusText = (job: PostProcessJob | undefined): string => {
-  if (!job) return ''
+// Check if a phase has completed (we've moved past it)
+const isPhaseCompleted = (job: PostProcessJob, phase: 'phase1' | 'phase2' | 'phase3'): boolean => {
+  const phaseOrder = ['idle', 'phase1', 'phase2', 'phase3', 'completed']
+  const currentPhaseIndex = phaseOrder.indexOf(job.progress.phase)
+  const targetPhaseIndex = phaseOrder.indexOf(phase)
 
+  return currentPhaseIndex > targetPhaseIndex || job.status === 'completed'
+}
+
+// Calculate progress percentage for a phase
+const getPhaseProgress = (job: PostProcessJob, phase: 'phase1' | 'phase2' | 'phase3'): number => {
   const { progress } = job
 
-  switch (job.status) {
-    case 'queued':
-      return 'PP queued'
-    case 'processing':
-      switch (progress.phase) {
-        case 'phase1':
-          return `Dup ${progress.currentIndex}/${job.imageFiles.length}`
-        case 'phase2':
-          return `Excl ${progress.currentIndex}/${job.imageFiles.length}`
-        case 'phase3':
-          return `AI ${progress.currentIndex}/${progress.total}`
-        default:
-          return 'Processing...'
-      }
-    case 'completed': {
-      const parts: string[] = []
-      if (progress.duplicatesRemoved > 0) parts.push(`-${progress.duplicatesRemoved} dup`)
-      if (progress.excludedRemoved > 0) parts.push(`-${progress.excludedRemoved} excl`)
-      if (progress.aiFiltered > 0) parts.push(`-${progress.aiFiltered} AI`)
-      if (progress.failed > 0) parts.push(`${progress.failed} fail`)
-      return parts.length > 0 ? `Done: ${parts.join(', ')}` : 'Done'
-    }
-    case 'failed':
-      return 'PP failed'
-    default:
-      return ''
+  if (progress.phase === phase) {
+    // Currently processing this phase
+    return progress.total > 0 ? (progress.currentIndex / progress.total) * 100 : 0
+  } else if (
+    (phase === 'phase1' && (progress.phase === 'phase2' || progress.phase === 'phase3' || job.status === 'completed')) ||
+    (phase === 'phase2' && (progress.phase === 'phase3' || job.status === 'completed')) ||
+    (phase === 'phase3' && job.status === 'completed')
+  ) {
+    // Phase is completed
+    return 100
   }
+
+  return 0
+}
+
+// Get AI phase progress percentage (simplified - just use progress.currentIndex and progress.total)
+const getAIProgress = (job: PostProcessJob): number => {
+  // In phase 3, progress.total is the number of images to process
+  // progress.currentIndex is how many have been processed
+  if (job.progress.phase === 'phase3' && job.progress.total > 0) {
+    return (job.progress.currentIndex / job.progress.total) * 100
+  }
+  // If phase 3 is completed, show 100%
+  if (isPhaseCompleted(job, 'phase3')) {
+    return 100
+  }
+  return 0
+}
+
+// Get AI in-progress batch width percentage
+const getAIInProgressWidth = (job: PostProcessJob): number => {
+  // Only show in-progress batch when actively processing phase 3
+  if (job.progress.phase === 'phase3' && job.progress.total > 0 && job.progress.retrying > 0) {
+    return (job.progress.retrying / job.progress.total) * 100
+  }
+  return 0
 }
 
 // Download management
@@ -405,10 +517,18 @@ const handleTaskSwitch = () => {
   switchToTask()
 }
 
-onMounted(() => {
+onMounted(async () => {
   // Listen for events to switch tabs
   window.addEventListener('switchToDownload', handleDownloadSwitch)
   window.addEventListener('switchToTask', handleTaskSwitch)
+
+  // Load autoPostProcessing config
+  try {
+    const config = await window.electronAPI.config.get()
+    autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
+  } catch (error) {
+    console.error('Failed to load autoPostProcessing config:', error)
+  }
 })
 
 onUnmounted(() => {
@@ -627,6 +747,18 @@ defineExpose({
   margin-bottom: 16px;
 }
 
+.task-item-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* When affiliated panel exists, remove bottom border radius from task item */
+.task-item-wrapper:has(.post-process-affiliated-panel) .task-item {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
 .task-item, .download-item {
   display: flex;
   align-items: center;
@@ -636,6 +768,15 @@ defineExpose({
   border: 1px solid #e0e0e0;
   border-radius: 6px;
   transition: all 0.2s;
+}
+
+.task-item-wrapper:hover .task-item {
+  border-color: #007acc;
+  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
+}
+
+.task-item-wrapper:hover .post-process-affiliated-panel {
+  border-color: #007acc;
 }
 
 .task-item:hover, .download-item:hover {
@@ -759,50 +900,138 @@ defineExpose({
   color: #666;
 }
 
-/* Post-processing status indicator */
-.post-process-status {
+/* Post-processing affiliated panel */
+.post-process-affiliated-panel {
+  width: 100%;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 4px 6px;
+  margin-top: 0;
+}
+
+/* Inherit left border color from parent task item status */
+.task-item.status-queued + .post-process-affiliated-panel {
+  border-left: 3px solid #6c757d;
+}
+
+.task-item.status-in_progress + .post-process-affiliated-panel {
+  border-left: 3px solid #28a745;
+}
+
+.task-item.status-completed + .post-process-affiliated-panel {
+  border-left: 3px solid #28a745;
+}
+
+.task-item.status-error + .post-process-affiliated-panel {
+  border-left: 3px solid #dc3545;
+}
+
+.pp-panel-content {
   display: flex;
+  align-items: stretch;
+  gap: 8px;
+  font-size: 8px;
+}
+
+.pp-phase-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pp-phase-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   gap: 4px;
-  margin-top: 4px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 10px;
-  background-color: #f0f0f0;
-  color: #666;
-  width: fit-content;
 }
 
-.post-process-status.pp-status-queued {
-  background-color: #f8f9fa;
-  color: #6c757d;
+.pp-phase-name {
+  font-weight: 500;
+  color: #333;
+  font-size: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.post-process-status.pp-status-processing {
-  background-color: #e3f2fd;
-  color: #1976d2;
-}
-
-.post-process-status.pp-status-completed {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-}
-
-.post-process-status.pp-status-failed {
-  background-color: #ffebee;
-  color: #c62828;
-}
-
-.pp-icon {
+.pp-phase-status {
+  font-size: 7px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  white-space: nowrap;
   flex-shrink: 0;
 }
 
-.pp-icon.spinning {
-  animation: spin 1s linear infinite;
+.pp-phase-status.active {
+  background-color: #007acc;
+  color: white;
 }
 
-.pp-text {
-  white-space: nowrap;
+.pp-phase-status.completed {
+  background-color: #28a745;
+  color: white;
+}
+
+.pp-phase-status.skipped {
+  background-color: #e2e3e5;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.pp-phase-bar {
+  height: 3px;
+  background-color: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pp-phase-bar.disabled {
+  background-color: #f0f0f0;
+}
+
+.pp-phase-fill {
+  height: 100%;
+  background-color: #e0e0e0;
+  transition: width 0.3s ease;
+}
+
+.pp-phase-fill.active {
+  background-color: #007acc;
+  animation: progressPulse 1.5s infinite;
+}
+
+.pp-phase-fill.completed {
+  background-color: #28a745;
+}
+
+/* 3-color progress bar for AI processing */
+.pp-phase-bar.three-color .pp-phase-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+}
+
+.pp-phase-bar.three-color .pp-phase-fill.completed {
+  left: 0;
+  background-color: #28a745;
+  z-index: 2;
+}
+
+.pp-phase-bar.three-color .pp-phase-fill.in-progress {
+  background-color: #007acc;
+  animation: progressPulse 1.5s infinite;
+  z-index: 1;
+}
+
+@keyframes progressPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
 }
 
 .item-actions {
@@ -987,6 +1216,15 @@ defineExpose({
     border-color: #555;
   }
 
+  .task-item-wrapper:hover .task-item {
+    border-color: #4fc3f7;
+    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
+  }
+
+  .task-item-wrapper:hover .post-process-affiliated-panel {
+    border-color: #4fc3f7;
+  }
+
   .task-item, .download-item {
     background-color: #2d2d2d;
     border-color: #404040;
@@ -1062,30 +1300,84 @@ defineExpose({
     color: #bdbdbd;
   }
 
-  /* Post-processing status dark mode */
-  .post-process-status {
-    background-color: #404040;
-    color: #bdbdbd;
+  /* Post-processing affiliated panel dark mode */
+  .post-process-affiliated-panel {
+    background-color: #2d2d2d;
+    border-color: #404040;
   }
 
-  .post-process-status.pp-status-queued {
-    background-color: #3a3a3a;
+  .task-item-wrapper .task-item {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  .task-item-wrapper:has(.post-process-affiliated-panel) .task-item {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  /* Inherit left border color from parent task item status - dark mode */
+  .task-item.status-queued + .post-process-affiliated-panel {
+    border-left-color: #bdbdbd;
+  }
+
+  .task-item.status-in_progress + .post-process-affiliated-panel {
+    border-left-color: #81c784;
+  }
+
+  .task-item.status-completed + .post-process-affiliated-panel {
+    border-left-color: #81c784;
+  }
+
+  .task-item.status-error + .post-process-affiliated-panel {
+    border-left-color: #f48fb1;
+  }
+
+  .pp-phase-name {
+    color: #e0e0e0;
+  }
+
+  .pp-phase-status.active {
+    background-color: #4fc3f7;
+    color: #1e1e1e;
+  }
+
+  .pp-phase-status.completed {
+    background-color: #81c784;
+    color: #1e1e1e;
+  }
+
+  .pp-phase-status.skipped {
+    background-color: #404040;
     color: #9e9e9e;
   }
 
-  .post-process-status.pp-status-processing {
-    background-color: #1a3a4a;
-    color: #4fc3f7;
+  .pp-phase-bar {
+    background-color: #404040;
   }
 
-  .post-process-status.pp-status-completed {
-    background-color: #2e4a2e;
-    color: #81c784;
+  .pp-phase-bar.disabled {
+    background-color: #3a3a3a;
   }
 
-  .post-process-status.pp-status-failed {
-    background-color: #4a2c35;
-    color: #f48fb1;
+  .pp-phase-fill {
+    background-color: #404040;
+  }
+
+  .pp-phase-fill.active {
+    background-color: #4fc3f7;
+  }
+
+  .pp-phase-fill.completed {
+    background-color: #81c784;
+  }
+
+  .pp-phase-bar.three-color .pp-phase-fill.completed {
+    background-color: #81c784;
+  }
+
+  .pp-phase-bar.three-color .pp-phase-fill.in-progress {
+    background-color: #4fc3f7;
   }
 
   .cancel-item-btn {
