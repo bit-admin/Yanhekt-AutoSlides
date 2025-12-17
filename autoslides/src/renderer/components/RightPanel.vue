@@ -911,21 +911,21 @@ defineExpose({
   margin-top: 0;
 }
 
-/* Inherit left border color from parent task item status */
+/* Yellow-green left border for post-processing panel to distinguish from main task */
 .task-item.status-queued + .post-process-affiliated-panel {
-  border-left: 3px solid #6c757d;
+  border-left: 3px solid #9e9e9e;
 }
 
 .task-item.status-in_progress + .post-process-affiliated-panel {
-  border-left: 3px solid #28a745;
+  border-left: 3px solid #9acd32;
 }
 
 .task-item.status-completed + .post-process-affiliated-panel {
-  border-left: 3px solid #28a745;
+  border-left: 3px solid #9acd32;
 }
 
 .task-item.status-error + .post-process-affiliated-panel {
-  border-left: 3px solid #dc3545;
+  border-left: 3px solid #ff9800;
 }
 
 .pp-panel-content {
@@ -1316,21 +1316,21 @@ defineExpose({
     border-bottom-right-radius: 0;
   }
 
-  /* Inherit left border color from parent task item status - dark mode */
+  /* Yellow-green left border for post-processing panel - dark mode */
   .task-item.status-queued + .post-process-affiliated-panel {
-    border-left-color: #bdbdbd;
+    border-left-color: #9e9e9e;
   }
 
   .task-item.status-in_progress + .post-process-affiliated-panel {
-    border-left-color: #81c784;
+    border-left-color: #b8e986;
   }
 
   .task-item.status-completed + .post-process-affiliated-panel {
-    border-left-color: #81c784;
+    border-left-color: #b8e986;
   }
 
   .task-item.status-error + .post-process-affiliated-panel {
-    border-left-color: #f48fb1;
+    border-left-color: #ffb74d;
   }
 
   .pp-phase-name {
