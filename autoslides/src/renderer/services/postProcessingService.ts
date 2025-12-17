@@ -307,13 +307,16 @@ class PostProcessingServiceClass {
             token
           )
 
-          // Delete images classified as not_slide
+          // Move images classified as not_slide to in-app trash
           for (const filename of aiResult.notSlide) {
             try {
-              await window.electronAPI.slideExtraction.deleteSlide(job.outputPath, filename)
-              console.log(`[PostProcessing] Deleted not_slide: ${filename}`)
+              await window.electronAPI.slideExtraction.moveToInAppTrash(job.outputPath, filename, {
+                reason: 'ai_filtered',
+                reasonDetails: 'AI classified as not_slide'
+              })
+              console.log(`[PostProcessing] Moved not_slide to trash: ${filename}`)
             } catch (deleteError) {
-              console.error(`[PostProcessing] Failed to delete ${filename}:`, deleteError)
+              console.error(`[PostProcessing] Failed to move ${filename} to trash:`, deleteError)
             }
           }
 
@@ -500,11 +503,14 @@ class PostProcessingServiceClass {
       if (isDuplicate) {
         duplicatesToDelete.push(item.filename)
         try {
-          await window.electronAPI.slideExtraction.deleteSlide(job.outputPath, item.filename)
+          await window.electronAPI.slideExtraction.moveToInAppTrash(job.outputPath, item.filename, {
+            reason: 'duplicate',
+            reasonDetails: `Duplicate of ${duplicateOf}`
+          })
           job.progress.duplicatesRemoved++
-          console.log(`[PostProcessing] Deleted duplicate: ${item.filename} (duplicate of ${duplicateOf})`)
+          console.log(`[PostProcessing] Moved duplicate to trash: ${item.filename} (duplicate of ${duplicateOf})`)
         } catch (deleteError) {
-          console.error(`[PostProcessing] Failed to delete duplicate ${item.filename}:`, deleteError)
+          console.error(`[PostProcessing] Failed to move duplicate ${item.filename} to trash:`, deleteError)
         }
       } else {
         seenHashes.set(item.pHash, item.filename)
@@ -552,10 +558,13 @@ class PostProcessingServiceClass {
       if (shouldExclude) {
         excludedFiles.push(item.filename)
         try {
-          await window.electronAPI.slideExtraction.deleteSlide(job.outputPath, item.filename)
+          await window.electronAPI.slideExtraction.moveToInAppTrash(job.outputPath, item.filename, {
+            reason: 'exclusion',
+            reasonDetails: excludedReason
+          })
           job.progress.excludedRemoved++
         } catch (deleteError) {
-          console.error(`[PostProcessing] Failed to delete excluded ${item.filename}:`, deleteError)
+          console.error(`[PostProcessing] Failed to move excluded ${item.filename} to trash:`, deleteError)
         }
       }
     }

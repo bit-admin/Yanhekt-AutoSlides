@@ -307,6 +307,11 @@ interface SlideOperationResponse {
   success: boolean;
 }
 
+interface TrashMetadata {
+  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'manual';
+  reasonDetails?: string;
+}
+
 // ============================================================================
 // Electron API Interface
 // ============================================================================
@@ -423,6 +428,7 @@ interface ElectronAPI {
     saveSlide: (outputPath: string, filename: string, imageBuffer: Uint8Array) => Promise<SlideOperationResponse>;
     ensureDirectory: (path: string) => Promise<SlideOperationResponse>;
     deleteSlide: (outputPath: string, filename: string) => Promise<SlideOperationResponse>;
+    moveToInAppTrash: (outputPath: string, filename: string, metadata: TrashMetadata) => Promise<SlideOperationResponse>;
     readSlideAsBase64: (outputPath: string, filename: string) => Promise<string>;
     listSlides: (outputPath: string) => Promise<string[]>;
     loadSlideImage: (filePath: string) => Promise<Uint8Array>;

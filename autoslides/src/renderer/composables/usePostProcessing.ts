@@ -52,7 +52,7 @@ export interface UsePostProcessingOptions {
   mode: 'live' | 'recorded'
   extractedSlides: Ref<ExtractedSlide[]>
   slideExtractorInstance: ShallowRef<SlideExtractor | null>
-  deleteSlide: (slide: ExtractedSlide, showConfirmation?: boolean) => Promise<void>
+  deleteSlide?: (slide: ExtractedSlide, showConfirmation?: boolean) => Promise<void>  // Deprecated: no longer used, kept for backward compatibility
 }
 
 export interface UsePostProcessingReturn {
@@ -73,7 +73,7 @@ export interface UsePostProcessingReturn {
 }
 
 export function usePostProcessing(options: UsePostProcessingOptions): UsePostProcessingReturn {
-  const { mode, extractedSlides, slideExtractorInstance, deleteSlide } = options
+  const { mode, extractedSlides, slideExtractorInstance } = options
 
   // TokenManager instance
   const tokenManager = new TokenManager()
@@ -241,14 +241,26 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       }
     }
 
-    // Delete duplicate slides
+    // Delete duplicate slides using in-app trash
     for (const duplicate of duplicatesToDelete) {
       try {
-        await deleteSlide(duplicate.slide, false)
+        // Get output path from slideExtractorInstance
+        const outputPath = slideExtractorInstance.value?.getOutputPath()
+        if (outputPath) {
+          await window.electronAPI.slideExtraction.moveToInAppTrash(outputPath, duplicate.filename, {
+            reason: 'duplicate',
+            reasonDetails: `Duplicate of ${duplicate.duplicateOf}`
+          })
+        }
+        // Also remove from extractedSlides array
+        const slideIndex = extractedSlides.value.findIndex(s => s.id === duplicate.slide.id)
+        if (slideIndex !== -1) {
+          extractedSlides.value.splice(slideIndex, 1)
+        }
         postProcessStatus.value.duplicatesRemoved++
-        console.log(`Deleted duplicate slide: ${duplicate.filename} (duplicate of ${duplicate.duplicateOf})`)
+        console.log(`Moved duplicate slide to trash: ${duplicate.filename} (duplicate of ${duplicate.duplicateOf})`)
       } catch (deleteError) {
-        console.error(`Failed to delete duplicate slide ${duplicate.filename}:`, deleteError)
+        console.error(`Failed to move duplicate slide ${duplicate.filename} to trash:`, deleteError)
       }
     }
 
@@ -303,11 +315,23 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
       if (shouldExclude) {
         try {
-          await deleteSlide(slide, false)
+          // Get output path from slideExtractorInstance
+          const outputPath = slideExtractorInstance.value?.getOutputPath()
+          if (outputPath) {
+            await window.electronAPI.slideExtraction.moveToInAppTrash(outputPath, filename, {
+              reason: 'exclusion',
+              reasonDetails: excludedReason
+            })
+          }
+          // Also remove from extractedSlides array
+          const slideIndex = extractedSlides.value.findIndex(s => s.id === slide.id)
+          if (slideIndex !== -1) {
+            extractedSlides.value.splice(slideIndex, 1)
+          }
           deletedSlides.push(filename)
           postProcessStatus.value.excludedRemoved++
         } catch (deleteError) {
-          console.error(`Failed to delete excluded slide ${filename}:`, deleteError)
+          console.error(`Failed to move excluded slide ${filename} to trash:`, deleteError)
         }
       }
 
@@ -369,12 +393,25 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
     if (classification === 'not_slide') {
       try {
-        await deleteSlide(slide, false)
-        deletedSlides.push(`${slide.title}.png`)
+        // Get output path from slideExtractorInstance
+        const outputPath = slideExtractorInstance.value?.getOutputPath()
+        const filename = `${slide.title}.png`
+        if (outputPath) {
+          await window.electronAPI.slideExtraction.moveToInAppTrash(outputPath, filename, {
+            reason: 'ai_filtered',
+            reasonDetails: 'AI classified as not_slide'
+          })
+        }
+        // Also remove from extractedSlides array
+        const slideIndex = extractedSlides.value.findIndex(s => s.id === slide.id)
+        if (slideIndex !== -1) {
+          extractedSlides.value.splice(slideIndex, 1)
+        }
+        deletedSlides.push(filename)
         postProcessStatus.value.aiFiltered++
-        console.log(`AI filtered slide: ${slide.title} (classified as not_slide)`)
+        console.log(`AI filtered slide moved to trash: ${slide.title} (classified as not_slide)`)
       } catch (deleteError) {
-        console.error(`Failed to delete AI-filtered slide ${slide.title}:`, deleteError)
+        console.error(`Failed to move AI-filtered slide ${slide.title} to trash:`, deleteError)
       }
     } else {
       console.log(`AI kept slide: ${slide.title} (classified as slide)`)
@@ -419,12 +456,25 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
         if (classification === 'not_slide') {
           try {
-            await deleteSlide(slide, false)
-            deletedSlides.push(`${slide.title}.png`)
+            // Get output path from slideExtractorInstance
+            const outputPath = slideExtractorInstance.value?.getOutputPath()
+            const filename = `${slide.title}.png`
+            if (outputPath) {
+              await window.electronAPI.slideExtraction.moveToInAppTrash(outputPath, filename, {
+                reason: 'ai_filtered',
+                reasonDetails: 'AI classified as not_slide'
+              })
+            }
+            // Also remove from extractedSlides array
+            const slideIndex = extractedSlides.value.findIndex(s => s.id === slide.id)
+            if (slideIndex !== -1) {
+              extractedSlides.value.splice(slideIndex, 1)
+            }
+            deletedSlides.push(filename)
             postProcessStatus.value.aiFiltered++
-            console.log(`AI filtered slide: ${slide.title} (classified as not_slide)`)
+            console.log(`AI filtered slide moved to trash: ${slide.title} (classified as not_slide)`)
           } catch (deleteError) {
-            console.error(`Failed to delete AI-filtered slide ${slide.title}:`, deleteError)
+            console.error(`Failed to move AI-filtered slide ${slide.title} to trash:`, deleteError)
           }
         } else {
           console.log(`AI kept slide: ${slide.title} (classified as slide)`)

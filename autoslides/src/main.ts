@@ -8,7 +8,7 @@ import { IntranetMappingService } from './main/intranetMappingService';
 import { VideoProxyService, LiveStreamInput, RecordedSessionInput } from './main/videoProxyService';
 import { FFmpegService } from './main/ffmpegService';
 import { M3u8DownloadService } from './main/m3u8DownloadService';
-import { slideExtractionService } from './main/slideExtractionService';
+import { slideExtractionService, TrashMetadata } from './main/slideExtractionService';
 import { PowerManagementService } from './main/powerManagementService';
 import { cacheManagementService } from './main/cacheManagementService';
 import { AIPromptsService } from './main/aiPromptsService';
@@ -640,6 +640,16 @@ ipcMain.handle('slideExtraction:deleteSlide', async (event, outputPath: string, 
     return { success: true };
   } catch (error) {
     console.error('Failed to delete slide:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('slideExtraction:moveToInAppTrash', async (event, outputPath: string, filename: string, metadata: TrashMetadata) => {
+  try {
+    await slideExtractionService.moveToInAppTrash(outputPath, filename, metadata);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to move slide to in-app trash:', error);
     throw error;
   }
 });

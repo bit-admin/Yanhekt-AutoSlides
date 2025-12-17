@@ -56,7 +56,7 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
           cancelId: 0,
           title: 'Delete Slide',
           message: `Are you sure you want to delete "${slide.title}.png"?`,
-          detail: 'The file will be moved to your system trash and can be restored if needed.'
+          detail: 'The file will be moved to the in-app trash and can be restored if needed.'
         })
 
         if (confirmed?.response !== 1) {
@@ -70,8 +70,11 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
         throw new Error('Output path not found')
       }
 
-      // Delete the file from the file system
-      await window.electronAPI.slideExtraction?.deleteSlide?.(outputPath, `${slide.title}.png`)
+      // Move the file to in-app trash
+      await window.electronAPI.slideExtraction?.moveToInAppTrash?.(outputPath, `${slide.title}.png`, {
+        reason: 'manual',
+        reasonDetails: 'User manually deleted slide'
+      })
 
       // Remove from local array
       const index = extractedSlides.value.findIndex(s => s.id === slide.id)
@@ -84,7 +87,7 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
         selectedSlide.value = null
       }
 
-      console.log(`Slide moved to trash: ${slide.title}`)
+      console.log(`Slide moved to in-app trash: ${slide.title}`)
     } catch (error) {
       console.error('Failed to move slide to trash:', error)
       // Show error dialog
@@ -108,7 +111,7 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
         cancelId: 0,
         title: 'Delete All Slides',
         message: `Are you sure you want to delete all ${extractedSlides.value.length} slide(s)?`,
-        detail: 'All slide files will be moved to your system trash and can be restored if needed.'
+        detail: 'All slide files will be moved to the in-app trash and can be restored if needed.'
       })
 
       if (confirmed?.response !== 1) {
@@ -121,9 +124,12 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
         throw new Error('Output path not found')
       }
 
-      // Delete all files from the file system
+      // Move all files to in-app trash
       const deletePromises = extractedSlides.value.map(slide =>
-        window.electronAPI.slideExtraction?.deleteSlide?.(outputPath, `${slide.title}.png`)
+        window.electronAPI.slideExtraction?.moveToInAppTrash?.(outputPath, `${slide.title}.png`, {
+          reason: 'manual',
+          reasonDetails: 'User manually deleted all slides'
+        })
       )
       await Promise.all(deletePromises)
 
@@ -138,7 +144,7 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
         slideExtractorInstance.value.clearSlides()
       }
 
-      console.log('All slides moved to trash')
+      console.log('All slides moved to in-app trash')
     } catch (error) {
       console.error('Failed to move all slides to trash:', error)
       // Show error dialog

@@ -128,6 +128,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ensureDirectory: (path: string) => ipcRenderer.invoke('slideExtraction:ensureDirectory', path),
     deleteSlide: (outputPath: string, filename: string) =>
       ipcRenderer.invoke('slideExtraction:deleteSlide', outputPath, filename),
+    moveToInAppTrash: (outputPath: string, filename: string, metadata: { reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'manual'; reasonDetails?: string }) =>
+      ipcRenderer.invoke('slideExtraction:moveToInAppTrash', outputPath, filename, metadata),
     readSlideAsBase64: (outputPath: string, filename: string) =>
       ipcRenderer.invoke('slideExtraction:readSlideAsBase64', outputPath, filename),
     listSlides: (outputPath: string) =>
