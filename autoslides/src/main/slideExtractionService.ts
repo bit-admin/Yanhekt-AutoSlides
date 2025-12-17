@@ -472,6 +472,251 @@ export class SlideExtractionService {
       return 0;
     }
   }
+
+  // ============================================================================
+  // Trash Management Methods
+  // ============================================================================
+
+  /**
+   * Get the trash directory path for a given output directory
+   */
+  getTrashDirectory(outputDir: string): string {
+    const expandedPath = outputDir.startsWith('~')
+      ? path.join(os.homedir(), outputDir.slice(1))
+      : outputDir;
+    return path.join(expandedPath, '.autoslidesTrash');
+  }
+
+  /**
+   * Get all trash entries from the manifest file
+   */
+  async getTrashEntries(outputDir: string): Promise<TrashEntry[]> {
+    try {
+      const trashDir = this.getTrashDirectory(outputDir);
+      const manifestPath = path.join(trashDir, 'trash-manifest.jsonl');
+
+      // Check if manifest exists
+      try {
+        await fs.access(manifestPath);
+      } catch {
+        // No manifest means no trash entries
+        return [];
+      }
+
+      // Read and parse JSONL file
+      const content = await fs.readFile(manifestPath, 'utf8');
+      const lines = content.trim().split('\n').filter(line => line.trim());
+
+      const entries: TrashEntry[] = [];
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line) as TrashEntry;
+          // Verify the trash file still exists
+          try {
+            await fs.access(entry.trashPath);
+            entries.push(entry);
+          } catch {
+            // File no longer exists, skip this entry
+            console.log(`Trash file no longer exists: ${entry.trashPath}`);
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse trash entry:', parseError);
+        }
+      }
+
+      console.log(`Found ${entries.length} trash entries`);
+      return entries;
+    } catch (error) {
+      console.error('Failed to get trash entries:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Restore files from trash to their original locations
+   */
+  async restoreFromTrash(ids: string[], outputDir: string): Promise<{ restored: number; failed: number }> {
+    const result = { restored: 0, failed: 0 };
+
+    try {
+      const trashDir = this.getTrashDirectory(outputDir);
+      const manifestPath = path.join(trashDir, 'trash-manifest.jsonl');
+
+      // Get all entries
+      const allEntries = await this.getTrashEntries(outputDir);
+      const entriesToRestore = allEntries.filter(e => ids.includes(e.id));
+      const entriesToKeep = allEntries.filter(e => !ids.includes(e.id));
+
+      // Restore each file
+      for (const entry of entriesToRestore) {
+        try {
+          // Ensure original directory exists
+          const originalDir = path.dirname(entry.originalPath);
+          await this.ensureDirectory(originalDir);
+
+          // Move file back to original location
+          await fs.rename(entry.trashPath, entry.originalPath);
+          result.restored++;
+          console.log(`Restored: ${entry.filename} to ${entry.originalPath}`);
+        } catch (restoreError) {
+          console.error(`Failed to restore ${entry.filename}:`, restoreError);
+          result.failed++;
+        }
+      }
+
+      // Rewrite manifest with remaining entries
+      if (entriesToKeep.length === 0) {
+        // Delete manifest if empty
+        try {
+          await fs.unlink(manifestPath);
+        } catch {
+          // Ignore if already deleted
+        }
+      } else {
+        // Rewrite manifest with remaining entries
+        const newContent = entriesToKeep.map(e => JSON.stringify(e)).join('\n') + '\n';
+        await fs.writeFile(manifestPath, newContent, 'utf8');
+      }
+
+      // Clean up empty directories in trash
+      await this.cleanupEmptyTrashDirs(trashDir);
+
+      return result;
+    } catch (error) {
+      console.error('Failed to restore from trash:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clear all trash by moving contents to system trash
+   */
+  async clearTrash(outputDir: string): Promise<{ cleared: number; failed: number }> {
+    const result = { cleared: 0, failed: 0 };
+
+    try {
+      const trashDir = this.getTrashDirectory(outputDir);
+
+      // Check if trash directory exists
+      try {
+        await fs.access(trashDir);
+      } catch {
+        // No trash directory
+        return result;
+      }
+
+      // Get all files and directories in trash (except manifest)
+      const items = await fs.readdir(trashDir);
+
+      for (const item of items) {
+        if (item === 'trash-manifest.jsonl') {
+          continue; // Skip manifest, will be deleted after
+        }
+
+        const itemPath = path.join(trashDir, item);
+        try {
+          await shell.trashItem(itemPath);
+          result.cleared++;
+          console.log(`Moved to system trash: ${itemPath}`);
+        } catch (trashError) {
+          console.error(`Failed to move to system trash: ${itemPath}`, trashError);
+          result.failed++;
+        }
+      }
+
+      // Delete manifest file
+      const manifestPath = path.join(trashDir, 'trash-manifest.jsonl');
+      try {
+        await fs.unlink(manifestPath);
+      } catch {
+        // Ignore if already deleted
+      }
+
+      console.log(`Trash cleared: ${result.cleared} items`);
+      return result;
+    } catch (error) {
+      console.error('Failed to clear trash:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get trash image as base64 for display
+   */
+  async getTrashImageAsBase64(trashPath: string): Promise<string> {
+    try {
+      // Expand tilde in path
+      const expandedPath = trashPath.startsWith('~')
+        ? path.join(os.homedir(), trashPath.slice(1))
+        : trashPath;
+
+      // Validate path to prevent directory traversal
+      const resolvedPath = path.resolve(expandedPath);
+
+      // Check if file exists
+      const stats = await fs.stat(resolvedPath);
+      if (!stats.isFile()) {
+        throw new Error('Path is not a file');
+      }
+
+      // Read and convert to base64
+      const buffer = await fs.readFile(resolvedPath);
+      return buffer.toString('base64');
+    } catch (error) {
+      console.error('Failed to read trash image:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Clean up empty directories in trash folder
+   */
+  private async cleanupEmptyTrashDirs(trashDir: string): Promise<void> {
+    try {
+      const items = await fs.readdir(trashDir);
+
+      for (const item of items) {
+        if (item === 'trash-manifest.jsonl') continue;
+
+        const itemPath = path.join(trashDir, item);
+        const stats = await fs.stat(itemPath);
+
+        if (stats.isDirectory()) {
+          await this.removeEmptyDirsRecursive(itemPath);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to cleanup empty trash dirs:', error);
+    }
+  }
+
+  /**
+   * Recursively remove empty directories
+   */
+  private async removeEmptyDirsRecursive(dirPath: string): Promise<boolean> {
+    try {
+      const items = await fs.readdir(dirPath);
+
+      // Process subdirectories first
+      for (const item of items) {
+        const itemPath = path.join(dirPath, item);
+        const stats = await fs.stat(itemPath);
+        if (stats.isDirectory()) {
+          await this.removeEmptyDirsRecursive(itemPath);
+        }
+      }
+
+      // Check again if directory is now empty
+      const remainingItems = await fs.readdir(dirPath);
+      if (remainingItems.length === 0) {
+        await fs.rmdir(dirPath);
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
 }
 
 // Create singleton instance

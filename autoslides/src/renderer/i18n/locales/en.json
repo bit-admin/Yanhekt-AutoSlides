@@ -22,6 +22,7 @@
     "settings": "Settings",
     "advancedSettings": "Advanced Settings",
     "outputDirectory": "Output Directory",
+    "openFolder": "View Output",
     "browse": "Browse",
     "connectionMode": "Connection Mode",
     "internalNetwork": "Internal Network",
@@ -688,5 +689,41 @@
       "thursday": "Thursday",
       "friday": "Friday"
     }
+  },
+  "trash": {
+    "openTrash": "View In-App Trash",
+    "title": "In-App Trash",
+    "refresh": "Refresh",
+    "restore": "Restore Selected",
+    "clearTrash": "Clear Trash",
+    "filterFolder": "Folder",
+    "filterReason": "Reason",
+    "all": "All",
+    "duplicate": "Duplicate",
+    "exclusion": "Excluded",
+    "aiFiltered": "AI Filtered",
+    "manual": "Manual",
+    "selected": "Selected",
+    "total": "Total",
+    "emptyTrash": "Trash is empty",
+    "loading": "Loading...",
+    "confirmClear": "Move all trashed items to system trash?",
+    "confirmClearTitle": "Clear Trash",
+    "cancel": "Cancel",
+    "restoreSuccess": "Restored {count} item(s)",
+    "clearSuccess": "Trash cleared",
+    "preview": "Preview",
+    "metadata": "Metadata",
+    "filename": "Filename",
+    "originalPath": "Original Path",
+    "folder": "Folder",
+    "trashPath": "Trash Path",
+    "reasonDetails": "Details",
+    "trashedAt": "Trashed At"
+  },
+  "window": {
+    "minimize": "Minimize",
+    "maximize": "Maximize",
+    "close": "Close"
   }
 }

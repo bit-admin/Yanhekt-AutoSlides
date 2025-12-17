@@ -147,6 +147,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   shell: {
     openExternal: (url: string) => ipcRenderer.invoke('shell:openExternal', url),
+    openPath: (filePath: string) => ipcRenderer.invoke('shell:openPath', filePath),
   },
   menu: {
     openTermsAndConditions: () => ipcRenderer.invoke('menu:openTermsAndConditions'),
@@ -183,5 +184,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getBuiltinModelName: (token: string) => ipcRenderer.invoke('ai:getBuiltinModelName', token),
     isConfigured: (token?: string) => ipcRenderer.invoke('ai:isConfigured', token),
     getServiceType: () => ipcRenderer.invoke('ai:getServiceType'),
+  },
+  trash: {
+    openWindow: () => ipcRenderer.invoke('trash:openWindow'),
+    getEntries: () => ipcRenderer.invoke('trash:getEntries'),
+    restore: (ids: string[]) => ipcRenderer.invoke('trash:restore', ids),
+    clear: () => ipcRenderer.invoke('trash:clear'),
+    getImageAsBase64: (trashPath: string) => ipcRenderer.invoke('trash:getImageAsBase64', trashPath),
   },
 });

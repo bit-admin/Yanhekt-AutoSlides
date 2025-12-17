@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeTheme } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { MainAuthService } from './main/authService';
@@ -58,7 +58,11 @@ const updateApplicationMenu = () => {
   }
 };
 
-// Create macOS menu template
+// Get window background color based on system theme
+const getWindowBackgroundColor = (): string => {
+  return nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#ffffff';
+};
+
 const createMenuTemplate = () => {
   const template: Electron.MenuItemConstructorOptions[] = [
     { label: app.name, submenu: [
@@ -106,6 +110,7 @@ const createWindow = () => {
     minHeight: 700,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden', // Hide titlebar on all platforms
     frame: false, // Remove frame on all platforms for custom titlebar
+    backgroundColor: getWindowBackgroundColor(), // Set initial background color based on system theme
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -766,6 +771,16 @@ ipcMain.handle('shell:openExternal', async (_, url: string) => {
   }
 });
 
+ipcMain.handle('shell:openPath', async (_, filePath: string) => {
+  try {
+    await shell.openPath(filePath);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to open path:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
 // Menu handlers for non-macOS platforms
 ipcMain.handle('menu:openTermsAndConditions', async () => {
   try {
@@ -969,6 +984,107 @@ ipcMain.handle('app:restart', async () => {
     app.exit(0);
   } catch (error) {
     console.error('Failed to restart app:', error);
+    throw error;
+  }
+});
+
+// ============================================================================
+// Trash Window Management
+// ============================================================================
+
+// Declare Vite dev server variables for trash window
+declare const TRASH_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
+declare const TRASH_WINDOW_VITE_NAME: string;
+
+let trashWindow: BrowserWindow | null = null;
+
+const createTrashWindow = () => {
+  // If window already exists, focus it
+  if (trashWindow && !trashWindow.isDestroyed()) {
+    trashWindow.focus();
+    return;
+  }
+
+  trashWindow = new BrowserWindow({
+    width: 1000,
+    height: 700,
+    minWidth: 800,
+    minHeight: 500,
+    title: 'In-App Trash',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+    frame: false,
+    backgroundColor: getWindowBackgroundColor(), // Set initial background color based on system theme
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  // Load the trash window HTML
+  if (TRASH_WINDOW_VITE_DEV_SERVER_URL) {
+    trashWindow.loadURL(`${TRASH_WINDOW_VITE_DEV_SERVER_URL}/trash.html`);
+  } else {
+    trashWindow.loadFile(
+      path.join(__dirname, `../renderer/${TRASH_WINDOW_VITE_NAME}/trash.html`),
+    );
+  }
+
+  // Clean up reference when window is closed
+  trashWindow.on('closed', () => {
+    trashWindow = null;
+  });
+};
+
+// IPC handler to open trash window
+ipcMain.handle('trash:openWindow', async () => {
+  createTrashWindow();
+  return { success: true };
+});
+
+// ============================================================================
+// Trash IPC Handlers
+// ============================================================================
+
+ipcMain.handle('trash:getEntries', async () => {
+  try {
+    const outputDir = configService.getConfig().outputDirectory;
+    const entries = await slideExtractionService.getTrashEntries(outputDir);
+    return entries;
+  } catch (error) {
+    console.error('Failed to get trash entries:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('trash:restore', async (_event, ids: string[]) => {
+  try {
+    const outputDir = configService.getConfig().outputDirectory;
+    const result = await slideExtractionService.restoreFromTrash(ids, outputDir);
+    return result;
+  } catch (error) {
+    console.error('Failed to restore from trash:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('trash:clear', async () => {
+  try {
+    const outputDir = configService.getConfig().outputDirectory;
+    const result = await slideExtractionService.clearTrash(outputDir);
+    return result;
+  } catch (error) {
+    console.error('Failed to clear trash:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('trash:getImageAsBase64', async (_event, trashPath: string) => {
+  try {
+    const base64 = await slideExtractionService.getTrashImageAsBase64(trashPath);
+    return base64;
+  } catch (error) {
+    console.error('Failed to get trash image:', error);
     throw error;
   }
 });

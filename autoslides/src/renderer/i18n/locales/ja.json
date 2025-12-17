@@ -22,6 +22,7 @@
     "settings": "設定",
     "advancedSettings": "詳細設定",
     "outputDirectory": "出力ディレクトリ",
+    "openFolder": "フォルダを開く",
     "browse": "参照",
     "connectionMode": "接続モード",
     "internalNetwork": "内部ネットワーク",
@@ -688,5 +689,41 @@
       "thursday": "木曜日",
       "friday": "金曜日"
     }
+  },
+  "trash": {
+    "openTrash": "アプリ内ゴミ箱",
+    "title": "アプリ内ゴミ箱",
+    "refresh": "更新",
+    "restore": "選択項目を復元",
+    "clearTrash": "ゴミ箱を空にする",
+    "filterFolder": "フォルダ",
+    "filterReason": "理由",
+    "all": "すべて",
+    "duplicate": "重複",
+    "exclusion": "除外済み",
+    "aiFiltered": "AI除外",
+    "manual": "手動",
+    "selected": "選択中",
+    "total": "合計",
+    "emptyTrash": "ゴミ箱は空です",
+    "loading": "読み込み中...",
+    "confirmClear": "すべてのゴミ箱の項目をシステムのゴミ箱に移動しますか？",
+    "confirmClearTitle": "ゴミ箱を空にする",
+    "cancel": "キャンセル",
+    "restoreSuccess": "{count}件を復元しました",
+    "clearSuccess": "ゴミ箱を空にしました",
+    "preview": "プレビュー",
+    "metadata": "メタデータ",
+    "filename": "ファイル名",
+    "originalPath": "元のパス",
+    "folder": "フォルダ",
+    "trashPath": "ゴミ箱パス",
+    "reasonDetails": "詳細",
+    "trashedAt": "削除日時"
+  },
+  "window": {
+    "minimize": "最小化",
+    "maximize": "最大化",
+    "close": "閉じる"
   }
 }

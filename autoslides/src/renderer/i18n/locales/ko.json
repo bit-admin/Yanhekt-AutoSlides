@@ -22,6 +22,7 @@
     "settings": "설정",
     "advancedSettings": "고급 설정",
     "outputDirectory": "출력 디렉토리",
+    "openFolder": "폴더 열기",
     "browse": "찾아보기",
     "connectionMode": "연결 모드",
     "internalNetwork": "내부 네트워크",
@@ -688,5 +689,41 @@
       "thursday": "목요일",
       "friday": "금요일"
     }
+  },
+  "trash": {
+    "openTrash": "앱 내 휴지통",
+    "title": "앱 내 휴지통",
+    "refresh": "새로고침",
+    "restore": "선택 항목 복원",
+    "clearTrash": "휴지통 비우기",
+    "filterFolder": "폴더",
+    "filterReason": "사유",
+    "all": "전체",
+    "duplicate": "중복",
+    "exclusion": "제외됨",
+    "aiFiltered": "AI 필터링",
+    "manual": "수동",
+    "selected": "선택됨",
+    "total": "총계",
+    "emptyTrash": "휴지통이 비어 있습니다",
+    "loading": "로딩 중...",
+    "confirmClear": "모든 휴지통 항목을 시스템 휴지통으로 이동하시겠습니까?",
+    "confirmClearTitle": "휴지통 비우기",
+    "cancel": "취소",
+    "restoreSuccess": "{count}개 항목을 복원했습니다",
+    "clearSuccess": "휴지통을 비웠습니다",
+    "preview": "미리보기",
+    "metadata": "메타데이터",
+    "filename": "파일명",
+    "originalPath": "원본 경로",
+    "folder": "폴더",
+    "trashPath": "휴지통 경로",
+    "reasonDetails": "상세",
+    "trashedAt": "삭제 시간"
+  },
+  "window": {
+    "minimize": "최소화",
+    "maximize": "최대화",
+    "close": "닫기"
   }
 }

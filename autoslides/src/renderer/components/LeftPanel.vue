@@ -204,6 +204,22 @@
     </div>
 
     <div class="status-section">
+      <!-- Action Buttons Row -->
+      <div class="action-buttons-row">
+        <button class="action-btn trash-btn" @click="openTrashWindow">
+          <svg width="14" height="14" viewBox="0 0 16 16">
+            <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
+          </svg>
+          {{ $t('trash.openTrash') }}
+        </button>
+        <button class="action-btn folder-btn" @click="openOutputDirectory">
+          <svg width="14" height="14" viewBox="0 0 16 16">
+            <path d="M1 2v12h14V4H7.5L6 2H1zm1 2h3.5l1.5 2H14v8H2V4z" fill="currentColor"/>
+          </svg>
+          {{ $t('settings.openFolder') }}
+        </button>
+      </div>
+
       <div class="status-row">
         <span class="status-label">{{ $t('status.connection') }}</span>
         <span :class="['status-value', connectionMode]">
@@ -1279,6 +1295,26 @@ const {
   cancelNameInput
 } = pHashExclusion
 
+// Trash Window
+const openTrashWindow = async () => {
+  try {
+    await window.electronAPI.trash.openWindow()
+  } catch (error) {
+    console.error('Failed to open trash window:', error)
+  }
+}
+
+// Open Output Directory
+const openOutputDirectory = async () => {
+  try {
+    if (outputDirectory.value) {
+      await window.electronAPI.shell.openPath(outputDirectory.value)
+    }
+  } catch (error) {
+    console.error('Failed to open output directory:', error)
+  }
+}
+
 // Lifecycle hooks
 onMounted(async () => {
   auth.verifyExistingToken()
@@ -1918,6 +1954,39 @@ defineExpose({
   padding: 16px;
   border-top: 1px solid #e0e0e0;
   background-color: #f8f9fa;
+}
+
+.action-buttons-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #333;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:hover {
+  background-color: #f0f0f0;
+  border-color: #ccc;
+}
+
+.action-btn svg {
+  flex-shrink: 0;
+  opacity: 0.7;
 }
 
 .status-row {
@@ -2781,6 +2850,17 @@ defineExpose({
   .status-section {
     background-color: #2d2d2d;
     border-top-color: #404040;
+  }
+
+  .action-btn {
+    background-color: #333;
+    border-color: #555;
+    color: #e0e0e0;
+  }
+
+  .action-btn:hover {
+    background-color: #404040;
+    border-color: #666;
   }
 
   .status-label {

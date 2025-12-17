@@ -312,6 +312,17 @@ interface TrashMetadata {
   reasonDetails?: string;
 }
 
+interface TrashEntry {
+  id: string;
+  filename: string;
+  originalPath: string;
+  originalParentFolder: string;
+  trashPath: string;
+  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'manual';
+  reasonDetails?: string;
+  trashedAt: string;
+}
+
 // ============================================================================
 // Electron API Interface
 // ============================================================================
@@ -455,6 +466,7 @@ interface ElectronAPI {
 
   shell: {
     openExternal: (url: string) => Promise<void>;
+    openPath: (filePath: string) => Promise<{ success: boolean; error?: string }>;
   };
 
   menu: {
@@ -508,6 +520,14 @@ interface ElectronAPI {
     getBuiltinModelName: (token: string) => Promise<string>;
     isConfigured: (token?: string) => Promise<boolean>;
     getServiceType: () => Promise<'builtin' | 'custom'>;
+  };
+
+  trash: {
+    openWindow: () => Promise<{ success: boolean }>;
+    getEntries: () => Promise<TrashEntry[]>;
+    restore: (ids: string[]) => Promise<{ restored: number; failed: number }>;
+    clear: () => Promise<{ cleared: number; failed: number }>;
+    getImageAsBase64: (trashPath: string) => Promise<string>;
   };
 }
 
