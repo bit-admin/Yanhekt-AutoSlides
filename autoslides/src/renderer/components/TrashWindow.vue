@@ -141,10 +141,9 @@
             </div>
           </div>
 
-          <!-- Compact Info: folder • reason -->
+          <!-- Info: folder (left, wrapping) | reason (right) -->
           <div class="item-info-compact">
             <span class="item-folder-compact">{{ formatFolderName(entry.originalParentFolder) }}</span>
-            <span class="item-separator">•</span>
             <span :class="['item-reason-compact', `reason-${entry.reason}`]">{{ getReasonLabel(entry.reason) }}</span>
           </div>
         </div>
@@ -393,7 +392,7 @@ const clearTrash = async () => {
   const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
     type: 'warning',
     buttons: [t('trash.cancel'), t('trash.clearTrash')],
-    defaultId: 0,
+    defaultId: 1,
     cancelId: 0,
     title: t('trash.confirmClearTitle'),
     message: t('trash.confirmClear')
@@ -811,24 +810,19 @@ onMounted(() => {
 .item-info-compact {
   padding: 6px 10px;
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 11px;
-  overflow: hidden;
 }
 
 .item-folder-compact {
   color: #666;
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  flex-shrink: 1;
-  min-width: 0;
-}
-
-.item-separator {
-  color: #999;
-  flex-shrink: 0;
 }
 
 .item-reason-compact {
