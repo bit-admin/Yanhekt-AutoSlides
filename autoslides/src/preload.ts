@@ -192,4 +192,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     clear: () => ipcRenderer.invoke('trash:clear'),
     getImageAsBase64: (trashPath: string) => ipcRenderer.invoke('trash:getImageAsBase64', trashPath),
   },
+  update: {
+    checkForUpdates: () => ipcRenderer.invoke('update:checkForUpdates'),
+    onCheckForUpdates: (callback: () => void) =>
+      ipcRenderer.on('menu:checkForUpdates', () => callback()),
+  },
 });

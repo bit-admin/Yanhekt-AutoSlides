@@ -66,9 +66,16 @@ const getWindowBackgroundColor = (): string => {
 const createMenuTemplate = () => {
   const template: Electron.MenuItemConstructorOptions[] = [
     { label: app.name, submenu: [
-      { role: 'about' },
+      { role: 'about', label: getTranslation('titlebar.about') },
+      { type: 'separator' },
+      { label: getTranslation('titlebar.checkForUpdates'), click: async () => {
+        const mainWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+        if (mainWindow) {
+          mainWindow.webContents.send('menu:checkForUpdates');
+        }
+      } },
       {
-        label: 'Legal Notices',
+        label: getTranslation('titlebar.legalNotices'),
         click: () => {
           // In development, use the source directory; in production, use the app directory
           const termsPath = app.isPackaged
@@ -78,19 +85,19 @@ const createMenuTemplate = () => {
         }
       },
       { type: 'separator' },
-      { role: 'services' },
+      { role: 'services', label: getTranslation('titlebar.services') },
       { type: 'separator' },
-      { role: 'hide' },
-      { role: 'hideOthers' },
-      { role: 'unhide' },
+      { role: 'hide', label: getTranslation('titlebar.hide') },
+      { role: 'hideOthers', label: getTranslation('titlebar.hideOthers') },
+      { role: 'unhide', label: getTranslation('titlebar.showAll') },
       { type: 'separator' },
-      { role: 'quit' }
+      { role: 'quit', label: getTranslation('titlebar.quit') }
     ] },
-    { label: 'File', submenu: [{ label: 'New', accelerator: 'CmdOrCtrl+N', enabled: false }, { label: 'Open', accelerator: 'CmdOrCtrl+O', enabled: false }, { type: 'separator' }, { role: 'close' }] },
-    { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
-    { label: 'View', submenu: [{ role: 'reload' }, { role: 'forceReload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
-    { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'close' }, { type: 'separator' }, { role: 'front' }] },
-    { label: 'Help', role: 'help', submenu: [
+    { label: getTranslation('titlebar.file'), submenu: [{ label: getTranslation('titlebar.new'), accelerator: 'CmdOrCtrl+N', enabled: false }, { label: getTranslation('titlebar.open'), accelerator: 'CmdOrCtrl+O', enabled: false }, { type: 'separator' }, { role: 'close', label: getTranslation('titlebar.close') }] },
+    { label: getTranslation('titlebar.edit'), submenu: [{ role: 'undo', label: getTranslation('titlebar.undo') }, { role: 'redo', label: getTranslation('titlebar.redo') }, { type: 'separator' }, { role: 'cut', label: getTranslation('titlebar.cut') }, { role: 'copy', label: getTranslation('titlebar.copy') }, { role: 'paste', label: getTranslation('titlebar.paste') }, { role: 'selectAll', label: getTranslation('titlebar.selectAll') }] },
+    { label: getTranslation('titlebar.view'), submenu: [{ role: 'reload', label: getTranslation('titlebar.reload') }, { role: 'forceReload', label: getTranslation('titlebar.forceReload') }, { role: 'toggleDevTools', label: getTranslation('titlebar.toggleDevTools') }, { type: 'separator' }, { role: 'resetZoom', label: getTranslation('titlebar.resetZoom') }, { role: 'zoomIn', label: getTranslation('titlebar.zoomIn') }, { role: 'zoomOut', label: getTranslation('titlebar.zoomOut') }, { type: 'separator' }, { role: 'togglefullscreen', label: getTranslation('titlebar.toggleFullscreen') }] },
+    { label: getTranslation('titlebar.window'), submenu: [{ role: 'minimize', label: getTranslation('titlebar.minimize') }, { role: 'close', label: getTranslation('titlebar.close') }, { type: 'separator' }, { role: 'front', label: getTranslation('titlebar.bringAllToFront') }] },
+    { label: getTranslation('titlebar.help'), role: 'help', submenu: [
       { label: getTranslation('titlebar.visitGitHub'), click: () => { shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides'); } },
       { label: getTranslation('titlebar.itCenterSoftware'), click: () => { shell.openExternal('https://it.ruc.edu.kg/zh/software'); } },
       { type: 'separator' },
@@ -1086,6 +1093,104 @@ ipcMain.handle('trash:getImageAsBase64', async (_event, trashPath: string) => {
   } catch (error) {
     console.error('Failed to get trash image:', error);
     throw error;
+  }
+});
+
+// ============================================================================
+// Update Check IPC Handlers
+// ============================================================================
+
+ipcMain.handle('update:checkForUpdates', async () => {
+  try {
+    const https = await import('https');
+
+    return new Promise((resolve) => {
+      const options = {
+        hostname: 'api.github.com',
+        path: '/repos/bit-admin/Yanhekt-AutoSlides/releases/latest',
+        method: 'GET',
+        headers: {
+          'User-Agent': 'AutoSlides',
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      };
+
+      const req = https.request(options, (res) => {
+        let data = '';
+
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+
+        res.on('end', () => {
+          try {
+            if (res.statusCode !== 200) {
+              resolve({
+                success: false,
+                error: `HTTP ${res.statusCode}`
+              });
+              return;
+            }
+
+            const release = JSON.parse(data);
+            const latestTag = release.tag_name; // e.g., "v4.0.2"
+            const latestVersion = latestTag.replace(/^v/, ''); // Remove 'v' prefix
+            const currentVersion = app.getVersion();
+
+            // Compare versions
+            const compareVersions = (v1: string, v2: string): number => {
+              const parts1 = v1.split('.').map(Number);
+              const parts2 = v2.split('.').map(Number);
+
+              for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+                const p1 = parts1[i] || 0;
+                const p2 = parts2[i] || 0;
+                if (p1 > p2) return 1;
+                if (p1 < p2) return -1;
+              }
+              return 0;
+            };
+
+            const hasUpdate = compareVersions(latestVersion, currentVersion) > 0;
+
+            resolve({
+              success: true,
+              hasUpdate,
+              currentVersion,
+              latestVersion,
+              releaseUrl: release.html_url
+            });
+          } catch {
+            resolve({
+              success: false,
+              error: 'Failed to parse response'
+            });
+          }
+        });
+      });
+
+      req.on('error', (error) => {
+        resolve({
+          success: false,
+          error: error.message
+        });
+      });
+
+      req.setTimeout(10000, () => {
+        req.destroy();
+        resolve({
+          success: false,
+          error: 'Request timeout'
+        });
+      });
+
+      req.end();
+    });
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
   }
 });
 

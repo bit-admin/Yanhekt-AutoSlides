@@ -54,6 +54,8 @@
           <div class="menu-option" @click="openWebVersion">{{ $t('titlebar.webVersion') }}</div>
           <div class="menu-option" @click="openSSIMTest">{{ $t('titlebar.ssimTest') }}</div>
           <div class="menu-separator"></div>
+          <div class="menu-option" @click="checkForUpdates">{{ $t('titlebar.checkForUpdates') }}</div>
+          <div class="menu-separator"></div>
           <div class="menu-option" @click="openTermsAndConditions">{{ $t('titlebar.termsAndConditions') }}</div>
         </div>
       </div>
@@ -148,6 +150,11 @@ onMounted(() => {
 
   // Add click listener to close menus when clicking outside
   document.addEventListener('click', handleOutsideClick);
+
+  // Listen for check for updates event from macOS menu
+  (window as any).electronAPI.update.onCheckForUpdates(() => {
+    checkForUpdates();
+  });
 });
 
 onUnmounted(() => {
@@ -354,6 +361,56 @@ const showAbout = async () => {
     });
   } catch (error) {
     console.error('Failed to show about dialog:', error);
+  }
+};
+
+// Check for updates
+const checkForUpdates = async () => {
+  closeAllMenus();
+  try {
+    const result = await (window as any).electronAPI.update.checkForUpdates();
+
+    if (!result.success) {
+      // Failed to check for updates
+      await (window as any).electronAPI.dialog.showMessageBox({
+        type: 'error',
+        title: $t('titlebar.updateCheckFailed'),
+        message: $t('titlebar.updateCheckFailedMessage'),
+        detail: $t('titlebar.updateCheckFailedDetail', { error: result.error }),
+        buttons: [$t('titlebar.ok')]
+      });
+      return;
+    }
+
+    if (result.hasUpdate) {
+      // Update available - show dialog with option to open download page
+      const response = await (window as any).electronAPI.dialog.showMessageBox({
+        type: 'info',
+        title: $t('titlebar.updateAvailable'),
+        message: $t('titlebar.updateAvailableMessage'),
+        detail: $t('titlebar.updateAvailableDetail', {
+          currentVersion: result.currentVersion,
+          latestVersion: result.latestVersion
+        }),
+        buttons: [$t('titlebar.openDownloadPage'), $t('titlebar.cancel')]
+      });
+
+      if (response.response === 0) {
+        // User clicked "Open Download Page"
+        await (window as any).electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides/releases');
+      }
+    } else {
+      // No update available
+      await (window as any).electronAPI.dialog.showMessageBox({
+        type: 'info',
+        title: $t('titlebar.noUpdateAvailable'),
+        message: $t('titlebar.noUpdateMessage'),
+        detail: $t('titlebar.noUpdateDetail', { currentVersion: result.currentVersion }),
+        buttons: [$t('titlebar.ok')]
+      });
+    }
+  } catch (error) {
+    console.error('Failed to check for updates:', error);
   }
 };
 </script>
