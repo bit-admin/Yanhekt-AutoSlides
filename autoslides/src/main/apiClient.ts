@@ -265,7 +265,7 @@ export class ApiClient {
             errorMessage = "Authentication failed, please check if token is valid";
             break;
           case 99151011:
-            errorMessage = "Remote server error or temporarily down, please try again later";
+            errorMessage = "Remote server error or is temporarily down, please try again later";
             break;
           default:
             errorMessage = `API error: ${data.message} (code: ${data.code})`;
@@ -298,7 +298,7 @@ export class ApiClient {
             errorMessage = "Authentication failed, please check if token is valid";
             break;
           case 99151011:
-            errorMessage = "Remote server error or temporarily down, please try again later";
+            errorMessage = "Remote server error or is temporarily down, please try again later";
             break;
           default:
             errorMessage = `API error: ${data.message} (code: ${data.code})`;
@@ -352,7 +352,7 @@ export class ApiClient {
             errorMessage = "Authentication failed, please check if token is valid";
             break;
           case 99151011:
-            errorMessage = "Remote server error or temporarily down, please try again later";
+            errorMessage = "Remote server error or is temporarily down, please try again later";
             break;
           default:
             errorMessage = `API error: ${data.message} (code: ${data.code})`;
@@ -394,7 +394,7 @@ export class ApiClient {
             errorMessage = "Authentication failed, please check if token is valid";
             break;
           case 99151011:
-            errorMessage = "Remote server error or temporarily down, please try again later";
+            errorMessage = "Remote server error or is temporarily down, please try again later";
             break;
           default:
             errorMessage = `API error: ${data.message} (code: ${data.code})`;
@@ -425,7 +425,7 @@ export class ApiClient {
             errorMessage = "Authentication failed, please check if token is valid";
             break;
           case 99151011:
-            errorMessage = "Remote server error or temporarily down, please try again later";
+            errorMessage = "Remote server error or is temporarily down, please try again later";
             break;
           default:
             errorMessage = `Course ID: ${courseId}, ${courseData.message}`;
@@ -635,7 +635,7 @@ export class ApiClient {
             errorMessage = "Authentication failed, please check if token is valid";
             break;
           case 99151011:
-            errorMessage = "Remote server error or temporarily down, please try again later";
+            errorMessage = "Remote server error or is temporarily down, please try again later";
             break;
           default:
             errorMessage = `API error: ${data.message} (code: ${data.code})`;
