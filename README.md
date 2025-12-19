@@ -56,19 +56,62 @@
 
 
 > [!CAUTION]
-> Disclaimer: This tool is intended strictly for personal study; users assume full legal responsibility for ensuring their usage complies with all applicable copyright laws and platform regulations. Terms and Conditions available here: [TERMS AND CONDITIONS](docs/terms.md)
+> **Disclaimer**: This tool is intended strictly for personal study; users assume full legal responsibility for ensuring their usage complies with all applicable copyright laws and platform regulations. Terms and Conditions available here: [TERMS AND CONDITIONS](docs/terms.md)
 > 
 > This tool is NOT an official application of, and is NOT affiliated with, associated with, endorsed by, or in any way connected to Beijing Institute of Technology (BIT), or any of their subsidiaries or affiliates. All product and company names are trademarks™ or registered® trademarks of their respective holders.
 
 
 ### 相关项目
 
-| <img width="160"/> | GitHub 仓库 | 描述 |
-| --- | --- | --- |
-| [网页版](https://learn.ruc.edu.kg) 👈   | [bit&#8209;admin/Yanhe-Web](https://github.com/bit-admin/Yanhe-Web)   |   观看全校直播课程，在移动设备上运行幻灯片提取<sup>2</sup>；记录笔记并导出为文档<sup>3</sup>。  |
-| 提取器工具   | [bit&#8209;admin/AutoSlides-Extractor](https://github.com/bit-admin/AutoSlides-Extractor)   |  从下载的屏幕录制中提取幻灯片；处理一节课的视频用时快至10秒<sup>4</sup>；支持 GPU 加速；使用 C++ 构建；使用与 `AutoSlides` 相同的图像处理算法及基于 `MobileNetV4` 的机器学习模型。   |
-| 延河课堂下载器   | [bit&#8209;admin/Yanhekt-downloader-electron](https://github.com/bit-admin/Yanhekt-downloader-electron)   |  视频下载功能基于该项目重写；特别感谢 [AuYang261/BIT_yanhe_download](https://github.com/AuYang261/BIT_yanhe_download) 项目提供的思路和参考 。  |
-| BIT SSO 登录模块   | [bit&#8209;admin/bit-sso](https://github.com/bit-admin/bit-sso)   |  延河课堂登录功能基于该项目；基于逆向工程的登录模块<sup>5</sup>；基于边缘函数的延河课堂登录实现。   |
+<table>
+  <thead>
+    <tr>
+      <th width="155">项目 / 类别</th>
+      <th width="190">GitHub 仓库</th>
+      <th>描述</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <a href="https://learn.ruc.edu.kg">网页版</a> 👈
+      </td>
+      <td>
+        <a href="https://github.com/bit-admin/Yanhe-Web">bit&#8209;admin/Yanhe-Web</a>
+      </td>
+      <td>
+        观看全校直播课程，在移动设备上运行幻灯片提取<sup>2</sup>；记录笔记并导出为文档<sup>3</sup>。
+      </td>
+    </tr>
+    <tr>
+      <td>提取器工具</td>
+      <td>
+        <a href="https://github.com/bit-admin/AutoSlides-Extractor">bit&#8209;admin/AutoSlides-Extractor</a>
+      </td>
+      <td>
+        从下载的屏幕录制中提取幻灯片；处理一节课的视频用时快至10秒<sup>4</sup>；支持 GPU 加速；使用 C++ 构建；使用与 <code>AutoSlides</code> 相同的图像处理算法及基于 <code>MobileNetV4</code> 的机器学习模型。
+      </td>
+    </tr>
+    <tr>
+      <td>延河课堂下载器</td>
+      <td>
+        <a href="https://github.com/bit-admin/Yanhekt-downloader-electron">bit&#8209;admin/Yanhekt-downloader-electron</a>
+      </td>
+      <td>
+        视频下载功能基于该项目重写；特别感谢 <a href="https://github.com/AuYang261/BIT_yanhe_download">AuYang261/BIT_yanhe_download</a> 项目提供的思路和参考。
+      </td>
+    </tr>
+    <tr>
+      <td>BIT SSO 登录模块</td>
+      <td>
+        <a href="https://github.com/bit-admin/bit-sso">bit&#8209;admin/bit-sso</a>
+      </td>
+      <td>
+        延河课堂登录功能基于该项目；基于逆向工程的登录模块<sup>5</sup>；基于边缘函数的延河课堂登录实现。
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 ---
 
