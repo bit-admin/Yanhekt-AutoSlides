@@ -196,8 +196,6 @@
 > [!TIP]
 > `应用回收站` 在硬盘中位于 `输出目录` 下的 `.autoslidesTrash` 文件夹。
 
-<img src="docs/trash.png" align="right" width="25%" alt="trash" />
-
 <br clear="both">
 
 <img src="docs/step8.png" align="right" width="70%" alt="step8" />

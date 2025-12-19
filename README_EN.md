@@ -196,8 +196,6 @@ For detailed configuration of the `Advanced Settings` interface, please refer to
 > [!TIP]
 > The `App Trash` is located in the `.autoslidesTrash` folder under the `Output Directory` on your disk.
 
-<img src="docs/trash.png" align="right" width="25%" alt="trash" />
-
 <br clear="both">
 
 <img src="docs/step8.png" align="right" width="70%" alt="step8" />
