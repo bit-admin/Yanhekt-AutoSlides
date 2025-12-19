@@ -51,7 +51,7 @@
 > 推荐使用模型：`gpt-4.1`、`Qwen/Qwen3-VL-235B-A22B-Instruct`、`Qwen/Qwen3-VL-30B-A3B-Instruct` 及 `Qwen/Qwen3-VL-8B-Instruct`。测试中即便使用 LM Studio 本地运行的轻量模型 `qwen3-vl-2b-instruct` 也能取得良好的识别效果。
 
 <p align="center">
-  <img src="docs/cover.png" alt="AutoSlides 封面" style="max-width:60%;height:auto;">
+  <img src="docs/cover.png" alt="AutoSlides 封面" width="60%">
 </p>
 
 
@@ -92,7 +92,7 @@
    - **macOS**：打开 `.dmg` 安装包，将应用图标拖动到 `Applications` 文件夹后，双击安装包内的 `install.command` 文件，运行安装脚本，然后输入你的 Mac 密码（注意密码输入时不会显示）。
 
 <p align="center">
-  <img src="docs/dmg.png" alt="AutoSlides DMG 安装包" style="max-width:50%;height:auto;">
+  <img src="docs/dmg.png" alt="AutoSlides DMG 安装包" width="50%">
 </p>   
 
 > [!IMPORTANT]
@@ -118,7 +118,7 @@
 
 ### 4. 使用与设置
 
-<img src="docs/step1.png" align="right" style="max-width:70%;height:auto;" alt="step1" />
+<img src="docs/step1.png" align="right" width="70%" alt="step1" />
 
 #### A. 基础设置
 
@@ -129,7 +129,7 @@
 
 <br clear="both">
 
-<img src="docs/step2.png" align="right" style="max-width:70%;height:auto;" alt="step2" />
+<img src="docs/step2.png" align="right" width="70%" alt="step2" />
 
 #### B. 基础界面介绍
 
@@ -142,7 +142,7 @@
 
 <br clear="both">
 
-<img src="docs/step3.png" align="right" style="max-width:70%;height:auto;" alt="step3" />
+<img src="docs/step3.png" align="right" width="70%" alt="step3" />
 
 #### C. 高级设置介绍
 
@@ -153,7 +153,7 @@
 
 <br clear="both">
 
-<img src="docs/step4.png" align="right" style="max-width:70%;height:auto;" alt="step4" />
+<img src="docs/step4.png" align="right" width="70%" alt="step4" />
 
 <br>
 
@@ -166,7 +166,7 @@
 
 <br clear="both">
 
-<img src="docs/step5.png" align="right" style="max-width:70%;height:auto;" alt="step5" />
+<img src="docs/step5.png" align="right" width="70%" alt="step5" />
 
 <br>
 
@@ -177,7 +177,7 @@
 
 <br clear="both">
 
-<img src="docs/step6.png" align="right" style="max-width:70%;height:auto;" alt="step6" />
+<img src="docs/step6.png" align="right" width="70%" alt="step6" />
 
 <br>
 
@@ -186,7 +186,7 @@
 
 <br clear="both">
 
-<img src="docs/step7.png" align="right" style="max-width:70%;height:auto;" alt="step7" />
+<img src="docs/step7.png" align="right" width="70%" alt="step7" />
 
 <br>
 
@@ -196,11 +196,11 @@
 > [!TIP]
 > `应用回收站` 在硬盘中位于 `输出目录` 下的 `.autoslidesTrash` 文件夹。
 
-<img src="docs/trash.png" align="right" style="max-width:25%;height:auto;" alt="trash" />
+<img src="docs/trash.png" align="right" width="25%" alt="trash" />
 
 <br clear="both">
 
-<img src="docs/step8.png" align="right" style="max-width:70%;height:auto;" alt="step8" />
+<img src="docs/step8.png" align="right" width="70%" alt="step8" />
 
 <br>
 
@@ -212,7 +212,7 @@
 
 <br clear="both">
 
-<img src="docs/step9.png" align="right" style="max-width:70%;height:auto;" alt="step9" />
+<img src="docs/step9.png" align="right" width="70%" alt="step9" />
 
 <br>
 

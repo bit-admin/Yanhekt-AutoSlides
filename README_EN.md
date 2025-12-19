@@ -51,7 +51,7 @@
 > Recommended models: `gpt-4.1`, `Qwen/Qwen3-VL-235B-A22B-Instruct`, `Qwen/Qwen3-VL-30B-A3B-Instruct`, and `Qwen/Qwen3-VL-8B-Instruct`. Even lightweight models like `qwen3-vl-2b-instruct` running locally via LM Studio can achieve good recognition results in tests.
 
 <p align="center">
-  <img src="docs/cover.png" alt="AutoSlides Cover" style="max-width:60%;height:auto;">
+  <img src="docs/cover.png" alt="AutoSlides Cover" width="60%">
 </p>
 
 
@@ -92,7 +92,7 @@
    - **macOS**: Open the `.dmg` package, drag the app icon to the `Applications` folder, then double-click the `install.command` file in the package to run the installation script and enter your Mac password (note: password input will not be displayed).
 
 <p align="center">
-  <img src="docs/dmg.png" alt="AutoSlides DMG Package" style="max-width:50%;height:auto;">
+  <img src="docs/dmg.png" alt="AutoSlides DMG Package" width="50%">
 </p>   
 
 > [!IMPORTANT]
@@ -118,7 +118,7 @@
 
 ### 4. Usage and Settings
 
-<img src="docs/step1.png" align="right" style="max-width:70%;height:auto;" alt="step1" />
+<img src="docs/step1.png" align="right" width="70%" alt="step1" />
 
 #### A. Basic Settings
 
@@ -129,7 +129,7 @@
 
 <br clear="both">
 
-<img src="docs/step2.png" align="right" style="max-width:70%;height:auto;" alt="step2" />
+<img src="docs/step2.png" align="right" width="70%" alt="step2" />
 
 #### B. Basic Interface Introduction
 
@@ -142,7 +142,7 @@
 
 <br clear="both">
 
-<img src="docs/step3.png" align="right" style="max-width:70%;height:auto;" alt="step3" />
+<img src="docs/step3.png" align="right" width="70%" alt="step3" />
 
 #### C. Advanced Settings Introduction
 
@@ -153,7 +153,7 @@ For detailed configuration of the `Advanced Settings` interface, please refer to
 
 <br clear="both">
 
-<img src="docs/step4.png" align="right" style="max-width:70%;height:auto;" alt="step4" />
+<img src="docs/step4.png" align="right" width="70%" alt="step4" />
 
 <br>
 
@@ -166,7 +166,7 @@ For detailed configuration of the `Advanced Settings` interface, please refer to
 
 <br clear="both">
 
-<img src="docs/step5.png" align="right" style="max-width:70%;height:auto;" alt="step5" />
+<img src="docs/step5.png" align="right" width="70%" alt="step5" />
 
 <br>
 
@@ -177,7 +177,7 @@ For detailed configuration of the `Advanced Settings` interface, please refer to
 
 <br clear="both">
 
-<img src="docs/step6.png" align="right" style="max-width:70%;height:auto;" alt="step6" />
+<img src="docs/step6.png" align="right" width="70%" alt="step6" />
 
 <br>
 
@@ -186,7 +186,7 @@ For detailed configuration of the `Advanced Settings` interface, please refer to
 
 <br clear="both">
 
-<img src="docs/step7.png" align="right" style="max-width:70%;height:auto;" alt="step7" />
+<img src="docs/step7.png" align="right" width="70%" alt="step7" />
 
 <br>
 
@@ -196,11 +196,11 @@ For detailed configuration of the `Advanced Settings` interface, please refer to
 > [!TIP]
 > The `App Trash` is located in the `.autoslidesTrash` folder under the `Output Directory` on your disk.
 
-<img src="docs/trash.png" align="right" style="max-width:25%;height:auto;" alt="trash" />
+<img src="docs/trash.png" align="right" width="25%" alt="trash" />
 
 <br clear="both">
 
-<img src="docs/step8.png" align="right" style="max-width:70%;height:auto;" alt="step8" />
+<img src="docs/step8.png" align="right" width="70%" alt="step8" />
 
 <br>
 
@@ -212,7 +212,7 @@ For detailed configuration of the `Advanced Settings` interface, please refer to
 
 <br clear="both">
 
-<img src="docs/step9.png" align="right" style="max-width:70%;height:auto;" alt="step9" />
+<img src="docs/step9.png" align="right" width="70%" alt="step9" />
 
 <br>
 
