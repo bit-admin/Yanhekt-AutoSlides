@@ -35,7 +35,7 @@
 
 ## ✨ 功能特性
 
-- 基于逆向工程处理延河课堂防盗链防护，提供视频播放及下载；
+- 基于逆向工程处理延河课堂防盗链防护，提供视频播放及下载。
 - 针对校园网优化，观看延河课堂视频再不卡顿；录播视频 10 倍速流畅播放；下载速率快至110MB/s<sup>1</sup> 。
 - 在视频播放同时运行幻灯片提取；无须下载视频；145 分钟课程在 10 倍速下用时 15 分钟处理完成。
 - 在幻灯片提取任务进行过程中阻止系统休眠，可长时间彻夜运行。
@@ -132,16 +132,22 @@
 - 前往 [release 页面](https://github.com/bit-admin/Yanhekt-AutoSlides/releases) 👈 下载适用于您的平台的安装程序（macOS 用户请下载 `DMG` 文件；Windows 用户请下载 `EXE` 文件）。
 
 ### 2. 安装
-   - **macOS**：打开 `.dmg` 安装包，将应用图标拖动到 `Applications` 文件夹后，双击安装包内的 `install.command` 文件，运行安装脚本，然后输入你的 Mac 密码（注意密码输入时不会显示）。
+   - **macOS**：打开 `.dmg` 安装包，将应用图标拖动到 `Applications` 文件夹。
+      - 双击安装包内的 `install.command` 文件，运行安装脚本，此时你会收到“Apple 无法验证安全性“的提示；先关闭这个提示。
+      - 打开 `系统设置 > 隐私与安全性`，如图所示，点击 `仍要打开`。
+      - 在终端中输入你的 Mac 密码（注意密码输入时不会显示）。
 
 <p align="center">
-  <img src="docs/dmg.png" alt="AutoSlides DMG 安装包" width="50%">
+  <img src="docs/dmg.png" alt="AutoSlides DMG 安装包" width="100%">
 </p>   
 
 > [!IMPORTANT]
 > - macOS 将下载的应用程序标记为“隔离”以确保安全。
 > - AutoSlides 未使用 Apple 开发者证书签名。
-> - 双击 `install.command` 将运行 `sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app` 删除隔离属性允许应用程序正常运行。
+> - 除了双击 `install.command` ，你也可以手动在终端运行以下命令删除隔离属性允许应用程序正常运行：
+>   ```shell
+>   sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app
+>   ```
 
    - **Windows**：运行 `.exe` 安装程序并按照安装向导操作。
 
@@ -210,8 +216,6 @@
 <br clear="both">
 
 <img src="docs/step5.png" align="right" width="70%" alt="step5" />
-
-<br>
 
 #### D. 应用使用方法
 
