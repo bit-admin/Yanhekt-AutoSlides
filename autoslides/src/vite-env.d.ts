@@ -1,8 +1,8 @@
 /// <reference types="vite/client" />
 /// <reference types="electron" />
 
-declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
-declare const MAIN_WINDOW_VITE_NAME: string;
+declare const _MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
+declare const _MAIN_WINDOW_VITE_NAME: string;
 
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'

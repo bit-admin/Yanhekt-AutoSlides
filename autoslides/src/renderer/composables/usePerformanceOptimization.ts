@@ -136,7 +136,7 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
             console.log('Low buffer detected in background, requesting more data')
             try {
               hls.value.startLoad()
-            } catch (e) {
+            } catch (_e) {
               // Ignore errors, this is just a hint to HLS
             }
           }

@@ -173,7 +173,7 @@ export class DataStore {
               i--; // Adjust index since we removed an item
             }
           }
-        } catch (error) {
+        } catch (_error) {
           // Remove corrupted data
           localStorage.removeItem(key);
           i--; // Adjust index since we removed an item

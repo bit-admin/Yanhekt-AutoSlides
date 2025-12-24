@@ -119,7 +119,7 @@ export class MainAuthService {
         try {
           const url = new URL(urlString);
           return url.searchParams.get('token');
-        } catch (e) {
+        } catch (_e) {
           return null;
         }
       };

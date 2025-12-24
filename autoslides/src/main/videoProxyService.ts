@@ -381,7 +381,7 @@ export class VideoProxyService {
               const urlObj = new URL(requestUrl);
               const domain = new URL(originalUrl as string).hostname;
               this.intranetMapping.markIPFailed(urlObj.hostname, domain);
-            } catch (e) {
+            } catch (_e) {
               // Ignore URL parsing errors
             }
             retryCount++;
@@ -415,7 +415,7 @@ export class VideoProxyService {
             const urlObj = new URL(requestUrl);
             const domain = new URL(originalUrl as string).hostname;
             this.intranetMapping.markIPFailed(urlObj.hostname, domain);
-          } catch (e) {
+          } catch (_e) {
             // Ignore URL parsing errors
           }
         }

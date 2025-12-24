@@ -381,7 +381,7 @@ export class SlideExtractor {
       if (video.videoWidth < 100) return false;
       if (video.videoHeight < 100) return false;
       return true;
-    } catch (error) {
+    } catch (_error) {
       return false;
     }
   }
@@ -837,7 +837,7 @@ export class SlideExtractor {
       try {
         (window as any).gc();
         console.log('Manual garbage collection triggered');
-      } catch (e) {
+      } catch (_e) {
         // Ignore errors - gc() might not be available
       }
     }
