@@ -44,14 +44,14 @@ export class MainAuthService {
       const initResponse = await axiosInstance.get(`${API_LOGIN_PAGE}?service=${encodeURIComponent(serviceUrl)}`);
 
       const initialCookiesHeader = initResponse.headers['set-cookie'];
-      if (!initialCookiesHeader) throw new Error("Failed to get initial cookies (JSESSIONID).");
+      if (!initialCookiesHeader) throw new Error("Failed to get initial cookies. If this persists, please sign in with browser.");
       sessionCookies = initialCookiesHeader.map((c: string) => c.split(';')[0]).join('; ');
 
       const html = initResponse.data;
       const cryptoKey = this.getHtmlParam(html, `id="login-croypto"`);
       const executionKey = this.getHtmlParam(html, `id="login-page-flowkey"`);
 
-      if (!cryptoKey || !executionKey) throw new Error("Failed to parse encryption or execution keys from login page.");
+      if (!cryptoKey || !executionKey) throw new Error("Failed to parse login page. If this persists, please sign in with browser.");
       console.log('Step 1 completed: Got encryption key and execution token');
 
       console.log('Step 2: Encrypting password and submitting login...');
@@ -88,8 +88,8 @@ export class MainAuthService {
         ) {
           throw new Error('Verification required. Please sign in with browser.');
         }
-        const errorData = loginResponse.data?.message || "Login failed, unable to parse error response.";
-        throw new Error(`SSO login failed: ${errorData}`);
+        const errorData = loginResponse.data?.message || "Login failed. If this persists, please sign in with browser.";
+        throw new Error(errorData);
       }
 
       console.log('Step 2 completed: SSO login successful, starting redirect handling');
@@ -103,7 +103,7 @@ export class MainAuthService {
       }
 
       const firstRedirectLocation = loginResponse.headers['location'];
-      if (!firstRedirectLocation) throw new Error("SSO login successful, but no first redirect address found.");
+      if (!firstRedirectLocation) throw new Error("Login succeeded but redirect failed. Please sign in with browser.");
 
       console.log('Step 3: Accessing first redirect URL...', firstRedirectLocation);
 
@@ -116,11 +116,11 @@ export class MainAuthService {
       });
 
       if (secondResponse.status !== 302) {
-        throw new Error("Ticket verification redirect failed, server did not return final token address.");
+        throw new Error("Ticket verification failed. Please sign in with browser.");
       }
 
       const finalRedirectLocation = secondResponse.headers['location'];
-      if (!finalRedirectLocation) throw new Error("Ticket verification successful, but no final redirect address with token found.");
+      if (!finalRedirectLocation) throw new Error("Ticket verification succeeded but redirect failed. Please sign in with browser.");
 
       console.log('Step 4: Extracting token from final redirect URL...', finalRedirectLocation);
 
@@ -136,7 +136,7 @@ export class MainAuthService {
       const token = getTokenFromUrl(finalRedirectLocation);
 
       if (!token) {
-        throw new Error("Failed to extract token from redirect URL");
+        throw new Error("Failed to extract token. Please sign in with browser.");
       }
 
       console.log('Successfully obtained token through manual redirect process!');
@@ -148,6 +148,15 @@ export class MainAuthService {
 
     } catch (error) {
       console.error('Login error:', error);
+
+      // Check for 401 Unauthorized (incorrect username or password)
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        return {
+          success: false,
+          error: 'Incorrect username or password.'
+        };
+      }
+
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'
