@@ -7,6 +7,16 @@ directories:
   buildResources: resources
   output: out/make
 
+# Asar configuration - unpack native modules
+asar: true
+asarUnpack:
+  - "**/*.node"
+  - "**/sharp/**/*"
+  - "**/@img/**/*"
+
+# Native module rebuild
+npmRebuild: true
+
 # Windows configuration
 win:
   target:

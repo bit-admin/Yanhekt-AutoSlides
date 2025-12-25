@@ -7,7 +7,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { shell } from 'electron';
-import sharp from 'sharp';
+import { sharpService } from './sharpService';
 
 /**
  * Trash entry metadata for in-app trash system
@@ -39,18 +39,12 @@ export class SlideExtractionService {
    */
   private async reducePngColors(imageBuffer: Uint8Array): Promise<Uint8Array> {
     try {
-      const optimizedBuffer = await sharp(Buffer.from(imageBuffer))
-        .png({
-          palette: true,
-          colors: 128,
-          quality: 100,
-          effort: 7,
-          dither: 1.0
-        })
-        .toBuffer();
-
-      console.log(`PNG color reduction: ${imageBuffer.length} -> ${optimizedBuffer.length} bytes (${Math.round((1 - optimizedBuffer.length / imageBuffer.length) * 100)}% reduction)`);
-      return new Uint8Array(optimizedBuffer);
+      const optimizedBuffer = await sharpService.reducePngColors(imageBuffer);
+      if (optimizedBuffer) {
+        console.log(`PNG color reduction: ${imageBuffer.length} -> ${optimizedBuffer.length} bytes (${Math.round((1 - optimizedBuffer.length / imageBuffer.length) * 100)}% reduction)`);
+        return optimizedBuffer;
+      }
+      return imageBuffer;
     } catch (error) {
       console.warn('PNG color reduction failed, using original:', error);
       return imageBuffer;

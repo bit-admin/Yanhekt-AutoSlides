@@ -2,13 +2,16 @@ import type { ForgeConfig } from '@electron-forge/shared-types';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
+import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 
 // Check if we're running in development mode (npm start)
 const isDev = process.argv.some(arg => arg.includes('electron-forge-start'));
 
 const config: ForgeConfig = {
   packagerConfig: {
-    asar: true,
+    asar: {
+      unpack: '**/{*.node,sharp/**/*,@img/**/*}'
+    },
     name: 'AutoSlides',
     executableName: 'AutoSlides',
     appBundleId: 'com.bitadmin.autoslides',
@@ -19,7 +22,12 @@ const config: ForgeConfig = {
       // Always include terms.rtf
       'resources/terms',
       // Include FFmpeg binary for all platforms
-      'node_modules/ffmpeg-static'
+      'node_modules/ffmpeg-static',
+      // Include sharp and its dependencies
+      'node_modules/sharp',
+      'node_modules/@img',
+      'node_modules/detect-libc',
+      'node_modules/semver'
     ]
   },
   rebuildConfig: {},
@@ -55,6 +63,8 @@ const config: ForgeConfig = {
         },
       ],
     }),
+    // Auto-unpack native modules from asar
+    new AutoUnpackNativesPlugin({}),
     // Fuses are used to enable/disable various Electron functionality
     // at package time, before code signing the application
     // Only include during packaging to avoid plugin conflict with VitePlugin during dev

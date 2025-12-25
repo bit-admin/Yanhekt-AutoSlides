@@ -3255,17 +3255,20 @@ defineExpose({
   }
 
   /* Dark mode support for post-processing phases list */
-  .phase-toggle-item {
+  .phase-toggle-item,
+  .image-output-toggle-item {
     background-color: #2d2d2d;
     border-color: #404040;
   }
 
-  .phase-toggle-item:hover {
+  .phase-toggle-item:hover,
+  .image-output-toggle-item:hover {
     background-color: #3d3d3d;
     border-color: #505050;
   }
 
-  .phase-toggle-text {
+  .phase-toggle-text,
+  .image-output-toggle-text {
     color: #e0e0e0;
   }
 }
