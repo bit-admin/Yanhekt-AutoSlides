@@ -79,6 +79,15 @@ export class MainAuthService {
       });
 
       if (loginResponse.status !== 302) {
+        // Check if SMS verification is required
+        const responseHtml = typeof loginResponse.data === 'string' ? loginResponse.data : '';
+        if (
+          responseHtml.includes('id="sso-second">true</p>') ||
+          responseHtml.includes('id="current-login-type">smsLogin</p>') ||
+          responseHtml.includes('id="second-auth-tip">')
+        ) {
+          throw new Error('Verification required. Please sign in with browser.');
+        }
         const errorData = loginResponse.data?.message || "Login failed, unable to parse error response.";
         throw new Error(`SSO login failed: ${errorData}`);
       }
