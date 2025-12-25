@@ -35,6 +35,9 @@ export interface SlideExtractionConfig {
   pHashExclusionList: PHashExclusionItem[]; // List of images to exclude from post-processing
   enableDuplicateRemoval: boolean; // Enable duplicate removal phase in post-processing
   enableExclusionList: boolean;    // Enable exclusion list phase in post-processing
+
+  // Image output parameters
+  enablePngColorReduction: boolean; // Enable PNG color reduction to 128 colors
 }
 
 export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
@@ -126,7 +129,10 @@ const defaultSlideExtractionConfig: SlideExtractionConfig = {
     }
   ],
   enableDuplicateRemoval: true,    // Enable duplicate removal phase by default
-  enableExclusionList: true        // Enable exclusion list phase by default
+  enableExclusionList: true,       // Enable exclusion list phase by default
+
+  // Image output parameters
+  enablePngColorReduction: true    // Enable PNG color reduction by default
 };
 
 const defaultAIFilteringConfig: AIFilteringConfig = {
@@ -305,6 +311,7 @@ export class ConfigService {
     enableDownsampling?: boolean;
     downsampleWidth?: number;
     downsampleHeight?: number;
+    enablePngColorReduction?: boolean;
   }): void {
     const config: Partial<SlideExtractionConfig> = {};
 
@@ -331,6 +338,10 @@ export class ConfigService {
 
     if (params.downsampleHeight !== undefined) {
       config.downsampleHeight = Math.max(90, Math.min(1080, Math.round(params.downsampleHeight)));
+    }
+
+    if (params.enablePngColorReduction !== undefined) {
+      config.enablePngColorReduction = params.enablePngColorReduction;
     }
 
     this.setSlideExtractionConfig(config);

@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
       enableDownsampling?: boolean;
       downsampleWidth?: number;
       downsampleHeight?: number;
+      enablePngColorReduction?: boolean;
     }) => ipcRenderer.invoke('config:setSlideImageProcessingParams', params),
     // pHash exclusion list management
     getPHashExclusionList: () => ipcRenderer.invoke('config:getPHashExclusionList'),

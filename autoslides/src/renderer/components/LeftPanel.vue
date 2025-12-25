@@ -408,6 +408,24 @@
             <!-- Image Processing Tab -->
             <div v-show="activeAdvancedTab === 'imageProcessing'" class="tab-content">
             <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.imageOutput') }}</h4>
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.enablePngColorReduction') }}</label>
+                <div class="setting-description">{{ $t('advanced.pngColorReductionDescription') }}</div>
+                <div class="image-output-options">
+                  <label class="image-output-toggle-item">
+                    <input
+                      type="checkbox"
+                      v-model="enablePngColorReduction"
+                      @change="updateImageProcessingParams"
+                    />
+                    <span class="image-output-toggle-text">{{ $t('advanced.enablePngColorReduction') }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="advanced-setting-section">
               <h4>{{ $t('advanced.imageProcessing') }}</h4>
               <div class="setting-item">
                 <label class="setting-label">{{ $t('advanced.ssimThreshold') }}</label>
@@ -1218,6 +1236,7 @@ const {
   downsampleHeight: _downsampleHeight,
   selectedDownsamplingPreset,
   downsamplingPresets,
+  enablePngColorReduction,
   intranetMappings,
   expandedMappings,
   openAdvancedSettings,
@@ -1914,13 +1933,15 @@ defineExpose({
 }
 
 /* Post-processing phases list styles */
-.post-processing-phases-list {
+.post-processing-phases-list,
+.image-output-options {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.phase-toggle-item {
+.phase-toggle-item,
+.image-output-toggle-item {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1932,12 +1953,14 @@ defineExpose({
   transition: all 0.2s;
 }
 
-.phase-toggle-item:hover {
+.phase-toggle-item:hover,
+.image-output-toggle-item:hover {
   background-color: #f0f0f0;
   border-color: #ccc;
 }
 
-.phase-toggle-item input[type="checkbox"] {
+.phase-toggle-item input[type="checkbox"],
+.image-output-toggle-item input[type="checkbox"] {
   margin: 0;
   cursor: pointer;
   width: 14px;
@@ -1945,7 +1968,8 @@ defineExpose({
   accent-color: #007bff;
 }
 
-.phase-toggle-text {
+.phase-toggle-text,
+.image-output-toggle-text {
   font-size: 12px;
   color: #333;
 }

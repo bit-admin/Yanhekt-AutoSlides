@@ -54,6 +54,7 @@ interface SlideExtractionConfig {
   pHashExclusionList: PHashExclusionItem[];
   enableDuplicateRemoval: boolean;
   enableExclusionList: boolean;
+  enablePngColorReduction: boolean;
 }
 
 interface SlideImageProcessingParams {
@@ -65,6 +66,7 @@ interface SlideImageProcessingParams {
   enableDownsampling?: boolean;
   downsampleWidth?: number;
   downsampleHeight?: number;
+  enablePngColorReduction?: boolean;
 }
 
 interface AIFilteringConfig {

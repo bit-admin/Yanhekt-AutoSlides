@@ -60,6 +60,9 @@ export interface UseAdvancedSettingsReturn {
   selectedDownsamplingPreset: Ref<string>
   downsamplingPresets: DownsamplingPreset[]
 
+  // PNG color reduction
+  enablePngColorReduction: Ref<boolean>
+
   // Intranet mappings
   intranetMappings: Ref<{ [domain: string]: IntranetMapping }>
   expandedMappings: Ref<{ [domain: string]: boolean }>
@@ -139,6 +142,9 @@ export function useAdvancedSettings(
     { key: '800x450', label: '800x450', width: 800, height: 450 }
   ]
 
+  // PNG color reduction state
+  const enablePngColorReduction = ref(true)
+
   // Intranet mappings
   const intranetMappings = ref<{ [domain: string]: IntranetMapping }>({})
   const expandedMappings = ref<{ [domain: string]: boolean }>({})
@@ -168,6 +174,9 @@ export function useAdvancedSettings(
       enableDownsampling.value = slideConfig.enableDownsampling !== undefined ? slideConfig.enableDownsampling : true
       downsampleWidth.value = slideConfig.downsampleWidth || 480
       downsampleHeight.value = slideConfig.downsampleHeight || 270
+
+      // PNG color reduction
+      enablePngColorReduction.value = slideConfig.enablePngColorReduction !== undefined ? slideConfig.enablePngColorReduction : true
 
       const currentPreset = downsamplingPresets.find(preset =>
         preset.width === downsampleWidth.value && preset.height === downsampleHeight.value
@@ -229,7 +238,8 @@ export function useAdvancedSettings(
         pHashThreshold: tempPHashThreshold.value,
         enableDownsampling: enableDownsampling.value,
         downsampleWidth: downsampleWidth.value,
-        downsampleHeight: downsampleHeight.value
+        downsampleHeight: downsampleHeight.value,
+        enablePngColorReduction: enablePngColorReduction.value
       })
       ssimThreshold.value = imageProcessingResult.ssimThreshold
       pHashThreshold.value = imageProcessingResult.pHashThreshold || tempPHashThreshold.value
@@ -411,6 +421,9 @@ export function useAdvancedSettings(
     downsampleHeight,
     selectedDownsamplingPreset,
     downsamplingPresets,
+
+    // PNG color reduction
+    enablePngColorReduction,
 
     // Intranet mappings
     intranetMappings,

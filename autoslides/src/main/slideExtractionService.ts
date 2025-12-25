@@ -7,6 +7,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { shell } from 'electron';
+import sharp from 'sharp';
 
 /**
  * Trash entry metadata for in-app trash system
@@ -32,9 +33,38 @@ export interface TrashMetadata {
 
 export class SlideExtractionService {
   /**
-   * Save slide image to file system
+   * Reduce PNG colors to 128 using palette quantization
+   * @param imageBuffer Original PNG image buffer
+   * @returns Optimized PNG buffer with reduced colors
    */
-  async saveSlide(outputPath: string, filename: string, imageBuffer: Uint8Array): Promise<void> {
+  private async reducePngColors(imageBuffer: Uint8Array): Promise<Uint8Array> {
+    try {
+      const optimizedBuffer = await sharp(Buffer.from(imageBuffer))
+        .png({
+          palette: true,
+          colors: 128,
+          quality: 100,
+          effort: 7,
+          dither: 1.0
+        })
+        .toBuffer();
+
+      console.log(`PNG color reduction: ${imageBuffer.length} -> ${optimizedBuffer.length} bytes (${Math.round((1 - optimizedBuffer.length / imageBuffer.length) * 100)}% reduction)`);
+      return new Uint8Array(optimizedBuffer);
+    } catch (error) {
+      console.warn('PNG color reduction failed, using original:', error);
+      return imageBuffer;
+    }
+  }
+
+  /**
+   * Save slide image to file system
+   * @param outputPath Directory to save the slide
+   * @param filename Name of the slide file
+   * @param imageBuffer Raw PNG image buffer
+   * @param enableColorReduction Whether to reduce PNG colors to 128
+   */
+  async saveSlide(outputPath: string, filename: string, imageBuffer: Uint8Array, enableColorReduction: boolean = false): Promise<void> {
     try {
       // Expand tilde in path
       const expandedPath = outputPath.startsWith('~')
@@ -47,8 +77,13 @@ export class SlideExtractionService {
       // Full file path
       const filePath = path.join(expandedPath, filename);
 
+      // Apply color reduction if enabled
+      const finalBuffer = enableColorReduction
+        ? await this.reducePngColors(imageBuffer)
+        : imageBuffer;
+
       // Write image buffer to file
-      await fs.writeFile(filePath, imageBuffer);
+      await fs.writeFile(filePath, finalBuffer);
 
       console.log(`Slide saved successfully: ${filePath}`);
     } catch (error) {

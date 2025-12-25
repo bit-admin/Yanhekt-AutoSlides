@@ -350,6 +350,7 @@ ipcMain.handle('config:setSlideImageProcessingParams', async (event, params: {
   enableDownsampling?: boolean;
   downsampleWidth?: number;
   downsampleHeight?: number;
+  enablePngColorReduction?: boolean;
 }) => {
   configService.setSlideImageProcessingParams(params);
   return configService.getSlideExtractionConfig();
@@ -628,7 +629,10 @@ ipcMain.handle('download:isActive', async (event, downloadId: string) => {
 // IPC handlers for slide extraction
 ipcMain.handle('slideExtraction:saveSlide', async (event, outputPath: string, filename: string, imageBuffer: Uint8Array) => {
   try {
-    await slideExtractionService.saveSlide(outputPath, filename, imageBuffer);
+    // Get color reduction setting from config
+    const slideConfig = configService.getSlideExtractionConfig();
+    const enableColorReduction = slideConfig.enablePngColorReduction ?? true;
+    await slideExtractionService.saveSlide(outputPath, filename, imageBuffer, enableColorReduction);
     return { success: true };
   } catch (error) {
     console.error('Failed to save slide:', error);
