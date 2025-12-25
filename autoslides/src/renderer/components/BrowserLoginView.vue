@@ -45,6 +45,7 @@
       <webview
         ref="webviewRef"
         :src="loginUrl"
+        partition="persist:browserlogin"
         class="login-webview"
         @did-navigate="onNavigate"
         @did-navigate-in-page="onNavigateInPage"
@@ -68,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onUnmounted } from 'vue';
 
 const emit = defineEmits<{
   (e: 'close'): void;
@@ -230,13 +231,6 @@ const onDomReady = () => {
     startAutoTokenCheck();
   }
 };
-
-onMounted(() => {
-  // Set up webview partition for isolated storage
-  if (webviewRef.value) {
-    webviewRef.value.partition = 'persist:browserlogin';
-  }
-});
 
 onUnmounted(() => {
   stopAutoTokenCheck();
