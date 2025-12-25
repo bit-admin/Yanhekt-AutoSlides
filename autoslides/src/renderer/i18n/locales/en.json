@@ -16,7 +16,15 @@
     "hiThere": "Hi there, {nickname}",
     "signInAs": "Sign in as {userId}",
     "accessMessage": "You can now access all resources from Yanhekt.",
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "signInWithBrowser": "Sign in with Browser"
+  },
+  "browserLogin": {
+    "close": "Close",
+    "loginPage": "Login Page",
+    "refresh": "Refresh",
+    "getToken": "Get Token",
+    "clearData": "Clear Data"
   },
   "settings": {
     "settings": "Settings",

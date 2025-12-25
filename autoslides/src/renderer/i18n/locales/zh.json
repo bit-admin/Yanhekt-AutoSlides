@@ -16,7 +16,15 @@
     "hiThere": "你好，{nickname}",
     "signInAs": "登录身份：{userId}",
     "accessMessage": "您现可访问延河课堂的所有资源",
-    "signOut": "退出登录"
+    "signOut": "退出登录",
+    "signInWithBrowser": "浏览器登录"
+  },
+  "browserLogin": {
+    "close": "关闭",
+    "loginPage": "登录页",
+    "refresh": "刷新",
+    "getToken": "获取令牌",
+    "clearData": "清除数据"
   },
   "settings": {
     "settings": "设置",

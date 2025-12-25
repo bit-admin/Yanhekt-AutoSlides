@@ -16,7 +16,15 @@
     "hiThere": "안녕하세요, {nickname}님",
     "signInAs": "{userId}로 로그인",
     "accessMessage": "이제 Yanhekt의 모든 리소스에 액세스할 수 있습니다.",
-    "signOut": "로그아웃"
+    "signOut": "로그아웃",
+    "signInWithBrowser": "브라우저로 로그인"
+  },
+  "browserLogin": {
+    "close": "닫기",
+    "loginPage": "로그인 페이지",
+    "refresh": "새로고침",
+    "getToken": "토큰 가져오기",
+    "clearData": "데이터 삭제"
   },
   "settings": {
     "settings": "설정",

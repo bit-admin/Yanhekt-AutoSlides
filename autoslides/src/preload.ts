@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   auth: {
     login: (username: string, password: string) => ipcRenderer.invoke('auth:login', username, password),
     verifyToken: (token: string) => ipcRenderer.invoke('auth:verifyToken', token),
+    clearBrowserData: () => ipcRenderer.invoke('auth:clearBrowserData'),
   },
   config: {
     get: () => ipcRenderer.invoke('config:get'),

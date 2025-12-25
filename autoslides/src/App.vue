@@ -10,18 +10,29 @@
       </div>
       <div class="divider left-divider" @mousedown="startResize('left', $event)"></div>
 
-      <div class="main-content" :style="{ width: mainWidth + 'px' }">
-        <PlaybackPageDemo v-if="isDemoMode && showPlaybackDemo" ref="playbackPageDemoRef" @back="handleBackFromPlayback" />
-        <SessionPageDemo v-else-if="isDemoMode && showSessionDemo" ref="sessionPageDemoRef" @back-to-courses="handleBackToCourses" />
-        <MainContentDemo v-else-if="isDemoMode && showMainDemo" ref="mainContentDemoRef" @course-selected="handleCourseSelectedFromMain" />
-        <MainContent v-else @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
+      <!-- Browser Login View (replaces MainContent and RightPanel) -->
+      <div v-if="isBrowserLoginActive" class="browser-login-container" :style="{ width: (mainWidth + rightWidth + 5) + 'px' }">
+        <BrowserLoginView
+          @close="closeBrowserLogin"
+          @token-received="handleBrowserToken"
+        />
       </div>
-      <div class="divider right-divider" @mousedown="startResize('right', $event)"></div>
 
-      <div class="right-panel" :style="{ width: rightWidth + 'px' }">
-        <RightPanelDemo v-if="isDemoMode && showRightPanelDemo" ref="rightPanelDemoRef" />
-        <RightPanel v-else ref="rightPanelRef" />
-      </div>
+      <!-- Normal content when not in browser login mode -->
+      <template v-else>
+        <div class="main-content" :style="{ width: mainWidth + 'px' }">
+          <PlaybackPageDemo v-if="isDemoMode && showPlaybackDemo" ref="playbackPageDemoRef" @back="handleBackFromPlayback" />
+          <SessionPageDemo v-else-if="isDemoMode && showSessionDemo" ref="sessionPageDemoRef" @back-to-courses="handleBackToCourses" />
+          <MainContentDemo v-else-if="isDemoMode && showMainDemo" ref="mainContentDemoRef" @course-selected="handleCourseSelectedFromMain" />
+          <MainContent v-else @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
+        </div>
+        <div class="divider right-divider" @mousedown="startResize('right', $event)"></div>
+
+        <div class="right-panel" :style="{ width: rightWidth + 'px' }">
+          <RightPanelDemo v-if="isDemoMode && showRightPanelDemo" ref="rightPanelDemoRef" />
+          <RightPanel v-else ref="rightPanelRef" />
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -37,7 +48,11 @@ import SessionPageDemo from './renderer/components/demo/SessionPageDemo.vue'
 import PlaybackPageDemo from './renderer/components/demo/PlaybackPageDemo.vue'
 import RightPanel from './renderer/components/RightPanel.vue'
 import RightPanelDemo from './renderer/components/demo/RightPanelDemo.vue'
+import BrowserLoginView from './renderer/components/BrowserLoginView.vue'
 import { useTour } from './renderer/composables/useTour'
+import { useAuth } from './renderer/composables/useAuth'
+
+const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken } = useAuth()
 
 const leftWidth = ref(320)
 const rightWidth = ref(320)
@@ -314,6 +329,14 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+.browser-login-container {
+  flex: 1;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .divider {
   width: 5px;
   background-color: #e0e0e0;
@@ -353,6 +376,10 @@ onMounted(() => {
   .right-panel {
     background-color: #2d2d2d;
     border-left: 1px solid #404040;
+  }
+
+  .browser-login-container {
+    background-color: #1a1a1a;
   }
 
   .divider {

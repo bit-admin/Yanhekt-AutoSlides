@@ -2,6 +2,23 @@ import { ref, type Ref } from 'vue'
 import { AuthService, TokenManager } from '../services/authService'
 import { ApiClient } from '../services/apiClient'
 
+// Shared state (singleton pattern for cross-component access)
+const isBrowserLoginActive = ref(false)
+const isLoggedIn = ref(false)
+const userNickname = ref('User')
+const userId = ref('user123')
+const isVerifyingToken = ref(false)
+const isNicknameMasked = ref(false)
+const isUserIdMasked = ref(false)
+
+// Shared services (singleton)
+const tokenManager = new TokenManager()
+const authService = new AuthService(tokenManager)
+const apiClient = new ApiClient()
+
+// Shared masking timer
+let maskingTimer: ReturnType<typeof setTimeout> | null = null
+
 export interface UseAuthReturn {
   // State
   isLoggedIn: Ref<boolean>
@@ -20,6 +37,9 @@ export interface UseAuthReturn {
   isVerifyingManualToken: Ref<boolean>
   tokenVerificationStatus: Ref<{ type: 'success' | 'error'; message: string } | null>
 
+  // Browser login state (shared across all instances)
+  isBrowserLoginActive: Ref<boolean>
+
   // Methods
   login: () => Promise<void>
   logout: () => void
@@ -35,35 +55,26 @@ export interface UseAuthReturn {
   verifyManualToken: () => Promise<void>
   loadManualToken: () => void
 
+  // Browser login methods
+  openBrowserLogin: () => void
+  closeBrowserLogin: () => void
+  handleBrowserToken: (token: string) => Promise<void>
+
   // Token manager instance for other composables
   tokenManager: TokenManager
 }
 
 export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
-  // State
-  const isLoggedIn = ref(false)
+  // Local state (per-instance)
   const username = ref('')
   const password = ref('')
-  const userNickname = ref('User')
-  const userId = ref('user123')
   const isLoading = ref(false)
-  const isVerifyingToken = ref(false)
 
-  // Masking state
-  const isNicknameMasked = ref(false)
-  const isUserIdMasked = ref(false)
-  let maskingTimer: NodeJS.Timeout | null = null
-
-  // Manual token auth state
+  // Manual token auth state (per-instance)
   const manualToken = ref('')
   const showToken = ref(false)
   const isVerifyingManualToken = ref(false)
   const tokenVerificationStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
-
-  // Services
-  const tokenManager = new TokenManager()
-  const authService = new AuthService(tokenManager)
-  const apiClient = new ApiClient()
 
   // Masking functions
   const startMaskingTimer = () => {
@@ -240,17 +251,58 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     }
   }
 
+  // Browser login methods
+  const openBrowserLogin = () => {
+    isBrowserLoginActive.value = true
+  }
+
+  const closeBrowserLogin = () => {
+    isBrowserLoginActive.value = false
+  }
+
+  const handleBrowserToken = async (token: string) => {
+    if (!token) return
+
+    isVerifyingToken.value = true
+    try {
+      const result = await apiClient.verifyToken(token)
+
+      if (result.valid && result.userData) {
+        tokenManager.saveToken(token)
+        isLoggedIn.value = true
+        userNickname.value = result.userData.nickname || 'User'
+        userId.value = result.userData.badge || 'unknown'
+        startMaskingTimer()
+        console.log('Browser login successful')
+        onLoginSuccess?.()
+        // Close browser login view after successful login
+        closeBrowserLogin()
+      } else {
+        console.error('Browser token verification failed')
+        alert('Token verification failed. Please try again.')
+      }
+    } catch (error) {
+      console.error('Browser token verification error:', error)
+      alert('Token verification failed: Network error or server exception')
+    } finally {
+      isVerifyingToken.value = false
+    }
+  }
+
   return {
-    // State
+    // Shared state
     isLoggedIn,
-    username,
-    password,
     userNickname,
     userId,
-    isLoading,
     isVerifyingToken,
     isNicknameMasked,
     isUserIdMasked,
+    isBrowserLoginActive,
+
+    // Local state
+    username,
+    password,
+    isLoading,
 
     // Manual token state
     manualToken,
@@ -272,6 +324,11 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     onTokenInput,
     verifyManualToken,
     loadManualToken,
+
+    // Browser login methods
+    openBrowserLogin,
+    closeBrowserLogin,
+    handleBrowserToken,
 
     // Token manager
     tokenManager

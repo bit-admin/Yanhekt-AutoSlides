@@ -23,9 +23,14 @@
             class="input-field"
           />
         </div>
-        <button @click="login" :disabled="isLoading" class="login-btn">
-          {{ isLoading ? $t('auth.signingIn') : $t('auth.signIn') }}
-        </button>
+        <div class="login-buttons">
+          <button @click="login" :disabled="isLoading" class="login-btn">
+            {{ isLoading ? $t('auth.signingIn') : $t('auth.signIn') }}
+          </button>
+          <button @click="openBrowserLogin" class="browser-login-btn">
+            {{ $t('auth.signInWithBrowser') }}
+          </button>
+        </div>
       </div>
       <div v-else class="user-info">
         <h3>{{ $t('auth.hiThere', { nickname: isNicknameMasked ? 'ʕ•ᴥ•ʔ' : userNickname }) }}</h3>
@@ -1182,7 +1187,8 @@ const {
   toggleUserIdMask,
   toggleTokenVisibility,
   onTokenInput,
-  verifyManualToken
+  verifyManualToken,
+  openBrowserLogin
 } = auth
 
 // Settings
@@ -1484,16 +1490,6 @@ defineExpose({
   font-size: 14px;
 }
 
-.login-btn {
-  width: 100%;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
 .logout-btn {
   border-radius: 4px;
   font-size: 12px;
@@ -1513,6 +1509,41 @@ defineExpose({
 .login-btn:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+.login-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  width: 100%;
+}
+
+.login-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.browser-login-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #007acc;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: transparent;
+  color: #007acc;
+  white-space: nowrap;
+}
+
+.browser-login-btn:hover {
+  background-color: #007acc;
+  color: white;
 }
 
 .logout-btn {
@@ -2656,6 +2687,16 @@ defineExpose({
 
   .login-btn:disabled {
     background-color: #555;
+  }
+
+  .browser-login-btn {
+    border-color: #4a9eff;
+    color: #4a9eff;
+  }
+
+  .browser-login-btn:hover {
+    background-color: #4a9eff;
+    color: white;
   }
 
   .logout-btn {

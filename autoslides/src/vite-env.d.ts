@@ -333,6 +333,7 @@ interface ElectronAPI {
   auth: {
     login: (username: string, password: string) => Promise<AuthResponse>;
     verifyToken: (token: string) => Promise<TokenVerificationResponse>;
+    clearBrowserData: () => Promise<{ success: boolean; error?: string }>;
   };
 
   config: {

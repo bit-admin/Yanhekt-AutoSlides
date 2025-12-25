@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeTheme } from 'electron';
+import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeTheme, session } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import { MainAuthService } from './main/authService';
@@ -123,6 +123,7 @@ const createWindow = () => {
       nodeIntegration: false,
       contextIsolation: true,
       backgroundThrottling: false, // Disable background throttling to prevent Chrome from limiting JS execution
+      webviewTag: true, // Enable webview tag for browser login
     },
   });
 
@@ -205,6 +206,34 @@ ipcMain.handle('auth:login', async (event, username: string, password: string) =
 
 ipcMain.handle('auth:verifyToken', async (event, token: string) => {
   return await apiClient.verifyToken(token);
+});
+
+ipcMain.handle('auth:clearBrowserData', async () => {
+  try {
+    // Clear browser login session data
+    const ses = session.fromPartition('persist:browserlogin');
+
+    // Clear cookies for specific domains
+    const cookies = await ses.cookies.get({});
+    for (const cookie of cookies) {
+      const domain = cookie.domain?.startsWith('.') ? cookie.domain.slice(1) : cookie.domain;
+      if (domain?.includes('yanhekt.cn') || domain?.includes('bit.edu.cn')) {
+        const url = `http${cookie.secure ? 's' : ''}://${domain}${cookie.path || '/'}`;
+        await ses.cookies.remove(url, cookie.name);
+      }
+    }
+
+    // Clear storage data
+    await ses.clearStorageData({
+      storages: ['localstorage', 'cookies', 'cachestorage'],
+      quotas: ['temporary']
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to clear browser data:', error);
+    return { success: false, error: String(error) };
+  }
 });
 
 // IPC handlers for config
