@@ -5,12 +5,8 @@
 
 import { app } from 'electron';
 import fs from 'fs';
+import PDFDocument from 'pdfkit';
 import { sharpService } from './sharpService';
-
-// Use require for pdfkit since it's externalized (not bundled by Vite)
-// This allows pdfkit to access its font files at runtime
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const PDFDocument = require('pdfkit');
 
 export interface PdfMakeOptions {
   reduceEnabled: boolean;
@@ -111,11 +107,13 @@ export class PdfService {
       const pageSize = this.getPageSize(options);
 
       // Create PDF document with app metadata
+      // font: null prevents loading default Helvetica font (we only use images, no text)
       const appName = app.getName();
       const appVersion = app.getVersion();
       const doc = new PDFDocument({
         autoFirstPage: false,
         bufferPages: false,
+        font: null,
         info: {
           Title: 'Slides',
           Author: appName,
