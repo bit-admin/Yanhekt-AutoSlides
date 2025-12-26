@@ -754,6 +754,24 @@
     "reasonDetails": "详情",
     "trashedAt": "删除时间"
   },
+  "pdfmaker": {
+    "title": "PDF 制作器",
+    "openPdfMaker": "PDF 制作器",
+    "back": "返回",
+    "refresh": "刷新",
+    "delete": "删除",
+    "selected": "已选",
+    "total": "总计",
+    "noFolders": "未找到幻灯片文件夹",
+    "noImages": "此文件夹中没有幻灯片图片",
+    "loading": "加载中...",
+    "sortAZ": "按字母排序",
+    "customOrder": "自定义排序",
+    "customOrderHint": "自定义排序：拖动调整顺序",
+    "confirmDeleteTitle": "删除图片",
+    "confirmDelete": "将 {count} 张图片移至回收站？",
+    "cancel": "取消"
+  },
   "window": {
     "minimize": "最小化",
     "maximize": "最大化",

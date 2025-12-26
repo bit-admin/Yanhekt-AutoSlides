@@ -65,7 +65,10 @@
       </div>
       <div class="settings-content">
         <div class="setting-item">
-          <label class="setting-label">{{ $t('settings.outputDirectory') }}</label>
+          <div class="setting-label-row">
+            <label class="setting-label">{{ $t('settings.outputDirectory') }}</label>
+            <button class="open-folder-link" @click="openOutputDirectory">{{ $t('settings.openFolder') }}</button>
+          </div>
           <div class="directory-input-group">
             <input
               v-model="outputDirectory"
@@ -217,11 +220,11 @@
           </svg>
           {{ $t('trash.openTrash') }}
         </button>
-        <button class="action-btn folder-btn" @click="openOutputDirectory">
+        <button class="action-btn pdfmaker-btn" @click="openPdfMakerWindow">
           <svg width="14" height="14" viewBox="0 0 16 16">
-            <path d="M1 2v12h14V4H7.5L6 2H1zm1 2h3.5l1.5 2H14v8H2V4z" fill="currentColor"/>
+            <path d="M2 0v16h12V4l-4-4H2zm8 1.5L13.5 5H10V1.5zM3 1h6v5h5v9H3V1z" fill="currentColor"/>
           </svg>
-          {{ $t('settings.openFolder') }}
+          {{ $t('pdfmaker.openPdfMaker') }}
         </button>
       </div>
 
@@ -1329,6 +1332,15 @@ const openTrashWindow = async () => {
   }
 }
 
+// PDF Maker Window
+const openPdfMakerWindow = async () => {
+  try {
+    await window.electronAPI.pdfmaker.openWindow()
+  } catch (error) {
+    console.error('Failed to open PDF Maker window:', error)
+  }
+}
+
 // Open Output Directory
 const openOutputDirectory = async () => {
   try {
@@ -1624,6 +1636,28 @@ defineExpose({
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
+}
+
+.setting-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.open-folder-link {
+  background: none;
+  border: none;
+  color: #007acc;
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 6px;
+}
+
+.open-folder-link:hover {
+  color: #005a9e;
 }
 
 .reset-btn {
@@ -2738,6 +2772,14 @@ defineExpose({
   .reset-btn:hover {
     background-color: #3d3d3d;
     color: #e0e0e0;
+  }
+
+  .open-folder-link {
+    color: #4fc3f7;
+  }
+
+  .open-folder-link:hover {
+    color: #81d4fa;
   }
 
   .setting-description {

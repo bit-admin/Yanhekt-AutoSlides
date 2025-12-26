@@ -194,6 +194,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     clear: () => ipcRenderer.invoke('trash:clear'),
     getImageAsBase64: (trashPath: string) => ipcRenderer.invoke('trash:getImageAsBase64', trashPath),
   },
+  pdfmaker: {
+    openWindow: () => ipcRenderer.invoke('pdfmaker:openWindow'),
+    getFolders: () => ipcRenderer.invoke('pdfmaker:getFolders'),
+    getImages: (folderPath: string) => ipcRenderer.invoke('pdfmaker:getImages', folderPath),
+    getImageAsBase64: (imagePath: string) => ipcRenderer.invoke('pdfmaker:getImageAsBase64', imagePath),
+    deleteImage: (imagePath: string) => ipcRenderer.invoke('pdfmaker:deleteImage', imagePath),
+  },
   update: {
     checkForUpdates: () => ipcRenderer.invoke('update:checkForUpdates'),
     onCheckForUpdates: (callback: () => void) =>

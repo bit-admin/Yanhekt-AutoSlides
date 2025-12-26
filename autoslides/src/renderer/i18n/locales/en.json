@@ -754,6 +754,24 @@
     "reasonDetails": "Details",
     "trashedAt": "Trashed At"
   },
+  "pdfmaker": {
+    "title": "PDF Maker",
+    "openPdfMaker": "PDF Maker",
+    "back": "Back",
+    "refresh": "Refresh",
+    "delete": "Delete",
+    "selected": "Selected",
+    "total": "Total",
+    "noFolders": "No slide folders found",
+    "noImages": "No slide images in this folder",
+    "loading": "Loading...",
+    "sortAZ": "Sort A-Z",
+    "customOrder": "Custom Order",
+    "customOrderHint": "Custom Order: Drag to Reorder",
+    "confirmDeleteTitle": "Delete Images",
+    "confirmDelete": "Move {count} image(s) to trash?",
+    "cancel": "Cancel"
+  },
   "window": {
     "minimize": "Minimize",
     "maximize": "Maximize",

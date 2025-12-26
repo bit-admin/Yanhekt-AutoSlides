@@ -532,6 +532,14 @@ interface ElectronAPI {
     clear: () => Promise<{ cleared: number; failed: number }>;
     getImageAsBase64: (trashPath: string) => Promise<string>;
   };
+
+  pdfmaker: {
+    openWindow: () => Promise<{ success: boolean }>;
+    getFolders: () => Promise<{ name: string; path: string }[]>;
+    getImages: (folderPath: string) => Promise<{ name: string; path: string }[]>;
+    getImageAsBase64: (imagePath: string) => Promise<string>;
+    deleteImage: (imagePath: string) => Promise<{ success: boolean }>;
+  };
 }
 
 declare global {

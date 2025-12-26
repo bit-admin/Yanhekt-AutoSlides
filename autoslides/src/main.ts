@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, Menu, shell, nativeTheme, session } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
+import os from 'node:os';
 import { MainAuthService } from './main/authService';
 import { MainApiClient } from './main/apiClient';
 import { ConfigService } from './main/configService';
@@ -1125,6 +1126,134 @@ ipcMain.handle('trash:getImageAsBase64', async (_event, trashPath: string) => {
     return base64;
   } catch (error) {
     console.error('Failed to get trash image:', error);
+    throw error;
+  }
+});
+
+// ============================================================================
+// PDF Maker Window Management
+// ============================================================================
+
+// Declare Vite dev server variables for pdfmaker window
+declare const PDFMAKER_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
+declare const PDFMAKER_WINDOW_VITE_NAME: string;
+
+let pdfmakerWindow: BrowserWindow | null = null;
+
+const createPdfMakerWindow = () => {
+  // If window already exists, focus it
+  if (pdfmakerWindow && !pdfmakerWindow.isDestroyed()) {
+    pdfmakerWindow.focus();
+    return;
+  }
+
+  pdfmakerWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
+    title: 'PDF Maker',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+    frame: false,
+    backgroundColor: getWindowBackgroundColor(),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+  });
+
+  // Load the pdfmaker window HTML
+  if (PDFMAKER_WINDOW_VITE_DEV_SERVER_URL) {
+    pdfmakerWindow.loadURL(`${PDFMAKER_WINDOW_VITE_DEV_SERVER_URL}/pdfmaker.html`);
+  } else {
+    pdfmakerWindow.loadFile(
+      path.join(__dirname, `../renderer/${PDFMAKER_WINDOW_VITE_NAME}/pdfmaker.html`),
+    );
+  }
+
+  // Clean up reference when window is closed
+  pdfmakerWindow.on('closed', () => {
+    pdfmakerWindow = null;
+  });
+};
+
+// IPC handler to open pdfmaker window
+ipcMain.handle('pdfmaker:openWindow', async () => {
+  createPdfMakerWindow();
+  return { success: true };
+});
+
+// ============================================================================
+// PDF Maker IPC Handlers
+// ============================================================================
+
+// Get all slide folders in output directory
+ipcMain.handle('pdfmaker:getFolders', async () => {
+  try {
+    const outputDir = configService.getConfig().outputDirectory;
+    const expandedPath = outputDir.startsWith('~')
+      ? path.join(os.homedir(), outputDir.slice(1))
+      : outputDir;
+
+    const entries = await fs.promises.readdir(expandedPath, { withFileTypes: true });
+    const folders = entries
+      .filter(entry => entry.isDirectory() && entry.name.startsWith('slides_'))
+      .map(entry => ({
+        name: entry.name,
+        path: path.join(expandedPath, entry.name)
+      }));
+
+    return folders;
+  } catch (error) {
+    console.error('Failed to get folders:', error);
+    throw error;
+  }
+});
+
+// Get images in a specific folder
+ipcMain.handle('pdfmaker:getImages', async (_event, folderPath: string) => {
+  try {
+    const entries = await fs.promises.readdir(folderPath, { withFileTypes: true });
+    const images = entries
+      .filter(entry => entry.isFile() && entry.name.startsWith('Slide_') && entry.name.endsWith('.png'))
+      .map(entry => ({
+        name: entry.name,
+        path: path.join(folderPath, entry.name)
+      }));
+
+    return images;
+  } catch (error) {
+    console.error('Failed to get images:', error);
+    throw error;
+  }
+});
+
+// Get image as base64
+ipcMain.handle('pdfmaker:getImageAsBase64', async (_event, imagePath: string) => {
+  try {
+    const buffer = await fs.promises.readFile(imagePath);
+    return buffer.toString('base64');
+  } catch (error) {
+    console.error('Failed to read image:', error);
+    throw error;
+  }
+});
+
+// Delete image (move to in-app trash)
+ipcMain.handle('pdfmaker:deleteImage', async (_event, imagePath: string) => {
+  try {
+    const filename = path.basename(imagePath);
+    const outputPath = path.dirname(imagePath);
+
+    await slideExtractionService.moveToInAppTrash(outputPath, filename, {
+      reason: 'manual',
+      reasonDetails: 'User deleted via PDF Maker'
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to delete image:', error);
     throw error;
   }
 });

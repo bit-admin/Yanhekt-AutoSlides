@@ -61,6 +61,10 @@ const config: ForgeConfig = {
           name: 'trash_window',
           config: 'vite.trash.config.ts',
         },
+        {
+          name: 'pdfmaker_window',
+          config: 'vite.pdfmaker.config.ts',
+        },
       ],
     }),
     // Auto-unpack native modules from asar

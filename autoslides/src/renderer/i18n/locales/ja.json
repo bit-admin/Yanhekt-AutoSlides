@@ -754,6 +754,24 @@
     "reasonDetails": "詳細",
     "trashedAt": "削除日時"
   },
+  "pdfmaker": {
+    "title": "PDFメーカー",
+    "openPdfMaker": "PDFメーカー",
+    "back": "戻る",
+    "refresh": "更新",
+    "delete": "削除",
+    "selected": "選択中",
+    "total": "合計",
+    "noFolders": "スライドフォルダが見つかりません",
+    "noImages": "このフォルダにスライド画像がありません",
+    "loading": "読み込み中...",
+    "sortAZ": "A-Z順",
+    "customOrder": "カスタム順序",
+    "customOrderHint": "カスタム順序：ドラッグして並べ替え",
+    "confirmDeleteTitle": "画像を削除",
+    "confirmDelete": "{count}枚の画像をゴミ箱に移動しますか？",
+    "cancel": "キャンセル"
+  },
   "window": {
     "minimize": "最小化",
     "maximize": "最大化",
