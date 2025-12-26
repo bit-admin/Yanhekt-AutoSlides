@@ -770,7 +770,17 @@
     "customOrderHint": "カスタム順序：ドラッグして並べ替え",
     "confirmDeleteTitle": "画像を削除",
     "confirmDelete": "{count}枚の画像をゴミ箱に移動しますか？",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "reduceSize": "サイズ縮小",
+    "effortStandard": "標準",
+    "effortCompact": "コンパクト",
+    "effortMinimal": "最小",
+    "effortCustom": "カスタム",
+    "colorsOriginal": "オリジナル",
+    "makePdf": "PDF作成",
+    "pdfSavedTitle": "PDF作成完了",
+    "pdfSaved": "PDFを保存しました：{path}",
+    "errorTitle": "エラー"
   },
   "window": {
     "minimize": "最小化",

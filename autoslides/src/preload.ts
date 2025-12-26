@@ -200,6 +200,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getImages: (folderPath: string) => ipcRenderer.invoke('pdfmaker:getImages', folderPath),
     getImageAsBase64: (imagePath: string) => ipcRenderer.invoke('pdfmaker:getImageAsBase64', imagePath),
     deleteImage: (imagePath: string) => ipcRenderer.invoke('pdfmaker:deleteImage', imagePath),
+    makePdf: (folders: { name: string; path: string; images: string[] }[], options: {
+      reduceEnabled: boolean;
+      effort: 'standard' | 'compact' | 'minimal' | 'custom';
+      customColors?: number | null;
+      customWidth?: number | null;
+      customHeight?: number | null;
+    }) => ipcRenderer.invoke('pdfmaker:makePdf', folders, options),
+    onProgress: (callback: (progress: { current: number; total: number }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, progress: { current: number; total: number }) => callback(progress);
+      ipcRenderer.on('pdfmaker:progress', handler);
+      return () => ipcRenderer.removeListener('pdfmaker:progress', handler);
+    },
   },
   update: {
     checkForUpdates: () => ipcRenderer.invoke('update:checkForUpdates'),

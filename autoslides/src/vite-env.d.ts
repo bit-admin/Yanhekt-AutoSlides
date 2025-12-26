@@ -539,6 +539,17 @@ interface ElectronAPI {
     getImages: (folderPath: string) => Promise<{ name: string; path: string }[]>;
     getImageAsBase64: (imagePath: string) => Promise<string>;
     deleteImage: (imagePath: string) => Promise<{ success: boolean }>;
+    makePdf: (
+      folders: { name: string; path: string; images: string[] }[],
+      options: {
+        reduceEnabled: boolean;
+        effort: 'standard' | 'compact' | 'minimal' | 'custom';
+        customColors?: number | null;
+        customWidth?: number | null;
+        customHeight?: number | null;
+      }
+    ) => Promise<{ success: boolean; path?: string; error?: string }>;
+    onProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;
   };
 }
 

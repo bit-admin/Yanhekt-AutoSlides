@@ -770,7 +770,17 @@
     "customOrderHint": "사용자 정렬: 드래그하여 순서 변경",
     "confirmDeleteTitle": "이미지 삭제",
     "confirmDelete": "{count}개의 이미지를 휴지통으로 이동하시겠습니까?",
-    "cancel": "취소"
+    "cancel": "취소",
+    "reduceSize": "크기 축소",
+    "effortStandard": "표준",
+    "effortCompact": "컴팩트",
+    "effortMinimal": "최소",
+    "effortCustom": "사용자 정의",
+    "colorsOriginal": "원본",
+    "makePdf": "PDF 생성",
+    "pdfSavedTitle": "PDF 생성 완료",
+    "pdfSaved": "PDF가 저장되었습니다: {path}",
+    "errorTitle": "오류"
   },
   "window": {
     "minimize": "최소화",

@@ -1,9 +1,9 @@
 /**
  * PDF Maker Composable
- * Handles folder/image browsing with Chinese natural sorting
+ * Handles folder/image browsing with Chinese natural sorting and PDF generation
  */
 
-import { ref, computed } from 'vue'
+import { ref, computed, onUnmounted } from 'vue'
 
 export interface Folder {
   name: string
@@ -13,6 +13,20 @@ export interface Folder {
 export interface ImageFile {
   name: string
   path: string
+}
+
+export interface FolderEntry {
+  name: string
+  path: string
+  images: string[]
+}
+
+export interface PdfMakeOptions {
+  reduceEnabled: boolean
+  effort: 'standard' | 'compact' | 'minimal' | 'custom'
+  customColors?: number | null
+  customWidth?: number | null
+  customHeight?: number | null
 }
 
 // Chinese weekday mapping for sorting (Monday = 1, Sunday = 7)
@@ -91,6 +105,17 @@ export function usePdfMaker() {
   const thumbnails = ref<Record<string, string>>({})
   const thumbnailSize = ref(200)
   const isLoading = ref(false)
+
+  // PDF generation state
+  const reduceEnabled = ref(true)
+  const reduceEffort = ref<'standard' | 'compact' | 'minimal' | 'custom'>('standard')
+  const customColors = ref<number | null>(128)
+  const customSize = ref<string>('1280x720')
+  const isGenerating = ref(false)
+  const generateProgress = ref({ current: 0, total: 0 })
+
+  // Progress listener cleanup
+  let progressCleanup: (() => void) | null = null
 
   // Sorted folders based on mode
   const sortedFolders = computed(() => {
@@ -279,6 +304,99 @@ export function usePdfMaker() {
     useCustomOrder.value = true
   }
 
+  // Parse size string to width/height
+  function parseSize(size: string): { width: number; height: number } {
+    if (size === 'original') return { width: 1920, height: 1080 }
+    const [w, h] = size.split('x').map(Number)
+    return { width: w, height: h }
+  }
+
+  // Build FolderEntry array from selection in current sort order
+  async function getSelectedFolderEntries(): Promise<FolderEntry[]> {
+    const entries: FolderEntry[] = []
+
+    // Get selected folders in their current sorted order
+    const selectedFolders = sortedFolders.value.filter(f => selectedItems.value.includes(f.name))
+
+    for (const folder of selectedFolders) {
+      // Get images for this folder
+      const folderImages = await window.electronAPI.pdfmaker.getImages(folder.path)
+      // Sort images a-z
+      const sortedImagePaths = folderImages
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(img => img.path)
+
+      entries.push({
+        name: folder.name.startsWith('slides_') ? folder.name.slice(7) : folder.name,
+        path: folder.path,
+        images: sortedImagePaths,
+      })
+    }
+
+    return entries
+  }
+
+  // Build PDF options from current state
+  function buildPdfOptions(): PdfMakeOptions {
+    const options: PdfMakeOptions = {
+      reduceEnabled: reduceEnabled.value,
+      effort: reduceEffort.value,
+    }
+
+    if (reduceEffort.value === 'custom') {
+      options.customColors = customColors.value
+      const size = parseSize(customSize.value)
+      options.customWidth = size.width
+      options.customHeight = size.height
+    }
+
+    return options
+  }
+
+  // Make PDF from selected folders
+  async function makePdf(): Promise<{ success: boolean; path?: string; error?: string }> {
+    if (selectedItems.value.length === 0 || currentView.value !== 'folders') {
+      return { success: false, error: 'No folders selected' }
+    }
+
+    isGenerating.value = true
+    generateProgress.value = { current: 0, total: 0 }
+
+    // Set up progress listener
+    progressCleanup = window.electronAPI.pdfmaker.onProgress((progress) => {
+      generateProgress.value = progress
+    })
+
+    try {
+      const folders = await getSelectedFolderEntries()
+      const options = buildPdfOptions()
+
+      const result = await window.electronAPI.pdfmaker.makePdf(folders, options)
+      return result
+    } catch (error) {
+      console.error('Failed to make PDF:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    } finally {
+      isGenerating.value = false
+      generateProgress.value = { current: 0, total: 0 }
+      if (progressCleanup) {
+        progressCleanup()
+        progressCleanup = null
+      }
+    }
+  }
+
+  // Cleanup on unmount
+  onUnmounted(() => {
+    if (progressCleanup) {
+      progressCleanup()
+      progressCleanup = null
+    }
+  })
+
   return {
     // State
     folders,
@@ -294,6 +412,14 @@ export function usePdfMaker() {
     isLoading,
     useCustomOrder,
 
+    // PDF generation state
+    reduceEnabled,
+    reduceEffort,
+    customColors,
+    customSize,
+    isGenerating,
+    generateProgress,
+
     // Methods
     loadFolders,
     openFolder,
@@ -306,5 +432,6 @@ export function usePdfMaker() {
     handleFolderReorder,
     resetSortOrder,
     enableCustomOrder,
+    makePdf,
   }
 }

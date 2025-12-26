@@ -14,6 +14,7 @@ import { PowerManagementService } from './main/powerManagementService';
 import { cacheManagementService } from './main/cacheManagementService';
 import { AIPromptsService } from './main/aiPromptsService';
 import { AIFilteringService } from './main/aiFilteringService';
+import { pdfService, PdfMakeOptions, FolderEntry } from './main/pdfService';
 import type { AIServiceType } from './main/configService';
 
 // Import translation files for main process
@@ -1255,6 +1256,47 @@ ipcMain.handle('pdfmaker:deleteImage', async (_event, imagePath: string) => {
   } catch (error) {
     console.error('Failed to delete image:', error);
     throw error;
+  }
+});
+
+// Make PDF from selected folders
+ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], options: PdfMakeOptions) => {
+  try {
+    // Show save dialog
+    const parentWindow = pdfmakerWindow || BrowserWindow.getFocusedWindow();
+    const result = await dialog.showSaveDialog(parentWindow!, {
+      title: 'Save PDF',
+      defaultPath: path.join(
+        configService.getConfig().outputDirectory,
+        `slides_${new Date().toISOString().slice(0, 10)}.pdf`
+      ),
+      filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+    });
+
+    if (result.canceled || !result.filePath) {
+      return { success: false, error: 'Cancelled' };
+    }
+
+    const outputPath = result.filePath;
+
+    // Generate PDF with progress callback
+    const pdfResult = await pdfService.makePdf(
+      folders,
+      options,
+      outputPath,
+      (current, total) => {
+        // Send progress to pdfmaker window
+        pdfmakerWindow?.webContents.send('pdfmaker:progress', { current, total });
+      }
+    );
+
+    return pdfResult;
+  } catch (error) {
+    console.error('Failed to make PDF:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 });
 

@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
       }
     } : undefined,
     rollupOptions: {
-      external: ['electron', 'fs', 'path', 'os', 'crypto', 'stream', 'util', 'events', 'ffmpeg-static', 'sharp']
+      external: ['electron', 'fs', 'path', 'os', 'crypto', 'stream', 'util', 'events', 'ffmpeg-static', 'sharp', 'pdfkit']
     }
   }
 }));

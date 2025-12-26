@@ -58,10 +58,56 @@
       </div>
 
       <div class="toolbar-right">
-        <!-- Action Buttons Placeholder (folders view) -->
-        <div v-if="currentView === 'folders'" class="action-placeholder">
-          <!-- Future: Make PDF, etc. -->
-        </div>
+        <!-- PDF Config and Make Button (folders view) -->
+        <template v-if="currentView === 'folders'">
+          <!-- Reduce Size Toggle -->
+          <label class="reduce-toggle">
+            <input type="checkbox" v-model="reduceEnabled" />
+            <span>{{ $t('pdfmaker.reduceSize') }}</span>
+          </label>
+
+          <!-- Effort Selection -->
+          <select v-if="reduceEnabled" v-model="reduceEffort" class="effort-select">
+            <option value="standard">{{ $t('pdfmaker.effortStandard') }}</option>
+            <option value="compact">{{ $t('pdfmaker.effortCompact') }}</option>
+            <option value="minimal">{{ $t('pdfmaker.effortMinimal') }}</option>
+            <option value="custom">{{ $t('pdfmaker.effortCustom') }}</option>
+          </select>
+
+          <!-- Custom Options -->
+          <template v-if="reduceEnabled && reduceEffort === 'custom'">
+            <select v-model="customColors" class="custom-select">
+              <option :value="null">{{ $t('pdfmaker.colorsOriginal') }}</option>
+              <option :value="256">256</option>
+              <option :value="128">128</option>
+              <option :value="64">64</option>
+              <option :value="32">32</option>
+              <option :value="16">16</option>
+            </select>
+            <select v-model="customSize" class="custom-select">
+              <option value="original">1920×1080</option>
+              <option value="1600x900">1600×900</option>
+              <option value="1280x720">1280×720</option>
+              <option value="960x540">960×540</option>
+              <option value="854x480">854×480</option>
+            </select>
+          </template>
+
+          <!-- Make PDF Button -->
+          <button
+            class="make-pdf-btn"
+            @click="handleMakePdf"
+            :disabled="selectedItems.length === 0 || isGenerating"
+          >
+            <svg v-if="!isGenerating" width="16" height="16" viewBox="0 0 16 16">
+              <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1H4V8zm0 2h8v1H4v-1zm0 2h5v1H4v-1z" fill="currentColor"/>
+            </svg>
+            <span v-if="isGenerating" class="progress-text">
+              {{ generateProgress.current }}/{{ generateProgress.total }}
+            </span>
+            <span v-else>{{ $t('pdfmaker.makePdf') }}</span>
+          </button>
+        </template>
 
         <!-- Delete Button (images view only) -->
         <button
@@ -243,6 +289,12 @@ const {
   thumbnailSize,
   isLoading,
   useCustomOrder,
+  reduceEnabled,
+  reduceEffort,
+  customColors,
+  customSize,
+  isGenerating,
+  generateProgress,
   loadFolders,
   openFolder,
   goBack,
@@ -252,6 +304,7 @@ const {
   handleFolderReorder,
   resetSortOrder,
   enableCustomOrder,
+  makePdf,
 } = usePdfMaker()
 
 // Drag and drop state
@@ -329,6 +382,29 @@ const confirmDelete = async () => {
 
   if (confirmed?.response === 1) {
     await deleteSelected()
+  }
+}
+
+// Handle Make PDF button click
+const handleMakePdf = async () => {
+  if (selectedItems.value.length === 0 || currentView.value !== 'folders') return
+
+  const result = await makePdf()
+
+  if (result.success && result.path) {
+    await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'info',
+      buttons: ['OK'],
+      title: t('pdfmaker.pdfSavedTitle'),
+      message: t('pdfmaker.pdfSaved', { path: result.path })
+    })
+  } else if (result.error && result.error !== 'Cancelled') {
+    await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'error',
+      buttons: ['OK'],
+      title: t('pdfmaker.errorTitle'),
+      message: result.error
+    })
   }
 }
 
@@ -505,6 +581,63 @@ onMounted(() => {
 .delete-btn:disabled {
   background-color: #ccc;
   cursor: not-allowed;
+}
+
+/* PDF Config Controls */
+.reduce-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.reduce-toggle input {
+  cursor: pointer;
+}
+
+.effort-select, .custom-select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.effort-select:focus, .custom-select:focus {
+  outline: none;
+  border-color: #007acc;
+}
+
+.make-pdf-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  background-color: #007acc;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.make-pdf-btn:hover:not(:disabled) {
+  background-color: #005a9e;
+}
+
+.make-pdf-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.progress-text {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Content Area */
@@ -859,6 +992,21 @@ onMounted(() => {
 
   .size-icon {
     color: #888;
+  }
+
+  /* PDF Config Controls Dark Mode */
+  .reduce-toggle {
+    color: #e0e0e0;
+  }
+
+  .effort-select, .custom-select {
+    background-color: #333;
+    border-color: #555;
+    color: #e0e0e0;
+  }
+
+  .effort-select:focus, .custom-select:focus {
+    border-color: #007acc;
   }
 }
 </style>

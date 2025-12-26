@@ -193,9 +193,8 @@ export class SharpService {
         .png({
           palette: true,
           colors: 128,
-          quality: 100,
-          effort: 7,
-          dither: 1.0
+          effort: 9,
+          dither: 0
         })
         .toBuffer();
 
@@ -228,6 +227,52 @@ export class SharpService {
     } catch (error) {
       console.error('Sharp resize failed:', error);
       return null;
+    }
+  }
+
+  /**
+   * Process image for PDF with configurable options
+   * Applies resize and/or color reduction based on options
+   * @param imageBuffer Original PNG image buffer
+   * @param options Processing options
+   * @returns Processed image buffer, or original if processing fails
+   */
+  async processImageForPdf(imageBuffer: Uint8Array, options: {
+    colors?: number | null;  // null = keep original colors, otherwise 16/32/64/128/256
+    width?: number | null;   // null = keep original width
+    height?: number | null;  // null = keep original height
+  }): Promise<Uint8Array> {
+    if (!this.sharp) {
+      console.warn('Sharp not available, returning original image');
+      return imageBuffer;
+    }
+
+    try {
+      let pipeline = this.sharp(Buffer.from(imageBuffer));
+
+      // Apply resize if dimensions specified
+      if (options.width && options.height) {
+        pipeline = pipeline.resize(options.width, options.height, { fit: 'fill' });
+      }
+
+      // Apply color reduction if colors specified
+      if (options.colors) {
+        pipeline = pipeline.png({
+          palette: true,
+          colors: options.colors,
+          effort: 9,
+          dither: 0
+        });
+      } else {
+        // Keep as PNG without palette reduction
+        pipeline = pipeline.png();
+      }
+
+      const processedBuffer = await pipeline.toBuffer();
+      return new Uint8Array(processedBuffer);
+    } catch (error) {
+      console.error('Sharp processImageForPdf failed:', error);
+      return imageBuffer;
     }
   }
 }

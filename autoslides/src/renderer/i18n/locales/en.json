@@ -770,7 +770,17 @@
     "customOrderHint": "Custom Order: Drag to Reorder",
     "confirmDeleteTitle": "Delete Images",
     "confirmDelete": "Move {count} image(s) to trash?",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "reduceSize": "Reduce Size",
+    "effortStandard": "Standard",
+    "effortCompact": "Compact",
+    "effortMinimal": "Minimal",
+    "effortCustom": "Custom",
+    "colorsOriginal": "Original",
+    "makePdf": "Make PDF",
+    "pdfSavedTitle": "PDF Created",
+    "pdfSaved": "PDF saved to: {path}",
+    "errorTitle": "Error"
   },
   "window": {
     "minimize": "Minimize",
