@@ -776,10 +776,13 @@
     "effortCompact": "Compact",
     "effortMinimal": "Minimal",
     "effortCustom": "Custom",
+    "colors": "Index PNG Palette",
+    "size": "Resize",
     "colorsOriginal": "Original",
     "makePdf": "Make PDF",
     "pdfSavedTitle": "PDF Created",
     "pdfSaved": "PDF saved to: {path}",
+    "openPdf": "Open PDF",
     "errorTitle": "Error"
   },
   "window": {

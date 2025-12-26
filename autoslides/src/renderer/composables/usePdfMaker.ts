@@ -3,7 +3,7 @@
  * Handles folder/image browsing with Chinese natural sorting and PDF generation
  */
 
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onUnmounted, watch } from 'vue'
 
 export interface Folder {
   name: string
@@ -114,6 +114,24 @@ export function usePdfMaker() {
   const isGenerating = ref(false)
   const generateProgress = ref({ current: 0, total: 0 })
 
+  // Effort presets: { colors, size }
+  const EFFORT_PRESETS: Record<string, { colors: number; size: string }> = {
+    standard: { colors: 128, size: '1280x720' },
+    compact: { colors: 64, size: '960x540' },
+    minimal: { colors: 16, size: '854x480' },
+  }
+
+  // Watch reduceEffort to update display values when preset changes
+  watch(reduceEffort, (newEffort) => {
+    if (newEffort !== 'custom') {
+      const preset = EFFORT_PRESETS[newEffort]
+      if (preset) {
+        customColors.value = preset.colors
+        customSize.value = preset.size
+      }
+    }
+  })
+
   // Progress listener cleanup
   let progressCleanup: (() => void) | null = null
 
@@ -150,6 +168,18 @@ export function usePdfMaker() {
     if (!currentFolder.value) return ''
     const name = currentFolder.value.name
     return name.startsWith('slides_') ? name.slice(7) : name
+  })
+
+  // Display size with proper formatting (e.g., "1280×720")
+  const displaySize = computed(() => {
+    const sizeMap: Record<string, string> = {
+      'original': '1920×1080',
+      '1600x900': '1600×900',
+      '1280x720': '1280×720',
+      '960x540': '960×540',
+      '854x480': '854×480',
+    }
+    return sizeMap[customSize.value] || customSize.value
   })
 
   // Load folders from output directory
@@ -417,6 +447,7 @@ export function usePdfMaker() {
     reduceEffort,
     customColors,
     customSize,
+    displaySize,
     isGenerating,
     generateProgress,
 

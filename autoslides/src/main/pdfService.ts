@@ -3,6 +3,7 @@
  * Handles PDF generation from slide images using PDFKit
  */
 
+import { app } from 'electron';
 import fs from 'fs';
 import { sharpService } from './sharpService';
 
@@ -109,10 +110,18 @@ export class PdfService {
       // Get page size
       const pageSize = this.getPageSize(options);
 
-      // Create PDF document
+      // Create PDF document with app metadata
+      const appName = app.getName();
+      const appVersion = app.getVersion();
       const doc = new PDFDocument({
         autoFirstPage: false,
         bufferPages: false,
+        info: {
+          Title: 'Slides',
+          Author: appName,
+          Creator: `${appName} ${appVersion}`,
+          Producer: `${appName} ${appVersion}`,
+        },
       });
 
       // Create write stream

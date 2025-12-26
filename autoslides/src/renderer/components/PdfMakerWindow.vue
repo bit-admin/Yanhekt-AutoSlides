@@ -66,32 +66,52 @@
             <span>{{ $t('pdfmaker.reduceSize') }}</span>
           </label>
 
-          <!-- Effort Selection -->
-          <select v-if="reduceEnabled" v-model="reduceEffort" class="effort-select">
-            <option value="standard">{{ $t('pdfmaker.effortStandard') }}</option>
-            <option value="compact">{{ $t('pdfmaker.effortCompact') }}</option>
-            <option value="minimal">{{ $t('pdfmaker.effortMinimal') }}</option>
-            <option value="custom">{{ $t('pdfmaker.effortCustom') }}</option>
-          </select>
+          <div class="reduce-config-group" :class="{ disabled: !reduceEnabled }">
+            <!-- Effort Selection -->
+            <select v-model="reduceEffort" class="effort-select" :disabled="!reduceEnabled">
+              <option value="standard">{{ $t('pdfmaker.effortStandard') }}</option>
+              <option value="compact">{{ $t('pdfmaker.effortCompact') }}</option>
+              <option value="minimal">{{ $t('pdfmaker.effortMinimal') }}</option>
+              <option value="custom">{{ $t('pdfmaker.effortCustom') }}</option>
+            </select>
 
-          <!-- Custom Options -->
-          <template v-if="reduceEnabled && reduceEffort === 'custom'">
-            <select v-model="customColors" class="custom-select">
-              <option :value="null">{{ $t('pdfmaker.colorsOriginal') }}</option>
-              <option :value="256">256</option>
-              <option :value="128">128</option>
-              <option :value="64">64</option>
-              <option :value="32">32</option>
-              <option :value="16">16</option>
-            </select>
-            <select v-model="customSize" class="custom-select">
-              <option value="original">1920×1080</option>
-              <option value="1600x900">1600×900</option>
-              <option value="1280x720">1280×720</option>
-              <option value="960x540">960×540</option>
-              <option value="854x480">854×480</option>
-            </select>
-          </template>
+            <!-- Colors: Text display for presets, dropdown for custom -->
+            <div class="config-item">
+              <label class="config-label">{{ $t('pdfmaker.colors') }}</label>
+              <span v-if="reduceEffort !== 'custom'" class="config-value">{{ customColors }}</span>
+              <select
+                v-else
+                v-model="customColors"
+                class="custom-select"
+                :disabled="!reduceEnabled"
+              >
+                <option :value="null">{{ $t('pdfmaker.colorsOriginal') }}</option>
+                <option :value="256">256</option>
+                <option :value="128">128</option>
+                <option :value="64">64</option>
+                <option :value="32">32</option>
+                <option :value="16">16</option>
+              </select>
+            </div>
+
+            <!-- Size: Text display for presets, dropdown for custom -->
+            <div class="config-item">
+              <label class="config-label">{{ $t('pdfmaker.size') }}</label>
+              <span v-if="reduceEffort !== 'custom'" class="config-value">{{ displaySize }}</span>
+              <select
+                v-else
+                v-model="customSize"
+                class="custom-select"
+                :disabled="!reduceEnabled"
+              >
+                <option value="original">1920×1080</option>
+                <option value="1600x900">1600×900</option>
+                <option value="1280x720">1280×720</option>
+                <option value="960x540">960×540</option>
+                <option value="854x480">854×480</option>
+              </select>
+            </div>
+          </div>
 
           <!-- Make PDF Button -->
           <button
@@ -293,6 +313,7 @@ const {
   reduceEffort,
   customColors,
   customSize,
+  displaySize,
   isGenerating,
   generateProgress,
   loadFolders,
@@ -392,12 +413,18 @@ const handleMakePdf = async () => {
   const result = await makePdf()
 
   if (result.success && result.path) {
-    await window.electronAPI.dialog?.showMessageBox?.({
+    const response = await window.electronAPI.dialog?.showMessageBox?.({
       type: 'info',
-      buttons: ['OK'],
+      buttons: [t('pdfmaker.openPdf'), 'OK'],
+      defaultId: 0,
       title: t('pdfmaker.pdfSavedTitle'),
       message: t('pdfmaker.pdfSaved', { path: result.path })
     })
+
+    // Open PDF if user clicked "Open PDF" button (index 0)
+    if (response?.response === 0 && result.path) {
+      await window.electronAPI.shell?.openPath?.(result.path)
+    }
   } else if (result.error && result.error !== 'Cancelled') {
     await window.electronAPI.dialog?.showMessageBox?.({
       type: 'error',
@@ -587,14 +614,51 @@ onMounted(() => {
 .reduce-toggle {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
+  gap: 8px;
+  padding: 6px 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
   cursor: pointer;
   white-space: nowrap;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.reduce-toggle:hover {
+  background-color: #f0f0f0;
+  border-color: #ccc;
 }
 
 .reduce-toggle input {
+  margin: 0;
   cursor: pointer;
+  width: 14px;
+  height: 14px;
+  accent-color: #007bff;
+}
+
+.reduce-config-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.2s;
+}
+
+.reduce-config-group.disabled {
+  opacity: 0.5;
+}
+
+.config-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.config-label {
+  font-size: 13px;
+  color: #666;
+  white-space: nowrap;
 }
 
 .effort-select, .custom-select {
@@ -602,13 +666,30 @@ onMounted(() => {
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: white;
-  font-size: 11px;
+  font-size: 13px;
   cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.effort-select:disabled, .custom-select:disabled {
+  cursor: not-allowed;
+  background-color: #f5f5f5;
+  color: #999;
 }
 
 .effort-select:focus, .custom-select:focus {
   outline: none;
   border-color: #007acc;
+}
+
+.config-value {
+  font-size: 13px;
+  color: #666;
+  padding: 4px 8px;
+  background-color: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
 .make-pdf-btn {
@@ -713,6 +794,8 @@ onMounted(() => {
 
 .folder-icon {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .folder-name {
@@ -996,13 +1079,35 @@ onMounted(() => {
 
   /* PDF Config Controls Dark Mode */
   .reduce-toggle {
+    background-color: #2d2d2d;
+    border-color: #404040;
     color: #e0e0e0;
+  }
+
+  .reduce-toggle:hover {
+    background-color: #3d3d3d;
+    border-color: #505050;
+  }
+
+  .config-label {
+    color: #aaa;
+  }
+
+  .config-value {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #aaa;
   }
 
   .effort-select, .custom-select {
     background-color: #333;
     border-color: #555;
     color: #e0e0e0;
+  }
+
+  .effort-select:disabled, .custom-select:disabled {
+    background-color: #2a2a2a;
+    color: #666;
   }
 
   .effort-select:focus, .custom-select:focus {

@@ -776,10 +776,13 @@
     "effortCompact": "コンパクト",
     "effortMinimal": "最小",
     "effortCustom": "カスタム",
+    "colors": "インデックスPNGパレット",
+    "size": "リサイズ",
     "colorsOriginal": "オリジナル",
     "makePdf": "PDF作成",
     "pdfSavedTitle": "PDF作成完了",
     "pdfSaved": "PDFを保存しました：{path}",
+    "openPdf": "PDFを開く",
     "errorTitle": "エラー"
   },
   "window": {

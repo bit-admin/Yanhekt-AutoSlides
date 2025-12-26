@@ -1264,11 +1264,20 @@ ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], option
   try {
     // Show save dialog
     const parentWindow = pdfmakerWindow || BrowserWindow.getFocusedWindow();
+    // Extract course name from first folder (remove session pattern: _第N周_星期X_第N大节)
+    let defaultFileName = 'slides.pdf';
+    if (folders.length > 0) {
+      const folderName = folders[0].name;
+      // Match pattern: courseName_第N周_星期X_第N大节
+      const sessionPattern = /_第\d+周_星期[一二三四五六日]_第\d+大节$/;
+      const courseName = folderName.replace(sessionPattern, '');
+      defaultFileName = `slides_${courseName}.pdf`;
+    }
     const result = await dialog.showSaveDialog(parentWindow!, {
       title: 'Save PDF',
       defaultPath: path.join(
         configService.getConfig().outputDirectory,
-        `slides_${new Date().toISOString().slice(0, 10)}.pdf`
+        defaultFileName
       ),
       filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
     });

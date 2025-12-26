@@ -65,9 +65,13 @@
       </div>
       <div class="settings-content">
         <div class="setting-item">
-          <div class="setting-label-row">
+          <div class="setting-label-with-reset">
             <label class="setting-label">{{ $t('settings.outputDirectory') }}</label>
-            <button class="open-folder-link" @click="openOutputDirectory">{{ $t('settings.openFolder') }}</button>
+            <button @click="openOutputDirectory" class="reset-btn" :title="$t('settings.openFolder')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+            </button>
           </div>
           <div class="directory-input-group">
             <input
@@ -222,7 +226,7 @@
         </button>
         <button class="action-btn pdfmaker-btn" @click="openPdfMakerWindow">
           <svg width="14" height="14" viewBox="0 0 16 16">
-            <path d="M2 0v16h12V4l-4-4H2zm8 1.5L13.5 5H10V1.5zM3 1h6v5h5v9H3V1z" fill="currentColor"/>
+            <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1.5H4V8zm0 2.5h8V12H4v-1.5zm0 2.5h5v1.5H4V13z" fill="currentColor"/>
           </svg>
           {{ $t('pdfmaker.openPdfMaker') }}
         </button>
@@ -1638,26 +1642,15 @@ defineExpose({
   margin-bottom: 6px;
 }
 
+.setting-label-with-reset .reset-btn {
+  margin-bottom: 6px;
+}
+
 .setting-label-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 6px;
-}
-
-.open-folder-link {
-  background: none;
-  border: none;
-  color: #007acc;
-  font-size: 11px;
-  text-decoration: underline;
-  cursor: pointer;
-  padding: 0;
-  margin-bottom: 6px;
-}
-
-.open-folder-link:hover {
-  color: #005a9e;
 }
 
 .reset-btn {
@@ -2772,14 +2765,6 @@ defineExpose({
   .reset-btn:hover {
     background-color: #3d3d3d;
     color: #e0e0e0;
-  }
-
-  .open-folder-link {
-    color: #4fc3f7;
-  }
-
-  .open-folder-link:hover {
-    color: #81d4fa;
   }
 
   .setting-description {

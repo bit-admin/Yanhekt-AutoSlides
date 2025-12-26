@@ -756,7 +756,7 @@
   },
   "pdfmaker": {
     "title": "PDF 制作器",
-    "openPdfMaker": "PDF 制作器",
+    "openPdfMaker": "合并为 PDF ",
     "back": "返回",
     "refresh": "刷新",
     "delete": "删除",
@@ -776,10 +776,13 @@
     "effortCompact": "紧凑",
     "effortMinimal": "最小",
     "effortCustom": "自定义",
+    "colors": "索引PNG调色板",
+    "size": "缩放",
     "colorsOriginal": "原始",
     "makePdf": "生成 PDF",
     "pdfSavedTitle": "PDF 已创建",
     "pdfSaved": "PDF 已保存至：{path}",
+    "openPdf": "打开 PDF",
     "errorTitle": "错误"
   },
   "window": {
