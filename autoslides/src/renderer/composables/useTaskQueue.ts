@@ -75,7 +75,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     extractedSlides,
     isRetrying,
     retryMessage,
-    autoPostProcessing,
+    autoPostProcessing: _autoPostProcessing, // No longer used - config is checked directly
     switchStream,
     toggleSlideExtraction,
     resetErrorCounters
@@ -416,7 +416,10 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     console.log('Completing task:', taskId)
 
     // Get slide extraction info for post-processing (non-blocking)
-    if (autoPostProcessing.value && isSlideExtractionEnabled.value && extractedSlides.value.length > 0) {
+    // Check config directly to ensure we respect the latest setting value
+    const config = await window.electronAPI.config.get()
+    const autoPostProcessingEnabled = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
+    if (autoPostProcessingEnabled && isSlideExtractionEnabled.value && extractedSlides.value.length > 0) {
       console.log('Auto post-processing enabled, queuing post-processing for task:', taskId)
       try {
         // Get output path from slide extractor

@@ -107,13 +107,13 @@ export class PdfService {
       const pageSize = this.getPageSize(options);
 
       // Create PDF document with app metadata
-      // font: null prevents loading default Helvetica font (we only use images, no text)
+      // font: undefined prevents loading default Helvetica font (we only use images, no text)
       const appName = app.getName();
       const appVersion = app.getVersion();
       const doc = new PDFDocument({
         autoFirstPage: false,
         bufferPages: false,
-        font: null,
+        font: undefined,
         info: {
           Title: 'Slides',
           Author: appName,

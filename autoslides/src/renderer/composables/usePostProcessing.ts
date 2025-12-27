@@ -554,6 +554,16 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     try {
       if (extractedSlides.value.length === 0) return
 
+      // For auto-triggered calls (showResultDialog=false), check config directly
+      // to ensure we respect the latest setting value
+      if (!showResultDialog && mode === 'live') {
+        const liveAutoEnabled = await window.electronAPI.config.getAutoPostProcessingLive()
+        if (!liveAutoEnabled) {
+          console.log('Auto post-processing for live is disabled, skipping')
+          return
+        }
+      }
+
       // Handle concurrent triggers
       if (isPostProcessing.value) {
         if (showResultDialog) {
