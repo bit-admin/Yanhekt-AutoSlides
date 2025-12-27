@@ -2,7 +2,7 @@
   <div class="pdfmaker-window">
     <!-- Title Bar -->
     <div class="title-bar" @mousedown="startDrag">
-      <div class="title-bar-drag-region">
+      <div class="title-bar-drag-region" :class="{ 'macos-padding': isMacOS }">
         <span class="title-text">{{ $t('pdfmaker.title') }}</span>
         <!-- Breadcrumb when in images view -->
         <template v-if="currentView === 'images'">
@@ -488,8 +488,11 @@ onMounted(() => {
   flex: 1;
   display: flex;
   align-items: center;
-  padding-left: 70px; /* Space for traffic lights on macOS */
   gap: 4px;
+}
+
+.title-bar-drag-region.macos-padding {
+  padding-left: 70px; /* Space for traffic lights on macOS */
 }
 
 .title-text {

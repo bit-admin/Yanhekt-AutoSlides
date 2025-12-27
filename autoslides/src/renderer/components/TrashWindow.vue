@@ -2,7 +2,7 @@
   <div class="trash-window">
     <!-- Title Bar -->
     <div class="title-bar" @mousedown="startDrag">
-      <div class="title-bar-drag-region">
+      <div class="title-bar-drag-region" :class="{ 'macos-padding': isMacOS }">
         <span class="title-text">{{ $t('trash.title') }}</span>
       </div>
       <div v-if="!isMacOS" class="window-controls">
@@ -462,6 +462,9 @@ onMounted(() => {
   flex: 1;
   display: flex;
   align-items: center;
+}
+
+.title-bar-drag-region.macos-padding {
   padding-left: 70px; /* Space for traffic lights on macOS */
 }
 
