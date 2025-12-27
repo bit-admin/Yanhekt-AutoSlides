@@ -263,6 +263,11 @@
       </template>
     </div>
 
+    <!-- Progress Bar (shown during PDF generation) -->
+    <div v-if="isGenerating" class="progress-bar-container">
+      <div class="progress-bar" :style="{ width: `${(generateProgress.current / generateProgress.total) * 100}%` }"></div>
+    </div>
+
     <!-- Footer -->
     <div class="footer">
       <span>{{ $t('pdfmaker.selected') }}: {{ selectedItems.length }} / {{ $t('pdfmaker.total') }}: {{ currentView === 'folders' ? sortedFolders.length : sortedImages.length }}</span>
@@ -953,6 +958,20 @@ onMounted(() => {
   border-color: #666;
 }
 
+/* Progress Bar */
+.progress-bar-container {
+  height: 3px;
+  background-color: #e0e0e0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #007acc;
+  transition: width 0.15s ease-out;
+}
+
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
   .pdfmaker-window {
@@ -1112,6 +1131,11 @@ onMounted(() => {
 
   .effort-select:focus, .custom-select:focus {
     border-color: #007acc;
+  }
+
+  /* Progress Bar Dark Mode */
+  .progress-bar-container {
+    background-color: #3d3d3d;
   }
 }
 </style>

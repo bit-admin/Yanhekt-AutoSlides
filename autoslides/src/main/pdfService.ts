@@ -107,13 +107,15 @@ export class PdfService {
       const pageSize = this.getPageSize(options);
 
       // Create PDF document with app metadata
-      // font: undefined prevents loading default Helvetica font (we only use images, no text)
+      // font: null prevents loading default Helvetica font (we only use images, no text)
       const appName = app.getName();
       const appVersion = app.getVersion();
       const doc = new PDFDocument({
         autoFirstPage: false,
         bufferPages: false,
-        font: undefined,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore - font: null is valid PDFKit option to skip loading default fonts
+        font: null,
         info: {
           Title: 'Slides',
           Author: appName,
