@@ -535,7 +535,7 @@ renderer/
 ---
 
 <div align="center">
-<p>Made with ❤️ by bit-admin</p>
+<p>Copyright © 2025 bit-admin.</p>
 <p>
 <a href="https://learn.ruc.edu.kg">Website</a> •
 <a href="mailto:info@ruc.edu.kg">Email</a> •
