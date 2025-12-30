@@ -28,6 +28,7 @@ export interface UseAdvancedSettingsOptions {
   languageMode: Ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>
   preventSystemSleep: Ref<boolean>
   enableAIFiltering: Ref<boolean>
+  tempEnableAIFiltering: Ref<boolean>
 }
 
 export interface UseAdvancedSettingsReturn {
@@ -51,17 +52,24 @@ export interface UseAdvancedSettingsReturn {
 
   // Post-processing phases
   enableDuplicateRemoval: Ref<boolean>
+  tempEnableDuplicateRemoval: Ref<boolean>
   enableExclusionList: Ref<boolean>
+  tempEnableExclusionList: Ref<boolean>
 
   // Downsampling
   enableDownsampling: Ref<boolean>
+  tempEnableDownsampling: Ref<boolean>
   downsampleWidth: Ref<number>
+  tempDownsampleWidth: Ref<number>
   downsampleHeight: Ref<number>
+  tempDownsampleHeight: Ref<number>
   selectedDownsamplingPreset: Ref<string>
+  tempSelectedDownsamplingPreset: Ref<string>
   downsamplingPresets: DownsamplingPreset[]
 
   // PNG color reduction
   enablePngColorReduction: Ref<boolean>
+  tempEnablePngColorReduction: Ref<boolean>
 
   // Intranet mappings
   intranetMappings: Ref<{ [domain: string]: IntranetMapping }>
@@ -73,7 +81,7 @@ export interface UseAdvancedSettingsReturn {
   saveAdvancedSettings: () => Promise<void>
   loadImageProcessingConfig: () => Promise<void>
   updateImageProcessingParams: () => void
-  updatePostProcessingPhases: () => Promise<void>
+  updatePostProcessingPhases: () => void
   selectDownsamplingPreset: (preset: DownsamplingPreset) => void
   onSsimPresetChange: () => void
   onSsimInputChange: () => void
@@ -99,7 +107,9 @@ export function useAdvancedSettings(
     maxConcurrentDownloads,
     videoRetryCount,
     themeMode,
-    languageMode
+    languageMode,
+    enableAIFiltering,
+    tempEnableAIFiltering
   } = options
 
   // Modal state
@@ -128,13 +138,19 @@ export function useAdvancedSettings(
 
   // Post-processing phases
   const enableDuplicateRemoval = ref(true)
+  const tempEnableDuplicateRemoval = ref(true)
   const enableExclusionList = ref(true)
+  const tempEnableExclusionList = ref(true)
 
   // Downsampling state
   const enableDownsampling = ref(true)
+  const tempEnableDownsampling = ref(true)
   const downsampleWidth = ref(480)
+  const tempDownsampleWidth = ref(480)
   const downsampleHeight = ref(270)
+  const tempDownsampleHeight = ref(270)
   const selectedDownsamplingPreset = ref('480x270')
+  const tempSelectedDownsamplingPreset = ref('480x270')
   const downsamplingPresets: DownsamplingPreset[] = [
     { key: '320x180', label: '320x180', width: 320, height: 180 },
     { key: '480x270', label: '480x270', width: 480, height: 270 },
@@ -144,6 +160,7 @@ export function useAdvancedSettings(
 
   // PNG color reduction state
   const enablePngColorReduction = ref(true)
+  const tempEnablePngColorReduction = ref(true)
 
   // Intranet mappings
   const intranetMappings = ref<{ [domain: string]: IntranetMapping }>({})
@@ -169,19 +186,26 @@ export function useAdvancedSettings(
       tempPHashThreshold.value = pHashThreshold.value
 
       enableDuplicateRemoval.value = slideConfig.enableDuplicateRemoval !== undefined ? slideConfig.enableDuplicateRemoval : true
+      tempEnableDuplicateRemoval.value = enableDuplicateRemoval.value
       enableExclusionList.value = slideConfig.enableExclusionList !== undefined ? slideConfig.enableExclusionList : true
+      tempEnableExclusionList.value = enableExclusionList.value
 
       enableDownsampling.value = slideConfig.enableDownsampling !== undefined ? slideConfig.enableDownsampling : true
+      tempEnableDownsampling.value = enableDownsampling.value
       downsampleWidth.value = slideConfig.downsampleWidth || 480
+      tempDownsampleWidth.value = downsampleWidth.value
       downsampleHeight.value = slideConfig.downsampleHeight || 270
+      tempDownsampleHeight.value = downsampleHeight.value
 
       // PNG color reduction
       enablePngColorReduction.value = slideConfig.enablePngColorReduction !== undefined ? slideConfig.enablePngColorReduction : true
+      tempEnablePngColorReduction.value = enablePngColorReduction.value
 
       const currentPreset = downsamplingPresets.find(preset =>
         preset.width === downsampleWidth.value && preset.height === downsampleHeight.value
       )
       selectedDownsamplingPreset.value = currentPreset ? currentPreset.key : '480x270'
+      tempSelectedDownsamplingPreset.value = selectedDownsamplingPreset.value
     } catch (error) {
       console.error('Failed to load image processing config:', error)
     }
@@ -197,6 +221,13 @@ export function useAdvancedSettings(
     isUpdatingProgrammatically = true
     tempSsimThreshold.value = ssimThreshold.value
     tempPHashThreshold.value = pHashThreshold.value
+    tempEnableDuplicateRemoval.value = enableDuplicateRemoval.value
+    tempEnableExclusionList.value = enableExclusionList.value
+    tempEnableDownsampling.value = enableDownsampling.value
+    tempDownsampleWidth.value = downsampleWidth.value
+    tempDownsampleHeight.value = downsampleHeight.value
+    tempSelectedDownsamplingPreset.value = selectedDownsamplingPreset.value
+    tempEnablePngColorReduction.value = enablePngColorReduction.value
     isUpdatingProgrammatically = false
 
     await loadIntranetMappings()
@@ -215,6 +246,14 @@ export function useAdvancedSettings(
     tempVideoRetryCount.value = videoRetryCount.value
     tempSsimThreshold.value = ssimThreshold.value
     tempPHashThreshold.value = pHashThreshold.value
+    tempEnableDuplicateRemoval.value = enableDuplicateRemoval.value
+    tempEnableExclusionList.value = enableExclusionList.value
+    tempEnableDownsampling.value = enableDownsampling.value
+    tempDownsampleWidth.value = downsampleWidth.value
+    tempDownsampleHeight.value = downsampleHeight.value
+    tempSelectedDownsamplingPreset.value = selectedDownsamplingPreset.value
+    tempEnablePngColorReduction.value = enablePngColorReduction.value
+    tempEnableAIFiltering.value = enableAIFiltering.value
     tempThemeMode.value = themeMode.value
     tempLanguageMode.value = languageMode.value
     showAdvancedModal.value = false
@@ -236,13 +275,26 @@ export function useAdvancedSettings(
         ssimThreshold: tempSsimThreshold.value,
         ssimPresetMode: ssimPreset.value,
         pHashThreshold: tempPHashThreshold.value,
-        enableDownsampling: enableDownsampling.value,
-        downsampleWidth: downsampleWidth.value,
-        downsampleHeight: downsampleHeight.value,
-        enablePngColorReduction: enablePngColorReduction.value
+        enableDownsampling: tempEnableDownsampling.value,
+        downsampleWidth: tempDownsampleWidth.value,
+        downsampleHeight: tempDownsampleHeight.value,
+        enablePngColorReduction: tempEnablePngColorReduction.value
       })
       ssimThreshold.value = imageProcessingResult.ssimThreshold
       pHashThreshold.value = imageProcessingResult.pHashThreshold || tempPHashThreshold.value
+      enableDownsampling.value = tempEnableDownsampling.value
+      downsampleWidth.value = tempDownsampleWidth.value
+      downsampleHeight.value = tempDownsampleHeight.value
+      selectedDownsamplingPreset.value = tempSelectedDownsamplingPreset.value
+      enablePngColorReduction.value = tempEnablePngColorReduction.value
+
+      // Save post-processing phases
+      await window.electronAPI.config?.setSlideExtractionConfig?.({
+        enableDuplicateRemoval: tempEnableDuplicateRemoval.value,
+        enableExclusionList: tempEnableExclusionList.value
+      })
+      enableDuplicateRemoval.value = tempEnableDuplicateRemoval.value
+      enableExclusionList.value = tempEnableExclusionList.value
 
       // Save theme mode
       if (tempThemeMode.value !== themeMode.value) {
@@ -277,26 +329,14 @@ export function useAdvancedSettings(
     // Placeholder - actual save happens in saveAdvancedSettings
   }
 
-  const updatePostProcessingPhases = async () => {
-    try {
-      await window.electronAPI.config?.setSlideExtractionConfig?.({
-        enableDuplicateRemoval: enableDuplicateRemoval.value,
-        enableExclusionList: enableExclusionList.value
-      })
-      console.log('Post-processing phases updated:', {
-        enableDuplicateRemoval: enableDuplicateRemoval.value,
-        enableExclusionList: enableExclusionList.value
-      })
-    } catch (error) {
-      console.error('Failed to update post-processing phases:', error)
-    }
+  const updatePostProcessingPhases = () => {
+    // Placeholder - actual save happens in saveAdvancedSettings
   }
 
   const selectDownsamplingPreset = (preset: DownsamplingPreset) => {
-    selectedDownsamplingPreset.value = preset.key
-    downsampleWidth.value = preset.width
-    downsampleHeight.value = preset.height
-    updateImageProcessingParams()
+    tempSelectedDownsamplingPreset.value = preset.key
+    tempDownsampleWidth.value = preset.width
+    tempDownsampleHeight.value = preset.height
   }
 
   // SSIM preset handling
@@ -413,17 +453,24 @@ export function useAdvancedSettings(
 
     // Post-processing phases
     enableDuplicateRemoval,
+    tempEnableDuplicateRemoval,
     enableExclusionList,
+    tempEnableExclusionList,
 
     // Downsampling
     enableDownsampling,
+    tempEnableDownsampling,
     downsampleWidth,
+    tempDownsampleWidth,
     downsampleHeight,
+    tempDownsampleHeight,
     selectedDownsamplingPreset,
+    tempSelectedDownsamplingPreset,
     downsamplingPresets,
 
     // PNG color reduction
     enablePngColorReduction,
+    tempEnablePngColorReduction,
 
     // Intranet mappings
     intranetMappings,

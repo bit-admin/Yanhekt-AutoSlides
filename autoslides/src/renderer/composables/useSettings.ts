@@ -20,6 +20,7 @@ export interface UseSettingsReturn {
   autoPostProcessing: Ref<boolean>
   autoPostProcessingLive: Ref<boolean>
   enableAIFiltering: Ref<boolean>
+  tempEnableAIFiltering: Ref<boolean>
 
   // Other settings
   preventSystemSleep: Ref<boolean>
@@ -46,6 +47,8 @@ export interface UseSettingsReturn {
   setAutoPostProcessing: () => Promise<void>
   setAutoPostProcessingLive: () => Promise<void>
   setEnableAIFiltering: () => Promise<void>
+  resetTempEnableAIFiltering: () => void
+  saveEnableAIFiltering: () => Promise<void>
   setPreventSystemSleep: () => Promise<void>
 }
 
@@ -67,6 +70,7 @@ export function useSettings(): UseSettingsReturn {
   const autoPostProcessing = ref(true)
   const autoPostProcessingLive = ref(true)
   const enableAIFiltering = ref(true)
+  const tempEnableAIFiltering = ref(true)
 
   // Other settings
   const preventSystemSleep = ref(true)
@@ -177,6 +181,7 @@ export function useSettings(): UseSettingsReturn {
       autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
       autoPostProcessingLive.value = config.autoPostProcessingLive !== undefined ? config.autoPostProcessingLive : true
       enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
+      tempEnableAIFiltering.value = enableAIFiltering.value
 
       // Load theme/language configuration
       themeMode.value = config.themeMode || 'system'
@@ -291,9 +296,18 @@ export function useSettings(): UseSettingsReturn {
   }
 
   const setEnableAIFiltering = async () => {
+    // Placeholder - actual save happens via saveEnableAIFiltering in saveAdvancedSettings
+  }
+
+  const resetTempEnableAIFiltering = () => {
+    tempEnableAIFiltering.value = enableAIFiltering.value
+  }
+
+  const saveEnableAIFiltering = async () => {
     try {
-      const result = await window.electronAPI.config.setEnableAIFiltering(enableAIFiltering.value)
+      const result = await window.electronAPI.config.setEnableAIFiltering(tempEnableAIFiltering.value)
       enableAIFiltering.value = result.enableAIFiltering
+      tempEnableAIFiltering.value = enableAIFiltering.value
     } catch (error) {
       console.error('Failed to set enable AI filtering:', error)
     }
@@ -330,6 +344,7 @@ export function useSettings(): UseSettingsReturn {
     autoPostProcessing,
     autoPostProcessingLive,
     enableAIFiltering,
+    tempEnableAIFiltering,
 
     // Other settings
     preventSystemSleep,
@@ -356,6 +371,8 @@ export function useSettings(): UseSettingsReturn {
     setAutoPostProcessing,
     setAutoPostProcessingLive,
     setEnableAIFiltering,
+    resetTempEnableAIFiltering,
+    saveEnableAIFiltering,
     setPreventSystemSleep
   }
 }

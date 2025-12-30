@@ -428,8 +428,7 @@
                   <label class="image-output-toggle-item">
                     <input
                       type="checkbox"
-                      v-model="enablePngColorReduction"
-                      @change="updateImageProcessingParams"
+                      v-model="tempEnablePngColorReduction"
                     />
                     <span class="image-output-toggle-text">{{ $t('advanced.enablePngColorReduction') }}</span>
                   </label>
@@ -451,7 +450,6 @@
                     step="0.0001"
                     class="ssim-input"
                     @input="onSsimInputChange"
-                    @change="updateImageProcessingParams"
                   />
                   <select
                     v-model="ssimPreset"
@@ -499,18 +497,17 @@
                   <div class="downsampling-control">
                     <label class="checkbox-label">
                       <input
-                        v-model="enableDownsampling"
+                        v-model="tempEnableDownsampling"
                         type="checkbox"
-                        @change="updateImageProcessingParams"
                       />
                       {{ $t('advanced.enableDownsampling') }}
                     </label>
-                    <div v-if="enableDownsampling" class="downsampling-presets">
+                    <div v-if="tempEnableDownsampling" class="downsampling-presets">
                       <button
                         v-for="preset in downsamplingPresets"
                         :key="preset.key"
                         @click="selectDownsamplingPreset(preset)"
-                        :class="['preset-btn', { active: selectedDownsamplingPreset === preset.key }]"
+                        :class="['preset-btn', { active: tempSelectedDownsamplingPreset === preset.key }]"
                       >
                         {{ preset.label }}
                       </button>
@@ -528,29 +525,26 @@
                   <label class="phase-toggle-item">
                     <input
                       type="checkbox"
-                      v-model="enableDuplicateRemoval"
-                      @change="updatePostProcessingPhases"
+                      v-model="tempEnableDuplicateRemoval"
                     />
                     <span class="phase-toggle-text">{{ $t('advanced.enableDuplicateRemoval') }}</span>
                   </label>
                   <label class="phase-toggle-item">
                     <input
                       type="checkbox"
-                      v-model="enableExclusionList"
-                      @change="updatePostProcessingPhases"
+                      v-model="tempEnableExclusionList"
                     />
                     <span class="phase-toggle-text">{{ $t('advanced.enableExclusionList') }}</span>
                   </label>
                   <label class="phase-toggle-item">
                     <input
                       type="checkbox"
-                      v-model="enableAIFiltering"
-                      @change="setEnableAIFiltering"
+                      v-model="tempEnableAIFiltering"
                     />
                     <span class="phase-toggle-text">{{ $t('advanced.enableAIFiltering') }}</span>
                   </label>
                 </div>
-                <div v-if="enableAIFiltering" class="setting-description ai-reminder">
+                <div v-if="tempEnableAIFiltering" class="setting-description ai-reminder">
                   {{ $t('advanced.aiFilteringReminder') }}
                 </div>
               </div>
@@ -566,7 +560,6 @@
                     max="256"
                     step="1"
                     class="phash-threshold-input"
-                    @change="updateImageProcessingParams"
                   />
                   <span class="threshold-unit">{{ $t('advanced.hammingDistance') }}</span>
                 </div>
@@ -1152,7 +1145,8 @@ const advancedSettings = useAdvancedSettings(
     themeMode: settings.themeMode,
     languageMode: settings.languageMode,
     preventSystemSleep: settings.preventSystemSleep,
-    enableAIFiltering: settings.enableAIFiltering
+    enableAIFiltering: settings.enableAIFiltering,
+    tempEnableAIFiltering: settings.tempEnableAIFiltering
   },
   // onOpenModal callback
   async () => {
@@ -1164,10 +1158,12 @@ const advancedSettings = useAdvancedSettings(
     await pHashExclusion.loadPHashExclusionList()
     await aiSettings.loadAISettings()
     aiSettings.resetTempValues()
+    settings.resetTempEnableAIFiltering()
   },
   // onSaveSettings callback
   async () => {
     await aiSettings.saveAISettings()
+    await settings.saveEnableAIFiltering()
   },
   t
 )
@@ -1209,7 +1205,8 @@ const {
   taskSpeed,
   autoPostProcessing,
   autoPostProcessingLive,
-  enableAIFiltering,
+  enableAIFiltering: _enableAIFiltering,
+  tempEnableAIFiltering,
   preventSystemSleep,
   taskStatus,
   downloadQueueStatus,
@@ -1224,7 +1221,9 @@ const {
   setTaskSpeed,
   setAutoPostProcessing,
   setAutoPostProcessingLive,
-  setEnableAIFiltering,
+  setEnableAIFiltering: _setEnableAIFiltering,
+  resetTempEnableAIFiltering: _resetTempEnableAIFiltering,
+  saveEnableAIFiltering: _saveEnableAIFiltering,
   setPreventSystemSleep
 } = settings
 
@@ -1237,26 +1236,33 @@ const {
   tempVideoRetryCount,
   tempThemeMode,
   tempLanguageMode,
-  ssimThreshold,
+  ssimThreshold: _ssimThreshold,
   tempSsimThreshold,
   ssimPreset,
   pHashThreshold: _pHashThreshold,
   tempPHashThreshold,
-  enableDuplicateRemoval,
-  enableExclusionList,
-  enableDownsampling,
+  enableDuplicateRemoval: _enableDuplicateRemoval,
+  tempEnableDuplicateRemoval,
+  enableExclusionList: _enableExclusionList,
+  tempEnableExclusionList,
+  enableDownsampling: _enableDownsampling,
+  tempEnableDownsampling,
   downsampleWidth: _downsampleWidth,
+  tempDownsampleWidth: _tempDownsampleWidth,
   downsampleHeight: _downsampleHeight,
-  selectedDownsamplingPreset,
+  tempDownsampleHeight: _tempDownsampleHeight,
+  selectedDownsamplingPreset: _selectedDownsamplingPreset,
+  tempSelectedDownsamplingPreset,
   downsamplingPresets,
-  enablePngColorReduction,
+  enablePngColorReduction: _enablePngColorReduction,
+  tempEnablePngColorReduction,
   intranetMappings,
   expandedMappings,
   openAdvancedSettings,
   closeAdvancedSettings,
   saveAdvancedSettings,
-  updateImageProcessingParams,
-  updatePostProcessingPhases,
+  updateImageProcessingParams: _updateImageProcessingParams,
+  updatePostProcessingPhases: _updatePostProcessingPhases,
   selectDownsamplingPreset,
   onSsimPresetChange,
   onSsimInputChange,
