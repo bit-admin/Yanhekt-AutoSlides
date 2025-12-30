@@ -32,6 +32,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getLanguageMode: () => ipcRenderer.invoke('config:getLanguageMode'),
     // Power management configuration
     setPreventSystemSleep: (prevent: boolean) => ipcRenderer.invoke('config:setPreventSystemSleep', prevent),
+    // Update check skip configuration
+    getSkipUpdateCheckUntil: () => ipcRenderer.invoke('config:getSkipUpdateCheckUntil'),
+    setSkipUpdateCheckUntil: (timestamp: number) => ipcRenderer.invoke('config:setSkipUpdateCheckUntil', timestamp),
     // Slide extraction configuration
     getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),
     setSlideExtractionConfig: (config: {
@@ -219,5 +222,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     checkForUpdates: () => ipcRenderer.invoke('update:checkForUpdates'),
     onCheckForUpdates: (callback: () => void) =>
       ipcRenderer.on('menu:checkForUpdates', () => callback()),
+    onAutoCheckForUpdates: (callback: () => void) =>
+      ipcRenderer.on('update:autoCheck', () => callback()),
   },
 });

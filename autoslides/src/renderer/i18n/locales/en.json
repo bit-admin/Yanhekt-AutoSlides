@@ -493,7 +493,9 @@
     "updateCheckFailedMessage": "Unable to check for updates",
     "updateCheckFailedDetail": "Please check your network connection and try again.\n\nError: {error}",
     "openDownloadPage": "Open Download Page",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "remindMeLater": "Remind Me Later",
+    "skipFor7Days": "Skip for 7 Days"
   },
   "tour": {
     "welcome": {

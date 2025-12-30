@@ -74,6 +74,7 @@ export interface AppConfig {
   preventSystemSleep: boolean;
   slideExtraction: SlideExtractionConfig;
   aiFiltering: AIFilteringConfig;
+  skipUpdateCheckUntil: number;
 }
 
 const defaultSlideExtractionConfig: SlideExtractionConfig = {
@@ -162,7 +163,8 @@ const defaultConfig: AppConfig = {
   languageMode: 'system',
   preventSystemSleep: true,
   slideExtraction: defaultSlideExtractionConfig,
-  aiFiltering: defaultAIFilteringConfig
+  aiFiltering: defaultAIFilteringConfig,
+  skipUpdateCheckUntil: 0
 };
 
 export class ConfigService {
@@ -195,7 +197,8 @@ export class ConfigService {
       languageMode: this.store.get('languageMode'),
       preventSystemSleep: this.store.get('preventSystemSleep'),
       slideExtraction: this.store.get('slideExtraction'),
-      aiFiltering: this.store.get('aiFiltering') || defaultAIFilteringConfig
+      aiFiltering: this.store.get('aiFiltering') || defaultAIFilteringConfig,
+      skipUpdateCheckUntil: this.store.get('skipUpdateCheckUntil') ?? 0
     };
   }
 
@@ -278,6 +281,14 @@ export class ConfigService {
 
   getPreventSystemSleep(): boolean {
     return this.store.get('preventSystemSleep');
+  }
+
+  setSkipUpdateCheckUntil(timestamp: number): void {
+    this.store.set('skipUpdateCheckUntil', timestamp);
+  }
+
+  getSkipUpdateCheckUntil(): number {
+    return this.store.get('skipUpdateCheckUntil') ?? 0;
   }
 
   // Slide extraction configuration methods

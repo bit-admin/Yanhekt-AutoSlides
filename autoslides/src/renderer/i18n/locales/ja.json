@@ -493,7 +493,9 @@
     "updateCheckFailedMessage": "アップデートを確認できません",
     "updateCheckFailedDetail": "ネットワーク接続を確認して再試行してください。\n\nエラー：{error}",
     "openDownloadPage": "ダウンロードページを開く",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "remindMeLater": "後で通知",
+    "skipFor7Days": "7日間スキップ"
   },
   "tour": {
     "welcome": {

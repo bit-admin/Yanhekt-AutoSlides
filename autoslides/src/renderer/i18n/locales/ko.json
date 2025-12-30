@@ -493,7 +493,9 @@
     "updateCheckFailedMessage": "업데이트를 확인할 수 없습니다",
     "updateCheckFailedDetail": "네트워크 연결을 확인하고 다시 시도하세요.\n\n오류: {error}",
     "openDownloadPage": "다운로드 페이지 열기",
-    "cancel": "취소"
+    "cancel": "취소",
+    "remindMeLater": "나중에 알림",
+    "skipFor7Days": "7일간 건너뛰기"
   },
   "tour": {
     "welcome": {

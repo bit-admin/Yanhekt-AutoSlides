@@ -142,6 +142,13 @@ const createWindow = () => {
   if (process.env.NODE_ENV === 'development') {
     // mainWindow.webContents.openDevTools();
   }
+
+  // Trigger auto-check for updates after the window loads
+  mainWindow.webContents.once('did-finish-load', () => {
+    setTimeout(() => {
+      mainWindow.webContents.send('update:autoCheck');
+    }, 3000);
+  });
 };
 
 // This method will be called when Electron has finished
@@ -355,6 +362,14 @@ ipcMain.handle('config:setPreventSystemSleep', async (event, prevent: boolean) =
   }
 
   return configService.getConfig();
+});
+
+ipcMain.handle('config:getSkipUpdateCheckUntil', async () => {
+  return configService.getSkipUpdateCheckUntil();
+});
+
+ipcMain.handle('config:setSkipUpdateCheckUntil', async (event, timestamp: number) => {
+  configService.setSkipUpdateCheckUntil(timestamp);
 });
 
 // IPC handlers for slide extraction configuration
@@ -1324,20 +1339,11 @@ ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], option
 // ============================================================================
 
 ipcMain.handle('update:checkForUpdates', async () => {
-  try {
-    const https = await import('https');
+  const https = await import('https');
 
+  // Helper function to fetch release info from a given URL config
+  const fetchRelease = (options: { hostname: string; path: string; method: string; headers: Record<string, string> }): Promise<{ success: boolean; data?: string; error?: string }> => {
     return new Promise((resolve) => {
-      const options = {
-        hostname: 'api.github.com',
-        path: '/repos/bit-admin/Yanhekt-AutoSlides/releases/latest',
-        method: 'GET',
-        headers: {
-          'User-Agent': 'AutoSlides',
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      };
-
       const req = https.request(options, (res) => {
         let data = '';
 
@@ -1346,69 +1352,97 @@ ipcMain.handle('update:checkForUpdates', async () => {
         });
 
         res.on('end', () => {
-          try {
-            if (res.statusCode !== 200) {
-              resolve({
-                success: false,
-                error: `HTTP ${res.statusCode}`
-              });
-              return;
-            }
-
-            const release = JSON.parse(data);
-            const latestTag = release.tag_name; // e.g., "v4.0.2"
-            const latestVersion = latestTag.replace(/^v/, ''); // Remove 'v' prefix
-            const currentVersion = app.getVersion();
-
-            // Compare versions
-            const compareVersions = (v1: string, v2: string): number => {
-              const parts1 = v1.split('.').map(Number);
-              const parts2 = v2.split('.').map(Number);
-
-              for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
-                const p1 = parts1[i] || 0;
-                const p2 = parts2[i] || 0;
-                if (p1 > p2) return 1;
-                if (p1 < p2) return -1;
-              }
-              return 0;
-            };
-
-            const hasUpdate = compareVersions(latestVersion, currentVersion) > 0;
-
-            resolve({
-              success: true,
-              hasUpdate,
-              currentVersion,
-              latestVersion,
-              releaseUrl: release.html_url
-            });
-          } catch {
-            resolve({
-              success: false,
-              error: 'Failed to parse response'
-            });
+          if (res.statusCode !== 200) {
+            resolve({ success: false, error: `HTTP ${res.statusCode}` });
+            return;
           }
+          resolve({ success: true, data });
         });
       });
 
       req.on('error', (error) => {
-        resolve({
-          success: false,
-          error: error.message
-        });
+        resolve({ success: false, error: error.message });
       });
 
       req.setTimeout(10000, () => {
         req.destroy();
-        resolve({
-          success: false,
-          error: 'Request timeout'
-        });
+        resolve({ success: false, error: 'Request timeout' });
       });
 
       req.end();
     });
+  };
+
+  // Parse release data and return update info
+  const parseRelease = (data: string) => {
+    const release = JSON.parse(data);
+    const latestTag = release.tag_name; // e.g., "v4.0.2"
+    const latestVersion = latestTag.replace(/^v/, ''); // Remove 'v' prefix
+    const currentVersion = app.getVersion();
+
+    // Compare versions
+    const compareVersions = (v1: string, v2: string): number => {
+      const parts1 = v1.split('.').map(Number);
+      const parts2 = v2.split('.').map(Number);
+
+      for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
+        const p1 = parts1[i] || 0;
+        const p2 = parts2[i] || 0;
+        if (p1 > p2) return 1;
+        if (p1 < p2) return -1;
+      }
+      return 0;
+    };
+
+    const hasUpdate = compareVersions(latestVersion, currentVersion) > 0;
+
+    return {
+      success: true,
+      hasUpdate,
+      currentVersion,
+      latestVersion,
+      releaseUrl: release.html_url
+    };
+  };
+
+  const primaryOptions = {
+    hostname: 'api.github.com',
+    path: '/repos/bit-admin/Yanhekt-AutoSlides/releases/latest',
+    method: 'GET',
+    headers: {
+      'User-Agent': 'AutoSlides',
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  };
+
+  const fallbackOptions = {
+    hostname: 'gh-proxy.org',
+    path: '/https://api.github.com/repos/bit-admin/Yanhekt-AutoSlides/releases/latest',
+    method: 'GET',
+    headers: {
+      'User-Agent': 'AutoSlides',
+      'Accept': 'application/vnd.github.v3+json'
+    }
+  };
+
+  try {
+    // Try primary GitHub API first
+    const primaryResult = await fetchRelease(primaryOptions);
+    if (primaryResult.success && primaryResult.data) {
+      return parseRelease(primaryResult.data);
+    }
+
+    // Silently fallback to proxy if primary fails
+    const fallbackResult = await fetchRelease(fallbackOptions);
+    if (fallbackResult.success && fallbackResult.data) {
+      return parseRelease(fallbackResult.data);
+    }
+
+    // Both failed
+    return {
+      success: false,
+      error: fallbackResult.error || primaryResult.error || 'Unknown error'
+    };
   } catch (error) {
     return {
       success: false,

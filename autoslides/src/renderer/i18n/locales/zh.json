@@ -493,7 +493,9 @@
     "updateCheckFailedMessage": "无法检查更新",
     "updateCheckFailedDetail": "请检查您的网络连接后重试。\n\n错误：{error}",
     "openDownloadPage": "打开下载页面",
-    "cancel": "取消"
+    "cancel": "取消",
+    "remindMeLater": "稍后提醒",
+    "skipFor7Days": "7天内不再提醒"
   },
   "tour": {
     "welcome": {

@@ -155,6 +155,11 @@ onMounted(() => {
   (window as any).electronAPI.update.onCheckForUpdates(() => {
     checkForUpdates();
   });
+
+  // Listen for auto-check for updates event on app launch
+  (window as any).electronAPI.update.onAutoCheckForUpdates(() => {
+    autoCheckForUpdates();
+  });
 });
 
 onUnmounted(() => {
@@ -417,6 +422,50 @@ const checkForUpdates = async () => {
     }
   } catch (error) {
     console.error('Failed to check for updates:', error);
+  }
+};
+
+// Auto-check for updates on app launch (silent errors, skip option)
+const autoCheckForUpdates = async () => {
+  try {
+    // Check if user has chosen to skip update checks
+    const skipUntil = await (window as any).electronAPI.config.getSkipUpdateCheckUntil();
+    if (Date.now() < skipUntil) {
+      return; // Skip this check
+    }
+
+    const result = await (window as any).electronAPI.update.checkForUpdates();
+
+    // Silently ignore errors and no-update cases
+    if (!result.success || !result.hasUpdate) {
+      return;
+    }
+
+    // Update available - show dialog with skip option
+    const response = await (window as any).electronAPI.dialog.showMessageBox({
+      type: 'info',
+      title: $t('titlebar.updateAvailable'),
+      message: $t('titlebar.updateAvailableMessage'),
+      detail: $t('titlebar.updateAvailableDetail', {
+        currentVersion: result.currentVersion,
+        latestVersion: result.latestVersion
+      }),
+      buttons: [$t('titlebar.openDownloadPage'), $t('titlebar.remindMeLater'), $t('titlebar.skipFor7Days')],
+      defaultId: 0,
+      cancelId: 1
+    });
+
+    if (response.response === 0) {
+      // User clicked "Open Download Page"
+      await (window as any).electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides/releases');
+    } else if (response.response === 2) {
+      // User clicked "Skip for 7 Days"
+      const skipUntilTimestamp = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      await (window as any).electronAPI.config.setSkipUpdateCheckUntil(skipUntilTimestamp);
+    }
+    // response === 1 is "Remind Me Later" - do nothing
+  } catch {
+    // Silently ignore all errors
   }
 };
 </script>
