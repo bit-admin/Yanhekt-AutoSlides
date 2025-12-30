@@ -823,23 +823,20 @@ class PostProcessingServiceClass {
     return result
   }
 
-  // Read images and resize for AI processing
+  // Read images and prepare for AI processing (via main process)
+  // Uses Sharp in main process to handle indexed PNG detection and resize
   private async readAndResizeImages(outputPath: string, filenames: string[]): Promise<(string | null)[]> {
     const results: (string | null)[] = []
 
     for (const filename of filenames) {
       try {
-        let base64 = await window.electronAPI.slideExtraction.readSlideAsBase64(outputPath, filename)
-
-        // Resize if needed
-        if (this.imageResizeWidth < 1920 || this.imageResizeHeight < 1080) {
-          try {
-            base64 = await this.resizeBase64Image(base64, this.imageResizeWidth, this.imageResizeHeight)
-          } catch {
-            // Use original if resize fails
-          }
-        }
-
+        // Use new readSlideForAI API which handles indexed PNG detection and resize in main process
+        const base64 = await window.electronAPI.slideExtraction.readSlideForAI(
+          outputPath,
+          filename,
+          this.imageResizeWidth,
+          this.imageResizeHeight
+        )
         results.push(base64)
       } catch (error) {
         console.error(`[PostProcessing] Failed to read image ${filename}:`, error)
@@ -848,37 +845,6 @@ class PostProcessingServiceClass {
     }
 
     return results
-  }
-
-  // Helper function to resize a base64 image
-  private async resizeBase64Image(
-    base64: string,
-    targetWidth: number,
-    targetHeight: number
-  ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const img = new Image()
-      img.onload = () => {
-        if (targetWidth >= img.width && targetHeight >= img.height) {
-          resolve(base64)
-          return
-        }
-
-        const canvas = document.createElement('canvas')
-        canvas.width = targetWidth
-        canvas.height = targetHeight
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          reject(new Error('Failed to get canvas context'))
-          return
-        }
-        ctx.drawImage(img, 0, 0, targetWidth, targetHeight)
-        const resizedDataUrl = canvas.toDataURL('image/png')
-        resolve(resizedDataUrl.replace(/^data:image\/\w+;base64,/, ''))
-      }
-      img.onerror = () => reject(new Error('Failed to load image for resize'))
-      img.src = `data:image/png;base64,${base64}`
-    })
   }
 
   // Parse error to determine type

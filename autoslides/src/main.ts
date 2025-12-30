@@ -711,6 +711,16 @@ ipcMain.handle('slideExtraction:readSlideAsBase64', async (event, outputPath: st
   }
 });
 
+ipcMain.handle('slideExtraction:readSlideForAI', async (event, outputPath: string, filename: string, targetWidth: number, targetHeight: number) => {
+  try {
+    const base64 = await slideExtractionService.readSlideForAI(outputPath, filename, targetWidth, targetHeight);
+    return base64;
+  } catch (error) {
+    console.error('Failed to read slide for AI:', error);
+    throw error;
+  }
+});
+
 ipcMain.handle('slideExtraction:listSlides', async (event, outputPath: string) => {
   try {
     const slides = await slideExtractionService.listSlides(outputPath);

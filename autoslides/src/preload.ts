@@ -134,6 +134,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('slideExtraction:moveToInAppTrash', outputPath, filename, metadata),
     readSlideAsBase64: (outputPath: string, filename: string) =>
       ipcRenderer.invoke('slideExtraction:readSlideAsBase64', outputPath, filename),
+    readSlideForAI: (outputPath: string, filename: string, targetWidth: number, targetHeight: number) =>
+      ipcRenderer.invoke('slideExtraction:readSlideForAI', outputPath, filename, targetWidth, targetHeight),
     listSlides: (outputPath: string) =>
       ipcRenderer.invoke('slideExtraction:listSlides', outputPath),
   },

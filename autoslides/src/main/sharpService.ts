@@ -178,6 +178,61 @@ export class SharpService {
   }
 
   /**
+   * Check if a PNG buffer is indexed (palette-based, color type 3)
+   * PNG IHDR chunk has color type at byte 25 (after 8-byte signature + 4-byte length + 4-byte "IHDR" + 8-byte width/height + 1-byte bit depth)
+   * Color type 3 = indexed-color (palette-based)
+   * @param buffer PNG image buffer
+   * @returns true if indexed PNG, false otherwise
+   */
+  isPngIndexed(buffer: Buffer): boolean {
+    // Need at least 26 bytes to read color type
+    if (buffer.length < 26) return false;
+    // Check PNG signature (first 2 bytes: 0x89 0x50)
+    if (buffer[0] !== 0x89 || buffer[1] !== 0x50) return false;
+    // Color type is at byte 25, value 3 = indexed
+    return buffer[25] === 3;
+  }
+
+  /**
+   * Prepare image for AI classification
+   * If indexed PNG, return as-is (already small). Otherwise, resize.
+   * @param imageBuffer Original image buffer
+   * @param targetWidth Target width for resize (if needed)
+   * @param targetHeight Target height for resize (if needed)
+   * @returns Processed image buffer as base64 string
+   */
+  async prepareImageForAI(
+    imageBuffer: Buffer,
+    targetWidth: number,
+    targetHeight: number
+  ): Promise<string> {
+    // Check if indexed PNG - if so, return directly without resize
+    if (this.isPngIndexed(imageBuffer)) {
+      console.log('[SharpService] PNG is indexed, skipping resize');
+      return imageBuffer.toString('base64');
+    }
+
+    // Not indexed - resize with Sharp
+    if (!this.sharp) {
+      console.warn('[SharpService] Sharp not available, returning original');
+      return imageBuffer.toString('base64');
+    }
+
+    try {
+      const resizedBuffer = await this.sharp(imageBuffer)
+        .resize(targetWidth, targetHeight, { fit: 'inside' })
+        .png()
+        .toBuffer();
+
+      console.log(`[SharpService] Resized non-indexed PNG: ${imageBuffer.length} -> ${resizedBuffer.length} bytes`);
+      return resizedBuffer.toString('base64');
+    } catch (error) {
+      console.error('[SharpService] Resize for AI failed:', error);
+      return imageBuffer.toString('base64');
+    }
+  }
+
+  /**
    * Reduce PNG colors to 128 using palette quantization
    * @param imageBuffer Original PNG image buffer
    * @returns Optimized PNG buffer with reduced colors, or null if failed

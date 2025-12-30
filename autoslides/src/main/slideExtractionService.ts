@@ -433,6 +433,69 @@ export class SlideExtractionService {
   }
 
   /**
+   * Read slide image and prepare for AI classification
+   * If the PNG is indexed (palette-based), returns it directly since it's already small.
+   * If not indexed, resizes to target dimensions using Sharp.
+   * @param outputPath Directory containing the slide
+   * @param filename Name of the slide file
+   * @param targetWidth Target width for resize (if needed)
+   * @param targetHeight Target height for resize (if needed)
+   * @returns Base64 encoded image ready for AI
+   */
+  async readSlideForAI(
+    outputPath: string,
+    filename: string,
+    targetWidth: number,
+    targetHeight: number
+  ): Promise<string> {
+    try {
+      // Expand tilde in path
+      const expandedPath = outputPath.startsWith('~')
+        ? path.join(os.homedir(), outputPath.slice(1))
+        : outputPath;
+
+      // Validate filename to prevent directory traversal attacks
+      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+        throw new Error('Invalid filename: contains path traversal characters');
+      }
+
+      // Ensure filename has .png extension and starts with Slide_
+      if (!filename.endsWith('.png') || !filename.startsWith('Slide_')) {
+        throw new Error('Invalid filename: must be a slide PNG file (Slide_*.png)');
+      }
+
+      // Full file path
+      const filePath = path.join(expandedPath, filename);
+
+      // Verify the file exists and is within the expected directory
+      const resolvedFilePath = path.resolve(filePath);
+      const resolvedOutputPath = path.resolve(expandedPath);
+
+      if (!resolvedFilePath.startsWith(resolvedOutputPath)) {
+        throw new Error('Invalid file path: file is outside the output directory');
+      }
+
+      // Check if file exists
+      const stats = await fs.stat(resolvedFilePath);
+      if (!stats.isFile()) {
+        throw new Error('Path is not a file');
+      }
+
+      // Read the file as buffer
+      const buffer = await fs.readFile(resolvedFilePath);
+
+      // Use SharpService to prepare for AI (handles indexed PNG detection and resize)
+      const base64 = await sharpService.prepareImageForAI(buffer, targetWidth, targetHeight);
+
+      console.log(`Slide prepared for AI: ${filename} (${buffer.length} bytes)`);
+      return base64;
+    } catch (error) {
+      console.error('Failed to read slide for AI:', error);
+      throw error;
+    }
+  }
+
+  /**
    * List all slide files in a directory
    */
   async listSlides(outputPath: string): Promise<string[]> {

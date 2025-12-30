@@ -444,6 +444,7 @@ interface ElectronAPI {
     deleteSlide: (outputPath: string, filename: string) => Promise<SlideOperationResponse>;
     moveToInAppTrash: (outputPath: string, filename: string, metadata: TrashMetadata) => Promise<SlideOperationResponse>;
     readSlideAsBase64: (outputPath: string, filename: string) => Promise<string>;
+    readSlideForAI: (outputPath: string, filename: string, targetWidth: number, targetHeight: number) => Promise<string>;
     listSlides: (outputPath: string) => Promise<string[]>;
     loadSlideImage: (filePath: string) => Promise<Uint8Array>;
     savePostProcessingResults: (filePath: string, data: PostProcessingResultData) => Promise<void>;
