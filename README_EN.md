@@ -10,7 +10,7 @@
     <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/YDX-2147483647/best-of-bits/main/config/badge/v1.json" alt="best of BITs">
     <img src="https://img.shields.io/github/downloads/bit-admin/Yanhekt-AutoSlides/total?color=orange&logo=docusign" alt="Downloads">
     <img src="https://img.shields.io/github/v/release/bit-admin/Yanhekt-AutoSlides?color=blue" alt="Version">
-    <img src="https://img.shields.io/badge/platform-win%20%7C%20mac-lightgrey?color=green" alt="Platform">
+    <img src="https://img.shields.io/badge/platform-win%20%7C%20mac%20%7C%20linux-lightgrey?color=green" alt="Platform">
   </p>
 
   <p>
@@ -129,7 +129,7 @@
 
 ### 1. Download
 
-- Go to the [release page](https://github.com/bit-admin/Yanhekt-AutoSlides/releases) 👈 to download the installer for your platform (macOS users download `DMG` file; Windows users download `EXE` file).
+- Go to the [release page](https://github.com/bit-admin/Yanhekt-AutoSlides/releases) 👈 to download the installer for your platform (macOS users download `DMG` file; Windows users download `EXE` file; Linux users download `AppImage` or `deb` file).
 
 ### 2. Install
    - **macOS**: Open the `.dmg` installer and drag the app icon to the `Applications` folder.
@@ -139,7 +139,7 @@
 
 <p align="center">
   <img src="docs/dmg.png" alt="AutoSlides DMG Installer" width="100%">
-</p>   
+</p>
 
 > [!IMPORTANT]
 > - macOS marks downloaded applications as "quarantined" to ensure safety.
@@ -151,9 +151,34 @@
 
    - **Windows**: Run the `.exe` installer and follow the setup wizard.
 
+   - **Linux**:
+     - **AppImage**: Download the `.AppImage` file, add execute permission and run:
+       ```bash
+       chmod +x AutoSlides-*.AppImage
+       ./AutoSlides-*.AppImage
+       ```
+     - **Deb Package** (Debian/Ubuntu):
+       ```bash
+       sudo apt install ./AutoSlides-*.deb
+       ```
+
+> [!NOTE]
+> **Linux Users Note**: Video download functionality requires FFmpeg. The app bundles an FFmpeg binary, but it may not be compatible with some Linux distributions (especially ARM64 architecture). If download functionality has issues, install system FFmpeg:
+> ```bash
+> # Debian/Ubuntu
+> sudo apt install ffmpeg
+>
+> # Fedora
+> sudo dnf install ffmpeg
+>
+> # Arch Linux
+> sudo pacman -S ffmpeg
+> ```
+> The app will automatically detect and use system-installed FFmpeg.
+
 ### 3. Check for Updates
 
-- Click `Menu Bar > AutoSlides > Check for Updates...` (on Windows `Menu Bar > Help > Check for Updates...`) to see if a new version is released.
+- Click `Menu Bar > AutoSlides > Check for Updates...` (on Windows/Linux `Menu Bar > Help > Check for Updates...`) to see if a new version is released.
 - Manually download and install the latest version from the [release page](https://github.com/bit-admin/Yanhekt-AutoSlides/releases).
 
 > [!NOTE]
@@ -164,6 +189,10 @@
 >     rm -rf ~/Library/Application\ Support/AutoSlides
 >     ```
 >   - **Windows**: Find and remove `C:\Users\<Your Username>\AppData\Roaming\AutoSlides` or `C:\ProgramData\AutoSlides`
+>   - **Linux**: Find and remove `~/.config/AutoSlides`:
+>     ```bash
+>     rm -rf ~/.config/AutoSlides
+>     ```
 
 ### 4. Usage & Settings
 

@@ -580,6 +580,7 @@ class M3u8Downloader {
       ]);
 
       let progressPercent = 0;
+      let stderrOutput = '';
 
       this.ffmpegProcess.stdout?.on('data', (data: Buffer) => {
         console.log(`FFmpeg stdout: ${data}`);
@@ -587,6 +588,7 @@ class M3u8Downloader {
 
       this.ffmpegProcess.stderr?.on('data', (data: Buffer) => {
         const output = data.toString();
+        stderrOutput += output;
 
         // Parse progress from stderr output
         if (output.includes('time=')) {
@@ -604,7 +606,7 @@ class M3u8Downloader {
         }
       });
 
-      this.ffmpegProcess.on('close', (code: number) => {
+      this.ffmpegProcess.on('close', (code: number, signal: string) => {
         this.ffmpegProcess = null; // Clear the process reference
 
         if (this.shouldStop) {
@@ -618,7 +620,10 @@ class M3u8Downloader {
           this.progressCallback({ current: 100, total: 100, phase: 1 });
           resolve();
         } else {
-          console.error(`FFmpeg process exited with code ${code}`);
+          console.error(`FFmpeg process exited with code ${code}, signal ${signal}`);
+          if (stderrOutput) {
+            console.error('FFmpeg stderr:', stderrOutput.slice(-2000)); // Last 2000 chars
+          }
 
           // Check if output file exists despite error
           if (fs.existsSync(mp4FilePath)) {
@@ -666,9 +671,11 @@ class M3u8Downloader {
     ]);
 
     let progressPercent = 0;
+    let stderrOutput = '';
 
     this.ffmpegProcess.stderr?.on('data', (data: Buffer) => {
       const output = data.toString();
+      stderrOutput += output;
 
       if (output.includes('time=')) {
         const timeMatch = output.match(/time=(\d{2}):(\d{2}):(\d{2}\.\d{2})/);
@@ -684,7 +691,7 @@ class M3u8Downloader {
       }
     });
 
-    this.ffmpegProcess.on('close', (code: number) => {
+    this.ffmpegProcess.on('close', (code: number, signal: string) => {
       this.ffmpegProcess = null; // Clear the process reference
 
       if (this.shouldStop) {
@@ -698,7 +705,11 @@ class M3u8Downloader {
         this.progressCallback({ current: 100, total: 100, phase: 1 });
         resolve();
       } else {
-        reject(new Error(`FFmpeg conversion failed with code ${code}`));
+        console.error(`Fallback FFmpeg exited with code ${code}, signal ${signal}`);
+        if (stderrOutput) {
+          console.error('Fallback FFmpeg stderr:', stderrOutput.slice(-2000));
+        }
+        reject(new Error(`FFmpeg conversion failed with code ${code}, signal ${signal}`));
       }
     });
 

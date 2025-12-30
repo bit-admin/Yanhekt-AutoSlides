@@ -49,3 +49,55 @@ jobs:
         name: AutoSlides-Windows-Setup
         path: autoslides/out/make/*.exe
         retention-days: 30
+
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: autoslides/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd autoslides
+        npm ci
+
+    - name: Fix FFmpeg permissions
+      run: |
+        chmod +x autoslides/node_modules/ffmpeg-static/ffmpeg
+
+    - name: Lint code
+      run: |
+        cd autoslides
+        npm run lint
+
+    - name: Build Linux packages
+      run: |
+        cd autoslides
+        npm run make:linux
+
+    - name: List build output
+      run: |
+        cd autoslides
+        find out/make -type f \( -name "*.AppImage" -o -name "*.deb" \) -exec ls -lh {} \;
+
+    - name: Upload AppImage
+      uses: actions/upload-artifact@v4
+      with:
+        name: AutoSlides-Linux-AppImage
+        path: autoslides/out/make/*.AppImage
+        retention-days: 30
+
+    - name: Upload Deb Package
+      uses: actions/upload-artifact@v4
+      with:
+        name: AutoSlides-Linux-Deb
+        path: autoslides/out/make/*.deb
+        retention-days: 30

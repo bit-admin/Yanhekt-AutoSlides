@@ -10,7 +10,7 @@
     <img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/YDX-2147483647/best-of-bits/main/config/badge/v1.json" alt="best of BITs">
     <img src="https://img.shields.io/github/downloads/bit-admin/Yanhekt-AutoSlides/total?color=orange&logo=docusign" alt="Downloads">
     <img src="https://img.shields.io/github/v/release/bit-admin/Yanhekt-AutoSlides?color=blue" alt="Version">
-    <img src="https://img.shields.io/badge/platform-win%20%7C%20mac-lightgrey?color=green" alt="Platform">
+    <img src="https://img.shields.io/badge/platform-win%20%7C%20mac%20%7C%20linux-lightgrey?color=green" alt="Platform">
   </p>
 
   <p>
@@ -129,20 +129,20 @@
 
 ### 1. 下载
 
-- 前往 [release 页面](https://github.com/bit-admin/Yanhekt-AutoSlides/releases) 👈 下载适用于您的平台的安装程序（macOS 用户请下载 `DMG` 文件；Windows 用户请下载 `EXE` 文件）。
+- 前往 [release 页面](https://github.com/bit-admin/Yanhekt-AutoSlides/releases) 👈 下载适用于您的平台的安装程序（macOS 用户请下载 `DMG` 文件；Windows 用户请下载 `EXE` 文件；Linux 用户请下载 `AppImage` 或 `deb` 文件）。
 
 ### 2. 安装
    - **macOS**：打开 `.dmg` 安装包，将应用图标拖动到 `Applications` 文件夹。
-      - 双击安装包内的 `install.command` 文件，运行安装脚本，此时你会收到“Apple 无法验证安全性“的提示；先关闭这个提示。
+      - 双击安装包内的 `install.command` 文件，运行安装脚本，此时你会收到"Apple 无法验证安全性"的提示；先关闭这个提示。
       - 打开 `系统设置 > 隐私与安全性`，如图所示，点击 `仍要打开`。
       - 在终端中输入你的 Mac 密码（注意密码输入时不会显示）。
 
 <p align="center">
   <img src="docs/dmg.png" alt="AutoSlides DMG 安装包" width="100%">
-</p>   
+</p>
 
 > [!IMPORTANT]
-> - macOS 将下载的应用程序标记为“隔离”以确保安全。
+> - macOS 将下载的应用程序标记为"隔离"以确保安全。
 > - AutoSlides 未使用 Apple 开发者证书签名。
 > - 除了双击 `install.command` ，你也可以手动在终端运行以下命令删除隔离属性允许应用程序正常运行：
 >   ```shell
@@ -151,9 +151,34 @@
 
    - **Windows**：运行 `.exe` 安装程序并按照安装向导操作。
 
+   - **Linux**：
+     - **AppImage**：下载 `.AppImage` 文件，添加执行权限后直接运行：
+       ```bash
+       chmod +x AutoSlides-*.AppImage
+       ./AutoSlides-*.AppImage
+       ```
+     - **Deb 包**（Debian/Ubuntu）：
+       ```bash
+       sudo apt install ./AutoSlides-*.deb
+       ```
+
+> [!NOTE]
+> **Linux 用户注意**：视频下载功能需要 FFmpeg。应用内置了 FFmpeg 二进制文件，但在某些 Linux 发行版（特别是 ARM64 架构）上可能不兼容。如果下载功能出现问题，请安装系统 FFmpeg：
+> ```bash
+> # Debian/Ubuntu
+> sudo apt install ffmpeg
+>
+> # Fedora
+> sudo dnf install ffmpeg
+>
+> # Arch Linux
+> sudo pacman -S ffmpeg
+> ```
+> 应用会自动检测并使用系统安装的 FFmpeg。
+
 ### 3. 检查更新
 
-- 点击 `菜单栏 > AutoSlides > 检查更新...` （Windows上为 `菜单栏 > 帮助 > 检查更新...`）以查看是否发布了新版本。
+- 点击 `菜单栏 > AutoSlides > 检查更新...` （Windows/Linux 上为 `菜单栏 > 帮助 > 检查更新...`）以查看是否发布了新版本。
 - 手动在 [release 页面](https://github.com/bit-admin/Yanhekt-AutoSlides/releases) 下载和安装最新版本。
 
 > [!NOTE]
@@ -164,6 +189,10 @@
 >     rm -rf ~/Library/Application\ Support/AutoSlides
 >     ```
 >   - **Windows**：查找并移除 `C:\Users\<你的用户名>\AppData\Roaming\AutoSlides` 或 `C:\ProgramData\AutoSlides`
+>   - **Linux**：查找并移除 `~/.config/AutoSlides`：
+>     ```bash
+>     rm -rf ~/.config/AutoSlides
+>     ```
 
 ### 4. 使用与设置
 
