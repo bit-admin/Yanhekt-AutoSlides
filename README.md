@@ -50,6 +50,8 @@
 >
 > 推荐使用模型：`gpt-4.1`、`Qwen/Qwen3-VL-235B-A22B-Instruct`、`Qwen/Qwen3-VL-30B-A3B-Instruct` 及 `Qwen/Qwen3-VL-8B-Instruct`。测试中即便使用 LM Studio 本地运行的轻量模型 `qwen3-vl-2b-instruct` 也能取得良好的识别效果。
 
+- 将提取的幻灯片合并为 PDF；压缩图像以减小文件体积。
+
 <p align="center">
   <img src="docs/cover.png" alt="AutoSlides 封面" width="60%">
 </p>

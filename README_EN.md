@@ -50,6 +50,8 @@
 >
 > Recommended models: `gpt-4.1`, `Qwen/Qwen3-VL-235B-A22B-Instruct`, `Qwen/Qwen3-VL-30B-A3B-Instruct`, and `Qwen/Qwen3-VL-8B-Instruct`. Tests show that even the lightweight model `qwen3-vl-2b-instruct` running locally via LM Studio achieves good recognition results.
 
+- Merge the extracted slides into a PDF; compress images to reduce file size.
+
 <p align="center">
   <img src="docs/cover.png" alt="AutoSlides Cover" width="60%">
 </p>
