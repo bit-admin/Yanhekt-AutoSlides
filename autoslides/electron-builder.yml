@@ -93,6 +93,7 @@ linux:
   artifactName: ${productName}-${version}-${arch}.${ext}
   synopsis: Automated slide extraction from video streams
   description: AutoSlides is a desktop application for automated slide extraction from educational video content.
+  maintainer: BIT-admin <info@ruc.edu.kg>
 
 # AppImage configuration
 appImage:

@@ -15,8 +15,10 @@
   },
   "keywords": [],
   "author": {
-    "name": "BIT-admin"
+    "name": "BIT-admin",
+    "email": "info@ruc.edu.kg"
   },
+  "homepage": "https://github.com/bit-admin/Yanhekt-AutoSlides",
   "license": "Apache-2.0",
   "devDependencies": {
     "@electron-forge/cli": "^7.10.2",
