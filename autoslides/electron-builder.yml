@@ -88,7 +88,7 @@ linux:
     - target: deb
       arch:
         - x64
-  icon: resources/img/icon.icns
+  icon: resources/img/icon.png
   category: Education
   artifactName: ${productName}-${version}-${arch}.${ext}
   synopsis: Automated slide extraction from video streams
