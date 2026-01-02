@@ -146,7 +146,9 @@ const createWindow = () => {
   // Trigger auto-check for updates after the window loads
   mainWindow.webContents.once('did-finish-load', () => {
     setTimeout(() => {
-      mainWindow.webContents.send('update:autoCheck');
+      if (!mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update:autoCheck');
+      }
     }, 3000);
   });
 };
