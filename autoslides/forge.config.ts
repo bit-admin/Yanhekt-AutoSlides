@@ -13,7 +13,7 @@ const config: ForgeConfig = {
       unpack: '**/{*.node,sharp/**/*,@img/**/*}'
     },
     name: 'AutoSlides',
-    executableName: 'AutoSlides',
+    executableName: process.platform === 'linux' ? 'autoslides' : 'AutoSlides',
     appBundleId: 'com.bitadmin.autoslides',
     appCategoryType: 'public.app-category.education',
     icon: 'resources/img/icon', // Will use .icns on macOS, .ico on Windows
