@@ -495,7 +495,32 @@
     "openDownloadPage": "다운로드 페이지 열기",
     "cancel": "취소",
     "remindMeLater": "나중에 알림",
-    "skipFor7Days": "7일간 건너뛰기"
+    "skipFor7Days": "7일간 건너뛰기",
+    "updateModal": {
+      "title": "업데이트 가능",
+      "currentVersion": "현재 버전",
+      "releaseNotes": "릴리스 노트",
+      "noReleaseNotes": "릴리스 노트가 없습니다.",
+      "downloadFromGitHub": "GitHub에서 다운로드",
+      "downloadWithProxy": "프록시로 다운로드",
+      "downloading": "다운로드 중...",
+      "cancelDownload": "취소",
+      "downloadComplete": "다운로드 완료!",
+      "downloadFailed": "다운로드 실패",
+      "openDownloadFolder": "폴더 열기",
+      "installUpdate": "업데이트 설치",
+      "close": "닫기",
+      "confirmQuit": "업데이트 설치",
+      "confirmQuitMessage": "AutoSlides를 종료하고 업데이트를 설치하시겠습니까?",
+      "quit": "종료 후 설치",
+      "later": "나중에",
+      "macQuarantineNotice": "일반적으로 필요하지 않지만, 설치 후 앱을 열 수 없으면 터미널에서 실행:",
+      "oldFilesFound": "이전 업데이트 파일 발견",
+      "oldFilesMessage": "다운로드 폴더에서 {count}개의 이전 업데이트 파일이 발견되었습니다. 삭제하시겠습니까?",
+      "deleteOldFiles": "삭제",
+      "keepOldFiles": "유지",
+      "openModal": "업데이트 보기"
+    }
   },
   "tour": {
     "welcome": {

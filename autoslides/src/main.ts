@@ -15,6 +15,7 @@ import { cacheManagementService } from './main/cacheManagementService';
 import { AIPromptsService } from './main/aiPromptsService';
 import { AIFilteringService } from './main/aiFilteringService';
 import { pdfService, PdfMakeOptions, FolderEntry } from './main/pdfService';
+import { updateDownloadService, UpdateDownloadService } from './main/updateDownloadService';
 import type { AIServiceType } from './main/configService';
 
 // Import translation files for main process
@@ -1398,12 +1399,24 @@ ipcMain.handle('update:checkForUpdates', async () => {
 
     const hasUpdate = compareVersions(latestVersion, currentVersion) > 0;
 
+    // Get assets for current platform
+    const platformAssets = updateDownloadService.getAssetsForPlatform(release.assets || []);
+
     return {
       success: true,
       hasUpdate,
       currentVersion,
       latestVersion,
-      releaseUrl: release.html_url
+      releaseUrl: release.html_url,
+      releaseBody: release.body_html || release.body || '',  // Prefer HTML-rendered body
+      publishedAt: release.published_at || '',
+      assets: platformAssets.map((asset: { name: string; browser_download_url: string; size: number }) => ({
+        name: asset.name,
+        url: asset.browser_download_url,
+        size: asset.size,
+        formattedSize: UpdateDownloadService.formatBytes(asset.size),
+        proxyUrl: UpdateDownloadService.getProxyUrl(asset.browser_download_url),
+      })),
     };
   };
 
@@ -1413,7 +1426,7 @@ ipcMain.handle('update:checkForUpdates', async () => {
     method: 'GET',
     headers: {
       'User-Agent': 'AutoSlides',
-      'Accept': 'application/vnd.github.v3+json'
+      'Accept': 'application/vnd.github.html+json'  // Request HTML-rendered body
     }
   };
 
@@ -1423,7 +1436,7 @@ ipcMain.handle('update:checkForUpdates', async () => {
     method: 'GET',
     headers: {
       'User-Agent': 'AutoSlides',
-      'Accept': 'application/vnd.github.v3+json'
+      'Accept': 'application/vnd.github.html+json'  // Request HTML-rendered body
     }
   };
 
@@ -1451,6 +1464,202 @@ ipcMain.handle('update:checkForUpdates', async () => {
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
+});
+
+// ============================================================================
+// Update Download IPC Handlers
+// ============================================================================
+
+// Get release info with HTML-rendered body
+ipcMain.handle('update:getReleaseInfo', async () => {
+  const https = await import('https');
+
+  const fetchReleaseHtml = (options: { hostname: string; path: string; method: string; headers: Record<string, string> }): Promise<{ success: boolean; data?: string; error?: string }> => {
+    return new Promise((resolve) => {
+      const req = https.request(options, (res) => {
+        let data = '';
+
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+
+        res.on('end', () => {
+          if (res.statusCode !== 200) {
+            resolve({ success: false, error: `HTTP ${res.statusCode}` });
+            return;
+          }
+          resolve({ success: true, data });
+        });
+      });
+
+      req.on('error', (error) => {
+        resolve({ success: false, error: error.message });
+      });
+
+      req.setTimeout(10000, () => {
+        req.destroy();
+        resolve({ success: false, error: 'Request timeout' });
+      });
+
+      req.end();
+    });
+  };
+
+  // Fetch release with HTML body
+  const primaryOptions = {
+    hostname: 'api.github.com',
+    path: '/repos/bit-admin/Yanhekt-AutoSlides/releases/latest',
+    method: 'GET',
+    headers: {
+      'User-Agent': 'AutoSlides',
+      'Accept': 'application/vnd.github.html+json'
+    }
+  };
+
+  const fallbackOptions = {
+    hostname: 'gh-proxy.org',
+    path: '/https://api.github.com/repos/bit-admin/Yanhekt-AutoSlides/releases/latest',
+    method: 'GET',
+    headers: {
+      'User-Agent': 'AutoSlides',
+      'Accept': 'application/vnd.github.html+json'
+    }
+  };
+
+  try {
+    let result = await fetchReleaseHtml(primaryOptions);
+    if (!result.success || !result.data) {
+      result = await fetchReleaseHtml(fallbackOptions);
+    }
+
+    if (result.success && result.data) {
+      const release = JSON.parse(result.data);
+      const platformAssets = updateDownloadService.getAssetsForPlatform(release.assets || []);
+
+      return {
+        success: true,
+        tagName: release.tag_name,
+        name: release.name,
+        body: release.body || '',
+        bodyHtml: release.body_html || '',
+        htmlUrl: release.html_url,
+        publishedAt: release.published_at,
+        assets: platformAssets.map((asset: { name: string; browser_download_url: string; size: number }) => ({
+          name: asset.name,
+          url: asset.browser_download_url,
+          size: asset.size,
+          formattedSize: UpdateDownloadService.formatBytes(asset.size),
+          proxyUrl: UpdateDownloadService.getProxyUrl(asset.browser_download_url),
+        })),
+      };
+    }
+
+    return { success: false, error: result.error || 'Unknown error' };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+// Download update file
+ipcMain.handle('update:downloadUpdate', async (event, url: string, filename: string) => {
+  try {
+    const progressCallback = (progress: { downloaded: number; total: number; percent: number }) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('update:downloadProgress', progress);
+      }
+    };
+
+    const filePath = await updateDownloadService.downloadUpdate(url, filename, progressCallback);
+
+    if (!event.sender.isDestroyed()) {
+      event.sender.send('update:downloadComplete', filename);
+    }
+
+    return { success: true, filePath };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (!event.sender.isDestroyed()) {
+      event.sender.send('update:downloadError', errorMessage);
+    }
+    return { success: false, error: errorMessage };
+  }
+});
+
+// Cancel active download
+ipcMain.handle('update:cancelDownload', async () => {
+  const cancelled = updateDownloadService.cancelDownload();
+  return { success: cancelled };
+});
+
+// Open updates folder
+ipcMain.handle('update:openDownloadFolder', async () => {
+  try {
+    await updateDownloadService.openUpdatesFolder();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+// Get updates folder path
+ipcMain.handle('update:getDownloadFolder', async () => {
+  return { success: true, path: updateDownloadService.getUpdatesPath() };
+});
+
+// Install update (open installer file)
+ipcMain.handle('update:installUpdate', async (event, filename: string) => {
+  try {
+    const filePath = await updateDownloadService.installUpdate(filename);
+
+    // For macOS and Windows, prompt user to quit
+    const platform = process.platform;
+    if (platform === 'darwin' || platform === 'win32') {
+      // Send signal to renderer to show quit dialog
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('update:promptQuit', filename);
+      }
+    }
+
+    return { success: true, filePath };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+// List downloaded update files
+ipcMain.handle('update:listDownloadedUpdates', async () => {
+  try {
+    const updates = updateDownloadService.listDownloadedUpdates();
+    return { success: true, updates };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+// Delete old update files
+ipcMain.handle('update:deleteOldUpdates', async (_event, filenames: string[]) => {
+  try {
+    const result = await updateDownloadService.deleteUpdates(filenames);
+    return result;
+  } catch (error) {
+    return { success: false, errors: [error instanceof Error ? error.message : 'Unknown error'] };
+  }
+});
+
+// Find old updates (not matching current version)
+ipcMain.handle('update:findOldUpdates', async () => {
+  try {
+    const currentVersion = app.getVersion();
+    const oldFiles = updateDownloadService.findOldUpdates(currentVersion);
+    return { success: true, files: oldFiles, currentVersion };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+// Check if download is in progress
+ipcMain.handle('update:isDownloading', async () => {
+  return { isDownloading: updateDownloadService.isDownloading() };
 });
 
 // In this file you can include the rest of your app's specific main process

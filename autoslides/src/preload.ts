@@ -219,10 +219,54 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
   update: {
+    // Existing
     checkForUpdates: () => ipcRenderer.invoke('update:checkForUpdates'),
     onCheckForUpdates: (callback: () => void) =>
       ipcRenderer.on('menu:checkForUpdates', () => callback()),
     onAutoCheckForUpdates: (callback: () => void) =>
       ipcRenderer.on('update:autoCheck', () => callback()),
+
+    // New - Release info with HTML body
+    getReleaseInfo: () => ipcRenderer.invoke('update:getReleaseInfo'),
+
+    // Download operations
+    downloadUpdate: (url: string, filename: string) =>
+      ipcRenderer.invoke('update:downloadUpdate', url, filename),
+    cancelDownload: () => ipcRenderer.invoke('update:cancelDownload'),
+    isDownloading: () => ipcRenderer.invoke('update:isDownloading'),
+
+    // Download event listeners
+    onDownloadProgress: (callback: (progress: { downloaded: number; total: number; percent: number }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, progress: { downloaded: number; total: number; percent: number }) => callback(progress);
+      ipcRenderer.on('update:downloadProgress', handler);
+      return () => ipcRenderer.removeListener('update:downloadProgress', handler);
+    },
+    onDownloadComplete: (callback: (filename: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, filename: string) => callback(filename);
+      ipcRenderer.on('update:downloadComplete', handler);
+      return () => ipcRenderer.removeListener('update:downloadComplete', handler);
+    },
+    onDownloadError: (callback: (error: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, error: string) => callback(error);
+      ipcRenderer.on('update:downloadError', handler);
+      return () => ipcRenderer.removeListener('update:downloadError', handler);
+    },
+    onPromptQuit: (callback: (filename: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, filename: string) => callback(filename);
+      ipcRenderer.on('update:promptQuit', handler);
+      return () => ipcRenderer.removeListener('update:promptQuit', handler);
+    },
+
+    // Folder operations
+    openDownloadFolder: () => ipcRenderer.invoke('update:openDownloadFolder'),
+    getDownloadFolder: () => ipcRenderer.invoke('update:getDownloadFolder'),
+
+    // Install
+    installUpdate: (filename: string) => ipcRenderer.invoke('update:installUpdate', filename),
+
+    // Cleanup old files
+    listDownloadedUpdates: () => ipcRenderer.invoke('update:listDownloadedUpdates'),
+    findOldUpdates: () => ipcRenderer.invoke('update:findOldUpdates'),
+    deleteOldUpdates: (filenames: string[]) => ipcRenderer.invoke('update:deleteOldUpdates', filenames),
   },
 });

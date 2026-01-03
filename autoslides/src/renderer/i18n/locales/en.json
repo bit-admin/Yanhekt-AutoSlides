@@ -495,7 +495,32 @@
     "openDownloadPage": "Open Download Page",
     "cancel": "Cancel",
     "remindMeLater": "Remind Me Later",
-    "skipFor7Days": "Skip for 7 Days"
+    "skipFor7Days": "Skip for 7 Days",
+    "updateModal": {
+      "title": "Update Available",
+      "currentVersion": "Current version",
+      "releaseNotes": "Release Notes",
+      "noReleaseNotes": "No release notes available.",
+      "downloadFromGitHub": "Download from GitHub",
+      "downloadWithProxy": "Download with Proxy",
+      "downloading": "Downloading...",
+      "cancelDownload": "Cancel",
+      "downloadComplete": "Download complete!",
+      "downloadFailed": "Download Failed",
+      "openDownloadFolder": "Open Folder",
+      "installUpdate": "Install Update",
+      "close": "Close",
+      "confirmQuit": "Install Update",
+      "confirmQuitMessage": "Do you want to quit AutoSlides to install the update?",
+      "quit": "Quit and Install",
+      "later": "Later",
+      "macQuarantineNotice": "Typically not required for downloads via the updater. But if the app won't launch after installing, run this in Terminal:",
+      "oldFilesFound": "Old Update Files Found",
+      "oldFilesMessage": "Found {count} old update file(s) in the downloads folder. Would you like to delete them?",
+      "deleteOldFiles": "Delete",
+      "keepOldFiles": "Keep",
+      "openModal": "View Update"
+    }
   },
   "tour": {
     "welcome": {

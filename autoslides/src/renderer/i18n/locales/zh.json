@@ -495,7 +495,32 @@
     "openDownloadPage": "打开下载页面",
     "cancel": "取消",
     "remindMeLater": "稍后提醒",
-    "skipFor7Days": "7天内不再提醒"
+    "skipFor7Days": "7天内不再提醒",
+    "updateModal": {
+      "title": "发现新版本",
+      "currentVersion": "当前版本",
+      "releaseNotes": "更新日志",
+      "noReleaseNotes": "暂无更新日志。",
+      "downloadFromGitHub": "从 GitHub 下载",
+      "downloadWithProxy": "通过代理下载",
+      "downloading": "正在下载...",
+      "cancelDownload": "取消",
+      "downloadComplete": "下载完成！",
+      "downloadFailed": "下载失败",
+      "openDownloadFolder": "打开文件夹",
+      "installUpdate": "安装更新",
+      "close": "关闭",
+      "confirmQuit": "安装更新",
+      "confirmQuitMessage": "是否退出 AutoSlides 以安装更新？",
+      "quit": "退出并安装",
+      "later": "稍后",
+      "macQuarantineNotice": "通常通过应用内更新下载时不需要此步骤，但如果安装后无法打开应用，请在终端中运行：",
+      "oldFilesFound": "发现旧的更新文件",
+      "oldFilesMessage": "下载文件夹中发现 {count} 个旧的更新文件。是否删除？",
+      "deleteOldFiles": "删除",
+      "keepOldFiles": "保留",
+      "openModal": "查看更新"
+    }
   },
   "tour": {
     "welcome": {

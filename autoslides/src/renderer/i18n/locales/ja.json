@@ -495,7 +495,32 @@
     "openDownloadPage": "ダウンロードページを開く",
     "cancel": "キャンセル",
     "remindMeLater": "後で通知",
-    "skipFor7Days": "7日間スキップ"
+    "skipFor7Days": "7日間スキップ",
+    "updateModal": {
+      "title": "アップデートがあります",
+      "currentVersion": "現在のバージョン",
+      "releaseNotes": "リリースノート",
+      "noReleaseNotes": "リリースノートはありません。",
+      "downloadFromGitHub": "GitHubからダウンロード",
+      "downloadWithProxy": "プロキシでダウンロード",
+      "downloading": "ダウンロード中...",
+      "cancelDownload": "キャンセル",
+      "downloadComplete": "ダウンロード完了！",
+      "downloadFailed": "ダウンロード失敗",
+      "openDownloadFolder": "フォルダを開く",
+      "installUpdate": "アップデートをインストール",
+      "close": "閉じる",
+      "confirmQuit": "アップデートをインストール",
+      "confirmQuitMessage": "AutoSlidesを終了してアップデートをインストールしますか？",
+      "quit": "終了してインストール",
+      "later": "後で",
+      "macQuarantineNotice": "通常は不要ですが、インストール後にアプリを開けない場合は、ターミナルで実行：",
+      "oldFilesFound": "古いアップデートファイルが見つかりました",
+      "oldFilesMessage": "ダウンロードフォルダに{count}個の古いアップデートファイルが見つかりました。削除しますか？",
+      "deleteOldFiles": "削除",
+      "keepOldFiles": "残す",
+      "openModal": "アップデートを見る"
+    }
   },
   "tour": {
     "welcome": {
