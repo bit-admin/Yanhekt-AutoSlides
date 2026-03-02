@@ -41,6 +41,10 @@
     "vite": "^7.2.6",
     "vue-tsc": "3.1.5"
   },
+  "overrides": {
+    "serialize-javascript": "^7.0.3",
+    "tar": "^7.5.9"
+  },
   "dependencies": {
     "@types/pdfkit": "^0.17.4",
     "axios": "^1.13.2",
