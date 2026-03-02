@@ -14,6 +14,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     selectOutputDirectory: () => ipcRenderer.invoke('config:selectOutputDirectory'),
     setConnectionMode: (mode: 'internal' | 'external') => ipcRenderer.invoke('config:setConnectionMode', mode),
     setMaxConcurrentDownloads: (count: number) => ipcRenderer.invoke('config:setMaxConcurrentDownloads', count),
+    setDownloadMaxWorkers: (count: number) => ipcRenderer.invoke('config:setDownloadMaxWorkers', count),
+    setDownloadNumRetries: (count: number) => ipcRenderer.invoke('config:setDownloadNumRetries', count),
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => ipcRenderer.invoke('config:setMuteMode', mode),
     setVideoRetryCount: (count: number) => ipcRenderer.invoke('config:setVideoRetryCount', count),
     setTaskSpeed: (speed: number) => ipcRenderer.invoke('config:setTaskSpeed', speed),

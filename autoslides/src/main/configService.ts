@@ -63,6 +63,8 @@ export interface AppConfig {
   intranetMode?: boolean;
   intranetMappings?: Record<string, string>;
   maxConcurrentDownloads: number;
+  downloadMaxWorkers: number;
+  downloadNumRetries: number;
   muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
   videoRetryCount: number;
   taskSpeed: number;
@@ -153,6 +155,8 @@ const defaultConfig: AppConfig = {
   outputDirectory: path.join(os.homedir(), 'Downloads', 'AutoSlides'),
   connectionMode: 'external',
   maxConcurrentDownloads: 5,
+  downloadMaxWorkers: 32,
+  downloadNumRetries: 15,
   muteMode: 'normal',
   videoRetryCount: 5,
   taskSpeed: 10,
@@ -187,6 +191,8 @@ export class ConfigService {
       outputDirectory: this.store.get('outputDirectory'),
       connectionMode: this.store.get('connectionMode'),
       maxConcurrentDownloads: this.store.get('maxConcurrentDownloads'),
+      downloadMaxWorkers: this.store.get('downloadMaxWorkers'),
+      downloadNumRetries: this.store.get('downloadNumRetries'),
       muteMode: this.store.get('muteMode'),
       videoRetryCount: this.store.get('videoRetryCount'),
       taskSpeed: this.store.get('taskSpeed'),
@@ -214,6 +220,16 @@ export class ConfigService {
   setMaxConcurrentDownloads(count: number): void {
     const validCount = Math.max(1, Math.min(10, count));
     this.store.set('maxConcurrentDownloads', validCount);
+  }
+
+  setDownloadMaxWorkers(count: number): void {
+    const validCount = Math.max(1, Math.min(32, count));
+    this.store.set('downloadMaxWorkers', validCount);
+  }
+
+  setDownloadNumRetries(count: number): void {
+    const validCount = Math.max(1, Math.min(30, count));
+    this.store.set('downloadNumRetries', validCount);
   }
 
   setMuteMode(mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'): void {

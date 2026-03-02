@@ -25,6 +25,8 @@ export interface UseSettingsReturn {
   // Other settings
   preventSystemSleep: Ref<boolean>
   maxConcurrentDownloads: Ref<number>
+  downloadMaxWorkers: Ref<number>
+  downloadNumRetries: Ref<number>
   videoRetryCount: Ref<number>
   themeMode: Ref<'system' | 'light' | 'dark'>
   languageMode: Ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>
@@ -75,6 +77,8 @@ export function useSettings(): UseSettingsReturn {
   // Other settings
   const preventSystemSleep = ref(true)
   const maxConcurrentDownloads = ref(5)
+  const downloadMaxWorkers = ref(32)
+  const downloadNumRetries = ref(15)
   const videoRetryCount = ref(5)
   const themeMode = ref<'system' | 'light' | 'dark'>('system')
   const languageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
@@ -167,6 +171,8 @@ export function useSettings(): UseSettingsReturn {
       muteMode.value = config.muteMode || 'normal'
       maxConcurrentDownloads.value = config.maxConcurrentDownloads || 5
       DownloadService.setMaxConcurrent(maxConcurrentDownloads.value)
+      downloadMaxWorkers.value = config.downloadMaxWorkers || 32
+      downloadNumRetries.value = config.downloadNumRetries || 15
       videoRetryCount.value = config.videoRetryCount || 5
 
       // Load slide extraction configuration
@@ -349,6 +355,8 @@ export function useSettings(): UseSettingsReturn {
     // Other settings
     preventSystemSleep,
     maxConcurrentDownloads,
+    downloadMaxWorkers,
+    downloadNumRetries,
     videoRetryCount,
     themeMode,
     languageMode,

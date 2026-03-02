@@ -717,6 +717,27 @@
                   <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
                 </select>
               </div>
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.downloadMaxWorkers') }}</label>
+                <div class="setting-description">{{ $t('advanced.downloadMaxWorkersDescription') }}</div>
+                <select
+                  v-model="tempDownloadMaxWorkers"
+                  class="concurrent-select"
+                  @change="updateDownloadMaxWorkers"
+                >
+                  <option v-for="v in [1, 2, 4, 8, 16, 32]" :key="v" :value="v">{{ v }}</option>
+                </select>
+              </div>
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.downloadNumRetries') }}</label>
+                <select
+                  v-model="tempDownloadNumRetries"
+                  class="concurrent-select"
+                  @change="updateDownloadNumRetries"
+                >
+                  <option v-for="v in [5, 10, 15, 20, 30]" :key="v" :value="v">{{ v }}</option>
+                </select>
+              </div>
             </div>
             </div>
 
@@ -1156,6 +1177,8 @@ const aiSettings = useAISettings({
 const advancedSettings = useAdvancedSettings(
   {
     maxConcurrentDownloads: settings.maxConcurrentDownloads,
+    downloadMaxWorkers: settings.downloadMaxWorkers,
+    downloadNumRetries: settings.downloadNumRetries,
     videoRetryCount: settings.videoRetryCount,
     themeMode: settings.themeMode,
     languageMode: settings.languageMode,
@@ -1248,6 +1271,8 @@ const {
   activeAdvancedTab,
   advancedSettingsTabs,
   tempMaxConcurrentDownloads,
+  tempDownloadMaxWorkers,
+  tempDownloadNumRetries,
   tempVideoRetryCount,
   tempThemeMode,
   tempLanguageMode,
@@ -1286,6 +1311,8 @@ const {
   toggleMappingExpanded,
   getStrategyDisplayName,
   updateMaxConcurrentDownloads,
+  updateDownloadMaxWorkers,
+  updateDownloadNumRetries,
   updateVideoRetryCount
 } = advancedSettings
 

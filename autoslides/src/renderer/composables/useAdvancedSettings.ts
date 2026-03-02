@@ -23,6 +23,8 @@ export interface IntranetMapping {
 export interface UseAdvancedSettingsOptions {
   // From useSettings - we need these refs to sync values
   maxConcurrentDownloads: Ref<number>
+  downloadMaxWorkers: Ref<number>
+  downloadNumRetries: Ref<number>
   videoRetryCount: Ref<number>
   themeMode: Ref<'system' | 'light' | 'dark'>
   languageMode: Ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>
@@ -39,6 +41,8 @@ export interface UseAdvancedSettingsReturn {
 
   // Temp values for modal
   tempMaxConcurrentDownloads: Ref<number>
+  tempDownloadMaxWorkers: Ref<number>
+  tempDownloadNumRetries: Ref<number>
   tempVideoRetryCount: Ref<number>
   tempThemeMode: Ref<'system' | 'light' | 'dark'>
   tempLanguageMode: Ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>
@@ -91,6 +95,8 @@ export interface UseAdvancedSettingsReturn {
   toggleMappingExpanded: (domain: string) => void
   getStrategyDisplayName: (strategy?: string) => string
   updateMaxConcurrentDownloads: () => void
+  updateDownloadMaxWorkers: () => void
+  updateDownloadNumRetries: () => void
   updateVideoRetryCount: () => void
 
   // For programmatic updates
@@ -105,6 +111,8 @@ export function useAdvancedSettings(
 ): UseAdvancedSettingsReturn {
   const {
     maxConcurrentDownloads,
+    downloadMaxWorkers,
+    downloadNumRetries,
     videoRetryCount,
     themeMode,
     languageMode,
@@ -125,6 +133,8 @@ export function useAdvancedSettings(
 
   // Temp values
   const tempMaxConcurrentDownloads = ref(5)
+  const tempDownloadMaxWorkers = ref(32)
+  const tempDownloadNumRetries = ref(15)
   const tempVideoRetryCount = ref(5)
   const tempThemeMode = ref<'system' | 'light' | 'dark'>('system')
   const tempLanguageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
@@ -214,6 +224,8 @@ export function useAdvancedSettings(
   // Open modal
   const openAdvancedSettings = async () => {
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
+    tempDownloadMaxWorkers.value = downloadMaxWorkers.value
+    tempDownloadNumRetries.value = downloadNumRetries.value
     tempVideoRetryCount.value = videoRetryCount.value
     tempThemeMode.value = themeMode.value
     tempLanguageMode.value = languageMode.value
@@ -243,6 +255,8 @@ export function useAdvancedSettings(
   // Close modal
   const closeAdvancedSettings = () => {
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
+    tempDownloadMaxWorkers.value = downloadMaxWorkers.value
+    tempDownloadNumRetries.value = downloadNumRetries.value
     tempVideoRetryCount.value = videoRetryCount.value
     tempSsimThreshold.value = ssimThreshold.value
     tempPHashThreshold.value = pHashThreshold.value
@@ -265,6 +279,14 @@ export function useAdvancedSettings(
       // Save concurrent downloads
       const downloadResult = await window.electronAPI.config.setMaxConcurrentDownloads(tempMaxConcurrentDownloads.value)
       maxConcurrentDownloads.value = downloadResult.maxConcurrentDownloads
+
+      // Save download max workers
+      const workersResult = await window.electronAPI.config.setDownloadMaxWorkers(tempDownloadMaxWorkers.value)
+      downloadMaxWorkers.value = workersResult.downloadMaxWorkers
+
+      // Save download num retries
+      const retriesResult = await window.electronAPI.config.setDownloadNumRetries(tempDownloadNumRetries.value)
+      downloadNumRetries.value = retriesResult.downloadNumRetries
 
       // Save video retry count
       const retryResult = await window.electronAPI.config.setVideoRetryCount(tempVideoRetryCount.value)
@@ -428,6 +450,14 @@ export function useAdvancedSettings(
     // Placeholder - actual save happens in saveAdvancedSettings
   }
 
+  const updateDownloadMaxWorkers = () => {
+    // Placeholder - actual save happens in saveAdvancedSettings
+  }
+
+  const updateDownloadNumRetries = () => {
+    // Placeholder - actual save happens in saveAdvancedSettings
+  }
+
   const updateVideoRetryCount = () => {
     // Placeholder - actual save happens in saveAdvancedSettings
   }
@@ -440,6 +470,8 @@ export function useAdvancedSettings(
 
     // Temp values
     tempMaxConcurrentDownloads,
+    tempDownloadMaxWorkers,
+    tempDownloadNumRetries,
     tempVideoRetryCount,
     tempThemeMode,
     tempLanguageMode,
@@ -492,6 +524,8 @@ export function useAdvancedSettings(
     toggleMappingExpanded,
     getStrategyDisplayName,
     updateMaxConcurrentDownloads,
+    updateDownloadMaxWorkers,
+    updateDownloadNumRetries,
     updateVideoRetryCount,
 
     // For programmatic updates

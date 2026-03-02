@@ -18,6 +18,8 @@ interface AppConfig {
   outputDirectory: string;
   connectionMode: 'internal' | 'external';
   maxConcurrentDownloads: number;
+  downloadMaxWorkers: number;
+  downloadNumRetries: number;
   muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
   videoRetryCount: number;
   taskSpeed: number;
@@ -342,6 +344,8 @@ interface ElectronAPI {
     selectOutputDirectory: () => Promise<AppConfig | null>;
     setConnectionMode: (mode: 'internal' | 'external') => Promise<AppConfig>;
     setMaxConcurrentDownloads: (count: number) => Promise<AppConfig>;
+    setDownloadMaxWorkers: (count: number) => Promise<AppConfig>;
+    setDownloadNumRetries: (count: number) => Promise<AppConfig>;
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<AppConfig>;
     setVideoRetryCount: (count: number) => Promise<AppConfig>;
     setTaskSpeed: (speed: number) => Promise<AppConfig>;

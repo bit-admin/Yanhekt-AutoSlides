@@ -275,6 +275,16 @@ ipcMain.handle('config:setMaxConcurrentDownloads', async (event, count: number) 
   return configService.getConfig();
 });
 
+ipcMain.handle('config:setDownloadMaxWorkers', async (event, count: number) => {
+  configService.setDownloadMaxWorkers(count);
+  return configService.getConfig();
+});
+
+ipcMain.handle('config:setDownloadNumRetries', async (event, count: number) => {
+  configService.setDownloadNumRetries(count);
+  return configService.getConfig();
+});
+
 ipcMain.handle('config:setMuteMode', async (event, mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => {
   configService.setMuteMode(mode);
   return configService.getConfig();

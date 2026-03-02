@@ -55,7 +55,9 @@ export class M3u8DownloadService {
       this.ffmpegService,
       this.intranetMapping,
       this.apiClient,
-      loginToken
+      loginToken,
+      this.configService.getConfig().downloadMaxWorkers,
+      this.configService.getConfig().downloadNumRetries
     );
 
     this.activeDownloads.set(downloadId, downloader);
@@ -99,8 +101,8 @@ class M3u8Downloader {
   private tsSum = 0;
   private isRunning = false;
   private shouldStop = false;
-  private maxWorkers = 32;
-  private numRetries = 99;
+  private maxWorkers: number;
+  private numRetries: number;
   private ffmpegProcess: any = null;
 
 
@@ -131,7 +133,9 @@ class M3u8Downloader {
     ffmpegService: FFmpegService,
     intranetMapping: IntranetMappingService,
     apiClient: ApiClient,
-    loginToken: string
+    loginToken: string,
+    maxWorkers: number,
+    numRetries: number
   ) {
     this.url = url;
     this.outputDir = outputDir;
@@ -142,6 +146,8 @@ class M3u8Downloader {
     this.intranetMapping = intranetMapping;
     this.apiClient = apiClient;
     this.loginToken = loginToken;
+    this.maxWorkers = maxWorkers;
+    this.numRetries = numRetries;
 
     this.workDir = path.join(outputDir, name);
     this.filePath = path.join(outputDir, name);
