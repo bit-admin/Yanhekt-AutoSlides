@@ -59,6 +59,9 @@ export class VideoProxyService {
   private proxyServer: http.Server | null = null;
   private proxyPort = 0;
   private loginToken: string | null = null;
+  private httpAgent = new http.Agent({ keepAlive: true });
+  private httpsAgent = new https.Agent({ keepAlive: true });
+  private httpsAgentNoVerify = new https.Agent({ keepAlive: true, rejectUnauthorized: false });
   private tokenCache: TokenCache = {
     videoToken: null,
     timestamp: null,
@@ -358,17 +361,12 @@ export class VideoProxyService {
         const axiosConfig: AxiosRequestConfig = {
           headers: liveHeaders,
           timeout: this.intranetMapping.isEnabled() ? 8000 : 30000, // 8s for intranet, 30s for external
+          httpAgent: this.httpAgent,
+          httpsAgent: this.intranetMapping.isEnabled() ? this.httpsAgentNoVerify : this.httpsAgent,
           validateStatus: function (status: number) {
             return status < 500; // Accept all status codes below 500
           }
         };
-
-        // Add HTTPS agent for intranet mode if needed
-        if (this.intranetMapping.isEnabled()) {
-          axiosConfig.httpsAgent = new https.Agent({
-            rejectUnauthorized: false
-          });
-        }
 
         // Proxy the request
         const response = await axios.get(requestUrl, axiosConfig);
@@ -493,17 +491,12 @@ export class VideoProxyService {
     const axiosConfig: any = {
       headers: videoHeaders,
       timeout: 30000,
+      httpAgent: this.httpAgent,
+      httpsAgent: this.intranetMapping.isEnabled() ? this.httpsAgentNoVerify : this.httpsAgent,
       validateStatus: function (status: number) {
         return status < 500; // Accept all status codes below 500
       }
     };
-
-    // Add HTTPS agent for intranet mode if needed
-    if (this.intranetMapping.isEnabled()) {
-      axiosConfig.httpsAgent = new https.Agent({
-        rejectUnauthorized: false
-      });
-    }
 
     // Proxy the request with retry logic for 403 errors
     let retryCount = 0;
@@ -707,17 +700,12 @@ export class VideoProxyService {
       headers: videoHeaders,
       responseType: 'stream',
       timeout: 30000,
+      httpAgent: this.httpAgent,
+      httpsAgent: this.intranetMapping.isEnabled() ? this.httpsAgentNoVerify : this.httpsAgent,
       validateStatus: function (status: number) {
         return status < 500; // Accept all status codes below 500
       }
     };
-
-    // Add HTTPS agent for intranet mode if needed
-    if (this.intranetMapping.isEnabled()) {
-      axiosConfig.httpsAgent = new https.Agent({
-        rejectUnauthorized: false
-      });
-    }
 
     // Proxy the request with retry logic for 403 errors
     let retryCount = 0;
@@ -1015,6 +1003,11 @@ export class VideoProxyService {
       this.proxyPort = 0;
       console.log('Video proxy server stopped');
     }
+
+    // Destroy keep-alive agents to close idle sockets
+    this.httpAgent.destroy();
+    this.httpsAgent.destroy();
+    this.httpsAgentNoVerify.destroy();
 
     // Clear all active clients
     this.activeClients.clear();

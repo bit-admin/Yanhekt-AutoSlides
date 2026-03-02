@@ -1,5 +1,7 @@
 import fs from 'fs';
 import path from 'path';
+import http from 'http';
+import https from 'https';
 import axios from 'axios';
 import crypto from 'crypto';
 import { spawn } from 'child_process';
@@ -112,6 +114,9 @@ class M3u8Downloader {
     "Authorization": ""
   };
 
+  private httpAgent = new http.Agent({ keepAlive: true });
+  private httpsAgent = new https.Agent({ keepAlive: true });
+
   private token: string | null = null;
   private signature: string | null = null;
   private timestamp: string | null = null;
@@ -201,6 +206,10 @@ class M3u8Downloader {
       this.signatureInterval = null;
     }
 
+    // Destroy keep-alive agents to close idle sockets
+    this.httpAgent.destroy();
+    this.httpsAgent.destroy();
+
     // Force kill FFmpeg process if it's running
     if (this.ffmpegProcess) {
       console.log(`Force killing FFmpeg process for: ${this.name}`);
@@ -263,7 +272,9 @@ class M3u8Downloader {
 
   private createAxiosInstance() {
     const instance = axios.create({
-      timeout: 30000
+      timeout: 30000,
+      httpAgent: this.httpAgent,
+      httpsAgent: this.httpsAgent
     });
 
     if (this.isIntranetMode) {
