@@ -256,7 +256,22 @@
       "promptRecordedDescription": "Processes multiple images in batch. Expected response:",
       "promptPlaceholder": "Enter the AI prompt...",
       "resetPrompt": "Reset to Default",
-      "builtinDisclaimer": "This service is provided by the developer free of charge and on an \"as is\" basis. We make no warranties, express or implied, regarding the continuity or stability of the service, and we may modify or interrupt the service at any time without prior notice. The user agrees to use the service in a reasonable, fair, and non-commercial manner."
+      "builtinDisclaimer": "This service is provided by the developer free of charge and on an \"as is\" basis. We make no warranties, express or implied, regarding the continuity or stability of the service, and we may modify or interrupt the service at any time without prior notice. The user agrees to use the service in a reasonable, fair, and non-commercial manner.",
+      "copilot": "GitHub Copilot",
+      "copilotAuth": "Verify",
+      "copilotSignInWithGitHub": "Sign in with GitHub",
+      "copilotTokenPlaceholder": "Paste gho_ token...",
+      "copilotEnterCode": "Enter this code on GitHub:",
+      "copilotClickToCopy": "Click to copy",
+      "copilotCopied": "Copied!",
+      "copilotCancel": "Cancel",
+      "copilotWaitingForAuth": "Waiting for authorization...",
+      "copilotDisconnect": "Disconnect",
+      "copilotModelPlaceholder": "e.g. gpt-4.1",
+      "copilotInvalidToken": "Invalid token. Please check and try again.",
+      "copilotDeviceCodeExpired": "Device code expired. Please try again.",
+      "copilotAccessDenied": "Access denied. Please try again.",
+      "rateLimitCopilotHint": "GitHub Copilot has its own rate limits. Recommended: Max Concurrent 1, Min Time 6000ms."
     }
   },
   "courses": {

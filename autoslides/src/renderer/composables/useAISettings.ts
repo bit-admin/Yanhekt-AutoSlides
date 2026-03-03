@@ -1,7 +1,9 @@
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import type { TokenManager } from '../services/authService'
 
-export type AIServiceType = 'builtin' | 'custom'
+export type AIServiceType = 'builtin' | 'custom' | 'copilot'
+
+export type CopilotOAuthStep = 'idle' | 'waiting' | 'polling' | 'success' | 'error'
 
 export interface ApiUrlPreset {
   label: string
@@ -37,6 +39,20 @@ export interface UseAISettingsReturn {
   aiCustomModelName: Ref<string>
   tempAiCustomModelName: Ref<string>
   showApiKey: Ref<boolean>
+
+  // Copilot settings
+  copilotGhoToken: Ref<string>
+  tempCopilotGhoToken: Ref<string>
+  copilotModelName: Ref<string>
+  tempCopilotModelName: Ref<string>
+  copilotUsername: Ref<string>
+  copilotAvatarUrl: Ref<string>
+  showCopilotToken: Ref<boolean>
+  copilotOAuthStep: Ref<CopilotOAuthStep>
+  copilotUserCode: Ref<string>
+  copilotVerificationUri: Ref<string>
+  copilotOAuthError: Ref<string>
+  isCopilotLoading: Ref<boolean>
 
   // Rate limit and batch size
   aiRateLimit: Ref<number>
@@ -75,6 +91,8 @@ export interface UseAISettingsReturn {
   modelPresets: ModelPreset[]
   selectedApiUrlPreset: Ref<string>
   selectedModelPreset: Ref<string>
+  copilotModelPresets: ModelPreset[]
+  selectedCopilotModelPreset: Ref<string>
 
   // Methods
   loadAISettings: () => Promise<void>
@@ -82,11 +100,16 @@ export interface UseAISettingsReturn {
   refreshBuiltinModel: () => Promise<void>
   onApiUrlPresetChange: () => void
   onModelPresetChange: () => void
+  onCopilotModelPresetChange: () => void
   onImageResizePresetChange: () => void
   resetAiPrompt: (type: 'live' | 'recorded') => Promise<void>
   updateAiBatchSize: () => void
   openCustomServiceDocs: () => Promise<void>
   resetTempValues: () => void
+  startCopilotOAuth: () => Promise<void>
+  validateCopilotToken: (token: string) => Promise<boolean>
+  cancelCopilotOAuth: () => void
+  disconnectCopilot: () => Promise<void>
 }
 
 export function useAISettings(options: UseAISettingsOptions): UseAISettingsReturn {
@@ -104,6 +127,21 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
   const aiCustomModelName = ref('')
   const tempAiCustomModelName = ref('')
   const showApiKey = ref(false)
+
+  // Copilot settings
+  const copilotGhoToken = ref('')
+  const tempCopilotGhoToken = ref('')
+  const copilotModelName = ref('gpt-4.1')
+  const tempCopilotModelName = ref('gpt-4.1')
+  const copilotUsername = ref('')
+  const copilotAvatarUrl = ref('')
+  const showCopilotToken = ref(false)
+  const copilotOAuthStep = ref<CopilotOAuthStep>('idle')
+  const copilotUserCode = ref('')
+  const copilotVerificationUri = ref('')
+  const copilotOAuthError = ref('')
+  let copilotOAuthCancelled = false
+  const isCopilotLoading = ref(false)
 
   // Rate limit and batch size
   const aiRateLimit = ref(10)
@@ -151,19 +189,26 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
   // Presets
   const apiUrlPresets: ApiUrlPreset[] = [
     { label: 'ModelScope', url: 'https://api-inference.modelscope.cn/v1' },
-    { label: 'GitHub Copilot', url: 'https://api.githubcopilot.com' },
     { label: 'LM Studio (Local)', url: 'http://localhost:1234/v1' }
   ]
 
   const modelPresets: ModelPreset[] = [
     { label: 'Qwen3-VL-235B', name: 'Qwen/Qwen3-VL-235B-A22B-Instruct' },
     { label: 'Qwen3-VL-30B', name: 'Qwen/Qwen3-VL-30B-A3B-Instruct' },
-    { label: 'Qwen3-VL-8B', name: 'Qwen/Qwen3-VL-8B-Instruct' },
-    { label: 'GPT-4.1', name: 'gpt-4.1' }
+    { label: 'Qwen3-VL-8B', name: 'Qwen/Qwen3-VL-8B-Instruct' }
+  ]
+
+  const copilotModelPresets: ModelPreset[] = [
+    { label: 'GPT-4.1', name: 'gpt-4.1' },
+    { label: 'GPT-5-mini', name: 'gpt-5-mini' },
+    { label: 'Claude Haiku 4.5', name: 'claude-haiku-4.5' },
+    { label: 'Gemini 3 Flash Preview', name: 'gemini-3-flash-preview' },
+    { label: 'GPT-5.1-codex-mini', name: 'gpt-5.1-codex-mini' }
   ]
 
   const selectedApiUrlPreset = ref('')
   const selectedModelPreset = ref('')
+  const selectedCopilotModelPreset = ref('')
 
   // Load AI settings
   const loadAISettings = async () => {
@@ -200,6 +245,30 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
           p => p.width === aiImageResizeWidth.value && p.height === aiImageResizeHeight.value
         )
         selectedImageResizePreset.value = matchingPreset?.key || '768x432'
+
+        // Load Copilot settings
+        copilotGhoToken.value = aiConfig.copilotGhoToken || ''
+        tempCopilotGhoToken.value = aiConfig.copilotGhoToken || ''
+        copilotModelName.value = aiConfig.copilotModelName || 'gpt-4.1'
+        tempCopilotModelName.value = aiConfig.copilotModelName || 'gpt-4.1'
+        copilotUsername.value = aiConfig.copilotUsername || ''
+        copilotAvatarUrl.value = aiConfig.copilotAvatarUrl || ''
+
+        // If copilot token exists, mark as authenticated and fetch user info
+        if (copilotGhoToken.value) {
+          copilotOAuthStep.value = 'success'
+          // Refresh user info in background if not already loaded
+          if (!copilotUsername.value) {
+            try {
+              const userInfo = await window.electronAPI.copilot.getUserInfo(copilotGhoToken.value)
+              copilotUsername.value = userInfo.login
+              copilotAvatarUrl.value = userInfo.avatar_url
+            } catch {
+              // Token may be expired
+              console.warn('[Copilot] Failed to fetch user info on load')
+            }
+          }
+        }
       }
 
       const prompts = await window.electronAPI.config.getAIPrompts()
@@ -234,6 +303,10 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
         customApiBaseUrl: tempAiCustomApiBaseUrl.value,
         customApiKey: tempAiCustomApiKey.value,
         customModelName: tempAiCustomModelName.value,
+        copilotGhoToken: copilotGhoToken.value,
+        copilotModelName: tempCopilotModelName.value,
+        copilotUsername: copilotUsername.value,
+        copilotAvatarUrl: copilotAvatarUrl.value,
         rateLimit: effectiveRateLimit,
         batchSize: effectiveBatchSize,
         imageResizeWidth: tempAiImageResizeWidth.value,
@@ -247,6 +320,7 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
       aiCustomApiBaseUrl.value = tempAiCustomApiBaseUrl.value
       aiCustomApiKey.value = tempAiCustomApiKey.value
       aiCustomModelName.value = tempAiCustomModelName.value
+      copilotModelName.value = tempCopilotModelName.value
       aiRateLimit.value = effectiveRateLimit
       tempAiRateLimit.value = effectiveRateLimit
       aiBatchSize.value = effectiveBatchSize
@@ -304,6 +378,142 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     }
   }
 
+  // Copilot OAuth device flow
+  const startCopilotOAuth = async () => {
+    copilotOAuthError.value = ''
+    copilotOAuthStep.value = 'waiting'
+    isCopilotLoading.value = true
+    copilotOAuthCancelled = false
+
+    try {
+      const deviceCode = await window.electronAPI.copilot.requestDeviceCode()
+
+      if (copilotOAuthCancelled) return
+
+      copilotUserCode.value = deviceCode.user_code
+      copilotVerificationUri.value = deviceCode.verification_uri
+
+      // Auto-copy the user code to clipboard
+      try {
+        await navigator.clipboard.writeText(deviceCode.user_code)
+      } catch {
+        // Clipboard API may not be available, ignore
+      }
+
+      // Open the verification URL in the browser
+      await window.electronAPI.shell.openExternal(deviceCode.verification_uri)
+
+      if (copilotOAuthCancelled) return
+
+      copilotOAuthStep.value = 'polling'
+
+      // Poll for access token
+      const accessToken = await window.electronAPI.copilot.pollForAccessToken(
+        deviceCode.device_code,
+        deviceCode.interval
+      )
+
+      if (copilotOAuthCancelled) return
+
+      // Got the token — save it and fetch user info
+      copilotGhoToken.value = accessToken
+      tempCopilotGhoToken.value = accessToken
+
+      const userInfo = await window.electronAPI.copilot.getUserInfo(accessToken)
+      copilotUsername.value = userInfo.login
+      copilotAvatarUrl.value = userInfo.avatar_url
+
+      copilotOAuthStep.value = 'success'
+
+      // Persist immediately
+      await window.electronAPI.config.setAIFilteringConfig({
+        copilotGhoToken: accessToken,
+        copilotUsername: userInfo.login,
+        copilotAvatarUrl: userInfo.avatar_url
+      })
+    } catch (error) {
+      if (copilotOAuthCancelled) return
+      const msg = error instanceof Error ? error.message : String(error)
+      copilotOAuthStep.value = 'error'
+      if (msg.includes('expired_token')) {
+        copilotOAuthError.value = 'expired_token'
+      } else if (msg.includes('access_denied')) {
+        copilotOAuthError.value = 'access_denied'
+      } else {
+        copilotOAuthError.value = msg
+      }
+    } finally {
+      if (!copilotOAuthCancelled) {
+        isCopilotLoading.value = false
+      }
+    }
+  }
+
+  // Validate a manually entered gho_ token
+  const validateCopilotToken = async (token: string): Promise<boolean> => {
+    isCopilotLoading.value = true
+    copilotOAuthError.value = ''
+
+    try {
+      const isValid = await window.electronAPI.copilot.validateToken(token)
+      if (!isValid) {
+        copilotOAuthError.value = 'invalid_token'
+        return false
+      }
+
+      copilotGhoToken.value = token
+      tempCopilotGhoToken.value = token
+
+      const userInfo = await window.electronAPI.copilot.getUserInfo(token)
+      copilotUsername.value = userInfo.login
+      copilotAvatarUrl.value = userInfo.avatar_url
+
+      copilotOAuthStep.value = 'success'
+
+      // Persist immediately
+      await window.electronAPI.config.setAIFilteringConfig({
+        copilotGhoToken: token,
+        copilotUsername: userInfo.login,
+        copilotAvatarUrl: userInfo.avatar_url
+      })
+
+      return true
+    } catch {
+      copilotOAuthError.value = 'invalid_token'
+      return false
+    } finally {
+      isCopilotLoading.value = false
+    }
+  }
+
+  // Disconnect Copilot (clear token and user info)
+  const disconnectCopilot = async () => {
+    copilotGhoToken.value = ''
+    tempCopilotGhoToken.value = ''
+    copilotUsername.value = ''
+    copilotAvatarUrl.value = ''
+    copilotOAuthStep.value = 'idle'
+    copilotOAuthError.value = ''
+    copilotUserCode.value = ''
+
+    await window.electronAPI.copilot.clearCache()
+    await window.electronAPI.config.setAIFilteringConfig({
+      copilotGhoToken: '',
+      copilotUsername: '',
+      copilotAvatarUrl: ''
+    })
+  }
+
+  // Cancel Copilot OAuth (user pressed cancel during waiting/polling)
+  const cancelCopilotOAuth = () => {
+    copilotOAuthCancelled = true
+    copilotOAuthStep.value = 'idle'
+    copilotUserCode.value = ''
+    copilotVerificationUri.value = ''
+    copilotOAuthError.value = ''
+    isCopilotLoading.value = false
+  }
+
   // Preset handlers
   const onApiUrlPresetChange = () => {
     if (selectedApiUrlPreset.value) {
@@ -314,6 +524,12 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
   const onModelPresetChange = () => {
     if (selectedModelPreset.value) {
       tempAiCustomModelName.value = selectedModelPreset.value
+    }
+  }
+
+  const onCopilotModelPresetChange = () => {
+    if (selectedCopilotModelPreset.value) {
+      tempCopilotModelName.value = selectedCopilotModelPreset.value
     }
   }
 
@@ -370,14 +586,18 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     tempAiImageResizeHeight.value = aiImageResizeHeight.value
     tempAiPromptLive.value = aiPromptLive.value
     tempAiPromptRecorded.value = aiPromptRecorded.value
+    tempCopilotModelName.value = copilotModelName.value
+    tempCopilotGhoToken.value = copilotGhoToken.value
     selectedApiUrlPreset.value = ''
     selectedModelPreset.value = ''
+    selectedCopilotModelPreset.value = ''
     // Find matching preset for image resize
     const matchingPreset = imageResizePresets.find(
       p => p.width === aiImageResizeWidth.value && p.height === aiImageResizeHeight.value
     )
     selectedImageResizePreset.value = matchingPreset?.key || '768x432'
     showApiKey.value = false
+    showCopilotToken.value = false
   }
 
   return {
@@ -393,6 +613,20 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     aiCustomModelName,
     tempAiCustomModelName,
     showApiKey,
+
+    // Copilot settings
+    copilotGhoToken,
+    tempCopilotGhoToken,
+    copilotModelName,
+    tempCopilotModelName,
+    copilotUsername,
+    copilotAvatarUrl,
+    showCopilotToken,
+    copilotOAuthStep,
+    copilotUserCode,
+    copilotVerificationUri,
+    copilotOAuthError,
+    isCopilotLoading,
 
     // Rate limit and batch size
     aiRateLimit,
@@ -431,6 +665,8 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     modelPresets,
     selectedApiUrlPreset,
     selectedModelPreset,
+    copilotModelPresets,
+    selectedCopilotModelPreset,
 
     // Methods
     loadAISettings,
@@ -438,10 +674,15 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     refreshBuiltinModel,
     onApiUrlPresetChange,
     onModelPresetChange,
+    onCopilotModelPresetChange,
     onImageResizePresetChange,
     resetAiPrompt,
     updateAiBatchSize,
     openCustomServiceDocs,
-    resetTempValues
+    resetTempValues,
+    startCopilotOAuth,
+    validateCopilotToken,
+    cancelCopilotOAuth,
+    disconnectCopilot
   }
 }

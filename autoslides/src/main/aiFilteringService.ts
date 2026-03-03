@@ -3,6 +3,7 @@ import Bottleneck from 'bottleneck';
 import { app } from 'electron';
 import { ConfigService } from './configService';
 import { AIPromptsService, AIPromptType } from './aiPromptsService';
+import { CopilotService } from './copilotService';
 
 // Debug logging flag - set to true for detailed logging
 const DEBUG = false;
@@ -75,11 +76,13 @@ const BUILTIN_FALLBACK_MODEL = 'gpt-4.1';
 export class AIFilteringService {
   private configService: ConfigService;
   private aiPromptsService: AIPromptsService;
+  private copilotService: CopilotService;
   private limiter: Bottleneck;
 
   constructor(configService: ConfigService, aiPromptsService: AIPromptsService) {
     this.configService = configService;
     this.aiPromptsService = aiPromptsService;
+    this.copilotService = new CopilotService();
 
     // Initialize Bottleneck limiter with rate limiting and concurrency control
     const config = this.configService.getAIFilteringConfig();
@@ -137,6 +140,12 @@ export class AIFilteringService {
         baseUrl: BUILTIN_API_BASE_URL,
         apiKey: token || '',
         model: BUILTIN_FALLBACK_MODEL // Will be overridden by getBuiltinModelName() call
+      };
+    } else if (config.serviceType === 'copilot') {
+      return {
+        baseUrl: 'https://api.githubcopilot.com',
+        apiKey: '', // Resolved later via resolveApiKey
+        model: config.copilotModelName || 'gpt-4.1'
       };
     } else {
       return {
@@ -208,6 +217,11 @@ export class AIFilteringService {
    * Build request headers, handling special cases like GitHub Copilot API
    */
   private buildHeaders(baseUrl: string, apiKey: string, hasImages: boolean): Record<string, string> {
+    // Copilot API requires special headers
+    if (baseUrl === 'https://api.githubcopilot.com') {
+      return this.copilotService.buildCopilotHeaders(apiKey, hasImages);
+    }
+
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json'
@@ -216,11 +230,6 @@ export class AIFilteringService {
     // Add User-Agent for built-in service
     if (baseUrl === BUILTIN_API_BASE_URL) {
       headers['User-Agent'] = `${app.getName()}/${app.getVersion()}`;
-    }
-
-    // Handle Copilot-Vision-Request header for GitHub Copilot API
-    if (baseUrl === 'https://api.githubcopilot.com' && hasImages) {
-      headers['Copilot-Vision-Request'] = 'true';
     }
 
     return headers;
@@ -368,6 +377,22 @@ export class AIFilteringService {
   }
 
   /**
+   * Resolve the API key based on service type.
+   * For copilot, exchanges gho_ token for a Copilot API token.
+   */
+  private async resolveApiKey(apiConfig: { baseUrl: string; apiKey: string; model: string }): Promise<string> {
+    const config = this.configService.getAIFilteringConfig();
+    if (config.serviceType === 'copilot') {
+      const ghoToken = config.copilotGhoToken;
+      if (!ghoToken) {
+        throw new Error('Copilot gho_ token not configured');
+      }
+      return this.copilotService.getApiToken(ghoToken);
+    }
+    return apiConfig.apiKey;
+  }
+
+  /**
    * Classify a single image (used for Live mode)
    */
   async classifySingleImage(
@@ -389,6 +414,7 @@ export class AIFilteringService {
         debugLog('Rate limit passed, executing request');
 
         const apiConfig = this.getApiConfig(token);
+        const apiKey = await this.resolveApiKey(apiConfig);
         const prompt = this.aiPromptsService.getPrompt(type);
         const model = modelOverride || apiConfig.model;
 
@@ -421,7 +447,7 @@ export class AIFilteringService {
 
         const response = await this.makeChatCompletionRequest(
           apiConfig.baseUrl,
-          apiConfig.apiKey,
+          apiKey,
           model,
           messages
         );
@@ -483,6 +509,7 @@ export class AIFilteringService {
         debugLog('Rate limit passed, executing request');
 
         const apiConfig = this.getApiConfig(token);
+        const apiKey = await this.resolveApiKey(apiConfig);
         const prompt = this.aiPromptsService.getPrompt(type);
         const model = modelOverride || apiConfig.model;
 
@@ -524,7 +551,7 @@ export class AIFilteringService {
 
         const response = await this.makeChatCompletionRequest(
           apiConfig.baseUrl,
-          apiConfig.apiKey,
+          apiKey,
           model,
           messages
         );
@@ -572,6 +599,8 @@ export class AIFilteringService {
     if (config.serviceType === 'builtin') {
       // Built-in requires a valid token
       return !!token && token.length > 0;
+    } else if (config.serviceType === 'copilot') {
+      return !!config.copilotGhoToken;
     } else {
       // Custom requires all fields to be filled
       return !!(
@@ -585,7 +614,14 @@ export class AIFilteringService {
   /**
    * Get current service type
    */
-  getServiceType(): 'builtin' | 'custom' {
+  getServiceType(): 'builtin' | 'custom' | 'copilot' {
     return this.configService.getAIFilteringConfig().serviceType;
+  }
+
+  /**
+   * Get the CopilotService instance for IPC handler access
+   */
+  getCopilotService(): CopilotService {
+    return this.copilotService;
   }
 }

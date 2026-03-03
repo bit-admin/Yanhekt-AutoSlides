@@ -256,7 +256,22 @@
       "promptRecordedDescription": "批量处理多张图像。期望响应：",
       "promptPlaceholder": "输入 AI 提示词...",
       "resetPrompt": "重置为默认值",
-      "builtinDisclaimer": "本服务由开发者免费且“按现状”提供。我们不对服务的持续性或稳定性作出任何明示或暗示的保证，并可能在不事先通知的情况下随时修改或中断服务。用户同意以合理、公平、非商业的方式使用本服务。"
+      "builtinDisclaimer": "本服务由开发者免费且\"按现状\"提供。我们不对服务的持续性或稳定性作出任何明示或暗示的保证，并可能在不事先通知的情况下随时修改或中断服务。用户同意以合理、公平、非商业的方式使用本服务。",
+      "copilot": "GitHub Copilot",
+      "copilotAuth": "验证",
+      "copilotSignInWithGitHub": "使用 GitHub 登录",
+      "copilotTokenPlaceholder": "粘贴 gho_ 令牌...",
+      "copilotEnterCode": "在 GitHub 上输入此代码：",
+      "copilotClickToCopy": "点击复制",
+      "copilotCopied": "已复制！",
+      "copilotCancel": "取消",
+      "copilotWaitingForAuth": "等待授权...",
+      "copilotDisconnect": "断开连接",
+      "copilotModelPlaceholder": "例如 gpt-4.1",
+      "copilotInvalidToken": "令牌无效，请检查后重试。",
+      "copilotDeviceCodeExpired": "设备代码已过期，请重试。",
+      "copilotAccessDenied": "访问被拒绝，请重试。",
+      "rateLimitCopilotHint": "GitHub Copilot 有自身的速率限制。建议：最大并发请求数 1，请求最小间隔 6000 毫秒。"
     }
   },
   "courses": {

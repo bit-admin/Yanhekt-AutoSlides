@@ -256,7 +256,22 @@
       "promptRecordedDescription": "여러 이미지를 일괄 처리합니다. 예상 응답:",
       "promptPlaceholder": "AI 프롬프트를 입력하세요...",
       "resetPrompt": "기본값으로 재설정",
-      "builtinDisclaimer": "이 서비스는 개발자가 무료로 \"있는 그대로\" 제공합니다. 서비스의 지속성이나 안정성에 대해 명시적 또는 묵시적 보증을 제공하지 않으며, 사전 통지 없이 언제든지 서비스를 수정하거나 중단할 수 있습니다. 사용자는 합리적이고 공정하며 비상업적인 방식으로 서비스를 사용하는 데 동의합니다."
+      "builtinDisclaimer": "이 서비스는 개발자가 무료로 \"있는 그대로\" 제공합니다. 서비스의 지속성이나 안정성에 대해 명시적 또는 묵시적 보증을 제공하지 않으며, 사전 통지 없이 언제든지 서비스를 수정하거나 중단할 수 있습니다. 사용자는 합리적이고 공정하며 비상업적인 방식으로 서비스를 사용하는 데 동의합니다.",
+      "copilot": "GitHub Copilot",
+      "copilotAuth": "확인",
+      "copilotSignInWithGitHub": "GitHub로 로그인",
+      "copilotTokenPlaceholder": "gho_ 토큰 붙여넣기...",
+      "copilotEnterCode": "GitHub에서 이 코드를 입력하세요:",
+      "copilotClickToCopy": "클릭하여 복사",
+      "copilotCopied": "복사됨!",
+      "copilotCancel": "취소",
+      "copilotWaitingForAuth": "인증 대기 중...",
+      "copilotDisconnect": "연결 해제",
+      "copilotModelPlaceholder": "예: gpt-4.1",
+      "copilotInvalidToken": "유효하지 않은 토큰입니다. 확인 후 다시 시도하세요.",
+      "copilotDeviceCodeExpired": "디바이스 코드가 만료되었습니다. 다시 시도하세요.",
+      "copilotAccessDenied": "액세스가 거부되었습니다. 다시 시도하세요.",
+      "rateLimitCopilotHint": "GitHub Copilot에는 자체 속도 제한이 있습니다. 권장: 최대 동시 요청 수 1, 요청 간 최소 시간 6000ms."
     }
   },
   "courses": {

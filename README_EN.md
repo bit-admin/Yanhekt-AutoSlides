@@ -252,9 +252,10 @@ For detailed configuration of `Advanced Settings`, please refer to the [Configur
 
 <br>
 
-11. `AI` tab contains configurations for AI filtering function. AI service can switch between `Built-in` and `Custom` services.
+11. `AI` tab contains configurations for AI filtering function. AI service can switch between `Built-in`, `GitHub Copilot` and `Custom` services.
   - Built-in service is a shared service provided for free, usable with `gpt-4.1` model after login; **availability of shared service depends on situation**.
   - Custom service allows configuration of `API Base URL`, `API Key`, and `Model Name`; learn more: [AI Configuration Docs](https://it.ruc.edu.kg/zh/docs).
+  - If you have an educational GitHub account, we recommend using the `GitHub Copilot` service. The software now integrates with GitHub Auth.
 
 > [!IMPORTANT]
 > The Built-in service is provided by the developer free of charge and on an "as is" basis. We make no warranties, express or implied, regarding the continuity or stability of the service, and we may modify or interrupt the service at any time without prior notice. The user agrees to use the service in a reasonable, fair, and non-commercial manner.

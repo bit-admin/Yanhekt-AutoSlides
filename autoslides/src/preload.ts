@@ -66,11 +66,18 @@ contextBridge.exposeInMainWorld('electronAPI', {
     // AI filtering configuration
     getAIFilteringConfig: () => ipcRenderer.invoke('config:getAIFilteringConfig'),
     setAIFilteringConfig: (config: {
-      serviceType?: 'builtin' | 'custom';
+      serviceType?: 'builtin' | 'custom' | 'copilot';
       customApiBaseUrl?: string;
       customApiKey?: string;
       customModelName?: string;
+      copilotGhoToken?: string;
+      copilotModelName?: string;
+      copilotUsername?: string;
+      copilotAvatarUrl?: string;
+      rateLimit?: number;
       batchSize?: number;
+      imageResizeWidth?: number;
+      imageResizeHeight?: number;
       maxConcurrent?: number;
       minTime?: number;
     }) => ipcRenderer.invoke('config:setAIFilteringConfig', config),
@@ -193,6 +200,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getBuiltinModelName: (token: string) => ipcRenderer.invoke('ai:getBuiltinModelName', token),
     isConfigured: (token?: string) => ipcRenderer.invoke('ai:isConfigured', token),
     getServiceType: () => ipcRenderer.invoke('ai:getServiceType'),
+  },
+  copilot: {
+    requestDeviceCode: () => ipcRenderer.invoke('copilot:requestDeviceCode'),
+    pollForAccessToken: (deviceCode: string, interval: number) =>
+      ipcRenderer.invoke('copilot:pollForAccessToken', deviceCode, interval),
+    getUserInfo: (ghoToken: string) => ipcRenderer.invoke('copilot:getUserInfo', ghoToken),
+    validateToken: (ghoToken: string) => ipcRenderer.invoke('copilot:validateToken', ghoToken),
+    exchangeToken: (ghoToken: string) => ipcRenderer.invoke('copilot:exchangeToken', ghoToken),
+    clearCache: () => ipcRenderer.invoke('copilot:clearCache'),
   },
   trash: {
     openWindow: () => ipcRenderer.invoke('trash:openWindow'),

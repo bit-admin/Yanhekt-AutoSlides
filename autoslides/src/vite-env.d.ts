@@ -72,10 +72,14 @@ interface SlideImageProcessingParams {
 }
 
 interface AIFilteringConfig {
-  serviceType: 'builtin' | 'custom';
+  serviceType: 'builtin' | 'custom' | 'copilot';
   customApiBaseUrl: string;
   customApiKey: string;
   customModelName: string;
+  copilotGhoToken: string;
+  copilotModelName: string;
+  copilotUsername: string;
+  copilotAvatarUrl: string;
   rateLimit: number; // requests per minute, default 10
   batchSize: number; // number of images per batch for recorded mode, default 5
   imageResizeWidth: number; // width to resize images before sending to AI, default 768
@@ -527,7 +531,29 @@ interface ElectronAPI {
     ) => Promise<AIFilteringResult>;
     getBuiltinModelName: (token: string) => Promise<string>;
     isConfigured: (token?: string) => Promise<boolean>;
-    getServiceType: () => Promise<'builtin' | 'custom'>;
+    getServiceType: () => Promise<'builtin' | 'custom' | 'copilot'>;
+  };
+
+  copilot: {
+    requestDeviceCode: () => Promise<{
+      device_code: string;
+      user_code: string;
+      verification_uri: string;
+      expires_in: number;
+      interval: number;
+    }>;
+    pollForAccessToken: (deviceCode: string, interval: number) => Promise<string>;
+    getUserInfo: (ghoToken: string) => Promise<{
+      login: string;
+      avatar_url: string;
+      name?: string;
+    }>;
+    validateToken: (ghoToken: string) => Promise<boolean>;
+    exchangeToken: (ghoToken: string) => Promise<{
+      token: string;
+      expires_at: number;
+    }>;
+    clearCache: () => Promise<void>;
   };
 
   trash: {

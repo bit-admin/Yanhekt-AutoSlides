@@ -810,6 +810,12 @@
                     {{ $t('advanced.ai.builtin') }}
                   </button>
                   <button
+                    @click="tempAiServiceType = 'copilot'"
+                    :class="['mode-btn', { active: tempAiServiceType === 'copilot' }]"
+                  >
+                    {{ $t('advanced.ai.copilot') }}
+                  </button>
+                  <button
                     @click="tempAiServiceType = 'custom'"
                     :class="['mode-btn', { active: tempAiServiceType === 'custom' }]"
                   >
@@ -880,6 +886,112 @@
                 </div>
               </div>
 
+              <!-- Copilot Settings (shown only when copilot is selected) -->
+              <div v-if="tempAiServiceType === 'copilot'" class="copilot-settings">
+                <!-- Authenticated state -->
+                <div v-if="copilotOAuthStep === 'success'" class="copilot-user-info">
+                  <div class="copilot-user-row">
+                    <img v-if="copilotAvatarUrl" :src="copilotAvatarUrl" class="copilot-avatar" alt="" />
+                    <span class="copilot-username">{{ copilotUsername }}</span>
+                    <button @click="disconnectCopilot" class="copilot-disconnect-btn">
+                      {{ $t('advanced.ai.copilotDisconnect') }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Idle / Error state -->
+                <div v-else-if="copilotOAuthStep === 'idle' || copilotOAuthStep === 'error'" class="copilot-auth-section">
+                  <button @click="startCopilotOAuth" class="copilot-oauth-btn" :disabled="isCopilotLoading">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                    </svg>
+                    {{ $t('advanced.ai.copilotSignInWithGitHub') }}
+                  </button>
+
+                  <div class="copilot-or-divider">
+                    <span>{{ $t('advanced.ai.or') }}</span>
+                  </div>
+
+                  <div class="copilot-manual-token">
+                    <div class="api-key-input-group">
+                      <input
+                        v-model="tempCopilotGhoToken"
+                        :type="showCopilotToken ? 'text' : 'password'"
+                        class="api-key-input"
+                        :placeholder="$t('advanced.ai.copilotTokenPlaceholder')"
+                      />
+                      <button @click="showCopilotToken = !showCopilotToken" class="api-key-toggle-btn">
+                        <svg v-if="showCopilotToken" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                          <line x1="1" y1="1" x2="23" y2="23"/>
+                        </svg>
+                        <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                          <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                      </button>
+                      <button
+                        @click="validateCopilotToken(tempCopilotGhoToken)"
+                        class="copilot-verify-btn"
+                        :disabled="!tempCopilotGhoToken || isCopilotLoading"
+                      >
+                        <div v-if="isCopilotLoading" class="loading-spinner-small"></div>
+                        <span v-else>{{ $t('advanced.ai.copilotAuth') }}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Error messages -->
+                  <div v-if="copilotOAuthError" class="copilot-error">
+                    <span v-if="copilotOAuthError === 'expired_token'">{{ $t('advanced.ai.copilotDeviceCodeExpired') }}</span>
+                    <span v-else-if="copilotOAuthError === 'access_denied'">{{ $t('advanced.ai.copilotAccessDenied') }}</span>
+                    <span v-else-if="copilotOAuthError === 'invalid_token'">{{ $t('advanced.ai.copilotInvalidToken') }}</span>
+                    <span v-else>{{ copilotOAuthError }}</span>
+                  </div>
+                </div>
+
+                <!-- Waiting / Polling state -->
+                <div v-else-if="copilotOAuthStep === 'waiting' || copilotOAuthStep === 'polling'" class="copilot-waiting">
+                  <div class="copilot-enter-code-label">
+                    {{ $t('advanced.ai.copilotEnterCode') }}
+                    <a class="copilot-verification-url" @click.prevent="openCopilotVerificationUrl" :title="copilotVerificationUri">{{ copilotVerificationUri }}</a>
+                  </div>
+                  <div class="copilot-user-code" @click="copyUserCode" :title="$t('advanced.ai.copilotClickToCopy')">
+                    <span>{{ copilotUserCode }}</span>
+                    <span class="copilot-code-copied" v-if="copilotCodeCopied">{{ $t('advanced.ai.copilotCopied') }}</span>
+                  </div>
+                  <div class="copilot-waiting-status">
+                    <div class="loading-spinner-small"></div>
+                    <span>{{ $t('advanced.ai.copilotWaitingForAuth') }}</span>
+                    <button class="copilot-cancel-btn" @click="cancelCopilotOAuth" :title="$t('advanced.ai.copilotCancel')">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Model name input (always visible in copilot mode) -->
+                <div class="setting-item copilot-model-setting">
+                  <label class="setting-label">{{ $t('advanced.ai.modelName') }}</label>
+                  <div class="model-name-input-group">
+                    <input
+                      v-model="tempCopilotModelName"
+                      type="text"
+                      class="model-name-input"
+                      :placeholder="$t('advanced.ai.copilotModelPlaceholder')"
+                    />
+                    <select v-model="selectedCopilotModelPreset" @change="onCopilotModelPresetChange" class="model-preset-select">
+                      <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
+                      <option v-for="preset in copilotModelPresets" :key="preset.name" :value="preset.name">
+                        {{ preset.label }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
               <!-- Custom API Settings (shown only when custom is selected) -->
               <div v-if="tempAiServiceType === 'custom'" class="custom-api-settings">
                 <div class="setting-item">
@@ -946,6 +1058,9 @@
               <h4>{{ $t('advanced.ai.requestSettings') }}</h4>
               <div v-if="tempAiServiceType === 'builtin'" class="rate-limit-hint">
                 {{ $t('advanced.ai.rateLimitBuiltinHint') }}
+              </div>
+              <div v-else-if="tempAiServiceType === 'copilot'" class="rate-limit-hint">
+                {{ $t('advanced.ai.rateLimitCopilotHint') }}
               </div>
               <div v-else class="rate-limit-hint">
                 {{ $t('advanced.ai.rateLimitCustomHint') }}
@@ -1147,7 +1262,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '../composables/useAuth'
 import { useSettings } from '../composables/useSettings'
@@ -1358,7 +1473,25 @@ const {
   onModelPresetChange,
   resetAiPrompt,
   updateAiBatchSize,
-  openCustomServiceDocs
+  openCustomServiceDocs,
+  // Copilot
+  tempCopilotGhoToken,
+  tempCopilotModelName,
+  copilotUsername,
+  copilotAvatarUrl,
+  showCopilotToken,
+  copilotOAuthStep,
+  copilotUserCode,
+  copilotVerificationUri,
+  copilotOAuthError,
+  isCopilotLoading,
+  copilotModelPresets,
+  selectedCopilotModelPreset,
+  startCopilotOAuth,
+  validateCopilotToken,
+  cancelCopilotOAuth,
+  disconnectCopilot,
+  onCopilotModelPresetChange
 } = aiSettings
 
 // pHash Exclusion
@@ -1374,6 +1507,25 @@ const {
   confirmNameInput,
   cancelNameInput
 } = pHashExclusion
+
+// Copy Copilot user code to clipboard
+const copilotCodeCopied = ref(false)
+const copyUserCode = async () => {
+  if (!copilotUserCode.value) return
+  try {
+    await navigator.clipboard.writeText(copilotUserCode.value)
+    copilotCodeCopied.value = true
+    setTimeout(() => { copilotCodeCopied.value = false }, 2000)
+  } catch {
+    // Clipboard API may not be available
+  }
+}
+
+const openCopilotVerificationUrl = () => {
+  if (copilotVerificationUri.value) {
+    window.electronAPI.shell.openExternal(copilotVerificationUri.value)
+  }
+}
 
 // Trash Window
 const openTrashWindow = async () => {
@@ -4127,6 +4279,241 @@ defineExpose({
   border-top: 1px solid #e0e0e0;
 }
 
+/* Copilot settings */
+.copilot-settings {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.copilot-user-info {
+  margin-bottom: 12px;
+}
+
+.copilot-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background-color: #f0f9f0;
+  border: 1px solid #c3e6c3;
+  border-radius: 4px;
+}
+
+.copilot-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.copilot-username {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+}
+
+.copilot-disconnect-btn {
+  padding: 4px 10px;
+  border: 1px solid #dc3545;
+  background-color: transparent;
+  color: #dc3545;
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.copilot-disconnect-btn:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+.copilot-auth-section {
+  margin-bottom: 12px;
+}
+
+.copilot-oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 14px;
+  border: 1px solid #24292e;
+  background-color: #24292e;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.copilot-oauth-btn:hover:not(:disabled) {
+  background-color: #3b434b;
+}
+
+.copilot-oauth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.copilot-or-divider {
+  display: flex;
+  align-items: center;
+  margin: 12px 0;
+  gap: 8px;
+}
+
+.copilot-or-divider::before,
+.copilot-or-divider::after {
+  content: '';
+  flex: 1;
+  border-top: 1px solid #ddd;
+}
+
+.copilot-or-divider span {
+  font-size: 11px;
+  color: #999;
+  text-transform: uppercase;
+}
+
+.copilot-manual-token .api-key-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.copilot-manual-token .api-key-input {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.copilot-verify-btn {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border: 1px solid #007acc;
+  background-color: #007acc;
+  color: white;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  min-width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.copilot-verify-btn:hover:not(:disabled) {
+  background-color: #005ea6;
+}
+
+.copilot-verify-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.copilot-error {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #dc2626;
+}
+
+.copilot-waiting {
+  text-align: center;
+  padding: 16px 0;
+}
+
+.copilot-enter-code-label {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.copilot-user-code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 24px;
+  font-weight: 700;
+  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+  letter-spacing: 4px;
+  color: #24292e;
+  padding: 12px;
+  background-color: #f6f8fa;
+  border: 2px dashed #d0d7de;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.copilot-user-code:hover {
+  background-color: #eef1f5;
+  border-color: #0969da;
+}
+
+.copilot-code-copied {
+  position: absolute;
+  right: 10px;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: #1a7f37;
+}
+
+.copilot-waiting-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+.copilot-verification-url {
+  color: #0969da;
+  cursor: pointer;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.copilot-verification-url:hover {
+  color: #0550ae;
+}
+
+.copilot-cancel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: none;
+  color: #666;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.copilot-cancel-btn:hover {
+  background-color: #f0f0f0;
+  color: #dc2626;
+}
+
+.copilot-model-setting {
+  margin-top: 12px;
+}
+
 .api-url-input-group,
 .api-key-input-group,
 .model-name-input-group {
@@ -4423,6 +4810,82 @@ defineExpose({
   .builtin-disclaimer {
     background-color: rgba(255, 255, 255, 0.05);
     color: #888;
+  }
+
+  /* Copilot dark mode */
+  .copilot-settings {
+    border-top-color: #404040;
+  }
+
+  .copilot-user-row {
+    background-color: #1a2e1a;
+    border-color: #2d5a2d;
+  }
+
+  .copilot-username {
+    color: #e0e0e0;
+  }
+
+  .copilot-oauth-btn {
+    background-color: #f0f6fc;
+    border-color: #d0d7de;
+    color: #24292e;
+  }
+
+  .copilot-oauth-btn:hover:not(:disabled) {
+    background-color: #e6edf5;
+  }
+
+  .copilot-or-divider::before,
+  .copilot-or-divider::after {
+    border-top-color: #404040;
+  }
+
+  .copilot-or-divider span {
+    color: #666;
+  }
+
+  .copilot-error {
+    background-color: #3a1a1a;
+    border-color: #5a2d2d;
+    color: #ff6b6b;
+  }
+
+  .copilot-user-code {
+    background-color: #2d2d2d;
+    border-color: #555;
+    color: #e0e0e0;
+  }
+
+  .copilot-user-code:hover {
+    background-color: #363636;
+    border-color: #58a6ff;
+  }
+
+  .copilot-code-copied {
+    color: #3fb950;
+  }
+
+  .copilot-verification-url {
+    color: #58a6ff;
+  }
+
+  .copilot-verification-url:hover {
+    color: #79c0ff;
+  }
+
+  .copilot-cancel-btn {
+    color: #aaa;
+  }
+
+  .copilot-cancel-btn:hover {
+    background-color: #404040;
+    color: #ff6b6b;
+  }
+
+  .copilot-enter-code-label,
+  .copilot-waiting-status {
+    color: #aaa;
   }
 }
 </style>

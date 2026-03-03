@@ -255,9 +255,10 @@
 
 <br>
 
-11. `AI` 标签页中包含 AI 过滤功能的各项配置。AI 服务可在 `内置` 和 `自定义` 服务中进行切换。
+11. `AI` 标签页中包含 AI 过滤功能的各项配置。AI 服务可在 `内置`、`GitHub Copilot` 和 `自定义` 服务中进行切换。
   - 内置服务为免费提供的共享服务，在登录后可使用 `gpt-4.1` 模型；**共享服务的可用性视情况而定**。
   - 自定义服务可配置 `API Base URL`、`API Key` 及 `模型名称`；了解更多：[AI 配置文档](https://it.ruc.edu.kg/zh/docs)。
+  - 若您拥有教育版 GitHub 账户，推荐使用 `GitHub Copilot` 服务。软件现已集成 GitHub Auth。
 
 > [!IMPORTANT]
 > The Built-in service is provided by the developer free of charge and on an "as is" basis. We make no warranties, express or implied, regarding the continuity or stability of the service, and we may modify or interrupt the service at any time without prior notice. The user agrees to use the service in a reasonable, fair, and non-commercial manner.

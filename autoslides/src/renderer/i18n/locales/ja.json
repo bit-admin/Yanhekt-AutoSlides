@@ -256,7 +256,22 @@
       "promptRecordedDescription": "複数の画像をバッチ処理します。期待される応答：",
       "promptPlaceholder": "AIプロンプトを入力...",
       "resetPrompt": "デフォルトにリセット",
-      "builtinDisclaimer": "本サービスは開発者により無料で「現状のまま」提供されています。サービスの継続性や安定性について、明示的または黙示的な保証は一切行いません。事前の通知なくサービスを変更または中断する場合があります。ユーザーは、合理的かつ公正で非商用的な方法でサービスを利用することに同意するものとします。"
+      "builtinDisclaimer": "本サービスは開発者により無料で「現状のまま」提供されています。サービスの継続性や安定性について、明示的または黙示的な保証は一切行いません。事前の通知なくサービスを変更または中断する場合があります。ユーザーは、合理的かつ公正で非商用的な方法でサービスを利用することに同意するものとします。",
+      "copilot": "GitHub Copilot",
+      "copilotAuth": "検証",
+      "copilotSignInWithGitHub": "GitHub でサインイン",
+      "copilotTokenPlaceholder": "gho_ トークンを貼り付け...",
+      "copilotEnterCode": "GitHub でこのコードを入力してください：",
+      "copilotClickToCopy": "クリックしてコピー",
+      "copilotCopied": "コピーしました！",
+      "copilotCancel": "キャンセル",
+      "copilotWaitingForAuth": "認証を待っています...",
+      "copilotDisconnect": "切断",
+      "copilotModelPlaceholder": "例: gpt-4.1",
+      "copilotInvalidToken": "トークンが無効です。確認してから再試行してください。",
+      "copilotDeviceCodeExpired": "デバイスコードの有効期限が切れました。再試行してください。",
+      "copilotAccessDenied": "アクセスが拒否されました。再試行してください。",
+      "rateLimitCopilotHint": "GitHub Copilot には独自のレート制限があります。推奨: 最大同時リクエスト数 1、リクエスト間の最小時間 6000ms。"
     }
   },
   "courses": {

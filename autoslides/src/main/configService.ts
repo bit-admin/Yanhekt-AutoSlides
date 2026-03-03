@@ -42,13 +42,17 @@ export interface SlideExtractionConfig {
 
 export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
 
-export type AIServiceType = 'builtin' | 'custom';
+export type AIServiceType = 'builtin' | 'custom' | 'copilot';
 
 export interface AIFilteringConfig {
   serviceType: AIServiceType;
   customApiBaseUrl: string;
   customApiKey: string;
   customModelName: string;
+  copilotGhoToken: string; // GitHub OAuth token (gho_*)
+  copilotModelName: string; // Copilot model name, default 'gpt-4.1'
+  copilotUsername: string; // GitHub username for display
+  copilotAvatarUrl: string; // GitHub avatar URL for display
   rateLimit: number; // requests per minute, default 10
   batchSize: number; // number of images per batch for recorded mode, default 5
   imageResizeWidth: number; // width to resize images before sending to AI, default 768
@@ -143,6 +147,10 @@ const defaultAIFilteringConfig: AIFilteringConfig = {
   customApiBaseUrl: '',
   customApiKey: '',
   customModelName: '',
+  copilotGhoToken: '',
+  copilotModelName: 'gpt-4.1',
+  copilotUsername: '',
+  copilotAvatarUrl: '',
   rateLimit: 10, // default 10 requests per minute
   batchSize: 5, // default 5 images per batch for recorded mode
   imageResizeWidth: 768, // default 768px width (40% of 1920)

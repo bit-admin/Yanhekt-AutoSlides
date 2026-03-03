@@ -492,6 +492,10 @@ ipcMain.handle('config:setAIFilteringConfig', async (event, config: {
   customApiBaseUrl?: string;
   customApiKey?: string;
   customModelName?: string;
+  copilotGhoToken?: string;
+  copilotModelName?: string;
+  copilotUsername?: string;
+  copilotAvatarUrl?: string;
   batchSize?: number;
 }) => {
   configService.setAIFilteringConfig(config);
@@ -548,6 +552,37 @@ ipcMain.handle('ai:isConfigured', async (event, token?: string) => {
 
 ipcMain.handle('ai:getServiceType', async () => {
   return aiFilteringService.getServiceType();
+});
+
+// IPC handlers for Copilot service
+ipcMain.handle('copilot:requestDeviceCode', async () => {
+  const copilotService = aiFilteringService.getCopilotService();
+  return copilotService.requestDeviceCode();
+});
+
+ipcMain.handle('copilot:pollForAccessToken', async (event, deviceCode: string, interval: number) => {
+  const copilotService = aiFilteringService.getCopilotService();
+  return copilotService.pollForAccessToken(deviceCode, interval);
+});
+
+ipcMain.handle('copilot:getUserInfo', async (event, ghoToken: string) => {
+  const copilotService = aiFilteringService.getCopilotService();
+  return copilotService.getUserInfo(ghoToken);
+});
+
+ipcMain.handle('copilot:validateToken', async (event, ghoToken: string) => {
+  const copilotService = aiFilteringService.getCopilotService();
+  return copilotService.validateGhoToken(ghoToken);
+});
+
+ipcMain.handle('copilot:exchangeToken', async (event, ghoToken: string) => {
+  const copilotService = aiFilteringService.getCopilotService();
+  return copilotService.exchangeToken(ghoToken);
+});
+
+ipcMain.handle('copilot:clearCache', async () => {
+  const copilotService = aiFilteringService.getCopilotService();
+  copilotService.clearCache();
 });
 
 // IPC handlers for intranet mapping
