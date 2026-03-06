@@ -236,6 +236,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return () => ipcRenderer.removeListener('pdfmaker:progress', handler);
     },
   },
+  offline: {
+    selectInputFolder: () => ipcRenderer.invoke('offline:selectInputFolder'),
+    listImages: (folderPath: string) => ipcRenderer.invoke('offline:listImages', folderPath),
+    copyAndConvert: (inputPath: string, outputDir: string, outputFilename: string, enableColorReduction: boolean) =>
+      ipcRenderer.invoke('offline:copyAndConvert', inputPath, outputDir, outputFilename, enableColorReduction),
+    readImageForAI: (filePath: string, targetWidth: number, targetHeight: number) =>
+      ipcRenderer.invoke('offline:readImageForAI', filePath, targetWidth, targetHeight),
+    readImageBuffer: (filePath: string) => ipcRenderer.invoke('offline:readImageBuffer', filePath),
+  },
   update: {
     // Existing
     checkForUpdates: () => ipcRenderer.invoke('update:checkForUpdates'),

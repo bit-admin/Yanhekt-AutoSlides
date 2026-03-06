@@ -831,7 +831,29 @@
     "errorTitle": "오류"
   },
   "offlineProcessing": {
-    "open": "오프라인 처리"
+    "open": "오프라인 처리",
+    "title": "오프라인 처리",
+    "inputFolder": "입력 폴더",
+    "selectFolder": "찾아보기",
+    "noFolderSelected": "폴더가 선택되지 않았습니다",
+    "postProcessingConfig": "후처리 설정",
+    "enableDuplicateRemoval": "중복 제거 활성화",
+    "enableExclusionList": "제외 목록 활성화",
+    "exclusionListNote": "고급 설정에서 구성된 제외 목록과 AI 설정을 사용합니다",
+    "enableAIFiltering": "AI 필터링 활성화",
+    "outputOptions": "출력 옵션",
+    "enablePngColorReduction": "PNG 색상 축소 활성화",
+    "progress": "진행률",
+    "phaseCopying": "이미지 복사 및 변환 중...",
+    "phaseCompleted": "처리 완료",
+    "start": "시작",
+    "processing": "처리 중...",
+    "cancel": "취소",
+    "close": "닫기",
+    "cancelled": "처리가 취소되었습니다",
+    "noImagesFound": "선택한 폴더에서 이미지 파일을 찾을 수 없습니다",
+    "openOutput": "출력 열기",
+    "errorTitle": "처리 오류"
   },
   "window": {
     "minimize": "최소화",

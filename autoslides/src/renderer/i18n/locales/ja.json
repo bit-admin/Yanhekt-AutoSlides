@@ -831,7 +831,29 @@
     "errorTitle": "エラー"
   },
   "offlineProcessing": {
-    "open": "オフライン処理"
+    "open": "オフライン処理",
+    "title": "オフライン処理",
+    "inputFolder": "入力フォルダ",
+    "selectFolder": "参照",
+    "noFolderSelected": "フォルダが選択されていません",
+    "postProcessingConfig": "後処理設定",
+    "enableDuplicateRemoval": "重複削除を有効にする",
+    "enableExclusionList": "除外リストを有効にする",
+    "exclusionListNote": "詳細設定の除外リストと AI 設定を使用します",
+    "enableAIFiltering": "AI フィルタリングを有効にする",
+    "outputOptions": "出力オプション",
+    "enablePngColorReduction": "PNG 色数削減を有効にする",
+    "progress": "進捗",
+    "phaseCopying": "画像をコピー・変換中...",
+    "phaseCompleted": "処理完了",
+    "start": "開始",
+    "processing": "処理中...",
+    "cancel": "キャンセル",
+    "close": "閉じる",
+    "cancelled": "処理がキャンセルされました",
+    "noImagesFound": "選択したフォルダに画像ファイルが見つかりません",
+    "openOutput": "出力を開く",
+    "errorTitle": "処理エラー"
   },
   "window": {
     "minimize": "最小化",

@@ -831,7 +831,29 @@
     "errorTitle": "错误"
   },
   "offlineProcessing": {
-    "open": "离线处理"
+    "open": "离线处理",
+    "title": "离线处理",
+    "inputFolder": "输入文件夹",
+    "selectFolder": "浏览",
+    "noFolderSelected": "未选择文件夹",
+    "postProcessingConfig": "后处理配置",
+    "enableDuplicateRemoval": "启用去重",
+    "enableExclusionList": "启用排除列表",
+    "exclusionListNote": "使用高级设置中配置的排除列表和 AI 配置",
+    "enableAIFiltering": "启用 AI 过滤",
+    "outputOptions": "输出选项",
+    "enablePngColorReduction": "启用 PNG 色彩缩减",
+    "progress": "进度",
+    "phaseCopying": "正在复制和转换图片...",
+    "phaseCompleted": "处理完成",
+    "start": "开始",
+    "processing": "处理中...",
+    "cancel": "取消",
+    "close": "关闭",
+    "cancelled": "处理已取消",
+    "noImagesFound": "所选文件夹中未找到图片文件",
+    "openOutput": "打开输出",
+    "errorTitle": "处理错误"
   },
   "window": {
     "minimize": "最小化",

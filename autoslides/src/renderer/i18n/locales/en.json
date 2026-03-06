@@ -831,7 +831,29 @@
     "errorTitle": "Error"
   },
   "offlineProcessing": {
-    "open": "Offline Processing"
+    "open": "Offline Processing",
+    "title": "Offline Processing",
+    "inputFolder": "Input Folder",
+    "selectFolder": "Browse",
+    "noFolderSelected": "No folder selected",
+    "postProcessingConfig": "Post-Processing Configuration",
+    "enableDuplicateRemoval": "Enable Duplicate Removal",
+    "enableExclusionList": "Enable Exclusion List",
+    "exclusionListNote": "Uses the exclusion list and AI configuration from Advanced Settings",
+    "enableAIFiltering": "Enable AI Filtering",
+    "outputOptions": "Output Options",
+    "enablePngColorReduction": "Enable PNG Color Reduction",
+    "progress": "Progress",
+    "phaseCopying": "Copying and converting images...",
+    "phaseCompleted": "Processing complete",
+    "start": "Start",
+    "processing": "Processing...",
+    "cancel": "Cancel",
+    "close": "Close",
+    "cancelled": "Processing cancelled",
+    "noImagesFound": "No image files found in selected folder",
+    "openOutput": "Open Output",
+    "errorTitle": "Processing Error"
   },
   "window": {
     "minimize": "Minimize",
