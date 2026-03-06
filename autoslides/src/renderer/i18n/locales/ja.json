@@ -831,8 +831,8 @@
     "errorTitle": "エラー"
   },
   "offlineProcessing": {
-    "open": "オフライン処理",
-    "title": "オフライン処理",
+    "open": "オフライン後処理",
+    "title": "オフライン後処理",
     "inputFolder": "入力フォルダ",
     "selectFolder": "参照",
     "noFolderSelected": "フォルダが選択されていません",

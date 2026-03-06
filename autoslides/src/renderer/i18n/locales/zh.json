@@ -831,8 +831,8 @@
     "errorTitle": "错误"
   },
   "offlineProcessing": {
-    "open": "离线处理",
-    "title": "离线处理",
+    "open": "离线后处理",
+    "title": "离线后处理",
     "inputFolder": "输入文件夹",
     "selectFolder": "浏览",
     "noFolderSelected": "未选择文件夹",

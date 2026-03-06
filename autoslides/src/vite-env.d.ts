@@ -582,6 +582,14 @@ interface ElectronAPI {
     ) => Promise<{ success: boolean; path?: string; error?: string }>;
     onProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;
   };
+
+  offline: {
+    selectInputFolder: () => Promise<string | null>;
+    listImages: (folderPath: string) => Promise<string[]>;
+    copyAndConvert: (inputPath: string, outputDir: string, outputFilename: string, enableColorReduction: boolean) => Promise<void>;
+    readImageForAI: (filePath: string, targetWidth: number, targetHeight: number) => Promise<string>;
+    readImageBuffer: (filePath: string) => Promise<Uint8Array>;
+  };
 }
 
 declare global {

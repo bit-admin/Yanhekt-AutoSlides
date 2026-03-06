@@ -831,8 +831,8 @@
     "errorTitle": "오류"
   },
   "offlineProcessing": {
-    "open": "오프라인 처리",
-    "title": "오프라인 처리",
+    "open": "오프라인 후처리",
+    "title": "오프라인 후처리",
     "inputFolder": "입력 폴더",
     "selectFolder": "찾아보기",
     "noFolderSelected": "폴더가 선택되지 않았습니다",

@@ -72,7 +72,7 @@ export function useOfflineProcessing() {
   // Convert Uint8Array to ImageData for pHash worker
   const bufferToImageData = (buffer: Uint8Array): Promise<ImageData> => {
     return new Promise((resolve, reject) => {
-      const blob = new Blob([buffer])
+      const blob = new Blob([buffer as BlobPart])
       const url = URL.createObjectURL(blob)
       const img = new Image()
       img.onload = () => {
@@ -197,7 +197,7 @@ export function useOfflineProcessing() {
 
       // Get list of output files for processing
       let outputFiles = await window.electronAPI.offline.listImages(outputDir.value)
-      outputFiles = outputFiles.filter(f => f.startsWith('Slide_') && f.endsWith('.png'))
+      outputFiles = outputFiles.filter((f: string) => f.startsWith('Slide_') && f.endsWith('.png'))
 
       // Step 3: Phase 1 — Duplicate Removal
       if (enableDuplicateRemoval.value && !isCancelled.value) {
@@ -271,7 +271,7 @@ export function useOfflineProcessing() {
           }
 
           // Update file list
-          outputFiles = outputFiles.filter(f => !duplicates.some(d => d.filename === f))
+          outputFiles = outputFiles.filter((f: string) => !duplicates.some(d => d.filename === f))
         }
 
         worker.terminate()
@@ -345,7 +345,7 @@ export function useOfflineProcessing() {
             }
           }
 
-          outputFiles = outputFiles.filter(f => !excluded.some(e => e.filename === f))
+          outputFiles = outputFiles.filter((f: string) => !excluded.some(e => e.filename === f))
           worker.terminate()
         }
       }

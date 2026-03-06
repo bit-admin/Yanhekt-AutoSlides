@@ -831,8 +831,8 @@
     "errorTitle": "Error"
   },
   "offlineProcessing": {
-    "open": "Offline Processing",
-    "title": "Offline Processing",
+    "open": "Offline Post-Processing",
+    "title": "Offline Post-Processing",
     "inputFolder": "Input Folder",
     "selectFolder": "Browse",
     "noFolderSelected": "No folder selected",
