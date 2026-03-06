@@ -830,6 +830,9 @@
     "openPdf": "PDFを開く",
     "errorTitle": "エラー"
   },
+  "offlineProcessing": {
+    "open": "オフライン処理"
+  },
   "window": {
     "minimize": "最小化",
     "maximize": "最大化",

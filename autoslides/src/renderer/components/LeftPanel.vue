@@ -246,13 +246,16 @@
           {{ $t('pdfmaker.openPdfMaker') }}
         </button>
       </div>
-
-      <div class="status-row">
-        <span class="status-label">{{ $t('status.connection') }}</span>
-        <span :class="['status-value', connectionMode]">
-          {{ connectionMode === 'internal' ? $t('settings.internalNetwork') : $t('settings.externalNetwork') }}
-        </span>
+      <div class="action-buttons-row">
+        <button class="action-btn offline-btn" @click="openOfflineProcessing">
+          <svg width="14" height="14" viewBox="0 0 16 16">
+            <path d="M8 12a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM4.5 9.5a5 5 0 016.9 0l-1 1a3.5 3.5 0 00-4.9 0l-1-1zM1.5 6.5a9 9 0 0112.9 0l-1 1a7.5 7.5 0 00-10.9 0l-1-1z" fill="currentColor"/>
+            <line x1="2" y1="2" x2="14" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+          {{ $t('offlineProcessing.open') }}
+        </button>
       </div>
+
       <div class="status-row">
         <span class="status-label">{{ $t('status.taskStatus') }}</span>
         <span class="status-value">{{ taskStatus }}</span>
@@ -1527,6 +1530,12 @@ const openCopilotVerificationUrl = () => {
   }
 }
 
+// Offline Processing
+// TODO: Connect to backend when offline processing service is ready
+const openOfflineProcessing = () => {
+  console.log('Offline processing: not yet implemented')
+}
+
 // Trash Window
 const openTrashWindow = async () => {
   try {
@@ -2241,7 +2250,7 @@ defineExpose({
 .action-buttons-row {
   display: flex;
   gap: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .action-btn {
@@ -4559,7 +4568,7 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
+  padding: 5px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: white;

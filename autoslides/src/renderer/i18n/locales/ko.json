@@ -830,6 +830,9 @@
     "openPdf": "PDF 열기",
     "errorTitle": "오류"
   },
+  "offlineProcessing": {
+    "open": "오프라인 처리"
+  },
   "window": {
     "minimize": "최소화",
     "maximize": "최대화",

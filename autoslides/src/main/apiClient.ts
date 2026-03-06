@@ -562,6 +562,13 @@ export class ApiClient {
   private getFallbackSemesters(): SemesterOption[] {
     return [
       {
+        id: 107,
+        label: `2025-2026 第二学期`,
+        labelEn: `2026 Spring`,
+        schoolYear: 2025,
+        semester: 2
+      },
+      {
         id: 100,
         label: `2025-2026 第一学期`,
         labelEn: `2025 Fall`,

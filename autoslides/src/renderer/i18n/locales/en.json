@@ -830,6 +830,9 @@
     "openPdf": "Open PDF",
     "errorTitle": "Error"
   },
+  "offlineProcessing": {
+    "open": "Offline Processing"
+  },
   "window": {
     "minimize": "Minimize",
     "maximize": "Maximize",
