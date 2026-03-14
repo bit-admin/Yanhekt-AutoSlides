@@ -236,6 +236,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return () => ipcRenderer.removeListener('pdfmaker:progress', handler);
     },
   },
+  tools: {
+    openWindow: (tab?: string) => ipcRenderer.invoke('tools:openWindow', tab),
+    onSwitchTab: (callback: (tab: string) => void) => {
+      ipcRenderer.on('tools:switchTab', (_event, tab) => callback(tab));
+    },
+  },
   offline: {
     selectInputFolder: () => ipcRenderer.invoke('offline:selectInputFolder'),
     listImages: (folderPath: string) => ipcRenderer.invoke('offline:listImages', folderPath),

@@ -1159,31 +1159,34 @@ ipcMain.handle('app:restart', async () => {
 });
 
 // ============================================================================
-// Trash Window Management
+// Tools Window Management (unified: PDF Maker, Trash, Offline Processing)
 // ============================================================================
 
-// Declare Vite dev server variables for trash window
-declare const TRASH_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
-declare const TRASH_WINDOW_VITE_NAME: string;
+// Declare Vite dev server variables for tools window
+declare const TOOLS_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
+declare const TOOLS_WINDOW_VITE_NAME: string;
 
-let trashWindow: BrowserWindow | null = null;
+let toolsWindow: BrowserWindow | null = null;
 
-const createTrashWindow = () => {
-  // If window already exists, focus it
-  if (trashWindow && !trashWindow.isDestroyed()) {
-    trashWindow.focus();
+const createToolsWindow = (tab?: string) => {
+  const targetTab = tab || 'pdfmaker';
+
+  // If window already exists, switch tab and focus
+  if (toolsWindow && !toolsWindow.isDestroyed()) {
+    toolsWindow.webContents.send('tools:switchTab', targetTab);
+    toolsWindow.focus();
     return;
   }
 
-  trashWindow = new BrowserWindow({
-    width: 1000,
-    height: 700,
-    minWidth: 800,
-    minHeight: 500,
-    title: 'In-App Trash',
+  toolsWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
+    title: 'Tools',
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     frame: false,
-    backgroundColor: getWindowBackgroundColor(), // Set initial background color based on system theme
+    backgroundColor: getWindowBackgroundColor(),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
@@ -1191,24 +1194,31 @@ const createTrashWindow = () => {
     },
   });
 
-  // Load the trash window HTML
-  if (TRASH_WINDOW_VITE_DEV_SERVER_URL) {
-    trashWindow.loadURL(`${TRASH_WINDOW_VITE_DEV_SERVER_URL}/trash.html`);
+  // Load the tools window HTML with tab query param
+  if (TOOLS_WINDOW_VITE_DEV_SERVER_URL) {
+    toolsWindow.loadURL(`${TOOLS_WINDOW_VITE_DEV_SERVER_URL}/tools.html?tab=${targetTab}`);
   } else {
-    trashWindow.loadFile(
-      path.join(__dirname, `../renderer/${TRASH_WINDOW_VITE_NAME}/trash.html`),
+    toolsWindow.loadFile(
+      path.join(__dirname, `../renderer/${TOOLS_WINDOW_VITE_NAME}/tools.html`),
+      { query: { tab: targetTab } }
     );
   }
 
   // Clean up reference when window is closed
-  trashWindow.on('closed', () => {
-    trashWindow = null;
+  toolsWindow.on('closed', () => {
+    toolsWindow = null;
   });
 };
 
-// IPC handler to open trash window
+// IPC handler to open trash window (redirects to tools window)
 ipcMain.handle('trash:openWindow', async () => {
-  createTrashWindow();
+  createToolsWindow('trash');
+  return { success: true };
+});
+
+// IPC handler to open tools window
+ipcMain.handle('tools:openWindow', async (_event, tab?: string) => {
+  createToolsWindow(tab);
   return { success: true };
 });
 
@@ -1259,57 +1269,9 @@ ipcMain.handle('trash:getImageAsBase64', async (_event, trashPath: string) => {
   }
 });
 
-// ============================================================================
-// PDF Maker Window Management
-// ============================================================================
-
-// Declare Vite dev server variables for pdfmaker window
-declare const PDFMAKER_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
-declare const PDFMAKER_WINDOW_VITE_NAME: string;
-
-let pdfmakerWindow: BrowserWindow | null = null;
-
-const createPdfMakerWindow = () => {
-  // If window already exists, focus it
-  if (pdfmakerWindow && !pdfmakerWindow.isDestroyed()) {
-    pdfmakerWindow.focus();
-    return;
-  }
-
-  pdfmakerWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    minWidth: 900,
-    minHeight: 600,
-    title: 'PDF Maker',
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
-    frame: false,
-    backgroundColor: getWindowBackgroundColor(),
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: false,
-      contextIsolation: true,
-    },
-  });
-
-  // Load the pdfmaker window HTML
-  if (PDFMAKER_WINDOW_VITE_DEV_SERVER_URL) {
-    pdfmakerWindow.loadURL(`${PDFMAKER_WINDOW_VITE_DEV_SERVER_URL}/pdfmaker.html`);
-  } else {
-    pdfmakerWindow.loadFile(
-      path.join(__dirname, `../renderer/${PDFMAKER_WINDOW_VITE_NAME}/pdfmaker.html`),
-    );
-  }
-
-  // Clean up reference when window is closed
-  pdfmakerWindow.on('closed', () => {
-    pdfmakerWindow = null;
-  });
-};
-
-// IPC handler to open pdfmaker window
+// IPC handler to open pdfmaker window (redirects to tools window)
 ipcMain.handle('pdfmaker:openWindow', async () => {
-  createPdfMakerWindow();
+  createToolsWindow('pdfmaker');
   return { success: true };
 });
 
@@ -1391,7 +1353,7 @@ ipcMain.handle('pdfmaker:deleteImage', async (_event, imagePath: string) => {
 ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], options: PdfMakeOptions) => {
   try {
     // Show save dialog
-    const parentWindow = pdfmakerWindow || BrowserWindow.getFocusedWindow();
+    const parentWindow = toolsWindow || BrowserWindow.getFocusedWindow();
     // Extract course name from first folder (remove session pattern: _第N周_星期X_第N大节)
     let defaultFileName = 'slides.pdf';
     if (folders.length > 0) {
@@ -1423,7 +1385,7 @@ ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], option
       outputPath,
       (current, total) => {
         // Send progress to pdfmaker window
-        pdfmakerWindow?.webContents.send('pdfmaker:progress', { current, total });
+        toolsWindow?.webContents.send('pdfmaker:progress', { current, total });
       }
     );
 

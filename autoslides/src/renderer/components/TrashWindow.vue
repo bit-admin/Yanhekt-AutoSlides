@@ -1,29 +1,5 @@
 <template>
   <div class="trash-window">
-    <!-- Title Bar -->
-    <div class="title-bar" @mousedown="startDrag">
-      <div class="title-bar-drag-region" :class="{ 'macos-padding': isMacOS }">
-        <span class="title-text">{{ $t('trash.title') }}</span>
-      </div>
-      <div v-if="!isMacOS" class="window-controls">
-        <button class="window-btn minimize-btn" @click="minimizeWindow" :title="$t('window.minimize')">
-          <svg width="12" height="12" viewBox="0 0 12 12">
-            <rect x="2" y="5.5" width="8" height="1" fill="currentColor"/>
-          </svg>
-        </button>
-        <button class="window-btn maximize-btn" @click="maximizeWindow" :title="$t('window.maximize')">
-          <svg width="12" height="12" viewBox="0 0 12 12">
-            <rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/>
-          </svg>
-        </button>
-        <button class="window-btn close-btn" @click="closeWindow" :title="$t('window.close')">
-          <svg width="12" height="12" viewBox="0 0 12 12">
-            <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-
     <!-- Toolbar -->
     <div class="toolbar">
       <div class="filters">
@@ -265,9 +241,6 @@ interface TrashEntry {
 
 const { t } = useI18n()
 
-// Platform detection
-const isMacOS = navigator.userAgent.includes('Mac')
-
 // State
 const entries = ref<TrashEntry[]>([])
 const selectedIds = ref<string[]>([])
@@ -414,23 +387,6 @@ const clearTrash = async () => {
   }
 }
 
-// Window controls
-const minimizeWindow = () => {
-  window.electronAPI.window?.minimize?.()
-}
-
-const maximizeWindow = () => {
-  window.electronAPI.window?.maximize?.()
-}
-
-const closeWindow = () => {
-  window.electronAPI.window?.close?.()
-}
-
-const startDrag = () => {
-  // Handled by -webkit-app-region: drag in CSS
-}
-
 // Load data on mount
 onMounted(() => {
   refreshEntries()
@@ -441,65 +397,9 @@ onMounted(() => {
 .trash-window {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
   background-color: #ffffff;
   color: #333;
-}
-
-/* Title Bar */
-.title-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 38px;
-  background-color: #f0f0f0;
-  border-bottom: 1px solid #e0e0e0;
-  -webkit-app-region: drag;
-  padding: 0 8px;
-}
-
-.title-bar-drag-region {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.title-bar-drag-region.macos-padding {
-  padding-left: 70px; /* Space for traffic lights on macOS */
-}
-
-.title-text {
-  font-size: 13px;
-  font-weight: 500;
-}
-
-.window-controls {
-  display: flex;
-  gap: 8px;
-  -webkit-app-region: no-drag;
-}
-
-.window-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  transition: background-color 0.2s;
-}
-
-.window-btn:hover {
-  background-color: #e0e0e0;
-}
-
-.close-btn:hover {
-  background-color: #e81123;
-  color: white;
 }
 
 /* Toolbar */
@@ -1042,19 +942,6 @@ onMounted(() => {
   .trash-window {
     background-color: #1e1e1e;
     color: #e0e0e0;
-  }
-
-  .title-bar {
-    background-color: #2d2d2d;
-    border-bottom-color: #404040;
-  }
-
-  .window-btn {
-    color: #e0e0e0;
-  }
-
-  .window-btn:hover {
-    background-color: #404040;
   }
 
   .toolbar {

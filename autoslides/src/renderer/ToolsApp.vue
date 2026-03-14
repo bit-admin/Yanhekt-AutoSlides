@@ -1,12 +1,12 @@
 <template>
-  <div class="trash-app">
-    <TrashWindow />
+  <div class="tools-app">
+    <ToolsWindow />
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import TrashWindow from './components/TrashWindow.vue'
+import ToolsWindow from './components/ToolsWindow.vue'
 import { setI18nLanguage, detectSystemLanguage } from './i18n'
 
 // Load language from config on mount
@@ -25,7 +25,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.trash-app {
+.tools-app {
   width: 100%;
   height: 100vh;
   overflow: hidden;
@@ -33,7 +33,7 @@ onMounted(async () => {
 }
 
 @media (prefers-color-scheme: dark) {
-  .trash-app {
+  .tools-app {
     background-color: #1e1e1e;
   }
 }

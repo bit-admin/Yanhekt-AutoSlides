@@ -855,6 +855,12 @@
     "openOutput": "打开输出",
     "errorTitle": "处理错误"
   },
+  "tools": {
+    "openTools": "工具",
+    "tabPdfMaker": "PDF 制作",
+    "tabTrash": "应用回收站",
+    "tabOffline": "离线处理"
+  },
   "window": {
     "minimize": "最小化",
     "maximize": "最大化",

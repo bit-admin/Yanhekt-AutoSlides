@@ -583,6 +583,11 @@ interface ElectronAPI {
     onProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;
   };
 
+  tools: {
+    openWindow: (tab?: string) => Promise<{ success: boolean }>;
+    onSwitchTab: (callback: (tab: string) => void) => void;
+  };
+
   offline: {
     selectInputFolder: () => Promise<string | null>;
     listImages: (folderPath: string) => Promise<string[]>;

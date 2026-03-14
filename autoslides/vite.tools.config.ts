@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import path from 'path';
 
-// Vite config for trash window
+// Vite config for unified Tools window
 export default defineConfig(({ mode }) => ({
   plugins: [vue()],
   build: {
@@ -18,12 +18,12 @@ export default defineConfig(({ mode }) => ({
       }
     } : undefined,
     rollupOptions: {
-      input: path.resolve(__dirname, 'trash.html'),
+      input: path.resolve(__dirname, 'tools.html'),
       external: ['electron'],
     },
     chunkSizeWarningLimit: 1000
   },
   server: {
-    port: 5174 // Different port for trash window dev server
+    port: 5174 // Port for tools window dev server
   }
 }));

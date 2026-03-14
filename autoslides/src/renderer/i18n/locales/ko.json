@@ -855,6 +855,12 @@
     "openOutput": "출력 열기",
     "errorTitle": "처리 오류"
   },
+  "tools": {
+    "openTools": "도구",
+    "tabPdfMaker": "PDF 생성",
+    "tabTrash": "앱 휴지통",
+    "tabOffline": "오프라인 처리"
+  },
   "window": {
     "minimize": "최소화",
     "maximize": "최대화",

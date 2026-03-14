@@ -855,6 +855,12 @@
     "openOutput": "Open Output",
     "errorTitle": "Processing Error"
   },
+  "tools": {
+    "openTools": "Tools",
+    "tabPdfMaker": "PDF Maker",
+    "tabTrash": "In-App Trash",
+    "tabOffline": "Offline Processing"
+  },
   "window": {
     "minimize": "Minimize",
     "maximize": "Maximize",

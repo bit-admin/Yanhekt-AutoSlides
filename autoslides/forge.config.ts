@@ -58,12 +58,8 @@ const config: ForgeConfig = {
           config: 'vite.renderer.config.ts',
         },
         {
-          name: 'trash_window',
-          config: 'vite.trash.config.ts',
-        },
-        {
-          name: 'pdfmaker_window',
-          config: 'vite.pdfmaker.config.ts',
+          name: 'tools_window',
+          config: 'vite.tools.config.ts',
         },
       ],
     }),

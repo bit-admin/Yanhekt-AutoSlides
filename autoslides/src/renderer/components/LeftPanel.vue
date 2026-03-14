@@ -232,28 +232,38 @@
 
     <div class="status-section">
       <!-- Action Buttons Row -->
-      <div class="action-buttons-row">
-        <button class="action-btn trash-btn" @click="openTrashWindow">
+      <!-- Tools Dropup -->
+      <div class="tools-dropup-container">
+        <button class="action-btn tools-btn" @click="showToolsDropup = !showToolsDropup">
           <svg width="14" height="14" viewBox="0 0 16 16">
-            <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
+            <path d="M1 3h4v4H1V3zm5 0h4v4H6V3zm5 0h4v4h-4V3zM1 9h4v4H1V9zm5 0h4v4H6V9zm5 0h4v4h-4V9z" fill="currentColor"/>
           </svg>
-          {{ $t('trash.openTrash') }}
-        </button>
-        <button class="action-btn pdfmaker-btn" @click="openPdfMakerWindow">
-          <svg width="14" height="14" viewBox="0 0 16 16">
-            <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1.5H4V8zm0 2.5h8V12H4v-1.5zm0 2.5h5v1.5H4V13z" fill="currentColor"/>
+          {{ $t('tools.openTools') }}
+          <svg width="10" height="10" viewBox="0 0 10 10" class="chevron-icon" :class="{ open: showToolsDropup }">
+            <path d="M2 7L5 4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
-          {{ $t('pdfmaker.openPdfMaker') }}
         </button>
-      </div>
-      <div class="action-buttons-row">
-        <button class="action-btn offline-btn" @click="openOfflineProcessing">
-          <svg width="14" height="14" viewBox="0 0 16 16">
-            <path d="M8 12a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM4.5 9.5a5 5 0 016.9 0l-1 1a3.5 3.5 0 00-4.9 0l-1-1zM1.5 6.5a9 9 0 0112.9 0l-1 1a7.5 7.5 0 00-10.9 0l-1-1z" fill="currentColor"/>
-            <line x1="2" y1="2" x2="14" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-          </svg>
-          {{ $t('offlineProcessing.open') }}
-        </button>
+        <div v-if="showToolsDropup" class="tools-dropup-panel" @click="showToolsDropup = false">
+          <button class="tools-dropup-item" @click="openToolsWindow('pdfmaker')">
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1.5H4V8zm0 2.5h8V12H4v-1.5zm0 2.5h5v1.5H4V13z" fill="currentColor"/>
+            </svg>
+            {{ $t('tools.tabPdfMaker') }}
+          </button>
+          <button class="tools-dropup-item" @click="openToolsWindow('trash')">
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
+            </svg>
+            {{ $t('tools.tabTrash') }}
+          </button>
+          <button class="tools-dropup-item" @click="openToolsWindow('offline')">
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M8 12a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM4.5 9.5a5 5 0 016.9 0l-1 1a3.5 3.5 0 00-4.9 0l-1-1zM1.5 6.5a9 9 0 0112.9 0l-1 1a7.5 7.5 0 00-10.9 0l-1-1z" fill="currentColor"/>
+              <line x1="2" y1="2" x2="14" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            {{ $t('tools.tabOffline') }}
+          </button>
+        </div>
       </div>
 
       <div class="status-row">
@@ -1262,97 +1272,6 @@
       </div>
     </div>
 
-    <!-- Offline Processing Modal -->
-    <div v-if="showOfflineModal" class="modal-overlay" @click="offlineProcessing.closeModal()">
-      <div class="modal-content offline-modal" @click.stop>
-        <div class="modal-header">
-          <h3>{{ $t('offlineProcessing.title') }}</h3>
-          <button @click="offlineProcessing.closeModal()" class="close-btn" :disabled="offlineIsProcessing">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <!-- Input Folder -->
-          <div class="setting-item">
-            <label class="setting-label">{{ $t('offlineProcessing.inputFolder') }}</label>
-            <div class="directory-input-group">
-              <input
-                :value="offlineInputFolderPath || $t('offlineProcessing.noFolderSelected')"
-                type="text"
-                readonly
-                class="directory-input"
-                :class="{ 'placeholder-text': !offlineInputFolderPath }"
-                :title="offlineInputFolderPath"
-              />
-              <button @click="offlineProcessing.selectInputFolder()" class="browse-btn" :disabled="offlineIsProcessing">
-                {{ $t('offlineProcessing.selectFolder') }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Post-Processing Configuration -->
-          <div class="offline-section-header">{{ $t('offlineProcessing.postProcessingConfig') }}</div>
-
-          <div class="offline-toggle-list">
-            <label class="phase-toggle-item">
-              <input type="checkbox" v-model="offlineEnableDuplicateRemoval" :disabled="offlineIsProcessing" />
-              <span class="phase-toggle-text">{{ $t('offlineProcessing.enableDuplicateRemoval') }}</span>
-            </label>
-
-            <label class="phase-toggle-item">
-              <input type="checkbox" v-model="offlineEnableExclusionList" :disabled="offlineIsProcessing" />
-              <span class="phase-toggle-text">{{ $t('offlineProcessing.enableExclusionList') }}</span>
-            </label>
-
-            <label class="phase-toggle-item">
-              <input type="checkbox" v-model="offlineEnableAIFiltering" :disabled="offlineIsProcessing" />
-              <span class="phase-toggle-text">{{ $t('offlineProcessing.enableAIFiltering') }}</span>
-            </label>
-          </div>
-          <div class="offline-note">{{ $t('offlineProcessing.exclusionListNote') }}</div>
-
-          <!-- Output Options -->
-          <div class="offline-section-header">{{ $t('offlineProcessing.outputOptions') }}</div>
-
-          <div class="offline-toggle-list">
-            <label class="phase-toggle-item">
-              <input type="checkbox" v-model="offlineEnablePngColorReduction" :disabled="offlineIsProcessing" />
-              <span class="phase-toggle-text">{{ $t('offlineProcessing.enablePngColorReduction') }}</span>
-            </label>
-          </div>
-
-        </div>
-        <!-- Progress bar: full-width thin bar just above control area -->
-        <div v-if="offlineProgress.phase !== 'idle'" class="offline-progress-track">
-          <div class="offline-progress-fill" :style="{ width: overallOfflineProgress + '%' }"></div>
-        </div>
-        <div class="modal-actions">
-          <button
-            v-if="offlineProgress.phase === 'completed'"
-            @click="openOfflineOutputFolder"
-            class="offline-open-output-btn"
-          >{{ $t('offlineProcessing.openOutput') }}</button>
-          <button
-            v-if="offlineIsProcessing"
-            @click="offlineProcessing.cancelProcessing()"
-            class="cancel-btn"
-          >{{ $t('offlineProcessing.cancel') }}</button>
-          <button
-            v-else
-            @click="offlineProcessing.closeModal()"
-            class="cancel-btn"
-          >{{ $t('offlineProcessing.close') }}</button>
-          <button
-            @click="offlineProcessing.startProcessing()"
-            :disabled="!offlineInputFolderPath || offlineIsProcessing || offlineProgress.phase === 'completed'"
-            class="save-btn"
-          >{{ offlineIsProcessing ? $t('offlineProcessing.processing') : $t('offlineProcessing.start') }}</button>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -1365,7 +1284,6 @@ import { useAdvancedSettings } from '../composables/useAdvancedSettings'
 import { useCacheManagement } from '../composables/useCacheManagement'
 import { useAISettings } from '../composables/useAISettings'
 import { usePHashExclusion } from '../composables/usePHashExclusion'
-import { useOfflineProcessing } from '../composables/useOfflineProcessing'
 
 const { t } = useI18n()
 
@@ -1604,18 +1522,15 @@ const {
   cancelNameInput
 } = pHashExclusion
 
-// Offline Processing
-const offlineProcessing = useOfflineProcessing()
-const {
-  showOfflineModal,
-  inputFolderPath: offlineInputFolderPath,
-  enableDuplicateRemoval: offlineEnableDuplicateRemoval,
-  enableExclusionList: offlineEnableExclusionList,
-  enableAIFiltering: offlineEnableAIFiltering,
-  enablePngColorReduction: offlineEnablePngColorReduction,
-  isProcessing: offlineIsProcessing,
-  progress: offlineProgress
-} = offlineProcessing
+// Tools Window
+const showToolsDropup = ref(false)
+const openToolsWindow = async (tab: string) => {
+  try {
+    await window.electronAPI.tools.openWindow(tab)
+  } catch (error) {
+    console.error('Failed to open tools window:', error)
+  }
+}
 
 // Copy Copilot user code to clipboard
 const copilotCodeCopied = ref(false)
@@ -1633,77 +1548,6 @@ const copyUserCode = async () => {
 const openCopilotVerificationUrl = () => {
   if (copilotVerificationUri.value) {
     window.electronAPI.shell.openExternal(copilotVerificationUri.value)
-  }
-}
-
-// Offline Processing
-const openOfflineProcessing = () => {
-  offlineProcessing.openModal()
-}
-
-const openOfflineOutputFolder = async () => {
-  if (offlineProcessing.outputDir.value) {
-    await window.electronAPI.shell.openPath(offlineProcessing.outputDir.value)
-  }
-}
-
-const phaseOrder = ['copying', 'phase1', 'phase2', 'phase3', 'completed', 'cancelled', 'error'] as const
-
-const isOfflinePhaseCompleted = (phase: 'phase1' | 'phase2' | 'phase3'): boolean => {
-  const currentIdx = phaseOrder.indexOf(offlineProgress.value.phase as typeof phaseOrder[number])
-  const phaseIdx = phaseOrder.indexOf(phase)
-  return currentIdx > phaseIdx
-}
-
-const getOfflinePhaseProgress = (phase: 'phase1' | 'phase2' | 'phase3'): number => {
-  if (offlineProgress.value.phase === phase) {
-    return offlineProgress.value.total > 0
-      ? (offlineProgress.value.currentIndex / offlineProgress.value.total) * 100
-      : 0
-  }
-  if (isOfflinePhaseCompleted(phase)) return 100
-  return 0
-}
-
-// Overall progress: phase1=0-20%, phase2=20-40%, phase3=40-100%
-const overallOfflineProgress = computed(() => {
-  const phase = offlineProgress.value.phase
-  if (phase === 'idle') return 0
-  if (phase === 'copying') {
-    // Copying is pre-processing, show a tiny sliver (0-2%)
-    return offlineProgress.value.total > 0
-      ? (offlineProgress.value.currentIndex / offlineProgress.value.total) * 2
-      : 0
-  }
-  // phase1: 2% - 22% (20% slice)
-  const p1 = getOfflinePhaseProgress('phase1')
-  if (phase === 'phase1') return 2 + (p1 / 100) * 20
-  // phase2: 22% - 42% (20% slice)
-  const p2 = getOfflinePhaseProgress('phase2')
-  if (phase === 'phase2') return 22 + (p2 / 100) * 20
-  // phase3: 42% - 100% (58% slice)
-  const p3 = getOfflinePhaseProgress('phase3')
-  if (phase === 'phase3') return 42 + (p3 / 100) * 58
-  // completed/cancelled/error
-  if (phase === 'completed') return 100
-  return 0
-})
-
-// Trash Window
-const openTrashWindow = async () => {
-  try {
-    await window.electronAPI.trash.openWindow()
-  } catch (error) {
-    console.error('Failed to open trash window:', error)
-  }
-}
-
-// PDF Maker Window
-const openPdfMakerWindow = async () => {
-  try {
-    await window.electronAPI.pdfmaker.openWindow()
-  } catch (error) {
-    console.error('Failed to open PDF Maker window:', error)
   }
 }
 
@@ -3022,77 +2866,60 @@ defineExpose({
   background: rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Offline Processing Modal */
-.offline-modal {
-  width: 520px;
-  max-width: 90vw;
+/* Tools Dropup */
+.tools-dropup-container {
+  position: relative;
+  margin-bottom: 4px;
 }
 
-.offline-modal .modal-body {
-  padding: 16px;
-  overflow-y: auto;
-  max-height: 60vh;
-}
-
-.offline-section-header {
-  font-size: 12px;
-  font-weight: 600;
-  color: #333;
-  margin-top: 12px;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid #eee;
-}
-
-.offline-note {
-  font-size: 11px;
-  color: #888;
-  margin-top: 2px;
-}
-
-.offline-modal .placeholder-text {
-  color: #999;
-}
-
-.offline-modal .setting-item {
-  margin-bottom: 8px;
-}
-
-.offline-toggle-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-
-.offline-progress-track {
+.tools-btn {
   width: 100%;
-  height: 4px;
-  background-color: #e0e0e0;
-  overflow: hidden;
+  justify-content: flex-start;
 }
 
-.offline-progress-fill {
-  height: 100%;
-  background-color: #007acc;
-  transition: width 0.3s ease;
+.chevron-icon {
+  margin-left: auto;
+  transition: transform 0.2s;
 }
 
-.offline-open-output-btn {
-  padding: 8px 16px;
-  border: 1px solid #007acc;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
+.chevron-icon.open {
+  transform: rotate(180deg);
+}
+
+.tools-dropup-panel {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 0;
+  right: 0;
   background-color: white;
-  color: #007acc;
-  margin-right: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  z-index: 100;
 }
 
-.offline-open-output-btn:hover {
-  background-color: #007acc;
-  color: white;
+.tools-dropup-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  text-align: left;
+}
+
+.tools-dropup-item:hover {
+  background-color: #f0f0f0;
+}
+
+.tools-dropup-item + .tools-dropup-item {
+  border-top: 1px solid #f0f0f0;
 }
 
 /* Dark mode support */
@@ -5123,37 +4950,23 @@ defineExpose({
     color: #aaa;
   }
 
-  /* Offline Processing Dark Mode */
-  .offline-section-header {
-    color: #ccc;
-    border-bottom-color: #404040;
-  }
-
-  .offline-note {
-    color: #888;
-  }
-
-  .offline-modal .placeholder-text {
-    color: #666;
-  }
-
-  .offline-open-output-btn {
+  /* Tools Dropup Dark Mode */
+  .tools-dropup-panel {
     background-color: #2d2d2d;
-    border-color: #4a9eff;
-    color: #4a9eff;
+    border-color: #404040;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
   }
 
-  .offline-open-output-btn:hover {
-    background-color: #4a9eff;
-    color: #1e1e1e;
+  .tools-dropup-item {
+    color: #e0e0e0;
   }
 
-  .offline-progress-track {
-    background-color: #404040;
+  .tools-dropup-item:hover {
+    background-color: #3d3d3d;
   }
 
-  .offline-progress-fill {
-    background-color: #4a9eff;
+  .tools-dropup-item + .tools-dropup-item {
+    border-top-color: #404040;
   }
 }
 </style>
