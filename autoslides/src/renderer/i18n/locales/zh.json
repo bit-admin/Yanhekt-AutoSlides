@@ -861,6 +861,28 @@
     "tabTrash": "应用回收站",
     "tabOffline": "离线处理"
   },
+  "addons": {
+    "openAddons": "扩展",
+    "tabYuketang": "雨课堂"
+  },
+  "yuketang": {
+    "lessonId": "课堂 ID",
+    "lessonIdPlaceholder": "自动检测",
+    "output": "输出",
+    "format": "格式",
+    "formatPdf": "PDF",
+    "formatImages": "仅图片",
+    "export": "导出",
+    "openFolder": "打开文件夹",
+    "openPdf": "打开 PDF",
+    "defaultStatus": "打开雨课堂并导航到课堂报告或课堂全屏页面。",
+    "lessonReady": "已检测到课堂报告，可以导出课件。",
+    "classReady": "已检测到课堂全屏，可以导出课件。",
+    "classWaiting": "已检测到课堂全屏，等待课件捕获...",
+    "exporting": "导出中...",
+    "exported": "已导出 {count} 个演示文稿，格式为 {format}",
+    "noLessonId": "未检测到课堂 ID。请打开课堂报告页面或课堂全屏。"
+  },
   "window": {
     "minimize": "最小化",
     "maximize": "最大化",

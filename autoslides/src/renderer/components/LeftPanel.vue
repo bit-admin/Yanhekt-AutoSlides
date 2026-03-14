@@ -266,6 +266,27 @@
         </div>
       </div>
 
+      <!-- Add-ons Dropdown -->
+      <div class="tools-dropdown addons-dropdown" :class="{ expanded: showAddonsDropup }">
+        <button class="tools-trigger" @click="showAddonsDropup = !showAddonsDropup">
+          <svg width="14" height="14" viewBox="0 0 16 16">
+            <path d="M8 1L1 5v6l7 4 7-4V5L8 1zm0 2l4.5 2.5L8 8 3.5 5.5 8 3zM2.5 6.3L7.5 9v4.2l-5-2.8V6.3zm11 0v4.1l-5 2.8V9l5-2.7z" fill="currentColor"/>
+          </svg>
+          <span>{{ $t('addons.openAddons') }}</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" class="tools-chevron" :class="{ open: showAddonsDropup }">
+            <path d="M2 4L5 7l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          </svg>
+        </button>
+        <div v-if="showAddonsDropup" class="tools-menu">
+          <button class="tools-menu-item" @click="openAddonsWindow('yuketang'); showAddonsDropup = false">
+            <svg width="15" height="15" viewBox="0 0 16 16">
+              <path d="M8 1L1 5v6l7 4 7-4V5L8 1zm0 2l4.5 2.5L8 8 3.5 5.5 8 3zM2.5 6.3L7.5 9v4.2l-5-2.8V6.3zm11 0v4.1l-5 2.8V9l5-2.7z" fill="currentColor"/>
+            </svg>
+            <span>{{ $t('addons.tabYuketang') }}</span>
+          </button>
+        </div>
+      </div>
+
       <div class="status-row">
         <span class="status-label">{{ $t('status.taskStatus') }}</span>
         <span class="status-value">{{ taskStatus }}</span>
@@ -1529,6 +1550,16 @@ const openToolsWindow = async (tab: string) => {
     await window.electronAPI.tools.openWindow(tab)
   } catch (error) {
     console.error('Failed to open tools window:', error)
+  }
+}
+
+// Add-ons Window
+const showAddonsDropup = ref(false)
+const openAddonsWindow = async (tab: string) => {
+  try {
+    await window.electronAPI.addons.openWindow(tab)
+  } catch (error) {
+    console.error('Failed to open addons window:', error)
   }
 }
 

@@ -861,6 +861,28 @@
     "tabTrash": "アプリ内ゴミ箱",
     "tabOffline": "オフライン処理"
   },
+  "addons": {
+    "openAddons": "アドオン",
+    "tabYuketang": "雨課堂"
+  },
+  "yuketang": {
+    "lessonId": "授業ID",
+    "lessonIdPlaceholder": "自動検出",
+    "output": "出力",
+    "format": "形式",
+    "formatPdf": "PDF",
+    "formatImages": "画像のみ",
+    "export": "エクスポート",
+    "openFolder": "フォルダを開く",
+    "openPdf": "PDFを開く",
+    "defaultStatus": "雨課堂を開き、授業レポートまたはクラスフルスクリーンページに移動してください。",
+    "lessonReady": "授業レポートを検出しました。スライドをエクスポートできます。",
+    "classReady": "クラスフルスクリーンを検出しました。スライドをエクスポートできます。",
+    "classWaiting": "クラスフルスクリーンを検出しました。プレゼンテーションのキャプチャを待っています...",
+    "exporting": "エクスポート中...",
+    "exported": "{count}件のプレゼンテーションを{format}形式でエクスポートしました",
+    "noLessonId": "授業IDが検出されません。授業レポートページまたはクラスフルスクリーンを開いてください。"
+  },
   "window": {
     "minimize": "最小化",
     "maximize": "最大化",

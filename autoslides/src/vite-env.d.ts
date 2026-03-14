@@ -588,6 +588,27 @@ interface ElectronAPI {
     onSwitchTab: (callback: (tab: string) => void) => void;
   };
 
+  addons: {
+    openWindow: (tab?: string) => Promise<{ success: boolean }>;
+    onSwitchTab: (callback: (tab: string) => void) => void;
+  };
+
+  yuketang: {
+    exportLesson: (payload: { lessonId?: string; format: 'pdf' | 'images' }) => Promise<{
+      lessonId: string;
+      lessonTitle: string;
+      lessonDir: string;
+      presentationCount: number;
+      format: string;
+      pdfPath?: string;
+      cancelled?: boolean;
+    }>;
+    getClassCapture: () => Promise<{ presentationId: string; hasAuthorization: boolean }>;
+    openFolder: (folderPath: string) => Promise<void>;
+    onExportProgress: (callback: (message: string) => void) => () => void;
+    onClassCaptureUpdate: (callback: (data: { presentationId: string; hasAuthorization: boolean }) => void) => () => void;
+  };
+
   offline: {
     selectInputFolder: () => Promise<string | null>;
     listImages: (folderPath: string) => Promise<string[]>;

@@ -17,6 +17,7 @@ import { AIFilteringService } from './main/aiFilteringService';
 import { pdfService, PdfMakeOptions, FolderEntry } from './main/pdfService';
 import { updateDownloadService, UpdateDownloadService } from './main/updateDownloadService';
 import { offlineProcessingService } from './main/offlineProcessingService';
+import { exportLessonSummary, exportClassPresentation, fetchLessonTitle, fetchClassPresentationTitle } from './main/yuketangService';
 import type { AIServiceType } from './main/configService';
 
 // Import translation files for main process
@@ -210,6 +211,7 @@ const initializePowerManagement = async () => {
 // Initialize power management when app is ready
 app.whenReady().then(() => {
   initializePowerManagement();
+  setupYuketangClassCapture();
 });
 
 // IPC handlers for authentication
@@ -1220,6 +1222,235 @@ ipcMain.handle('trash:openWindow', async () => {
 ipcMain.handle('tools:openWindow', async (_event, tab?: string) => {
   createToolsWindow(tab);
   return { success: true };
+});
+
+// ============================================================================
+// Add-ons Window Management (Yuketang, etc.)
+// ============================================================================
+
+declare const ADDONS_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
+declare const ADDONS_WINDOW_VITE_NAME: string;
+
+let addonsWindow: BrowserWindow | null = null;
+
+// Yuketang class capture state (module-level)
+const yuketangClassCapture = {
+  presentationId: '',
+  authorization: '',
+  sourceUrl: '',
+  updatedAt: '',
+};
+
+function getYuketangHeaderValue(headers: Record<string, string | string[]>, name: string): string {
+  const target = name.toLowerCase();
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === target) {
+      if (Array.isArray(value)) return value.join('; ');
+      return typeof value === 'string' ? value : '';
+    }
+  }
+  return '';
+}
+
+function setupYuketangClassCapture() {
+  const captureSession = session.fromPartition('persist:yuketang');
+  captureSession.webRequest.onBeforeSendHeaders(
+    { urls: ['*://*.yuketang.cn/api/v3/lesson/presentation/fetch*'] },
+    (details, callback) => {
+      try {
+        const url = new URL(details.url);
+        const presentationId = url.searchParams.get('presentation_id') || '';
+        const authorization = getYuketangHeaderValue(
+          details.requestHeaders as Record<string, string | string[]>,
+          'authorization'
+        );
+
+        if (presentationId) {
+          yuketangClassCapture.presentationId = presentationId;
+        }
+        if (authorization) {
+          yuketangClassCapture.authorization = authorization;
+        }
+
+        if (presentationId || authorization) {
+          yuketangClassCapture.sourceUrl = details.url;
+          yuketangClassCapture.updatedAt = new Date().toISOString();
+          addonsWindow?.webContents.send('yuketang:classCaptureUpdated', {
+            presentationId: yuketangClassCapture.presentationId,
+            hasAuthorization: Boolean(yuketangClassCapture.authorization),
+          });
+        }
+      } catch { /* ignore */ }
+
+      callback({ requestHeaders: details.requestHeaders });
+    }
+  );
+}
+
+async function buildYuketangCookieHeader(): Promise<string> {
+  const urls = ['https://www.yuketang.cn', 'https://yuketang.cn', 'https://pro.yuketang.cn'];
+  const cookieMap = new Map<string, string>();
+  const cookieSessions = [session.fromPartition('persist:yuketang'), session.defaultSession];
+
+  for (const currentSession of cookieSessions) {
+    for (const url of urls) {
+      const cookies = await currentSession.cookies.get({ url });
+      for (const cookie of cookies) {
+        cookieMap.set(cookie.name, cookie.value);
+      }
+    }
+  }
+
+  if (cookieMap.size === 0) {
+    throw new Error('No Yuketang cookies found. Please sign in via the embedded website first.');
+  }
+
+  return Array.from(cookieMap.entries())
+    .map(([name, value]) => `${name}=${value}`)
+    .join('; ');
+}
+
+const createAddonsWindow = (tab?: string) => {
+  const targetTab = tab || 'yuketang';
+
+  // If window already exists, switch tab and focus
+  if (addonsWindow && !addonsWindow.isDestroyed()) {
+    addonsWindow.webContents.send('addons:switchTab', targetTab);
+    addonsWindow.focus();
+    return;
+  }
+
+  addonsWindow = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    minWidth: 900,
+    minHeight: 600,
+    title: 'Add-ons',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+    frame: false,
+    backgroundColor: getWindowBackgroundColor(),
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      webviewTag: true,
+    },
+  });
+
+  // Redirect window.open inside webview to same webview
+  addonsWindow.webContents.on('did-attach-webview', (_event, webContents) => {
+    webContents.setWindowOpenHandler(({ url }) => {
+      webContents.loadURL(url);
+      return { action: 'deny' };
+    });
+  });
+
+  // Load the addons window HTML with tab query param
+  if (ADDONS_WINDOW_VITE_DEV_SERVER_URL) {
+    addonsWindow.loadURL(`${ADDONS_WINDOW_VITE_DEV_SERVER_URL}/addons.html?tab=${targetTab}`);
+  } else {
+    addonsWindow.loadFile(
+      path.join(__dirname, `../renderer/${ADDONS_WINDOW_VITE_NAME}/addons.html`),
+      { query: { tab: targetTab } }
+    );
+  }
+
+  // Clean up reference when window is closed
+  addonsWindow.on('closed', () => {
+    addonsWindow = null;
+  });
+};
+
+// IPC handler to open addons window
+ipcMain.handle('addons:openWindow', async (_event, tab?: string) => {
+  createAddonsWindow(tab);
+  return { success: true };
+});
+
+// Yuketang IPC: export lesson/class presentation
+ipcMain.handle('yuketang:export', async (_event, payload: { lessonId?: string; format: 'pdf' | 'images' }) => {
+  const lessonId = String(payload?.lessonId ?? '').trim();
+  const format = payload?.format || 'pdf';
+  const outputDir = configService.getConfig().outputDirectory;
+  const cookieHeader = await buildYuketangCookieHeader();
+
+  const onProgress = (message: string) => {
+    addonsWindow?.webContents.send('yuketang:exportProgress', message);
+  };
+
+  // If PDF format, fetch title first for save dialog default name, then show save dialog
+  let pdfOutputPath: string | undefined;
+  if (format === 'pdf') {
+    onProgress('Loading metadata...');
+    let title = 'slides';
+    try {
+      if (/^\d+$/.test(lessonId)) {
+        title = await fetchLessonTitle(lessonId, cookieHeader);
+      } else if (yuketangClassCapture.presentationId && yuketangClassCapture.authorization) {
+        title = await fetchClassPresentationTitle(
+          yuketangClassCapture.presentationId,
+          yuketangClassCapture.authorization,
+          cookieHeader
+        );
+      }
+    } catch {
+      // Fall back to generic name
+    }
+
+    const parentWindow = addonsWindow || BrowserWindow.getFocusedWindow();
+    const result = await dialog.showSaveDialog(parentWindow!, {
+      title: 'Save PDF',
+      defaultPath: path.join(outputDir, `slides_${title}.pdf`),
+      filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+    });
+    if (result.canceled || !result.filePath) {
+      return { cancelled: true };
+    }
+    pdfOutputPath = result.filePath;
+  }
+
+  if (/^\d+$/.test(lessonId)) {
+    return exportLessonSummary({
+      lessonId,
+      outputDir,
+      format,
+      pdfOutputPath,
+      cookieHeader,
+      onProgress,
+    });
+  }
+
+  if (yuketangClassCapture.presentationId && yuketangClassCapture.authorization) {
+    return exportClassPresentation({
+      presentationId: yuketangClassCapture.presentationId,
+      authorization: yuketangClassCapture.authorization,
+      cookieHeader,
+      outputDir,
+      format,
+      pdfOutputPath,
+      onProgress,
+    });
+  }
+
+  throw new Error(
+    'No lesson_id found. Open a lesson report page, or open class fullscreen PPT and wait for capture.'
+  );
+});
+
+// Yuketang IPC: get class capture state
+ipcMain.handle('yuketang:getClassCapture', async () => {
+  return {
+    presentationId: yuketangClassCapture.presentationId,
+    hasAuthorization: Boolean(yuketangClassCapture.authorization),
+  };
+});
+
+// Yuketang IPC: open folder
+ipcMain.handle('yuketang:openFolder', async (_event, folderPath: string) => {
+  const target = typeof folderPath === 'string' ? folderPath.trim() : '';
+  if (!target) throw new Error('No folder path provided.');
+  const openError = await shell.openPath(target);
+  if (openError) throw new Error(openError);
 });
 
 // ============================================================================

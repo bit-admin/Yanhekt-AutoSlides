@@ -242,6 +242,28 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('tools:switchTab', (_event, tab) => callback(tab));
     },
   },
+  addons: {
+    openWindow: (tab?: string) => ipcRenderer.invoke('addons:openWindow', tab),
+    onSwitchTab: (callback: (tab: string) => void) => {
+      ipcRenderer.on('addons:switchTab', (_event, tab) => callback(tab));
+    },
+  },
+  yuketang: {
+    exportLesson: (payload: { lessonId?: string; format: 'pdf' | 'images' }) =>
+      ipcRenderer.invoke('yuketang:export', payload),
+    getClassCapture: () => ipcRenderer.invoke('yuketang:getClassCapture'),
+    openFolder: (folderPath: string) => ipcRenderer.invoke('yuketang:openFolder', folderPath),
+    onExportProgress: (callback: (message: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, message: string) => callback(message);
+      ipcRenderer.on('yuketang:exportProgress', handler);
+      return () => ipcRenderer.removeListener('yuketang:exportProgress', handler);
+    },
+    onClassCaptureUpdate: (callback: (data: { presentationId: string; hasAuthorization: boolean }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: { presentationId: string; hasAuthorization: boolean }) => callback(data);
+      ipcRenderer.on('yuketang:classCaptureUpdated', handler);
+      return () => ipcRenderer.removeListener('yuketang:classCaptureUpdated', handler);
+    },
+  },
   offline: {
     selectInputFolder: () => ipcRenderer.invoke('offline:selectInputFolder'),
     listImages: (folderPath: string) => ipcRenderer.invoke('offline:listImages', folderPath),

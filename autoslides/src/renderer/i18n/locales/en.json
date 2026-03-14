@@ -861,6 +861,28 @@
     "tabTrash": "In-App Trash",
     "tabOffline": "Offline Processing"
   },
+  "addons": {
+    "openAddons": "Add-ons",
+    "tabYuketang": "Yuketang"
+  },
+  "yuketang": {
+    "lessonId": "Lesson ID",
+    "lessonIdPlaceholder": "Auto-detected",
+    "output": "Output",
+    "format": "Format",
+    "formatPdf": "PDF",
+    "formatImages": "Images",
+    "export": "Export",
+    "openFolder": "Open folder",
+    "openPdf": "Open PDF",
+    "defaultStatus": "Open Yuketang and navigate to a lesson report or class fullscreen page.",
+    "lessonReady": "Lesson report detected, you can export slides.",
+    "classReady": "Class fullscreen detected, you can export slides.",
+    "classWaiting": "Class fullscreen detected, waiting for presentation capture...",
+    "exporting": "Exporting...",
+    "exported": "Exported {count} presentation(s) as {format}",
+    "noLessonId": "No lesson ID detected. Open a lesson report page or class fullscreen."
+  },
   "window": {
     "minimize": "Minimize",
     "maximize": "Maximize",
