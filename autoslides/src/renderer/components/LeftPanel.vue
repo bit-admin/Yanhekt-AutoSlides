@@ -232,36 +232,36 @@
 
     <div class="status-section">
       <!-- Action Buttons Row -->
-      <!-- Tools Dropup -->
-      <div class="tools-dropup-container">
-        <button class="action-btn tools-btn" @click="showToolsDropup = !showToolsDropup">
+      <!-- Tools Dropdown -->
+      <div class="tools-dropdown" :class="{ expanded: showToolsDropup }">
+        <button class="tools-trigger" @click="showToolsDropup = !showToolsDropup">
           <svg width="14" height="14" viewBox="0 0 16 16">
             <path d="M1 3h4v4H1V3zm5 0h4v4H6V3zm5 0h4v4h-4V3zM1 9h4v4H1V9zm5 0h4v4H6V9zm5 0h4v4h-4V9z" fill="currentColor"/>
           </svg>
-          {{ $t('tools.openTools') }}
-          <svg width="10" height="10" viewBox="0 0 10 10" class="chevron-icon" :class="{ open: showToolsDropup }">
-            <path d="M2 7L5 4l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <span>{{ $t('tools.openTools') }}</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" class="tools-chevron" :class="{ open: showToolsDropup }">
+            <path d="M2 4L5 7l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
         </button>
-        <div v-if="showToolsDropup" class="tools-dropup-panel" @click="showToolsDropup = false">
-          <button class="tools-dropup-item" @click="openToolsWindow('pdfmaker')">
-            <svg width="14" height="14" viewBox="0 0 16 16">
+        <div v-if="showToolsDropup" class="tools-menu">
+          <button class="tools-menu-item" @click="openToolsWindow('pdfmaker'); showToolsDropup = false">
+            <svg width="15" height="15" viewBox="0 0 16 16">
               <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1.5H4V8zm0 2.5h8V12H4v-1.5zm0 2.5h5v1.5H4V13z" fill="currentColor"/>
             </svg>
-            {{ $t('tools.tabPdfMaker') }}
+            <span>{{ $t('tools.tabPdfMaker') }}</span>
           </button>
-          <button class="tools-dropup-item" @click="openToolsWindow('trash')">
-            <svg width="14" height="14" viewBox="0 0 16 16">
+          <button class="tools-menu-item" @click="openToolsWindow('trash'); showToolsDropup = false">
+            <svg width="15" height="15" viewBox="0 0 16 16">
               <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
             </svg>
-            {{ $t('tools.tabTrash') }}
+            <span>{{ $t('tools.tabTrash') }}</span>
           </button>
-          <button class="tools-dropup-item" @click="openToolsWindow('offline')">
-            <svg width="14" height="14" viewBox="0 0 16 16">
+          <button class="tools-menu-item" @click="openToolsWindow('offline'); showToolsDropup = false">
+            <svg width="15" height="15" viewBox="0 0 16 16">
               <path d="M8 12a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM4.5 9.5a5 5 0 016.9 0l-1 1a3.5 3.5 0 00-4.9 0l-1-1zM1.5 6.5a9 9 0 0112.9 0l-1 1a7.5 7.5 0 00-10.9 0l-1-1z" fill="currentColor"/>
               <line x1="2" y1="2" x2="14" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
             </svg>
-            {{ $t('tools.tabOffline') }}
+            <span>{{ $t('tools.tabOffline') }}</span>
           </button>
         </div>
       </div>
@@ -1276,7 +1276,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '../composables/useAuth'
 import { useSettings } from '../composables/useSettings'
@@ -2866,59 +2866,96 @@ defineExpose({
   background: rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Tools Dropup */
-.tools-dropup-container {
-  position: relative;
-  margin-bottom: 4px;
+/* Tools Flyout */
+.tools-dropdown {
+  margin-bottom: 10px;
 }
 
-.tools-btn {
+.tools-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   width: 100%;
-  justify-content: flex-start;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #333;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.chevron-icon {
+.tools-trigger:hover {
+  background-color: #f0f0f0;
+  border-color: #ccc;
+}
+
+.tools-trigger svg:first-child {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.tools-dropdown.expanded .tools-trigger {
+  background-color: #eee;
+  border-color: #bbb;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+
+.tools-chevron {
   margin-left: auto;
-  transition: transform 0.2s;
+  opacity: 0.4;
+  transition: transform 0.15s, opacity 0.15s;
 }
 
-.chevron-icon.open {
+.tools-dropdown.expanded .tools-chevron {
+  opacity: 0.7;
   transform: rotate(180deg);
 }
 
-.tools-dropup-panel {
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+.tools-menu {
+  width: 100%;
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-top: none;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
   overflow: hidden;
-  z-index: 100;
 }
 
-.tools-dropup-item {
+.tools-menu-item {
   display: flex;
   align-items: center;
   gap: 8px;
   width: 100%;
-  padding: 8px 12px;
+  padding: 7px 8px;
   border: none;
   background: transparent;
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 500;
   color: #333;
   cursor: pointer;
-  transition: background-color 0.15s;
+  transition: background-color 0.12s;
   text-align: left;
 }
 
-.tools-dropup-item:hover {
+.tools-menu-item svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.tools-menu-item:hover {
   background-color: #f0f0f0;
 }
 
-.tools-dropup-item + .tools-dropup-item {
+.tools-menu-item:hover svg {
+  opacity: 0.85;
+}
+
+.tools-menu-item + .tools-menu-item {
   border-top: 1px solid #f0f0f0;
 }
 
@@ -4950,23 +4987,39 @@ defineExpose({
     color: #aaa;
   }
 
-  /* Tools Dropup Dark Mode */
-  .tools-dropup-panel {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .tools-dropup-item {
+  /* Tools Dropdown Dark Mode */
+  .tools-trigger {
+    background-color: #333;
+    border-color: #555;
     color: #e0e0e0;
   }
 
-  .tools-dropup-item:hover {
-    background-color: #3d3d3d;
+  .tools-trigger:hover {
+    background-color: #404040;
+    border-color: #666;
   }
 
-  .tools-dropup-item + .tools-dropup-item {
-    border-top-color: #404040;
+  .tools-dropdown.expanded .tools-trigger {
+    background-color: #3a3a3a;
+    border-color: #666;
+    border-bottom-color: transparent;
+  }
+
+  .tools-menu {
+    background-color: #333;
+    border-color: #555;
+  }
+
+  .tools-menu-item {
+    color: #e0e0e0;
+  }
+
+  .tools-menu-item:hover {
+    background-color: #404040;
+  }
+
+  .tools-menu-item + .tools-menu-item {
+    border-top-color: #444;
   }
 }
 </style>
