@@ -1,84 +1,102 @@
 <template>
   <div class="offline-processing-tab">
-    <!-- Input Folder -->
-    <div class="setting-item">
-      <label class="setting-label">{{ $t('offlineProcessing.inputFolder') }}</label>
-      <div class="directory-input-group">
-        <input
-          :value="offlineInputFolderPath || $t('offlineProcessing.noFolderSelected')"
-          type="text"
-          readonly
-          class="directory-input"
-          :class="{ 'placeholder-text': !offlineInputFolderPath }"
-          :title="offlineInputFolderPath"
-        />
-        <button @click="offlineProcessing.selectInputFolder()" class="browse-btn" :disabled="offlineIsProcessing">
-          {{ $t('offlineProcessing.selectFolder') }}
-        </button>
+    <div class="offline-columns">
+      <!-- Left Column: Offline Post-Processing -->
+      <div class="offline-column">
+        <h3 class="column-title">{{ $t('offlineProcessing.title') }}</h3>
+
+        <!-- Input Folder -->
+        <div class="setting-group">
+          <label class="setting-label">{{ $t('offlineProcessing.inputFolder') }}</label>
+          <div class="directory-input-group">
+            <input
+              :value="offlineInputFolderPath || $t('offlineProcessing.noFolderSelected')"
+              type="text"
+              readonly
+              class="directory-input"
+              :class="{ 'placeholder-text': !offlineInputFolderPath }"
+              :title="offlineInputFolderPath"
+            />
+            <button @click="offlineProcessing.selectInputFolder()" class="browse-btn" :disabled="offlineIsProcessing">
+              {{ $t('offlineProcessing.selectFolder') }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Post-Processing Configuration -->
+        <div class="setting-group">
+          <label class="setting-label">{{ $t('offlineProcessing.postProcessingConfig') }}</label>
+          <div class="toggle-list">
+            <label class="toggle-item">
+              <input type="checkbox" v-model="offlineEnableDuplicateRemoval" :disabled="offlineIsProcessing" />
+              <span class="toggle-text">{{ $t('offlineProcessing.enableDuplicateRemoval') }}</span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" v-model="offlineEnableExclusionList" :disabled="offlineIsProcessing" />
+              <span class="toggle-text">{{ $t('offlineProcessing.enableExclusionList') }}</span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" v-model="offlineEnableAIFiltering" :disabled="offlineIsProcessing" />
+              <span class="toggle-text">{{ $t('offlineProcessing.enableAIFiltering') }}</span>
+            </label>
+          </div>
+          <div class="setting-note">{{ $t('offlineProcessing.exclusionListNote') }}</div>
+        </div>
+
+        <!-- Output Options -->
+        <div class="setting-group">
+          <label class="setting-label">{{ $t('offlineProcessing.outputOptions') }}</label>
+          <div class="toggle-list">
+            <label class="toggle-item">
+              <input type="checkbox" v-model="offlineEnablePngColorReduction" :disabled="offlineIsProcessing" />
+              <span class="toggle-text">{{ $t('offlineProcessing.enablePngColorReduction') }}</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Spacer to push controls to bottom -->
+        <div class="offline-spacer"></div>
+
+        <!-- Progress bar -->
+        <div v-if="offlineProgress.phase !== 'idle'" class="progress-track">
+          <div class="progress-fill" :style="{ width: overallOfflineProgress + '%' }"></div>
+        </div>
+
+        <!-- Actions -->
+        <div class="offline-actions">
+          <button
+            v-if="offlineProgress.phase === 'completed'"
+            @click="openOfflineOutputFolder"
+            class="open-output-btn"
+          >{{ $t('offlineProcessing.openOutput') }}</button>
+          <button
+            v-if="offlineIsProcessing"
+            @click="offlineProcessing.cancelProcessing()"
+            class="secondary-btn"
+          >{{ $t('offlineProcessing.cancel') }}</button>
+          <button
+            v-else
+            @click="resetAndClose"
+            class="secondary-btn"
+          >{{ $t('offlineProcessing.close') }}</button>
+          <button
+            @click="offlineProcessing.startProcessing()"
+            :disabled="!offlineInputFolderPath || offlineIsProcessing || offlineProgress.phase === 'completed'"
+            class="primary-btn"
+          >{{ offlineIsProcessing ? $t('offlineProcessing.processing') : $t('offlineProcessing.start') }}</button>
+        </div>
       </div>
-    </div>
 
-    <!-- Post-Processing Configuration -->
-    <div class="offline-section-header">{{ $t('offlineProcessing.postProcessingConfig') }}</div>
-
-    <div class="offline-toggle-list">
-      <label class="phase-toggle-item">
-        <input type="checkbox" v-model="offlineEnableDuplicateRemoval" :disabled="offlineIsProcessing" />
-        <span class="phase-toggle-text">{{ $t('offlineProcessing.enableDuplicateRemoval') }}</span>
-      </label>
-
-      <label class="phase-toggle-item">
-        <input type="checkbox" v-model="offlineEnableExclusionList" :disabled="offlineIsProcessing" />
-        <span class="phase-toggle-text">{{ $t('offlineProcessing.enableExclusionList') }}</span>
-      </label>
-
-      <label class="phase-toggle-item">
-        <input type="checkbox" v-model="offlineEnableAIFiltering" :disabled="offlineIsProcessing" />
-        <span class="phase-toggle-text">{{ $t('offlineProcessing.enableAIFiltering') }}</span>
-      </label>
-    </div>
-    <div class="offline-note">{{ $t('offlineProcessing.exclusionListNote') }}</div>
-
-    <!-- Output Options -->
-    <div class="offline-section-header">{{ $t('offlineProcessing.outputOptions') }}</div>
-
-    <div class="offline-toggle-list">
-      <label class="phase-toggle-item">
-        <input type="checkbox" v-model="offlineEnablePngColorReduction" :disabled="offlineIsProcessing" />
-        <span class="phase-toggle-text">{{ $t('offlineProcessing.enablePngColorReduction') }}</span>
-      </label>
-    </div>
-
-    <!-- Spacer to push controls to bottom -->
-    <div class="offline-spacer"></div>
-
-    <!-- Progress bar -->
-    <div v-if="offlineProgress.phase !== 'idle'" class="offline-progress-track">
-      <div class="offline-progress-fill" :style="{ width: overallOfflineProgress + '%' }"></div>
-    </div>
-
-    <!-- Actions -->
-    <div class="offline-actions">
-      <button
-        v-if="offlineProgress.phase === 'completed'"
-        @click="openOfflineOutputFolder"
-        class="offline-open-output-btn"
-      >{{ $t('offlineProcessing.openOutput') }}</button>
-      <button
-        v-if="offlineIsProcessing"
-        @click="offlineProcessing.cancelProcessing()"
-        class="cancel-btn"
-      >{{ $t('offlineProcessing.cancel') }}</button>
-      <button
-        v-else
-        @click="resetAndClose"
-        class="cancel-btn"
-      >{{ $t('offlineProcessing.close') }}</button>
-      <button
-        @click="offlineProcessing.startProcessing()"
-        :disabled="!offlineInputFolderPath || offlineIsProcessing || offlineProgress.phase === 'completed'"
-        class="start-btn"
-      >{{ offlineIsProcessing ? $t('offlineProcessing.processing') : $t('offlineProcessing.start') }}</button>
+      <!-- Right Column: Coming Soon -->
+      <div class="offline-column coming-soon-column">
+        <div class="coming-soon-placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span class="coming-soon-text">Coming soon</span>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -150,23 +168,47 @@ const overallOfflineProgress = computed(() => {
 
 <style scoped>
 .offline-processing-tab {
+  height: 100%;
+  overflow: hidden;
+}
+
+.offline-columns {
+  display: flex;
+  height: 100%;
+}
+
+.offline-column {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  padding: 20px 24px;
+  padding: 24px;
   overflow-y: auto;
 }
 
-.setting-item {
-  margin-bottom: 12px;
+.offline-column:first-child {
+  border-right: 1px solid #e0e0e0;
+}
+
+.column-title {
+  margin: 0 0 20px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+/* Setting Groups */
+.setting-group {
+  margin-bottom: 20px;
 }
 
 .setting-label {
   display: block;
   font-size: 12px;
-  font-weight: 500;
-  color: #555;
-  margin-bottom: 6px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
 }
 
 .directory-input-group {
@@ -176,7 +218,7 @@ const overallOfflineProgress = computed(() => {
 
 .directory-input {
   flex: 1;
-  padding: 6px 10px;
+  padding: 7px 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 12px;
@@ -189,7 +231,7 @@ const overallOfflineProgress = computed(() => {
 }
 
 .browse-btn {
-  padding: 6px 12px;
+  padding: 7px 14px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: white;
@@ -209,73 +251,85 @@ const overallOfflineProgress = computed(() => {
   cursor: not-allowed;
 }
 
-.offline-section-header {
-  font-size: 12px;
-  font-weight: 600;
-  color: #333;
-  margin-top: 12px;
-  margin-bottom: 6px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid #eee;
-}
-
-.offline-note {
-  font-size: 11px;
-  color: #888;
-  margin-top: 2px;
-}
-
-.offline-toggle-list {
+/* Toggle List — matches LeftPanel advanced settings checkbox style */
+.toggle-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 8px;
 }
 
-.phase-toggle-item {
+.toggle-item {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 8px 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
-.phase-toggle-item input {
+.toggle-item:hover {
+  background-color: #f0f0f0;
+  border-color: #ccc;
+}
+
+.toggle-item input[type="checkbox"] {
   margin: 0;
   cursor: pointer;
+  width: 14px;
+  height: 14px;
+  accent-color: #007bff;
 }
 
-.phase-toggle-text {
+.toggle-item input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toggle-text {
   font-size: 12px;
-  color: #555;
+  color: #333;
 }
 
+.setting-note {
+  font-size: 11px;
+  color: #888;
+  margin-top: 6px;
+}
+
+/* Spacer */
 .offline-spacer {
   flex: 1;
 }
 
-.offline-progress-track {
+/* Progress */
+.progress-track {
   width: 100%;
   height: 4px;
   background-color: #e0e0e0;
+  border-radius: 2px;
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
-.offline-progress-fill {
+.progress-fill {
   height: 100%;
   background-color: #007acc;
   transition: width 0.3s ease;
 }
 
+/* Actions */
 .offline-actions {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-top: 12px;
+  padding-top: 16px;
   border-top: 1px solid #e0e0e0;
 }
 
-.offline-open-output-btn {
+.open-output-btn {
   padding: 8px 16px;
   border: 1px solid #007acc;
   border-radius: 4px;
@@ -287,12 +341,12 @@ const overallOfflineProgress = computed(() => {
   margin-right: auto;
 }
 
-.offline-open-output-btn:hover {
+.open-output-btn:hover {
   background-color: #007acc;
   color: white;
 }
 
-.cancel-btn {
+.secondary-btn {
   padding: 8px 16px;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -303,12 +357,12 @@ const overallOfflineProgress = computed(() => {
   margin-left: auto;
 }
 
-.cancel-btn:hover {
+.secondary-btn:hover {
   background-color: #f0f0f0;
   border-color: #ccc;
 }
 
-.start-btn {
+.primary-btn {
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
@@ -320,19 +374,53 @@ const overallOfflineProgress = computed(() => {
   transition: all 0.2s;
 }
 
-.start-btn:hover:not(:disabled) {
+.primary-btn:hover:not(:disabled) {
   background-color: #005a9e;
 }
 
-.start-btn:disabled {
+.primary-btn:disabled {
   background-color: #ccc;
   cursor: not-allowed;
 }
 
+/* Coming Soon Column */
+.coming-soon-column {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coming-soon-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  color: #bbb;
+}
+
+.coming-soon-placeholder svg {
+  opacity: 0.4;
+}
+
+.coming-soon-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #bbb;
+}
+
 /* Dark Mode */
 @media (prefers-color-scheme: dark) {
+  .offline-column:first-child {
+    border-right-color: #3d3d3d;
+  }
+
+  .column-title {
+    color: #e0e0e0;
+    border-bottom-color: #3d3d3d;
+  }
+
   .setting-label {
-    color: #aaa;
+    color: #ccc;
   }
 
   .directory-input {
@@ -356,51 +444,68 @@ const overallOfflineProgress = computed(() => {
     border-color: #666;
   }
 
-  .offline-section-header {
+  .toggle-item {
+    background-color: #2a2a2a;
+    border-color: #404040;
+  }
+
+  .toggle-item:hover {
+    background-color: #333;
+    border-color: #555;
+  }
+
+  .toggle-text {
     color: #ccc;
-    border-bottom-color: #404040;
   }
 
-  .offline-note {
-    color: #888;
+  .setting-note {
+    color: #777;
   }
 
-  .phase-toggle-text {
-    color: #ccc;
-  }
-
-  .offline-progress-track {
+  .progress-track {
     background-color: #404040;
   }
 
-  .offline-progress-fill {
+  .progress-fill {
     background-color: #4a9eff;
   }
 
   .offline-actions {
-    border-top-color: #404040;
+    border-top-color: #3d3d3d;
   }
 
-  .offline-open-output-btn {
+  .open-output-btn {
     background-color: #2d2d2d;
     border-color: #4a9eff;
     color: #4a9eff;
   }
 
-  .offline-open-output-btn:hover {
+  .open-output-btn:hover {
     background-color: #4a9eff;
     color: #1e1e1e;
   }
 
-  .cancel-btn {
+  .secondary-btn {
     background-color: #333;
     border-color: #555;
     color: #e0e0e0;
   }
 
-  .cancel-btn:hover {
+  .secondary-btn:hover {
     background-color: #404040;
     border-color: #666;
+  }
+
+  .coming-soon-placeholder {
+    color: #555;
+  }
+
+  .coming-soon-placeholder svg {
+    opacity: 0.3;
+  }
+
+  .coming-soon-text {
+    color: #555;
   }
 }
 </style>
