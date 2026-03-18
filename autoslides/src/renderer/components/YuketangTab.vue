@@ -80,14 +80,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useYuketang } from '../composables/useYuketang'
 
 const { t } = useI18n()
 
 const {
-  currentPageMode,
   lessonId,
   isExporting,
   exportFormat,
@@ -145,12 +144,14 @@ onMounted(() => {
     if (!webview) return
 
     // Handle webview navigation events
-    const handleDidNavigate = (event: { url: string }) => {
-      scheduleNavigationEvaluation(event.url, 180)
+    const handleDidNavigate = (event: Event) => {
+      const url = (event as Event & { url: string }).url
+      scheduleNavigationEvaluation(url, 180)
     }
 
-    const handleDidNavigateInPage = (event: { url: string }) => {
-      scheduleNavigationEvaluation(event.url, 180)
+    const handleDidNavigateInPage = (event: Event) => {
+      const url = (event as Event & { url: string }).url
+      scheduleNavigationEvaluation(url, 180)
     }
 
     const handleDidStopLoading = () => {
@@ -161,14 +162,15 @@ onMounted(() => {
     }
 
     // Redirect window.open to same webview
-    const handleNewWindow = (event: { url: string }) => {
-      webview.loadURL(event.url)
+    const handleNewWindow = (event: Event) => {
+      const url = (event as Event & { url: string }).url
+      webview.loadURL(url)
     }
 
-    webview.addEventListener('did-navigate', handleDidNavigate)
-    webview.addEventListener('did-navigate-in-page', handleDidNavigateInPage)
-    webview.addEventListener('did-stop-loading', handleDidStopLoading)
-    webview.addEventListener('new-window', handleNewWindow)
+    webview.addEventListener('did-navigate', handleDidNavigate as EventListener)
+    webview.addEventListener('did-navigate-in-page', handleDidNavigateInPage as EventListener)
+    webview.addEventListener('did-stop-loading', handleDidStopLoading as EventListener)
+    webview.addEventListener('new-window', handleNewWindow as EventListener)
   }
 
   // Give DOM time to mount the webview
