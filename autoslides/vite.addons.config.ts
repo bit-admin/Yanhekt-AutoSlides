@@ -4,7 +4,16 @@ import path from 'path';
 
 // Vite config for Add-ons window
 export default defineConfig(({ mode }) => ({
-  plugins: [vue()],
+  plugins: [
+    vue({
+      template: {
+        compilerOptions: {
+          // Electron webview is a custom element
+          isCustomElement: (tag) => tag === 'webview',
+        },
+      },
+    }),
+  ],
   build: {
     minify: mode === 'production' ? 'terser' : false,
     terserOptions: mode === 'production' ? {

@@ -1339,7 +1339,9 @@ const createAddonsWindow = (tab?: string) => {
 
   // Redirect window.open inside webview to same webview
   addonsWindow.webContents.on('did-attach-webview', (_event, webContents) => {
+    console.log('[Addons] Webview attached, setting up window open handler');
     webContents.setWindowOpenHandler(({ url }) => {
+      console.log('[Addons] Intercepted window.open:', url);
       webContents.loadURL(url);
       return { action: 'deny' };
     });

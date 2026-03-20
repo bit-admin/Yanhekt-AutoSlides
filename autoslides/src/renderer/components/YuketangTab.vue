@@ -73,6 +73,7 @@
         ref="webviewRef"
         src="https://www.yuketang.cn/web"
         partition="persist:yuketang"
+        allowpopups
         class="yuketang-webview"
       ></webview>
     </div>
@@ -161,10 +162,13 @@ onMounted(() => {
       }
     }
 
-    // Redirect window.open to same webview
+    // Redirect window.open to same webview (backup for main process handler)
     const handleNewWindow = (event: Event) => {
+      event.preventDefault()
       const url = (event as Event & { url: string }).url
-      webview.loadURL(url)
+      if (url) {
+        webview.loadURL(url)
+      }
     }
 
     webview.addEventListener('did-navigate', handleDidNavigate as EventListener)
