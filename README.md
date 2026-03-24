@@ -476,98 +476,16 @@ function calculateSSIM(img1: ImageData, img2: ImageData): number {
 }
 ```
 
-### 项目主要结构
+## Star History
 
-<div align="left">
-
-<table>
-<tr>
-<td valign="top" width="50%">
-
-#### Main Process & Root
-
-```text
-autoslides/src/
-├── main/
-│   ├── aiFilteringService.ts
-│   ├── aiPromptsService.ts
-│   ├── apiClient.ts
-│   ├── authService.ts
-│   ├── cacheManagementService.ts
-│   ├── configService.ts
-│   ├── ffmpegService.ts
-│   ├── intranetMappingService.ts
-│   ├── m3u8DownloadService.ts
-│   ├── powerManagementService.ts
-│   ├── slideExtractionService.ts
-│   ├── themeService.ts
-│   └── videoProxyService.ts
-├── App.vue
-├── index.css
-├── main.ts
-├── preload.ts
-├── renderer.ts
-├── trash.ts
-└── vite-env.d.ts
-
-```
-
-</td>
-<td valign="top" width="50%">
-
-#### Renderer Process
-
-```text
-renderer/
-├── components/
-│   ├── CoursePage.vue
-│   ├── LeftPanel.vue
-│   ├── MainContent.vue
-│   ├── PlaybackPage.vue
-│   ├── RightPanel.vue
-│   ├── SessionPage.vue
-│   ├── TitleBar.vue
-│   └── TrashWindow.vue
-├── composables/
-│   ├── index.ts
-│   ├── useAdvancedSettings.ts
-│   ├── useAISettings.ts
-│   ├── useAuth.ts
-│   ├── useCacheManagement.ts
-│   ├── useCourseList.ts
-│   ├── usePerformanceOptimization.ts
-│   ├── usePHashExclusion.ts
-│   ├── usePostProcessing.ts
-│   ├── useSessionPage.ts
-│   ├── useSettings.ts
-│   ├── useSlideExtraction.ts
-│   ├── useSlideGallery.ts
-│   ├── useTaskQueue.ts
-│   ├── useTour.ts
-│   └── useVideoPlayer.ts
-├── services/
-│   ├── apiClient.ts
-│   ├── authService.ts
-│   ├── dataStore.ts
-│   ├── downloadService.ts
-│   ├── languageService.ts
-│   ├── postProcessingService.ts
-│   ├── slideExtractor.ts
-│   ├── slideProcessorService.ts
-│   ├── ssimThresholdService.ts
-│   └── taskQueueService.ts
-├── workers/
-│   ├── postProcessor.worker.ts
-│   └── slideProcessor.worker.ts
-├── PdfMakerApp.vue
-└── TrashApp.vue
-
-```
-
-</td>
-</tr>
-</table>
-
+<div align="center">
+  <a href="https://www.star-history.com/?repos=bit-admin%2FYanhekt-AutoSlides&type=date&legend=top-left">
+   <picture>
+     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=bit-admin/Yanhekt-AutoSlides&type=date&theme=dark&legend=top-left" />
+     <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=bit-admin/Yanhekt-AutoSlides&type=date&legend=top-left" />
+     <img alt="Star History Chart" src="https://api.star-history.com/image?repos=bit-admin/Yanhekt-AutoSlides&type=date&legend=top-left" />
+   </picture>
+  </a>
 </div>
 
 ---
