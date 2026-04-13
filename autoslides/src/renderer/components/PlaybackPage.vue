@@ -155,25 +155,7 @@
           <div v-if="props.mode === 'recorded'" class="playback-rate-control">
             <label>{{ $t('playback.playbackSpeed') }}</label>
             <select v-model="currentPlaybackRate" @change="changePlaybackRate" :disabled="shouldDisableControls">
-              <option value="1">1x</option>
-              <option value="1.25">1.25x</option>
-              <option value="1.5">1.5x</option>
-              <option value="1.75">1.75x</option>
-              <option value="2">2x</option>
-              <option value="3">3x</option>
-              <option value="4">4x</option>
-              <option value="5">5x</option>
-              <option value="6">6x</option>
-              <option value="7">7x</option>
-              <option value="8">8x</option>
-              <option value="9">9x</option>
-              <option value="10">10x</option>
-              <option value="11">11x</option>
-              <option value="12">12x</option>
-              <option value="13">13x</option>
-              <option value="14">14x</option>
-              <option value="15">15x</option>
-              <option value="16">16x</option>
+              <option v-for="rate in playbackRateOptions" :key="rate" :value="rate">{{ rate }}x</option>
             </select>
           </div>
 
@@ -505,6 +487,14 @@ const isVisible = computed(() => props.isVisible ?? true)
 const showDetails = ref(false)
 const isPictureInPicture = ref(false)
 const isVideoContainerCollapsed = ref(false)
+const showMorePlaybackSpeed = ref(false)
+
+const defaultPlaybackRates = [1, 2, 5, 10, 16]
+const allPlaybackRates = [0.5, 0.75, 0.8, 0.9, 1, 1.1, 1.15, 1.2, 1.25, 1.5, 1.75, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+
+const playbackRateOptions = computed(() => {
+  return showMorePlaybackSpeed.value ? allPlaybackRates : defaultPlaybackRates
+})
 
 // Convert props to refs for composables
 const courseRef = toRef(props, 'course')
@@ -658,6 +648,28 @@ const formatDuration = (duration: string | number): string => {
 // Track last playback position for error display
 const lastPlaybackPosition = computed(() => videoPlayerComposable.lastPlaybackPosition)
 
+const ensureCurrentPlaybackRateVisible = () => {
+  const currentRate = Number(currentPlaybackRate.value)
+  if (!playbackRateOptions.value.includes(currentRate)) {
+    currentPlaybackRate.value = 1
+    changePlaybackRate()
+  }
+}
+
+const loadShowMorePlaybackSpeedConfig = async () => {
+  try {
+    const config = await window.electronAPI.config.get()
+    showMorePlaybackSpeed.value = config.showMorePlaybackSpeed ?? false
+  } catch (error) {
+    console.error('Failed to load show-more playback speed config:', error)
+  }
+}
+
+const onShowMorePlaybackSpeedChanged = (event: Event) => {
+  const customEvent = event as CustomEvent<boolean>
+  showMorePlaybackSpeed.value = customEvent.detail === true
+}
+
 // Watch effects
 let currentEventListeners: (() => void)[] = []
 
@@ -784,6 +796,10 @@ watch(isSlideExtractionEnabled, (enabled) => {
   }
 })
 
+watch(showMorePlaybackSpeed, () => {
+  ensureCurrentPlaybackRateVisible()
+})
+
 // Watch for course changes to update SSIM threshold
 watch(() => props.course, () => {
   slideExtraction.updateSSIMThresholdForClassrooms()
@@ -825,6 +841,8 @@ onMounted(async () => {
   await taskQueue.initConfig()
   await postProcessing.initConfig()
   await performanceOptimization.initConfig()
+  await loadShowMorePlaybackSpeedConfig()
+  ensureCurrentPlaybackRateVisible()
 
   // Update SSIM threshold based on classroom information
   slideExtraction.updateSSIMThresholdForClassrooms()
@@ -832,6 +850,7 @@ onMounted(async () => {
   // Add event listeners
   window.addEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.addEventListener('slidesCleared', onSlidesCleared as EventListener)
+  window.addEventListener('showMorePlaybackSpeedChanged', onShowMorePlaybackSpeedChanged as EventListener)
   taskQueue.setupEventListeners()
   performanceOptimization.setupEventListeners()
 
@@ -852,6 +871,7 @@ onUnmounted(async () => {
   // Remove event listeners
   window.removeEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.removeEventListener('slidesCleared', onSlidesCleared as EventListener)
+  window.removeEventListener('showMorePlaybackSpeedChanged', onShowMorePlaybackSpeedChanged as EventListener)
   taskQueue.removeEventListeners()
 
   // Clean up performance optimization

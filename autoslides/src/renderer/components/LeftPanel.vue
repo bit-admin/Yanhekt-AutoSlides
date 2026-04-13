@@ -723,6 +723,20 @@
                 </select>
               </div>
               <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.showMorePlaybackSpeed') }}</label>
+                <div class="setting-description">{{ $t('advanced.showMorePlaybackSpeedDescription') }}</div>
+                <div class="prevent-sleep-control">
+                  <label class="checkbox-label">
+                    <input
+                      type="checkbox"
+                      v-model="showMorePlaybackSpeed"
+                      @change="setShowMorePlaybackSpeed"
+                    />
+                    {{ $t('advanced.enableShowMorePlaybackSpeed') }}
+                  </label>
+                </div>
+              </div>
+              <div class="setting-item">
                 <label class="setting-label">{{ $t('advanced.preventSystemSleep') }}</label>
                 <div class="setting-description">{{ $t('advanced.preventSystemSleepDescription') }}</div>
                 <div class="prevent-sleep-control">
@@ -1391,6 +1405,7 @@ const {
   slideDoubleVerification,
   slideVerificationCount,
   taskSpeed,
+  showMorePlaybackSpeed,
   autoPostProcessing,
   autoPostProcessingLive,
   enableAIFiltering: _enableAIFiltering,
@@ -1407,6 +1422,7 @@ const {
   resetSlideDetectionInterval,
   resetSlideStabilityVerification,
   setTaskSpeed,
+  setShowMorePlaybackSpeed,
   setAutoPostProcessing,
   setAutoPostProcessingLive,
   setEnableAIFiltering: _setEnableAIFiltering,
