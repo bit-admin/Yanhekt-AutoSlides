@@ -17,6 +17,7 @@ export interface UseSettingsReturn {
 
   // Task settings
   taskSpeed: Ref<number>
+  showMorePlaybackSpeed: Ref<boolean>
   autoPostProcessing: Ref<boolean>
   autoPostProcessingLive: Ref<boolean>
   enableAIFiltering: Ref<boolean>
@@ -46,6 +47,7 @@ export interface UseSettingsReturn {
   resetSlideDetectionInterval: () => Promise<void>
   resetSlideStabilityVerification: () => Promise<void>
   setTaskSpeed: () => Promise<void>
+  setShowMorePlaybackSpeed: () => Promise<void>
   setAutoPostProcessing: () => Promise<void>
   setAutoPostProcessingLive: () => Promise<void>
   setEnableAIFiltering: () => Promise<void>
@@ -69,6 +71,7 @@ export function useSettings(): UseSettingsReturn {
 
   // Task settings
   const taskSpeed = ref(10)
+  const showMorePlaybackSpeed = ref(false)
   const autoPostProcessing = ref(true)
   const autoPostProcessingLive = ref(true)
   const enableAIFiltering = ref(true)
@@ -184,6 +187,7 @@ export function useSettings(): UseSettingsReturn {
 
       // Load task configuration
       taskSpeed.value = config.taskSpeed || 10
+      showMorePlaybackSpeed.value = config.showMorePlaybackSpeed ?? false
       autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
       autoPostProcessingLive.value = config.autoPostProcessingLive !== undefined ? config.autoPostProcessingLive : true
       enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
@@ -283,6 +287,16 @@ export function useSettings(): UseSettingsReturn {
     }
   }
 
+  const setShowMorePlaybackSpeed = async () => {
+    try {
+      const result = await window.electronAPI.config.setShowMorePlaybackSpeed(showMorePlaybackSpeed.value)
+      showMorePlaybackSpeed.value = result.showMorePlaybackSpeed ?? false
+      window.dispatchEvent(new CustomEvent('showMorePlaybackSpeedChanged', { detail: showMorePlaybackSpeed.value }))
+    } catch (error) {
+      console.error('Failed to set show-more playback speed:', error)
+    }
+  }
+
   const setAutoPostProcessing = async () => {
     try {
       const result = await window.electronAPI.config.setAutoPostProcessing(autoPostProcessing.value)
@@ -347,6 +361,7 @@ export function useSettings(): UseSettingsReturn {
 
     // Task settings
     taskSpeed,
+    showMorePlaybackSpeed,
     autoPostProcessing,
     autoPostProcessingLive,
     enableAIFiltering,
@@ -376,6 +391,7 @@ export function useSettings(): UseSettingsReturn {
     resetSlideDetectionInterval,
     resetSlideStabilityVerification,
     setTaskSpeed,
+    setShowMorePlaybackSpeed,
     setAutoPostProcessing,
     setAutoPostProcessingLive,
     setEnableAIFiltering,

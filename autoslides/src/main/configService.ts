@@ -72,6 +72,7 @@ export interface AppConfig {
   muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
   videoRetryCount: number;
   taskSpeed: number;
+  showMorePlaybackSpeed: boolean;
   autoPostProcessing: boolean;
   autoPostProcessingLive: boolean;
   enableAIFiltering: boolean;
@@ -168,6 +169,7 @@ const defaultConfig: AppConfig = {
   muteMode: 'normal',
   videoRetryCount: 5,
   taskSpeed: 10,
+  showMorePlaybackSpeed: false,
   autoPostProcessing: true,
   autoPostProcessingLive: true,
   enableAIFiltering: true,
@@ -204,6 +206,7 @@ export class ConfigService {
       muteMode: this.store.get('muteMode'),
       videoRetryCount: this.store.get('videoRetryCount'),
       taskSpeed: this.store.get('taskSpeed'),
+      showMorePlaybackSpeed: this.store.get('showMorePlaybackSpeed') ?? false,
       autoPostProcessing: this.store.get('autoPostProcessing'),
       autoPostProcessingLive: this.store.get('autoPostProcessingLive') ?? true,
       enableAIFiltering: this.store.get('enableAIFiltering') ?? true,
@@ -252,6 +255,10 @@ export class ConfigService {
   setTaskSpeed(speed: number): void {
     const validSpeed = Math.max(1, Math.min(16, speed));
     this.store.set('taskSpeed', validSpeed);
+  }
+
+  setShowMorePlaybackSpeed(enabled: boolean): void {
+    this.store.set('showMorePlaybackSpeed', enabled);
   }
 
   setAutoPostProcessing(enabled: boolean): void {

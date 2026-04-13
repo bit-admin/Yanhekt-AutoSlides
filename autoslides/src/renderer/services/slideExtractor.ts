@@ -141,13 +141,20 @@ export class SlideExtractor {
     this.intervalTable.clear();
 
     // Dynamic scaling factors for different playback rates
-    // For 1-13x: scaling factor equals the speed, so actual video interval = base interval
+    // For 0.5-13x: scaling factor equals the speed, so actual video interval = base interval
     // For 14x+: scaling factor capped at 13 to avoid floating point issues
     // At base=1000ms with minInterval=100ms, scaling=13 gives 77ms -> clamped to 100ms
     // At base=2000ms with scaling=13: check=154ms, video interval scales with speed
     // Formula: actual_video_interval = (base / scaling_factor) * speed
     const scalingMap: { [key: number]: number } = {
+      0.5: 0.5,    // 0.5x -> 4000ms check, 2000ms video interval
+      0.75: 0.75,  // 0.75x -> 2667ms check, 2000ms video interval
+      0.8: 0.8,    // 0.8x -> 2500ms check, 2000ms video interval
+      0.9: 0.9,    // 0.9x -> 2222ms check, 2000ms video interval
       1: 1,        // 1x -> 2000ms check, 2000ms video interval
+      1.1: 1.1,    // 1.1x -> 1818ms check, 2000ms video interval
+      1.15: 1.15,  // 1.15x -> 1739ms check, 2000ms video interval
+      1.2: 1.2,    // 1.2x -> 1667ms check, 2000ms video interval
       1.25: 1.25,  // 1.25x -> 1600ms check, 2000ms video interval
       1.5: 1.5,    // 1.5x -> 1333ms check, 2000ms video interval
       1.75: 1.75,  // 1.75x -> 1143ms check, 2000ms video interval

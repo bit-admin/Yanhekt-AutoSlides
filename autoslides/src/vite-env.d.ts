@@ -23,6 +23,7 @@ interface AppConfig {
   muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
   videoRetryCount: number;
   taskSpeed: number;
+  showMorePlaybackSpeed: boolean;
   autoPostProcessing: boolean;
   autoPostProcessingLive: boolean;
   enableAIFiltering: boolean;
@@ -353,6 +354,7 @@ interface ElectronAPI {
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<AppConfig>;
     setVideoRetryCount: (count: number) => Promise<AppConfig>;
     setTaskSpeed: (speed: number) => Promise<AppConfig>;
+    setShowMorePlaybackSpeed: (enabled: boolean) => Promise<AppConfig>;
     setAutoPostProcessing: (enabled: boolean) => Promise<AppConfig>;
     setAutoPostProcessingLive: (enabled: boolean) => Promise<AppConfig>;
     getAutoPostProcessingLive: () => Promise<boolean>;

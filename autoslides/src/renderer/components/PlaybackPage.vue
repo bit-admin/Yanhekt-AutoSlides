@@ -154,6 +154,7 @@
           <!-- Custom Playback Rate Control (only for recorded videos) -->
           <div v-if="props.mode === 'recorded'" class="playback-rate-control">
             <label>{{ $t('playback.playbackSpeed') }}</label>
+
             <input
               type="number"
               v-model="currentPlaybackRate"
@@ -165,6 +166,7 @@
               class="playback-rate-input"
             />
             <span class="playback-rate-unit">x</span>
+
           </div>
 
           <!-- Picture in Picture Toggle -->
@@ -495,6 +497,14 @@ const isVisible = computed(() => props.isVisible ?? true)
 const showDetails = ref(false)
 const isPictureInPicture = ref(false)
 const isVideoContainerCollapsed = ref(false)
+const showMorePlaybackSpeed = ref(false)
+
+const defaultPlaybackRates = [1, 2, 5, 10, 16]
+const allPlaybackRates = [0.5, 0.75, 0.8, 0.9, 1, 1.1, 1.15, 1.2, 1.25, 1.5, 1.75, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
+
+const playbackRateOptions = computed(() => {
+  return showMorePlaybackSpeed.value ? allPlaybackRates : defaultPlaybackRates
+})
 
 // Convert props to refs for composables
 const courseRef = toRef(props, 'course')
@@ -648,6 +658,28 @@ const formatDuration = (duration: string | number): string => {
 // Track last playback position for error display
 const lastPlaybackPosition = computed(() => videoPlayerComposable.lastPlaybackPosition)
 
+const ensureCurrentPlaybackRateVisible = () => {
+  const currentRate = Number(currentPlaybackRate.value)
+  if (!playbackRateOptions.value.includes(currentRate)) {
+    currentPlaybackRate.value = 1
+    changePlaybackRate()
+  }
+}
+
+const loadShowMorePlaybackSpeedConfig = async () => {
+  try {
+    const config = await window.electronAPI.config.get()
+    showMorePlaybackSpeed.value = config.showMorePlaybackSpeed ?? false
+  } catch (error) {
+    console.error('Failed to load show-more playback speed config:', error)
+  }
+}
+
+const onShowMorePlaybackSpeedChanged = (event: Event) => {
+  const customEvent = event as CustomEvent<boolean>
+  showMorePlaybackSpeed.value = customEvent.detail === true
+}
+
 // Watch effects
 let currentEventListeners: (() => void)[] = []
 
@@ -774,6 +806,10 @@ watch(isSlideExtractionEnabled, (enabled) => {
   }
 })
 
+watch(showMorePlaybackSpeed, () => {
+  ensureCurrentPlaybackRateVisible()
+})
+
 // Watch for course changes to update SSIM threshold
 watch(() => props.course, () => {
   slideExtraction.updateSSIMThresholdForClassrooms()
@@ -815,6 +851,8 @@ onMounted(async () => {
   await taskQueue.initConfig()
   await postProcessing.initConfig()
   await performanceOptimization.initConfig()
+  await loadShowMorePlaybackSpeedConfig()
+  ensureCurrentPlaybackRateVisible()
 
   // Update SSIM threshold based on classroom information
   slideExtraction.updateSSIMThresholdForClassrooms()
@@ -822,6 +860,7 @@ onMounted(async () => {
   // Add event listeners
   window.addEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.addEventListener('slidesCleared', onSlidesCleared as EventListener)
+  window.addEventListener('showMorePlaybackSpeedChanged', onShowMorePlaybackSpeedChanged as EventListener)
   taskQueue.setupEventListeners()
   performanceOptimization.setupEventListeners()
 
@@ -842,6 +881,7 @@ onUnmounted(async () => {
   // Remove event listeners
   window.removeEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.removeEventListener('slidesCleared', onSlidesCleared as EventListener)
+  window.removeEventListener('showMorePlaybackSpeedChanged', onShowMorePlaybackSpeedChanged as EventListener)
   taskQueue.removeEventListeners()
 
   // Clean up performance optimization

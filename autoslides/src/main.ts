@@ -302,6 +302,11 @@ ipcMain.handle('config:setTaskSpeed', async (event, speed: number) => {
   return configService.getConfig();
 });
 
+ipcMain.handle('config:setShowMorePlaybackSpeed', async (event, enabled: boolean) => {
+  configService.setShowMorePlaybackSpeed(enabled);
+  return configService.getConfig();
+});
+
 ipcMain.handle('config:setAutoPostProcessing', async (event, enabled: boolean) => {
   configService.setAutoPostProcessing(enabled);
   return configService.getConfig();
