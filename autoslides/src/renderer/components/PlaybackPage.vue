@@ -154,27 +154,17 @@
           <!-- Custom Playback Rate Control (only for recorded videos) -->
           <div v-if="props.mode === 'recorded'" class="playback-rate-control">
             <label>{{ $t('playback.playbackSpeed') }}</label>
-            <select v-model="currentPlaybackRate" @change="changePlaybackRate" :disabled="shouldDisableControls">
-              <option value="1">1x</option>
-              <option value="1.25">1.25x</option>
-              <option value="1.5">1.5x</option>
-              <option value="1.75">1.75x</option>
-              <option value="2">2x</option>
-              <option value="3">3x</option>
-              <option value="4">4x</option>
-              <option value="5">5x</option>
-              <option value="6">6x</option>
-              <option value="7">7x</option>
-              <option value="8">8x</option>
-              <option value="9">9x</option>
-              <option value="10">10x</option>
-              <option value="11">11x</option>
-              <option value="12">12x</option>
-              <option value="13">13x</option>
-              <option value="14">14x</option>
-              <option value="15">15x</option>
-              <option value="16">16x</option>
-            </select>
+            <input
+              type="number"
+              v-model="currentPlaybackRate"
+              @change="changePlaybackRate"
+              :disabled="shouldDisableControls"
+              min="0.1"
+              max="16"
+              step="0.01"
+              class="playback-rate-input"
+            />
+            <span class="playback-rate-unit">x</span>
           </div>
 
           <!-- Picture in Picture Toggle -->
@@ -1173,6 +1163,7 @@ onUnmounted(async () => {
   border: 1px solid #e9ecef;
   border-radius: 8px 8px 0 0;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .stream-selector {
@@ -1300,24 +1291,31 @@ onUnmounted(async () => {
   white-space: nowrap;
 }
 
-.playback-rate-control select {
-  padding: 6px 12px;
+.playback-rate-input {
+  width: 72px;
+  padding: 6px 8px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: white;
   font-size: 14px;
-  cursor: pointer;
+  text-align: center;
 }
 
-.playback-rate-control select:focus {
+.playback-rate-input:focus {
   outline: none;
   border-color: #007acc;
 }
 
-.playback-rate-control select:disabled {
+.playback-rate-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   background-color: #f8f9fa;
+}
+
+.playback-rate-unit {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
 }
 
 /* Picture in Picture Control */
@@ -1360,6 +1358,7 @@ onUnmounted(async () => {
   height: auto;
   min-height: 400px;
   display: block;
+  transition: transform 0.2s ease;
 }
 
 /* Details toggle section */
@@ -2038,6 +2037,7 @@ onUnmounted(async () => {
   .modal-image {
     max-height: 60vh;
   }
+
 }
 
 /* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
@@ -2259,19 +2259,23 @@ onUnmounted(async () => {
     color: #e0e0e0;
   }
 
-  .playback-rate-control select {
+  .playback-rate-input {
     background-color: #2d2d2d;
     border-color: #404040;
     color: #e0e0e0;
   }
 
-  .playback-rate-control select:focus {
+  .playback-rate-input:focus {
     border-color: #4da6ff;
   }
 
-  .playback-rate-control select:disabled {
+  .playback-rate-input:disabled {
     background-color: #333;
     color: #666;
+  }
+
+  .playback-rate-unit {
+    color: #e0e0e0;
   }
 
   /* Stream selector dark mode */
