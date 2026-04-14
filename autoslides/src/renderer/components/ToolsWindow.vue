@@ -63,7 +63,7 @@
         <PdfMakerWindow />
       </div>
       <div v-show="activeTab === 'trash'" class="tab-panel">
-        <TrashWindow />
+        <ResultsWindow />
       </div>
       <div v-show="activeTab === 'offline'" class="tab-panel">
         <OfflineProcessingTab />
@@ -75,7 +75,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import PdfMakerWindow from './PdfMakerWindow.vue'
-import TrashWindow from './TrashWindow.vue'
+import ResultsWindow from './ResultsWindow.vue'
 import OfflineProcessingTab from './OfflineProcessingTab.vue'
 
 type TabId = 'pdfmaker' | 'trash' | 'offline'

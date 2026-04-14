@@ -153,6 +153,7 @@ build/
 REFERENCE/
 instruction*.md
 CLAUDE.md
+AGENTS.md
 GEMINI.md
 .claude
 

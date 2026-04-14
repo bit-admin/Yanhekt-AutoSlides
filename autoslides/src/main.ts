@@ -1577,7 +1577,7 @@ ipcMain.handle('pdfmaker:deleteImage', async (_event, imagePath: string) => {
 
     await slideExtractionService.moveToInAppTrash(outputPath, filename, {
       reason: 'manual',
-      reasonDetails: 'User deleted via PDF Maker'
+      reasonDetails: 'User deleted via Results View'
     });
 
     return { success: true };
