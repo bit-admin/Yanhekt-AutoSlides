@@ -286,6 +286,64 @@ export class SharpService {
   }
 
   /**
+   * Crop image to the specified rectangle and re-encode as PNG
+   * @param imageBuffer Original image buffer
+   * @param rect Crop rectangle in source-image pixels
+   * @returns Cropped PNG buffer, or null if failed
+   */
+  async crop(imageBuffer: Uint8Array, rect: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  }): Promise<Uint8Array | null> {
+    if (!this.sharp) {
+      console.warn('Sharp not available, skipping crop');
+      return null;
+    }
+
+    try {
+      const image = this.sharp(Buffer.from(imageBuffer));
+      const metadata = await image.metadata();
+
+      if (!metadata.width || !metadata.height) {
+        console.warn('Sharp crop failed: could not read image dimensions');
+        return null;
+      }
+
+      const left = Math.round(rect.x);
+      const top = Math.round(rect.y);
+      const width = Math.round(rect.width);
+      const height = Math.round(rect.height);
+
+      if (
+        left < 0 ||
+        top < 0 ||
+        width <= 0 ||
+        height <= 0 ||
+        left + width > metadata.width ||
+        top + height > metadata.height
+      ) {
+        console.warn('Sharp crop failed: invalid crop rectangle', {
+          rect: { left, top, width, height },
+          image: { width: metadata.width, height: metadata.height },
+        });
+        return null;
+      }
+
+      const croppedBuffer = await this.sharp(Buffer.from(imageBuffer))
+        .extract({ left, top, width, height })
+        .png()
+        .toBuffer();
+
+      return new Uint8Array(croppedBuffer);
+    } catch (error) {
+      console.error('Sharp crop failed:', error);
+      return null;
+    }
+  }
+
+  /**
    * Process image for PDF with configurable options
    * Applies resize and/or color reduction based on options
    * @param imageBuffer Original PNG image buffer

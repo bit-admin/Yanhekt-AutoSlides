@@ -177,6 +177,7 @@
               <div class="item-name">{{ formatImageName(item.name) }}</div>
               <div class="item-badges">
                 <span class="status-badge" :class="item.status">{{ getStatusLabel(item.status) }}</span>
+                <span v-if="item.status === 'active' && item.isCropped" class="status-badge cropped">{{ getCropLabel() }}</span>
                 <span
                   v-if="item.status === 'removed' && item.reason"
                   :class="['reason-badge', `reason-${item.reason}`]"
@@ -213,7 +214,7 @@
     </div>
 
     <div v-if="previewItem" class="preview-modal-overlay" @click="closePreview">
-      <div class="preview-modal" :class="{ 'metadata-visible': showPreviewMetadata }" @click.stop>
+      <div class="preview-modal" :class="{ 'metadata-visible': showPreviewMetadata, 'crop-mode': isCropMode }" @click.stop>
         <button class="preview-close-btn" @click="closePreview">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -221,32 +222,100 @@
         </button>
 
         <div class="preview-content">
-          <div class="preview-image-container">
-            <img
-              v-if="thumbnails[previewItem.id]"
-              :src="thumbnails[previewItem.id]"
-              :alt="previewItem.name"
-              class="preview-image"
-            />
-            <div v-else class="preview-image-placeholder">
-              <svg width="64" height="64" viewBox="0 0 64 64">
-                <rect x="8" y="8" width="48" height="48" fill="currentColor" opacity="0.2"/>
-              </svg>
+          <div class="preview-image-container" :class="{ 'crop-mode': isCropMode }">
+            <div ref="previewStageShell" class="preview-stage-shell" :class="{ 'crop-active': isCropMode }">
+              <div
+                ref="previewStage"
+                class="preview-stage"
+                :class="{ 'crop-stage': isCropMode }"
+                :style="previewStageStyle"
+                @pointerdown="handleCropStagePointerDown"
+              >
+                <img
+                  v-if="previewImageSrc"
+                  :src="previewImageSrc"
+                  :alt="previewItem.name"
+                  class="preview-image"
+                  draggable="false"
+                  @load="handlePreviewImageLoad"
+                />
+                <div v-else class="preview-image-placeholder">
+                  <svg width="64" height="64" viewBox="0 0 64 64">
+                    <rect x="8" y="8" width="48" height="48" fill="currentColor" opacity="0.2"/>
+                  </svg>
+                </div>
+
+                <div
+                  v-if="isCropMode && cropRectPx"
+                  class="crop-selection"
+                  :style="cropSelectionStyle"
+                  @pointerdown.stop="startCropInteraction('move', $event)"
+                >
+                  <div class="crop-grid">
+                    <span v-for="line in 2" :key="`v-${line}`" class="crop-grid-line vertical" :style="{ left: `${line * 33.333}%` }"></span>
+                    <span v-for="line in 2" :key="`h-${line}`" class="crop-grid-line horizontal" :style="{ top: `${line * 33.333}%` }"></span>
+                  </div>
+                  <button
+                    v-for="handle in cropHandles"
+                    :key="handle"
+                    type="button"
+                    class="crop-handle"
+                    :class="`crop-handle-${handle}`"
+                    @pointerdown.stop="startCropInteraction(handle, $event)"
+                  ></button>
+                </div>
+              </div>
             </div>
 
-            <button class="preview-meta-toggle" @click="togglePreviewMetadata">
-              <span>{{ showPreviewMetadata ? $t('trash.hideMetadata') : $t('trash.showMetadata') }}</span>
-              <svg width="14" height="14" viewBox="0 0 16 16">
-                <path
-                  :d="showPreviewMetadata ? 'M10 3L5 8l5 5' : 'M6 3l5 5-5 5'"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </button>
+            <div class="preview-actions">
+              <template v-if="isCropMode">
+                <button class="preview-action-btn" :disabled="isLoading" @click="cancelCropMode">
+                  {{ $t('trash.cancel') }}
+                </button>
+                <button class="preview-action-btn primary" :disabled="!canApplyCrop || isLoading" @click="applyCrop">
+                  {{ $t('trash.applyCrop') }}
+                </button>
+              </template>
+              <template v-else>
+                <button
+                  v-if="canRestoreCrop"
+                  class="preview-action-btn"
+                  :disabled="isLoading"
+                  @click="restoreCrop"
+                >
+                  {{ $t('trash.restoreCrop') }}
+                </button>
+                <button
+                  v-if="canRecrop"
+                  class="preview-action-btn"
+                  :disabled="isLoading"
+                  @click="startCropMode"
+                >
+                  {{ $t('trash.recrop') }}
+                </button>
+                <button
+                  v-else-if="canStartCrop"
+                  class="preview-action-btn"
+                  :disabled="isLoading"
+                  @click="startCropMode"
+                >
+                  {{ $t('trash.crop') }}
+                </button>
+                <button class="preview-action-btn" @click="togglePreviewMetadata">
+                  <span>{{ showPreviewMetadata ? $t('trash.hideMetadata') : $t('trash.showMetadata') }}</span>
+                  <svg width="14" height="14" viewBox="0 0 16 16">
+                    <path
+                      :d="showPreviewMetadata ? 'M10 3L5 8l5 5' : 'M6 3l5 5-5 5'"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </button>
+              </template>
+            </div>
           </div>
 
           <div class="preview-info-container">
@@ -265,13 +334,22 @@
                   <td class="info-label">{{ $t('trash.status') }}</td>
                   <td class="info-value">
                     <span class="status-badge" :class="previewItem.status">{{ getStatusLabel(previewItem.status) }}</span>
+                    <span v-if="previewItem.status === 'active' && previewItem.isCropped" class="status-badge cropped">{{ getCropLabel() }}</span>
                   </td>
                 </tr>
                 <tr v-if="previewItem.status === 'active'">
                   <td class="info-label">{{ $t('trash.currentPath') }}</td>
                   <td class="info-value info-path">{{ previewItem.imagePath || previewItem.originalPath }}</td>
                 </tr>
-                <tr v-else>
+                <tr v-if="previewItem.status === 'active' && previewItem.isCropped && previewItem.croppedAt">
+                  <td class="info-label">{{ $t('trash.croppedAt') }}</td>
+                  <td class="info-value">{{ formatDate(previewItem.croppedAt) }}</td>
+                </tr>
+                <tr v-if="previewItem.status === 'active' && previewItem.isCropped && previewItem.cropRect">
+                  <td class="info-label">{{ $t('trash.cropArea') }}</td>
+                  <td class="info-value">{{ formatCropArea(previewItem.cropRect) }}</td>
+                </tr>
+                <tr v-if="previewItem.status === 'removed'">
                   <td class="info-label">{{ $t('trash.originalPath') }}</td>
                   <td class="info-value info-path">{{ previewItem.originalPath }}</td>
                 </tr>
@@ -299,9 +377,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useResultsView, type ResultsItem, type ResultsReason } from '../composables/useResultsView'
+import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '../composables/useResultsView'
 
 const { t } = useI18n()
 
@@ -331,11 +409,32 @@ const {
   deleteSelected,
   restoreSelected,
   clearTrash,
+  applyCropToImage,
+  restoreCropFromImage,
   formatDate,
   formatToolFolderName,
 } = useResultsView()
 
+type CropHandle = 'nw' | 'ne' | 'sw' | 'se'
+type CropInteraction =
+  | { mode: 'create'; startX: number; startY: number }
+  | { mode: 'move'; startX: number; startY: number; originRect: CropRect }
+  | { mode: 'resize'; startX: number; startY: number; originRect: CropRect; handle: CropHandle }
+
 const showPreviewMetadata = ref(false)
+const isCropMode = ref(false)
+const cropEditorImageSrc = ref('')
+const cropImageNaturalSize = ref({ width: 0, height: 0 })
+const cropRectPx = ref<CropRect | null>(null)
+const cropInteraction = ref<CropInteraction | null>(null)
+const previewStageShell = ref<HTMLDivElement | null>(null)
+const previewStage = ref<HTMLDivElement | null>(null)
+const previewStageShellSize = ref({ width: 0, height: 0 })
+const previewResizeObserver = ref<ResizeObserver | null>(null)
+const cropSourceRequestId = ref(0)
+
+const cropHandles: CropHandle[] = ['nw', 'ne', 'sw', 'se']
+const minimumCropSize = 20
 
 const currentFolderRemovedIds = computed(() => {
   return folderItems.value
@@ -374,18 +473,397 @@ const getStatusLabel = (status: 'active' | 'removed') => {
   return status === 'active' ? t('trash.active') : t('trash.removed')
 }
 
+const getCropLabel = () => t('trash.cropped')
+
+const previewImageSrc = computed(() => {
+  if (!previewItem.value) return ''
+  if (isCropMode.value) {
+    return cropEditorImageSrc.value
+  }
+
+  return thumbnails.value[previewItem.value.id] || ''
+})
+
+const canCropPreview = computed(() => {
+  return previewItem.value?.status === 'active' && !!previewItem.value.imagePath && !isLoading.value
+})
+
+const canRestoreCrop = computed(() => {
+  return canCropPreview.value && !!previewItem.value?.isCropped
+})
+
+const canRecrop = computed(() => {
+  return canRestoreCrop.value && !!previewItem.value?.cropPath && !!previewItem.value?.cropRect
+})
+
+const canStartCrop = computed(() => {
+  return canCropPreview.value && !previewItem.value?.isCropped
+})
+
+const canApplyCrop = computed(() => {
+  if (!isCropMode.value || !previewItem.value?.imagePath || !cropRectPx.value) {
+    return false
+  }
+
+  return cropRectPx.value.width >= minimumCropSize && cropRectPx.value.height >= minimumCropSize
+})
+
+const previewStageStyle = computed(() => {
+  if (
+    !isCropMode.value ||
+    cropImageNaturalSize.value.width === 0 ||
+    cropImageNaturalSize.value.height === 0 ||
+    previewStageShellSize.value.width === 0 ||
+    previewStageShellSize.value.height === 0
+  ) {
+    return {}
+  }
+
+  const scale = Math.min(
+    previewStageShellSize.value.width / cropImageNaturalSize.value.width,
+    previewStageShellSize.value.height / cropImageNaturalSize.value.height
+  )
+
+  return {
+    width: `${Math.max(1, Math.round(cropImageNaturalSize.value.width * scale))}px`,
+    height: `${Math.max(1, Math.round(cropImageNaturalSize.value.height * scale))}px`,
+  }
+})
+
+const cropSelectionStyle = computed(() => {
+  if (
+    !isCropMode.value ||
+    !cropRectPx.value ||
+    cropImageNaturalSize.value.width === 0 ||
+    cropImageNaturalSize.value.height === 0 ||
+    !previewStage.value
+  ) {
+    return {}
+  }
+
+  const stageRect = previewStage.value.getBoundingClientRect()
+  if (stageRect.width === 0 || stageRect.height === 0) {
+    return {}
+  }
+
+  const scaleX = stageRect.width / cropImageNaturalSize.value.width
+  const scaleY = stageRect.height / cropImageNaturalSize.value.height
+
+  return {
+    left: `${cropRectPx.value.x * scaleX}px`,
+    top: `${cropRectPx.value.y * scaleY}px`,
+    width: `${cropRectPx.value.width * scaleX}px`,
+    height: `${cropRectPx.value.height * scaleY}px`,
+  }
+})
+
+const resetCropState = () => {
+  isCropMode.value = false
+  cropEditorImageSrc.value = ''
+  cropImageNaturalSize.value = { width: 0, height: 0 }
+  cropRectPx.value = null
+  cropInteraction.value = null
+  cropSourceRequestId.value += 1
+}
+
+const disconnectPreviewResizeObserver = () => {
+  previewResizeObserver.value?.disconnect()
+  previewResizeObserver.value = null
+}
+
+const updatePreviewStageShellSize = () => {
+  if (!previewStageShell.value) {
+    previewStageShellSize.value = { width: 0, height: 0 }
+    return
+  }
+
+  previewStageShellSize.value = {
+    width: previewStageShell.value.clientWidth,
+    height: previewStageShell.value.clientHeight,
+  }
+}
+
+const observePreviewStageShell = async () => {
+  await nextTick()
+  disconnectPreviewResizeObserver()
+  updatePreviewStageShellSize()
+
+  if (typeof ResizeObserver !== 'undefined' && previewStageShell.value) {
+    previewResizeObserver.value = new ResizeObserver(() => {
+      updatePreviewStageShellSize()
+    })
+    previewResizeObserver.value.observe(previewStageShell.value)
+  }
+}
+
+const normalizeCropRect = (startX: number, startY: number, endX: number, endY: number): CropRect => {
+  return {
+    x: Math.min(startX, endX),
+    y: Math.min(startY, endY),
+    width: Math.abs(endX - startX),
+    height: Math.abs(endY - startY),
+  }
+}
+
+const sanitizeCropRect = (rect: CropRect): CropRect | null => {
+  if (cropImageNaturalSize.value.width === 0 || cropImageNaturalSize.value.height === 0) {
+    return null
+  }
+
+  const maxWidth = cropImageNaturalSize.value.width
+  const maxHeight = cropImageNaturalSize.value.height
+  const x = Math.max(0, Math.min(Math.round(rect.x), maxWidth))
+  const y = Math.max(0, Math.min(Math.round(rect.y), maxHeight))
+  const right = Math.max(x, Math.min(Math.round(rect.x + rect.width), maxWidth))
+  const bottom = Math.max(y, Math.min(Math.round(rect.y + rect.height), maxHeight))
+  const width = right - x
+  const height = bottom - y
+
+  if (width <= 0 || height <= 0) {
+    return null
+  }
+
+  return { x, y, width, height }
+}
+
+const getCropPointFromEvent = (event: PointerEvent) => {
+  if (!previewStage.value || cropImageNaturalSize.value.width === 0 || cropImageNaturalSize.value.height === 0) {
+    return null
+  }
+
+  const stageRect = previewStage.value.getBoundingClientRect()
+  if (stageRect.width === 0 || stageRect.height === 0) {
+    return null
+  }
+
+  const x = Math.max(0, Math.min(event.clientX - stageRect.left, stageRect.width))
+  const y = Math.max(0, Math.min(event.clientY - stageRect.top, stageRect.height))
+
+  return {
+    x: (x / stageRect.width) * cropImageNaturalSize.value.width,
+    y: (y / stageRect.height) * cropImageNaturalSize.value.height,
+  }
+}
+
+const resizeCropRect = (originRect: CropRect, point: { x: number; y: number }, handle: CropHandle): CropRect => {
+  const maxWidth = cropImageNaturalSize.value.width
+  const maxHeight = cropImageNaturalSize.value.height
+  let left = originRect.x
+  let top = originRect.y
+  let right = originRect.x + originRect.width
+  let bottom = originRect.y + originRect.height
+
+  if (handle.includes('n')) {
+    top = Math.max(0, Math.min(point.y, bottom - minimumCropSize))
+  }
+  if (handle.includes('s')) {
+    bottom = Math.min(maxHeight, Math.max(point.y, top + minimumCropSize))
+  }
+  if (handle.includes('w')) {
+    left = Math.max(0, Math.min(point.x, right - minimumCropSize))
+  }
+  if (handle.includes('e')) {
+    right = Math.min(maxWidth, Math.max(point.x, left + minimumCropSize))
+  }
+
+  return {
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top,
+  }
+}
+
+const formatCropArea = (rect?: CropRect) => {
+  if (!rect) return ''
+  return `${rect.x}, ${rect.y}, ${rect.width} × ${rect.height}`
+}
+
+const loadImageSize = (src: string): Promise<{ width: number; height: number }> => {
+  return new Promise((resolve, reject) => {
+    const image = new window.Image()
+    image.onload = () => {
+      resolve({
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+      })
+    }
+    image.onerror = () => {
+      reject(new Error('Failed to load crop source image'))
+    }
+    image.src = src
+  })
+}
+
 const openPreview = (item: ResultsItem) => {
+  resetCropState()
   showPreviewMetadata.value = false
   openPreviewItem(item)
 }
 
 const closePreview = () => {
+  resetCropState()
   showPreviewMetadata.value = false
   closePreviewItem()
 }
 
 const togglePreviewMetadata = () => {
   showPreviewMetadata.value = !showPreviewMetadata.value
+}
+
+const handlePreviewImageLoad = (event: Event) => {
+  if (!isCropMode.value) return
+
+  const target = event.target as HTMLImageElement
+  if (cropImageNaturalSize.value.width === 0 || cropImageNaturalSize.value.height === 0) {
+    cropImageNaturalSize.value = {
+      width: target.naturalWidth,
+      height: target.naturalHeight,
+    }
+  }
+
+  if (cropRectPx.value) {
+    cropRectPx.value = sanitizeCropRect(cropRectPx.value)
+  }
+
+  updatePreviewStageShellSize()
+}
+
+const startCropMode = async () => {
+  const activeItem = previewItem.value
+  if (activeItem?.status !== 'active' || !activeItem.imagePath) return
+
+  const requestId = cropSourceRequestId.value + 1
+  cropSourceRequestId.value = requestId
+  showPreviewMetadata.value = false
+
+  try {
+    const sourceBase64 = activeItem.isCropped && activeItem.cropPath
+      ? await window.electronAPI.crop.getImageAsBase64(activeItem.cropPath)
+      : await window.electronAPI.pdfmaker.getImageAsBase64(activeItem.imagePath)
+
+    if (requestId !== cropSourceRequestId.value) return
+
+    const cropSource = `data:image/png;base64,${sourceBase64}`
+    const size = await loadImageSize(cropSource)
+
+    if (requestId !== cropSourceRequestId.value) return
+
+    cropEditorImageSrc.value = cropSource
+    cropImageNaturalSize.value = size
+    cropRectPx.value = null
+
+    cropInteraction.value = null
+    isCropMode.value = true
+    await observePreviewStageShell()
+  } catch (error) {
+    console.error('Failed to load crop editor source:', error)
+  }
+}
+
+const cancelCropMode = () => {
+  resetCropState()
+  showPreviewMetadata.value = false
+}
+
+const handleCropStagePointerDown = (event: PointerEvent) => {
+  if (!isCropMode.value || event.button !== 0) return
+
+  const point = getCropPointFromEvent(event)
+  if (!point) return
+
+  event.preventDefault()
+  cropInteraction.value = {
+    mode: 'create',
+    startX: point.x,
+    startY: point.y,
+  }
+  cropRectPx.value = {
+    x: point.x,
+    y: point.y,
+    width: 0,
+    height: 0,
+  }
+}
+
+const startCropInteraction = (mode: 'move' | CropHandle, event: PointerEvent) => {
+  if (!cropRectPx.value) return
+
+  const point = getCropPointFromEvent(event)
+  if (!point) return
+
+  event.preventDefault()
+  event.stopPropagation()
+  cropInteraction.value = mode === 'move'
+    ? { mode: 'move', startX: point.x, startY: point.y, originRect: { ...cropRectPx.value } }
+    : { mode: 'resize', startX: point.x, startY: point.y, originRect: { ...cropRectPx.value }, handle: mode }
+}
+
+const handleGlobalCropPointerMove = (event: PointerEvent) => {
+  if (!cropInteraction.value) return
+
+  const point = getCropPointFromEvent(event)
+  if (!point) return
+
+  event.preventDefault()
+
+  if (cropInteraction.value.mode === 'create') {
+    cropRectPx.value = normalizeCropRect(cropInteraction.value.startX, cropInteraction.value.startY, point.x, point.y)
+    return
+  }
+
+  if (cropInteraction.value.mode === 'move') {
+    const maxX = cropImageNaturalSize.value.width - cropInteraction.value.originRect.width
+    const maxY = cropImageNaturalSize.value.height - cropInteraction.value.originRect.height
+    const nextX = Math.max(0, Math.min(cropInteraction.value.originRect.x + (point.x - cropInteraction.value.startX), maxX))
+    const nextY = Math.max(0, Math.min(cropInteraction.value.originRect.y + (point.y - cropInteraction.value.startY), maxY))
+    cropRectPx.value = {
+      ...cropInteraction.value.originRect,
+      x: nextX,
+      y: nextY,
+    }
+    return
+  }
+
+  cropRectPx.value = resizeCropRect(cropInteraction.value.originRect, point, cropInteraction.value.handle)
+}
+
+const handleGlobalCropPointerUp = () => {
+  if (!cropInteraction.value) return
+
+  if (cropRectPx.value) {
+    const sanitized = sanitizeCropRect(cropRectPx.value)
+    if (!sanitized || sanitized.width < minimumCropSize || sanitized.height < minimumCropSize) {
+      cropRectPx.value = null
+    } else {
+      cropRectPx.value = sanitized
+    }
+  }
+
+  cropInteraction.value = null
+}
+
+const applyCrop = async () => {
+  if (!previewItem.value?.imagePath || !cropRectPx.value) return
+
+  const rect = sanitizeCropRect(cropRectPx.value)
+  if (!rect) return
+
+  const success = await applyCropToImage(previewItem.value.imagePath, rect)
+  if (success) {
+    resetCropState()
+    showPreviewMetadata.value = false
+  }
+}
+
+const restoreCrop = async () => {
+  if (!previewItem.value?.imagePath || !previewItem.value.isCropped) return
+
+  const success = await restoreCropFromImage(previewItem.value.imagePath)
+  if (success) {
+    resetCropState()
+    showPreviewMetadata.value = false
+  }
 }
 
 const confirmDelete = async () => {
@@ -424,6 +902,25 @@ const confirmClearTrash = async () => {
     await clearTrash(isFolderScoped ? currentFolderRemovedIds.value : undefined)
   }
 }
+
+watch(previewItem, async (item) => {
+  if (!item) {
+    disconnectPreviewResizeObserver()
+    previewStageShellSize.value = { width: 0, height: 0 }
+    return
+  }
+
+  await observePreviewStageShell()
+})
+
+window.addEventListener('pointermove', handleGlobalCropPointerMove)
+window.addEventListener('pointerup', handleGlobalCropPointerUp)
+
+onBeforeUnmount(() => {
+  disconnectPreviewResizeObserver()
+  window.removeEventListener('pointermove', handleGlobalCropPointerMove)
+  window.removeEventListener('pointerup', handleGlobalCropPointerUp)
+})
 </script>
 
 <style scoped>
@@ -675,6 +1172,11 @@ const confirmClearTrash = async () => {
   color: #1768a8;
 }
 
+.status-badge.cropped {
+  background-color: #edf0f3;
+  color: #58616b;
+}
+
 .count-badge.removed,
 .status-badge.removed {
   background-color: #ffe8e6;
@@ -914,9 +1416,6 @@ const confirmClearTrash = async () => {
 .preview-image-container {
   position: relative;
   background-color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 18px;
   height: 100%;
 }
@@ -926,11 +1425,43 @@ const confirmClearTrash = async () => {
   height: auto;
 }
 
+.preview-stage-shell {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.preview-stage-shell.crop-active {
+  position: relative;
+}
+
+.preview-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.preview-stage.crop-stage {
+  cursor: crosshair;
+}
+
 .preview-image,
 .preview-image-placeholder {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.preview-image {
+  user-select: none;
 }
 
 .preview-image-placeholder {
@@ -940,13 +1471,18 @@ const confirmClearTrash = async () => {
   color: rgba(51, 51, 51, 0.28);
 }
 
-.preview-meta-toggle {
+.preview-actions {
   position: absolute;
   right: 14px;
   bottom: 14px;
-  top: auto;
-  transform: none;
   z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.preview-action-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -958,6 +1494,87 @@ const confirmClearTrash = async () => {
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.preview-action-btn.primary {
+  background-color: #007acc;
+  color: #fff;
+}
+
+.preview-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.crop-selection {
+  position: absolute;
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.56);
+  cursor: move;
+  touch-action: none;
+}
+
+.crop-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.crop-grid-line {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.62);
+}
+
+.crop-grid-line.vertical {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  transform: translateX(-0.5px);
+}
+
+.crop-grid-line.horizontal {
+  left: 0;
+  right: 0;
+  height: 1px;
+  transform: translateY(-0.5px);
+}
+
+.crop-handle {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 50%;
+  background-color: #ffffff;
+  transform: translate(-50%, -50%);
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+}
+
+.crop-handle-nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+
+.crop-handle-ne {
+  top: 0;
+  left: 100%;
+  cursor: nesw-resize;
+}
+
+.crop-handle-sw {
+  top: 100%;
+  left: 0;
+  cursor: nesw-resize;
+}
+
+.crop-handle-se {
+  top: 100%;
+  left: 100%;
+  cursor: nwse-resize;
 }
 
 .preview-modal:not(.metadata-visible) .preview-info-container {
@@ -996,6 +1613,10 @@ const confirmClearTrash = async () => {
   font-size: 12px;
   color: #2c2c2c;
   word-break: break-word;
+}
+
+.info-value .status-badge + .status-badge {
+  margin-left: 6px;
 }
 
 .info-path {
@@ -1065,9 +1686,14 @@ const confirmClearTrash = async () => {
 
   .item-preview-btn,
   .preview-close-btn,
-  .preview-meta-toggle {
+  .preview-action-btn {
     background-color: rgba(40, 40, 40, 0.92);
     color: #ddd;
+  }
+
+  .preview-action-btn.primary {
+    background-color: #1e6fb3;
+    color: #fff;
   }
 
   .result-item.selected {
@@ -1088,6 +1714,25 @@ const confirmClearTrash = async () => {
 
   .preview-image-placeholder {
     color: rgba(255, 255, 255, 0.6);
+  }
+
+  .status-badge.cropped {
+    background-color: #40464d;
+    color: #d9dde1;
+  }
+
+  .crop-selection {
+    border-color: #f5f7fa;
+    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.48);
+  }
+
+  .crop-grid-line {
+    background-color: rgba(245, 247, 250, 0.7);
+  }
+
+  .crop-handle {
+    background-color: #f5f7fa;
+    border-color: #f5f7fa;
   }
 
   .preview-info-table td {

@@ -332,6 +332,22 @@ interface TrashEntry {
   trashedAt: string;
 }
 
+interface CropRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+interface CropEntry {
+  filename: string;
+  originalPath: string;
+  originalParentFolder: string;
+  cropPath: string;
+  rect: CropRect;
+  croppedAt: string;
+}
+
 // ============================================================================
 // Electron API Interface
 // ============================================================================
@@ -565,6 +581,13 @@ interface ElectronAPI {
     clear: () => Promise<{ cleared: number; failed: number }>;
     clearEntries: (ids: string[]) => Promise<{ cleared: number; failed: number }>;
     getImageAsBase64: (trashPath: string) => Promise<string>;
+  };
+
+  crop: {
+    getEntries: () => Promise<CropEntry[]>;
+    getImageAsBase64: (cropPath: string) => Promise<string>;
+    apply: (imagePath: string, rect: CropRect) => Promise<{ success: boolean }>;
+    restore: (imagePath: string) => Promise<{ success: boolean }>;
   };
 
   pdfmaker: {

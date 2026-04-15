@@ -9,7 +9,7 @@ import { IntranetMappingService } from './main/intranetMappingService';
 import { VideoProxyService, LiveStreamInput, RecordedSessionInput } from './main/videoProxyService';
 import { FFmpegService } from './main/ffmpegService';
 import { M3u8DownloadService } from './main/m3u8DownloadService';
-import { slideExtractionService, TrashMetadata } from './main/slideExtractionService';
+import { slideExtractionService, TrashMetadata, CropRect } from './main/slideExtractionService';
 import { PowerManagementService } from './main/powerManagementService';
 import { cacheManagementService } from './main/cacheManagementService';
 import { AIPromptsService } from './main/aiPromptsService';
@@ -1514,6 +1514,49 @@ ipcMain.handle('trash:getImageAsBase64', async (_event, trashPath: string) => {
     return base64;
   } catch (error) {
     console.error('Failed to get trash image:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('crop:getEntries', async () => {
+  try {
+    const outputDir = configService.getConfig().outputDirectory;
+    const entries = await slideExtractionService.getCropEntries(outputDir);
+    return entries;
+  } catch (error) {
+    console.error('Failed to get crop entries:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('crop:getImageAsBase64', async (_event, cropPath: string) => {
+  try {
+    const base64 = await slideExtractionService.getCropImageAsBase64(cropPath);
+    return base64;
+  } catch (error) {
+    console.error('Failed to get crop image:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('crop:apply', async (_event, imagePath: string, rect: CropRect) => {
+  try {
+    const outputDir = configService.getConfig().outputDirectory;
+    await slideExtractionService.applyCrop(imagePath, outputDir, rect);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to apply crop:', error);
+    throw error;
+  }
+});
+
+ipcMain.handle('crop:restore', async (_event, imagePath: string) => {
+  try {
+    const outputDir = configService.getConfig().outputDirectory;
+    await slideExtractionService.restoreCrop(imagePath, outputDir);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to restore crop:', error);
     throw error;
   }
 });

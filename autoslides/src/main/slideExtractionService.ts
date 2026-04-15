@@ -31,6 +31,22 @@ export interface TrashMetadata {
   reasonDetails?: string;
 }
 
+export interface CropRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface CropEntry {
+  filename: string;
+  originalPath: string;
+  originalParentFolder: string;
+  cropPath: string;
+  rect: CropRect;
+  croppedAt: string;
+}
+
 export class SlideExtractionService {
   /**
    * Reduce PNG colors to 128 using palette quantization
@@ -223,6 +239,26 @@ export class SlideExtractionService {
    */
   private getRelativePathFromRoot(rootDir: string, filePath: string): string {
     return path.relative(rootDir, filePath);
+  }
+
+  /**
+   * Check whether a resolved path is inside the resolved base directory
+   */
+  private isPathInside(basePath: string, targetPath: string): boolean {
+    const relativePath = path.relative(basePath, targetPath);
+    return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
+  }
+
+  /**
+   * Check whether a path exists
+   */
+  private async pathExists(targetPath: string): Promise<boolean> {
+    try {
+      await fs.access(targetPath);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -566,6 +602,185 @@ export class SlideExtractionService {
   }
 
   // ============================================================================
+  // Crop Management Methods
+  // ============================================================================
+
+  /**
+   * Get the crop directory path for a given output directory
+   */
+  getCropDirectory(outputDir: string): string {
+    const expandedPath = outputDir.startsWith('~')
+      ? path.join(os.homedir(), outputDir.slice(1))
+      : outputDir;
+    return path.join(expandedPath, '.autoslidesCrop');
+  }
+
+  /**
+   * Get all crop entries from the manifest file
+   */
+  async getCropEntries(outputDir: string): Promise<CropEntry[]> {
+    try {
+      const cropDir = this.getCropDirectory(outputDir);
+      const manifestPath = path.join(cropDir, 'crop-manifest.jsonl');
+
+      if (!(await this.pathExists(manifestPath))) {
+        return [];
+      }
+
+      const content = await fs.readFile(manifestPath, 'utf8');
+      const lines = content.trim().split('\n').filter(line => line.trim());
+
+      const entries: CropEntry[] = [];
+      for (const line of lines) {
+        try {
+          const entry = JSON.parse(line) as CropEntry;
+          if (await this.pathExists(entry.cropPath)) {
+            entries.push(entry);
+          } else {
+            console.log(`Crop backup no longer exists: ${entry.cropPath}`);
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse crop entry:', parseError);
+        }
+      }
+
+      return entries;
+    } catch (error) {
+      console.error('Failed to get crop entries:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Apply crop to an active slide, preserving the original in the crop backup folder
+   */
+  async applyCrop(imagePath: string, outputDir: string, rect: CropRect): Promise<void> {
+    try {
+      const expandedOutputDir = outputDir.startsWith('~')
+        ? path.join(os.homedir(), outputDir.slice(1))
+        : outputDir;
+      const resolvedOutputDir = path.resolve(expandedOutputDir);
+      const resolvedImagePath = path.resolve(imagePath);
+
+      if (!this.isPathInside(resolvedOutputDir, resolvedImagePath)) {
+        throw new Error('Invalid image path: file is outside the output directory');
+      }
+
+      const filename = path.basename(resolvedImagePath);
+      if (!filename.endsWith('.png') || !filename.startsWith('Slide_')) {
+        throw new Error('Invalid filename: must be a slide PNG file (Slide_*.png)');
+      }
+
+      const imageStats = await fs.stat(resolvedImagePath);
+      if (!imageStats.isFile()) {
+        throw new Error('Path is not a file');
+      }
+
+      const cropDir = this.getCropDirectory(resolvedOutputDir);
+      const relativePath = this.getRelativePathFromRoot(resolvedOutputDir, resolvedImagePath);
+      const cropFilePath = path.join(cropDir, relativePath);
+      const cropFileDir = path.dirname(cropFilePath);
+
+      const allEntries = await this.getCropEntries(resolvedOutputDir);
+      const existingEntry = allEntries.find(entry => entry.originalPath === resolvedImagePath);
+
+      if (!existingEntry) {
+        await this.ensureDirectory(cropFileDir);
+        await fs.copyFile(resolvedImagePath, cropFilePath);
+      }
+
+      const sourcePath = existingEntry?.cropPath || cropFilePath;
+      const sourceBuffer = await fs.readFile(sourcePath);
+      const normalizedRect = {
+        x: Math.round(rect.x),
+        y: Math.round(rect.y),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      };
+
+      const croppedBuffer = await sharpService.crop(new Uint8Array(sourceBuffer), normalizedRect);
+      if (!croppedBuffer) {
+        throw new Error('Failed to crop image');
+      }
+
+      await fs.writeFile(resolvedImagePath, croppedBuffer);
+
+      const updatedEntry: CropEntry = {
+        filename,
+        originalPath: resolvedImagePath,
+        originalParentFolder: path.basename(path.dirname(resolvedImagePath)),
+        cropPath: sourcePath,
+        rect: normalizedRect,
+        croppedAt: new Date().toISOString(),
+      };
+
+      const entriesToKeep = allEntries.filter(entry => entry.originalPath !== resolvedImagePath);
+      entriesToKeep.push(updatedEntry);
+      await this.rewriteCropManifest(cropDir, entriesToKeep);
+    } catch (error) {
+      console.error('Failed to apply crop:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Restore a cropped slide back to its original uncropped image
+   */
+  async restoreCrop(imagePath: string, outputDir: string): Promise<void> {
+    try {
+      const expandedOutputDir = outputDir.startsWith('~')
+        ? path.join(os.homedir(), outputDir.slice(1))
+        : outputDir;
+      const resolvedOutputDir = path.resolve(expandedOutputDir);
+      const resolvedImagePath = path.resolve(imagePath);
+
+      if (!this.isPathInside(resolvedOutputDir, resolvedImagePath)) {
+        throw new Error('Invalid image path: file is outside the output directory');
+      }
+
+      const cropDir = this.getCropDirectory(resolvedOutputDir);
+      const allEntries = await this.getCropEntries(resolvedOutputDir);
+      const entry = allEntries.find(item => item.originalPath === resolvedImagePath);
+
+      if (!entry) {
+        throw new Error('Crop backup not found');
+      }
+
+      await this.ensureDirectory(path.dirname(resolvedImagePath));
+      await fs.copyFile(entry.cropPath, resolvedImagePath);
+
+      await this.removeCropEntriesByOriginalPaths([resolvedImagePath], resolvedOutputDir);
+      await this.cleanupEmptyCropDirs(cropDir);
+    } catch (error) {
+      console.error('Failed to restore crop:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get crop backup image as base64 for display
+   */
+  async getCropImageAsBase64(cropPath: string): Promise<string> {
+    try {
+      const expandedPath = cropPath.startsWith('~')
+        ? path.join(os.homedir(), cropPath.slice(1))
+        : cropPath;
+      const resolvedPath = path.resolve(expandedPath);
+
+      const stats = await fs.stat(resolvedPath);
+      if (!stats.isFile()) {
+        throw new Error('Path is not a file');
+      }
+
+      const buffer = await fs.readFile(resolvedPath);
+      return buffer.toString('base64');
+    } catch (error) {
+      console.error('Failed to read crop image:', error);
+      throw error;
+    }
+  }
+
+  // ============================================================================
   // Trash Management Methods
   // ============================================================================
 
@@ -677,6 +892,7 @@ export class SlideExtractionService {
 
     try {
       const trashDir = this.getTrashDirectory(outputDir);
+      const allEntries = await this.getTrashEntries(outputDir);
 
       // Check if trash directory exists
       try {
@@ -711,6 +927,17 @@ export class SlideExtractionService {
         await fs.unlink(manifestPath);
       } catch {
         // Ignore if already deleted
+      }
+
+      const clearedOriginalPaths: string[] = [];
+      for (const entry of allEntries) {
+        if (!(await this.pathExists(entry.trashPath))) {
+          clearedOriginalPaths.push(entry.originalPath);
+        }
+      }
+
+      if (clearedOriginalPaths.length > 0) {
+        await this.removeCropEntriesByOriginalPaths(clearedOriginalPaths, outputDir);
       }
 
       console.log(`Trash cleared: ${result.cleared} items`);
@@ -752,6 +979,14 @@ export class SlideExtractionService {
       const entriesToKeep = allEntries.filter(entry => !clearedIds.has(entry.id));
       await this.rewriteTrashManifest(trashDir, entriesToKeep);
       await this.cleanupEmptyTrashDirs(trashDir);
+
+      const clearedOriginalPaths = entriesToClear
+        .filter(entry => clearedIds.has(entry.id))
+        .map(entry => entry.originalPath);
+
+      if (clearedOriginalPaths.length > 0) {
+        await this.removeCropEntriesByOriginalPaths(clearedOriginalPaths, outputDir);
+      }
 
       return result;
     } catch (error) {
@@ -827,6 +1062,75 @@ export class SlideExtractionService {
 
     const newContent = entries.map(entry => JSON.stringify(entry)).join('\n') + '\n';
     await fs.writeFile(manifestPath, newContent, 'utf8');
+  }
+
+  /**
+   * Clean up empty directories in crop folder
+   */
+  private async cleanupEmptyCropDirs(cropDir: string): Promise<void> {
+    try {
+      const items = await fs.readdir(cropDir);
+
+      for (const item of items) {
+        if (item === 'crop-manifest.jsonl') continue;
+
+        const itemPath = path.join(cropDir, item);
+        const stats = await fs.stat(itemPath);
+
+        if (stats.isDirectory()) {
+          await this.removeEmptyDirsRecursive(itemPath);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to cleanup empty crop dirs:', error);
+    }
+  }
+
+  /**
+   * Rewrite the crop manifest with the provided entries, or remove it if empty
+   */
+  private async rewriteCropManifest(cropDir: string, entries: CropEntry[]): Promise<void> {
+    const manifestPath = path.join(cropDir, 'crop-manifest.jsonl');
+
+    if (entries.length === 0) {
+      try {
+        await fs.unlink(manifestPath);
+      } catch {
+        // Ignore if already deleted
+      }
+      return;
+    }
+
+    const newContent = entries.map(entry => JSON.stringify(entry)).join('\n') + '\n';
+    await fs.writeFile(manifestPath, newContent, 'utf8');
+  }
+
+  /**
+   * Remove crop entries and backups for the provided original slide paths
+   */
+  private async removeCropEntriesByOriginalPaths(originalPaths: string[], outputDir: string): Promise<void> {
+    if (originalPaths.length === 0) {
+      return;
+    }
+
+    const cropDir = this.getCropDirectory(outputDir);
+    const pathSet = new Set(originalPaths.map(item => path.resolve(item)));
+    const allEntries = await this.getCropEntries(outputDir);
+    const entriesToRemove = allEntries.filter(entry => pathSet.has(path.resolve(entry.originalPath)));
+
+    for (const entry of entriesToRemove) {
+      try {
+        await fs.unlink(entry.cropPath);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+          console.warn(`Failed to remove crop backup: ${entry.cropPath}`, error);
+        }
+      }
+    }
+
+    const entriesToKeep = allEntries.filter(entry => !pathSet.has(path.resolve(entry.originalPath)));
+    await this.rewriteCropManifest(cropDir, entriesToKeep);
+    await this.cleanupEmptyCropDirs(cropDir);
   }
 
   /**

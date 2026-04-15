@@ -219,6 +219,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     clearEntries: (ids: string[]) => ipcRenderer.invoke('trash:clearEntries', ids),
     getImageAsBase64: (trashPath: string) => ipcRenderer.invoke('trash:getImageAsBase64', trashPath),
   },
+  crop: {
+    getEntries: () => ipcRenderer.invoke('crop:getEntries'),
+    getImageAsBase64: (cropPath: string) => ipcRenderer.invoke('crop:getImageAsBase64', cropPath),
+    apply: (imagePath: string, rect: { x: number; y: number; width: number; height: number }) =>
+      ipcRenderer.invoke('crop:apply', imagePath, rect),
+    restore: (imagePath: string) => ipcRenderer.invoke('crop:restore', imagePath),
+  },
   pdfmaker: {
     openWindow: () => ipcRenderer.invoke('pdfmaker:openWindow'),
     getFolders: () => ipcRenderer.invoke('pdfmaker:getFolders'),

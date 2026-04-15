@@ -2,6 +2,21 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { compareToolFolders, compareToolImages, formatToolFolderName } from '../utils/toolWindowFolders'
 
 export type ResultsReason = 'duplicate' | 'exclusion' | 'ai_filtered' | 'manual'
+export interface CropRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export interface CropEntry {
+  filename: string
+  originalPath: string
+  originalParentFolder: string
+  cropPath: string
+  rect: CropRect
+  croppedAt: string
+}
 
 interface RemovedEntry {
   id: string
@@ -31,6 +46,10 @@ export interface ResultsItem {
   reason?: ResultsReason
   reasonDetails?: string
   trashedAt?: string
+  isCropped?: boolean
+  cropPath?: string
+  cropRect?: CropRect
+  croppedAt?: string
 }
 
 type ResultsViewMode = 'folders' | 'images'
@@ -40,6 +59,7 @@ export function useResultsView() {
   const folders = ref<ResultsFolder[]>([])
   const activeFolders = ref<Array<{ name: string; path: string }>>([])
   const trashEntries = ref<RemovedEntry[]>([])
+  const cropEntries = ref<CropEntry[]>([])
   const currentView = ref<ResultsViewMode>('folders')
   const currentFolder = ref<ResultsFolder | null>(null)
   const folderItems = ref<ResultsItem[]>([])
@@ -55,6 +75,10 @@ export function useResultsView() {
 
   const currentFolderDisplayName = computed(() => {
     return currentFolder.value ? formatToolFolderName(currentFolder.value.name) : ''
+  })
+
+  const cropEntriesByOriginalPath = computed(() => {
+    return new Map(cropEntries.value.map((entry) => [entry.originalPath, entry]))
   })
 
   const filteredItems = computed(() => {
@@ -97,13 +121,15 @@ export function useResultsView() {
   })
 
   async function loadFolderSummaries() {
-    const [activeFolderList, removedEntries] = await Promise.all([
+    const [activeFolderList, removedEntries, currentCropEntries] = await Promise.all([
       window.electronAPI.pdfmaker.getFolders(),
       window.electronAPI.trash.getEntries(),
+      window.electronAPI.crop.getEntries(),
     ])
 
     activeFolders.value = activeFolderList
     trashEntries.value = removedEntries
+    cropEntries.value = currentCropEntries
 
     const activeCounts = await Promise.all(
       activeFolderList.map(async (folder) => {
@@ -146,18 +172,27 @@ export function useResultsView() {
 
   async function buildFolderItems(folder: ResultsFolder): Promise<ResultsItem[]> {
     const activeFolder = activeFolders.value.find((entry) => entry.name === folder.name)
+    const cropMap = cropEntriesByOriginalPath.value
 
     let activeItems: ResultsItem[] = []
     if (activeFolder?.path) {
       try {
         const images = await window.electronAPI.pdfmaker.getImages(activeFolder.path)
-        activeItems = images.map((image) => ({
-          id: image.path,
-          name: image.name,
-          status: 'active',
-          imagePath: image.path,
-          originalPath: image.path,
-        }))
+        activeItems = images.map((image) => {
+          const cropEntry = cropMap.get(image.path)
+
+          return {
+            id: image.path,
+            name: image.name,
+            status: 'active' as const,
+            imagePath: image.path,
+            originalPath: image.path,
+            isCropped: !!cropEntry,
+            cropPath: cropEntry?.cropPath,
+            cropRect: cropEntry?.rect,
+            croppedAt: cropEntry?.croppedAt,
+          }
+        })
       } catch (error) {
         console.warn(`Failed to load images for ${folder.name}:`, error)
       }
@@ -165,28 +200,49 @@ export function useResultsView() {
 
     const removedItems: ResultsItem[] = trashEntries.value
       .filter((entry) => entry.originalParentFolder === folder.name)
-      .map((entry) => ({
-        id: entry.id,
-        name: entry.filename,
-        status: 'removed',
-        trashPath: entry.trashPath,
-        originalPath: entry.originalPath,
-        reason: entry.reason,
-        reasonDetails: entry.reasonDetails,
-        trashedAt: entry.trashedAt,
-      }))
+      .map((entry) => {
+        const cropEntry = cropMap.get(entry.originalPath)
+
+        return {
+          id: entry.id,
+          name: entry.filename,
+          status: 'removed' as const,
+          trashPath: entry.trashPath,
+          originalPath: entry.originalPath,
+          reason: entry.reason,
+          reasonDetails: entry.reasonDetails,
+          trashedAt: entry.trashedAt,
+          isCropped: !!cropEntry,
+          cropPath: cropEntry?.cropPath,
+          cropRect: cropEntry?.rect,
+          croppedAt: cropEntry?.croppedAt,
+        }
+      })
 
     return [...activeItems, ...removedItems].sort((a, b) => compareToolImages(a.name, b.name))
   }
 
-  async function loadCurrentFolderItems(folder: ResultsFolder) {
+  async function loadCurrentFolderItems(folder: ResultsFolder, previewImagePath?: string) {
     thumbnails.value = {}
     folderItems.value = await buildFolderItems(folder)
-    void loadThumbnails(folderItems.value)
+
+    if (previewImagePath) {
+      const previewMatch = folderItems.value.find((item) => item.imagePath === previewImagePath || item.originalPath === previewImagePath)
+      if (previewMatch) {
+        await loadThumbnails([previewMatch], true)
+        previewItem.value = previewMatch
+        void loadThumbnails(folderItems.value.filter((item) => item.id !== previewMatch.id))
+        return
+      }
+
+      previewItem.value = null
+    }
+
+    void loadThumbnails(folderItems.value, true)
   }
 
-  async function loadThumbnails(items: ResultsItem[]) {
-    const version = ++thumbnailLoadVersion
+  async function loadThumbnails(items: ResultsItem[], reset = false) {
+    const version = reset ? ++thumbnailLoadVersion : thumbnailLoadVersion
 
     for (const item of items) {
       if (version !== thumbnailLoadVersion) return
@@ -330,6 +386,58 @@ export function useResultsView() {
     }
   }
 
+  async function refreshPreviewByImagePath(imagePath: string): Promise<boolean> {
+    if (!currentFolder.value) return false
+
+    try {
+      await loadFolderSummaries()
+
+      const refreshedFolder = folders.value.find((folder) => folder.name === currentFolder.value?.name)
+      if (!refreshedFolder) {
+        goBack()
+        return false
+      }
+
+      currentFolder.value = refreshedFolder
+      await loadCurrentFolderItems(refreshedFolder, imagePath)
+      selectedIds.value = selectedIds.value.filter((id) => {
+        return folderItems.value.some((item) => item.id === id)
+      })
+      return !!previewItem.value
+    } catch (error) {
+      console.error('Failed to refresh preview item:', error)
+      return false
+    }
+  }
+
+  async function applyCropToImage(imagePath: string, rect: CropRect): Promise<boolean> {
+    isLoading.value = true
+
+    try {
+      await window.electronAPI.crop.apply(imagePath, rect)
+      return await refreshPreviewByImagePath(imagePath)
+    } catch (error) {
+      console.error('Failed to apply crop:', error)
+      return false
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function restoreCropFromImage(imagePath: string): Promise<boolean> {
+    isLoading.value = true
+
+    try {
+      await window.electronAPI.crop.restore(imagePath)
+      return await refreshPreviewByImagePath(imagePath)
+    } catch (error) {
+      console.error('Failed to restore crop:', error)
+      return false
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   function formatDate(value?: string): string {
     if (!value) return ''
 
@@ -370,6 +478,8 @@ export function useResultsView() {
     deleteSelected,
     restoreSelected,
     clearTrash,
+    applyCropToImage,
+    restoreCropFromImage,
     formatDate,
     formatToolFolderName,
   }
