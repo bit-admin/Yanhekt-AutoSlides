@@ -7,16 +7,6 @@
         <div class="tab-buttons">
           <button
             class="tab-btn"
-            :class="{ active: activeTab === 'pdfmaker' }"
-            @click="switchTab('pdfmaker')"
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16">
-              <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1.5H4V8zm0 2.5h8V12H4v-1.5zm0 2.5h5v1.5H4V13z" fill="currentColor"/>
-            </svg>
-            {{ $t('tools.tabPdfMaker') }}
-          </button>
-          <button
-            class="tab-btn"
             :class="{ active: activeTab === 'trash' }"
             @click="switchTab('trash')"
           >
@@ -24,6 +14,16 @@
               <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
             </svg>
             {{ $t('tools.tabTrash') }}
+          </button>
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'pdfmaker' }"
+            @click="switchTab('pdfmaker')"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1.5H4V8zm0 2.5h8V12H4v-1.5zm0 2.5h5v1.5H4V13z" fill="currentColor"/>
+            </svg>
+            {{ $t('tools.tabPdfMaker') }}
           </button>
           <button
             class="tab-btn"
@@ -59,11 +59,11 @@
 
     <!-- Tab Content -->
     <div class="tab-content">
-      <div v-show="activeTab === 'pdfmaker'" class="tab-panel">
-        <PdfMakerWindow />
-      </div>
       <div v-show="activeTab === 'trash'" class="tab-panel">
         <ResultsWindow />
+      </div>
+      <div v-show="activeTab === 'pdfmaker'" class="tab-panel">
+        <PdfMakerWindow />
       </div>
       <div v-show="activeTab === 'offline'" class="tab-panel">
         <OfflineProcessingTab />
@@ -87,7 +87,7 @@ const getInitialTab = (): TabId => {
   const params = new URLSearchParams(window.location.search)
   const tab = params.get('tab')
   if (tab === 'pdfmaker' || tab === 'trash' || tab === 'offline') return tab
-  return 'pdfmaker'
+  return 'trash'
 }
 
 const activeTab = ref<TabId>(getInitialTab())

@@ -232,59 +232,30 @@
 
     <div class="status-section">
       <!-- Action Buttons Row -->
-      <!-- Tools Dropdown -->
-      <div class="tools-dropdown" :class="{ expanded: showToolsDropup }">
-        <button class="tools-trigger" @click="showToolsDropup = !showToolsDropup">
+      <!-- Tools Launcher -->
+      <div class="tools-dropdown">
+        <button class="tools-trigger" @click="openToolsWindow()">
           <svg width="14" height="14" viewBox="0 0 16 16">
             <path d="M1 3h4v4H1V3zm5 0h4v4H6V3zm5 0h4v4h-4V3zM1 9h4v4H1V9zm5 0h4v4H6V9zm5 0h4v4h-4V9z" fill="currentColor"/>
           </svg>
           <span>{{ $t('tools.openTools') }}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" class="tools-chevron" :class="{ open: showToolsDropup }">
-            <path d="M2 4L5 7l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <svg width="10" height="10" viewBox="0 0 10 10" class="tools-chevron">
+            <path d="M3 2l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
         </button>
-        <div v-if="showToolsDropup" class="tools-menu">
-          <button class="tools-menu-item" @click="openToolsWindow('pdfmaker'); showToolsDropup = false">
-            <svg width="15" height="15" viewBox="0 0 16 16">
-              <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1.5H4V8zm0 2.5h8V12H4v-1.5zm0 2.5h5v1.5H4V13z" fill="currentColor"/>
-            </svg>
-            <span>{{ $t('tools.tabPdfMaker') }}</span>
-          </button>
-          <button class="tools-menu-item" @click="openToolsWindow('trash'); showToolsDropup = false">
-            <svg width="15" height="15" viewBox="0 0 16 16">
-              <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
-            </svg>
-            <span>{{ $t('tools.tabTrash') }}</span>
-          </button>
-          <button class="tools-menu-item" @click="openToolsWindow('offline'); showToolsDropup = false">
-            <svg width="15" height="15" viewBox="0 0 16 16">
-              <path d="M8 12a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM4.5 9.5a5 5 0 016.9 0l-1 1a3.5 3.5 0 00-4.9 0l-1-1zM1.5 6.5a9 9 0 0112.9 0l-1 1a7.5 7.5 0 00-10.9 0l-1-1z" fill="currentColor"/>
-              <line x1="2" y1="2" x2="14" y2="14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-            </svg>
-            <span>{{ $t('tools.tabOffline') }}</span>
-          </button>
-        </div>
       </div>
 
-      <!-- Add-ons Dropdown -->
-      <div class="tools-dropdown addons-dropdown" :class="{ expanded: showAddonsDropup }">
-        <button class="tools-trigger" @click="showAddonsDropup = !showAddonsDropup">
+      <!-- Add-ons Launcher -->
+      <div class="tools-dropdown addons-dropdown">
+        <button class="tools-trigger" @click="openAddonsWindow()">
           <svg width="14" height="14" viewBox="0 0 16 16">
             <path d="M8 1L1 5v6l7 4 7-4V5L8 1zm0 2l4.5 2.5L8 8 3.5 5.5 8 3zM2.5 6.3L7.5 9v4.2l-5-2.8V6.3zm11 0v4.1l-5 2.8V9l5-2.7z" fill="currentColor"/>
           </svg>
           <span>{{ $t('addons.openAddons') }}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" class="tools-chevron" :class="{ open: showAddonsDropup }">
-            <path d="M2 4L5 7l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <svg width="10" height="10" viewBox="0 0 10 10" class="tools-chevron">
+            <path d="M3 2l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
         </button>
-        <div v-if="showAddonsDropup" class="tools-menu">
-          <button class="tools-menu-item" @click="openAddonsWindow('yuketang'); showAddonsDropup = false">
-            <svg width="15" height="15" viewBox="0 0 16 16">
-              <path d="M8 1L1 5v6l7 4 7-4V5L8 1zm0 2l4.5 2.5L8 8 3.5 5.5 8 3zM2.5 6.3L7.5 9v4.2l-5-2.8V6.3zm11 0v4.1l-5 2.8V9l5-2.7z" fill="currentColor"/>
-            </svg>
-            <span>{{ $t('addons.tabYuketang') }}</span>
-          </button>
-        </div>
       </div>
 
       <div class="status-row">
@@ -1560,8 +1531,7 @@ const {
 } = pHashExclusion
 
 // Tools Window
-const showToolsDropup = ref(false)
-const openToolsWindow = async (tab: string) => {
+const openToolsWindow = async (tab?: string) => {
   try {
     await window.electronAPI.tools.openWindow(tab)
   } catch (error) {
@@ -1570,8 +1540,7 @@ const openToolsWindow = async (tab: string) => {
 }
 
 // Add-ons Window
-const showAddonsDropup = ref(false)
-const openAddonsWindow = async (tab: string) => {
+const openAddonsWindow = async (tab?: string) => {
   try {
     await window.electronAPI.addons.openWindow(tab)
   } catch (error) {
@@ -2944,66 +2913,9 @@ defineExpose({
   opacity: 0.7;
 }
 
-.tools-dropdown.expanded .tools-trigger {
-  background-color: #eee;
-  border-color: #bbb;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-  border-bottom-color: transparent;
-}
-
 .tools-chevron {
   margin-left: auto;
-  opacity: 0.4;
-  transition: transform 0.15s, opacity 0.15s;
-}
-
-.tools-dropdown.expanded .tools-chevron {
-  opacity: 0.7;
-  transform: rotate(180deg);
-}
-
-.tools-menu {
-  width: 100%;
-  background-color: #ffffff;
-  border: 1px solid #ddd;
-  border-top: none;
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-  overflow: hidden;
-}
-
-.tools-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 8px;
-  border: none;
-  background: transparent;
-  font-size: 11px;
-  font-weight: 500;
-  color: #333;
-  cursor: pointer;
-  transition: background-color 0.12s;
-  text-align: left;
-}
-
-.tools-menu-item svg {
-  flex-shrink: 0;
-  opacity: 0.6;
-}
-
-.tools-menu-item:hover {
-  background-color: #f0f0f0;
-}
-
-.tools-menu-item:hover svg {
-  opacity: 0.85;
-}
-
-.tools-menu-item + .tools-menu-item {
-  border-top: 1px solid #f0f0f0;
+  opacity: 0.45;
 }
 
 /* Dark mode support */
@@ -5046,27 +4958,5 @@ defineExpose({
     border-color: #666;
   }
 
-  .tools-dropdown.expanded .tools-trigger {
-    background-color: #3a3a3a;
-    border-color: #666;
-    border-bottom-color: transparent;
-  }
-
-  .tools-menu {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .tools-menu-item {
-    color: #e0e0e0;
-  }
-
-  .tools-menu-item:hover {
-    background-color: #404040;
-  }
-
-  .tools-menu-item + .tools-menu-item {
-    border-top-color: #444;
-  }
 }
 </style>

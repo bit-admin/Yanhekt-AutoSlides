@@ -1176,7 +1176,7 @@ declare const TOOLS_WINDOW_VITE_NAME: string;
 let toolsWindow: BrowserWindow | null = null;
 
 const createToolsWindow = (tab?: string) => {
-  const targetTab = tab || 'pdfmaker';
+  const targetTab = tab || 'trash';
 
   // If window already exists, switch tab and focus
   if (toolsWindow && !toolsWindow.isDestroyed()) {
