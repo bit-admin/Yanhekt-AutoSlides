@@ -811,6 +811,8 @@
     "clearSuccess": "ゴミ箱を空にしました",
     "preview": "プレビュー",
     "metadata": "メタデータ",
+    "showMetadata": "メタデータを表示",
+    "hideMetadata": "メタデータを隠す",
     "filename": "ファイル名",
     "currentPath": "現在のパス",
     "originalPath": "元のパス",

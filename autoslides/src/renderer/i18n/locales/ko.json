@@ -811,6 +811,8 @@
     "clearSuccess": "휴지통을 비웠습니다",
     "preview": "미리보기",
     "metadata": "메타데이터",
+    "showMetadata": "메타데이터 표시",
+    "hideMetadata": "메타데이터 숨기기",
     "filename": "파일명",
     "currentPath": "현재 경로",
     "originalPath": "원본 경로",

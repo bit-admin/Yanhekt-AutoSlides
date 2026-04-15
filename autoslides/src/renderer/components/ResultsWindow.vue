@@ -213,7 +213,7 @@
     </div>
 
     <div v-if="previewItem" class="preview-modal-overlay" @click="closePreview">
-      <div class="preview-modal" @click.stop>
+      <div class="preview-modal" :class="{ 'metadata-visible': showPreviewMetadata }" @click.stop>
         <button class="preview-close-btn" @click="closePreview">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -233,6 +233,20 @@
                 <rect x="8" y="8" width="48" height="48" fill="currentColor" opacity="0.2"/>
               </svg>
             </div>
+
+            <button class="preview-meta-toggle" @click="togglePreviewMetadata">
+              <span>{{ showPreviewMetadata ? $t('trash.hideMetadata') : $t('trash.showMetadata') }}</span>
+              <svg width="14" height="14" viewBox="0 0 16 16">
+                <path
+                  :d="showPreviewMetadata ? 'M10 3L5 8l5 5' : 'M6 3l5 5-5 5'"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
           </div>
 
           <div class="preview-info-container">
@@ -285,9 +299,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useResultsView, type ResultsReason } from '../composables/useResultsView'
+import { useResultsView, type ResultsItem, type ResultsReason } from '../composables/useResultsView'
 
 const { t } = useI18n()
 
@@ -312,14 +326,16 @@ const {
   goBack,
   refresh,
   toggleSelection,
-  openPreview,
-  closePreview,
+  openPreview: openPreviewItem,
+  closePreview: closePreviewItem,
   deleteSelected,
   restoreSelected,
   clearTrash,
   formatDate,
   formatToolFolderName,
 } = useResultsView()
+
+const showPreviewMetadata = ref(false)
 
 const currentFolderRemovedIds = computed(() => {
   return folderItems.value
@@ -356,6 +372,20 @@ const getReasonLabel = (reason: ResultsReason) => {
 
 const getStatusLabel = (status: 'active' | 'removed') => {
   return status === 'active' ? t('trash.active') : t('trash.removed')
+}
+
+const openPreview = (item: ResultsItem) => {
+  showPreviewMetadata.value = false
+  openPreviewItem(item)
+}
+
+const closePreview = () => {
+  showPreviewMetadata.value = false
+  closePreviewItem()
+}
+
+const togglePreviewMetadata = () => {
+  showPreviewMetadata.value = !showPreviewMetadata.value
 }
 
 const confirmDelete = async () => {
@@ -843,11 +873,17 @@ const confirmClearTrash = async () => {
 .preview-modal {
   position: relative;
   width: min(960px, calc(100vw - 48px));
+  aspect-ratio: 16 / 9;
   max-height: calc(100vh - 48px);
   background-color: white;
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
+}
+
+.preview-modal.metadata-visible {
+  width: min(1200px, calc(100vw - 48px));
+  aspect-ratio: auto;
 }
 
 .preview-close-btn {
@@ -865,23 +901,35 @@ const confirmClearTrash = async () => {
 }
 
 .preview-content {
+  height: 100%;
+}
+
+.preview-modal.metadata-visible .preview-content {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
   min-height: 420px;
+  height: auto;
 }
 
 .preview-image-container {
-  background-color: #111;
+  position: relative;
+  background-color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 18px;
+  height: 100%;
+}
+
+.preview-modal.metadata-visible .preview-image-container {
+  min-height: 420px;
+  height: auto;
 }
 
 .preview-image,
 .preview-image-placeholder {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  height: 100%;
   object-fit: contain;
 }
 
@@ -889,7 +937,31 @@ const confirmClearTrash = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(51, 51, 51, 0.28);
+}
+
+.preview-meta-toggle {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  top: auto;
+  transform: none;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.92);
+  color: #444;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.preview-modal:not(.metadata-visible) .preview-info-container {
+  display: none;
 }
 
 .preview-info-container {
@@ -992,7 +1064,8 @@ const confirmClearTrash = async () => {
   }
 
   .item-preview-btn,
-  .preview-close-btn {
+  .preview-close-btn,
+  .preview-meta-toggle {
     background-color: rgba(40, 40, 40, 0.92);
     color: #ddd;
   }
@@ -1007,6 +1080,14 @@ const confirmClearTrash = async () => {
 
   .preview-modal {
     background-color: #232323;
+  }
+
+  .preview-image-container {
+    background-color: #111;
+  }
+
+  .preview-image-placeholder {
+    color: rgba(255, 255, 255, 0.6);
   }
 
   .preview-info-table td {

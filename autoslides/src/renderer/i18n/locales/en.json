@@ -811,6 +811,8 @@
     "clearSuccess": "Trash cleared",
     "preview": "Preview",
     "metadata": "Metadata",
+    "showMetadata": "Show Metadata",
+    "hideMetadata": "Hide Metadata",
     "filename": "Filename",
     "currentPath": "Current Path",
     "originalPath": "Original Path",

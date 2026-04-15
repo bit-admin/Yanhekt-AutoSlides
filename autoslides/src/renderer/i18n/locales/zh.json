@@ -811,6 +811,8 @@
     "clearSuccess": "回收站已清空",
     "preview": "预览",
     "metadata": "元数据",
+    "showMetadata": "显示元数据",
+    "hideMetadata": "隐藏元数据",
     "filename": "文件名",
     "currentPath": "当前路径",
     "originalPath": "原始路径",
