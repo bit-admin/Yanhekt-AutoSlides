@@ -563,6 +563,7 @@ interface ElectronAPI {
     getEntries: () => Promise<TrashEntry[]>;
     restore: (ids: string[]) => Promise<{ restored: number; failed: number }>;
     clear: () => Promise<{ cleared: number; failed: number }>;
+    clearEntries: (ids: string[]) => Promise<{ cleared: number; failed: number }>;
     getImageAsBase64: (trashPath: string) => Promise<string>;
   };
 

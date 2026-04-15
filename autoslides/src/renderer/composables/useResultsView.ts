@@ -34,7 +34,7 @@ export interface ResultsItem {
 }
 
 type ResultsViewMode = 'folders' | 'images'
-type ContextMode = 'context' | 'removed-only'
+type ContextMode = 'context' | 'removed-only' | 'extracted-only'
 
 export function useResultsView() {
   const folders = ref<ResultsFolder[]>([])
@@ -60,7 +60,11 @@ export function useResultsView() {
   const filteredItems = computed(() => {
     return folderItems.value.filter((item) => {
       if (item.status === 'active') {
-        return contextMode.value === 'context'
+        return contextMode.value === 'context' || contextMode.value === 'extracted-only'
+      }
+
+      if (contextMode.value === 'extracted-only') {
+        return false
       }
 
       if (selectedReason.value && item.reason !== selectedReason.value) {
@@ -310,10 +314,14 @@ export function useResultsView() {
     }
   }
 
-  async function clearTrash() {
+  async function clearTrash(ids?: string[]) {
     isLoading.value = true
     try {
-      await window.electronAPI.trash.clear()
+      if (ids && ids.length > 0) {
+        await window.electronAPI.trash.clearEntries(ids)
+      } else {
+        await window.electronAPI.trash.clear()
+      }
       await refresh()
     } catch (error) {
       console.error('Failed to clear trash:', error)

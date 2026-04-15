@@ -1497,6 +1497,17 @@ ipcMain.handle('trash:clear', async () => {
   }
 });
 
+ipcMain.handle('trash:clearEntries', async (_event, ids: string[]) => {
+  try {
+    const outputDir = configService.getConfig().outputDirectory;
+    const result = await slideExtractionService.clearTrashEntries(ids, outputDir);
+    return result;
+  } catch (error) {
+    console.error('Failed to clear selected trash entries:', error);
+    throw error;
+  }
+});
+
 ipcMain.handle('trash:getImageAsBase64', async (_event, trashPath: string) => {
   try {
     const base64 = await slideExtractionService.getTrashImageAsBase64(trashPath);

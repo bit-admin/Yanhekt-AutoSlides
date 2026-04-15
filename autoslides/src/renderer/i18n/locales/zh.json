@@ -772,8 +772,8 @@
     }
   },
   "trash": {
-    "openTrash": "打开结果视图",
-    "title": "结果视图",
+    "openTrash": "审查幻灯片输出",
+    "title": "幻灯片审查",
     "refresh": "刷新",
     "restore": "恢复所选",
     "delete": "删除所选",
@@ -783,6 +783,7 @@
     "filterReason": "原因",
     "viewMode": "视图",
     "showContext": "保留上下文",
+    "extractedOnly": "仅看已提取",
     "removedOnly": "仅看已移除",
     "all": "全部",
     "duplicate": "重复",
@@ -801,6 +802,8 @@
     "loading": "加载中...",
     "confirmClear": "将所有回收站项目移至系统回收站？",
     "confirmClearTitle": "清空回收站",
+    "confirmClearFolder": "将 {folder} 中已移除的图片移至系统回收站？",
+    "confirmClearFolderTitle": "清空此文件夹回收站",
     "confirmDeleteTitle": "删除图片",
     "confirmDelete": "将 {count} 张图片移至回收站？",
     "cancel": "取消",
@@ -875,7 +878,7 @@
   "tools": {
     "openTools": "工具",
     "tabPdfMaker": "PDF 制作",
-    "tabTrash": "结果视图",
+    "tabTrash": "幻灯片审查",
     "tabOffline": "离线处理"
   },
   "addons": {

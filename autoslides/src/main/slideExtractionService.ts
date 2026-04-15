@@ -632,12 +632,11 @@ export class SlideExtractionService {
 
     try {
       const trashDir = this.getTrashDirectory(outputDir);
-      const manifestPath = path.join(trashDir, 'trash-manifest.jsonl');
 
       // Get all entries
       const allEntries = await this.getTrashEntries(outputDir);
       const entriesToRestore = allEntries.filter(e => ids.includes(e.id));
-      const entriesToKeep = allEntries.filter(e => !ids.includes(e.id));
+      const restoredIds = new Set<string>();
 
       // Restore each file
       for (const entry of entriesToRestore) {
@@ -649,6 +648,7 @@ export class SlideExtractionService {
           // Move file back to original location
           await fs.rename(entry.trashPath, entry.originalPath);
           result.restored++;
+          restoredIds.add(entry.id);
           console.log(`Restored: ${entry.filename} to ${entry.originalPath}`);
         } catch (restoreError) {
           console.error(`Failed to restore ${entry.filename}:`, restoreError);
@@ -656,19 +656,8 @@ export class SlideExtractionService {
         }
       }
 
-      // Rewrite manifest with remaining entries
-      if (entriesToKeep.length === 0) {
-        // Delete manifest if empty
-        try {
-          await fs.unlink(manifestPath);
-        } catch {
-          // Ignore if already deleted
-        }
-      } else {
-        // Rewrite manifest with remaining entries
-        const newContent = entriesToKeep.map(e => JSON.stringify(e)).join('\n') + '\n';
-        await fs.writeFile(manifestPath, newContent, 'utf8');
-      }
+      const entriesToKeep = allEntries.filter(e => !restoredIds.has(e.id));
+      await this.rewriteTrashManifest(trashDir, entriesToKeep);
 
       // Clean up empty directories in trash
       await this.cleanupEmptyTrashDirs(trashDir);
@@ -733,6 +722,45 @@ export class SlideExtractionService {
   }
 
   /**
+   * Clear specific trash entries by moving them to the system trash
+   */
+  async clearTrashEntries(ids: string[], outputDir: string): Promise<{ cleared: number; failed: number }> {
+    const result = { cleared: 0, failed: 0 };
+
+    try {
+      if (ids.length === 0) {
+        return result;
+      }
+
+      const trashDir = this.getTrashDirectory(outputDir);
+      const allEntries = await this.getTrashEntries(outputDir);
+      const entriesToClear = allEntries.filter(entry => ids.includes(entry.id));
+      const clearedIds = new Set<string>();
+
+      for (const entry of entriesToClear) {
+        try {
+          await shell.trashItem(entry.trashPath);
+          result.cleared++;
+          clearedIds.add(entry.id);
+          console.log(`Moved selected trash item to system trash: ${entry.trashPath}`);
+        } catch (trashError) {
+          console.error(`Failed to move selected trash item to system trash: ${entry.trashPath}`, trashError);
+          result.failed++;
+        }
+      }
+
+      const entriesToKeep = allEntries.filter(entry => !clearedIds.has(entry.id));
+      await this.rewriteTrashManifest(trashDir, entriesToKeep);
+      await this.cleanupEmptyTrashDirs(trashDir);
+
+      return result;
+    } catch (error) {
+      console.error('Failed to clear selected trash entries:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get trash image as base64 for display
    */
   async getTrashImageAsBase64(trashPath: string): Promise<string> {
@@ -780,6 +808,25 @@ export class SlideExtractionService {
     } catch (error) {
       console.warn('Failed to cleanup empty trash dirs:', error);
     }
+  }
+
+  /**
+   * Rewrite the trash manifest with the provided entries, or remove it if empty
+   */
+  private async rewriteTrashManifest(trashDir: string, entries: TrashEntry[]): Promise<void> {
+    const manifestPath = path.join(trashDir, 'trash-manifest.jsonl');
+
+    if (entries.length === 0) {
+      try {
+        await fs.unlink(manifestPath);
+      } catch {
+        // Ignore if already deleted
+      }
+      return;
+    }
+
+    const newContent = entries.map(entry => JSON.stringify(entry)).join('\n') + '\n';
+    await fs.writeFile(manifestPath, newContent, 'utf8');
   }
 
   /**

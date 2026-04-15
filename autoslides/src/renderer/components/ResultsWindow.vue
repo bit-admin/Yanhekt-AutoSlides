@@ -13,6 +13,7 @@
           <label>{{ $t('trash.viewMode') }}:</label>
           <select v-model="contextMode" class="filter-select">
             <option value="context">{{ $t('trash.showContext') }}</option>
+            <option value="extracted-only">{{ $t('trash.extractedOnly') }}</option>
             <option value="removed-only">{{ $t('trash.removedOnly') }}</option>
           </select>
         </div>
@@ -104,10 +105,19 @@
             </div>
 
             <div class="folder-copy">
-              <span class="folder-name">{{ formatToolFolderName(folder.name) }}</span>
-              <div class="folder-counts">
-                <span class="count-badge active">{{ $t('trash.active') }} {{ folder.activeCount }}</span>
-                <span class="count-badge removed">{{ $t('trash.removed') }} {{ folder.removedCount }}</span>
+              <div class="folder-mainline">
+                <span class="folder-name">{{ formatToolFolderName(folder.name) }}</span>
+                <div class="folder-counts">
+                  <span class="folder-count-text">
+                    <span class="count-value">{{ folder.activeCount }}</span>
+                    <span class="count-label">{{ $t('trash.active') }}</span>
+                  </span>
+                  <span class="folder-count-separator">/</span>
+                  <span class="folder-count-text">
+                    <span class="count-value">{{ folder.removedCount }}</span>
+                    <span class="count-label">{{ $t('trash.removed') }}</span>
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -164,13 +174,16 @@
             </div>
 
             <div class="item-copy">
+              <div class="item-name">{{ formatImageName(item.name) }}</div>
               <div class="item-badges">
                 <span class="status-badge" :class="item.status">{{ getStatusLabel(item.status) }}</span>
-                <span v-if="item.status === 'removed' && item.reason" :class="['reason-badge', `reason-${item.reason}`]">
+                <span
+                  v-if="item.status === 'removed' && item.reason"
+                  :class="['reason-badge', `reason-${item.reason}`]"
+                >
                   {{ getReasonLabel(item.reason) }}
                 </span>
               </div>
-              <div class="item-name">{{ formatImageName(item.name) }}</div>
             </div>
           </div>
         </div>
@@ -281,6 +294,7 @@ const { t } = useI18n()
 const {
   folders,
   currentView,
+  currentFolder,
   currentFolderDisplayName,
   folderItems,
   filteredItems,
@@ -307,7 +321,17 @@ const {
   formatToolFolderName,
 } = useResultsView()
 
+const currentFolderRemovedIds = computed(() => {
+  return folderItems.value
+    .filter((item) => item.status === 'removed')
+    .map((item) => item.id)
+})
+
 const canClearTrash = computed(() => {
+  if (currentView.value === 'images') {
+    return currentFolderRemovedIds.value.length > 0
+  }
+
   return folders.value.some((folder) => folder.removedCount > 0)
 })
 
@@ -354,17 +378,20 @@ const confirmDelete = async () => {
 const confirmClearTrash = async () => {
   if (!canClearTrash.value) return
 
+  const isFolderScoped = currentView.value === 'images' && currentFolder.value
   const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
     type: 'warning',
     buttons: [t('trash.cancel'), t('trash.clearTrash')],
     defaultId: 1,
     cancelId: 0,
-    title: t('trash.confirmClearTitle'),
-    message: t('trash.confirmClear'),
+    title: isFolderScoped ? t('trash.confirmClearFolderTitle') : t('trash.confirmClearTitle'),
+    message: isFolderScoped
+      ? t('trash.confirmClearFolder', { folder: currentFolderDisplayName.value })
+      : t('trash.confirmClear'),
   })
 
   if (confirmed?.response === 1) {
-    await clearTrash()
+    await clearTrash(isFolderScoped ? currentFolderRemovedIds.value : undefined)
   }
 }
 </script>
@@ -554,8 +581,16 @@ const confirmClearTrash = async () => {
   min-width: 0;
 }
 
+.folder-mainline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
 .folder-name {
-  display: block;
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
   font-weight: 600;
   color: #2b2b2b;
@@ -566,8 +601,12 @@ const confirmClearTrash = async () => {
 
 .folder-counts {
   display: flex;
+  align-items: center;
   gap: 8px;
-  margin-top: 6px;
+  flex-shrink: 0;
+  color: #7b8794;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .count-badge,
@@ -579,6 +618,25 @@ const confirmClearTrash = async () => {
   padding: 3px 8px;
   font-size: 11px;
   font-weight: 600;
+}
+
+.folder-count-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.count-label {
+  color: inherit;
+  text-transform: lowercase;
+}
+
+.folder-count-separator {
+  color: #a0a8b1;
+}
+
+.count-value {
+  font-variant-numeric: tabular-nums;
 }
 
 .count-badge.active,
@@ -682,16 +740,21 @@ const confirmClearTrash = async () => {
 
 .item-copy {
   padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .item-badges {
   display: flex;
-  flex-wrap: wrap;
   gap: 6px;
-  margin-bottom: 8px;
+  flex-shrink: 0;
 }
 
 .item-name {
+  flex: 1;
+  min-width: 0;
   font-size: 11px;
   color: #666;
   overflow: hidden;
@@ -914,6 +977,14 @@ const confirmClearTrash = async () => {
   .info-value,
   .preview-info-title {
     color: #f1f1f1;
+  }
+
+  .folder-counts {
+    color: #9098a2;
+  }
+
+  .folder-count-separator {
+    color: #666f79;
   }
 
   .item-thumbnail {
