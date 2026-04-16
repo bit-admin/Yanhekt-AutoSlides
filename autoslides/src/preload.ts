@@ -156,6 +156,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     showMessageBox: (options: Electron.MessageBoxOptions) => ipcRenderer.invoke('dialog:showMessageBox', options),
     showErrorBox: (title: string, content: string) => ipcRenderer.invoke('dialog:showErrorBox', title, content),
     openImageFile: () => ipcRenderer.invoke('dialog:openImageFile') as Promise<string | null>,
+    openImageFiles: () => ipcRenderer.invoke('dialog:openImageFiles') as Promise<string[] | null>,
   },
   window: {
     minimize: () => ipcRenderer.invoke('window:minimize'),

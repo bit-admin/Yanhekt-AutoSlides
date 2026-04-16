@@ -1,0 +1,235 @@
+import { onUnmounted, ref } from 'vue'
+
+import type { DetectResult, WorkerLog, WorkerResponse } from '../workers/autoCrop.worker'
+
+function basename(p: string): string {
+  return p.replace(/\\/g, '/').split('/').pop() ?? p
+}
+
+export interface AutoCropProgress {
+  phase: 'idle' | 'processing' | 'completed' | 'error' | 'cancelled'
+  current: number
+  total: number
+  processed: number
+  failed: number
+  noDetection: number
+}
+
+export function useAutoCrop() {
+  const selectedImagePaths = ref<string[]>([])
+  const redBoxMode = ref(false)
+  const showEdges = ref(false)
+  const isProcessing = ref(false)
+  const isCancelled = ref(false)
+  const progress = ref<AutoCropProgress>({
+    phase: 'idle',
+    current: 0,
+    total: 0,
+    processed: 0,
+    failed: 0,
+    noDetection: 0,
+  })
+
+  const outputDir = ref<string | null>(null)
+
+  let worker: Worker | null = null
+  let nextId = 0
+  const pending = new Map<string, (r: WorkerResponse) => void>()
+
+  const ensureWorker = (): Worker => {
+    if (worker) return worker
+    worker = new Worker(
+      new URL('../workers/autoCrop.worker.ts', import.meta.url),
+      { type: 'module' },
+    )
+    worker.addEventListener('message', (event: MessageEvent<WorkerResponse | WorkerLog>) => {
+      const data = event.data as WorkerResponse | WorkerLog | null
+      if (!data || typeof data !== 'object') return
+      if ((data as WorkerLog).type === 'log') return
+      const response = data as WorkerResponse
+      if (!response.id) return
+      const resolver = pending.get(response.id)
+      if (!resolver) return
+      pending.delete(response.id)
+      resolver(response)
+    })
+    worker.addEventListener('error', (e) => {
+      console.error('[autoCrop worker error]', e)
+    })
+    return worker
+  }
+
+  const detectBbox = (imageData: ImageData, debug: boolean): Promise<WorkerResponse> => {
+    const w = ensureWorker()
+    const id = String(++nextId)
+    return new Promise<WorkerResponse>((resolve) => {
+      pending.set(id, resolve)
+      w.postMessage({ id, type: 'detect', imageData, debug })
+    })
+  }
+
+  const selectImages = async (): Promise<void> => {
+    const paths = await window.electronAPI.dialog.openImageFiles?.()
+    if (!paths || paths.length === 0) return
+    selectedImagePaths.value = paths
+    progress.value = { phase: 'idle', current: 0, total: 0, processed: 0, failed: 0, noDetection: 0 }
+  }
+
+  const startProcessing = async (): Promise<void> => {
+    if (selectedImagePaths.value.length === 0) return
+    const images = [...selectedImagePaths.value]
+
+    const config = await window.electronAPI.config.get()
+    const configuredOutputDir = config.outputDirectory || ''
+    if (!configuredOutputDir) {
+      console.error('No output directory configured')
+      progress.value.phase = 'error'
+      return
+    }
+    const outDir = configuredOutputDir + '/cropped'
+    outputDir.value = outDir
+
+    isProcessing.value = true
+    isCancelled.value = false
+    progress.value = {
+      phase: 'processing',
+      current: 0,
+      total: images.length,
+      processed: 0,
+      failed: 0,
+      noDetection: 0,
+    }
+
+    try {
+      await window.electronAPI.slideExtraction.ensureDirectory(outDir)
+    } catch (err) {
+      console.error('Failed to create output directory:', err)
+      progress.value.phase = 'error'
+      isProcessing.value = false
+      return
+    }
+
+    for (const imagePath of images) {
+      if (isCancelled.value) break
+      progress.value.current++
+
+      try {
+        const buffer = await window.electronAPI.offline.readImageBuffer(imagePath)
+        const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+        const blob = new Blob([bytes.buffer], { type: 'image/*' })
+        const bitmap = await createImageBitmap(blob)
+
+        const srcCanvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+        const srcCtx = srcCanvas.getContext('2d')!
+        srcCtx.drawImage(bitmap, 0, 0)
+        const imageData = srcCtx.getImageData(0, 0, bitmap.width, bitmap.height)
+
+        const useDebug = redBoxMode.value && showEdges.value
+        const response = await detectBbox(imageData, useDebug)
+
+        if (!response.success || !response.result) {
+          console.warn(`Auto-crop failed for ${basename(imagePath)}:`, response.error)
+          progress.value.failed++
+          bitmap.close()
+          continue
+        }
+
+        const result: DetectResult = response.result
+        if (!result.bbox) {
+          progress.value.noDetection++
+          bitmap.close()
+          continue
+        }
+
+        const { x, y, w, h } = result.bbox
+        let outCanvas: OffscreenCanvas
+        let outCtx: OffscreenCanvasRenderingContext2D
+
+        if (redBoxMode.value) {
+          outCanvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+          outCtx = outCanvas.getContext('2d')!
+          outCtx.drawImage(bitmap, 0, 0)
+
+          if (showEdges.value && result.edgesPng) {
+            const edgesBlob = new Blob([result.edgesPng], { type: 'image/png' })
+            const edgesBitmap = await createImageBitmap(edgesBlob)
+            outCtx.globalAlpha = 0.5
+            outCtx.drawImage(
+              edgesBitmap,
+              result.stripped.left,
+              result.stripped.top,
+              result.innerSize.width,
+              result.innerSize.height,
+            )
+            outCtx.globalAlpha = 1.0
+            edgesBitmap.close()
+          }
+
+          const lineW = Math.max(2, Math.round(bitmap.width / 600))
+          outCtx.strokeStyle = 'rgba(255, 40, 40, 1)'
+          outCtx.lineWidth = lineW
+          outCtx.strokeRect(x + lineW / 2, y + lineW / 2, w - lineW, h - lineW)
+        } else {
+          outCanvas = new OffscreenCanvas(w, h)
+          outCtx = outCanvas.getContext('2d')!
+          outCtx.drawImage(bitmap, x, y, w, h, 0, 0, w, h)
+        }
+
+        bitmap.close()
+
+        const outBlob = await outCanvas.convertToBlob({ type: 'image/png' })
+        const outBuffer = new Uint8Array(await outBlob.arrayBuffer())
+        const filename = basename(imagePath).replace(/\.[^.]+$/, '.png')
+        await window.electronAPI.slideExtraction.saveSlide(outDir, filename, outBuffer)
+
+        progress.value.processed++
+      } catch (err) {
+        console.error(`Failed to auto-crop ${imagePath}:`, err)
+        progress.value.failed++
+      }
+    }
+
+    progress.value.phase = isCancelled.value ? 'cancelled' : 'completed'
+    isProcessing.value = false
+  }
+
+  const cancelProcessing = () => {
+    isCancelled.value = true
+  }
+
+  const openOutputFolder = async () => {
+    if (outputDir.value) {
+      await window.electronAPI.shell.openPath(outputDir.value)
+    }
+  }
+
+  const reset = () => {
+    selectedImagePaths.value = []
+    outputDir.value = null
+    progress.value = { phase: 'idle', current: 0, total: 0, processed: 0, failed: 0, noDetection: 0 }
+  }
+
+  onUnmounted(() => {
+    pending.clear()
+    if (worker) {
+      worker.terminate()
+      worker = null
+    }
+  })
+
+  return {
+    selectedImagePaths,
+    redBoxMode,
+    showEdges,
+    isProcessing,
+    progress,
+    outputDir,
+    selectImages,
+    startProcessing,
+    cancelProcessing,
+    openOutputFolder,
+    reset,
+  }
+}
+
+export type UseAutoCrop = ReturnType<typeof useAutoCrop>

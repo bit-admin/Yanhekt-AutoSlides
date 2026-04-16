@@ -480,6 +480,7 @@ interface ElectronAPI {
     showMessageBox?: (options: DialogOptions) => Promise<DialogResponse>;
     showErrorBox?: (title: string, content: string) => Promise<void>;
     openImageFile?: () => Promise<string | null>;
+    openImageFiles?: () => Promise<string[] | null>;
   };
 
   powerManagement: {
