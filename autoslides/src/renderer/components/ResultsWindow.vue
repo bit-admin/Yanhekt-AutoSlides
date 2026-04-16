@@ -751,7 +751,9 @@ const startCropMode = async () => {
 
     cropEditorImageSrc.value = cropSource
     cropImageNaturalSize.value = size
-    cropRectPx.value = null
+    cropRectPx.value = activeItem.isCropped && activeItem.cropRect
+      ? sanitizeCropRect({ ...activeItem.cropRect })
+      : null
 
     cropInteraction.value = null
     isCropMode.value = true
@@ -1375,7 +1377,7 @@ onBeforeUnmount(() => {
 .preview-modal {
   position: relative;
   width: min(960px, calc(100vw - 48px));
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 10;
   max-height: calc(100vh - 48px);
   background-color: white;
   border-radius: 12px;
@@ -1416,7 +1418,7 @@ onBeforeUnmount(() => {
 .preview-image-container {
   position: relative;
   background-color: #fff;
-  padding: 18px;
+  padding: 54px 18px 58px;
   height: 100%;
 }
 
