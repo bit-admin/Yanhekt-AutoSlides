@@ -70,7 +70,7 @@ export function useAutoCrop() {
   }
 
   const selectImages = async (): Promise<void> => {
-    const paths = await window.electronAPI.dialog.openImageFiles?.()
+    const paths = await window.electronAPI.dialog?.openImageFiles?.()
     if (!paths || paths.length === 0) return
     selectedImagePaths.value = paths
     progress.value = { phase: 'idle', current: 0, total: 0, processed: 0, failed: 0, noDetection: 0 }
@@ -108,7 +108,9 @@ export function useAutoCrop() {
       try {
         const buffer = await window.electronAPI.offline.readImageBuffer(imagePath)
         const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
-        const blob = new Blob([bytes.buffer], { type: 'image/*' })
+        const blobArrayBuffer = new ArrayBuffer(bytes.byteLength)
+        new Uint8Array(blobArrayBuffer).set(bytes)
+        const blob = new Blob([blobArrayBuffer], { type: 'image/*' })
         const bitmap = await createImageBitmap(blob)
 
         const srcCanvas = new OffscreenCanvas(bitmap.width, bitmap.height)
