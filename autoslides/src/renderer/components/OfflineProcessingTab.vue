@@ -125,6 +125,17 @@
           </div>
         </div>
 
+        <!-- Output Options -->
+        <div class="setting-group">
+          <label class="setting-label">{{ $t('offlineProcessing.outputOptions') }}</label>
+          <div class="toggle-list">
+            <label class="toggle-item">
+              <input type="checkbox" v-model="autoCropEnablePngColorReduction" :disabled="autoCropIsProcessing" />
+              <span class="toggle-text">{{ $t('offlineProcessing.enablePngColorReduction') }}</span>
+            </label>
+          </div>
+        </div>
+
         <!-- Spacer -->
         <div class="offline-spacer"></div>
 
@@ -234,6 +245,7 @@ const {
   selectedImagePaths: autoCropSelectedImagePaths,
   redBoxMode: autoCropRedBoxMode,
   showEdges: autoCropShowEdges,
+  enablePngColorReduction: autoCropEnablePngColorReduction,
   isProcessing: autoCropIsProcessing,
   progress: autoCropProgress,
 } = autoCrop

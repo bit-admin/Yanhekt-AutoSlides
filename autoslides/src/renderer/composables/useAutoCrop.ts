@@ -19,6 +19,7 @@ export function useAutoCrop() {
   const selectedImagePaths = ref<string[]>([])
   const redBoxMode = ref(false)
   const showEdges = ref(false)
+  const enablePngColorReduction = ref(true)
   const isProcessing = ref(false)
   const isCancelled = ref(false)
   const progress = ref<AutoCropProgress>({
@@ -100,15 +101,6 @@ export function useAutoCrop() {
       noDetection: 0,
     }
 
-    try {
-      await window.electronAPI.slideExtraction.ensureDirectory(outDir)
-    } catch (err) {
-      console.error('Failed to create output directory:', err)
-      progress.value.phase = 'error'
-      isProcessing.value = false
-      return
-    }
-
     for (const imagePath of images) {
       if (isCancelled.value) break
       progress.value.current++
@@ -180,7 +172,7 @@ export function useAutoCrop() {
         const outBlob = await outCanvas.convertToBlob({ type: 'image/png' })
         const outBuffer = new Uint8Array(await outBlob.arrayBuffer())
         const filename = basename(imagePath).replace(/\.[^.]+$/, '.png')
-        await window.electronAPI.slideExtraction.saveSlide(outDir, filename, outBuffer)
+        await window.electronAPI.offline.savePngBuffer(outDir, filename, outBuffer, enablePngColorReduction.value)
 
         progress.value.processed++
       } catch (err) {
@@ -221,6 +213,7 @@ export function useAutoCrop() {
     selectedImagePaths,
     redBoxMode,
     showEdges,
+    enablePngColorReduction,
     isProcessing,
     progress,
     outputDir,

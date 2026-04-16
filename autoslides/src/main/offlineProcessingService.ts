@@ -74,6 +74,29 @@ export class OfflineProcessingService {
   }
 
   /**
+   * Save a PNG buffer to disk, optionally applying color reduction.
+   * Used by auto-crop to persist OffscreenCanvas output.
+   */
+  async savePngBuffer(
+    outputDir: string,
+    outputFilename: string,
+    buffer: Uint8Array,
+    enableColorReduction: boolean
+  ): Promise<void> {
+    await fs.mkdir(outputDir, { recursive: true })
+
+    let finalBuffer: Buffer = Buffer.from(buffer)
+    if (enableColorReduction) {
+      const reduced = await sharpService.reducePngColors(buffer)
+      if (reduced) {
+        finalBuffer = Buffer.from(reduced)
+      }
+    }
+
+    await fs.writeFile(path.join(outputDir, outputFilename), finalBuffer)
+  }
+
+  /**
    * Read raw image buffer (for pHash calculation in worker)
    */
   async readImageBuffer(filePath: string): Promise<Uint8Array> {

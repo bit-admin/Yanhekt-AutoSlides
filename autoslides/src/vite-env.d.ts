@@ -643,6 +643,7 @@ interface ElectronAPI {
     copyAndConvert: (inputPath: string, outputDir: string, outputFilename: string, enableColorReduction: boolean) => Promise<void>;
     readImageForAI: (filePath: string, targetWidth: number, targetHeight: number) => Promise<string>;
     readImageBuffer: (filePath: string) => Promise<Uint8Array>;
+    savePngBuffer: (outputDir: string, filename: string, buffer: Uint8Array, enableColorReduction: boolean) => Promise<void>;
   };
 }
 

@@ -283,6 +283,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     readImageForAI: (filePath: string, targetWidth: number, targetHeight: number) =>
       ipcRenderer.invoke('offline:readImageForAI', filePath, targetWidth, targetHeight),
     readImageBuffer: (filePath: string) => ipcRenderer.invoke('offline:readImageBuffer', filePath),
+    savePngBuffer: (outputDir: string, filename: string, buffer: Uint8Array, enableColorReduction: boolean) =>
+      ipcRenderer.invoke('offline:savePngBuffer', outputDir, filename, buffer, enableColorReduction),
   },
   update: {
     // Existing

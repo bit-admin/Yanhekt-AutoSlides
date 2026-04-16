@@ -876,6 +876,15 @@ ipcMain.handle('offline:readImageBuffer', async (_event, filePath: string) => {
   }
 });
 
+ipcMain.handle('offline:savePngBuffer', async (_event, outputDir: string, filename: string, buffer: Uint8Array, enableColorReduction: boolean) => {
+  try {
+    await offlineProcessingService.savePngBuffer(outputDir, filename, buffer, enableColorReduction);
+  } catch (error) {
+    console.error('Failed to save PNG buffer:', error);
+    throw error;
+  }
+});
+
 ipcMain.handle('dialog:openImageFile', async () => {
   try {
     const result = await dialog.showOpenDialog({
