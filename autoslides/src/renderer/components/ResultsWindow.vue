@@ -176,8 +176,8 @@
             <div class="item-copy">
               <div class="item-name">{{ formatImageName(item.name) }}</div>
               <div class="item-badges">
-                <span class="status-badge" :class="item.status">{{ getStatusLabel(item.status) }}</span>
                 <span v-if="item.status === 'active' && item.isCropped" class="status-badge cropped">{{ getCropLabel() }}</span>
+                <span class="status-badge" :class="item.status">{{ getStatusLabel(item.status) }}</span>
                 <span
                   v-if="item.status === 'removed' && item.reason"
                   :class="['reason-badge', `reason-${item.reason}`]"
@@ -333,8 +333,8 @@
                 <tr>
                   <td class="info-label">{{ $t('trash.status') }}</td>
                   <td class="info-value">
-                    <span class="status-badge" :class="previewItem.status">{{ getStatusLabel(previewItem.status) }}</span>
                     <span v-if="previewItem.status === 'active' && previewItem.isCropped" class="status-badge cropped">{{ getCropLabel() }}</span>
+                    <span class="status-badge" :class="previewItem.status">{{ getStatusLabel(previewItem.status) }}</span>
                   </td>
                 </tr>
                 <tr v-if="previewItem.status === 'active'">
