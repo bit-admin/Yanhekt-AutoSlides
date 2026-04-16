@@ -883,7 +883,31 @@
     "cancelled": "처리가 취소되었습니다",
     "noImagesFound": "선택한 폴더에서 이미지 파일을 찾을 수 없습니다",
     "openOutput": "출력 열기",
-    "errorTitle": "처리 오류"
+    "errorTitle": "처리 오류",
+    "autoCrop": {
+      "title": "자동 크롭 (포팅 테스트)",
+      "description": "REFERENCE/auto_crop_slide.py 와 비교하여 OpenCV.js 포팅을 검증합니다.",
+      "selectImage": "이미지 선택",
+      "rerun": "다시 실행",
+      "clear": "지우기",
+      "showEdges": "Canny 에지 표시",
+      "copyBbox": "bbox 복사",
+      "copied": "복사됨",
+      "loading": "감지 중…",
+      "noSelection": "PowerPoint 편집 보기 스크린샷을 선택하세요.",
+      "noBbox": "슬라이드 캔버스를 감지하지 못했습니다.",
+      "metadataTitle": "감지 결과",
+      "labelBbox": "BBox (x, y, w, h)",
+      "labelAspect": "종횡비",
+      "labelAspectScore": "종횡비 점수",
+      "labelAreaRatio": "면적 비율",
+      "labelStripped": "검은 테두리 제거 (상/하/좌/우)",
+      "labelInner": "내부 크기",
+      "labelCandidates": "후보 수",
+      "labelDuration": "소요 시간",
+      "ms": "ms",
+      "croppedPreviewTitle": "크롭 결과"
+    }
   },
   "tools": {
     "openTools": "도구",

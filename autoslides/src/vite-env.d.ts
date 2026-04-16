@@ -479,6 +479,7 @@ interface ElectronAPI {
   dialog?: {
     showMessageBox?: (options: DialogOptions) => Promise<DialogResponse>;
     showErrorBox?: (title: string, content: string) => Promise<void>;
+    openImageFile?: () => Promise<string | null>;
   };
 
   powerManagement: {

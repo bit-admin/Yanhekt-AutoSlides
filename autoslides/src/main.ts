@@ -876,6 +876,25 @@ ipcMain.handle('offline:readImageBuffer', async (_event, filePath: string) => {
   }
 });
 
+ipcMain.handle('dialog:openImageFile', async () => {
+  try {
+    const result = await dialog.showOpenDialog({
+      properties: ['openFile'],
+      filters: [
+        { name: 'Images', extensions: ['jpg', 'jpeg', 'png', 'bmp', 'tiff', 'tif', 'webp'] }
+      ],
+      title: 'Select Image'
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return null;
+    }
+    return result.filePaths[0];
+  } catch (error) {
+    console.error('Failed to open image file:', error);
+    throw error;
+  }
+});
+
 // IPC handlers for dialog functionality
 ipcMain.handle('dialog:showMessageBox', async (event, options: Electron.MessageBoxOptions) => {
   try {

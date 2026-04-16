@@ -883,7 +883,31 @@
     "cancelled": "処理がキャンセルされました",
     "noImagesFound": "選択したフォルダに画像ファイルが見つかりません",
     "openOutput": "出力を開く",
-    "errorTitle": "処理エラー"
+    "errorTitle": "処理エラー",
+    "autoCrop": {
+      "title": "自動クロップ（移植テスト）",
+      "description": "REFERENCE/auto_crop_slide.py との比較で OpenCV.js 移植を検証します。",
+      "selectImage": "画像を選択",
+      "rerun": "再実行",
+      "clear": "クリア",
+      "showEdges": "Canny エッジを表示",
+      "copyBbox": "bbox をコピー",
+      "copied": "コピーしました",
+      "loading": "検出中…",
+      "noSelection": "PowerPoint 編集ビューのスクリーンショットを選んでください。",
+      "noBbox": "スライドキャンバスを検出できません。",
+      "metadataTitle": "検出結果",
+      "labelBbox": "BBox (x, y, w, h)",
+      "labelAspect": "アスペクト",
+      "labelAspectScore": "アスペクトスコア",
+      "labelAreaRatio": "面積比",
+      "labelStripped": "黒帯削除 (上/下/左/右)",
+      "labelInner": "内側サイズ",
+      "labelCandidates": "候補数",
+      "labelDuration": "処理時間",
+      "ms": "ms",
+      "croppedPreviewTitle": "クロップ結果"
+    }
   },
   "tools": {
     "openTools": "ツール",
