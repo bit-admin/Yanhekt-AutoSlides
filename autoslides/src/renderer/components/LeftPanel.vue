@@ -32,23 +32,32 @@
           </button>
         </div>
       </div>
-      <div v-else class="user-info">
-        <h3>{{ $t('auth.hiThere', { nickname: isNicknameMasked ? 'ʕ•ᴥ•ʔ' : userNickname }) }}</h3>
-        <p>{{ $t('auth.signInAs', { userId: isUserIdMasked ? '•••••••••••' : userId }) }}</p>
-        <p>{{ $t('auth.accessMessage') }}</p>
-        <button @click="logout" class="logout-btn">{{ $t('auth.signOut') }}</button>
+      <div v-else ref="userInfoRef" class="user-info">
+        <button type="button" class="user-banner" :class="{ open: showUserMenu }" @click="toggleUserMenu">
+          <span class="user-avatar">{{ userInitial }}</span>
+          <span class="user-banner-name">{{ userNickname }}</span>
+          <svg
+            class="user-banner-chevron"
+            :class="{ open: showUserMenu }"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
 
-        <!-- Hidden clickable areas for toggling mask -->
-        <div
-          v-if="isNicknameMasked"
-          class="mask-toggle nickname-mask-toggle"
-          @click="toggleNicknameMask"
-        ></div>
-        <div
-          v-if="isUserIdMasked"
-          class="mask-toggle userid-mask-toggle"
-          @click="toggleUserIdMask"
-        ></div>
+        <div v-if="showUserMenu" class="user-menu">
+          <p class="user-menu-username">{{ $t('auth.signInAs', { userId }) }}</p>
+          <p class="user-menu-message">{{ $t('auth.accessMessage') }}</p>
+          <button class="logout-btn user-menu-signout" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
+        </div>
       </div>
     </div>
 
@@ -1282,7 +1291,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuth } from '../composables/useAuth'
 import { useSettings } from '../composables/useSettings'
@@ -1351,21 +1360,49 @@ const {
   userId,
   isLoading,
   isVerifyingToken,
-  isNicknameMasked,
-  isUserIdMasked,
   manualToken,
   showToken,
   isVerifyingManualToken,
   tokenVerificationStatus,
   login,
   logout,
-  toggleNicknameMask,
-  toggleUserIdMask,
   toggleTokenVisibility,
   onTokenInput,
   verifyManualToken,
   openBrowserLogin
 } = auth
+
+const showUserMenu = ref(false)
+const userInfoRef = ref<HTMLElement | null>(null)
+
+const userInitial = computed(() => {
+  const nickname = userNickname.value.trim()
+  return nickname ? nickname.charAt(0).toUpperCase() : 'U'
+})
+
+const toggleUserMenu = () => {
+  showUserMenu.value = !showUserMenu.value
+}
+
+const closeUserMenu = () => {
+  showUserMenu.value = false
+}
+
+const handleSignOut = () => {
+  closeUserMenu()
+  logout()
+}
+
+const handleDocumentClick = (event: MouseEvent) => {
+  if (!showUserMenu.value || !userInfoRef.value) {
+    return
+  }
+
+  const target = event.target as Node | null
+  if (target && !userInfoRef.value.contains(target)) {
+    closeUserMenu()
+  }
+}
 
 // Settings
 const {
@@ -1589,13 +1626,13 @@ onMounted(async () => {
 
   // Add event listener for adaptive threshold changes
   window.addEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as unknown as EventListener)
+  document.addEventListener('click', handleDocumentClick)
 })
 
 onUnmounted(() => {
   // Remove event listener for adaptive threshold changes
   window.removeEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as unknown as EventListener)
-  // Clear masking timer to prevent memory leaks
-  auth.clearMaskingTimer()
+  document.removeEventListener('click', handleDocumentClick)
 })
 
 // Export for potential future use by other components
@@ -1618,7 +1655,7 @@ defineExpose({
   background-color: #f8f9fa;
 }
 
-.login-form, .user-info {
+.login-form {
   min-height: 140px;
   display: flex;
   flex-direction: column;
@@ -1626,21 +1663,13 @@ defineExpose({
 }
 
 .user-info {
-  padding: 8px 0;
-  background-color: white;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  position: relative;
+  min-height: 36px;
 }
 
 .login-form h3, .verifying-state h3 {
   margin: 0 0 8px 0;
   font-size: 16px;
-  font-weight: 600;
-}
-
-.user-info h3 {
-  margin: 5px 0 14px 20px;
-  font-size: 24px;
   font-weight: 600;
 }
 
@@ -1650,44 +1679,99 @@ defineExpose({
   color: #666;
 }
 
-.user-info p {
-  margin: 0 20px 10px 20px;
-  font-size: 15px;
-  color: #666;
-}
-
-/* Mask toggle styles */
-.user-info {
-  position: relative;
-}
-
-.mask-toggle {
-  position: absolute;
-  cursor: pointer;
+.user-banner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 6px;
+  padding: 3px 2px;
   background-color: transparent;
-  border-radius: 4px;
-  transition: background-color 0.2s ease;
-  z-index: 10;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
 }
 
-.mask-toggle:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+.user-banner:hover {
+  background-color: #eef1f4;
 }
 
-.nickname-mask-toggle {
-  /* Position over the nickname area in h3 */
-  top: 5px;
-  left: 20px;
-  right: 20px;
-  height: 32px;
+.user-banner.open {
+  gap: 10px;
+  padding: 5px 8px;
+  border: 1px solid #d5d9de;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background-color: #ffffff;
 }
 
-.userid-mask-toggle {
-  /* Position over the userId area in first p tag */
-  top: 47px;
-  left: 20px;
-  right: 20px;
-  height: 25px;
+.user-banner.open:hover {
+  background-color: #ffffff;
+}
+
+.user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #2563eb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.user-banner-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-banner-chevron {
+  width: 14px;
+  height: 14px;
+  color: #6b7280;
+  transition: transform 0.2s ease;
+}
+
+.user-banner-chevron.open {
+  transform: rotate(180deg);
+}
+
+.user-menu {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  border: 1px solid #d5d9de;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background-color: #ffffff;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+  padding: 8px;
+}
+
+.user-menu-username {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.user-menu-message {
+  margin: 4px 0 8px 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.35;
 }
 
 .verifying-state {
@@ -1729,10 +1813,11 @@ defineExpose({
 }
 
 .logout-btn {
-  border-radius: 4px;
+  border-radius: 6px;
   font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
 }
 
 .login-btn {
@@ -1789,13 +1874,20 @@ defineExpose({
   background-color: transparent;
   color: #dc3545;
   border: 1px solid #dc3545;
-  padding: 6px 16px;
+  padding: 6px 10px;
   align-self: flex-start;
-  margin: 4px 0 4px 20px;
+  margin: 0;
+}
+
+.user-menu-signout {
+  width: 100%;
+  margin: 0;
+  text-align: center;
 }
 
 .logout-btn:hover {
   background-color: #dc3545;
+  border-color: #dc3545;
   color: white;
 }
 
@@ -2930,21 +3022,55 @@ defineExpose({
     background-color: #2d2d2d;
   }
 
-  .user-info {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .login-form h3, .verifying-state h3, .user-info h3 {
+  .login-form h3, .verifying-state h3 {
     color: #e0e0e0;
   }
 
-  .login-form p, .verifying-state p, .user-info p {
+  .login-form p, .verifying-state p {
     color: #b0b0b0;
   }
 
-  .mask-toggle:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+  .user-banner {
+    background-color: transparent;
+  }
+
+  .user-banner:hover {
+    background-color: #383838;
+  }
+
+  .user-banner.open {
+    border-color: #4a4a4a;
+    background-color: #2d2d2d;
+  }
+
+  .user-banner.open:hover {
+    background-color: #2d2d2d;
+  }
+
+  .user-avatar {
+    background-color: #3b82f6;
+  }
+
+  .user-banner-name {
+    color: #e0e0e0;
+  }
+
+  .user-banner-chevron {
+    color: #a0a0a0;
+  }
+
+  .user-menu {
+    background-color: #2d2d2d;
+    border-color: #4a4a4a;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  }
+
+  .user-menu-username {
+    color: #e0e0e0;
+  }
+
+  .user-menu-message {
+    color: #b0b0b0;
   }
 
   .loading-spinner {

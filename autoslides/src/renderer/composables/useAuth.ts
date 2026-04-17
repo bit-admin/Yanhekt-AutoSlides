@@ -8,16 +8,11 @@ const isLoggedIn = ref(false)
 const userNickname = ref('User')
 const userId = ref('user123')
 const isVerifyingToken = ref(false)
-const isNicknameMasked = ref(false)
-const isUserIdMasked = ref(false)
 
 // Shared services (singleton)
 const tokenManager = new TokenManager()
 const authService = new AuthService(tokenManager)
 const apiClient = new ApiClient()
-
-// Shared masking timer
-let maskingTimer: ReturnType<typeof setTimeout> | null = null
 
 export interface UseAuthReturn {
   // State
@@ -28,8 +23,6 @@ export interface UseAuthReturn {
   userId: Ref<string>
   isLoading: Ref<boolean>
   isVerifyingToken: Ref<boolean>
-  isNicknameMasked: Ref<boolean>
-  isUserIdMasked: Ref<boolean>
 
   // Manual token auth state
   manualToken: Ref<string>
@@ -44,10 +37,6 @@ export interface UseAuthReturn {
   login: () => Promise<void>
   logout: () => void
   verifyExistingToken: () => Promise<void>
-  toggleNicknameMask: () => void
-  toggleUserIdMask: () => void
-  startMaskingTimer: () => void
-  clearMaskingTimer: () => void
 
   // Manual token methods
   toggleTokenVisibility: () => void
@@ -76,38 +65,6 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
   const isVerifyingManualToken = ref(false)
   const tokenVerificationStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 
-  // Masking functions
-  const startMaskingTimer = () => {
-    if (maskingTimer) {
-      clearTimeout(maskingTimer)
-    }
-
-    isNicknameMasked.value = false
-    isUserIdMasked.value = false
-
-    maskingTimer = setTimeout(() => {
-      isNicknameMasked.value = true
-      isUserIdMasked.value = true
-    }, 5000)
-  }
-
-  const toggleNicknameMask = () => {
-    isNicknameMasked.value = !isNicknameMasked.value
-  }
-
-  const toggleUserIdMask = () => {
-    isUserIdMasked.value = !isUserIdMasked.value
-  }
-
-  const clearMaskingTimer = () => {
-    if (maskingTimer) {
-      clearTimeout(maskingTimer)
-      maskingTimer = null
-    }
-    isNicknameMasked.value = false
-    isUserIdMasked.value = false
-  }
-
   // Auth functions
   const login = async () => {
     if (!username.value || !password.value) return
@@ -123,7 +80,6 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
           isLoggedIn.value = true
           userNickname.value = verificationResult.userData.nickname || username.value
           userId.value = verificationResult.userData.badge || 'unknown'
-          startMaskingTimer()
           console.log('Login successful')
           onLoginSuccess?.()
         } else {
@@ -144,7 +100,6 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
 
   const logout = () => {
     tokenManager.clearToken()
-    clearMaskingTimer()
     isLoggedIn.value = false
     username.value = ''
     password.value = ''
@@ -163,7 +118,6 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         isLoggedIn.value = true
         userNickname.value = result.userData.nickname || 'User'
         userId.value = result.userData.badge || 'unknown'
-        startMaskingTimer()
         console.log('Existing token verified successfully')
       } else {
         if (!result.networkError) {
@@ -217,7 +171,6 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         isLoggedIn.value = true
         userNickname.value = result.userData.nickname || 'User'
         userId.value = result.userData.badge || 'unknown'
-        startMaskingTimer()
 
         tokenManager.saveToken(manualToken.value.trim())
 
@@ -272,7 +225,6 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         isLoggedIn.value = true
         userNickname.value = result.userData.nickname || 'User'
         userId.value = result.userData.badge || 'unknown'
-        startMaskingTimer()
         console.log('Browser login successful')
         onLoginSuccess?.()
         // Close browser login view after successful login
@@ -295,8 +247,6 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     userNickname,
     userId,
     isVerifyingToken,
-    isNicknameMasked,
-    isUserIdMasked,
     isBrowserLoginActive,
 
     // Local state
@@ -314,10 +264,6 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     login,
     logout,
     verifyExistingToken,
-    toggleNicknameMask,
-    toggleUserIdMask,
-    startMaskingTimer,
-    clearMaskingTimer,
 
     // Manual token methods
     toggleTokenVisibility,
