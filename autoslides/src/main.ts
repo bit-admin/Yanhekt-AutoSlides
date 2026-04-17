@@ -393,6 +393,14 @@ ipcMain.handle('config:setSkipUpdateCheckUntil', async (event, timestamp: number
   configService.setSkipUpdateCheckUntil(timestamp);
 });
 
+ipcMain.handle('config:setUserNames', async (event, original: string, display: string) => {
+  configService.setUserNames(original, display);
+});
+
+ipcMain.handle('config:setLastGreetingId', async (_, id: string) => {
+  configService.setLastGreetingId(id);
+});
+
 // IPC handlers for slide extraction configuration
 ipcMain.handle('config:getSlideExtractionConfig', async () => {
   return configService.getSlideExtractionConfig();

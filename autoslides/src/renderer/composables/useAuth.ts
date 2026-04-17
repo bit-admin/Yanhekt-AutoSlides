@@ -1,6 +1,7 @@
 import { ref, type Ref } from 'vue'
 import { AuthService, TokenManager } from '../services/authService'
 import { ApiClient } from '../services/apiClient'
+import { toDisplayName } from './usePinyinName'
 
 // Shared state (singleton pattern for cross-component access)
 const isBrowserLoginActive = ref(false)
@@ -13,6 +14,11 @@ const isVerifyingToken = ref(false)
 const tokenManager = new TokenManager()
 const authService = new AuthService(tokenManager)
 const apiClient = new ApiClient()
+
+function persistUserNames(nickname: string): void {
+  const display = toDisplayName(nickname)
+  window.electronAPI.config.setUserNames(nickname, display)
+}
 
 export interface UseAuthReturn {
   // State
@@ -80,6 +86,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
           isLoggedIn.value = true
           userNickname.value = verificationResult.userData.nickname || username.value
           userId.value = verificationResult.userData.badge || 'unknown'
+          persistUserNames(userNickname.value)
           console.log('Login successful')
           onLoginSuccess?.()
         } else {
@@ -105,11 +112,19 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     password.value = ''
     userNickname.value = 'User'
     userId.value = 'user123'
+    window.electronAPI.config.setUserNames('', '')
   }
 
   const verifyExistingToken = async () => {
     const token = tokenManager.getToken()
     if (!token) return
+
+    // Pre-populate from stored names while waiting for API
+    const stored = await window.electronAPI.config.get()
+    if (stored.userOriginalNickname) {
+      userNickname.value = stored.userOriginalNickname
+      isLoggedIn.value = true
+    }
 
     isVerifyingToken.value = true
     try {
@@ -118,6 +133,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         isLoggedIn.value = true
         userNickname.value = result.userData.nickname || 'User'
         userId.value = result.userData.badge || 'unknown'
+        persistUserNames(userNickname.value)
         console.log('Existing token verified successfully')
       } else {
         if (!result.networkError) {
@@ -171,6 +187,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         isLoggedIn.value = true
         userNickname.value = result.userData.nickname || 'User'
         userId.value = result.userData.badge || 'unknown'
+        persistUserNames(userNickname.value)
 
         tokenManager.saveToken(manualToken.value.trim())
 
@@ -225,6 +242,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         isLoggedIn.value = true
         userNickname.value = result.userData.nickname || 'User'
         userId.value = result.userData.badge || 'unknown'
+        persistUserNames(userNickname.value)
         console.log('Browser login successful')
         onLoginSuccess?.()
         // Close browser login view after successful login

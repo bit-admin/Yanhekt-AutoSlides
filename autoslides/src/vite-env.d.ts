@@ -30,6 +30,9 @@ interface AppConfig {
   themeMode: 'system' | 'light' | 'dark';
   languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
   preventSystemSleep: boolean;
+  userOriginalNickname: string;
+  userDisplayName: string;
+  lastGreetingId: string;
 }
 
 interface PHashExclusionItem {
@@ -387,6 +390,8 @@ interface ElectronAPI {
     // Language configuration
     setLanguageMode: (language: 'system' | 'en' | 'zh' | 'ja' | 'ko') => Promise<AppConfig>;
     getLanguageMode: () => Promise<'system' | 'en' | 'zh' | 'ja' | 'ko'>;
+    setUserNames: (original: string, display: string) => Promise<void>;
+    setLastGreetingId: (id: string) => Promise<void>;
 
     // Slide extraction configuration
     getSlideExtractionConfig: () => Promise<SlideExtractionConfig>;

@@ -82,6 +82,9 @@ export interface AppConfig {
   slideExtraction: SlideExtractionConfig;
   aiFiltering: AIFilteringConfig;
   skipUpdateCheckUntil: number;
+  userOriginalNickname: string;
+  userDisplayName: string;
+  lastGreetingId: string;
 }
 
 const defaultSlideExtractionConfig: SlideExtractionConfig = {
@@ -178,7 +181,10 @@ const defaultConfig: AppConfig = {
   preventSystemSleep: true,
   slideExtraction: defaultSlideExtractionConfig,
   aiFiltering: defaultAIFilteringConfig,
-  skipUpdateCheckUntil: 0
+  skipUpdateCheckUntil: 0,
+  userOriginalNickname: '',
+  userDisplayName: '',
+  lastGreetingId: ''
 };
 
 export class ConfigService {
@@ -215,8 +221,20 @@ export class ConfigService {
       preventSystemSleep: this.store.get('preventSystemSleep'),
       slideExtraction: this.store.get('slideExtraction'),
       aiFiltering: this.store.get('aiFiltering') || defaultAIFilteringConfig,
-      skipUpdateCheckUntil: this.store.get('skipUpdateCheckUntil') ?? 0
+      skipUpdateCheckUntil: this.store.get('skipUpdateCheckUntil') ?? 0,
+      userOriginalNickname: this.store.get('userOriginalNickname') ?? '',
+      userDisplayName: this.store.get('userDisplayName') ?? '',
+      lastGreetingId: this.store.get('lastGreetingId') ?? ''
     };
+  }
+
+  setUserNames(original: string, display: string): void {
+    this.store.set('userOriginalNickname', original);
+    this.store.set('userDisplayName', display);
+  }
+
+  setLastGreetingId(id: string): void {
+    this.store.set('lastGreetingId', id);
   }
 
   setOutputDirectory(directory: string): void {

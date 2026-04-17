@@ -35,7 +35,11 @@
       <div v-else ref="userInfoRef" class="user-info">
         <button type="button" class="user-banner" :class="{ open: showUserMenu }" @click="toggleUserMenu">
           <span class="user-avatar">{{ userInitial }}</span>
-          <span class="user-banner-name">{{ userNickname }}</span>
+          <span class="user-banner-name">{{
+            showUserMenu && isChineseName
+              ? `${displayNickname} (${userNickname})`
+              : displayNickname
+          }}</span>
           <svg
             class="user-banner-chevron"
             :class="{ open: showUserMenu }"
@@ -1291,8 +1295,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { usePinyinName } from '../composables/usePinyinName'
 import { useAuth } from '../composables/useAuth'
 import { useSettings } from '../composables/useSettings'
 import { useAdvancedSettings } from '../composables/useAdvancedSettings'
@@ -1375,10 +1380,7 @@ const {
 const showUserMenu = ref(false)
 const userInfoRef = ref<HTMLElement | null>(null)
 
-const userInitial = computed(() => {
-  const nickname = userNickname.value.trim()
-  return nickname ? nickname.charAt(0).toUpperCase() : 'U'
-})
+const { isChineseName, displayNickname, nameInitial: userInitial } = usePinyinName(userNickname)
 
 const toggleUserMenu = () => {
   showUserMenu.value = !showUserMenu.value

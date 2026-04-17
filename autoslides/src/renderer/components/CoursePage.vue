@@ -67,23 +67,7 @@
 
       <div v-if="showWelcome" class="welcome-page">
         <div class="welcome-content">
-          <h1>{{ $t('courses.welcome.title') }}</h1>
-          <p>{{ $t('courses.welcome.subtitle') }}</p>
-          <div class="welcome-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path v-if="mode === 'live'" d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
-              <rect v-if="mode === 'recorded'" x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-              <line v-if="mode === 'recorded'" x1="8" y1="21" x2="16" y2="21"/>
-              <line v-if="mode === 'recorded'" x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
-          </div>
-          <h2>{{ mode === 'live' ? $t('courses.welcome.liveTitle') : $t('courses.welcome.recordedTitle') }}</h2>
-          <p v-if="mode === 'live'">
-            {{ $t('courses.welcome.liveDescription') }}
-          </p>
-          <p v-if="mode === 'recorded'">
-            {{ $t('courses.welcome.recordedDescription') }}
-          </p>
+          <p class="greeting-line">{{ greetingText }}</p>
         </div>
       </div>
 
@@ -151,6 +135,7 @@
 import { toRef, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCourseList, type Course } from '../composables/useCourseList'
+import { useGreeting } from '../composables/useGreeting'
 
 const props = defineProps<{
   mode: 'live' | 'recorded'
@@ -161,6 +146,8 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n()
+
+const { greetingText, loadGreeting } = useGreeting()
 
 const {
   // State
@@ -219,6 +206,7 @@ watch(() => locale.value, () => {
 
 onMounted(async () => {
   initSemesterDropdownText()
+  loadGreeting()
 
   if (props.mode === 'recorded') {
     await loadAvailableSemesters()
@@ -613,43 +601,21 @@ onUnmounted(() => {
 .welcome-page {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 48px 24px;
+  padding: 25% 24px 48px;
 }
 
 .welcome-content {
   text-align: center;
-  max-width: 400px;
 }
 
-.welcome-icon {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 24px;
-  color: #007acc;
-}
-
-.welcome-content h1 {
-  margin: 0 0 16px 0;
-  font-size: 32px;
-  font-weight: 700;
-  color: #333;
-  letter-spacing: -0.5px;
-}
-
-.welcome-content h2 {
-  margin: 0 0 16px 0;
-  font-size: 24px;
-  font-weight: 600;
-  color: #333;
-}
-
-.welcome-content p {
-  margin: 16px 0 50px 0;
-  font-size: 16px;
-  line-height: 1.5;
-  color: #666;
+.greeting-line {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 500;
+  color: #374151;
+  letter-spacing: -0.3px;
 }
 
 @media (max-width: 1200px) {
@@ -864,20 +830,8 @@ onUnmounted(() => {
     background-color: #404040;
   }
 
-  .welcome-content h1 {
+  .greeting-line {
     color: #e0e0e0;
-  }
-
-  .welcome-content h2 {
-    color: #e0e0e0;
-  }
-
-  .welcome-content p {
-    color: #b0b0b0;
-  }
-
-  .welcome-icon {
-    color: #4da6ff;
   }
 
   /* Scrollbar styles for dark mode */
