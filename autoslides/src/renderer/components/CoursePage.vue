@@ -603,7 +603,7 @@ onUnmounted(() => {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 25% 24px 48px;
+  padding: 20% 24px 48px;
 }
 
 .welcome-content {

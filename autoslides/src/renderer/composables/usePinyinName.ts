@@ -8,20 +8,25 @@ const COMPOUND_SURNAMES = new Set([
   '令狐', '长孙', '皇甫', '南宫', '宇文', '申屠', '独孤', '轩辕', '端木'
 ])
 
+function toTitleCase(value: string): string {
+  if (!value) return value
+  return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
+}
+
 export function toPinyinName(name: string): string {
   const surnameLen = COMPOUND_SURNAMES.has(name.substring(0, 2)) ? 2 : 1
   const surname = name.substring(0, surnameLen)
   const given = name.substring(surnameLen)
 
-  const surnamePinyin = (pinyin(surname, { toneType: 'none', type: 'array' }) as string[])
-    .join('')
-    .toUpperCase()
+  const surnamePinyin = toTitleCase(
+    (pinyin(surname, { toneType: 'none', type: 'array' }) as string[]).join('')
+  )
 
   if (!given) return surnamePinyin
 
-  const givenPinyin = (pinyin(given, { toneType: 'none', type: 'array' }) as string[])
-    .join('')
-    .toUpperCase()
+  const givenPinyin = toTitleCase(
+    (pinyin(given, { toneType: 'none', type: 'array' }) as string[]).join('')
+  )
 
   return `${surnamePinyin} ${givenPinyin}`
 }

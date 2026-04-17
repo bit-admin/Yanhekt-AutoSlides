@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { languageService } from '../services/languageService'
 
 type GreetingCategory =
   | 'general'
@@ -45,11 +44,11 @@ const CATALOG: Greeting[] = [
   { id: 'zh_welcome_name',        text: '{name}，欢迎回来',               language: 'zh', requiresName: true,  category: 'general',   weight: 1 },
   { id: 'zh_how_are_you',         text: '今天怎么样？',                   language: 'zh', requiresName: false, category: 'general',   weight: 1 },
   { id: 'zh_how_are_you_name',    text: '{name}，今天怎么样？',            language: 'zh', requiresName: true,  category: 'general',   weight: 1 },
-  { id: 'zh_ready',               text: '准备好了吗？',                   language: 'zh', requiresName: false, category: 'general',   weight: 1 },
-  { id: 'zh_what_today',          text: '今天学什么？',                   language: 'zh', requiresName: false, category: 'general',   weight: 1 },
+  { id: 'zh_ready',               text: '准备上课？',                   language: 'zh', requiresName: false, category: 'general',   weight: 1 },
+  { id: 'zh_what_today',          text: '今天学些什么？',                   language: 'zh', requiresName: false, category: 'general',   weight: 1 },
   { id: 'zh_coffee',              text: '来杯咖啡，开始学习？',             language: 'zh', requiresName: false, category: 'morning',   weight: 1 },
   { id: 'zh_hey_name',            text: '嘿，{name}',                    language: 'zh', requiresName: true,  category: 'general',   weight: 1 },
-  { id: 'zh_never_stop',          text: '学无止境',                      language: 'zh', requiresName: false, category: 'general',   weight: 1 },
+  { id: 'zh_never_stop',          text: '今天的课多么？',                  language: 'zh', requiresName: false, category: 'general',   weight: 1 },
 
   // ── Morning 5–11 / EN ────────────────────────────────────────────
   { id: 'en_good_morning',        text: 'Good morning',                 language: 'en', requiresName: false, category: 'morning',   weight: 1 },
@@ -79,22 +78,22 @@ const CATALOG: Greeting[] = [
   // ── Evening 18–20 / ZH ───────────────────────────────────────────
   { id: 'zh_good_evening',        text: '晚上好',                        language: 'zh', requiresName: false, category: 'evening',   weight: 1 },
   { id: 'zh_good_evening_name',   text: '{name}，晚上好',                 language: 'zh', requiresName: true,  category: 'evening',   weight: 1 },
-  { id: 'zh_fangwan',             text: '傍晚好',                        language: 'zh', requiresName: false, category: 'evening',   weight: 1 },
+  { id: 'zh_fangwan',             text: '有晚课？',                          language: 'zh', requiresName: false, category: 'evening',   weight: 1 },
 
   // ── Night 21–3 / EN ──────────────────────────────────────────────
   { id: 'en_night_owl',           text: 'Hello, night owl',             language: 'en', requiresName: false, category: 'night',     weight: 2 },
-  { id: 'en_moonlit_study',       text: 'A moonlit study?',             language: 'en', requiresName: false, category: 'night',     weight: 2 },
+  { id: 'en_moonlit_study',       text: 'A moonlit study?',             language: 'en', requiresName: false, category: 'night',     weight: 5 },
   { id: 'en_whats_mind_tonight',  text: "What's on your mind tonight?", language: 'en', requiresName: false, category: 'night',     weight: 1 },
 
   // ── Night 21–3 / ZH ──────────────────────────────────────────────
   { id: 'zh_night_owl',           text: '哎，夜猫子',                    language: 'zh', requiresName: false, category: 'night',     weight: 2 },
-  { id: 'zh_moonlit',             text: '月夜苦读？',                     language: 'zh', requiresName: false, category: 'night',     weight: 2 },
-  { id: 'zh_late_night',          text: '夜深了，还在学习',                language: 'zh', requiresName: false, category: 'night',     weight: 1 },
+  { id: 'zh_moonlit',             text: '今夜は月が綺麗ですね',             language: 'zh', requiresName: false, category: 'night',     weight: 5 },
+  { id: 'zh_late_night',          text: '夜深啦，还在学习？',                language: 'zh', requiresName: false, category: 'night',     weight: 1 },
 
   // ── Monday ───────────────────────────────────────────────────────
   { id: 'en_happy_monday',        text: 'Happy Monday',                 language: 'en', requiresName: false, category: 'monday',    weight: 1 },
   { id: 'en_happy_monday_name',   text: 'Happy Monday, {name}',         language: 'en', requiresName: true,  category: 'monday',    weight: 1 },
-  { id: 'zh_monday',              text: '周一好',                        language: 'zh', requiresName: false, category: 'monday',    weight: 1 },
+  { id: 'zh_monday',              text: '新的一周！',                     language: 'zh', requiresName: false, category: 'monday',    weight: 1 },
   { id: 'zh_monday_name',         text: '{name}，周一加油',               language: 'zh', requiresName: true,  category: 'monday',    weight: 1 },
 
   // ── Tuesday ──────────────────────────────────────────────────────
@@ -104,7 +103,7 @@ const CATALOG: Greeting[] = [
   // ── Wednesday ────────────────────────────────────────────────────
   { id: 'en_happy_wednesday',     text: 'Happy Wednesday',              language: 'en', requiresName: false, category: 'wednesday', weight: 1 },
   { id: 'en_happy_wednesday_name',text: 'Happy Wednesday, {name}',      language: 'en', requiresName: true,  category: 'wednesday', weight: 1 },
-  { id: 'zh_wednesday',           text: '周三了',                        language: 'zh', requiresName: false, category: 'wednesday', weight: 1 },
+  { id: 'zh_wednesday',           text: '周三了哦',                        language: 'zh', requiresName: false, category: 'wednesday', weight: 1 },
 
   // ── Thursday ─────────────────────────────────────────────────────
   { id: 'en_happy_thursday',      text: 'Happy Thursday',               language: 'en', requiresName: false, category: 'thursday',  weight: 1 },
@@ -130,7 +129,7 @@ const CATALOG: Greeting[] = [
   { id: 'en_sunday_session',      text: 'Sunday session?',              language: 'en', requiresName: false, category: 'sunday',    weight: 1 },
   { id: 'en_sunday_session_name', text: 'Sunday session, {name}?',      language: 'en', requiresName: true,  category: 'sunday',    weight: 1 },
   { id: 'zh_sunday',              text: '周日好',                        language: 'zh', requiresName: false, category: 'sunday',    weight: 1 },
-  { id: 'zh_sunday_name',         text: '{name}，好好休息',               language: 'zh', requiresName: true,  category: 'sunday',    weight: 1 },
+  { id: 'zh_sunday_name',         text: '{name}，周末愉快',               language: 'zh', requiresName: true,  category: 'sunday',    weight: 1 },
 ]
 
 const DAY_CATEGORIES: GreetingCategory[] = [
@@ -217,14 +216,15 @@ function selectGreeting(opts: {
 let sessionPromise: Promise<string> | null = null
 
 export function useGreeting() {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const greetingText = ref('')
 
   const loadGreeting = async () => {
     if (!sessionPromise) {
       sessionPromise = (async () => {
         const config = await window.electronAPI.config.get()
-        const lang = languageService.getEffectiveLanguage()
+        const systemLocale = (navigator.language || locale.value || 'en').toLowerCase()
+        const isChineseMode = config.languageMode === 'zh' || (config.languageMode === 'system' && systemLocale.startsWith('zh'))
 
         if (!config.lastGreetingId) {
           window.electronAPI.config.setLastGreetingId('welcome_auto')
@@ -235,7 +235,7 @@ export function useGreeting() {
           lastGreetingId: config.lastGreetingId,
           userOriginalNickname: config.userOriginalNickname ?? '',
           userDisplayName: config.userDisplayName ?? '',
-          isChineseMode: lang === 'zh'
+          isChineseMode
         })
         window.electronAPI.config.setLastGreetingId(result.id)
         return result.text
