@@ -588,7 +588,7 @@ interface ElectronAPI {
   crop: {
     getEntries: () => Promise<CropEntry[]>;
     getImageAsBase64: (cropPath: string) => Promise<string>;
-    apply: (imagePath: string, rect: CropRect) => Promise<{ success: boolean }>;
+    apply: (imagePath: string, rect: CropRect, autoCropped?: boolean) => Promise<{ success: boolean }>;
     restore: (imagePath: string) => Promise<{ success: boolean }>;
   };
 
