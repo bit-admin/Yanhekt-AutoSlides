@@ -40,6 +40,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setSkipUpdateCheckUntil: (timestamp: number) => ipcRenderer.invoke('config:setSkipUpdateCheckUntil', timestamp),
     setUserNames: (original: string, display: string) => ipcRenderer.invoke('config:setUserNames', original, display),
     setLastGreetingId: (id: string) => ipcRenderer.invoke('config:setLastGreetingId', id),
+    setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => ipcRenderer.invoke('config:setSavedSearches', mode, searches),
     // Slide extraction configuration
     getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),
     setSlideExtractionConfig: (config: {

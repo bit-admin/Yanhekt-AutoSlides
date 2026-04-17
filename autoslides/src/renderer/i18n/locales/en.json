@@ -290,12 +290,21 @@
       "allSemesters": "All Semesters",
       "selected": "selected"
     },
+    "savedSearches": {
+      "save": "Save search",
+      "remove": "Remove",
+      "sectionTitle": "Saved Courses",
+      "modalTitle": "Add Saved Search",
+      "placeholder": "Enter a keyword...",
+      "cancel": "Cancel",
+      "confirm": "Save"
+    },
     "actions": {
       "getPersonalCourseList": "Get Personal Course List"
     },
     "welcome": {
       "title": "Welcome to AutoSlides",
-      "subtitle": "Designed for BIT students",
+      "subtitle": "AutoSlides is a tool designed for BIT students.",
       "liveTitle": "Live Courses",
       "recordedTitle": "Recorded Courses",
       "liveDescription": "Browse and join live lectures across the entire campus, while also capturing real-time slides.",

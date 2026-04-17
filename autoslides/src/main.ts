@@ -401,6 +401,10 @@ ipcMain.handle('config:setLastGreetingId', async (_, id: string) => {
   configService.setLastGreetingId(id);
 });
 
+ipcMain.handle('config:setSavedSearches', async (_, mode: 'live' | 'recorded', searches: string[]) => {
+  configService.setSavedSearches(mode, searches);
+});
+
 // IPC handlers for slide extraction configuration
 ipcMain.handle('config:getSlideExtractionConfig', async () => {
   return configService.getSlideExtractionConfig();

@@ -290,12 +290,21 @@
       "allSemesters": "모든 학기",
       "selected": "선택됨"
     },
+    "savedSearches": {
+      "save": "검색 저장",
+      "remove": "삭제",
+      "sectionTitle": "저장된 강좌",
+      "modalTitle": "검색 추가",
+      "placeholder": "키워드 입력...",
+      "cancel": "취소",
+      "confirm": "저장"
+    },
     "actions": {
       "getPersonalCourseList": "개인 강의 목록 가져오기"
     },
     "welcome": {
       "title": "AutoSlides에 오신 것을 환영합니다",
-      "subtitle": "BIT 학생을 위해 설계됨",
+      "subtitle": "AutoSlides는 BIT 학생을 위해 설계된 도구입니다.",
       "liveTitle": "라이브 강의",
       "recordedTitle": "녹화 강의",
       "liveDescription": "캠퍼스 전체의 라이브 강의를 탐색하고 참여하며 실시간으로 슬라이드를 캡처합니다.",

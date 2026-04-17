@@ -290,12 +290,21 @@
       "allSemesters": "全部学期",
       "selected": "已选择"
     },
+    "savedSearches": {
+      "save": "保存搜索",
+      "remove": "删除",
+      "sectionTitle": "课程收藏夹",
+      "modalTitle": "添加搜索",
+      "placeholder": "输入关键词...",
+      "cancel": "取消",
+      "confirm": "保存"
+    },
     "actions": {
       "getPersonalCourseList": "获取个人课程列表"
     },
     "welcome": {
       "title": "欢迎使用 AutoSlides",
-      "subtitle": "为北京理工大学设计",
+      "subtitle": "AutoSlides 专为北京理工大学设计。",
       "liveTitle": "直播课程",
       "recordedTitle": "录播课程",
       "liveDescription": "观看全校的直播课程，实时捕获幻灯片",

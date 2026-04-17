@@ -70,6 +70,13 @@ export interface UseCourseListReturn {
   // State management
   resetPageState: () => void
   initSemesterDropdownText: () => void
+
+  // Saved searches
+  savedSearches: Ref<string[]>
+  loadSavedSearches: () => Promise<void>
+  addSavedSearch: (keyword: string) => Promise<void>
+  removeSavedSearch: (keyword: string) => Promise<void>
+  runSavedSearch: (keyword: string) => void
 }
 
 export function useCourseList(options: UseCourseListOptions): UseCourseListReturn {
@@ -88,6 +95,9 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
   const errorMessage = ref('')
   const showWelcome = ref(true)
   const lastAction = ref<'search' | 'personal' | null>(null)
+
+  // Saved searches
+  const savedSearches = ref<string[]>([])
 
   // Semester state (recorded mode)
   const availableSemesters = ref<SemesterOption[]>([])
@@ -335,6 +345,32 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
     semesterDropdownText.value = t('courses.semester.allSemesters')
   }
 
+  const loadSavedSearches = async () => {
+    const config = await window.electronAPI.config.get()
+    savedSearches.value = mode.value === 'live'
+      ? (config.savedSearchesLive ?? [])
+      : (config.savedSearchesRecorded ?? [])
+  }
+
+  const addSavedSearch = async (keyword: string) => {
+    const kw = keyword.trim()
+    if (!kw || savedSearches.value.includes(kw)) return
+    const updated = [...savedSearches.value, kw]
+    savedSearches.value = updated
+    window.electronAPI.config.setSavedSearches(mode.value, updated)
+  }
+
+  const removeSavedSearch = async (keyword: string) => {
+    const updated = savedSearches.value.filter(s => s !== keyword)
+    savedSearches.value = updated
+    window.electronAPI.config.setSavedSearches(mode.value, updated)
+  }
+
+  const runSavedSearch = (keyword: string) => {
+    searchQuery.value = keyword
+    searchCourses()
+  }
+
   return {
     // State
     searchQuery,
@@ -370,6 +406,13 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
 
     // State management
     resetPageState,
-    initSemesterDropdownText
+    initSemesterDropdownText,
+
+    // Saved searches
+    savedSearches,
+    loadSavedSearches,
+    addSavedSearch,
+    removeSavedSearch,
+    runSavedSearch
   }
 }

@@ -68,6 +68,63 @@
       <div v-if="showWelcome" class="welcome-page">
         <div class="welcome-content">
           <p class="greeting-line">{{ greetingText }}</p>
+          <div class="saved-courses-section">
+            <p class="saved-courses-title">{{ $t('courses.savedSearches.sectionTitle') }}</p>
+            <div class="saved-courses-grid">
+              <div
+                v-for="keyword in savedSearches"
+                :key="keyword"
+                class="course-shortcut-card"
+                @click="runSavedSearch(keyword)"
+              >
+                <button
+                  class="shortcut-remove"
+                  @click.stop="removeSavedSearch(keyword)"
+                  :title="$t('courses.savedSearches.remove')"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+                <div class="shortcut-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                  </svg>
+                </div>
+                <span class="shortcut-label">{{ keyword }}</span>
+              </div>
+              <div class="course-shortcut-card course-shortcut-add" @click="openAddModal">
+                <div class="shortcut-icon shortcut-add-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="welcome-subtitle">{{ $t('courses.welcome.subtitle') }}</p>
+        </div>
+      </div>
+
+      <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
+        <div class="modal-box">
+          <h3 class="modal-title">{{ $t('courses.savedSearches.modalTitle') }}</h3>
+          <input
+            v-model="newKeyword"
+            type="text"
+            class="modal-input"
+            :placeholder="$t('courses.savedSearches.placeholder')"
+            @keyup.enter="confirmAddSearch"
+            @keyup.esc="closeAddModal"
+            ref="modalInputRef"
+          />
+          <div class="modal-actions">
+            <button class="modal-btn modal-cancel" @click="closeAddModal">{{ $t('courses.savedSearches.cancel') }}</button>
+            <button class="modal-btn modal-confirm" @click="confirmAddSearch" :disabled="!newKeyword.trim()">{{ $t('courses.savedSearches.confirm') }}</button>
+          </div>
         </div>
       </div>
 
@@ -132,7 +189,7 @@
 </template>
 
 <script setup lang="ts">
-import { toRef, onMounted, onUnmounted, watch } from 'vue'
+import { toRef, ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCourseList, type Course } from '../composables/useCourseList'
 import { useGreeting } from '../composables/useGreeting'
@@ -148,6 +205,25 @@ const emit = defineEmits<{
 const { t, locale } = useI18n()
 
 const { greetingText, loadGreeting } = useGreeting()
+
+const showAddModal = ref(false)
+const newKeyword = ref('')
+const modalInputRef = ref<HTMLInputElement | null>(null)
+
+const openAddModal = () => {
+  newKeyword.value = ''
+  showAddModal.value = true
+  nextTick(() => modalInputRef.value?.focus())
+}
+const closeAddModal = () => {
+  showAddModal.value = false
+}
+const confirmAddSearch = () => {
+  if (newKeyword.value.trim()) {
+    addSavedSearch(newKeyword.value)
+  }
+  closeAddModal()
+}
 
 const {
   // State
@@ -184,7 +260,14 @@ const {
 
   // State management
   resetPageState,
-  initSemesterDropdownText
+  initSemesterDropdownText,
+
+  // Saved searches
+  savedSearches,
+  loadSavedSearches,
+  addSavedSearch,
+  removeSavedSearch,
+  runSavedSearch
 } = useCourseList({
   mode: toRef(props, 'mode'),
   t,
@@ -207,6 +290,7 @@ watch(() => locale.value, () => {
 onMounted(async () => {
   initSemesterDropdownText()
   loadGreeting()
+  loadSavedSearches()
 
   if (props.mode === 'recorded') {
     await loadAvailableSemesters()
@@ -618,6 +702,206 @@ onUnmounted(() => {
   letter-spacing: -0.3px;
 }
 
+.saved-courses-section {
+  margin: 48px auto 0;
+  width: 640px;
+  max-width: calc(100% - 32px);
+  padding: 16px 24px 20px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
+}
+
+.saved-courses-title {
+  margin: 0 0 14px 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.welcome-subtitle {
+  margin: 24px 0 0;
+  font-size: 11px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.saved-courses-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  max-width: 700px;
+}
+
+.course-shortcut-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 88px;
+  height: 64px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 6px 8px;
+  overflow: hidden;
+}
+
+.course-shortcut-card:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.shortcut-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 50%;
+  padding: 0;
+  color: #555;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.course-shortcut-card:hover .shortcut-remove {
+  display: flex;
+}
+
+.shortcut-remove:hover {
+  background: rgba(239, 68, 68, 0.8);
+  color: white;
+}
+
+.shortcut-icon {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.shortcut-label {
+  font-size: 11px;
+  color: #374151;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-shortcut-add {
+  border-style: dashed;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.course-shortcut-add:hover {
+  border-color: #60a5fa;
+  background: #eff6ff;
+}
+
+.shortcut-add-icon {
+  color: #94a3b8;
+}
+
+.course-shortcut-add:hover .shortcut-add-icon {
+  color: #3b82f6;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-box {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  width: 320px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.modal-input {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.modal-input:focus {
+  border-color: #3b82f6;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.modal-btn {
+  padding: 7px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+}
+
+.modal-cancel {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #e5e7eb;
+}
+
+.modal-cancel:hover {
+  background: #e5e7eb;
+}
+
+.modal-confirm {
+  background: #3b82f6;
+  color: white;
+}
+
+.modal-confirm:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.modal-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 @media (max-width: 1200px) {
   .courses-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -832,6 +1116,97 @@ onUnmounted(() => {
 
   .greeting-line {
     color: #e0e0e0;
+  }
+
+  .saved-courses-section {
+    background: linear-gradient(#2d2d2d, #2d2d2d) padding-box,
+                linear-gradient(to right, transparent, rgba(255,255,255,0.10), transparent) border-box;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+  }
+
+  .saved-courses-title {
+    color: #6b7280;
+  }
+
+  .welcome-subtitle {
+    color: #6b7280;
+  }
+
+  .course-shortcut-card {
+    background: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .course-shortcut-card:hover {
+    border-color: #4da6ff;
+    background: #1e2a4a;
+    box-shadow: 0 2px 8px rgba(77, 166, 255, 0.2);
+  }
+
+  .shortcut-label {
+    color: #e0e0e0;
+  }
+
+  .shortcut-icon {
+    color: #4da6ff;
+  }
+
+  .shortcut-remove {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ccc;
+  }
+
+  .shortcut-remove:hover {
+    background: rgba(239, 68, 68, 0.8);
+    color: white;
+  }
+
+  .course-shortcut-add {
+    background: #222;
+    border-color: #404040;
+  }
+
+  .course-shortcut-add:hover {
+    border-color: #4da6ff;
+    background: #1e2a4a;
+  }
+
+  .shortcut-add-icon {
+    color: #555;
+  }
+
+  .course-shortcut-add:hover .shortcut-add-icon {
+    color: #4da6ff;
+  }
+
+  .modal-box {
+    background: #2d2d2d;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-title {
+    color: #e0e0e0;
+  }
+
+  .modal-input {
+    background: #1f1f1f;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .modal-input:focus {
+    border-color: #4da6ff;
+  }
+
+  .modal-cancel {
+    background: #404040;
+    color: #e0e0e0;
+    border-color: #555;
+  }
+
+  .modal-cancel:hover {
+    background: #505050;
   }
 
   /* Scrollbar styles for dark mode */

@@ -33,6 +33,8 @@ interface AppConfig {
   userOriginalNickname: string;
   userDisplayName: string;
   lastGreetingId: string;
+  savedSearchesLive: string[];
+  savedSearchesRecorded: string[];
 }
 
 interface PHashExclusionItem {
@@ -392,6 +394,7 @@ interface ElectronAPI {
     getLanguageMode: () => Promise<'system' | 'en' | 'zh' | 'ja' | 'ko'>;
     setUserNames: (original: string, display: string) => Promise<void>;
     setLastGreetingId: (id: string) => Promise<void>;
+    setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => Promise<void>;
 
     // Slide extraction configuration
     getSlideExtractionConfig: () => Promise<SlideExtractionConfig>;

@@ -290,12 +290,21 @@
       "allSemesters": "すべての学期",
       "selected": "選択済み"
     },
+    "savedSearches": {
+      "save": "検索を保存",
+      "remove": "削除",
+      "sectionTitle": "保存済みコース",
+      "modalTitle": "検索を追加",
+      "placeholder": "キーワードを入力...",
+      "cancel": "キャンセル",
+      "confirm": "保存"
+    },
     "actions": {
       "getPersonalCourseList": "個人コースリストを取得"
     },
     "welcome": {
       "title": "AutoSlidesへようこそ",
-      "subtitle": "BIT学生向けに設計",
+      "subtitle": "AutoSlidesはBIT学生のために設計されたツールです。",
       "liveTitle": "ライブコース",
       "recordedTitle": "録画コース",
       "liveDescription": "キャンパス全体のライブ講義を閲覧・参加し、リアルタイムでスライドをキャプチャします",

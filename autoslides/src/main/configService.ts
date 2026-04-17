@@ -85,6 +85,8 @@ export interface AppConfig {
   userOriginalNickname: string;
   userDisplayName: string;
   lastGreetingId: string;
+  savedSearchesLive: string[];
+  savedSearchesRecorded: string[];
 }
 
 const defaultSlideExtractionConfig: SlideExtractionConfig = {
@@ -184,7 +186,9 @@ const defaultConfig: AppConfig = {
   skipUpdateCheckUntil: 0,
   userOriginalNickname: '',
   userDisplayName: '',
-  lastGreetingId: ''
+  lastGreetingId: '',
+  savedSearchesLive: [],
+  savedSearchesRecorded: []
 };
 
 export class ConfigService {
@@ -224,7 +228,9 @@ export class ConfigService {
       skipUpdateCheckUntil: this.store.get('skipUpdateCheckUntil') ?? 0,
       userOriginalNickname: this.store.get('userOriginalNickname') ?? '',
       userDisplayName: this.store.get('userDisplayName') ?? '',
-      lastGreetingId: this.store.get('lastGreetingId') ?? ''
+      lastGreetingId: this.store.get('lastGreetingId') ?? '',
+      savedSearchesLive: this.store.get('savedSearchesLive') ?? [],
+      savedSearchesRecorded: this.store.get('savedSearchesRecorded') ?? []
     };
   }
 
@@ -235,6 +241,10 @@ export class ConfigService {
 
   setLastGreetingId(id: string): void {
     this.store.set('lastGreetingId', id);
+  }
+
+  setSavedSearches(mode: 'live' | 'recorded', searches: string[]): void {
+    this.store.set(mode === 'live' ? 'savedSearchesLive' : 'savedSearchesRecorded', searches);
   }
 
   setOutputDirectory(directory: string): void {
