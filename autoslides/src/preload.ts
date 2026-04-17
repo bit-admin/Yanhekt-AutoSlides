@@ -224,8 +224,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   crop: {
     getEntries: () => ipcRenderer.invoke('crop:getEntries'),
     getImageAsBase64: (cropPath: string) => ipcRenderer.invoke('crop:getImageAsBase64', cropPath),
-    apply: (imagePath: string, rect: { x: number; y: number; width: number; height: number }) =>
-      ipcRenderer.invoke('crop:apply', imagePath, rect),
+    apply: (imagePath: string, rect: { x: number; y: number; width: number; height: number }, autoCropped?: boolean) =>
+      ipcRenderer.invoke('crop:apply', imagePath, rect, autoCropped),
     restore: (imagePath: string) => ipcRenderer.invoke('crop:restore', imagePath),
   },
   pdfmaker: {

@@ -16,6 +16,7 @@ export interface CropEntry {
   cropPath: string
   rect: CropRect
   croppedAt: string
+  autoCropped?: boolean
 }
 
 interface RemovedEntry {
@@ -47,6 +48,7 @@ export interface ResultsItem {
   reasonDetails?: string
   trashedAt?: string
   isCropped?: boolean
+  isAutoCropped?: boolean
   cropPath?: string
   cropRect?: CropRect
   croppedAt?: string
@@ -188,6 +190,7 @@ export function useResultsView() {
             imagePath: image.path,
             originalPath: image.path,
             isCropped: !!cropEntry,
+            isAutoCropped: cropEntry?.autoCropped ?? false,
             cropPath: cropEntry?.cropPath,
             cropRect: cropEntry?.rect,
             croppedAt: cropEntry?.croppedAt,
@@ -213,6 +216,7 @@ export function useResultsView() {
           reasonDetails: entry.reasonDetails,
           trashedAt: entry.trashedAt,
           isCropped: !!cropEntry,
+          isAutoCropped: cropEntry?.autoCropped ?? false,
           cropPath: cropEntry?.cropPath,
           cropRect: cropEntry?.rect,
           croppedAt: cropEntry?.croppedAt,
@@ -410,11 +414,11 @@ export function useResultsView() {
     }
   }
 
-  async function applyCropToImage(imagePath: string, rect: CropRect): Promise<boolean> {
+  async function applyCropToImage(imagePath: string, rect: CropRect, autoCropped?: boolean): Promise<boolean> {
     isLoading.value = true
 
     try {
-      await window.electronAPI.crop.apply(imagePath, rect)
+      await window.electronAPI.crop.apply(imagePath, rect, autoCropped)
       return await refreshPreviewByImagePath(imagePath)
     } catch (error) {
       console.error('Failed to apply crop:', error)

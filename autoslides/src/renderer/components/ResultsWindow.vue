@@ -176,7 +176,7 @@
             <div class="item-copy">
               <div class="item-name">{{ formatImageName(item.name) }}</div>
               <div class="item-badges">
-                <span v-if="item.status === 'active' && item.isCropped" class="status-badge cropped">{{ getCropLabel() }}</span>
+                <span v-if="item.status === 'active' && item.isCropped" class="status-badge cropped">{{ getCropLabel(item) }}</span>
                 <span class="status-badge" :class="item.status">{{ getStatusLabel(item.status) }}</span>
                 <span
                   v-if="item.status === 'removed' && item.reason"
@@ -293,14 +293,22 @@
                 >
                   {{ $t('trash.recrop') }}
                 </button>
-                <button
-                  v-else-if="canStartCrop"
-                  class="preview-action-btn"
-                  :disabled="isLoading"
-                  @click="startCropMode"
-                >
-                  {{ $t('trash.crop') }}
-                </button>
+                <template v-else-if="canStartCrop">
+                  <button
+                    class="preview-action-btn"
+                    :disabled="isLoading || isAutoCropDetecting"
+                    @click="startCropMode"
+                  >
+                    {{ $t('trash.crop') }}
+                  </button>
+                  <button
+                    class="preview-action-btn"
+                    :disabled="isLoading || isAutoCropDetecting"
+                    @click="startAutoCropMode"
+                  >
+                    {{ $t('trash.autoCrop') }}
+                  </button>
+                </template>
                 <button class="preview-action-btn" @click="togglePreviewMetadata">
                   <span>{{ showPreviewMetadata ? $t('trash.hideMetadata') : $t('trash.showMetadata') }}</span>
                   <svg width="14" height="14" viewBox="0 0 16 16">
@@ -379,6 +387,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAutoCropDetect } from '../composables/useAutoCropDetect'
 import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '../composables/useResultsView'
 
 const { t } = useI18n()
@@ -432,6 +441,10 @@ const previewStage = ref<HTMLDivElement | null>(null)
 const previewStageShellSize = ref({ width: 0, height: 0 })
 const previewResizeObserver = ref<ResizeObserver | null>(null)
 const cropSourceRequestId = ref(0)
+const isAutoCropDetecting = ref(false)
+const isAutoCropPending = ref(false)
+
+const { detectBbox } = useAutoCropDetect()
 
 const cropHandles: CropHandle[] = ['nw', 'ne', 'sw', 'se']
 const minimumCropSize = 20
@@ -473,7 +486,10 @@ const getStatusLabel = (status: 'active' | 'removed') => {
   return status === 'active' ? t('trash.active') : t('trash.removed')
 }
 
-const getCropLabel = () => t('trash.cropped')
+const getCropLabel = (item?: ResultsItem | null) => {
+  const target = item ?? previewItem.value
+  return target?.isAutoCropped ? t('trash.autoCropped') : t('trash.cropped')
+}
 
 const previewImageSrc = computed(() => {
   if (!previewItem.value) return ''
@@ -564,6 +580,7 @@ const resetCropState = () => {
   cropRectPx.value = null
   cropInteraction.value = null
   cropSourceRequestId.value += 1
+  isAutoCropPending.value = false
 }
 
 const disconnectPreviewResizeObserver = () => {
@@ -768,6 +785,58 @@ const cancelCropMode = () => {
   showPreviewMetadata.value = false
 }
 
+const startAutoCropMode = async () => {
+  const activeItem = previewItem.value
+  if (!canStartCrop.value || !activeItem?.imagePath || isAutoCropDetecting.value) return
+
+  isAutoCropDetecting.value = true
+  showPreviewMetadata.value = false
+
+  try {
+    const sourceBase64 = await window.electronAPI.pdfmaker.getImageAsBase64(activeItem.imagePath)
+    const cropSource = `data:image/png;base64,${sourceBase64}`
+
+    const base64Data = sourceBase64
+    const binaryStr = atob(base64Data)
+    const bytes = new Uint8Array(binaryStr.length)
+    for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
+    const blob = new Blob([bytes], { type: 'image/png' })
+    const bitmap = await createImageBitmap(blob)
+    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+    const ctx = canvas.getContext('2d')!
+    ctx.drawImage(bitmap, 0, 0)
+    const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
+    bitmap.close()
+
+    const response = await detectBbox(imageData, false)
+
+    if (!response.success || !response.result?.bbox) {
+      await window.electronAPI.dialog?.showMessageBox?.({
+        type: 'info',
+        buttons: ['OK'],
+        title: t('trash.autoCropNoDetectionTitle'),
+        message: t('trash.autoCropNoDetectionMessage'),
+      })
+      return
+    }
+
+    const { x, y, w, h } = response.result.bbox
+    const size = await loadImageSize(cropSource)
+
+    cropEditorImageSrc.value = cropSource
+    cropImageNaturalSize.value = size
+    cropRectPx.value = { x, y, width: w, height: h }
+    cropInteraction.value = null
+    isAutoCropPending.value = true
+    isCropMode.value = true
+    await observePreviewStageShell()
+  } catch (error) {
+    console.error('Failed to run auto-crop detection:', error)
+  } finally {
+    isAutoCropDetecting.value = false
+  }
+}
+
 const handleCropStagePointerDown = (event: PointerEvent) => {
   if (!isCropMode.value || event.button !== 0) return
 
@@ -851,7 +920,7 @@ const applyCrop = async () => {
   const rect = sanitizeCropRect(cropRectPx.value)
   if (!rect) return
 
-  const success = await applyCropToImage(previewItem.value.imagePath, rect)
+  const success = await applyCropToImage(previewItem.value.imagePath, rect, isAutoCropPending.value)
   if (success) {
     resetCropState()
     showPreviewMetadata.value = false

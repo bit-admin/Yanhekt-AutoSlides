@@ -45,6 +45,7 @@ export interface CropEntry {
   cropPath: string;
   rect: CropRect;
   croppedAt: string;
+  autoCropped?: boolean;
 }
 
 export class SlideExtractionService {
@@ -654,7 +655,7 @@ export class SlideExtractionService {
   /**
    * Apply crop to an active slide, preserving the original in the crop backup folder
    */
-  async applyCrop(imagePath: string, outputDir: string, rect: CropRect): Promise<void> {
+  async applyCrop(imagePath: string, outputDir: string, rect: CropRect, autoCropped?: boolean): Promise<void> {
     try {
       const expandedOutputDir = outputDir.startsWith('~')
         ? path.join(os.homedir(), outputDir.slice(1))
@@ -712,6 +713,7 @@ export class SlideExtractionService {
         cropPath: sourcePath,
         rect: normalizedRect,
         croppedAt: new Date().toISOString(),
+        autoCropped: autoCropped ?? false,
       };
 
       const entriesToKeep = allEntries.filter(entry => entry.originalPath !== resolvedImagePath);

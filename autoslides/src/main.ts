@@ -1586,10 +1586,10 @@ ipcMain.handle('crop:getImageAsBase64', async (_event, cropPath: string) => {
   }
 });
 
-ipcMain.handle('crop:apply', async (_event, imagePath: string, rect: CropRect) => {
+ipcMain.handle('crop:apply', async (_event, imagePath: string, rect: CropRect, autoCropped?: boolean) => {
   try {
     const outputDir = configService.getConfig().outputDirectory;
-    await slideExtractionService.applyCrop(imagePath, outputDir, rect);
+    await slideExtractionService.applyCrop(imagePath, outputDir, rect, autoCropped);
     return { success: true };
   } catch (error) {
     console.error('Failed to apply crop:', error);
