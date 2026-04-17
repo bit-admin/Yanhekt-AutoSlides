@@ -552,24 +552,22 @@ const cropSelectionStyle = computed(() => {
     !cropRectPx.value ||
     cropImageNaturalSize.value.width === 0 ||
     cropImageNaturalSize.value.height === 0 ||
-    !previewStage.value
+    previewStageShellSize.value.width === 0 ||
+    previewStageShellSize.value.height === 0
   ) {
     return {}
   }
 
-  const stageRect = previewStage.value.getBoundingClientRect()
-  if (stageRect.width === 0 || stageRect.height === 0) {
-    return {}
-  }
-
-  const scaleX = stageRect.width / cropImageNaturalSize.value.width
-  const scaleY = stageRect.height / cropImageNaturalSize.value.height
+  const scale = Math.min(
+    previewStageShellSize.value.width / cropImageNaturalSize.value.width,
+    previewStageShellSize.value.height / cropImageNaturalSize.value.height
+  )
 
   return {
-    left: `${cropRectPx.value.x * scaleX}px`,
-    top: `${cropRectPx.value.y * scaleY}px`,
-    width: `${cropRectPx.value.width * scaleX}px`,
-    height: `${cropRectPx.value.height * scaleY}px`,
+    left: `${cropRectPx.value.x * scale}px`,
+    top: `${cropRectPx.value.y * scale}px`,
+    width: `${cropRectPx.value.width * scale}px`,
+    height: `${cropRectPx.value.height * scale}px`,
   }
 })
 
