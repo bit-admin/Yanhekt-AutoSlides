@@ -689,6 +689,71 @@
                 </div>
               </div>
             </div>
+
+            <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.autoCrop.title') }}</h4>
+              <div class="setting-description">{{ $t('advanced.autoCrop.description') }}</div>
+
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.autoCrop.aspectTolerance') }}</label>
+                <div class="setting-description">{{ $t('advanced.autoCrop.aspectToleranceDescription') }}</div>
+                <input v-model.number="tempAutoCropAspectTolerance" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+              </div>
+
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.autoCrop.blackThreshold') }}</label>
+                <div class="setting-description">{{ $t('advanced.autoCrop.blackThresholdDescription') }}</div>
+                <input v-model.number="tempAutoCropBlackThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
+              </div>
+
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.autoCrop.maxBorderFrac') }}</label>
+                <div class="setting-description">{{ $t('advanced.autoCrop.maxBorderFracDescription') }}</div>
+                <input v-model.number="tempAutoCropMaxBorderFrac" type="number" min="0" max="0.5" step="0.01" class="phash-threshold-input" />
+              </div>
+
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.autoCrop.cannyLowThreshold') }}</label>
+                <div class="setting-description">{{ $t('advanced.autoCrop.cannyLowThresholdDescription') }}</div>
+                <input v-model.number="tempAutoCropCannyLowThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
+              </div>
+
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.autoCrop.cannyHighThreshold') }}</label>
+                <div class="setting-description">{{ $t('advanced.autoCrop.cannyHighThresholdDescription') }}</div>
+                <input v-model.number="tempAutoCropCannyHighThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
+              </div>
+
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.autoCrop.areaRatioMin') }}</label>
+                <div class="setting-description">{{ $t('advanced.autoCrop.areaRatioMinDescription') }}</div>
+                <input v-model.number="tempAutoCropAreaRatioMin" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+              </div>
+
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.autoCrop.areaRatioMax') }}</label>
+                <div class="setting-description">{{ $t('advanced.autoCrop.areaRatioMaxDescription') }}</div>
+                <input v-model.number="tempAutoCropAreaRatioMax" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+              </div>
+
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.autoCrop.marginFrac') }}</label>
+                <div class="setting-description">{{ $t('advanced.autoCrop.marginFracDescription') }}</div>
+                <input v-model.number="tempAutoCropMarginFrac" type="number" min="0" max="0.5" step="0.005" class="phash-threshold-input" />
+              </div>
+
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.autoCrop.fillRatioMin') }}</label>
+                <div class="setting-description">{{ $t('advanced.autoCrop.fillRatioMinDescription') }}</div>
+                <input v-model.number="tempAutoCropFillRatioMin" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+              </div>
+
+              <div class="setting-item">
+                <button class="reset-defaults-btn" @click="resetAutoCropDefaults">
+                  {{ $t('advanced.autoCrop.resetDefaults') }}
+                </button>
+              </div>
+            </div>
             </div>
 
             <!-- Playback Tab -->
@@ -1198,55 +1263,140 @@
             </div>
 
             <div class="advanced-setting-section">
-              <h4>{{ $t('advanced.ai.prompts') }}</h4>
-
+              <h4>{{ $t('advanced.aiBehaviour.title') }}</h4>
               <div class="setting-item">
-                <div class="setting-label-with-reset">
-                  <label class="setting-label">{{ $t('advanced.ai.promptLive') }}</label>
-                  <button @click="resetAiPrompt('live')" class="reset-btn" :title="$t('settings.resetToDefault')">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                      <path d="M21 3v5h-5"/>
-                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                      <path d="M3 21v-5h5"/>
-                    </svg>
-                  </button>
+                <label class="setting-label">{{ $t('advanced.aiBehaviour.distinguishLabel') }}</label>
+                <div class="setting-description">{{ $t('advanced.aiBehaviour.distinguishDescription') }}</div>
+                <div class="prevent-sleep-control">
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="tempDistinguishMaybeSlide" />
+                    {{ $t('advanced.aiBehaviour.distinguishToggle') }}
+                  </label>
                 </div>
-                <div class="setting-description">
-                  {{ $t('advanced.ai.promptLiveDescription') }}
-                  <code class="json-example">{"classification": "slide"}</code> {{ $t('advanced.ai.or') }} <code class="json-example">{"classification": "not_slide"}</code>
-                </div>
-                <textarea
-                  v-model="tempAiPromptLive"
-                  class="ai-prompt-textarea"
-                  rows="6"
-                  :placeholder="$t('advanced.ai.promptPlaceholder')"
-                ></textarea>
+              </div>
+            </div>
+
+            <div class="advanced-setting-section">
+              <div class="ai-prompts-header">
+                <h4>{{ $t('advanced.ai.prompts') }}</h4>
+                <span
+                  class="variant-badge"
+                  :class="{ 'variant-badge-distinguish': tempDistinguishMaybeSlide }"
+                >
+                  {{ tempDistinguishMaybeSlide
+                    ? $t('advanced.ai.variantDistinguish')
+                    : $t('advanced.ai.variantSimple') }}
+                </span>
+              </div>
+              <div class="setting-description ai-prompts-variant-hint">
+                {{ tempDistinguishMaybeSlide
+                  ? $t('advanced.ai.variantDistinguishHint')
+                  : $t('advanced.ai.variantSimpleHint') }}
               </div>
 
-              <div class="setting-item">
-                <div class="setting-label-with-reset">
-                  <label class="setting-label">{{ $t('advanced.ai.promptRecorded') }}</label>
-                  <button @click="resetAiPrompt('recorded')" class="reset-btn" :title="$t('settings.resetToDefault')">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                      <path d="M21 3v5h-5"/>
-                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                      <path d="M3 21v-5h5"/>
-                    </svg>
-                  </button>
+              <!-- Simple variant: slide / not_slide -->
+              <template v-if="!tempDistinguishMaybeSlide">
+                <div class="setting-item">
+                  <div class="setting-label-with-reset">
+                    <label class="setting-label">{{ $t('advanced.ai.promptLive') }}</label>
+                    <button @click="resetAiPrompt('live', 'simple')" class="reset-btn" :title="$t('settings.resetToDefault')">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M3 21v-5h5"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="setting-description">
+                    {{ $t('advanced.ai.promptLiveDescription') }}
+                    <code class="json-example">{"classification": "slide"}</code> {{ $t('advanced.ai.or') }} <code class="json-example">{"classification": "not_slide"}</code>
+                  </div>
+                  <textarea
+                    v-model="tempAiPromptLive"
+                    class="ai-prompt-textarea"
+                    rows="6"
+                    :placeholder="$t('advanced.ai.promptPlaceholder')"
+                  ></textarea>
                 </div>
-                <div class="setting-description">
-                  {{ $t('advanced.ai.promptRecordedDescription') }}
-                  <code class="json-example">{"image_0": "slide", "image_1": "not_slide", ...}</code>
+
+                <div class="setting-item">
+                  <div class="setting-label-with-reset">
+                    <label class="setting-label">{{ $t('advanced.ai.promptRecorded') }}</label>
+                    <button @click="resetAiPrompt('recorded', 'simple')" class="reset-btn" :title="$t('settings.resetToDefault')">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M3 21v-5h5"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="setting-description">
+                    {{ $t('advanced.ai.promptRecordedDescription') }}
+                    <code class="json-example">{"image_0": "slide", "image_1": "not_slide", ...}</code>
+                  </div>
+                  <textarea
+                    v-model="tempAiPromptRecorded"
+                    class="ai-prompt-textarea"
+                    rows="6"
+                    :placeholder="$t('advanced.ai.promptPlaceholder')"
+                  ></textarea>
                 </div>
-                <textarea
-                  v-model="tempAiPromptRecorded"
-                  class="ai-prompt-textarea"
-                  rows="6"
-                  :placeholder="$t('advanced.ai.promptPlaceholder')"
-                ></textarea>
-              </div>
+              </template>
+
+              <!-- Distinguish variant: slide / not_slide / may_be_slide_edit -->
+              <template v-else>
+                <div class="setting-item">
+                  <div class="setting-label-with-reset">
+                    <label class="setting-label">{{ $t('advanced.ai.promptLive') }}</label>
+                    <button @click="resetAiPrompt('live', 'distinguish')" class="reset-btn" :title="$t('settings.resetToDefault')">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M3 21v-5h5"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="setting-description">
+                    {{ $t('advanced.ai.promptLiveDescription') }}
+                    <code class="json-example">{"classification": "slide"}</code>,
+                    <code class="json-example">{"classification": "not_slide"}</code> {{ $t('advanced.ai.or') }}
+                    <code class="json-example">{"classification": "may_be_slide_edit"}</code>
+                  </div>
+                  <textarea
+                    v-model="tempAiPromptLiveDistinguish"
+                    class="ai-prompt-textarea"
+                    rows="6"
+                    :placeholder="$t('advanced.ai.promptPlaceholder')"
+                  ></textarea>
+                </div>
+
+                <div class="setting-item">
+                  <div class="setting-label-with-reset">
+                    <label class="setting-label">{{ $t('advanced.ai.promptRecorded') }}</label>
+                    <button @click="resetAiPrompt('recorded', 'distinguish')" class="reset-btn" :title="$t('settings.resetToDefault')">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M3 21v-5h5"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <div class="setting-description">
+                    {{ $t('advanced.ai.promptRecordedDescription') }}
+                    <code class="json-example">{"image_0": "slide", "image_1": "not_slide", "image_2": "may_be_slide_edit", ...}</code>
+                  </div>
+                  <textarea
+                    v-model="tempAiPromptRecordedDistinguish"
+                    class="ai-prompt-textarea"
+                    rows="6"
+                    :placeholder="$t('advanced.ai.promptPlaceholder')"
+                  ></textarea>
+                </div>
+              </template>
             </div>
             </div>
           </div>
@@ -1472,6 +1622,18 @@ const {
   downsamplingPresets,
   enablePngColorReduction: _enablePngColorReduction,
   tempEnablePngColorReduction,
+  tempAutoCropAspectTolerance,
+  tempAutoCropBlackThreshold,
+  tempAutoCropMaxBorderFrac,
+  tempAutoCropCannyLowThreshold,
+  tempAutoCropCannyHighThreshold,
+  tempAutoCropAreaRatioMin,
+  tempAutoCropAreaRatioMax,
+  tempAutoCropMarginFrac,
+  tempAutoCropFillRatioMin,
+  resetAutoCropDefaults,
+  distinguishMaybeSlide: _distinguishMaybeSlide,
+  tempDistinguishMaybeSlide,
   intranetMappings,
   expandedMappings,
   openAdvancedSettings,
@@ -1522,6 +1684,8 @@ const {
   onImageResizePresetChange,
   tempAiPromptLive,
   tempAiPromptRecorded,
+  tempAiPromptLiveDistinguish,
+  tempAiPromptRecordedDistinguish,
   builtinModelName,
   isLoadingBuiltinModel,
   builtinModelError,
@@ -4765,6 +4929,39 @@ defineExpose({
   margin-bottom: 16px;
 }
 
+.ai-prompts-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.ai-prompts-header h4 {
+  margin: 0;
+}
+
+.variant-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  background-color: #e3f2fd;
+  color: #0d47a1;
+  border: 1px solid #bbdefb;
+}
+
+.variant-badge-distinguish {
+  background-color: #fff3d6;
+  color: #955800;
+  border-color: #ffd99c;
+}
+
+.ai-prompts-variant-hint {
+  margin-bottom: 12px;
+}
+
 .ai-prompt-textarea {
   width: 100%;
   padding: 10px 12px;
@@ -4946,6 +5143,18 @@ defineExpose({
   .ai-prompt-textarea:focus {
     border-color: #4a9eff;
     box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .variant-badge {
+    background-color: #1b3a5c;
+    color: #a6c8ff;
+    border-color: #2d5985;
+  }
+
+  .variant-badge-distinguish {
+    background-color: #3d2f14;
+    color: #f4c67a;
+    border-color: #6a4c1d;
   }
 
   .ai-prompt-textarea::placeholder {

@@ -1,6 +1,6 @@
 import { onUnmounted } from 'vue'
 
-import type { WorkerLog, WorkerResponse } from '../workers/autoCrop.worker'
+import type { DetectConfig, WorkerLog, WorkerResponse } from '../workers/autoCrop.worker'
 
 export function useAutoCropDetect() {
   let worker: Worker | null = null
@@ -30,12 +30,16 @@ export function useAutoCropDetect() {
     return worker
   }
 
-  const detectBbox = (imageData: ImageData, debug: boolean): Promise<WorkerResponse> => {
+  const detectBbox = (
+    imageData: ImageData,
+    debug: boolean,
+    config?: Partial<DetectConfig>,
+  ): Promise<WorkerResponse> => {
     const w = ensureWorker()
     const id = String(++nextId)
     return new Promise<WorkerResponse>((resolve) => {
       pending.set(id, resolve)
-      w.postMessage({ id, type: 'detect', imageData, debug })
+      w.postMessage({ id, type: 'detect', imageData, debug, config })
     })
   }
 

@@ -75,11 +75,17 @@ export interface UseAISettingsReturn {
   selectedImageResizePreset: Ref<string>
   imageResizePresets: ImageResizePreset[]
 
-  // AI prompts
+  // AI prompts (simple variant — slide / not_slide)
   aiPromptLive: Ref<string>
   tempAiPromptLive: Ref<string>
   aiPromptRecorded: Ref<string>
   tempAiPromptRecorded: Ref<string>
+
+  // AI prompts (distinguish variant — slide / not_slide / may_be_slide_edit)
+  aiPromptLiveDistinguish: Ref<string>
+  tempAiPromptLiveDistinguish: Ref<string>
+  aiPromptRecordedDistinguish: Ref<string>
+  tempAiPromptRecordedDistinguish: Ref<string>
 
   // Built-in model info
   builtinModelName: Ref<string>
@@ -102,7 +108,7 @@ export interface UseAISettingsReturn {
   onModelPresetChange: () => void
   onCopilotModelPresetChange: () => void
   onImageResizePresetChange: () => void
-  resetAiPrompt: (type: 'live' | 'recorded') => Promise<void>
+  resetAiPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => Promise<void>
   updateAiBatchSize: () => void
   openCustomServiceDocs: () => Promise<void>
   resetTempValues: () => void
@@ -175,11 +181,17 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     { key: '1920x1080', label: '1920x1080', width: 1920, height: 1080 }
   ]
 
-  // AI prompts
+  // AI prompts — simple variant (slide / not_slide)
   const aiPromptLive = ref('')
   const tempAiPromptLive = ref('')
   const aiPromptRecorded = ref('')
   const tempAiPromptRecorded = ref('')
+
+  // AI prompts — distinguish variant (slide / not_slide / may_be_slide_edit)
+  const aiPromptLiveDistinguish = ref('')
+  const tempAiPromptLiveDistinguish = ref('')
+  const aiPromptRecordedDistinguish = ref('')
+  const tempAiPromptRecordedDistinguish = ref('')
 
   // Built-in model info
   const builtinModelName = ref('')
@@ -271,12 +283,21 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
         }
       }
 
-      const prompts = await window.electronAPI.config.getAIPrompts()
-      if (prompts) {
-        aiPromptLive.value = prompts.live || ''
-        tempAiPromptLive.value = prompts.live || ''
-        aiPromptRecorded.value = prompts.recorded || ''
-        tempAiPromptRecorded.value = prompts.recorded || ''
+      const [simplePrompts, distinguishPrompts] = await Promise.all([
+        window.electronAPI.config.getAIPrompts('simple'),
+        window.electronAPI.config.getAIPrompts('distinguish')
+      ])
+      if (simplePrompts) {
+        aiPromptLive.value = simplePrompts.live || ''
+        tempAiPromptLive.value = simplePrompts.live || ''
+        aiPromptRecorded.value = simplePrompts.recorded || ''
+        tempAiPromptRecorded.value = simplePrompts.recorded || ''
+      }
+      if (distinguishPrompts) {
+        aiPromptLiveDistinguish.value = distinguishPrompts.live || ''
+        tempAiPromptLiveDistinguish.value = distinguishPrompts.live || ''
+        aiPromptRecordedDistinguish.value = distinguishPrompts.recorded || ''
+        tempAiPromptRecordedDistinguish.value = distinguishPrompts.recorded || ''
       }
     } catch (error) {
       console.error('Failed to load AI settings:', error)
@@ -332,14 +353,24 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
       aiImageResizeWidth.value = tempAiImageResizeWidth.value
       aiImageResizeHeight.value = tempAiImageResizeHeight.value
 
-      // Save AI prompts
+      // Save AI prompts — simple variant
       if (tempAiPromptLive.value !== aiPromptLive.value) {
-        await window.electronAPI.config.setAIPrompt('live', tempAiPromptLive.value)
+        await window.electronAPI.config.setAIPrompt('live', tempAiPromptLive.value, 'simple')
         aiPromptLive.value = tempAiPromptLive.value
       }
       if (tempAiPromptRecorded.value !== aiPromptRecorded.value) {
-        await window.electronAPI.config.setAIPrompt('recorded', tempAiPromptRecorded.value)
+        await window.electronAPI.config.setAIPrompt('recorded', tempAiPromptRecorded.value, 'simple')
         aiPromptRecorded.value = tempAiPromptRecorded.value
+      }
+
+      // Save AI prompts — distinguish variant
+      if (tempAiPromptLiveDistinguish.value !== aiPromptLiveDistinguish.value) {
+        await window.electronAPI.config.setAIPrompt('live', tempAiPromptLiveDistinguish.value, 'distinguish')
+        aiPromptLiveDistinguish.value = tempAiPromptLiveDistinguish.value
+      }
+      if (tempAiPromptRecordedDistinguish.value !== aiPromptRecordedDistinguish.value) {
+        await window.electronAPI.config.setAIPrompt('recorded', tempAiPromptRecordedDistinguish.value, 'distinguish')
+        aiPromptRecordedDistinguish.value = tempAiPromptRecordedDistinguish.value
       }
     } catch (error) {
       console.error('Failed to save AI settings:', error)
@@ -543,18 +574,28 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
   }
 
   // Reset AI prompt
-  const resetAiPrompt = async (type: 'live' | 'recorded') => {
+  const resetAiPrompt = async (type: 'live' | 'recorded', variant: 'simple' | 'distinguish' = 'simple') => {
     try {
-      const defaultPrompt = await window.electronAPI.config.resetAIPrompt(type)
-      if (type === 'live') {
-        tempAiPromptLive.value = defaultPrompt
-        aiPromptLive.value = defaultPrompt
+      const defaultPrompt = await window.electronAPI.config.resetAIPrompt(type, variant)
+      if (variant === 'distinguish') {
+        if (type === 'live') {
+          tempAiPromptLiveDistinguish.value = defaultPrompt
+          aiPromptLiveDistinguish.value = defaultPrompt
+        } else {
+          tempAiPromptRecordedDistinguish.value = defaultPrompt
+          aiPromptRecordedDistinguish.value = defaultPrompt
+        }
       } else {
-        tempAiPromptRecorded.value = defaultPrompt
-        aiPromptRecorded.value = defaultPrompt
+        if (type === 'live') {
+          tempAiPromptLive.value = defaultPrompt
+          aiPromptLive.value = defaultPrompt
+        } else {
+          tempAiPromptRecorded.value = defaultPrompt
+          aiPromptRecorded.value = defaultPrompt
+        }
       }
     } catch (error) {
-      console.error(`Failed to reset AI prompt for ${type}:`, error)
+      console.error(`Failed to reset AI prompt for ${type} (${variant}):`, error)
     }
   }
 
@@ -586,6 +627,8 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     tempAiImageResizeHeight.value = aiImageResizeHeight.value
     tempAiPromptLive.value = aiPromptLive.value
     tempAiPromptRecorded.value = aiPromptRecorded.value
+    tempAiPromptLiveDistinguish.value = aiPromptLiveDistinguish.value
+    tempAiPromptRecordedDistinguish.value = aiPromptRecordedDistinguish.value
     tempCopilotModelName.value = copilotModelName.value
     tempCopilotGhoToken.value = copilotGhoToken.value
     selectedApiUrlPreset.value = ''
@@ -649,11 +692,17 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     selectedImageResizePreset,
     imageResizePresets,
 
-    // AI prompts
+    // AI prompts — simple variant
     aiPromptLive,
     tempAiPromptLive,
     aiPromptRecorded,
     tempAiPromptRecorded,
+
+    // AI prompts — distinguish variant
+    aiPromptLiveDistinguish,
+    tempAiPromptLiveDistinguish,
+    aiPromptRecordedDistinguish,
+    tempAiPromptRecordedDistinguish,
 
     // Built-in model info
     builtinModelName,

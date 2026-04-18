@@ -14,6 +14,18 @@ export interface PHashExclusionItem {
   isEnabled?: boolean;             // Whether this preset item is enabled (only for presets)
 }
 
+export interface AutoCropConfig {
+  aspectTolerance: number;     // Tolerance band for 16:9 / 4:3 aspect matching
+  blackThreshold: number;      // Grayscale value below which a border row/col is considered black
+  maxBorderFrac: number;       // Maximum fraction of image dim to scan for black borders
+  cannyLowThreshold: number;   // Canny lower threshold
+  cannyHighThreshold: number;  // Canny upper threshold
+  areaRatioMin: number;        // Minimum candidate area / inner area
+  areaRatioMax: number;        // Maximum candidate area / inner area
+  marginFrac: number;          // Minimum top+bottom margin fraction to accept candidate
+  fillRatioMin: number;        // Minimum contour fill ratio (vs bounding rect area)
+}
+
 export interface SlideExtractionConfig {
   // User configurable parameters
   checkInterval: number;           // Detection interval in milliseconds
@@ -38,7 +50,22 @@ export interface SlideExtractionConfig {
 
   // Image output parameters
   enablePngColorReduction: boolean; // Enable PNG color reduction to 128 colors
+
+  // Auto-crop detection parameters
+  autoCrop: AutoCropConfig;
 }
+
+export const DEFAULT_AUTO_CROP_CONFIG: AutoCropConfig = {
+  aspectTolerance: 0.05,
+  blackThreshold: 20,
+  maxBorderFrac: 0.10,
+  cannyLowThreshold: 20,
+  cannyHighThreshold: 60,
+  areaRatioMin: 0.08,
+  areaRatioMax: 0.95,
+  marginFrac: 0.02,
+  fillRatioMin: 0.85
+};
 
 export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
 
@@ -76,6 +103,7 @@ export interface AppConfig {
   autoPostProcessing: boolean;
   autoPostProcessingLive: boolean;
   enableAIFiltering: boolean;
+  distinguishMaybeSlide: boolean;
   themeMode: ThemeMode;
   languageMode: LanguageMode;
   preventSystemSleep: boolean;
@@ -145,7 +173,10 @@ const defaultSlideExtractionConfig: SlideExtractionConfig = {
   enableExclusionList: true,       // Enable exclusion list phase by default
 
   // Image output parameters
-  enablePngColorReduction: true    // Enable PNG color reduction by default
+  enablePngColorReduction: true,   // Enable PNG color reduction by default
+
+  // Auto-crop detection defaults
+  autoCrop: { ...DEFAULT_AUTO_CROP_CONFIG }
 };
 
 const defaultAIFilteringConfig: AIFilteringConfig = {
@@ -178,6 +209,7 @@ const defaultConfig: AppConfig = {
   autoPostProcessing: true,
   autoPostProcessingLive: true,
   enableAIFiltering: true,
+  distinguishMaybeSlide: true,
   themeMode: 'system',
   languageMode: 'system',
   preventSystemSleep: true,
@@ -220,6 +252,7 @@ export class ConfigService {
       autoPostProcessing: this.store.get('autoPostProcessing'),
       autoPostProcessingLive: this.store.get('autoPostProcessingLive') ?? true,
       enableAIFiltering: this.store.get('enableAIFiltering') ?? true,
+      distinguishMaybeSlide: this.store.get('distinguishMaybeSlide') ?? true,
       themeMode: this.store.get('themeMode'),
       languageMode: this.store.get('languageMode'),
       preventSystemSleep: this.store.get('preventSystemSleep'),
@@ -352,7 +385,21 @@ export class ConfigService {
 
   // Slide extraction configuration methods
   getSlideExtractionConfig(): SlideExtractionConfig {
-    return this.store.get('slideExtraction');
+    const stored = this.store.get('slideExtraction') as SlideExtractionConfig | undefined;
+    if (!stored) return defaultSlideExtractionConfig;
+    // Backfill nested autoCrop block for stores written before auto-crop was configurable.
+    if (!stored.autoCrop) {
+      stored.autoCrop = { ...DEFAULT_AUTO_CROP_CONFIG };
+      this.store.set('slideExtraction', stored);
+    } else {
+      // Fill any missing individual keys (forward-compat if we add fields later).
+      const merged = { ...DEFAULT_AUTO_CROP_CONFIG, ...stored.autoCrop };
+      if (JSON.stringify(merged) !== JSON.stringify(stored.autoCrop)) {
+        stored.autoCrop = merged;
+        this.store.set('slideExtraction', stored);
+      }
+    }
+    return stored;
   }
 
   setSlideExtractionConfig(config: Partial<SlideExtractionConfig>): void {
@@ -415,6 +462,56 @@ export class ConfigService {
     }
 
     this.setSlideExtractionConfig(config);
+  }
+
+  setAutoCropParams(params: Partial<AutoCropConfig>): void {
+    const current = this.getSlideExtractionConfig().autoCrop ?? { ...DEFAULT_AUTO_CROP_CONFIG };
+    const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+    const next: AutoCropConfig = { ...current };
+
+    if (params.aspectTolerance !== undefined) {
+      next.aspectTolerance = clamp(params.aspectTolerance, 0.001, 1);
+    }
+    if (params.blackThreshold !== undefined) {
+      next.blackThreshold = clamp(Math.round(params.blackThreshold), 0, 255);
+    }
+    if (params.maxBorderFrac !== undefined) {
+      next.maxBorderFrac = clamp(params.maxBorderFrac, 0, 0.49);
+    }
+    if (params.cannyLowThreshold !== undefined) {
+      next.cannyLowThreshold = clamp(Math.round(params.cannyLowThreshold), 0, 255);
+    }
+    if (params.cannyHighThreshold !== undefined) {
+      next.cannyHighThreshold = clamp(Math.round(params.cannyHighThreshold), 0, 255);
+    }
+    if (params.areaRatioMin !== undefined) {
+      next.areaRatioMin = clamp(params.areaRatioMin, 0, 1);
+    }
+    if (params.areaRatioMax !== undefined) {
+      next.areaRatioMax = clamp(params.areaRatioMax, 0, 1);
+    }
+    if (params.marginFrac !== undefined) {
+      next.marginFrac = clamp(params.marginFrac, 0, 0.49);
+    }
+    if (params.fillRatioMin !== undefined) {
+      next.fillRatioMin = clamp(params.fillRatioMin, 0, 1);
+    }
+
+    this.setSlideExtractionConfig({ autoCrop: next });
+  }
+
+  resetAutoCropParams(): AutoCropConfig {
+    const defaults = { ...DEFAULT_AUTO_CROP_CONFIG };
+    this.setSlideExtractionConfig({ autoCrop: defaults });
+    return defaults;
+  }
+
+  setDistinguishMaybeSlide(enabled: boolean): void {
+    this.store.set('distinguishMaybeSlide', enabled);
+  }
+
+  getDistinguishMaybeSlide(): boolean {
+    return this.store.get('distinguishMaybeSlide') ?? true;
   }
 
   // SSIM Adaptive Mode Management

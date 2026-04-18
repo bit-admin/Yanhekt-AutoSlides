@@ -20,12 +20,14 @@ const debugError = (...args: unknown[]) => {
   }
 };
 
+export type ClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit';
+
 export interface ClassificationResult {
-  classification: 'slide' | 'not_slide';
+  classification: ClassificationValue;
 }
 
 export interface BatchClassificationResult {
-  [key: string]: 'slide' | 'not_slide';
+  [key: string]: ClassificationValue;
 }
 
 export interface AIFilteringResult {
@@ -333,14 +335,18 @@ export class AIFilteringService {
   /**
    * Parse classification result from AI response
    */
-  private parseClassificationResult(content: string): ClassificationResult | null {
+  private parseClassificationResult(content: string, allowEdit: boolean): ClassificationResult | null {
     try {
       // Try to extract JSON from the response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
-        if (parsed.classification === 'slide' || parsed.classification === 'not_slide') {
-          return { classification: parsed.classification };
+        const raw = parsed.classification;
+        if (raw === 'slide' || raw === 'not_slide') {
+          return { classification: raw };
+        }
+        if (raw === 'may_be_slide_edit') {
+          return { classification: allowEdit ? 'may_be_slide_edit' : 'not_slide' };
         }
       }
     } catch (error) {
@@ -352,7 +358,7 @@ export class AIFilteringService {
   /**
    * Parse batch classification result from AI response
    */
-  private parseBatchClassificationResult(content: string): BatchClassificationResult | null {
+  private parseBatchClassificationResult(content: string, allowEdit: boolean): BatchClassificationResult | null {
     try {
       // Try to extract JSON from the response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -362,7 +368,9 @@ export class AIFilteringService {
 
         for (const [key, value] of Object.entries(parsed)) {
           if (value === 'slide' || value === 'not_slide') {
-            result[key] = value as 'slide' | 'not_slide';
+            result[key] = value as ClassificationValue;
+          } else if (value === 'may_be_slide_edit') {
+            result[key] = allowEdit ? 'may_be_slide_edit' : 'not_slide';
           }
         }
 
@@ -415,12 +423,15 @@ export class AIFilteringService {
 
         const apiConfig = this.getApiConfig(token);
         const apiKey = await this.resolveApiKey(apiConfig);
-        const prompt = this.aiPromptsService.getPrompt(type);
+        const distinguish = this.configService.getDistinguishMaybeSlide();
+        const variant = distinguish ? 'distinguish' : 'simple';
+        const prompt = this.aiPromptsService.getPrompt(type, variant);
         const model = modelOverride || apiConfig.model;
 
         debugLog('API config retrieved', {
           baseUrl: apiConfig.baseUrl,
           model,
+          variant,
           promptLength: prompt.length
         });
 
@@ -455,7 +466,7 @@ export class AIFilteringService {
         const responseContent = response.choices[0]?.message?.content || '';
         debugLog('Parsing single classification result', { responseContent });
 
-        const result = this.parseClassificationResult(responseContent);
+        const result = this.parseClassificationResult(responseContent, distinguish);
 
         if (result) {
           debugLog('Classification successful', result);
@@ -510,12 +521,15 @@ export class AIFilteringService {
 
         const apiConfig = this.getApiConfig(token);
         const apiKey = await this.resolveApiKey(apiConfig);
-        const prompt = this.aiPromptsService.getPrompt(type);
+        const distinguish = this.configService.getDistinguishMaybeSlide();
+        const variant = distinguish ? 'distinguish' : 'simple';
+        const prompt = this.aiPromptsService.getPrompt(type, variant);
         const model = modelOverride || apiConfig.model;
 
         debugLog('API config retrieved', {
           baseUrl: apiConfig.baseUrl,
           model,
+          variant,
           promptLength: prompt.length
         });
 
@@ -559,7 +573,7 @@ export class AIFilteringService {
         const responseContent = response.choices[0]?.message?.content || '';
         debugLog('Parsing batch classification result', { responseContent });
 
-        const result = this.parseBatchClassificationResult(responseContent);
+        const result = this.parseBatchClassificationResult(responseContent, distinguish);
 
         if (result) {
           debugLog('Batch classification successful', result);

@@ -18,11 +18,32 @@ const log = (msg: string) => {
   ;(self as unknown as Worker).postMessage({ type: 'log', message: msg })
 }
 
-// Mirror the Python constants verbatim so the port stays in lock-step.
+// Universal: slide canvases are always 16:9 or 4:3 in practice.
 const SUPPORTED_ASPECTS = [16 / 9, 4 / 3]
-const ASPECT_TOLERANCE = 0.12
-const BLACK_THRESHOLD = 20
-const MAX_BORDER_FRAC = 0.10
+
+export interface DetectConfig {
+  aspectTolerance: number
+  blackThreshold: number
+  maxBorderFrac: number
+  cannyLowThreshold: number
+  cannyHighThreshold: number
+  areaRatioMin: number
+  areaRatioMax: number
+  marginFrac: number
+  fillRatioMin: number
+}
+
+const DEFAULT_CONFIG: DetectConfig = {
+  aspectTolerance: 0.05,
+  blackThreshold: 20,
+  maxBorderFrac: 0.10,
+  cannyLowThreshold: 20,
+  cannyHighThreshold: 60,
+  areaRatioMin: 0.08,
+  areaRatioMax: 0.95,
+  marginFrac: 0.02,
+  fillRatioMin: 0.85,
+}
 
 let cv: any = null
 let cvLoading: Promise<void> | null = null
@@ -107,6 +128,7 @@ interface DetectMessage {
   type: 'detect'
   imageData: ImageData
   debug?: boolean
+  config?: Partial<DetectConfig>
 }
 
 export interface CandidateInfo {
@@ -147,9 +169,10 @@ function stripBlackBorders(
   data: Uint8Array | Uint8ClampedArray,
   width: number,
   height: number,
+  cfg: DetectConfig,
 ): { top: number; bottom: number; left: number; right: number } {
-  const maxV = Math.floor(height * MAX_BORDER_FRAC)
-  const maxH = Math.floor(width * MAX_BORDER_FRAC)
+  const maxV = Math.floor(height * cfg.maxBorderFrac)
+  const maxH = Math.floor(width * cfg.maxBorderFrac)
 
   const rowMean = (row: number) => {
     let sum = 0
@@ -166,38 +189,38 @@ function stripBlackBorders(
 
   let top = 0
   for (let i = 0; i < maxV; i++) {
-    if (rowMean(i) > BLACK_THRESHOLD) break
+    if (rowMean(i) > cfg.blackThreshold) break
     top = i + 1
   }
 
   let bottom = 0
   for (let i = height - 1; i > height - 1 - maxV; i--) {
-    if (rowMean(i) > BLACK_THRESHOLD) break
+    if (rowMean(i) > cfg.blackThreshold) break
     bottom = height - i
   }
 
   let left = 0
   for (let j = 0; j < maxH; j++) {
-    if (colMean(j) > BLACK_THRESHOLD) break
+    if (colMean(j) > cfg.blackThreshold) break
     left = j + 1
   }
 
   let right = 0
   for (let j = width - 1; j > width - 1 - maxH; j--) {
-    if (colMean(j) > BLACK_THRESHOLD) break
+    if (colMean(j) > cfg.blackThreshold) break
     right = width - j
   }
 
   return { top, bottom, left, right }
 }
 
-function scoreAspect(aspect: number): number {
+function scoreAspect(aspect: number, cfg: DetectConfig): number {
   let best = Infinity
   for (const a of SUPPORTED_ASPECTS) {
     const diff = Math.abs(aspect - a) / a
     if (diff < best) best = diff
   }
-  return Math.max(0, 1 - best / ASPECT_TOLERANCE)
+  return Math.max(0, 1 - best / cfg.aspectTolerance)
 }
 
 async function encodeEdgesToPng(edgesMat: any): Promise<ArrayBuffer> {
@@ -225,6 +248,7 @@ async function encodeEdgesToPng(edgesMat: any): Promise<ArrayBuffer> {
 async function detectSlideBbox(
   imageData: ImageData,
   debug: boolean,
+  cfg: DetectConfig,
 ): Promise<DetectResult> {
   const start = performance.now()
   await ensureCvReady()
@@ -237,7 +261,7 @@ async function detectSlideBbox(
   const fullGray = new cv.Mat()
   cv.cvtColor(src, fullGray, cv.COLOR_RGBA2GRAY)
 
-  const stripped = stripBlackBorders(fullGray.data as Uint8Array, fullW, fullH)
+  const stripped = stripBlackBorders(fullGray.data as Uint8Array, fullW, fullH, cfg)
   const innerW = fullW - stripped.left - stripped.right
   const innerH = fullH - stripped.top - stripped.bottom
   log(
@@ -264,7 +288,7 @@ async function detectSlideBbox(
 
     const edges = new cv.Mat()
     trash.push(edges)
-    cv.Canny(inner, edges, 20, 60)
+    cv.Canny(inner, edges, cfg.cannyLowThreshold, cfg.cannyHighThreshold)
 
     const kernel = cv.Mat.ones(3, 3, cv.CV_8U)
     trash.push(kernel)
@@ -299,14 +323,14 @@ async function detectSlideBbox(
 
           if (approx.rows !== 4) continue
           const areaRatio = area / innerArea
-          if (areaRatio < 0.08 || areaRatio > 0.95) continue
+          if (areaRatio < cfg.areaRatioMin || areaRatio > cfg.areaRatioMax) continue
           const marginTop = cy / innerH
           const marginBottom = (innerH - cy - ch) / innerH
-          if (marginTop < 0.02 && marginBottom < 0.02) continue
+          if (marginTop < cfg.marginFrac && marginBottom < cfg.marginFrac) continue
           const fill = cv.contourArea(cnt, false) / area
-          if (fill < 0.85) continue
+          if (fill < cfg.fillRatioMin) continue
           const aspect = cw / ch
-          const aspectScore = scoreAspect(aspect)
+          const aspectScore = scoreAspect(aspect, cfg)
           if (aspectScore <= 0) continue
 
           const candidate: CandidateInfo = { x: cx, y: cy, w: cw, h: ch, aspect, aspectScore, areaRatio, fill }
@@ -348,7 +372,8 @@ self.addEventListener('message', async (event: MessageEvent<IncomingMessage>) =>
 
   if (msg.type === 'detect') {
     try {
-      const result = await detectSlideBbox(msg.imageData, msg.debug ?? false)
+      const cfg: DetectConfig = { ...DEFAULT_CONFIG, ...(msg.config ?? {}) }
+      const result = await detectSlideBbox(msg.imageData, msg.debug ?? false, cfg)
       const transfers: Transferable[] = []
       if (result.edgesPng) transfers.push(result.edgesPng)
       ;(self as unknown as Worker).postMessage({ id: msg.id, success: true, result } as WorkerResponse, transfers)

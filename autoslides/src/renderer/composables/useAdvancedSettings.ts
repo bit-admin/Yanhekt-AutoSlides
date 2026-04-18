@@ -75,6 +75,22 @@ export interface UseAdvancedSettingsReturn {
   enablePngColorReduction: Ref<boolean>
   tempEnablePngColorReduction: Ref<boolean>
 
+  // Auto Crop
+  tempAutoCropAspectTolerance: Ref<number>
+  tempAutoCropBlackThreshold: Ref<number>
+  tempAutoCropMaxBorderFrac: Ref<number>
+  tempAutoCropCannyLowThreshold: Ref<number>
+  tempAutoCropCannyHighThreshold: Ref<number>
+  tempAutoCropAreaRatioMin: Ref<number>
+  tempAutoCropAreaRatioMax: Ref<number>
+  tempAutoCropMarginFrac: Ref<number>
+  tempAutoCropFillRatioMin: Ref<number>
+  resetAutoCropDefaults: () => void
+
+  // AI behaviour
+  distinguishMaybeSlide: Ref<boolean>
+  tempDistinguishMaybeSlide: Ref<boolean>
+
   // Intranet mappings
   intranetMappings: Ref<{ [domain: string]: IntranetMapping }>
   expandedMappings: Ref<{ [domain: string]: boolean }>
@@ -172,6 +188,45 @@ export function useAdvancedSettings(
   const enablePngColorReduction = ref(true)
   const tempEnablePngColorReduction = ref(true)
 
+  // Auto Crop defaults (mirror DEFAULT_AUTO_CROP_CONFIG in configService)
+  const AUTO_CROP_DEFAULTS = {
+    aspectTolerance: 0.05,
+    blackThreshold: 20,
+    maxBorderFrac: 0.10,
+    cannyLowThreshold: 20,
+    cannyHighThreshold: 60,
+    areaRatioMin: 0.08,
+    areaRatioMax: 0.95,
+    marginFrac: 0.02,
+    fillRatioMin: 0.85,
+  }
+
+  const tempAutoCropAspectTolerance = ref(AUTO_CROP_DEFAULTS.aspectTolerance)
+  const tempAutoCropBlackThreshold = ref(AUTO_CROP_DEFAULTS.blackThreshold)
+  const tempAutoCropMaxBorderFrac = ref(AUTO_CROP_DEFAULTS.maxBorderFrac)
+  const tempAutoCropCannyLowThreshold = ref(AUTO_CROP_DEFAULTS.cannyLowThreshold)
+  const tempAutoCropCannyHighThreshold = ref(AUTO_CROP_DEFAULTS.cannyHighThreshold)
+  const tempAutoCropAreaRatioMin = ref(AUTO_CROP_DEFAULTS.areaRatioMin)
+  const tempAutoCropAreaRatioMax = ref(AUTO_CROP_DEFAULTS.areaRatioMax)
+  const tempAutoCropMarginFrac = ref(AUTO_CROP_DEFAULTS.marginFrac)
+  const tempAutoCropFillRatioMin = ref(AUTO_CROP_DEFAULTS.fillRatioMin)
+
+  const resetAutoCropDefaults = () => {
+    tempAutoCropAspectTolerance.value = AUTO_CROP_DEFAULTS.aspectTolerance
+    tempAutoCropBlackThreshold.value = AUTO_CROP_DEFAULTS.blackThreshold
+    tempAutoCropMaxBorderFrac.value = AUTO_CROP_DEFAULTS.maxBorderFrac
+    tempAutoCropCannyLowThreshold.value = AUTO_CROP_DEFAULTS.cannyLowThreshold
+    tempAutoCropCannyHighThreshold.value = AUTO_CROP_DEFAULTS.cannyHighThreshold
+    tempAutoCropAreaRatioMin.value = AUTO_CROP_DEFAULTS.areaRatioMin
+    tempAutoCropAreaRatioMax.value = AUTO_CROP_DEFAULTS.areaRatioMax
+    tempAutoCropMarginFrac.value = AUTO_CROP_DEFAULTS.marginFrac
+    tempAutoCropFillRatioMin.value = AUTO_CROP_DEFAULTS.fillRatioMin
+  }
+
+  // AI behaviour
+  const distinguishMaybeSlide = ref(true)
+  const tempDistinguishMaybeSlide = ref(true)
+
   // Intranet mappings
   const intranetMappings = ref<{ [domain: string]: IntranetMapping }>({})
   const expandedMappings = ref<{ [domain: string]: boolean }>({})
@@ -211,6 +266,23 @@ export function useAdvancedSettings(
       enablePngColorReduction.value = slideConfig.enablePngColorReduction !== undefined ? slideConfig.enablePngColorReduction : true
       tempEnablePngColorReduction.value = enablePngColorReduction.value
 
+      // Auto Crop params
+      const autoCrop = { ...AUTO_CROP_DEFAULTS, ...(slideConfig.autoCrop || {}) }
+      tempAutoCropAspectTolerance.value = autoCrop.aspectTolerance
+      tempAutoCropBlackThreshold.value = autoCrop.blackThreshold
+      tempAutoCropMaxBorderFrac.value = autoCrop.maxBorderFrac
+      tempAutoCropCannyLowThreshold.value = autoCrop.cannyLowThreshold
+      tempAutoCropCannyHighThreshold.value = autoCrop.cannyHighThreshold
+      tempAutoCropAreaRatioMin.value = autoCrop.areaRatioMin
+      tempAutoCropAreaRatioMax.value = autoCrop.areaRatioMax
+      tempAutoCropMarginFrac.value = autoCrop.marginFrac
+      tempAutoCropFillRatioMin.value = autoCrop.fillRatioMin
+
+      // AI behaviour
+      const distinguishValue = await window.electronAPI.config.getDistinguishMaybeSlide()
+      distinguishMaybeSlide.value = distinguishValue !== false
+      tempDistinguishMaybeSlide.value = distinguishMaybeSlide.value
+
       const currentPreset = downsamplingPresets.find(preset =>
         preset.width === downsampleWidth.value && preset.height === downsampleHeight.value
       )
@@ -240,8 +312,10 @@ export function useAdvancedSettings(
     tempDownsampleHeight.value = downsampleHeight.value
     tempSelectedDownsamplingPreset.value = selectedDownsamplingPreset.value
     tempEnablePngColorReduction.value = enablePngColorReduction.value
+    tempDistinguishMaybeSlide.value = distinguishMaybeSlide.value
     isUpdatingProgrammatically = false
 
+    await loadImageProcessingConfig()
     await loadIntranetMappings()
 
     // Call additional setup callback
@@ -268,6 +342,7 @@ export function useAdvancedSettings(
     tempSelectedDownsamplingPreset.value = selectedDownsamplingPreset.value
     tempEnablePngColorReduction.value = enablePngColorReduction.value
     tempEnableAIFiltering.value = enableAIFiltering.value
+    tempDistinguishMaybeSlide.value = distinguishMaybeSlide.value
     tempThemeMode.value = themeMode.value
     tempLanguageMode.value = languageMode.value
     showAdvancedModal.value = false
@@ -317,6 +392,23 @@ export function useAdvancedSettings(
       })
       enableDuplicateRemoval.value = tempEnableDuplicateRemoval.value
       enableExclusionList.value = tempEnableExclusionList.value
+
+      // Save Auto Crop parameters
+      await window.electronAPI.config.setAutoCropParams({
+        aspectTolerance: tempAutoCropAspectTolerance.value,
+        blackThreshold: tempAutoCropBlackThreshold.value,
+        maxBorderFrac: tempAutoCropMaxBorderFrac.value,
+        cannyLowThreshold: tempAutoCropCannyLowThreshold.value,
+        cannyHighThreshold: tempAutoCropCannyHighThreshold.value,
+        areaRatioMin: tempAutoCropAreaRatioMin.value,
+        areaRatioMax: tempAutoCropAreaRatioMax.value,
+        marginFrac: tempAutoCropMarginFrac.value,
+        fillRatioMin: tempAutoCropFillRatioMin.value,
+      })
+
+      // Save AI behaviour toggle
+      await window.electronAPI.config.setDistinguishMaybeSlide(tempDistinguishMaybeSlide.value)
+      distinguishMaybeSlide.value = tempDistinguishMaybeSlide.value
 
       // Save theme mode
       if (tempThemeMode.value !== themeMode.value) {
@@ -503,6 +595,22 @@ export function useAdvancedSettings(
     // PNG color reduction
     enablePngColorReduction,
     tempEnablePngColorReduction,
+
+    // Auto Crop
+    tempAutoCropAspectTolerance,
+    tempAutoCropBlackThreshold,
+    tempAutoCropMaxBorderFrac,
+    tempAutoCropCannyLowThreshold,
+    tempAutoCropCannyHighThreshold,
+    tempAutoCropAreaRatioMin,
+    tempAutoCropAreaRatioMax,
+    tempAutoCropMarginFrac,
+    tempAutoCropFillRatioMin,
+    resetAutoCropDefaults,
+
+    // AI behaviour
+    distinguishMaybeSlide,
+    tempDistinguishMaybeSlide,
 
     // Intranet mappings
     intranetMappings,

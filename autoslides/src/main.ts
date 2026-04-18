@@ -330,6 +330,24 @@ ipcMain.handle('config:getEnableAIFiltering', async () => {
   return configService.getEnableAIFiltering();
 });
 
+ipcMain.handle('config:setDistinguishMaybeSlide', async (event, enabled: boolean) => {
+  configService.setDistinguishMaybeSlide(enabled);
+  return configService.getConfig();
+});
+
+ipcMain.handle('config:getDistinguishMaybeSlide', async () => {
+  return configService.getDistinguishMaybeSlide();
+});
+
+ipcMain.handle('config:setAutoCropParams', async (event, params) => {
+  configService.setAutoCropParams(params);
+  return configService.getSlideExtractionConfig();
+});
+
+ipcMain.handle('config:resetAutoCropParams', async () => {
+  return configService.resetAutoCropParams();
+});
+
 // IPC handlers for theme configuration
 ipcMain.handle('config:setThemeMode', async (event, theme: 'system' | 'light' | 'dark') => {
   configService.setThemeMode(theme);
@@ -532,25 +550,25 @@ ipcMain.handle('config:getAIBatchSize', async () => {
 });
 
 // IPC handlers for AI prompts management
-ipcMain.handle('config:getAIPrompts', async () => {
-  return aiPromptsService.getPrompts();
+ipcMain.handle('config:getAIPrompts', async (event, variant?: 'simple' | 'distinguish') => {
+  return aiPromptsService.getPrompts(variant);
 });
 
-ipcMain.handle('config:getAIPrompt', async (event, type: 'live' | 'recorded') => {
-  return aiPromptsService.getPrompt(type);
+ipcMain.handle('config:getAIPrompt', async (event, type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => {
+  return aiPromptsService.getPrompt(type, variant);
 });
 
-ipcMain.handle('config:setAIPrompt', async (event, type: 'live' | 'recorded', prompt: string) => {
-  aiPromptsService.setPrompt(type, prompt);
-  return aiPromptsService.getPrompts();
+ipcMain.handle('config:setAIPrompt', async (event, type: 'live' | 'recorded', prompt: string, variant?: 'simple' | 'distinguish') => {
+  aiPromptsService.setPrompt(type, prompt, variant);
+  return aiPromptsService.getPrompts(variant);
 });
 
-ipcMain.handle('config:resetAIPrompt', async (event, type: 'live' | 'recorded') => {
-  return aiPromptsService.resetPrompt(type);
+ipcMain.handle('config:resetAIPrompt', async (event, type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => {
+  return aiPromptsService.resetPrompt(type, variant);
 });
 
-ipcMain.handle('config:getDefaultAIPrompt', async (event, type: 'live' | 'recorded') => {
-  return aiPromptsService.getDefaultPrompt(type);
+ipcMain.handle('config:getDefaultAIPrompt', async (event, type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => {
+  return aiPromptsService.getDefaultPrompt(type, variant);
 });
 
 // IPC handlers for AI filtering service

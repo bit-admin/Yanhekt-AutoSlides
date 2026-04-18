@@ -18,7 +18,7 @@ export interface TrashEntry {
   originalPath: string;
   originalParentFolder: string;
   trashPath: string;
-  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'manual';
+  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual';
   reasonDetails?: string;
   trashedAt: string;
 }
@@ -27,7 +27,7 @@ export interface TrashEntry {
  * Metadata for moving to in-app trash
  */
 export interface TrashMetadata {
-  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'manual';
+  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual';
   reasonDetails?: string;
 }
 

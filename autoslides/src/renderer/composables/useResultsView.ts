@@ -1,7 +1,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { compareToolFolders, compareToolImages, formatToolFolderName } from '../utils/toolWindowFolders'
+import { useAutoCropDetect } from './useAutoCropDetect'
 
-export type ResultsReason = 'duplicate' | 'exclusion' | 'ai_filtered' | 'manual'
+export type ResultsReason = 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual'
 export interface CropRect {
   x: number
   y: number
@@ -117,6 +118,14 @@ export function useResultsView() {
   const hasRemovedItems = computed(() => {
     return folderItems.value.some((item) => item.status === 'removed')
   })
+
+  const canRestoreAndAutoCrop = computed(() => {
+    const items = selectedRemovedItems.value
+    if (items.length === 0) return false
+    return items.every((item) => item.reason === 'ai_filtered_edit')
+  })
+
+  const { detectBbox } = useAutoCropDetect()
 
   watch([selectedReason, contextMode], () => {
     selectedIds.value = []
@@ -374,6 +383,73 @@ export function useResultsView() {
     }
   }
 
+  async function restoreAndAutoCropSelected(): Promise<{ cropped: number; noDetection: number; failed: number }> {
+    const summary = { cropped: 0, noDetection: 0, failed: 0 }
+    if (!canRestoreAndAutoCrop.value) return summary
+
+    isLoading.value = true
+    try {
+      const snapshots = selectedRemovedItems.value.map((item) => ({
+        id: item.id,
+        originalPath: item.originalPath || '',
+      }))
+
+      const ids = snapshots.map((s) => s.id)
+      await window.electronAPI.trash.restore(ids)
+
+      const appConfig = await window.electronAPI.config.get()
+      const autoCropConfig = appConfig.slideExtraction?.autoCrop
+
+      for (const snap of snapshots) {
+        if (!snap.originalPath) {
+          summary.failed++
+          continue
+        }
+        try {
+          const buffer = await window.electronAPI.offline.readImageBuffer(snap.originalPath)
+          const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+          const blobArrayBuffer = new ArrayBuffer(bytes.byteLength)
+          new Uint8Array(blobArrayBuffer).set(bytes)
+          const blob = new Blob([blobArrayBuffer], { type: 'image/*' })
+          const bitmap = await createImageBitmap(blob)
+
+          const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            bitmap.close()
+            summary.failed++
+            continue
+          }
+          ctx.drawImage(bitmap, 0, 0)
+          const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
+          bitmap.close()
+
+          const response = await detectBbox(imageData, false, autoCropConfig)
+          if (!response.success || !response.result?.bbox) {
+            if (!response.success) summary.failed++
+            else summary.noDetection++
+            continue
+          }
+
+          const { x, y, w, h } = response.result.bbox
+          await window.electronAPI.crop.apply(snap.originalPath, { x, y, width: w, height: h }, true)
+          summary.cropped++
+        } catch (err) {
+          console.error(`Failed to restore-and-autocrop ${snap.originalPath}:`, err)
+          summary.failed++
+        }
+      }
+
+      await refresh()
+    } catch (error) {
+      console.error('Failed to restore and auto-crop selected:', error)
+    } finally {
+      isLoading.value = false
+    }
+
+    return summary
+  }
+
   async function clearTrash(ids?: string[]) {
     isLoading.value = true
     try {
@@ -473,6 +549,8 @@ export function useResultsView() {
     isLoading,
     previewItem,
     hasRemovedItems,
+    canRestoreAndAutoCrop,
+    trashEntries,
     openFolder,
     goBack,
     refresh,
@@ -481,6 +559,7 @@ export function useResultsView() {
     closePreview,
     deleteSelected,
     restoreSelected,
+    restoreAndAutoCropSelected,
     clearTrash,
     applyCropToImage,
     restoreCropFromImage,

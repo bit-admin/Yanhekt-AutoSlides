@@ -56,6 +56,7 @@ export function useAutoCrop() {
     }
     const outDir = configuredOutputDir + '/cropped'
     outputDir.value = outDir
+    const autoCropConfig = config.slideExtraction?.autoCrop
 
     isProcessing.value = true
     isCancelled.value = false
@@ -86,7 +87,7 @@ export function useAutoCrop() {
         const imageData = srcCtx.getImageData(0, 0, bitmap.width, bitmap.height)
 
         const useDebug = redBoxMode.value && showEdges.value
-        const response = await detectBbox(imageData, useDebug)
+        const response = await detectBbox(imageData, useDebug, autoCropConfig)
 
         if (!response.success || !response.result) {
           console.warn(`Auto-crop failed for ${basename(imagePath)}:`, response.error)

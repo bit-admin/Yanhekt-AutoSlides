@@ -61,6 +61,7 @@ interface SlideHashInfo {
 interface AIBatchResult {
   successful: string[]      // Files classified as 'slide' (kept)
   notSlide: string[]        // Files classified as 'not_slide' (to delete)
+  maybeSlideEdit: string[]  // Files classified as 'may_be_slide_edit' (to trash with distinct reason)
   failed: string[]          // Files that failed after retries
   pending413: string[][]    // Batches needing smaller size retry
 }
@@ -72,11 +73,12 @@ interface ErrorInfo {
 }
 
 // AI Classification result
+type AIClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit'
 interface AIClassificationResult {
   success: boolean
   result?: {
-    classification?: 'slide' | 'not_slide'
-    [key: string]: 'slide' | 'not_slide' | undefined
+    classification?: AIClassificationValue
+    [key: string]: AIClassificationValue | undefined
   }
   error?: string
 }
@@ -315,6 +317,19 @@ class PostProcessingServiceClass {
                 reasonDetails: 'AI classified as not_slide'
               })
               console.log(`[PostProcessing] Moved not_slide to trash: ${filename}`)
+            } catch (deleteError) {
+              console.error(`[PostProcessing] Failed to move ${filename} to trash:`, deleteError)
+            }
+          }
+
+          // Move images classified as may_be_slide_edit to in-app trash with distinct reason
+          for (const filename of aiResult.maybeSlideEdit) {
+            try {
+              await window.electronAPI.slideExtraction.moveToInAppTrash(job.outputPath, filename, {
+                reason: 'ai_filtered_edit',
+                reasonDetails: 'AI classified as may_be_slide_edit'
+              })
+              console.log(`[PostProcessing] Moved may_be_slide_edit to trash: ${filename}`)
             } catch (deleteError) {
               console.error(`[PostProcessing] Failed to move ${filename} to trash:`, deleteError)
             }
@@ -582,6 +597,7 @@ class PostProcessingServiceClass {
     const result: AIBatchResult = {
       successful: [],
       notSlide: [],
+      maybeSlideEdit: [],
       failed: [],
       pending413: []
     }
@@ -603,6 +619,7 @@ class PostProcessingServiceClass {
 
       result.successful.push(...batchResult.successful)
       result.notSlide.push(...batchResult.notSlide)
+      result.maybeSlideEdit.push(...batchResult.maybeSlideEdit)
       result.failed.push(...batchResult.failed)
 
       if (batchResult.pending413.length > 0) {
@@ -610,7 +627,7 @@ class PostProcessingServiceClass {
       }
 
       job.progress.currentIndex = Math.min((i + 1) * batchSize, files.length)
-      job.progress.aiFiltered = result.notSlide.length
+      job.progress.aiFiltered = result.notSlide.length + result.maybeSlideEdit.length
     }
 
     // Process 413 pending batches with smaller sizes
@@ -620,9 +637,10 @@ class PostProcessingServiceClass {
 
       result.successful.push(...pending413Result.successful)
       result.notSlide.push(...pending413Result.notSlide)
+      result.maybeSlideEdit.push(...pending413Result.maybeSlideEdit)
       result.failed.push(...pending413Result.failed)
 
-      job.progress.aiFiltered = result.notSlide.length
+      job.progress.aiFiltered = result.notSlide.length + result.maybeSlideEdit.length
     }
 
     return result
@@ -639,6 +657,7 @@ class PostProcessingServiceClass {
     const result: AIBatchResult = {
       successful: [],
       notSlide: [],
+      maybeSlideEdit: [],
       failed: [],
       pending413: []
     }
@@ -684,6 +703,8 @@ class PostProcessingServiceClass {
           const classification = aiResult.result[key] || 'slide'
           if (classification === 'slide') {
             result.successful.push(validBatch[j])
+          } else if (classification === 'may_be_slide_edit') {
+            result.maybeSlideEdit.push(validBatch[j])
           } else {
             result.notSlide.push(validBatch[j])
           }
@@ -705,6 +726,7 @@ class PostProcessingServiceClass {
           const retryResult = await this.processAIBatchWithRetry(job, validBatch, token, originalBatchSize, retryCount + 1)
           result.successful.push(...retryResult.successful)
           result.notSlide.push(...retryResult.notSlide)
+          result.maybeSlideEdit.push(...retryResult.maybeSlideEdit)
           result.failed.push(...retryResult.failed)
           result.pending413.push(...retryResult.pending413)
         } else {
@@ -734,6 +756,7 @@ class PostProcessingServiceClass {
         const retryResult = await this.processAIBatchWithRetry(job, batch, token, originalBatchSize, retryCount + 1)
         result.successful.push(...retryResult.successful)
         result.notSlide.push(...retryResult.notSlide)
+        result.maybeSlideEdit.push(...retryResult.maybeSlideEdit)
         result.failed.push(...retryResult.failed)
         result.pending413.push(...retryResult.pending413)
       } else if (errorInfo.type === '413') {
@@ -765,6 +788,7 @@ class PostProcessingServiceClass {
     const result: AIBatchResult = {
       successful: [],
       notSlide: [],
+      maybeSlideEdit: [],
       failed: [],
       pending413: []
     }
@@ -789,6 +813,7 @@ class PostProcessingServiceClass {
           } else {
             result.successful.push(...singleResult.successful)
             result.notSlide.push(...singleResult.notSlide)
+            result.maybeSlideEdit.push(...singleResult.maybeSlideEdit)
             result.failed.push(...singleResult.failed)
           }
         }
@@ -806,16 +831,18 @@ class PostProcessingServiceClass {
 
           result.successful.push(...batchResult.successful)
           result.notSlide.push(...batchResult.notSlide)
+          result.maybeSlideEdit.push(...batchResult.maybeSlideEdit)
           result.failed.push(...batchResult.failed)
 
           if (batchResult.pending413.length > 0) {
             const nestedResult = await this.process413Batches(job, batchResult.pending413, token, originalBatchSize)
             result.successful.push(...nestedResult.successful)
             result.notSlide.push(...nestedResult.notSlide)
+            result.maybeSlideEdit.push(...nestedResult.maybeSlideEdit)
             result.failed.push(...nestedResult.failed)
           }
 
-          job.progress.aiFiltered = result.notSlide.length
+          job.progress.aiFiltered = result.notSlide.length + result.maybeSlideEdit.length
         }
       }
     }

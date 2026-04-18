@@ -25,6 +25,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAutoPostProcessingLive: () => ipcRenderer.invoke('config:getAutoPostProcessingLive'),
     setEnableAIFiltering: (enabled: boolean) => ipcRenderer.invoke('config:setEnableAIFiltering', enabled),
     getEnableAIFiltering: () => ipcRenderer.invoke('config:getEnableAIFiltering'),
+    setDistinguishMaybeSlide: (enabled: boolean) => ipcRenderer.invoke('config:setDistinguishMaybeSlide', enabled),
+    getDistinguishMaybeSlide: () => ipcRenderer.invoke('config:getDistinguishMaybeSlide'),
+    setAutoCropParams: (params: {
+      aspectTolerance?: number;
+      blackThreshold?: number;
+      maxBorderFrac?: number;
+      cannyLowThreshold?: number;
+      cannyHighThreshold?: number;
+      areaRatioMin?: number;
+      areaRatioMax?: number;
+      marginFrac?: number;
+      fillRatioMin?: number;
+    }) => ipcRenderer.invoke('config:setAutoCropParams', params),
+    resetAutoCropParams: () => ipcRenderer.invoke('config:resetAutoCropParams'),
     // Theme configuration
     setThemeMode: (theme: 'system' | 'light' | 'dark') => ipcRenderer.invoke('config:setThemeMode', theme),
     getThemeMode: () => ipcRenderer.invoke('config:getThemeMode'),
@@ -88,11 +102,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     setAIBatchSize: (batchSize: number) => ipcRenderer.invoke('config:setAIBatchSize', batchSize),
     getAIBatchSize: () => ipcRenderer.invoke('config:getAIBatchSize'),
     // AI prompts management
-    getAIPrompts: () => ipcRenderer.invoke('config:getAIPrompts'),
-    getAIPrompt: (type: 'live' | 'recorded') => ipcRenderer.invoke('config:getAIPrompt', type),
-    setAIPrompt: (type: 'live' | 'recorded', prompt: string) => ipcRenderer.invoke('config:setAIPrompt', type, prompt),
-    resetAIPrompt: (type: 'live' | 'recorded') => ipcRenderer.invoke('config:resetAIPrompt', type),
-    getDefaultAIPrompt: (type: 'live' | 'recorded') => ipcRenderer.invoke('config:getDefaultAIPrompt', type),
+    getAIPrompts: (variant?: 'simple' | 'distinguish') => ipcRenderer.invoke('config:getAIPrompts', variant),
+    getAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') =>
+      ipcRenderer.invoke('config:getAIPrompt', type, variant),
+    setAIPrompt: (type: 'live' | 'recorded', prompt: string, variant?: 'simple' | 'distinguish') =>
+      ipcRenderer.invoke('config:setAIPrompt', type, prompt, variant),
+    resetAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') =>
+      ipcRenderer.invoke('config:resetAIPrompt', type, variant),
+    getDefaultAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') =>
+      ipcRenderer.invoke('config:getDefaultAIPrompt', type, variant),
   },
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) =>
@@ -146,7 +164,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ensureDirectory: (path: string) => ipcRenderer.invoke('slideExtraction:ensureDirectory', path),
     deleteSlide: (outputPath: string, filename: string) =>
       ipcRenderer.invoke('slideExtraction:deleteSlide', outputPath, filename),
-    moveToInAppTrash: (outputPath: string, filename: string, metadata: { reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'manual'; reasonDetails?: string }) =>
+    moveToInAppTrash: (outputPath: string, filename: string, metadata: { reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual'; reasonDetails?: string }) =>
       ipcRenderer.invoke('slideExtraction:moveToInAppTrash', outputPath, filename, metadata),
     readSlideAsBase64: (outputPath: string, filename: string) =>
       ipcRenderer.invoke('slideExtraction:readSlideAsBase64', outputPath, filename),

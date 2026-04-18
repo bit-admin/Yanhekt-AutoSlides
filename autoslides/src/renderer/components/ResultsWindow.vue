@@ -24,7 +24,8 @@
             <option value="">{{ $t('trash.all') }}</option>
             <option value="duplicate">{{ $t('trash.duplicate') }}</option>
             <option value="exclusion">{{ $t('trash.exclusion') }}</option>
-            <option value="ai_filtered">{{ $t('trash.aiFiltered') }}</option>
+            <option value="ai_filtered">{{ $t('trash.aiFilteredNotSlide') }}</option>
+            <option value="ai_filtered_edit">{{ $t('trash.aiFilteredEdit') }}</option>
             <option value="manual">{{ $t('trash.manual') }}</option>
           </select>
         </div>
@@ -61,6 +62,20 @@
             <path d="M2 13h12v1H2v-1z" fill="currentColor"/>
           </svg>
           {{ $t('trash.restore') }}
+        </button>
+
+        <button
+          v-if="currentView === 'images'"
+          class="restore-btn"
+          @click="handleRestoreAndAutoCrop"
+          :disabled="!canRestoreAndAutoCrop || isLoading"
+          :title="$t('trash.restoreAndAutoCropHint')"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <path d="M8 2L4 6h3v6h2V6h3L8 2z" fill="currentColor"/>
+            <rect x="3" y="12" width="10" height="2" fill="currentColor"/>
+          </svg>
+          {{ $t('trash.restoreAndAutoCrop') }}
         </button>
 
         <button
@@ -409,6 +424,8 @@ const {
   isLoading,
   previewItem,
   hasRemovedItems,
+  canRestoreAndAutoCrop,
+  trashEntries,
   openFolder,
   goBack,
   refresh,
@@ -417,6 +434,7 @@ const {
   closePreview: closePreviewItem,
   deleteSelected,
   restoreSelected,
+  restoreAndAutoCropSelected,
   clearTrash,
   applyCropToImage,
   restoreCropFromImage,
@@ -474,7 +492,9 @@ const getReasonLabel = (reason: ResultsReason) => {
     case 'exclusion':
       return t('trash.exclusion')
     case 'ai_filtered':
-      return t('trash.aiFiltered')
+      return t('trash.aiFilteredNotSlide')
+    case 'ai_filtered_edit':
+      return t('trash.aiFilteredEdit')
     case 'manual':
       return t('trash.manual')
     default:
@@ -501,11 +521,16 @@ const previewImageSrc = computed(() => {
 })
 
 const canCropPreview = computed(() => {
-  return previewItem.value?.status === 'active' && !!previewItem.value.imagePath && !isLoading.value
+  const item = previewItem.value
+  if (!item || isLoading.value) return false
+  if (item.status === 'active' && !!item.imagePath) return true
+  if (item.status === 'removed' && item.reason === 'ai_filtered_edit' && !!item.originalPath) return true
+  return false
 })
 
 const canRestoreCrop = computed(() => {
-  return canCropPreview.value && !!previewItem.value?.isCropped
+  const item = previewItem.value
+  return canCropPreview.value && item?.status === 'active' && !!item?.isCropped
 })
 
 const canRecrop = computed(() => {
@@ -513,7 +538,10 @@ const canRecrop = computed(() => {
 })
 
 const canStartCrop = computed(() => {
-  return canCropPreview.value && !previewItem.value?.isCropped
+  const item = previewItem.value
+  if (!canCropPreview.value) return false
+  if (item?.status === 'active') return !item?.isCropped
+  return true
 })
 
 const canApplyCrop = computed(() => {
@@ -744,18 +772,34 @@ const handlePreviewImageLoad = (event: Event) => {
   updatePreviewStageShellSize()
 }
 
+const loadPreviewImageBase64 = async (item: ResultsItem): Promise<string | null> => {
+  if (item.status === 'active' && item.imagePath) {
+    if (item.isCropped && item.cropPath) {
+      return window.electronAPI.crop.getImageAsBase64(item.cropPath)
+    }
+    return window.electronAPI.pdfmaker.getImageAsBase64(item.imagePath)
+  }
+
+  if (item.status === 'removed' && item.trashPath) {
+    return window.electronAPI.trash.getImageAsBase64(item.trashPath)
+  }
+
+  return null
+}
+
 const startCropMode = async () => {
   const activeItem = previewItem.value
-  if (activeItem?.status !== 'active' || !activeItem.imagePath) return
+  if (!activeItem || !canStartCrop.value) return
+  if (activeItem.status === 'active' && !activeItem.imagePath) return
+  if (activeItem.status === 'removed' && !activeItem.trashPath) return
 
   const requestId = cropSourceRequestId.value + 1
   cropSourceRequestId.value = requestId
   showPreviewMetadata.value = false
 
   try {
-    const sourceBase64 = activeItem.isCropped && activeItem.cropPath
-      ? await window.electronAPI.crop.getImageAsBase64(activeItem.cropPath)
-      : await window.electronAPI.pdfmaker.getImageAsBase64(activeItem.imagePath)
+    const sourceBase64 = await loadPreviewImageBase64(activeItem)
+    if (!sourceBase64) return
 
     if (requestId !== cropSourceRequestId.value) return
 
@@ -785,13 +829,16 @@ const cancelCropMode = () => {
 
 const startAutoCropMode = async () => {
   const activeItem = previewItem.value
-  if (!canStartCrop.value || !activeItem?.imagePath || isAutoCropDetecting.value) return
+  if (!canStartCrop.value || !activeItem || isAutoCropDetecting.value) return
+  if (activeItem.status === 'active' && !activeItem.imagePath) return
+  if (activeItem.status === 'removed' && !activeItem.trashPath) return
 
   isAutoCropDetecting.value = true
   showPreviewMetadata.value = false
 
   try {
-    const sourceBase64 = await window.electronAPI.pdfmaker.getImageAsBase64(activeItem.imagePath)
+    const sourceBase64 = await loadPreviewImageBase64(activeItem)
+    if (!sourceBase64) return
     const cropSource = `data:image/png;base64,${sourceBase64}`
 
     const base64Data = sourceBase64
@@ -806,7 +853,8 @@ const startAutoCropMode = async () => {
     const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
     bitmap.close()
 
-    const response = await detectBbox(imageData, false)
+    const appConfig = await window.electronAPI.config.get()
+    const response = await detectBbox(imageData, false, appConfig.slideExtraction?.autoCrop)
 
     if (!response.success || !response.result?.bbox) {
       await window.electronAPI.dialog?.showMessageBox?.({
@@ -913,12 +961,28 @@ const handleGlobalCropPointerUp = () => {
 }
 
 const applyCrop = async () => {
-  if (!previewItem.value?.imagePath || !cropRectPx.value) return
+  const item = previewItem.value
+  if (!item || !cropRectPx.value) return
 
   const rect = sanitizeCropRect(cropRectPx.value)
   if (!rect) return
 
-  const success = await applyCropToImage(previewItem.value.imagePath, rect, isAutoCropPending.value)
+  let targetPath: string | undefined
+  if (item.status === 'active') {
+    targetPath = item.imagePath
+  } else if (item.status === 'removed' && item.reason === 'ai_filtered_edit' && item.originalPath) {
+    try {
+      await window.electronAPI.trash.restore([item.id])
+      targetPath = item.originalPath
+    } catch (error) {
+      console.error('Failed to restore item before crop:', error)
+      return
+    }
+  }
+
+  if (!targetPath) return
+
+  const success = await applyCropToImage(targetPath, rect, isAutoCropPending.value)
   if (success) {
     resetCropState()
     showPreviewMetadata.value = false
@@ -952,10 +1016,27 @@ const confirmDelete = async () => {
   }
 }
 
+const handleRestoreAndAutoCrop = async () => {
+  if (!canRestoreAndAutoCrop.value) return
+
+  const summary = await restoreAndAutoCropSelected()
+  await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'info',
+    buttons: ['OK'],
+    title: t('trash.restoreAndAutoCrop'),
+    message: t('trash.restoreAndAutoCropSummary', summary),
+  })
+}
+
 const confirmClearTrash = async () => {
   if (!canClearTrash.value) return
 
   const isFolderScoped = currentView.value === 'images' && currentFolder.value
+
+  const scopeIds = isFolderScoped ? currentFolderRemovedIds.value : trashEntries.value.map((e) => e.id)
+  const scopedEntries = trashEntries.value.filter((e) => scopeIds.includes(e.id))
+  const hasEditEntries = scopedEntries.some((e) => e.reason === 'ai_filtered_edit')
+
   const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
     type: 'warning',
     buttons: [t('trash.cancel'), t('trash.clearTrash')],
@@ -965,10 +1046,20 @@ const confirmClearTrash = async () => {
     message: isFolderScoped
       ? t('trash.confirmClearFolder', { folder: currentFolderDisplayName.value })
       : t('trash.confirmClear'),
+    checkboxLabel: hasEditEntries ? t('trash.keepAiFilteredEdit') : undefined,
+    checkboxChecked: hasEditEntries,
   })
 
   if (confirmed?.response === 1) {
-    await clearTrash(isFolderScoped ? currentFolderRemovedIds.value : undefined)
+    const keepEdit = !!confirmed.checkboxChecked && hasEditEntries
+    if (keepEdit) {
+      const idsToClear = scopedEntries
+        .filter((e) => e.reason !== 'ai_filtered_edit')
+        .map((e) => e.id)
+      await clearTrash(idsToClear)
+    } else {
+      await clearTrash(isFolderScoped ? currentFolderRemovedIds.value : undefined)
+    }
   }
 }
 
@@ -1376,6 +1467,11 @@ onBeforeUnmount(() => {
 .reason-badge.reason-ai_filtered {
   background-color: #dff7ea;
   color: #257550;
+}
+
+.reason-badge.reason-ai_filtered_edit {
+  background-color: #fff3d6;
+  color: #955800;
 }
 
 .reason-badge.reason-manual {
