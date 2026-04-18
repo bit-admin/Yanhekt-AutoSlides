@@ -697,62 +697,77 @@
               <div class="setting-item">
                 <label class="setting-label">{{ $t('advanced.autoCrop.aspectTolerance') }}</label>
                 <div class="setting-description">{{ $t('advanced.autoCrop.aspectToleranceDescription') }}</div>
-                <input v-model.number="tempAutoCropAspectTolerance" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+                <div class="phash-threshold-input-wrapper">
+                  <input v-model.number="tempAutoCropAspectTolerance" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+                </div>
               </div>
 
-              <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.autoCrop.blackThreshold') }}</label>
-                <div class="setting-description">{{ $t('advanced.autoCrop.blackThresholdDescription') }}</div>
-                <input v-model.number="tempAutoCropBlackThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
+              <div class="auto-crop-grid">
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.autoCrop.blackThreshold') }}</label>
+                  <div class="setting-description">{{ $t('advanced.autoCrop.blackThresholdDescription') }}</div>
+                  <div class="phash-threshold-input-wrapper">
+                    <input v-model.number="tempAutoCropBlackThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.autoCrop.maxBorderFrac') }}</label>
+                  <div class="setting-description">{{ $t('advanced.autoCrop.maxBorderFracDescription') }}</div>
+                  <div class="phash-threshold-input-wrapper">
+                    <input v-model.number="tempAutoCropMaxBorderFrac" type="number" min="0" max="0.5" step="0.01" class="phash-threshold-input" />
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.autoCrop.cannyLowThreshold') }}</label>
+                  <div class="setting-description">{{ $t('advanced.autoCrop.cannyLowThresholdDescription') }}</div>
+                  <div class="phash-threshold-input-wrapper">
+                    <input v-model.number="tempAutoCropCannyLowThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.autoCrop.cannyHighThreshold') }}</label>
+                  <div class="setting-description">{{ $t('advanced.autoCrop.cannyHighThresholdDescription') }}</div>
+                  <div class="phash-threshold-input-wrapper">
+                    <input v-model.number="tempAutoCropCannyHighThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.autoCrop.areaRatioMin') }}</label>
+                  <div class="setting-description">{{ $t('advanced.autoCrop.areaRatioMinDescription') }}</div>
+                  <div class="phash-threshold-input-wrapper">
+                    <input v-model.number="tempAutoCropAreaRatioMin" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.autoCrop.areaRatioMax') }}</label>
+                  <div class="setting-description">{{ $t('advanced.autoCrop.areaRatioMaxDescription') }}</div>
+                  <div class="phash-threshold-input-wrapper">
+                    <input v-model.number="tempAutoCropAreaRatioMax" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.autoCrop.marginFrac') }}</label>
+                  <div class="setting-description">{{ $t('advanced.autoCrop.marginFracDescription') }}</div>
+                  <div class="phash-threshold-input-wrapper">
+                    <input v-model.number="tempAutoCropMarginFrac" type="number" min="0" max="0.5" step="0.005" class="phash-threshold-input" />
+                  </div>
+                </div>
+
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.autoCrop.fillRatioMin') }}</label>
+                  <div class="setting-description">{{ $t('advanced.autoCrop.fillRatioMinDescription') }}</div>
+                  <div class="phash-threshold-input-wrapper">
+                    <input v-model.number="tempAutoCropFillRatioMin" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+                  </div>
+                </div>
               </div>
 
-              <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.autoCrop.maxBorderFrac') }}</label>
-                <div class="setting-description">{{ $t('advanced.autoCrop.maxBorderFracDescription') }}</div>
-                <input v-model.number="tempAutoCropMaxBorderFrac" type="number" min="0" max="0.5" step="0.01" class="phash-threshold-input" />
-              </div>
-
-              <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.autoCrop.cannyLowThreshold') }}</label>
-                <div class="setting-description">{{ $t('advanced.autoCrop.cannyLowThresholdDescription') }}</div>
-                <input v-model.number="tempAutoCropCannyLowThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
-              </div>
-
-              <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.autoCrop.cannyHighThreshold') }}</label>
-                <div class="setting-description">{{ $t('advanced.autoCrop.cannyHighThresholdDescription') }}</div>
-                <input v-model.number="tempAutoCropCannyHighThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
-              </div>
-
-              <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.autoCrop.areaRatioMin') }}</label>
-                <div class="setting-description">{{ $t('advanced.autoCrop.areaRatioMinDescription') }}</div>
-                <input v-model.number="tempAutoCropAreaRatioMin" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
-              </div>
-
-              <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.autoCrop.areaRatioMax') }}</label>
-                <div class="setting-description">{{ $t('advanced.autoCrop.areaRatioMaxDescription') }}</div>
-                <input v-model.number="tempAutoCropAreaRatioMax" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
-              </div>
-
-              <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.autoCrop.marginFrac') }}</label>
-                <div class="setting-description">{{ $t('advanced.autoCrop.marginFracDescription') }}</div>
-                <input v-model.number="tempAutoCropMarginFrac" type="number" min="0" max="0.5" step="0.005" class="phash-threshold-input" />
-              </div>
-
-              <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.autoCrop.fillRatioMin') }}</label>
-                <div class="setting-description">{{ $t('advanced.autoCrop.fillRatioMinDescription') }}</div>
-                <input v-model.number="tempAutoCropFillRatioMin" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
-              </div>
-
-              <div class="setting-item">
-                <button class="reset-defaults-btn" @click="resetAutoCropDefaults">
-                  {{ $t('advanced.autoCrop.resetDefaults') }}
-                </button>
-              </div>
             </div>
             </div>
 
@@ -1631,7 +1646,6 @@ const {
   tempAutoCropAreaRatioMax,
   tempAutoCropMarginFrac,
   tempAutoCropFillRatioMin,
-  resetAutoCropDefaults,
   distinguishMaybeSlide: _distinguishMaybeSlide,
   tempDistinguishMaybeSlide,
   intranetMappings,
@@ -2710,6 +2724,23 @@ defineExpose({
 
 .advanced-setting-section .setting-item:last-child {
   margin-bottom: 0;
+}
+
+.auto-crop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 0;
+  margin-bottom: 20px;
+}
+
+.auto-crop-grid .setting-item {
+  margin-bottom: 16px;
+}
+
+.auto-crop-grid .setting-item .phash-threshold-input-wrapper {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .setting-description {

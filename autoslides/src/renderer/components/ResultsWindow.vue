@@ -64,7 +64,7 @@
           {{ $t('trash.restore') }}
         </button>
 
-        <div v-if="currentView === 'images'" class="restore-split">
+        <div v-if="currentView === 'images'" class="restore-split" :class="{ 'restore-split-open': showRestoreMenu }">
           <button
             class="restore-btn restore-split-main"
             @click="handleRestoreAndAutoCrop"
@@ -1351,17 +1351,25 @@ onBeforeUnmount(() => {
   justify-content: center;
 }
 
+.restore-split-open .restore-split-main {
+  border-bottom-left-radius: 0;
+}
+
+.restore-split-open .restore-split-toggle {
+  border-bottom-right-radius: 0;
+}
+
 .restore-split-menu {
   position: absolute;
-  top: calc(100% + 4px);
+  top: 100%;
+  left: 0;
   right: 0;
-  min-width: 260px;
-  background-color: #ffffff;
-  border: 1px solid #ced7e0;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  background-color: #2c7a51;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
   z-index: 30;
-  padding: 4px;
+  overflow: hidden;
 }
 
 .restore-split-menu-item {
@@ -1370,54 +1378,31 @@ onBeforeUnmount(() => {
   text-align: left;
   background: transparent;
   border: none;
-  padding: 8px 10px;
-  border-radius: 4px;
+  padding: 6px 10px;
   cursor: pointer;
-  color: #333;
+  color: #ffffff;
 }
 
 .restore-split-menu-item:hover:not(:disabled) {
-  background-color: #f0f4f8;
+  background-color: #236341;
 }
 
 .restore-split-menu-item:disabled {
-  color: #aaa;
+  color: rgba(255, 255, 255, 0.5);
   cursor: not-allowed;
 }
 
 .restore-split-menu-title {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 500;
+  line-height: 1.3;
 }
 
 .restore-split-menu-hint {
-  font-size: 11px;
-  color: #777;
-  margin-top: 2px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .restore-split-menu {
-    background-color: #2a2d31;
-    border-color: #4a4f55;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  }
-
-  .restore-split-menu-item {
-    color: #e4e6eb;
-  }
-
-  .restore-split-menu-item:hover:not(:disabled) {
-    background-color: #3a3f46;
-  }
-
-  .restore-split-menu-item:disabled {
-    color: #666;
-  }
-
-  .restore-split-menu-hint {
-    color: #9aa0a6;
-  }
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 1px;
+  line-height: 1.3;
 }
 
 .content-area {

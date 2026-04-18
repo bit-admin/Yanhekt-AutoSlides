@@ -85,7 +85,6 @@ export interface UseAdvancedSettingsReturn {
   tempAutoCropAreaRatioMax: Ref<number>
   tempAutoCropMarginFrac: Ref<number>
   tempAutoCropFillRatioMin: Ref<number>
-  resetAutoCropDefaults: () => void
 
   // AI behaviour
   distinguishMaybeSlide: Ref<boolean>
@@ -210,18 +209,6 @@ export function useAdvancedSettings(
   const tempAutoCropAreaRatioMax = ref(AUTO_CROP_DEFAULTS.areaRatioMax)
   const tempAutoCropMarginFrac = ref(AUTO_CROP_DEFAULTS.marginFrac)
   const tempAutoCropFillRatioMin = ref(AUTO_CROP_DEFAULTS.fillRatioMin)
-
-  const resetAutoCropDefaults = () => {
-    tempAutoCropAspectTolerance.value = AUTO_CROP_DEFAULTS.aspectTolerance
-    tempAutoCropBlackThreshold.value = AUTO_CROP_DEFAULTS.blackThreshold
-    tempAutoCropMaxBorderFrac.value = AUTO_CROP_DEFAULTS.maxBorderFrac
-    tempAutoCropCannyLowThreshold.value = AUTO_CROP_DEFAULTS.cannyLowThreshold
-    tempAutoCropCannyHighThreshold.value = AUTO_CROP_DEFAULTS.cannyHighThreshold
-    tempAutoCropAreaRatioMin.value = AUTO_CROP_DEFAULTS.areaRatioMin
-    tempAutoCropAreaRatioMax.value = AUTO_CROP_DEFAULTS.areaRatioMax
-    tempAutoCropMarginFrac.value = AUTO_CROP_DEFAULTS.marginFrac
-    tempAutoCropFillRatioMin.value = AUTO_CROP_DEFAULTS.fillRatioMin
-  }
 
   // AI behaviour
   const distinguishMaybeSlide = ref(true)
@@ -606,7 +593,6 @@ export function useAdvancedSettings(
     tempAutoCropAreaRatioMax,
     tempAutoCropMarginFrac,
     tempAutoCropFillRatioMin,
-    resetAutoCropDefaults,
 
     // AI behaviour
     distinguishMaybeSlide,

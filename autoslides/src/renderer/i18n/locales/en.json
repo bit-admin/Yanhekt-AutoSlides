@@ -155,8 +155,7 @@
       "marginFrac": "Margin Fraction",
       "marginFracDescription": "Fractional margin added around the detected slide bounding box before cropping.",
       "fillRatioMin": "Min Fill Ratio",
-      "fillRatioMinDescription": "Minimum ratio of the candidate bounding box area to its convex hull area.",
-      "resetDefaults": "Reset to Defaults"
+      "fillRatioMinDescription": "Minimum ratio of the candidate bounding box area to its convex hull area."
     },
     "aiBehaviour": {
       "title": "AI Behaviour",
@@ -878,11 +877,11 @@
     "trashPath": "Trash Path",
     "reasonDetails": "Details",
     "trashedAt": "Trashed At",
-    "restoreAndAutoCrop": "Restore and Auto Crop",
+    "restoreAndAutoCrop": "Restore & Auto Crop",
     "restoreAndAutoCropHint": "Only available for AI Filtered – Edit items",
     "restoreAndAutoCropSummary": "Cropped: {cropped} · No detection: {noDetection} · Failed: {failed}",
     "restoreAutoCropMoreOptions": "More options",
-    "restoreAutoCropDedup": "Auto Crop and Remove Duplicates",
+    "restoreAutoCropDedup": "Crop & Remove Duplicates",
     "restoreAutoCropDedupHint": "Restore, auto crop, then move pHash duplicates back to trash",
     "restoreAutoCropDedupSummary": "Cropped: {cropped} · No detection: {noDetection} · Duplicates removed: {deduped} · Failed: {failed}",
     "keepAiFilteredEdit": "Keep items marked AI Filtered – Edit"

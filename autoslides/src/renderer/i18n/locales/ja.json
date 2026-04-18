@@ -155,8 +155,7 @@
       "marginFrac": "余白比率",
       "marginFracDescription": "検出されたスライドのバウンディングボックスの周囲に、切り抜き前に追加する余白の比率。",
       "fillRatioMin": "最小充填率",
-      "fillRatioMinDescription": "候補バウンディングボックスの面積に対する凸包面積の最小比率。",
-      "resetDefaults": "既定値にリセット"
+      "fillRatioMinDescription": "候補バウンディングボックスの面積に対する凸包面積の最小比率。"
     },
     "aiBehaviour": {
       "title": "AI の挙動",

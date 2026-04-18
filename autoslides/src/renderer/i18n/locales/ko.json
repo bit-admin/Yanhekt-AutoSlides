@@ -155,8 +155,7 @@
       "marginFrac": "여백 비율",
       "marginFracDescription": "자르기 전 감지된 슬라이드 경계 상자 주변에 추가할 여백 비율.",
       "fillRatioMin": "최소 채움 비율",
-      "fillRatioMinDescription": "후보 경계 상자 면적과 볼록 껍질 면적의 최소 비율.",
-      "resetDefaults": "기본값으로 재설정"
+      "fillRatioMinDescription": "후보 경계 상자 면적과 볼록 껍질 면적의 최소 비율."
     },
     "aiBehaviour": {
       "title": "AI 동작",

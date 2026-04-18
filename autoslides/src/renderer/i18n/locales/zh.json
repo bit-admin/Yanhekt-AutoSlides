@@ -155,8 +155,7 @@
       "marginFrac": "外扩边距比例",
       "marginFracDescription": "裁剪前围绕检测到的幻灯片包围框额外添加的边距比例。",
       "fillRatioMin": "最小填充比例",
-      "fillRatioMinDescription": "候选包围框面积与其凸包面积的最小比值。",
-      "resetDefaults": "恢复默认"
+      "fillRatioMinDescription": "候选包围框面积与其凸包面积的最小比值。"
     },
     "aiBehaviour": {
       "title": "AI 行为",
