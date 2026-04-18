@@ -1277,8 +1277,8 @@
             </div>
 
             <div class="advanced-setting-section">
-              <div class="ai-prompts-header">
-                <h4>{{ $t('advanced.ai.prompts') }}</h4>
+              <h4 class="ai-prompts-header">
+                {{ $t('advanced.ai.prompts') }}
                 <span
                   class="variant-badge"
                   :class="{ 'variant-badge-distinguish': tempDistinguishMaybeSlide }"
@@ -1287,7 +1287,7 @@
                     ? $t('advanced.ai.variantDistinguish')
                     : $t('advanced.ai.variantSimple') }}
                 </span>
-              </div>
+              </h4>
               <div class="setting-description ai-prompts-variant-hint">
                 {{ tempDistinguishMaybeSlide
                   ? $t('advanced.ai.variantDistinguishHint')
@@ -4932,12 +4932,7 @@ defineExpose({
 .ai-prompts-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 4px;
-}
-
-.ai-prompts-header h4 {
-  margin: 0;
+  gap: 8px;
 }
 
 .variant-badge {

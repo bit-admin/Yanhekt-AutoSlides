@@ -212,10 +212,7 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
 
   const copilotModelPresets: ModelPreset[] = [
     { label: 'GPT-4.1', name: 'gpt-4.1' },
-    { label: 'GPT-5-mini', name: 'gpt-5-mini' },
-    { label: 'Claude Haiku 4.5', name: 'claude-haiku-4.5' },
-    { label: 'Gemini 3 Flash Preview', name: 'gemini-3-flash-preview' },
-    { label: 'GPT-5.1-codex-mini', name: 'gpt-5.1-codex-mini' }
+    { label: 'GPT-5-mini', name: 'gpt-5-mini' }
   ]
 
   const selectedApiUrlPreset = ref('')
