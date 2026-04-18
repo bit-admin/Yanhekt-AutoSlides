@@ -35,6 +35,8 @@ interface AppConfig {
   lastGreetingId: string;
   savedSearchesLive: string[];
   savedSearchesRecorded: string[];
+  distinguishMaybeSlide: boolean;
+  slideExtraction?: SlideExtractionConfig;
 }
 
 interface PHashExclusionItem {
@@ -63,6 +65,17 @@ interface SlideExtractionConfig {
   enableDuplicateRemoval: boolean;
   enableExclusionList: boolean;
   enablePngColorReduction: boolean;
+  autoCrop?: {
+    aspectTolerance: number;
+    blackThreshold: number;
+    maxBorderFrac: number;
+    cannyLowThreshold: number;
+    cannyHighThreshold: number;
+    areaRatioMin: number;
+    areaRatioMax: number;
+    marginFrac: number;
+    fillRatioMin: number;
+  };
 }
 
 interface SlideImageProcessingParams {
@@ -100,11 +113,11 @@ interface AIPrompts {
 }
 
 interface AIClassificationResult {
-  classification: 'slide' | 'not_slide';
+  classification: 'slide' | 'not_slide' | 'may_be_slide_edit';
 }
 
 interface AIBatchClassificationResult {
-  [key: string]: 'slide' | 'not_slide';
+  [key: string]: 'slide' | 'not_slide' | 'may_be_slide_edit';
 }
 
 interface AIFilteringResult {
@@ -322,7 +335,7 @@ interface SlideOperationResponse {
 }
 
 interface TrashMetadata {
-  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'manual';
+  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual';
   reasonDetails?: string;
 }
 
@@ -332,7 +345,7 @@ interface TrashEntry {
   originalPath: string;
   originalParentFolder: string;
   trashPath: string;
-  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'manual';
+  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual';
   reasonDetails?: string;
   trashedAt: string;
 }
@@ -406,6 +419,24 @@ interface ElectronAPI {
     setSlideDoubleVerification: (enabled: boolean, count?: number) => Promise<SlideExtractionConfig>;
     setSlideImageProcessingParams: (params: SlideImageProcessingParams) => Promise<SlideExtractionConfig>;
 
+    // Auto-crop params
+    setAutoCropParams: (params: {
+      aspectTolerance?: number;
+      blackThreshold?: number;
+      maxBorderFrac?: number;
+      cannyLowThreshold?: number;
+      cannyHighThreshold?: number;
+      areaRatioMin?: number;
+      areaRatioMax?: number;
+      marginFrac?: number;
+      fillRatioMin?: number;
+    }) => Promise<SlideExtractionConfig>;
+    resetAutoCropParams: () => Promise<SlideExtractionConfig>;
+
+    // distinguish may_be_slide flag
+    getDistinguishMaybeSlide: () => Promise<boolean>;
+    setDistinguishMaybeSlide: (enabled: boolean) => Promise<AppConfig>;
+
     // pHash exclusion list management
     getPHashExclusionList: () => Promise<PHashExclusionItem[]>;
     addPHashExclusionItem: (name: string, pHash: string) => Promise<PHashExclusionItem>;
@@ -428,11 +459,11 @@ interface ElectronAPI {
     getAIBatchSize: () => Promise<number>;
 
     // AI prompts management
-    getAIPrompts: () => Promise<AIPrompts>;
-    getAIPrompt: (type: 'live' | 'recorded') => Promise<string>;
-    setAIPrompt: (type: 'live' | 'recorded', prompt: string) => Promise<string>;
-    resetAIPrompt: (type: 'live' | 'recorded') => Promise<string>;
-    getDefaultAIPrompt: (type: 'live' | 'recorded') => Promise<string>;
+    getAIPrompts: (variant?: 'simple' | 'distinguish') => Promise<AIPrompts>;
+    getAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => Promise<string>;
+    setAIPrompt: (type: 'live' | 'recorded', prompt: string, variant?: 'simple' | 'distinguish') => Promise<AIPrompts>;
+    resetAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => Promise<string>;
+    getDefaultAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') => Promise<string>;
   };
   api: {
     getPersonalLiveList: (token: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStreamData>>;

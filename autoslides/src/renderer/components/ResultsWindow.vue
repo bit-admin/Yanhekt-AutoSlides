@@ -789,7 +789,7 @@ const loadPreviewImageBase64 = async (item: ResultsItem): Promise<string | null>
 
 const startCropMode = async () => {
   const activeItem = previewItem.value
-  if (!activeItem || !canStartCrop.value) return
+  if (!activeItem || (!canStartCrop.value && !canRecrop.value)) return
   if (activeItem.status === 'active' && !activeItem.imagePath) return
   if (activeItem.status === 'removed' && !activeItem.trashPath) return
 
