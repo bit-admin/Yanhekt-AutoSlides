@@ -64,19 +64,40 @@
           {{ $t('trash.restore') }}
         </button>
 
-        <button
-          v-if="currentView === 'images'"
-          class="restore-btn"
-          @click="handleRestoreAndAutoCrop"
-          :disabled="!canRestoreAndAutoCrop || isLoading"
-          :title="$t('trash.restoreAndAutoCropHint')"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16">
-            <path d="M8 2L4 6h3v6h2V6h3L8 2z" fill="currentColor"/>
-            <rect x="3" y="12" width="10" height="2" fill="currentColor"/>
-          </svg>
-          {{ $t('trash.restoreAndAutoCrop') }}
-        </button>
+        <div v-if="currentView === 'images'" class="restore-split">
+          <button
+            class="restore-btn restore-split-main"
+            @click="handleRestoreAndAutoCrop"
+            :disabled="!canRestoreAndAutoCrop || isLoading"
+            :title="$t('trash.restoreAndAutoCropHint')"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M8 2L4 6h3v6h2V6h3L8 2z" fill="currentColor"/>
+              <rect x="3" y="12" width="10" height="2" fill="currentColor"/>
+            </svg>
+            {{ $t('trash.restoreAndAutoCrop') }}
+          </button>
+          <button
+            class="restore-btn restore-split-toggle"
+            :disabled="!canRestoreAndAutoCrop || isLoading"
+            :title="$t('trash.restoreAutoCropMoreOptions')"
+            @click.stop="showRestoreMenu = !showRestoreMenu"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div v-if="showRestoreMenu" class="restore-split-menu">
+            <button
+              class="restore-split-menu-item"
+              :disabled="!canRestoreAndAutoCrop || isLoading"
+              @click="handleRestoreAutoCropDedup"
+            >
+              <div class="restore-split-menu-title">{{ $t('trash.restoreAutoCropDedup') }}</div>
+              <div class="restore-split-menu-hint">{{ $t('trash.restoreAutoCropDedupHint') }}</div>
+            </button>
+          </div>
+        </div>
 
         <button
           class="clear-btn"
@@ -91,7 +112,7 @@
       </div>
     </div>
 
-    <div class="content-area">
+    <div class="content-area" ref="contentAreaRef">
       <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
         <span>{{ $t('trash.loading') }}</span>
@@ -110,7 +131,9 @@
             v-for="folder in folders"
             :key="folder.name"
             class="folder-item"
-            @click="openFolder(folder)"
+            :class="{ 'folder-item-last-visited': folder.name === lastVisitedFolderName }"
+            :ref="(el) => setFolderItemRef(folder.name, el as HTMLButtonElement | null)"
+            @click="handleOpenFolder(folder)"
           >
             <div class="folder-icon">
               <svg width="24" height="24" viewBox="0 0 24 24">
@@ -179,7 +202,7 @@
               </svg>
             </button>
 
-            <div class="item-thumbnail" :style="{ height: `${thumbnailSize * 0.6}px` }">
+            <div class="item-thumbnail">
               <img v-if="thumbnails[item.id]" :src="thumbnails[item.id]" :alt="item.name" />
               <div v-else class="thumbnail-placeholder">
                 <svg width="32" height="32" viewBox="0 0 32 32">
@@ -207,8 +230,19 @@
     </div>
 
     <div class="footer">
-      <span v-if="currentView === 'folders'">{{ $t('trash.total') }}: {{ folders.length }}</span>
-      <span v-else>{{ $t('trash.selected') }}: {{ selectedIds.length }} / {{ $t('trash.total') }}: {{ filteredItems.length }}</span>
+      <div class="footer-left">
+        <span v-if="currentView === 'folders'">{{ $t('trash.total') }}: {{ folders.length }}</span>
+        <template v-else>
+          <button
+            class="select-all-btn"
+            :disabled="filteredItems.length === 0"
+            @click="toggleSelectAllFiltered"
+          >
+            {{ allFilteredSelected ? $t('trash.clearSelection') : $t('trash.selectAll') }}
+          </button>
+          <span>{{ $t('trash.selected') }}: {{ selectedIds.length }} / {{ $t('trash.total') }}: {{ filteredItems.length }}</span>
+        </template>
+      </div>
 
       <div v-if="currentView === 'images'" class="size-slider-group">
         <svg width="12" height="12" viewBox="0 0 16 16" class="size-icon small">
@@ -217,9 +251,9 @@
         <input
           type="range"
           v-model="thumbnailSize"
-          min="150"
-          max="400"
-          step="25"
+          min="180"
+          max="640"
+          step="20"
           class="size-slider"
         />
         <svg width="16" height="16" viewBox="0 0 16 16" class="size-icon large">
@@ -400,7 +434,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAutoCropDetect } from '../composables/useAutoCropDetect'
 import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '../composables/useResultsView'
@@ -411,6 +445,7 @@ const {
   folders,
   currentView,
   currentFolder,
+  lastVisitedFolderName,
   currentFolderDisplayName,
   folderItems,
   filteredItems,
@@ -435,6 +470,7 @@ const {
   deleteSelected,
   restoreSelected,
   restoreAndAutoCropSelected,
+  restoreAutoCropAndDedupSelected,
   clearTrash,
   applyCropToImage,
   restoreCropFromImage,
@@ -447,6 +483,63 @@ type CropInteraction =
   | { mode: 'create'; startX: number; startY: number }
   | { mode: 'move'; startX: number; startY: number; originRect: CropRect }
   | { mode: 'resize'; startX: number; startY: number; originRect: CropRect; handle: CropHandle }
+
+const allFilteredSelected = computed(() => {
+  if (filteredItems.value.length === 0) return false
+  const selected = new Set(selectedIds.value)
+  return filteredItems.value.every((item) => selected.has(item.id))
+})
+
+function toggleSelectAllFiltered() {
+  if (filteredItems.value.length === 0) return
+  const filteredIds = filteredItems.value.map((item) => item.id)
+  if (allFilteredSelected.value) {
+    const filteredSet = new Set(filteredIds)
+    selectedIds.value = selectedIds.value.filter((id) => !filteredSet.has(id))
+  } else {
+    const merged = new Set(selectedIds.value)
+    filteredIds.forEach((id) => merged.add(id))
+    selectedIds.value = Array.from(merged)
+  }
+}
+
+const contentAreaRef = ref<HTMLDivElement | null>(null)
+const folderItemRefs = new Map<string, HTMLButtonElement>()
+const folderScrollTop = ref(0)
+
+function setFolderItemRef(name: string, el: HTMLButtonElement | null) {
+  if (el) {
+    folderItemRefs.set(name, el)
+  } else {
+    folderItemRefs.delete(name)
+  }
+}
+
+async function handleOpenFolder(folder: { name: string }) {
+  folderScrollTop.value = contentAreaRef.value?.scrollTop ?? 0
+  const target = folders.value.find((f) => f.name === folder.name)
+  if (target) {
+    await openFolder(target)
+  }
+}
+
+watch(currentView, async (view) => {
+  if (view !== 'folders') return
+  await nextTick()
+  const container = contentAreaRef.value
+  if (!container) return
+  container.scrollTop = folderScrollTop.value
+  const target = lastVisitedFolderName.value
+    ? folderItemRefs.get(lastVisitedFolderName.value)
+    : null
+  if (target) {
+    const containerRect = container.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+    if (targetRect.top < containerRect.top || targetRect.bottom > containerRect.bottom) {
+      target.scrollIntoView({ block: 'nearest' })
+    }
+  }
+})
 
 const showPreviewMetadata = ref(false)
 const isCropMode = ref(false)
@@ -1028,6 +1121,36 @@ const handleRestoreAndAutoCrop = async () => {
   })
 }
 
+const showRestoreMenu = ref(false)
+
+const handleRestoreAutoCropDedup = async () => {
+  showRestoreMenu.value = false
+  if (!canRestoreAndAutoCrop.value) return
+
+  const summary = await restoreAutoCropAndDedupSelected()
+  await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'info',
+    buttons: ['OK'],
+    title: t('trash.restoreAutoCropDedup'),
+    message: t('trash.restoreAutoCropDedupSummary', summary),
+  })
+}
+
+const handleGlobalClickForRestoreMenu = (event: MouseEvent) => {
+  if (!showRestoreMenu.value) return
+  const target = event.target as HTMLElement | null
+  if (target?.closest('.restore-split')) return
+  showRestoreMenu.value = false
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleGlobalClickForRestoreMenu)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleGlobalClickForRestoreMenu)
+})
+
 const confirmClearTrash = async () => {
   if (!canClearTrash.value) return
 
@@ -1206,6 +1329,97 @@ onBeforeUnmount(() => {
   cursor: not-allowed;
 }
 
+.restore-split {
+  position: relative;
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.restore-split-main {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.restore-split-toggle {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 0 8px;
+  min-width: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.restore-split-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 260px;
+  background-color: #ffffff;
+  border: 1px solid #ced7e0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 30;
+  padding: 4px;
+}
+
+.restore-split-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #333;
+}
+
+.restore-split-menu-item:hover:not(:disabled) {
+  background-color: #f0f4f8;
+}
+
+.restore-split-menu-item:disabled {
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.restore-split-menu-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.restore-split-menu-hint {
+  font-size: 11px;
+  color: #777;
+  margin-top: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .restore-split-menu {
+    background-color: #2a2d31;
+    border-color: #4a4f55;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .restore-split-menu-item {
+    color: #e4e6eb;
+  }
+
+  .restore-split-menu-item:hover:not(:disabled) {
+    background-color: #3a3f46;
+  }
+
+  .restore-split-menu-item:disabled {
+    color: #666;
+  }
+
+  .restore-split-menu-hint {
+    color: #9aa0a6;
+  }
+}
+
 .content-area {
   flex: 1;
   overflow-y: auto;
@@ -1255,6 +1469,17 @@ onBeforeUnmount(() => {
 .folder-item:hover {
   background-color: #f8f9fa;
   border-color: #ced7e0;
+}
+
+.folder-item-last-visited {
+  background-color: #e7f1ff;
+  border-color: #7aa9e6;
+  box-shadow: 0 0 0 1px #7aa9e6 inset;
+}
+
+.folder-item-last-visited:hover {
+  background-color: #d9e7fb;
+  border-color: #5f95d8;
 }
 
 .folder-icon {
@@ -1414,16 +1639,18 @@ onBeforeUnmount(() => {
 
 .item-thumbnail {
   width: 100%;
+  aspect-ratio: 16 / 9;
   background-color: #f5f5f5;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
 .item-thumbnail img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .thumbnail-placeholder {
@@ -1490,6 +1717,33 @@ onBeforeUnmount(() => {
   color: #666;
 }
 
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.select-all-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid #ced7e0;
+  border-radius: 4px;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.select-all-btn:hover:not(:disabled) {
+  background-color: #f0f4f8;
+  border-color: #a8b7c4;
+}
+
+.select-all-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .size-slider-group {
   display: flex;
   align-items: center;
@@ -1507,7 +1761,7 @@ onBeforeUnmount(() => {
 .size-slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 80px;
+  width: 140px;
   height: 4px;
   background: #ccc;
   border-radius: 2px;
@@ -1805,6 +2059,17 @@ onBeforeUnmount(() => {
     border-color: #3d3d3d;
   }
 
+  .select-all-btn {
+    background-color: #2d2d2d;
+    border-color: #4d4d4d;
+    color: #e0e0e0;
+  }
+
+  .select-all-btn:hover:not(:disabled) {
+    background-color: #353535;
+    border-color: #5d5d5d;
+  }
+
   .back-btn,
   .refresh-btn,
   .filter-select {
@@ -1829,6 +2094,17 @@ onBeforeUnmount(() => {
   .folder-item:hover {
     background-color: #353535;
     border-color: #4d4d4d;
+  }
+
+  .folder-item-last-visited {
+    background-color: #1f3557;
+    border-color: #3e6aa8;
+    box-shadow: 0 0 0 1px #3e6aa8 inset;
+  }
+
+  .folder-item-last-visited:hover {
+    background-color: #264068;
+    border-color: #4d7dbd;
   }
 
   .folder-name,

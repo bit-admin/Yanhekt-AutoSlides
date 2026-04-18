@@ -819,6 +819,8 @@
     "refresh": "새로고침",
     "restore": "선택 항목 복원",
     "delete": "선택 항목 삭제",
+    "selectAll": "전체 선택",
+    "clearSelection": "선택 해제",
     "back": "뒤로",
     "clearTrash": "휴지통 비우기",
     "filterFolder": "폴더",
@@ -879,6 +881,10 @@
     "restoreAndAutoCrop": "복원 후 자동 자르기",
     "restoreAndAutoCropHint": "AI 필터링 – 편집 모드 항목에서만 사용할 수 있습니다",
     "restoreAndAutoCropSummary": "잘림: {cropped} · 감지 실패: {noDetection} · 실패: {failed}",
+    "restoreAutoCropMoreOptions": "추가 옵션",
+    "restoreAutoCropDedup": "자동 자르기 및 중복 제거",
+    "restoreAutoCropDedupHint": "복원 후 자동 자르기하고 pHash 중복을 휴지통으로 되돌립니다",
+    "restoreAutoCropDedupSummary": "잘림: {cropped} · 감지 실패: {noDetection} · 중복 제거: {deduped} · 실패: {failed}",
     "keepAiFilteredEdit": "AI 필터링 – 편집 모드로 표시된 항목 보존"
   },
   "pdfmaker": {

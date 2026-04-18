@@ -819,6 +819,8 @@
     "refresh": "Refresh",
     "restore": "Restore Selected",
     "delete": "Delete Selected",
+    "selectAll": "Select All",
+    "clearSelection": "Clear Selection",
     "back": "Back",
     "clearTrash": "Clear Trash",
     "filterFolder": "Folder",
@@ -879,6 +881,10 @@
     "restoreAndAutoCrop": "Restore and Auto Crop",
     "restoreAndAutoCropHint": "Only available for AI Filtered – Edit items",
     "restoreAndAutoCropSummary": "Cropped: {cropped} · No detection: {noDetection} · Failed: {failed}",
+    "restoreAutoCropMoreOptions": "More options",
+    "restoreAutoCropDedup": "Auto Crop and Remove Duplicates",
+    "restoreAutoCropDedupHint": "Restore, auto crop, then move pHash duplicates back to trash",
+    "restoreAutoCropDedupSummary": "Cropped: {cropped} · No detection: {noDetection} · Duplicates removed: {deduped} · Failed: {failed}",
     "keepAiFilteredEdit": "Keep items marked AI Filtered – Edit"
   },
   "pdfmaker": {

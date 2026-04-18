@@ -819,6 +819,8 @@
     "refresh": "更新",
     "restore": "選択項目を復元",
     "delete": "選択項目を削除",
+    "selectAll": "すべて選択",
+    "clearSelection": "選択を解除",
     "back": "戻る",
     "clearTrash": "ゴミ箱を空にする",
     "filterFolder": "フォルダ",
@@ -879,6 +881,10 @@
     "restoreAndAutoCrop": "復元して自動トリミング",
     "restoreAndAutoCropHint": "AI 除外 – 編集モード の項目でのみ利用できます",
     "restoreAndAutoCropSummary": "トリミング済み: {cropped} · 未検出: {noDetection} · 失敗: {failed}",
+    "restoreAutoCropMoreOptions": "その他のオプション",
+    "restoreAutoCropDedup": "自動トリミングして重複を削除",
+    "restoreAutoCropDedupHint": "復元して自動トリミング後、pHash 重複をゴミ箱に戻します",
+    "restoreAutoCropDedupSummary": "トリミング済み: {cropped} · 未検出: {noDetection} · 重複削除: {deduped} · 失敗: {failed}",
     "keepAiFilteredEdit": "AI 除外 – 編集モード の項目を保持する"
   },
   "pdfmaker": {

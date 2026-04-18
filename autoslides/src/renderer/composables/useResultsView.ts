@@ -65,12 +65,13 @@ export function useResultsView() {
   const cropEntries = ref<CropEntry[]>([])
   const currentView = ref<ResultsViewMode>('folders')
   const currentFolder = ref<ResultsFolder | null>(null)
+  const lastVisitedFolderName = ref<string | null>(null)
   const folderItems = ref<ResultsItem[]>([])
   const selectedIds = ref<string[]>([])
   const selectedReason = ref<ResultsReason | ''>('')
   const contextMode = ref<ContextMode>('context')
   const thumbnails = ref<Record<string, string>>({})
-  const thumbnailSize = ref(250)
+  const thumbnailSize = ref(320)
   const isLoading = ref(false)
   const previewItem = ref<ResultsItem | null>(null)
 
@@ -305,6 +306,7 @@ export function useResultsView() {
   async function openFolder(folder: ResultsFolder) {
     currentView.value = 'images'
     currentFolder.value = folder
+    lastVisitedFolderName.value = folder.name
     selectedIds.value = []
     selectedReason.value = ''
     contextMode.value = 'context'
@@ -383,66 +385,246 @@ export function useResultsView() {
     }
   }
 
+  interface RestoreSnapshot {
+    id: string
+    originalPath: string
+    filename: string
+  }
+
+  async function runRestoreAndAutoCrop(
+    snapshots: RestoreSnapshot[],
+    summary: { cropped: number; noDetection: number; failed: number },
+  ): Promise<Array<{ originalPath: string; filename: string }>> {
+    const cropped: Array<{ originalPath: string; filename: string }> = []
+
+    const ids = snapshots.map((s) => s.id)
+    await window.electronAPI.trash.restore(ids)
+
+    const appConfig = await window.electronAPI.config.get()
+    const autoCropConfig = appConfig.slideExtraction?.autoCrop
+
+    for (const snap of snapshots) {
+      if (!snap.originalPath) {
+        summary.failed++
+        continue
+      }
+      try {
+        const buffer = await window.electronAPI.offline.readImageBuffer(snap.originalPath)
+        const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+        const blobArrayBuffer = new ArrayBuffer(bytes.byteLength)
+        new Uint8Array(blobArrayBuffer).set(bytes)
+        const blob = new Blob([blobArrayBuffer], { type: 'image/*' })
+        const bitmap = await createImageBitmap(blob)
+
+        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          bitmap.close()
+          summary.failed++
+          continue
+        }
+        ctx.drawImage(bitmap, 0, 0)
+        const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
+        bitmap.close()
+
+        const response = await detectBbox(imageData, false, autoCropConfig)
+        if (!response.success || !response.result?.bbox) {
+          if (!response.success) summary.failed++
+          else summary.noDetection++
+          continue
+        }
+
+        const { x, y, w, h } = response.result.bbox
+        await window.electronAPI.crop.apply(snap.originalPath, { x, y, width: w, height: h }, true)
+        summary.cropped++
+        cropped.push({ originalPath: snap.originalPath, filename: snap.filename })
+      } catch (err) {
+        console.error(`Failed to restore-and-autocrop ${snap.originalPath}:`, err)
+        summary.failed++
+      }
+    }
+
+    return cropped
+  }
+
   async function restoreAndAutoCropSelected(): Promise<{ cropped: number; noDetection: number; failed: number }> {
     const summary = { cropped: 0, noDetection: 0, failed: 0 }
     if (!canRestoreAndAutoCrop.value) return summary
 
     isLoading.value = true
     try {
-      const snapshots = selectedRemovedItems.value.map((item) => ({
+      const snapshots: RestoreSnapshot[] = selectedRemovedItems.value.map((item) => ({
         id: item.id,
         originalPath: item.originalPath || '',
+        filename: item.name,
       }))
 
-      const ids = snapshots.map((s) => s.id)
-      await window.electronAPI.trash.restore(ids)
+      await runRestoreAndAutoCrop(snapshots, summary)
+      await refresh()
+    } catch (error) {
+      console.error('Failed to restore and auto-crop selected:', error)
+    } finally {
+      isLoading.value = false
+    }
 
-      const appConfig = await window.electronAPI.config.get()
-      const autoCropConfig = appConfig.slideExtraction?.autoCrop
+    return summary
+  }
 
-      for (const snap of snapshots) {
-        if (!snap.originalPath) {
-          summary.failed++
-          continue
+  async function restoreAutoCropAndDedupSelected(): Promise<{ cropped: number; noDetection: number; deduped: number; failed: number }> {
+    const summary = { cropped: 0, noDetection: 0, deduped: 0, failed: 0 }
+    if (!canRestoreAndAutoCrop.value) return summary
+
+    const folder = currentFolder.value
+    if (!folder) return summary
+
+    isLoading.value = true
+    try {
+      const snapshots: RestoreSnapshot[] = selectedRemovedItems.value.map((item) => ({
+        id: item.id,
+        originalPath: item.originalPath || '',
+        filename: item.name,
+      }))
+
+      const cropSummary = { cropped: 0, noDetection: 0, failed: 0 }
+      const croppedItems = await runRestoreAndAutoCrop(snapshots, cropSummary)
+      summary.cropped = cropSummary.cropped
+      summary.noDetection = cropSummary.noDetection
+      summary.failed = cropSummary.failed
+
+      if (croppedItems.length > 0) {
+        const appConfig = await window.electronAPI.config.get()
+        const pHashThreshold = appConfig.slideExtraction?.pHashThreshold ?? 10
+
+        await loadFolderSummaries()
+        const activeFolder = activeFolders.value.find((f) => f.name === folder.name)
+
+        const worker = new Worker(
+          new URL('../workers/postProcessor.worker.ts', import.meta.url),
+          { type: 'module' },
+        )
+
+        const calculatePHash = (imageData: ImageData): Promise<string> => {
+          return new Promise((resolve, reject) => {
+            const messageId = `pHash_${Date.now()}_${Math.random()}`
+            const messageHandler = (event: MessageEvent) => {
+              const { id, success, result, error } = event.data
+              if (id === messageId) {
+                worker.removeEventListener('message', messageHandler)
+                success ? resolve(result) : reject(new Error(error))
+              }
+            }
+            worker.addEventListener('message', messageHandler)
+            worker.postMessage({ id: messageId, type: 'calculatePHash', data: { imageData } })
+          })
         }
+
+        const calculateHammingDistance = (hash1: string, hash2: string): Promise<number> => {
+          return new Promise((resolve, reject) => {
+            const messageId = `hamming_${Date.now()}_${Math.random()}`
+            const messageHandler = (event: MessageEvent) => {
+              const { id, success, result, error } = event.data
+              if (id === messageId) {
+                worker.removeEventListener('message', messageHandler)
+                success ? resolve(result) : reject(new Error(error))
+              }
+            }
+            worker.addEventListener('message', messageHandler)
+            worker.postMessage({ id: messageId, type: 'calculateHammingDistance', data: { hash1, hash2 } })
+          })
+        }
+
+        const bufferToImageData = (buffer: Uint8Array): Promise<ImageData> => {
+          return new Promise((resolve, reject) => {
+            const blob = new Blob([buffer as BlobPart])
+            const url = URL.createObjectURL(blob)
+            const img = new Image()
+            img.onload = () => {
+              const canvas = document.createElement('canvas')
+              canvas.width = img.width
+              canvas.height = img.height
+              const ctx = canvas.getContext('2d')
+              if (!ctx) {
+                URL.revokeObjectURL(url)
+                reject(new Error('Failed to get canvas context'))
+                return
+              }
+              ctx.drawImage(img, 0, 0)
+              const imageData = ctx.getImageData(0, 0, img.width, img.height)
+              URL.revokeObjectURL(url)
+              resolve(imageData)
+            }
+            img.onerror = () => {
+              URL.revokeObjectURL(url)
+              reject(new Error('Failed to load image'))
+            }
+            img.src = url
+          })
+        }
+
         try {
-          const buffer = await window.electronAPI.offline.readImageBuffer(snap.originalPath)
-          const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
-          const blobArrayBuffer = new ArrayBuffer(bytes.byteLength)
-          new Uint8Array(blobArrayBuffer).set(bytes)
-          const blob = new Blob([blobArrayBuffer], { type: 'image/*' })
-          const bitmap = await createImageBitmap(blob)
+          const seen: Array<{ filename: string; pHash: string }> = []
+          const restoredSet = new Set(croppedItems.map((c) => c.originalPath))
 
-          const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
-          const ctx = canvas.getContext('2d')
-          if (!ctx) {
-            bitmap.close()
-            summary.failed++
-            continue
-          }
-          ctx.drawImage(bitmap, 0, 0)
-          const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
-          bitmap.close()
-
-          const response = await detectBbox(imageData, false, autoCropConfig)
-          if (!response.success || !response.result?.bbox) {
-            if (!response.success) summary.failed++
-            else summary.noDetection++
-            continue
+          if (activeFolder?.path) {
+            try {
+              const existingImages = await window.electronAPI.pdfmaker.getImages(activeFolder.path)
+              for (const img of existingImages) {
+                if (restoredSet.has(img.path)) continue
+                try {
+                  const buffer = await window.electronAPI.offline.readImageBuffer(img.path)
+                  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+                  const imageData = await bufferToImageData(bytes)
+                  const pHash = await calculatePHash(imageData)
+                  seen.push({ filename: img.name, pHash })
+                } catch (err) {
+                  console.warn(`Failed to compute pHash for existing ${img.path}:`, err)
+                }
+              }
+            } catch (err) {
+              console.warn('Failed to list existing images for dedup:', err)
+            }
           }
 
-          const { x, y, w, h } = response.result.bbox
-          await window.electronAPI.crop.apply(snap.originalPath, { x, y, width: w, height: h }, true)
-          summary.cropped++
-        } catch (err) {
-          console.error(`Failed to restore-and-autocrop ${snap.originalPath}:`, err)
-          summary.failed++
+          const folderPath = activeFolder?.path
+          for (const item of croppedItems) {
+            try {
+              const buffer = await window.electronAPI.offline.readImageBuffer(item.originalPath)
+              const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+              const imageData = await bufferToImageData(bytes)
+              const pHash = await calculatePHash(imageData)
+
+              let duplicateOf = ''
+              for (const s of seen) {
+                if (!s.pHash) continue
+                const distance = await calculateHammingDistance(pHash, s.pHash)
+                if (distance <= pHashThreshold) {
+                  duplicateOf = s.filename
+                  break
+                }
+              }
+
+              if (duplicateOf && folderPath) {
+                await window.electronAPI.slideExtraction.moveToInAppTrash(folderPath, item.filename, {
+                  reason: 'duplicate',
+                  reasonDetails: `Duplicate of ${duplicateOf}`,
+                })
+                summary.deduped++
+                summary.cropped = Math.max(0, summary.cropped - 1)
+              } else {
+                seen.push({ filename: item.filename, pHash })
+              }
+            } catch (err) {
+              console.warn(`Failed to dedup ${item.filename}:`, err)
+            }
+          }
+        } finally {
+          worker.terminate()
         }
       }
 
       await refresh()
     } catch (error) {
-      console.error('Failed to restore and auto-crop selected:', error)
+      console.error('Failed to restore, auto-crop and dedup selected:', error)
     } finally {
       isLoading.value = false
     }
@@ -536,6 +718,7 @@ export function useResultsView() {
     folders,
     currentView,
     currentFolder,
+    lastVisitedFolderName,
     currentFolderDisplayName,
     folderItems,
     filteredItems,
@@ -560,6 +743,7 @@ export function useResultsView() {
     deleteSelected,
     restoreSelected,
     restoreAndAutoCropSelected,
+    restoreAutoCropAndDedupSelected,
     clearTrash,
     applyCropToImage,
     restoreCropFromImage,
