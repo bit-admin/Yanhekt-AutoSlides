@@ -367,7 +367,8 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     // Use appropriate API based on mode:
     // - 'live' mode uses classifySingleImage (expects {"classification": ...})
     // - 'recorded' mode uses classifyMultipleImages (expects {"image_0": ...})
-    let classification: 'slide' | 'not_slide'
+    type ClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit'
+    let classification: ClassificationValue
 
     if (classifyMode === 'live') {
       const result = await window.electronAPI.ai.classifySingleImage(base64Image, classifyMode, token)
@@ -376,7 +377,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
         aiFilteringError.value = parseAIError(result)
         return
       }
-      classification = (result.result as { classification: 'slide' | 'not_slide' }).classification
+      classification = (result.result as { classification: ClassificationValue }).classification
     } else {
       // recorded mode - always use batch API even for single image
       const result = await window.electronAPI.ai.classifyMultipleImages([base64Image], classifyMode, token)
@@ -385,31 +386,32 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
         aiFilteringError.value = parseAIError(result)
         return
       }
-      const batchResult = result.result as { [key: string]: 'slide' | 'not_slide' }
+      const batchResult = result.result as { [key: string]: ClassificationValue }
       classification = batchResult['image_0'] || 'slide'
     }
 
     slide.aiDecision = classification
 
-    if (classification === 'not_slide') {
+    if (classification === 'not_slide' || classification === 'may_be_slide_edit') {
+      const isEdit = classification === 'may_be_slide_edit'
       try {
-        // Get output path from slideExtractorInstance
         const outputPath = slideExtractorInstance.value?.getOutputPath()
         const filename = `${slide.title}.png`
         if (outputPath) {
           await window.electronAPI.slideExtraction.moveToInAppTrash(outputPath, filename, {
-            reason: 'ai_filtered',
-            reasonDetails: 'AI classified as not_slide'
+            reason: isEdit ? 'ai_filtered_edit' : 'ai_filtered',
+            reasonDetails: isEdit
+              ? 'AI classified as may_be_slide_edit'
+              : 'AI classified as not_slide'
           })
         }
-        // Also remove from extractedSlides array
         const slideIndex = extractedSlides.value.findIndex(s => s.id === slide.id)
         if (slideIndex !== -1) {
           extractedSlides.value.splice(slideIndex, 1)
         }
         deletedSlides.push(filename)
         postProcessStatus.value.aiFiltered++
-        console.log(`AI filtered slide moved to trash: ${slide.title} (classified as not_slide)`)
+        console.log(`AI filtered slide moved to trash: ${slide.title} (classified as ${classification})`)
       } catch (deleteError) {
         console.error(`Failed to move AI-filtered slide ${slide.title} to trash:`, deleteError)
       }
@@ -447,32 +449,34 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     const result = await window.electronAPI.ai.classifyMultipleImages(base64Images, classifyMode, token)
 
     if (result.success && result.result) {
-      const batchResult = result.result as { [key: string]: 'slide' | 'not_slide' }
+      type ClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit'
+      const batchResult = result.result as { [key: string]: ClassificationValue }
 
       for (let j = 0; j < batch.length; j++) {
         const slide = batch[j]
-        const classification = batchResult[`image_${j}`] || 'slide'
+        const classification: ClassificationValue = batchResult[`image_${j}`] || 'slide'
         slide.aiDecision = classification
 
-        if (classification === 'not_slide') {
+        if (classification === 'not_slide' || classification === 'may_be_slide_edit') {
+          const isEdit = classification === 'may_be_slide_edit'
           try {
-            // Get output path from slideExtractorInstance
             const outputPath = slideExtractorInstance.value?.getOutputPath()
             const filename = `${slide.title}.png`
             if (outputPath) {
               await window.electronAPI.slideExtraction.moveToInAppTrash(outputPath, filename, {
-                reason: 'ai_filtered',
-                reasonDetails: 'AI classified as not_slide'
+                reason: isEdit ? 'ai_filtered_edit' : 'ai_filtered',
+                reasonDetails: isEdit
+                  ? 'AI classified as may_be_slide_edit'
+                  : 'AI classified as not_slide'
               })
             }
-            // Also remove from extractedSlides array
             const slideIndex = extractedSlides.value.findIndex(s => s.id === slide.id)
             if (slideIndex !== -1) {
               extractedSlides.value.splice(slideIndex, 1)
             }
             deletedSlides.push(filename)
             postProcessStatus.value.aiFiltered++
-            console.log(`AI filtered slide moved to trash: ${slide.title} (classified as not_slide)`)
+            console.log(`AI filtered slide moved to trash: ${slide.title} (classified as ${classification})`)
           } catch (deleteError) {
             console.error(`Failed to move AI-filtered slide ${slide.title} to trash:`, deleteError)
           }

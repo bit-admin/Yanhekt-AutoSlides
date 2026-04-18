@@ -21,7 +21,7 @@ export interface ExtractedSlide {
   timestamp: string;
   imageData: ImageData;
   dataUrl: string;
-  aiDecision?: 'slide' | 'not_slide' | null;
+  aiDecision?: 'slide' | 'not_slide' | 'may_be_slide_edit' | null;
 }
 
 export class SlideExtractor {

@@ -399,16 +399,20 @@ export function useOfflineProcessing() {
               )
 
               if (result.success && result.result) {
-                const batchResult = result.result as { [key: string]: 'slide' | 'not_slide' }
+                type ClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit'
+                const batchResult = result.result as { [key: string]: ClassificationValue }
                 for (let j = 0; j < validIndices.length; j++) {
                   const originalIdx = validIndices[j]
-                  const classification = batchResult[`image_${j}`] || 'slide'
-                  if (classification === 'not_slide') {
+                  const classification: ClassificationValue = batchResult[`image_${j}`] || 'slide'
+                  if (classification === 'not_slide' || classification === 'may_be_slide_edit') {
+                    const isEdit = classification === 'may_be_slide_edit'
                     try {
                       await window.electronAPI.slideExtraction.moveToInAppTrash(
                         outputDir.value, batch[originalIdx], {
-                          reason: 'ai_filtered',
-                          reasonDetails: 'AI classified as not_slide'
+                          reason: isEdit ? 'ai_filtered_edit' : 'ai_filtered',
+                          reasonDetails: isEdit
+                            ? 'AI classified as may_be_slide_edit'
+                            : 'AI classified as not_slide'
                         }
                       )
                       progress.value.aiFiltered++
@@ -430,12 +434,17 @@ export function useOfflineProcessing() {
                       [base64Images[idx]], 'recorded', token
                     )
                     if (singleResult.success && singleResult.result) {
-                      const sr = singleResult.result as { [key: string]: 'slide' | 'not_slide' }
-                      if (sr['image_0'] === 'not_slide') {
+                      type ClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit'
+                      const sr = singleResult.result as { [key: string]: ClassificationValue }
+                      const cls = sr['image_0']
+                      if (cls === 'not_slide' || cls === 'may_be_slide_edit') {
+                        const isEdit = cls === 'may_be_slide_edit'
                         await window.electronAPI.slideExtraction.moveToInAppTrash(
                           outputDir.value, batch[idx], {
-                            reason: 'ai_filtered',
-                            reasonDetails: 'AI classified as not_slide'
+                            reason: isEdit ? 'ai_filtered_edit' : 'ai_filtered',
+                            reasonDetails: isEdit
+                              ? 'AI classified as may_be_slide_edit'
+                              : 'AI classified as not_slide'
                           }
                         )
                         progress.value.aiFiltered++

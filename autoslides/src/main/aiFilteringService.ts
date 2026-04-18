@@ -6,7 +6,7 @@ import { AIPromptsService, AIPromptType } from './aiPromptsService';
 import { CopilotService } from './copilotService';
 
 // Debug logging flag - set to true for detailed logging
-const DEBUG = false;
+const DEBUG = true;
 
 const debugLog = (...args: unknown[]) => {
   if (DEBUG) {
