@@ -87,6 +87,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
           userNickname.value = verificationResult.userData.nickname || username.value
           userId.value = verificationResult.userData.badge || 'unknown'
           persistUserNames(userNickname.value)
+          tokenManager.syncToConfig()
           console.log('Login successful')
           onLoginSuccess?.()
         } else {
@@ -134,6 +135,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         userNickname.value = result.userData.nickname || 'User'
         userId.value = result.userData.badge || 'unknown'
         persistUserNames(userNickname.value)
+        tokenManager.syncToConfig()
         console.log('Existing token verified successfully')
       } else {
         if (!result.networkError) {
@@ -243,6 +245,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         userNickname.value = result.userData.nickname || 'User'
         userId.value = result.userData.badge || 'unknown'
         persistUserNames(userNickname.value)
+        tokenManager.syncToConfig()
         console.log('Browser login successful')
         onLoginSuccess?.()
         // Close browser login view after successful login

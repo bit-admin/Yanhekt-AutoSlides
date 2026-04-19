@@ -15,6 +15,17 @@
             </svg>
             {{ $t('addons.tabYuketang') }}
           </button>
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'webcapture' }"
+            @click="switchTab('webcapture')"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M2 3h12v8H2V3zm1 1v6h10V4H3zm1 8h8v1H4v-1z" fill="currentColor"/>
+              <path d="M6 6h4v3H6z" fill="currentColor"/>
+            </svg>
+            Web Capture
+          </button>
         </div>
       </div>
       <div v-if="!isMacOS" class="window-controls">
@@ -41,6 +52,9 @@
       <div v-show="activeTab === 'yuketang'" class="tab-panel">
         <YuketangTab />
       </div>
+      <div v-show="activeTab === 'webcapture'" class="tab-panel">
+        <WebCaptureTab />
+      </div>
     </div>
   </div>
 </template>
@@ -48,8 +62,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import YuketangTab from './YuketangTab.vue'
+import WebCaptureTab from './WebCaptureTab.vue'
 
-type TabId = 'yuketang'
+type TabId = 'yuketang' | 'webcapture'
 
 const isMacOS = navigator.userAgent.includes('Mac')
 
@@ -57,7 +72,7 @@ const isMacOS = navigator.userAgent.includes('Mac')
 const getInitialTab = (): TabId => {
   const params = new URLSearchParams(window.location.search)
   const tab = params.get('tab')
-  if (tab === 'yuketang') return tab
+  if (tab === 'yuketang' || tab === 'webcapture') return tab
   return 'yuketang'
 }
 
@@ -70,8 +85,8 @@ const switchTab = (tab: TabId) => {
 // Listen for tab switch IPC from main process
 onMounted(() => {
   window.electronAPI.addons?.onSwitchTab?.((tab: string) => {
-    if (tab === 'yuketang') {
-      activeTab.value = tab
+    if (tab === 'yuketang' || tab === 'webcapture') {
+      activeTab.value = tab as TabId
     }
   })
 })

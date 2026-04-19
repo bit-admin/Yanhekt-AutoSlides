@@ -375,6 +375,21 @@ export class ConfigService {
     return this.store.get('preventSystemSleep');
   }
 
+  // Auth token mirror — stored here so add-ons windows (which have separate
+  // localStorage) can read the token via IPC. The main renderer's TokenManager
+  // remains the primary write path; it calls setAuthToken on save/clear.
+  setAuthToken(token: string | null): void {
+    if (token) {
+      this.store.set('authToken', token);
+    } else {
+      this.store.delete('authToken');
+    }
+  }
+
+  getAuthToken(): string | null {
+    return this.store.get('authToken') ?? null;
+  }
+
   setSkipUpdateCheckUntil(timestamp: number): void {
     this.store.set('skipUpdateCheckUntil', timestamp);
   }

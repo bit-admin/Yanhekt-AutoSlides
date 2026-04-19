@@ -64,6 +64,9 @@ export class SlideExtractor {
   private outputPath: string | null = null;
   private courseInfo: { courseName?: string; sessionTitle?: string; mode?: 'live' | 'recorded' } | null = null;
 
+  // Frame source: 'video' pulls from an in-page <video>; 'pushed' takes frames via pushFrame().
+  private sourceMode: 'video' | 'pushed' = 'video';
+
   constructor(mode: 'live' | 'recorded', instanceId?: string) {
     this.mode = mode;
     this.instanceId = instanceId || `${mode}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -326,6 +329,7 @@ export class SlideExtractor {
     }
 
     this.isRunning = true;
+    this.sourceMode = 'video';
     this.resetVerificationState();
 
     console.log('Starting slide extraction with config:', this.config);
@@ -336,6 +340,39 @@ export class SlideExtractor {
     }, this.config.checkInterval);
 
     return true;
+  }
+
+  /**
+   * Start pushed-frame extraction (no in-page <video>; frames arrive via pushFrame).
+   * Used by the Web Capture add-on where the video lives inside an embedded <webview>.
+   */
+  startPushedExtraction(): boolean {
+    if (this.isRunning) {
+      console.warn('Slide extraction is already running');
+      return false;
+    }
+    this.isRunning = true;
+    this.sourceMode = 'pushed';
+    this.resetVerificationState();
+    console.log('Starting pushed slide extraction with config:', this.config);
+    return true;
+  }
+
+  /**
+   * Feed a frame from an external source (e.g. webview guest preload or capturePage).
+   */
+  async pushFrame(imageData: ImageData): Promise<void> {
+    if (!this.isRunning || this.sourceMode !== 'pushed') return;
+    if (this.isPausedDueToBuffering) return;
+    try {
+      if (!this.validateImageData(imageData)) return;
+      await this.processImageData(imageData);
+    } catch (err) {
+      console.error('Error processing pushed frame:', err);
+      if (this.verificationState === 'verifying') {
+        this.resetVerificationState();
+      }
+    }
   }
 
   /**
@@ -430,25 +467,35 @@ export class SlideExtractor {
         return;
       }
 
-      // First capture, save directly
-      if (!this.lastImageData) {
-        await this.saveSlide(imageData);
-        this.lastImageData = imageData;
-        return;
-      }
-
-      // Handle dual verification logic
-      if (this.config.enableDoubleVerification && this.verificationState !== 'none') {
-        await this.handleVerification(imageData);
-      } else {
-        await this.handleNewImage(imageData);
-      }
+      await this.processImageData(imageData);
 
     } catch (error) {
       console.error('Error in captureAndCompare:', error);
       if (this.verificationState === 'verifying') {
         this.resetVerificationState();
       }
+    }
+  }
+
+  /**
+   * Shared post-capture pipeline: first-save, dual verification, or change detection.
+   * Called from both the <video> tick path and the pushed-frame path.
+   */
+  private async processImageData(imageData: ImageData): Promise<void> {
+    if (!this.isRunning) return;
+
+    // First capture, save directly
+    if (!this.lastImageData) {
+      await this.saveSlide(imageData);
+      this.lastImageData = imageData;
+      return;
+    }
+
+    // Handle dual verification logic
+    if (this.config.enableDoubleVerification && this.verificationState !== 'none') {
+      await this.handleVerification(imageData);
+    } else {
+      await this.handleNewImage(imageData);
     }
   }
 

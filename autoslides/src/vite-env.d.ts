@@ -395,6 +395,9 @@ interface ElectronAPI {
     setEnableAIFiltering: (enabled: boolean) => Promise<AppConfig>;
     getEnableAIFiltering: () => Promise<boolean>;
     setPreventSystemSleep: (prevent: boolean) => Promise<AppConfig>;
+    // Auth token mirror for cross-window access (add-ons windows have separate localStorage)
+    setAuthToken: (token: string | null) => Promise<void>;
+    getAuthToken: () => Promise<string | null>;
 
     // Theme configuration
     setThemeMode: (theme: 'system' | 'light' | 'dark') => Promise<AppConfig>;
@@ -658,6 +661,10 @@ interface ElectronAPI {
   addons: {
     openWindow: (tab?: string) => Promise<{ success: boolean }>;
     onSwitchTab: (callback: (tab: string) => void) => void;
+  };
+
+  webCapture: {
+    getGuestPreloadPath: () => Promise<string>;
   };
 
   yuketang: {

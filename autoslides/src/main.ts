@@ -403,6 +403,15 @@ ipcMain.handle('config:setPreventSystemSleep', async (event, prevent: boolean) =
   return configService.getConfig();
 });
 
+// Auth token mirror for cross-window access (add-ons windows have separate localStorage)
+ipcMain.handle('config:setAuthToken', async (_event, token: string | null) => {
+  configService.setAuthToken(token);
+});
+
+ipcMain.handle('config:getAuthToken', async () => {
+  return configService.getAuthToken();
+});
+
 ipcMain.handle('config:getSkipUpdateCheckUntil', async () => {
   return configService.getSkipUpdateCheckUntil();
 });
@@ -1449,6 +1458,14 @@ const createAddonsWindow = (tab?: string) => {
 ipcMain.handle('addons:openWindow', async (_event, tab?: string) => {
   createAddonsWindow(tab);
   return { success: true };
+});
+
+// Guest preload path for the Web Capture <webview>.
+// The <webview preload="..."> attribute requires a file:// URL; the file is
+// emitted to the same directory as the main bundle by vite.webviewPreload.config.ts.
+ipcMain.handle('webCapture:getGuestPreloadPath', async () => {
+  const absolute = path.join(__dirname, 'webviewCapturePreload.js');
+  return new URL(`file://${absolute}`).toString();
 });
 
 // Yuketang IPC: export lesson/class presentation

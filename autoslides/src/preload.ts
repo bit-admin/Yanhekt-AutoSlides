@@ -49,6 +49,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getLanguageMode: () => ipcRenderer.invoke('config:getLanguageMode'),
     // Power management configuration
     setPreventSystemSleep: (prevent: boolean) => ipcRenderer.invoke('config:setPreventSystemSleep', prevent),
+    // Auth token mirror for cross-window access (add-ons windows have separate localStorage)
+    setAuthToken: (token: string | null) => ipcRenderer.invoke('config:setAuthToken', token),
+    getAuthToken: (): Promise<string | null> => ipcRenderer.invoke('config:getAuthToken'),
     // Update check skip configuration
     getSkipUpdateCheckUntil: () => ipcRenderer.invoke('config:getSkipUpdateCheckUntil'),
     setSkipUpdateCheckUntil: (timestamp: number) => ipcRenderer.invoke('config:setSkipUpdateCheckUntil', timestamp),
@@ -279,6 +282,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     onSwitchTab: (callback: (tab: string) => void) => {
       ipcRenderer.on('addons:switchTab', (_event, tab) => callback(tab));
     },
+  },
+  webCapture: {
+    getGuestPreloadPath: (): Promise<string> => ipcRenderer.invoke('webCapture:getGuestPreloadPath'),
   },
   yuketang: {
     exportLesson: (payload: { lessonId?: string; format: 'pdf' | 'images' }) =>

@@ -37,14 +37,24 @@ export class TokenManager {
 
   saveToken(token: string): void {
     localStorage.setItem(this.TOKEN_KEY, token);
+    // Mirror to electron-store so add-ons windows can read it via IPC
+    window.electronAPI?.config?.setAuthToken?.(token);
   }
 
   getToken(): string | null {
     return localStorage.getItem(this.TOKEN_KEY);
   }
 
+  // Ensure electron-store mirror is up to date with localStorage.
+  // Called once on main renderer init so add-ons windows see the token via IPC.
+  syncToConfig(): void {
+    const token = this.getToken();
+    window.electronAPI?.config?.setAuthToken?.(token ?? null);
+  }
+
   clearToken(): void {
     localStorage.removeItem(this.TOKEN_KEY);
+    window.electronAPI?.config?.setAuthToken?.(null);
   }
 
   hasToken(): boolean {
