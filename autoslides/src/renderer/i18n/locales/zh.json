@@ -598,11 +598,15 @@
       },
       "loginSection": {
         "title": "身份验证",
-        "description": "在这里登录以访问 AutoSlides 的所有功能。输入您的凭据开始使用。"
+        "description": "使用您的凭据登录或使用基于浏览器的 SSO 来访问 AutoSlides 的所有功能。"
       },
       "leftPanel": {
         "title": "控制面板",
-        "description": "您已登录！这个左侧面板是您的控制中心，您可以在这里修改各种设置、调整偏好设置并监控应用程序状态。"
+        "description": "您已登录！这个左侧面板包含输出目录、连接模式、幻灯片检测、任务速度和自动后处理等设置。您还可以从这里启动工具和插件窗口。"
+      },
+      "toolsLauncher": {
+        "title": "工具和扩展",
+        "description": "打开工具窗口以使用幻灯片审查、PDF 导出、离线处理和讲座压缩。打开扩展窗口以使用雨课堂集成和网页捕获等扩展功能。"
       },
       "connectionMode": {
         "title": "连接模式",
@@ -615,6 +619,10 @@
       "searchRow": {
         "title": "搜索和个人课程",
         "description": "使用搜索栏查找特定课程，或点击\"获取个人课程列表\"访问您已注册的课程。这有助于您快速找到所需的内容。"
+      },
+      "savedCourses": {
+        "title": "保存的课程",
+        "description": "将常用课程保存为快捷方式以便快速访问。点击任何保存的课程即可快速搜索，或使用+按钮添加新的快捷方式。"
       },
       "courseList": {
         "title": "课程画廊",
@@ -630,7 +638,11 @@
       },
       "rightPanelTask": {
         "title": "任务管理",
-        "description": "这是任务面板，您可以在这里管理幻灯片提取队列。您可以查看已完成的任务和正在进行的任务，并进行实时进度跟踪。"
+        "description": "这是任务面板，您可以在这里管理幻灯片提取队列。您可以查看已完成的任务和正在进行的任务，并进行实时进度跟踪。每个任务还会显示其后处理状态（去重、排除过滤和AI分类）。"
+      },
+      "postProcessing": {
+        "title": "后处理进度",
+        "description": "幻灯片提取完成后，自动后处理分3个阶段运行：去重、排除列表过滤和AI分类。每个阶段显示其进度和过滤掉的幻灯片数量。"
       },
       "rightPanelDownload": {
         "title": "下载管理",
@@ -647,6 +659,7 @@
     }
   },
   "demo": {
+    "greeting": "晚上好，Kate",
     "course": {
       "title": "泛函分析",
       "instructor": "张教授",
@@ -887,7 +900,7 @@
     "keepAiFilteredEdit": "保留标记为 AI 过滤 – 编辑模式 的项目"
   },
   "pdfmaker": {
-    "title": "PDF 制作器",
+    "title": "PDF 导出器",
     "openPdfMaker": "合并 PDF ",
     "back": "返回",
     "refresh": "刷新",
@@ -1022,7 +1035,7 @@
   },
   "tools": {
     "openTools": "工具",
-    "tabPdfMaker": "PDF 制作",
+    "tabPdfMaker": "PDF 导出",
     "tabTrash": "幻灯片审查",
     "tabCompressLecture": "讲座压缩",
     "tabOffline": "离线处理"

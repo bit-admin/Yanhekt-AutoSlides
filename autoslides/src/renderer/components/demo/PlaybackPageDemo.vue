@@ -120,6 +120,18 @@
 
               <button
                 v-if="isSlideExtractionEnabled && mockSlides.length > 0"
+                class="post-process-btn demo-disabled"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="m2 17 10 5 10-5"/>
+                  <path d="m2 12 10 5 10-5"/>
+                </svg>
+                {{ $t('playback.postProcess') }}
+              </button>
+
+              <button
+                v-if="isSlideExtractionEnabled && mockSlides.length > 0"
                 class="clear-all-btn demo-disabled"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -130,6 +142,41 @@
                 </svg>
                 {{ $t('playback.clearAll') }}
               </button>
+            </div>
+          </div>
+
+          <!-- Post-processing Status Bar -->
+          <div v-if="isSlideExtractionEnabled && mockSlides.length > 0" class="post-process-status-bar">
+            <div class="status-bar-content">
+              <div class="phase-progress-item">
+                <div class="phase-header">
+                  <span class="phase-name">{{ $t('playback.postProcessStatus.phase1Name') }}</span>
+                  <span class="phase-status completed">{{ $t('playback.postProcessStatus.completed') }}</span>
+                </div>
+                <div class="phase-progress-bar">
+                  <div class="phase-progress-fill completed" style="width: 100%"></div>
+                </div>
+              </div>
+              <div class="phase-divider"></div>
+              <div class="phase-progress-item">
+                <div class="phase-header">
+                  <span class="phase-name">{{ $t('playback.postProcessStatus.phase2Name') }}</span>
+                  <span class="phase-status completed">{{ $t('playback.postProcessStatus.completed') }}</span>
+                </div>
+                <div class="phase-progress-bar">
+                  <div class="phase-progress-fill completed" style="width: 100%"></div>
+                </div>
+              </div>
+              <div class="phase-divider"></div>
+              <div class="phase-progress-item">
+                <div class="phase-header">
+                  <span class="phase-name">{{ $t('playback.postProcessStatus.phase3Name') }}</span>
+                  <span class="phase-status idle">{{ $t('playback.postProcessStatus.idle') }}</span>
+                </div>
+                <div class="phase-progress-bar">
+                  <div class="phase-progress-fill" style="width: 0%"></div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -931,6 +978,96 @@ onUnmounted(() => {
 
 .slide-metadata strong {
   color: #333;
+}
+
+/* Post-process button */
+.post-process-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #007acc;
+  border-radius: 4px;
+  background-color: #007acc;
+  color: white;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Post-processing status bar */
+.post-process-status-bar {
+  background-color: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin: 0 16px 12px 16px;
+}
+
+.status-bar-content {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.phase-progress-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.phase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.phase-name {
+  font-size: 10px;
+  font-weight: 500;
+  color: #333;
+}
+
+.phase-status {
+  font-size: 9px;
+  font-weight: 500;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.phase-status.completed {
+  color: #28a745;
+  background-color: #d4edda;
+}
+
+.phase-status.idle {
+  color: #6c757d;
+  background-color: #e9ecef;
+}
+
+.phase-progress-bar {
+  height: 3px;
+  background-color: #e9ecef;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.phase-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+  background-color: #007acc;
+}
+
+.phase-progress-fill.completed {
+  background-color: #28a745;
+}
+
+.phase-divider {
+  width: 1px;
+  background-color: #dee2e6;
+  margin: 0 8px;
+  align-self: stretch;
 }
 
 /* Demo mode disabled styles */

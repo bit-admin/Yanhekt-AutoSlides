@@ -37,17 +37,34 @@
     <div class="content">
       <div v-if="showWelcome" class="welcome-page">
         <div class="welcome-content">
-          <h1>{{ $t('courses.welcome.title') }}</h1>
-          <p>{{ $t('courses.welcome.subtitle') }}</p>
-          <div class="welcome-icon">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-              <line x1="8" y1="21" x2="16" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
+          <p class="greeting-line">{{ $t('demo.greeting') }}</p>
+          <div class="saved-courses-section" id="tour-saved-courses">
+            <p class="saved-courses-title">{{ $t('courses.savedSearches.sectionTitle') }}</p>
+            <div class="saved-courses-grid">
+              <div
+                v-for="keyword in savedSearches"
+                :key="keyword"
+                class="course-shortcut-card demo-disabled"
+              >
+                <div class="shortcut-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                  </svg>
+                </div>
+                <span class="shortcut-label">{{ keyword }}</span>
+              </div>
+              <div class="course-shortcut-card course-shortcut-add demo-disabled">
+                <div class="shortcut-icon shortcut-add-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
           </div>
-          <h2>{{ $t('courses.welcome.recordedTitle') }}</h2>
-          <p>{{ $t('courses.welcome.recordedDescription') }}</p>
+          <p class="welcome-subtitle">{{ $t('courses.welcome.subtitle') }}</p>
         </div>
       </div>
 
@@ -108,6 +125,13 @@ const { t } = useI18n()
 const searchQuery = ref('')
 const isLoading = ref(false)
 const showWelcome = ref(true)
+
+const savedSearches = computed(() => [
+  t('demo.courses.functionalAnalysis.title'),
+  t('demo.courses.realAnalysis.title'),
+  t('demo.courses.complexAnalysis.title'),
+  t('demo.courses.abstractAlgebra.title')
+])
 
 // Mock course data for demo (16 mathematics courses)
 const mockCourses = computed<Course[]>(() => [
@@ -535,43 +559,114 @@ defineExpose({
 .welcome-page {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 48px 24px;
+  padding: 20% 24px 48px;
 }
 
 .welcome-content {
   text-align: center;
-  max-width: 400px;
 }
 
-.welcome-icon {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 24px;
-  color: #007acc;
+.greeting-line {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 500;
+  color: #374151;
+  letter-spacing: -0.3px;
 }
 
-.welcome-content h1 {
-  margin: 0 0 16px 0;
-  font-size: 32px;
-  font-weight: 700;
-  color: #333;
-  letter-spacing: -0.5px;
+.saved-courses-section {
+  margin: 48px auto 0;
+  width: 640px;
+  max-width: calc(100% - 32px);
+  padding: 16px 24px 20px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 12px;
 }
 
-.welcome-content h2 {
-  margin: 0 0 16px 0;
-  font-size: 24px;
+.saved-courses-title {
+  margin: 0 0 14px 0;
+  font-size: 11px;
   font-weight: 600;
-  color: #333;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9ca3af;
+  text-align: center;
 }
 
-.welcome-content p {
-  margin: 16px 0 50px 0;
-  font-size: 16px;
-  line-height: 1.5;
-  color: #666;
+.welcome-subtitle {
+  margin: 24px 0 0;
+  font-size: 11px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.saved-courses-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  max-width: 700px;
+}
+
+.course-shortcut-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 88px;
+  height: 64px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 6px 8px;
+  overflow: hidden;
+}
+
+.course-shortcut-card:hover {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+}
+
+.shortcut-icon {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.shortcut-label {
+  font-size: 11px;
+  color: #374151;
+  text-align: center;
+  line-height: 1.2;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.course-shortcut-add {
+  border-style: dashed;
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.course-shortcut-add:hover {
+  border-color: #60a5fa;
+  background: #eff6ff;
+}
+
+.shortcut-add-icon {
+  color: #94a3b8;
+}
+
+.course-shortcut-add:hover .shortcut-add-icon {
+  color: #3b82f6;
 }
 
 @media (max-width: 1200px) {
@@ -627,138 +722,4 @@ defineExpose({
   background: rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .course-page {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .header {
-    background: linear-gradient(135deg, #2d2d2d 0%, #1f1f1f 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .title-section h2 {
-    color: #e0e0e0;
-    background: linear-gradient(135deg, #4da6ff 0%, #0080ff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 2px 4px rgba(77, 166, 255, 0.2);
-  }
-
-  .search-input {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #e0e0e0;
-  }
-
-  .search-input::placeholder {
-    color: #888;
-  }
-
-  .search-btn, .fetch-btn {
-    background-color: #2563eb;
-    border: 1px solid #2563eb;
-    color: #ffffff;
-  }
-
-  .search-btn:hover, .fetch-btn:hover {
-    background-color: #1d4ed8;
-    border-color: #1d4ed8;
-  }
-
-  .spinner {
-    border: 3px solid #404040;
-    border-top: 3px solid #4da6ff;
-  }
-
-  .course-card {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #e0e0e0;
-  }
-
-  .course-card:hover {
-    border-color: #4da6ff;
-    box-shadow: 0 2px 8px rgba(77, 166, 255, 0.2);
-  }
-
-  .course-card-demo:hover {
-    border-color: #404040 !important;
-    box-shadow: none !important;
-  }
-
-  .course-title {
-    color: #e0e0e0;
-  }
-
-  .course-instructor {
-    color: #b0b0b0;
-  }
-
-  .course-location {
-    color: #999;
-  }
-
-  .course-time {
-    color: #888;
-  }
-
-  .course-section {
-    color: #777;
-  }
-
-  .course-participants {
-    color: #4da6ff;
-  }
-
-  .course-id {
-    background-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .welcome-content h1 {
-    color: #e0e0e0;
-  }
-
-  .welcome-content h2 {
-    color: #e0e0e0;
-  }
-
-  .welcome-content p {
-    color: #b0b0b0;
-  }
-
-  .welcome-icon {
-    color: #4da6ff;
-  }
-
-  /* Scrollbar styles for dark mode */
-  .courses-grid {
-    scrollbar-color: transparent transparent;
-  }
-
-  .courses-grid:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .courses-grid::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .courses-grid::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .courses-grid:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .courses-grid::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-  }
-}
 </style>

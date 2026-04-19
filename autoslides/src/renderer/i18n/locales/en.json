@@ -598,11 +598,15 @@
       },
       "loginSection": {
         "title": "Authentication",
-        "description": "This is where you sign in to access all AutoSlides features. Enter your credentials to get started."
+        "description": "Sign in with your credentials or use browser-based SSO to access all AutoSlides features."
       },
       "leftPanel": {
         "title": "Control Panel",
-        "description": "Now you're logged in! This left panel is your control center where you can modify various settings, adjust preferences, and monitor the application status."
+        "description": "Now you're logged in! This left panel contains settings for output directory, connection mode, slide detection, task speed, and auto post-processing. You can also launch Tools and Add-ons windows from here."
+      },
+      "toolsLauncher": {
+        "title": "Tools & Add-ons",
+        "description": "Open the Tools window for Results View (review extracted slides), PDF export, offline processing, and lecture compression. Open Add-ons for extensions like Yuketang integration and web capture."
       },
       "connectionMode": {
         "title": "Connection Mode",
@@ -615,6 +619,10 @@
       "searchRow": {
         "title": "Search & Personal Courses",
         "description": "Use the search bar to find specific courses, or click 'Get Personal Course List' to access your enrolled courses. This helps you quickly locate the content you need."
+      },
+      "savedCourses": {
+        "title": "Saved Courses",
+        "description": "Save your frequently accessed courses as shortcuts for quick access. Click any saved course to instantly search for it, or use the + button to add a new one."
       },
       "courseList": {
         "title": "Course Gallery",
@@ -630,7 +638,11 @@
       },
       "rightPanelTask": {
         "title": "Task Management",
-        "description": "This is the Task panel where you can manage your slide extraction queue. Here you can see completed tasks and tasks in progress, with real-time progress tracking."
+        "description": "This is the Task panel where you can manage your slide extraction queue. Here you can see completed tasks and tasks in progress, with real-time progress tracking. Each task also shows its post-processing status (duplicate removal, exclusion filtering, and AI classification)."
+      },
+      "postProcessing": {
+        "title": "Post-Processing Progress",
+        "description": "After slide extraction completes, automatic post-processing runs in 3 phases: duplicate removal, exclusion list filtering, and AI classification. Each phase shows its progress and how many slides were filtered out."
       },
       "rightPanelDownload": {
         "title": "Download Management",
@@ -647,6 +659,7 @@
     }
   },
   "demo": {
+    "greeting": "Good evening, Kate",
     "course": {
       "title": "Functional Analysis",
       "instructor": "Prof. Zhang",

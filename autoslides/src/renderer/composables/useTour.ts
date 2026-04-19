@@ -58,6 +58,15 @@ export function useTour() {
             }
           },
           {
+            element: '#tour-tools-launchers',
+            popover: {
+              title: t('tour.steps.toolsLauncher.title'),
+              description: t('tour.steps.toolsLauncher.description'),
+              side: 'right',
+              align: 'start'
+            }
+          },
+          {
             element: '.connection-mode-setting',
             popover: {
               title: t('tour.steps.connectionMode.title'),
@@ -82,6 +91,15 @@ export function useTour() {
               description: t('tour.steps.searchRow.description'),
               side: 'bottom',
               align: 'start'
+            }
+          },
+          {
+            element: '#tour-saved-courses',
+            popover: {
+              title: t('tour.steps.savedCourses.title'),
+              description: t('tour.steps.savedCourses.description'),
+              side: 'bottom',
+              align: 'center'
             }
           },
           {
@@ -118,6 +136,15 @@ export function useTour() {
               description: t('tour.steps.rightPanelTask.description'),
               side: 'left',
               align: 'center'
+            }
+          },
+          {
+            element: '.post-process-affiliated-panel',
+            popover: {
+              title: t('tour.steps.postProcessing.title'),
+              description: t('tour.steps.postProcessing.description'),
+              side: 'left',
+              align: 'start'
             }
           },
           {
@@ -193,6 +220,12 @@ export function useTour() {
           }
 
           if (step.element === '.controls-section') {
+            // Just advance to saved courses step (welcome page still visible)
+            tourInstance.value?.moveNext()
+            return
+          }
+
+          if (step.element === '#tour-saved-courses') {
             // Trigger demo search to show course list
             window.dispatchEvent(new CustomEvent('tour-demo-search'))
 
@@ -226,7 +259,13 @@ export function useTour() {
           }
 
           if (step.element === '.right-panel[data-tab="task"]') {
-            // Switch to download mode for next step
+            // Just move to next step (post-processing) - still on task tab
+            tourInstance.value?.moveNext()
+            return
+          }
+
+          if (step.element === '.post-process-affiliated-panel') {
+            // Switch to download mode after post-processing step
             window.dispatchEvent(new CustomEvent('tour-switch-to-download-mode'))
 
             // Wait for mode switch before continuing
@@ -271,6 +310,7 @@ export function useTour() {
             } catch (error) {
               console.error('Failed to restore theme:', error)
             }
+            originalTheme = null
           }
 
           // Exit demo mode

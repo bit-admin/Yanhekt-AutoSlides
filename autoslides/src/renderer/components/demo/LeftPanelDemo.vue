@@ -21,17 +21,41 @@
             value=""
           />
         </div>
-        <button class="login-btn" disabled>
-          {{ $t('auth.signIn') }}
-        </button>
+        <div class="login-buttons">
+          <button class="login-btn" disabled>
+            {{ $t('auth.signIn') }}
+          </button>
+          <button class="browser-login-btn" disabled>
+            {{ $t('auth.signInWithBrowser') }}
+          </button>
+        </div>
       </div>
 
-      <!-- Step 2: Show logged in state with demo user -->
-      <div v-else class="user-info">
-        <h3>{{ $t('auth.hiThere', { nickname: 'Kate' }) }}</h3>
-        <p>{{ $t('auth.signInAs', { userId: '0000000000' }) }}</p>
-        <p>{{ $t('auth.accessMessage') }}</p>
-        <button class="logout-btn" disabled>{{ $t('auth.signOut') }}</button>
+      <!-- Step 2: Show logged in state with user-banner -->
+      <div v-else class="user-info" ref="userInfoRef">
+        <button type="button" class="user-banner open" disabled>
+          <span class="user-avatar">K</span>
+          <span class="user-banner-name">Kate</span>
+          <svg
+            class="user-banner-chevron open"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <div class="user-menu">
+          <p class="user-menu-username">{{ $t('auth.signInAs', { userId: '0000000000' }) }}</p>
+          <p class="user-menu-message">{{ $t('auth.accessMessage') }}</p>
+          <button class="logout-btn user-menu-signout" disabled>{{ $t('auth.signOut') }}</button>
+        </div>
       </div>
     </div>
 
@@ -48,7 +72,14 @@
       </div>
       <div class="settings-content">
         <div class="setting-item">
-          <label class="setting-label">{{ $t('settings.outputDirectory') }}</label>
+          <div class="setting-label-with-reset">
+            <label class="setting-label">{{ $t('settings.outputDirectory') }}</label>
+            <button class="reset-btn" disabled :title="$t('settings.openFolder')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+            </button>
+          </div>
           <div class="directory-input-group">
             <input
               type="text"
@@ -78,27 +109,6 @@
             <select class="audio-mode-select" disabled>
               <option value="normal">{{ $t('settings.normal') }}</option>
             </select>
-          </div>
-        </div>
-
-        <div class="setting-item">
-          <div class="theme-language-row">
-            <div class="theme-language-item">
-              <label class="setting-label">{{ $t('settings.theme') }}</label>
-              <div class="theme-selector">
-                <select class="theme-select" disabled>
-                  <option value="system">{{ $t('settings.followSystem') }}</option>
-                </select>
-              </div>
-            </div>
-            <div class="theme-language-item">
-              <label class="setting-label">{{ $t('settings.language') }}</label>
-              <div class="language-selector">
-                <select class="language-select" disabled>
-                  <option value="system">{{ $t('settings.followSystem') }}</option>
-                </select>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -168,16 +178,51 @@
             </select>
           </div>
         </div>
+
+        <div class="setting-item">
+          <label class="setting-label">{{ $t('settings.autoPostProcessing') }}</label>
+          <div class="setting-description">{{ $t('settings.autoPostProcessingDescription') }}</div>
+          <div class="auto-post-processing-control">
+            <label class="checkbox-label">
+              <input type="checkbox" disabled />
+              {{ $t('settings.enableAutoPostProcessingLive') }}
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" checked disabled />
+              {{ $t('settings.enableAutoPostProcessingRecorded') }}
+            </label>
+          </div>
+        </div>
       </div>
     </div>
 
     <div class="status-section">
-      <div class="status-row">
-        <span class="status-label">{{ $t('status.connection') }}</span>
-        <span class="status-value internal">
-          {{ $t('settings.internalNetwork') }}
-        </span>
+      <div id="tour-tools-launchers" class="tools-launchers">
+        <div class="tools-dropdown">
+          <button class="tools-trigger" disabled>
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M1 3h4v4H1V3zm5 0h4v4H6V3zm5 0h4v4h-4V3zM1 9h4v4H1V9zm5 0h4v4H6V9zm5 0h4v4h-4V9z" fill="currentColor"/>
+            </svg>
+            <span>{{ $t('tools.openTools') }}</span>
+            <svg width="10" height="10" viewBox="0 0 10 10" class="tools-chevron">
+              <path d="M3 2l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="tools-dropdown addons-dropdown">
+          <button class="tools-trigger" disabled>
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M8 1L1 5v6l7 4 7-4V5L8 1zm0 2l4.5 2.5L8 8 3.5 5.5 8 3zM2.5 6.3L7.5 9v4.2l-5-2.8V6.3zm11 0v4.1l-5 2.8V9l5-2.7z" fill="currentColor"/>
+            </svg>
+            <span>{{ $t('addons.openAddons') }}</span>
+            <svg width="10" height="10" viewBox="0 0 10 10" class="tools-chevron">
+              <path d="M3 2l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </button>
+        </div>
       </div>
+
       <div class="status-row">
         <span class="status-label">{{ $t('status.taskStatus') }}</span>
         <span class="status-value">{{ $t('status.noTasks') }}</span>
@@ -193,20 +238,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-// Demo state - controls whether we show login form or logged in state
 const isDemoLoggedIn = ref(false)
 
-// Method to transition from login form to logged in state
 const loginDemo = () => {
   isDemoLoggedIn.value = true
 }
 
-// Method to reset to login form
 const resetDemo = () => {
   isDemoLoggedIn.value = false
 }
 
-// Expose methods for external control
 defineExpose({
   loginDemo,
   resetDemo,
@@ -215,7 +256,6 @@ defineExpose({
 </script>
 
 <style scoped>
-/* Import all the styles from the original LeftPanel.vue */
 .left-panel {
   display: flex;
   flex-direction: column;
@@ -229,18 +269,11 @@ defineExpose({
   background-color: #f8f9fa;
 }
 
-.login-form, .user-info {
+.login-form {
   min-height: 140px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-}
-
-.user-info {
-  padding: 8px 0;
-  background-color: white;
-  border-radius: 8px;
-  border: 1px solid #e0e0e0;
 }
 
 .login-form h3 {
@@ -249,21 +282,9 @@ defineExpose({
   font-weight: 600;
 }
 
-.user-info h3 {
-  margin: 5px 0 14px 20px;
-  font-size: 24px;
-  font-weight: 600;
-}
-
 .login-form p {
   margin: 0 0 12px 0;
   font-size: 12px;
-  color: #666;
-}
-
-.user-info p {
-  margin: 0 20px 10px 20px;
-  font-size: 15px;
   color: #666;
 }
 
@@ -283,15 +304,112 @@ defineExpose({
   color: #999;
 }
 
-.login-btn {
+.login-buttons {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
   width: 100%;
-  padding: 8px 16px;
+}
+
+.login-btn {
+  flex: 1;
+  padding: 8px 12px;
   border: none;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
   cursor: not-allowed;
   background-color: #ccc;
   color: white;
+}
+
+.browser-login-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #007acc;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: not-allowed;
+  background-color: transparent;
+  color: #007acc;
+  white-space: nowrap;
+  opacity: 0.6;
+}
+
+/* User banner (logged-in state) */
+.user-info {
+  position: relative;
+}
+
+.user-banner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #d5d9de;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  padding: 5px 8px;
+  background-color: #ffffff;
+  cursor: default;
+}
+
+.user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #2563eb;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.user-banner-name {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-banner-chevron {
+  width: 14px;
+  height: 14px;
+  color: #6b7280;
+}
+
+.user-banner-chevron.open {
+  transform: rotate(180deg);
+}
+
+.user-menu {
+  border: 1px solid #d5d9de;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background-color: #ffffff;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+  padding: 8px;
+}
+
+.user-menu-username {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.user-menu-message {
+  margin: 4px 0 8px 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.35;
 }
 
 .logout-btn {
@@ -302,10 +420,13 @@ defineExpose({
   background-color: transparent;
   color: #dc3545;
   border: 1px solid #dc3545;
-  padding: 6px 16px;
-  align-self: flex-start;
-  margin: 4px 0 4px 20px;
+  padding: 6px 10px;
   opacity: 0.6;
+}
+
+.user-menu-signout {
+  width: 100%;
+  text-align: center;
 }
 
 .control-section {
@@ -432,11 +553,11 @@ defineExpose({
   border-color: #007bff;
 }
 
-.audio-mode-selector, .theme-selector, .language-selector, .task-speed-selector {
+.audio-mode-selector, .task-speed-selector {
   width: 100%;
 }
 
-.audio-mode-select, .theme-select, .language-select, .task-speed-select, .verification-count-select {
+.audio-mode-select, .task-speed-select, .verification-count-select {
   width: 100%;
   padding: 6px 8px;
   border: 1px solid #ddd;
@@ -447,26 +568,12 @@ defineExpose({
   color: #666;
 }
 
-.theme-language-row {
-  display: flex;
-  gap: 12px;
-}
-
-.theme-language-item {
-  flex: 1;
-}
-
-.theme-language-item .setting-label {
-  margin-bottom: 6px;
-}
-
 .setting-description {
   font-size: 11px;
   color: #666;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   line-height: 1.3;
   margin-top: 2px;
-  margin-bottom: 6px;
 }
 
 .slide-interval-group {
@@ -518,7 +625,7 @@ defineExpose({
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #666;
+  color: #333;
   cursor: not-allowed;
   padding: 8px 12px;
   background-color: transparent;
@@ -562,10 +669,69 @@ defineExpose({
   color: #666;
 }
 
+/* Auto post-processing control */
+.auto-post-processing-control {
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.auto-post-processing-control .checkbox-label {
+  cursor: not-allowed;
+  padding: 8px 12px;
+  color: #333;
+}
+
+.auto-post-processing-control .checkbox-label:not(:last-child) {
+  border-bottom: 1px solid #ddd;
+}
+
+.auto-post-processing-control .checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: not-allowed;
+  width: 16px;
+  height: 16px;
+  accent-color: #007bff;
+}
+
 .status-section {
   padding: 16px;
   border-top: 1px solid #e0e0e0;
   background-color: #f8f9fa;
+}
+
+/* Tools & Add-ons launcher buttons */
+.tools-dropdown {
+  margin-bottom: 10px;
+}
+
+.tools-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #ffffff;
+  color: #333;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.tools-trigger svg:first-child {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.tools-chevron {
+  margin-left: auto;
+  opacity: 0.45;
 }
 
 .status-row {
@@ -589,10 +755,6 @@ defineExpose({
   color: #666;
 }
 
-.status-value.internal {
-  color: #28a745;
-}
-
 /* Connection mode setting highlight for tour */
 .connection-mode-setting {
   position: relative;
@@ -600,150 +762,5 @@ defineExpose({
 
 .connection-mode-setting .setting-label {
   font-weight: 600;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .left-panel {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-
-  .login-section {
-    border-bottom-color: #404040;
-    background-color: #2d2d2d;
-  }
-
-  .user-info {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .login-form h3, .user-info h3 {
-    color: #e0e0e0;
-  }
-
-  .login-form p, .user-info p {
-    color: #b0b0b0;
-  }
-
-  .input-field {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #888;
-  }
-
-  .login-btn {
-    background-color: #555;
-  }
-
-  .logout-btn {
-    color: #ff6b6b;
-    border-color: #ff6b6b;
-  }
-
-  .control-section {
-    background-color: #2d2d2d;
-  }
-
-  .control-header h3 {
-    color: #e0e0e0;
-  }
-
-  .advanced-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #888;
-  }
-
-  .setting-label {
-    color: #e0e0e0;
-  }
-
-  .reset-btn {
-    color: #888;
-  }
-
-  .setting-description {
-    color: #b0b0b0;
-  }
-
-  .directory-input {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .browse-btn {
-    background-color: #555;
-  }
-
-  .mode-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .mode-btn.active {
-    background-color: #2563eb;
-    color: white;
-    border-color: #2563eb;
-  }
-
-  .audio-mode-select, .theme-select, .language-select, .task-speed-select, .verification-count-select {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .slide-interval-input-wrapper {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .slide-interval-input {
-    color: #b0b0b0;
-  }
-
-  .interval-unit {
-    background-color: #2d2d2d;
-    border-left-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .verification-unified-control {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .checkbox-label {
-    color: #b0b0b0;
-  }
-
-  .verification-count-control {
-    background-color: rgba(45, 45, 45, 0.7);
-    border-left-color: #404040;
-  }
-
-  .count-label {
-    color: #b0b0b0;
-  }
-
-  .status-section {
-    background-color: #2d2d2d;
-    border-top-color: #404040;
-  }
-
-  .status-label {
-    color: #e0e0e0;
-  }
-
-  .status-value {
-    color: #b0b0b0;
-  }
-
-  .status-value.internal {
-    color: #4caf50;
-  }
 }
 </style>
