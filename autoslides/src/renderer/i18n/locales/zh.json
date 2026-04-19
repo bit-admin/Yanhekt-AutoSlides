@@ -532,7 +532,7 @@
     "zoomOut": "缩小",
     "toggleFullscreen": "切换全屏",
     "visitGitHub": "访问 GitHub 仓库",
-    "itCenterSoftware": "IT 中心软件列表",
+    "itCenterSoftware": "使用说明",
     "webVersion": "网页版",
     "ssimTest": "SSIM 测试",
     "termsAndConditions": "条款和条件",
@@ -655,6 +655,18 @@
       "slideGallery": {
         "title": "幻灯片画廊",
         "description": "当为屏幕录像启用幻灯片提取时，提取的幻灯片会出现在这里。您可以从此画廊查看、管理和删除幻灯片。"
+      },
+      "toolsOverview": {
+        "title": "工具窗口",
+        "description": "工具窗口提供强大的功能来管理提取的幻灯片。它包含结果查看、PDF制作和离线处理标签页。让我们来看看。"
+      },
+      "resultsView": {
+        "title": "结果查看",
+        "description": "在上下文中查看所有提取和删除的幻灯片。恢复已删除的图片，删除不需要的图片，裁剪幻灯片。标签显示每张图片的状态和删除原因。"
+      },
+      "pdfMaker": {
+        "title": "PDF制作",
+        "description": "选择幻灯片文件夹并生成PDF，支持可选压缩。拖动文件夹来重新排序，选择压缩设置来减小文件大小。"
       }
     }
   },

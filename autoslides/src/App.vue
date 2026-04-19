@@ -34,6 +34,9 @@
         </div>
       </template>
     </div>
+
+    <!-- Tools Window Demo Modal (tour overlay) -->
+    <ToolsWindowDemo v-if="isDemoMode && showToolsDemo" ref="toolsWindowDemoRef" />
   </div>
 </template>
 
@@ -48,6 +51,7 @@ import SessionPageDemo from './renderer/components/demo/SessionPageDemo.vue'
 import PlaybackPageDemo from './renderer/components/demo/PlaybackPageDemo.vue'
 import RightPanel from './renderer/components/RightPanel.vue'
 import RightPanelDemo from './renderer/components/demo/RightPanelDemo.vue'
+import ToolsWindowDemo from './renderer/components/demo/ToolsWindowDemo.vue'
 import BrowserLoginView from './renderer/components/BrowserLoginView.vue'
 import { useTour } from './renderer/composables/useTour'
 import { useAuth } from './renderer/composables/useAuth'
@@ -76,6 +80,8 @@ const showMainDemo = ref(false)
 const showSessionDemo = ref(false)
 const showPlaybackDemo = ref(false)
 const showRightPanelDemo = ref(false)
+const showToolsDemo = ref(false)
+const toolsWindowDemoRef = ref()
 const { checkFirstVisit, showWelcomePopup } = useTour()
 
 const handleSwitchToDownload = () => {
@@ -169,6 +175,7 @@ const handleDemoModeToggle = (event: CustomEvent) => {
     showSessionDemo.value = false
     showPlaybackDemo.value = false
     showRightPanelDemo.value = false
+    showToolsDemo.value = false
     nextTick(() => {
       if (leftPanelDemoRef.value) {
         leftPanelDemoRef.value.resetDemo()
@@ -180,6 +187,7 @@ const handleDemoModeToggle = (event: CustomEvent) => {
     showSessionDemo.value = false
     showPlaybackDemo.value = false
     showRightPanelDemo.value = false
+    showToolsDemo.value = false
     if (leftPanelDemoRef.value) {
       leftPanelDemoRef.value.resetDemo()
     }
@@ -239,6 +247,30 @@ const handleSwitchToPlaybackDemo = () => {
   showPlaybackDemo.value = true
 }
 
+const handleShowToolsDemo = () => {
+  showToolsDemo.value = true
+}
+
+const handleShowResultsImages = () => {
+  nextTick(() => {
+    if (toolsWindowDemoRef.value) {
+      toolsWindowDemoRef.value.showResultsImages()
+    }
+  })
+}
+
+const handleSwitchToPdfMakerDemo = () => {
+  nextTick(() => {
+    if (toolsWindowDemoRef.value) {
+      toolsWindowDemoRef.value.switchToPdfMaker()
+    }
+  })
+}
+
+const handleHideToolsDemo = () => {
+  showToolsDemo.value = false
+}
+
 const handleBackFromPlayback = () => {
   showPlaybackDemo.value = false
   showRightPanelDemo.value = true
@@ -274,6 +306,10 @@ onMounted(() => {
   window.addEventListener('tour-switch-to-right-panel-demo', handleSwitchToRightPanelDemo)
   window.addEventListener('tour-switch-to-download-mode', handleSwitchToDownloadMode)
   window.addEventListener('tour-switch-to-playback-demo', handleSwitchToPlaybackDemo)
+  window.addEventListener('tour-show-tools-demo', handleShowToolsDemo)
+  window.addEventListener('tour-show-results-images', handleShowResultsImages)
+  window.addEventListener('tour-switch-to-pdfmaker-demo', handleSwitchToPdfMakerDemo)
+  window.addEventListener('tour-hide-tools-demo', handleHideToolsDemo)
 
   onUnmounted(() => {
     window.removeEventListener('resize', updateSizes)
@@ -286,6 +322,10 @@ onMounted(() => {
     window.removeEventListener('tour-switch-to-right-panel-demo', handleSwitchToRightPanelDemo)
     window.removeEventListener('tour-switch-to-download-mode', handleSwitchToDownloadMode)
     window.removeEventListener('tour-switch-to-playback-demo', handleSwitchToPlaybackDemo)
+    window.removeEventListener('tour-show-tools-demo', handleShowToolsDemo)
+    window.removeEventListener('tour-show-results-images', handleShowResultsImages)
+    window.removeEventListener('tour-switch-to-pdfmaker-demo', handleSwitchToPdfMakerDemo)
+    window.removeEventListener('tour-hide-tools-demo', handleHideToolsDemo)
   })
 })
 </script>

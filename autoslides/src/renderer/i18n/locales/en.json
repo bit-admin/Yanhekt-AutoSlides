@@ -532,7 +532,7 @@
     "zoomOut": "Zoom Out",
     "toggleFullscreen": "Toggle Fullscreen",
     "visitGitHub": "Visit GitHub Repository",
-    "itCenterSoftware": "IT Center Software List",
+    "itCenterSoftware": "User Manual",
     "webVersion": "Web Version",
     "ssimTest": "SSIM Test",
     "termsAndConditions": "Terms and Conditions",
@@ -655,6 +655,18 @@
       "slideGallery": {
         "title": "Slide Gallery",
         "description": "When slide extraction is enabled for screen recordings, extracted slides appear here. You can view, manage, and delete slides from this gallery."
+      },
+      "toolsOverview": {
+        "title": "Tools Window",
+        "description": "The Tools window provides powerful features for managing your extracted slides. It contains Results View, PDF Maker, and Offline Processing tabs. Let's take a look."
+      },
+      "resultsView": {
+        "title": "Results View",
+        "description": "Review all extracted and removed slides in context. Restore removed images, delete unwanted ones, and crop slides. Badges show each image's status and removal reason."
+      },
+      "pdfMaker": {
+        "title": "PDF Maker",
+        "description": "Select slide folders and generate PDFs with optional compression. Drag folders to reorder them, and choose compression settings to reduce file size."
       }
     }
   },

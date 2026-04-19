@@ -603,7 +603,7 @@ const openITCenter = async () => {
   try {
     await (window as any).electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/software');
   } catch (error) {
-    console.error('Failed to open IT Center Software List:', error);
+    console.error('Failed to open User Manual:', error);
   }
 };
 

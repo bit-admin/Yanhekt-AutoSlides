@@ -175,6 +175,33 @@ export function useTour() {
             }
           },
           {
+            element: '.tools-demo-modal',
+            popover: {
+              title: t('tour.steps.toolsOverview.title'),
+              description: t('tour.steps.toolsOverview.description'),
+              side: 'top',
+              align: 'center'
+            }
+          },
+          {
+            element: '#tour-results-grid',
+            popover: {
+              title: t('tour.steps.resultsView.title'),
+              description: t('tour.steps.resultsView.description'),
+              side: 'left',
+              align: 'center'
+            }
+          },
+          {
+            element: '#tour-pdfmaker-content',
+            popover: {
+              title: t('tour.steps.pdfMaker.title'),
+              description: t('tour.steps.pdfMaker.description'),
+              side: 'left',
+              align: 'center'
+            }
+          },
+          {
             element: '.search-box',
             popover: {
               title: t('tour.steps.searchButton.title'),
@@ -294,6 +321,46 @@ export function useTour() {
             return // Prevent default next behavior
           }
 
+          if (step.element === '.slide-gallery') {
+            // Show Tools window demo modal after slide gallery step
+            window.dispatchEvent(new CustomEvent('tour-show-tools-demo'))
+
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 400)
+            return
+          }
+
+          if (step.element === '.tools-demo-modal') {
+            // Navigate to Results View image grid
+            window.dispatchEvent(new CustomEvent('tour-show-results-images'))
+
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 300)
+            return
+          }
+
+          if (step.element === '#tour-results-grid') {
+            // Switch to PDF Maker tab
+            window.dispatchEvent(new CustomEvent('tour-switch-to-pdfmaker-demo'))
+
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 300)
+            return
+          }
+
+          if (step.element === '#tour-pdfmaker-content') {
+            // Close Tools demo modal and continue to search button
+            window.dispatchEvent(new CustomEvent('tour-hide-tools-demo'))
+
+            setTimeout(() => {
+              tourInstance.value?.moveNext()
+            }, 200)
+            return
+          }
+
           // Continue to next step for other elements
           tourInstance.value?.moveNext()
         },
@@ -313,7 +380,8 @@ export function useTour() {
             originalTheme = null
           }
 
-          // Exit demo mode
+          // Exit demo mode and clean up any open demo modals
+          window.dispatchEvent(new CustomEvent('tour-hide-tools-demo'))
           window.dispatchEvent(new CustomEvent('tour-demo-mode', { detail: { enabled: false } }))
         }
       })

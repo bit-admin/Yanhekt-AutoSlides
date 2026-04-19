@@ -532,7 +532,7 @@
     "zoomOut": "축소",
     "toggleFullscreen": "전체화면 토글",
     "visitGitHub": "GitHub 저장소 방문",
-    "itCenterSoftware": "IT 센터 소프트웨어 목록",
+    "itCenterSoftware": "사용자 설명서",
     "webVersion": "웹 버전",
     "ssimTest": "SSIM 테스트",
     "termsAndConditions": "이용약관",
@@ -655,6 +655,18 @@
       "slideGallery": {
         "title": "슬라이드 갤러리",
         "description": "화면 녹화에서 슬라이드 추출이 활성화된 경우 추출된 슬라이드가 여기에 나타납니다. 이 갤러리에서 슬라이드를 보고, 관리하고, 삭제할 수 있습니다."
+      },
+      "toolsOverview": {
+        "title": "도구 창",
+        "description": "도구 창은 추출된 슬라이드를 관리하기 위한 강력한 기능을 제공합니다. 결과 보기, PDF 메이커, 오프라인 처리 탭이 포함되어 있습니다. 한번 살펴보겠습니다."
+      },
+      "resultsView": {
+        "title": "결과 보기",
+        "description": "추출된 슬라이드와 제거된 슬라이드를 맥락에서 모두 확인할 수 있습니다. 제거된 이미지 복원, 불필요한 이미지 삭제, 슬라이드 자르기가 가능합니다. 배지는 각 이미지의 상태와 제거 사유를 표시합니다."
+      },
+      "pdfMaker": {
+        "title": "PDF 메이커",
+        "description": "슬라이드 폴더를 선택하고 선택적 압축으로 PDF를 생성합니다. 폴더를 드래그하여 순서를 변경하고, 압축 설정으로 파일 크기를 줄일 수 있습니다."
       }
     }
   },
