@@ -21,7 +21,9 @@ export function useTour() {
 
     // Force light theme for tour and store original theme
     try {
-      originalTheme = await (window as any).electronAPI.tour.forceLightTheme()
+      if (originalTheme == null) {
+        originalTheme = await (window as any).electronAPI.tour.forceLightTheme()
+      }
     } catch (error) {
       console.error('Failed to force light theme:', error)
     }
@@ -331,6 +333,14 @@ export function useTour() {
           tourInstance.value?.destroy()
           isFirstVisit.value = false
           markTourAsSeen()
+          if (originalTheme) {
+            try {
+              await (window as any).electronAPI.tour.restoreTheme(originalTheme)
+            } catch (error) {
+              console.error('Failed to restore theme:', error)
+            }
+            originalTheme = null
+          }
         })
       }
     }, 100)

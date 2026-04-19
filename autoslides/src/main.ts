@@ -369,14 +369,19 @@ ipcMain.handle('config:getEffectiveTheme', async () => {
 });
 
 // IPC handlers for tour theme management
+let tourOriginalTheme: 'system' | 'light' | 'dark' | undefined;
+
 ipcMain.handle('tour:forceLightTheme', async () => {
-  const originalTheme = configService.getThemeMode();
-  configService.setThemeMode('light');
-  return originalTheme;
+  if (tourOriginalTheme === undefined) {
+    tourOriginalTheme = configService.getThemeMode();
+    configService.setThemeMode('light');
+  }
+  return tourOriginalTheme;
 });
 
-ipcMain.handle('tour:restoreTheme', async (event, originalTheme: 'system' | 'light' | 'dark') => {
+ipcMain.handle('tour:restoreTheme', async (_event, originalTheme: 'system' | 'light' | 'dark') => {
   configService.setThemeMode(originalTheme);
+  tourOriginalTheme = undefined;
   return configService.getConfig();
 });
 
