@@ -688,6 +688,10 @@ export class CompressLectureService {
       return value;
     }
 
+    if (process.platform === 'win32') {
+      return `"${value.replace(/"/g, '\\"')}"`;
+    }
+
     return `'${value.replace(/'/g, `'\\''`)}'`;
   }
 }

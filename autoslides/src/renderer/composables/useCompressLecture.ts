@@ -11,6 +11,41 @@ type OpusVbr = 'on' | 'constrained' | 'off'
 
 type UiStatus = 'idle' | 'previewing' | 'running' | 'completed' | 'cancelled' | 'error'
 
+type CompressLectureOptions = {
+  inputPath: string
+  outputPath?: string
+  preset?: Preset
+  audioPreset?: AudioPreset
+  audioFilterPreset?: AudioFilterPreset
+  cropMode?: CropMode
+  filterMode?: FilterMode
+  scaler?: Scaler
+  container?: Container
+  opusVbr?: OpusVbr
+  opusFrameDuration?: 20 | 40 | 60
+  keepAac?: boolean
+  x265Params?: string
+}
+
+type CompressLectureProgress = {
+  phase: 'preparing' | 'cropdetect' | 'encoding' | 'completed'
+  current: number
+  total: number
+  message?: string
+}
+
+type CompressLecturePreviewResult = {
+  command: string
+  outputPath: string
+  sourceWidth: number
+  sourceHeight: number
+  targetWidth: number
+  targetHeight: number
+  contentAspect: '4:3' | '16:9' | 'cropped' | 'source'
+  videoFiltergraph: string
+  audioFiltergraph: string
+}
+
 const buildDefaultValues = () => ({
   preset: 'tiny' as Preset,
   audioPreset: 'mid' as AudioPreset,
@@ -25,18 +60,28 @@ const buildDefaultValues = () => ({
   x265Params: 'aq-mode=1'
 })
 
-const getPathParts = (filePath: string): { dir: string; stem: string } => {
-  const normalized = filePath.replace(/\\/g, '/')
-  const slashIndex = normalized.lastIndexOf('/')
-  const dir = slashIndex >= 0 ? normalized.slice(0, slashIndex) : ''
-  const fileName = slashIndex >= 0 ? normalized.slice(slashIndex + 1) : normalized
-  const dotIndex = fileName.lastIndexOf('.')
-  const stem = dotIndex > 0 ? fileName.slice(0, dotIndex) : fileName
-  return { dir, stem }
+const isWindowsPath = (filePath: string): boolean => {
+  return /^[A-Za-z]:[\\/]/.test(filePath) || filePath.startsWith('\\\\')
 }
 
-const toSafeToken = (token: string): string => {
-  if (!navigator.userAgent.includes('Windows')) {
+const getPathParts = (filePath: string): { dir: string; stem: string; separator: '/' | '\\' } => {
+  const lastForwardSlash = filePath.lastIndexOf('/')
+  const lastBackwardSlash = filePath.lastIndexOf('\\')
+  const slashIndex = Math.max(lastForwardSlash, lastBackwardSlash)
+
+  const separator = slashIndex >= 0
+    ? (filePath[slashIndex] as '/' | '\\')
+    : (isWindowsPath(filePath) ? '\\' : '/')
+
+  const dir = slashIndex >= 0 ? filePath.slice(0, slashIndex) : ''
+  const fileName = slashIndex >= 0 ? filePath.slice(slashIndex + 1) : filePath
+  const dotIndex = fileName.lastIndexOf('.')
+  const stem = dotIndex > 0 ? fileName.slice(0, dotIndex) : fileName
+  return { dir, stem, separator }
+}
+
+const toSafeToken = (token: string, filePath: string): string => {
+  if (!isWindowsPath(filePath)) {
     return token
   }
   return token.replace(/[<>:"/\\|?*]/g, '_')
@@ -83,10 +128,10 @@ export function useCompressLecture() {
       return ''
     }
 
-    const { dir, stem } = getPathParts(inputPath.value)
-    const safeCrop = toSafeToken(cropMode.value)
+    const { dir, stem, separator } = getPathParts(inputPath.value)
+    const safeCrop = toSafeToken(cropMode.value, inputPath.value)
     const outputName = `${stem}_${preset.value}_${audioPreset.value}_${audioFilterPreset.value}_${safeCrop}_${filterMode.value}.${container.value}`
-    return dir ? `${dir}/${outputName}` : outputName
+    return dir ? `${dir}${separator}${outputName}` : outputName
   })
 
   const previewCommand = computed(() => previewResult.value?.command || '')
