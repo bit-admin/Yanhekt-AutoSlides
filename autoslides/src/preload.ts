@@ -149,6 +149,57 @@ contextBridge.exposeInMainWorld('electronAPI', {
     isAvailable: () => ipcRenderer.invoke('ffmpeg:isAvailable'),
     getPlatformInfo: () => ipcRenderer.invoke('ffmpeg:getPlatformInfo'),
   },
+  compressLecture: {
+    selectInput: () => ipcRenderer.invoke('compressLecture:selectInput') as Promise<string | null>,
+    selectOutput: (defaultPath?: string) => ipcRenderer.invoke('compressLecture:selectOutput', defaultPath) as Promise<string | null>,
+    preview: (options: {
+      inputPath: string;
+      outputPath?: string;
+      preset?: 'tiny' | 'small' | 'readable';
+      audioPreset?: 'low' | 'mid' | 'high' | 'max';
+      audioFilterPreset?: 'none' | 'clean' | 'speech' | 'strong' | 'loudnorm';
+      cropMode?: 'none' | '4:3' | 'auto';
+      filterMode?: 'none' | 'denoise' | 'sharpen' | 'both';
+      scaler?: 'lanczos' | 'bicubic';
+      container?: 'mp4' | 'mkv';
+      opusVbr?: 'on' | 'constrained' | 'off';
+      opusFrameDuration?: 20 | 40 | 60;
+      keepAac?: boolean;
+      x265Params?: string;
+    }) => ipcRenderer.invoke('compressLecture:preview', options),
+    start: (options: {
+      inputPath: string;
+      outputPath?: string;
+      preset?: 'tiny' | 'small' | 'readable';
+      audioPreset?: 'low' | 'mid' | 'high' | 'max';
+      audioFilterPreset?: 'none' | 'clean' | 'speech' | 'strong' | 'loudnorm';
+      cropMode?: 'none' | '4:3' | 'auto';
+      filterMode?: 'none' | 'denoise' | 'sharpen' | 'both';
+      scaler?: 'lanczos' | 'bicubic';
+      container?: 'mp4' | 'mkv';
+      opusVbr?: 'on' | 'constrained' | 'off';
+      opusFrameDuration?: 20 | 40 | 60;
+      keepAac?: boolean;
+      x265Params?: string;
+    }) => ipcRenderer.invoke('compressLecture:start', options) as Promise<{ outputPath: string }>,
+    cancel: () => ipcRenderer.invoke('compressLecture:cancel') as Promise<boolean>,
+    isActive: () => ipcRenderer.invoke('compressLecture:isActive') as Promise<boolean>,
+    onProgress: (callback: (progress: { phase: 'preparing' | 'cropdetect' | 'encoding' | 'completed'; current: number; total: number; message?: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, progress: { phase: 'preparing' | 'cropdetect' | 'encoding' | 'completed'; current: number; total: number; message?: string }) => callback(progress);
+      ipcRenderer.on('compressLecture:progress', handler);
+      return () => ipcRenderer.removeListener('compressLecture:progress', handler);
+    },
+    onCompleted: (callback: (result: { outputPath: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, result: { outputPath: string }) => callback(result);
+      ipcRenderer.on('compressLecture:completed', handler);
+      return () => ipcRenderer.removeListener('compressLecture:completed', handler);
+    },
+    onError: (callback: (error: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, error: string) => callback(error);
+      ipcRenderer.on('compressLecture:error', handler);
+      return () => ipcRenderer.removeListener('compressLecture:error', handler);
+    },
+  },
   download: {
     start: (downloadId: string, m3u8Url: string, outputName: string) =>
       ipcRenderer.invoke('download:start', downloadId, m3u8Url, outputName),

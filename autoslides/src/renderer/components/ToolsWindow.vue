@@ -36,6 +36,16 @@
             </svg>
             {{ $t('tools.tabOffline') }}
           </button>
+          <button
+            class="tab-btn"
+            :class="{ active: activeTab === 'compress' }"
+            @click="switchTab('compress')"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1zm3 2H4v8h8V6h-2V4H6zm1 0v1h2V4H7zm-2 5h6v1H5V9z" fill="currentColor"/>
+            </svg>
+            {{ $t('tools.tabCompressLecture') }}
+          </button>
         </div>
       </div>
       <div v-if="!isMacOS" class="window-controls">
@@ -68,6 +78,9 @@
       <div v-show="activeTab === 'offline'" class="tab-panel">
         <OfflineProcessingTab />
       </div>
+      <div v-show="activeTab === 'compress'" class="tab-panel">
+        <CompressLectureTab />
+      </div>
     </div>
   </div>
 </template>
@@ -77,8 +90,9 @@ import { ref, onMounted } from 'vue'
 import PdfMakerWindow from './PdfMakerWindow.vue'
 import ResultsWindow from './ResultsWindow.vue'
 import OfflineProcessingTab from './OfflineProcessingTab.vue'
+import CompressLectureTab from './CompressLectureTab.vue'
 
-type TabId = 'pdfmaker' | 'trash' | 'offline'
+type TabId = 'pdfmaker' | 'trash' | 'compress' | 'offline'
 
 const isMacOS = navigator.userAgent.includes('Mac')
 
@@ -86,7 +100,7 @@ const isMacOS = navigator.userAgent.includes('Mac')
 const getInitialTab = (): TabId => {
   const params = new URLSearchParams(window.location.search)
   const tab = params.get('tab')
-  if (tab === 'pdfmaker' || tab === 'trash' || tab === 'offline') return tab
+  if (tab === 'pdfmaker' || tab === 'trash' || tab === 'compress' || tab === 'offline') return tab
   return 'trash'
 }
 
@@ -99,7 +113,7 @@ const switchTab = (tab: TabId) => {
 // Listen for tab switch IPC from main process
 onMounted(() => {
   window.electronAPI.tools?.onSwitchTab?.((tab: string) => {
-    if (tab === 'pdfmaker' || tab === 'trash' || tab === 'offline') {
+    if (tab === 'pdfmaker' || tab === 'trash' || tab === 'compress' || tab === 'offline') {
       activeTab.value = tab
     }
   })

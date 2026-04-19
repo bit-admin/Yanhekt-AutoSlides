@@ -310,6 +310,41 @@ interface DownloadProgress {
   phase: number;
 }
 
+interface CompressLectureOptions {
+  inputPath: string;
+  outputPath?: string;
+  preset?: 'tiny' | 'small' | 'readable';
+  audioPreset?: 'low' | 'mid' | 'high' | 'max';
+  audioFilterPreset?: 'none' | 'clean' | 'speech' | 'strong' | 'loudnorm';
+  cropMode?: 'none' | '4:3' | 'auto';
+  filterMode?: 'none' | 'denoise' | 'sharpen' | 'both';
+  scaler?: 'lanczos' | 'bicubic';
+  container?: 'mp4' | 'mkv';
+  opusVbr?: 'on' | 'constrained' | 'off';
+  opusFrameDuration?: 20 | 40 | 60;
+  keepAac?: boolean;
+  x265Params?: string;
+}
+
+interface CompressLectureProgress {
+  phase: 'preparing' | 'cropdetect' | 'encoding' | 'completed';
+  current: number;
+  total: number;
+  message?: string;
+}
+
+interface CompressLecturePreviewResult {
+  command: string;
+  outputPath: string;
+  sourceWidth: number;
+  sourceHeight: number;
+  targetWidth: number;
+  targetHeight: number;
+  contentAspect: '4:3' | '16:9' | 'cropped' | 'source';
+  videoFiltergraph: string;
+  audioFiltergraph: string;
+}
+
 interface DialogOptions {
   type?: 'none' | 'info' | 'error' | 'question' | 'warning';
   buttons?: string[];
@@ -495,6 +530,18 @@ interface ElectronAPI {
     getPath: () => Promise<string | null>;
     isAvailable: () => Promise<boolean>;
     getPlatformInfo: () => Promise<FFmpegInfo>;
+  };
+
+  compressLecture: {
+    selectInput: () => Promise<string | null>;
+    selectOutput: (defaultPath?: string) => Promise<string | null>;
+    preview: (options: CompressLectureOptions) => Promise<CompressLecturePreviewResult>;
+    start: (options: CompressLectureOptions) => Promise<{ outputPath: string }>;
+    cancel: () => Promise<boolean>;
+    isActive: () => Promise<boolean>;
+    onProgress: (callback: (progress: CompressLectureProgress) => void) => () => void;
+    onCompleted: (callback: (result: { outputPath: string }) => void) => () => void;
+    onError: (callback: (error: string) => void) => () => void;
   };
 
   download: {
