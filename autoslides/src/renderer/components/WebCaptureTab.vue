@@ -2,17 +2,17 @@
   <div class="webcapture-tab">
     <!-- Top toolbar: navigation + URL -->
     <div class="toolbar nav-toolbar">
-      <button class="nav-btn" @click="goBack" title="Back">
+      <button class="nav-btn" @click="goBack" :title="$t('webCapture.back')">
         <svg width="16" height="16" viewBox="0 0 16 16">
           <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         </svg>
       </button>
-      <button class="nav-btn" @click="goForward" title="Forward">
+      <button class="nav-btn" @click="goForward" :title="$t('webCapture.forward')">
         <svg width="16" height="16" viewBox="0 0 16 16">
           <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         </svg>
       </button>
-      <button class="nav-btn" @click="reload" title="Reload">
+      <button class="nav-btn" @click="reload" :title="$t('webCapture.reload')">
         <svg width="16" height="16" viewBox="0 0 16 16">
           <path d="M13 8a5 5 0 11-1.5-3.5M13 3v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         </svg>
@@ -22,19 +22,19 @@
         :value="pendingUrl"
         @input="(e) => pendingUrl = (e.target as HTMLInputElement).value"
         @keydown.enter="navigate()"
-        placeholder="Enter URL (https://...)"
+        :placeholder="$t('webCapture.urlPlaceholder')"
         spellcheck="false"
       />
-      <button class="primary-btn" @click="navigate()" :disabled="!pendingUrl.trim()">Go</button>
+      <button class="primary-btn" @click="navigate()" :disabled="!pendingUrl.trim()">{{ $t('webCapture.go') }}</button>
       <div class="preset-dropdown">
         <button class="secondary-btn preset-toggle" @click.stop="presetOpen = !presetOpen">
-          Presets
+          {{ $t('webCapture.presets') }}
           <svg width="10" height="10" viewBox="0 0 10 10">
             <path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
         </button>
         <ul v-if="presetOpen" class="preset-menu">
-          <li v-for="p in presets" :key="p.url" @click="onSelectPreset(p)">{{ p.label }}</li>
+          <li v-for="p in presets" :key="p.url" @click="onSelectPreset(p)">{{ $t(p.labelKey) }}</li>
         </ul>
       </div>
     </div>
@@ -42,31 +42,31 @@
     <!-- Second toolbar: course + selector + capture actions -->
     <div class="toolbar action-toolbar">
       <div class="field-group">
-        <label class="field-label">Name</label>
+        <label class="field-label">{{ $t('webCapture.name') }}</label>
         <input
           class="text-input"
           :value="courseName"
           @input="(e) => onCourseNameInput((e.target as HTMLInputElement).value)"
-          :placeholder="pageTitle || 'Course name'"
+          :placeholder="pageTitle || $t('webCapture.courseNamePlaceholder')"
         />
       </div>
-      <div class="field-group grow">
-        <label class="field-label">Selector</label>
+      <div class="field-group grow" :class="{ faded: regionOverridesSelector }">
+        <label class="field-label">{{ $t('webCapture.selector') }}</label>
         <input
           class="text-input"
           :value="userSelector"
           @input="(e) => onUserSelectorInput((e.target as HTMLInputElement).value)"
-          :placeholder="detectedVideo?.selector || 'video'"
+          :placeholder="regionOverridesSelector ? $t('webCapture.regionOverride') : (detectedVideo?.selector || 'video')"
           spellcheck="false"
         />
       </div>
       <button
         class="secondary-btn"
-        :class="{ active: pickerActive === 'pick' }"
+        :class="{ active: pickerActive === 'pick', faded: regionOverridesSelector }"
         @click="pickerActive === 'pick' ? cancelPicker() : pickVideoSelector()"
         :disabled="captureState === 'running'"
       >
-        {{ pickerActive === 'pick' ? 'Cancel pick' : 'Pick video' }}
+        {{ pickerActive === 'pick' ? $t('webCapture.cancelPick') : $t('webCapture.pickVideo') }}
       </button>
       <button
         class="secondary-btn"
@@ -74,14 +74,14 @@
         @click="pickerActive === 'block' ? cancelPicker() : startBlocker()"
         :disabled="captureState === 'running'"
       >
-        {{ pickerActive === 'block' ? 'Cancel block' : 'Block element' }}
+        {{ pickerActive === 'block' ? $t('webCapture.cancelBlock') : $t('webCapture.blockElement') }}
       </button>
       <button
         class="secondary-btn"
         @click="clearBlocks"
         :disabled="blockedSelectors.length === 0"
       >
-        Clear blocks ({{ blockedSelectors.length }})
+        {{ $t('webCapture.clearBlocks', { n: blockedSelectors.length }) }}
       </button>
       <button
         class="secondary-btn"
@@ -89,7 +89,7 @@
         @click="regionDrawMode ? cancelRegionDraw() : beginRegionDraw()"
         :disabled="captureState === 'running'"
       >
-        {{ customRegion ? 'Redraw region' : 'Draw region' }}
+        {{ customRegion ? $t('webCapture.redrawRegion') : $t('webCapture.drawRegion') }}
       </button>
       <button
         v-if="customRegion"
@@ -97,7 +97,7 @@
         @click="clearRegion"
         :disabled="captureState === 'running'"
       >
-        Clear region
+        {{ $t('webCapture.clearRegion') }}
       </button>
       <button
         v-if="captureState !== 'running'"
@@ -105,26 +105,26 @@
         @click="requestStart"
         :disabled="!canStart"
       >
-        Start
+        {{ $t('webCapture.start') }}
       </button>
       <button
         v-else
         class="primary-btn danger"
         @click="stopCapture"
       >
-        Stop
+        {{ $t('webCapture.stop') }}
       </button>
     </div>
 
     <!-- Status strip -->
     <div class="status-bar">
-      <span class="status-chip">Mode: <b>{{ captureMode }}</b></span>
-      <span class="status-chip" v-if="detectedVideo">Detected: {{ detectedVideo.width }}×{{ detectedVideo.height }}</span>
-      <span class="status-chip" v-else-if="captureState === 'idle'">No video detected</span>
-      <span class="status-chip" v-if="customRegion">Region: {{ customRegion.width }}×{{ customRegion.height }}</span>
-      <span class="status-chip">Ticks: {{ tickCount }}</span>
-      <span class="status-chip">Saved: {{ savedCount }}</span>
-      <span class="status-message">{{ statusMessage }}</span>
+      <span class="status-chip">{{ $t('webCapture.modeLabel') }}: <b>{{ captureMode }}</b></span>
+      <span class="status-chip" v-if="detectedVideo">{{ $t('webCapture.detected') }}: {{ detectedVideo.width }}×{{ detectedVideo.height }}</span>
+      <span class="status-chip" v-else-if="captureState === 'idle'">{{ $t('webCapture.noVideoDetected') }}</span>
+      <span class="status-chip" v-if="customRegion">{{ $t('webCapture.regionLabel') }}: {{ customRegion.width }}×{{ customRegion.height }}</span>
+      <span class="status-chip">{{ $t('webCapture.ticks') }}: {{ tickCount }}</span>
+      <span class="status-chip">{{ $t('webCapture.saved') }}: {{ savedCount }}</span>
+      <span class="status-message">{{ displayStatus }}</span>
     </div>
 
     <!-- Webview area -->
@@ -138,20 +138,34 @@
         allowpopups
         class="capture-webview"
       ></webview>
-      <div v-else class="webview-placeholder">Initializing...</div>
+      <div v-else class="webview-placeholder">{{ $t('webCapture.initializing') }}</div>
       <RegionOverlay
         v-if="regionDrawMode"
-        hint="Drag over the embedded page to choose a capture region"
+        :hint="$t('webCapture.regionHint')"
+        :useRegionLabel="$t('webCapture.useRegion')"
+        :cancelLabel="$t('webCapture.cancel')"
         @commit="onRegionCommit"
         @cancel="cancelRegionDraw"
       />
+      <div
+        v-if="customRegion && !regionDrawMode"
+        class="region-indicator"
+        :style="{
+          left: customRegion.x + 'px',
+          top: customRegion.y + 'px',
+          width: customRegion.width + 'px',
+          height: customRegion.height + 'px',
+        }"
+      >
+        <span class="region-indicator-label">{{ customRegion.width }}×{{ customRegion.height }}</span>
+      </div>
     </div>
 
     <!-- Confirm name modal -->
     <div v-if="captureState === 'confirming'" class="modal-overlay" @click.self="cancelStart">
       <div class="modal">
-        <h3>Confirm Course Name</h3>
-        <p>Slides will be saved under <code>slides_{{ sanitizedPreview }}</code>.</p>
+        <h3>{{ $t('webCapture.confirmTitle') }}</h3>
+        <p>{{ $t('webCapture.confirmDesc') }} <code>slides_{{ sanitizedPreview }}</code>.</p>
         <input
           class="text-input modal-input"
           :value="courseName"
@@ -160,8 +174,8 @@
           ref="modalInputRef"
         />
         <div class="modal-actions">
-          <button class="secondary-btn" @click="cancelStart">Cancel</button>
-          <button class="primary-btn" @click="confirmAndStart" :disabled="!courseName.trim()">Start</button>
+          <button class="secondary-btn" @click="cancelStart">{{ $t('webCapture.cancel') }}</button>
+          <button class="primary-btn" @click="confirmAndStart" :disabled="!courseName.trim()">{{ $t('webCapture.start') }}</button>
         </div>
       </div>
     </div>
@@ -170,8 +184,11 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useWebCapture, type WebCapturePreset } from '../composables/useWebCapture'
 import RegionOverlay from './webCapture/RegionOverlay.vue'
+
+const { t } = useI18n()
 
 const {
   preloadPath,
@@ -190,7 +207,9 @@ const {
   pickerActive,
   regionDrawMode,
   statusMessage,
+  statusParams,
   canStart,
+  regionOverridesSelector,
   presets,
   attachWebview,
   navigate,
@@ -226,6 +245,15 @@ const onSelectPreset = (preset: WebCapturePreset) => {
 const sanitizedPreview = computed(() => {
   const name = courseName.value.trim() || pageTitle.value.trim() || 'Untitled'
   return name.replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, '_').replace(/_{2,}/g, '_').trim()
+})
+
+const displayStatus = computed(() => {
+  const key = statusMessage.value
+  if (!key) return ''
+  if (key.startsWith('webCapture.')) {
+    return t(key, statusParams.value)
+  }
+  return key
 })
 
 const onRegionCommit = (rect: { x: number; y: number; width: number; height: number }) => {
@@ -340,9 +368,10 @@ watch(captureState, (val) => {
 }
 
 .preset-menu li {
-  padding: 6px 14px;
+  padding: 4px 12px;
   font-size: 12px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .preset-menu li:hover {
@@ -401,6 +430,7 @@ watch(captureState, (val) => {
 }
 .secondary-btn:hover:not(:disabled) { background-color: #f0f0f0; }
 .secondary-btn:disabled { color: #aaa; cursor: not-allowed; }
+.faded { opacity: 0.4; pointer-events: auto; }
 .secondary-btn.active {
   background-color: rgba(0, 122, 204, 0.12);
   border-color: #007acc;
@@ -458,6 +488,25 @@ watch(captureState, (val) => {
   justify-content: center;
   color: #aaa;
   font-size: 12px;
+}
+
+.region-indicator {
+  position: absolute;
+  border: 2px dashed #007acc;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.region-indicator-label {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  font-size: 10px;
+  color: #fff;
+  background-color: rgba(0, 122, 204, 0.8);
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
 }
 
 .modal-overlay {

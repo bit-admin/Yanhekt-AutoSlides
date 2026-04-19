@@ -30,26 +30,36 @@ type WebviewTag = Electron.WebviewTag & {
 }
 
 export interface WebCapturePreset {
-  label: string
+  labelKey: string
   url: string
   beforeNavigate?: (webview: WebviewTag) => Promise<void>
+  blockSelectors?: string[]
+  videoSelectors?: { urlPattern: string; selector: string }[]
 }
+
+const YANHEKT_BLOCK_SELECTORS = [
+  '#root > div.app > div.sidebar-open:first-child',
+  '#ai-bit-shortcut',
+  'div#ai-bit-animation-modal',
+]
 
 const PRESETS: WebCapturePreset[] = [
   {
-    label: 'YanHeKT',
+    labelKey: 'webCapture.presetYanhekt',
     url: 'https://www.yanhekt.cn',
+    blockSelectors: YANHEKT_BLOCK_SELECTORS,
+    videoSelectors: [
+      { urlPattern: '/session', selector: '#video_id_topPlayer_html5_api' },
+      { urlPattern: '/live', selector: '#video_id_mainPlayer_html5_api' },
+    ],
     beforeNavigate: async (webview) => {
       const token = await window.electronAPI.config.getAuthToken()
-      console.log('[WebCapture] YanHeKT preset – token:', token ? `${token.slice(0, 6)}...` : 'null')
       if (!token) return
       const expiredAt = Date.now() + 7 * 24 * 60 * 60 * 1000
       const payload = JSON.stringify({ login: true, token, expired_at: expiredAt })
-      console.log('[WebCapture] Injecting auth localStorage, payload length:', payload.length)
-      const result = await webview.executeJavaScript(
-        `try { localStorage.setItem('auth', ${JSON.stringify(payload)}); 'ok:' + localStorage.getItem('auth'); } catch(e) { 'err:' + e.message; }`
+      await webview.executeJavaScript(
+        `try { localStorage.setItem('auth', ${JSON.stringify(payload)}); 'ok'; } catch(e) { 'err:' + e.message; }`
       )
-      console.log('[WebCapture] executeJavaScript result:', result)
     },
   },
 ]
@@ -84,6 +94,8 @@ export function useWebCapture() {
   const pickerActive = ref<'pick' | 'block' | null>(null)
   const regionDrawMode = ref(false)
   const statusMessage = ref('')
+  const statusParams = ref<Record<string, unknown>>({})
+  let activePreset: WebCapturePreset | null = null
 
   // Extractor + interval handles
   const extractedSlides: Ref<ExtractedSlide[]> = ref([])
@@ -104,6 +116,8 @@ export function useWebCapture() {
       (!!detectedVideo.value || !!userSelector.value.trim() || !!customRegion.value)
   )
 
+  const regionOverridesSelector = computed(() => !!customRegion.value)
+
   // ---- Preload path bootstrap ----
   onMounted(async () => {
     try {
@@ -123,6 +137,7 @@ export function useWebCapture() {
     el.addEventListener('page-title-updated', onPageTitleUpdated as EventListener)
     el.addEventListener('did-navigate', onDidNavigate as EventListener)
     el.addEventListener('did-navigate-in-page', onDidNavigate as EventListener)
+    el.addEventListener('did-finish-load', onDidFinishLoad as EventListener)
     el.addEventListener('new-window', onNewWindow as EventListener)
   }
 
@@ -132,6 +147,7 @@ export function useWebCapture() {
     webviewRef.removeEventListener('page-title-updated', onPageTitleUpdated as EventListener)
     webviewRef.removeEventListener('did-navigate', onDidNavigate as EventListener)
     webviewRef.removeEventListener('did-navigate-in-page', onDidNavigate as EventListener)
+    webviewRef.removeEventListener('did-finish-load', onDidFinishLoad as EventListener)
     webviewRef.removeEventListener('new-window', onNewWindow as EventListener)
     webviewRef = null
   }
@@ -151,6 +167,37 @@ export function useWebCapture() {
     if (captureState.value !== 'running') {
       detectedVideo.value = null
       customRegion.value = null
+    }
+    // Apply preset rules on each navigation within the preset's origin.
+    if (activePreset && url) {
+      applyPresetRules(url)
+    }
+  }
+
+  const applyPresetRules = (url: string) => {
+    if (!activePreset || !webviewRef) return
+    // Inject blocking CSS via the guest preload.
+    if (activePreset.blockSelectors?.length) {
+      const css = activePreset.blockSelectors
+        .map((s) => `${s} { display: none !important; }`)
+        .join('\n')
+      webviewRef.executeJavaScript(
+        `(() => { let s = document.getElementById('__autoslides_preset_block'); if (!s) { s = document.createElement('style'); s.id = '__autoslides_preset_block'; document.head.appendChild(s); } s.textContent = ${JSON.stringify(css)}; })()`
+      ).catch(() => {/* page may not be ready yet */})
+    }
+    // Auto-select video selector based on URL pattern.
+    if (activePreset.videoSelectors?.length && !courseNameDirty.value) {
+      const match = activePreset.videoSelectors.find((vs) => url.includes(vs.urlPattern))
+      if (match) {
+        userSelector.value = match.selector
+      }
+    }
+  }
+
+  const onDidFinishLoad = () => {
+    // Re-apply block rules after DOM is fully loaded (did-navigate fires too early for CSS injection).
+    if (activePreset && currentUrl.value) {
+      applyPresetRules(currentUrl.value)
     }
   }
 
@@ -175,14 +222,13 @@ export function useWebCapture() {
 
   const navigatePreset = async (preset: WebCapturePreset) => {
     if (!webviewRef) return
+    activePreset = preset
     const origin = new URL(preset.url).origin
-    console.log('[WebCapture] navigatePreset: loading origin', origin)
     currentUrl.value = origin
     webviewRef.loadURL(origin)
     await new Promise<void>((resolve) => {
       const onStop = () => {
         webviewRef?.removeEventListener('did-stop-loading', onStop)
-        console.log('[WebCapture] navigatePreset: origin loaded, URL now:', webviewRef?.getURL?.())
         resolve()
       }
       webviewRef!.addEventListener('did-stop-loading', onStop)
@@ -190,7 +236,6 @@ export function useWebCapture() {
     if (preset.beforeNavigate) {
       await preset.beforeNavigate(webviewRef)
     }
-    console.log('[WebCapture] navigatePreset: navigating to final URL', preset.url)
     pendingUrl.value = preset.url
     currentUrl.value = preset.url
     webviewRef.loadURL(preset.url)
@@ -222,14 +267,16 @@ export function useWebCapture() {
         break
       }
       case 'capture:tainted': {
-        statusMessage.value = 'Inject capture blocked by cross-origin media; switching to capturePage'
+        statusMessage.value = 'webCapture.captureModeSwitched'
+        statusParams.value = {}
         captureMode.value = 'capturePage'
         break
       }
       case 'capture:noVideo': {
         if (captureMode.value === 'inject') {
           captureMode.value = 'capturePage'
-          statusMessage.value = 'No <video> found; switching to capturePage'
+          statusMessage.value = 'webCapture.noVideoFallback'
+          statusParams.value = {}
         }
         break
       }
@@ -299,6 +346,9 @@ export function useWebCapture() {
   }
   const clearRegion = () => {
     customRegion.value = null
+    if (detectedVideo.value || userSelector.value.trim()) {
+      captureMode.value = 'inject'
+    }
   }
 
   // ---- Start / stop ----
@@ -313,6 +363,8 @@ export function useWebCapture() {
 
   const confirmAndStart = async () => {
     if (captureState.value !== 'confirming' || !webviewRef) return
+    // Reset capture mode: region forces capturePage, otherwise default to inject.
+    captureMode.value = customRegion.value ? 'capturePage' : 'inject'
     const name = courseName.value.trim() || pageTitle.value.trim() || 'Untitled'
     try {
       const appConfig = await window.electronAPI.config.get()
@@ -371,10 +423,12 @@ export function useWebCapture() {
       }
 
       captureState.value = 'running'
-      statusMessage.value = `Capturing (${captureMode.value})`
+      statusMessage.value = 'webCapture.capturingStatus'
+      statusParams.value = { mode: captureMode.value }
     } catch (err) {
       console.error('Failed to start web capture:', err)
       statusMessage.value = `Failed to start: ${(err as Error).message}`
+      statusParams.value = {}
       captureState.value = 'idle'
     }
   }
@@ -382,7 +436,10 @@ export function useWebCapture() {
   const capturePageTick = async (targetW: number, targetH: number) => {
     if (!webviewRef || !slideExtractorInstance.value) return
     try {
-      const rect = customRegion.value ?? undefined
+      // Spread to plain object — Vue Proxy can't be structured-cloned across webview IPC.
+      const rect = customRegion.value
+        ? { x: customRegion.value.x, y: customRegion.value.y, width: customRegion.value.width, height: customRegion.value.height }
+        : undefined
       const image = await webviewRef.capturePage(rect)
       if (!image || image.isEmpty()) return
       const size = image.getSize()
@@ -442,7 +499,8 @@ export function useWebCapture() {
       // non-fatal
     }
     captureState.value = 'idle'
-    statusMessage.value = `Stopped. Saved ${savedCount.value} slide(s).`
+    statusMessage.value = 'webCapture.stoppedStatus'
+    statusParams.value = { n: savedCount.value }
 
     try {
       const liveAutoEnabled = await window.electronAPI.config.getAutoPostProcessingLive()
@@ -499,7 +557,9 @@ export function useWebCapture() {
     pickerActive,
     regionDrawMode,
     statusMessage,
+    statusParams,
     canStart,
+    regionOverridesSelector,
 
     // Webview wiring
     attachWebview,

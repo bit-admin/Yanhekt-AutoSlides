@@ -24,7 +24,7 @@
               <path d="M2 3h12v8H2V3zm1 1v6h10V4H3zm1 8h8v1H4v-1z" fill="currentColor"/>
               <path d="M6 6h4v3H6z" fill="currentColor"/>
             </svg>
-            Web Capture
+            {{ $t('addons.tabWebCapture') }}
           </button>
         </div>
       </div>

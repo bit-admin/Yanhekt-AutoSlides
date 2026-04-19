@@ -8,11 +8,12 @@
     @pointercancel="onPointerUp"
   >
     <div v-if="rect" class="region-rect" :style="rectStyle"></div>
-    <div class="region-hint">
-      <span>{{ hintText }}</span>
+    <div class="region-hint" @pointerdown.stop @pointerup.stop>
+      <span v-if="!rect">{{ hintText }}</span>
+      <span v-else>{{ Math.round(rect.width / 10) * 10 }}×{{ Math.round(rect.height / 10) * 10 }}</span>
       <div class="region-actions">
-        <button class="action-btn" @click.stop="onConfirm" :disabled="!rect">Use Region</button>
-        <button class="action-btn secondary" @click.stop="onCancel">Cancel</button>
+        <button class="action-btn" @click.stop="onConfirm" :disabled="!rect">{{ useRegionLabel || 'Use Region' }}</button>
+        <button class="action-btn secondary" @click.stop="onCancel">{{ cancelLabel || 'Cancel' }}</button>
       </div>
     </div>
   </div>
@@ -28,7 +29,7 @@ interface Rect {
   height: number
 }
 
-const props = defineProps<{ hint?: string }>()
+const props = defineProps<{ hint?: string; useRegionLabel?: string; cancelLabel?: string }>()
 const emit = defineEmits<{
   (e: 'commit', rect: Rect): void
   (e: 'cancel'): void
@@ -81,7 +82,7 @@ const onPointerMove = (event: PointerEvent) => {
   rect.value = { x, y, width, height }
 }
 
-const onPointerUp = (event: PointerEvent) => {
+const onPointerUp = () => {
   if (!dragState.value) return
   try {
     overlayRef.value?.releasePointerCapture?.(dragState.value.pointerId)
@@ -92,18 +93,16 @@ const onPointerUp = (event: PointerEvent) => {
   if (rect.value && (rect.value.width < 8 || rect.value.height < 8)) {
     rect.value = null
   }
-  event.preventDefault()
 }
 
 const onConfirm = () => {
   if (!rect.value) return
-  const scaled = { ...rect.value }
-  // Round to integer pixels for capturePage rect.
-  scaled.x = Math.round(scaled.x)
-  scaled.y = Math.round(scaled.y)
-  scaled.width = Math.round(scaled.width)
-  scaled.height = Math.round(scaled.height)
-  emit('commit', scaled)
+  emit('commit', {
+    x: Math.round(rect.value.x),
+    y: Math.round(rect.value.y),
+    width: Math.round(rect.value.width),
+    height: Math.round(rect.value.height),
+  })
 }
 
 const onCancel = () => {
@@ -120,13 +119,13 @@ const onCancel = () => {
   cursor: crosshair;
   background-color: rgba(0, 0, 0, 0.25);
   user-select: none;
+  touch-action: none;
 }
 
 .region-rect {
   position: absolute;
   border: 2px solid #007acc;
   background-color: rgba(0, 122, 204, 0.18);
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.25);
   pointer-events: none;
 }
 
@@ -144,6 +143,8 @@ const onCancel = () => {
   border-radius: 6px;
   font-size: 12px;
   pointer-events: auto;
+  cursor: default;
+  z-index: 11;
 }
 
 .region-actions {
