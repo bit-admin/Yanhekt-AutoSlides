@@ -4,7 +4,6 @@ import {
   slideExtractionManager,
   type ExtractedSlide,
 } from '../services/slideExtractor'
-import { usePostProcessing } from './usePostProcessing'
 
 export type WebCaptureMode = 'inject' | 'capturePage'
 export type WebCaptureState = 'idle' | 'confirming' | 'running'
@@ -103,12 +102,6 @@ export function useWebCapture() {
   let captureInterval: ReturnType<typeof setInterval> | null = null
   let webviewRef: WebviewTag | null = null
   let slideExtractedHandler: ((event: Event) => void) | null = null
-
-  const postProcessing = usePostProcessing({
-    mode: 'live',
-    extractedSlides,
-    slideExtractorInstance,
-  })
 
   const canStart = computed(
     () =>
@@ -501,15 +494,6 @@ export function useWebCapture() {
     captureState.value = 'idle'
     statusMessage.value = 'webCapture.stoppedStatus'
     statusParams.value = { n: savedCount.value }
-
-    try {
-      const liveAutoEnabled = await window.electronAPI.config.getAutoPostProcessingLive()
-      if (liveAutoEnabled && extractedSlides.value.length > 0) {
-        await postProcessing.executePostProcessing(false)
-      }
-    } catch (err) {
-      console.error('Auto post-processing failed:', err)
-    }
   }
 
   // ---- Teardown ----
