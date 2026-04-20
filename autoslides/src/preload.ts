@@ -39,6 +39,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       fillRatioMin?: number;
     }) => ipcRenderer.invoke('config:setAutoCropParams', params),
     resetAutoCropParams: () => ipcRenderer.invoke('config:resetAutoCropParams'),
+    setAutoCropDetectorMode: (mode: 'canny_then_yolo' | 'canny_only' | 'yolo_only') =>
+      ipcRenderer.invoke('config:setAutoCropDetectorMode', mode),
+    setAutoCropYoloParams: (params: {
+      confidenceThreshold?: number;
+      iouThreshold?: number;
+      inputSize?: number;
+    }) => ipcRenderer.invoke('config:setAutoCropYoloParams', params),
+    resetAutoCropYoloParams: () => ipcRenderer.invoke('config:resetAutoCropYoloParams'),
     // Theme configuration
     setThemeMode: (theme: 'system' | 'light' | 'dark') => ipcRenderer.invoke('config:setThemeMode', theme),
     getThemeMode: () => ipcRenderer.invoke('config:getThemeMode'),
@@ -352,6 +360,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.on('yuketang:classCaptureUpdated', handler);
       return () => ipcRenderer.removeListener('yuketang:classCaptureUpdated', handler);
     },
+  },
+  autoCrop: {
+    getModelInfo: () => ipcRenderer.invoke('autoCrop:getModelInfo'),
+    getModelBuffer: () => ipcRenderer.invoke('autoCrop:getModelBuffer') as Promise<ArrayBuffer>,
+    selectAndImportModel: () => ipcRenderer.invoke('autoCrop:selectAndImportModel'),
+    deleteCustomModel: () => ipcRenderer.invoke('autoCrop:deleteCustomModel'),
   },
   offline: {
     selectInputFolder: () => ipcRenderer.invoke('offline:selectInputFolder'),

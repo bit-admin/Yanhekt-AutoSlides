@@ -17,6 +17,7 @@ import { AIFilteringService } from './main/aiFilteringService';
 import { pdfService, PdfMakeOptions, FolderEntry } from './main/pdfService';
 import { updateDownloadService, UpdateDownloadService } from './main/updateDownloadService';
 import { offlineProcessingService } from './main/offlineProcessingService';
+import { AutoCropModelService } from './main/autoCropModelService';
 import { exportLessonSummary, exportClassPresentation, fetchLessonTitle, fetchClassPresentationTitle } from './main/yuketangService';
 import { CompressLectureService, type CompressLectureOptions } from './main/compressLectureService';
 import type { AIServiceType } from './main/configService';
@@ -193,6 +194,7 @@ app.on('activate', () => {
 const authService = new MainAuthService();
 const apiClient = new MainApiClient();
 const configService = new ConfigService();
+const autoCropModelService = new AutoCropModelService(configService);
 const intranetMappingService = new IntranetMappingService(configService);
 const videoProxyService = new VideoProxyService(apiClient, intranetMappingService);
 const ffmpegService = new FFmpegService();
@@ -348,6 +350,42 @@ ipcMain.handle('config:setAutoCropParams', async (event, params) => {
 
 ipcMain.handle('config:resetAutoCropParams', async () => {
   return configService.resetAutoCropParams();
+});
+
+ipcMain.handle('config:setAutoCropDetectorMode', async (_event, mode) => {
+  configService.setAutoCropDetectorMode(mode);
+  return configService.getSlideExtractionConfig();
+});
+
+ipcMain.handle('config:setAutoCropYoloParams', async (_event, params) => {
+  configService.setAutoCropYoloParams(params);
+  return configService.getSlideExtractionConfig();
+});
+
+ipcMain.handle('config:resetAutoCropYoloParams', async () => {
+  return configService.resetAutoCropYoloParams();
+});
+
+ipcMain.handle('autoCrop:getModelInfo', async () => {
+  return autoCropModelService.getModelInfo();
+});
+
+ipcMain.handle('autoCrop:getModelBuffer', async () => {
+  return autoCropModelService.readModelBuffer();
+});
+
+ipcMain.handle('autoCrop:selectAndImportModel', async () => {
+  try {
+    return await autoCropModelService.selectAndImportModel();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await dialog.showErrorBox('Custom Model Import Failed', message);
+    return autoCropModelService.getModelInfo();
+  }
+});
+
+ipcMain.handle('autoCrop:deleteCustomModel', async () => {
+  return autoCropModelService.deleteCustomModel();
 });
 
 // IPC handlers for theme configuration

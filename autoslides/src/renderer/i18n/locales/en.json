@@ -138,6 +138,12 @@
     "autoCrop": {
       "title": "Auto Crop",
       "description": "Tune slide-canvas detection used by the Auto Crop workflow. Defaults work for most recordings; lower the aspect tolerance for stricter matches.",
+      "detectorMode": "Detector Mode",
+      "detectorModeDescription": "Choose how the slide canvas is located. The fallback mode runs Canny first and only invokes the YOLO model when Canny fails.",
+      "cannyThenYolo": "Canny → YOLO fallback (default)",
+      "cannyOnly": "Canny only",
+      "yoloOnly": "YOLO only",
+      "resetDefaults": "Reset to Defaults",
       "aspectTolerance": "Aspect Tolerance",
       "aspectToleranceDescription": "Maximum allowed deviation from 16:9 or 4:3 when matching the detected slide aspect ratio.",
       "blackThreshold": "Black Border Threshold",
@@ -155,7 +161,26 @@
       "marginFrac": "Margin Fraction",
       "marginFracDescription": "Fractional margin added around the detected slide bounding box before cropping.",
       "fillRatioMin": "Min Fill Ratio",
-      "fillRatioMinDescription": "Minimum ratio of the candidate bounding box area to its convex hull area."
+      "fillRatioMinDescription": "Minimum ratio of the candidate bounding box area to its convex hull area.",
+      "yolo": {
+        "title": "YOLO Parameters",
+        "confidenceThreshold": "Confidence Threshold",
+        "confidenceThresholdDescription": "Minimum detection confidence [0.05–0.95] before a candidate is kept.",
+        "iouThreshold": "IoU Threshold",
+        "iouThresholdDescription": "IoU threshold used by non-max suppression to de-duplicate overlapping boxes.",
+        "inputSize": "Input Size",
+        "inputSizeDescription": "Square input size (pixels) the image is letterboxed to before inference.",
+        "model": {
+          "title": "Model",
+          "hint": "Selecting a custom model replaces the built-in one for auto-crop. Deleting reverts to built-in.",
+          "builtinLabel": "Built-in",
+          "customLabel": "Custom",
+          "selectButton": "Select Custom Model…",
+          "deleteButton": "Delete Custom Model",
+          "invalidFile": "Only .onnx files are supported.",
+          "tooLarge": "Model file is too large (max 200 MB)."
+        }
+      }
     },
     "aiBehaviour": {
       "title": "AI Behaviour",

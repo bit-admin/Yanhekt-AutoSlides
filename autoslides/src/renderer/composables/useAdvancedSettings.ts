@@ -5,6 +5,18 @@ import { DownloadService } from '../services/downloadService'
 
 export type AdvancedTabId = 'general' | 'imageProcessing' | 'playback' | 'network' | 'ai'
 
+export type AutoCropDetectorMode = 'canny_then_yolo' | 'canny_only' | 'yolo_only'
+
+export interface AutoCropModelInfoView {
+  active: 'builtin' | 'custom'
+  builtinVersion: string
+  builtinExists: boolean
+  builtinSizeBytes: number | null
+  customName: string | null
+  customExists: boolean
+  customSizeBytes: number | null
+}
+
 export interface DownsamplingPreset {
   key: string
   label: string
@@ -85,6 +97,20 @@ export interface UseAdvancedSettingsReturn {
   tempAutoCropAreaRatioMax: Ref<number>
   tempAutoCropMarginFrac: Ref<number>
   tempAutoCropFillRatioMin: Ref<number>
+
+  // Auto Crop detector mode + YOLO
+  tempAutoCropDetectorMode: Ref<AutoCropDetectorMode>
+  tempAutoCropYoloConfidenceThreshold: Ref<number>
+  tempAutoCropYoloIouThreshold: Ref<number>
+  tempAutoCropYoloInputSize: Ref<number>
+  autoCropYoloInputSizes: number[]
+
+  // Auto Crop custom model info
+  autoCropModelInfo: Ref<AutoCropModelInfoView | null>
+  refreshAutoCropModelInfo: () => Promise<void>
+  selectAutoCropCustomModel: () => Promise<void>
+  deleteAutoCropCustomModel: () => Promise<void>
+  resetAutoCropDefaults: () => void
 
   // AI behaviour
   distinguishMaybeSlide: Ref<boolean>
@@ -210,6 +236,21 @@ export function useAdvancedSettings(
   const tempAutoCropMarginFrac = ref(AUTO_CROP_DEFAULTS.marginFrac)
   const tempAutoCropFillRatioMin = ref(AUTO_CROP_DEFAULTS.fillRatioMin)
 
+  // Auto Crop detector mode + YOLO defaults (mirror DEFAULT_AUTO_CROP_YOLO_CONFIG in configService)
+  const AUTO_CROP_YOLO_DEFAULTS = {
+    mode: 'canny_then_yolo' as AutoCropDetectorMode,
+    confidenceThreshold: 0.25,
+    iouThreshold: 0.45,
+    inputSize: 640,
+  }
+  const autoCropYoloInputSizes = [320, 480, 640, 960, 1280]
+  const tempAutoCropDetectorMode = ref<AutoCropDetectorMode>(AUTO_CROP_YOLO_DEFAULTS.mode)
+  const tempAutoCropYoloConfidenceThreshold = ref(AUTO_CROP_YOLO_DEFAULTS.confidenceThreshold)
+  const tempAutoCropYoloIouThreshold = ref(AUTO_CROP_YOLO_DEFAULTS.iouThreshold)
+  const tempAutoCropYoloInputSize = ref(AUTO_CROP_YOLO_DEFAULTS.inputSize)
+
+  const autoCropModelInfo = ref<AutoCropModelInfoView | null>(null)
+
   // AI behaviour
   const distinguishMaybeSlide = ref(true)
   const tempDistinguishMaybeSlide = ref(true)
@@ -264,6 +305,16 @@ export function useAdvancedSettings(
       tempAutoCropAreaRatioMax.value = autoCrop.areaRatioMax
       tempAutoCropMarginFrac.value = autoCrop.marginFrac
       tempAutoCropFillRatioMin.value = autoCrop.fillRatioMin
+
+      // Auto Crop detector mode + YOLO params
+      tempAutoCropDetectorMode.value =
+        (slideConfig.autoCropDetectorMode as AutoCropDetectorMode) ?? AUTO_CROP_YOLO_DEFAULTS.mode
+      const yolo = { ...AUTO_CROP_YOLO_DEFAULTS, ...(slideConfig.autoCropYolo || {}) }
+      tempAutoCropYoloConfidenceThreshold.value = yolo.confidenceThreshold
+      tempAutoCropYoloIouThreshold.value = yolo.iouThreshold
+      tempAutoCropYoloInputSize.value = yolo.inputSize
+
+      await refreshAutoCropModelInfo()
 
       // AI behaviour
       const distinguishValue = await window.electronAPI.config.getDistinguishMaybeSlide()
@@ -391,6 +442,14 @@ export function useAdvancedSettings(
         areaRatioMax: tempAutoCropAreaRatioMax.value,
         marginFrac: tempAutoCropMarginFrac.value,
         fillRatioMin: tempAutoCropFillRatioMin.value,
+      })
+
+      // Save Auto Crop detector mode + YOLO parameters
+      await window.electronAPI.config.setAutoCropDetectorMode(tempAutoCropDetectorMode.value)
+      await window.electronAPI.config.setAutoCropYoloParams({
+        confidenceThreshold: tempAutoCropYoloConfidenceThreshold.value,
+        iouThreshold: tempAutoCropYoloIouThreshold.value,
+        inputSize: tempAutoCropYoloInputSize.value,
       })
 
       // Save AI behaviour toggle
@@ -541,6 +600,51 @@ export function useAdvancedSettings(
     // Placeholder - actual save happens in saveAdvancedSettings
   }
 
+  const refreshAutoCropModelInfo = async (): Promise<void> => {
+    try {
+      const info = await window.electronAPI.autoCrop.getModelInfo()
+      autoCropModelInfo.value = info as AutoCropModelInfoView
+    } catch (error) {
+      console.error('Failed to load auto-crop model info:', error)
+    }
+  }
+
+  const selectAutoCropCustomModel = async (): Promise<void> => {
+    try {
+      const info = await window.electronAPI.autoCrop.selectAndImportModel()
+      if (info) {
+        autoCropModelInfo.value = info as AutoCropModelInfoView
+      }
+    } catch (error) {
+      console.error('Failed to import custom auto-crop model:', error)
+    }
+  }
+
+  const deleteAutoCropCustomModel = async (): Promise<void> => {
+    try {
+      const info = await window.electronAPI.autoCrop.deleteCustomModel()
+      autoCropModelInfo.value = info as AutoCropModelInfoView
+    } catch (error) {
+      console.error('Failed to delete custom auto-crop model:', error)
+    }
+  }
+
+  const resetAutoCropDefaults = (): void => {
+    tempAutoCropAspectTolerance.value = AUTO_CROP_DEFAULTS.aspectTolerance
+    tempAutoCropBlackThreshold.value = AUTO_CROP_DEFAULTS.blackThreshold
+    tempAutoCropMaxBorderFrac.value = AUTO_CROP_DEFAULTS.maxBorderFrac
+    tempAutoCropCannyLowThreshold.value = AUTO_CROP_DEFAULTS.cannyLowThreshold
+    tempAutoCropCannyHighThreshold.value = AUTO_CROP_DEFAULTS.cannyHighThreshold
+    tempAutoCropAreaRatioMin.value = AUTO_CROP_DEFAULTS.areaRatioMin
+    tempAutoCropAreaRatioMax.value = AUTO_CROP_DEFAULTS.areaRatioMax
+    tempAutoCropMarginFrac.value = AUTO_CROP_DEFAULTS.marginFrac
+    tempAutoCropFillRatioMin.value = AUTO_CROP_DEFAULTS.fillRatioMin
+    tempAutoCropDetectorMode.value = AUTO_CROP_YOLO_DEFAULTS.mode
+    tempAutoCropYoloConfidenceThreshold.value = AUTO_CROP_YOLO_DEFAULTS.confidenceThreshold
+    tempAutoCropYoloIouThreshold.value = AUTO_CROP_YOLO_DEFAULTS.iouThreshold
+    tempAutoCropYoloInputSize.value = AUTO_CROP_YOLO_DEFAULTS.inputSize
+  }
+
   return {
     // Modal state
     showAdvancedModal,
@@ -593,6 +697,20 @@ export function useAdvancedSettings(
     tempAutoCropAreaRatioMax,
     tempAutoCropMarginFrac,
     tempAutoCropFillRatioMin,
+
+    // Auto Crop detector mode + YOLO
+    tempAutoCropDetectorMode,
+    tempAutoCropYoloConfidenceThreshold,
+    tempAutoCropYoloIouThreshold,
+    tempAutoCropYoloInputSize,
+    autoCropYoloInputSizes,
+
+    // Auto Crop custom model
+    autoCropModelInfo,
+    refreshAutoCropModelInfo,
+    selectAutoCropCustomModel,
+    deleteAutoCropCustomModel,
+    resetAutoCropDefaults,
 
     // AI behaviour
     distinguishMaybeSlide,

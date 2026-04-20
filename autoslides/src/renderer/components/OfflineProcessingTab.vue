@@ -118,8 +118,12 @@
               <input type="checkbox" v-model="autoCropRedBoxMode" :disabled="autoCropIsProcessing" />
               <span class="toggle-text">{{ $t('offlineProcessing.autoCrop.redBoxMode') }}</span>
             </label>
-            <label class="toggle-item" :class="{ 'toggle-item-disabled': !autoCropRedBoxMode }">
-              <input type="checkbox" v-model="autoCropShowEdges" :disabled="autoCropIsProcessing || !autoCropRedBoxMode" />
+            <label class="toggle-item" :class="{ 'toggle-item-disabled': !autoCropRedBoxMode || autoCropEdgesUnavailable }">
+              <input
+                type="checkbox"
+                v-model="autoCropShowEdges"
+                :disabled="autoCropIsProcessing || !autoCropRedBoxMode || autoCropEdgesUnavailable"
+              />
               <span class="toggle-text">{{ $t('offlineProcessing.autoCrop.showEdges') }}</span>
             </label>
           </div>
@@ -248,7 +252,12 @@ const {
   enablePngColorReduction: autoCropEnablePngColorReduction,
   isProcessing: autoCropIsProcessing,
   progress: autoCropProgress,
+  detectorMode: autoCropDetectorMode,
 } = autoCrop
+
+autoCrop.refreshDetectorMode()
+
+const autoCropEdgesUnavailable = computed(() => autoCropDetectorMode.value === 'yolo_only')
 
 const autoCropOverallProgress = computed(() => {
   const { phase, current, total } = autoCropProgress.value

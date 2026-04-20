@@ -138,6 +138,12 @@
     "autoCrop": {
       "title": "자동 자르기",
       "description": "자동 자르기 작업에서 사용하는 슬라이드 영역 감지 파라미터를 조정합니다. 기본값은 대부분의 녹화에 적합하며, 더 엄격한 매칭이 필요할 경우 종횡비 허용치를 낮추세요.",
+      "detectorMode": "감지 모드",
+      "detectorModeDescription": "슬라이드 영역을 찾는 방법을 선택합니다. 폴백 모드는 먼저 Canny를 실행하고 실패할 때만 YOLO 모델을 호출합니다.",
+      "cannyThenYolo": "Canny → YOLO 폴백 (기본값)",
+      "cannyOnly": "Canny만 사용",
+      "yoloOnly": "YOLO만 사용",
+      "resetDefaults": "기본값으로 초기화",
       "aspectTolerance": "종횡비 허용치",
       "aspectToleranceDescription": "감지된 슬라이드의 종횡비를 16:9 또는 4:3과 맞출 때 허용되는 최대 편차.",
       "blackThreshold": "검은 테두리 임계값",
@@ -155,7 +161,26 @@
       "marginFrac": "여백 비율",
       "marginFracDescription": "자르기 전 감지된 슬라이드 경계 상자 주변에 추가할 여백 비율.",
       "fillRatioMin": "최소 채움 비율",
-      "fillRatioMinDescription": "후보 경계 상자 면적과 볼록 껍질 면적의 최소 비율."
+      "fillRatioMinDescription": "후보 경계 상자 면적과 볼록 껍질 면적의 최소 비율.",
+      "yolo": {
+        "title": "YOLO 파라미터",
+        "confidenceThreshold": "신뢰도 임계값",
+        "confidenceThresholdDescription": "후보를 유지하기 위한 최소 감지 신뢰도 [0.05–0.95].",
+        "iouThreshold": "IoU 임계값",
+        "iouThresholdDescription": "겹치는 상자를 중복 제거하기 위해 NMS에서 사용하는 IoU 임계값.",
+        "inputSize": "입력 크기",
+        "inputSizeDescription": "추론 전에 이미지를 레터박스할 정사각형 입력 크기(픽셀).",
+        "model": {
+          "title": "모델",
+          "hint": "사용자 지정 모델을 선택하면 자동 자르기에서 기본 제공 모델을 대체합니다. 삭제하면 기본값으로 되돌아갑니다.",
+          "builtinLabel": "기본 제공",
+          "customLabel": "사용자 지정",
+          "selectButton": "사용자 지정 모델 선택…",
+          "deleteButton": "사용자 지정 모델 삭제",
+          "invalidFile": ".onnx 파일만 지원됩니다.",
+          "tooLarge": "모델 파일이 너무 큽니다(최대 200MB)."
+        }
+      }
     },
     "aiBehaviour": {
       "title": "AI 동작",

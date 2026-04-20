@@ -957,7 +957,12 @@ const startAutoCropMode = async () => {
     bitmap.close()
 
     const appConfig = await window.electronAPI.config.get()
-    const response = await detectBbox(imageData, false, appConfig.slideExtraction?.autoCrop)
+    const slideCfg = appConfig.slideExtraction
+    const response = await detectBbox(imageData, false, {
+      mode: slideCfg?.autoCropDetectorMode ?? 'canny_then_yolo',
+      canny: slideCfg?.autoCrop,
+      yolo: slideCfg?.autoCropYolo,
+    })
 
     if (!response.success || !response.result?.bbox) {
       await window.electronAPI.dialog?.showMessageBox?.({

@@ -138,6 +138,12 @@
     "autoCrop": {
       "title": "自動トリミング",
       "description": "自動トリミング処理で使用するスライド領域検出パラメータを調整します。既定値はほとんどの録画で機能しますが、より厳密なマッチングが必要な場合はアスペクト比許容値を下げてください。",
+      "detectorMode": "検出モード",
+      "detectorModeDescription": "スライド領域の検出方法を選択します。フォールバックモードでは最初に Canny を実行し、失敗した場合のみ YOLO モデルを呼び出します。",
+      "cannyThenYolo": "Canny → YOLO フォールバック（既定）",
+      "cannyOnly": "Canny のみ",
+      "yoloOnly": "YOLO のみ",
+      "resetDefaults": "既定値に戻す",
       "aspectTolerance": "アスペクト比の許容誤差",
       "aspectToleranceDescription": "検出されたスライドのアスペクト比を 16:9 または 4:3 と一致させる際に許容する最大偏差。",
       "blackThreshold": "黒縁しきい値",
@@ -155,7 +161,26 @@
       "marginFrac": "余白比率",
       "marginFracDescription": "検出されたスライドのバウンディングボックスの周囲に、切り抜き前に追加する余白の比率。",
       "fillRatioMin": "最小充填率",
-      "fillRatioMinDescription": "候補バウンディングボックスの面積に対する凸包面積の最小比率。"
+      "fillRatioMinDescription": "候補バウンディングボックスの面積に対する凸包面積の最小比率。",
+      "yolo": {
+        "title": "YOLO パラメータ",
+        "confidenceThreshold": "信頼度しきい値",
+        "confidenceThresholdDescription": "候補を保持するための最小検出信頼度 [0.05–0.95]。",
+        "iouThreshold": "IoU しきい値",
+        "iouThresholdDescription": "重なったボックスを重複排除するために非最大抑制で使用する IoU しきい値。",
+        "inputSize": "入力サイズ",
+        "inputSizeDescription": "推論前に画像をレターボックスする正方形入力サイズ（ピクセル）。",
+        "model": {
+          "title": "モデル",
+          "hint": "カスタムモデルを選択すると、自動トリミングで組み込みモデルの代わりに使用されます。削除すると組み込みに戻ります。",
+          "builtinLabel": "組み込み",
+          "customLabel": "カスタム",
+          "selectButton": "カスタムモデルを選択…",
+          "deleteButton": "カスタムモデルを削除",
+          "invalidFile": ".onnx ファイルのみサポートされます。",
+          "tooLarge": "モデルファイルが大きすぎます（最大 200 MB）。"
+        }
+      }
     },
     "aiBehaviour": {
       "title": "AI の挙動",

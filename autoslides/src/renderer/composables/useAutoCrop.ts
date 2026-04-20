@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-import type { DetectResult } from '../workers/autoCrop.worker'
+import type { DetectConfig, DetectResult, DetectorMode } from '../workers/autoCrop.worker'
 import { useAutoCropDetect } from './useAutoCropDetect'
 
 function basename(p: string): string {
@@ -14,6 +14,7 @@ export interface AutoCropProgress {
   processed: number
   failed: number
   noDetection: number
+  fallbackUsed: number
 }
 
 export function useAutoCrop() {
@@ -30,9 +31,11 @@ export function useAutoCrop() {
     processed: 0,
     failed: 0,
     noDetection: 0,
+    fallbackUsed: 0,
   })
 
   const outputDir = ref<string | null>(null)
+  const detectorMode = ref<DetectorMode>('canny_then_yolo')
 
   const { detectBbox } = useAutoCropDetect()
 
@@ -40,7 +43,15 @@ export function useAutoCrop() {
     const paths = await window.electronAPI.dialog?.openImageFiles?.()
     if (!paths || paths.length === 0) return
     selectedImagePaths.value = paths
-    progress.value = { phase: 'idle', current: 0, total: 0, processed: 0, failed: 0, noDetection: 0 }
+    progress.value = {
+      phase: 'idle',
+      current: 0,
+      total: 0,
+      processed: 0,
+      failed: 0,
+      noDetection: 0,
+      fallbackUsed: 0,
+    }
   }
 
   const startProcessing = async (): Promise<void> => {
@@ -56,7 +67,14 @@ export function useAutoCrop() {
     }
     const outDir = configuredOutputDir + '/cropped'
     outputDir.value = outDir
-    const autoCropConfig = config.slideExtraction?.autoCrop
+    const slideCfg = config.slideExtraction
+    const mode: DetectorMode = slideCfg?.autoCropDetectorMode ?? 'canny_then_yolo'
+    detectorMode.value = mode
+    const detectConfig: Partial<DetectConfig> = {
+      mode,
+      canny: slideCfg?.autoCrop,
+      yolo: slideCfg?.autoCropYolo,
+    }
 
     isProcessing.value = true
     isCancelled.value = false
@@ -67,6 +85,7 @@ export function useAutoCrop() {
       processed: 0,
       failed: 0,
       noDetection: 0,
+      fallbackUsed: 0,
     }
 
     for (const imagePath of images) {
@@ -86,8 +105,9 @@ export function useAutoCrop() {
         srcCtx.drawImage(bitmap, 0, 0)
         const imageData = srcCtx.getImageData(0, 0, bitmap.width, bitmap.height)
 
-        const useDebug = redBoxMode.value && showEdges.value
-        const response = await detectBbox(imageData, useDebug, autoCropConfig)
+        const canShowEdges = mode !== 'yolo_only'
+        const useDebug = redBoxMode.value && showEdges.value && canShowEdges
+        const response = await detectBbox(imageData, useDebug, detectConfig)
 
         if (!response.success || !response.result) {
           console.warn(`Auto-crop failed for ${basename(imagePath)}:`, response.error)
@@ -103,6 +123,10 @@ export function useAutoCrop() {
           continue
         }
 
+        if (mode === 'canny_then_yolo' && result.backend === 'yolo') {
+          progress.value.fallbackUsed++
+        }
+
         const { x, y, w, h } = result.bbox
         let outCanvas: OffscreenCanvas
         let outCtx: OffscreenCanvasRenderingContext2D
@@ -112,7 +136,13 @@ export function useAutoCrop() {
           outCtx = outCanvas.getContext('2d')!
           outCtx.drawImage(bitmap, 0, 0)
 
-          if (showEdges.value && result.edgesPng) {
+          if (
+            showEdges.value &&
+            canShowEdges &&
+            result.edgesPng &&
+            result.stripped &&
+            result.innerSize
+          ) {
             const edgesBlob = new Blob([result.edgesPng], { type: 'image/png' })
             const edgesBitmap = await createImageBitmap(edgesBlob)
             outCtx.globalAlpha = 0.5
@@ -168,7 +198,22 @@ export function useAutoCrop() {
   const reset = () => {
     selectedImagePaths.value = []
     outputDir.value = null
-    progress.value = { phase: 'idle', current: 0, total: 0, processed: 0, failed: 0, noDetection: 0 }
+    progress.value = {
+      phase: 'idle',
+      current: 0,
+      total: 0,
+      processed: 0,
+      failed: 0,
+      noDetection: 0,
+      fallbackUsed: 0,
+    }
+  }
+
+  const refreshDetectorMode = async (): Promise<DetectorMode> => {
+    const config = await window.electronAPI.config.get()
+    const mode: DetectorMode = config.slideExtraction?.autoCropDetectorMode ?? 'canny_then_yolo'
+    detectorMode.value = mode
+    return mode
   }
 
   return {
@@ -179,11 +224,13 @@ export function useAutoCrop() {
     isProcessing,
     progress,
     outputDir,
+    detectorMode,
     selectImages,
     startProcessing,
     cancelProcessing,
     openOutputFolder,
     reset,
+    refreshDetectorMode,
   }
 }
 

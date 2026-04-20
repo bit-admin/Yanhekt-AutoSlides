@@ -138,6 +138,12 @@
     "autoCrop": {
       "title": "自动裁剪",
       "description": "微调自动裁剪工作流程所使用的幻灯片画布检测参数。默认值适用于大多数录制内容；如需更严格的匹配可降低宽高比容差。",
+      "detectorMode": "检测模式",
+      "detectorModeDescription": "选择用于定位幻灯片画布的方式。回退模式会先使用 Canny 检测，仅在 Canny 失败时再调用 YOLO 模型。",
+      "cannyThenYolo": "Canny → YOLO 回退（默认）",
+      "cannyOnly": "仅使用 Canny",
+      "yoloOnly": "仅使用 YOLO",
+      "resetDefaults": "恢复默认值",
       "aspectTolerance": "宽高比容差",
       "aspectToleranceDescription": "匹配检测到的幻灯片宽高比时，相对 16:9 或 4:3 允许的最大偏差。",
       "blackThreshold": "黑边阈值",
@@ -155,7 +161,26 @@
       "marginFrac": "外扩边距比例",
       "marginFracDescription": "裁剪前围绕检测到的幻灯片包围框额外添加的边距比例。",
       "fillRatioMin": "最小填充比例",
-      "fillRatioMinDescription": "候选包围框面积与其凸包面积的最小比值。"
+      "fillRatioMinDescription": "候选包围框面积与其凸包面积的最小比值。",
+      "yolo": {
+        "title": "YOLO 参数",
+        "confidenceThreshold": "置信度阈值",
+        "confidenceThresholdDescription": "保留候选框所需的最小置信度 [0.05–0.95]。",
+        "iouThreshold": "IoU 阈值",
+        "iouThresholdDescription": "非极大值抑制所用的 IoU 阈值，用于去除重叠框。",
+        "inputSize": "输入尺寸",
+        "inputSizeDescription": "推理前将图像进行 letterbox 到的正方形输入尺寸（像素）。",
+        "model": {
+          "title": "模型",
+          "hint": "选择自定义模型后，将替代内置模型用于自动裁剪。删除后将恢复为内置模型。",
+          "builtinLabel": "内置",
+          "customLabel": "自定义",
+          "selectButton": "选择自定义模型…",
+          "deleteButton": "删除自定义模型",
+          "invalidFile": "仅支持 .onnx 文件。",
+          "tooLarge": "模型文件过大（最大 200 MB）。"
+        }
+      }
     },
     "aiBehaviour": {
       "title": "AI 行为",

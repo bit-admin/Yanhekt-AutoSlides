@@ -422,7 +422,12 @@ export function useResultsView() {
     }
 
     const appConfig = await window.electronAPI.config.get()
-    const autoCropConfig = appConfig.slideExtraction?.autoCrop
+    const slideCfg = appConfig.slideExtraction
+    const detectConfig = {
+      mode: slideCfg?.autoCropDetectorMode ?? 'canny_then_yolo',
+      canny: slideCfg?.autoCrop,
+      yolo: slideCfg?.autoCropYolo,
+    } as const
 
     for (const target of targets) {
       if (!target.originalPath) {
@@ -448,7 +453,7 @@ export function useResultsView() {
         const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
         bitmap.close()
 
-        const response = await detectBbox(imageData, false, autoCropConfig)
+        const response = await detectBbox(imageData, false, detectConfig)
         if (!response.success || !response.result?.bbox) {
           if (!response.success) summary.failed++
           else summary.noDetection++

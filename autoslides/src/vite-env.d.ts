@@ -76,6 +76,24 @@ interface SlideExtractionConfig {
     marginFrac: number;
     fillRatioMin: number;
   };
+  autoCropDetectorMode?: 'canny_then_yolo' | 'canny_only' | 'yolo_only';
+  autoCropYolo?: {
+    confidenceThreshold: number;
+    iouThreshold: number;
+    inputSize: number;
+  };
+  autoCropActiveModel?: 'builtin' | 'custom';
+  autoCropCustomModelName?: string | null;
+}
+
+interface AutoCropModelInfo {
+  active: 'builtin' | 'custom';
+  builtinVersion: string;
+  builtinExists: boolean;
+  builtinSizeBytes: number | null;
+  customName: string | null;
+  customExists: boolean;
+  customSizeBytes: number | null;
 }
 
 interface SlideImageProcessingParams {
@@ -471,6 +489,19 @@ interface ElectronAPI {
     }) => Promise<SlideExtractionConfig>;
     resetAutoCropParams: () => Promise<SlideExtractionConfig>;
 
+    // Auto-crop detector mode + YOLO params
+    setAutoCropDetectorMode: (mode: 'canny_then_yolo' | 'canny_only' | 'yolo_only') => Promise<SlideExtractionConfig>;
+    setAutoCropYoloParams: (params: {
+      confidenceThreshold?: number;
+      iouThreshold?: number;
+      inputSize?: number;
+    }) => Promise<SlideExtractionConfig>;
+    resetAutoCropYoloParams: () => Promise<{
+      confidenceThreshold: number;
+      iouThreshold: number;
+      inputSize: number;
+    }>;
+
     // distinguish may_be_slide flag
     getDistinguishMaybeSlide: () => Promise<boolean>;
     setDistinguishMaybeSlide: (enabled: boolean) => Promise<AppConfig>;
@@ -728,6 +759,13 @@ interface ElectronAPI {
     openFolder: (folderPath: string) => Promise<void>;
     onExportProgress: (callback: (message: string) => void) => () => void;
     onClassCaptureUpdate: (callback: (data: { presentationId: string; hasAuthorization: boolean }) => void) => () => void;
+  };
+
+  autoCrop: {
+    getModelInfo: () => Promise<AutoCropModelInfo>;
+    getModelBuffer: () => Promise<ArrayBuffer>;
+    selectAndImportModel: () => Promise<AutoCropModelInfo | null>;
+    deleteCustomModel: () => Promise<AutoCropModelInfo>;
   };
 
   offline: {

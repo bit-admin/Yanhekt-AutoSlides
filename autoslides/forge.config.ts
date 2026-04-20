@@ -21,6 +21,9 @@ const config: ForgeConfig = {
     extraResource: [
       // Always include terms.rtf
       'resources/terms',
+      // Bundled YOLO model(s) for auto-crop. Kept outside asar so we can
+      // read the bytes off disk via process.resourcesPath at runtime.
+      'resources/models',
       // Include FFmpeg binary for all platforms
       'node_modules/ffmpeg-static',
       // Include sharp and its dependencies

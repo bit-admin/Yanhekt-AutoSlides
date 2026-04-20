@@ -26,6 +26,17 @@ export interface AutoCropConfig {
   fillRatioMin: number;        // Minimum contour fill ratio (vs bounding rect area)
 }
 
+export type AutoCropDetectorMode = 'canny_then_yolo' | 'canny_only' | 'yolo_only';
+export type AutoCropActiveModel = 'builtin' | 'custom';
+
+export interface AutoCropYoloConfig {
+  confidenceThreshold: number; // Minimum detection confidence [0.05, 0.95]
+  iouThreshold: number;        // NMS IoU threshold [0.1, 0.9]
+  inputSize: number;           // Model input size (must be one of supported sizes)
+}
+
+export const AUTO_CROP_YOLO_INPUT_SIZES = [320, 480, 640, 960, 1280] as const;
+
 export interface SlideExtractionConfig {
   // User configurable parameters
   checkInterval: number;           // Detection interval in milliseconds
@@ -53,6 +64,12 @@ export interface SlideExtractionConfig {
 
   // Auto-crop detection parameters
   autoCrop: AutoCropConfig;
+
+  // Auto-crop detector backend selection + YOLO-specific parameters
+  autoCropDetectorMode: AutoCropDetectorMode;
+  autoCropYolo: AutoCropYoloConfig;
+  autoCropActiveModel: AutoCropActiveModel;
+  autoCropCustomModelName: string | null;
 }
 
 export const DEFAULT_AUTO_CROP_CONFIG: AutoCropConfig = {
@@ -65,6 +82,12 @@ export const DEFAULT_AUTO_CROP_CONFIG: AutoCropConfig = {
   areaRatioMax: 0.95,
   marginFrac: 0.02,
   fillRatioMin: 0.85
+};
+
+export const DEFAULT_AUTO_CROP_YOLO_CONFIG: AutoCropYoloConfig = {
+  confidenceThreshold: 0.25,
+  iouThreshold: 0.45,
+  inputSize: 640
 };
 
 export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
@@ -176,7 +199,11 @@ const defaultSlideExtractionConfig: SlideExtractionConfig = {
   enablePngColorReduction: true,   // Enable PNG color reduction by default
 
   // Auto-crop detection defaults
-  autoCrop: { ...DEFAULT_AUTO_CROP_CONFIG }
+  autoCrop: { ...DEFAULT_AUTO_CROP_CONFIG },
+  autoCropDetectorMode: 'canny_then_yolo',
+  autoCropYolo: { ...DEFAULT_AUTO_CROP_YOLO_CONFIG },
+  autoCropActiveModel: 'builtin',
+  autoCropCustomModelName: null
 };
 
 const defaultAIFilteringConfig: AIFilteringConfig = {
@@ -402,18 +429,42 @@ export class ConfigService {
   getSlideExtractionConfig(): SlideExtractionConfig {
     const stored = this.store.get('slideExtraction') as SlideExtractionConfig | undefined;
     if (!stored) return defaultSlideExtractionConfig;
+    let dirty = false;
     // Backfill nested autoCrop block for stores written before auto-crop was configurable.
     if (!stored.autoCrop) {
       stored.autoCrop = { ...DEFAULT_AUTO_CROP_CONFIG };
-      this.store.set('slideExtraction', stored);
+      dirty = true;
     } else {
-      // Fill any missing individual keys (forward-compat if we add fields later).
       const merged = { ...DEFAULT_AUTO_CROP_CONFIG, ...stored.autoCrop };
       if (JSON.stringify(merged) !== JSON.stringify(stored.autoCrop)) {
         stored.autoCrop = merged;
-        this.store.set('slideExtraction', stored);
+        dirty = true;
       }
     }
+    // Backfill YOLO detector fields introduced with the hybrid auto-crop.
+    if (!stored.autoCropDetectorMode) {
+      stored.autoCropDetectorMode = 'canny_then_yolo';
+      dirty = true;
+    }
+    if (!stored.autoCropYolo) {
+      stored.autoCropYolo = { ...DEFAULT_AUTO_CROP_YOLO_CONFIG };
+      dirty = true;
+    } else {
+      const mergedYolo = { ...DEFAULT_AUTO_CROP_YOLO_CONFIG, ...stored.autoCropYolo };
+      if (JSON.stringify(mergedYolo) !== JSON.stringify(stored.autoCropYolo)) {
+        stored.autoCropYolo = mergedYolo;
+        dirty = true;
+      }
+    }
+    if (!stored.autoCropActiveModel) {
+      stored.autoCropActiveModel = 'builtin';
+      dirty = true;
+    }
+    if (stored.autoCropCustomModelName === undefined) {
+      stored.autoCropCustomModelName = null;
+      dirty = true;
+    }
+    if (dirty) this.store.set('slideExtraction', stored);
     return stored;
   }
 
@@ -519,6 +570,48 @@ export class ConfigService {
     const defaults = { ...DEFAULT_AUTO_CROP_CONFIG };
     this.setSlideExtractionConfig({ autoCrop: defaults });
     return defaults;
+  }
+
+  setAutoCropDetectorMode(mode: AutoCropDetectorMode): void {
+    const valid: AutoCropDetectorMode[] = ['canny_then_yolo', 'canny_only', 'yolo_only'];
+    const next: AutoCropDetectorMode = valid.includes(mode) ? mode : 'canny_then_yolo';
+    this.setSlideExtractionConfig({ autoCropDetectorMode: next });
+  }
+
+  setAutoCropYoloParams(params: Partial<AutoCropYoloConfig>): void {
+    const current = this.getSlideExtractionConfig().autoCropYolo ?? { ...DEFAULT_AUTO_CROP_YOLO_CONFIG };
+    const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
+    const next: AutoCropYoloConfig = { ...current };
+
+    if (params.confidenceThreshold !== undefined) {
+      next.confidenceThreshold = clamp(params.confidenceThreshold, 0.05, 0.95);
+    }
+    if (params.iouThreshold !== undefined) {
+      next.iouThreshold = clamp(params.iouThreshold, 0.1, 0.9);
+    }
+    if (params.inputSize !== undefined) {
+      const rounded = Math.round(params.inputSize);
+      next.inputSize = AUTO_CROP_YOLO_INPUT_SIZES.includes(rounded as typeof AUTO_CROP_YOLO_INPUT_SIZES[number])
+        ? rounded
+        : 640;
+    }
+
+    this.setSlideExtractionConfig({ autoCropYolo: next });
+  }
+
+  resetAutoCropYoloParams(): AutoCropYoloConfig {
+    const defaults = { ...DEFAULT_AUTO_CROP_YOLO_CONFIG };
+    this.setSlideExtractionConfig({ autoCropYolo: defaults });
+    return defaults;
+  }
+
+  setAutoCropActiveModel(active: AutoCropActiveModel): void {
+    const next: AutoCropActiveModel = active === 'custom' ? 'custom' : 'builtin';
+    this.setSlideExtractionConfig({ autoCropActiveModel: next });
+  }
+
+  setAutoCropCustomModelName(name: string | null): void {
+    this.setSlideExtractionConfig({ autoCropCustomModelName: name });
   }
 
   setDistinguishMaybeSlide(enabled: boolean): void {

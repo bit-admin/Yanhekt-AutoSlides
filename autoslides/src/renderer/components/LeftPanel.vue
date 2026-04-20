@@ -695,77 +695,159 @@
               <div class="setting-description">{{ $t('advanced.autoCrop.description') }}</div>
 
               <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.autoCrop.aspectTolerance') }}</label>
-                <div class="setting-description">{{ $t('advanced.autoCrop.aspectToleranceDescription') }}</div>
-                <div class="phash-threshold-input-wrapper">
-                  <input v-model.number="tempAutoCropAspectTolerance" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+                <label class="setting-label">{{ $t('advanced.autoCrop.detectorMode') }}</label>
+                <div class="setting-description">{{ $t('advanced.autoCrop.detectorModeDescription') }}</div>
+                <select v-model="tempAutoCropDetectorMode" class="concurrent-select">
+                  <option value="canny_then_yolo">{{ $t('advanced.autoCrop.cannyThenYolo') }}</option>
+                  <option value="canny_only">{{ $t('advanced.autoCrop.cannyOnly') }}</option>
+                  <option value="yolo_only">{{ $t('advanced.autoCrop.yoloOnly') }}</option>
+                </select>
+              </div>
+
+              <div v-if="tempAutoCropDetectorMode !== 'yolo_only'">
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.autoCrop.aspectTolerance') }}</label>
+                  <div class="setting-description">{{ $t('advanced.autoCrop.aspectToleranceDescription') }}</div>
+                  <div class="phash-threshold-input-wrapper">
+                    <input v-model.number="tempAutoCropAspectTolerance" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+                  </div>
+                </div>
+
+                <div class="auto-crop-grid">
+                  <div class="setting-item">
+                    <label class="setting-label">{{ $t('advanced.autoCrop.blackThreshold') }}</label>
+                    <div class="setting-description">{{ $t('advanced.autoCrop.blackThresholdDescription') }}</div>
+                    <div class="phash-threshold-input-wrapper">
+                      <input v-model.number="tempAutoCropBlackThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
+                    </div>
+                  </div>
+
+                  <div class="setting-item">
+                    <label class="setting-label">{{ $t('advanced.autoCrop.maxBorderFrac') }}</label>
+                    <div class="setting-description">{{ $t('advanced.autoCrop.maxBorderFracDescription') }}</div>
+                    <div class="phash-threshold-input-wrapper">
+                      <input v-model.number="tempAutoCropMaxBorderFrac" type="number" min="0" max="0.5" step="0.01" class="phash-threshold-input" />
+                    </div>
+                  </div>
+
+                  <div class="setting-item">
+                    <label class="setting-label">{{ $t('advanced.autoCrop.cannyLowThreshold') }}</label>
+                    <div class="setting-description">{{ $t('advanced.autoCrop.cannyLowThresholdDescription') }}</div>
+                    <div class="phash-threshold-input-wrapper">
+                      <input v-model.number="tempAutoCropCannyLowThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
+                    </div>
+                  </div>
+
+                  <div class="setting-item">
+                    <label class="setting-label">{{ $t('advanced.autoCrop.cannyHighThreshold') }}</label>
+                    <div class="setting-description">{{ $t('advanced.autoCrop.cannyHighThresholdDescription') }}</div>
+                    <div class="phash-threshold-input-wrapper">
+                      <input v-model.number="tempAutoCropCannyHighThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
+                    </div>
+                  </div>
+
+                  <div class="setting-item">
+                    <label class="setting-label">{{ $t('advanced.autoCrop.areaRatioMin') }}</label>
+                    <div class="setting-description">{{ $t('advanced.autoCrop.areaRatioMinDescription') }}</div>
+                    <div class="phash-threshold-input-wrapper">
+                      <input v-model.number="tempAutoCropAreaRatioMin" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+                    </div>
+                  </div>
+
+                  <div class="setting-item">
+                    <label class="setting-label">{{ $t('advanced.autoCrop.areaRatioMax') }}</label>
+                    <div class="setting-description">{{ $t('advanced.autoCrop.areaRatioMaxDescription') }}</div>
+                    <div class="phash-threshold-input-wrapper">
+                      <input v-model.number="tempAutoCropAreaRatioMax" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+                    </div>
+                  </div>
+
+                  <div class="setting-item">
+                    <label class="setting-label">{{ $t('advanced.autoCrop.marginFrac') }}</label>
+                    <div class="setting-description">{{ $t('advanced.autoCrop.marginFracDescription') }}</div>
+                    <div class="phash-threshold-input-wrapper">
+                      <input v-model.number="tempAutoCropMarginFrac" type="number" min="0" max="0.5" step="0.005" class="phash-threshold-input" />
+                    </div>
+                  </div>
+
+                  <div class="setting-item">
+                    <label class="setting-label">{{ $t('advanced.autoCrop.fillRatioMin') }}</label>
+                    <div class="setting-description">{{ $t('advanced.autoCrop.fillRatioMinDescription') }}</div>
+                    <div class="phash-threshold-input-wrapper">
+                      <input v-model.number="tempAutoCropFillRatioMin" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div class="auto-crop-grid">
-                <div class="setting-item">
-                  <label class="setting-label">{{ $t('advanced.autoCrop.blackThreshold') }}</label>
-                  <div class="setting-description">{{ $t('advanced.autoCrop.blackThresholdDescription') }}</div>
-                  <div class="phash-threshold-input-wrapper">
-                    <input v-model.number="tempAutoCropBlackThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
+              <div v-if="tempAutoCropDetectorMode !== 'canny_only'" class="advanced-setting-subsection">
+                <h5>{{ $t('advanced.autoCrop.yolo.title') }}</h5>
+
+                <div class="auto-crop-grid">
+                  <div class="setting-item">
+                    <label class="setting-label">{{ $t('advanced.autoCrop.yolo.confidenceThreshold') }}</label>
+                    <div class="setting-description">{{ $t('advanced.autoCrop.yolo.confidenceThresholdDescription') }}</div>
+                    <div class="phash-threshold-input-wrapper">
+                      <input v-model.number="tempAutoCropYoloConfidenceThreshold" type="number" min="0.05" max="0.95" step="0.05" class="phash-threshold-input" />
+                    </div>
+                  </div>
+
+                  <div class="setting-item">
+                    <label class="setting-label">{{ $t('advanced.autoCrop.yolo.iouThreshold') }}</label>
+                    <div class="setting-description">{{ $t('advanced.autoCrop.yolo.iouThresholdDescription') }}</div>
+                    <div class="phash-threshold-input-wrapper">
+                      <input v-model.number="tempAutoCropYoloIouThreshold" type="number" min="0.1" max="0.9" step="0.05" class="phash-threshold-input" />
+                    </div>
+                  </div>
+
+                  <div class="setting-item">
+                    <label class="setting-label">{{ $t('advanced.autoCrop.yolo.inputSize') }}</label>
+                    <div class="setting-description">{{ $t('advanced.autoCrop.yolo.inputSizeDescription') }}</div>
+                    <select v-model.number="tempAutoCropYoloInputSize" class="concurrent-select">
+                      <option v-for="s in autoCropYoloInputSizes" :key="s" :value="s">{{ s }}</option>
+                    </select>
                   </div>
                 </div>
 
                 <div class="setting-item">
-                  <label class="setting-label">{{ $t('advanced.autoCrop.maxBorderFrac') }}</label>
-                  <div class="setting-description">{{ $t('advanced.autoCrop.maxBorderFracDescription') }}</div>
-                  <div class="phash-threshold-input-wrapper">
-                    <input v-model.number="tempAutoCropMaxBorderFrac" type="number" min="0" max="0.5" step="0.01" class="phash-threshold-input" />
+                  <label class="setting-label">{{ $t('advanced.autoCrop.yolo.model.title') }}</label>
+                  <div class="setting-description">{{ $t('advanced.autoCrop.yolo.model.hint') }}</div>
+                  <div class="model-row" v-if="autoCropModelInfo">
+                    <div class="model-info" v-if="autoCropModelInfo.active === 'custom' && autoCropModelInfo.customExists">
+                      <strong>{{ $t('advanced.autoCrop.yolo.model.customLabel') }}:</strong>
+                      {{ autoCropModelInfo.customName || '—' }}
+                      <span v-if="autoCropModelInfo.customSizeBytes" class="model-size">
+                        ({{ formatCacheSize(autoCropModelInfo.customSizeBytes) }})
+                      </span>
+                    </div>
+                    <div class="model-info" v-else>
+                      <strong>{{ $t('advanced.autoCrop.yolo.model.builtinLabel') }}:</strong>
+                      {{ autoCropModelInfo.builtinVersion }}
+                      <span v-if="autoCropModelInfo.builtinSizeBytes" class="model-size">
+                        ({{ formatCacheSize(autoCropModelInfo.builtinSizeBytes) }})
+                      </span>
+                    </div>
+                    <div class="model-actions">
+                      <button type="button" class="secondary-btn" @click="selectAutoCropCustomModel">
+                        {{ $t('advanced.autoCrop.yolo.model.selectButton') }}
+                      </button>
+                      <button
+                        type="button"
+                        class="secondary-btn"
+                        :disabled="!autoCropModelInfo.customExists"
+                        @click="deleteAutoCropCustomModel"
+                      >
+                        {{ $t('advanced.autoCrop.yolo.model.deleteButton') }}
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div class="setting-item">
-                  <label class="setting-label">{{ $t('advanced.autoCrop.cannyLowThreshold') }}</label>
-                  <div class="setting-description">{{ $t('advanced.autoCrop.cannyLowThresholdDescription') }}</div>
-                  <div class="phash-threshold-input-wrapper">
-                    <input v-model.number="tempAutoCropCannyLowThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
-                  </div>
-                </div>
-
-                <div class="setting-item">
-                  <label class="setting-label">{{ $t('advanced.autoCrop.cannyHighThreshold') }}</label>
-                  <div class="setting-description">{{ $t('advanced.autoCrop.cannyHighThresholdDescription') }}</div>
-                  <div class="phash-threshold-input-wrapper">
-                    <input v-model.number="tempAutoCropCannyHighThreshold" type="number" min="0" max="255" step="1" class="phash-threshold-input" />
-                  </div>
-                </div>
-
-                <div class="setting-item">
-                  <label class="setting-label">{{ $t('advanced.autoCrop.areaRatioMin') }}</label>
-                  <div class="setting-description">{{ $t('advanced.autoCrop.areaRatioMinDescription') }}</div>
-                  <div class="phash-threshold-input-wrapper">
-                    <input v-model.number="tempAutoCropAreaRatioMin" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
-                  </div>
-                </div>
-
-                <div class="setting-item">
-                  <label class="setting-label">{{ $t('advanced.autoCrop.areaRatioMax') }}</label>
-                  <div class="setting-description">{{ $t('advanced.autoCrop.areaRatioMaxDescription') }}</div>
-                  <div class="phash-threshold-input-wrapper">
-                    <input v-model.number="tempAutoCropAreaRatioMax" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
-                  </div>
-                </div>
-
-                <div class="setting-item">
-                  <label class="setting-label">{{ $t('advanced.autoCrop.marginFrac') }}</label>
-                  <div class="setting-description">{{ $t('advanced.autoCrop.marginFracDescription') }}</div>
-                  <div class="phash-threshold-input-wrapper">
-                    <input v-model.number="tempAutoCropMarginFrac" type="number" min="0" max="0.5" step="0.005" class="phash-threshold-input" />
-                  </div>
-                </div>
-
-                <div class="setting-item">
-                  <label class="setting-label">{{ $t('advanced.autoCrop.fillRatioMin') }}</label>
-                  <div class="setting-description">{{ $t('advanced.autoCrop.fillRatioMinDescription') }}</div>
-                  <div class="phash-threshold-input-wrapper">
-                    <input v-model.number="tempAutoCropFillRatioMin" type="number" min="0" max="1" step="0.01" class="phash-threshold-input" />
-                  </div>
-                </div>
+              <div class="setting-item">
+                <button type="button" class="secondary-btn" @click="resetAutoCropDefaults">
+                  {{ $t('advanced.autoCrop.resetDefaults') }}
+                </button>
               </div>
 
             </div>
@@ -1646,6 +1728,15 @@ const {
   tempAutoCropAreaRatioMax,
   tempAutoCropMarginFrac,
   tempAutoCropFillRatioMin,
+  tempAutoCropDetectorMode,
+  tempAutoCropYoloConfidenceThreshold,
+  tempAutoCropYoloIouThreshold,
+  tempAutoCropYoloInputSize,
+  autoCropYoloInputSizes,
+  autoCropModelInfo,
+  selectAutoCropCustomModel,
+  deleteAutoCropCustomModel,
+  resetAutoCropDefaults,
   distinguishMaybeSlide: _distinguishMaybeSlide,
   tempDistinguishMaybeSlide,
   intranetMappings,
@@ -2741,6 +2832,69 @@ defineExpose({
 .auto-crop-grid .setting-item .phash-threshold-input-wrapper {
   width: 100%;
   box-sizing: border-box;
+}
+
+.advanced-setting-subsection {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+}
+
+.advanced-setting-subsection h5 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #222);
+}
+
+.model-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 6px;
+  background: var(--bg-subtle, rgba(0, 0, 0, 0.02));
+}
+
+.model-row .model-info {
+  font-size: 12px;
+  color: var(--text-primary, #222);
+  word-break: break-all;
+}
+
+.model-row .model-size {
+  color: #666;
+  margin-left: 4px;
+}
+
+.model-row .model-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.secondary-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #222);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.secondary-btn:hover:not(:disabled) {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+  border-color: var(--border-color-strong, rgba(0, 0, 0, 0.25));
+}
+
+.secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .setting-description {
