@@ -1,6 +1,5 @@
 import { defineConfig, type Plugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import { viteStaticCopy } from 'vite-plugin-static-copy';
 import path from 'path';
 import fs from 'fs';
 
@@ -48,6 +47,39 @@ function ortWasmDevServer(): Plugin {
   };
 }
 
+// Copy onnxruntime-web WASM/MJS files flat into <outDir>/ort-wasm/<filename>.
+// viteStaticCopy's `rename` didn't strip the source directory structure in
+// practice (files ended up nested under ort-wasm/node_modules/...), so we
+// copy them manually in writeBundle.
+function ortWasmBuildCopy(): Plugin {
+  const sourceDir = path.resolve(
+    __dirname,
+    'node_modules/onnxruntime-web/dist'
+  );
+  const files = [
+    'ort-wasm-simd-threaded.jsep.wasm',
+    'ort-wasm-simd-threaded.jsep.mjs',
+    'ort-wasm-simd-threaded.wasm',
+    'ort-wasm-simd-threaded.mjs'
+  ];
+  return {
+    name: 'copy-ort-wasm-build',
+    apply: 'build',
+    writeBundle(options) {
+      const outDir = options.dir ?? path.resolve(__dirname, 'dist');
+      const destDir = path.join(outDir, 'ort-wasm');
+      fs.mkdirSync(destDir, { recursive: true });
+      for (const f of files) {
+        const src = path.join(sourceDir, f);
+        const dst = path.join(destDir, f);
+        if (fs.existsSync(src)) {
+          fs.copyFileSync(src, dst);
+        }
+      }
+    }
+  };
+}
+
 // Vite config for unified Tools window
 export default defineConfig(({ mode }) => ({
   // Give this window its own deps cache so it doesn't collide with the main
@@ -57,26 +89,7 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     vue(),
     ortWasmDevServer(),
-    viteStaticCopy({
-      targets: [
-        {
-          src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.wasm',
-          dest: 'ort-wasm'
-        },
-        {
-          src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.jsep.mjs',
-          dest: 'ort-wasm'
-        },
-        {
-          src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.wasm',
-          dest: 'ort-wasm'
-        },
-        {
-          src: 'node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.mjs',
-          dest: 'ort-wasm'
-        }
-      ]
-    })
+    ortWasmBuildCopy()
   ],
   optimizeDeps: {
     // Exclude onnxruntime-web so Vite doesn't try to pre-bundle it (its WASM

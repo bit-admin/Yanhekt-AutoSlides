@@ -198,15 +198,18 @@ let ortLoading: Promise<void> | null = null
 let ortConfigured = false
 let cachedModelBuffer: ArrayBuffer | null = null
 
+function resolveOrtWasmBase(): string {
+  // Dev: Vite dev-server middleware serves files at /ort-wasm/.
+  // Prod: files are emitted to <output>/ort-wasm/ by ortWasmBuildCopy, and the
+  // worker lives at <output>/assets/worker-xxx.js under a file:// URL, so we
+  // resolve relative to the worker's own location.
+  if (import.meta.env.DEV) return '/ort-wasm/'
+  return new URL('../ort-wasm/', self.location.href).href
+}
+
 function configureOrtEnv(): void {
   if (ortConfigured) return
-  // Serve WASM from the static-copy location under public/ort-wasm/.
-  // Works in both Vite dev server and packaged Electron (file://).
-  try {
-    ort.env.wasm.wasmPaths = '/ort-wasm/'
-  } catch (err) {
-    log(`ort wasmPaths set failed: ${err instanceof Error ? err.message : String(err)}`)
-  }
+  ort.env.wasm.wasmPaths = resolveOrtWasmBase()
   // Single-threaded avoids the COOP/COEP requirement for SharedArrayBuffer.
   ort.env.wasm.numThreads = 1
   ortConfigured = true

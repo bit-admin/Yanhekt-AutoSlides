@@ -10,7 +10,10 @@ const isDev = process.argv.some(arg => arg.includes('electron-forge-start'));
 const config: ForgeConfig = {
   packagerConfig: {
     asar: {
-      unpack: '**/{*.node,sharp/**/*,@img/**/*}'
+      // ort-wasm/** is unpacked so onnxruntime-web's runtime dynamic import of
+      // the .mjs backend loader works from file:// (ESM imports out of asar
+      // fail in Electron — the file needs to live on the real filesystem).
+      unpack: '**/{*.node,sharp/**/*,@img/**/*,ort-wasm/**/*}'
     },
     name: 'AutoSlides',
     executableName: process.platform === 'linux' ? 'autoslides' : 'AutoSlides',
