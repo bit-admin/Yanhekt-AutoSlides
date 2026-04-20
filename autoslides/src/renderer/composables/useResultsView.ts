@@ -126,6 +126,22 @@ export function useResultsView() {
     return items.every((item) => item.reason === 'ai_filtered_edit')
   })
 
+  const canAutoCropActive = computed(() => {
+    const items = selectedItems.value
+    if (items.length === 0) return false
+    return items.every((item) => item.status === 'active')
+  })
+
+  const canCropAndDedup = computed(() => {
+    const items = selectedItems.value
+    if (items.length === 0) return false
+    return items.every(
+      (item) =>
+        item.status === 'active' ||
+        (item.status === 'removed' && item.reason === 'ai_filtered_edit'),
+    )
+  })
+
   const { detectBbox } = useAutoCropDetect()
 
   watch([selectedReason, contextMode], () => {
@@ -385,31 +401,36 @@ export function useResultsView() {
     }
   }
 
-  interface RestoreSnapshot {
-    id: string
+  interface AutoCropTarget {
+    id?: string
     originalPath: string
     filename: string
+    needsRestore: boolean
   }
 
-  async function runRestoreAndAutoCrop(
-    snapshots: RestoreSnapshot[],
+  async function runAutoCropPipeline(
+    targets: AutoCropTarget[],
     summary: { cropped: number; noDetection: number; failed: number },
   ): Promise<Array<{ originalPath: string; filename: string }>> {
     const cropped: Array<{ originalPath: string; filename: string }> = []
 
-    const ids = snapshots.map((s) => s.id)
-    await window.electronAPI.trash.restore(ids)
+    const restoreIds = targets
+      .filter((t) => t.needsRestore && t.id)
+      .map((t) => t.id as string)
+    if (restoreIds.length > 0) {
+      await window.electronAPI.trash.restore(restoreIds)
+    }
 
     const appConfig = await window.electronAPI.config.get()
     const autoCropConfig = appConfig.slideExtraction?.autoCrop
 
-    for (const snap of snapshots) {
-      if (!snap.originalPath) {
+    for (const target of targets) {
+      if (!target.originalPath) {
         summary.failed++
         continue
       }
       try {
-        const buffer = await window.electronAPI.offline.readImageBuffer(snap.originalPath)
+        const buffer = await window.electronAPI.offline.readImageBuffer(target.originalPath)
         const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
         const blobArrayBuffer = new ArrayBuffer(bytes.byteLength)
         new Uint8Array(blobArrayBuffer).set(bytes)
@@ -435,16 +456,39 @@ export function useResultsView() {
         }
 
         const { x, y, w, h } = response.result.bbox
-        await window.electronAPI.crop.apply(snap.originalPath, { x, y, width: w, height: h }, true)
+        await window.electronAPI.crop.apply(target.originalPath, { x, y, width: w, height: h }, true)
         summary.cropped++
-        cropped.push({ originalPath: snap.originalPath, filename: snap.filename })
+        cropped.push({ originalPath: target.originalPath, filename: target.filename })
       } catch (err) {
-        console.error(`Failed to restore-and-autocrop ${snap.originalPath}:`, err)
+        console.error(`Failed to autocrop ${target.originalPath}:`, err)
         summary.failed++
       }
     }
 
     return cropped
+  }
+
+  async function autoCropSelectedActive(): Promise<{ cropped: number; noDetection: number; failed: number }> {
+    const summary = { cropped: 0, noDetection: 0, failed: 0 }
+    if (!canAutoCropActive.value) return summary
+
+    isLoading.value = true
+    try {
+      const targets: AutoCropTarget[] = selectedActiveItems.value.map((item) => ({
+        originalPath: item.imagePath || item.originalPath || '',
+        filename: item.name,
+        needsRestore: false,
+      }))
+
+      await runAutoCropPipeline(targets, summary)
+      await refresh()
+    } catch (error) {
+      console.error('Failed to auto-crop selected active items:', error)
+    } finally {
+      isLoading.value = false
+    }
+
+    return summary
   }
 
   async function restoreAndAutoCropSelected(): Promise<{ cropped: number; noDetection: number; failed: number }> {
@@ -453,13 +497,14 @@ export function useResultsView() {
 
     isLoading.value = true
     try {
-      const snapshots: RestoreSnapshot[] = selectedRemovedItems.value.map((item) => ({
+      const targets: AutoCropTarget[] = selectedRemovedItems.value.map((item) => ({
         id: item.id,
         originalPath: item.originalPath || '',
         filename: item.name,
+        needsRestore: true,
       }))
 
-      await runRestoreAndAutoCrop(snapshots, summary)
+      await runAutoCropPipeline(targets, summary)
       await refresh()
     } catch (error) {
       console.error('Failed to restore and auto-crop selected:', error)
@@ -470,23 +515,29 @@ export function useResultsView() {
     return summary
   }
 
-  async function restoreAutoCropAndDedupSelected(): Promise<{ cropped: number; noDetection: number; deduped: number; failed: number }> {
+  async function cropAndDedupSelected(): Promise<{ cropped: number; noDetection: number; deduped: number; failed: number }> {
     const summary = { cropped: 0, noDetection: 0, deduped: 0, failed: 0 }
-    if (!canRestoreAndAutoCrop.value) return summary
+    if (!canCropAndDedup.value) return summary
 
     const folder = currentFolder.value
     if (!folder) return summary
 
     isLoading.value = true
     try {
-      const snapshots: RestoreSnapshot[] = selectedRemovedItems.value.map((item) => ({
-        id: item.id,
-        originalPath: item.originalPath || '',
-        filename: item.name,
-      }))
+      const targets: AutoCropTarget[] = selectedItems.value.map((item) => {
+        const isRemoved = item.status === 'removed'
+        return {
+          id: isRemoved ? item.id : undefined,
+          originalPath: isRemoved
+            ? item.originalPath || ''
+            : item.imagePath || item.originalPath || '',
+          filename: item.name,
+          needsRestore: isRemoved,
+        }
+      })
 
       const cropSummary = { cropped: 0, noDetection: 0, failed: 0 }
-      const croppedItems = await runRestoreAndAutoCrop(snapshots, cropSummary)
+      const croppedItems = await runAutoCropPipeline(targets, cropSummary)
       summary.cropped = cropSummary.cropped
       summary.noDetection = cropSummary.noDetection
       summary.failed = cropSummary.failed
@@ -563,13 +614,13 @@ export function useResultsView() {
 
         try {
           const seen: Array<{ filename: string; pHash: string }> = []
-          const restoredSet = new Set(croppedItems.map((c) => c.originalPath))
+          const croppedSet = new Set(croppedItems.map((c) => c.originalPath))
 
           if (activeFolder?.path) {
             try {
               const existingImages = await window.electronAPI.pdfmaker.getImages(activeFolder.path)
               for (const img of existingImages) {
-                if (restoredSet.has(img.path)) continue
+                if (croppedSet.has(img.path)) continue
                 try {
                   const buffer = await window.electronAPI.offline.readImageBuffer(img.path)
                   const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
@@ -733,6 +784,8 @@ export function useResultsView() {
     previewItem,
     hasRemovedItems,
     canRestoreAndAutoCrop,
+    canAutoCropActive,
+    canCropAndDedup,
     trashEntries,
     openFolder,
     goBack,
@@ -742,8 +795,9 @@ export function useResultsView() {
     closePreview,
     deleteSelected,
     restoreSelected,
+    autoCropSelectedActive,
     restoreAndAutoCropSelected,
-    restoreAutoCropAndDedupSelected,
+    cropAndDedupSelected,
     clearTrash,
     applyCropToImage,
     restoreCropFromImage,

@@ -67,19 +67,18 @@
         <div v-if="currentView === 'images'" class="restore-split" :class="{ 'restore-split-open': showRestoreMenu }">
           <button
             class="restore-btn restore-split-main"
-            @click="handleRestoreAndAutoCrop"
-            :disabled="!canRestoreAndAutoCrop || isLoading"
-            :title="$t('trash.restoreAndAutoCropHint')"
+            @click="handleAutoCropSelected"
+            :disabled="!canAutoCropActive || isLoading"
+            :title="$t('trash.autoCropSelectedHint')"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16">
-              <path d="M8 2L4 6h3v6h2V6h3L8 2z" fill="currentColor"/>
-              <rect x="3" y="12" width="10" height="2" fill="currentColor"/>
+            <svg width="16" height="16" viewBox="0 0 24 24">
+              <path d="M17 15h2V7c0-1.1-.9-2-2-2H9v2h8v8zM7 17V1H5v4H1v2h4v10c0 1.1.9 2 2 2h10v4h2v-4h4v-2H7z" fill="currentColor"/>
             </svg>
-            {{ $t('trash.restoreAndAutoCrop') }}
+            {{ $t('trash.autoCropSelected') }}
           </button>
           <button
             class="restore-btn restore-split-toggle"
-            :disabled="!canRestoreAndAutoCrop || isLoading"
+            :disabled="isLoading || (!canRestoreAndAutoCrop && !canCropAndDedup)"
             :title="$t('trash.restoreAutoCropMoreOptions')"
             @click.stop="showRestoreMenu = !showRestoreMenu"
           >
@@ -91,7 +90,15 @@
             <button
               class="restore-split-menu-item"
               :disabled="!canRestoreAndAutoCrop || isLoading"
-              @click="handleRestoreAutoCropDedup"
+              @click="handleRestoreAndAutoCrop"
+            >
+              <div class="restore-split-menu-title">{{ $t('trash.restoreAndAutoCrop') }}</div>
+              <div class="restore-split-menu-hint">{{ $t('trash.restoreAndAutoCropHint') }}</div>
+            </button>
+            <button
+              class="restore-split-menu-item"
+              :disabled="!canCropAndDedup || isLoading"
+              @click="handleCropAndDedup"
             >
               <div class="restore-split-menu-title">{{ $t('trash.restoreAutoCropDedup') }}</div>
               <div class="restore-split-menu-hint">{{ $t('trash.restoreAutoCropDedupHint') }}</div>
@@ -460,6 +467,8 @@ const {
   previewItem,
   hasRemovedItems,
   canRestoreAndAutoCrop,
+  canAutoCropActive,
+  canCropAndDedup,
   trashEntries,
   openFolder,
   goBack,
@@ -469,8 +478,9 @@ const {
   closePreview: closePreviewItem,
   deleteSelected,
   restoreSelected,
+  autoCropSelectedActive,
   restoreAndAutoCropSelected,
-  restoreAutoCropAndDedupSelected,
+  cropAndDedupSelected,
   clearTrash,
   applyCropToImage,
   restoreCropFromImage,
@@ -1109,7 +1119,22 @@ const confirmDelete = async () => {
   }
 }
 
+const handleAutoCropSelected = async () => {
+  if (!canAutoCropActive.value) return
+
+  const summary = await autoCropSelectedActive()
+  await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'info',
+    buttons: ['OK'],
+    title: t('trash.autoCropSelected'),
+    message: t('trash.autoCropSelectedSummary', summary),
+  })
+}
+
+const showRestoreMenu = ref(false)
+
 const handleRestoreAndAutoCrop = async () => {
+  showRestoreMenu.value = false
   if (!canRestoreAndAutoCrop.value) return
 
   const summary = await restoreAndAutoCropSelected()
@@ -1121,13 +1146,11 @@ const handleRestoreAndAutoCrop = async () => {
   })
 }
 
-const showRestoreMenu = ref(false)
-
-const handleRestoreAutoCropDedup = async () => {
+const handleCropAndDedup = async () => {
   showRestoreMenu.value = false
-  if (!canRestoreAndAutoCrop.value) return
+  if (!canCropAndDedup.value) return
 
-  const summary = await restoreAutoCropAndDedupSelected()
+  const summary = await cropAndDedupSelected()
   await window.electronAPI.dialog?.showMessageBox?.({
     type: 'info',
     buttons: ['OK'],
