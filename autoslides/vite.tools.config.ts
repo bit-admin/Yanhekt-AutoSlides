@@ -37,7 +37,12 @@ function ortWasmDevServer(): Plugin {
           'application/octet-stream';
         res.setHeader('Content-Type', mime);
         res.setHeader('Cache-Control', 'no-cache');
-        fs.createReadStream(filepath).pipe(res);
+        const stream = fs.createReadStream(filepath);
+        stream.on('error', () => {
+          try { res.end(); } catch { /* noop */ }
+        });
+        res.on('close', () => stream.destroy());
+        stream.pipe(res);
       });
     }
   };
@@ -45,6 +50,10 @@ function ortWasmDevServer(): Plugin {
 
 // Vite config for unified Tools window
 export default defineConfig(({ mode }) => ({
+  // Give this window its own deps cache so it doesn't collide with the main
+  // renderer's cache (they share node_modules/.vite/deps/ by default, and
+  // differing optimizeDeps config causes re-optimize loops).
+  cacheDir: 'node_modules/.vite-tools',
   plugins: [
     vue(),
     ortWasmDevServer(),
