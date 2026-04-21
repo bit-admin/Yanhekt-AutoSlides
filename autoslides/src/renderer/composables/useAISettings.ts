@@ -15,10 +15,10 @@ export interface MlModelInfo {
   active: 'builtin' | 'custom'
   builtinVersion: string
   builtinExists: boolean
-  builtinSizeBytes: number
+  builtinSizeBytes: number | null
   customName: string | null
   customExists: boolean
-  customSizeBytes: number
+  customSizeBytes: number | null
 }
 
 export type CopilotOAuthStep = 'idle' | 'waiting' | 'polling' | 'success' | 'error'
@@ -724,7 +724,7 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
   const importCustomMlModel = async () => {
     try {
       const result = await window.electronAPI.mlClassifier.selectAndImportModel()
-      if (result?.success) {
+      if (result) {
         resetMlClassifier()
         await refreshMlModelInfo()
       }

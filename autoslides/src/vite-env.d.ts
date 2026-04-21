@@ -96,6 +96,16 @@ interface AutoCropModelInfo {
   customSizeBytes: number | null;
 }
 
+interface MlClassifierModelInfo {
+  active: 'builtin' | 'custom';
+  builtinVersion: string;
+  builtinExists: boolean;
+  builtinSizeBytes: number | null;
+  customName: string | null;
+  customExists: boolean;
+  customSizeBytes: number | null;
+}
+
 interface SlideImageProcessingParams {
   hammingThresholdLow?: number;
   hammingThresholdUp?: number;
@@ -108,7 +118,14 @@ interface SlideImageProcessingParams {
   enablePngColorReduction?: boolean;
 }
 
+interface MlClassifierThresholds {
+  trustLow: number;
+  trustHigh: number;
+  slideCheckLow: number;
+}
+
 interface AIFilteringConfig {
+  classifierMode: 'llm' | 'ml';
   serviceType: 'builtin' | 'custom' | 'copilot';
   customApiBaseUrl: string;
   customApiKey: string;
@@ -123,6 +140,9 @@ interface AIFilteringConfig {
   imageResizeHeight: number; // height to resize images before sending to AI, default 432
   maxConcurrent: number; // max concurrent requests, default 1
   minTime: number; // minimum time between requests in ms, default 6000
+  mlThresholds: MlClassifierThresholds;
+  mlClassifierActiveModel: 'builtin' | 'custom';
+  mlClassifierCustomModelName: string | null;
 }
 
 interface AIPrompts {
@@ -526,6 +546,12 @@ interface ElectronAPI {
     setAIFilteringConfig: (config: Partial<AIFilteringConfig>) => Promise<AIFilteringConfig>;
     setAIBatchSize: (batchSize: number) => Promise<AIFilteringConfig>;
     getAIBatchSize: () => Promise<number>;
+    setAIClassifierMode: (mode: 'llm' | 'ml') => Promise<AIFilteringConfig>;
+    setMlThresholds: (thresholds: {
+      trustLow?: number;
+      trustHigh?: number;
+      slideCheckLow?: number;
+    }) => Promise<AIFilteringConfig>;
 
     // AI prompts management
     getAIPrompts: (variant?: 'simple' | 'distinguish') => Promise<AIPrompts>;
@@ -766,6 +792,13 @@ interface ElectronAPI {
     getModelBuffer: () => Promise<ArrayBuffer>;
     selectAndImportModel: () => Promise<AutoCropModelInfo | null>;
     deleteCustomModel: () => Promise<AutoCropModelInfo>;
+  };
+
+  mlClassifier: {
+    getModelInfo: () => Promise<MlClassifierModelInfo>;
+    getModelBuffer: () => Promise<ArrayBuffer>;
+    selectAndImportModel: () => Promise<MlClassifierModelInfo | null>;
+    deleteCustomModel: () => Promise<MlClassifierModelInfo>;
   };
 
   offline: {
