@@ -188,7 +188,7 @@
     "aiBehaviour": {
       "title": "AI Behaviour",
       "distinguishLabel": "Distinguish may_be_slide",
-      "distinguishDescription": "When enabled, the AI uses a three-class prompt that separates presentation edit-mode frames (PowerPoint/Keynote/Google Slides in editing view) from non-slide frames. Edit-mode frames are moved to trash as \"AI Filtered – Edit\" and can be restored and auto-cropped later.",
+      "distinguishDescription": "When enabled, AI treats presentation edit-mode frames (PowerPoint/Keynote/Google Slides in editing view) as a separate class rather than merging them into non-slide frames. These frames are moved to trash as \"AI Filtered – Edit\" and can be restored and auto-cropped later.",
       "distinguishToggle": "Enable distinguishing may_be_slide_edit"
     },
     "pHashExclusionList": "pHash Exclusion List",
@@ -275,7 +275,7 @@
     "ai": {
       "serviceSettings": "AI Service Settings",
       "serviceType": "Service Type",
-      "serviceTypeDescription": "Choose either the built-in service (shared, availability may vary) or a custom OpenAI-compatible API. Custom service docs:",
+      "serviceTypeDescription": "Choose a service: the built-in option (shared service, so availability may fluctuate), GitHub Copilot, or a custom OpenAI-compatible API. Custom service docs:",
       "customServiceDocsLink": "API Configuration Guide",
       "builtin": "Built-in",
       "custom": "Custom",
@@ -337,18 +337,18 @@
       "rateLimitCopilotHint": "GitHub Copilot has its own rate limits. Recommended: Max Concurrent 1, Min Time 6000ms.",
       "ml": {
         "classifierMode": "Classifier Mode",
-        "classifierModeDescription": "Choose between LLM (cloud-based AI) or ML (local ONNX model) for image classification.",
+        "classifierModeDescription": "Choose how image classification runs: LLM API mode uses a cloud AI service, while ML mode runs a local machine-learning model on your device.",
         "modeLlm": "LLM",
         "modeMl": "ML",
         "modelTitle": "ML Classifier Model",
-        "modelLabel": "ONNX Model",
-        "modelHint": "Select a custom ONNX model or use the built-in classifier.",
-        "thresholdsTitle": "Classification Thresholds",
-        "thresholdsHint": "Configure confidence thresholds for the ML classifier's decision logic.",
-        "confidenceSliderLabel": "Non-slide confidence thresholds",
-        "slideCheckSliderLabel": "Slide probability (check band)",
+        "modelLabel": "Local Classifier Model",
+        "modelHint": "Use the built-in MobileNet-based classifier, or choose a custom local classifier model.",
+        "thresholdsTitle": "Image Removal Strictness",
+        "thresholdsHint": "Adjust how aggressively AutoSlides removes images it suspects are not slides. Keep: the system is unsure, so the image is kept. Delete: the system is highly confident the image is not a slide, so it is removed. Review: confidence is in-between; the image is kept or removed using the secondary \"Is a Slide\" probability slider below.",
+        "confidenceSliderLabel": "Primary Filter: \"Not a Slide\" Confidence",
+        "slideCheckSliderLabel": "Secondary Filter: \"Is a Slide\" Probability (Review zone only)",
         "keep": "Keep",
-        "check": "Check",
+        "check": "Review",
         "delete": "Delete"
       }
     }

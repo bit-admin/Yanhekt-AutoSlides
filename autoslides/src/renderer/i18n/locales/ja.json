@@ -188,7 +188,7 @@
     "aiBehaviour": {
       "title": "AI の挙動",
       "distinguishLabel": "may_be_slide を区別する",
-      "distinguishDescription": "有効にすると、AI はスライド編集画面（PowerPoint／Keynote／Google Slides の編集モード）を通常の非スライドフレームから区別する 3 クラス分類プロンプトを使用します。編集モードのフレームは「AI 除外 – 編集モード」としてゴミ箱に移動し、後から復元して自動トリミングできます。",
+      "distinguishDescription": "有効にすると、AI はプレゼン編集画面（PowerPoint／Keynote／Google Slides の編集モード）を通常の非スライドフレームに統合せず、独立したクラスとして扱います。編集モードのフレームは「AI 除外 – 編集モード」としてゴミ箱に移動し、後から復元して自動トリミングできます。",
       "distinguishToggle": "may_be_slide_edit の区別を有効にする"
     },
     "pHashExclusionList": "pHash除外リスト",
@@ -275,7 +275,7 @@
     "ai": {
       "serviceSettings": "AIサービス設定",
       "serviceType": "サービスタイプ",
-      "serviceTypeDescription": "内蔵サービス（共有、可用性は状況により異なります）またはカスタムOpenAI互換APIを選択してください。カスタムサービスドキュメント：",
+      "serviceTypeDescription": "利用するサービスを選択してください：内蔵サービス（共有サービスのため可用性が変動する場合があります）、GitHub Copilot、またはカスタム OpenAI 互換 API。カスタムサービスドキュメント：",
       "customServiceDocsLink": "API設定ガイド",
       "builtin": "内蔵",
       "custom": "カスタム",
@@ -337,18 +337,18 @@
       "rateLimitCopilotHint": "GitHub Copilot には独自のレート制限があります。推奨: 最大同時リクエスト数 1、リクエスト間の最小時間 6000ms。",
       "ml": {
         "classifierMode": "分類器モード",
-        "classifierModeDescription": "画像分類に LLM（クラウド AI）または ML（ローカル ONNX モデル）を選択します。",
+        "classifierModeDescription": "画像分類の実行方式を選択します。LLM API モードはクラウド AI サービスを使用し、ML モードはデバイス上でローカル機械学習モデルを実行します。",
         "modeLlm": "LLM",
         "modeMl": "ML",
         "modelTitle": "ML 分類器モデル",
-        "modelLabel": "ONNX モデル",
-        "modelHint": "カスタム ONNX モデルを選択するか、内蔵分類器を使用します。",
-        "thresholdsTitle": "分類しきい値",
-        "thresholdsHint": "ML 分類器の判定ロジックの信頼度しきい値を設定します。",
-        "confidenceSliderLabel": "非スライド信頼度しきい値",
-        "slideCheckSliderLabel": "スライド確率（チェック帯域）",
+        "modelLabel": "ローカル分類モデル",
+        "modelHint": "内蔵の MobileNet ベース分類モデルを使うか、カスタムのローカル分類モデルを選択します。",
+        "thresholdsTitle": "画像除外の厳しさ",
+        "thresholdsHint": "スライドではないと判断した画像を、どの程度積極的に除外するかを調整します。保持：判定に十分な確信がないため保持します。削除：スライドではない確信が高いため削除します。レビュー：確信度が中間のため、下の「スライドである確率」スライダーで保持/削除を決定します。",
+        "confidenceSliderLabel": "一次フィルター：「スライドではない」確信度",
+        "slideCheckSliderLabel": "二次フィルター：「スライドである」確率（レビュー帯のみ）",
         "keep": "保持",
-        "check": "チェック",
+        "check": "レビュー",
         "delete": "削除"
       }
     }

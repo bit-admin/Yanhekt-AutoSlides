@@ -188,7 +188,7 @@
     "aiBehaviour": {
       "title": "AI 行为",
       "distinguishLabel": "区分 may_be_slide",
-      "distinguishDescription": "启用后，AI 使用三类提示词，将演示软件的编辑视图（PowerPoint/Keynote/Google Slides 编辑模式）与普通的非幻灯片帧区分开。编辑模式帧会以“AI 过滤 – 编辑模式”移入回收站，随后可恢复并自动裁剪。",
+      "distinguishDescription": "启用后，AI 会将演示软件编辑视图帧（PowerPoint/Keynote/Google Slides 编辑模式）作为独立类别，而不是并入普通非幻灯片帧。此类帧会以“AI 过滤 – 编辑模式”移入回收站，随后可恢复并自动裁剪。",
       "distinguishToggle": "启用区分 may_be_slide_edit"
     },
     "pHashExclusionList": "pHash 排除列表",
@@ -275,7 +275,7 @@
     "ai": {
       "serviceSettings": "AI 服务设置",
       "serviceType": "服务类型",
-      "serviceTypeDescription": "选择使用内置服务（免费共享服务，可用性视情况而定）或自定义 OpenAI 兼容 API。自定义服务配置文档：",
+      "serviceTypeDescription": "选择服务提供方：内置服务（共享服务，可用性可能波动）、GitHub Copilot，或自定义 OpenAI 兼容 API。自定义服务配置文档：",
       "customServiceDocsLink": "API 配置指南",
       "builtin": "内置",
       "custom": "自定义",
@@ -337,18 +337,18 @@
       "rateLimitCopilotHint": "GitHub Copilot 有自身的速率限制。建议：最大并发请求数 1，请求最小间隔 6000 毫秒。",
       "ml": {
         "classifierMode": "分类器模式",
-        "classifierModeDescription": "选择使用 LLM（云端 AI）或 ML（本地 ONNX 模型）进行图像分类。",
+        "classifierModeDescription": "选择图像分类的运行方式：LLM API 模式使用云端 AI 服务，ML 模式在本机运行机器学习模型。",
         "modeLlm": "LLM",
         "modeMl": "ML",
         "modelTitle": "ML 分类器模型",
-        "modelLabel": "ONNX 模型",
-        "modelHint": "选择自定义 ONNX 模型或使用内置分类器。",
-        "thresholdsTitle": "分类阈值",
-        "thresholdsHint": "配置 ML 分类器决策逻辑的置信度阈值。",
-        "confidenceSliderLabel": "非幻灯片置信度阈值",
-        "slideCheckSliderLabel": "幻灯片概率（检查区间）",
+        "modelLabel": "本地分类模型",
+        "modelHint": "可使用内置的 MobileNet 分类模型，或选择自定义本地分类模型。",
+        "thresholdsTitle": "图像移除严格度",
+        "thresholdsHint": "调整系统在“判定为非幻灯片”时的移除力度。保留：系统不够确定，图像会保留。删除：系统高度确信不是幻灯片，图像会被移除。复核：置信度处于中间区间，是否移除将由下方“是幻灯片”概率滑条决定。",
+        "confidenceSliderLabel": "主过滤器：“非幻灯片”置信度",
+        "slideCheckSliderLabel": "次过滤器：“是幻灯片”概率（仅作用于复核区）",
         "keep": "保留",
-        "check": "检查",
+        "check": "复核",
         "delete": "删除"
       }
     }

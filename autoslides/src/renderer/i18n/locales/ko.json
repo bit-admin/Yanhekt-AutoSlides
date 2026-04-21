@@ -188,7 +188,7 @@
     "aiBehaviour": {
       "title": "AI 동작",
       "distinguishLabel": "may_be_slide 구분",
-      "distinguishDescription": "활성화하면 AI가 프레젠테이션 편집 화면(PowerPoint/Keynote/Google Slides 편집 모드)을 일반 비슬라이드 프레임과 구분하는 3분류 프롬프트를 사용합니다. 편집 모드 프레임은 “AI 필터링 – 편집 모드”로 휴지통에 이동하며, 나중에 복원하여 자동으로 자를 수 있습니다.",
+      "distinguishDescription": "활성화하면 AI는 프레젠테이션 편집 화면(PowerPoint/Keynote/Google Slides 편집 모드)을 일반 비슬라이드 프레임에 합치지 않고 별도 클래스로 처리합니다. 편집 모드 프레임은 “AI 필터링 – 편집 모드”로 휴지통에 이동하며, 나중에 복원하여 자동으로 자를 수 있습니다.",
       "distinguishToggle": "may_be_slide_edit 구분 활성화"
     },
     "pHashExclusionList": "pHash 제외 목록",
@@ -275,7 +275,7 @@
     "ai": {
       "serviceSettings": "AI 서비스 설정",
       "serviceType": "서비스 유형",
-      "serviceTypeDescription": "내장 서비스(공유, 가용성은 상황에 따라 다름) 또는 사용자 정의 OpenAI 호환 API를 선택하세요. 사용자 정의 서비스 문서:",
+      "serviceTypeDescription": "사용할 서비스를 선택하세요: 내장 서비스(공유 서비스이므로 가용성이 변동될 수 있음), GitHub Copilot, 또는 사용자 정의 OpenAI 호환 API. 사용자 정의 서비스 문서:",
       "customServiceDocsLink": "API 구성 가이드",
       "builtin": "내장",
       "custom": "사용자 정의",
@@ -337,18 +337,18 @@
       "rateLimitCopilotHint": "GitHub Copilot에는 자체 속도 제한이 있습니다. 권장: 최대 동시 요청 수 1, 요청 간 최소 시간 6000ms.",
       "ml": {
         "classifierMode": "분류기 모드",
-        "classifierModeDescription": "이미지 분류에 LLM(클라우드 AI) 또는 ML(로컬 ONNX 모델)을 선택합니다.",
+        "classifierModeDescription": "이미지 분류 실행 방식을 선택합니다. LLM API 모드는 클라우드 AI 서비스를 사용하고, ML 모드는 기기에서 로컬 머신러닝 모델을 실행합니다.",
         "modeLlm": "LLM",
         "modeMl": "ML",
         "modelTitle": "ML 분류기 모델",
-        "modelLabel": "ONNX 모델",
-        "modelHint": "사용자 정의 ONNX 모델을 선택하거나 내장 분류기를 사용합니다.",
-        "thresholdsTitle": "분류 임계값",
-        "thresholdsHint": "ML 분류기 결정 로직의 신뢰도 임계값을 구성합니다.",
-        "confidenceSliderLabel": "비슬라이드 신뢰도 임계값",
-        "slideCheckSliderLabel": "슬라이드 확률 (검사 대역)",
+        "modelLabel": "로컬 분류 모델",
+        "modelHint": "내장된 MobileNet 기반 분류 모델을 사용하거나, 사용자 지정 로컬 분류 모델을 선택할 수 있습니다.",
+        "thresholdsTitle": "이미지 제거 강도",
+        "thresholdsHint": "시스템이 슬라이드가 아니라고 판단한 이미지를 얼마나 공격적으로 제거할지 조정합니다. 유지: 시스템의 확신이 낮아 이미지를 안전하게 유지합니다. 삭제: 슬라이드가 아닐 확신이 높아 이미지를 제거합니다. 검토: 확신도가 중간 구간이므로 아래의 \"슬라이드일 확률\" 슬라이더로 유지/삭제를 결정합니다.",
+        "confidenceSliderLabel": "1차 필터: \"슬라이드 아님\" 확신도",
+        "slideCheckSliderLabel": "2차 필터: \"슬라이드일 확률\" (검토 구간에만 적용)",
         "keep": "유지",
-        "check": "검사",
+        "check": "검토",
         "delete": "삭제"
       }
     }
