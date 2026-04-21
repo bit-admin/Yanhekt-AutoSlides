@@ -140,10 +140,9 @@
       "description": "自動トリミング処理で使用するスライド領域検出パラメータを調整します。既定値はほとんどの録画で機能しますが、より厳密なマッチングが必要な場合はアスペクト比許容値を下げてください。",
       "detectorMode": "検出モード",
       "detectorModeDescription": "スライド領域の検出方法を選択します。フォールバックモードでは最初に Canny を実行し、失敗した場合のみ YOLO モデルを呼び出します。",
-      "cannyThenYolo": "Canny → YOLO フォールバック（既定）",
+      "cannyThenYolo": "まず Canny を使用し、失敗時は YOLO にフォールバック",
       "cannyOnly": "Canny のみ",
       "yoloOnly": "YOLO のみ",
-      "resetDefaults": "既定値に戻す",
       "aspectTolerance": "アスペクト比の許容誤差",
       "aspectToleranceDescription": "検出されたスライドのアスペクト比を 16:9 または 4:3 と一致させる際に許容する最大偏差。",
       "blackThreshold": "黒縁しきい値",
@@ -154,6 +153,7 @@
       "cannyLowThresholdDescription": "スライドの境界を見つけるための Canny エッジ検出の下側しきい値。",
       "cannyHighThreshold": "Canny 高しきい値",
       "cannyHighThresholdDescription": "スライドの境界を見つけるための Canny エッジ検出の上側しきい値。",
+      "grayLevelUnit": "グレーレベル",
       "areaRatioMin": "最小面積比率",
       "areaRatioMinDescription": "フレーム全体に対する候補領域の最小面積比率。これを下回る候補は除外されます。",
       "areaRatioMax": "最大面積比率",
@@ -162,6 +162,9 @@
       "marginFracDescription": "検出されたスライドのバウンディングボックスの周囲に、切り抜き前に追加する余白の比率。",
       "fillRatioMin": "最小充填率",
       "fillRatioMinDescription": "候補バウンディングボックスの面積に対する凸包面積の最小比率。",
+      "canny": {
+        "title": "Canny パラメータ"
+      },
       "yolo": {
         "title": "YOLO パラメータ",
         "confidenceThreshold": "信頼度しきい値",

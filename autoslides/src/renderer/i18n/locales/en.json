@@ -140,10 +140,9 @@
       "description": "Tune slide-canvas detection used by the Auto Crop workflow. Defaults work for most recordings; lower the aspect tolerance for stricter matches.",
       "detectorMode": "Detector Mode",
       "detectorModeDescription": "Choose how the slide canvas is located. The fallback mode runs Canny first and only invokes the YOLO model when Canny fails.",
-      "cannyThenYolo": "Canny → YOLO fallback (default)",
+      "cannyThenYolo": "Use Canny first, then fall back to YOLO",
       "cannyOnly": "Canny only",
       "yoloOnly": "YOLO only",
-      "resetDefaults": "Reset to Defaults",
       "aspectTolerance": "Aspect Tolerance",
       "aspectToleranceDescription": "Maximum allowed deviation from 16:9 or 4:3 when matching the detected slide aspect ratio.",
       "blackThreshold": "Black Border Threshold",
@@ -154,6 +153,7 @@
       "cannyLowThresholdDescription": "Lower threshold for Canny edge detection used to locate slide edges.",
       "cannyHighThreshold": "Canny High Threshold",
       "cannyHighThresholdDescription": "Upper threshold for Canny edge detection used to locate slide edges.",
+      "grayLevelUnit": "gray level",
       "areaRatioMin": "Min Area Ratio",
       "areaRatioMinDescription": "Minimum slide area relative to the full frame. Candidates smaller than this are rejected.",
       "areaRatioMax": "Max Area Ratio",
@@ -162,6 +162,9 @@
       "marginFracDescription": "Fractional margin added around the detected slide bounding box before cropping.",
       "fillRatioMin": "Min Fill Ratio",
       "fillRatioMinDescription": "Minimum ratio of the candidate bounding box area to its convex hull area.",
+      "canny": {
+        "title": "Canny Parameters"
+      },
       "yolo": {
         "title": "YOLO Parameters",
         "confidenceThreshold": "Confidence Threshold",

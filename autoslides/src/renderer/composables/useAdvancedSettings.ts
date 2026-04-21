@@ -110,7 +110,6 @@ export interface UseAdvancedSettingsReturn {
   refreshAutoCropModelInfo: () => Promise<void>
   selectAutoCropCustomModel: () => Promise<void>
   deleteAutoCropCustomModel: () => Promise<void>
-  resetAutoCropDefaults: () => void
 
   // AI behaviour
   distinguishMaybeSlide: Ref<boolean>
@@ -629,22 +628,6 @@ export function useAdvancedSettings(
     }
   }
 
-  const resetAutoCropDefaults = (): void => {
-    tempAutoCropAspectTolerance.value = AUTO_CROP_DEFAULTS.aspectTolerance
-    tempAutoCropBlackThreshold.value = AUTO_CROP_DEFAULTS.blackThreshold
-    tempAutoCropMaxBorderFrac.value = AUTO_CROP_DEFAULTS.maxBorderFrac
-    tempAutoCropCannyLowThreshold.value = AUTO_CROP_DEFAULTS.cannyLowThreshold
-    tempAutoCropCannyHighThreshold.value = AUTO_CROP_DEFAULTS.cannyHighThreshold
-    tempAutoCropAreaRatioMin.value = AUTO_CROP_DEFAULTS.areaRatioMin
-    tempAutoCropAreaRatioMax.value = AUTO_CROP_DEFAULTS.areaRatioMax
-    tempAutoCropMarginFrac.value = AUTO_CROP_DEFAULTS.marginFrac
-    tempAutoCropFillRatioMin.value = AUTO_CROP_DEFAULTS.fillRatioMin
-    tempAutoCropDetectorMode.value = AUTO_CROP_YOLO_DEFAULTS.mode
-    tempAutoCropYoloConfidenceThreshold.value = AUTO_CROP_YOLO_DEFAULTS.confidenceThreshold
-    tempAutoCropYoloIouThreshold.value = AUTO_CROP_YOLO_DEFAULTS.iouThreshold
-    tempAutoCropYoloInputSize.value = AUTO_CROP_YOLO_DEFAULTS.inputSize
-  }
-
   return {
     // Modal state
     showAdvancedModal,
@@ -710,7 +693,6 @@ export function useAdvancedSettings(
     refreshAutoCropModelInfo,
     selectAutoCropCustomModel,
     deleteAutoCropCustomModel,
-    resetAutoCropDefaults,
 
     // AI behaviour
     distinguishMaybeSlide,

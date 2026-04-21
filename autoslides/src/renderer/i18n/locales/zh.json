@@ -140,10 +140,9 @@
       "description": "微调自动裁剪工作流程所使用的幻灯片画布检测参数。默认值适用于大多数录制内容；如需更严格的匹配可降低宽高比容差。",
       "detectorMode": "检测模式",
       "detectorModeDescription": "选择用于定位幻灯片画布的方式。回退模式会先使用 Canny 检测，仅在 Canny 失败时再调用 YOLO 模型。",
-      "cannyThenYolo": "Canny → YOLO 回退（默认）",
+      "cannyThenYolo": "先使用 Canny，失败时回退到 YOLO",
       "cannyOnly": "仅使用 Canny",
       "yoloOnly": "仅使用 YOLO",
-      "resetDefaults": "恢复默认值",
       "aspectTolerance": "宽高比容差",
       "aspectToleranceDescription": "匹配检测到的幻灯片宽高比时，相对 16:9 或 4:3 允许的最大偏差。",
       "blackThreshold": "黑边阈值",
@@ -154,6 +153,7 @@
       "cannyLowThresholdDescription": "用于定位幻灯片边缘的 Canny 边缘检测低阈值。",
       "cannyHighThreshold": "Canny 高阈值",
       "cannyHighThresholdDescription": "用于定位幻灯片边缘的 Canny 边缘检测高阈值。",
+      "grayLevelUnit": "灰度级",
       "areaRatioMin": "最小面积比例",
       "areaRatioMinDescription": "候选区域相对整帧的最小面积比例，低于此值的候选区域将被剔除。",
       "areaRatioMax": "最大面积比例",
@@ -162,6 +162,9 @@
       "marginFracDescription": "裁剪前围绕检测到的幻灯片包围框额外添加的边距比例。",
       "fillRatioMin": "最小填充比例",
       "fillRatioMinDescription": "候选包围框面积与其凸包面积的最小比值。",
+      "canny": {
+        "title": "Canny 参数"
+      },
       "yolo": {
         "title": "YOLO 参数",
         "confidenceThreshold": "置信度阈值",
