@@ -82,19 +82,21 @@
         <span class="search-text">AutoSlides</span>
       </button>
 
-      <!-- Right link buttons -->
-      <div class="link-buttons right">
-        <button class="link-button" @click="openWebVersion" :title="$t('titlebar.webVersion')">
+      <!-- Feedback button with inline expand -->
+      <div class="feedback-control" :class="{ expanded: showFeedbackActions }" @click.stop>
+        <button class="feedback-trigger" @click="toggleFeedbackActions" :title="$t('titlebar.feedback')">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm7.5-6.923c-.67.204-1.335.82-1.887 1.855A7.97 7.97 0 0 0 5.145 4H7.5V1.077zM4.09 4a9.267 9.267 0 0 1 .64-1.539 6.7 6.7 0 0 1 .597-.933A7.025 7.025 0 0 0 2.255 4H4.09zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a6.958 6.958 0 0 0-.656 2.5h2.49zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5H4.847zM8.5 5v2.5h2.99a12.495 12.495 0 0 0-.337-2.5H8.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5H4.51zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5H8.5zM5.145 12c.138.386.295.744.468 1.068.552 1.035 1.218 1.65 1.887 1.855V12H5.145zm.182 2.472a6.696 6.696 0 0 1-.597-.933A9.268 9.268 0 0 1 4.09 12H2.255a7.024 7.024 0 0 0 3.072 2.472zM3.82 11a13.652 13.652 0 0 1-.312-2.5h-2.49c.062.89.291 1.733.656 2.5H3.82zm6.853 3.472A7.024 7.024 0 0 0 13.745 12H11.91a9.27 9.27 0 0 1-.64 1.539 6.688 6.688 0 0 1-.597.933zM8.5 12v2.923c.67-.204 1.335-.82 1.887-1.855.173-.324.33-.682.468-1.068H8.5zm3.68-1h2.146c.365-.767.594-1.61.656-2.5h-2.49a13.65 13.65 0 0 1-.312 2.5zm2.802-6.5h-2.49A13.65 13.65 0 0 1 12.18 5h2.146c-.365-.767-.594-1.61-.656-2.5zM11.27 2.461c.247.464.462.98.64 1.539h1.835a7.024 7.024 0 0 0-3.072-2.472c.218.284.418.598.597.933zM10.855 4a7.966 7.966 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077V4h2.355z"/>
+            <path d="M2.5 2A1.5 1.5 0 0 0 1 3.5v6A1.5 1.5 0 0 0 2.5 11H4v2.5a.5.5 0 0 0 .82.384L7.714 11H13.5A1.5 1.5 0 0 0 15 9.5v-6A1.5 1.5 0 0 0 13.5 2h-11z"/>
+          </svg>
+          <span class="feedback-text">{{ $t('titlebar.feedback') }}</span>
+          <svg class="feedback-chevron" width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M6.646 3.646a.5.5 0 0 1 .708 0l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 1 1-.708-.708L10.293 8 6.646 4.354a.5.5 0 0 1 0-.708z"/>
           </svg>
         </button>
-        <button class="link-button" @click="openSSIMTest" :title="$t('titlebar.ssimTest')">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
-            <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
-          </svg>
-        </button>
+        <div class="feedback-actions" :class="{ interactive: showFeedbackActions }">
+          <button class="feedback-action-button" :class="{ interactive: showFeedbackActions }" @click="openFeedbackIssue">{{ $t('titlebar.openIssue') }}</button>
+          <button class="feedback-action-button" :class="{ interactive: showFeedbackActions }" @click="openFeedbackEmail">{{ $t('titlebar.sendEmail') }}</button>
+        </div>
       </div>
     </div>
 
@@ -302,6 +304,7 @@ const showFileMenu = ref(false);
 const showEditMenu = ref(false);
 const showViewMenu = ref(false);
 const showHelpMenu = ref(false);
+const showFeedbackActions = ref(false);
 
 // Menu refs
 const fileMenuTrigger = ref<HTMLElement>();
@@ -500,6 +503,9 @@ const handleOutsideClick = (event: Event) => {
   if (!target.closest('.menu-item')) {
     closeAllMenus();
   }
+  if (!target.closest('.feedback-control')) {
+    showFeedbackActions.value = false;
+  }
 };
 
 const closeAllMenus = () => {
@@ -511,23 +517,32 @@ const closeAllMenus = () => {
 
 // Menu toggle functions
 const toggleFileMenu = () => {
+  showFeedbackActions.value = false;
   closeAllMenus();
   showFileMenu.value = !showFileMenu.value;
 };
 
 const toggleEditMenu = () => {
+  showFeedbackActions.value = false;
   closeAllMenus();
   showEditMenu.value = !showEditMenu.value;
 };
 
 const toggleViewMenu = () => {
+  showFeedbackActions.value = false;
   closeAllMenus();
   showViewMenu.value = !showViewMenu.value;
 };
 
 const toggleHelpMenu = () => {
+  showFeedbackActions.value = false;
   closeAllMenus();
   showHelpMenu.value = !showHelpMenu.value;
+};
+
+const toggleFeedbackActions = () => {
+  closeAllMenus();
+  showFeedbackActions.value = !showFeedbackActions.value;
 };
 
 // Search box click handler
@@ -580,19 +595,47 @@ const openGitHub = async () => {
   }
 };
 
-const openSSIMTest = async () => {
+const openFeedbackIssue = async () => {
+  showFeedbackActions.value = false;
   try {
-    await (window as any).electronAPI.shell.openExternal('https://learn.ruc.edu.kg/test');
+    await (window as any).electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides/issues/new');
   } catch (error) {
-    console.error('Failed to open SSIM Test:', error);
+    console.error('Failed to open issue page:', error);
   }
 };
 
-const openWebVersion = async () => {
+const openFeedbackEmail = async () => {
+  showFeedbackActions.value = false;
+
+  const now = new Date();
+  const timestampLocal = now.toLocaleString();
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown';
+  const appVersion = releaseInfo.value?.currentVersion || 'Unknown';
+  const electronVersion = navigator.userAgent.match(/Electron\/([\d.]+)/)?.[1] || 'Unknown';
+  const platform = navigator.platform || 'Unknown';
+
+  const subject = encodeURIComponent(`[AutoSlides Feedback] ${timestampLocal.slice(0, 10)}`);
+  const body = encodeURIComponent(
+    `Hello AutoSlides Team,\n\n` +
+    `- What happened:\n` +
+    `- Steps to reproduce:\n` +
+    `- Expected result:\n` +
+    `- Actual result:\n` +
+    `- Additional notes:\n\n` +
+    `────────────────────────\n` +
+    `Environment Snapshot\n` +
+    `────────────────────────\n` +
+    `Timestamp: ${timestampLocal}\n` +
+    `Time zone: ${timezone}\n` +
+    `App version: ${appVersion}\n` +
+    `Electron: ${electronVersion}\n` +
+    `Platform: ${platform}\n`
+  );
+
   try {
-    await (window as any).electronAPI.shell.openExternal('https://learn.ruc.edu.kg');
+    await (window as any).electronAPI.shell.openExternal(`mailto:info@ruc.edu.kg?subject=${subject}&body=${body}`);
   } catch (error) {
-    console.error('Failed to open Web Version:', error);
+    console.error('Failed to open email client:', error);
   }
 };
 
@@ -1009,6 +1052,112 @@ const autoCheckForUpdates = async () => {
   transition: transform 0.15s ease;
 }
 
+.feedback-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  z-index: 20;
+  -webkit-app-region: no-drag;
+}
+
+.feedback-trigger {
+  height: 25px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #f8f8f8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  color: #555;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.feedback-control.expanded .feedback-trigger {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.feedback-trigger:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.feedback-trigger:active {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.feedback-text {
+  white-space: nowrap;
+}
+
+.feedback-chevron {
+  transition: opacity 0.2s ease;
+}
+
+.feedback-actions {
+  position: absolute;
+  left: calc(100% - 1px);
+  top: 0;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0;
+  border: 1px solid transparent;
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  background: transparent;
+  pointer-events: none;
+  z-index: 30;
+  transition: max-width 0.25s ease, opacity 0.2s ease, padding 0.25s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.feedback-control.expanded .feedback-actions {
+  max-width: 400px;
+  opacity: 1;
+  padding: 0 4px;
+  border-color: #d9d9d9;
+  background: #f3f3f3;
+  pointer-events: auto;
+}
+
+.feedback-action-button {
+  height: 20px;
+  border: 1px solid #d0d0d0;
+  background: #fff;
+  border-radius: 4px;
+  padding: 0 8px;
+  color: #444;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.feedback-actions.interactive,
+.feedback-action-button.interactive {
+  -webkit-app-region: no-drag;
+}
+
+.feedback-action-button:hover {
+  background: #0078d4;
+  border-color: #0078d4;
+  color: #fff;
+}
+
+.feedback-action-button:active {
+  transform: scale(0.98);
+}
+
 /* Window controls for non-macOS */
 .window-controls {
   display: flex;
@@ -1139,6 +1288,42 @@ const autoCheckForUpdates = async () => {
 
   .link-button:active {
     background: rgba(255, 255, 255, 0.15);
+  }
+
+  .feedback-trigger {
+    background: #3b3b3b;
+    border-color: #585858;
+    color: #ddd;
+  }
+
+  .feedback-control.expanded .feedback-trigger {
+    border-color: #6a6a6a;
+  }
+
+  .feedback-trigger:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
+  .feedback-trigger:active {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .feedback-control.expanded .feedback-actions {
+    border-color: #6a6a6a;
+    background: #434343;
+  }
+
+  .feedback-action-button {
+    background: #4a4a4a;
+    border-color: #696969;
+    color: #e5e5e5;
+  }
+
+  .feedback-action-button:hover {
+    background: #0078d4;
+    border-color: #0078d4;
+    color: #fff;
   }
 
   /* Menu bar dark mode */
