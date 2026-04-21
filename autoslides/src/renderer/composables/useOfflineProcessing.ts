@@ -142,6 +142,7 @@ export function useOfflineProcessing() {
       outputDir.value = configuredOutputDir
         ? `${configuredOutputDir}/slides_${inputFolderName.value}`
         : ''
+      progress.value.errorMessage = undefined
     }
   }
 
@@ -164,7 +165,7 @@ export function useOfflineProcessing() {
       // Step 1: List images
       const images = await window.electronAPI.offline.listImages(inputFolderPath.value)
       if (images.length === 0) {
-        progress.value.phase = 'error'
+        resetProgress()
         progress.value.errorMessage = 'noImagesFound'
         isProcessing.value = false
         return

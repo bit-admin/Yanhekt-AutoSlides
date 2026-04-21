@@ -58,8 +58,16 @@
         <div class="offline-spacer"></div>
 
         <!-- Progress bar -->
-        <div v-if="offlineProgress.phase !== 'idle'" class="progress-track">
+        <div v-if="offlineProgress.phase !== 'idle' && offlineProgress.phase !== 'error'" class="progress-track">
           <div class="progress-fill" :style="{ width: overallOfflineProgress + '%' }"></div>
+        </div>
+
+        <div v-if="offlineProgress.errorMessage && !offlineIsProcessing" class="offline-status-message offline-status-error">
+          {{
+            offlineProgress.errorMessage === 'noImagesFound'
+              ? $t('offlineProcessing.noImagesFound')
+              : offlineProgress.errorMessage
+          }}
         </div>
 
         <!-- Actions -->
@@ -428,6 +436,15 @@ const autoCropOverallProgress = computed(() => {
   transition: width 0.3s ease;
 }
 
+.offline-status-message {
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.offline-status-error {
+  color: #c62828;
+}
+
 /* Actions */
 .offline-actions {
   display: flex;
@@ -543,6 +560,10 @@ const autoCropOverallProgress = computed(() => {
 
   .setting-note {
     color: #777;
+  }
+
+  .offline-status-error {
+    color: #ff8a80;
   }
 
   .progress-track {
