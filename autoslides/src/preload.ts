@@ -112,6 +112,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }) => ipcRenderer.invoke('config:setAIFilteringConfig', config),
     setAIBatchSize: (batchSize: number) => ipcRenderer.invoke('config:setAIBatchSize', batchSize),
     getAIBatchSize: () => ipcRenderer.invoke('config:getAIBatchSize'),
+    setAIClassifierMode: (mode: 'llm' | 'ml') => ipcRenderer.invoke('config:setAIClassifierMode', mode),
+    setMlThresholds: (thresholds: { trustLow?: number; trustHigh?: number; slideCheckLow?: number }) =>
+      ipcRenderer.invoke('config:setMlThresholds', thresholds),
     // AI prompts management
     getAIPrompts: (variant?: 'simple' | 'distinguish') => ipcRenderer.invoke('config:getAIPrompts', variant),
     getAIPrompt: (type: 'live' | 'recorded', variant?: 'simple' | 'distinguish') =>
@@ -366,6 +369,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getModelBuffer: () => ipcRenderer.invoke('autoCrop:getModelBuffer') as Promise<ArrayBuffer>,
     selectAndImportModel: () => ipcRenderer.invoke('autoCrop:selectAndImportModel'),
     deleteCustomModel: () => ipcRenderer.invoke('autoCrop:deleteCustomModel'),
+  },
+  mlClassifier: {
+    getModelInfo: () => ipcRenderer.invoke('mlClassifier:getModelInfo'),
+    getModelBuffer: () => ipcRenderer.invoke('mlClassifier:getModelBuffer') as Promise<ArrayBuffer>,
+    selectAndImportModel: () => ipcRenderer.invoke('mlClassifier:selectAndImportModel'),
+    deleteCustomModel: () => ipcRenderer.invoke('mlClassifier:deleteCustomModel'),
   },
   offline: {
     selectInputFolder: () => ipcRenderer.invoke('offline:selectInputFolder'),

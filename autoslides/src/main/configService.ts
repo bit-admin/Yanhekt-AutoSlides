@@ -94,7 +94,16 @@ export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
 
 export type AIServiceType = 'builtin' | 'custom' | 'copilot';
 
+export type AIClassifierMode = 'llm' | 'ml';
+
+export interface MlClassifierThresholds {
+  trustLow: number;
+  trustHigh: number;
+  slideCheckLow: number;
+}
+
 export interface AIFilteringConfig {
+  classifierMode: AIClassifierMode;
   serviceType: AIServiceType;
   customApiBaseUrl: string;
   customApiKey: string;
@@ -109,6 +118,9 @@ export interface AIFilteringConfig {
   imageResizeHeight: number; // height to resize images before sending to AI, default 432
   maxConcurrent: number; // max concurrent requests, default 1
   minTime: number; // minimum time between requests in ms, default 6000
+  mlThresholds: MlClassifierThresholds;
+  mlClassifierActiveModel: 'builtin' | 'custom';
+  mlClassifierCustomModelName: string | null;
 }
 
 export interface AppConfig {
@@ -206,7 +218,14 @@ const defaultSlideExtractionConfig: SlideExtractionConfig = {
   autoCropCustomModelName: null
 };
 
+export const DEFAULT_ML_THRESHOLDS: MlClassifierThresholds = {
+  trustLow: 0.75,
+  trustHigh: 0.9,
+  slideCheckLow: 0.25
+};
+
 const defaultAIFilteringConfig: AIFilteringConfig = {
+  classifierMode: 'llm',
   serviceType: 'builtin',
   customApiBaseUrl: '',
   customApiKey: '',
@@ -220,7 +239,10 @@ const defaultAIFilteringConfig: AIFilteringConfig = {
   imageResizeWidth: 768, // default 768px width (40% of 1920)
   imageResizeHeight: 432, // default 432px height (40% of 1080)
   maxConcurrent: 1, // default 1 concurrent request
-  minTime: 6000 // default 6000ms between requests
+  minTime: 6000, // default 6000ms between requests
+  mlThresholds: { ...DEFAULT_ML_THRESHOLDS },
+  mlClassifierActiveModel: 'builtin',
+  mlClassifierCustomModelName: null
 };
 
 const defaultConfig: AppConfig = {
@@ -751,7 +773,13 @@ export class ConfigService {
 
   // AI Filtering configuration methods
   getAIFilteringConfig(): AIFilteringConfig {
-    return this.store.get('aiFiltering') || defaultAIFilteringConfig;
+    const stored = this.store.get('aiFiltering') as Partial<AIFilteringConfig> | undefined;
+    if (!stored) return { ...defaultAIFilteringConfig };
+    return {
+      ...defaultAIFilteringConfig,
+      ...stored,
+      mlThresholds: { ...DEFAULT_ML_THRESHOLDS, ...(stored.mlThresholds || {}) }
+    };
   }
 
   setAIFilteringConfig(config: Partial<AIFilteringConfig>): void {
@@ -798,6 +826,39 @@ export class ConfigService {
   getAIBatchSize(): number {
     const config = this.getAIFilteringConfig();
     return config.batchSize || 5;
+  }
+
+  setAIClassifierMode(mode: AIClassifierMode): void {
+    this.setAIFilteringConfig({ classifierMode: mode });
+  }
+
+  getAIClassifierMode(): AIClassifierMode {
+    return this.getAIFilteringConfig().classifierMode || 'llm';
+  }
+
+  getMlThresholds(): MlClassifierThresholds {
+    return { ...this.getAIFilteringConfig().mlThresholds };
+  }
+
+  setMlThresholds(thresholds: Partial<MlClassifierThresholds>): void {
+    const current = this.getMlThresholds();
+    const clamp = (v: number): number => Math.max(0, Math.min(1, v));
+    const next: MlClassifierThresholds = {
+      trustLow: thresholds.trustLow != null ? clamp(thresholds.trustLow) : current.trustLow,
+      trustHigh: thresholds.trustHigh != null ? clamp(thresholds.trustHigh) : current.trustHigh,
+      slideCheckLow:
+        thresholds.slideCheckLow != null ? clamp(thresholds.slideCheckLow) : current.slideCheckLow
+    };
+    if (next.trustLow > next.trustHigh) next.trustLow = next.trustHigh;
+    this.setAIFilteringConfig({ mlThresholds: next });
+  }
+
+  setMlClassifierActiveModel(active: 'builtin' | 'custom'): void {
+    this.setAIFilteringConfig({ mlClassifierActiveModel: active });
+  }
+
+  setMlClassifierCustomModelName(name: string | null): void {
+    this.setAIFilteringConfig({ mlClassifierCustomModelName: name });
   }
 
   async selectOutputDirectory(): Promise<string | null> {

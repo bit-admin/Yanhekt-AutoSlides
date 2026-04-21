@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { TokenManager } from '../services/authService'
+import { classifyMultipleImages as dispatchClassifyMultiple } from '../services/slideClassificationService'
 
 export interface OfflineProgress {
   phase: 'idle' | 'copying' | 'phase1' | 'phase2' | 'phase3' | 'completed' | 'error' | 'cancelled'
@@ -394,7 +395,7 @@ export function useOfflineProcessing() {
 
           if (validImages.length > 0) {
             try {
-              const result = await window.electronAPI.ai.classifyMultipleImages(
+              const result = await dispatchClassifyMultiple(
                 validImages, 'recorded', token
               )
 
@@ -430,7 +431,7 @@ export function useOfflineProcessing() {
                 for (const idx of validIndices) {
                   if (isCancelled.value) break
                   try {
-                    const singleResult = await window.electronAPI.ai.classifyMultipleImages(
+                    const singleResult = await dispatchClassifyMultiple(
                       [base64Images[idx]], 'recorded', token
                     )
                     if (singleResult.success && singleResult.result) {

@@ -334,7 +334,23 @@
       "copilotInvalidToken": "令牌无效，请检查后重试。",
       "copilotDeviceCodeExpired": "设备代码已过期，请重试。",
       "copilotAccessDenied": "访问被拒绝，请重试。",
-      "rateLimitCopilotHint": "GitHub Copilot 有自身的速率限制。建议：最大并发请求数 1，请求最小间隔 6000 毫秒。"
+      "rateLimitCopilotHint": "GitHub Copilot 有自身的速率限制。建议：最大并发请求数 1，请求最小间隔 6000 毫秒。",
+      "ml": {
+        "classifierMode": "分类器模式",
+        "classifierModeDescription": "选择使用 LLM（云端 AI）或 ML（本地 ONNX 模型）进行图像分类。",
+        "modeLlm": "LLM",
+        "modeMl": "ML",
+        "modelTitle": "ML 分类器模型",
+        "modelLabel": "ONNX 模型",
+        "modelHint": "选择自定义 ONNX 模型或使用内置分类器。",
+        "thresholdsTitle": "分类阈值",
+        "thresholdsHint": "配置 ML 分类器决策逻辑的置信度阈值。",
+        "confidenceSliderLabel": "非幻灯片置信度阈值",
+        "slideCheckSliderLabel": "幻灯片概率（检查区间）",
+        "keep": "保留",
+        "check": "检查",
+        "delete": "删除"
+      }
     }
   },
   "courses": {

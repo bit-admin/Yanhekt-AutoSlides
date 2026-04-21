@@ -1,6 +1,10 @@
 import { ref, type Ref, type ShallowRef } from 'vue'
 import { TokenManager } from '../services/authService'
 import type { ExtractedSlide, SlideExtractor } from '../services/slideExtractor'
+import {
+  classifySingleImage as dispatchClassifySingle,
+  classifyMultipleImages as dispatchClassifyMultiple,
+} from '../services/slideClassificationService'
 
 // Types for post-processing
 export interface AIFilteringError {
@@ -371,7 +375,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     let classification: ClassificationValue
 
     if (classifyMode === 'live') {
-      const result = await window.electronAPI.ai.classifySingleImage(base64Image, classifyMode, token)
+      const result = await dispatchClassifySingle(base64Image, classifyMode, token)
       if (!result.success || !result.result) {
         console.warn(`AI classification failed for ${slide.title}:`, result.error)
         aiFilteringError.value = parseAIError(result)
@@ -380,7 +384,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       classification = (result.result as { classification: ClassificationValue }).classification
     } else {
       // recorded mode - always use batch API even for single image
-      const result = await window.electronAPI.ai.classifyMultipleImages([base64Image], classifyMode, token)
+      const result = await dispatchClassifyMultiple([base64Image], classifyMode, token)
       if (!result.success || !result.result) {
         console.warn(`AI classification failed for ${slide.title}:`, result.error)
         aiFilteringError.value = parseAIError(result)
@@ -446,7 +450,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       base64Images.push(processedDataUrl.replace(/^data:image\/\w+;base64,/, ''))
     }
 
-    const result = await window.electronAPI.ai.classifyMultipleImages(base64Images, classifyMode, token)
+    const result = await dispatchClassifyMultiple(base64Images, classifyMode, token)
 
     if (result.success && result.result) {
       type ClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit'

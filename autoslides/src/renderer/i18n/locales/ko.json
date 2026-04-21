@@ -334,7 +334,23 @@
       "copilotInvalidToken": "유효하지 않은 토큰입니다. 확인 후 다시 시도하세요.",
       "copilotDeviceCodeExpired": "디바이스 코드가 만료되었습니다. 다시 시도하세요.",
       "copilotAccessDenied": "액세스가 거부되었습니다. 다시 시도하세요.",
-      "rateLimitCopilotHint": "GitHub Copilot에는 자체 속도 제한이 있습니다. 권장: 최대 동시 요청 수 1, 요청 간 최소 시간 6000ms."
+      "rateLimitCopilotHint": "GitHub Copilot에는 자체 속도 제한이 있습니다. 권장: 최대 동시 요청 수 1, 요청 간 최소 시간 6000ms.",
+      "ml": {
+        "classifierMode": "분류기 모드",
+        "classifierModeDescription": "이미지 분류에 LLM(클라우드 AI) 또는 ML(로컬 ONNX 모델)을 선택합니다.",
+        "modeLlm": "LLM",
+        "modeMl": "ML",
+        "modelTitle": "ML 분류기 모델",
+        "modelLabel": "ONNX 모델",
+        "modelHint": "사용자 정의 ONNX 모델을 선택하거나 내장 분류기를 사용합니다.",
+        "thresholdsTitle": "분류 임계값",
+        "thresholdsHint": "ML 분류기 결정 로직의 신뢰도 임계값을 구성합니다.",
+        "confidenceSliderLabel": "비슬라이드 신뢰도 임계값",
+        "slideCheckSliderLabel": "슬라이드 확률 (검사 대역)",
+        "keep": "유지",
+        "check": "검사",
+        "delete": "삭제"
+      }
     }
   },
   "courses": {

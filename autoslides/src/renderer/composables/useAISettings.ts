@@ -1,7 +1,25 @@
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import type { TokenManager } from '../services/authService'
+import { resetMlClassifier } from './useMlClassifier'
 
 export type AIServiceType = 'builtin' | 'custom' | 'copilot'
+export type AIClassifierMode = 'llm' | 'ml'
+
+export interface MlThresholdValues {
+  trustLow: number
+  trustHigh: number
+  slideCheckLow: number
+}
+
+export interface MlModelInfo {
+  active: 'builtin' | 'custom'
+  builtinVersion: string
+  builtinExists: boolean
+  builtinSizeBytes: number
+  customName: string | null
+  customExists: boolean
+  customSizeBytes: number
+}
 
 export type CopilotOAuthStep = 'idle' | 'waiting' | 'polling' | 'success' | 'error'
 
@@ -100,6 +118,13 @@ export interface UseAISettingsReturn {
   copilotModelPresets: ModelPreset[]
   selectedCopilotModelPreset: Ref<string>
 
+  // ML classifier
+  aiClassifierMode: Ref<AIClassifierMode>
+  tempAiClassifierMode: Ref<AIClassifierMode>
+  mlThresholds: Ref<MlThresholdValues>
+  tempMlThresholds: Ref<MlThresholdValues>
+  mlModelInfo: Ref<MlModelInfo | null>
+
   // Methods
   loadAISettings: () => Promise<void>
   saveAISettings: () => Promise<void>
@@ -116,6 +141,10 @@ export interface UseAISettingsReturn {
   validateCopilotToken: (token: string) => Promise<boolean>
   cancelCopilotOAuth: () => void
   disconnectCopilot: () => Promise<void>
+  resetMlThresholds: () => void
+  refreshMlModelInfo: () => Promise<void>
+  importCustomMlModel: () => Promise<void>
+  deleteCustomMlModel: () => Promise<void>
 }
 
 export function useAISettings(options: UseAISettingsOptions): UseAISettingsReturn {
@@ -148,6 +177,14 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
   const copilotOAuthError = ref('')
   let copilotOAuthCancelled = false
   const isCopilotLoading = ref(false)
+
+  // ML classifier
+  const DEFAULT_ML_THRESHOLDS: MlThresholdValues = { trustLow: 0.75, trustHigh: 0.9, slideCheckLow: 0.25 }
+  const aiClassifierMode = ref<AIClassifierMode>('llm')
+  const tempAiClassifierMode = ref<AIClassifierMode>('llm')
+  const mlThresholds = ref<MlThresholdValues>({ ...DEFAULT_ML_THRESHOLDS })
+  const tempMlThresholds = ref<MlThresholdValues>({ ...DEFAULT_ML_THRESHOLDS })
+  const mlModelInfo = ref<MlModelInfo | null>(null)
 
   // Rate limit and batch size
   const aiRateLimit = ref(10)
@@ -263,6 +300,16 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
         copilotUsername.value = aiConfig.copilotUsername || ''
         copilotAvatarUrl.value = aiConfig.copilotAvatarUrl || ''
 
+        // Load ML classifier settings
+        const mode = aiConfig.classifierMode === 'ml' ? 'ml' : 'llm'
+        aiClassifierMode.value = mode
+        tempAiClassifierMode.value = mode
+        if (aiConfig.mlThresholds) {
+          const t = { ...DEFAULT_ML_THRESHOLDS, ...aiConfig.mlThresholds }
+          mlThresholds.value = t
+          tempMlThresholds.value = { ...t }
+        }
+
         // If copilot token exists, mark as authenticated and fetch user info
         if (copilotGhoToken.value) {
           copilotOAuthStep.value = 'success'
@@ -315,6 +362,26 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
       // Ensure concurrency control values are within valid range
       const effectiveMaxConcurrent = Math.max(1, Math.min(10, tempAiMaxConcurrent.value))
       const effectiveMinTime = Math.max(0, Math.min(60000, tempAiMinTime.value))
+
+      // Save classifier mode
+      if (tempAiClassifierMode.value !== aiClassifierMode.value) {
+        await window.electronAPI.config.setAIClassifierMode(tempAiClassifierMode.value)
+        aiClassifierMode.value = tempAiClassifierMode.value
+      }
+
+      // Save ML thresholds
+      const t = tempMlThresholds.value
+      const effectiveThresholds = {
+        trustLow: Math.max(0, Math.min(1, t.trustLow)),
+        trustHigh: Math.max(0, Math.min(1, t.trustHigh)),
+        slideCheckLow: Math.max(0, Math.min(1, t.slideCheckLow))
+      }
+      if (effectiveThresholds.trustLow > effectiveThresholds.trustHigh) {
+        effectiveThresholds.trustLow = effectiveThresholds.trustHigh
+      }
+      await window.electronAPI.config.setMlThresholds(effectiveThresholds)
+      mlThresholds.value = { ...effectiveThresholds }
+      tempMlThresholds.value = { ...effectiveThresholds }
 
       await window.electronAPI.config.setAIFilteringConfig({
         serviceType: tempAiServiceType.value,
@@ -638,6 +705,42 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     selectedImageResizePreset.value = matchingPreset?.key || '768x432'
     showApiKey.value = false
     showCopilotToken.value = false
+    tempAiClassifierMode.value = aiClassifierMode.value
+    tempMlThresholds.value = { ...mlThresholds.value }
+  }
+
+  const resetMlThresholds = () => {
+    tempMlThresholds.value = { ...DEFAULT_ML_THRESHOLDS }
+  }
+
+  const refreshMlModelInfo = async () => {
+    try {
+      mlModelInfo.value = await window.electronAPI.mlClassifier.getModelInfo()
+    } catch (error) {
+      console.error('Failed to refresh ML model info:', error)
+    }
+  }
+
+  const importCustomMlModel = async () => {
+    try {
+      const result = await window.electronAPI.mlClassifier.selectAndImportModel()
+      if (result?.success) {
+        resetMlClassifier()
+        await refreshMlModelInfo()
+      }
+    } catch (error) {
+      console.error('Failed to import custom ML model:', error)
+    }
+  }
+
+  const deleteCustomMlModel = async () => {
+    try {
+      await window.electronAPI.mlClassifier.deleteCustomModel()
+      resetMlClassifier()
+      await refreshMlModelInfo()
+    } catch (error) {
+      console.error('Failed to delete custom ML model:', error)
+    }
   }
 
   return {
@@ -714,6 +817,13 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     copilotModelPresets,
     selectedCopilotModelPreset,
 
+    // ML classifier
+    aiClassifierMode,
+    tempAiClassifierMode,
+    mlThresholds,
+    tempMlThresholds,
+    mlModelInfo,
+
     // Methods
     loadAISettings,
     saveAISettings,
@@ -729,6 +839,10 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     startCopilotOAuth,
     validateCopilotToken,
     cancelCopilotOAuth,
-    disconnectCopilot
+    disconnectCopilot,
+    resetMlThresholds,
+    refreshMlModelInfo,
+    importCustomMlModel,
+    deleteCustomMlModel
   }
 }

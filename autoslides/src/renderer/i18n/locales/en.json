@@ -334,7 +334,23 @@
       "copilotInvalidToken": "Invalid token. Please check and try again.",
       "copilotDeviceCodeExpired": "Device code expired. Please try again.",
       "copilotAccessDenied": "Access denied. Please try again.",
-      "rateLimitCopilotHint": "GitHub Copilot has its own rate limits. Recommended: Max Concurrent 1, Min Time 6000ms."
+      "rateLimitCopilotHint": "GitHub Copilot has its own rate limits. Recommended: Max Concurrent 1, Min Time 6000ms.",
+      "ml": {
+        "classifierMode": "Classifier Mode",
+        "classifierModeDescription": "Choose between LLM (cloud-based AI) or ML (local ONNX model) for image classification.",
+        "modeLlm": "LLM",
+        "modeMl": "ML",
+        "modelTitle": "ML Classifier Model",
+        "modelLabel": "ONNX Model",
+        "modelHint": "Select a custom ONNX model or use the built-in classifier.",
+        "thresholdsTitle": "Classification Thresholds",
+        "thresholdsHint": "Configure confidence thresholds for the ML classifier's decision logic.",
+        "confidenceSliderLabel": "Non-slide confidence thresholds",
+        "slideCheckSliderLabel": "Slide probability (check band)",
+        "keep": "Keep",
+        "check": "Check",
+        "delete": "Delete"
+      }
     }
   },
   "courses": {

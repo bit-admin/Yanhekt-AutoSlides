@@ -1015,6 +1015,87 @@
 
             <!-- AI Tab -->
             <div v-show="activeAdvancedTab === 'ai'" class="tab-content">
+
+            <!-- Classifier Mode Toggle -->
+            <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.ai.ml.classifierMode') }}</h4>
+              <div class="setting-item">
+                <div class="setting-description">{{ $t('advanced.ai.ml.classifierModeDescription') }}</div>
+                <div class="ai-service-type-selector">
+                  <button
+                    @click="tempAiClassifierMode = 'llm'"
+                    :class="['mode-btn', { active: tempAiClassifierMode === 'llm' }]"
+                  >
+                    {{ $t('advanced.ai.ml.modeLlm') }}
+                  </button>
+                  <button
+                    @click="tempAiClassifierMode = 'ml'"
+                    :class="['mode-btn', { active: tempAiClassifierMode === 'ml' }]"
+                  >
+                    {{ $t('advanced.ai.ml.modeMl') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ML Classifier Panel (shown only in ML mode) -->
+            <template v-if="tempAiClassifierMode === 'ml'">
+              <div class="advanced-setting-section">
+                <h4>{{ $t('advanced.ai.ml.modelTitle') }}</h4>
+                <div class="setting-item">
+                  <label class="setting-label">{{ $t('advanced.ai.ml.modelLabel') }}</label>
+                  <div class="setting-description">{{ $t('advanced.ai.ml.modelHint') }}</div>
+                  <div class="model-row" v-if="mlModelInfo">
+                    <div class="model-info" v-if="mlModelInfo.active === 'custom' && mlModelInfo.customExists">
+                      <strong>{{ $t('advanced.autoCrop.yolo.model.customLabel') }}:</strong>
+                      {{ mlModelInfo.customName || '—' }}
+                      <span v-if="mlModelInfo.customSizeBytes" class="model-size">
+                        ({{ formatCacheSize(mlModelInfo.customSizeBytes) }})
+                      </span>
+                    </div>
+                    <div class="model-info" v-else>
+                      <strong>{{ $t('advanced.autoCrop.yolo.model.builtinLabel') }}:</strong>
+                      {{ mlModelInfo.builtinVersion }}
+                      <span v-if="mlModelInfo.builtinSizeBytes" class="model-size">
+                        ({{ formatCacheSize(mlModelInfo.builtinSizeBytes) }})
+                      </span>
+                    </div>
+                    <div class="model-actions">
+                      <button type="button" class="secondary-btn" @click="importCustomMlModel">
+                        {{ $t('advanced.autoCrop.yolo.model.selectButton') }}
+                      </button>
+                      <button
+                        type="button"
+                        class="secondary-btn"
+                        :disabled="!mlModelInfo.customExists"
+                        @click="deleteCustomMlModel"
+                      >
+                        {{ $t('advanced.autoCrop.yolo.model.deleteButton') }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="advanced-setting-section">
+                <h4>{{ $t('advanced.ai.ml.thresholdsTitle') }}</h4>
+                <div class="setting-description">{{ $t('advanced.ai.ml.thresholdsHint') }}</div>
+                <div class="setting-item">
+                  <MlThresholdSlider
+                    :trustLow="tempMlThresholds.trustLow"
+                    :trustHigh="tempMlThresholds.trustHigh"
+                    :slideCheckLow="tempMlThresholds.slideCheckLow"
+                    @update:trustLow="v => tempMlThresholds = { ...tempMlThresholds, trustLow: v }"
+                    @update:trustHigh="v => tempMlThresholds = { ...tempMlThresholds, trustHigh: v }"
+                    @update:slideCheckLow="v => tempMlThresholds = { ...tempMlThresholds, slideCheckLow: v }"
+                    @reset="resetMlThresholds"
+                  />
+                </div>
+              </div>
+            </template>
+
+            <!-- LLM Service Settings (hidden in ML mode) -->
+            <template v-if="tempAiClassifierMode === 'llm'">
             <div class="advanced-setting-section">
               <h4>{{ $t('advanced.ai.serviceSettings') }}</h4>
               <div class="setting-item">
@@ -1385,6 +1466,7 @@
                 <div class="setting-description">{{ $t('advanced.ai.requestSettingsHint') }}</div>
               </div>
             </div>
+            </template>
 
             <div class="advanced-setting-section">
               <h4>{{ $t('advanced.aiBehaviour.title') }}</h4>
@@ -1400,7 +1482,7 @@
               </div>
             </div>
 
-            <div class="advanced-setting-section">
+            <div v-if="tempAiClassifierMode === 'llm'" class="advanced-setting-section">
               <h4 class="ai-prompts-header">
                 {{ $t('advanced.ai.prompts') }}
                 <span
@@ -1578,6 +1660,7 @@ import { useAdvancedSettings } from '../composables/useAdvancedSettings'
 import { useCacheManagement } from '../composables/useCacheManagement'
 import { useAISettings } from '../composables/useAISettings'
 import { usePHashExclusion } from '../composables/usePHashExclusion'
+import MlThresholdSlider from './MlThresholdSlider.vue'
 
 const { t } = useI18n()
 
@@ -1618,6 +1701,7 @@ const advancedSettings = useAdvancedSettings(
     cacheManagement.resetOperationStatus()
     await pHashExclusion.loadPHashExclusionList()
     await aiSettings.loadAISettings()
+    aiSettings.refreshMlModelInfo()
     aiSettings.resetTempValues()
     settings.resetTempEnableAIFiltering()
   },
@@ -1847,7 +1931,15 @@ const {
   validateCopilotToken,
   cancelCopilotOAuth,
   disconnectCopilot,
-  onCopilotModelPresetChange
+  onCopilotModelPresetChange,
+  // ML classifier
+  tempAiClassifierMode,
+  tempMlThresholds,
+  mlModelInfo,
+  resetMlThresholds,
+  refreshMlModelInfo,
+  importCustomMlModel,
+  deleteCustomMlModel
 } = aiSettings
 
 // pHash Exclusion

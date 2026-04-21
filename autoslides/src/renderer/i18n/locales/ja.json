@@ -334,7 +334,23 @@
       "copilotInvalidToken": "トークンが無効です。確認してから再試行してください。",
       "copilotDeviceCodeExpired": "デバイスコードの有効期限が切れました。再試行してください。",
       "copilotAccessDenied": "アクセスが拒否されました。再試行してください。",
-      "rateLimitCopilotHint": "GitHub Copilot には独自のレート制限があります。推奨: 最大同時リクエスト数 1、リクエスト間の最小時間 6000ms。"
+      "rateLimitCopilotHint": "GitHub Copilot には独自のレート制限があります。推奨: 最大同時リクエスト数 1、リクエスト間の最小時間 6000ms。",
+      "ml": {
+        "classifierMode": "分類器モード",
+        "classifierModeDescription": "画像分類に LLM（クラウド AI）または ML（ローカル ONNX モデル）を選択します。",
+        "modeLlm": "LLM",
+        "modeMl": "ML",
+        "modelTitle": "ML 分類器モデル",
+        "modelLabel": "ONNX モデル",
+        "modelHint": "カスタム ONNX モデルを選択するか、内蔵分類器を使用します。",
+        "thresholdsTitle": "分類しきい値",
+        "thresholdsHint": "ML 分類器の判定ロジックの信頼度しきい値を設定します。",
+        "confidenceSliderLabel": "非スライド信頼度しきい値",
+        "slideCheckSliderLabel": "スライド確率（チェック帯域）",
+        "keep": "保持",
+        "check": "チェック",
+        "delete": "削除"
+      }
     }
   },
   "courses": {

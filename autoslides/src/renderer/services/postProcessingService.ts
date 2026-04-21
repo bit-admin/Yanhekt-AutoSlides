@@ -1,5 +1,6 @@
 import { reactive, computed } from 'vue'
 import { TokenManager } from './authService'
+import { classifyMultipleImages } from './slideClassificationService'
 
 // Types for post-processing jobs
 export type PostProcessJobStatus = 'queued' | 'processing' | 'completed' | 'failed'
@@ -687,8 +688,9 @@ class PostProcessingServiceClass {
 
       job.progress.retrying = validBatch.length
 
-      // Always use batch API in recorded mode (even for single image)
-      const aiResult = await window.electronAPI.ai.classifyMultipleImages(
+      // Always use batch API in recorded mode (even for single image).
+      // Dispatches to LLM IPC or local ML worker based on aiFiltering.classifierMode.
+      const aiResult = await classifyMultipleImages(
         validBase64,
         'recorded',
         token

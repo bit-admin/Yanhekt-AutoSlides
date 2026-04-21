@@ -18,6 +18,7 @@ import { pdfService, PdfMakeOptions, FolderEntry } from './main/pdfService';
 import { updateDownloadService, UpdateDownloadService } from './main/updateDownloadService';
 import { offlineProcessingService } from './main/offlineProcessingService';
 import { AutoCropModelService } from './main/autoCropModelService';
+import { MlClassifierModelService } from './main/mlClassifierModelService';
 import { exportLessonSummary, exportClassPresentation, fetchLessonTitle, fetchClassPresentationTitle } from './main/yuketangService';
 import { CompressLectureService, type CompressLectureOptions } from './main/compressLectureService';
 import type { AIServiceType } from './main/configService';
@@ -192,6 +193,7 @@ const authService = new MainAuthService();
 const apiClient = new MainApiClient();
 const configService = new ConfigService();
 const autoCropModelService = new AutoCropModelService(configService);
+const mlClassifierModelService = new MlClassifierModelService(configService);
 const intranetMappingService = new IntranetMappingService(configService);
 const videoProxyService = new VideoProxyService(apiClient, intranetMappingService);
 const ffmpegService = new FFmpegService();
@@ -383,6 +385,28 @@ ipcMain.handle('autoCrop:selectAndImportModel', async () => {
 
 ipcMain.handle('autoCrop:deleteCustomModel', async () => {
   return autoCropModelService.deleteCustomModel();
+});
+
+ipcMain.handle('mlClassifier:getModelInfo', async () => {
+  return mlClassifierModelService.getModelInfo();
+});
+
+ipcMain.handle('mlClassifier:getModelBuffer', async () => {
+  return mlClassifierModelService.readModelBuffer();
+});
+
+ipcMain.handle('mlClassifier:selectAndImportModel', async () => {
+  try {
+    return await mlClassifierModelService.selectAndImportModel();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await dialog.showErrorBox('Custom Classifier Model Import Failed', message);
+    return mlClassifierModelService.getModelInfo();
+  }
+});
+
+ipcMain.handle('mlClassifier:deleteCustomModel', async () => {
+  return mlClassifierModelService.deleteCustomModel();
 });
 
 // IPC handlers for theme configuration
@@ -599,6 +623,19 @@ ipcMain.handle('config:setAIBatchSize', async (event, batchSize: number) => {
 ipcMain.handle('config:getAIBatchSize', async () => {
   return configService.getAIBatchSize();
 });
+
+ipcMain.handle('config:setAIClassifierMode', async (event, mode: 'llm' | 'ml') => {
+  configService.setAIClassifierMode(mode);
+  return configService.getAIFilteringConfig();
+});
+
+ipcMain.handle(
+  'config:setMlThresholds',
+  async (event, thresholds: { trustLow?: number; trustHigh?: number; slideCheckLow?: number }) => {
+    configService.setMlThresholds(thresholds);
+    return configService.getAIFilteringConfig();
+  }
+);
 
 // IPC handlers for AI prompts management
 ipcMain.handle('config:getAIPrompts', async (event, variant?: 'simple' | 'distinguish') => {
