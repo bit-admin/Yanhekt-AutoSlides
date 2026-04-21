@@ -60,9 +60,6 @@
       </div>
     </div>
 
-    <button type="button" class="secondary-btn reset-thresholds-btn" @click="$emit('reset')">
-      {{ $t('settings.resetToDefault') }}
-    </button>
   </div>
 </template>
 
@@ -77,7 +74,6 @@ const emit = defineEmits<{
   (e: 'update:trustLow', v: number): void
   (e: 'update:trustHigh', v: number): void
   (e: 'update:slideCheckLow', v: number): void
-  (e: 'reset'): void
 }>()
 
 function onTrustLowInput(event: Event) {
@@ -233,8 +229,4 @@ function onSlideCheckInput(event: Event) {
   background: #f44336;
 }
 
-.reset-thresholds-btn {
-  align-self: flex-start;
-  margin-top: 4px;
-}
 </style>

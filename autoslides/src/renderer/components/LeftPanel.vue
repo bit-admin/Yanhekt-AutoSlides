@@ -1088,7 +1088,6 @@
                     @update:trustLow="v => tempMlThresholds = { ...tempMlThresholds, trustLow: v }"
                     @update:trustHigh="v => tempMlThresholds = { ...tempMlThresholds, trustHigh: v }"
                     @update:slideCheckLow="v => tempMlThresholds = { ...tempMlThresholds, slideCheckLow: v }"
-                    @reset="resetMlThresholds"
                   />
                 </div>
               </div>
@@ -1936,7 +1935,6 @@ const {
   tempAiClassifierMode,
   tempMlThresholds,
   mlModelInfo,
-  resetMlThresholds,
   refreshMlModelInfo,
   importCustomMlModel,
   deleteCustomMlModel

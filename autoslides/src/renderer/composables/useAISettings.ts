@@ -141,7 +141,6 @@ export interface UseAISettingsReturn {
   validateCopilotToken: (token: string) => Promise<boolean>
   cancelCopilotOAuth: () => void
   disconnectCopilot: () => Promise<void>
-  resetMlThresholds: () => void
   refreshMlModelInfo: () => Promise<void>
   importCustomMlModel: () => Promise<void>
   deleteCustomMlModel: () => Promise<void>
@@ -709,10 +708,6 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     tempMlThresholds.value = { ...mlThresholds.value }
   }
 
-  const resetMlThresholds = () => {
-    tempMlThresholds.value = { ...DEFAULT_ML_THRESHOLDS }
-  }
-
   const refreshMlModelInfo = async () => {
     try {
       mlModelInfo.value = await window.electronAPI.mlClassifier.getModelInfo()
@@ -840,7 +835,6 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     validateCopilotToken,
     cancelCopilotOAuth,
     disconnectCopilot,
-    resetMlThresholds,
     refreshMlModelInfo,
     importCustomMlModel,
     deleteCustomMlModel

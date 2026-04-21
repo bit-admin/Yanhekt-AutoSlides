@@ -172,7 +172,7 @@
         "iouThreshold": "IoU 阈值",
         "iouThresholdDescription": "非极大值抑制所用的 IoU 阈值，用于去除重叠框。",
         "inputSize": "输入尺寸",
-        "inputSizeDescription": "推理前将图像进行 letterbox 到的正方形输入尺寸（像素）。",
+        "inputSizeDescription": "推理前将图像进行 letterbox 到的正方形输入尺寸。",
         "model": {
           "title": "模型",
           "hint": "选择自定义模型后，将替代内置模型用于自动裁剪。删除后将恢复为内置模型。",
