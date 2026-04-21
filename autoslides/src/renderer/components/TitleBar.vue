@@ -51,9 +51,6 @@
           <div class="menu-option" @click="openGitHub">{{ $t('titlebar.visitGitHub') }}</div>
           <div class="menu-option" @click="openITCenter">{{ $t('titlebar.itCenterSoftware') }}</div>
           <div class="menu-separator"></div>
-          <div class="menu-option" @click="openWebVersion">{{ $t('titlebar.webVersion') }}</div>
-          <div class="menu-option" @click="openSSIMTest">{{ $t('titlebar.ssimTest') }}</div>
-          <div class="menu-separator"></div>
           <div class="menu-option" @click="checkForUpdates">{{ $t('titlebar.checkForUpdates') }}</div>
           <div class="menu-separator"></div>
           <div class="menu-option" @click="openTermsAndConditions">{{ $t('titlebar.termsAndConditions') }}</div>

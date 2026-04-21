@@ -106,10 +106,7 @@ const createMenuTemplate = () => {
     { label: getTranslation('titlebar.window'), submenu: [{ role: 'minimize', label: getTranslation('titlebar.minimize') }, { role: 'close', label: getTranslation('titlebar.close') }, { type: 'separator' }, { role: 'front', label: getTranslation('titlebar.bringAllToFront') }] },
     { label: getTranslation('titlebar.help'), role: 'help', submenu: [
       { label: getTranslation('titlebar.visitGitHub'), click: () => { shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides'); } },
-      { label: getTranslation('titlebar.itCenterSoftware'), click: () => { shell.openExternal('https://it.ruc.edu.kg/zh/software'); } },
-      { type: 'separator' },
-      { label: getTranslation('titlebar.webVersion'), click: () => { shell.openExternal('https://learn.ruc.edu.kg'); } },
-      { label: getTranslation('titlebar.ssimTest'), click: () => { shell.openExternal('https://learn.ruc.edu.kg/test'); } }
+      { label: getTranslation('titlebar.itCenterSoftware'), click: () => { shell.openExternal('https://it.ruc.edu.kg/zh/software'); } }
     ] }
   ];
   return template;
