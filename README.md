@@ -119,7 +119,7 @@
       - 在终端中输入你的 Mac 密码（注意密码输入时不会显示）。
 
 <p align="center">
-  <img src="docs/dmg.png" alt="AutoSlides DMG 安装包" width="100%">
+  <img src="docs/dmg.png" alt="AutoSlides DMG 安装包" width="90%">
 </p>
 
 > [!IMPORTANT]
@@ -154,8 +154,9 @@
 
 <br clear="both">
 
+<br>
 
-<img src="docs/step2.png" align="right" width="50%" alt="step2" />
+<img src="docs/step2.png" align="right" width="45%" alt="step2" />
 
 #### B. 基础设置
 
@@ -177,6 +178,8 @@
 
 <br clear="both">
 
+<br>
+
 <img src="docs/step3.png" align="right" width="60%" alt="step3" />
 
 #### C. AI 设置
@@ -193,7 +196,9 @@
 
 <br clear="both">
 
-<img src="docs/step4.png" align="right" width="70%" alt="step4" />
+<br>
+
+<img src="docs/step4.png" align="right" width="60%" alt="step4" />
 
 #### D. 基础页面使用
 
@@ -203,9 +208,9 @@
 
 <br clear="both">
 
-<img src="docs/step5.png" align="right" width="70%" alt="step6" />
-
 <br>
+
+<img src="docs/step5.png" align="right" width="70%" alt="step6" />
 
 #### E. 处理录播课程
 
@@ -215,6 +220,8 @@
 4. 在右侧栏中可管理 `任务列表` 及 `下载队列`；在 `任务列表` 中点击 `开始` 启动任务队列。
 
 <br clear="both">
+
+<br>
 
 <img src="docs/step6.png" align="right" width="70%" alt="step7" />
 
@@ -226,6 +233,8 @@
 
 <br clear="both">
 
+<br>
+
 <img src="docs/step8.png" align="right" width="40%" alt="step8" />
 <img src="docs/step7.png" align="right" width="25%" alt="step7" />
 
@@ -235,6 +244,8 @@
 2. 进入 `幻灯片审查` 页面。
 
 <br clear="both">
+
+<br>
 
 <img src="docs/step9.png" align="right" width="70%" alt="step9" />
 
@@ -247,6 +258,8 @@
 5. 点击左下角的 `全选` 按钮可全选当前筛选下的全部图像。
 
 <br clear="both">
+
+<br>
 
 <img src="docs/step10.png" align="right" width="70%" alt="step9" />
 
@@ -264,6 +277,8 @@
 
 <br clear="both">
 
+<br>
+
 <img src="docs/step12.png" align="right" width="20%" alt="step9" />
 <img src="docs/step11.png" align="right" width="45%" alt="step9" />
 
@@ -275,6 +290,8 @@
 
 <br clear="both">
 
+<br>
+
 <img src="docs/step13.png" align="right" width="70%" alt="step9" />
 
 #### H. 将幻灯片导出为 PDF
@@ -283,6 +300,8 @@
 2. 根据需要调整 `压缩选项`，点击 `生成 PDF 按钮`。
 
 <br clear="both">
+
+<br>
 
 <img src="docs/step14.png" align="right" width="70%" alt="step9" />
 
@@ -294,6 +313,8 @@
 2. 应用在运行过程中可能会积累大量 `缓存`，不时进行清理；如应用运行过程中出现问题，尝试 `重置所有数据`。`重置所有数据` 不会删除 `输出目录` 下的任何文件。
 
 <br clear="both">
+
+<br>
 
 <img src="docs/step15.png" align="right" width="50%" alt="step9" />
 
@@ -314,6 +335,8 @@
 
 <br clear="both">
 
+<br>
+
 <img src="docs/step16.png" align="right" width="50%" alt="step9" />
 
 ---
@@ -328,6 +351,8 @@
  
 <br clear="both">
 
+<br>
+
 <img src="docs/step17.png" align="right" width="50%" alt="step9" />
 
 ---
@@ -336,6 +361,8 @@
 2. 对于 `Canny 边缘检测` 算法，可调整 `宽高比容差`，即匹配检测到的幻灯片宽高比时，相对常见幻灯片比例 16:9 或 4:3 允许的最大偏差；其他自动裁剪参数不建议进行调整。
  
 <br clear="both">
+
+<br>
 
 <img src="docs/step18.png" align="right" width="50%" alt="step9" />
 
@@ -346,6 +373,8 @@
  
 <br clear="both">
 
+<br>
+
 <img src="docs/step19.png" align="right" width="50%" alt="step9" />
 
 ##### 高级设置 > AI
@@ -355,6 +384,8 @@
  
 <br clear="both">
 
+<br>
+
 <img src="docs/step20.png" align="right" width="70%" alt="step9" />
 
 #### J. 其他工具
@@ -362,6 +393,8 @@
 1. `离线处理` 为测试性质的工具。`离线后处理` 可输入图像文件夹，将其复制至 `输出目录` 并运行后处理；`自动裁剪` 可输入图像，运行自动裁剪，并查看运行结果。
 
 <br clear="both">
+
+<br>
 
 <img src="docs/step21.png" align="right" width="70%" alt="step9" />
 
@@ -371,6 +404,8 @@
 
 <br clear="both">
 
+<br>
+
 <img src="docs/step22.png" align="right" width="70%" alt="step9" />
 
 #### K. 扩展
@@ -378,6 +413,8 @@
 1. `雨课堂` 扩展可用于解决该平台原生课件导出带有边框及水印的问题；若教师使用雨课堂播放幻灯片，将可在课程一开始便一次性获取当前幻灯片的所有页面。
 
 <br clear="both">
+
+<br>
 
 <img src="docs/step23.png" align="right" width="70%" alt="step9" />
 
