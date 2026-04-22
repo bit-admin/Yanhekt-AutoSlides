@@ -310,4 +310,24 @@ function onSlideCheckInput(event: Event) {
   height: 100%;
   display: block;
 }
+
+@media (prefers-color-scheme: dark) {
+  .threshold-slider-label {
+    color: #e0e0e0;
+  }
+
+  .handle-value {
+    color: #b0b0b0;
+  }
+
+  .threshold-range::-webkit-slider-thumb {
+    background: #e0e0e0;
+    box-shadow: 0 0 0 2px #2d2d2d, 0 1px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  .threshold-range::-moz-range-thumb {
+    background: #e0e0e0;
+    box-shadow: 0 0 0 2px #2d2d2d, 0 1px 4px rgba(0, 0, 0, 0.5);
+  }
+}
 </style>

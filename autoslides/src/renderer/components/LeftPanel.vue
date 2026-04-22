@@ -3900,6 +3900,38 @@ defineExpose({
     border-bottom-color: #404040;
   }
 
+  .advanced-setting-subsection {
+    border-top-color: #404040;
+  }
+
+  .advanced-setting-subsection h5 {
+    color: #e0e0e0;
+  }
+
+  .model-row {
+    border-color: #404040;
+    background: #252525;
+  }
+
+  .model-row .model-info {
+    color: #e0e0e0;
+  }
+
+  .model-row .model-size {
+    color: #b0b0b0;
+  }
+
+  .secondary-btn {
+    background: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .secondary-btn:hover:not(:disabled) {
+    background: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
   .modal-actions {
     background-color: #2d2d2d;
     border-top-color: #404040;
