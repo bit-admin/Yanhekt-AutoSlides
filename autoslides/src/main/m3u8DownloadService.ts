@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import http from 'http';
 import https from 'https';
+import os from 'os';
 import axios from 'axios';
 import crypto from 'crypto';
 import { spawn } from 'child_process';
@@ -116,8 +117,8 @@ class M3u8Downloader {
     "Authorization": ""
   };
 
-  private httpAgent = new http.Agent({ keepAlive: true });
-  private httpsAgent = new https.Agent({ keepAlive: true });
+  // Agents are lazily constructed per axios instance so we can pick up the
+  // current intranet-interface binding without restarting downloads.
 
   private token: string | null = null;
   private signature: string | null = null;
@@ -212,9 +213,8 @@ class M3u8Downloader {
       this.signatureInterval = null;
     }
 
-    // Destroy keep-alive agents to close idle sockets
-    this.httpAgent.destroy();
-    this.httpsAgent.destroy();
+    // Axios instances were created per-request with fresh keep-alive agents;
+    // their sockets will be reclaimed by GC once the in-flight requests settle.
 
     // Force kill FFmpeg process if it's running
     if (this.ffmpegProcess) {
@@ -277,10 +277,28 @@ class M3u8Downloader {
   }
 
   private createAxiosInstance() {
+    // Bind outbound sockets to the configured intranet interface IP ONLY when
+    // this download is running in intranet mode. In external mode we use plain
+    // unbound agents so non-intranet traffic is unaffected. If the saved IP is
+    // no longer present on any interface (NIC unplugged, VPN disconnected), we
+    // fall back to unbound agents to avoid EADDRNOTAVAIL.
+    const httpOpts: http.AgentOptions = { keepAlive: true };
+    const httpsOpts: https.AgentOptions = { keepAlive: true };
+
+    if (this.isIntranetMode) {
+      const selected = this.intranetMapping.getInterfaceIp();
+      if (selected && M3u8Downloader.isInterfaceIpAvailable(selected)) {
+        httpOpts.localAddress = selected;
+        httpsOpts.localAddress = selected;
+      } else if (selected) {
+        console.warn(`[m3u8Download] Selected intranet interface IP ${selected} is not currently available; falling back to system default.`);
+      }
+    }
+
     const instance = axios.create({
       timeout: 30000,
-      httpAgent: this.httpAgent,
-      httpsAgent: this.httpsAgent
+      httpAgent: new http.Agent(httpOpts),
+      httpsAgent: new https.Agent(httpsOpts)
     });
 
     if (this.isIntranetMode) {
@@ -300,6 +318,17 @@ class M3u8Downloader {
     }
 
     return instance;
+  }
+
+  private static isInterfaceIpAvailable(ip: string): boolean {
+    const ifaces = os.networkInterfaces();
+    for (const addrs of Object.values(ifaces)) {
+      if (!addrs) continue;
+      for (const addr of addrs) {
+        if (!addr.internal && addr.address === ip) return true;
+      }
+    }
+    return false;
   }
 
   private async getM3u8Info(m3u8Url: string, numRetries: number): Promise<void> {

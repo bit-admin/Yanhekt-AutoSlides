@@ -965,6 +965,39 @@
             <!-- Network Tab -->
             <div v-show="activeAdvancedTab === 'network'" class="tab-content">
             <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.intranetInterface') }}</h4>
+              <div class="setting-item">
+                <div class="setting-description">{{ $t('advanced.intranetInterfaceDescription') }}</div>
+                <div class="intranet-interface-row">
+                  <select v-model="tempIntranetInterfaceIp" class="intranet-interface-select">
+                    <option value="">{{ $t('advanced.intranetInterfaceSystemDefault') }}</option>
+                    <option
+                      v-for="iface in availableNetworkInterfaces"
+                      :key="iface.name + '-' + iface.address"
+                      :value="iface.address"
+                    >
+                      {{ iface.name }} — {{ iface.address }}
+                    </option>
+                    <option
+                      v-if="tempIntranetInterfaceIp && !availableNetworkInterfaces.some(i => i.address === tempIntranetInterfaceIp)"
+                      :value="tempIntranetInterfaceIp"
+                    >
+                      {{ tempIntranetInterfaceIp }}
+                    </option>
+                  </select>
+                  <button type="button" class="refresh-button" @click="refreshNetworkInterfaces">
+                    {{ $t('advanced.intranetInterfaceRefresh') }}
+                  </button>
+                </div>
+                <div
+                  v-if="tempIntranetInterfaceIp && !availableNetworkInterfaces.some(i => i.address === tempIntranetInterfaceIp)"
+                  class="intranet-interface-warning"
+                >
+                  {{ $t('advanced.intranetInterfaceNotFound') }}
+                </div>
+              </div>
+            </div>
+            <div class="advanced-setting-section">
               <h4>{{ $t('advanced.intranetMapping') }}</h4>
               <div class="setting-item">
                 <div class="setting-description">{{ $t('advanced.intranetMappingDescription') }}</div>
@@ -1850,6 +1883,9 @@ const {
   tempDistinguishMaybeSlide,
   intranetMappings,
   expandedMappings,
+  availableNetworkInterfaces,
+  tempIntranetInterfaceIp,
+  refreshNetworkInterfaces,
   openAdvancedSettings,
   closeAdvancedSettings,
   saveAdvancedSettings,
@@ -4246,6 +4282,48 @@ defineExpose({
 }
 
 /* Intranet mapping styles - Compact version */
+.intranet-interface-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.intranet-interface-select {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 6px;
+  font-size: 12px;
+  line-height: 1;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  background-color: white;
+}
+
+.intranet-interface-row .refresh-button {
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 11px;
+  line-height: 1;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.intranet-interface-row .refresh-button:hover {
+  background-color: #f3f4f6;
+}
+
+.intranet-interface-warning {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #b45309;
+}
+
 .intranet-mapping-list {
   border: 1px solid #e0e0e0;
   border-radius: 4px;
@@ -4381,6 +4459,31 @@ defineExpose({
 
 /* Dark mode support for intranet mapping - Compact version */
 @media (prefers-color-scheme: dark) {
+  .intranet-interface-select {
+    border-color: #404040;
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+  }
+
+  .intranet-interface-select option {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+  }
+
+  .intranet-interface-row .refresh-button {
+    border-color: #404040;
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+  }
+
+  .intranet-interface-row .refresh-button:hover {
+    background-color: #3d3d3d;
+  }
+
+  .intranet-interface-warning {
+    color: #f5b971;
+  }
+
   .intranet-mapping-list {
     border-color: #404040;
     background-color: #2d2d2d;

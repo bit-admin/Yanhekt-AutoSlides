@@ -3,6 +3,7 @@ import * as url from 'url';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import * as crypto from 'crypto';
 import * as https from 'https';
+import * as os from 'os';
 import { ApiClient } from './apiClient';
 import { IntranetMappingService } from './intranetMappingService';
 
@@ -59,9 +60,11 @@ export class VideoProxyService {
   private proxyServer: http.Server | null = null;
   private proxyPort = 0;
   private loginToken: string | null = null;
-  private httpAgent = new http.Agent({ keepAlive: true });
-  private httpsAgent = new https.Agent({ keepAlive: true });
-  private httpsAgentNoVerify = new https.Agent({ keepAlive: true, rejectUnauthorized: false });
+  private httpAgent: http.Agent = new http.Agent({ keepAlive: true });
+  private httpsAgent: https.Agent = new https.Agent({ keepAlive: true });
+  private httpsAgentNoVerify: https.Agent = new https.Agent({ keepAlive: true, rejectUnauthorized: false });
+  // Track the local IP the agents are currently bound to ('' means unbound / system default).
+  private boundInterfaceIp = '';
   private tokenCache: TokenCache = {
     videoToken: null,
     timestamp: null,
@@ -81,6 +84,77 @@ export class VideoProxyService {
   constructor(apiClient: ApiClient, intranetMapping: IntranetMappingService) {
     this.apiClient = apiClient;
     this.intranetMapping = intranetMapping;
+
+    // Proactively invalidate bound agents when the user changes the selected
+    // intranet interface IP in Advanced Settings.
+    this.intranetMapping.on('interfaceIpChanged', () => {
+      this.rebuildAgents('');
+    });
+  }
+
+  /**
+   * Return HTTP(S) agents to use for the current request. When intranet mode is
+   * enabled and a bind IP has been selected, the agents bind outbound sockets to
+   * that local address via Node's `localAddress`. When the IP is no longer
+   * present on any interface (NIC unplugged, VPN disconnected), fall back to
+   * unbound agents to avoid EADDRNOTAVAIL.
+   */
+  private resolveAgents(): { httpAgent: http.Agent; httpsAgent: https.Agent; httpsAgentNoVerify: https.Agent } {
+    let desiredIp = '';
+    if (this.intranetMapping.isEnabled()) {
+      const selected = this.intranetMapping.getInterfaceIp();
+      if (selected && this.isInterfaceIpAvailable(selected)) {
+        desiredIp = selected;
+      } else if (selected) {
+        console.warn(`[videoProxy] Selected intranet interface IP ${selected} is not currently available; falling back to system default.`);
+      }
+    }
+
+    if (desiredIp !== this.boundInterfaceIp) {
+      this.rebuildAgents(desiredIp);
+    }
+
+    return {
+      httpAgent: this.httpAgent,
+      httpsAgent: this.httpsAgent,
+      httpsAgentNoVerify: this.httpsAgentNoVerify
+    };
+  }
+
+  private rebuildAgents(localAddress: string): void {
+    try {
+      this.httpAgent.destroy();
+      this.httpsAgent.destroy();
+      this.httpsAgentNoVerify.destroy();
+    } catch {
+      // Ignore destroy errors on stale agents.
+    }
+
+    const baseHttp: http.AgentOptions = { keepAlive: true };
+    const baseHttps: https.AgentOptions = { keepAlive: true };
+    const baseHttpsNoVerify: https.AgentOptions = { keepAlive: true, rejectUnauthorized: false };
+
+    if (localAddress) {
+      baseHttp.localAddress = localAddress;
+      baseHttps.localAddress = localAddress;
+      baseHttpsNoVerify.localAddress = localAddress;
+    }
+
+    this.httpAgent = new http.Agent(baseHttp);
+    this.httpsAgent = new https.Agent(baseHttps);
+    this.httpsAgentNoVerify = new https.Agent(baseHttpsNoVerify);
+    this.boundInterfaceIp = localAddress;
+  }
+
+  private isInterfaceIpAvailable(ip: string): boolean {
+    const ifaces = os.networkInterfaces();
+    for (const addrs of Object.values(ifaces)) {
+      if (!addrs) continue;
+      for (const addr of addrs) {
+        if (!addr.internal && addr.address === ip) return true;
+      }
+    }
+    return false;
   }
 
   /**
@@ -358,11 +432,12 @@ export class VideoProxyService {
 
         // Create axios instance with proper configuration
         // Use shorter timeout for live streams to fail fast and try next IP
+        const agents = this.resolveAgents();
         const axiosConfig: AxiosRequestConfig = {
           headers: liveHeaders,
           timeout: this.intranetMapping.isEnabled() ? 8000 : 30000, // 8s for intranet, 30s for external
-          httpAgent: this.httpAgent,
-          httpsAgent: this.intranetMapping.isEnabled() ? this.httpsAgentNoVerify : this.httpsAgent,
+          httpAgent: agents.httpAgent,
+          httpsAgent: this.intranetMapping.isEnabled() ? agents.httpsAgentNoVerify : agents.httpsAgent,
           validateStatus: function (status: number) {
             return status < 500; // Accept all status codes below 500
           }
@@ -488,11 +563,12 @@ export class VideoProxyService {
     }
 
     // Create axios instance with proper configuration
+    const agents = this.resolveAgents();
     const axiosConfig: any = {
       headers: videoHeaders,
       timeout: 30000,
-      httpAgent: this.httpAgent,
-      httpsAgent: this.intranetMapping.isEnabled() ? this.httpsAgentNoVerify : this.httpsAgent,
+      httpAgent: agents.httpAgent,
+      httpsAgent: this.intranetMapping.isEnabled() ? agents.httpsAgentNoVerify : agents.httpsAgent,
       validateStatus: function (status: number) {
         return status < 500; // Accept all status codes below 500
       }
@@ -696,12 +772,13 @@ export class VideoProxyService {
     }
 
     // Create axios instance with proper configuration
+    const agents = this.resolveAgents();
     const axiosConfig: any = {
       headers: videoHeaders,
       responseType: 'stream',
       timeout: 30000,
-      httpAgent: this.httpAgent,
-      httpsAgent: this.intranetMapping.isEnabled() ? this.httpsAgentNoVerify : this.httpsAgent,
+      httpAgent: agents.httpAgent,
+      httpsAgent: this.intranetMapping.isEnabled() ? agents.httpsAgentNoVerify : agents.httpsAgent,
       validateStatus: function (status: number) {
         return status < 500; // Accept all status codes below 500
       }

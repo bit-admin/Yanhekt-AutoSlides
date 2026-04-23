@@ -32,6 +32,15 @@ export interface IntranetMapping {
   currentIndex?: number
 }
 
+export interface NetworkInterfaceInfo {
+  name: string
+  address: string
+  family: 'IPv4' | 'IPv6'
+  internal: boolean
+  mac?: string
+  cidr: string | null
+}
+
 export interface UseAdvancedSettingsOptions {
   // From useSettings - we need these refs to sync values
   maxConcurrentDownloads: Ref<number>
@@ -118,6 +127,13 @@ export interface UseAdvancedSettingsReturn {
   // Intranet mappings
   intranetMappings: Ref<{ [domain: string]: IntranetMapping }>
   expandedMappings: Ref<{ [domain: string]: boolean }>
+
+  // Intranet interface binding
+  availableNetworkInterfaces: Ref<NetworkInterfaceInfo[]>
+  intranetInterfaceIp: Ref<string>
+  tempIntranetInterfaceIp: Ref<string>
+  intranetInterfaceWarning: Ref<string | null>
+  refreshNetworkInterfaces: () => Promise<void>
 
   // Methods
   openAdvancedSettings: () => Promise<void>
@@ -258,6 +274,12 @@ export function useAdvancedSettings(
   const intranetMappings = ref<{ [domain: string]: IntranetMapping }>({})
   const expandedMappings = ref<{ [domain: string]: boolean }>({})
 
+  // Intranet interface binding (applies ONLY to intranet-mode traffic)
+  const availableNetworkInterfaces = ref<NetworkInterfaceInfo[]>([])
+  const intranetInterfaceIp = ref<string>('')
+  const tempIntranetInterfaceIp = ref<string>('')
+  const intranetInterfaceWarning = ref<string | null>(null)
+
   // Flag for programmatic updates
   let isUpdatingProgrammatically = false
 
@@ -354,6 +376,9 @@ export function useAdvancedSettings(
 
     await loadImageProcessingConfig()
     await loadIntranetMappings()
+    await loadNetworkInterfaces()
+    await loadIntranetInterfaceIp()
+    intranetInterfaceWarning.value = null
 
     // Call additional setup callback
     if (onOpenModal) {
@@ -382,6 +407,8 @@ export function useAdvancedSettings(
     tempDistinguishMaybeSlide.value = distinguishMaybeSlide.value
     tempThemeMode.value = themeMode.value
     tempLanguageMode.value = languageMode.value
+    tempIntranetInterfaceIp.value = intranetInterfaceIp.value
+    intranetInterfaceWarning.value = null
     showAdvancedModal.value = false
   }
 
@@ -454,6 +481,17 @@ export function useAdvancedSettings(
       // Save AI behaviour toggle
       await window.electronAPI.config.setDistinguishMaybeSlide(tempDistinguishMaybeSlide.value)
       distinguishMaybeSlide.value = tempDistinguishMaybeSlide.value
+
+      // Save intranet interface binding (applies only to intranet-mode traffic).
+      if (tempIntranetInterfaceIp.value !== intranetInterfaceIp.value) {
+        const resp = await window.electronAPI.intranet.setInterfaceIp(
+          tempIntranetInterfaceIp.value === '' ? null : tempIntranetInterfaceIp.value
+        )
+        intranetInterfaceIp.value = tempIntranetInterfaceIp.value
+        intranetInterfaceWarning.value = resp?.warning ?? null
+      } else {
+        intranetInterfaceWarning.value = null
+      }
 
       // Save theme mode
       if (tempThemeMode.value !== themeMode.value) {
@@ -562,6 +600,30 @@ export function useAdvancedSettings(
       intranetMappings.value = mappings
     } catch (error) {
       console.error('Failed to load intranet mappings:', error)
+    }
+  }
+
+  const loadNetworkInterfaces = async () => {
+    try {
+      const list = await window.electronAPI.intranet.getNetworkInterfaces()
+      availableNetworkInterfaces.value = list ?? []
+    } catch (error) {
+      console.error('Failed to load network interfaces:', error)
+      availableNetworkInterfaces.value = []
+    }
+  }
+
+  const refreshNetworkInterfaces = async () => {
+    await loadNetworkInterfaces()
+  }
+
+  const loadIntranetInterfaceIp = async () => {
+    try {
+      const ip = await window.electronAPI.intranet.getInterfaceIp()
+      intranetInterfaceIp.value = ip ?? ''
+      tempIntranetInterfaceIp.value = intranetInterfaceIp.value
+    } catch (error) {
+      console.error('Failed to load intranet interface IP:', error)
     }
   }
 
@@ -701,6 +763,13 @@ export function useAdvancedSettings(
     // Intranet mappings
     intranetMappings,
     expandedMappings,
+
+    // Intranet interface binding
+    availableNetworkInterfaces,
+    intranetInterfaceIp,
+    tempIntranetInterfaceIp,
+    intranetInterfaceWarning,
+    refreshNetworkInterfaces,
 
     // Methods
     openAdvancedSettings,

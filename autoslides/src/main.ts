@@ -724,6 +724,58 @@ ipcMain.handle('intranet:getMappings', async () => {
   return intranetMappingService.getMappings();
 });
 
+ipcMain.handle('intranet:getNetworkInterfaces', async () => {
+  const raw = os.networkInterfaces();
+  const result: Array<{ name: string; address: string; family: 'IPv4' | 'IPv6'; internal: boolean; mac?: string; cidr: string | null }> = [];
+  for (const [name, addrs] of Object.entries(raw)) {
+    if (!addrs) continue;
+    for (const addr of addrs) {
+      if (addr.internal) continue;
+      if (addr.family !== 'IPv4') continue; // IPv4-only for intranet targets
+      result.push({
+        name,
+        address: addr.address,
+        family: addr.family,
+        internal: addr.internal,
+        mac: addr.mac,
+        cidr: addr.cidr ?? null
+      });
+    }
+  }
+  return result;
+});
+
+ipcMain.handle('intranet:getInterfaceIp', async () => {
+  return intranetMappingService.getInterfaceIp();
+});
+
+ipcMain.handle('intranet:setInterfaceIp', async (_event, ip: string | null) => {
+  const normalized = ip && ip.trim() !== '' ? ip.trim() : null;
+  let warning: string | undefined;
+
+  if (normalized) {
+    // Check whether the requested IP is currently present on any non-internal interface.
+    const raw = os.networkInterfaces();
+    let found = false;
+    for (const addrs of Object.values(raw)) {
+      if (!addrs) continue;
+      for (const addr of addrs) {
+        if (!addr.internal && addr.address === normalized) {
+          found = true;
+          break;
+        }
+      }
+      if (found) break;
+    }
+    if (!found) {
+      warning = 'interface-not-found';
+    }
+  }
+
+  intranetMappingService.setInterfaceIp(normalized);
+  return { status: intranetMappingService.getNetworkStatus(), warning };
+});
+
 // IPC handlers for live streams
 ipcMain.handle('api:getPersonalLiveList', async (event, token: string, page?: number, pageSize?: number) => {
   return await apiClient.getPersonalLiveList(token, page, pageSize);

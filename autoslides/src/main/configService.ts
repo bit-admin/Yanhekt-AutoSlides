@@ -128,6 +128,7 @@ export interface AppConfig {
   connectionMode: 'internal' | 'external';
   intranetMode?: boolean;
   intranetMappings?: Record<string, string>;
+  intranetInterfaceIp?: string;
   maxConcurrentDownloads: number;
   downloadMaxWorkers: number;
   downloadNumRetries: number;

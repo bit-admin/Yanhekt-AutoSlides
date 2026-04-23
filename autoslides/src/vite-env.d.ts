@@ -324,6 +324,21 @@ interface IntranetStatus {
   mode: string;
   enabled: boolean;
   mappingCount: number;
+  interfaceIp: string | null;
+}
+
+interface NetworkInterfaceInfo {
+  name: string;
+  address: string;
+  family: 'IPv4' | 'IPv6';
+  internal: boolean;
+  mac?: string;
+  cidr: string | null;
+}
+
+interface SetInterfaceIpResponse {
+  status: IntranetStatus;
+  warning?: 'interface-not-found';
 }
 
 interface PowerManagementResponse {
@@ -572,6 +587,9 @@ interface ElectronAPI {
     setEnabled: (enabled: boolean) => Promise<IntranetStatus>;
     getStatus: () => Promise<IntranetStatus>;
     getMappings: () => Promise<{ [domain: string]: IntranetMapping }>;
+    getNetworkInterfaces: () => Promise<NetworkInterfaceInfo[]>;
+    getInterfaceIp: () => Promise<string | null>;
+    setInterfaceIp: (ip: string | null) => Promise<SetInterfaceIpResponse>;
   };
 
   video: {

@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import { ConfigService } from './configService';
 
 export interface IntranetMapping {
@@ -12,13 +13,15 @@ export interface IntranetMappings {
   [domain: string]: IntranetMapping;
 }
 
-export class IntranetMappingService {
+export class IntranetMappingService extends EventEmitter {
   private mappings: IntranetMappings;
   private enabled = false;
+  private interfaceIp: string | null = null;
   private failedIPs: Map<string, { failedAt: number; domain: string; ip: string }> = new Map();
   private configService: ConfigService;
 
   constructor(configService: ConfigService) {
+    super();
     this.configService = configService;
 
     // Default mappings
@@ -88,6 +91,8 @@ export class IntranetMappingService {
     // Load settings from config
     this.enabled = this.configService.get('intranetMode', false) || false;
     const savedMappings = this.configService.get('intranetMappings', {}) || {};
+    const savedInterfaceIp = this.configService.get('intranetInterfaceIp', '') || '';
+    this.interfaceIp = savedInterfaceIp.trim() === '' ? null : savedInterfaceIp.trim();
 
     // Merge with defaults to ensure all default mappings are present
     // Only merge if savedMappings contains valid IntranetMapping objects
@@ -125,6 +130,26 @@ export class IntranetMappingService {
    */
   isEnabled(): boolean {
     return this.enabled;
+  }
+
+  /**
+   * Get the local interface IP bound to intranet-mode traffic, or null for system default
+   */
+  getInterfaceIp(): string | null {
+    return this.interfaceIp;
+  }
+
+  /**
+   * Set the local interface IP for intranet-mode traffic. Pass null/empty to clear.
+   */
+  setInterfaceIp(ip: string | null): void {
+    const normalized = ip && ip.trim() !== '' ? ip.trim() : null;
+    if (normalized === this.interfaceIp) {
+      return;
+    }
+    this.interfaceIp = normalized;
+    this.configService.set('intranetInterfaceIp', normalized ?? '');
+    this.emit('interfaceIpChanged', normalized);
   }
 
   /**
@@ -272,11 +297,12 @@ export class IntranetMappingService {
   /**
    * Get network status information
    */
-  getNetworkStatus(): { mode: string; enabled: boolean; mappingCount: number } {
+  getNetworkStatus(): { mode: string; enabled: boolean; mappingCount: number; interfaceIp: string | null } {
     return {
       mode: this.enabled ? 'intranet' : 'internet',
       enabled: this.enabled,
-      mappingCount: Object.keys(this.mappings).length
+      mappingCount: Object.keys(this.mappings).length,
+      interfaceIp: this.interfaceIp
     };
   }
 
