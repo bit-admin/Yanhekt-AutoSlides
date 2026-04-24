@@ -38,6 +38,12 @@ export interface ResultsFolder {
   removedCount: number
 }
 
+export interface BaselineCrop {
+  rect: CropRect
+  sourceFilename: string
+  sourceImagePath: string
+}
+
 export interface ResultsItem {
   id: string
   name: string
@@ -74,6 +80,7 @@ export function useResultsView() {
   const thumbnailSize = ref(320)
   const isLoading = ref(false)
   const previewItem = ref<ResultsItem | null>(null)
+  const baselineCrop = ref<BaselineCrop | null>(null)
 
   let thumbnailLoadVersion = 0
 
@@ -139,6 +146,49 @@ export function useResultsView() {
       (item) =>
         item.status === 'active' ||
         (item.status === 'removed' && item.reason === 'ai_filtered_edit'),
+    )
+  })
+
+  const canSetCurrentAsBaseline = computed(() => {
+    const item = previewItem.value
+    return !!item && item.isCropped === true && !!item.cropRect
+  })
+
+  const isCurrentPreviewBaseline = computed(() => {
+    const item = previewItem.value
+    const baseline = baselineCrop.value
+    if (!item || !baseline) return false
+    const path = item.imagePath || item.originalPath || ''
+    return !!path && path === baseline.sourceImagePath
+  })
+
+  const canApplyBaselineActive = computed(() => {
+    if (!baselineCrop.value) return false
+    const items = selectedItems.value
+    if (items.length === 0) return false
+    return items.every((item) => item.status === 'active')
+  })
+
+  const canApplyBaselineMixed = computed(() => {
+    if (!baselineCrop.value) return false
+    const items = selectedItems.value
+    if (items.length === 0) return false
+    return items.every(
+      (item) =>
+        item.status === 'active' ||
+        (item.status === 'removed' && item.reason === 'ai_filtered_edit'),
+    )
+  })
+
+  const canApplyBaselineDedup = computed(() => canApplyBaselineMixed.value)
+
+  const hasCroppedInCurrentFolder = computed(() => {
+    return folderItems.value.some((item) => item.status === 'active' && item.isCropped)
+  })
+
+  const hasAutoCroppedInCurrentFolder = computed(() => {
+    return folderItems.value.some(
+      (item) => item.status === 'active' && item.isCropped && item.isAutoCropped,
     )
   })
 
@@ -346,6 +396,7 @@ export function useResultsView() {
     selectedReason.value = ''
     contextMode.value = 'context'
     previewItem.value = null
+    baselineCrop.value = null
     thumbnails.value = {}
     thumbnailLoadVersion += 1
   }
@@ -520,6 +571,143 @@ export function useResultsView() {
     return summary
   }
 
+  async function runPHashDedup(
+    folder: ResultsFolder,
+    croppedItems: Array<{ originalPath: string; filename: string }>,
+    summary: { cropped: number; deduped: number },
+  ): Promise<void> {
+    if (croppedItems.length === 0) return
+
+    const appConfig = await window.electronAPI.config.get()
+    const pHashThreshold = appConfig.slideExtraction?.pHashThreshold ?? 10
+
+    await loadFolderSummaries()
+    const activeFolder = activeFolders.value.find((f) => f.name === folder.name)
+
+    const worker = new Worker(
+      new URL('../workers/postProcessor.worker.ts', import.meta.url),
+      { type: 'module' },
+    )
+
+    const calculatePHash = (imageData: ImageData): Promise<string> => {
+      return new Promise((resolve, reject) => {
+        const messageId = `pHash_${Date.now()}_${Math.random()}`
+        const messageHandler = (event: MessageEvent) => {
+          const { id, success, result, error } = event.data
+          if (id === messageId) {
+            worker.removeEventListener('message', messageHandler)
+            success ? resolve(result) : reject(new Error(error))
+          }
+        }
+        worker.addEventListener('message', messageHandler)
+        worker.postMessage({ id: messageId, type: 'calculatePHash', data: { imageData } })
+      })
+    }
+
+    const calculateHammingDistance = (hash1: string, hash2: string): Promise<number> => {
+      return new Promise((resolve, reject) => {
+        const messageId = `hamming_${Date.now()}_${Math.random()}`
+        const messageHandler = (event: MessageEvent) => {
+          const { id, success, result, error } = event.data
+          if (id === messageId) {
+            worker.removeEventListener('message', messageHandler)
+            success ? resolve(result) : reject(new Error(error))
+          }
+        }
+        worker.addEventListener('message', messageHandler)
+        worker.postMessage({ id: messageId, type: 'calculateHammingDistance', data: { hash1, hash2 } })
+      })
+    }
+
+    const bufferToImageData = (buffer: Uint8Array): Promise<ImageData> => {
+      return new Promise((resolve, reject) => {
+        const blob = new Blob([buffer as BlobPart])
+        const url = URL.createObjectURL(blob)
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          canvas.width = img.width
+          canvas.height = img.height
+          const ctx = canvas.getContext('2d')
+          if (!ctx) {
+            URL.revokeObjectURL(url)
+            reject(new Error('Failed to get canvas context'))
+            return
+          }
+          ctx.drawImage(img, 0, 0)
+          const imageData = ctx.getImageData(0, 0, img.width, img.height)
+          URL.revokeObjectURL(url)
+          resolve(imageData)
+        }
+        img.onerror = () => {
+          URL.revokeObjectURL(url)
+          reject(new Error('Failed to load image'))
+        }
+        img.src = url
+      })
+    }
+
+    try {
+      const seen: Array<{ filename: string; pHash: string }> = []
+      const croppedSet = new Set(croppedItems.map((c) => c.originalPath))
+
+      if (activeFolder?.path) {
+        try {
+          const existingImages = await window.electronAPI.pdfmaker.getImages(activeFolder.path)
+          for (const img of existingImages) {
+            if (croppedSet.has(img.path)) continue
+            try {
+              const buffer = await window.electronAPI.offline.readImageBuffer(img.path)
+              const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+              const imageData = await bufferToImageData(bytes)
+              const pHash = await calculatePHash(imageData)
+              seen.push({ filename: img.name, pHash })
+            } catch (err) {
+              console.warn(`Failed to compute pHash for existing ${img.path}:`, err)
+            }
+          }
+        } catch (err) {
+          console.warn('Failed to list existing images for dedup:', err)
+        }
+      }
+
+      const folderPath = activeFolder?.path
+      for (const item of croppedItems) {
+        try {
+          const buffer = await window.electronAPI.offline.readImageBuffer(item.originalPath)
+          const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+          const imageData = await bufferToImageData(bytes)
+          const pHash = await calculatePHash(imageData)
+
+          let duplicateOf = ''
+          for (const s of seen) {
+            if (!s.pHash) continue
+            const distance = await calculateHammingDistance(pHash, s.pHash)
+            if (distance <= pHashThreshold) {
+              duplicateOf = s.filename
+              break
+            }
+          }
+
+          if (duplicateOf && folderPath) {
+            await window.electronAPI.slideExtraction.moveToInAppTrash(folderPath, item.filename, {
+              reason: 'duplicate',
+              reasonDetails: `Duplicate of ${duplicateOf}`,
+            })
+            summary.deduped++
+            summary.cropped = Math.max(0, summary.cropped - 1)
+          } else {
+            seen.push({ filename: item.filename, pHash })
+          }
+        } catch (err) {
+          console.warn(`Failed to dedup ${item.filename}:`, err)
+        }
+      }
+    } finally {
+      worker.terminate()
+    }
+  }
+
   async function cropAndDedupSelected(): Promise<{ cropped: number; noDetection: number; deduped: number; failed: number }> {
     const summary = { cropped: 0, noDetection: 0, deduped: 0, failed: 0 }
     if (!canCropAndDedup.value) return summary
@@ -548,134 +736,10 @@ export function useResultsView() {
       summary.failed = cropSummary.failed
 
       if (croppedItems.length > 0) {
-        const appConfig = await window.electronAPI.config.get()
-        const pHashThreshold = appConfig.slideExtraction?.pHashThreshold ?? 10
-
-        await loadFolderSummaries()
-        const activeFolder = activeFolders.value.find((f) => f.name === folder.name)
-
-        const worker = new Worker(
-          new URL('../workers/postProcessor.worker.ts', import.meta.url),
-          { type: 'module' },
-        )
-
-        const calculatePHash = (imageData: ImageData): Promise<string> => {
-          return new Promise((resolve, reject) => {
-            const messageId = `pHash_${Date.now()}_${Math.random()}`
-            const messageHandler = (event: MessageEvent) => {
-              const { id, success, result, error } = event.data
-              if (id === messageId) {
-                worker.removeEventListener('message', messageHandler)
-                success ? resolve(result) : reject(new Error(error))
-              }
-            }
-            worker.addEventListener('message', messageHandler)
-            worker.postMessage({ id: messageId, type: 'calculatePHash', data: { imageData } })
-          })
-        }
-
-        const calculateHammingDistance = (hash1: string, hash2: string): Promise<number> => {
-          return new Promise((resolve, reject) => {
-            const messageId = `hamming_${Date.now()}_${Math.random()}`
-            const messageHandler = (event: MessageEvent) => {
-              const { id, success, result, error } = event.data
-              if (id === messageId) {
-                worker.removeEventListener('message', messageHandler)
-                success ? resolve(result) : reject(new Error(error))
-              }
-            }
-            worker.addEventListener('message', messageHandler)
-            worker.postMessage({ id: messageId, type: 'calculateHammingDistance', data: { hash1, hash2 } })
-          })
-        }
-
-        const bufferToImageData = (buffer: Uint8Array): Promise<ImageData> => {
-          return new Promise((resolve, reject) => {
-            const blob = new Blob([buffer as BlobPart])
-            const url = URL.createObjectURL(blob)
-            const img = new Image()
-            img.onload = () => {
-              const canvas = document.createElement('canvas')
-              canvas.width = img.width
-              canvas.height = img.height
-              const ctx = canvas.getContext('2d')
-              if (!ctx) {
-                URL.revokeObjectURL(url)
-                reject(new Error('Failed to get canvas context'))
-                return
-              }
-              ctx.drawImage(img, 0, 0)
-              const imageData = ctx.getImageData(0, 0, img.width, img.height)
-              URL.revokeObjectURL(url)
-              resolve(imageData)
-            }
-            img.onerror = () => {
-              URL.revokeObjectURL(url)
-              reject(new Error('Failed to load image'))
-            }
-            img.src = url
-          })
-        }
-
-        try {
-          const seen: Array<{ filename: string; pHash: string }> = []
-          const croppedSet = new Set(croppedItems.map((c) => c.originalPath))
-
-          if (activeFolder?.path) {
-            try {
-              const existingImages = await window.electronAPI.pdfmaker.getImages(activeFolder.path)
-              for (const img of existingImages) {
-                if (croppedSet.has(img.path)) continue
-                try {
-                  const buffer = await window.electronAPI.offline.readImageBuffer(img.path)
-                  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
-                  const imageData = await bufferToImageData(bytes)
-                  const pHash = await calculatePHash(imageData)
-                  seen.push({ filename: img.name, pHash })
-                } catch (err) {
-                  console.warn(`Failed to compute pHash for existing ${img.path}:`, err)
-                }
-              }
-            } catch (err) {
-              console.warn('Failed to list existing images for dedup:', err)
-            }
-          }
-
-          const folderPath = activeFolder?.path
-          for (const item of croppedItems) {
-            try {
-              const buffer = await window.electronAPI.offline.readImageBuffer(item.originalPath)
-              const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
-              const imageData = await bufferToImageData(bytes)
-              const pHash = await calculatePHash(imageData)
-
-              let duplicateOf = ''
-              for (const s of seen) {
-                if (!s.pHash) continue
-                const distance = await calculateHammingDistance(pHash, s.pHash)
-                if (distance <= pHashThreshold) {
-                  duplicateOf = s.filename
-                  break
-                }
-              }
-
-              if (duplicateOf && folderPath) {
-                await window.electronAPI.slideExtraction.moveToInAppTrash(folderPath, item.filename, {
-                  reason: 'duplicate',
-                  reasonDetails: `Duplicate of ${duplicateOf}`,
-                })
-                summary.deduped++
-                summary.cropped = Math.max(0, summary.cropped - 1)
-              } else {
-                seen.push({ filename: item.filename, pHash })
-              }
-            } catch (err) {
-              console.warn(`Failed to dedup ${item.filename}:`, err)
-            }
-          }
-        } finally {
-          worker.terminate()
-        }
+        const dedupSummary = { cropped: summary.cropped, deduped: 0 }
+        await runPHashDedup(folder, croppedItems, dedupSummary)
+        summary.cropped = dedupSummary.cropped
+        summary.deduped = dedupSummary.deduped
       }
 
       await refresh()
@@ -686,6 +750,219 @@ export function useResultsView() {
     }
 
     return summary
+  }
+
+  function setBaselineCrop(item: ResultsItem): boolean {
+    if (!item.isCropped || !item.cropRect) return false
+    const path = item.imagePath || item.originalPath || ''
+    if (!path) return false
+
+    baselineCrop.value = {
+      rect: { ...item.cropRect },
+      sourceFilename: item.name,
+      sourceImagePath: path,
+    }
+    return true
+  }
+
+  async function runBaselineCropPipeline(
+    targets: AutoCropTarget[],
+    baselineRect: CropRect,
+    summary: { cropped: number; outOfBounds: number; failed: number },
+  ): Promise<Array<{ originalPath: string; filename: string }>> {
+    const cropped: Array<{ originalPath: string; filename: string }> = []
+
+    const restoreIds = targets
+      .filter((t) => t.needsRestore && t.id)
+      .map((t) => t.id as string)
+    if (restoreIds.length > 0) {
+      await window.electronAPI.trash.restore(restoreIds)
+    }
+
+    for (const target of targets) {
+      if (!target.originalPath) {
+        summary.failed++
+        continue
+      }
+      try {
+        const buffer = await window.electronAPI.offline.readImageBuffer(target.originalPath)
+        const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
+        const blobArrayBuffer = new ArrayBuffer(bytes.byteLength)
+        new Uint8Array(blobArrayBuffer).set(bytes)
+        const blob = new Blob([blobArrayBuffer], { type: 'image/*' })
+        const bitmap = await createImageBitmap(blob)
+        const width = bitmap.width
+        const height = bitmap.height
+        bitmap.close()
+
+        if (
+          baselineRect.x < 0 ||
+          baselineRect.y < 0 ||
+          baselineRect.width <= 0 ||
+          baselineRect.height <= 0 ||
+          baselineRect.x + baselineRect.width > width ||
+          baselineRect.y + baselineRect.height > height
+        ) {
+          summary.outOfBounds++
+          continue
+        }
+
+        await window.electronAPI.crop.apply(
+          target.originalPath,
+          {
+            x: baselineRect.x,
+            y: baselineRect.y,
+            width: baselineRect.width,
+            height: baselineRect.height,
+          },
+          false,
+        )
+        summary.cropped++
+        cropped.push({ originalPath: target.originalPath, filename: target.filename })
+      } catch (err) {
+        console.error(`Failed to apply baseline crop to ${target.originalPath}:`, err)
+        summary.failed++
+      }
+    }
+
+    return cropped
+  }
+
+  async function applyBaselineToSelected(): Promise<{ cropped: number; outOfBounds: number; failed: number }> {
+    const summary = { cropped: 0, outOfBounds: 0, failed: 0 }
+    if (!canApplyBaselineActive.value || !baselineCrop.value) return summary
+
+    isLoading.value = true
+    try {
+      const targets: AutoCropTarget[] = selectedActiveItems.value.map((item) => ({
+        originalPath: item.imagePath || item.originalPath || '',
+        filename: item.name,
+        needsRestore: false,
+      }))
+      await runBaselineCropPipeline(targets, baselineCrop.value.rect, summary)
+      await refresh()
+    } catch (error) {
+      console.error('Failed to apply baseline crop to selected:', error)
+    } finally {
+      isLoading.value = false
+    }
+
+    return summary
+  }
+
+  async function restoreAndApplyBaselineSelected(): Promise<{ cropped: number; outOfBounds: number; failed: number }> {
+    const summary = { cropped: 0, outOfBounds: 0, failed: 0 }
+    if (!canApplyBaselineMixed.value || !baselineCrop.value) return summary
+
+    isLoading.value = true
+    try {
+      const targets: AutoCropTarget[] = selectedItems.value.map((item) => {
+        const isRemoved = item.status === 'removed'
+        return {
+          id: isRemoved ? item.id : undefined,
+          originalPath: isRemoved
+            ? item.originalPath || ''
+            : item.imagePath || item.originalPath || '',
+          filename: item.name,
+          needsRestore: isRemoved,
+        }
+      })
+      await runBaselineCropPipeline(targets, baselineCrop.value.rect, summary)
+      await refresh()
+    } catch (error) {
+      console.error('Failed to restore and apply baseline crop:', error)
+    } finally {
+      isLoading.value = false
+    }
+
+    return summary
+  }
+
+  async function applyBaselineAndDedupSelected(): Promise<{ cropped: number; outOfBounds: number; deduped: number; failed: number }> {
+    const summary = { cropped: 0, outOfBounds: 0, deduped: 0, failed: 0 }
+    if (!canApplyBaselineDedup.value || !baselineCrop.value) return summary
+
+    const folder = currentFolder.value
+    if (!folder) return summary
+
+    isLoading.value = true
+    try {
+      const targets: AutoCropTarget[] = selectedItems.value.map((item) => {
+        const isRemoved = item.status === 'removed'
+        return {
+          id: isRemoved ? item.id : undefined,
+          originalPath: isRemoved
+            ? item.originalPath || ''
+            : item.imagePath || item.originalPath || '',
+          filename: item.name,
+          needsRestore: isRemoved,
+        }
+      })
+
+      const cropSummary = { cropped: 0, outOfBounds: 0, failed: 0 }
+      const croppedItems = await runBaselineCropPipeline(targets, baselineCrop.value.rect, cropSummary)
+      summary.cropped = cropSummary.cropped
+      summary.outOfBounds = cropSummary.outOfBounds
+      summary.failed = cropSummary.failed
+
+      if (croppedItems.length > 0) {
+        const dedupSummary = { cropped: summary.cropped, deduped: 0 }
+        await runPHashDedup(folder, croppedItems, dedupSummary)
+        summary.cropped = dedupSummary.cropped
+        summary.deduped = dedupSummary.deduped
+      }
+
+      await refresh()
+    } catch (error) {
+      console.error('Failed to apply baseline crop and dedup:', error)
+    } finally {
+      isLoading.value = false
+    }
+
+    return summary
+  }
+
+  async function restoreCropsInFolder(
+    predicate: (item: ResultsItem) => boolean,
+  ): Promise<{ restored: number; failed: number }> {
+    const summary = { restored: 0, failed: 0 }
+    const targets = folderItems.value.filter(predicate)
+    if (targets.length === 0) return summary
+
+    isLoading.value = true
+    try {
+      for (const item of targets) {
+        const path = item.imagePath || item.originalPath || ''
+        if (!path) {
+          summary.failed++
+          continue
+        }
+        try {
+          await window.electronAPI.crop.restore(path)
+          summary.restored++
+        } catch (err) {
+          console.error(`Failed to restore crop for ${path}:`, err)
+          summary.failed++
+        }
+      }
+      await refresh()
+    } catch (error) {
+      console.error('Failed to restore crops in folder:', error)
+    } finally {
+      isLoading.value = false
+    }
+
+    return summary
+  }
+
+  async function restoreAllCroppedInFolder(): Promise<{ restored: number; failed: number }> {
+    return restoreCropsInFolder((item) => item.status === 'active' && !!item.isCropped)
+  }
+
+  async function restoreAutoCroppedInFolder(): Promise<{ restored: number; failed: number }> {
+    return restoreCropsInFolder(
+      (item) => item.status === 'active' && !!item.isCropped && !!item.isAutoCropped,
+    )
   }
 
   async function clearTrash(ids?: string[]) {
@@ -787,10 +1064,18 @@ export function useResultsView() {
     thumbnailSize,
     isLoading,
     previewItem,
+    baselineCrop,
     hasRemovedItems,
     canRestoreAndAutoCrop,
     canAutoCropActive,
     canCropAndDedup,
+    canSetCurrentAsBaseline,
+    isCurrentPreviewBaseline,
+    canApplyBaselineActive,
+    canApplyBaselineMixed,
+    canApplyBaselineDedup,
+    hasCroppedInCurrentFolder,
+    hasAutoCroppedInCurrentFolder,
     trashEntries,
     openFolder,
     goBack,
@@ -803,6 +1088,12 @@ export function useResultsView() {
     autoCropSelectedActive,
     restoreAndAutoCropSelected,
     cropAndDedupSelected,
+    setBaselineCrop,
+    applyBaselineToSelected,
+    restoreAndApplyBaselineSelected,
+    applyBaselineAndDedupSelected,
+    restoreAllCroppedInFolder,
+    restoreAutoCroppedInFolder,
     clearTrash,
     applyCropToImage,
     restoreCropFromImage,

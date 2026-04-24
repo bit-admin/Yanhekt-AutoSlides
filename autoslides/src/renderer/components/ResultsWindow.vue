@@ -78,7 +78,7 @@
           </button>
           <button
             class="restore-btn restore-split-toggle"
-            :disabled="isLoading || (!canRestoreAndAutoCrop && !canCropAndDedup)"
+            :disabled="isLoading || (!canRestoreAndAutoCrop && !canCropAndDedup && !canApplyBaselineActive && !canApplyBaselineMixed && !canApplyBaselineDedup && !hasCroppedInCurrentFolder && !hasAutoCroppedInCurrentFolder)"
             :title="$t('trash.restoreAutoCropMoreOptions')"
             @click.stop="showRestoreMenu = !showRestoreMenu"
           >
@@ -102,6 +102,48 @@
             >
               <div class="restore-split-menu-title">{{ $t('trash.restoreAutoCropDedup') }}</div>
               <div class="restore-split-menu-hint">{{ $t('trash.restoreAutoCropDedupHint') }}</div>
+            </button>
+            <div class="restore-split-menu-divider"></div>
+            <button
+              class="restore-split-menu-item"
+              :disabled="!canApplyBaselineActive || isLoading"
+              @click="handleApplyBaseline"
+            >
+              <div class="restore-split-menu-title">{{ $t('trash.applyBaseline') }}</div>
+              <div class="restore-split-menu-hint">{{ $t('trash.applyBaselineHint') }}</div>
+            </button>
+            <button
+              class="restore-split-menu-item"
+              :disabled="!canApplyBaselineMixed || isLoading"
+              @click="handleRestoreAndApplyBaseline"
+            >
+              <div class="restore-split-menu-title">{{ $t('trash.restoreAndApplyBaseline') }}</div>
+              <div class="restore-split-menu-hint">{{ $t('trash.restoreAndApplyBaselineHint') }}</div>
+            </button>
+            <button
+              class="restore-split-menu-item"
+              :disabled="!canApplyBaselineDedup || isLoading"
+              @click="handleApplyBaselineAndDedup"
+            >
+              <div class="restore-split-menu-title">{{ $t('trash.applyBaselineDedup') }}</div>
+              <div class="restore-split-menu-hint">{{ $t('trash.applyBaselineDedupHint') }}</div>
+            </button>
+            <div class="restore-split-menu-divider"></div>
+            <button
+              class="restore-split-menu-item"
+              :disabled="!hasCroppedInCurrentFolder || isLoading"
+              @click="handleRestoreAllCropped"
+            >
+              <div class="restore-split-menu-title">{{ $t('trash.restoreAllCropped') }}</div>
+              <div class="restore-split-menu-hint">{{ $t('trash.restoreAllCroppedHint') }}</div>
+            </button>
+            <button
+              class="restore-split-menu-item"
+              :disabled="!hasAutoCroppedInCurrentFolder || isLoading"
+              @click="handleRestoreAutoCropped"
+            >
+              <div class="restore-split-menu-title">{{ $t('trash.restoreAutoCropped') }}</div>
+              <div class="restore-split-menu-hint">{{ $t('trash.restoreAutoCroppedHint') }}</div>
             </button>
           </div>
         </div>
@@ -365,6 +407,15 @@
                     {{ $t('trash.autoCrop') }}
                   </button>
                 </template>
+                <button
+                  v-if="canSetCurrentAsBaseline"
+                  class="preview-action-btn"
+                  :disabled="isLoading || isCurrentPreviewBaseline"
+                  :title="isCurrentPreviewBaseline ? $t('trash.currentBaselineTooltip') : $t('trash.useAsCropBaselineHint')"
+                  @click="handleSetBaseline"
+                >
+                  {{ $t('trash.useAsCropBaseline') }}
+                </button>
                 <button class="preview-action-btn" @click="togglePreviewMetadata">
                   <span>{{ showPreviewMetadata ? $t('trash.hideMetadata') : $t('trash.showMetadata') }}</span>
                   <svg width="14" height="14" viewBox="0 0 16 16">
@@ -469,6 +520,13 @@ const {
   canRestoreAndAutoCrop,
   canAutoCropActive,
   canCropAndDedup,
+  canSetCurrentAsBaseline,
+  isCurrentPreviewBaseline,
+  canApplyBaselineActive,
+  canApplyBaselineMixed,
+  canApplyBaselineDedup,
+  hasCroppedInCurrentFolder,
+  hasAutoCroppedInCurrentFolder,
   trashEntries,
   openFolder,
   goBack,
@@ -481,6 +539,12 @@ const {
   autoCropSelectedActive,
   restoreAndAutoCropSelected,
   cropAndDedupSelected,
+  setBaselineCrop,
+  applyBaselineToSelected,
+  restoreAndApplyBaselineSelected,
+  applyBaselineAndDedupSelected,
+  restoreAllCroppedInFolder,
+  restoreAutoCroppedInFolder,
   clearTrash,
   applyCropToImage,
   restoreCropFromImage,
@@ -1164,6 +1228,97 @@ const handleCropAndDedup = async () => {
   })
 }
 
+const handleSetBaseline = () => {
+  const item = previewItem.value
+  if (!item) return
+  setBaselineCrop(item)
+}
+
+const handleApplyBaseline = async () => {
+  showRestoreMenu.value = false
+  if (!canApplyBaselineActive.value) return
+
+  const summary = await applyBaselineToSelected()
+  await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'info',
+    buttons: ['OK'],
+    title: t('trash.applyBaseline'),
+    message: t('trash.applyBaselineSummary', summary),
+  })
+}
+
+const handleRestoreAndApplyBaseline = async () => {
+  showRestoreMenu.value = false
+  if (!canApplyBaselineMixed.value) return
+
+  const summary = await restoreAndApplyBaselineSelected()
+  await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'info',
+    buttons: ['OK'],
+    title: t('trash.restoreAndApplyBaseline'),
+    message: t('trash.restoreAndApplyBaselineSummary', summary),
+  })
+}
+
+const handleApplyBaselineAndDedup = async () => {
+  showRestoreMenu.value = false
+  if (!canApplyBaselineDedup.value) return
+
+  const summary = await applyBaselineAndDedupSelected()
+  await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'info',
+    buttons: ['OK'],
+    title: t('trash.applyBaselineDedup'),
+    message: t('trash.applyBaselineDedupSummary', summary),
+  })
+}
+
+const handleRestoreAllCropped = async () => {
+  showRestoreMenu.value = false
+  if (!hasCroppedInCurrentFolder.value) return
+
+  const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'question',
+    buttons: [t('trash.cancel'), t('trash.restoreAllCropped')],
+    defaultId: 0,
+    cancelId: 0,
+    title: t('trash.restoreAllCropped'),
+    message: t('trash.confirmRestoreAllCropped'),
+  })
+  if (confirmed?.response !== 1) return
+
+  const summary = await restoreAllCroppedInFolder()
+  await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'info',
+    buttons: ['OK'],
+    title: t('trash.restoreAllCropped'),
+    message: t('trash.restoreAllCroppedSummary', summary),
+  })
+}
+
+const handleRestoreAutoCropped = async () => {
+  showRestoreMenu.value = false
+  if (!hasAutoCroppedInCurrentFolder.value) return
+
+  const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'question',
+    buttons: [t('trash.cancel'), t('trash.restoreAutoCropped')],
+    defaultId: 0,
+    cancelId: 0,
+    title: t('trash.restoreAutoCropped'),
+    message: t('trash.confirmRestoreAutoCropped'),
+  })
+  if (confirmed?.response !== 1) return
+
+  const summary = await restoreAutoCroppedInFolder()
+  await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'info',
+    buttons: ['OK'],
+    title: t('trash.restoreAutoCropped'),
+    message: t('trash.restoreAutoCroppedSummary', summary),
+  })
+}
+
 const handleGlobalClickForRestoreMenu = (event: MouseEvent) => {
   if (!showRestoreMenu.value) return
   const target = event.target as HTMLElement | null
@@ -1431,6 +1586,12 @@ onBeforeUnmount(() => {
   color: rgba(255, 255, 255, 0.75);
   margin-top: 1px;
   line-height: 1.3;
+}
+
+.restore-split-menu-divider {
+  height: 1px;
+  margin: 2px 8px;
+  background-color: rgba(255, 255, 255, 0.25);
 }
 
 .content-area {
