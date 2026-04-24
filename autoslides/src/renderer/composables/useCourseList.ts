@@ -76,7 +76,7 @@ export interface UseCourseListReturn {
   loadSavedSearches: () => Promise<void>
   addSavedSearch: (keyword: string) => Promise<void>
   removeSavedSearch: (keyword: string) => Promise<void>
-  runSavedSearch: (keyword: string) => void
+  runSavedSearch: (keyword: string) => Promise<void>
 }
 
 export function useCourseList(options: UseCourseListOptions): UseCourseListReturn {
@@ -366,9 +366,18 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
     window.electronAPI.config.setSavedSearches(mode.value, updated)
   }
 
-  const runSavedSearch = (keyword: string) => {
+  const runSavedSearch = async (keyword: string) => {
     searchQuery.value = keyword
-    searchCourses()
+    if (mode.value === 'recorded') {
+      if (availableSemesters.value.length === 0) {
+        await loadAvailableSemesters()
+      }
+      if (availableSemesters.value.length > 0) {
+        selectedSemesters.value = [availableSemesters.value[0].id]
+        updateSemesterDropdownText()
+      }
+    }
+    await searchCourses()
   }
 
   return {
