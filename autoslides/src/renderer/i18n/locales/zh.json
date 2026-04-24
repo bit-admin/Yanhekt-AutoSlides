@@ -365,7 +365,8 @@
       "modelChainAdd": "添加",
       "modelChainRemove": "从链中移除",
       "modelChainAddPlaceholder": "输入模型名称或选择预设...",
-      "modelChainEmpty": "链中暂无模型。请在下方添加以启用 AI 分类。"
+      "modelChainEmpty": "链中暂无模型。请在下方添加以启用 AI 分类。",
+      "modelTemporarilyUnavailable": "服务暂不可用"
     }
   },
   "courses": {

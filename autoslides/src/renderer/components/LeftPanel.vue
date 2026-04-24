@@ -1181,6 +1181,17 @@
                         </svg>
                       </button>
                     </div>
+                    <div v-else-if="builtinModelError === 'temporarilyUnavailable'" class="model-error model-error-warning">
+                      <span>{{ $t('advanced.ai.modelTemporarilyUnavailable') }}</span>
+                      <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                          <path d="M21 3v5h-5"/>
+                          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                          <path d="M3 21v-5h5"/>
+                        </svg>
+                      </button>
+                    </div>
                     <div v-else-if="builtinModelError === 'fetchFailed'" class="model-error">
                       <span>{{ $t('advanced.ai.modelFetchFailed') }}</span>
                       <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
@@ -2036,7 +2047,6 @@ const {
   currentCustomProvider,
   tempCustomModelChain,
   exhaustedModels,
-  refreshExhaustedModels,
   moveModelUp,
   moveModelDown,
   updateModelAt,
@@ -5781,6 +5791,10 @@ defineExpose({
   font-size: 13px;
 }
 
+.model-error.model-error-warning {
+  color: #b26a00;
+}
+
 .model-name-display {
   display: flex;
   align-items: center;
@@ -5953,9 +5967,107 @@ defineExpose({
     color: #ffd54f;
   }
 
+  .model-error.model-error-warning {
+    color: #f4c67a;
+  }
+
   .builtin-disclaimer {
     background-color: rgba(255, 255, 255, 0.05);
     color: #888;
+  }
+
+  /* ModelScope Model Chain dark mode */
+  .model-chain-reset {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #ccc;
+  }
+
+  .model-chain-reset:hover {
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+  }
+
+  .model-chain-hint {
+    color: #aaa;
+  }
+
+  .model-chain-list {
+    background-color: #262626;
+    border-color: #404040;
+  }
+
+  .model-chain-row {
+    border-bottom-color: #333;
+  }
+
+  .model-chain-index {
+    color: #888;
+  }
+
+  .model-chain-input,
+  .model-chain-add-input {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .model-chain-input:focus,
+  .model-chain-add-input:focus {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.15);
+  }
+
+  .model-chain-badge.primary {
+    background-color: #1b3a5c;
+    color: #a6c8ff;
+  }
+
+  .model-chain-badge.exhausted {
+    background-color: #4a3400;
+    color: #f4c67a;
+  }
+
+  .model-chain-move-btn,
+  .model-chain-remove-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #ccc;
+  }
+
+  .model-chain-move-btn:hover:not(:disabled),
+  .model-chain-remove-btn:hover:not(:disabled) {
+    background-color: #3a3a3a;
+    color: #e0e0e0;
+  }
+
+  .model-chain-remove-btn:hover:not(:disabled) {
+    background-color: #4a1f1f;
+    color: #ff8080;
+    border-color: #6a2d2d;
+  }
+
+  .model-chain-empty {
+    color: #888;
+    border-color: #404040;
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+
+  .model-chain-preset-select {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .model-chain-add-btn {
+    background-color: #2d5a8c;
+    border-color: #2d5a8c;
+    color: #ffffff;
+  }
+
+  .model-chain-add-btn:hover:not(:disabled) {
+    background-color: #3a6ea3;
+    border-color: #3a6ea3;
   }
 
   /* Copilot dark mode */

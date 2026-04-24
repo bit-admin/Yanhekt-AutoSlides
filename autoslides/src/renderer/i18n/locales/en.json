@@ -365,7 +365,8 @@
       "modelChainAdd": "Add",
       "modelChainRemove": "Remove from chain",
       "modelChainAddPlaceholder": "Enter model name or pick a preset...",
-      "modelChainEmpty": "No models in chain. Add one below to enable AI classification."
+      "modelChainEmpty": "No models in chain. Add one below to enable AI classification.",
+      "modelTemporarilyUnavailable": "Service temporarily unavailable"
     }
   },
   "courses": {

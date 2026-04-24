@@ -621,6 +621,8 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
       const errorMessage = error instanceof Error ? error.message : String(error)
       if (errorMessage.includes('cloudflareBlocked')) {
         builtinModelError.value = 'cloudflareBlocked'
+      } else if (errorMessage.includes('temporarilyUnavailable')) {
+        builtinModelError.value = 'temporarilyUnavailable'
       } else {
         builtinModelError.value = 'fetchFailed'
       }

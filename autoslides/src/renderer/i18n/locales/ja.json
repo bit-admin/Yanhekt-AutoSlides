@@ -365,7 +365,8 @@
       "modelChainAdd": "追加",
       "modelChainRemove": "チェーンから削除",
       "modelChainAddPlaceholder": "モデル名を入力するか、プリセットを選択...",
-      "modelChainEmpty": "チェーンにモデルがありません。AI 分類を有効にするには下から追加してください。"
+      "modelChainEmpty": "チェーンにモデルがありません。AI 分類を有効にするには下から追加してください。",
+      "modelTemporarilyUnavailable": "サービスは一時的に利用できません"
     }
   },
   "courses": {

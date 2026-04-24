@@ -19,7 +19,7 @@ export interface PostProcessJobProgress {
 
 export interface JobError {
   filename: string
-  errorType: 'network' | '403' | '413' | '429' | 'http' | 'unknown'
+  errorType: 'network' | 'timeout' | '403' | '413' | '429' | 'quota_exceeded' | 'service_unavailable' | 'parse_failed' | 'http' | 'unknown'
   message: string
   retryCount: number
 }
@@ -67,14 +67,34 @@ interface AIBatchResult {
   pending413: string[][]    // Batches needing smaller size retry
 }
 
-// Error info for retry logic
+// Error info for retry logic. `retryable` drives whether we retry at batch level.
+// Transport already retries rate_limited / upstream_rate_limited / timeout-ish — those
+// should NOT be retryable again here. Only genuine transport-untouched categories
+// (network, timeout) retry at batch level, plus 413 via split.
 interface ErrorInfo {
-  type: 'network' | '403' | '413' | '429' | 'http' | 'unknown'
+  type: 'network' | 'timeout' | '403' | '413' | '429' | 'quota_exceeded' | 'service_unavailable' | 'parse_failed' | 'http' | 'unknown'
   message: string
+  retryable: boolean
+  kind?: string
 }
 
-// AI Classification result
+// AI Classification result — matches main-side AIFilteringResult. errorKind is the typed
+// error discriminator populated by llmApiService; prefer it over regex-matching `error`.
 type AIClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit'
+type AIErrorKind =
+  | 'rate_limited'
+  | 'upstream_rate_limited'
+  | 'quota_exceeded'
+  | 'auth_failed'
+  | 'cloudflare_blocked'
+  | 'timeout'
+  | 'network'
+  | 'service_unavailable'
+  | 'server_error'
+  | 'bad_request'
+  | 'parse_failed'
+  | 'unknown'
+
 interface AIClassificationResult {
   success: boolean
   result?: {
@@ -82,6 +102,7 @@ interface AIClassificationResult {
     [key: string]: AIClassificationValue | undefined
   }
   error?: string
+  errorKind?: AIErrorKind
 }
 
 class PostProcessingServiceClass {
@@ -712,16 +733,15 @@ class PostProcessingServiceClass {
           }
         }
       } else {
-        // Handle error
-        const errorInfo = this.parseError(aiResult.error)
+        // Handle error — transport (llmApiService) has already retried rate_limited /
+        // upstream_rate_limited with backoff. We only retry network/timeout here, and
+        // hand 413 to the split-batch path.
+        const errorInfo = this.parseError(aiResult)
 
         if (errorInfo.type === '413') {
           result.pending413.push(validBatch)
-        } else if ((errorInfo.type === '403' || errorInfo.type === 'network' || errorInfo.type === '429') && retryCount < maxRetries) {
-          // Use longer delay for 429 rate limiting
-          const delay = errorInfo.type === '429'
-            ? 10000 * (retryCount + 1)  // 10s, 20s, 30s for rate limits
-            : 1000 * (retryCount + 1)   // 1s, 2s, 3s for other errors
+        } else if (errorInfo.retryable && retryCount < maxRetries) {
+          const delay = 1000 * (retryCount + 1)  // 1s, 2s, 3s for network/timeout
           console.log(`[PostProcessing] Retrying batch due to ${errorInfo.type} (attempt ${retryCount + 1}/${maxRetries}, delay ${delay}ms)`)
           job.progress.retrying = validBatch.length
           await this.delay(delay)
@@ -746,13 +766,14 @@ class PostProcessingServiceClass {
       }
     } catch (error) {
       job.progress.retrying = 0
+      // Thrown exception — no errorKind available, fall back to regex parsing.
+      // Only network/timeout is retryable here.
       const errorInfo = this.parseError(error)
 
-      if ((errorInfo.type === '403' || errorInfo.type === 'network' || errorInfo.type === '429') && retryCount < maxRetries) {
-        // Use longer delay for 429 rate limiting
-        const delay = errorInfo.type === '429'
-          ? 10000 * (retryCount + 1)  // 10s, 20s, 30s for rate limits
-          : 1000 * (retryCount + 1)   // 1s, 2s, 3s for other errors
+      if (errorInfo.type === '413') {
+        result.pending413.push(batch)
+      } else if (errorInfo.retryable && retryCount < maxRetries) {
+        const delay = 1000 * (retryCount + 1)
         console.log(`[PostProcessing] Retrying batch due to exception ${errorInfo.type} (delay ${delay}ms)`)
         await this.delay(delay)
         const retryResult = await this.processAIBatchWithRetry(job, batch, token, originalBatchSize, retryCount + 1)
@@ -761,8 +782,6 @@ class PostProcessingServiceClass {
         result.maybeSlideEdit.push(...retryResult.maybeSlideEdit)
         result.failed.push(...retryResult.failed)
         result.pending413.push(...retryResult.pending413)
-      } else if (errorInfo.type === '413') {
-        result.pending413.push(batch)
       } else {
         console.warn(`[PostProcessing] Batch failed with ${errorInfo.type}: ${errorInfo.message}`)
         result.failed.push(...batch)
@@ -876,51 +895,110 @@ class PostProcessingServiceClass {
     return results
   }
 
-  // Parse error to determine type
-  private parseError(error: unknown): ErrorInfo {
-    let errorMessage = ''
-
-    if (error && typeof error === 'object' && 'error' in error) {
-      errorMessage = (error as { error?: string }).error || ''
-    } else if (error instanceof Error) {
-      errorMessage = error.message
-    } else if (typeof error === 'string') {
-      errorMessage = error
-    } else {
-      errorMessage = String(error)
+  /**
+   * Map the typed errorKind emitted by llmApiService to an ErrorInfo with a correct
+   * `retryable` flag. Transport already retried rate_limited / upstream_rate_limited,
+   * so we must not re-retry those. Only genuine network / timeout (which transport
+   * deliberately leaves to this layer) retry here, plus 413 via split.
+   */
+  private errorInfoFromKind(kind: AIErrorKind, message: string, rawMessage?: string): ErrorInfo {
+    // 413 is signaled via error string from the provider (no dedicated kind); detect it
+    // here before falling through so the split-batch path still works.
+    const lower = (rawMessage || message || '').toLowerCase()
+    if (lower.includes('413') || lower.includes('payload too large') || lower.includes('entity too large')) {
+      return { type: '413', message, retryable: false, kind }
     }
 
-    const lowerMessage = errorMessage.toLowerCase()
-
-    if (errorMessage.includes('413') || lowerMessage.includes('payload too large') || lowerMessage.includes('entity too large')) {
-      return { type: '413', message: errorMessage }
+    switch (kind) {
+      case 'network':
+      case 'timeout':
+        return { type: kind, message, retryable: true, kind }
+      case 'rate_limited':
+      case 'upstream_rate_limited':
+        // Transport already retried with backoff up to ~60s — don't re-retry here.
+        return { type: '429', message, retryable: false, kind }
+      case 'quota_exceeded':
+        return { type: 'quota_exceeded', message, retryable: false, kind }
+      case 'auth_failed':
+      case 'cloudflare_blocked':
+        return { type: '403', message, retryable: false, kind }
+      case 'service_unavailable':
+        return { type: 'service_unavailable', message, retryable: false, kind }
+      case 'parse_failed':
+        return { type: 'parse_failed', message, retryable: false, kind }
+      case 'server_error':
+      case 'bad_request':
+        return { type: 'http', message, retryable: false, kind }
+      case 'unknown':
+      default:
+        return { type: 'unknown', message, retryable: false, kind }
     }
+  }
 
-    if (errorMessage.includes('403') || lowerMessage.includes('forbidden')) {
-      return { type: '403', message: errorMessage }
+  /**
+   * Extract ErrorInfo from an AIFilteringResult. Prefers the typed `errorKind` field.
+   * Falls back to string-matching only when errorKind isn't present (legacy / edge cases).
+   */
+  private parseResultError(result: { error?: string; errorKind?: AIErrorKind }): ErrorInfo {
+    const message = result.error || ''
+    if (result.errorKind) {
+      return this.errorInfoFromKind(result.errorKind, message, message)
     }
+    return this.parseMessageError(message)
+  }
 
-    if (errorMessage.includes('429') || lowerMessage.includes('too many requests') || lowerMessage.includes('rate limit')) {
-      return { type: '429', message: errorMessage }
+  /**
+   * Regex-based fallback for thrown exceptions (no errorKind available).
+   * Also used for strings from legacy call sites. Retryability here is conservative:
+   * only network/timeout retry, everything else is terminal.
+   */
+  private parseMessageError(errorMessage: string): ErrorInfo {
+    const lower = errorMessage.toLowerCase()
+
+    if (errorMessage.includes('413') || lower.includes('payload too large') || lower.includes('entity too large')) {
+      return { type: '413', message: errorMessage, retryable: false }
     }
-
-    if (lowerMessage.includes('network') ||
-        lowerMessage.includes('econnreset') ||
-        lowerMessage.includes('econnrefused') ||
-        lowerMessage.includes('etimedout') ||
-        lowerMessage.includes('timeout')) {
-      return { type: 'network', message: errorMessage }
+    if (errorMessage.includes('403') || lower.includes('forbidden')) {
+      return { type: '403', message: errorMessage, retryable: false }
+    }
+    if (errorMessage.includes('429') || lower.includes('too many requests') || lower.includes('rate limit')) {
+      return { type: '429', message: errorMessage, retryable: false }
+    }
+    if (
+      lower.includes('network') ||
+      lower.includes('econnreset') ||
+      lower.includes('econnrefused') ||
+      lower.includes('etimedout') ||
+      lower.includes('timeout')
+    ) {
+      return { type: 'network', message: errorMessage, retryable: true }
     }
 
     const httpCodeMatch = errorMessage.match(/(\d{3})/)
     if (httpCodeMatch) {
       const code = parseInt(httpCodeMatch[1], 10)
       if (code >= 400 && code < 600) {
-        return { type: 'http', message: errorMessage }
+        return { type: 'http', message: errorMessage, retryable: false }
       }
     }
 
-    return { type: 'unknown', message: errorMessage }
+    return { type: 'unknown', message: errorMessage, retryable: false }
+  }
+
+  /**
+   * Uniform entry point — accepts either a result object (has errorKind) or a thrown
+   * exception. Used by both the success-path error branch and the catch block.
+   */
+  private parseError(error: unknown): ErrorInfo {
+    if (error && typeof error === 'object') {
+      const maybe = error as { error?: string; errorKind?: AIErrorKind }
+      if ('error' in maybe || 'errorKind' in maybe) {
+        return this.parseResultError(maybe)
+      }
+    }
+    if (error instanceof Error) return this.parseMessageError(error.message)
+    if (typeof error === 'string') return this.parseMessageError(error)
+    return this.parseMessageError(String(error))
   }
 
   // Delay helper

@@ -265,7 +265,7 @@ export class AIFilteringService {
         return this.toFailureResult(result.error);
       }
 
-      const responseContent = result.value.choices[0]?.message?.content || '';
+      const responseContent = result.value.choices?.[0]?.message?.content || '';
       const parsed = this.parseClassificationResult(responseContent, distinguish);
       if (parsed) {
         return { success: true, result: parsed, modelUsed: result.modelUsed };
@@ -325,7 +325,7 @@ export class AIFilteringService {
         return this.toFailureResult(result.error);
       }
 
-      const responseContent = result.value.choices[0]?.message?.content || '';
+      const responseContent = result.value.choices?.[0]?.message?.content || '';
       const parsed = this.parseBatchClassificationResult(responseContent, distinguish);
       if (parsed) {
         return { success: true, result: parsed, modelUsed: result.modelUsed };

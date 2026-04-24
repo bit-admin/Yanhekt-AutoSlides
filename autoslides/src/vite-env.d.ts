@@ -164,7 +164,7 @@ interface AIFilteringResult {
   success: boolean;
   result?: AIClassificationResult | AIBatchClassificationResult;
   error?: string;
-  errorKind?: 'rate_limited' | 'quota_exceeded' | 'auth_failed' | 'cloudflare_blocked' | 'timeout' | 'network' | 'server_error' | 'bad_request' | 'parse_failed' | 'unknown';
+  errorKind?: 'rate_limited' | 'upstream_rate_limited' | 'quota_exceeded' | 'auth_failed' | 'cloudflare_blocked' | 'timeout' | 'network' | 'service_unavailable' | 'server_error' | 'bad_request' | 'parse_failed' | 'unknown';
   modelUsed?: string;
 }
 

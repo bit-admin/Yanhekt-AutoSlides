@@ -706,68 +706,61 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     }
   }
 
-  // Parse AI filtering error from result or exception
+  // Map transport errorKind → UI AIFilteringError.type for the warning banner.
+  // UI types are kept backward-compatible: '403', '413', '429', 'http', 'unknown', 'none'.
+  const kindToBannerType = (kind: string, message: string): AIFilteringError => {
+    switch (kind) {
+      case 'rate_limited':
+      case 'upstream_rate_limited':
+      case 'quota_exceeded':
+        return { type: '429', httpCode: 429, message }
+      case 'auth_failed':
+      case 'cloudflare_blocked':
+        return { type: '403', httpCode: 403, message }
+      case 'service_unavailable':
+      case 'server_error':
+      case 'bad_request':
+      case 'parse_failed':
+      case 'timeout':
+      case 'network':
+      case 'unknown':
+      default:
+        return { type: 'unknown', message }
+    }
+  }
+
+  // Regex fallback for legacy paths and thrown exceptions (no errorKind available).
+  const parseMessageError = (errorMessage: string): AIFilteringError => {
+    const httpCodeMatch = errorMessage.match(/HTTP\s*(\d{3})/i) || errorMessage.match(/status[:\s]*(\d{3})/i) || errorMessage.match(/(\d{3})/)
+    if (httpCodeMatch) {
+      const httpCode = parseInt(httpCodeMatch[1], 10)
+      if (httpCode === 403) return { type: '403', httpCode: 403, message: errorMessage }
+      if (httpCode === 413) return { type: '413', httpCode: 413, message: errorMessage }
+      if (httpCode === 429) return { type: '429', httpCode: 429, message: errorMessage }
+      if (httpCode >= 400 && httpCode < 600) return { type: 'http', httpCode, message: errorMessage }
+    }
+    const lower = errorMessage.toLowerCase()
+    if (lower.includes('forbidden')) return { type: '403', httpCode: 403, message: errorMessage }
+    if (lower.includes('payload too large') || lower.includes('entity too large')) return { type: '413', httpCode: 413, message: errorMessage }
+    if (lower.includes('too many requests') || lower.includes('rate limit')) return { type: '429', httpCode: 429, message: errorMessage }
+    return { type: 'unknown', message: errorMessage }
+  }
+
+  // Parse AI filtering error from result or exception. Prefers typed errorKind when
+  // available (AIFilteringResult shape); falls back to regex for thrown exceptions.
   const parseAIError = (error: unknown): AIFilteringError => {
-    // Check if it's an AIFilteringResult with error message
-    if (error && typeof error === 'object' && 'error' in error) {
-      const errorMessage = (error as { error?: string }).error || ''
-
-      // Parse HTTP status code from error message
-      const httpCodeMatch = errorMessage.match(/HTTP\s*(\d{3})/i) || errorMessage.match(/status[:\s]*(\d{3})/i)
-      if (httpCodeMatch) {
-        const httpCode = parseInt(httpCodeMatch[1], 10)
-        if (httpCode === 403) {
-          return { type: '403', httpCode: 403, message: errorMessage }
-        } else if (httpCode === 413) {
-          return { type: '413', httpCode: 413, message: errorMessage }
-        } else if (httpCode === 429) {
-          return { type: '429', httpCode: 429, message: errorMessage }
-        } else {
-          return { type: 'http', httpCode, message: errorMessage }
-        }
+    if (error && typeof error === 'object') {
+      const maybe = error as { error?: string; errorKind?: string }
+      if (maybe.errorKind) {
+        return kindToBannerType(maybe.errorKind, maybe.error || '')
       }
-
-      // Check for specific error patterns
-      if (errorMessage.includes('403') || errorMessage.toLowerCase().includes('forbidden')) {
-        return { type: '403', httpCode: 403, message: errorMessage }
+      if ('error' in maybe) {
+        return parseMessageError(maybe.error || '')
       }
-      if (errorMessage.includes('413') || errorMessage.toLowerCase().includes('payload too large') || errorMessage.toLowerCase().includes('entity too large')) {
-        return { type: '413', httpCode: 413, message: errorMessage }
-      }
-      if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('too many requests') || errorMessage.toLowerCase().includes('rate limit')) {
-        return { type: '429', httpCode: 429, message: errorMessage }
-      }
-
-      return { type: 'unknown', message: errorMessage }
     }
-
-    // Check if it's an Error object
-    if (error instanceof Error) {
-      const errorMessage = error.message
-
-      if (errorMessage.includes('403') || errorMessage.toLowerCase().includes('forbidden')) {
-        return { type: '403', httpCode: 403, message: errorMessage }
-      }
-      if (errorMessage.includes('413') || errorMessage.toLowerCase().includes('payload too large')) {
-        return { type: '413', httpCode: 413, message: errorMessage }
-      }
-      if (errorMessage.includes('429') || errorMessage.toLowerCase().includes('too many requests') || errorMessage.toLowerCase().includes('rate limit')) {
-        return { type: '429', httpCode: 429, message: errorMessage }
-      }
-
-      // Try to extract HTTP code
-      const httpCodeMatch = errorMessage.match(/(\d{3})/)
-      if (httpCodeMatch) {
-        const httpCode = parseInt(httpCodeMatch[1], 10)
-        if (httpCode >= 400 && httpCode < 600) {
-          return { type: 'http', httpCode, message: errorMessage }
-        }
-      }
-
-      return { type: 'unknown', message: errorMessage }
-    }
-
-    return { type: 'unknown', message: String(error) }
+    if (error instanceof Error) return parseMessageError(error.message)
+    if (typeof error === 'string') return parseMessageError(error)
+    return parseMessageError(String(error))
   }
 
   // Dismiss AI error warning

@@ -425,7 +425,9 @@ export function useOfflineProcessing() {
                 }
               }
             } catch (aiError: unknown) {
-              // Handle 413 - split batch in half and retry
+              // Only reached on thrown IPC / runtime exceptions. Typed rate-limit errors
+              // (429/502) are already retried in llmApiService and return via result.success,
+              // not via thrown exceptions — so we don't retry 429 here anymore.
               const errorStr = aiError instanceof Error ? aiError.message : String(aiError)
               if (errorStr.includes('413') || errorStr.toLowerCase().includes('payload too large')) {
                 console.warn('AI batch too large, processing individually')
@@ -456,11 +458,6 @@ export function useOfflineProcessing() {
                     console.warn(`AI classification failed for ${batch[idx]}`)
                   }
                 }
-              } else if (errorStr.includes('429') || errorStr.toLowerCase().includes('rate limit')) {
-                // Backoff and retry
-                console.warn('AI rate limited, waiting 5s before retry')
-                await new Promise(r => setTimeout(r, 5000))
-                i -= batchSize // retry this batch
               } else {
                 console.error('AI classification error:', aiError)
               }

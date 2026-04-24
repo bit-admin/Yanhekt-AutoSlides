@@ -365,7 +365,8 @@
       "modelChainAdd": "추가",
       "modelChainRemove": "체인에서 제거",
       "modelChainAddPlaceholder": "모델 이름을 입력하거나 프리셋을 선택하세요...",
-      "modelChainEmpty": "체인에 모델이 없습니다. AI 분류를 사용하려면 아래에서 추가하세요."
+      "modelChainEmpty": "체인에 모델이 없습니다. AI 분류를 사용하려면 아래에서 추가하세요.",
+      "modelTemporarilyUnavailable": "서비스를 일시적으로 사용할 수 없습니다"
     }
   },
   "courses": {
