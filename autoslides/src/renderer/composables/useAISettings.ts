@@ -1,9 +1,19 @@
-import { ref, computed, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
 import type { TokenManager } from '../services/authService'
 import { resetMlClassifier } from './useMlClassifier'
 
 export type AIServiceType = 'builtin' | 'custom' | 'copilot'
 export type AIClassifierMode = 'llm' | 'ml'
+export type CustomProviderId = 'modelscope' | 'lm_studio' | 'other'
+
+export const MODELSCOPE_API_BASE_URL = 'https://api-inference.modelscope.cn/v1'
+
+function detectCustomProvider(url: string): CustomProviderId {
+  if (!url) return 'other'
+  if (url.includes('api-inference.modelscope.cn')) return 'modelscope'
+  if (/localhost:1234|127\.0\.0\.1:1234/.test(url)) return 'lm_studio'
+  return 'other'
+}
 
 export interface MlThresholdValues {
   trustLow: number
@@ -24,6 +34,7 @@ export interface MlModelInfo {
 export type CopilotOAuthStep = 'idle' | 'waiting' | 'polling' | 'success' | 'error'
 
 export interface ApiUrlPreset {
+  id: CustomProviderId
   label: string
   url: string
 }
@@ -112,11 +123,28 @@ export interface UseAISettingsReturn {
 
   // Presets
   apiUrlPresets: ApiUrlPreset[]
-  modelPresets: ModelPreset[]
+  modelPresets: ComputedRef<ModelPreset[]>
+  modelPresetsByProvider: Record<CustomProviderId, ModelPreset[]>
   selectedApiUrlPreset: Ref<string>
   selectedModelPreset: Ref<string>
   copilotModelPresets: ModelPreset[]
   selectedCopilotModelPreset: Ref<string>
+
+  // ModelScope model chain (session-scoped fallback on 429 quota_exceeded)
+  currentCustomProvider: ComputedRef<CustomProviderId>
+  tempCustomModelChain: Ref<string[]>
+  exhaustedModels: Ref<string[]>
+  refreshExhaustedModels: () => Promise<void>
+  moveModelUp: (index: number) => void
+  moveModelDown: (index: number) => void
+  updateModelAt: (index: number, name: string) => void
+  removeModelAt: (index: number) => void
+
+  // "Add model" row state — input is always visible, preset dropdown prefills it.
+  newModelInput: Ref<string>
+  selectedAddPreset: Ref<string>
+  onAddPresetSelect: () => void
+  addPendingModel: () => void
 
   // ML classifier
   aiClassifierMode: Ref<AIClassifierMode>
@@ -236,15 +264,21 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
 
   // Presets
   const apiUrlPresets: ApiUrlPreset[] = [
-    { label: 'ModelScope', url: 'https://api-inference.modelscope.cn/v1' },
-    { label: 'LM Studio (Local)', url: 'http://localhost:1234/v1' }
+    { id: 'modelscope', label: 'ModelScope', url: MODELSCOPE_API_BASE_URL },
+    { id: 'lm_studio', label: 'LM Studio', url: 'http://localhost:1234/v1' }
   ]
 
-  const modelPresets: ModelPreset[] = [
-    { label: 'Qwen3-VL-235B', name: 'Qwen/Qwen3-VL-235B-A22B-Instruct' },
-    { label: 'Qwen3-VL-30B', name: 'Qwen/Qwen3-VL-30B-A3B-Instruct' },
-    { label: 'Qwen3-VL-8B', name: 'Qwen/Qwen3-VL-8B-Instruct' }
-  ]
+  const modelPresetsByProvider: Record<CustomProviderId, ModelPreset[]> = {
+    modelscope: [
+      { label: 'Qwen3.5-397B-A17B', name: 'Qwen/Qwen3.5-397B-A17B' },
+      { label: 'Qwen3.5-122B-A10B', name: 'Qwen/Qwen3.5-122B-A10B' },
+      { label: 'Qwen3.5-35B-A3B', name: 'Qwen/Qwen3.5-35B-A3B' },
+      { label: 'Qwen3.5-27B', name: 'Qwen/Qwen3.5-27B' },
+      { label: 'Kimi-K2.5', name: 'moonshotai/Kimi-K2.5' }
+    ],
+    lm_studio: [],
+    other: []
+  }
 
   const copilotModelPresets: ModelPreset[] = [
     { label: 'GPT-4.1', name: 'gpt-4.1' },
@@ -254,6 +288,112 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
   const selectedApiUrlPreset = ref('')
   const selectedModelPreset = ref('')
   const selectedCopilotModelPreset = ref('')
+
+  // Custom-provider identity derived from the current (temp) URL.
+  const currentCustomProvider = computed<CustomProviderId>(() =>
+    detectCustomProvider(tempAiCustomApiBaseUrl.value)
+  )
+
+  // modelPresets exposed to the UI reflects the current provider — used by the
+  // legacy single-model preset dropdown for LM Studio / 'other', and by the
+  // ModelScope chain editor for 'modelscope'.
+  const modelPresets = computed<ModelPreset[]>(
+    () => modelPresetsByProvider[currentCustomProvider.value] ?? []
+  )
+
+  // Ordered chain of model names enabled for fallback. Primary = [0].
+  // Empty for non-ModelScope providers (the single-input field is used instead).
+  const tempCustomModelChain = ref<string[]>([])
+
+  // Session-exhausted models (reported by the main process for the current provider)
+  const exhaustedModels = ref<string[]>([])
+
+  const refreshExhaustedModels = async () => {
+    try {
+      exhaustedModels.value = await window.electronAPI.ai.getExhaustedModels()
+    } catch (error) {
+      console.error('Failed to refresh exhausted models:', error)
+      exhaustedModels.value = []
+    }
+  }
+
+  const syncPrimary = (chain: string[]): void => {
+    if (chain.length > 0) tempAiCustomModelName.value = chain[0]
+  }
+
+  const moveModelUp = (index: number): void => {
+    const current = [...tempCustomModelChain.value]
+    if (index > 0 && index < current.length) {
+      ;[current[index - 1], current[index]] = [current[index], current[index - 1]]
+      tempCustomModelChain.value = current
+      syncPrimary(current)
+    }
+  }
+
+  const moveModelDown = (index: number): void => {
+    const current = [...tempCustomModelChain.value]
+    if (index >= 0 && index < current.length - 1) {
+      ;[current[index], current[index + 1]] = [current[index + 1], current[index]]
+      tempCustomModelChain.value = current
+      syncPrimary(current)
+    }
+  }
+
+  const updateModelAt = (index: number, name: string): void => {
+    const current = [...tempCustomModelChain.value]
+    if (index >= 0 && index < current.length) {
+      current[index] = name
+      tempCustomModelChain.value = current
+      syncPrimary(current)
+    }
+  }
+
+  const removeModelAt = (index: number): void => {
+    const current = [...tempCustomModelChain.value]
+    if (index >= 0 && index < current.length) {
+      current.splice(index, 1)
+      tempCustomModelChain.value = current
+      // Primary may have shifted; clear it if chain is now empty
+      if (current.length > 0) tempAiCustomModelName.value = current[0]
+      else tempAiCustomModelName.value = ''
+    }
+  }
+
+  // Add-row state: the input is always displayed; selecting a preset prefills it.
+  const newModelInput = ref('')
+  const selectedAddPreset = ref('')
+
+  const onAddPresetSelect = (): void => {
+    if (selectedAddPreset.value) {
+      newModelInput.value = selectedAddPreset.value
+    }
+  }
+
+  const addPendingModel = (): void => {
+    const name = newModelInput.value.trim()
+    if (!name) return
+    const current = [...tempCustomModelChain.value]
+    // Skip silent duplicates — keeps chain semantics clean.
+    if (!current.includes(name)) {
+      current.push(name)
+      tempCustomModelChain.value = current
+      syncPrimary(current)
+    }
+    newModelInput.value = ''
+    selectedAddPreset.value = ''
+  }
+
+  // When the user switches to 'custom' service type and no URL is configured yet,
+  // pre-fill with ModelScope defaults — only the API key remains empty.
+  watch(tempAiServiceType, (next, prev) => {
+    if (next === 'custom' && prev !== 'custom' && !tempAiCustomApiBaseUrl.value) {
+      tempAiCustomApiBaseUrl.value = MODELSCOPE_API_BASE_URL
+      tempCustomModelChain.value = modelPresetsByProvider.modelscope.map(p => p.name)
+      if (tempCustomModelChain.value.length > 0) {
+        tempAiCustomModelName.value = tempCustomModelChain.value[0]
+      }
+    }
+  })
 
   // Load AI settings
   const loadAISettings = async () => {
@@ -268,6 +408,11 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
         tempAiCustomApiKey.value = aiConfig.customApiKey || ''
         aiCustomModelName.value = aiConfig.customModelName || ''
         tempAiCustomModelName.value = aiConfig.customModelName || ''
+        // Load ModelScope model chain (session-scoped fallback ordering)
+        const loadedChain = Array.isArray(aiConfig.customModelChain)
+          ? [...aiConfig.customModelChain]
+          : []
+        tempCustomModelChain.value = loadedChain
         aiRateLimit.value = aiConfig.rateLimit || 10
         tempAiRateLimit.value = aiConfig.rateLimit || 10
         aiBatchSize.value = aiConfig.batchSize || 5
@@ -382,11 +527,21 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
       mlThresholds.value = { ...effectiveThresholds }
       tempMlThresholds.value = { ...effectiveThresholds }
 
+      // Resolve primary model from the chain for providers that use it (ModelScope);
+      // non-chain providers keep writing tempAiCustomModelName directly.
+      const chainProvider = detectCustomProvider(tempAiCustomApiBaseUrl.value)
+      const chainToSave = chainProvider === 'modelscope' ? [...tempCustomModelChain.value] : []
+      const effectiveModelName = chainProvider === 'modelscope' && chainToSave.length > 0
+        ? chainToSave[0]
+        : tempAiCustomModelName.value
+
       await window.electronAPI.config.setAIFilteringConfig({
         serviceType: tempAiServiceType.value,
         customApiBaseUrl: tempAiCustomApiBaseUrl.value,
         customApiKey: tempAiCustomApiKey.value,
-        customModelName: tempAiCustomModelName.value,
+        customModelName: effectiveModelName,
+        customModelChain: chainToSave,
+        customProviderId: chainProvider,
         copilotGhoToken: copilotGhoToken.value,
         copilotModelName: tempCopilotModelName.value,
         copilotUsername: copilotUsername.value,
@@ -398,6 +553,9 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
         maxConcurrent: effectiveMaxConcurrent,
         minTime: effectiveMinTime
       })
+
+      // Sync tempAiCustomModelName with the resolved primary so subsequent UI reads match
+      tempAiCustomModelName.value = effectiveModelName
 
       // Update actual values
       aiServiceType.value = tempAiServiceType.value
@@ -682,6 +840,11 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     tempAiCustomApiBaseUrl.value = aiCustomApiBaseUrl.value
     tempAiCustomApiKey.value = aiCustomApiKey.value
     tempAiCustomModelName.value = aiCustomModelName.value
+    // Reset the chain to what's currently persisted. Load path writes it; here we
+    // just rebuild from current aiCustomModelName for providers that don't use a chain.
+    if (tempCustomModelChain.value.length === 0 && aiCustomModelName.value) {
+      tempCustomModelChain.value = [aiCustomModelName.value]
+    }
     tempAiRateLimit.value = aiRateLimit.value
     tempAiBatchSize.value = aiBatchSize.value
     tempAiMaxConcurrent.value = aiMaxConcurrent.value
@@ -807,10 +970,25 @@ export function useAISettings(options: UseAISettingsOptions): UseAISettingsRetur
     // Presets
     apiUrlPresets,
     modelPresets,
+    modelPresetsByProvider,
     selectedApiUrlPreset,
     selectedModelPreset,
     copilotModelPresets,
     selectedCopilotModelPreset,
+
+    // ModelScope chain
+    currentCustomProvider,
+    tempCustomModelChain,
+    exhaustedModels,
+    refreshExhaustedModels,
+    moveModelUp,
+    moveModelDown,
+    updateModelAt,
+    removeModelAt,
+    newModelInput,
+    selectedAddPreset,
+    onAddPresetSelect,
+    addPendingModel,
 
     // ML classifier
     aiClassifierMode,

@@ -99,6 +99,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       customApiBaseUrl?: string;
       customApiKey?: string;
       customModelName?: string;
+      customModelChain?: string[];
+      customProviderId?: 'modelscope' | 'lm_studio' | 'other';
       copilotGhoToken?: string;
       copilotModelName?: string;
       copilotUsername?: string;
@@ -293,6 +295,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getBuiltinModelName: (token: string) => ipcRenderer.invoke('ai:getBuiltinModelName', token),
     isConfigured: (token?: string) => ipcRenderer.invoke('ai:isConfigured', token),
     getServiceType: () => ipcRenderer.invoke('ai:getServiceType'),
+    getExhaustedModels: () => ipcRenderer.invoke('ai:getExhaustedModels'),
   },
   copilot: {
     requestDeviceCode: () => ipcRenderer.invoke('copilot:requestDeviceCode'),

@@ -14,6 +14,7 @@ import { PowerManagementService } from './main/powerManagementService';
 import { cacheManagementService } from './main/cacheManagementService';
 import { AIPromptsService } from './main/aiPromptsService';
 import { AIFilteringService } from './main/aiFilteringService';
+import { LLMApiService } from './main/llmApiService';
 import { pdfService, PdfMakeOptions, FolderEntry } from './main/pdfService';
 import { updateDownloadService, UpdateDownloadService } from './main/updateDownloadService';
 import { offlineProcessingService } from './main/offlineProcessingService';
@@ -201,7 +202,8 @@ const compressLectureService = new CompressLectureService(ffmpegService);
 const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService, apiClient);
 const powerManagementService = new PowerManagementService();
 const aiPromptsService = new AIPromptsService();
-const aiFilteringService = new AIFilteringService(configService, aiPromptsService);
+const llmApiService = new LLMApiService(configService);
+const aiFilteringService = new AIFilteringService(configService, aiPromptsService, llmApiService);
 
 // Initialize power management based on config
 const initializePowerManagement = async () => {
@@ -605,14 +607,42 @@ ipcMain.handle('config:setAIFilteringConfig', async (event, config: {
   customApiBaseUrl?: string;
   customApiKey?: string;
   customModelName?: string;
+  customModelChain?: string[];
+  customProviderId?: 'modelscope' | 'lm_studio' | 'other';
   copilotGhoToken?: string;
   copilotModelName?: string;
   copilotUsername?: string;
   copilotAvatarUrl?: string;
   batchSize?: number;
+  rateLimit?: number;
+  imageResizeWidth?: number;
+  imageResizeHeight?: number;
+  maxConcurrent?: number;
+  minTime?: number;
 }) => {
+  // If URL, API key, or model chain changes, session-exhausted models no longer apply.
+  const prev = configService.getAIFilteringConfig();
   configService.setAIFilteringConfig(config);
-  return configService.getAIFilteringConfig();
+  const next = configService.getAIFilteringConfig();
+  const chainChanged =
+    config.customModelChain !== undefined &&
+    JSON.stringify(prev.customModelChain) !== JSON.stringify(next.customModelChain);
+  if (
+    (config.customApiBaseUrl !== undefined && prev.customApiBaseUrl !== next.customApiBaseUrl) ||
+    (config.customApiKey !== undefined && prev.customApiKey !== next.customApiKey) ||
+    chainChanged
+  ) {
+    llmApiService.resetExhaustedModels();
+  }
+  // Reflect rate-limit / concurrency changes into the running limiter
+  if (
+    config.rateLimit !== undefined ||
+    config.maxConcurrent !== undefined ||
+    config.minTime !== undefined
+  ) {
+    llmApiService.updateRateLimitConfig();
+  }
+  return next;
 });
 
 ipcMain.handle('config:setAIBatchSize', async (event, batchSize: number) => {
@@ -678,6 +708,10 @@ ipcMain.handle('ai:isConfigured', async (event, token?: string) => {
 
 ipcMain.handle('ai:getServiceType', async () => {
   return aiFilteringService.getServiceType();
+});
+
+ipcMain.handle('ai:getExhaustedModels', async () => {
+  return aiFilteringService.getExhaustedModels();
 });
 
 // IPC handlers for Copilot service

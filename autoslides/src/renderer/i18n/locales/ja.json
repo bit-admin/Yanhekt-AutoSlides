@@ -355,7 +355,17 @@
         "keep": "保持",
         "check": "レビュー",
         "delete": "削除"
-      }
+      },
+      "modelChain": "ModelScope モデルチェーン",
+      "modelChainHint": "モデルは順番に試されます。1 日のクォータ上限 (HTTP 429) に達した場合、次の有効なモデルへ自動で切り替わります。使用上限の状態はアプリ再起動でリセットされます。",
+      "modelChainPrimary": "プライマリ",
+      "modelChainExhausted": "上限到達",
+      "modelChainMoveUp": "上へ",
+      "modelChainMoveDown": "下へ",
+      "modelChainAdd": "追加",
+      "modelChainRemove": "チェーンから削除",
+      "modelChainAddPlaceholder": "モデル名を入力するか、プリセットを選択...",
+      "modelChainEmpty": "チェーンにモデルがありません。AI 分類を有効にするには下から追加してください。"
     }
   },
   "courses": {

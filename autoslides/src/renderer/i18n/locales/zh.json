@@ -355,7 +355,17 @@
         "keep": "保留",
         "check": "复核",
         "delete": "删除"
-      }
+      },
+      "modelChain": "ModelScope 模型链",
+      "modelChainHint": "按顺序依次尝试模型。若某个模型达到每日配额上限（HTTP 429），将自动使用下一个启用的模型。已用尽状态在应用重启后重置。",
+      "modelChainPrimary": "主模型",
+      "modelChainExhausted": "已用尽",
+      "modelChainMoveUp": "上移",
+      "modelChainMoveDown": "下移",
+      "modelChainAdd": "添加",
+      "modelChainRemove": "从链中移除",
+      "modelChainAddPlaceholder": "输入模型名称或选择预设...",
+      "modelChainEmpty": "链中暂无模型。请在下方添加以启用 AI 分类。"
     }
   },
   "courses": {

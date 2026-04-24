@@ -96,6 +96,27 @@ export type AIServiceType = 'builtin' | 'custom' | 'copilot';
 
 export type AIClassifierMode = 'llm' | 'ml';
 
+export type CustomProviderId = 'modelscope' | 'lm_studio' | 'other';
+
+export const MODELSCOPE_API_BASE_URL = 'https://api-inference.modelscope.cn/v1';
+
+// Canonical ModelScope preset model list. The renderer owns the display labels;
+// this list is used for migration and default-chain seeding in the main process.
+export const DEFAULT_MODELSCOPE_MODELS: string[] = [
+  'Qwen/Qwen3.5-397B-A17B',
+  'Qwen/Qwen3.5-122B-A10B',
+  'Qwen/Qwen3.5-35B-A3B',
+  'Qwen/Qwen3.5-27B',
+  'moonshotai/Kimi-K2.5'
+];
+
+export function detectCustomProviderFromUrl(url: string): CustomProviderId {
+  if (!url) return 'other';
+  if (url.includes('api-inference.modelscope.cn')) return 'modelscope';
+  if (/localhost:1234|127\.0\.0\.1:1234/.test(url)) return 'lm_studio';
+  return 'other';
+}
+
 export interface MlClassifierThresholds {
   trustLow: number;
   trustHigh: number;
@@ -108,6 +129,14 @@ export interface AIFilteringConfig {
   customApiBaseUrl: string;
   customApiKey: string;
   customModelName: string;
+  // Ordered model chain used for ModelScope session-scoped 429 fallback.
+  // First entry is the primary model. Kept in sync with customModelName
+  // (customModelName mirrors customModelChain[0]). For non-ModelScope providers this
+  // is either empty or a single-entry [customModelName].
+  customModelChain: string[];
+  // Explicit provider identity derived from customApiBaseUrl. Persisted so the
+  // renderer and main process agree without each re-deriving from the URL.
+  customProviderId: CustomProviderId;
   copilotGhoToken: string; // GitHub OAuth token (gho_*)
   copilotModelName: string; // Copilot model name, default 'gpt-4.1'
   copilotUsername: string; // GitHub username for display
@@ -231,6 +260,8 @@ const defaultAIFilteringConfig: AIFilteringConfig = {
   customApiBaseUrl: '',
   customApiKey: '',
   customModelName: '',
+  customModelChain: [],
+  customProviderId: 'other',
   copilotGhoToken: '',
   copilotModelName: 'gpt-4.1',
   copilotUsername: '',
@@ -775,12 +806,35 @@ export class ConfigService {
   // AI Filtering configuration methods
   getAIFilteringConfig(): AIFilteringConfig {
     const stored = this.store.get('aiFiltering') as Partial<AIFilteringConfig> | undefined;
-    if (!stored) return { ...defaultAIFilteringConfig };
-    return {
-      ...defaultAIFilteringConfig,
-      ...stored,
-      mlThresholds: { ...DEFAULT_ML_THRESHOLDS, ...(stored.mlThresholds || {}) }
-    };
+    const base: AIFilteringConfig = stored
+      ? {
+          ...defaultAIFilteringConfig,
+          ...stored,
+          mlThresholds: { ...DEFAULT_ML_THRESHOLDS, ...(stored.mlThresholds || {}) }
+        }
+      : { ...defaultAIFilteringConfig };
+
+    // Migration: ensure customProviderId and customModelChain are populated for installs
+    // that predate these fields. Only seed the chain for ModelScope (the only provider
+    // with a built-in preset model list).
+    const providerId = stored?.customProviderId ?? detectCustomProviderFromUrl(base.customApiBaseUrl);
+    base.customProviderId = providerId;
+
+    if (!Array.isArray(base.customModelChain) || base.customModelChain.length === 0) {
+      if (providerId === 'modelscope') {
+        const chain = [...DEFAULT_MODELSCOPE_MODELS];
+        if (base.customModelName && !chain.includes(base.customModelName)) {
+          chain.unshift(base.customModelName);
+        }
+        base.customModelChain = chain;
+      } else if (base.customModelName) {
+        base.customModelChain = [base.customModelName];
+      } else {
+        base.customModelChain = [];
+      }
+    }
+
+    return base;
   }
 
   setAIFilteringConfig(config: Partial<AIFilteringConfig>): void {
@@ -794,7 +848,11 @@ export class ConfigService {
   }
 
   setAICustomApiBaseUrl(url: string): void {
-    this.setAIFilteringConfig({ customApiBaseUrl: url.trim() });
+    const trimmed = url.trim();
+    this.setAIFilteringConfig({
+      customApiBaseUrl: trimmed,
+      customProviderId: detectCustomProviderFromUrl(trimmed)
+    });
   }
 
   setAICustomApiKey(apiKey: string): void {
@@ -803,6 +861,18 @@ export class ConfigService {
 
   setAICustomModelName(modelName: string): void {
     this.setAIFilteringConfig({ customModelName: modelName.trim() });
+  }
+
+  setAICustomModelChain(chain: string[]): void {
+    const cleaned = Array.from(new Set(chain.map(m => m.trim()).filter(m => m.length > 0)));
+    const patch: Partial<AIFilteringConfig> = { customModelChain: cleaned };
+    // Keep customModelName in sync with the primary (first) entry for back-compat
+    if (cleaned.length > 0) patch.customModelName = cleaned[0];
+    this.setAIFilteringConfig(patch);
+  }
+
+  getAICustomModelChain(): string[] {
+    return [...this.getAIFilteringConfig().customModelChain];
   }
 
   setAIRateLimit(rateLimit: number): void {

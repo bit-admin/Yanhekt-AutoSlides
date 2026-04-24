@@ -355,7 +355,17 @@
         "keep": "유지",
         "check": "검토",
         "delete": "삭제"
-      }
+      },
+      "modelChain": "ModelScope 모델 체인",
+      "modelChainHint": "모델은 순서대로 시도됩니다. 한 모델이 일일 할당량 (HTTP 429)에 도달하면 다음 활성화된 모델이 자동으로 사용됩니다. 소진 상태는 앱 재시작 시 초기화됩니다.",
+      "modelChainPrimary": "기본",
+      "modelChainExhausted": "소진됨",
+      "modelChainMoveUp": "위로",
+      "modelChainMoveDown": "아래로",
+      "modelChainAdd": "추가",
+      "modelChainRemove": "체인에서 제거",
+      "modelChainAddPlaceholder": "모델 이름을 입력하거나 프리셋을 선택하세요...",
+      "modelChainEmpty": "체인에 모델이 없습니다. AI 분류를 사용하려면 아래에서 추가하세요."
     }
   },
   "courses": {

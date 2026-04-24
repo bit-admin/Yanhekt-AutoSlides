@@ -130,6 +130,8 @@ interface AIFilteringConfig {
   customApiBaseUrl: string;
   customApiKey: string;
   customModelName: string;
+  customModelChain: string[];
+  customProviderId: 'modelscope' | 'lm_studio' | 'other';
   copilotGhoToken: string;
   copilotModelName: string;
   copilotUsername: string;
@@ -162,6 +164,8 @@ interface AIFilteringResult {
   success: boolean;
   result?: AIClassificationResult | AIBatchClassificationResult;
   error?: string;
+  errorKind?: 'rate_limited' | 'quota_exceeded' | 'auth_failed' | 'cloudflare_blocked' | 'timeout' | 'network' | 'server_error' | 'bad_request' | 'parse_failed' | 'unknown';
+  modelUsed?: string;
 }
 
 // ============================================================================
@@ -716,6 +720,7 @@ interface ElectronAPI {
     getBuiltinModelName: (token: string) => Promise<string>;
     isConfigured: (token?: string) => Promise<boolean>;
     getServiceType: () => Promise<'builtin' | 'custom' | 'copilot'>;
+    getExhaustedModels: () => Promise<string[]>;
   };
 
   copilot: {

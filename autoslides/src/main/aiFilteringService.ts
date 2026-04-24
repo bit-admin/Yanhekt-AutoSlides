@@ -1,23 +1,25 @@
-import axios, { AxiosError } from 'axios';
-import Bottleneck from 'bottleneck';
-import { app } from 'electron';
-import { ConfigService } from './configService';
+import { ConfigService, MODELSCOPE_API_BASE_URL } from './configService';
 import { AIPromptsService, AIPromptType } from './aiPromptsService';
 import { CopilotService } from './copilotService';
+import {
+  LLMApiService,
+  LLMProviderId,
+  LLMError,
+  ChatMessage,
+  ContentPart,
+  ChatCompletionResponse,
+  LLMResult
+} from './llmApiService';
+import { app } from 'electron';
 
-// Debug logging flag - set to true for detailed logging
 const DEBUG = false;
 
 const debugLog = (...args: unknown[]) => {
-  if (DEBUG) {
-    console.log('[AI:DEBUG]', ...args);
-  }
+  if (DEBUG) console.log('[AI:DEBUG]', ...args);
 };
 
 const debugError = (...args: unknown[]) => {
-  if (DEBUG) {
-    console.error('[AI:DEBUG:ERROR]', ...args);
-  }
+  if (DEBUG) console.error('[AI:DEBUG:ERROR]', ...args);
 };
 
 export type ClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit';
@@ -33,42 +35,16 @@ export interface BatchClassificationResult {
 export interface AIFilteringResult {
   success: boolean;
   result?: ClassificationResult | BatchClassificationResult;
+  // Human-readable error string. Kept for back-compat with existing renderer
+  // parseAIError() regex-matching. New code should prefer `errorKind`.
   error?: string;
-}
-
-// OpenAI-compatible message format
-interface ChatMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string | ContentPart[];
-}
-
-interface ContentPart {
-  type: 'text' | 'image_url';
-  text?: string;
-  image_url?: {
-    url: string;
-    detail?: 'low' | 'high' | 'auto';
-  };
-}
-
-interface ChatCompletionResponse {
-  id: string;
-  object: string;
-  created: number;
-  model: string;
-  choices: {
-    index: number;
-    message: {
-      role: string;
-      content: string;
-    };
-    finish_reason: string;
-  }[];
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
+  // Typed error kind for future switch-based error surfacing.
+  // TODO(notification-system): downstream (usePostProcessing, postProcessingService,
+  // useOfflineProcessing) currently treats error results by leaving images classified
+  // as 'slide'. Route `errorKind` through a session notification channel + surface in
+  // Results View when we add the proper error-display system.
+  errorKind?: LLMError['kind'];
+  modelUsed?: string;
 }
 
 // Built-in service configuration
@@ -79,272 +55,125 @@ export class AIFilteringService {
   private configService: ConfigService;
   private aiPromptsService: AIPromptsService;
   private copilotService: CopilotService;
-  private limiter: Bottleneck;
+  private llm: LLMApiService;
 
-  constructor(configService: ConfigService, aiPromptsService: AIPromptsService) {
+  constructor(
+    configService: ConfigService,
+    aiPromptsService: AIPromptsService,
+    llmApiService: LLMApiService
+  ) {
     this.configService = configService;
     this.aiPromptsService = aiPromptsService;
     this.copilotService = new CopilotService();
-
-    // Initialize Bottleneck limiter with rate limiting and concurrency control
-    const config = this.configService.getAIFilteringConfig();
-    const rateLimit = config.rateLimit || 10;
-    const maxConcurrent = config.maxConcurrent || 1;
-    const minTime = config.minTime || 6000;
-
-    this.limiter = new Bottleneck({
-      maxConcurrent,                       // Max concurrent requests (default: 1)
-      minTime,                             // Min time between requests in ms (default: 6000)
-      reservoir: rateLimit,                // RPM limit
-      reservoirRefreshAmount: rateLimit,   // Refresh to full limit
-      reservoirRefreshInterval: 60000      // Refresh every minute
-    });
-
-    // Log when rate limit is reached
-    this.limiter.on('depleted', () => {
-      console.log('[AI] Rate limit reservoir depleted, waiting for refresh');
-    });
+    this.llm = llmApiService;
   }
 
-  /**
-   * Update the limiter settings when config changes
-   */
   updateRateLimitConfig(): void {
-    const config = this.configService.getAIFilteringConfig();
-    const rateLimit = config.rateLimit || 10;
-    const maxConcurrent = config.maxConcurrent || 1;
-    const minTime = config.minTime || 6000;
-    this.limiter.updateSettings({
-      reservoir: rateLimit,
-      reservoirRefreshAmount: rateLimit,
-      maxConcurrent,
-      minTime
-    });
-    debugLog('Rate limit config updated', { rateLimit, maxConcurrent, minTime });
+    this.llm.updateRateLimitConfig();
   }
 
-  /**
-   * Get the current rate limit
-   */
   getRateLimit(): number {
-    const config = this.configService.getAIFilteringConfig();
-    return config.rateLimit || 10;
+    return this.llm.getRateLimit();
   }
 
   /**
-   * Get the API configuration based on service type (built-in or custom)
+   * Resolve provider/URL/key/model-chain for the current service type.
    */
-  private getApiConfig(token?: string): { baseUrl: string; apiKey: string; model: string } {
+  private resolveRequestContext(): {
+    providerId: LLMProviderId;
+    baseUrl: string;
+    models: string[];      // Model chain (primary first). Single-element for non-ModelScope.
+    serviceType: 'builtin' | 'copilot' | 'custom';
+  } {
     const config = this.configService.getAIFilteringConfig();
 
     if (config.serviceType === 'builtin') {
       return {
+        providerId: 'builtin',
         baseUrl: BUILTIN_API_BASE_URL,
-        apiKey: token || '',
-        model: BUILTIN_FALLBACK_MODEL // Will be overridden by getBuiltinModelName() call
-      };
-    } else if (config.serviceType === 'copilot') {
-      return {
-        baseUrl: 'https://api.githubcopilot.com',
-        apiKey: '', // Resolved later via resolveApiKey
-        model: config.copilotModelName || 'gpt-4.1'
-      };
-    } else {
-      return {
-        baseUrl: config.customApiBaseUrl,
-        apiKey: config.customApiKey,
-        model: config.customModelName
+        models: [BUILTIN_FALLBACK_MODEL], // will be swapped per-call via modelOverride
+        serviceType: 'builtin'
       };
     }
+
+    if (config.serviceType === 'copilot') {
+      return {
+        providerId: 'copilot',
+        baseUrl: 'https://api.githubcopilot.com',
+        models: [config.copilotModelName || 'gpt-4.1'],
+        serviceType: 'copilot'
+      };
+    }
+
+    // Custom service
+    const providerId: LLMProviderId = config.customProviderId;
+    let models: string[];
+    if (providerId === 'modelscope') {
+      models = config.customModelChain.length > 0
+        ? [...config.customModelChain]
+        : (config.customModelName ? [config.customModelName] : []);
+    } else {
+      models = config.customModelName ? [config.customModelName] : [];
+    }
+    return { providerId, baseUrl: config.customApiBaseUrl, models, serviceType: 'custom' };
   }
 
   /**
-   * Check if response data contains Cloudflare challenge page
+   * Build the auth-resolved request headers, handling Copilot token exchange and
+   * built-in User-Agent requirements.
    */
-  private isCloudflareBlocked(data: unknown): boolean {
-    const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
-    return dataStr.includes('<!DOCTYPE') ||
-           dataStr.includes('<html') ||
-           dataStr.includes('Just a moment') ||
-           dataStr.includes('cf-mitigated');
+  private async buildRequestHeaders(
+    providerId: LLMProviderId,
+    baseUrl: string,
+    token: string | undefined,
+    hasImages: boolean
+  ): Promise<{ headers: Record<string, string>; apiKey: string }> {
+    const config = this.configService.getAIFilteringConfig();
+
+    if (providerId === 'copilot') {
+      const ghoToken = config.copilotGhoToken;
+      if (!ghoToken) throw new Error('Copilot gho_ token not configured');
+      const apiKey = await this.copilotService.getApiToken(ghoToken);
+      return { headers: this.copilotService.buildCopilotHeaders(apiKey, hasImages), apiKey };
+    }
+
+    if (providerId === 'builtin') {
+      const apiKey = token || '';
+      return {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+          'User-Agent': `${app.getName()}/${app.getVersion()}`
+        },
+        apiKey
+      };
+    }
+
+    // Custom (modelscope / lm_studio / other)
+    const apiKey = config.customApiKey;
+    return {
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      apiKey
+    };
   }
 
   /**
    * Fetch the model name for the built-in service
-   * @throws Error with specific message for cloudflare blocks or fetch failures
    */
   async getBuiltinModelName(token: string): Promise<string> {
-    try {
-      const response = await axios.get(`${BUILTIN_API_BASE_URL}/model`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'User-Agent': `${app.getName()}/${app.getVersion()}`
-        },
-        timeout: 10000
-      });
-
-      // Check for Cloudflare challenge page in response
-      if (this.isCloudflareBlocked(response.data)) {
-        console.error('Received Cloudflare challenge page, likely blocked by proxy/VPN');
-        throw new Error('cloudflareBlocked');
-      }
-
-      // API returns: {"model":"gpt-4.1"}
-      if (response.data && response.data.model) {
-        return response.data.model;
-      }
-
-      return BUILTIN_FALLBACK_MODEL;
-    } catch (error) {
-      // Re-throw cloudflare error
-      if (error instanceof Error && error.message === 'cloudflareBlocked') {
-        throw error;
-      }
-
-      // Check if axios error response contains Cloudflare block (403 with HTML)
-      if (error instanceof AxiosError && error.response) {
-        if (this.isCloudflareBlocked(error.response.data)) {
-          console.error('Received Cloudflare challenge page (403), likely blocked by proxy/VPN');
-          throw new Error('cloudflareBlocked');
-        }
-      }
-
-      console.error('Failed to fetch built-in model name:', error);
-      throw new Error('fetchFailed');
-    }
+    return this.llm.getBuiltinModelName(token);
   }
 
-  /**
-   * Build request headers, handling special cases like GitHub Copilot API
-   */
-  private buildHeaders(baseUrl: string, apiKey: string, hasImages: boolean): Record<string, string> {
-    // Copilot API requires special headers
-    if (baseUrl === 'https://api.githubcopilot.com') {
-      return this.copilotService.buildCopilotHeaders(apiKey, hasImages);
-    }
-
-    const headers: Record<string, string> = {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json'
-    };
-
-    // Add User-Agent for built-in service
-    if (baseUrl === BUILTIN_API_BASE_URL) {
-      headers['User-Agent'] = `${app.getName()}/${app.getVersion()}`;
-    }
-
-    return headers;
-  }
-
-  /**
-   * Make OpenAI-compatible chat completion request
-   */
-  private async makeChatCompletionRequest(
-    baseUrl: string,
-    apiKey: string,
-    model: string,
-    messages: ChatMessage[]
-  ): Promise<ChatCompletionResponse> {
-    const hasImages = messages.some(msg =>
-      Array.isArray(msg.content) &&
-      msg.content.some(item => item.type === 'image_url')
-    );
-
-    const headers = this.buildHeaders(baseUrl, apiKey, hasImages);
-
-    // Calculate payload size for debugging
-    const requestBody = {
-      model,
-      messages,
-      max_tokens: 100,
-      temperature: 0
-    };
-    const payloadSize = JSON.stringify(requestBody).length;
-
-    debugLog('Making chat completion request', {
-      url: `${baseUrl}/chat/completions`,
-      model,
-      hasImages,
-      messageCount: messages.length,
-      payloadSizeBytes: payloadSize,
-      payloadSizeMB: (payloadSize / 1024 / 1024).toFixed(2)
-    });
-
-    // Log image sizes if present
-    if (hasImages) {
-      messages.forEach((msg, idx) => {
-        if (Array.isArray(msg.content)) {
-          msg.content.forEach((part, partIdx) => {
-            if (part.type === 'image_url' && part.image_url) {
-              const urlLength = part.image_url.url.length;
-              debugLog(`Message[${idx}] Part[${partIdx}] image size`, {
-                urlLength,
-                estimatedBase64SizeKB: (urlLength * 0.75 / 1024).toFixed(2)
-              });
-            }
-          });
-        }
-      });
-    }
-
-    const startTime = Date.now();
-
-    try {
-      const response = await axios.post<ChatCompletionResponse>(
-        `${baseUrl}/chat/completions`,
-        requestBody,
-        {
-          headers,
-          timeout: 30000 // 30 seconds for vision requests
-        }
-      );
-
-      const endTime = Date.now();
-      debugLog('Chat completion response received', {
-        duration: `${endTime - startTime}ms`,
-        status: response.status,
-        model: response.data.model,
-        finishReason: response.data.choices[0]?.finish_reason,
-        usage: response.data.usage,
-        responseContent: response.data.choices[0]?.message?.content
-      });
-
-      return response.data;
-    } catch (error) {
-      const endTime = Date.now();
-      if (error instanceof AxiosError) {
-        debugError('Chat completion request failed', {
-          duration: `${endTime - startTime}ms`,
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          errorCode: error.code,
-          errorMessage: error.message,
-          responseData: error.response?.data
-        });
-      } else {
-        debugError('Chat completion request failed (non-axios)', {
-          duration: `${endTime - startTime}ms`,
-          error
-        });
-      }
-      throw error;
-    }
-  }
-
-  /**
-   * Parse classification result from AI response
-   */
   private parseClassificationResult(content: string, allowEdit: boolean): ClassificationResult | null {
     try {
-      // Try to extract JSON from the response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         const raw = parsed.classification;
-        if (raw === 'slide' || raw === 'not_slide') {
-          return { classification: raw };
-        }
+        if (raw === 'slide' || raw === 'not_slide') return { classification: raw };
         if (raw === 'may_be_slide_edit') {
           return { classification: allowEdit ? 'may_be_slide_edit' : 'not_slide' };
         }
@@ -355,17 +184,12 @@ export class AIFilteringService {
     return null;
   }
 
-  /**
-   * Parse batch classification result from AI response
-   */
   private parseBatchClassificationResult(content: string, allowEdit: boolean): BatchClassificationResult | null {
     try {
-      // Try to extract JSON from the response
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         const result: BatchClassificationResult = {};
-
         for (const [key, value] of Object.entries(parsed)) {
           if (value === 'slide' || value === 'not_slide') {
             result[key] = value as ClassificationValue;
@@ -373,10 +197,7 @@ export class AIFilteringService {
             result[key] = allowEdit ? 'may_be_slide_edit' : 'not_slide';
           }
         }
-
-        if (Object.keys(result).length > 0) {
-          return result;
-        }
+        if (Object.keys(result).length > 0) return result;
       }
     } catch (error) {
       console.error('Failed to parse batch classification result:', error);
@@ -385,121 +206,82 @@ export class AIFilteringService {
   }
 
   /**
-   * Resolve the API key based on service type.
-   * For copilot, exchanges gho_ token for a Copilot API token.
+   * Convert an LLMError to the legacy `{ success: false, error: string }` shape that
+   * downstream renderer code parses. Keeps back-compat with the existing parseAIError()
+   * regex matching while also exposing the typed `errorKind`.
    */
-  private async resolveApiKey(apiConfig: { baseUrl: string; apiKey: string; model: string }): Promise<string> {
-    const config = this.configService.getAIFilteringConfig();
-    if (config.serviceType === 'copilot') {
-      const ghoToken = config.copilotGhoToken;
-      if (!ghoToken) {
-        throw new Error('Copilot gho_ token not configured');
-      }
-      return this.copilotService.getApiToken(ghoToken);
-    }
-    return apiConfig.apiKey;
+  private toFailureResult(error: LLMError): AIFilteringResult {
+    const message = error.status
+      ? `HTTP ${error.status}: ${error.rawProviderMessage || error.message}`
+      : error.message;
+    return { success: false, error: message, errorKind: error.kind };
   }
 
-  /**
-   * Classify a single image (used for Live mode)
-   */
   async classifySingleImage(
     base64Image: string,
     type: AIPromptType,
     token?: string,
     modelOverride?: string
   ): Promise<AIFilteringResult> {
-    debugLog('classifySingleImage called', {
-      type,
-      hasToken: !!token,
-      modelOverride,
-      imageSize: base64Image.length,
-      imageSizeKB: (base64Image.length / 1024).toFixed(2)
-    });
+    debugLog('classifySingleImage called', { type, hasToken: !!token, modelOverride });
 
-    return this.limiter.schedule(async () => {
-      try {
-        debugLog('Rate limit passed, executing request');
+    try {
+      const ctx = this.resolveRequestContext();
+      const distinguish = this.configService.getDistinguishMaybeSlide();
+      const variant = distinguish ? 'distinguish' : 'simple';
+      const prompt = this.aiPromptsService.getPrompt(type, variant);
 
-        const apiConfig = this.getApiConfig(token);
-        const apiKey = await this.resolveApiKey(apiConfig);
-        const distinguish = this.configService.getDistinguishMaybeSlide();
-        const variant = distinguish ? 'distinguish' : 'simple';
-        const prompt = this.aiPromptsService.getPrompt(type, variant);
-        const model = modelOverride || apiConfig.model;
+      const imageUrl = base64Image.startsWith('data:')
+        ? base64Image
+        : `data:image/png;base64,${base64Image}`;
 
-        debugLog('API config retrieved', {
-          baseUrl: apiConfig.baseUrl,
-          model,
-          variant,
-          promptLength: prompt.length
-        });
-
-        // Ensure base64 image has proper data URL prefix
-        const imageUrl = base64Image.startsWith('data:')
-          ? base64Image
-          : `data:image/png;base64,${base64Image}`;
-
-        const messages: ChatMessage[] = [
-          {
-            role: 'user',
-            content: [
-              { type: 'text', text: prompt },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: imageUrl,
-                  detail: 'low' // Use low detail for faster processing
-                }
-              }
-            ]
-          }
-        ];
-
-        const response = await this.makeChatCompletionRequest(
-          apiConfig.baseUrl,
-          apiKey,
-          model,
-          messages
-        );
-
-        const responseContent = response.choices[0]?.message?.content || '';
-        debugLog('Parsing single classification result', { responseContent });
-
-        const result = this.parseClassificationResult(responseContent, distinguish);
-
-        if (result) {
-          debugLog('Classification successful', result);
-          return { success: true, result };
-        } else {
-          debugError('Failed to parse classification result', { responseContent });
-          return {
-            success: false,
-            error: `Failed to parse AI response: ${responseContent}`
-          };
+      const messages: ChatMessage[] = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: imageUrl, detail: 'low' } }
+          ]
         }
-      } catch (error) {
-        const errorMessage = error instanceof AxiosError
-          ? `HTTP ${error.response?.status}: ${error.response?.data?.error?.message || error.message}`
-          : error instanceof Error
-            ? error.message
-            : 'Unknown error';
+      ];
 
-        debugError('classifySingleImage failed', {
-          errorMessage,
-          isAxiosError: error instanceof AxiosError,
-          status: error instanceof AxiosError ? error.response?.status : undefined,
-          responseData: error instanceof AxiosError ? error.response?.data : undefined
-        });
+      const { headers, apiKey } = await this.buildRequestHeaders(ctx.providerId, ctx.baseUrl, token, true);
 
-        return { success: false, error: errorMessage };
+      // modelOverride forces a specific model and bypasses the chain; otherwise use the
+      // resolved chain (single-element for non-ModelScope providers, so no chain logic runs).
+      const models = modelOverride ? [modelOverride] : ctx.models;
+      if (models.length === 0) {
+        return { success: false, error: 'No model configured', errorKind: 'unknown' };
       }
-    });
+
+      const result: LLMResult<ChatCompletionResponse> = await this.llm.runWithModelChain(
+        ctx.providerId,
+        { baseUrl: ctx.baseUrl, apiKey, messages, headers },
+        models
+      );
+
+      if (!result.ok) {
+        debugError('classifySingleImage LLM error', result.error);
+        return this.toFailureResult(result.error);
+      }
+
+      const responseContent = result.value.choices[0]?.message?.content || '';
+      const parsed = this.parseClassificationResult(responseContent, distinguish);
+      if (parsed) {
+        return { success: true, result: parsed, modelUsed: result.modelUsed };
+      }
+      return {
+        success: false,
+        error: `Failed to parse AI response: ${responseContent}`,
+        errorKind: 'parse_failed',
+        modelUsed: result.modelUsed
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errorMessage, errorKind: 'unknown' };
+    }
   }
 
-  /**
-   * Classify multiple images in a single request (used for Recorded mode batch processing)
-   */
   async classifyMultipleImages(
     base64Images: string[],
     type: AIPromptType,
@@ -507,135 +289,93 @@ export class AIFilteringService {
     modelOverride?: string
   ): Promise<AIFilteringResult> {
     debugLog('classifyMultipleImages called', {
-      imageCount: base64Images.length,
-      type,
-      hasToken: !!token,
-      modelOverride,
-      imageSizes: base64Images.map(img => img.length),
-      totalSizeKB: (base64Images.reduce((acc, img) => acc + img.length, 0) / 1024).toFixed(2)
+      imageCount: base64Images.length, type, hasToken: !!token, modelOverride
     });
 
-    return this.limiter.schedule(async () => {
-      try {
-        debugLog('Rate limit passed, executing request');
+    try {
+      const ctx = this.resolveRequestContext();
+      const distinguish = this.configService.getDistinguishMaybeSlide();
+      const variant = distinguish ? 'distinguish' : 'simple';
+      const prompt = this.aiPromptsService.getPrompt(type, variant);
 
-        const apiConfig = this.getApiConfig(token);
-        const apiKey = await this.resolveApiKey(apiConfig);
-        const distinguish = this.configService.getDistinguishMaybeSlide();
-        const variant = distinguish ? 'distinguish' : 'simple';
-        const prompt = this.aiPromptsService.getPrompt(type, variant);
-        const model = modelOverride || apiConfig.model;
-
-        debugLog('API config retrieved', {
-          baseUrl: apiConfig.baseUrl,
-          model,
-          variant,
-          promptLength: prompt.length
-        });
-
-        // Build content array with prompt and all images
-        const contentParts: ContentPart[] = [
-          { type: 'text', text: prompt }
-        ];
-
-        for (let i = 0; i < base64Images.length; i++) {
-          const base64Image = base64Images[i];
-          const imageUrl = base64Image.startsWith('data:')
-            ? base64Image
-            : `data:image/png;base64,${base64Image}`;
-
-          contentParts.push({
-            type: 'image_url',
-            image_url: {
-              url: imageUrl,
-              detail: 'low'
-            }
-          });
-          debugLog(`Added image ${i + 1}/${base64Images.length}`, {
-            sizeKB: (base64Image.length / 1024).toFixed(2)
-          });
-        }
-
-        const messages: ChatMessage[] = [
-          {
-            role: 'user',
-            content: contentParts
-          }
-        ];
-
-        const response = await this.makeChatCompletionRequest(
-          apiConfig.baseUrl,
-          apiKey,
-          model,
-          messages
-        );
-
-        const responseContent = response.choices[0]?.message?.content || '';
-        debugLog('Parsing batch classification result', { responseContent });
-
-        const result = this.parseBatchClassificationResult(responseContent, distinguish);
-
-        if (result) {
-          debugLog('Batch classification successful', result);
-          return { success: true, result };
-        } else {
-          debugError('Failed to parse batch classification result', { responseContent });
-          return {
-            success: false,
-            error: `Failed to parse AI batch response: ${responseContent}`
-          };
-        }
-      } catch (error) {
-        const errorMessage = error instanceof AxiosError
-          ? `HTTP ${error.response?.status}: ${error.response?.data?.error?.message || error.message}`
-          : error instanceof Error
-            ? error.message
-            : 'Unknown error';
-
-        debugError('classifyMultipleImages failed', {
-          errorMessage,
-          isAxiosError: error instanceof AxiosError,
-          status: error instanceof AxiosError ? error.response?.status : undefined,
-          responseData: error instanceof AxiosError ? error.response?.data : undefined
-        });
-
-        return { success: false, error: errorMessage };
+      const contentParts: ContentPart[] = [{ type: 'text', text: prompt }];
+      for (const base64Image of base64Images) {
+        const imageUrl = base64Image.startsWith('data:')
+          ? base64Image
+          : `data:image/png;base64,${base64Image}`;
+        contentParts.push({ type: 'image_url', image_url: { url: imageUrl, detail: 'low' } });
       }
-    });
+      const messages: ChatMessage[] = [{ role: 'user', content: contentParts }];
+
+      const { headers, apiKey } = await this.buildRequestHeaders(ctx.providerId, ctx.baseUrl, token, true);
+
+      const models = modelOverride ? [modelOverride] : ctx.models;
+      if (models.length === 0) {
+        return { success: false, error: 'No model configured', errorKind: 'unknown' };
+      }
+
+      const result: LLMResult<ChatCompletionResponse> = await this.llm.runWithModelChain(
+        ctx.providerId,
+        { baseUrl: ctx.baseUrl, apiKey, messages, headers },
+        models
+      );
+
+      if (!result.ok) {
+        debugError('classifyMultipleImages LLM error', result.error);
+        return this.toFailureResult(result.error);
+      }
+
+      const responseContent = result.value.choices[0]?.message?.content || '';
+      const parsed = this.parseBatchClassificationResult(responseContent, distinguish);
+      if (parsed) {
+        return { success: true, result: parsed, modelUsed: result.modelUsed };
+      }
+      return {
+        success: false,
+        error: `Failed to parse AI batch response: ${responseContent}`,
+        errorKind: 'parse_failed',
+        modelUsed: result.modelUsed
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errorMessage, errorKind: 'unknown' };
+    }
   }
 
-  /**
-   * Check if AI filtering is properly configured
-   */
   isConfigured(token?: string): boolean {
     const config = this.configService.getAIFilteringConfig();
 
     if (config.serviceType === 'builtin') {
-      // Built-in requires a valid token
       return !!token && token.length > 0;
-    } else if (config.serviceType === 'copilot') {
-      return !!config.copilotGhoToken;
-    } else {
-      // Custom requires all fields to be filled
-      return !!(
-        config.customApiBaseUrl &&
-        config.customApiKey &&
-        config.customModelName
-      );
     }
+    if (config.serviceType === 'copilot') {
+      return !!config.copilotGhoToken;
+    }
+    const hasModel =
+      (config.customModelChain && config.customModelChain.length > 0) ||
+      !!config.customModelName;
+    return !!(config.customApiBaseUrl && config.customApiKey && hasModel);
   }
 
-  /**
-   * Get current service type
-   */
   getServiceType(): 'builtin' | 'custom' | 'copilot' {
     return this.configService.getAIFilteringConfig().serviceType;
   }
 
-  /**
-   * Get the CopilotService instance for IPC handler access
-   */
   getCopilotService(): CopilotService {
     return this.copilotService;
   }
+
+  /**
+   * List models that have been marked exhausted (quota_exceeded) in this app session
+   * for the given provider. Returns [] for non-ModelScope providers in practice since
+   * only ModelScope surfaces per-model daily quotas.
+   */
+  getExhaustedModels(): string[] {
+    const config = this.configService.getAIFilteringConfig();
+    if (config.serviceType !== 'custom') return [];
+    return this.llm.getExhaustedModels(config.customProviderId, config.customApiBaseUrl);
+  }
 }
+
+// Silence unused-import warning for MODELSCOPE_API_BASE_URL — re-exported for callers.
+export { MODELSCOPE_API_BASE_URL };

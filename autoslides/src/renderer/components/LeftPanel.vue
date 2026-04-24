@@ -1368,7 +1368,7 @@
                   </div>
                 </div>
 
-                <div class="setting-item">
+                <div class="setting-item" v-if="currentCustomProvider !== 'modelscope'">
                   <label class="setting-label">{{ $t('advanced.ai.modelName') }}</label>
                   <div class="model-name-input-group">
                     <input
@@ -1383,6 +1383,95 @@
                         {{ preset.label }}
                       </option>
                     </select>
+                  </div>
+                </div>
+
+                <div class="setting-item" v-else>
+                  <label class="setting-label">{{ $t('advanced.ai.modelChain') }}</label>
+                  <div class="model-chain-hint">{{ $t('advanced.ai.modelChainHint') }}</div>
+
+                  <ul v-if="tempCustomModelChain.length > 0" class="model-chain-list">
+                    <li
+                      v-for="(model, idx) in tempCustomModelChain"
+                      :key="idx"
+                      class="model-chain-row"
+                      :class="{ 'is-exhausted': exhaustedModels.includes(model) }"
+                    >
+                      <div class="model-chain-index">{{ idx + 1 }}</div>
+                      <input
+                        type="text"
+                        class="model-chain-input"
+                        :value="model"
+                        @input="updateModelAt(idx, ($event.target as HTMLInputElement).value)"
+                      />
+                      <div class="model-chain-badges">
+                        <span v-if="idx === 0" class="model-chain-badge primary">
+                          {{ $t('advanced.ai.modelChainPrimary') }}
+                        </span>
+                        <span v-if="exhaustedModels.includes(model)" class="model-chain-badge exhausted">
+                          {{ $t('advanced.ai.modelChainExhausted') }}
+                        </span>
+                      </div>
+                      <div class="model-chain-actions">
+                        <button
+                          type="button"
+                          class="model-chain-move-btn"
+                          :disabled="idx === 0"
+                          @click="moveModelUp(idx)"
+                          :title="$t('advanced.ai.modelChainMoveUp')"
+                          aria-label="Move up"
+                        >↑</button>
+                        <button
+                          type="button"
+                          class="model-chain-move-btn"
+                          :disabled="idx >= tempCustomModelChain.length - 1"
+                          @click="moveModelDown(idx)"
+                          :title="$t('advanced.ai.modelChainMoveDown')"
+                          aria-label="Move down"
+                        >↓</button>
+                        <button
+                          type="button"
+                          class="model-chain-remove-btn"
+                          @click="removeModelAt(idx)"
+                          :title="$t('advanced.ai.modelChainRemove')"
+                          aria-label="Remove"
+                        >×</button>
+                      </div>
+                    </li>
+                  </ul>
+                  <div v-else class="model-chain-empty">{{ $t('advanced.ai.modelChainEmpty') }}</div>
+
+                  <div class="model-chain-add-row">
+                    <input
+                      v-model="newModelInput"
+                      type="text"
+                      class="model-chain-add-input"
+                      :placeholder="$t('advanced.ai.modelChainAddPlaceholder')"
+                      @keydown.enter.prevent="addPendingModel"
+                    />
+                    <select
+                      v-model="selectedAddPreset"
+                      @change="onAddPresetSelect"
+                      class="model-chain-preset-select"
+                    >
+                      <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
+                      <option
+                        v-for="preset in modelPresetsByProvider.modelscope"
+                        :key="preset.name"
+                        :value="preset.name"
+                        :disabled="tempCustomModelChain.includes(preset.name)"
+                      >
+                        {{ preset.label }}
+                      </option>
+                    </select>
+                    <button
+                      type="button"
+                      class="model-chain-add-btn"
+                      :disabled="!newModelInput.trim()"
+                      @click="addPendingModel"
+                    >
+                      {{ $t('advanced.ai.modelChainAdd') }}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1941,8 +2030,21 @@ const {
   builtinModelError,
   apiUrlPresets,
   modelPresets,
+  modelPresetsByProvider,
   selectedApiUrlPreset,
   selectedModelPreset,
+  currentCustomProvider,
+  tempCustomModelChain,
+  exhaustedModels,
+  refreshExhaustedModels,
+  moveModelUp,
+  moveModelDown,
+  updateModelAt,
+  removeModelAt,
+  newModelInput,
+  selectedAddPreset,
+  onAddPresetSelect,
+  addPendingModel,
   refreshBuiltinModel,
   onApiUrlPresetChange,
   onModelPresetChange,
@@ -2046,6 +2148,8 @@ onMounted(async () => {
 
   // Load built-in model name in background (non-blocking)
   aiSettings.refreshBuiltinModel()
+  // Load session-exhausted model list for ModelScope chain UI (non-blocking)
+  aiSettings.refreshExhaustedModels()
 
   // Add event listener for adaptive threshold changes
   window.addEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as unknown as EventListener)
@@ -3396,7 +3500,7 @@ defineExpose({
 }
 
 .token-toggle-btn {
-  padding: 6px 8px;
+  padding: 5px 8px;
   background-color: #f8f9fa;
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -5334,7 +5438,7 @@ defineExpose({
 .api-key-input,
 .model-name-input {
   flex: 1;
-  padding: 8px 12px;
+  padding: 6px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 13px;
@@ -5354,7 +5458,7 @@ defineExpose({
 .model-preset-select {
   flex: 0 0 auto;
   min-width: 130px;
-  padding: 8px 12px;
+  padding: 6px 12px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: white;
@@ -5362,16 +5466,211 @@ defineExpose({
   cursor: pointer;
 }
 
+.model-chain-hint {
+  font-size: 11px;
+  color: #666;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.model-chain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  background: #fafafa;
+}
+
+.model-chain-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 6px 4px;
+  border-bottom: 1px solid #eee;
+}
+
+.model-chain-row:last-child {
+  border-bottom: none;
+}
+
+.model-chain-row.is-exhausted .model-chain-input {
+  opacity: 0.6;
+}
+
+.model-chain-index {
+  flex: 0 0 auto;
+  min-width: 14px;
+  text-align: center;
+  font-size: 11px;
+  color: #999;
+  font-variant-numeric: tabular-nums;
+}
+
+.model-chain-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: white;
+}
+
+.model-chain-input:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.model-chain-badges {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 4px;
+}
+
+.model-chain-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.model-chain-badge.primary {
+  background: #e7f3ff;
+  color: #0366d6;
+}
+
+.model-chain-badge.exhausted {
+  background: #fff4e5;
+  color: #b26a00;
+}
+
+.model-chain-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 2px;
+}
+
+.model-chain-move-btn,
+.model-chain-remove-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #555;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.model-chain-move-btn:hover:not(:disabled),
+.model-chain-remove-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.model-chain-remove-btn {
+  font-size: 16px;
+  line-height: 1;
+  color: #888;
+}
+
+.model-chain-remove-btn:hover:not(:disabled) {
+  background: #fee;
+  color: #c00;
+  border-color: #fcc;
+}
+
+.model-chain-move-btn:disabled,
+.model-chain-remove-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.model-chain-empty {
+  padding: 10px;
+  font-size: 11px;
+  color: #888;
+  text-align: center;
+  border: 1px dashed #ddd;
+  border-radius: 4px;
+  background: #fafafa;
+}
+
+.model-chain-add-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.model-chain-add-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  background: white;
+}
+
+.model-chain-add-input:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.model-chain-preset-select {
+  flex: 0 0 auto;
+  min-width: 130px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.model-chain-add-btn {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border: 1px solid #007acc;
+  border-radius: 4px;
+  background: #007acc;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.model-chain-add-btn:hover:not(:disabled) {
+  background: #0066a8;
+  border-color: #0066a8;
+}
+
+.model-chain-add-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .api-key-toggle-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: white;
   cursor: pointer;
   color: #666;
+  box-sizing: border-box;
+  flex: 0 0 auto;
 }
 
 .api-key-toggle-btn:hover {

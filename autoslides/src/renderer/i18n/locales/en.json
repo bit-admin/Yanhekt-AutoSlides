@@ -355,7 +355,17 @@
         "keep": "Keep",
         "check": "Review",
         "delete": "Delete"
-      }
+      },
+      "modelChain": "ModelScope Model Chain",
+      "modelChainHint": "Models are tried in order. If a model hits its daily quota (HTTP 429), the next enabled model is used automatically. Exhausted state resets when the app restarts.",
+      "modelChainPrimary": "Primary",
+      "modelChainExhausted": "Exhausted",
+      "modelChainMoveUp": "Move up",
+      "modelChainMoveDown": "Move down",
+      "modelChainAdd": "Add",
+      "modelChainRemove": "Remove from chain",
+      "modelChainAddPlaceholder": "Enter model name or pick a preset...",
+      "modelChainEmpty": "No models in chain. Add one below to enable AI classification."
     }
   },
   "courses": {
