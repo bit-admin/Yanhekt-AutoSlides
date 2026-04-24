@@ -610,7 +610,15 @@ const openFeedbackEmail = async () => {
   const now = new Date();
   const timestampLocal = now.toLocaleString();
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown';
-  const appVersion = releaseInfo.value?.currentVersion || 'Unknown';
+  let appVersion = releaseInfo.value?.currentVersion || '';
+  if (!appVersion) {
+    try {
+      appVersion = await (window as any).electronAPI.app.getVersion();
+    } catch (error) {
+      console.error('Failed to get app version:', error);
+    }
+  }
+  appVersion = appVersion || 'Unknown';
   const electronVersion = navigator.userAgent.match(/Electron\/([\d.]+)/)?.[1] || 'Unknown';
   const platform = navigator.platform || 'Unknown';
 

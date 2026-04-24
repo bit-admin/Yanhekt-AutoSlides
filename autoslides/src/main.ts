@@ -1456,6 +1456,8 @@ ipcMain.handle('app:restart', async () => {
   }
 });
 
+ipcMain.handle('app:getVersion', () => app.getVersion());
+
 // ============================================================================
 // Tools Window Management (unified: PDF Maker, Trash, Offline Processing)
 // ============================================================================

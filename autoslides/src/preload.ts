@@ -279,6 +279,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   app: {
     restart: () => ipcRenderer.invoke('app:restart'),
+    getVersion: () => ipcRenderer.invoke('app:getVersion'),
   },
   tour: {
     forceLightTheme: () => ipcRenderer.invoke('tour:forceLightTheme'),
