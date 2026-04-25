@@ -75,6 +75,10 @@ function ortWasmBuildCopy(): Plugin {
 
 // https://vitejs.dev/config
 export default defineConfig(({ mode }) => ({
+  // Keep each Electron renderer dev server on its own dependency cache.
+  // Sharing node_modules/.vite across concurrently started renderer configs can
+  // trigger cold-start re-optimization while the main window is loading.
+  cacheDir: 'node_modules/.vite-main',
   plugins: [
     vue({
       template: {

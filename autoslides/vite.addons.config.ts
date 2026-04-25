@@ -4,6 +4,10 @@ import path from 'path';
 
 // Vite config for Add-ons window
 export default defineConfig(({ mode }) => ({
+  // Keep this renderer isolated from the main window's optimizer cache. The
+  // dev servers start together, and a shared cache can force Vite to
+  // re-optimize dependencies during the main window's first load.
+  cacheDir: 'node_modules/.vite-addons',
   plugins: [
     vue({
       template: {
