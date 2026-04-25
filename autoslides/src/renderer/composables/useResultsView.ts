@@ -44,6 +44,25 @@ export interface BaselineCrop {
   sourceImagePath: string
 }
 
+export interface AutoCropActionSummary {
+  cropped: number
+  noDetection: number
+  deduped: number
+  failed: number
+}
+
+export interface BaselineCropActionSummary {
+  cropped: number
+  outOfBounds: number
+  deduped: number
+  failed: number
+}
+
+export interface DedupActionSummary {
+  deduped: number
+  failed: number
+}
+
 export interface ResultsItem {
   id: string
   name: string
@@ -127,6 +146,11 @@ export function useResultsView() {
     return folderItems.value.some((item) => item.status === 'removed')
   })
 
+  const canUseAsCropActionTarget = (item: ResultsItem) => {
+    return item.status === 'active' ||
+      (item.status === 'removed' && item.reason === 'ai_filtered_edit')
+  }
+
   const canRestoreAndAutoCrop = computed(() => {
     const items = selectedRemovedItems.value
     if (items.length === 0) return false
@@ -137,6 +161,12 @@ export function useResultsView() {
     const items = selectedItems.value
     if (items.length === 0) return false
     return items.every((item) => item.status === 'active')
+  })
+
+  const canAutoCropSelected = computed(() => {
+    const items = selectedItems.value
+    if (items.length === 0) return false
+    return items.every(canUseAsCropActionTarget)
   })
 
   const canCropAndDedup = computed(() => {
@@ -173,14 +203,17 @@ export function useResultsView() {
     if (!baselineCrop.value) return false
     const items = selectedItems.value
     if (items.length === 0) return false
-    return items.every(
-      (item) =>
-        item.status === 'active' ||
-        (item.status === 'removed' && item.reason === 'ai_filtered_edit'),
-    )
+    return items.every(canUseAsCropActionTarget)
   })
 
   const canApplyBaselineDedup = computed(() => canApplyBaselineMixed.value)
+
+  const canApplyBaselineSelected = computed(() => canApplyBaselineMixed.value)
+
+  const canRemoveDuplicatesInCurrentFolder = computed(() => {
+    if (!currentFolder.value) return false
+    return folderItems.value.filter((item) => item.status === 'active' && !!item.imagePath).length > 1
+  })
 
   const hasCroppedInCurrentFolder = computed(() => {
     return folderItems.value.some((item) => item.status === 'active' && item.isCropped)
@@ -459,6 +492,25 @@ export function useResultsView() {
     needsRestore: boolean
   }
 
+  interface DedupCandidate {
+    originalPath: string
+    filename: string
+  }
+
+  function buildSelectedCropTargets(): AutoCropTarget[] {
+    return selectedItems.value.map((item) => {
+      const isRemoved = item.status === 'removed'
+      return {
+        id: isRemoved ? item.id : undefined,
+        originalPath: isRemoved
+          ? item.originalPath || ''
+          : item.imagePath || item.originalPath || '',
+        filename: item.name,
+        needsRestore: isRemoved,
+      }
+    })
+  }
+
   async function runAutoCropPipeline(
     targets: AutoCropTarget[],
     summary: { cropped: number; noDetection: number; failed: number },
@@ -524,6 +576,40 @@ export function useResultsView() {
     return cropped
   }
 
+  async function autoCropSelected(
+    options: { removeDuplicates?: boolean } = {},
+  ): Promise<AutoCropActionSummary> {
+    const summary = { cropped: 0, noDetection: 0, deduped: 0, failed: 0 }
+    if (!canAutoCropSelected.value) return summary
+
+    const folder = currentFolder.value
+
+    isLoading.value = true
+    try {
+      const cropSummary = { cropped: 0, noDetection: 0, failed: 0 }
+      const croppedItems = await runAutoCropPipeline(buildSelectedCropTargets(), cropSummary)
+      summary.cropped = cropSummary.cropped
+      summary.noDetection = cropSummary.noDetection
+      summary.failed = cropSummary.failed
+
+      if (options.removeDuplicates && folder && croppedItems.length > 0) {
+        const dedupSummary = { cropped: summary.cropped, deduped: 0, failed: 0 }
+        await runPHashDedup(folder, croppedItems, dedupSummary)
+        summary.cropped = dedupSummary.cropped
+        summary.deduped = dedupSummary.deduped
+        summary.failed += dedupSummary.failed
+      }
+
+      await refresh()
+    } catch (error) {
+      console.error('Failed to auto-crop selected items:', error)
+    } finally {
+      isLoading.value = false
+    }
+
+    return summary
+  }
+
   async function autoCropSelectedActive(): Promise<{ cropped: number; noDetection: number; failed: number }> {
     const summary = { cropped: 0, noDetection: 0, failed: 0 }
     if (!canAutoCropActive.value) return summary
@@ -573,10 +659,10 @@ export function useResultsView() {
 
   async function runPHashDedup(
     folder: ResultsFolder,
-    croppedItems: Array<{ originalPath: string; filename: string }>,
-    summary: { cropped: number; deduped: number },
+    candidates: DedupCandidate[],
+    summary: { cropped: number; deduped: number; failed: number },
   ): Promise<void> {
-    if (croppedItems.length === 0) return
+    if (candidates.length === 0) return
 
     const appConfig = await window.electronAPI.config.get()
     const pHashThreshold = appConfig.slideExtraction?.pHashThreshold ?? 10
@@ -649,13 +735,13 @@ export function useResultsView() {
 
     try {
       const seen: Array<{ filename: string; pHash: string }> = []
-      const croppedSet = new Set(croppedItems.map((c) => c.originalPath))
+      const candidateSet = new Set(candidates.map((c) => c.originalPath))
 
       if (activeFolder?.path) {
         try {
           const existingImages = await window.electronAPI.pdfmaker.getImages(activeFolder.path)
           for (const img of existingImages) {
-            if (croppedSet.has(img.path)) continue
+            if (candidateSet.has(img.path)) continue
             try {
               const buffer = await window.electronAPI.offline.readImageBuffer(img.path)
               const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
@@ -672,7 +758,7 @@ export function useResultsView() {
       }
 
       const folderPath = activeFolder?.path
-      for (const item of croppedItems) {
+      for (const item of candidates) {
         try {
           const buffer = await window.electronAPI.offline.readImageBuffer(item.originalPath)
           const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
@@ -701,6 +787,7 @@ export function useResultsView() {
           }
         } catch (err) {
           console.warn(`Failed to dedup ${item.filename}:`, err)
+          summary.failed++
         }
       }
     } finally {
@@ -736,10 +823,11 @@ export function useResultsView() {
       summary.failed = cropSummary.failed
 
       if (croppedItems.length > 0) {
-        const dedupSummary = { cropped: summary.cropped, deduped: 0 }
+        const dedupSummary = { cropped: summary.cropped, deduped: 0, failed: 0 }
         await runPHashDedup(folder, croppedItems, dedupSummary)
         summary.cropped = dedupSummary.cropped
         summary.deduped = dedupSummary.deduped
+        summary.failed += dedupSummary.failed
       }
 
       await refresh()
@@ -828,18 +916,34 @@ export function useResultsView() {
     return cropped
   }
 
-  async function applyBaselineToSelected(): Promise<{ cropped: number; outOfBounds: number; failed: number }> {
-    const summary = { cropped: 0, outOfBounds: 0, failed: 0 }
-    if (!canApplyBaselineActive.value || !baselineCrop.value) return summary
+  async function applyBaselineToSelected(
+    options: { removeDuplicates?: boolean } = {},
+  ): Promise<BaselineCropActionSummary> {
+    const summary = { cropped: 0, outOfBounds: 0, deduped: 0, failed: 0 }
+    if (!canApplyBaselineSelected.value || !baselineCrop.value) return summary
+
+    const folder = currentFolder.value
 
     isLoading.value = true
     try {
-      const targets: AutoCropTarget[] = selectedActiveItems.value.map((item) => ({
-        originalPath: item.imagePath || item.originalPath || '',
-        filename: item.name,
-        needsRestore: false,
-      }))
-      await runBaselineCropPipeline(targets, baselineCrop.value.rect, summary)
+      const cropSummary = { cropped: 0, outOfBounds: 0, failed: 0 }
+      const croppedItems = await runBaselineCropPipeline(
+        buildSelectedCropTargets(),
+        baselineCrop.value.rect,
+        cropSummary,
+      )
+      summary.cropped = cropSummary.cropped
+      summary.outOfBounds = cropSummary.outOfBounds
+      summary.failed = cropSummary.failed
+
+      if (options.removeDuplicates && folder && croppedItems.length > 0) {
+        const dedupSummary = { cropped: summary.cropped, deduped: 0, failed: 0 }
+        await runPHashDedup(folder, croppedItems, dedupSummary)
+        summary.cropped = dedupSummary.cropped
+        summary.deduped = dedupSummary.deduped
+        summary.failed += dedupSummary.failed
+      }
+
       await refresh()
     } catch (error) {
       console.error('Failed to apply baseline crop to selected:', error)
@@ -906,15 +1010,45 @@ export function useResultsView() {
       summary.failed = cropSummary.failed
 
       if (croppedItems.length > 0) {
-        const dedupSummary = { cropped: summary.cropped, deduped: 0 }
+        const dedupSummary = { cropped: summary.cropped, deduped: 0, failed: 0 }
         await runPHashDedup(folder, croppedItems, dedupSummary)
         summary.cropped = dedupSummary.cropped
         summary.deduped = dedupSummary.deduped
+        summary.failed += dedupSummary.failed
       }
 
       await refresh()
     } catch (error) {
       console.error('Failed to apply baseline crop and dedup:', error)
+    } finally {
+      isLoading.value = false
+    }
+
+    return summary
+  }
+
+  async function removeDuplicatesInCurrentFolder(): Promise<DedupActionSummary> {
+    const summary = { deduped: 0, failed: 0 }
+    const folder = currentFolder.value
+    if (!folder || !canRemoveDuplicatesInCurrentFolder.value) return summary
+
+    isLoading.value = true
+    try {
+      const candidates: DedupCandidate[] = folderItems.value
+        .filter((item) => item.status === 'active' && !!item.imagePath)
+        .map((item) => ({
+          originalPath: item.imagePath || '',
+          filename: item.name,
+        }))
+
+      const dedupSummary = { cropped: 0, deduped: 0, failed: 0 }
+      await runPHashDedup(folder, candidates, dedupSummary)
+      summary.deduped = dedupSummary.deduped
+      summary.failed = dedupSummary.failed
+      await refresh()
+    } catch (error) {
+      console.error('Failed to remove duplicates in current folder:', error)
+      summary.failed++
     } finally {
       isLoading.value = false
     }
@@ -1087,12 +1221,15 @@ export function useResultsView() {
     hasRemovedItems,
     canRestoreAndAutoCrop,
     canAutoCropActive,
+    canAutoCropSelected,
     canCropAndDedup,
     canSetCurrentAsBaseline,
     isCurrentPreviewBaseline,
     canApplyBaselineActive,
     canApplyBaselineMixed,
+    canApplyBaselineSelected,
     canApplyBaselineDedup,
+    canRemoveDuplicatesInCurrentFolder,
     hasCroppedInCurrentFolder,
     hasAutoCroppedInCurrentFolder,
     trashEntries,
@@ -1104,6 +1241,7 @@ export function useResultsView() {
     closePreview,
     deleteSelected,
     restoreSelected,
+    autoCropSelected,
     autoCropSelectedActive,
     restoreAndAutoCropSelected,
     cropAndDedupSelected,
@@ -1111,6 +1249,7 @@ export function useResultsView() {
     applyBaselineToSelected,
     restoreAndApplyBaselineSelected,
     applyBaselineAndDedupSelected,
+    removeDuplicatesInCurrentFolder,
     restoreAllCroppedInFolder,
     restoreAutoCroppedInFolder,
     clearTrash,

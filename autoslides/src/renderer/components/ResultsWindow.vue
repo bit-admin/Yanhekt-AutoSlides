@@ -51,24 +51,52 @@
           {{ $t('trash.delete') }}
         </button>
 
-        <button
+        <div
           v-if="currentView === 'images'"
-          class="restore-btn"
-          @click="restoreSelected"
-          :disabled="selectedRemovedItems.length === 0 || isLoading"
+          class="action-split action-split-restore"
+          :class="{ 'action-split-open': showRestoreMenu }"
         >
-          <svg width="16" height="16" viewBox="0 0 16 16">
-            <path d="M8 2L4 6h3v6h2V6h3L8 2z" fill="currentColor"/>
-            <path d="M2 13h12v1H2v-1z" fill="currentColor"/>
-          </svg>
-          {{ $t('trash.restore') }}
-        </button>
-
-        <div v-if="currentView === 'images'" class="restore-split" :class="{ 'restore-split-open': showRestoreMenu }">
           <button
-            class="restore-btn restore-split-main"
+            class="restore-btn action-split-main"
+            @click="restoreSelected"
+            :disabled="selectedRemovedItems.length === 0 || isLoading"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M8 2L4 6h3v6h2V6h3L8 2z" fill="currentColor"/>
+              <path d="M2 13h12v1H2v-1z" fill="currentColor"/>
+            </svg>
+            {{ $t('trash.restore') }}
+          </button>
+          <button
+            class="restore-btn action-split-toggle"
+            :title="$t('trash.restoreAutoCropMoreOptions')"
+            @click.stop="toggleRestoreMenu"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div v-if="showRestoreMenu" class="action-split-menu">
+            <button
+              class="action-split-menu-item"
+              :disabled="!hasCroppedInCurrentFolder || isLoading"
+              :title="$t('trash.restoreAllCroppedHint')"
+              @click="handleRestoreCropped"
+            >
+              <div class="action-split-menu-title">{{ $t('trash.restoreAllCropped') }}</div>
+            </button>
+          </div>
+        </div>
+
+        <div
+          v-if="currentView === 'images'"
+          class="action-split action-split-auto-crop"
+          :class="{ 'action-split-open': showAutoCropMenu }"
+        >
+          <button
+            class="restore-btn auto-crop-btn action-split-main"
             @click="handleAutoCropSelected"
-            :disabled="!canAutoCropActive || isLoading"
+            :disabled="!canAutoCropSelected || isLoading"
             :title="$t('trash.autoCropSelectedHint')"
           >
             <svg width="16" height="16" viewBox="0 0 24 24">
@@ -77,74 +105,62 @@
             {{ $t('trash.autoCropSelected') }}
           </button>
           <button
-            class="restore-btn restore-split-toggle"
-            :disabled="isLoading || (!canRestoreAndAutoCrop && !canCropAndDedup && !canApplyBaselineActive && !canApplyBaselineMixed && !canApplyBaselineDedup && !hasCroppedInCurrentFolder && !hasAutoCroppedInCurrentFolder)"
+            class="restore-btn auto-crop-btn action-split-toggle"
             :title="$t('trash.restoreAutoCropMoreOptions')"
-            @click.stop="showRestoreMenu = !showRestoreMenu"
+            @click.stop="toggleAutoCropMenu"
           >
             <svg width="10" height="10" viewBox="0 0 10 10">
               <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-          <div v-if="showRestoreMenu" class="restore-split-menu">
+          <div v-if="showAutoCropMenu" class="action-split-menu">
             <button
-              class="restore-split-menu-item"
-              :disabled="!canRestoreAndAutoCrop || isLoading"
-              @click="handleRestoreAndAutoCrop"
-            >
-              <div class="restore-split-menu-title">{{ $t('trash.restoreAndAutoCrop') }}</div>
-              <div class="restore-split-menu-hint">{{ $t('trash.restoreAndAutoCropHint') }}</div>
-            </button>
-            <button
-              class="restore-split-menu-item"
-              :disabled="!canCropAndDedup || isLoading"
-              @click="handleCropAndDedup"
-            >
-              <div class="restore-split-menu-title">{{ $t('trash.restoreAutoCropDedup') }}</div>
-              <div class="restore-split-menu-hint">{{ $t('trash.restoreAutoCropDedupHint') }}</div>
-            </button>
-            <div class="restore-split-menu-divider"></div>
-            <button
-              class="restore-split-menu-item"
-              :disabled="!canApplyBaselineActive || isLoading"
+              class="action-split-menu-item"
+              :disabled="!canApplyBaselineSelected || isLoading"
+              :title="$t('trash.applyBaselineHint')"
               @click="handleApplyBaseline"
             >
-              <div class="restore-split-menu-title">{{ $t('trash.applyBaseline') }}</div>
-              <div class="restore-split-menu-hint">{{ $t('trash.applyBaselineHint') }}</div>
+              <div class="action-split-menu-title">{{ $t('trash.applyBaseline') }}</div>
             </button>
-            <button
-              class="restore-split-menu-item"
-              :disabled="!canApplyBaselineMixed || isLoading"
-              @click="handleRestoreAndApplyBaseline"
+          </div>
+        </div>
+
+        <div
+          v-if="currentView === 'images'"
+          class="action-split action-split-dedup"
+          :class="{ 'action-split-open': showRemoveDuplicatesMenu }"
+        >
+          <button
+            class="clear-btn dedup-btn action-split-main"
+            @click="handleRemoveDuplicates"
+            :disabled="!canRemoveDuplicatesInCurrentFolder || isLoading"
+            :title="$t('trash.removeDuplicatesHint')"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <rect x="1.5" y="4.5" width="8.5" height="8.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M5.5 3V2.5c0-.8.7-1.5 1.5-1.5h5c.8 0 1.5.7 1.5 1.5v5c0 .8-.7 1.5-1.5 1.5h-.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M4 8.75h3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            {{ $t('trash.removeDuplicates') }}
+          </button>
+          <button
+            class="clear-btn dedup-btn action-split-toggle"
+            :title="$t('trash.restoreAutoCropMoreOptions')"
+            @click.stop="toggleRemoveDuplicatesMenu"
+          >
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <div v-if="showRemoveDuplicatesMenu" class="action-split-menu action-split-menu-wide">
+            <label
+              class="action-split-checkbox"
+              :title="$t('trash.removeDuplicatesAfterActionsHint')"
+              @click.stop
             >
-              <div class="restore-split-menu-title">{{ $t('trash.restoreAndApplyBaseline') }}</div>
-              <div class="restore-split-menu-hint">{{ $t('trash.restoreAndApplyBaselineHint') }}</div>
-            </button>
-            <button
-              class="restore-split-menu-item"
-              :disabled="!canApplyBaselineDedup || isLoading"
-              @click="handleApplyBaselineAndDedup"
-            >
-              <div class="restore-split-menu-title">{{ $t('trash.applyBaselineDedup') }}</div>
-              <div class="restore-split-menu-hint">{{ $t('trash.applyBaselineDedupHint') }}</div>
-            </button>
-            <div class="restore-split-menu-divider"></div>
-            <button
-              class="restore-split-menu-item"
-              :disabled="!hasCroppedInCurrentFolder || isLoading"
-              @click="handleRestoreAllCropped"
-            >
-              <div class="restore-split-menu-title">{{ $t('trash.restoreAllCropped') }}</div>
-              <div class="restore-split-menu-hint">{{ $t('trash.restoreAllCroppedHint') }}</div>
-            </button>
-            <button
-              class="restore-split-menu-item"
-              :disabled="!hasAutoCroppedInCurrentFolder || isLoading"
-              @click="handleRestoreAutoCropped"
-            >
-              <div class="restore-split-menu-title">{{ $t('trash.restoreAutoCropped') }}</div>
-              <div class="restore-split-menu-hint">{{ $t('trash.restoreAutoCroppedHint') }}</div>
-            </button>
+              <input type="checkbox" v-model="dedupAfterCropActions" :disabled="isLoading" />
+              <span>{{ $t('trash.removeDuplicatesAfterActions') }}</span>
+            </label>
           </div>
         </div>
 
@@ -557,14 +573,11 @@ const {
   isLoading,
   previewItem,
   hasRemovedItems,
-  canRestoreAndAutoCrop,
-  canAutoCropActive,
-  canCropAndDedup,
+  canAutoCropSelected,
   canSetCurrentAsBaseline,
   isCurrentPreviewBaseline,
-  canApplyBaselineActive,
-  canApplyBaselineMixed,
-  canApplyBaselineDedup,
+  canApplyBaselineSelected,
+  canRemoveDuplicatesInCurrentFolder,
   hasCroppedInCurrentFolder,
   hasAutoCroppedInCurrentFolder,
   trashEntries,
@@ -576,13 +589,10 @@ const {
   closePreview: closePreviewItem,
   deleteSelected,
   restoreSelected,
-  autoCropSelectedActive,
-  restoreAndAutoCropSelected,
-  cropAndDedupSelected,
+  autoCropSelected,
   setBaselineCrop,
   applyBaselineToSelected,
-  restoreAndApplyBaselineSelected,
-  applyBaselineAndDedupSelected,
+  removeDuplicatesInCurrentFolder,
   restoreAllCroppedInFolder,
   restoreAutoCroppedInFolder,
   clearTrash,
@@ -671,6 +681,29 @@ const isAutoCropDetecting = ref(false)
 const isAutoCropPending = ref(false)
 
 const { detectBbox } = useAutoCropDetect()
+
+const DEDUP_AFTER_CROP_ACTIONS_KEY = 'autoslides.results.dedupAfterCropActions'
+
+const readDedupAfterCropActions = () => {
+  try {
+    return window.sessionStorage.getItem(DEDUP_AFTER_CROP_ACTIONS_KEY) !== 'false'
+  } catch {
+    return true
+  }
+}
+
+const dedupAfterCropActions = ref(readDedupAfterCropActions())
+const showRestoreMenu = ref(false)
+const showAutoCropMenu = ref(false)
+const showRemoveDuplicatesMenu = ref(false)
+
+watch(dedupAfterCropActions, (value) => {
+  try {
+    window.sessionStorage.setItem(DEDUP_AFTER_CROP_ACTIONS_KEY, value ? 'true' : 'false')
+  } catch {
+    // Session storage can be unavailable in restricted renderer contexts.
+  }
+})
 
 const cropHandles: CropHandle[] = ['nw', 'ne', 'sw', 'se']
 const minimumCropSize = 20
@@ -1295,42 +1328,28 @@ const confirmDelete = async () => {
 }
 
 const handleAutoCropSelected = async () => {
-  if (!canAutoCropActive.value) return
+  showAutoCropMenu.value = false
+  if (!canAutoCropSelected.value) return
 
-  const summary = await autoCropSelectedActive()
+  const summary = await autoCropSelected({ removeDuplicates: dedupAfterCropActions.value })
   await window.electronAPI.dialog?.showMessageBox?.({
     type: 'info',
     buttons: ['OK'],
     title: t('trash.autoCropSelected'),
-    message: t('trash.autoCropSelectedSummary', summary),
+    message: t('trash.autoCropSelectedSummary', { ...summary }),
   })
 }
 
-const showRestoreMenu = ref(false)
+const handleRemoveDuplicates = async () => {
+  showRemoveDuplicatesMenu.value = false
+  if (!canRemoveDuplicatesInCurrentFolder.value) return
 
-const handleRestoreAndAutoCrop = async () => {
-  showRestoreMenu.value = false
-  if (!canRestoreAndAutoCrop.value) return
-
-  const summary = await restoreAndAutoCropSelected()
+  const summary = await removeDuplicatesInCurrentFolder()
   await window.electronAPI.dialog?.showMessageBox?.({
     type: 'info',
     buttons: ['OK'],
-    title: t('trash.restoreAndAutoCrop'),
-    message: t('trash.restoreAndAutoCropSummary', summary),
-  })
-}
-
-const handleCropAndDedup = async () => {
-  showRestoreMenu.value = false
-  if (!canCropAndDedup.value) return
-
-  const summary = await cropAndDedupSelected()
-  await window.electronAPI.dialog?.showMessageBox?.({
-    type: 'info',
-    buttons: ['OK'],
-    title: t('trash.restoreAutoCropDedup'),
-    message: t('trash.restoreAutoCropDedupSummary', summary),
+    title: t('trash.removeDuplicates'),
+    message: t('trash.removeDuplicatesSummary', { ...summary }),
   })
 }
 
@@ -1341,59 +1360,43 @@ const handleSetBaseline = () => {
 }
 
 const handleApplyBaseline = async () => {
-  showRestoreMenu.value = false
-  if (!canApplyBaselineActive.value) return
+  showAutoCropMenu.value = false
+  if (!canApplyBaselineSelected.value) return
 
-  const summary = await applyBaselineToSelected()
+  const summary = await applyBaselineToSelected({ removeDuplicates: dedupAfterCropActions.value })
   await window.electronAPI.dialog?.showMessageBox?.({
     type: 'info',
     buttons: ['OK'],
     title: t('trash.applyBaseline'),
-    message: t('trash.applyBaselineSummary', summary),
+    message: t('trash.applyBaselineSummary', { ...summary }),
   })
 }
 
-const handleRestoreAndApplyBaseline = async () => {
-  showRestoreMenu.value = false
-  if (!canApplyBaselineMixed.value) return
-
-  const summary = await restoreAndApplyBaselineSelected()
-  await window.electronAPI.dialog?.showMessageBox?.({
-    type: 'info',
-    buttons: ['OK'],
-    title: t('trash.restoreAndApplyBaseline'),
-    message: t('trash.restoreAndApplyBaselineSummary', summary),
-  })
-}
-
-const handleApplyBaselineAndDedup = async () => {
-  showRestoreMenu.value = false
-  if (!canApplyBaselineDedup.value) return
-
-  const summary = await applyBaselineAndDedupSelected()
-  await window.electronAPI.dialog?.showMessageBox?.({
-    type: 'info',
-    buttons: ['OK'],
-    title: t('trash.applyBaselineDedup'),
-    message: t('trash.applyBaselineDedupSummary', summary),
-  })
-}
-
-const handleRestoreAllCropped = async () => {
+const handleRestoreCropped = async () => {
   showRestoreMenu.value = false
   if (!hasCroppedInCurrentFolder.value) return
 
+  const buttons = hasAutoCroppedInCurrentFolder.value
+    ? [
+        t('trash.cancel'),
+        t('trash.restoreAllCropped'),
+        t('trash.restoreAutoCroppedOnly'),
+      ]
+    : [t('trash.cancel'), t('trash.restoreAllCropped')]
+
   const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
     type: 'question',
-    buttons: [t('trash.cancel'), t('trash.restoreAllCropped')],
-    defaultId: 0,
+    buttons,
+    defaultId: 1,
     cancelId: 0,
     title: t('trash.restoreAllCropped'),
     message: t('trash.confirmRestoreAllCropped'),
   })
-  if (confirmed?.response !== 1) return
+  if (confirmed?.response !== 1 && confirmed?.response !== 2) return
 
-  const summary = await restoreAllCroppedInFolder()
+  const summary = confirmed.response === 2
+    ? await restoreAutoCroppedInFolder()
+    : await restoreAllCroppedInFolder()
   await window.electronAPI.dialog?.showMessageBox?.({
     type: 'info',
     buttons: ['OK'],
@@ -1402,42 +1405,45 @@ const handleRestoreAllCropped = async () => {
   })
 }
 
-const handleRestoreAutoCropped = async () => {
-  showRestoreMenu.value = false
-  if (!hasAutoCroppedInCurrentFolder.value) return
-
-  const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
-    type: 'question',
-    buttons: [t('trash.cancel'), t('trash.restoreAutoCropped')],
-    defaultId: 0,
-    cancelId: 0,
-    title: t('trash.restoreAutoCropped'),
-    message: t('trash.confirmRestoreAutoCropped'),
-  })
-  if (confirmed?.response !== 1) return
-
-  const summary = await restoreAutoCroppedInFolder()
-  await window.electronAPI.dialog?.showMessageBox?.({
-    type: 'info',
-    buttons: ['OK'],
-    title: t('trash.restoreAutoCropped'),
-    message: t('trash.restoreAutoCroppedSummary', summary),
-  })
+const toggleRestoreMenu = () => {
+  showRestoreMenu.value = !showRestoreMenu.value
+  if (showRestoreMenu.value) {
+    showAutoCropMenu.value = false
+    showRemoveDuplicatesMenu.value = false
+  }
 }
 
-const handleGlobalClickForRestoreMenu = (event: MouseEvent) => {
-  if (!showRestoreMenu.value) return
+const toggleAutoCropMenu = () => {
+  showAutoCropMenu.value = !showAutoCropMenu.value
+  if (showAutoCropMenu.value) {
+    showRestoreMenu.value = false
+    showRemoveDuplicatesMenu.value = false
+  }
+}
+
+const toggleRemoveDuplicatesMenu = () => {
+  showRemoveDuplicatesMenu.value = !showRemoveDuplicatesMenu.value
+  if (showRemoveDuplicatesMenu.value) {
+    showRestoreMenu.value = false
+    showAutoCropMenu.value = false
+  }
+}
+
+const handleGlobalClickForActionMenus = (event: MouseEvent) => {
+  if (!showRestoreMenu.value && !showAutoCropMenu.value && !showRemoveDuplicatesMenu.value) return
   const target = event.target as HTMLElement | null
-  if (target?.closest('.restore-split')) return
+  if (target?.closest('.action-split')) return
   showRestoreMenu.value = false
+  showAutoCropMenu.value = false
+  showRemoveDuplicatesMenu.value = false
 }
 
 onMounted(() => {
-  document.addEventListener('click', handleGlobalClickForRestoreMenu)
+  document.addEventListener('click', handleGlobalClickForActionMenus)
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', handleGlobalClickForRestoreMenu)
+  document.removeEventListener('click', handleGlobalClickForActionMenus)
 })
 
 const confirmClearTrash = async () => {
@@ -1518,7 +1524,7 @@ onBeforeUnmount(() => {
 .actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .back-btn,
@@ -1576,7 +1582,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 12px;
+  padding: 6px 10px;
   border: none;
   border-radius: 4px;
   color: white;
@@ -1603,6 +1609,14 @@ onBeforeUnmount(() => {
   background-color: #236341;
 }
 
+.auto-crop-btn {
+  background-color: #007acc;
+}
+
+.auto-crop-btn:hover:not(:disabled) {
+  background-color: #006bb3;
+}
+
 .clear-btn {
   background-color: #6c757d;
 }
@@ -1611,10 +1625,18 @@ onBeforeUnmount(() => {
   background-color: #5b646b;
 }
 
+.dedup-btn {
+  background-color: #9a6a14;
+}
+
+.dedup-btn:hover:not(:disabled) {
+  background-color: #81570f;
+}
+
 .delete-btn:disabled,
 .restore-btn:disabled,
 .clear-btn:disabled {
-  background-color: #ccc;
+  color: rgba(255, 255, 255, 0.55);
   cursor: not-allowed;
 }
 
@@ -1671,37 +1693,37 @@ onBeforeUnmount(() => {
   font-variant-numeric: tabular-nums;
 }
 
-.restore-split {
+.action-split {
   position: relative;
   display: inline-flex;
   align-items: stretch;
 }
 
-.restore-split-main {
+.action-split-main {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
 }
 
-.restore-split-toggle {
+.action-split-toggle {
   border-top-left-radius: 0;
   border-bottom-left-radius: 0;
   border-left: 1px solid rgba(255, 255, 255, 0.25);
-  padding: 0 8px;
+  padding: 0 7px;
   min-width: auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-.restore-split-open .restore-split-main {
+.action-split-open .action-split-main {
   border-bottom-left-radius: 0;
 }
 
-.restore-split-open .restore-split-toggle {
+.action-split-open .action-split-toggle {
   border-bottom-right-radius: 0;
 }
 
-.restore-split-menu {
+.action-split-menu {
   position: absolute;
   top: 100%;
   left: 0;
@@ -1714,9 +1736,38 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.restore-split-menu-item {
-  display: block;
+.action-split-auto-crop .action-split-menu {
+  background-color: #007acc;
+}
+
+.action-split-auto-crop .action-split-menu-item:hover:not(:disabled) {
+  background-color: #006bb3;
+}
+
+.action-split-dedup .action-split-menu {
+  background-color: #9a6a14;
+  box-sizing: border-box;
   width: 100%;
+  min-width: 0;
+}
+
+.action-split-dedup .action-split-menu-item:hover:not(:disabled) {
+  background-color: #81570f;
+}
+
+.action-split-dedup .action-split-menu-wide {
+  min-width: 0;
+}
+
+.action-split-menu-wide {
+  min-width: 260px;
+}
+
+.action-split-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 30px;
   text-align: left;
   background: transparent;
   border: none;
@@ -1725,32 +1776,57 @@ onBeforeUnmount(() => {
   color: #ffffff;
 }
 
-.restore-split-menu-item:hover:not(:disabled) {
+.action-split-menu-item + .action-split-menu-item {
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.action-split-menu-item:hover:not(:disabled) {
   background-color: #236341;
 }
 
-.restore-split-menu-item:disabled {
+.action-split-menu-item:disabled {
   color: rgba(255, 255, 255, 0.5);
   cursor: not-allowed;
 }
 
-.restore-split-menu-title {
+.action-split-menu-title {
   font-size: 11px;
   font-weight: 500;
-  line-height: 1.3;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
-.restore-split-menu-hint {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.75);
-  margin-top: 1px;
-  line-height: 1.3;
+.action-split-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 6px 10px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.restore-split-menu-divider {
-  height: 1px;
-  margin: 2px 8px;
-  background-color: rgba(255, 255, 255, 0.25);
+.action-split-checkbox:hover {
+  background-color: #81570f;
+}
+
+.action-split-checkbox input {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #007acc;
+  cursor: pointer;
+}
+
+.action-split-checkbox span {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .content-area {
