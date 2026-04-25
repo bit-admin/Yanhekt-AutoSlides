@@ -3,7 +3,7 @@ import Bottleneck from 'bottleneck';
 import { app } from 'electron';
 import { ConfigService } from './configService';
 
-const DEBUG = false;
+const DEBUG = true;
 
 const debugLog = (...args: unknown[]) => {
   if (DEBUG) console.log('[LLM:DEBUG]', ...args);
@@ -106,6 +106,12 @@ const RATE_LIMIT_RETRY_BASE_MS = 2000;   // 2s base
 const RATE_LIMIT_RETRY_MAX_MS = 30000;   // cap single backoff at 30s
 const RATE_LIMIT_RETRY_JITTER_MS = 500;  // random jitter added to each backoff
 
+// Some OpenAI-compatible gateways return HTTP 200 with `choices:null` and zero
+// usage when the selected model cannot produce a response. Retry once for a
+// transient provider hiccup; ModelScope chain handling can then try the next model.
+const EMPTY_CHOICES_RETRY_MAX = 1;
+const EMPTY_CHOICES_RETRY_DELAY_MS = 1500;
+
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -144,6 +150,33 @@ function hasEmbeddedError(data: unknown): string | null {
     if (typeof msg === 'string' && msg.length > 0) return msg;
   }
   return null;
+}
+
+function isEmptyChoicesResponse(data: unknown): boolean {
+  if (!data || typeof data !== 'object') return false;
+  const response = data as {
+    choices?: unknown;
+    usage?: { total_tokens?: unknown; completion_tokens?: unknown; prompt_tokens?: unknown };
+    object?: unknown;
+    created?: unknown;
+  };
+  const usage = response.usage;
+  const zeroUsage =
+    usage &&
+    usage.total_tokens === 0 &&
+    usage.completion_tokens === 0 &&
+    usage.prompt_tokens === 0;
+  return response.choices == null && (zeroUsage || response.object === '' || response.created === 0);
+}
+
+function isEmptyChoicesError(error: LLMError): boolean {
+  return (
+    error.kind === 'parse_failed' &&
+    (
+      error.message.includes('choices:null') ||
+      /"choices"\s*:\s*null/.test(error.rawProviderMessage || '')
+    )
+  );
 }
 
 export class LLMApiService {
@@ -325,6 +358,7 @@ export class LLMApiService {
 
       const data = response.data as ChatCompletionResponse | undefined;
       const embeddedError = hasEmbeddedError(data);
+      const emptyChoicesResponse = isEmptyChoicesResponse(data);
       const choicesMissing =
         !data ||
         typeof data !== 'object' ||
@@ -343,7 +377,9 @@ export class LLMApiService {
           error: {
             kind: 'parse_failed',
             status: response.status,
-            message: embeddedError || 'Response missing choices array',
+            message: embeddedError || (emptyChoicesResponse
+              ? 'Provider returned empty choices (choices:null)'
+              : 'Response missing choices array'),
             modelAttempted: model,
             rawProviderMessage:
               typeof data === 'string' ? data : JSON.stringify(data ?? null)
@@ -394,14 +430,21 @@ export class LLMApiService {
 
         const kind = result.error.kind;
         const isTransientRateLimit = kind === 'rate_limited' || kind === 'upstream_rate_limited';
-        if (!isTransientRateLimit || attempt >= RATE_LIMIT_RETRY_MAX) {
+        const isRetryableEmptyChoices = isEmptyChoicesError(result.error);
+        const retryMax = isTransientRateLimit
+          ? RATE_LIMIT_RETRY_MAX
+          : (isRetryableEmptyChoices ? EMPTY_CHOICES_RETRY_MAX : 0);
+
+        if (attempt >= retryMax) {
           return { ok: result.ok, error: result.error } as LLMResult<ChatCompletionResponse>;
         }
 
         attempt += 1;
-        const delay = computeBackoffMs(attempt, result.retryAfterMs ?? null);
+        const delay = isTransientRateLimit
+          ? computeBackoffMs(attempt, result.retryAfterMs ?? null)
+          : EMPTY_CHOICES_RETRY_DELAY_MS + Math.floor(Math.random() * RATE_LIMIT_RETRY_JITTER_MS);
         console.log(
-          `[LLM] ${kind} on ${model} — retry ${attempt}/${RATE_LIMIT_RETRY_MAX} in ${delay}ms` +
+          `[LLM] ${isRetryableEmptyChoices ? 'empty_choices' : kind} on ${model} — retry ${attempt}/${retryMax} in ${delay}ms` +
             (result.retryAfterMs != null ? ` (Retry-After honored)` : '')
         );
         await sleep(delay);
@@ -489,7 +532,8 @@ export class LLMApiService {
 
   /**
    * Iterate through a model list, trying each one. On quota_exceeded, mark the model exhausted
-   * for this session and try the next. On any other error, return immediately (don't cycle).
+   * for this session and try the next. ModelScope empty-choices responses also advance to
+   * the next model for this request, but are not marked session-exhausted.
    *
    * Single-model lists behave identically to makeChatCompletionRequest — no chain logic applies.
    */
@@ -528,7 +572,11 @@ export class LLMApiService {
         console.warn(`[LLM] Model quota exceeded, trying next in chain: ${model}`);
         continue;
       }
-      // Non-quota errors don't benefit from trying a different model — fail fast.
+      if (providerId === 'modelscope' && isEmptyChoicesError(result.error)) {
+        console.warn(`[LLM] Model returned empty choices, trying next in chain: ${model}`);
+        continue;
+      }
+      // Other errors don't benefit from trying a different model — fail fast.
       return result;
     }
 

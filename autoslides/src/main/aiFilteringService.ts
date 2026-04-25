@@ -12,7 +12,7 @@ import {
 } from './llmApiService';
 import { app } from 'electron';
 
-const DEBUG = false;
+const DEBUG = true;
 
 const debugLog = (...args: unknown[]) => {
   if (DEBUG) console.log('[AI:DEBUG]', ...args);
@@ -211,10 +211,13 @@ export class AIFilteringService {
    * regex matching while also exposing the typed `errorKind`.
    */
   private toFailureResult(error: LLMError): AIFilteringResult {
+    const detail = error.kind === 'parse_failed'
+      ? error.message
+      : (error.rawProviderMessage || error.message);
     const message = error.status
-      ? `HTTP ${error.status}: ${error.rawProviderMessage || error.message}`
+      ? `HTTP ${error.status}: ${detail}`
       : error.message;
-    return { success: false, error: message, errorKind: error.kind };
+    return { success: false, error: message, errorKind: error.kind, modelUsed: error.modelAttempted };
   }
 
   async classifySingleImage(
