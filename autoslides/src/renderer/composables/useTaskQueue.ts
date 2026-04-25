@@ -310,8 +310,6 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
         }
       }
 
-      await waitForVideoReady()
-
       const isScreenRecordingSelected = playbackData.value?.streams[selectedStream.value]?.type === 'screen'
       if (!isScreenRecordingSelected) {
         const screenStreamKey = Object.keys(playbackData.value?.streams || {}).find(
@@ -326,6 +324,8 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
           throw new Error('Screen recording not available for task resume')
         }
       }
+
+      await waitForVideoReady()
 
       if (videoPlayer.value && mode === 'recorded') {
         currentPlaybackRate.value = taskSpeed.value

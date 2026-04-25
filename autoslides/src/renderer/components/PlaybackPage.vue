@@ -66,9 +66,12 @@
           <span class="detail-label">{{ $t('playback.duration') }}</span>
           <span class="detail-value">{{ formatDuration(playbackData.duration) }}</span>
         </div>
-        <div class="course-detail-item" v-if="currentStreamData">
+        <div class="course-detail-item" v-if="currentStreamData || isDualStreamSelected">
           <span class="detail-label">{{ $t('playback.currentStream') }}</span>
-          <span class="detail-value">{{ currentStreamData.name }} ({{ currentStreamData.type === 'camera' ? $t('playback.cameraView') : $t('playback.screenRecording') }})</span>
+          <span v-if="isDualStreamSelected" class="detail-value">{{ $t('playback.bothStreams') }}</span>
+          <span v-else-if="currentStreamData" class="detail-value">
+            {{ currentStreamData.type === 'camera' ? $t('playback.streamCamera') : currentStreamData.type === 'screen' ? $t('playback.streamScreen') : currentStreamData.name }}
+          </span>
         </div>
       </div>
     </div>
@@ -144,9 +147,12 @@
         <div class="controls-row">
           <div v-if="Object.keys(playbackData.streams).length > 1" class="stream-selector">
             <label>{{ $t('playback.selectStream') }}</label>
-            <select v-model="selectedStream" @change="switchStream" :disabled="shouldDisableControls || isSlideExtractionEnabled">
+            <select v-model="selectedStream" @change="switchStream" :disabled="shouldDisableControls">
+              <option v-if="hasDualStreams" :value="DUAL_STREAM_KEY">
+                {{ $t('playback.bothStreams') }}
+              </option>
               <option v-for="(stream, key) in playbackData.streams" :key="key" :value="key">
-                {{ stream.name }}
+                {{ stream.type === 'camera' ? $t('playback.streamCamera') : stream.type === 'screen' ? $t('playback.streamScreen') : stream.name }}
               </option>
             </select>
           </div>
@@ -160,7 +166,7 @@
           </div>
 
           <!-- Picture in Picture Toggle -->
-          <div class="pip-control">
+          <div v-if="!isDualStreamSelected" class="pip-control">
             <button
               class="pip-button"
               @click="togglePictureInPicture"
@@ -177,7 +183,12 @@
         </div>
 
         <!-- Video Player -->
-        <div class="video-container" :class="{ 'collapsed': isVideoContainerCollapsed }" :data-pip-message="$t('playback.videoPlayingInPiP')">
+        <div
+          v-if="!isDualStreamSelected"
+          class="video-container"
+          :class="{ 'collapsed': isVideoContainerCollapsed }"
+          :data-pip-message="$t('playback.videoPlayingInPiP')"
+        >
           <video
             ref="videoPlayer"
             class="video-player"
@@ -210,8 +221,193 @@
           </div>
         </div>
 
+        <div
+          v-else
+          ref="dualVideoContainer"
+          class="dual-playback-shell"
+          :class="{ 'is-fullscreen': isDualFullscreen }"
+        >
+          <div class="video-container dual-video-container">
+            <div class="dual-video-grid">
+              <div class="dual-video-panel" :style="{ order: cameraPanelOrder }">
+                <div class="dual-video-label">{{ $t('playback.streamCamera') }}</div>
+                <video
+                  ref="cameraVideoPlayer"
+                  class="dual-video-player"
+                  preload="metadata"
+                  playsinline
+                  @timeupdate="onDualTimeUpdate"
+                  @play="handleDualPlayStateChanged"
+                  @pause="handleDualPlayStateChanged"
+                  @ended="onDualEnded"
+                  @volumechange="preventDualUnmute"
+                >
+                  {{ $t('playback.browserNotSupported') }}
+                </video>
+              </div>
+              <div class="dual-video-panel" :style="{ order: screenPanelOrder }">
+                <div class="dual-video-label">{{ $t('playback.streamScreen') }}</div>
+                <video
+                  ref="screenVideoPlayer"
+                  class="dual-video-player"
+                  preload="metadata"
+                  playsinline
+                  @timeupdate="onDualTimeUpdate"
+                  @play="handleDualPlayStateChanged"
+                  @pause="handleDualPlayStateChanged"
+                  @ended="onDualEnded"
+                  @volumechange="preventDualUnmute"
+                >
+                  {{ $t('playback.browserNotSupported') }}
+                </video>
+              </div>
+            </div>
+
+            <div v-if="shouldVideoMute" class="mute-indicator">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
+                <line x1="23" y1="9" x2="17" y2="15"/>
+                <line x1="17" y1="9" x2="23" y2="15"/>
+              </svg>
+              <span>{{ $t(globalMuteModeLabelKey) }}</span>
+            </div>
+
+            <div v-if="isRetrying" class="retry-indicator">
+              <div class="retry-spinner"></div>
+              <span>{{ retryMessage }}</span>
+            </div>
+          </div>
+
+          <div class="dual-controls-section">
+            <div class="dual-controls-main-row">
+              <div class="dual-controls-left">
+                <button
+                  class="dual-icon-button"
+                  @click="toggleDualPlaybackControl"
+                  :disabled="shouldDisableControls"
+                  :title="isPlaying ? $t('playback.dual.pause') : $t('playback.dual.play')"
+                >
+                  <svg v-if="!isPlaying" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <polygon points="8,5 19,12 8,19"/>
+                  </svg>
+                  <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <rect x="6" y="5" width="4" height="14"/>
+                    <rect x="14" y="5" width="4" height="14"/>
+                  </svg>
+                </button>
+
+                <span class="dual-time">{{ formatPlaybackTime(dualCurrentTime) }} / {{ dualCanSeek ? formatPlaybackTime(dualDuration) : $t('playback.dual.live') }}</span>
+              </div>
+
+              <div class="dual-controls-right">
+                <div class="dual-popover-anchor">
+                  <button
+                    class="dual-icon-button"
+                    @click="toggleDualAudioPanel"
+                    :disabled="shouldDisableControls || shouldVideoMute"
+                    :title="$t('playback.dual.audioSource')"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                    </svg>
+                  </button>
+                  <div v-if="showDualAudioPanel" class="dual-popover dual-audio-popover">
+                    <button
+                      class="dual-popover-option"
+                      :class="{ active: dualAudioSource === 'screen' }"
+                      @click="setDualAudio('screen')"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <polyline v-if="dualAudioSource === 'screen'" points="20,6 9,17 4,12"/>
+                        <rect v-else x="4" y="5" width="16" height="10" rx="2"/>
+                        <path v-if="dualAudioSource !== 'screen'" d="M8 19h8"/>
+                        <path v-if="dualAudioSource !== 'screen'" d="M12 15v4"/>
+                      </svg>
+                      <span>{{ $t('playback.dual.screenAudio') }}</span>
+                    </button>
+                    <button
+                      class="dual-popover-option"
+                      :class="{ active: dualAudioSource === 'camera' }"
+                      @click="setDualAudio('camera')"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <polyline v-if="dualAudioSource === 'camera'" points="20,6 9,17 4,12"/>
+                        <path v-else d="M23 7l-7 5 7 5V7z"/>
+                        <rect v-if="dualAudioSource !== 'camera'" x="1" y="5" width="15" height="14" rx="2"/>
+                      </svg>
+                      <span>{{ $t('playback.dual.cameraAudio') }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  class="dual-icon-button"
+                  @click="toggleDualFullscreen"
+                  :disabled="shouldDisableControls"
+                  :title="isDualFullscreen ? $t('playback.dual.exitFullscreen') : $t('playback.dual.fullscreen')"
+                >
+                  <svg v-if="!isDualFullscreen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+                    <path d="M16 3h3a2 2 0 0 1 2 2v3"/>
+                    <path d="M8 21H5a2 2 0 0 1-2-2v-3"/>
+                    <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                  </svg>
+                  <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3"/>
+                    <path d="M16 3v3a2 2 0 0 0 2 2h3"/>
+                    <path d="M8 21v-3a2 2 0 0 0-2-2H3"/>
+                    <path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
+                  </svg>
+                </button>
+
+                <div class="dual-popover-anchor">
+                  <button
+                    class="dual-icon-button"
+                    @click="toggleDualMorePanel"
+                    :disabled="shouldDisableControls"
+                    :title="$t('playback.dual.moreOptions')"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <circle cx="12" cy="5" r="2"/>
+                      <circle cx="12" cy="12" r="2"/>
+                      <circle cx="12" cy="19" r="2"/>
+                    </svg>
+                  </button>
+                  <div v-if="showDualMorePanel" class="dual-popover dual-more-popover">
+                    <button class="dual-popover-option" @click="toggleDualStreamOrder">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M7 7h11l-4-4"/>
+                        <path d="M17 17H6l4 4"/>
+                      </svg>
+                      <span>{{ $t('playback.dual.swapOrder') }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <input
+              class="dual-seek"
+              type="range"
+              min="0"
+              :max="dualDuration || 0"
+              step="0.1"
+              :value="dualCurrentTime"
+              :style="{ '--dual-progress': dualSeekProgress }"
+              :disabled="shouldDisableControls || !dualCanSeek"
+              @input="onDualSeekInput"
+            />
+
+            <span v-if="shouldVideoMute" class="dual-mute-status">
+              {{ $t('playback.dual.globalMuteStatus', { mode: $t(globalMuteModeLabelKey) }) }}
+            </span>
+          </div>
+        </div>
+
         <!-- Slide Gallery -->
-        <div v-if="isScreenRecordingSelected" class="slide-gallery">
+        <div v-if="isScreenRecordingSelected && !isDualStreamSelected" class="slide-gallery">
           <div class="gallery-header">
             <!-- Slide Extraction Controls -->
             <div class="slide-extraction-control">
@@ -458,7 +654,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'vue'
-import { useVideoPlayer } from '../composables/useVideoPlayer'
+import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '../composables/useVideoPlayer'
 import { useSlideExtraction, type Course, type Session } from '../composables/useSlideExtraction'
 import { usePostProcessing } from '../composables/usePostProcessing'
 import { useTaskQueue } from '../composables/useTaskQueue'
@@ -488,6 +684,11 @@ const showDetails = ref(false)
 const isPictureInPicture = ref(false)
 const isVideoContainerCollapsed = ref(false)
 const showMorePlaybackSpeed = ref(false)
+const dualVideoContainer = ref<HTMLElement | null>(null)
+const isDualOrderSwapped = ref(false)
+const isDualFullscreen = ref(false)
+const showDualAudioPanel = ref(false)
+const showDualMorePanel = ref(false)
 
 const defaultPlaybackRates = [1, 2, 5, 10, 16]
 const allPlaybackRates = [0.5, 0.75, 0.8, 0.9, 1, 1.1, 1.15, 1.2, 1.25, 1.5, 1.75, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
@@ -534,6 +735,8 @@ watch(videoPlayerComposable.currentPlaybackRate, (newRate) => {
 
 // Expose videoPlayer ref for template binding
 const videoPlayer = videoPlayerComposable.videoPlayer
+const cameraVideoPlayer = videoPlayerComposable.cameraVideoPlayer
+const screenVideoPlayer = videoPlayerComposable.screenVideoPlayer
 
 // Initialize post-processing composable
 const postProcessing = usePostProcessing({
@@ -576,11 +779,44 @@ const performanceOptimization = usePerformanceOptimization({
 })
 
 // Expose state from composables for template
-const { loading, error, playbackData, selectedStream, isPlaying, currentPlaybackRate, muteMode, isRetrying, retryMessage, shouldVideoMute, isScreenRecordingSelected, currentStreamData, showSpeedWarning } = videoPlayerComposable
+const {
+  loading,
+  error,
+  playbackData,
+  selectedStream,
+  isPlaying,
+  currentPlaybackRate,
+  muteMode,
+  isRetrying,
+  retryMessage,
+  shouldVideoMute,
+  isScreenRecordingSelected,
+  isDualStreamSelected,
+  hasDualStreams,
+  currentStreamData,
+  dualAudioSource,
+  dualCurrentTime,
+  dualDuration,
+  dualCanSeek,
+  showSpeedWarning
+} = videoPlayerComposable
 const { isSlideExtractionEnabled, extractedSlides } = slideExtraction
 const { isPostProcessing, postProcessStatus, aiFilteringError } = postProcessing
 const { isTaskRunning, shouldDisableControls } = taskQueue
 const { selectedSlide } = slideGallery
+
+const cameraPanelOrder = computed(() => isDualOrderSwapped.value ? 2 : 1)
+const screenPanelOrder = computed(() => isDualOrderSwapped.value ? 1 : 2)
+const globalMuteModeLabelKey = computed(() => {
+  if (muteMode.value === 'mute_live') return 'playback.liveMuted'
+  if (muteMode.value === 'mute_recorded') return 'playback.recordedMuted'
+  return 'playback.mutedByApp'
+})
+const dualSeekProgress = computed(() => {
+  if (!dualCanSeek.value || dualDuration.value <= 0) return '0%'
+  const progress = (dualCurrentTime.value / dualDuration.value) * 100
+  return `${Math.min(100, Math.max(0, progress))}%`
+})
 
 // Methods exposed to template
 const goBack = () => emit('back')
@@ -618,10 +854,105 @@ const onLeavePictureInPicture = () => {
 }
 
 // Delegate methods to composables
-const { switchStream, changePlaybackRate, retryLoad, onLoadStart, onLoadedMetadata, onVideoError, onCanPlay, onEnded, preventUnmute } = videoPlayerComposable
+const {
+  switchStream,
+  changePlaybackRate,
+  retryLoad,
+  onLoadStart,
+  onLoadedMetadata,
+  onVideoError,
+  onCanPlay,
+  onEnded,
+  preventUnmute,
+  toggleDualPlayback,
+  seekDualStreams,
+  setDualAudioSource,
+  applyDualAudioState,
+  onDualTimeUpdate,
+  onDualPlayStateChanged,
+  onDualEnded,
+  preventDualUnmute
+} = videoPlayerComposable
 const { toggleSlideExtraction } = slideExtraction
 const { executePostProcessing, dismissAIError } = postProcessing
 const { openSlideModal, closeSlideModal, deleteSlide, clearAllSlides, formatSlideTime } = slideGallery
+
+const toggleDualPlaybackControl = async () => {
+  await toggleDualPlayback()
+  if (isPlaying.value) {
+    performanceOptimization.requestWakeLock()
+    performanceOptimization.requestPowerManagement()
+    if (shouldVideoMute.value) {
+      performanceOptimization.startSilentAudio()
+    }
+  } else {
+    performanceOptimization.releaseWakeLock()
+    performanceOptimization.releasePowerManagement()
+    performanceOptimization.stopSilentAudio()
+  }
+}
+
+const handleDualPlayStateChanged = () => {
+  const wasPlaying = isPlaying.value
+  onDualPlayStateChanged()
+
+  if (!wasPlaying && isPlaying.value) {
+    performanceOptimization.requestWakeLock()
+    performanceOptimization.requestPowerManagement()
+    if (shouldVideoMute.value) {
+      performanceOptimization.startSilentAudio()
+    }
+  } else if (wasPlaying && !isPlaying.value) {
+    performanceOptimization.releaseWakeLock()
+    performanceOptimization.releasePowerManagement()
+    performanceOptimization.stopSilentAudio()
+  }
+}
+
+const onDualSeekInput = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  seekDualStreams(Number(target.value))
+}
+
+const setDualAudio = (source: DualAudioSource) => {
+  setDualAudioSource(source)
+  showDualAudioPanel.value = false
+}
+
+const toggleDualStreamOrder = () => {
+  isDualOrderSwapped.value = !isDualOrderSwapped.value
+  showDualMorePanel.value = false
+}
+
+const toggleDualAudioPanel = () => {
+  if (shouldVideoMute.value) return
+  showDualAudioPanel.value = !showDualAudioPanel.value
+  if (showDualAudioPanel.value) {
+    showDualMorePanel.value = false
+  }
+}
+
+const toggleDualMorePanel = () => {
+  showDualMorePanel.value = !showDualMorePanel.value
+  if (showDualMorePanel.value) {
+    showDualAudioPanel.value = false
+  }
+}
+
+const toggleDualFullscreen = async () => {
+  const container = dualVideoContainer.value
+  if (!container) return
+
+  try {
+    if (document.fullscreenElement === container) {
+      await document.exitFullscreen()
+    } else {
+      await container.requestFullscreen()
+    }
+  } catch (error) {
+    console.error('Error toggling dual fullscreen:', error)
+  }
+}
 
 // Utility functions
 const formatDate = (dateString: string): string => {
@@ -643,6 +974,21 @@ const formatDuration = (duration: string | number): string => {
     return `${hours}h ${minutes}m ${secs}s`
   }
   return `${minutes}m ${secs}s`
+}
+
+const formatPlaybackTime = (duration: string | number): string => {
+  const totalSeconds = Math.max(0, Math.floor(typeof duration === 'string' ? parseInt(duration) : duration))
+  if (isNaN(totalSeconds)) return '0:00'
+
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+  }
+
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
 // Track last playback position for error display
@@ -747,7 +1093,7 @@ watch(() => videoPlayer.value, (newPlayer) => {
     }
 
     // If we have stream data ready, load it now
-    if (currentStreamData.value && playbackData.value) {
+    if (currentStreamData.value && playbackData.value && !isDualStreamSelected.value) {
       nextTick(() => {
         videoPlayerComposable.loadVideoSource()
       })
@@ -757,7 +1103,7 @@ watch(() => videoPlayer.value, (newPlayer) => {
 
 // Watch for stream data changes
 watch(() => currentStreamData.value, (newStreamData) => {
-  if (newStreamData && videoPlayer.value && playbackData.value) {
+  if (newStreamData && videoPlayer.value && playbackData.value && !isDualStreamSelected.value) {
     nextTick(() => {
       videoPlayerComposable.loadVideoSource()
     })
@@ -766,6 +1112,20 @@ watch(() => currentStreamData.value, (newStreamData) => {
 
 // Watch for mute mode changes
 watch(shouldVideoMute, (shouldMute) => {
+  if (shouldMute) {
+    showDualAudioPanel.value = false
+  }
+
+  if (isDualStreamSelected.value) {
+    applyDualAudioState()
+    if (shouldMute) {
+      performanceOptimization.startSilentAudio()
+    } else {
+      performanceOptimization.stopSilentAudio()
+    }
+    return
+  }
+
   if (videoPlayer.value) {
     videoPlayer.value.volume = shouldMute ? 0 : 1
     if (shouldMute) {
@@ -786,6 +1146,24 @@ watch(isScreenRecordingSelected, (isScreenRecording) => {
       slideExtraction.slideExtractorInstance.value.stopExtraction()
     }
     slideExtraction.slideExtractionStatus.value.isRunning = false
+  }
+})
+
+watch(isDualStreamSelected, async (isDual) => {
+  if (isDual && isSlideExtractionEnabled.value) {
+    slideExtraction.isSlideExtractionEnabled.value = false
+    if (slideExtraction.slideExtractorInstance.value) {
+      slideExtraction.slideExtractorInstance.value.stopExtraction()
+    }
+    slideExtraction.slideExtractionStatus.value.isRunning = false
+  }
+
+  if (isDual) {
+    await nextTick()
+    applyDualAudioState()
+  } else {
+    showDualAudioPanel.value = false
+    showDualMorePanel.value = false
   }
 })
 
@@ -831,6 +1209,10 @@ const onSlidesCleared = (event: CustomEvent) => {
   }
 }
 
+const onFullscreenChange = () => {
+  isDualFullscreen.value = document.fullscreenElement === dualVideoContainer.value
+}
+
 // Lifecycle
 onMounted(async () => {
   // Register video proxy client
@@ -851,6 +1233,7 @@ onMounted(async () => {
   window.addEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.addEventListener('slidesCleared', onSlidesCleared as EventListener)
   window.addEventListener('showMorePlaybackSpeedChanged', onShowMorePlaybackSpeedChanged as EventListener)
+  document.addEventListener('fullscreenchange', onFullscreenChange)
   taskQueue.setupEventListeners()
   performanceOptimization.setupEventListeners()
 
@@ -872,6 +1255,7 @@ onUnmounted(async () => {
   window.removeEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.removeEventListener('slidesCleared', onSlidesCleared as EventListener)
   window.removeEventListener('showMorePlaybackSpeedChanged', onShowMorePlaybackSpeedChanged as EventListener)
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
   taskQueue.removeEventListeners()
 
   // Clean up performance optimization
@@ -1380,6 +1764,277 @@ onUnmounted(async () => {
   height: auto;
   min-height: 400px;
   display: block;
+}
+
+.dual-playback-shell {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.dual-video-container {
+  min-height: 400px;
+}
+
+.dual-video-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1px;
+  background-color: #111;
+  min-height: 400px;
+}
+
+.dual-video-panel {
+  position: relative;
+  min-width: 0;
+  background-color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dual-video-label {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.65);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.dual-video-player {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  object-fit: contain;
+  display: block;
+  background-color: #000;
+}
+
+.dual-playback-shell:fullscreen {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+}
+
+.dual-playback-shell:fullscreen .dual-video-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.dual-playback-shell:fullscreen .dual-video-grid {
+  flex: 1;
+  min-height: 0;
+}
+
+.dual-playback-shell:fullscreen .dual-video-player {
+  min-height: 0;
+}
+
+.dual-playback-shell:fullscreen .dual-controls-section {
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 0;
+}
+
+.dual-controls-section {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 10px 7px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.58) 28%, rgba(0, 0, 0, 0.86) 100%);
+  border: none;
+  border-radius: 0;
+  color: #f5f5f5;
+}
+
+.dual-controls-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  height: 28px;
+}
+
+.dual-controls-left,
+.dual-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dual-controls-left {
+  flex: 1;
+}
+
+.dual-controls-right {
+  flex-shrink: 0;
+}
+
+.dual-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: #f5f5f5;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.dual-icon-button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.dual-icon-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dual-popover-anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dual-popover {
+  position: absolute;
+  right: 0;
+  bottom: 34px;
+  z-index: 40;
+  min-width: 168px;
+  padding: 6px;
+  border-radius: 6px;
+  background-color: rgba(28, 28, 28, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(8px);
+}
+
+.dual-popover-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dual-popover-option svg {
+  flex-shrink: 0;
+}
+
+.dual-popover-option:hover,
+.dual-popover-option.active {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.dual-audio-popover {
+  right: -42px;
+}
+
+.dual-time {
+  min-width: 92px;
+  font-size: 12px;
+  color: #f5f5f5;
+  text-align: left;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.dual-seek {
+  width: 100%;
+  height: 12px;
+  margin: 0;
+  appearance: none;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.dual-seek::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #f5f5f5 0%,
+    #f5f5f5 var(--dual-progress),
+    rgba(255, 255, 255, 0.34) var(--dual-progress),
+    rgba(255, 255, 255, 0.34) 100%
+  );
+}
+
+.dual-seek::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  margin-top: -3px;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.dual-seek::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.dual-seek::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: #f5f5f5;
+}
+
+.dual-seek::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: none;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.dual-seek:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dual-mute-status {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 12px;
+  padding-left: 4px;
 }
 
 /* Details toggle section */
@@ -2033,6 +2688,23 @@ onUnmounted(async () => {
     min-height: 250px;
   }
 
+  .dual-video-grid {
+    grid-template-columns: 1fr;
+    min-height: 250px;
+  }
+
+  .dual-video-player {
+    min-height: 220px;
+  }
+
+  .dual-controls-main-row {
+    height: auto;
+  }
+
+  .dual-seek {
+    min-width: 0;
+  }
+
   .gallery-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 12px;
@@ -2226,6 +2898,10 @@ onUnmounted(async () => {
 
   .video-container {
     border-color: #555;
+  }
+
+  .dual-mute-status {
+    color: rgba(255, 255, 255, 0.72);
   }
 
   .video-content .slide-gallery .slide-extraction-control {

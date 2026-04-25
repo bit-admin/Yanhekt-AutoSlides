@@ -464,6 +464,9 @@
     "currentStream": "当前流",
     "cameraView": "摄像头视角",
     "screenRecording": "屏幕录制",
+    "streamCamera": "摄像头视角",
+    "streamScreen": "屏幕录制",
+    "bothStreams": "同时观看",
     "loadingVideoStreams": "加载视频流中...",
     "lastPlayedPosition": "上次播放位置：",
     "networkProblems": "这可能是由于视频质量问题或网络问题导致的。建议下载此视频以供离线观看，避免播放中断。",
@@ -517,7 +520,20 @@
     "aiErrorUnknown": "AI 过滤失败：发生意外错误。请查看控制台获取详细信息。",
     "dismiss": "关闭",
     "videoPlayingInPiP": "视频正在画中画模式下播放。",
-    "refresh": "刷新"
+    "refresh": "刷新",
+    "dual": {
+      "play": "播放",
+      "pause": "暂停",
+      "live": "直播",
+      "audioSource": "音频来源",
+      "screenAudio": "屏幕录制音频",
+      "cameraAudio": "课堂摄像头音频",
+      "globalMuteStatus": "音频已被{mode}禁用",
+      "swapOrder": "交换顺序",
+      "fullscreen": "全屏",
+      "exitFullscreen": "退出全屏",
+      "moreOptions": "更多选项"
+    }
   },
   "sessions": {
     "backToCourses": "返回课程",

@@ -464,6 +464,9 @@
     "currentStream": "현재 스트림",
     "cameraView": "카메라 뷰",
     "screenRecording": "화면 녹화",
+    "streamCamera": "카메라 뷰",
+    "streamScreen": "화면 녹화",
+    "bothStreams": "두 스트림 모두",
     "loadingVideoStreams": "비디오 스트림 로딩 중...",
     "lastPlayedPosition": "마지막 재생 위치:",
     "networkProblems": "이는 비디오 품질 문제나 네트워크 문제 때문일 수 있습니다. 재생 중단을 피하기 위해 이 비디오를 오프라인 시청용으로 다운로드하는 것을 고려해보세요.",
@@ -517,7 +520,20 @@
     "aiErrorUnknown": "AI 필터링 실패: 예기치 않은 오류가 발생했습니다. 자세한 내용은 콘솔을 확인해주세요.",
     "dismiss": "닫기",
     "videoPlayingInPiP": "화면 속 화면 모드에서 비디오 재생 중",
-    "refresh": "새로고침"
+    "refresh": "새로고침",
+    "dual": {
+      "play": "재생",
+      "pause": "일시정지",
+      "live": "라이브",
+      "audioSource": "오디오 소스",
+      "screenAudio": "화면 녹화 오디오",
+      "cameraAudio": "카메라 오디오",
+      "globalMuteStatus": "{mode}로 인해 오디오가 비활성화됨",
+      "swapOrder": "순서 바꾸기",
+      "fullscreen": "전체 화면",
+      "exitFullscreen": "전체 화면 종료",
+      "moreOptions": "추가 옵션"
+    }
   },
   "sessions": {
     "backToCourses": "강의로 돌아가기",

@@ -464,6 +464,9 @@
     "currentStream": "現在のストリーム",
     "cameraView": "カメラビュー",
     "screenRecording": "画面録画",
+    "streamCamera": "カメラビュー",
+    "streamScreen": "画面録画",
+    "bothStreams": "両方のストリーム",
     "loadingVideoStreams": "ビデオストリームを読み込み中...",
     "lastPlayedPosition": "最後の再生位置：",
     "networkProblems": "これはビデオ品質の問題やネットワークの問題が原因の可能性があります。再生の中断を避けるため、このビデオをオフライン視聴用にダウンロードすることを検討してください",
@@ -517,7 +520,20 @@
     "aiErrorUnknown": "AIフィルタリング失敗：予期しないエラーが発生しました。詳細はコンソールを確認してください。",
     "dismiss": "閉じる",
     "videoPlayingInPiP": "ピクチャーインピクチャーモードでビデオを再生中",
-    "refresh": "更新"
+    "refresh": "更新",
+    "dual": {
+      "play": "再生",
+      "pause": "一時停止",
+      "live": "ライブ",
+      "audioSource": "音声ソース",
+      "screenAudio": "画面録画の音声",
+      "cameraAudio": "カメラの音声",
+      "globalMuteStatus": "{mode}により音声が無効です",
+      "swapOrder": "順序を入れ替え",
+      "fullscreen": "全画面",
+      "exitFullscreen": "全画面を終了",
+      "moreOptions": "その他のオプション"
+    }
   },
   "sessions": {
     "backToCourses": "コースに戻る",

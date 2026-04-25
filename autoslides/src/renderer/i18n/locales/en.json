@@ -464,6 +464,9 @@
     "currentStream": "Current Stream",
     "cameraView": "Camera View",
     "screenRecording": "Screen Recording",
+    "streamCamera": "Camera View",
+    "streamScreen": "Screen Recording",
+    "bothStreams": "Both Streams",
     "loadingVideoStreams": "Loading video streams...",
     "lastPlayedPosition": "Last played position:",
     "networkProblems": "This may be due to video quality issues or network problems. Consider downloading this video for offline viewing to avoid playback interruptions.",
@@ -517,7 +520,20 @@
     "aiErrorUnknown": "AI filtering failed: An unexpected error occurred. Please check the console for details.",
     "dismiss": "Dismiss",
     "videoPlayingInPiP": "Video playing in Picture in Picture mode",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "dual": {
+      "play": "Play",
+      "pause": "Pause",
+      "live": "Live",
+      "audioSource": "Audio Source",
+      "screenAudio": "Screen Audio",
+      "cameraAudio": "Camera Audio",
+      "globalMuteStatus": "Audio disabled by {mode}",
+      "swapOrder": "Swap Order",
+      "fullscreen": "Fullscreen",
+      "exitFullscreen": "Exit Fullscreen",
+      "moreOptions": "More Options"
+    }
   },
   "sessions": {
     "backToCourses": "Back to Courses",
