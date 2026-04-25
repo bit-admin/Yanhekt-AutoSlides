@@ -1014,6 +1014,7 @@
     "confirmDeleteTitle": "画像を削除",
     "confirmDelete": "{count}枚の画像をゴミ箱に移動しますか？",
     "cancel": "キャンセル",
+    "aspectRatio": "アスペクト比",
     "reduceSize": "サイズ縮小",
     "effortStandard": "標準",
     "effortCompact": "コンパクト",

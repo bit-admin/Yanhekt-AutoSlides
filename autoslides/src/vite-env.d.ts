@@ -771,6 +771,7 @@ interface ElectronAPI {
       folders: { name: string; path: string; images: string[] }[],
       options: {
         reduceEnabled: boolean;
+        aspectRatio?: '16:9' | '4:3';
         effort: 'standard' | 'compact' | 'minimal' | 'custom';
         customColors?: number | null;
         customWidth?: number | null;

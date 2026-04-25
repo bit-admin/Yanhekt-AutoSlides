@@ -18,6 +18,14 @@
       </div>
 
       <div class="toolbar-right">
+        <div class="config-item">
+          <label class="config-label">{{ $t('pdfmaker.aspectRatio') }}</label>
+          <select v-model="aspectRatio" class="custom-select">
+            <option value="16:9">16:9</option>
+            <option value="4:3">4:3</option>
+          </select>
+        </div>
+
         <label class="reduce-toggle">
           <input type="checkbox" v-model="reduceEnabled" />
           <span>{{ $t('pdfmaker.reduceSize') }}</span>
@@ -48,11 +56,7 @@
             <label class="config-label">{{ $t('pdfmaker.size') }}</label>
             <span v-if="reduceEffort !== 'custom'" class="config-value">{{ displaySize }}</span>
             <select v-else v-model="customSize" class="custom-select" :disabled="!reduceEnabled">
-              <option value="original">1920×1080</option>
-              <option value="1600x900">1600×900</option>
-              <option value="1280x720">1280×720</option>
-              <option value="960x540">960×540</option>
-              <option value="854x480">854×480</option>
+              <option v-for="opt in sizeOptions" :key="opt" :value="opt">{{ formatSizeOption(opt) }}</option>
             </select>
           </div>
         </div>
@@ -158,9 +162,11 @@ const {
   isLoading,
   useCustomOrder,
   reduceEnabled,
+  aspectRatio,
   reduceEffort,
   customColors,
   customSize,
+  sizeOptions,
   displaySize,
   isGenerating,
   generateProgress,
@@ -172,6 +178,11 @@ const {
   enableCustomOrder,
   makePdf,
 } = usePdfMaker()
+
+const formatSizeOption = (size: string) => {
+  const [w, h] = size.split('x')
+  return w && h ? `${w}×${h}` : size
+}
 
 const dragStartIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)

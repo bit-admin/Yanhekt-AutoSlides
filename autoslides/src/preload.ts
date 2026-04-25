@@ -329,6 +329,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     deleteImage: (imagePath: string) => ipcRenderer.invoke('pdfmaker:deleteImage', imagePath),
     makePdf: (folders: { name: string; path: string; images: string[] }[], options: {
       reduceEnabled: boolean;
+      aspectRatio?: '16:9' | '4:3';
       effort: 'standard' | 'compact' | 'minimal' | 'custom';
       customColors?: number | null;
       customWidth?: number | null;

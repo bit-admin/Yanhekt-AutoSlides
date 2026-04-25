@@ -1014,6 +1014,7 @@
     "confirmDeleteTitle": "删除图片",
     "confirmDelete": "将 {count} 张图片移至回收站？",
     "cancel": "取消",
+    "aspectRatio": "宽高比",
     "reduceSize": "减小文件大小",
     "effortStandard": "标准",
     "effortCompact": "紧凑",

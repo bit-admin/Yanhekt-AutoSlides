@@ -17,12 +17,31 @@ export interface FolderEntry {
   images: string[]
 }
 
+export type AspectRatio = '16:9' | '4:3'
+
 export interface PdfMakeOptions {
   reduceEnabled: boolean
+  aspectRatio: AspectRatio
   effort: 'standard' | 'compact' | 'minimal' | 'custom'
   customColors?: number | null
   customWidth?: number | null
   customHeight?: number | null
+}
+
+const SIZE_OPTIONS_16_9 = ['1920x1080', '1600x900', '1280x720', '960x540', '854x480']
+const SIZE_OPTIONS_4_3 = ['1440x1080', '1200x900', '960x720', '720x540', '640x480']
+
+const EFFORT_PRESETS: Record<AspectRatio, Record<string, { colors: number; size: string }>> = {
+  '16:9': {
+    standard: { colors: 128, size: '1280x720' },
+    compact: { colors: 64, size: '960x540' },
+    minimal: { colors: 16, size: '854x480' },
+  },
+  '4:3': {
+    standard: { colors: 128, size: '960x720' },
+    compact: { colors: 64, size: '720x540' },
+    minimal: { colors: 16, size: '640x480' },
+  },
 }
 
 export function usePdfMaker() {
@@ -33,26 +52,41 @@ export function usePdfMaker() {
   const isLoading = ref(false)
 
   const reduceEnabled = ref(true)
+  const aspectRatio = ref<AspectRatio>('16:9')
   const reduceEffort = ref<'standard' | 'compact' | 'minimal' | 'custom'>('standard')
   const customColors = ref<number | null>(128)
   const customSize = ref<string>('1280x720')
   const isGenerating = ref(false)
   const generateProgress = ref({ current: 0, total: 0 })
 
-  const EFFORT_PRESETS: Record<string, { colors: number; size: string }> = {
-    standard: { colors: 128, size: '1280x720' },
-    compact: { colors: 64, size: '960x540' },
-    minimal: { colors: 16, size: '854x480' },
-  }
+  const sizeOptions = computed(() =>
+    aspectRatio.value === '16:9' ? SIZE_OPTIONS_16_9 : SIZE_OPTIONS_4_3
+  )
 
   watch(reduceEffort, (newEffort) => {
     if (newEffort !== 'custom') {
-      const preset = EFFORT_PRESETS[newEffort]
+      const preset = EFFORT_PRESETS[aspectRatio.value][newEffort]
       if (preset) {
         customColors.value = preset.colors
         customSize.value = preset.size
       }
     }
+  })
+
+  watch(aspectRatio, (newRatio, oldRatio) => {
+    if (reduceEffort.value !== 'custom') {
+      const preset = EFFORT_PRESETS[newRatio][reduceEffort.value]
+      if (preset) {
+        customColors.value = preset.colors
+        customSize.value = preset.size
+      }
+      return
+    }
+
+    const sourceList = oldRatio === '16:9' ? SIZE_OPTIONS_16_9 : SIZE_OPTIONS_4_3
+    const targetList = newRatio === '16:9' ? SIZE_OPTIONS_16_9 : SIZE_OPTIONS_4_3
+    const idx = sourceList.indexOf(customSize.value)
+    customSize.value = idx >= 0 ? targetList[idx] : targetList[0]
   })
 
   let progressCleanup: (() => void) | null = null
@@ -77,14 +111,8 @@ export function usePdfMaker() {
   })
 
   const displaySize = computed(() => {
-    const sizeMap: Record<string, string> = {
-      original: '1920×1080',
-      '1600x900': '1600×900',
-      '1280x720': '1280×720',
-      '960x540': '960×540',
-      '854x480': '854×480',
-    }
-    return sizeMap[customSize.value] || customSize.value
+    const [w, h] = customSize.value.split('x')
+    return w && h ? `${w}×${h}` : customSize.value
   })
 
   async function loadFolders() {
@@ -137,10 +165,6 @@ export function usePdfMaker() {
   }
 
   function parseSize(size: string): { width: number; height: number } {
-    if (size === 'original') {
-      return { width: 1920, height: 1080 }
-    }
-
     const [width, height] = size.split('x').map(Number)
     return { width, height }
   }
@@ -168,6 +192,7 @@ export function usePdfMaker() {
   function buildPdfOptions(): PdfMakeOptions {
     const options: PdfMakeOptions = {
       reduceEnabled: reduceEnabled.value,
+      aspectRatio: aspectRatio.value,
       effort: reduceEffort.value,
     }
 
@@ -226,9 +251,11 @@ export function usePdfMaker() {
     isLoading,
     useCustomOrder,
     reduceEnabled,
+    aspectRatio,
     reduceEffort,
     customColors,
     customSize,
+    sizeOptions,
     displaySize,
     isGenerating,
     generateProgress,

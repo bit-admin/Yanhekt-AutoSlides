@@ -1014,6 +1014,7 @@
     "confirmDeleteTitle": "이미지 삭제",
     "confirmDelete": "{count}개의 이미지를 휴지통으로 이동하시겠습니까?",
     "cancel": "취소",
+    "aspectRatio": "화면 비율",
     "reduceSize": "크기 축소",
     "effortStandard": "표준",
     "effortCompact": "컴팩트",

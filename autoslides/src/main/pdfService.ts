@@ -8,12 +8,15 @@ import fs from 'fs';
 import PDFDocument from 'pdfkit';
 import { sharpService } from './sharpService';
 
+export type AspectRatio = '16:9' | '4:3';
+
 export interface PdfMakeOptions {
   reduceEnabled: boolean;
+  aspectRatio?: AspectRatio;
   effort: 'standard' | 'compact' | 'minimal' | 'custom';
-  customColors?: number | null;   // Original/256/128/64/32/16
-  customWidth?: number | null;    // Original (1920)/1600/1280/960/854
-  customHeight?: number | null;   // Original (1080)/900/720/540/480
+  customColors?: number | null;
+  customWidth?: number | null;
+  customHeight?: number | null;
 }
 
 export interface FolderEntry {
@@ -22,34 +25,48 @@ export interface FolderEntry {
   images: string[];  // Image paths sorted a-z
 }
 
-// Effort presets: { colors, width, height }
-const EFFORT_PRESETS: Record<string, { colors: number; width: number; height: number }> = {
-  standard: { colors: 128, width: 1280, height: 720 },
-  compact: { colors: 64, width: 960, height: 540 },
-  minimal: { colors: 16, width: 854, height: 480 },
+const EFFORT_PRESETS: Record<AspectRatio, Record<string, { colors: number; width: number; height: number }>> = {
+  '16:9': {
+    standard: { colors: 128, width: 1280, height: 720 },
+    compact: { colors: 64, width: 960, height: 540 },
+    minimal: { colors: 16, width: 854, height: 480 },
+  },
+  '4:3': {
+    standard: { colors: 128, width: 960, height: 720 },
+    compact: { colors: 64, width: 720, height: 540 },
+    minimal: { colors: 16, width: 640, height: 480 },
+  },
 };
 
-// Default page size (original image dimensions)
-const DEFAULT_PAGE_SIZE = { width: 1920, height: 1080 };
+const DEFAULT_PAGE_SIZE: Record<AspectRatio, { width: number; height: number }> = {
+  '16:9': { width: 1920, height: 1080 },
+  '4:3': { width: 1440, height: 1080 },
+};
 
 export class PdfService {
+  private getAspectRatio(options: PdfMakeOptions): AspectRatio {
+    return options.aspectRatio === '4:3' ? '4:3' : '16:9';
+  }
+
   /**
    * Get page size based on options
    */
   private getPageSize(options: PdfMakeOptions): { width: number; height: number } {
+    const ratio = this.getAspectRatio(options);
+    const defaultSize = DEFAULT_PAGE_SIZE[ratio];
+
     if (!options.reduceEnabled) {
-      return DEFAULT_PAGE_SIZE;
+      return defaultSize;
     }
 
     if (options.effort !== 'custom') {
-      const preset = EFFORT_PRESETS[options.effort];
+      const preset = EFFORT_PRESETS[ratio][options.effort];
       return { width: preset.width, height: preset.height };
     }
 
-    // Custom mode
     return {
-      width: options.customWidth || DEFAULT_PAGE_SIZE.width,
-      height: options.customHeight || DEFAULT_PAGE_SIZE.height,
+      width: options.customWidth || defaultSize.width,
+      height: options.customHeight || defaultSize.height,
     };
   }
 
@@ -65,8 +82,10 @@ export class PdfService {
       return { colors: null, width: null, height: null };
     }
 
+    const ratio = this.getAspectRatio(options);
+
     if (options.effort !== 'custom') {
-      const preset = EFFORT_PRESETS[options.effort];
+      const preset = EFFORT_PRESETS[ratio][options.effort];
       return {
         colors: preset.colors,
         width: preset.width,
@@ -74,7 +93,6 @@ export class PdfService {
       };
     }
 
-    // Custom mode
     return {
       colors: options.customColors || null,
       width: options.customWidth || null,

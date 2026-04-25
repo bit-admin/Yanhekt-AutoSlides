@@ -1014,6 +1014,7 @@
     "confirmDeleteTitle": "Delete Images",
     "confirmDelete": "Move {count} image(s) to trash?",
     "cancel": "Cancel",
+    "aspectRatio": "Aspect Ratio",
     "reduceSize": "Reduce Size",
     "effortStandard": "Standard",
     "effortCompact": "Compact",
