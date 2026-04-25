@@ -981,6 +981,25 @@ export function useResultsView() {
     }
   }
 
+  async function removeFolders(folderNames: string[]): Promise<{ removed: number; failed: number }> {
+    const summary = { removed: 0, failed: 0 }
+    if (!folderNames || folderNames.length === 0) return summary
+
+    isLoading.value = true
+    try {
+      const result = await window.electronAPI.trash.removeFolders(folderNames)
+      summary.removed = result.removed
+      summary.failed = result.failed
+      await refresh()
+    } catch (error) {
+      console.error('Failed to remove folders:', error)
+    } finally {
+      isLoading.value = false
+    }
+
+    return summary
+  }
+
   async function refreshPreviewByImagePath(imagePath: string): Promise<boolean> {
     if (!currentFolder.value) return false
 
@@ -1095,6 +1114,7 @@ export function useResultsView() {
     restoreAllCroppedInFolder,
     restoreAutoCroppedInFolder,
     clearTrash,
+    removeFolders,
     applyCropToImage,
     restoreCropFromImage,
     formatDate,

@@ -312,6 +312,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     restore: (ids: string[]) => ipcRenderer.invoke('trash:restore', ids),
     clear: () => ipcRenderer.invoke('trash:clear'),
     clearEntries: (ids: string[]) => ipcRenderer.invoke('trash:clearEntries', ids),
+    removeFolders: (folderNames: string[]) => ipcRenderer.invoke('trash:removeFolders', folderNames),
     getImageAsBase64: (trashPath: string) => ipcRenderer.invoke('trash:getImageAsBase64', trashPath),
   },
   crop: {

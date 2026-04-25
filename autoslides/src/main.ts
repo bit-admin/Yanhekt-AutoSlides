@@ -1844,6 +1844,17 @@ ipcMain.handle('trash:clearEntries', async (_event, ids: string[]) => {
   }
 });
 
+ipcMain.handle('trash:removeFolders', async (_event, folderNames: string[]) => {
+  try {
+    const outputDir = configService.getConfig().outputDirectory;
+    const result = await slideExtractionService.removeFolders(folderNames, outputDir);
+    return result;
+  } catch (error) {
+    console.error('Failed to remove result folders:', error);
+    throw error;
+  }
+});
+
 ipcMain.handle('trash:getImageAsBase64', async (_event, trashPath: string) => {
   try {
     const base64 = await slideExtractionService.getTrashImageAsBase64(trashPath);

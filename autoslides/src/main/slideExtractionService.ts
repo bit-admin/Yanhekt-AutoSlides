@@ -998,6 +998,94 @@ export class SlideExtractionService {
   }
 
   /**
+   * Move entire result folders (active folder + mirrored trash/crop subfolders)
+   * to the system trash and prune their manifest entries.
+   */
+  async removeFolders(
+    folderNames: string[],
+    outputDir: string
+  ): Promise<{ removed: number; failed: number }> {
+    const result = { removed: 0, failed: 0 };
+
+    if (!folderNames || folderNames.length === 0) {
+      return result;
+    }
+
+    try {
+      const expandedOutputDir = outputDir.startsWith('~')
+        ? path.join(os.homedir(), outputDir.slice(1))
+        : outputDir;
+      const resolvedOutputDir = path.resolve(expandedOutputDir);
+      const trashDir = this.getTrashDirectory(resolvedOutputDir);
+      const cropDir = this.getCropDirectory(resolvedOutputDir);
+
+      // Snapshot manifests before moving anything to system trash. The getters
+      // skip entries whose backing files are gone, so reading after the move
+      // would hide the very entries we need to prune.
+      const initialTrashEntries = await this.getTrashEntries(resolvedOutputDir);
+      const initialCropEntries = await this.getCropEntries(resolvedOutputDir);
+
+      const cleanedNames: string[] = [];
+
+      for (const rawName of folderNames) {
+        if (!rawName || rawName.includes('..') || rawName.includes('/') || rawName.includes('\\')) {
+          console.warn(`Skipping invalid folder name: ${rawName}`);
+          result.failed++;
+          continue;
+        }
+
+        const folderName = rawName;
+        let folderFailed = false;
+
+        const targets = [
+          path.join(resolvedOutputDir, folderName),
+          path.join(trashDir, folderName),
+          path.join(cropDir, folderName),
+        ];
+
+        for (const target of targets) {
+          if (!(await this.pathExists(target))) continue;
+          try {
+            await shell.trashItem(target);
+            console.log(`Moved folder to system trash: ${target}`);
+          } catch (trashError) {
+            console.error(`Failed to move folder to system trash: ${target}`, trashError);
+            folderFailed = true;
+          }
+        }
+
+        if (folderFailed) {
+          result.failed++;
+        } else {
+          result.removed++;
+          cleanedNames.push(folderName);
+        }
+      }
+
+      if (cleanedNames.length > 0) {
+        const nameSet = new Set(cleanedNames);
+
+        const trashKeep = initialTrashEntries.filter(entry => !nameSet.has(entry.originalParentFolder));
+        if (trashKeep.length !== initialTrashEntries.length) {
+          await this.rewriteTrashManifest(trashDir, trashKeep);
+          await this.cleanupEmptyTrashDirs(trashDir);
+        }
+
+        const cropKeep = initialCropEntries.filter(entry => !nameSet.has(entry.originalParentFolder));
+        if (cropKeep.length !== initialCropEntries.length) {
+          await this.rewriteCropManifest(cropDir, cropKeep);
+          await this.cleanupEmptyCropDirs(cropDir);
+        }
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Failed to remove folders:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get trash image as base64 for display
    */
   async getTrashImageAsBase64(trashPath: string): Promise<string> {

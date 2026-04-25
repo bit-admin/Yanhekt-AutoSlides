@@ -995,7 +995,13 @@
     "restoreAutoCroppedHint": "このフォルダ内の自動トリミング画像のみを元に戻します（手動トリミングはそのまま）",
     "restoreAutoCroppedSummary": "復元済み: {restored} · 失敗: {failed}",
     "confirmRestoreAutoCropped": "このフォルダ内のすべての自動トリミング画像を元の未トリミング状態に戻しますか？ 手動トリミングは変更されません。",
-    "keepAiFilteredEdit": "AI 除外 – 編集モード の項目を保持する"
+    "keepAiFilteredEdit": "AI 除外 – 編集モード の項目を保持する",
+    "editFolders": "編集",
+    "doneEditing": "完了",
+    "clearFolder": "フォルダを削除",
+    "confirmClearFoldersTitle": "フォルダを削除",
+    "confirmClearFolders": "{count} 個のフォルダをシステムのゴミ箱に移動しますか？関連する抽出画像とゴミ箱の記録もすべて削除されます。",
+    "clearFoldersSummary": "削除済み: {removed} · 失敗: {failed}"
   },
   "pdfmaker": {
     "title": "PDFメーカー",

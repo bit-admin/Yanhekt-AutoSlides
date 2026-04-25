@@ -995,7 +995,13 @@
     "restoreAutoCroppedHint": "Revert only auto-cropped images in this folder (leave manual crops intact)",
     "restoreAutoCroppedSummary": "Restored: {restored} · Failed: {failed}",
     "confirmRestoreAutoCropped": "Revert every auto-cropped image in this folder to its original uncropped version? Manual crops are untouched.",
-    "keepAiFilteredEdit": "Keep Items Marked AI Filtered – Edit"
+    "keepAiFilteredEdit": "Keep Items Marked AI Filtered – Edit",
+    "editFolders": "Edit",
+    "doneEditing": "Done",
+    "clearFolder": "Clear Folder",
+    "confirmClearFoldersTitle": "Remove Folders",
+    "confirmClearFolders": "Move {count} folder(s) to system trash? This will also clear all related extracted images and trash entries.",
+    "clearFoldersSummary": "Removed: {removed} · Failed: {failed}"
   },
   "pdfmaker": {
     "title": "PDF Maker",

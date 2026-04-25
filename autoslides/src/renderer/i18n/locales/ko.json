@@ -995,7 +995,13 @@
     "restoreAutoCroppedHint": "이 폴더의 자동 자르기 이미지만 원본 상태로 되돌립니다(수동 자르기는 유지)",
     "restoreAutoCroppedSummary": "복원됨: {restored} · 실패: {failed}",
     "confirmRestoreAutoCropped": "이 폴더의 모든 자동 자르기 이미지를 원본 상태로 되돌릴까요? 수동 자르기는 변경되지 않습니다.",
-    "keepAiFilteredEdit": "AI 필터링 – 편집 모드로 표시된 항목 보존"
+    "keepAiFilteredEdit": "AI 필터링 – 편집 모드로 표시된 항목 보존",
+    "editFolders": "편집",
+    "doneEditing": "완료",
+    "clearFolder": "폴더 삭제",
+    "confirmClearFoldersTitle": "폴더 삭제",
+    "confirmClearFolders": "{count}개의 폴더를 시스템 휴지통으로 이동할까요? 관련된 추출 이미지와 휴지통 항목도 함께 삭제됩니다.",
+    "clearFoldersSummary": "삭제됨: {removed} · 실패: {failed}"
   },
   "pdfmaker": {
     "title": "PDF 메이커",

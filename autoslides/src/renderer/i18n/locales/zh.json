@@ -995,7 +995,13 @@
     "restoreAutoCroppedHint": "仅还原当前文件夹内自动裁剪的图像（手动裁剪保持不变）。",
     "restoreAutoCroppedSummary": "已还原：{restored} · 失败：{failed}",
     "confirmRestoreAutoCropped": "是否将当前文件夹内所有自动裁剪的图像还原为原始未裁剪版本？手动裁剪不会改动。",
-    "keepAiFilteredEdit": "保留标记为 AI 过滤 – 编辑模式 的项目"
+    "keepAiFilteredEdit": "保留标记为 AI 过滤 – 编辑模式 的项目",
+    "editFolders": "编辑",
+    "doneEditing": "完成",
+    "clearFolder": "清除文件夹",
+    "confirmClearFoldersTitle": "移除文件夹",
+    "confirmClearFolders": "是否将 {count} 个文件夹移至系统回收站？相关的提取图像与回收记录也会一并清除。",
+    "clearFoldersSummary": "已移除：{removed} · 失败：{failed}"
   },
   "pdfmaker": {
     "title": "PDF 导出器",

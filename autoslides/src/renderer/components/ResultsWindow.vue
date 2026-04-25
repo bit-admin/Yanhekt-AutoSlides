@@ -149,6 +149,33 @@
         </div>
 
         <button
+          v-if="currentView === 'folders' && isFolderEditMode"
+          class="delete-btn"
+          :disabled="!canClearSelectedFolders || isLoading"
+          @click="handleClearSelectedFolders"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
+          </svg>
+          {{ $t('trash.clearFolder') }}
+          <span v-if="selectedFolderNames.length > 0" class="edit-count">{{ selectedFolderNames.length }}</span>
+        </button>
+
+        <button
+          v-if="currentView === 'folders'"
+          class="edit-btn"
+          :class="{ 'edit-btn-active': isFolderEditMode }"
+          :disabled="!canEditFolders || isLoading"
+          @click="toggleFolderEditMode"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <rect x="1.5" y="1.5" width="13" height="13" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M4.5 8.2l2.4 2.4 4.6-5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          {{ isFolderEditMode ? $t('trash.doneEditing') : $t('trash.editFolders') }}
+        </button>
+
+        <button
           class="clear-btn"
           @click="confirmClearTrash"
           :disabled="!canClearTrash || isLoading"
@@ -180,10 +207,23 @@
             v-for="folder in folders"
             :key="folder.name"
             class="folder-item"
-            :class="{ 'folder-item-last-visited': folder.name === lastVisitedFolderName }"
+            :class="{
+              'folder-item-last-visited': !isFolderEditMode && folder.name === lastVisitedFolderName,
+              'folder-item-selected': isFolderEditMode && selectedFolderNames.includes(folder.name),
+              'folder-item-edit': isFolderEditMode,
+            }"
             :ref="(el) => setFolderItemRef(folder.name, el as HTMLButtonElement | null)"
-            @click="handleOpenFolder(folder)"
+            @click="isFolderEditMode ? toggleFolderSelection(folder.name) : handleOpenFolder(folder)"
           >
+            <div v-if="isFolderEditMode" class="folder-checkbox">
+              <input
+                type="checkbox"
+                :checked="selectedFolderNames.includes(folder.name)"
+                @click.stop
+                @change="toggleFolderSelection(folder.name)"
+              />
+            </div>
+
             <div class="folder-icon">
               <svg width="24" height="24" viewBox="0 0 24 24">
                 <path d="M3 5v14h18V8h-9l-2-3H3z" fill="#f0c36d"/>
@@ -208,7 +248,7 @@
               </div>
             </div>
 
-            <svg class="folder-chevron" width="16" height="16" viewBox="0 0 16 16">
+            <svg v-if="!isFolderEditMode" class="folder-chevron" width="16" height="16" viewBox="0 0 16 16">
               <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
@@ -546,6 +586,7 @@ const {
   restoreAllCroppedInFolder,
   restoreAutoCroppedInFolder,
   clearTrash,
+  removeFolders,
   applyCropToImage,
   restoreCropFromImage,
   formatDate,
@@ -647,6 +688,71 @@ const canClearTrash = computed(() => {
 
   return folders.value.some((folder) => folder.removedCount > 0)
 })
+
+const isFolderEditMode = ref(false)
+const selectedFolderNames = ref<string[]>([])
+
+const canEditFolders = computed(() => folders.value.length > 0)
+const canClearSelectedFolders = computed(
+  () => isFolderEditMode.value && selectedFolderNames.value.length > 0,
+)
+
+watch(currentView, (view) => {
+  if (view !== 'folders') {
+    isFolderEditMode.value = false
+    selectedFolderNames.value = []
+  }
+})
+
+watch(folders, (list) => {
+  if (selectedFolderNames.value.length === 0) return
+  const available = new Set(list.map((folder) => folder.name))
+  selectedFolderNames.value = selectedFolderNames.value.filter((name) => available.has(name))
+})
+
+function toggleFolderEditMode() {
+  isFolderEditMode.value = !isFolderEditMode.value
+  if (!isFolderEditMode.value) {
+    selectedFolderNames.value = []
+  }
+}
+
+function toggleFolderSelection(name: string) {
+  const index = selectedFolderNames.value.indexOf(name)
+  if (index === -1) {
+    selectedFolderNames.value.push(name)
+  } else {
+    selectedFolderNames.value.splice(index, 1)
+  }
+}
+
+async function handleClearSelectedFolders() {
+  if (!canClearSelectedFolders.value) return
+
+  const targets = [...selectedFolderNames.value]
+  const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'warning',
+    buttons: [t('trash.cancel'), t('trash.clearFolder')],
+    defaultId: 1,
+    cancelId: 0,
+    title: t('trash.confirmClearFoldersTitle'),
+    message: t('trash.confirmClearFolders', { count: targets.length }),
+  })
+
+  if (confirmed?.response !== 1) return
+
+  const summary = await removeFolders(targets)
+
+  selectedFolderNames.value = []
+  isFolderEditMode.value = false
+
+  await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'info',
+    buttons: ['OK'],
+    title: t('trash.confirmClearFoldersTitle'),
+    message: t('trash.clearFoldersSummary', summary),
+  })
+}
 
 const formatImageName = (name: string): string => {
   return name.replace(/\.png$/i, '')
@@ -1512,6 +1618,59 @@ onBeforeUnmount(() => {
   cursor: not-allowed;
 }
 
+.edit-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #333;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.edit-btn:hover:not(:disabled) {
+  background-color: #f0f0f0;
+  border-color: #ccc;
+}
+
+.edit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.edit-btn-active {
+  background-color: #007acc;
+  border-color: #007acc;
+  color: white;
+}
+
+.edit-btn-active:hover:not(:disabled) {
+  background-color: #006bb3;
+  border-color: #006bb3;
+}
+
+.edit-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.25);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .restore-split {
   position: relative;
   display: inline-flex;
@@ -1654,6 +1813,33 @@ onBeforeUnmount(() => {
 .folder-item-last-visited:hover {
   background-color: #d9e7fb;
   border-color: #5f95d8;
+}
+
+.folder-item-edit {
+  cursor: pointer;
+}
+
+.folder-item-selected {
+  background-color: #fff1f0;
+  border-color: #d9534f;
+  box-shadow: 0 0 0 1px #d9534f inset;
+}
+
+.folder-item-selected:hover {
+  background-color: #ffe2df;
+  border-color: #c43d39;
+}
+
+.folder-checkbox {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.folder-checkbox input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
 }
 
 .folder-icon {
@@ -2279,6 +2465,39 @@ onBeforeUnmount(() => {
   .folder-item-last-visited:hover {
     background-color: #264068;
     border-color: #4d7dbd;
+  }
+
+  .folder-item-selected {
+    background-color: #4a1f1d;
+    border-color: #d9534f;
+    box-shadow: 0 0 0 1px #d9534f inset;
+  }
+
+  .folder-item-selected:hover {
+    background-color: #5a2725;
+    border-color: #c43d39;
+  }
+
+  .edit-btn {
+    background-color: #333;
+    border-color: #555;
+    color: #e0e0e0;
+  }
+
+  .edit-btn:hover:not(:disabled) {
+    background-color: #3d3d3d;
+    border-color: #6d6d6d;
+  }
+
+  .edit-btn-active {
+    background-color: #1e6fb3;
+    border-color: #1e6fb3;
+    color: #fff;
+  }
+
+  .edit-btn-active:hover:not(:disabled) {
+    background-color: #1c5d96;
+    border-color: #1c5d96;
   }
 
   .folder-name,
