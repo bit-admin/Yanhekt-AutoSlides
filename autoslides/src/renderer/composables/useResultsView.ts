@@ -184,6 +184,13 @@ export function useResultsView() {
     return !!item && item.isCropped === true && !!item.cropRect
   })
 
+  const canSetSelectedAsBaseline = computed(() => {
+    const items = selectedItems.value
+    if (items.length !== 1) return false
+    const item = items[0]
+    return item.isCropped === true && !!item.cropRect && !!(item.imagePath || item.originalPath)
+  })
+
   const isCurrentPreviewBaseline = computed(() => {
     const item = previewItem.value
     const baseline = baselineCrop.value
@@ -853,6 +860,19 @@ export function useResultsView() {
     return true
   }
 
+  function setSelectedBaselineCrop(): boolean {
+    if (!canSetSelectedAsBaseline.value) return false
+    const didSet = setBaselineCrop(selectedItems.value[0])
+    if (didSet) {
+      selectedIds.value = []
+    }
+    return didSet
+  }
+
+  function clearBaselineCrop() {
+    baselineCrop.value = null
+  }
+
   async function runBaselineCropPipeline(
     targets: AutoCropTarget[],
     baselineRect: CropRect,
@@ -1224,6 +1244,7 @@ export function useResultsView() {
     canAutoCropSelected,
     canCropAndDedup,
     canSetCurrentAsBaseline,
+    canSetSelectedAsBaseline,
     isCurrentPreviewBaseline,
     canApplyBaselineActive,
     canApplyBaselineMixed,
@@ -1246,6 +1267,8 @@ export function useResultsView() {
     restoreAndAutoCropSelected,
     cropAndDedupSelected,
     setBaselineCrop,
+    setSelectedBaselineCrop,
+    clearBaselineCrop,
     applyBaselineToSelected,
     restoreAndApplyBaselineSelected,
     applyBaselineAndDedupSelected,

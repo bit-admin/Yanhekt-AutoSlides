@@ -983,6 +983,8 @@
     "useAsCropBaseline": "자르기 기준으로 설정",
     "useAsCropBaselineHint": "이 이미지의 자르기 영역을 다른 선택 이미지에 적용합니다",
     "currentBaselineTooltip": "현재 자르기 기준",
+    "setBaseline": "기준 설정",
+    "setBaselineHint": "잘린 이미지 하나만 선택해 해당 자르기 영역을 기준으로 설정합니다",
     "applyBaseline": "기준 적용",
     "applyBaselineHint": "기준 자르기 영역을 선택한 추출 이미지와 AI 필터링 – 편집 모드 항목에 적용합니다",
     "applyBaselineSummary": "잘림: {cropped} · 범위 초과: {outOfBounds} · 중복 제거: {deduped} · 실패: {failed}",

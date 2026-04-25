@@ -983,6 +983,8 @@
     "useAsCropBaseline": "Use as Crop Baseline",
     "useAsCropBaselineHint": "Reuse this image's crop area on other selected images",
     "currentBaselineTooltip": "Current crop baseline",
+    "setBaseline": "Set Baseline",
+    "setBaselineHint": "Select exactly one cropped image to use its crop area as the baseline",
     "applyBaseline": "Apply Baseline",
     "applyBaselineHint": "Apply the baseline crop to selected extracted images and AI Filtered – Edit items",
     "applyBaselineSummary": "Cropped: {cropped} · Out of Bounds: {outOfBounds} · Duplicates Removed: {deduped} · Failed: {failed}",

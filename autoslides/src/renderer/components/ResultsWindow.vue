@@ -116,11 +116,11 @@
           <div v-if="showAutoCropMenu" class="action-split-menu">
             <button
               class="action-split-menu-item"
-              :disabled="!canApplyBaselineSelected || isLoading"
-              :title="$t('trash.applyBaselineHint')"
-              @click="handleApplyBaseline"
+              :disabled="!canRunBaselineAction || isLoading"
+              :title="baselineActionTitle"
+              @click="handleBaselineAction"
             >
-              <div class="action-split-menu-title">{{ $t('trash.applyBaseline') }}</div>
+              <div class="action-split-menu-title">{{ baselineActionLabel }}</div>
             </button>
           </div>
         </div>
@@ -572,9 +572,11 @@ const {
   thumbnailSize,
   isLoading,
   previewItem,
+  baselineCrop,
   hasRemovedItems,
   canAutoCropSelected,
   canSetCurrentAsBaseline,
+  canSetSelectedAsBaseline,
   isCurrentPreviewBaseline,
   canApplyBaselineSelected,
   canRemoveDuplicatesInCurrentFolder,
@@ -591,6 +593,8 @@ const {
   restoreSelected,
   autoCropSelected,
   setBaselineCrop,
+  setSelectedBaselineCrop,
+  clearBaselineCrop,
   applyBaselineToSelected,
   removeDuplicatesInCurrentFolder,
   restoreAllCroppedInFolder,
@@ -712,6 +716,20 @@ const currentFolderRemovedIds = computed(() => {
   return folderItems.value
     .filter((item) => item.status === 'removed')
     .map((item) => item.id)
+})
+
+const hasCropBaseline = computed(() => !!baselineCrop.value)
+
+const baselineActionLabel = computed(() => {
+  return hasCropBaseline.value ? t('trash.applyBaseline') : t('trash.setBaseline')
+})
+
+const baselineActionTitle = computed(() => {
+  return hasCropBaseline.value ? t('trash.applyBaselineHint') : t('trash.setBaselineHint')
+})
+
+const canRunBaselineAction = computed(() => {
+  return hasCropBaseline.value ? canApplyBaselineSelected.value : canSetSelectedAsBaseline.value
 })
 
 const canClearTrash = computed(() => {
@@ -1359,11 +1377,19 @@ const handleSetBaseline = () => {
   setBaselineCrop(item)
 }
 
-const handleApplyBaseline = async () => {
+const handleBaselineAction = async () => {
   showAutoCropMenu.value = false
+
+  if (!hasCropBaseline.value) {
+    if (!canSetSelectedAsBaseline.value) return
+    setSelectedBaselineCrop()
+    return
+  }
+
   if (!canApplyBaselineSelected.value) return
 
   const summary = await applyBaselineToSelected({ removeDuplicates: dedupAfterCropActions.value })
+  clearBaselineCrop()
   await window.electronAPI.dialog?.showMessageBox?.({
     type: 'info',
     buttons: ['OK'],
