@@ -145,20 +145,20 @@
 
 ### 3. 使用与设置
 
-<img src="docs/step1.png" align="right" width="70%" alt="step1" />
-
 #### A. 登录
 
 1. 启动应用程序，使用北京理工大学统一身份认证账户密码进行登录。使用账户密码可能会不时需要短信验证码进行二次验证。如遇此种情况，请使用 `浏览器登录`。 [#1](https://github.com/bit-admin/Yanhekt-AutoSlides/issues/1)
 2. 点击 `浏览器登录`，将会在内置浏览器中打开官方登录界面。登录并跳转到延河课堂页面后，将会自动获取延河课堂令牌。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step1.png" width="90%" alt="step1" />
+</p>
 
 <br>
 
-<img src="docs/step2.png" align="right" width="45%" alt="step2" />
-
 #### B. 基础设置
+
+<img src="docs/step2.png" align="right" width="45%" alt="step2" />
 
 1. 根据需要调整 `输出目录`，默认为 `~/Downloads/AutoSlides`（建议设置为独立的文件夹）。
 2. 在校园网内时，切换 `连接模式` 到 `内网模式` 以获得更好的连接体验和更快的课程资源访问速度。
@@ -180,8 +180,6 @@
 
 <br>
 
-<img src="docs/step3.png" align="right" width="60%" alt="step3" />
-
 #### C. AI 设置
 
 1. 在 `高级设置 > AI` 中配置 AI 服务。可选择图像分类的运行方式：`LLM` 模式使用云端多模态大语言模型 API 服务，`ML` 模式在本机运行机器学习模型。`LLM` 模式的准确率更佳，但 `ML` 模式的运行速度更快且不依赖外部服务。
@@ -194,11 +192,11 @@
 > The Built-in service is provided by the developer free of charge and on an "as is" basis. We make no warranties, express or implied, regarding the continuity or stability of the service, and we may modify or interrupt the service at any time without prior notice.
 > <br> 开发者免费并按“原样”基础提供内置服务。我们不对服务的连续性或稳定性作出任何明示或隐含的保证，并可能随时修改或中断服务，恕不另行通知。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step3.png" width="60%" alt="step3" />
+</p>
 
 <br>
-
-<img src="docs/step4.png" align="right" width="60%" alt="step4" />
 
 #### D. 基础页面使用
 
@@ -206,48 +204,63 @@
 2. `获取个人课程列表`，找到你想要观看的课程；或者使用 `搜索` 功能在全校课程中进行搜索；你还可以观看任意正在直播的课程，即便你并未注册该课程。
 3. 你还可以在 `课程收藏夹` 中保存你常观看的课程的关键词，快速进行搜索。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step4.png" width="60%" alt="step4" />
+</p>
 
 <br>
 
-<img src="docs/step5.png" align="right" width="70%" alt="step6" />
-
-#### E. 处理录播课程
+#### E. 录播课程播放与下载
 
 1. 选择进入录播课程页面，可将具体课程节次添加到 `幻灯片提取任务列表` ，下载 `课堂摄像头录像` 及 `屏幕录制` 视频。
 2. 你也可以将课程的所有节次添加到 `任务列表` 或 `下载队列`。
 3. 你还可以直接点击 `播放` 某一具体课程节次而不添加至幻灯片提取任务列表，适用于你希望认真观看课程录像的情况。
 4. 在右侧栏中可管理 `任务列表` 及 `下载队列`；在 `任务列表` 中点击 `开始` 启动任务队列。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step5.png" width="70%" alt="step5" />
+</p>
 
 <br>
 
-<img src="docs/step6.png" align="right" width="70%" alt="step7" />
+---
 
-#### F. 课程播放与幻灯片提取
+当处于播放模式时，可以选择同时观看 `屏幕录制` 及 `课堂摄像头` 视频。
+
+<p align="center">
+  <img src="docs/step5.1.png" width="70%" alt="step5" />
+</p>
+
+<br>
+
+#### F. 幻灯片提取
 
 1. 启动录播课程 `幻灯片提取任务` 后，将会依次以 `任务速度` 播放课程屏幕录制并启动幻灯片提取功能。你会在列表中看到进行中的项目进度，以及已完成项目的 `后处理` 执行情况。
 2. 在播放页面，你可以在控制栏中选择 `视频源`，调整 `播放速度`，以及选择进入 `画中画` 模式（控制栏仅在 `播放模式` 下可操作，录播课程 `任务模式` 下将被进入；直播课程始终处于 `播放模式`）。
 3. 播放页面下方为 `幻灯片提取预览窗口`；在 `播放模式` 下可手动开启及停止 `幻灯片提取`。你也可以随时手动触发 `后处理` 或 `删除` 已提取的幻灯片。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step6.png" width="70%" alt="step6" />
+</p>
 
 <br>
-
-<img src="docs/step8.png" align="right" width="40%" alt="step8" />
-<img src="docs/step7.png" align="right" width="25%" alt="step7" />
 
 #### G. 审查幻灯片
 
 1. 点击左下角的 `工具` 按钮. 
 2. 进入 `幻灯片审查` 页面。
+3. 要删除文件夹，点击 `编辑` 按钮，选择要删除的文件夹。这将同时删除所有与该文件夹相关的回收站项目及裁剪前的原始图像备份。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step7.png" width="25%" alt="step7" />
+  <img src="docs/step8.png" width="45%" alt="step8" />
+</p>
+
+<p align="center">
+  <img src="docs/step8.1.png" width="70%" alt="step7" />
+</p>
 
 <br>
-
-<img src="docs/step9.png" align="right" width="70%" alt="step9" />
 
 ---
 
@@ -257,11 +270,11 @@
 4. 点击缩略图右上角的按钮可 `放大` 查看图片。
 5. 点击左下角的 `全选` 按钮可全选当前筛选下的全部图像。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step9.png" width="70%" alt="step9" />
+</p>
 
 <br>
-
-<img src="docs/step10.png" align="right" width="70%" alt="step9" />
 
 ---
 
@@ -275,35 +288,37 @@
 > [!TIP]
 > `被移除的图像` 不会出现在常规输出文件夹中；`被移除的图像` 会被移动至 `输出目录` 下的 `.autoslidesTrash` 文件夹；`被裁剪的图像` 的原始图像会被备份至 `输出目录` 下的 `.autoslidesCrop` 文件夹。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step10.png" width="70%" alt="step10" />
+</p>
 
 <br>
-
-<img src="docs/step12.png" align="right" width="20%" alt="step9" />
-<img src="docs/step11.png" align="right" width="45%" alt="step9" />
 
 ---
 
-1. 选择你需要操作的图像；可执行的操作包括 `删除`、`恢复`、`自动裁剪` 及 `清空回收站`。
-2. 其中，`自动裁剪` 包括其他额外操作选项；`自动裁剪所选` 只可对标记为 `已提取` 的图像进行裁剪；`恢复并自动裁剪` 将先恢复标记为 `AI 过滤 - 编辑模式` 的图像，然后进行裁剪；`自动裁剪并去除重复` 可在裁剪后重新运行 `去重` 后处理，将裁剪后发现的 `重复项` 移除。
+选择你需要操作的图像；可执行的操作包括 `删除`、`恢复`、`自动裁剪`、`去除重复` 及 `清空回收站`：
+- `删除` 可将 `已提取` 的图像以 `手动` 删除的原因移入回收站；
+- `恢复` 可将 `已移除` 的图像恢复为 `已提取` 的状态；`恢复` 下的额外选项包括 `还原已裁剪`，可将当前文件夹下所有被 `手动裁剪` 或 `自动裁剪` 的图像恢复为原始状态；
+- `自动裁剪` 可对标注为 `已提取` 或 `AI 过滤 - 编辑模式` 的图像进行自动裁剪；`自动裁剪` 下的额外选项包括 `设置裁剪基准` 及 `应用裁剪基准`，可将一张 `已裁剪` 或 `已自动裁剪` 的图像设置为 `裁剪基准`，随后对标注为 `已提取` 或 `AI 过滤 - 编辑模式` 的图像按照基准图像的裁剪区域进行裁剪；
+- `去除重复` 可对当前文件夹下的图像运行 `pHash 重复去除后处理`；`去除重复`下的额外选项可选择是否在裁剪后自动运行 `去重` 后处理，将裁剪后发现的 `重复项` 移除。
 
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step11.png" width="70%" alt="step11" />
+</p>
 
 <br>
-
-<img src="docs/step13.png" align="right" width="70%" alt="step9" />
 
 #### H. 将幻灯片导出为 PDF
 
 1. 转到 `PDF 导出` 页面，选择需要导出的文件夹（例如一学期的课程）；文件夹排序已按自然顺序排序，但你也可拖动以改变文件夹的顺序；文件夹名称及顺序决定了 PDF 中大纲的标题名称及章节顺序。
-2. 根据需要调整 `压缩选项`，点击 `生成 PDF 按钮`。
+2. 根据需要调整 `压缩选项` 及 `宽高比`，点击 `生成 PDF 按钮`。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step13.png" width="70%" alt="step13" />
+</p>
 
 <br>
-
-<img src="docs/step14.png" align="right" width="70%" alt="step9" />
 
 #### I. 高级设置
 
@@ -312,11 +327,11 @@
 1. 点击进入高级设置界面。在 `高级设置 > 一般` 页面调整页面主题、语言，或直接使用 `令牌` 进行登录。
 2. 应用在运行过程中可能会积累大量 `缓存`，不时进行清理；如应用运行过程中出现问题，尝试 `重置所有数据`。`重置所有数据` 不会删除 `输出目录` 下的任何文件。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step14.png" width="70%" alt="step14" />
+</p>
 
 <br>
-
-<img src="docs/step15.png" align="right" width="50%" alt="step9" />
 
 ##### 高级设置 > 图像处理
 
@@ -333,11 +348,11 @@
 > [!NOTE]
 > 建议仅在必要时调整 SSIM 阈值。即便 0.001 的微小变化也可能显著影响性能。使用 [在线测试](https://learn.ruc.edu.kg/test) 👈 或在浏览器中打开 `test-image-comparison.html` 测试和校准 SSIM 算法。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step15.png" width="50%" alt="step15" />
+</p>
 
 <br>
-
-<img src="docs/step16.png" align="right" width="50%" alt="step9" />
 
 ---
 
@@ -349,80 +364,92 @@
 >
 > 应用使用 256 位 pHash。不建议调整 256 位 pHash 的汉明距离阈值以更好地与应用整体协同工作。
  
-<br clear="both">
+<p align="center">
+  <img src="docs/step16.png" width="50%" alt="step16" />
+</p>
 
 <br>
-
-<img src="docs/step17.png" align="right" width="50%" alt="step9" />
 
 ---
 
 1. 自动裁剪功能采用 `Canny 边缘检测` 算法及 `YOLO` 机器学习模型。默认优先使用 `Canny 边缘检测` 算法；`Canny 边缘检测` 算法可精准识别幻灯片的边框，精准裁剪，但易受遮挡等问题的影响；`YOLO` 机器学习模型可靠性佳，适应大多数情况的裁剪需要，但裁剪范围可能较幻灯片边缘有轻微偏移。
 2. 对于 `Canny 边缘检测` 算法，可调整 `宽高比容差`，即匹配检测到的幻灯片宽高比时，相对常见幻灯片比例 16:9 或 4:3 允许的最大偏差；其他自动裁剪参数不建议进行调整。
  
-<br clear="both">
+<p align="center">
+  <img src="docs/step17.png" width="50%" alt="step17" />
+</p>
 
 <br>
-
-<img src="docs/step18.png" align="right" width="50%" alt="step9" />
 
 ##### 高级设置 > 播放和下载
 
 1. `显示更多播放速度` 可控制是否在播放模式下显示 0.5 - 16 倍速的更多倍速选项。
 2. `阻止系统休眠` 可在在视频播放期间阻止系统进入休眠状态，避免播放中断。
  
-<br clear="both">
+<p align="center">
+  <img src="docs/step18.png" width="50%" alt="step18" />
+</p>
 
 <br>
 
-<img src="docs/step19.png" align="right" width="50%" alt="step9" />
+##### 高级设置 > 网络
+
+`内网网络接口` 可设置将内网模式流量绑定到指定的本地网络接口。此设置仅作用于经由内网模式的请求，其他流量仍然使用系统默认路由。
+ 
+<p align="center">
+  <img src="docs/step18.1.png" width="50%" alt="step18" />
+</p>
+
+<br>
 
 ##### 高级设置 > AI
 
 1. `ML` 模式基于本地机器学习模型，面对未能在训练时覆盖的情境时准确率较低，适用较为保守的置信度阈值。
 2. `ML` 模式及 `LLM` 模式下均可在 `AI 行为` 选择是否区分 `may_be_slide` 分类，即模型将单独判断图像是否处于幻灯片编辑模式。
  
-<br clear="both">
+<p align="center">
+  <img src="docs/step19.png" width="50%" alt="step19" />
+</p>
 
 <br>
-
-<img src="docs/step20.png" align="right" width="70%" alt="step9" />
 
 #### J. 其他工具
 
 1. `离线处理` 为测试性质的工具。`离线后处理` 可输入图像文件夹，将其复制至 `输出目录` 并运行后处理；`自动裁剪` 可输入图像，运行自动裁剪，并查看运行结果。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step20.png" width="70%" alt="step20" />
+</p>
 
 <br>
-
-<img src="docs/step21.png" align="right" width="70%" alt="step9" />
 
 ---
 
 2. `讲座压缩` 可用于对下载的屏幕录制视频进行激进压缩以便于存档，压缩为极低帧率及分辨率，降低音频噪音的视频文件，以极小的文件体积保存一定的可读性和相对较好的音频质量。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step21.png" width="70%" alt="step21" />
+</p>
 
 <br>
-
-<img src="docs/step22.png" align="right" width="70%" alt="step9" />
 
 #### K. 扩展
 
 1. `雨课堂` 扩展可用于解决该平台原生课件导出带有边框及水印的问题；若教师使用雨课堂播放幻灯片，将可在课程一开始便一次性获取当前幻灯片的所有页面。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step22.png" width="70%" alt="step22" />
+</p>
 
 <br>
-
-<img src="docs/step23.png" align="right" width="70%" alt="step9" />
 
 ---
 
 2. 你可能会希望对任意视频播放软件运行幻灯片提取，使用 `网页捕获` 扩展可自行输入网址，自动检测或手动选择页面的视频元素，同时支持绘制页面区域，持续监控并运行幻灯片提取。点击右上角的 `预设` 按钮可进入并自动登录延河的官方网页。
 
-<br clear="both">
+<p align="center">
+  <img src="docs/step23.png" width="70%" alt="step23" />
+</p>
 
 ## Star History
 
