@@ -984,17 +984,28 @@ ipcMain.handle('compressLecture:isActive', async () => {
 });
 
 // IPC handlers for download functionality
-ipcMain.handle('download:start', async (event, downloadId: string, m3u8Url: string, outputName: string, loginToken: string) => {
+ipcMain.handle('download:start', async (event, downloadId: string, m3u8Url: string, outputName: string, loginToken?: string) => {
   const progressCallback = (progress: { current: number; total: number; phase: number }) => {
-    event.sender.send('download:progress', downloadId, progress);
+    if (!event.sender.isDestroyed()) {
+      event.sender.send('download:progress', downloadId, progress);
+    }
   };
 
   try {
-    await m3u8DownloadService.startDownload(downloadId, m3u8Url, outputName, progressCallback, loginToken);
-    event.sender.send('download:completed', downloadId);
+    const effectiveLoginToken = loginToken || configService.getAuthToken();
+    if (!effectiveLoginToken) {
+      throw new Error('Authentication token not found. Please sign in again.');
+    }
+
+    await m3u8DownloadService.startDownload(downloadId, m3u8Url, outputName, progressCallback, effectiveLoginToken);
+    if (!event.sender.isDestroyed()) {
+      event.sender.send('download:completed', downloadId);
+    }
   } catch (error) {
     console.error(`Download failed for ${downloadId}:`, error);
-    event.sender.send('download:error', downloadId, error instanceof Error ? error.message : 'Unknown error');
+    if (!event.sender.isDestroyed()) {
+      event.sender.send('download:error', downloadId, error instanceof Error ? error.message : 'Unknown error');
+    }
   }
 });
 

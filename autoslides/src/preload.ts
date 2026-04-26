@@ -221,12 +221,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.invoke('download:start', downloadId, m3u8Url, outputName),
     cancel: (downloadId: string) => ipcRenderer.invoke('download:cancel', downloadId),
     isActive: (downloadId: string) => ipcRenderer.invoke('download:isActive', downloadId),
-    onProgress: (callback: (downloadId: string, progress: { current: number; total: number; phase: number }) => void) =>
-      ipcRenderer.on('download:progress', (_, downloadId, progress) => callback(downloadId, progress)),
-    onCompleted: (callback: (downloadId: string) => void) =>
-      ipcRenderer.on('download:completed', (_, downloadId) => callback(downloadId)),
-    onError: (callback: (downloadId: string, error: string) => void) =>
-      ipcRenderer.on('download:error', (_, downloadId, error) => callback(downloadId, error)),
+    onProgress: (callback: (downloadId: string, progress: { current: number; total: number; phase: number }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, downloadId: string, progress: { current: number; total: number; phase: number }) => callback(downloadId, progress);
+      ipcRenderer.on('download:progress', handler);
+      return () => ipcRenderer.removeListener('download:progress', handler);
+    },
+    onCompleted: (callback: (downloadId: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, downloadId: string) => callback(downloadId);
+      ipcRenderer.on('download:completed', handler);
+      return () => ipcRenderer.removeListener('download:completed', handler);
+    },
+    onError: (callback: (downloadId: string, error: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, downloadId: string, error: string) => callback(downloadId, error);
+      ipcRenderer.on('download:error', handler);
+      return () => ipcRenderer.removeListener('download:error', handler);
+    },
   },
   slideExtraction: {
     saveSlide: (outputPath: string, filename: string, imageBuffer: Uint8Array) =>

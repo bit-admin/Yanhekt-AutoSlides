@@ -3,9 +3,10 @@ import path from 'path';
 import http from 'http';
 import https from 'https';
 import os from 'os';
-import axios from 'axios';
+import axios, { type AxiosInstance } from 'axios';
 import crypto from 'crypto';
 import { spawn } from 'child_process';
+import { pipeline } from 'stream/promises';
 import { FFmpegService } from './ffmpegService';
 import { ConfigService } from './configService';
 import { IntranetMappingService } from './intranetMappingService';
@@ -105,6 +106,10 @@ class M3u8Downloader {
   private maxWorkers: number;
   private numRetries: number;
   private ffmpegProcess: any = null;
+  private axiosInstance: AxiosInstance | null = null;
+  private httpAgent: http.Agent | null = null;
+  private httpsAgent: https.Agent | null = null;
+  private abortController: AbortController | null = null;
 
 
   private headers = {
@@ -163,6 +168,7 @@ class M3u8Downloader {
     if (this.isRunning) return;
     this.isRunning = true;
     this.shouldStop = false;
+    this.abortController = new AbortController();
 
 
     // Encrypt the URL
@@ -199,6 +205,7 @@ class M3u8Downloader {
       console.error("Download failed:", error);
       throw error;
     } finally {
+      this.cleanup();
       this.isRunning = false;
     }
   }
@@ -213,8 +220,8 @@ class M3u8Downloader {
       this.signatureInterval = null;
     }
 
-    // Axios instances were created per-request with fresh keep-alive agents;
-    // their sockets will be reclaimed by GC once the in-flight requests settle.
+    this.abortController?.abort();
+    this.destroyNetworkResources();
 
     // Force kill FFmpeg process if it's running
     if (this.ffmpegProcess) {
@@ -276,14 +283,34 @@ class M3u8Downloader {
     }, 10000); // Update every 10 seconds
   }
 
-  private createAxiosInstance() {
+  private getRequestSignal(): AbortSignal | undefined {
+    return this.abortController?.signal;
+  }
+
+  private getAxiosInstance(): AxiosInstance {
+    if (this.axiosInstance) {
+      return this.axiosInstance;
+    }
+
     // Bind outbound sockets to the configured intranet interface IP ONLY when
     // this download is running in intranet mode. In external mode we use plain
     // unbound agents so non-intranet traffic is unaffected. If the saved IP is
     // no longer present on any interface (NIC unplugged, VPN disconnected), we
     // fall back to unbound agents to avoid EADDRNOTAVAIL.
-    const httpOpts: http.AgentOptions = { keepAlive: true };
-    const httpsOpts: https.AgentOptions = { keepAlive: true };
+    const maxSockets = Math.max(1, this.maxWorkers);
+    const maxFreeSockets = Math.min(4, maxSockets);
+    const httpOpts: http.AgentOptions = {
+      keepAlive: true,
+      keepAliveMsecs: 10000,
+      maxSockets,
+      maxFreeSockets
+    };
+    const httpsOpts: https.AgentOptions = {
+      keepAlive: true,
+      keepAliveMsecs: 10000,
+      maxSockets,
+      maxFreeSockets
+    };
 
     if (this.isIntranetMode) {
       const selected = this.intranetMapping.getInterfaceIp();
@@ -295,10 +322,13 @@ class M3u8Downloader {
       }
     }
 
+    this.httpAgent = new http.Agent(httpOpts);
+    this.httpsAgent = new https.Agent(httpsOpts);
+
     const instance = axios.create({
       timeout: 30000,
-      httpAgent: new http.Agent(httpOpts),
-      httpsAgent: new https.Agent(httpsOpts)
+      httpAgent: this.httpAgent,
+      httpsAgent: this.httpsAgent
     });
 
     if (this.isIntranetMode) {
@@ -317,7 +347,26 @@ class M3u8Downloader {
       });
     }
 
+    this.axiosInstance = instance;
     return instance;
+  }
+
+  private cleanup(): void {
+    if (this.signatureInterval) {
+      clearInterval(this.signatureInterval);
+      this.signatureInterval = null;
+    }
+
+    this.destroyNetworkResources();
+  }
+
+  private destroyNetworkResources(): void {
+    this.httpAgent?.destroy();
+    this.httpsAgent?.destroy();
+    this.httpAgent = null;
+    this.httpsAgent = null;
+    this.axiosInstance = null;
+    this.abortController = null;
   }
 
   private static isInterfaceIpAvailable(ip: string): boolean {
@@ -348,11 +397,12 @@ class M3u8Downloader {
         this.signature
       );
 
-      const axiosInstance = this.createAxiosInstance();
+      const axiosInstance = this.getAxiosInstance();
       const response = await axiosInstance.get(url, {
         timeout: 30000,
         validateStatus: null,
-        headers: this.headers
+        headers: this.headers,
+        signal: this.getRequestSignal()
       });
 
       if (response.status !== 200) {
@@ -515,21 +565,34 @@ class M3u8Downloader {
         return;
       }
 
-      const axiosInstance = this.createAxiosInstance();
+      const axiosInstance = this.getAxiosInstance();
       const response = await axiosInstance.get(tsUrl, {
-        responseType: 'arraybuffer',
+        responseType: 'stream',
         timeout: 60000,
-        headers: this.headers
+        headers: this.headers,
+        signal: this.getRequestSignal(),
+        validateStatus: null
       });
 
       if (response.status === 200) {
-        fs.writeFileSync(outputPath, response.data);
+        await pipeline(response.data, fs.createWriteStream(outputPath));
         this.successSum++;
         this.progressCallback({ current: this.successSum, total: this.tsSum, phase: 0 });
       } else if (numRetries > 0 && !this.shouldStop) {
+        response.data?.destroy?.();
         await this.downloadTs(tsUrlOriginal, outputPath, numRetries - 1);
+      } else {
+        response.data?.destroy?.();
+        throw new Error(`TS segment request failed: ${response.status}`);
       }
     } catch (error) {
+      if (this.shouldStop || axios.isCancel(error)) {
+        if (fs.existsSync(outputPath)) {
+          fs.unlinkSync(outputPath);
+        }
+        return;
+      }
+
       if (fs.existsSync(outputPath)) {
         fs.unlinkSync(outputPath);
       }
@@ -570,11 +633,12 @@ class M3u8Downloader {
         this.signature || this.getSignature().signature
       );
 
-      const axiosInstance = this.createAxiosInstance();
+      const axiosInstance = this.getAxiosInstance();
       const response = await axiosInstance.get(signedUrl, {
         responseType: 'arraybuffer',
         timeout: 30000,
-        headers: this.headers
+        headers: this.headers,
+        signal: this.getRequestSignal()
       });
 
       const keyPath = path.join(this.workDir, 'key');
@@ -634,7 +698,7 @@ class M3u8Downloader {
 
       this.ffmpegProcess.stderr?.on('data', (data: Buffer) => {
         const output = data.toString();
-        stderrOutput += output;
+        stderrOutput = (stderrOutput + output).slice(-4000);
 
         // Parse progress from stderr output
         if (output.includes('time=')) {
@@ -721,7 +785,7 @@ class M3u8Downloader {
 
     this.ffmpegProcess.stderr?.on('data', (data: Buffer) => {
       const output = data.toString();
-      stderrOutput += output;
+      stderrOutput = (stderrOutput + output).slice(-4000);
 
       if (output.includes('time=')) {
         const timeMatch = output.match(/time=(\d{2}):(\d{2}):(\d{2}\.\d{2})/);

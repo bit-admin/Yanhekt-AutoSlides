@@ -206,6 +206,7 @@ class DownloadServiceClass {
   private async startRealDownload(item: DownloadItem, m3u8Url: string): Promise<void> {
     return new Promise((resolve, reject) => {
       let completed = false
+      let cleanupListeners = () => {}
 
       // Set up progress listeners
       const progressListener = (downloadId: string, progress: { current: number; total: number; phase: number }) => {
@@ -234,6 +235,7 @@ class DownloadServiceClass {
       const completedListener = (downloadId: string) => {
         if (downloadId === item.id && !completed) {
           completed = true
+          cleanupListeners()
 
           // Check if the item was already cancelled
           if (item.status === 'error' && item.error === 'Cancelled by user') {
@@ -260,6 +262,7 @@ class DownloadServiceClass {
       const errorListener = (downloadId: string, error: string) => {
         if (downloadId === item.id && !completed) {
           completed = true
+          cleanupListeners()
           item.status = 'error'
           item.error = error
           console.error(`Download failed: ${item.name}`, error)
@@ -274,9 +277,15 @@ class DownloadServiceClass {
 
       // Register listeners - these are global listeners that handle all downloads
       // The IPC events are broadcast to all listeners, so we filter by downloadId
-      window.electronAPI.download.onProgress(progressListener)
-      window.electronAPI.download.onCompleted(completedListener)
-      window.electronAPI.download.onError(errorListener)
+      const removeProgressListener = window.electronAPI.download.onProgress(progressListener)
+      const removeCompletedListener = window.electronAPI.download.onCompleted(completedListener)
+      const removeErrorListener = window.electronAPI.download.onError(errorListener)
+      cleanupListeners = () => {
+        removeProgressListener()
+        removeCompletedListener()
+        removeErrorListener()
+        cleanupListeners = () => {}
+      }
 
       // Start the download with sanitized file name
       const sanitizedName = this.sanitizeFileName(item.name)
@@ -284,6 +293,7 @@ class DownloadServiceClass {
         .catch((error: Error) => {
           if (!completed) {
             completed = true
+            cleanupListeners()
             console.error('Failed to start download:', error)
             this.activeDownloads.delete(item.id)
             this.processQueue()
