@@ -500,7 +500,7 @@ $$
 对两帧灰度图 $x,y$ 计算全局结构相似度：
 
 $$
-\operatorname{SSIM}(x,y)=
+\mathrm{SSIM}(x,y)=
 \frac{(2\mu_x\mu_y+C_1)(2\sigma_{xy}+C_2)}
 {(\mu_x^2+\mu_y^2+C_1)(\sigma_x^2+\sigma_y^2+C_2)}
 $$
@@ -514,7 +514,7 @@ $$
 当：
 
 $$
-\operatorname{SSIM}(x,y) < \tau
+\mathrm{SSIM}(x,y) < \tau
 $$
 
 即可认为当前帧与上一张已保存幻灯片存在显著变化。默认阈值使用 `自适应` 模式：常规情况下为 `0.9987`，当教室名称包含 `综教`、`理教` 或 `研楼` 时自动切换到更宽松的 `0.998`，以适应老旧设备或较差录制质量。
@@ -522,7 +522,7 @@ $$
 为了减少动画、鼠标移动、视频片段造成的误检，提取器还会运行稳定性复核。检测到候选帧 $c$ 后，后续连续帧 $f_i$ 必须满足：
 
 $$
-\operatorname{SSIM}(c,f_i) \ge \tau
+\mathrm{SSIM}(c,f_i) \ge \tau
 $$
 
 达到配置的复核次数后才保存。默认检测间隔为 `2000 ms`，播放倍速变化时会按倍速重新计算实际检查间隔；13 倍速以上使用上限因子，避免浏览器定时器和视频渲染在极高倍速下出现不稳定。
@@ -545,8 +545,8 @@ $$
 $$
 h_i=
 \begin{cases}
-1, & D_i \ge \operatorname{median}(D) \\
-0, & D_i < \operatorname{median}(D)
+1, & D_i \ge \mathrm{median}(D) \\
+0, & D_i < \mathrm{median}(D)
 \end{cases}
 $$
 
@@ -606,7 +606,7 @@ $$
 其中 $W,H$ 是去黑边后的内部区域尺寸。若 Canny 未找到可靠候选框，YOLO 分支会把图像 letterbox 到固定输入尺寸，解码 `(cx, cy, w, h, confidence)` 输出，并用 NMS 去除重叠框：
 
 $$
-\operatorname{IoU}(A,B)=\frac{|A\cap B|}{|A\cup B|}
+\mathrm{IoU}(A,B)=\frac{|A\cap B|}{|A\cup B|}
 $$
 
 YOLO 的默认置信度阈值为 `0.25`，NMS IoU 阈值为 `0.45`，输入尺寸为 `640`。`onnxruntime-web` 在 Worker 内使用 WASM 后端，并设置单线程运行，避免依赖 `SharedArrayBuffer` 相关浏览器隔离策略。
