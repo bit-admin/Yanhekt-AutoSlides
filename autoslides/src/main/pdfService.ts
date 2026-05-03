@@ -25,6 +25,11 @@ export interface FolderEntry {
   images: string[];  // Image paths sorted a-z
 }
 
+type ImageDimensions = { width: number; height: number };
+type PdfImagePlacement =
+  | { cover: [number, number]; align: 'center'; valign: 'center' }
+  | { fit: [number, number]; align: 'center'; valign: 'center' };
+
 const EFFORT_PRESETS: Record<AspectRatio, Record<string, { colors: number; width: number; height: number }>> = {
   '16:9': {
     standard: { colors: 128, width: 1280, height: 720 },
@@ -100,6 +105,30 @@ export class PdfService {
     };
   }
 
+  private getImagePlacement(
+    dimensions: ImageDimensions | null,
+    pageSize: { width: number; height: number }
+  ): PdfImagePlacement {
+    const centered = {
+      align: 'center' as const,
+      valign: 'center' as const,
+    };
+    const box: [number, number] = [pageSize.width, pageSize.height];
+
+    if (!dimensions) {
+      return { fit: box, ...centered };
+    }
+
+    const sourceAspect = dimensions.width / dimensions.height;
+    const targetAspect = pageSize.width / pageSize.height;
+
+    if (sourceAspect > targetAspect + 0.001) {
+      return { cover: box, ...centered };
+    }
+
+    return { fit: box, ...centered };
+  }
+
   /**
    * Generate PDF from folders
    * @param folders Array of folder entries with images
@@ -156,6 +185,9 @@ export class PdfService {
 
           // Read image
           let imageBuffer = await fs.promises.readFile(imagePath);
+          const imageDimensions = sharpService.isAvailable()
+            ? await sharpService.getImageDimensions(new Uint8Array(imageBuffer))
+            : null;
 
           // Process image if reduction enabled
           if (options.reduceEnabled && sharpService.isAvailable()) {
@@ -176,8 +208,7 @@ export class PdfService {
 
           // Add image to page
           doc.image(imageBuffer, 0, 0, {
-            width: pageSize.width,
-            height: pageSize.height,
+            ...this.getImagePlacement(imageDimensions, pageSize),
           });
 
           // Add TOC bookmark on first image of each folder

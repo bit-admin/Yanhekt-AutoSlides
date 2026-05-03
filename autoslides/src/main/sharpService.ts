@@ -362,10 +362,20 @@ export class SharpService {
 
     try {
       let pipeline = this.sharp(Buffer.from(imageBuffer));
+      const metadata = await pipeline.metadata();
 
       // Apply resize if dimensions specified
       if (options.width && options.height) {
-        pipeline = pipeline.resize(options.width, options.height, { fit: 'fill' });
+        const sourceAspect = metadata.width && metadata.height
+          ? metadata.width / metadata.height
+          : null;
+        const targetAspect = options.width / options.height;
+        const shouldCropToFill = sourceAspect !== null && sourceAspect > targetAspect + 0.001;
+
+        pipeline = pipeline.resize(options.width, options.height, {
+          fit: shouldCropToFill ? 'cover' : 'inside',
+          position: 'center',
+        });
       }
 
       // Apply color reduction if colors specified
@@ -386,6 +396,19 @@ export class SharpService {
     } catch (error) {
       console.error('Sharp processImageForPdf failed:', error);
       return imageBuffer;
+    }
+  }
+
+  async getImageDimensions(imageBuffer: Uint8Array): Promise<{ width: number; height: number } | null> {
+    if (!this.sharp) return null;
+
+    try {
+      const metadata = await this.sharp(Buffer.from(imageBuffer)).metadata();
+      if (!metadata.width || !metadata.height) return null;
+      return { width: metadata.width, height: metadata.height };
+    } catch (error) {
+      console.error('Sharp image metadata failed:', error);
+      return null;
     }
   }
 }
