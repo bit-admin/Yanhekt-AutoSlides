@@ -1999,11 +1999,124 @@ ipcMain.handle('pdfmaker:deleteImage', async (_event, imagePath: string) => {
   }
 });
 
+type PdfMakerOutputMode = 'single' | 'batch';
+type PdfMakerRequestOptions = PdfMakeOptions & { outputMode?: PdfMakerOutputMode };
+
+function expandHomePath(targetPath: string): string {
+  return targetPath.startsWith('~')
+    ? path.join(os.homedir(), targetPath.slice(1))
+    : targetPath;
+}
+
+function getBatchPdfBaseName(folderName: string): string {
+  const rawName = folderName.startsWith('slides_') ? folderName : `slides_${folderName}`;
+  const sanitized = rawName
+    .replace(/[<>:"/\\|?*]/g, '_')
+    .split('')
+    .map(char => char.charCodeAt(0) < 32 ? '_' : char)
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[. ]+$/g, '');
+
+  if (!sanitized) return 'slides';
+  if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i.test(sanitized)) {
+    return `_${sanitized}`;
+  }
+  return sanitized;
+}
+
+function getUniquePdfPath(outputDir: string, baseName: string, usedNames: Set<string>): string {
+  let index = 1;
+  let fileName = `${baseName}.pdf`;
+
+  while (
+    usedNames.has(fileName.toLowerCase()) ||
+    fs.existsSync(path.join(outputDir, fileName))
+  ) {
+    index++;
+    fileName = `${baseName} (${index}).pdf`;
+  }
+
+  usedNames.add(fileName.toLowerCase());
+  return path.join(outputDir, fileName);
+}
+
 // Make PDF from selected folders
-ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], options: PdfMakeOptions) => {
+ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], requestOptions: PdfMakerRequestOptions) => {
   try {
-    // Show save dialog
+    const { outputMode = 'single', ...options } = requestOptions;
     const parentWindow = toolsWindow || BrowserWindow.getFocusedWindow();
+
+    if (outputMode === 'batch') {
+      const emptyFolder = folders.find(folder => folder.images.length === 0);
+      if (emptyFolder) {
+        return { success: false, error: `No images in folder: ${emptyFolder.name}` };
+      }
+
+      const totalImages = folders.reduce((sum, folder) => sum + folder.images.length, 0);
+      if (totalImages === 0) {
+        return { success: false, error: 'No images to process' };
+      }
+
+      const configuredOutputDir = expandHomePath(configService.getConfig().outputDirectory);
+      const result = await dialog.showSaveDialog(parentWindow!, {
+        title: 'Choose PDF Output Folder',
+        defaultPath: path.join(configuredOutputDir, 'PDFs'),
+        buttonLabel: 'Use Folder',
+        nameFieldLabel: 'Folder Name',
+      });
+
+      if (result.canceled || !result.filePath) {
+        return { success: false, error: 'Cancelled' };
+      }
+
+      const outputDir = expandHomePath(result.filePath);
+      await fs.promises.mkdir(outputDir, { recursive: true });
+
+      const generatedPaths: string[] = [];
+      const usedNames = new Set<string>();
+      let processedBefore = 0;
+
+      for (const folder of folders) {
+        const outputPath = getUniquePdfPath(
+          outputDir,
+          getBatchPdfBaseName(folder.name),
+          usedNames
+        );
+
+        const pdfResult = await pdfService.makePdf(
+          [folder],
+          options,
+          outputPath,
+          (current) => {
+            toolsWindow?.webContents.send('pdfmaker:progress', {
+              current: processedBefore + current,
+              total: totalImages,
+            });
+          }
+        );
+
+        if (!pdfResult.success || !pdfResult.path) {
+          return {
+            success: false,
+            error: pdfResult.error || `Failed to create PDF for ${folder.name}`,
+          };
+        }
+
+        processedBefore += folder.images.length;
+        generatedPaths.push(pdfResult.path);
+      }
+
+      return {
+        success: true,
+        mode: 'batch',
+        outputDir,
+        paths: generatedPaths,
+      };
+    }
+
+    // Show save dialog
     // Extract course name from first folder (remove session pattern: _第N周_星期X_第N大节)
     let defaultFileName = 'slides.pdf';
     if (folders.length > 0) {
@@ -2039,7 +2152,15 @@ ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], option
       }
     );
 
-    return pdfResult;
+    if (!pdfResult.success || !pdfResult.path) {
+      return pdfResult;
+    }
+
+    return {
+      success: true,
+      mode: 'single',
+      path: pdfResult.path,
+    };
   } catch (error) {
     console.error('Failed to make PDF:', error);
     return {

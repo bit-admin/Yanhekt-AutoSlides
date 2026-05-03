@@ -777,8 +777,13 @@ interface ElectronAPI {
         customColors?: number | null;
         customWidth?: number | null;
         customHeight?: number | null;
+        outputMode?: 'single' | 'batch';
       }
-    ) => Promise<{ success: boolean; path?: string; error?: string }>;
+    ) => Promise<
+      | { success: true; mode: 'single'; path: string }
+      | { success: true; mode: 'batch'; outputDir: string; paths: string[] }
+      | { success: false; error?: string }
+    >;
     onProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;
   };
 

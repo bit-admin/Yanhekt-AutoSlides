@@ -1053,10 +1053,16 @@
     "colors": "PNG Palette",
     "size": "Resize",
     "colorsOriginal": "Original",
+    "outputMode": "Output",
+    "combineOnePdf": "One PDF",
+    "separatePdfs": "Multiple PDFs",
     "makePdf": "Make PDF",
     "pdfSavedTitle": "PDF Created",
     "pdfSaved": "PDF Saved to: {path}",
+    "pdfsSavedTitle": "PDFs Created",
+    "pdfsSaved": "PDFs Saved to: {path}",
     "openPdf": "Open PDF",
+    "openOutputFolder": "Open Output Folder",
     "errorTitle": "Error"
   },
   "offlineProcessing": {

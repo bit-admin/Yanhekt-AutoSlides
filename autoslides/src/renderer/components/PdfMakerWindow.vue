@@ -18,6 +18,20 @@
       </div>
 
       <div class="toolbar-right">
+        <div class="output-mode-group" role="radiogroup" :aria-label="$t('pdfmaker.outputMode')">
+          <span class="config-label">{{ $t('pdfmaker.outputMode') }}</span>
+          <div class="mode-segmented">
+            <label class="mode-option" :class="{ active: outputMode === 'single' }">
+              <input type="radio" v-model="outputMode" value="single" />
+              <span>{{ $t('pdfmaker.combineOnePdf') }}</span>
+            </label>
+            <label class="mode-option" :class="{ active: outputMode === 'batch' }">
+              <input type="radio" v-model="outputMode" value="batch" />
+              <span>{{ $t('pdfmaker.separatePdfs') }}</span>
+            </label>
+          </div>
+        </div>
+
         <div class="config-item">
           <label class="config-label">{{ $t('pdfmaker.aspectRatio') }}</label>
           <select v-model="aspectRatio" class="custom-select">
@@ -166,6 +180,7 @@ const {
   reduceEffort,
   customColors,
   customSize,
+  outputMode,
   sizeOptions,
   displaySize,
   isGenerating,
@@ -234,7 +249,19 @@ const handleMakePdf = async () => {
 
   const result = await makePdf()
 
-  if (result.success && result.path) {
+  if (result.success && result.mode === 'batch') {
+    const response = await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'info',
+      buttons: [t('pdfmaker.openOutputFolder'), 'OK'],
+      defaultId: 0,
+      title: t('pdfmaker.pdfsSavedTitle'),
+      message: t('pdfmaker.pdfsSaved', { path: result.outputDir }),
+    })
+
+    if (response?.response === 0) {
+      await window.electronAPI.shell?.openPath?.(result.outputDir)
+    }
+  } else if (result.success && result.mode === 'single') {
     const response = await window.electronAPI.dialog?.showMessageBox?.({
       type: 'info',
       buttons: [t('pdfmaker.openPdf'), 'OK'],
@@ -272,6 +299,7 @@ onMounted(() => {
 
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
@@ -285,6 +313,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.toolbar-right {
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .sort-btn,
@@ -398,6 +431,48 @@ onMounted(() => {
   border: 1px solid #ddd;
   border-radius: 4px;
   white-space: nowrap;
+}
+
+.output-mode-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mode-segmented {
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  background-color: #f1f3f5;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.mode-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: #555;
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.mode-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mode-option.active {
+  background-color: #ffffff;
+  color: #007acc;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .make-pdf-btn {
@@ -600,10 +675,25 @@ onMounted(() => {
   }
 
   .reduce-toggle,
-  .config-value {
+  .config-value,
+  .mode-option.active {
     background-color: #2d2d2d;
     border-color: #404040;
     color: #e0e0e0;
+  }
+
+  .mode-segmented {
+    background-color: #252525;
+    border-color: #404040;
+  }
+
+  .mode-option {
+    color: #aaa;
+  }
+
+  .mode-option.active {
+    color: #66bfff;
+    box-shadow: none;
   }
 
   .reduce-toggle:hover {

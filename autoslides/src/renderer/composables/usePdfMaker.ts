@@ -18,6 +18,7 @@ export interface FolderEntry {
 }
 
 export type AspectRatio = '16:9' | '4:3'
+export type PdfOutputMode = 'single' | 'batch'
 
 export interface PdfMakeOptions {
   reduceEnabled: boolean
@@ -27,6 +28,11 @@ export interface PdfMakeOptions {
   customWidth?: number | null
   customHeight?: number | null
 }
+
+export type PdfMakeResult =
+  | { success: true; mode: 'single'; path: string }
+  | { success: true; mode: 'batch'; outputDir: string; paths: string[] }
+  | { success: false; error?: string }
 
 const SIZE_OPTIONS_16_9 = ['1920x1080', '1600x900', '1280x720', '960x540', '854x480']
 const SIZE_OPTIONS_4_3 = ['1440x1080', '1200x900', '960x720', '720x540', '640x480']
@@ -56,6 +62,7 @@ export function usePdfMaker() {
   const reduceEffort = ref<'standard' | 'compact' | 'minimal' | 'custom'>('standard')
   const customColors = ref<number | null>(128)
   const customSize = ref<string>('1280x720')
+  const outputMode = ref<PdfOutputMode>('single')
   const isGenerating = ref(false)
   const generateProgress = ref({ current: 0, total: 0 })
 
@@ -206,7 +213,7 @@ export function usePdfMaker() {
     return options
   }
 
-  async function makePdf(): Promise<{ success: boolean; path?: string; error?: string }> {
+  async function makePdf(): Promise<PdfMakeResult> {
     if (selectedItems.value.length === 0) {
       return { success: false, error: 'No folders selected' }
     }
@@ -220,7 +227,10 @@ export function usePdfMaker() {
     try {
       const folderEntries = await getSelectedFolderEntries()
       const options = buildPdfOptions()
-      return await window.electronAPI.pdfmaker.makePdf(folderEntries, options)
+      return await window.electronAPI.pdfmaker.makePdf(folderEntries, {
+        ...options,
+        outputMode: outputMode.value,
+      })
     } catch (error) {
       console.error('Failed to make PDF:', error)
       return {
@@ -255,6 +265,7 @@ export function usePdfMaker() {
     reduceEffort,
     customColors,
     customSize,
+    outputMode,
     sizeOptions,
     displaySize,
     isGenerating,
@@ -268,4 +279,3 @@ export function usePdfMaker() {
     makePdf,
   }
 }
-

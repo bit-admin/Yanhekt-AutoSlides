@@ -400,9 +400,6 @@
               @input="onDualSeekInput"
             />
 
-            <span v-if="shouldVideoMute" class="dual-mute-status">
-              {{ $t('playback.dual.globalMuteStatus', { mode: $t(globalMuteModeLabelKey) }) }}
-            </span>
           </div>
         </div>
 
@@ -2029,12 +2026,6 @@ onUnmounted(async () => {
 .dual-seek:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.dual-mute-status {
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 12px;
-  padding-left: 4px;
 }
 
 /* Details toggle section */

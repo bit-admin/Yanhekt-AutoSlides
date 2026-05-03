@@ -1053,10 +1053,16 @@
     "colors": "PNG 调色板大小",
     "size": "缩放",
     "colorsOriginal": "原始",
+    "outputMode": "输出",
+    "combineOnePdf": "单个 PDF",
+    "separatePdfs": "多个 PDF",
     "makePdf": "生成 PDF",
     "pdfSavedTitle": "PDF 已创建",
     "pdfSaved": "PDF 已保存至：{path}",
+    "pdfsSavedTitle": "PDF 已创建",
+    "pdfsSaved": "PDF 已保存至：{path}",
     "openPdf": "打开 PDF",
+    "openOutputFolder": "打开输出文件夹",
     "errorTitle": "错误"
   },
   "offlineProcessing": {

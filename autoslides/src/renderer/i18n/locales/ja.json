@@ -1053,10 +1053,16 @@
     "colors": "インデックスPNGパレット",
     "size": "リサイズ",
     "colorsOriginal": "オリジナル",
+    "outputMode": "出力",
+    "combineOnePdf": "1つのPDF",
+    "separatePdfs": "複数PDF",
     "makePdf": "PDF作成",
     "pdfSavedTitle": "PDF作成完了",
     "pdfSaved": "PDFを保存しました：{path}",
+    "pdfsSavedTitle": "PDF作成完了",
+    "pdfsSaved": "PDFを保存しました：{path}",
     "openPdf": "PDFを開く",
+    "openOutputFolder": "出力フォルダを開く",
     "errorTitle": "エラー"
   },
   "offlineProcessing": {

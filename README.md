@@ -184,7 +184,7 @@
 #### C. AI 设置
 
 1. 在 `高级设置 > AI` 中配置 AI 服务。图像分类可选择两种运行方式：`LLM` 模式调用云端多模态大语言模型 API，`ML` 模式在本机运行机器学习模型。`LLM` 模式通常更准确，`ML` 模式则更快，并且不依赖外部服务。
-2. `LLM` 模式的 `内置服务` 免费提供 `gpt-4.1` 模型；**共享服务的可用性视实际负载而定**。你也可以使用 GitHub 登录，或填写自定义服务的 `API Base URL`、`API Key` 和 `模型名称`。了解更多：[AI 配置及 GitHub 教育优惠文档](https://it.ruc.edu.kg/zh/docs)。
+2. `LLM` 模式 `内置服务` 在一定期限内提供 `免费模型`。`免费模型` 列表可能会不时进行调整，且**共享服务的可用性视实际负载而定**。你也可以使用 GitHub 登录，或填写自定义服务的 `API Base URL`、`API Key` 和 `模型名称`。了解更多：[AI 配置及 GitHub 教育优惠文档](https://it.ruc.edu.kg/zh/docs)。
 
 <p align="center">
   <img src="docs/step3.png" width="60%" alt="step3" />

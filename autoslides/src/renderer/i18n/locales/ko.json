@@ -1053,10 +1053,16 @@
     "colors": "인덱스 PNG 팔레트",
     "size": "크기 조정",
     "colorsOriginal": "원본",
+    "outputMode": "출력",
+    "combineOnePdf": "PDF 하나",
+    "separatePdfs": "여러 PDF",
     "makePdf": "PDF 생성",
     "pdfSavedTitle": "PDF 생성 완료",
     "pdfSaved": "PDF가 저장되었습니다: {path}",
+    "pdfsSavedTitle": "PDF 생성 완료",
+    "pdfsSaved": "PDF가 저장되었습니다: {path}",
     "openPdf": "PDF 열기",
+    "openOutputFolder": "출력 폴더 열기",
     "errorTitle": "오류"
   },
   "offlineProcessing": {
