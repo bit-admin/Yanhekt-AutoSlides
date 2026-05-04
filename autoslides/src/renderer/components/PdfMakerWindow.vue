@@ -18,34 +18,6 @@
       </div>
 
       <div class="toolbar-right">
-        <div class="output-mode-group" role="radiogroup" :aria-label="$t('pdfmaker.outputFormat')">
-          <span class="config-label">{{ $t('pdfmaker.outputFormat') }}</span>
-          <div class="mode-segmented">
-            <label class="mode-option" :class="{ active: outputFormat === 'pdf' }">
-              <input type="radio" v-model="outputFormat" value="pdf" />
-              <span>{{ $t('pdfmaker.formatPdf') }}</span>
-            </label>
-            <label class="mode-option" :class="{ active: outputFormat === 'pptx' }">
-              <input type="radio" v-model="outputFormat" value="pptx" />
-              <span>{{ $t('pdfmaker.formatPptx') }}</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="output-mode-group" role="radiogroup" :aria-label="$t('pdfmaker.outputMode')">
-          <span class="config-label">{{ $t('pdfmaker.outputMode') }}</span>
-          <div class="mode-segmented">
-            <label class="mode-option" :class="{ active: outputMode === 'single' }">
-              <input type="radio" v-model="outputMode" value="single" />
-              <span>{{ outputFormat === 'pptx' ? $t('pdfmaker.combineOnePptx') : $t('pdfmaker.combineOnePdf') }}</span>
-            </label>
-            <label class="mode-option" :class="{ active: outputMode === 'batch' }">
-              <input type="radio" v-model="outputMode" value="batch" />
-              <span>{{ outputFormat === 'pptx' ? $t('pdfmaker.separatePptxs') : $t('pdfmaker.separatePdfs') }}</span>
-            </label>
-          </div>
-        </div>
-
         <div class="config-item">
           <label class="config-label">{{ $t('pdfmaker.aspectRatio') }}</label>
           <select v-model="aspectRatio" class="custom-select">
@@ -86,6 +58,54 @@
             <select v-else v-model="customSize" class="custom-select" :disabled="!reduceEnabled">
               <option v-for="opt in sizeOptions" :key="opt" :value="opt">{{ formatSizeOption(opt) }}</option>
             </select>
+          </div>
+        </div>
+
+        <div class="export-menu" @click.stop>
+          <button
+            type="button"
+            class="export-menu-toggle"
+            :aria-expanded="isExportMenuOpen"
+            aria-haspopup="menu"
+            @click="toggleExportMenu"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1H4V8zm0 2h8v1H4v-1zm0 2h5v1H4v-1z" fill="currentColor"/>
+            </svg>
+            <span>{{ exportMenuLabel }}</span>
+            <svg class="export-menu-chevron" width="12" height="12" viewBox="0 0 12 12">
+              <path d="M3 4.5L6 7.5l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </button>
+
+          <div v-if="isExportMenuOpen" class="export-menu-panel" role="menu">
+            <div class="export-menu-section" role="group" :aria-label="$t('pdfmaker.outputFormat')">
+              <span class="export-menu-section-label">{{ $t('pdfmaker.outputFormat') }}</span>
+              <div class="mode-segmented">
+                <label class="mode-option" :class="{ active: outputFormat === 'pdf' }">
+                  <input type="radio" v-model="outputFormat" value="pdf" />
+                  <span>{{ $t('pdfmaker.formatPdf') }}</span>
+                </label>
+                <label class="mode-option" :class="{ active: outputFormat === 'pptx' }">
+                  <input type="radio" v-model="outputFormat" value="pptx" />
+                  <span>{{ $t('pdfmaker.formatPptx') }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="export-menu-section" role="group" :aria-label="$t('pdfmaker.outputMode')">
+              <span class="export-menu-section-label">{{ $t('pdfmaker.outputMode') }}</span>
+              <div class="mode-segmented">
+                <label class="mode-option" :class="{ active: outputMode === 'single' }">
+                  <input type="radio" v-model="outputMode" value="single" />
+                  <span>{{ outputFormat === 'pptx' ? $t('pdfmaker.combineOnePptx') : $t('pdfmaker.combineOnePdf') }}</span>
+                </label>
+                <label class="mode-option" :class="{ active: outputMode === 'batch' }">
+                  <input type="radio" v-model="outputMode" value="batch" />
+                  <span>{{ outputFormat === 'pptx' ? $t('pdfmaker.separatePptxs') : $t('pdfmaker.separatePdfs') }}</span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -177,7 +197,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePdfMaker } from '../composables/usePdfMaker'
 import { formatToolFolderName } from '../utils/toolWindowFolders'
@@ -216,6 +236,29 @@ const formatSizeOption = (size: string) => {
 
 const dragStartIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
+const isExportMenuOpen = ref(false)
+
+const outputModeLabel = computed(() => {
+  if (outputMode.value === 'single') {
+    return outputFormat.value === 'pptx'
+      ? t('pdfmaker.combineOnePptx')
+      : t('pdfmaker.combineOnePdf')
+  }
+
+  return outputFormat.value === 'pptx'
+    ? t('pdfmaker.separatePptxs')
+    : t('pdfmaker.separatePdfs')
+})
+
+const exportMenuLabel = computed(() => `${outputFormat.value.toUpperCase()} · ${outputModeLabel.value}`)
+
+const toggleExportMenu = () => {
+  isExportMenuOpen.value = !isExportMenuOpen.value
+}
+
+const closeExportMenu = () => {
+  isExportMenuOpen.value = false
+}
 
 const toggleSortOrder = () => {
   if (useCustomOrder.value) {
@@ -302,6 +345,11 @@ const handleMakePdf = async () => {
 
 onMounted(() => {
   loadFolders()
+  window.addEventListener('click', closeExportMenu)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('click', closeExportMenu)
 })
 </script>
 
@@ -450,10 +498,75 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.output-mode-group {
+.export-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.export-menu-toggle {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #333;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.export-menu-toggle:hover {
+  background-color: #f0f0f0;
+  border-color: #ccc;
+}
+
+.export-menu-chevron {
+  transition: transform 0.2s;
+}
+
+.export-menu-toggle[aria-expanded="true"] .export-menu-chevron {
+  transform: rotate(180deg);
+}
+
+.export-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 260px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #ffffff;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.export-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.export-menu-section-label {
+  font-size: 11px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.export-menu-panel .mode-segmented {
+  width: 100%;
+}
+
+.export-menu-panel .mode-option {
+  flex: 1;
+  justify-content: center;
 }
 
 .mode-segmented {
@@ -678,6 +791,7 @@ onMounted(() => {
 
   .sort-btn,
   .refresh-btn,
+  .export-menu-toggle,
   .effort-select,
   .custom-select {
     background-color: #333;
@@ -686,7 +800,8 @@ onMounted(() => {
   }
 
   .sort-btn:hover,
-  .refresh-btn:hover:not(:disabled) {
+  .refresh-btn:hover:not(:disabled),
+  .export-menu-toggle:hover {
     background-color: #404040;
     border-color: #666;
   }
@@ -713,12 +828,19 @@ onMounted(() => {
     box-shadow: none;
   }
 
+  .export-menu-panel {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+
   .reduce-toggle:hover {
     background-color: #3d3d3d;
     border-color: #505050;
   }
 
-  .config-label {
+  .config-label,
+  .export-menu-section-label {
     color: #aaa;
   }
 
