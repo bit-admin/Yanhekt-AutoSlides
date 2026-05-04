@@ -685,7 +685,7 @@
       },
       "toolsLauncher": {
         "title": "工具和扩展",
-        "description": "打开工具窗口以使用幻灯片审查、PDF 导出、离线处理和讲座压缩。打开扩展窗口以使用雨课堂集成和网页捕获等扩展功能。"
+        "description": "打开工具窗口以使用幻灯片审查、幻灯片导出、离线处理和讲座压缩。打开扩展窗口以使用雨课堂集成和网页捕获等扩展功能。"
       },
       "connectionMode": {
         "title": "连接模式",
@@ -737,15 +737,15 @@
       },
       "toolsOverview": {
         "title": "工具窗口",
-        "description": "工具窗口提供强大的功能来管理提取的幻灯片。它包含结果查看、PDF制作和离线处理标签页。让我们来看看。"
+        "description": "工具窗口提供强大的功能来管理提取的幻灯片。它包含结果查看、幻灯片导出和离线处理标签页。让我们来看看。"
       },
       "resultsView": {
         "title": "结果查看",
         "description": "在上下文中查看所有提取和删除的幻灯片。恢复已删除的图片，删除不需要的图片，裁剪幻灯片。标签显示每张图片的状态和删除原因。"
       },
       "pdfMaker": {
-        "title": "PDF制作",
-        "description": "选择幻灯片文件夹并生成PDF，支持可选压缩。拖动文件夹来重新排序，选择压缩设置来减小文件大小。"
+        "title": "幻灯片导出",
+        "description": "选择幻灯片文件夹并导出 PDF 或 PPTX 文件，支持可选压缩。拖动文件夹来重新排序，选择压缩设置来减小文件大小。"
       }
     }
   },
@@ -1028,8 +1028,8 @@
     "clearFoldersSummary": "已移除：{removed} · 失败：{failed}"
   },
   "pdfmaker": {
-    "title": "PDF 导出器",
-    "openPdfMaker": "合并 PDF ",
+    "title": "幻灯片导出",
+    "openPdfMaker": "幻灯片导出",
     "back": "返回",
     "refresh": "刷新",
     "delete": "删除",
@@ -1053,15 +1053,26 @@
     "colors": "PNG 调色板大小",
     "size": "缩放",
     "colorsOriginal": "原始",
+    "outputFormat": "格式",
+    "formatPdf": "PDF",
+    "formatPptx": "PPTX",
     "outputMode": "输出",
     "combineOnePdf": "单个 PDF",
+    "combineOnePptx": "单个 PPTX",
     "separatePdfs": "多个 PDF",
+    "separatePptxs": "多个 PPTX",
+    "makeOutput": "生成 {format}",
     "makePdf": "生成 PDF",
     "pdfSavedTitle": "PDF 已创建",
     "pdfSaved": "PDF 已保存至：{path}",
     "pdfsSavedTitle": "PDF 已创建",
     "pdfsSaved": "PDF 已保存至：{path}",
+    "pptxSavedTitle": "PPTX 已创建",
+    "pptxSaved": "PPTX 已保存至：{path}",
+    "pptxsSavedTitle": "PPTX 已创建",
+    "pptxsSaved": "PPTX 已保存至：{path}",
     "openPdf": "打开 PDF",
+    "openPptx": "打开 PPTX",
     "openOutputFolder": "打开输出文件夹",
     "errorTitle": "错误"
   },
@@ -1170,7 +1181,7 @@
   },
   "tools": {
     "openTools": "工具",
-    "tabPdfMaker": "PDF 导出",
+    "tabPdfMaker": "幻灯片导出",
     "tabTrash": "幻灯片审查",
     "tabCompressLecture": "讲座压缩",
     "tabOffline": "离线处理"

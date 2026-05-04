@@ -6,6 +6,7 @@
 import { app } from 'electron';
 import fs from 'fs';
 import PDFDocument from 'pdfkit';
+import PptxGenJS from 'pptxgenjs';
 import { sharpService } from './sharpService';
 
 export type AspectRatio = '16:9' | '4:3';
@@ -29,6 +30,7 @@ type ImageDimensions = { width: number; height: number };
 type PdfImagePlacement =
   | { cover: [number, number]; align: 'center'; valign: 'center' }
   | { fit: [number, number]; align: 'center'; valign: 'center' };
+type PptxImageSizing = { type: 'cover' | 'contain'; w: number; h: number };
 
 const EFFORT_PRESETS: Record<AspectRatio, Record<string, { colors: number; width: number; height: number }>> = {
   '16:9': {
@@ -119,14 +121,62 @@ export class PdfService {
       return { fit: box, ...centered };
     }
 
-    const sourceAspect = dimensions.width / dimensions.height;
-    const targetAspect = pageSize.width / pageSize.height;
-
-    if (sourceAspect > targetAspect + 0.001) {
+    if (this.shouldCropToFill(dimensions, pageSize)) {
       return { cover: box, ...centered };
     }
 
     return { fit: box, ...centered };
+  }
+
+  private shouldCropToFill(
+    dimensions: ImageDimensions | null,
+    targetSize: { width: number; height: number }
+  ): boolean {
+    if (!dimensions) return false;
+
+    const sourceAspect = dimensions.width / dimensions.height;
+    const targetAspect = targetSize.width / targetSize.height;
+    return sourceAspect > targetAspect + 0.001;
+  }
+
+  private getPptxSlideSize(options: PdfMakeOptions): { width: number; height: number } {
+    return this.getAspectRatio(options) === '4:3'
+      ? { width: 10, height: 7.5 }
+      : { width: 13.333, height: 7.5 };
+  }
+
+  private getPptxImageSizing(
+    dimensions: ImageDimensions | null,
+    slideSize: { width: number; height: number }
+  ): PptxImageSizing {
+    return {
+      type: this.shouldCropToFill(dimensions, slideSize) ? 'cover' : 'contain',
+      w: slideSize.width,
+      h: slideSize.height,
+    };
+  }
+
+  private async prepareImageForExport(
+    imagePath: string,
+    options: PdfMakeOptions,
+    params: { colors: number | null; width: number | null; height: number | null }
+  ): Promise<{ imageBuffer: Buffer; imageDimensions: ImageDimensions | null }> {
+    let imageBuffer = await fs.promises.readFile(imagePath);
+    const imageDimensions = sharpService.isAvailable()
+      ? await sharpService.getImageDimensions(new Uint8Array(imageBuffer))
+      : null;
+
+    if (options.reduceEnabled && sharpService.isAvailable()) {
+      imageBuffer = Buffer.from(
+        await sharpService.processImageForPdf(new Uint8Array(imageBuffer), {
+          colors: params.colors,
+          width: params.width,
+          height: params.height,
+        })
+      );
+    }
+
+    return { imageBuffer, imageDimensions };
   }
 
   /**
@@ -182,23 +232,11 @@ export class PdfService {
       for (const folder of folders) {
         for (let i = 0; i < folder.images.length; i++) {
           const imagePath = folder.images[i];
-
-          // Read image
-          let imageBuffer = await fs.promises.readFile(imagePath);
-          const imageDimensions = sharpService.isAvailable()
-            ? await sharpService.getImageDimensions(new Uint8Array(imageBuffer))
-            : null;
-
-          // Process image if reduction enabled
-          if (options.reduceEnabled && sharpService.isAvailable()) {
-            imageBuffer = Buffer.from(
-              await sharpService.processImageForPdf(new Uint8Array(imageBuffer), {
-                colors: params.colors,
-                width: params.width,
-                height: params.height,
-              })
-            );
-          }
+          const { imageBuffer, imageDimensions } = await this.prepareImageForExport(
+            imagePath,
+            options,
+            params
+          );
 
           // Add page with fixed size
           doc.addPage({
@@ -234,6 +272,88 @@ export class PdfService {
       return { success: true, path: outputPath };
     } catch (error) {
       console.error('PDF generation failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Generate PPTX from folders
+   * @param folders Array of folder entries with images
+   * @param options Export options shared with PDF generation
+   * @param outputPath Output PPTX file path
+   * @param onProgress Progress callback (current, total)
+   * @returns Result with success status and path/error
+   */
+  async makePptx(
+    folders: FolderEntry[],
+    options: PdfMakeOptions,
+    outputPath: string,
+    onProgress?: (current: number, total: number) => void
+  ): Promise<{ success: boolean; path?: string; error?: string }> {
+    try {
+      const totalImages = folders.reduce((sum, f) => sum + f.images.length, 0);
+      if (totalImages === 0) {
+        return { success: false, error: 'No images to process' };
+      }
+
+      const slideSize = this.getPptxSlideSize(options);
+      const pptx = new PptxGenJS();
+      const appName = app.getName();
+      const layoutName = this.getAspectRatio(options) === '4:3'
+        ? 'AUTOSLIDES_4_3'
+        : 'AUTOSLIDES_16_9';
+
+      pptx.author = appName;
+      pptx.company = appName;
+      pptx.subject = 'Slides';
+      pptx.title = 'Slides';
+      pptx.defineLayout({
+        name: layoutName,
+        width: slideSize.width,
+        height: slideSize.height,
+      });
+      pptx.layout = layoutName;
+      pptx.theme = {
+        headFontFace: 'Arial',
+        bodyFontFace: 'Arial',
+      };
+
+      let processed = 0;
+      const params = this.getProcessingParams(options);
+
+      for (const folder of folders) {
+        for (const imagePath of folder.images) {
+          const { imageBuffer, imageDimensions } = await this.prepareImageForExport(
+            imagePath,
+            options,
+            params
+          );
+          const slide = pptx.addSlide();
+          const imageData = `data:image/png;base64,${imageBuffer.toString('base64')}`;
+
+          slide.background = { color: 'FFFFFF' };
+          slide.addImage({
+            data: imageData,
+            x: 0,
+            y: 0,
+            w: slideSize.width,
+            h: slideSize.height,
+            sizing: this.getPptxImageSizing(imageDimensions, slideSize),
+          });
+
+          processed++;
+          onProgress?.(processed, totalImages);
+        }
+      }
+
+      await pptx.writeFile({ fileName: outputPath });
+
+      return { success: true, path: outputPath };
+    } catch (error) {
+      console.error('PPTX generation failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

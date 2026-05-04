@@ -18,16 +18,30 @@
       </div>
 
       <div class="toolbar-right">
+        <div class="output-mode-group" role="radiogroup" :aria-label="$t('pdfmaker.outputFormat')">
+          <span class="config-label">{{ $t('pdfmaker.outputFormat') }}</span>
+          <div class="mode-segmented">
+            <label class="mode-option" :class="{ active: outputFormat === 'pdf' }">
+              <input type="radio" v-model="outputFormat" value="pdf" />
+              <span>{{ $t('pdfmaker.formatPdf') }}</span>
+            </label>
+            <label class="mode-option" :class="{ active: outputFormat === 'pptx' }">
+              <input type="radio" v-model="outputFormat" value="pptx" />
+              <span>{{ $t('pdfmaker.formatPptx') }}</span>
+            </label>
+          </div>
+        </div>
+
         <div class="output-mode-group" role="radiogroup" :aria-label="$t('pdfmaker.outputMode')">
           <span class="config-label">{{ $t('pdfmaker.outputMode') }}</span>
           <div class="mode-segmented">
             <label class="mode-option" :class="{ active: outputMode === 'single' }">
               <input type="radio" v-model="outputMode" value="single" />
-              <span>{{ $t('pdfmaker.combineOnePdf') }}</span>
+              <span>{{ outputFormat === 'pptx' ? $t('pdfmaker.combineOnePptx') : $t('pdfmaker.combineOnePdf') }}</span>
             </label>
             <label class="mode-option" :class="{ active: outputMode === 'batch' }">
               <input type="radio" v-model="outputMode" value="batch" />
-              <span>{{ $t('pdfmaker.separatePdfs') }}</span>
+              <span>{{ outputFormat === 'pptx' ? $t('pdfmaker.separatePptxs') : $t('pdfmaker.separatePdfs') }}</span>
             </label>
           </div>
         </div>
@@ -86,7 +100,7 @@
           <span v-if="isGenerating" class="progress-text">
             {{ generateProgress.current }}/{{ generateProgress.total }}
           </span>
-          <span v-else>{{ $t('pdfmaker.makePdf') }}</span>
+          <span v-else>{{ $t('pdfmaker.makeOutput', { format: outputFormat.toUpperCase() }) }}</span>
         </button>
       </div>
     </div>
@@ -181,6 +195,7 @@ const {
   customColors,
   customSize,
   outputMode,
+  outputFormat,
   sizeOptions,
   displaySize,
   isGenerating,
@@ -250,24 +265,26 @@ const handleMakePdf = async () => {
   const result = await makePdf()
 
   if (result.success && result.mode === 'batch') {
+    const isPptx = result.format === 'pptx'
     const response = await window.electronAPI.dialog?.showMessageBox?.({
       type: 'info',
       buttons: [t('pdfmaker.openOutputFolder'), 'OK'],
       defaultId: 0,
-      title: t('pdfmaker.pdfsSavedTitle'),
-      message: t('pdfmaker.pdfsSaved', { path: result.outputDir }),
+      title: t(isPptx ? 'pdfmaker.pptxsSavedTitle' : 'pdfmaker.pdfsSavedTitle'),
+      message: t(isPptx ? 'pdfmaker.pptxsSaved' : 'pdfmaker.pdfsSaved', { path: result.outputDir }),
     })
 
     if (response?.response === 0) {
       await window.electronAPI.shell?.openPath?.(result.outputDir)
     }
   } else if (result.success && result.mode === 'single') {
+    const isPptx = result.format === 'pptx'
     const response = await window.electronAPI.dialog?.showMessageBox?.({
       type: 'info',
-      buttons: [t('pdfmaker.openPdf'), 'OK'],
+      buttons: [t(isPptx ? 'pdfmaker.openPptx' : 'pdfmaker.openPdf'), 'OK'],
       defaultId: 0,
-      title: t('pdfmaker.pdfSavedTitle'),
-      message: t('pdfmaker.pdfSaved', { path: result.path }),
+      title: t(isPptx ? 'pdfmaker.pptxSavedTitle' : 'pdfmaker.pdfSavedTitle'),
+      message: t(isPptx ? 'pdfmaker.pptxSaved' : 'pdfmaker.pdfSaved', { path: result.path }),
     })
 
     if (response?.response === 0 && result.path) {

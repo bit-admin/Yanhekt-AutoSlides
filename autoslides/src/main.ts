@@ -2000,7 +2000,11 @@ ipcMain.handle('pdfmaker:deleteImage', async (_event, imagePath: string) => {
 });
 
 type PdfMakerOutputMode = 'single' | 'batch';
-type PdfMakerRequestOptions = PdfMakeOptions & { outputMode?: PdfMakerOutputMode };
+type SlidesExportFormat = 'pdf' | 'pptx';
+type PdfMakerRequestOptions = PdfMakeOptions & {
+  outputMode?: PdfMakerOutputMode;
+  outputFormat?: SlidesExportFormat;
+};
 
 function expandHomePath(targetPath: string): string {
   return targetPath.startsWith('~')
@@ -2008,7 +2012,7 @@ function expandHomePath(targetPath: string): string {
     : targetPath;
 }
 
-function getBatchPdfBaseName(folderName: string): string {
+function getBatchExportBaseName(folderName: string): string {
   const rawName = folderName.startsWith('slides_') ? folderName : `slides_${folderName}`;
   const sanitized = rawName
     .replace(/[<>:"/\\|?*]/g, '_')
@@ -2026,26 +2030,57 @@ function getBatchPdfBaseName(folderName: string): string {
   return sanitized;
 }
 
-function getUniquePdfPath(outputDir: string, baseName: string, usedNames: Set<string>): string {
+function getExportExtension(format: SlidesExportFormat): 'pdf' | 'pptx' {
+  return format === 'pptx' ? 'pptx' : 'pdf';
+}
+
+function getExportLabel(format: SlidesExportFormat): 'PDF' | 'PPTX' {
+  return format === 'pptx' ? 'PPTX' : 'PDF';
+}
+
+function getBatchDefaultFolderName(format: SlidesExportFormat): 'PDFs' | 'PPTXs' {
+  return format === 'pptx' ? 'PPTXs' : 'PDFs';
+}
+
+function getUniqueExportPath(
+  outputDir: string,
+  baseName: string,
+  extension: 'pdf' | 'pptx',
+  usedNames: Set<string>
+): string {
   let index = 1;
-  let fileName = `${baseName}.pdf`;
+  let fileName = `${baseName}.${extension}`;
 
   while (
     usedNames.has(fileName.toLowerCase()) ||
     fs.existsSync(path.join(outputDir, fileName))
   ) {
     index++;
-    fileName = `${baseName} (${index}).pdf`;
+    fileName = `${baseName} (${index}).${extension}`;
   }
 
   usedNames.add(fileName.toLowerCase());
   return path.join(outputDir, fileName);
 }
 
+function makeSlidesExport(
+  format: SlidesExportFormat,
+  folders: FolderEntry[],
+  options: PdfMakeOptions,
+  outputPath: string,
+  onProgress?: (current: number, total: number) => void
+) {
+  return format === 'pptx'
+    ? pdfService.makePptx(folders, options, outputPath, onProgress)
+    : pdfService.makePdf(folders, options, outputPath, onProgress);
+}
+
 // Make PDF from selected folders
 ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], requestOptions: PdfMakerRequestOptions) => {
   try {
-    const { outputMode = 'single', ...options } = requestOptions;
+    const { outputMode = 'single', outputFormat = 'pdf', ...options } = requestOptions;
+    const extension = getExportExtension(outputFormat);
+    const formatLabel = getExportLabel(outputFormat);
     const parentWindow = toolsWindow || BrowserWindow.getFocusedWindow();
 
     if (outputMode === 'batch') {
@@ -2061,8 +2096,8 @@ ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], reques
 
       const configuredOutputDir = expandHomePath(configService.getConfig().outputDirectory);
       const result = await dialog.showSaveDialog(parentWindow!, {
-        title: 'Choose PDF Output Folder',
-        defaultPath: path.join(configuredOutputDir, 'PDFs'),
+        title: `Choose ${formatLabel} Output Folder`,
+        defaultPath: path.join(configuredOutputDir, getBatchDefaultFolderName(outputFormat)),
         buttonLabel: 'Use Folder',
         nameFieldLabel: 'Folder Name',
       });
@@ -2079,13 +2114,15 @@ ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], reques
       let processedBefore = 0;
 
       for (const folder of folders) {
-        const outputPath = getUniquePdfPath(
+        const outputPath = getUniqueExportPath(
           outputDir,
-          getBatchPdfBaseName(folder.name),
+          getBatchExportBaseName(folder.name),
+          extension,
           usedNames
         );
 
-        const pdfResult = await pdfService.makePdf(
+        const exportResult = await makeSlidesExport(
+          outputFormat,
           [folder],
           options,
           outputPath,
@@ -2097,20 +2134,21 @@ ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], reques
           }
         );
 
-        if (!pdfResult.success || !pdfResult.path) {
+        if (!exportResult.success || !exportResult.path) {
           return {
             success: false,
-            error: pdfResult.error || `Failed to create PDF for ${folder.name}`,
+            error: exportResult.error || `Failed to create ${formatLabel} for ${folder.name}`,
           };
         }
 
         processedBefore += folder.images.length;
-        generatedPaths.push(pdfResult.path);
+        generatedPaths.push(exportResult.path);
       }
 
       return {
         success: true,
         mode: 'batch',
+        format: outputFormat,
         outputDir,
         paths: generatedPaths,
       };
@@ -2118,21 +2156,21 @@ ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], reques
 
     // Show save dialog
     // Extract course name from first folder (remove session pattern: _第N周_星期X_第N大节)
-    let defaultFileName = 'slides.pdf';
+    let defaultFileName = `slides.${extension}`;
     if (folders.length > 0) {
       const folderName = folders[0].name;
       // Match pattern: courseName_第N周_星期X_第N大节
       const sessionPattern = /_第\d+周_星期[一二三四五六日]_第\d+大节$/;
       const courseName = folderName.replace(sessionPattern, '');
-      defaultFileName = `slides_${courseName}.pdf`;
+      defaultFileName = `slides_${courseName}.${extension}`;
     }
     const result = await dialog.showSaveDialog(parentWindow!, {
-      title: 'Save PDF',
+      title: `Save ${formatLabel}`,
       defaultPath: path.join(
         configService.getConfig().outputDirectory,
         defaultFileName
       ),
-      filters: [{ name: 'PDF Files', extensions: ['pdf'] }],
+      filters: [{ name: `${formatLabel} Files`, extensions: [extension] }],
     });
 
     if (result.canceled || !result.filePath) {
@@ -2141,8 +2179,9 @@ ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], reques
 
     const outputPath = result.filePath;
 
-    // Generate PDF with progress callback
-    const pdfResult = await pdfService.makePdf(
+    // Generate export with progress callback
+    const exportResult = await makeSlidesExport(
+      outputFormat,
       folders,
       options,
       outputPath,
@@ -2152,17 +2191,18 @@ ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], reques
       }
     );
 
-    if (!pdfResult.success || !pdfResult.path) {
-      return pdfResult;
+    if (!exportResult.success || !exportResult.path) {
+      return exportResult;
     }
 
     return {
       success: true,
       mode: 'single',
-      path: pdfResult.path,
+      format: outputFormat,
+      path: exportResult.path,
     };
   } catch (error) {
-    console.error('Failed to make PDF:', error);
+    console.error('Failed to export slides:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

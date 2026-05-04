@@ -737,15 +737,15 @@
       },
       "toolsOverview": {
         "title": "Tools Window",
-        "description": "The Tools window provides powerful features for managing your extracted slides. It contains Results View, PDF Maker, and Offline Processing tabs. Let's take a look."
+        "description": "The Tools window provides powerful features for managing your extracted slides. It contains Results View, Slides Export, and Offline Processing tabs. Let's take a look."
       },
       "resultsView": {
         "title": "Results View",
         "description": "Review all extracted and removed slides in context. Restore removed images, delete unwanted ones, and crop slides. Badges show each image's status and removal reason."
       },
       "pdfMaker": {
-        "title": "PDF Maker",
-        "description": "Select slide folders and generate PDFs with optional compression. Drag folders to reorder them, and choose compression settings to reduce file size."
+        "title": "Slides Export",
+        "description": "Select slide folders and export PDF or PPTX files with optional compression. Drag folders to reorder them, and choose compression settings to reduce file size."
       }
     }
   },
@@ -1028,8 +1028,8 @@
     "clearFoldersSummary": "Removed: {removed} · Failed: {failed}"
   },
   "pdfmaker": {
-    "title": "PDF Maker",
-    "openPdfMaker": "PDF Maker",
+    "title": "Slides Export",
+    "openPdfMaker": "Slides Export",
     "back": "Back",
     "refresh": "Refresh",
     "delete": "Delete",
@@ -1053,15 +1053,26 @@
     "colors": "PNG Palette",
     "size": "Resize",
     "colorsOriginal": "Original",
+    "outputFormat": "Format",
+    "formatPdf": "PDF",
+    "formatPptx": "PPTX",
     "outputMode": "Output",
     "combineOnePdf": "One PDF",
+    "combineOnePptx": "One PPTX",
     "separatePdfs": "Multiple PDFs",
+    "separatePptxs": "Multiple PPTXs",
+    "makeOutput": "Make {format}",
     "makePdf": "Make PDF",
     "pdfSavedTitle": "PDF Created",
     "pdfSaved": "PDF Saved to: {path}",
     "pdfsSavedTitle": "PDFs Created",
     "pdfsSaved": "PDFs Saved to: {path}",
+    "pptxSavedTitle": "PPTX Created",
+    "pptxSaved": "PPTX Saved to: {path}",
+    "pptxsSavedTitle": "PPTXs Created",
+    "pptxsSaved": "PPTXs Saved to: {path}",
     "openPdf": "Open PDF",
+    "openPptx": "Open PPTX",
     "openOutputFolder": "Open Output Folder",
     "errorTitle": "Error"
   },
@@ -1170,7 +1181,7 @@
   },
   "tools": {
     "openTools": "Tools",
-    "tabPdfMaker": "PDF Maker",
+    "tabPdfMaker": "Slides Export",
     "tabTrash": "Results View",
     "tabCompressLecture": "Lecture Compress",
     "tabOffline": "Offline Processing"

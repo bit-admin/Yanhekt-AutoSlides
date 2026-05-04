@@ -22,7 +22,7 @@
             <svg width="14" height="14" viewBox="0 0 16 16">
               <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1.5H4V8zm0 2.5h8V12H4v-1.5zm0 2.5h5v1.5H4V13z" fill="currentColor"/>
             </svg>
-            PDF Maker
+            Slides Export
           </button>
         </div>
       </div>
@@ -164,7 +164,7 @@
           </div>
         </div>
 
-        <!-- PDF Maker -->
+        <!-- Slides Export -->
         <div v-if="activeTab === 'pdfmaker'" id="tour-pdfmaker-content" class="pdfmaker-demo">
           <div class="toolbar">
             <div class="toolbar-left">
@@ -675,7 +675,7 @@ defineExpose({
   gap: 12px;
 }
 
-/* PDF Maker */
+/* Slides Export */
 .pdf-folder-list .folder-item {
   gap: 10px;
   padding: 10px 14px;

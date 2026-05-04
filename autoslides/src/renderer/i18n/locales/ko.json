@@ -737,15 +737,15 @@
       },
       "toolsOverview": {
         "title": "도구 창",
-        "description": "도구 창은 추출된 슬라이드를 관리하기 위한 강력한 기능을 제공합니다. 결과 보기, PDF 메이커, 오프라인 처리 탭이 포함되어 있습니다. 한번 살펴보겠습니다."
+        "description": "도구 창은 추출된 슬라이드를 관리하기 위한 강력한 기능을 제공합니다. 결과 보기, 슬라이드 내보내기, 오프라인 처리 탭이 포함되어 있습니다. 한번 살펴보겠습니다."
       },
       "resultsView": {
         "title": "결과 보기",
         "description": "추출된 슬라이드와 제거된 슬라이드를 맥락에서 모두 확인할 수 있습니다. 제거된 이미지 복원, 불필요한 이미지 삭제, 슬라이드 자르기가 가능합니다. 배지는 각 이미지의 상태와 제거 사유를 표시합니다."
       },
       "pdfMaker": {
-        "title": "PDF 메이커",
-        "description": "슬라이드 폴더를 선택하고 선택적 압축으로 PDF를 생성합니다. 폴더를 드래그하여 순서를 변경하고, 압축 설정으로 파일 크기를 줄일 수 있습니다."
+        "title": "슬라이드 내보내기",
+        "description": "슬라이드 폴더를 선택하고 선택적 압축으로 PDF 또는 PPTX 파일을 내보냅니다. 폴더를 드래그하여 순서를 변경하고, 압축 설정으로 파일 크기를 줄일 수 있습니다."
       }
     }
   },
@@ -1028,8 +1028,8 @@
     "clearFoldersSummary": "삭제됨: {removed} · 실패: {failed}"
   },
   "pdfmaker": {
-    "title": "PDF 메이커",
-    "openPdfMaker": "PDF 메이커",
+    "title": "슬라이드 내보내기",
+    "openPdfMaker": "슬라이드 내보내기",
     "back": "뒤로",
     "refresh": "새로고침",
     "delete": "삭제",
@@ -1053,15 +1053,26 @@
     "colors": "인덱스 PNG 팔레트",
     "size": "크기 조정",
     "colorsOriginal": "원본",
+    "outputFormat": "형식",
+    "formatPdf": "PDF",
+    "formatPptx": "PPTX",
     "outputMode": "출력",
     "combineOnePdf": "PDF 하나",
+    "combineOnePptx": "PPTX 하나",
     "separatePdfs": "여러 PDF",
+    "separatePptxs": "여러 PPTX",
+    "makeOutput": "{format} 생성",
     "makePdf": "PDF 생성",
     "pdfSavedTitle": "PDF 생성 완료",
     "pdfSaved": "PDF가 저장되었습니다: {path}",
     "pdfsSavedTitle": "PDF 생성 완료",
     "pdfsSaved": "PDF가 저장되었습니다: {path}",
+    "pptxSavedTitle": "PPTX 생성 완료",
+    "pptxSaved": "PPTX가 저장되었습니다: {path}",
+    "pptxsSavedTitle": "PPTX 생성 완료",
+    "pptxsSaved": "PPTX가 저장되었습니다: {path}",
     "openPdf": "PDF 열기",
+    "openPptx": "PPTX 열기",
     "openOutputFolder": "출력 폴더 열기",
     "errorTitle": "오류"
   },
@@ -1170,7 +1181,7 @@
   },
   "tools": {
     "openTools": "도구",
-    "tabPdfMaker": "PDF 생성",
+    "tabPdfMaker": "슬라이드 내보내기",
     "tabTrash": "결과 보기",
     "tabCompressLecture": "강의 압축",
     "tabOffline": "오프라인 처리"

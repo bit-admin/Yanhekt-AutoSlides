@@ -19,6 +19,7 @@ export interface FolderEntry {
 
 export type AspectRatio = '16:9' | '4:3'
 export type PdfOutputMode = 'single' | 'batch'
+export type SlidesOutputFormat = 'pdf' | 'pptx'
 
 export interface PdfMakeOptions {
   reduceEnabled: boolean
@@ -30,8 +31,8 @@ export interface PdfMakeOptions {
 }
 
 export type PdfMakeResult =
-  | { success: true; mode: 'single'; path: string }
-  | { success: true; mode: 'batch'; outputDir: string; paths: string[] }
+  | { success: true; mode: 'single'; format: SlidesOutputFormat; path: string }
+  | { success: true; mode: 'batch'; format: SlidesOutputFormat; outputDir: string; paths: string[] }
   | { success: false; error?: string }
 
 const SIZE_OPTIONS_16_9 = ['1920x1080', '1600x900', '1280x720', '960x540', '854x480']
@@ -63,6 +64,7 @@ export function usePdfMaker() {
   const customColors = ref<number | null>(128)
   const customSize = ref<string>('1280x720')
   const outputMode = ref<PdfOutputMode>('single')
+  const outputFormat = ref<SlidesOutputFormat>('pdf')
   const isGenerating = ref(false)
   const generateProgress = ref({ current: 0, total: 0 })
 
@@ -230,6 +232,7 @@ export function usePdfMaker() {
       return await window.electronAPI.pdfmaker.makePdf(folderEntries, {
         ...options,
         outputMode: outputMode.value,
+        outputFormat: outputFormat.value,
       })
     } catch (error) {
       console.error('Failed to make PDF:', error)
@@ -266,6 +269,7 @@ export function usePdfMaker() {
     customColors,
     customSize,
     outputMode,
+    outputFormat,
     sizeOptions,
     displaySize,
     isGenerating,

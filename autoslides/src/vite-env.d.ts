@@ -778,10 +778,11 @@ interface ElectronAPI {
         customWidth?: number | null;
         customHeight?: number | null;
         outputMode?: 'single' | 'batch';
+        outputFormat?: 'pdf' | 'pptx';
       }
     ) => Promise<
-      | { success: true; mode: 'single'; path: string }
-      | { success: true; mode: 'batch'; outputDir: string; paths: string[] }
+      | { success: true; mode: 'single'; format: 'pdf' | 'pptx'; path: string }
+      | { success: true; mode: 'batch'; format: 'pdf' | 'pptx'; outputDir: string; paths: string[] }
       | { success: false; error?: string }
     >;
     onProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;

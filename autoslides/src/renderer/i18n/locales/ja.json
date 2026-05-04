@@ -737,15 +737,15 @@
       },
       "toolsOverview": {
         "title": "ツールウィンドウ",
-        "description": "ツールウィンドウは、抽出したスライドを管理するための強力な機能を提供します。結果ビュー、PDFメーカー、オフライン処理のタブがあります。見てみましょう。"
+        "description": "ツールウィンドウは、抽出したスライドを管理するための強力な機能を提供します。結果ビュー、スライド書き出し、オフライン処理のタブがあります。見てみましょう。"
       },
       "resultsView": {
         "title": "結果ビュー",
         "description": "抽出および削除されたすべてのスライドをコンテキストで確認できます。削除した画像の復元、不要な画像の削除、スライドのトリミングが可能です。バッジは各画像のステータスと削除理由を示します。"
       },
       "pdfMaker": {
-        "title": "PDFメーカー",
-        "description": "スライドフォルダを選択してPDFを生成します。オプションの圧縮も可能です。フォルダをドラッグして並べ替え、圧縮設定でファイルサイズを削減できます。"
+        "title": "スライド書き出し",
+        "description": "スライドフォルダを選択して PDF または PPTX ファイルを書き出します。オプションの圧縮も可能です。フォルダをドラッグして並べ替え、圧縮設定でファイルサイズを削減できます。"
       }
     }
   },
@@ -1028,8 +1028,8 @@
     "clearFoldersSummary": "削除済み: {removed} · 失敗: {failed}"
   },
   "pdfmaker": {
-    "title": "PDFメーカー",
-    "openPdfMaker": "PDFメーカー",
+    "title": "スライド書き出し",
+    "openPdfMaker": "スライド書き出し",
     "back": "戻る",
     "refresh": "更新",
     "delete": "削除",
@@ -1053,15 +1053,26 @@
     "colors": "インデックスPNGパレット",
     "size": "リサイズ",
     "colorsOriginal": "オリジナル",
+    "outputFormat": "形式",
+    "formatPdf": "PDF",
+    "formatPptx": "PPTX",
     "outputMode": "出力",
     "combineOnePdf": "1つのPDF",
+    "combineOnePptx": "1つのPPTX",
     "separatePdfs": "複数PDF",
+    "separatePptxs": "複数PPTX",
+    "makeOutput": "{format}作成",
     "makePdf": "PDF作成",
     "pdfSavedTitle": "PDF作成完了",
     "pdfSaved": "PDFを保存しました：{path}",
     "pdfsSavedTitle": "PDF作成完了",
     "pdfsSaved": "PDFを保存しました：{path}",
+    "pptxSavedTitle": "PPTX作成完了",
+    "pptxSaved": "PPTXを保存しました：{path}",
+    "pptxsSavedTitle": "PPTX作成完了",
+    "pptxsSaved": "PPTXを保存しました：{path}",
     "openPdf": "PDFを開く",
+    "openPptx": "PPTXを開く",
     "openOutputFolder": "出力フォルダを開く",
     "errorTitle": "エラー"
   },
@@ -1170,7 +1181,7 @@
   },
   "tools": {
     "openTools": "ツール",
-    "tabPdfMaker": "PDF作成",
+    "tabPdfMaker": "スライド書き出し",
     "tabTrash": "結果ビュー",
     "tabCompressLecture": "講義圧縮",
     "tabOffline": "オフライン処理"

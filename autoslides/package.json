@@ -60,6 +60,7 @@
     "onnxruntime-web": "^1.24.3",
     "pdfkit": "^0.18.0",
     "pinyin-pro": "^3.28.1",
+    "pptxgenjs": "^4.0.1",
     "sharp": "^0.34.5",
     "vue": "^3.5.25",
     "vue-i18n": "^11.2.2"
