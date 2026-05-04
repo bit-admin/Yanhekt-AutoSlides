@@ -2,8 +2,8 @@ import { ref, type Ref } from 'vue'
 import { ApiClient, type SessionData, type CourseInfoResponse } from '../services/apiClient'
 import { TokenManager } from '../services/authService'
 import { DataStore } from '../services/dataStore'
-import { DownloadService } from '../services/downloadService'
-import { TaskQueue } from '../services/taskQueueService'
+import { DownloadService, type DownloadQueueAddResult } from '../services/downloadService'
+import { TaskQueue, type TaskQueueAddResult } from '../services/taskQueueService'
 
 export interface SessionCourse {
   id: string
@@ -26,8 +26,8 @@ export interface UseSessionPageOptions {
   t: (key: string, params?: Record<string, unknown>) => string
   onSessionSelected: (session: Session) => void
   onBackToCourses: () => void
-  onSwitchToDownload: () => void
-  onSwitchToTask: () => void
+  onSwitchToDownload: (downloadItemId?: string) => void
+  onSwitchToTask: (taskId?: string) => void
 }
 
 export interface UseSessionPageReturn {
@@ -95,7 +95,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   }
 
   // Helper: Add session to download queue
-  const addSessionToDownload = (session: Session, videoType: 'camera' | 'screen'): boolean => {
+  const addSessionToDownload = (session: Session, videoType: 'camera' | 'screen'): DownloadQueueAddResult => {
     storeSessionData(session)
     return DownloadService.addToQueue({
       name: `${videoType}_${course.value?.title}_${session.title}`,
@@ -107,7 +107,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   }
 
   // Helper: Add session to task queue
-  const addSessionToTask = (session: Session): boolean => {
+  const addSessionToTask = (session: Session): TaskQueueAddResult => {
     storeSessionData(session)
     return TaskQueue.addToQueue({
       name: `slides_${course.value?.title}_${session.title}`,
@@ -165,29 +165,29 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
 
   // Session actions
   const addToQueue = (session: Session): void => {
-    const added = addSessionToTask(session)
-    if (!added) {
+    const result = addSessionToTask(session)
+    if (!result.added) {
       alert(t('sessions.alreadyInTaskQueue'))
     } else {
-      onSwitchToTask()
+      onSwitchToTask(result.item.id)
     }
   }
 
   const downloadCamera = (session: Session): void => {
-    const added = addSessionToDownload(session, 'camera')
-    if (!added) {
+    const result = addSessionToDownload(session, 'camera')
+    if (!result.added) {
       alert(t('sessions.alreadyInDownloadQueue'))
     } else {
-      onSwitchToDownload()
+      onSwitchToDownload(result.item.id)
     }
   }
 
   const downloadScreen = (session: Session): void => {
-    const added = addSessionToDownload(session, 'screen')
-    if (!added) {
+    const result = addSessionToDownload(session, 'screen')
+    if (!result.added) {
       alert(t('sessions.alreadyInDownloadQueueScreen'))
     } else {
-      onSwitchToDownload()
+      onSwitchToDownload(result.item.id)
     }
   }
 
@@ -195,8 +195,8 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   const addAllToQueue = (): void => {
     let addedCount = 0
     sessions.value.forEach(session => {
-      const added = addSessionToTask(session)
-      if (added) addedCount++
+      const result = addSessionToTask(session)
+      if (result.added) addedCount++
     })
 
     if (addedCount > 0) {
@@ -210,8 +210,8 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   const downloadAllCamera = (): void => {
     let addedCount = 0
     sessions.value.forEach(session => {
-      const added = addSessionToDownload(session, 'camera')
-      if (added) addedCount++
+      const result = addSessionToDownload(session, 'camera')
+      if (result.added) addedCount++
     })
 
     if (addedCount > 0) {
@@ -225,8 +225,8 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   const downloadAllScreen = (): void => {
     let addedCount = 0
     sessions.value.forEach(session => {
-      const added = addSessionToDownload(session, 'screen')
-      if (added) addedCount++
+      const result = addSessionToDownload(session, 'screen')
+      if (result.added) addedCount++
     })
 
     if (addedCount > 0) {

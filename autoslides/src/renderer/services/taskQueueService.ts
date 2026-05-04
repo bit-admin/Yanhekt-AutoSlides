@@ -28,6 +28,10 @@ export interface TaskQueueState {
   currentTaskId: string | null
 }
 
+export type TaskQueueAddResult =
+  | { added: true; item: TaskItem }
+  | { added: false; existingItem: TaskItem }
+
 class TaskQueueService {
   private state: TaskQueueState = reactive({
     tasks: [],
@@ -73,7 +77,7 @@ class TaskQueueService {
     sessionTitle: string
     sessionId: string
     courseId: string
-  }): boolean {
+  }): TaskQueueAddResult {
     // Check if task already exists
     const existingTask = this.state.tasks.find(
       task => task.sessionId === taskData.sessionId &&
@@ -81,7 +85,7 @@ class TaskQueueService {
     )
 
     if (existingTask) {
-      return false // Task already exists
+      return { added: false, existingItem: existingTask }
     }
 
     const newTask: TaskItem = {
@@ -97,7 +101,7 @@ class TaskQueueService {
     }
 
     this.state.tasks.push(newTask)
-    return true
+    return { added: true, item: newTask }
   }
 
   // Start processing queue

@@ -84,15 +84,15 @@ const showToolsDemo = ref(false)
 const toolsWindowDemoRef = ref()
 const { checkFirstVisit, showWelcomePopup } = useTour()
 
-const handleSwitchToDownload = () => {
+const handleSwitchToDownload = (downloadItemId?: string) => {
   if (rightPanelRef.value?.switchToDownload) {
-    rightPanelRef.value.switchToDownload()
+    rightPanelRef.value.switchToDownload(downloadItemId)
   }
 }
 
-const handleSwitchToTask = () => {
+const handleSwitchToTask = (taskId?: string) => {
   if (rightPanelRef.value?.switchToTask) {
-    rightPanelRef.value.switchToTask()
+    rightPanelRef.value.switchToTask(taskId)
   }
 }
 

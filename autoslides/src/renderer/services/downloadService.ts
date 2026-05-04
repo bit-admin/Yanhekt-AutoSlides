@@ -17,6 +17,10 @@ export interface DownloadItem {
   completedAt?: number
 }
 
+export type DownloadQueueAddResult =
+  | { added: true; item: DownloadItem }
+  | { added: false; existingItem: DownloadItem }
+
 class DownloadServiceClass {
   private items = reactive<DownloadItem[]>([])
   private activeDownloads = new Set<string>()
@@ -34,7 +38,7 @@ class DownloadServiceClass {
   }
 
   // Queue management
-  addToQueue(item: Omit<DownloadItem, 'id' | 'status' | 'progress' | 'addedAt'>): boolean {
+  addToQueue(item: Omit<DownloadItem, 'id' | 'status' | 'progress' | 'addedAt'>): DownloadQueueAddResult {
     // Check for duplicates
     const duplicate = this.items.find(existing =>
       existing.sessionId === item.sessionId &&
@@ -43,7 +47,7 @@ class DownloadServiceClass {
     )
 
     if (duplicate) {
-      return false // Already exists
+      return { added: false, existingItem: duplicate }
     }
 
     const downloadItem: DownloadItem = {
@@ -56,7 +60,7 @@ class DownloadServiceClass {
 
     this.items.push(downloadItem)
     this.processQueue()
-    return true
+    return { added: true, item: downloadItem }
   }
 
   removeFromQueue(id: string): void {

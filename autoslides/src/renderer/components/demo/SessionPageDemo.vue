@@ -102,7 +102,7 @@
                 </div>
               </div>
               <div class="session-actions">
-                <button class="action-btn add-btn action-btn-demo" title="Add to Task">
+                <button class="action-btn add-btn action-btn-demo" :title="$t('sessions.addToTask')">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14,2 14,8 20,8"/>
@@ -112,14 +112,14 @@
                   </svg>
                   <span class="action-text">{{ $t('sessions.task') }}</span>
                 </button>
-                <button class="action-btn camera-btn action-btn-demo" title="Download Camera">
+                <button class="action-btn camera-btn action-btn-demo" :title="$t('sessions.downloadCamera')">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                   </svg>
                   <span class="action-text">{{ $t('sessions.camera') }}</span>
                 </button>
-                <button class="action-btn screen-btn action-btn-demo" title="Download Screen">
+                <button class="action-btn screen-btn action-btn-demo" :title="$t('sessions.downloadScreen')">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                     <line x1="8" y1="21" x2="16" y2="21"/>

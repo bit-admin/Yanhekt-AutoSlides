@@ -156,16 +156,16 @@ const handleBackFromPlayback = () => {
 }
 
 const emit = defineEmits<{
-  switchToDownload: []
-  switchToTask: []
+  switchToDownload: [downloadItemId?: string]
+  switchToTask: [taskId?: string]
 }>()
 
-const handleSwitchToDownload = () => {
-  emit('switchToDownload')
+const handleSwitchToDownload = (downloadItemId?: string) => {
+  emit('switchToDownload', downloadItemId)
 }
 
-const handleSwitchToTask = () => {
-  emit('switchToTask')
+const handleSwitchToTask = (taskId?: string) => {
+  emit('switchToTask', taskId)
 }
 
 // Task navigation handler

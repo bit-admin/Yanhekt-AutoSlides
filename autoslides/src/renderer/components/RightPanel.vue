@@ -64,6 +64,8 @@
               v-for="item in taskItems"
               :key="item.id"
               class="task-item-wrapper"
+              :class="{ 'row-highlight': highlightedTaskId === item.id }"
+              :data-task-id="item.id"
             >
               <!-- Main Task Item -->
               <div
@@ -277,7 +279,8 @@
               v-for="item in downloadItems"
               :key="item.id"
               class="download-item"
-              :class="[`status-${item.status}`]"
+              :class="[`status-${item.status}`, { 'row-highlight': highlightedDownloadId === item.id }]"
+              :data-download-id="item.id"
             >
               <div class="item-status">
                 <div :class="['status-indicator', `status-${item.status}`]">
@@ -367,7 +370,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { DownloadService, type DownloadItem } from '../services/downloadService'
 import { TaskQueue, taskQueueState, type TaskItem } from '../services/taskQueueService'
 import { PostProcessingService, postProcessingState, type PostProcessJob } from '../services/postProcessingService'
@@ -384,6 +387,12 @@ interface TabState {
 const { t } = useI18n()
 const currentTab = ref<Tab>('task')
 const autoPostProcessing = ref<boolean>(true)
+const highlightedTaskId = ref<string | null>(null)
+const highlightedDownloadId = ref<string | null>(null)
+const HIGHLIGHT_DURATION_MS = 1500
+
+let taskHighlightTimeout: ReturnType<typeof setTimeout> | null = null
+let downloadHighlightTimeout: ReturnType<typeof setTimeout> | null = null
 
 // Maintain independent state for each tab
 const taskState = ref<TabState>({
@@ -464,14 +473,63 @@ const switchTab = (tab: Tab) => {
   currentTab.value = tab
 }
 
+const scrollHighlightedItemIntoView = (type: Tab, itemId: string) => {
+  nextTick(() => {
+    const selector = type === 'task' ? '[data-task-id]' : '[data-download-id]'
+    const datasetKey = type === 'task' ? 'taskId' : 'downloadId'
+    const element = Array.from(document.querySelectorAll<HTMLElement>(selector))
+      .find((candidate) => candidate.dataset[datasetKey] === itemId)
+
+    element?.scrollIntoView({ block: 'nearest' })
+  })
+}
+
+const highlightTaskItem = (taskId?: string) => {
+  if (!taskId) return
+
+  highlightedTaskId.value = taskId
+  if (taskHighlightTimeout) {
+    clearTimeout(taskHighlightTimeout)
+  }
+
+  taskHighlightTimeout = setTimeout(() => {
+    if (highlightedTaskId.value === taskId) {
+      highlightedTaskId.value = null
+    }
+    taskHighlightTimeout = null
+  }, HIGHLIGHT_DURATION_MS)
+
+  scrollHighlightedItemIntoView('task', taskId)
+}
+
+const highlightDownloadItem = (downloadItemId?: string) => {
+  if (!downloadItemId) return
+
+  highlightedDownloadId.value = downloadItemId
+  if (downloadHighlightTimeout) {
+    clearTimeout(downloadHighlightTimeout)
+  }
+
+  downloadHighlightTimeout = setTimeout(() => {
+    if (highlightedDownloadId.value === downloadItemId) {
+      highlightedDownloadId.value = null
+    }
+    downloadHighlightTimeout = null
+  }, HIGHLIGHT_DURATION_MS)
+
+  scrollHighlightedItemIntoView('download', downloadItemId)
+}
+
 // Expose method to switch to download tab from external components
-const switchToDownload = () => {
+const switchToDownload = (downloadItemId?: string) => {
   currentTab.value = 'download'
+  highlightDownloadItem(downloadItemId)
 }
 
 // Expose method to switch to task tab from external components
-const switchToTask = () => {
+const switchToTask = (taskId?: string) => {
   currentTab.value = 'task'
+  highlightTaskItem(taskId)
 }
 
 // Task controls
@@ -509,12 +567,23 @@ const retryDownload = (id: string) => {
 }
 
 // Listen for tab switching events
-const handleDownloadSwitch = () => {
-  switchToDownload()
+const getSwitchItemId = (event: Event, key: 'downloadItemId' | 'taskId'): string | undefined => {
+  if (!(event instanceof CustomEvent)) return undefined
+
+  const detail: unknown = event.detail
+  if (typeof detail === 'string') return detail
+  if (!detail || typeof detail !== 'object') return undefined
+
+  const value = (detail as Record<string, unknown>)[key]
+  return typeof value === 'string' ? value : undefined
 }
 
-const handleTaskSwitch = () => {
-  switchToTask()
+const handleDownloadSwitch = (event: Event) => {
+  switchToDownload(getSwitchItemId(event, 'downloadItemId'))
+}
+
+const handleTaskSwitch = (event: Event) => {
+  switchToTask(getSwitchItemId(event, 'taskId'))
 }
 
 onMounted(async () => {
@@ -534,6 +603,13 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('switchToDownload', handleDownloadSwitch)
   window.removeEventListener('switchToTask', handleTaskSwitch)
+
+  if (taskHighlightTimeout) {
+    clearTimeout(taskHighlightTimeout)
+  }
+  if (downloadHighlightTimeout) {
+    clearTimeout(downloadHighlightTimeout)
+  }
 })
 
 // Expose methods for parent components
@@ -775,7 +851,17 @@ defineExpose({
   box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
 }
 
+.task-item-wrapper.row-highlight .task-item,
+.download-item.row-highlight {
+  border-color: #007acc;
+  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
+}
+
 .task-item-wrapper:hover .post-process-affiliated-panel {
+  border-color: #007acc;
+}
+
+.task-item-wrapper.row-highlight .post-process-affiliated-panel {
   border-color: #007acc;
 }
 
@@ -1221,7 +1307,17 @@ defineExpose({
     box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
   }
 
+  .task-item-wrapper.row-highlight .task-item,
+  .download-item.row-highlight {
+    border-color: #4fc3f7;
+    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
+  }
+
   .task-item-wrapper:hover .post-process-affiliated-panel {
+    border-color: #4fc3f7;
+  }
+
+  .task-item-wrapper.row-highlight .post-process-affiliated-panel {
     border-color: #4fc3f7;
   }
 
