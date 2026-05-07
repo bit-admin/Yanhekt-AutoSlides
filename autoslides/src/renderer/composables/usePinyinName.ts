@@ -2,6 +2,8 @@ import { computed, type Ref } from 'vue'
 import { pinyin } from 'pinyin-pro'
 
 const HAN_RE = /\p{Script=Han}/u
+const MIDDLE_DOT_RE = /[·・]/u
+const MIDDLE_DOT_SPLIT_RE = /\s*[·・]\s*/u
 
 const COMPOUND_SURNAMES = new Set([
   '欧阳', '司马', '诸葛', '上官', '夏侯', '东方', '公孙', '慕容',
@@ -13,20 +15,29 @@ function toTitleCase(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1).toLowerCase()
 }
 
+function toPinyinPart(value: string): string {
+  return toTitleCase(
+    (pinyin(value, { toneType: 'none', type: 'array' }) as string[]).join('')
+  )
+}
+
 export function toPinyinName(name: string): string {
+  if (MIDDLE_DOT_RE.test(name)) {
+    const parts = name.split(MIDDLE_DOT_SPLIT_RE).map(part => part.trim()).filter(Boolean)
+    if (parts.length > 0) {
+      return parts.map(toPinyinPart).join(' ')
+    }
+  }
+
   const surnameLen = COMPOUND_SURNAMES.has(name.substring(0, 2)) ? 2 : 1
   const surname = name.substring(0, surnameLen)
   const given = name.substring(surnameLen)
 
-  const surnamePinyin = toTitleCase(
-    (pinyin(surname, { toneType: 'none', type: 'array' }) as string[]).join('')
-  )
+  const surnamePinyin = toPinyinPart(surname)
 
   if (!given) return surnamePinyin
 
-  const givenPinyin = toTitleCase(
-    (pinyin(given, { toneType: 'none', type: 'array' }) as string[]).join('')
-  )
+  const givenPinyin = toPinyinPart(given)
 
   return `${surnamePinyin} ${givenPinyin}`
 }
