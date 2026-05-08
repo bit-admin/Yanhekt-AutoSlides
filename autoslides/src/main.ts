@@ -17,6 +17,8 @@ import { AIFilteringService } from './main/aiFilteringService';
 import { LLMApiService } from './main/llmApiService';
 import { pdfService, PdfMakeOptions, FolderEntry } from './main/pdfService';
 import { updateDownloadService, UpdateDownloadService } from './main/updateDownloadService';
+import { QtExtractorService } from './main/qtExtractorService';
+import { extractorInstallerService, ExtractorInstallerService } from './main/extractorInstallerService';
 import { offlineProcessingService } from './main/offlineProcessingService';
 import { AutoCropModelService } from './main/autoCropModelService';
 import { MlClassifierModelService } from './main/mlClassifierModelService';
@@ -204,6 +206,7 @@ const powerManagementService = new PowerManagementService();
 const aiPromptsService = new AIPromptsService();
 const llmApiService = new LLMApiService(configService);
 const aiFilteringService = new AIFilteringService(configService, aiPromptsService, llmApiService);
+const qtExtractorService = new QtExtractorService(configService);
 
 // Initialize power management based on config
 const initializePowerManagement = async () => {
@@ -2533,6 +2536,224 @@ ipcMain.handle('update:findOldUpdates', async () => {
 // Check if download is in progress
 ipcMain.handle('update:isDownloading', async () => {
   return { isDownloading: updateDownloadService.isDownloading() };
+});
+
+// ============================================================================
+// Qt Extractor IPC Handlers
+// ============================================================================
+
+ipcMain.handle('qtExtractor:getStatus', async () => {
+  return await qtExtractorService.verifyBinary();
+});
+
+ipcMain.handle('qtExtractor:detect', async () => {
+  return await qtExtractorService.verifyBinary();
+});
+
+ipcMain.handle('qtExtractor:verify', async (_event, binaryPath?: string) => {
+  return await qtExtractorService.verifyBinary(binaryPath);
+});
+
+ipcMain.handle('qtExtractor:selectBinary', async () => {
+  return await qtExtractorService.selectBinaryViaDialog();
+});
+
+ipcMain.handle('qtExtractor:setBinaryPath', async (_event, binaryPath: string) => {
+  configService.setQtExtractorBinaryPath(binaryPath || '');
+});
+
+ipcMain.handle('qtExtractor:setAutoRun', async (_event, enabled: boolean) => {
+  configService.setQtExtractorAutoRun(!!enabled);
+});
+
+ipcMain.handle('qtExtractor:setAutoPostProcess', async (_event, enabled: boolean) => {
+  configService.setQtExtractorAutoPostProcess(!!enabled);
+});
+
+ipcMain.handle(
+  'qtExtractor:runExtraction',
+  async (
+    event,
+    extractionId: string,
+    videoPath: string,
+    outputDir: string,
+    params: {
+      ssimThreshold: number;
+      enableDownsampling: boolean;
+      downsampleWidth: number;
+      downsampleHeight: number;
+      chunkSize?: number;
+      jpegQuality?: number;
+    }
+  ) => {
+    const send = (channel: string, ...args: unknown[]) => {
+      if (!event.sender.isDestroyed()) event.sender.send(channel, ...args);
+    };
+    try {
+      const result = await qtExtractorService.runExtraction(
+        extractionId,
+        videoPath,
+        outputDir,
+        params,
+        {
+          onProgress: (percent) => send('qtExtractor:progress', extractionId, percent),
+          onSlidesExtracted: (slidesDir, count) =>
+            send('qtExtractor:slidesExtracted', extractionId, slidesDir, count),
+          onCompleted: (r) => send('qtExtractor:completed', extractionId, r),
+          onError: (msg, category) => send('qtExtractor:error', extractionId, msg, category),
+          onCancelled: () => send('qtExtractor:cancelled', extractionId)
+        }
+      );
+      return { success: true, ...result };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message === 'cancelled') {
+        return { success: false, cancelled: true };
+      }
+      return { success: false, error: message };
+    }
+  }
+);
+
+ipcMain.handle('qtExtractor:cancelExtraction', async (_event, extractionId: string) => {
+  return qtExtractorService.cancelExtraction(extractionId);
+});
+
+ipcMain.handle('qtExtractor:normalizeOutput', async (_event, slidesDir: string, reduceColors: boolean) => {
+  return await qtExtractorService.normalizeExtractorOutput(slidesDir, { reduceColors: !!reduceColors });
+});
+
+// ============================================================================
+// Extractor Installer IPC Handlers
+// ============================================================================
+
+ipcMain.handle('extractorInstaller:checkLatest', async () => {
+  const httpsLib = await import('https');
+
+  const fetchRelease = (options: { hostname: string; path: string; method: string; headers: Record<string, string> }): Promise<{ success: boolean; data?: string; error?: string }> => {
+    return new Promise((resolve) => {
+      const req = httpsLib.request(options, (res) => {
+        let data = '';
+        res.on('data', (chunk) => { data += chunk; });
+        res.on('end', () => {
+          if (res.statusCode !== 200) {
+            resolve({ success: false, error: `HTTP ${res.statusCode}` });
+            return;
+          }
+          resolve({ success: true, data });
+        });
+      });
+      req.on('error', (error) => resolve({ success: false, error: error.message }));
+      req.setTimeout(10000, () => {
+        req.destroy();
+        resolve({ success: false, error: 'Request timeout' });
+      });
+      req.end();
+    });
+  };
+
+  const primaryOptions = {
+    hostname: 'api.github.com',
+    path: '/repos/bit-admin/AutoSlides-Extractor/releases/latest',
+    method: 'GET',
+    headers: {
+      'User-Agent': 'AutoSlides-ExtractorInstaller',
+      'Accept': 'application/vnd.github.html+json'
+    }
+  };
+
+  const fallbackOptions = {
+    hostname: 'gh-proxy.org',
+    path: '/https://api.github.com/repos/bit-admin/AutoSlides-Extractor/releases/latest',
+    method: 'GET',
+    headers: {
+      'User-Agent': 'AutoSlides-ExtractorInstaller',
+      'Accept': 'application/vnd.github.html+json'
+    }
+  };
+
+  try {
+    let result = await fetchRelease(primaryOptions);
+    if (!result.success || !result.data) {
+      result = await fetchRelease(fallbackOptions);
+    }
+    if (result.success && result.data) {
+      const release = JSON.parse(result.data);
+      const platformAssets = extractorInstallerService.getAssetsForPlatform(release.assets || []);
+      return {
+        success: true,
+        tagName: release.tag_name,
+        name: release.name,
+        body: release.body || '',
+        bodyHtml: release.body_html || '',
+        htmlUrl: release.html_url,
+        publishedAt: release.published_at,
+        assets: platformAssets.map((asset: { name: string; browser_download_url: string; size: number }) => ({
+          name: asset.name,
+          url: asset.browser_download_url,
+          size: asset.size,
+          formattedSize: ExtractorInstallerService.formatBytes(asset.size),
+          proxyUrl: ExtractorInstallerService.getProxyUrl(asset.browser_download_url)
+        })),
+        repoUrl: ExtractorInstallerService.getRepoUrl()
+      };
+    }
+    return { success: false, error: result.error || 'Unknown error' };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+ipcMain.handle('extractorInstaller:download', async (event, url: string, filename: string) => {
+  try {
+    const progressCallback = (progress: { downloaded: number; total: number; percent: number }) => {
+      if (!event.sender.isDestroyed()) {
+        event.sender.send('extractorInstaller:progress', progress);
+      }
+    };
+    const filePath = await extractorInstallerService.downloadInstaller(url, filename, progressCallback);
+    if (!event.sender.isDestroyed()) {
+      event.sender.send('extractorInstaller:complete', filename);
+    }
+    return { success: true, filePath };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (!event.sender.isDestroyed()) {
+      event.sender.send('extractorInstaller:error', errorMessage);
+    }
+    return { success: false, error: errorMessage };
+  }
+});
+
+ipcMain.handle('extractorInstaller:cancel', async () => {
+  const cancelled = extractorInstallerService.cancelDownload();
+  return { success: cancelled };
+});
+
+ipcMain.handle('extractorInstaller:isDownloading', async () => {
+  return { isDownloading: extractorInstallerService.isDownloading() };
+});
+
+ipcMain.handle('extractorInstaller:install', async (_event, filename: string) => {
+  try {
+    const filePath = await extractorInstallerService.installInstaller(filename);
+    return { success: true, filePath };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+ipcMain.handle('extractorInstaller:openDownloadFolder', async () => {
+  try {
+    await extractorInstallerService.openUpdatesFolder();
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+});
+
+ipcMain.handle('extractorInstaller:openRepo', async () => {
+  await shell.openExternal(ExtractorInstallerService.getRepoUrl());
 });
 
 // In this file you can include the rest of your app's specific main process

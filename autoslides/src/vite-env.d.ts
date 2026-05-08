@@ -37,6 +37,13 @@ interface AppConfig {
   savedSearchesRecorded: string[];
   distinguishMaybeSlide: boolean;
   slideExtraction?: SlideExtractionConfig;
+  qtExtractor?: QtExtractorConfig;
+}
+
+interface QtExtractorConfig {
+  binaryPath: string;
+  autoRunAfterDownload: boolean;
+  autoPostProcessAfter: boolean;
 }
 
 interface PHashExclusionItem {
@@ -630,6 +637,60 @@ interface ElectronAPI {
     onProgress: (callback: (downloadId: string, progress: DownloadProgress) => void) => () => void;
     onCompleted: (callback: (downloadId: string) => void) => () => void;
     onError: (callback: (downloadId: string, error: string) => void) => () => void;
+  };
+
+  qtExtractor: {
+    getStatus: () => Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>;
+    detect: () => Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>;
+    verify: (binaryPath?: string) => Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>;
+    selectBinary: () => Promise<string | null>;
+    setBinaryPath: (binaryPath: string) => Promise<void>;
+    setAutoRun: (enabled: boolean) => Promise<void>;
+    setAutoPostProcess: (enabled: boolean) => Promise<void>;
+    runExtraction: (
+      extractionId: string,
+      videoPath: string,
+      outputDir: string,
+      params: {
+        ssimThreshold: number;
+        enableDownsampling: boolean;
+        downsampleWidth: number;
+        downsampleHeight: number;
+        chunkSize?: number;
+        jpegQuality?: number;
+      }
+    ) => Promise<{ slideCount: number; slidesDir: string }>;
+    cancelExtraction: (extractionId: string) => Promise<boolean>;
+    normalizeOutput: (slidesDir: string, reduceColors: boolean) => Promise<{ converted: number; finalDir: string }>;
+    onProgress: (callback: (extractionId: string, percent: number) => void) => () => void;
+    onSlidesExtracted: (callback: (extractionId: string, slidesDir: string, count: number) => void) => () => void;
+    onCompleted: (callback: (extractionId: string, result: { slideCount: number; slidesDir: string }) => void) => () => void;
+    onError: (callback: (extractionId: string, message: string, category?: string) => void) => () => void;
+    onCancelled: (callback: (extractionId: string) => void) => () => void;
+  };
+
+  extractorInstaller: {
+    checkLatest: () => Promise<{
+      success: boolean;
+      tagName?: string;
+      name?: string;
+      body?: string;
+      bodyHtml?: string;
+      htmlUrl?: string;
+      publishedAt?: string;
+      assets?: Array<{ name: string; url: string; size: number; formattedSize: string; proxyUrl: string }>;
+      repoUrl?: string;
+      error?: string;
+    }>;
+    download: (url: string, filename: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+    cancel: () => Promise<{ success: boolean }>;
+    isDownloading: () => Promise<{ isDownloading: boolean }>;
+    install: (filename: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+    openDownloadFolder: () => Promise<{ success: boolean; error?: string }>;
+    openRepo: () => Promise<void>;
+    onProgress: (callback: (progress: { downloaded: number; total: number; percent: number }) => void) => () => void;
+    onComplete: (callback: (filename: string) => void) => () => void;
+    onError: (callback: (error: string) => void) => () => void;
   };
 
   slideExtraction: {

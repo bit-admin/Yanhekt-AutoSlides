@@ -90,6 +90,18 @@ export const DEFAULT_AUTO_CROP_YOLO_CONFIG: AutoCropYoloConfig = {
   inputSize: 640
 };
 
+export interface QtExtractorConfig {
+  binaryPath: string;            // '' = auto-detect using platform defaults
+  autoRunAfterDownload: boolean; // Run external Qt extractor after each screen download
+  autoPostProcessAfter: boolean; // Chain Electron post-processing after extraction
+}
+
+export const DEFAULT_QT_EXTRACTOR_CONFIG: QtExtractorConfig = {
+  binaryPath: '',
+  autoRunAfterDownload: false,
+  autoPostProcessAfter: true
+};
+
 export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
 
 export type AIServiceType = 'builtin' | 'custom' | 'copilot';
@@ -174,6 +186,7 @@ export interface AppConfig {
   preventSystemSleep: boolean;
   slideExtraction: SlideExtractionConfig;
   aiFiltering: AIFilteringConfig;
+  qtExtractor: QtExtractorConfig;
   skipUpdateCheckUntil: number;
   userOriginalNickname: string;
   userDisplayName: string;
@@ -296,6 +309,7 @@ const defaultConfig: AppConfig = {
   preventSystemSleep: true,
   slideExtraction: defaultSlideExtractionConfig,
   aiFiltering: defaultAIFilteringConfig,
+  qtExtractor: { ...DEFAULT_QT_EXTRACTOR_CONFIG },
   skipUpdateCheckUntil: 0,
   userOriginalNickname: '',
   userDisplayName: '',
@@ -339,6 +353,7 @@ export class ConfigService {
       preventSystemSleep: this.store.get('preventSystemSleep'),
       slideExtraction: this.store.get('slideExtraction'),
       aiFiltering: this.store.get('aiFiltering') || defaultAIFilteringConfig,
+      qtExtractor: this.getQtExtractorConfig(),
       skipUpdateCheckUntil: this.store.get('skipUpdateCheckUntil') ?? 0,
       userOriginalNickname: this.store.get('userOriginalNickname') ?? '',
       userDisplayName: this.store.get('userDisplayName') ?? '',
@@ -930,6 +945,38 @@ export class ConfigService {
 
   setMlClassifierCustomModelName(name: string | null): void {
     this.setAIFilteringConfig({ mlClassifierCustomModelName: name });
+  }
+
+  // Qt Extractor configuration methods
+  getQtExtractorConfig(): QtExtractorConfig {
+    const stored = this.store.get('qtExtractor') as Partial<QtExtractorConfig> | undefined;
+    if (!stored) return { ...DEFAULT_QT_EXTRACTOR_CONFIG };
+    return {
+      ...DEFAULT_QT_EXTRACTOR_CONFIG,
+      ...stored
+    };
+  }
+
+  setQtExtractorConfig(config: Partial<QtExtractorConfig>): void {
+    const current = this.getQtExtractorConfig();
+    const next: QtExtractorConfig = { ...current, ...config };
+    this.store.set('qtExtractor', next);
+  }
+
+  setQtExtractorBinaryPath(binaryPath: string): void {
+    this.setQtExtractorConfig({ binaryPath: binaryPath || '' });
+  }
+
+  setQtExtractorAutoRun(enabled: boolean): void {
+    this.setQtExtractorConfig({ autoRunAfterDownload: enabled });
+  }
+
+  setQtExtractorAutoPostProcess(enabled: boolean): void {
+    this.setQtExtractorConfig({ autoPostProcessAfter: enabled });
+  }
+
+  getEnablePngColorReduction(): boolean {
+    return this.getSlideExtractionConfig().enablePngColorReduction !== false;
   }
 
   async selectOutputDirectory(): Promise<string | null> {

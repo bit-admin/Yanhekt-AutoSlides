@@ -407,6 +407,83 @@ contextBridge.exposeInMainWorld('electronAPI', {
     savePngBuffer: (outputDir: string, filename: string, buffer: Uint8Array, enableColorReduction: boolean) =>
       ipcRenderer.invoke('offline:savePngBuffer', outputDir, filename, buffer, enableColorReduction),
   },
+  qtExtractor: {
+    getStatus: () => ipcRenderer.invoke('qtExtractor:getStatus') as Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>,
+    detect: () => ipcRenderer.invoke('qtExtractor:detect') as Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>,
+    verify: (binaryPath?: string) => ipcRenderer.invoke('qtExtractor:verify', binaryPath) as Promise<{ ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }>,
+    selectBinary: () => ipcRenderer.invoke('qtExtractor:selectBinary') as Promise<string | null>,
+    setBinaryPath: (binaryPath: string) => ipcRenderer.invoke('qtExtractor:setBinaryPath', binaryPath),
+    setAutoRun: (enabled: boolean) => ipcRenderer.invoke('qtExtractor:setAutoRun', enabled),
+    setAutoPostProcess: (enabled: boolean) => ipcRenderer.invoke('qtExtractor:setAutoPostProcess', enabled),
+    runExtraction: (
+      extractionId: string,
+      videoPath: string,
+      outputDir: string,
+      params: {
+        ssimThreshold: number;
+        enableDownsampling: boolean;
+        downsampleWidth: number;
+        downsampleHeight: number;
+        chunkSize?: number;
+        jpegQuality?: number;
+      }
+    ) => ipcRenderer.invoke('qtExtractor:runExtraction', extractionId, videoPath, outputDir, params),
+    cancelExtraction: (extractionId: string) => ipcRenderer.invoke('qtExtractor:cancelExtraction', extractionId),
+    normalizeOutput: (slidesDir: string, reduceColors: boolean) =>
+      ipcRenderer.invoke('qtExtractor:normalizeOutput', slidesDir, reduceColors),
+    onProgress: (callback: (extractionId: string, percent: number) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, extractionId: string, percent: number) => callback(extractionId, percent);
+      ipcRenderer.on('qtExtractor:progress', handler);
+      return () => ipcRenderer.removeListener('qtExtractor:progress', handler);
+    },
+    onSlidesExtracted: (callback: (extractionId: string, slidesDir: string, count: number) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, extractionId: string, slidesDir: string, count: number) =>
+        callback(extractionId, slidesDir, count);
+      ipcRenderer.on('qtExtractor:slidesExtracted', handler);
+      return () => ipcRenderer.removeListener('qtExtractor:slidesExtracted', handler);
+    },
+    onCompleted: (callback: (extractionId: string, result: { slideCount: number; slidesDir: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, extractionId: string, result: { slideCount: number; slidesDir: string }) =>
+        callback(extractionId, result);
+      ipcRenderer.on('qtExtractor:completed', handler);
+      return () => ipcRenderer.removeListener('qtExtractor:completed', handler);
+    },
+    onError: (callback: (extractionId: string, message: string, category?: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, extractionId: string, message: string, category?: string) =>
+        callback(extractionId, message, category);
+      ipcRenderer.on('qtExtractor:error', handler);
+      return () => ipcRenderer.removeListener('qtExtractor:error', handler);
+    },
+    onCancelled: (callback: (extractionId: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, extractionId: string) => callback(extractionId);
+      ipcRenderer.on('qtExtractor:cancelled', handler);
+      return () => ipcRenderer.removeListener('qtExtractor:cancelled', handler);
+    },
+  },
+  extractorInstaller: {
+    checkLatest: () => ipcRenderer.invoke('extractorInstaller:checkLatest'),
+    download: (url: string, filename: string) => ipcRenderer.invoke('extractorInstaller:download', url, filename),
+    cancel: () => ipcRenderer.invoke('extractorInstaller:cancel'),
+    isDownloading: () => ipcRenderer.invoke('extractorInstaller:isDownloading'),
+    install: (filename: string) => ipcRenderer.invoke('extractorInstaller:install', filename),
+    openDownloadFolder: () => ipcRenderer.invoke('extractorInstaller:openDownloadFolder'),
+    openRepo: () => ipcRenderer.invoke('extractorInstaller:openRepo'),
+    onProgress: (callback: (progress: { downloaded: number; total: number; percent: number }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, progress: { downloaded: number; total: number; percent: number }) => callback(progress);
+      ipcRenderer.on('extractorInstaller:progress', handler);
+      return () => ipcRenderer.removeListener('extractorInstaller:progress', handler);
+    },
+    onComplete: (callback: (filename: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, filename: string) => callback(filename);
+      ipcRenderer.on('extractorInstaller:complete', handler);
+      return () => ipcRenderer.removeListener('extractorInstaller:complete', handler);
+    },
+    onError: (callback: (error: string) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, error: string) => callback(error);
+      ipcRenderer.on('extractorInstaller:error', handler);
+      return () => ipcRenderer.removeListener('extractorInstaller:error', handler);
+    },
+  },
   update: {
     // Existing
     checkForUpdates: () => ipcRenderer.invoke('update:checkForUpdates'),

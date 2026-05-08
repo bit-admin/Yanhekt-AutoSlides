@@ -464,6 +464,8 @@ class PostProcessingServiceClass {
           resolve(ctx.getImageData(0, 0, img.width, img.height))
         }
         img.onerror = () => resolve(null)
+        // TODO(qt-extractor JPEG): hardcoded image/png MIME. Detect format
+        // from the file extension if/when we drop the JPEG→PNG normalize shim.
         img.src = `data:image/png;base64,${base64}`
       })
     } catch (error) {

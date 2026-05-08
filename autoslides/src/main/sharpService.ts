@@ -236,6 +236,11 @@ export class SharpService {
    * Reduce PNG colors to 128 using palette quantization
    * @param imageBuffer Original PNG image buffer
    * @returns Optimized PNG buffer with reduced colors, or null if failed
+   *
+   * TODO(qt-extractor JPEG): Output is hardcoded to .png() so JPEG inputs are
+   * silently transcoded. When we drop the post-extraction JPEG→PNG shim,
+   * branch on input format and preserve it (or document the conversion).
+   * Same applies to crop() and processImageForPdf() below.
    */
   async reducePngColors(imageBuffer: Uint8Array): Promise<Uint8Array | null> {
     if (!this.sharp) {
@@ -409,6 +414,25 @@ export class SharpService {
     } catch (error) {
       console.error('Sharp image metadata failed:', error);
       return null;
+    }
+  }
+
+  /**
+   * Convert any image at `inputPath` to a PNG written to `outputPath`,
+   * optionally applying 128-color palette quantization.
+   * Used by the Qt extractor JPEG→PNG normalization shim.
+   */
+  async convertImageToPng(inputPath: string, outputPath: string, reduceColors: boolean): Promise<void> {
+    if (!this.sharp) {
+      throw new Error('Sharp not available');
+    }
+    const pipeline = this.sharp(inputPath);
+    if (reduceColors) {
+      await pipeline
+        .png({ palette: true, colors: 128, effort: 9, dither: 0 })
+        .toFile(outputPath);
+    } else {
+      await pipeline.png().toFile(outputPath);
     }
   }
 }

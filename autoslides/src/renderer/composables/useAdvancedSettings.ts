@@ -96,6 +96,19 @@ export interface UseAdvancedSettingsReturn {
   enablePngColorReduction: Ref<boolean>
   tempEnablePngColorReduction: Ref<boolean>
 
+  // Qt extractor (external CLI for slide extraction)
+  qtExtractorAutoRun: Ref<boolean>
+  tempQtExtractorAutoRun: Ref<boolean>
+  qtExtractorAutoPostProcess: Ref<boolean>
+  tempQtExtractorAutoPostProcess: Ref<boolean>
+  qtExtractorBinaryPath: Ref<string>
+  qtExtractorResolvedPath: Ref<string>
+  qtExtractorStatusOk: Ref<boolean>
+  qtExtractorStatusVersion: Ref<string>
+  qtExtractorStatusError: Ref<string>
+  qtExtractorVerifying: Ref<boolean>
+  showExtractorInstallModal: Ref<boolean>
+
   // Auto Crop
   tempAutoCropAspectTolerance: Ref<number>
   tempAutoCropBlackThreshold: Ref<number>
@@ -134,6 +147,14 @@ export interface UseAdvancedSettingsReturn {
   tempIntranetInterfaceIp: Ref<string>
   intranetInterfaceWarning: Ref<string | null>
   refreshNetworkInterfaces: () => Promise<void>
+
+  // Qt extractor methods
+  loadQtExtractorConfig: () => Promise<void>
+  qtExtractorVerify: () => Promise<void>
+  qtExtractorBrowseBinary: () => Promise<void>
+  qtExtractorAutoDetect: () => Promise<void>
+  openExtractorInstallModal: () => void
+  closeExtractorInstallModal: () => void
 
   // Methods
   openAdvancedSettings: () => Promise<void>
@@ -228,6 +249,19 @@ export function useAdvancedSettings(
   const enablePngColorReduction = ref(true)
   const tempEnablePngColorReduction = ref(true)
 
+  // Qt extractor state
+  const qtExtractorAutoRun = ref(false)
+  const tempQtExtractorAutoRun = ref(false)
+  const qtExtractorAutoPostProcess = ref(true)
+  const tempQtExtractorAutoPostProcess = ref(true)
+  const qtExtractorBinaryPath = ref('')
+  const qtExtractorResolvedPath = ref('')
+  const qtExtractorStatusOk = ref(false)
+  const qtExtractorStatusVersion = ref('')
+  const qtExtractorStatusError = ref('')
+  const qtExtractorVerifying = ref(false)
+  const showExtractorInstallModal = ref(false)
+
   // Auto Crop defaults (mirror DEFAULT_AUTO_CROP_CONFIG in configService)
   const AUTO_CROP_DEFAULTS = {
     aspectTolerance: 0.05,
@@ -282,6 +316,81 @@ export function useAdvancedSettings(
 
   // Flag for programmatic updates
   let isUpdatingProgrammatically = false
+
+  // ----- Qt extractor helpers -----
+  const applyQtStatus = (status: { ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }) => {
+    qtExtractorStatusOk.value = !!status.ok
+    qtExtractorStatusVersion.value = status.version || ''
+    qtExtractorStatusError.value = status.error || ''
+    qtExtractorBinaryPath.value = status.path || ''
+    qtExtractorResolvedPath.value = status.resolvedPath || ''
+  }
+
+  const loadQtExtractorConfig = async () => {
+    try {
+      const cfg = await window.electronAPI.config.get()
+      const block = cfg.qtExtractor
+      if (block) {
+        qtExtractorAutoRun.value = !!block.autoRunAfterDownload
+        qtExtractorAutoPostProcess.value = block.autoPostProcessAfter !== false
+      }
+      tempQtExtractorAutoRun.value = qtExtractorAutoRun.value
+      tempQtExtractorAutoPostProcess.value = qtExtractorAutoPostProcess.value
+      const status = await window.electronAPI.qtExtractor.getStatus()
+      applyQtStatus(status)
+    } catch (error) {
+      console.error('Failed to load Qt extractor config:', error)
+    }
+  }
+
+  const qtExtractorVerify = async () => {
+    qtExtractorVerifying.value = true
+    try {
+      const status = await window.electronAPI.qtExtractor.verify(qtExtractorBinaryPath.value || undefined)
+      applyQtStatus(status)
+      // Refresh extraction queue's cached readiness
+      const { ExtractionQueue } = await import('../services/extractionQueueService')
+      await ExtractionQueue.refreshExtractorStatus()
+    } catch (error) {
+      console.error('Failed to verify extractor binary:', error)
+      qtExtractorStatusOk.value = false
+      qtExtractorStatusError.value = error instanceof Error ? error.message : String(error)
+    } finally {
+      qtExtractorVerifying.value = false
+    }
+  }
+
+  const qtExtractorBrowseBinary = async () => {
+    try {
+      const picked = await window.electronAPI.qtExtractor.selectBinary()
+      if (!picked) return
+      await window.electronAPI.qtExtractor.setBinaryPath(picked)
+      qtExtractorBinaryPath.value = picked
+      await qtExtractorVerify()
+    } catch (error) {
+      console.error('Failed to browse for extractor binary:', error)
+    }
+  }
+
+  const qtExtractorAutoDetect = async () => {
+    try {
+      // Clear the user-set path and let the service fall back to platform defaults
+      await window.electronAPI.qtExtractor.setBinaryPath('')
+      qtExtractorBinaryPath.value = ''
+      await qtExtractorVerify()
+    } catch (error) {
+      console.error('Failed to auto-detect extractor binary:', error)
+    }
+  }
+
+  const openExtractorInstallModal = () => {
+    showExtractorInstallModal.value = true
+  }
+  const closeExtractorInstallModal = () => {
+    showExtractorInstallModal.value = false
+    // Re-verify after modal closes — the install may have just finished
+    void qtExtractorVerify()
+  }
 
   // Load image processing config
   const loadImageProcessingConfig = async () => {
@@ -378,6 +487,7 @@ export function useAdvancedSettings(
     await loadIntranetMappings()
     await loadNetworkInterfaces()
     await loadIntranetInterfaceIp()
+    await loadQtExtractorConfig()
     intranetInterfaceWarning.value = null
 
     // Call additional setup callback
@@ -405,6 +515,8 @@ export function useAdvancedSettings(
     tempEnablePngColorReduction.value = enablePngColorReduction.value
     tempEnableAIFiltering.value = enableAIFiltering.value
     tempDistinguishMaybeSlide.value = distinguishMaybeSlide.value
+    tempQtExtractorAutoRun.value = qtExtractorAutoRun.value
+    tempQtExtractorAutoPostProcess.value = qtExtractorAutoPostProcess.value
     tempThemeMode.value = themeMode.value
     tempLanguageMode.value = languageMode.value
     tempIntranetInterfaceIp.value = intranetInterfaceIp.value
@@ -481,6 +593,12 @@ export function useAdvancedSettings(
       // Save AI behaviour toggle
       await window.electronAPI.config.setDistinguishMaybeSlide(tempDistinguishMaybeSlide.value)
       distinguishMaybeSlide.value = tempDistinguishMaybeSlide.value
+
+      // Save Qt extractor toggles (path is saved inline by the Browse / Auto-detect actions)
+      await window.electronAPI.qtExtractor.setAutoRun(tempQtExtractorAutoRun.value)
+      qtExtractorAutoRun.value = tempQtExtractorAutoRun.value
+      await window.electronAPI.qtExtractor.setAutoPostProcess(tempQtExtractorAutoPostProcess.value)
+      qtExtractorAutoPostProcess.value = tempQtExtractorAutoPostProcess.value
 
       // Save intranet interface binding (applies only to intranet-mode traffic).
       if (tempIntranetInterfaceIp.value !== intranetInterfaceIp.value) {
@@ -731,6 +849,25 @@ export function useAdvancedSettings(
     // PNG color reduction
     enablePngColorReduction,
     tempEnablePngColorReduction,
+
+    // Qt extractor
+    qtExtractorAutoRun,
+    tempQtExtractorAutoRun,
+    qtExtractorAutoPostProcess,
+    tempQtExtractorAutoPostProcess,
+    qtExtractorBinaryPath,
+    qtExtractorResolvedPath,
+    qtExtractorStatusOk,
+    qtExtractorStatusVersion,
+    qtExtractorStatusError,
+    qtExtractorVerifying,
+    showExtractorInstallModal,
+    loadQtExtractorConfig,
+    qtExtractorVerify,
+    qtExtractorBrowseBinary,
+    qtExtractorAutoDetect,
+    openExtractorInstallModal,
+    closeExtractorInstallModal,
 
     // Auto Crop
     tempAutoCropAspectTolerance,

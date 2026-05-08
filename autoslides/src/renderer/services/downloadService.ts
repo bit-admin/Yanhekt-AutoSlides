@@ -2,6 +2,19 @@ import { reactive, ref } from 'vue'
 
 export type DownloadStatus = 'queued' | 'downloading' | 'processing' | 'completed' | 'error'
 
+// Extraction state added by the Qt AutoSlides Extractor integration. Mirrors
+// the union in extractionQueueService.ts (kept here to avoid a circular type
+// import).
+export type DownloadExtractionStatus =
+  | 'none'
+  | 'pending'
+  | 'extracting'
+  | 'normalizing'
+  | 'post_processing'
+  | 'completed'
+  | 'error'
+  | 'cancelled'
+
 export interface DownloadItem {
   id: string
   name: string
@@ -15,6 +28,20 @@ export interface DownloadItem {
   addedAt: number
   startedAt?: number
   completedAt?: number
+
+  // Qt extractor state (populated only when auto-extract is enabled and the binary is ready)
+  extractionStatus?: DownloadExtractionStatus
+  extractionProgress?: number
+  extractionError?: string
+  videoFilePath?: string
+  slidesDir?: string
+  ssimThreshold?: number
+  extractionEnableDownsampling?: boolean
+  extractionDownsampleWidth?: number
+  extractionDownsampleHeight?: number
+  autoPostProcessAfter?: boolean
+  extractorOutputDir?: string
+  postProcessJobId?: string
 }
 
 export type DownloadQueueAddResult =
@@ -60,7 +87,32 @@ class DownloadServiceClass {
 
     this.items.push(downloadItem)
     this.processQueue()
+    // Hook into the extraction queue. This is async but we don't await — the
+    // extraction queue handles its own state transitions, and the download
+    // begins immediately regardless.
+    void this.notifyExtractionQueueAdded(downloadItem)
     return { added: true, item: downloadItem }
+  }
+
+  private async notifyExtractionQueueAdded(item: DownloadItem): Promise<void> {
+    try {
+      const { ExtractionQueue } = await import('./extractionQueueService')
+      await ExtractionQueue.markPendingIfApplicable(item)
+      ExtractionQueue.ensureWorker()
+    } catch (err) {
+      console.error('[DownloadService] Failed to notify extraction queue:', err)
+    }
+  }
+
+  private notifyExtractionQueueChange(): void {
+    void (async () => {
+      try {
+        const { ExtractionQueue } = await import('./extractionQueueService')
+        ExtractionQueue.notifyChange()
+      } catch (err) {
+        console.error('[DownloadService] Failed to wake extraction queue:', err)
+      }
+    })()
   }
 
   removeFromQueue(id: string): void {
@@ -85,6 +137,7 @@ class DownloadServiceClass {
         }
       }
       this.processQueue()
+      this.notifyExtractionQueueChange()
     }
   }
 
@@ -106,6 +159,7 @@ class DownloadServiceClass {
     })
 
     this.processQueue()
+    this.notifyExtractionQueueChange()
   }
 
   clearCompleted(): void {
@@ -259,6 +313,9 @@ class DownloadServiceClass {
           // Clean up by removing this specific item from active downloads
           this.activeDownloads.delete(item.id)
           this.processQueue()
+          // Wake the extraction queue so it can pick up this completed item
+          // (or skip past it if the next-in-line is still downloading).
+          this.notifyExtractionQueueChange()
           resolve()
         }
       }
@@ -275,6 +332,7 @@ class DownloadServiceClass {
           // Clean up by removing this specific item from active downloads
           this.activeDownloads.delete(item.id)
           this.processQueue()
+          this.notifyExtractionQueueChange()
           reject(new Error(error))
         }
       }

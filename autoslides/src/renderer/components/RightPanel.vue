@@ -278,9 +278,13 @@
             <div
               v-for="item in downloadItems"
               :key="item.id"
-              class="download-item"
-              :class="[`status-${item.status}`, { 'row-highlight': highlightedDownloadId === item.id }]"
+              class="download-item-wrapper"
+              :class="{ 'row-highlight': highlightedDownloadId === item.id }"
               :data-download-id="item.id"
+            >
+            <div
+              class="download-item"
+              :class="[`status-${item.status}`]"
             >
               <div class="item-status">
                 <div :class="['status-indicator', `status-${item.status}`]">
@@ -351,6 +355,48 @@
                 </button>
               </div>
             </div>
+
+            <!-- Extraction (Qt extractor) progress row -->
+            <div
+              v-if="item.extractionStatus && item.extractionStatus !== 'none'"
+              class="extraction-affiliated-panel"
+              :class="[`ext-status-${item.extractionStatus}`]"
+            >
+              <div class="ext-row">
+                <span class="ext-name">
+                  <span v-if="item.extractionStatus === 'pending'">{{ $t('downloads.extraction.waiting') }}</span>
+                  <span v-else-if="item.extractionStatus === 'extracting'">{{ $t('downloads.extraction.extracting') }} {{ item.extractionProgress || 0 }}%</span>
+                  <span v-else-if="item.extractionStatus === 'normalizing'">{{ $t('downloads.extraction.normalizing') }}</span>
+                  <span v-else-if="item.extractionStatus === 'post_processing'">{{ $t('downloads.extraction.postProcessing') }}</span>
+                  <span v-else-if="item.extractionStatus === 'completed'">{{ $t('downloads.extraction.completed') }}</span>
+                  <span v-else-if="item.extractionStatus === 'error'">{{ item.extractionError || $t('downloads.extraction.error') }}</span>
+                  <span v-else-if="item.extractionStatus === 'cancelled'">{{ $t('downloads.extraction.cancelled') }}</span>
+                </span>
+                <button
+                  v-if="item.extractionStatus === 'pending' || item.extractionStatus === 'extracting' || item.extractionStatus === 'normalizing' || item.extractionStatus === 'post_processing'"
+                  class="cancel-item-btn"
+                  :title="$t('downloads.extraction.cancel')"
+                  @click="cancelExtraction(item.id)"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="ext-bar">
+                <div
+                  class="ext-fill"
+                  :class="{
+                    active: item.extractionStatus === 'extracting' || item.extractionStatus === 'normalizing' || item.extractionStatus === 'post_processing',
+                    completed: item.extractionStatus === 'completed',
+                    errored: item.extractionStatus === 'error' || item.extractionStatus === 'cancelled'
+                  }"
+                  :style="{ width: extractionBarWidth(item) + '%' }"
+                ></div>
+              </div>
+            </div>
+          </div>
           </div>
 
           <div v-else class="empty-queue">
@@ -372,6 +418,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { DownloadService, type DownloadItem } from '../services/downloadService'
+import { ExtractionQueue } from '../services/extractionQueueService'
 import { TaskQueue, taskQueueState, type TaskItem } from '../services/taskQueueService'
 import { PostProcessingService, postProcessingState, type PostProcessJob } from '../services/postProcessingService'
 import { useI18n } from 'vue-i18n'
@@ -564,6 +611,22 @@ const cancelDownload = (id: string) => {
 
 const retryDownload = (id: string) => {
   DownloadService.retryDownload(id)
+}
+
+// Extraction (Qt extractor) controls — separate cancel from the download itself
+const cancelExtraction = (id: string) => {
+  void ExtractionQueue.cancelExtraction(id)
+}
+
+const extractionBarWidth = (item: DownloadItem): number => {
+  const status = item.extractionStatus
+  if (status === 'pending') return 0
+  if (status === 'extracting') return Math.max(0, Math.min(100, item.extractionProgress || 0))
+  if (status === 'normalizing') return 100
+  if (status === 'post_processing') return 100
+  if (status === 'completed') return 100
+  if (status === 'error' || status === 'cancelled') return 100
+  return 0
 }
 
 // Listen for tab switching events
@@ -1119,6 +1182,73 @@ defineExpose({
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
 }
+
+/* Qt extractor (download item affiliated) extraction panel */
+.download-item-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.download-item-wrapper:has(.extraction-affiliated-panel) .download-item {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.extraction-affiliated-panel {
+  width: 100%;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 4px 8px;
+}
+.download-item.status-completed + .extraction-affiliated-panel {
+  border-left: 3px solid #9acd32;
+}
+.download-item.status-error + .extraction-affiliated-panel {
+  border-left: 3px solid #ff9800;
+}
+.ext-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  margin-bottom: 3px;
+}
+.ext-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #333;
+}
+.ext-row .cancel-item-btn {
+  width: 18px;
+  height: 18px;
+}
+.ext-bar {
+  height: 3px;
+  background-color: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.ext-fill {
+  height: 100%;
+  background-color: #e0e0e0;
+  transition: width 0.3s ease;
+}
+.ext-fill.active {
+  background-color: #007acc;
+}
+.ext-fill.completed {
+  background-color: #28a745;
+}
+.ext-fill.errored {
+  background-color: #dc3545;
+}
+.ext-status-pending .ext-name { color: #6c757d; }
+.ext-status-completed .ext-name { color: #28a745; }
+.ext-status-error .ext-name, .ext-status-cancelled .ext-name { color: #dc3545; }
 
 .item-actions {
   flex-shrink: 0;

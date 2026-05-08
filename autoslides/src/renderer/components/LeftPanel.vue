@@ -927,6 +927,66 @@
 
             <div class="advanced-setting-section">
               <h4>{{ $t('advanced.download') }}</h4>
+
+              <!-- Qt extractor: Run Slides Extraction with C++ -->
+              <div class="setting-item">
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="tempQtExtractorAutoRun" />
+                  {{ $t('advanced.qtExtractor.autoRun') }}
+                </label>
+                <div class="setting-description">{{ $t('advanced.qtExtractor.autoRunDescription') }}</div>
+              </div>
+              <div class="setting-item" :class="{ 'setting-item-disabled': !tempQtExtractorAutoRun }">
+                <label class="checkbox-label">
+                  <input type="checkbox" v-model="tempQtExtractorAutoPostProcess" :disabled="!tempQtExtractorAutoRun" />
+                  {{ $t('advanced.qtExtractor.autoPostProcess') }}
+                </label>
+                <div class="setting-description">{{ $t('advanced.qtExtractor.autoPostProcessDescription') }}</div>
+              </div>
+
+              <!-- Extractor binary section -->
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.qtExtractor.section') }}</label>
+                <div class="setting-description">{{ $t('advanced.qtExtractor.sectionDescription') }}</div>
+                <div class="qt-extractor-path-row">
+                  <input
+                    type="text"
+                    class="qt-extractor-path-input"
+                    :value="qtExtractorResolvedPath || qtExtractorBinaryPath"
+                    :placeholder="$t('advanced.qtExtractor.pathPlaceholder')"
+                    readonly
+                  />
+                </div>
+                <div class="qt-extractor-actions">
+                  <button type="button" class="qt-extractor-btn" @click="qtExtractorBrowseBinary">
+                    {{ $t('advanced.qtExtractor.browse') }}
+                  </button>
+                  <button type="button" class="qt-extractor-btn" @click="qtExtractorAutoDetect">
+                    {{ $t('advanced.qtExtractor.autoDetect') }}
+                  </button>
+                  <button type="button" class="qt-extractor-btn" @click="qtExtractorVerify" :disabled="qtExtractorVerifying">
+                    {{ qtExtractorVerifying ? $t('advanced.qtExtractor.verifying') : $t('advanced.qtExtractor.verify') }}
+                  </button>
+                </div>
+                <div class="qt-extractor-status">
+                  <span v-if="qtExtractorStatusOk" class="qt-status-ok">
+                    ● {{ $t('advanced.qtExtractor.statusReady') }}
+                    <span v-if="qtExtractorStatusVersion"> (v{{ qtExtractorStatusVersion }})</span>
+                  </span>
+                  <span v-else-if="qtExtractorStatusError" class="qt-status-error">
+                    ● {{ $t('advanced.qtExtractor.statusMissing') }} — {{ qtExtractorStatusError }}
+                  </span>
+                  <span v-else class="qt-status-unknown">
+                    ○ {{ $t('advanced.qtExtractor.statusUnknown') }}
+                  </span>
+                </div>
+                <div class="qt-extractor-actions">
+                  <button type="button" class="qt-extractor-btn qt-extractor-install" @click="openExtractorInstallModal">
+                    {{ $t('advanced.qtExtractor.install') }}
+                  </button>
+                </div>
+              </div>
+
               <div class="setting-item">
                 <label class="setting-label">{{ $t('advanced.concurrentDownloadLimit') }}</label>
                 <div class="setting-description">{{ $t('advanced.concurrentDownloadDescription') }}</div>
@@ -1779,6 +1839,12 @@
       </div>
     </div>
 
+    <!-- Extractor Install Modal -->
+    <ExtractorInstallModal
+      :visible="showExtractorInstallModal"
+      @close="closeExtractorInstallModal"
+    />
+
   </div>
 </template>
 
@@ -1793,6 +1859,7 @@ import { useCacheManagement } from '../composables/useCacheManagement'
 import { useAISettings } from '../composables/useAISettings'
 import { usePHashExclusion } from '../composables/usePHashExclusion'
 import MlThresholdSlider from './MlThresholdSlider.vue'
+import ExtractorInstallModal from './ExtractorInstallModal.vue'
 
 const { t } = useI18n()
 
@@ -1962,6 +2029,22 @@ const {
   downsamplingPresets,
   enablePngColorReduction: _enablePngColorReduction,
   tempEnablePngColorReduction,
+  qtExtractorAutoRun: _qtExtractorAutoRun,
+  tempQtExtractorAutoRun,
+  qtExtractorAutoPostProcess: _qtExtractorAutoPostProcess,
+  tempQtExtractorAutoPostProcess,
+  qtExtractorBinaryPath,
+  qtExtractorResolvedPath,
+  qtExtractorStatusOk,
+  qtExtractorStatusVersion,
+  qtExtractorStatusError,
+  qtExtractorVerifying,
+  showExtractorInstallModal,
+  qtExtractorVerify,
+  qtExtractorBrowseBinary,
+  qtExtractorAutoDetect,
+  openExtractorInstallModal,
+  closeExtractorInstallModal,
   tempAutoCropAspectTolerance,
   tempAutoCropBlackThreshold,
   tempAutoCropMaxBorderFrac,
@@ -6159,4 +6242,59 @@ defineExpose({
   }
 
 }
+
+/* Qt extractor settings */
+.setting-item-disabled {
+  opacity: 0.55;
+}
+.qt-extractor-path-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+.qt-extractor-path-input {
+  flex: 1;
+  padding: 6px 8px;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 12px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 4px;
+  background: var(--input-bg, transparent);
+  color: var(--text-color, inherit);
+  min-width: 0;
+}
+.qt-extractor-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.qt-extractor-btn {
+  padding: 4px 12px;
+  font-size: 12px;
+  border: 1px solid var(--border-color, #ccc);
+  border-radius: 4px;
+  background: var(--button-bg, transparent);
+  color: var(--text-color, inherit);
+  cursor: pointer;
+}
+.qt-extractor-btn:hover:not(:disabled) {
+  background: var(--button-hover-bg, rgba(0,0,0,0.05));
+}
+.qt-extractor-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.qt-extractor-install {
+  font-weight: 500;
+}
+.qt-extractor-status {
+  font-size: 12px;
+  margin-top: 6px;
+  word-break: break-word;
+}
+.qt-status-ok { color: #2ea44f; }
+.qt-status-error { color: #d73a49; }
+.qt-status-unknown { color: var(--text-color-secondary, #888); }
 </style>
