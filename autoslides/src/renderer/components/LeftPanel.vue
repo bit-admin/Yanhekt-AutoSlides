@@ -930,42 +930,76 @@
                     <span v-else>{{ $t('advanced.qtExtractor.statusUnknown') }}</span>
                   </div>
                 </div>
-                <div class="setting-description">{{ $t('advanced.qtExtractor.sectionDescription') }}</div>
-
-                <div class="extractor-path-row">
-                  <input
-                    type="text"
-                    class="extractor-path-input"
-                    :value="qtExtractorResolvedPath || qtExtractorBinaryPath"
-                    :placeholder="$t('advanced.qtExtractor.pathPlaceholder')"
-                    :title="qtExtractorResolvedPath || qtExtractorBinaryPath"
-                    readonly
-                  />
-                  <button
-                    type="button"
-                    class="extractor-refresh-btn"
-                    :title="qtExtractorVerifying ? $t('advanced.qtExtractor.refreshing') : $t('advanced.qtExtractor.refresh')"
-                    :disabled="qtExtractorVerifying"
-                    @click="qtExtractorVerify"
+                <div class="setting-description extractor-description">
+                  {{ $t('advanced.qtExtractor.sectionDescription') }}
+                  <a
+                    href="https://github.com/bit-admin/AutoSlides-Extractor"
+                    class="external-link"
+                    @click.prevent="openExtractorRepository"
                   >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      :class="{ spinning: qtExtractorVerifying }"
+                    {{ $t('advanced.qtExtractor.sourceLink') }}
+                  </a>
+                </div>
+
+                <div class="extractor-config-box">
+                  <div class="extractor-reference">
+                    <div class="extractor-reference-header">
+                      {{ $t('advanced.qtExtractor.defaultExecutables') }}
+                    </div>
+                    <div class="extractor-platform-list">
+                      <div class="extractor-platform-row">
+                        <span class="extractor-platform-name">{{ $t('advanced.qtExtractor.platformMacOS') }}</span>
+                        <code>/Applications/AutoSlides Extractor.app/Contents/MacOS/AutoSlidesExtractor</code>
+                      </div>
+                      <div class="extractor-platform-row">
+                        <span class="extractor-platform-name">{{ $t('advanced.qtExtractor.platformWindows') }}</span>
+                        <div class="extractor-path-stack">
+                          <code>C:\Program Files\AutoSlides Extractor\AutoSlidesExtractor.exe</code>
+                          <code>C:\Program Files (x86)\AutoSlides Extractor\AutoSlidesExtractor.exe</code>
+                        </div>
+                      </div>
+                      <div class="extractor-platform-row">
+                        <span class="extractor-platform-name">{{ $t('advanced.qtExtractor.platformLinux') }}</span>
+                        <span class="extractor-linux-note">{{ $t('advanced.qtExtractor.linuxBuildFromSource') }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="extractor-path-row">
+                    <input
+                      type="text"
+                      class="extractor-path-input"
+                      :value="qtExtractorResolvedPath || qtExtractorBinaryPath"
+                      :placeholder="$t('advanced.qtExtractor.pathPlaceholder')"
+                      :title="qtExtractorResolvedPath || qtExtractorBinaryPath"
+                      readonly
+                    />
+                    <button
+                      type="button"
+                      class="extractor-refresh-btn"
+                      :title="qtExtractorVerifying ? $t('advanced.qtExtractor.refreshing') : $t('advanced.qtExtractor.refresh')"
+                      :disabled="qtExtractorVerifying"
+                      @click="qtExtractorVerify"
                     >
-                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                      <path d="M21 3v5h-5"/>
-                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                      <path d="M3 21v-5h5"/>
-                    </svg>
-                  </button>
-                  <button type="button" class="secondary-btn" @click="qtExtractorBrowseBinary">
-                    {{ $t('advanced.qtExtractor.browse') }}
-                  </button>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        :class="{ spinning: qtExtractorVerifying }"
+                      >
+                        <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                        <path d="M21 3v5h-5"/>
+                        <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                        <path d="M3 21v-5h5"/>
+                      </svg>
+                    </button>
+                    <button type="button" class="secondary-btn" @click="qtExtractorBrowseBinary">
+                      {{ $t('advanced.qtExtractor.browse') }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2246,6 +2280,14 @@ const copyUserCode = async () => {
 const openCopilotVerificationUrl = () => {
   if (copilotVerificationUri.value) {
     window.electronAPI.shell.openExternal(copilotVerificationUri.value)
+  }
+}
+
+const openExtractorRepository = async () => {
+  try {
+    await window.electronAPI.shell.openExternal('https://github.com/bit-admin/AutoSlides-Extractor')
+  } catch (error) {
+    console.error('Failed to open AutoSlides Extractor repository:', error)
   }
 }
 
@@ -6270,7 +6312,7 @@ defineExpose({
 
 }
 
-/* Qt extractor settings */
+/* External extractor settings */
 .checkbox-label-disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -6302,6 +6344,78 @@ defineExpose({
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-secondary, #666);
+}
+
+.extractor-description .external-link {
+  white-space: nowrap;
+}
+
+.extractor-config-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 6px;
+  background: var(--bg-subtle, rgba(0, 0, 0, 0.02));
+}
+
+.extractor-reference {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+}
+
+.extractor-reference-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary, #222);
+}
+
+.extractor-platform-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.extractor-platform-row {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.extractor-platform-name {
+  color: var(--text-secondary, #666);
+  font-weight: 600;
+}
+
+.extractor-platform-row code,
+.extractor-linux-note {
+  min-width: 0;
+  color: var(--text-primary, #222);
+}
+
+.extractor-platform-row code {
+  display: block;
+  padding: 2px 5px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 10.5px;
+  overflow-wrap: anywhere;
+}
+
+.extractor-path-stack {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
 }
 
 /* Round pill button next to a section title — modelled on .variant-badge
@@ -6411,6 +6525,30 @@ defineExpose({
 
   .section-help-text {
     color: #b0b0b0;
+  }
+
+  .extractor-config-box {
+    border-color: #404040;
+    background: #252525;
+  }
+
+  .extractor-reference {
+    border-bottom-color: #404040;
+  }
+
+  .extractor-reference-header,
+  .extractor-platform-row code,
+  .extractor-linux-note {
+    color: #e0e0e0;
+  }
+
+  .extractor-platform-name {
+    color: #b0b0b0;
+  }
+
+  .extractor-platform-row code {
+    background: rgba(0, 0, 0, 0.22);
+    border-color: #404040;
   }
 
   .section-action-pill {
