@@ -367,18 +367,18 @@
                   <span v-if="item.extractionStatus === 'pending'">{{ $t('downloads.extraction.waiting') }}</span>
                   <span v-else-if="item.extractionStatus === 'extracting'">{{ $t('downloads.extraction.extracting') }} {{ item.extractionProgress || 0 }}%</span>
                   <span v-else-if="item.extractionStatus === 'normalizing'">{{ $t('downloads.extraction.normalizing') }}</span>
-                  <span v-else-if="item.extractionStatus === 'post_processing'">{{ $t('downloads.extraction.postProcessing') }}</span>
+                  <span v-else-if="item.extractionStatus === 'post_processing'">{{ $t('downloads.extraction.completed') }}</span>
                   <span v-else-if="item.extractionStatus === 'completed'">{{ $t('downloads.extraction.completed') }}</span>
                   <span v-else-if="item.extractionStatus === 'error'">{{ item.extractionError || $t('downloads.extraction.error') }}</span>
                   <span v-else-if="item.extractionStatus === 'cancelled'">{{ $t('downloads.extraction.cancelled') }}</span>
                 </span>
                 <button
-                  v-if="item.extractionStatus === 'pending' || item.extractionStatus === 'extracting' || item.extractionStatus === 'normalizing' || item.extractionStatus === 'post_processing'"
+                  v-if="item.extractionStatus === 'pending' || item.extractionStatus === 'extracting' || item.extractionStatus === 'normalizing'"
                   class="cancel-item-btn"
                   :title="$t('downloads.extraction.cancel')"
                   @click="cancelExtraction(item.id)"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"/>
                     <line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
@@ -388,12 +388,116 @@
                 <div
                   class="ext-fill"
                   :class="{
-                    active: item.extractionStatus === 'extracting' || item.extractionStatus === 'normalizing' || item.extractionStatus === 'post_processing',
-                    completed: item.extractionStatus === 'completed',
+                    active: item.extractionStatus === 'extracting' || item.extractionStatus === 'normalizing',
+                    completed: item.extractionStatus === 'completed' || item.extractionStatus === 'post_processing',
                     errored: item.extractionStatus === 'error' || item.extractionStatus === 'cancelled'
                   }"
                   :style="{ width: extractionBarWidth(item) + '%' }"
                 ></div>
+              </div>
+            </div>
+
+            <!-- Affiliated 3-phase post-process panel for downloads -->
+            <div
+              v-if="getDownloadPostProcessJob(item.id)"
+              class="post-process-affiliated-panel"
+              :class="[`pp-status-${getDownloadPostProcessJob(item.id)?.status}`]"
+            >
+              <div class="pp-panel-content">
+                <!-- Phase 1: Duplicate Removal -->
+                <div class="pp-phase-item">
+                  <div class="pp-phase-header">
+                    <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase1NameShort') }}</span>
+                    <span
+                      v-if="getDownloadPostProcessJob(item.id)!.progress.phase === 'phase1'"
+                      class="pp-phase-status active"
+                    >
+                      {{ getDownloadPostProcessJob(item.id)!.progress.currentIndex }}/{{ getDownloadPostProcessJob(item.id)!.progress.total }}
+                    </span>
+                    <span
+                      v-else-if="isPhaseCompleted(getDownloadPostProcessJob(item.id)!, 'phase1') && getDownloadPostProcessJob(item.id)!.progress.duplicatesRemoved > 0"
+                      class="pp-phase-status completed"
+                    >
+                      -{{ getDownloadPostProcessJob(item.id)!.progress.duplicatesRemoved }}
+                    </span>
+                  </div>
+                  <div class="pp-phase-bar">
+                    <div
+                      class="pp-phase-fill"
+                      :class="{
+                        'active': getDownloadPostProcessJob(item.id)!.progress.phase === 'phase1',
+                        'completed': isPhaseCompleted(getDownloadPostProcessJob(item.id)!, 'phase1')
+                      }"
+                      :style="{ width: `${getPhaseProgress(getDownloadPostProcessJob(item.id)!, 'phase1')}%` }"
+                    ></div>
+                  </div>
+                </div>
+
+                <!-- Phase 2: Exclusion List -->
+                <div class="pp-phase-item">
+                  <div class="pp-phase-header">
+                    <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase2NameShort') }}</span>
+                    <span
+                      v-if="getDownloadPostProcessJob(item.id)!.progress.phase === 'phase2'"
+                      class="pp-phase-status active"
+                    >
+                      {{ getDownloadPostProcessJob(item.id)!.progress.currentIndex }}/{{ getDownloadPostProcessJob(item.id)!.progress.total }}
+                    </span>
+                    <span
+                      v-else-if="isPhaseCompleted(getDownloadPostProcessJob(item.id)!, 'phase2') && getDownloadPostProcessJob(item.id)!.progress.excludedRemoved > 0"
+                      class="pp-phase-status completed"
+                    >
+                      -{{ getDownloadPostProcessJob(item.id)!.progress.excludedRemoved }}
+                    </span>
+                  </div>
+                  <div class="pp-phase-bar">
+                    <div
+                      class="pp-phase-fill"
+                      :class="{
+                        'active': getDownloadPostProcessJob(item.id)!.progress.phase === 'phase2',
+                        'completed': isPhaseCompleted(getDownloadPostProcessJob(item.id)!, 'phase2')
+                      }"
+                      :style="{ width: `${getPhaseProgress(getDownloadPostProcessJob(item.id)!, 'phase2')}%` }"
+                    ></div>
+                  </div>
+                </div>
+
+                <!-- Phase 3: AI Classification -->
+                <div class="pp-phase-item">
+                  <div class="pp-phase-header">
+                    <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase3NameShort') }}</span>
+                    <span
+                      v-if="getDownloadPostProcessJob(item.id)!.progress.phase === 'phase3'"
+                      class="pp-phase-status active"
+                    >
+                      {{ getDownloadPostProcessJob(item.id)!.progress.currentIndex }}/{{ getDownloadPostProcessJob(item.id)!.progress.total }}
+                    </span>
+                    <span
+                      v-else-if="isPhaseCompleted(getDownloadPostProcessJob(item.id)!, 'phase3') && getDownloadPostProcessJob(item.id)!.progress.aiFiltered > 0"
+                      class="pp-phase-status completed"
+                    >
+                      -{{ getDownloadPostProcessJob(item.id)!.progress.aiFiltered }}
+                    </span>
+                  </div>
+                  <div class="pp-phase-bar three-color">
+                    <div
+                      class="pp-phase-fill"
+                      :class="{
+                        'active': getDownloadPostProcessJob(item.id)!.progress.phase === 'phase3',
+                        'completed': isPhaseCompleted(getDownloadPostProcessJob(item.id)!, 'phase3')
+                      }"
+                      :style="{ width: `${getAIProgress(getDownloadPostProcessJob(item.id)!)}%` }"
+                    ></div>
+                    <div
+                      v-if="getDownloadPostProcessJob(item.id)!.progress.phase === 'phase3' && getAIInProgressWidth(getDownloadPostProcessJob(item.id)!) > 0"
+                      class="pp-phase-fill in-progress"
+                      :style="{
+                        left: `${getAIProgress(getDownloadPostProcessJob(item.id)!)}%`,
+                        width: `${getAIInProgressWidth(getDownloadPostProcessJob(item.id)!)}%`
+                      }"
+                    ></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -457,6 +561,13 @@ const taskStats = computed(() => taskQueueState.value)
 // Get post-processing job for a task
 const getPostProcessJob = (taskId: string): PostProcessJob | undefined => {
   return TaskQueue.getPostProcessJob(taskId)
+}
+
+// Get post-processing job for a download item. We pass the download item's id
+// as the `taskId` when calling PostProcessingService.addJob from the extraction
+// queue, so a reverse lookup by taskId works.
+const getDownloadPostProcessJob = (itemId: string): PostProcessJob | undefined => {
+  return PostProcessingService.getJobByTaskId(itemId)
 }
 
 // Check if a phase has completed (we've moved past it)
@@ -898,6 +1009,22 @@ defineExpose({
   border-bottom-right-radius: 0;
 }
 
+/* Download wrapper attaches the extraction + post-process panels to the
+   bottom of the download item, mirroring how the task post-process panel
+   merges with the task card. The shared `.post-process-affiliated-panel`
+   default (border-top: none, rounded bottom) already does the right thing
+   when it's the last panel; the rules below handle the chained case where
+   both extraction and post-process panels are stacked. */
+.download-item-wrapper:has(.post-process-affiliated-panel) .download-item {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+/* When both extraction + post-process panels are present, the extraction
+   panel sits in the middle and squares its bottom corners. */
+.download-item-wrapper:has(.post-process-affiliated-panel) .extraction-affiliated-panel {
+  border-radius: 0;
+}
+
 .task-item, .download-item {
   display: flex;
   align-items: center;
@@ -1183,7 +1310,12 @@ defineExpose({
   50% { opacity: 0.7; }
 }
 
-/* Qt extractor (download item affiliated) extraction panel */
+/* Qt extractor (download item affiliated) extraction panel.
+   Mirrors the task list's post-process panel: panels attach to the bottom
+   of the parent item with no top border (the parent's bottom border acts
+   as the divider). When both extraction and post-process panels stack,
+   each shares its top edge with the panel above. A yellow-green left
+   border accent marks them as child phases of the download. */
 .download-item-wrapper {
   display: flex;
   flex-direction: column;
@@ -1199,12 +1331,19 @@ defineExpose({
   border: 1px solid #e0e0e0;
   border-top: none;
   border-radius: 0 0 6px 6px;
-  padding: 4px 8px;
+  padding: 3px 8px;
 }
-.download-item.status-completed + .extraction-affiliated-panel {
+/* Yellow-green left-border accent matches the task → post-process visual
+   pattern, regardless of download status. */
+.download-item + .extraction-affiliated-panel,
+.download-item + .post-process-affiliated-panel {
   border-left: 3px solid #9acd32;
 }
-.download-item.status-error + .extraction-affiliated-panel {
+.extraction-affiliated-panel + .post-process-affiliated-panel {
+  border-left: 3px solid #9acd32;
+}
+.download-item.status-error + .extraction-affiliated-panel,
+.download-item.status-error + .post-process-affiliated-panel {
   border-left: 3px solid #ff9800;
 }
 .ext-row {
@@ -1213,7 +1352,7 @@ defineExpose({
   justify-content: space-between;
   gap: 8px;
   font-size: 11px;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
 }
 .ext-name {
   flex: 1;
@@ -1222,9 +1361,12 @@ defineExpose({
   text-overflow: ellipsis;
   color: #333;
 }
+/* Slightly smaller cancel button than the standard 24×24 so the
+   extraction row stays thin against the 3px progress bar. */
 .ext-row .cancel-item-btn {
-  width: 18px;
-  height: 18px;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
 }
 .ext-bar {
   height: 3px;

@@ -930,60 +930,87 @@
 
               <!-- Qt extractor: Run Slides Extraction with C++ -->
               <div class="setting-item">
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="tempQtExtractorAutoRun" />
-                  {{ $t('advanced.qtExtractor.autoRun') }}
-                </label>
-                <div class="setting-description">{{ $t('advanced.qtExtractor.autoRunDescription') }}</div>
-              </div>
-              <div class="setting-item" :class="{ 'setting-item-disabled': !tempQtExtractorAutoRun }">
-                <label class="checkbox-label">
-                  <input type="checkbox" v-model="tempQtExtractorAutoPostProcess" :disabled="!tempQtExtractorAutoRun" />
-                  {{ $t('advanced.qtExtractor.autoPostProcess') }}
-                </label>
-                <div class="setting-description">{{ $t('advanced.qtExtractor.autoPostProcessDescription') }}</div>
+                <div class="auto-post-processing-control">
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="tempQtExtractorAutoRun" />
+                    {{ $t('advanced.qtExtractor.autoRun') }}
+                  </label>
+                  <label class="checkbox-label" :class="{ 'checkbox-label-disabled': !tempQtExtractorAutoRun }">
+                    <input
+                      type="checkbox"
+                      v-model="tempQtExtractorAutoPostProcess"
+                      :disabled="!tempQtExtractorAutoRun"
+                    />
+                    {{ $t('advanced.qtExtractor.autoPostProcess') }}
+                  </label>
+                </div>
               </div>
 
               <!-- Extractor binary section -->
               <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.qtExtractor.section') }}</label>
+                <div class="setting-label-with-reset">
+                  <label class="setting-label">{{ $t('advanced.qtExtractor.section') }}</label>
+                  <span
+                    class="extractor-status-badge"
+                    :class="{
+                      ok: qtExtractorStatusOk,
+                      error: !qtExtractorStatusOk && !!qtExtractorStatusError,
+                      unknown: !qtExtractorStatusOk && !qtExtractorStatusError
+                    }"
+                    :title="qtExtractorStatusError || ''"
+                  >
+                    <span class="extractor-status-dot"></span>
+                    <span v-if="qtExtractorStatusOk">
+                      {{ $t('advanced.qtExtractor.statusReady') }}<span v-if="qtExtractorStatusVersion"> · v{{ qtExtractorStatusVersion }}</span>
+                    </span>
+                    <span v-else-if="qtExtractorStatusError">{{ $t('advanced.qtExtractor.statusMissing') }}</span>
+                    <span v-else>{{ $t('advanced.qtExtractor.statusUnknown') }}</span>
+                  </span>
+                </div>
                 <div class="setting-description">{{ $t('advanced.qtExtractor.sectionDescription') }}</div>
-                <div class="qt-extractor-path-row">
-                  <input
-                    type="text"
-                    class="qt-extractor-path-input"
-                    :value="qtExtractorResolvedPath || qtExtractorBinaryPath"
-                    :placeholder="$t('advanced.qtExtractor.pathPlaceholder')"
-                    readonly
-                  />
+
+                <div class="extractor-path-card">
+                  <div class="extractor-path-input-row">
+                    <input
+                      type="text"
+                      class="extractor-path-input"
+                      :value="qtExtractorResolvedPath || qtExtractorBinaryPath"
+                      :placeholder="$t('advanced.qtExtractor.pathPlaceholder')"
+                      :title="qtExtractorResolvedPath || qtExtractorBinaryPath"
+                      readonly
+                    />
+                    <button type="button" class="extractor-path-browse" @click="qtExtractorBrowseBinary">
+                      {{ $t('advanced.qtExtractor.browse') }}
+                    </button>
+                  </div>
+                  <div class="extractor-action-row">
+                    <button
+                      type="button"
+                      class="extractor-action-btn"
+                      @click="qtExtractorAutoDetect"
+                    >
+                      {{ $t('advanced.qtExtractor.autoDetect') }}
+                    </button>
+                    <button
+                      type="button"
+                      class="extractor-action-btn"
+                      @click="qtExtractorVerify"
+                      :disabled="qtExtractorVerifying"
+                    >
+                      {{ qtExtractorVerifying ? $t('advanced.qtExtractor.verifying') : $t('advanced.qtExtractor.verify') }}
+                    </button>
+                    <button
+                      type="button"
+                      class="extractor-action-btn primary"
+                      @click="openExtractorInstallModal"
+                    >
+                      {{ $t('advanced.qtExtractor.install') }}
+                    </button>
+                  </div>
                 </div>
-                <div class="qt-extractor-actions">
-                  <button type="button" class="qt-extractor-btn" @click="qtExtractorBrowseBinary">
-                    {{ $t('advanced.qtExtractor.browse') }}
-                  </button>
-                  <button type="button" class="qt-extractor-btn" @click="qtExtractorAutoDetect">
-                    {{ $t('advanced.qtExtractor.autoDetect') }}
-                  </button>
-                  <button type="button" class="qt-extractor-btn" @click="qtExtractorVerify" :disabled="qtExtractorVerifying">
-                    {{ qtExtractorVerifying ? $t('advanced.qtExtractor.verifying') : $t('advanced.qtExtractor.verify') }}
-                  </button>
-                </div>
-                <div class="qt-extractor-status">
-                  <span v-if="qtExtractorStatusOk" class="qt-status-ok">
-                    ● {{ $t('advanced.qtExtractor.statusReady') }}
-                    <span v-if="qtExtractorStatusVersion"> (v{{ qtExtractorStatusVersion }})</span>
-                  </span>
-                  <span v-else-if="qtExtractorStatusError" class="qt-status-error">
-                    ● {{ $t('advanced.qtExtractor.statusMissing') }} — {{ qtExtractorStatusError }}
-                  </span>
-                  <span v-else class="qt-status-unknown">
-                    ○ {{ $t('advanced.qtExtractor.statusUnknown') }}
-                  </span>
-                </div>
-                <div class="qt-extractor-actions">
-                  <button type="button" class="qt-extractor-btn qt-extractor-install" @click="openExtractorInstallModal">
-                    {{ $t('advanced.qtExtractor.install') }}
-                  </button>
+
+                <div v-if="!qtExtractorStatusOk && qtExtractorStatusError" class="extractor-status-detail">
+                  {{ qtExtractorStatusError }}
                 </div>
               </div>
 
@@ -6244,57 +6271,139 @@ defineExpose({
 }
 
 /* Qt extractor settings */
-.setting-item-disabled {
+.checkbox-label-disabled {
   opacity: 0.55;
-}
-.qt-extractor-path-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 6px;
-}
-.qt-extractor-path-input {
-  flex: 1;
-  padding: 6px 8px;
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-  font-size: 12px;
-  border: 1px solid var(--border-color, #ccc);
-  border-radius: 4px;
-  background: var(--input-bg, transparent);
-  color: var(--text-color, inherit);
-  min-width: 0;
-}
-.qt-extractor-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 6px;
-  flex-wrap: wrap;
-}
-.qt-extractor-btn {
-  padding: 4px 12px;
-  font-size: 12px;
-  border: 1px solid var(--border-color, #ccc);
-  border-radius: 4px;
-  background: var(--button-bg, transparent);
-  color: var(--text-color, inherit);
-  cursor: pointer;
-}
-.qt-extractor-btn:hover:not(:disabled) {
-  background: var(--button-hover-bg, rgba(0,0,0,0.05));
-}
-.qt-extractor-btn:disabled {
-  opacity: 0.5;
   cursor: not-allowed;
 }
-.qt-extractor-install {
-  font-weight: 500;
+.checkbox-label-disabled input[type="checkbox"] {
+  cursor: not-allowed;
 }
-.qt-extractor-status {
+
+/* Status pill that sits inline next to the section label */
+.extractor-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  color: #666;
+  white-space: nowrap;
+}
+.extractor-status-badge .extractor-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #adb5bd;
+  flex-shrink: 0;
+}
+.extractor-status-badge.ok {
+  color: #1a7f37;
+  background-color: #e6f4ea;
+  border-color: #b6e3c4;
+}
+.extractor-status-badge.ok .extractor-status-dot { background-color: #2ea44f; }
+.extractor-status-badge.error {
+  color: #b1361e;
+  background-color: #fbeae8;
+  border-color: #f0c2bd;
+}
+.extractor-status-badge.error .extractor-status-dot { background-color: #d73a49; }
+.extractor-status-badge.unknown { color: #666; }
+.extractor-status-badge.unknown .extractor-status-dot { background-color: #adb5bd; }
+
+/* Bordered card holding the extractor binary path + actions, modelled after
+   the YOLO model-row block. The path input + Browse button share the top
+   row; Auto-detect / Verify / Install span the full width below. */
+.extractor-path-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #f8f9fa;
+}
+.extractor-path-input-row {
+  display: flex;
+  gap: 6px;
+}
+.extractor-path-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   font-size: 12px;
+  background-color: white;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.extractor-path-browse {
+  padding: 6px 12px;
+  background-color: #007bff;
+  color: white;
+  border: 1px solid #007bff;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.2s;
+}
+.extractor-path-browse:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+.extractor-action-row {
+  display: flex;
+  width: 100%;
+  gap: 6px;
+}
+.extractor-action-btn {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.extractor-action-btn:hover:not(:disabled) {
+  background-color: #f0f0f0;
+  border-color: #ccc;
+}
+.extractor-action-btn.primary {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: white;
+}
+.extractor-action-btn.primary:hover:not(:disabled) {
+  background-color: #0056b3;
+  border-color: #0056b3;
+}
+.extractor-action-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.extractor-status-detail {
   margin-top: 6px;
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #b1361e;
+  background-color: #fbeae8;
+  border: 1px solid #f0c2bd;
+  border-radius: 4px;
   word-break: break-word;
 }
-.qt-status-ok { color: #2ea44f; }
-.qt-status-error { color: #d73a49; }
-.qt-status-unknown { color: var(--text-color-secondary, #888); }
 </style>
