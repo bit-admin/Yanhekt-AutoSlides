@@ -152,7 +152,6 @@ export interface UseAdvancedSettingsReturn {
   loadQtExtractorConfig: () => Promise<void>
   qtExtractorVerify: () => Promise<void>
   qtExtractorBrowseBinary: () => Promise<void>
-  qtExtractorAutoDetect: () => Promise<void>
   openExtractorInstallModal: () => void
   closeExtractorInstallModal: () => void
 
@@ -369,17 +368,6 @@ export function useAdvancedSettings(
       await qtExtractorVerify()
     } catch (error) {
       console.error('Failed to browse for extractor binary:', error)
-    }
-  }
-
-  const qtExtractorAutoDetect = async () => {
-    try {
-      // Clear the user-set path and let the service fall back to platform defaults
-      await window.electronAPI.qtExtractor.setBinaryPath('')
-      qtExtractorBinaryPath.value = ''
-      await qtExtractorVerify()
-    } catch (error) {
-      console.error('Failed to auto-detect extractor binary:', error)
     }
   }
 
@@ -865,7 +853,6 @@ export function useAdvancedSettings(
     loadQtExtractorConfig,
     qtExtractorVerify,
     qtExtractorBrowseBinary,
-    qtExtractorAutoDetect,
     openExtractorInstallModal,
     closeExtractorInstallModal,
 

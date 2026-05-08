@@ -657,11 +657,10 @@ interface ElectronAPI {
         downsampleWidth: number;
         downsampleHeight: number;
         chunkSize?: number;
-        jpegQuality?: number;
       }
     ) => Promise<{ slideCount: number; slidesDir: string }>;
     cancelExtraction: (extractionId: string) => Promise<boolean>;
-    normalizeOutput: (slidesDir: string, reduceColors: boolean) => Promise<{ converted: number; finalDir: string }>;
+    applyColorReduction: (slidesDir: string) => Promise<{ processed: number }>;
     onProgress: (callback: (extractionId: string, percent: number) => void) => () => void;
     onSlidesExtracted: (callback: (extractionId: string, slidesDir: string, count: number) => void) => () => void;
     onCompleted: (callback: (extractionId: string, result: { slideCount: number; slidesDir: string }) => void) => () => void;

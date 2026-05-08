@@ -425,12 +425,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         downsampleWidth: number;
         downsampleHeight: number;
         chunkSize?: number;
-        jpegQuality?: number;
       }
     ) => ipcRenderer.invoke('qtExtractor:runExtraction', extractionId, videoPath, outputDir, params),
     cancelExtraction: (extractionId: string) => ipcRenderer.invoke('qtExtractor:cancelExtraction', extractionId),
-    normalizeOutput: (slidesDir: string, reduceColors: boolean) =>
-      ipcRenderer.invoke('qtExtractor:normalizeOutput', slidesDir, reduceColors),
+    applyColorReduction: (slidesDir: string) =>
+      ipcRenderer.invoke('qtExtractor:applyColorReduction', slidesDir),
     onProgress: (callback: (extractionId: string, percent: number) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, extractionId: string, percent: number) => callback(extractionId, percent);
       ipcRenderer.on('qtExtractor:progress', handler);

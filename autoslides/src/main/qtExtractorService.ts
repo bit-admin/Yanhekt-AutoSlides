@@ -20,7 +20,6 @@ export interface QtExtractorRunParams {
   downsampleWidth: number;
   downsampleHeight: number;
   chunkSize?: number;            // default 100 per instruction
-  jpegQuality?: number;          // default 95 per instruction
 }
 
 export interface QtExtractorEventHandlers {
@@ -272,14 +271,14 @@ export class QtExtractorService {
 
     const args = [
       '--json',
+      '--compatible',
       '--video', videoPath,
       '--output', outputDir,
       '--ssim-threshold', String(params.ssimThreshold),
       '--enable-downsampling', params.enableDownsampling ? 'true' : 'false',
       '--downsample-width', String(Math.round(params.downsampleWidth)),
       '--downsample-height', String(Math.round(params.downsampleHeight)),
-      '--chunk-size', String(params.chunkSize ?? 100),
-      '--jpeg-quality', String(params.jpegQuality ?? 95)
+      '--chunk-size', String(params.chunkSize ?? 100)
     ];
 
     return await new Promise<{ slidesDir: string; slideCount: number }>((resolve, reject) => {
@@ -368,50 +367,41 @@ export class QtExtractorService {
   }
 
   /**
-   * Convert Qt extractor JPEG output to PNG with the existing "Slide_NNN.png" naming
-   * convention so the rest of the Electron pipeline (post-processing, Results View,
-   * PDF, crop) keeps working unchanged.
-   *
-   * TODO(qt-extractor JPEG): Replace this transcode shim with native JPEG support
-   * across slideExtractionService, postProcessingService, and sharpService so we
-   * skip the conversion overhead.
+   * Apply PNG-8 palette quantization in place over the Qt extractor's PNG output
+   * when the user has enabled "Enable PNG Color Reduction". Files are already
+   * named `Slide_*.png` under `--compatible` mode, so no rename is required.
    */
-  async normalizeExtractorOutput(
+  async applyPngColorReduction(
     slidesDir: string,
-    options: { reduceColors: boolean; onProgress?: (current: number, total: number) => void } = { reduceColors: true }
-  ): Promise<{ converted: number; finalDir: string }> {
+    options: { onProgress?: (current: number, total: number) => void } = {}
+  ): Promise<{ processed: number }> {
     if (!fs.existsSync(slidesDir)) {
       throw new Error(`Slides directory not found: ${slidesDir}`);
     }
     const entries = fs
       .readdirSync(slidesDir)
-      .filter(f => /^slide_.*\.(jpg|jpeg)$/i.test(f))
+      .filter(f => f.startsWith('Slide_') && f.toLowerCase().endsWith('.png'))
       .sort();
 
-    let converted = 0;
+    let processed = 0;
     const total = entries.length;
 
     for (let i = 0; i < entries.length; i++) {
       const file = entries[i];
-      const inputPath = path.join(slidesDir, file);
-      // Extract the trailing index (_001, _002, ...) from "slide_<video>_NNN.jpg"
-      const indexMatch = file.match(/_(\d+)\.(jpg|jpeg)$/i);
-      const indexStr = indexMatch ? indexMatch[1] : String(i + 1).padStart(3, '0');
-      const outputName = `Slide_${indexStr}.png`;
-      const outputPath = path.join(slidesDir, outputName);
-
+      const filePath = path.join(slidesDir, file);
       try {
-        await sharpService.convertImageToPng(inputPath, outputPath, options.reduceColors);
-        if (inputPath !== outputPath) {
-          try { fs.unlinkSync(inputPath); } catch { /* keep going */ }
+        const buffer = fs.readFileSync(filePath);
+        const reduced = await sharpService.reducePngColors(new Uint8Array(buffer));
+        if (reduced) {
+          fs.writeFileSync(filePath, reduced);
+          processed++;
         }
-        converted++;
       } catch (err) {
-        console.error(`[QtExtractor] Failed to convert ${file}:`, err);
+        console.error(`[QtExtractor] Failed to reduce colors for ${file}:`, err);
       }
       options.onProgress?.(i + 1, total);
     }
 
-    return { converted, finalDir: slidesDir };
+    return { processed };
   }
 }

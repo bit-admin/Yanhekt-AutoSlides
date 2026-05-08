@@ -880,8 +880,132 @@
             </div>
             </div>
 
-            <!-- Playback Tab -->
+            <!-- Download & Playback Tab -->
             <div v-show="activeAdvancedTab === 'playback'" class="tab-content">
+            <!-- Auto Extraction After Download -->
+            <div class="advanced-setting-section">
+              <div class="section-header-with-action">
+                <h4>{{ $t('advanced.qtExtractor.title') }}</h4>
+                <button type="button" class="section-action-pill" @click="openExtractorInstallModal">
+                  {{ $t('advanced.qtExtractor.install') }}
+                </button>
+              </div>
+              <p class="section-help-text">{{ $t('advanced.qtExtractor.titleDescription') }}</p>
+
+              <div class="setting-item">
+                <div class="auto-post-processing-control">
+                  <label class="checkbox-label">
+                    <input type="checkbox" v-model="tempQtExtractorAutoRun" />
+                    {{ $t('advanced.qtExtractor.autoRun') }}
+                  </label>
+                  <label class="checkbox-label" :class="{ 'checkbox-label-disabled': !tempQtExtractorAutoRun }">
+                    <input
+                      type="checkbox"
+                      v-model="tempQtExtractorAutoPostProcess"
+                      :disabled="!tempQtExtractorAutoRun"
+                    />
+                    {{ $t('advanced.qtExtractor.autoPostProcess') }}
+                  </label>
+                </div>
+              </div>
+
+              <!-- Extractor binary path -->
+              <div class="setting-item">
+                <div class="setting-label-with-reset">
+                  <label class="setting-label">{{ $t('advanced.qtExtractor.section') }}</label>
+                  <div
+                    class="extractor-status-line"
+                    :class="{
+                      ok: qtExtractorStatusOk,
+                      error: !qtExtractorStatusOk && !!qtExtractorStatusError,
+                      unknown: !qtExtractorStatusOk && !qtExtractorStatusError
+                    }"
+                    :title="qtExtractorStatusError || ''"
+                  >
+                    <span class="extractor-status-dot"></span>
+                    <span v-if="qtExtractorStatusOk">
+                      {{ $t('advanced.qtExtractor.statusReady') }}<span v-if="qtExtractorStatusVersion"> · v{{ qtExtractorStatusVersion }}</span>
+                    </span>
+                    <span v-else-if="qtExtractorStatusError">{{ $t('advanced.qtExtractor.statusMissing') }}</span>
+                    <span v-else>{{ $t('advanced.qtExtractor.statusUnknown') }}</span>
+                  </div>
+                </div>
+                <div class="setting-description">{{ $t('advanced.qtExtractor.sectionDescription') }}</div>
+
+                <div class="extractor-path-row">
+                  <input
+                    type="text"
+                    class="extractor-path-input"
+                    :value="qtExtractorResolvedPath || qtExtractorBinaryPath"
+                    :placeholder="$t('advanced.qtExtractor.pathPlaceholder')"
+                    :title="qtExtractorResolvedPath || qtExtractorBinaryPath"
+                    readonly
+                  />
+                  <button
+                    type="button"
+                    class="extractor-refresh-btn"
+                    :title="qtExtractorVerifying ? $t('advanced.qtExtractor.refreshing') : $t('advanced.qtExtractor.refresh')"
+                    :disabled="qtExtractorVerifying"
+                    @click="qtExtractorVerify"
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      :class="{ spinning: qtExtractorVerifying }"
+                    >
+                      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                      <path d="M21 3v5h-5"/>
+                      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                      <path d="M3 21v-5h5"/>
+                    </svg>
+                  </button>
+                  <button type="button" class="secondary-btn" @click="qtExtractorBrowseBinary">
+                    {{ $t('advanced.qtExtractor.browse') }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="advanced-setting-section">
+              <h4>{{ $t('advanced.download') }}</h4>
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.concurrentDownloadLimit') }}</label>
+                <div class="setting-description">{{ $t('advanced.concurrentDownloadDescription') }}</div>
+                <select
+                  v-model="tempMaxConcurrentDownloads"
+                  class="concurrent-select"
+                  @change="updateMaxConcurrentDownloads"
+                >
+                  <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
+                </select>
+              </div>
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.downloadMaxWorkers') }}</label>
+                <div class="setting-description">{{ $t('advanced.downloadMaxWorkersDescription') }}</div>
+                <select
+                  v-model="tempDownloadMaxWorkers"
+                  class="concurrent-select"
+                  @change="updateDownloadMaxWorkers"
+                >
+                  <option v-for="v in [1, 2, 4, 8, 16, 32]" :key="v" :value="v">{{ v }}</option>
+                </select>
+              </div>
+              <div class="setting-item">
+                <label class="setting-label">{{ $t('advanced.downloadNumRetries') }}</label>
+                <select
+                  v-model="tempDownloadNumRetries"
+                  class="concurrent-select"
+                  @change="updateDownloadNumRetries"
+                >
+                  <option v-for="v in [5, 10, 15, 20, 30]" :key="v" :value="v">{{ v }}</option>
+                </select>
+              </div>
+            </div>
+
             <div class="advanced-setting-section">
               <h4>{{ $t('advanced.videoPlayback') }}</h4>
               <div class="setting-item">
@@ -922,129 +1046,6 @@
                     {{ $t('advanced.enablePreventSleep') }}
                   </label>
                 </div>
-              </div>
-            </div>
-
-            <div class="advanced-setting-section">
-              <h4>{{ $t('advanced.download') }}</h4>
-
-              <!-- Qt extractor: Run Slides Extraction with C++ -->
-              <div class="setting-item">
-                <div class="auto-post-processing-control">
-                  <label class="checkbox-label">
-                    <input type="checkbox" v-model="tempQtExtractorAutoRun" />
-                    {{ $t('advanced.qtExtractor.autoRun') }}
-                  </label>
-                  <label class="checkbox-label" :class="{ 'checkbox-label-disabled': !tempQtExtractorAutoRun }">
-                    <input
-                      type="checkbox"
-                      v-model="tempQtExtractorAutoPostProcess"
-                      :disabled="!tempQtExtractorAutoRun"
-                    />
-                    {{ $t('advanced.qtExtractor.autoPostProcess') }}
-                  </label>
-                </div>
-              </div>
-
-              <!-- Extractor binary section -->
-              <div class="setting-item">
-                <div class="setting-label-with-reset">
-                  <label class="setting-label">{{ $t('advanced.qtExtractor.section') }}</label>
-                  <span
-                    class="extractor-status-badge"
-                    :class="{
-                      ok: qtExtractorStatusOk,
-                      error: !qtExtractorStatusOk && !!qtExtractorStatusError,
-                      unknown: !qtExtractorStatusOk && !qtExtractorStatusError
-                    }"
-                    :title="qtExtractorStatusError || ''"
-                  >
-                    <span class="extractor-status-dot"></span>
-                    <span v-if="qtExtractorStatusOk">
-                      {{ $t('advanced.qtExtractor.statusReady') }}<span v-if="qtExtractorStatusVersion"> · v{{ qtExtractorStatusVersion }}</span>
-                    </span>
-                    <span v-else-if="qtExtractorStatusError">{{ $t('advanced.qtExtractor.statusMissing') }}</span>
-                    <span v-else>{{ $t('advanced.qtExtractor.statusUnknown') }}</span>
-                  </span>
-                </div>
-                <div class="setting-description">{{ $t('advanced.qtExtractor.sectionDescription') }}</div>
-
-                <div class="extractor-path-card">
-                  <div class="extractor-path-input-row">
-                    <input
-                      type="text"
-                      class="extractor-path-input"
-                      :value="qtExtractorResolvedPath || qtExtractorBinaryPath"
-                      :placeholder="$t('advanced.qtExtractor.pathPlaceholder')"
-                      :title="qtExtractorResolvedPath || qtExtractorBinaryPath"
-                      readonly
-                    />
-                    <button type="button" class="extractor-path-browse" @click="qtExtractorBrowseBinary">
-                      {{ $t('advanced.qtExtractor.browse') }}
-                    </button>
-                  </div>
-                  <div class="extractor-action-row">
-                    <button
-                      type="button"
-                      class="extractor-action-btn"
-                      @click="qtExtractorAutoDetect"
-                    >
-                      {{ $t('advanced.qtExtractor.autoDetect') }}
-                    </button>
-                    <button
-                      type="button"
-                      class="extractor-action-btn"
-                      @click="qtExtractorVerify"
-                      :disabled="qtExtractorVerifying"
-                    >
-                      {{ qtExtractorVerifying ? $t('advanced.qtExtractor.verifying') : $t('advanced.qtExtractor.verify') }}
-                    </button>
-                    <button
-                      type="button"
-                      class="extractor-action-btn primary"
-                      @click="openExtractorInstallModal"
-                    >
-                      {{ $t('advanced.qtExtractor.install') }}
-                    </button>
-                  </div>
-                </div>
-
-                <div v-if="!qtExtractorStatusOk && qtExtractorStatusError" class="extractor-status-detail">
-                  {{ qtExtractorStatusError }}
-                </div>
-              </div>
-
-              <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.concurrentDownloadLimit') }}</label>
-                <div class="setting-description">{{ $t('advanced.concurrentDownloadDescription') }}</div>
-                <select
-                  v-model="tempMaxConcurrentDownloads"
-                  class="concurrent-select"
-                  @change="updateMaxConcurrentDownloads"
-                >
-                  <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
-                </select>
-              </div>
-              <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.downloadMaxWorkers') }}</label>
-                <div class="setting-description">{{ $t('advanced.downloadMaxWorkersDescription') }}</div>
-                <select
-                  v-model="tempDownloadMaxWorkers"
-                  class="concurrent-select"
-                  @change="updateDownloadMaxWorkers"
-                >
-                  <option v-for="v in [1, 2, 4, 8, 16, 32]" :key="v" :value="v">{{ v }}</option>
-                </select>
-              </div>
-              <div class="setting-item">
-                <label class="setting-label">{{ $t('advanced.downloadNumRetries') }}</label>
-                <select
-                  v-model="tempDownloadNumRetries"
-                  class="concurrent-select"
-                  @change="updateDownloadNumRetries"
-                >
-                  <option v-for="v in [5, 10, 15, 20, 30]" :key="v" :value="v">{{ v }}</option>
-                </select>
               </div>
             </div>
             </div>
@@ -2069,7 +2070,6 @@ const {
   showExtractorInstallModal,
   qtExtractorVerify,
   qtExtractorBrowseBinary,
-  qtExtractorAutoDetect,
   openExtractorInstallModal,
   closeExtractorInstallModal,
   tempAutoCropAspectTolerance,
@@ -6279,131 +6279,180 @@ defineExpose({
   cursor: not-allowed;
 }
 
-/* Status pill that sits inline next to the section label */
-.extractor-status-badge {
+/* Section header with a right-aligned action button (e.g. Install Extractor).
+   Sits at the top of an .advanced-setting-section in place of a bare h4.
+   The h4's usual bottom-border separator is moved onto this wrapper so it
+   runs full width below both the title and the action pill. */
+.section-header-with-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 16px 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e0e0e0;
+}
+.section-header-with-action h4 {
+  margin: 0;
+  padding: 0;
+  border-bottom: none;
+}
+.section-help-text {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary, #666);
+}
+
+/* Round pill button next to a section title — modelled on .variant-badge
+   (AI Prompts → Distinguish 3 classes) but white/neutral and clickable. */
+.section-action-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 2px 10px;
+  border-radius: 12px;
   font-size: 11px;
   font-weight: 500;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  color: #666;
+  background-color: #fff;
+  color: var(--text-primary, #222);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
   white-space: nowrap;
 }
-.extractor-status-badge .extractor-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #adb5bd;
-  flex-shrink: 0;
+.section-action-pill:hover {
+  background-color: #f0f0f0;
+  border-color: #ccc;
 }
-.extractor-status-badge.ok {
-  color: #1a7f37;
-  background-color: #e6f4ea;
-  border-color: #b6e3c4;
-}
-.extractor-status-badge.ok .extractor-status-dot { background-color: #2ea44f; }
-.extractor-status-badge.error {
-  color: #b1361e;
-  background-color: #fbeae8;
-  border-color: #f0c2bd;
-}
-.extractor-status-badge.error .extractor-status-dot { background-color: #d73a49; }
-.extractor-status-badge.unknown { color: #666; }
-.extractor-status-badge.unknown .extractor-status-dot { background-color: #adb5bd; }
 
-/* Bordered card holding the extractor binary path + actions, modelled after
-   the YOLO model-row block. The path input + Browse button share the top
-   row; Auto-detect / Verify / Install span the full width below. */
-.extractor-path-card {
+/* Single-row layout: [path input ............] [↻ icon] [Browse] */
+.extractor-path-row {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  background-color: #f8f9fa;
-}
-.extractor-path-input-row {
-  display: flex;
+  align-items: stretch;
   gap: 6px;
 }
 .extractor-path-input {
   flex: 1;
   min-width: 0;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
   border-radius: 4px;
   font-size: 12px;
-  background-color: white;
-  color: #333;
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #222);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.extractor-path-browse {
-  padding: 6px 12px;
-  background-color: #007bff;
-  color: white;
-  border: 1px solid #007bff;
+
+/* SVG icon button — combined auto-detect + verify. Mirrors the .refresh-btn
+   used in the AI builtin model display, but styled as a bordered control to
+   sit between the path input and Browse button. */
+.extractor-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #222);
   border-radius: 4px;
-  font-size: 12px;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background-color 0.2s;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
-.extractor-path-browse:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
-}
-.extractor-action-row {
-  display: flex;
-  width: 100%;
-  gap: 6px;
-}
-.extractor-action-btn {
-  flex: 1;
-  padding: 6px 10px;
-  font-size: 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  color: #333;
-  cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.extractor-action-btn:hover:not(:disabled) {
+.extractor-refresh-btn:hover:not(:disabled) {
   background-color: #f0f0f0;
   border-color: #ccc;
 }
-.extractor-action-btn.primary {
-  background-color: #007bff;
-  border-color: #007bff;
-  color: white;
-}
-.extractor-action-btn.primary:hover:not(:disabled) {
-  background-color: #0056b3;
-  border-color: #0056b3;
-}
-.extractor-action-btn:disabled {
+.extractor-refresh-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
+.extractor-refresh-btn .spinning {
+  animation: extractor-spin 0.8s linear infinite;
+}
+@keyframes extractor-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 
-.extractor-status-detail {
-  margin-top: 6px;
-  padding: 6px 8px;
+/* Inline status text on the right of the "Extractor binary" label row. */
+.extractor-status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 11px;
-  color: #b1361e;
-  background-color: #fbeae8;
-  border: 1px solid #f0c2bd;
-  border-radius: 4px;
-  word-break: break-word;
+  color: var(--text-secondary, #666);
+  white-space: nowrap;
+}
+.extractor-status-line .extractor-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #adb5bd;
+  flex-shrink: 0;
+}
+.extractor-status-line.ok { color: #1a7f37; }
+.extractor-status-line.ok .extractor-status-dot { background-color: #2ea44f; }
+.extractor-status-line.error { color: #b1361e; }
+.extractor-status-line.error .extractor-status-dot { background-color: #d73a49; }
+.extractor-status-line.unknown .extractor-status-dot { background-color: #adb5bd; }
+
+/* Dark-mode overrides for everything in the new Auto Extraction section.
+   This block is intentionally placed at the very end of <style> so it wins
+   the cascade against the light-mode rules above (CSS source order). */
+@media (prefers-color-scheme: dark) {
+  .section-header-with-action {
+    border-bottom-color: #404040;
+  }
+
+  .section-help-text {
+    color: #b0b0b0;
+  }
+
+  .section-action-pill {
+    background-color: #2d2d2d;
+    color: #e0e0e0;
+    border-color: #404040;
+  }
+  .section-action-pill:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .extractor-path-input {
+    background: #1e1e1e;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+  .extractor-path-input::placeholder {
+    color: #888;
+  }
+
+  .extractor-refresh-btn {
+    background: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+  .extractor-refresh-btn:hover:not(:disabled) {
+    background: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .extractor-status-line {
+    color: #b0b0b0;
+  }
+  .extractor-status-line .extractor-status-dot {
+    background-color: #6e6e6e;
+  }
+  /* Brighter greens/reds for legibility against the dark background. */
+  .extractor-status-line.ok { color: #4ade80; }
+  .extractor-status-line.ok .extractor-status-dot { background-color: #4ade80; }
+  .extractor-status-line.error { color: #f87171; }
+  .extractor-status-line.error .extractor-status-dot { background-color: #f87171; }
+  .extractor-status-line.unknown .extractor-status-dot { background-color: #6e6e6e; }
 }
 </style>

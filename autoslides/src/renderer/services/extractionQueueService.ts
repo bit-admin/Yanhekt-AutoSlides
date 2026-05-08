@@ -221,8 +221,7 @@ class ExtractionQueueServiceClass {
           enableDownsampling: item.extractionEnableDownsampling,
           downsampleWidth: item.extractionDownsampleWidth,
           downsampleHeight: item.extractionDownsampleHeight,
-          chunkSize: 100,
-          jpegQuality: 95
+          chunkSize: 100
         }
       )
       slidesDir = result.slidesDir || item.slidesDir
@@ -248,17 +247,21 @@ class ExtractionQueueServiceClass {
       return
     }
 
-    // JPEG → PNG normalization shim
-    item.extractionStatus = 'normalizing'
-    try {
-      const cfg = await window.electronAPI.config.get()
-      const reduceColors = !!cfg.slideExtraction?.enablePngColorReduction
-      await window.electronAPI.qtExtractor.normalizeOutput(slidesDir, reduceColors)
-    } catch (err) {
-      console.error('[ExtractionQueue] Normalize step failed:', err)
-      item.extractionStatus = 'error'
-      item.extractionError = err instanceof Error ? err.message : String(err)
-      return
+    // Optional PNG-8 palette quantization (only when the user enabled it).
+    // Qt extractor `--compatible` mode produces lossless 8-bit RGB PNG; this
+    // pass shrinks files dramatically when color reduction is desired.
+    const cfg = await window.electronAPI.config.get()
+    const reduceColors = !!cfg.slideExtraction?.enablePngColorReduction
+    if (reduceColors) {
+      item.extractionStatus = 'normalizing'
+      try {
+        await window.electronAPI.qtExtractor.applyColorReduction(slidesDir)
+      } catch (err) {
+        console.error('[ExtractionQueue] Color reduction step failed:', err)
+        item.extractionStatus = 'error'
+        item.extractionError = err instanceof Error ? err.message : String(err)
+        return
+      }
     }
 
     if (!item.autoPostProcessAfter) {

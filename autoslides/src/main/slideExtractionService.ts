@@ -1,18 +1,6 @@
 /**
  * Slide Extraction Service
  * Handles file system operations for saving extracted slides
- *
- * TODO(qt-extractor JPEG): Several call sites in this file enforce a strict
- * `.png` extension and `Slide_` prefix on filenames. The Qt AutoSlides
- * Extractor outputs JPEG files with a lowercase `slide_<video>_NNN.jpg`
- * pattern. For now we work around this by transcoding JPEG → PNG and
- * renaming to `Slide_NNN.png` after each extraction (see
- * qtExtractorService.normalizeExtractorOutput). When we drop the transcode
- * shim, update the extension checks here (lines 190, 287, 439, 500, 554,
- * 583, 671) plus the data URI in postProcessingService.ts and the Sharp
- * pipeline output formats in sharpService.ts to natively support both
- * formats and both prefix casings. Grep for `qt-extractor JPEG` to find
- * all related sites.
  */
 
 import { promises as fs } from 'fs';

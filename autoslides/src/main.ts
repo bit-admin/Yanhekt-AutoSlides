@@ -2583,7 +2583,6 @@ ipcMain.handle(
       downsampleWidth: number;
       downsampleHeight: number;
       chunkSize?: number;
-      jpegQuality?: number;
     }
   ) => {
     const send = (channel: string, ...args: unknown[]) => {
@@ -2619,8 +2618,8 @@ ipcMain.handle('qtExtractor:cancelExtraction', async (_event, extractionId: stri
   return qtExtractorService.cancelExtraction(extractionId);
 });
 
-ipcMain.handle('qtExtractor:normalizeOutput', async (_event, slidesDir: string, reduceColors: boolean) => {
-  return await qtExtractorService.normalizeExtractorOutput(slidesDir, { reduceColors: !!reduceColors });
+ipcMain.handle('qtExtractor:applyColorReduction', async (_event, slidesDir: string) => {
+  return await qtExtractorService.applyPngColorReduction(slidesDir);
 });
 
 // ============================================================================

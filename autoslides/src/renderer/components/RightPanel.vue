@@ -1674,6 +1674,41 @@ defineExpose({
     border-color: #404040;
   }
 
+  /* Extraction affiliated panel dark mode */
+  .extraction-affiliated-panel {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .ext-name {
+    color: #e0e0e0;
+  }
+
+  .ext-bar {
+    background-color: #404040;
+  }
+
+  .ext-fill {
+    background-color: #404040;
+  }
+
+  .ext-fill.active {
+    background-color: #4fc3f7;
+  }
+
+  .ext-fill.completed {
+    background-color: #81c784;
+  }
+
+  .ext-fill.errored {
+    background-color: #f48fb1;
+  }
+
+  .ext-status-pending .ext-name { color: #9e9e9e; }
+  .ext-status-completed .ext-name { color: #81c784; }
+  .ext-status-error .ext-name,
+  .ext-status-cancelled .ext-name { color: #f48fb1; }
+
   .task-item-wrapper .task-item {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
