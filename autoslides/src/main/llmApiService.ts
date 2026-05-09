@@ -561,7 +561,9 @@ export class LLMApiService {
     }
 
     let lastError: LLMError | null = null;
-    for (const model of candidates) {
+    for (let i = 0; i < candidates.length; i++) {
+      const model = candidates[i];
+      const nextModel: string | undefined = candidates[i + 1];
       const result = await this.makeChatCompletionRequest(model, input);
       if (result.ok) return result;
 
@@ -569,11 +571,19 @@ export class LLMApiService {
       if (result.error.kind === 'quota_exceeded') {
         this.markExhausted(providerId, input.baseUrl, model);
         options?.onModelExhausted?.(model);
-        console.warn(`[LLM] Model quota exceeded, trying next in chain: ${model}`);
+        console.warn(
+          nextModel
+            ? `[LLM] ${model} quota exceeded, advancing to next in chain: ${nextModel}`
+            : `[LLM] ${model} quota exceeded, chain exhausted`
+        );
         continue;
       }
       if (providerId === 'modelscope' && isEmptyChoicesError(result.error)) {
-        console.warn(`[LLM] Model returned empty choices, trying next in chain: ${model}`);
+        console.warn(
+          nextModel
+            ? `[LLM] ${model} returned empty choices, advancing to next in chain: ${nextModel}`
+            : `[LLM] ${model} returned empty choices, chain exhausted`
+        );
         continue;
       }
       // Other errors don't benefit from trying a different model — fail fast.
