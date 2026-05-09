@@ -233,7 +233,7 @@
       "autoPostProcessDescription": "Chain the standard 3-phase post-processing (duplicates, exclusion list, AI) on the extracted slides folder.",
       "section": "Extractor Executable",
       "sectionDescription": "AutoSlides Extractor is a standalone C++ application. Install it separately, then point this field at the executable.",
-      "defaultExecutables": "Default executable locations",
+      "defaultExecutables": "Default Executable Locations",
       "sourceLink": "See the GitHub repository for details.",
       "platformMacOS": "macOS",
       "platformWindows": "Windows",

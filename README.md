@@ -82,7 +82,7 @@
         <a href="https://github.com/bit-admin/AutoSlides-Extractor">bit&#8209;admin/AutoSlides-Extractor</a>
       </td>
       <td>
-        从下载的屏幕录制中提取幻灯片；处理一节课的视频用时快至 10 秒<sup>4</sup>；支持 GPU 加速；使用 C++ 构建；使用与 <code>AutoSlides</code> 相同的图像处理算法及基于 <code>MobileNetV4</code> 的机器学习模型。
+        从下载的屏幕录制中提取幻灯片；处理一节课的视频用时快至 10 秒；支持 GPU 加速；使用 C++ 构建；使用与 <code>AutoSlides</code> 相同的图像处理算法及基于 <code>MobileNetV4</code> 的机器学习模型。
       </td>
     </tr>
     <tr>
@@ -105,15 +105,13 @@
 
 <sup>3</sup> 网页版提供笔记记录及导出 Word 及 Markdown 文档功能。
 
-<sup>4</sup> **两个工具组合使用速度更快**：使用 `AutoSlides` 下载一节 95 分钟课程的屏幕录制视频在校园网内用时约 10 秒；使用 `AutoSlides Extractor` 处理该视频（I-frame 间隔 2 秒）在 M4 Mac mini 上用时约 10 秒。
-
 ## 🚀 快速开始
 
 ### 1. 下载
 
 - 前往 [release 页面](https://github.com/bit-admin/Yanhekt-AutoSlides/releases) 👈 下载适用于你平台的安装程序（macOS 用户下载 `DMG` 文件；Windows 用户下载 `EXE` 文件；Linux 用户下载 `AppImage` 或 `deb` 文件）。
 
-### 2. 安装
+### 2. 安装 AutoSlides
    - **macOS**：打开 `.dmg` 安装包，将应用图标拖动到 `Applications` 文件夹。
       - 双击安装包内的 `install.command` 文件运行安装脚本。若看到“Apple 无法验证安全性”的提示，先关闭该提示。
       - 打开 `系统设置 > 隐私与安全性`，如图所示，点击 `仍要打开`。
@@ -143,6 +141,22 @@
        ```bash
        sudo apt install ./autoslides-*.deb
        ```
+
+### 3. （可选）安装 [AutoSlides Extractor](https://github.com/bit-admin/AutoSlides-Extractor) 👈
+
+`AutoSlides Extractor` 是一个独立的 C++ 应用程序，它在本地视频文件上提取幻灯片，并支持硬件加速，比在播放过程中实时捕获更快，适合需要快速、批量获取课程幻灯片的情况。`AutoSlides` 主应用可通过对每个下载完成的屏幕录制自动调用外部的 `AutoSlides Extractor CLI` 加速幻灯片提取。
+
+1. 当检测到已安装 `AutoSlides Extractor` 后，可启用 `下载完成后自动使用 C++ 提取器提取幻灯片` 功能；你也可以手动指定 `AutoSlides Extractor` 可执行文件的安装位置。
+2. 你也可以在 `高级设置 > 下载与播放 > 下载完成后自动提取` 界面点击 `安装提取器` 下载 `AutoSlides Extractor`。
+
+<p align="center">
+  <img src="docs/step0.png" width="60%" alt="step0" />
+</p>
+
+> [!TIP]
+> 这一步是可选的，`AutoSlides` 主应用并不依赖 `AutoSlides Extractor`。你可以正常使用所有基于在线视频播放的幻灯片提取功能。惟 `下载完成后自动使用 C++ 提取器提取幻灯片` 功能需要额外下载 `AutoSlides Extractor`。
+>
+> **两个工具组合使用速度更快**：使用 `AutoSlides` 下载一节 95 分钟课程的屏幕录制视频在校园网内用时约 10 秒；使用 `AutoSlides Extractor` 处理该视频（I-frame 间隔 2 秒）在 M4 Mac mini 上用时约 10 秒。
 
 ### 3. 使用与设置
 
@@ -245,6 +259,15 @@
 </p>
 
 <br>
+
+---
+
+当 `下载完成后自动使用 C++ 提取器提取幻灯片` 功能启用时，下载屏幕录制视频会自动运行 `幻灯片提取` 和 `后处理`。
+
+<p align="center">
+  <img src="docs/step6.1.png" width="70%" alt="step6" />
+</p>
+
 
 #### G. 审查幻灯片
 
@@ -484,6 +507,10 @@ flowchart LR
 3. 播放页面按检测间隔抽取视频帧，把 `ImageData` 交给 Web Worker 比较，判定为新幻灯片后通过 IPC 写入输出目录。
 4. 后处理流程按 `重复去除 -> 排除列表 -> AI 过滤` 顺序运行。被移除的图像不会直接丢失，而是写入 `.autoslidesTrash` 及 JSONL manifest，`幻灯片审查页面` 会把已提取和已移除图像合并显示。
 5. 裁剪操作会先把原图备份到 `.autoslidesCrop`，再覆盖工作图像；PDF 导出和预览都使用当前工作图像，因此裁剪结果会自然进入后续导出流程。
+
+### 为什么推荐组合使用 `AutoSlides` 和 `AutoSlides Extractor`？
+
+因为 `AutoSlides Extractor` 基于 C++ 构建，对于视频解码、逐帧分析、SSIM 计算等性能任务，C++ 实现直接调用 FFmpeg、OpenCV 和平台原生硬件能力，减少跨运行时开销；同时更精确地管理内存，使用分块处理、内存池、零拷贝缓冲区和 RAII 自动释放。C++ 版本还可以充分利用 CPU 指令集和硬件加速，包括 Apple Silicon 的 NEON、Intel/AMD 的 SSE/AVX/AVX2/AVX512，以及 VideoToolbox、CUDA、DirectML、OpenCL、Metal 等平台能力，把高强度的帧提取和相似度计算交给更适合这类任务的原生引擎。
 
 ### 图像分析设计
 
