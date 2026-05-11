@@ -687,7 +687,7 @@ const isDualFullscreen = ref(false)
 const showDualAudioPanel = ref(false)
 const showDualMorePanel = ref(false)
 
-const defaultPlaybackRates = [1, 2, 5, 10, 16]
+const defaultPlaybackRates = [1, 1.25, 1.5, 2, 5, 10, 16]
 const allPlaybackRates = [0.5, 0.75, 0.8, 0.9, 1, 1.1, 1.15, 1.2, 1.25, 1.5, 1.75, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
 const playbackRateOptions = computed(() => {
