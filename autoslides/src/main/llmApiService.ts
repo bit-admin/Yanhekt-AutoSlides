@@ -349,11 +349,18 @@ export class LLMApiService {
     });
 
     const startTime = Date.now();
+    // Hard wall-clock ceiling via AbortController. axios's own `timeout` doesn't
+    // reliably fire on half-open TCP / stalled-TLS sockets, so we layer an
+    // AbortController watchdog on top. Both mechanisms cooperate: whichever trips
+    // first cancels the request, and we always clear the watchdog in `finally`.
+    const timeoutMs = input.timeoutMs ?? 60000;
+    const controller = new AbortController();
+    const watchdog = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await axios.post<ChatCompletionResponse>(
         `${input.baseUrl}/chat/completions`,
         requestBody,
-        { headers, timeout: input.timeoutMs ?? 30000 }
+        { headers, timeout: timeoutMs, signal: controller.signal }
       );
 
       const data = response.data as ChatCompletionResponse | undefined;
@@ -406,6 +413,8 @@ export class LLMApiService {
         if (retryAfter != null) result.retryAfterMs = retryAfter;
       }
       return result;
+    } finally {
+      clearTimeout(watchdog);
     }
   }
 
@@ -462,7 +471,12 @@ export class LLMApiService {
         (typeof responseData === 'string' ? responseData : undefined) ||
         error.message;
 
-      if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+      if (
+        error.code === 'ECONNABORTED' ||
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ERR_CANCELED' ||
+        error.name === 'CanceledError'
+      ) {
         return { kind: 'timeout', status, message: error.message, modelAttempted, rawProviderMessage: rawMessage };
       }
 
