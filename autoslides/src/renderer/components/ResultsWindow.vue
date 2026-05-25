@@ -224,7 +224,11 @@
             :key="group.courseName || groupIdx"
             :class="{ 'course-group': isGroupingActive }"
           >
-            <div v-if="isGroupingActive" class="course-header">
+            <div
+              v-if="isGroupingActive"
+              class="course-header"
+              @click="isFolderEditMode && selectAllInCourse(group.folderNames)"
+            >
               <input
                 v-if="isFolderEditMode"
                 type="checkbox"
@@ -239,8 +243,17 @@
                 <path d="M4 7.5v4c0 1.2 1.8 2 4 2s4-.8 4-2v-4L8 10.5 4 7.5z" fill="#5a9fd4"/>
               </svg>
               <span class="course-name">{{ group.courseName }}</span>
+              <svg
+                class="course-chevron"
+                :class="{ collapsed: isCourseCollapsed(group.courseName) }"
+                width="14" height="14" viewBox="0 0 16 16"
+                @click.stop="toggleCourseCollapse(group.courseName)"
+              >
+                <path d="M4 3l6 5-6 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </div>
 
+            <template v-if="!isCourseCollapsed(group.courseName)">
             <button
               v-for="entry in group.folders"
               :key="entry.folder.name"
@@ -291,6 +304,7 @@
                 <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
+            </template>
           </div>
         </div>
       </template>
@@ -775,6 +789,17 @@ const selectedFolderNames = ref<string[]>([])
 const groupByCourse = ref(true)
 
 const isGroupingActive = computed(() => groupByCourse.value)
+const collapsedCourses = ref<Set<string>>(new Set())
+
+const toggleCourseCollapse = (courseName: string) => {
+  if (collapsedCourses.value.has(courseName)) {
+    collapsedCourses.value.delete(courseName)
+  } else {
+    collapsedCourses.value.add(courseName)
+  }
+}
+
+const isCourseCollapsed = (courseName: string) => collapsedCourses.value.has(courseName)
 
 interface CourseGroup {
   courseName: string
@@ -1990,10 +2015,28 @@ onBeforeUnmount(() => {
   gap: 10px;
   min-height: 28px;
   padding: 10px 14px 10px;
+  cursor: pointer;
+  user-select: none;
 }
 
 .course-icon {
   flex-shrink: 0;
+}
+
+.course-chevron {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: #7b8794;
+  transition: transform 0.15s;
+  cursor: pointer;
+}
+
+.course-chevron.collapsed {
+  transform: rotate(0deg);
+}
+
+.course-chevron:not(.collapsed) {
+  transform: rotate(90deg);
 }
 
 .course-name {
@@ -2787,6 +2830,10 @@ onBeforeUnmount(() => {
 
   .course-icon path:last-child {
     fill: #93d0ff;
+  }
+
+  .course-chevron {
+    color: #9098a2;
   }
 
   .group-toggle {
