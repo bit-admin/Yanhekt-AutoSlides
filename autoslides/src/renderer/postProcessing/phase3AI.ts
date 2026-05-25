@@ -83,7 +83,7 @@ async function dispatchClassification(
         result: { image_0: single.result.classification }
       }
     }
-    return { success: false, error: single.error }
+    return { success: false, error: single.error, errorKind: single.errorKind }
   }
   return dispatchClassifyMultiple(base64s, promptType, token)
 }
@@ -116,10 +116,12 @@ async function applyClassificationsToTrash(
     if (cls === 'slide') continue
 
     const reason = trashReasonForAI(cls)
-    await dataSource.moveToTrash(filename, reason, trashReasonDetailsForAI(cls))
-    ctx.onItemRemoved?.(filename, reason)
-    if (cls === 'may_be_slide_edit') maybeSlideEdit.push(filename)
-    else notSlide.push(filename)
+    const moved = await dataSource.moveToTrash(filename, reason, trashReasonDetailsForAI(cls))
+    if (moved) {
+      ctx.onItemRemoved?.(filename, reason)
+      if (cls === 'may_be_slide_edit') maybeSlideEdit.push(filename)
+      else notSlide.push(filename)
+    }
   }
   return { notSlide, maybeSlideEdit }
 }
@@ -130,6 +132,7 @@ async function processBatchWithRetry(
   dataSource: PipelineDataSource,
   ctx: PostProcessingContext,
   stats: AIPhaseStats,
+  reportStats: () => void,
   retryCount = 0
 ): Promise<BatchOutcome> {
   const outcome = emptyOutcome()
@@ -163,6 +166,7 @@ async function processBatchWithRetry(
   if (validBase64.length === 0) return outcome
 
   stats.retrying = validFilenames.length
+  reportStats()
   let result: UnifiedClassificationResult
   let errorInfo: ErrorInfo | null = null
   try {
@@ -180,6 +184,7 @@ async function processBatchWithRetry(
     result = { success: false, error: errorInfo.message }
   } finally {
     stats.retrying = 0
+    reportStats()
   }
 
   if (result.success && result.result) {
@@ -205,8 +210,10 @@ async function processBatchWithRetry(
       `[PostProcessing] AI batch ${errorInfo!.type} (attempt ${retryCount + 1}/${MAX_RETRIES}, delay ${delay}ms)`
     )
     stats.retrying = validFilenames.length
+    reportStats()
     await sleep(delay)
     stats.retrying = 0
+    reportStats()
     if (ctx.signal?.aborted) return outcome
     const retryOutcome = await processBatchWithRetry(
       validFilenames,
@@ -214,6 +221,7 @@ async function processBatchWithRetry(
       dataSource,
       ctx,
       stats,
+      reportStats,
       retryCount + 1
     )
     outcome.notSlide.push(...retryOutcome.notSlide)
@@ -228,6 +236,7 @@ async function processBatchWithRetry(
     outcome.failed.push({
       filename,
       errorType: errorInfo!.type,
+      errorKind: errorInfo!.kind,
       message: errorInfo!.message,
       retryCount
     })
@@ -241,6 +250,7 @@ async function processPending413(
   dataSource: PipelineDataSource,
   ctx: PostProcessingContext,
   stats: AIPhaseStats,
+  reportStats: () => void,
   originalBatchSize: number
 ): Promise<BatchOutcome> {
   const outcome = emptyOutcome()
@@ -254,7 +264,7 @@ async function processPending413(
       // Process individually.
       for (const file of batch) {
         if (ctx.signal?.aborted) break
-        const singleOutcome = await processBatchWithRetry([file], input, dataSource, ctx, stats)
+        const singleOutcome = await processBatchWithRetry([file], input, dataSource, ctx, stats, reportStats)
         if (singleOutcome.pending413.length > 0) {
           outcome.failed.push({
             filename: file,
@@ -280,7 +290,7 @@ async function processPending413(
     )
     for (const sub of splitBatches) {
       if (ctx.signal?.aborted) break
-      const subOutcome = await processBatchWithRetry(sub, input, dataSource, ctx, stats)
+      const subOutcome = await processBatchWithRetry(sub, input, dataSource, ctx, stats, reportStats)
       outcome.notSlide.push(...subOutcome.notSlide)
       outcome.maybeSlideEdit.push(...subOutcome.maybeSlideEdit)
       outcome.failed.push(...subOutcome.failed)
@@ -291,6 +301,7 @@ async function processPending413(
           dataSource,
           ctx,
           stats,
+          reportStats,
           originalBatchSize
         )
         outcome.notSlide.push(...nested.notSlide)
@@ -337,7 +348,7 @@ export async function runAIPhase(
   for (let i = 0; i < batches.length; i++) {
     if (ctx.signal?.aborted) break
     const batch = batches[i]
-    const outcome = await processBatchWithRetry(batch, input, dataSource, ctx, stats)
+    const outcome = await processBatchWithRetry(batch, input, dataSource, ctx, stats, emit)
     final.aiNotSlide.push(...outcome.notSlide)
     final.aiMaybeSlideEdit.push(...outcome.maybeSlideEdit)
     final.failed.push(...outcome.failed)
@@ -355,6 +366,7 @@ export async function runAIPhase(
       dataSource,
       ctx,
       stats,
+      emit,
       batchSize
     )
     final.aiNotSlide.push(...pending413Outcome.notSlide)

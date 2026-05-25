@@ -52,13 +52,15 @@ export async function runDuplicatePhase(
     }
 
     if (duplicateOf) {
-      await dataSource.moveToTrash(
+      const moved = await dataSource.moveToTrash(
         item.filename,
         'duplicate',
         `Duplicate of ${duplicateOf}`
       )
-      removed.push(item.filename)
-      ctx.onItemRemoved?.(item.filename, 'duplicate')
+      if (moved) {
+        removed.push(item.filename)
+        ctx.onItemRemoved?.(item.filename, 'duplicate')
+      }
     } else {
       seenHashes.set(item.pHash, item.filename)
     }

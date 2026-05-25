@@ -3,6 +3,7 @@ import { TokenManager } from './authService'
 import { PostProcessingPipeline } from '../postProcessing/pipeline'
 import { createSlideExtractionDataSource } from '../postProcessing/imageSources'
 import type {
+  AIErrorKind,
   PostProcessingConfig,
   PostProcessingProgress
 } from '../postProcessing/types'
@@ -28,6 +29,7 @@ export interface PostProcessJobProgress {
 export interface JobError {
   filename: string
   errorType: 'network' | 'timeout' | '403' | '413' | '429' | 'quota_exceeded' | 'service_unavailable' | 'parse_failed' | 'http' | 'unknown'
+  errorKind?: AIErrorKind
   message: string
   retryCount: number
 }
@@ -165,6 +167,7 @@ class PostProcessingServiceClass {
         job.errors.push({
           filename: f.filename,
           errorType: f.errorType as JobError['errorType'],
+          errorKind: f.errorKind,
           message: f.message,
           retryCount: f.retryCount
         })

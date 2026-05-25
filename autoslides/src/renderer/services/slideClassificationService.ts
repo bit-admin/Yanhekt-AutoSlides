@@ -7,12 +7,14 @@ export interface UnifiedClassificationResult {
   success: boolean
   result?: Record<string, ClassificationValue>
   error?: string
+  errorKind?: string
 }
 
 export interface UnifiedSingleClassificationResult {
   success: boolean
   result?: { classification: ClassificationValue }
   error?: string
+  errorKind?: string
 }
 
 export interface MlThresholdValues {

@@ -4,11 +4,14 @@ import type { ExtractedSlide, SlideExtractor } from '../services/slideExtractor'
 import { PostProcessingPipeline } from '../postProcessing/pipeline'
 import { createSlideExtractionDataSource } from '../postProcessing/imageSources'
 import {
+  errorInfoToBanner,
   parseBannerError,
-  type BannerError
+  type BannerError,
+  type ErrorType
 } from '../postProcessing/errorModel'
 import type {
   PostProcessingConfig,
+  PostProcessingFailure,
   PostProcessingProgress,
   TrashReason
 } from '../postProcessing/types'
@@ -95,6 +98,10 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
   }
 
   const mirrorProgress = (snap: PostProcessingProgress) => {
+    postProcessStatus.value.phase1Skipped = snap.phase1.skipped
+    postProcessStatus.value.phase2Skipped = snap.phase2.skipped
+    postProcessStatus.value.phase3Skipped = snap.phase3.skipped
+
     switch (snap.phase) {
       case 'phase1':
         postProcessStatus.value.currentPhase = 'phase1'
@@ -126,6 +133,21 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       default:
         break
     }
+  }
+
+  const failureToBannerError = (failure: PostProcessingFailure): AIFilteringError => {
+    if (failure.errorKind) {
+      return parseBannerError({
+        success: false,
+        error: failure.message,
+        errorKind: failure.errorKind
+      })
+    }
+    return errorInfoToBanner({
+      type: failure.errorType as ErrorType,
+      message: failure.message,
+      retryable: false
+    })
   }
 
   // Build the PostProcessingConfig used by the pipeline. `aiOnly=true` disables
@@ -213,12 +235,10 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       }
     )
 
-    // Surface the most recent AI failure in the banner, if any. Pipeline-level
-    // failures land in result.failed; show the first to the user. `errorType` is
-    // the discriminated type (e.g. '413'), not an AIErrorKind, so route through
-    // the message-based parser which recognises both.
+    // Surface the most recent AI failure in the banner, preferring structured
+    // errorKind/errorType metadata over message-only parsing.
     if (result.failed.length > 0) {
-      aiFilteringError.value = parseBannerError(result.failed[0].message)
+      aiFilteringError.value = failureToBannerError(result.failed[0])
     } else {
       aiFilteringError.value = { type: 'none' }
     }

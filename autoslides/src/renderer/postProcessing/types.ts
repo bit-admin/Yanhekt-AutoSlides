@@ -73,12 +73,13 @@ export interface PipelineDataSource {
     targetWidth: number,
     targetHeight: number
   ): Promise<string | null>
-  moveToTrash(filename: string, reason: TrashReason, reasonDetails: string): Promise<void>
+  moveToTrash(filename: string, reason: TrashReason, reasonDetails: string): Promise<boolean>
 }
 
 export interface PostProcessingFailure {
   filename: string
   errorType: string
+  errorKind?: AIErrorKind
   message: string
   retryCount: number
 }

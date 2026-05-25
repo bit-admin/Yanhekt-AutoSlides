@@ -54,9 +54,11 @@ export async function runExclusionPhase(
     }
 
     if (excludedReason) {
-      await dataSource.moveToTrash(item.filename, 'exclusion', excludedReason)
-      removed.push(item.filename)
-      ctx.onItemRemoved?.(item.filename, 'exclusion')
+      const moved = await dataSource.moveToTrash(item.filename, 'exclusion', excludedReason)
+      if (moved) {
+        removed.push(item.filename)
+        ctx.onItemRemoved?.(item.filename, 'exclusion')
+      }
     }
     reportProgress(i + 1, removed.length)
   }
