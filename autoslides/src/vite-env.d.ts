@@ -824,7 +824,7 @@ interface ElectronAPI {
 
   pdfmaker: {
     openWindow: () => Promise<{ success: boolean }>;
-    getFolders: () => Promise<{ name: string; path: string }[]>;
+    getFolders: () => Promise<{ name: string; path: string; imageCount: number }[]>;
     getImages: (folderPath: string) => Promise<{ name: string; path: string }[]>;
     getImageAsBase64: (imagePath: string) => Promise<string>;
     deleteImage: (imagePath: string) => Promise<{ success: boolean }>;
