@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { nextTick, ref, type Ref } from 'vue'
 import { languageService } from '../services/languageService'
 import { ssimThresholdService, type SsimPresetType } from '../services/ssimThresholdService'
 import { DownloadService } from '../services/downloadService'
@@ -315,6 +315,7 @@ export function useAdvancedSettings(
 
   // Flag for programmatic updates
   let isUpdatingProgrammatically = false
+  let advancedSettingsOpenRequestId = 0
 
   // ----- Qt extractor helpers -----
   const applyQtStatus = (status: { ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }) => {
@@ -329,20 +330,28 @@ export function useAdvancedSettings(
     try {
       const cfg = await window.electronAPI.config.get()
       const block = cfg.qtExtractor
+      const savedBinaryPath = block?.binaryPath || ''
+      if (savedBinaryPath !== qtExtractorBinaryPath.value) {
+        qtExtractorResolvedPath.value = ''
+        qtExtractorStatusOk.value = false
+        qtExtractorStatusVersion.value = ''
+        qtExtractorStatusError.value = ''
+      }
       if (block) {
         qtExtractorAutoRun.value = !!block.autoRunAfterDownload
         qtExtractorAutoPostProcess.value = block.autoPostProcessAfter !== false
       }
+      qtExtractorBinaryPath.value = savedBinaryPath
       tempQtExtractorAutoRun.value = qtExtractorAutoRun.value
       tempQtExtractorAutoPostProcess.value = qtExtractorAutoPostProcess.value
-      const status = await window.electronAPI.qtExtractor.getStatus()
-      applyQtStatus(status)
     } catch (error) {
       console.error('Failed to load Qt extractor config:', error)
     }
   }
 
   const qtExtractorVerify = async () => {
+    if (qtExtractorVerifying.value) return
+
     qtExtractorVerifying.value = true
     try {
       const status = await window.electronAPI.qtExtractor.verify(qtExtractorBinaryPath.value || undefined)
@@ -451,6 +460,8 @@ export function useAdvancedSettings(
 
   // Open modal
   const openAdvancedSettings = async () => {
+    const requestId = ++advancedSettingsOpenRequestId
+
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
     tempDownloadMaxWorkers.value = downloadMaxWorkers.value
     tempDownloadNumRetries.value = downloadNumRetries.value
@@ -471,23 +482,31 @@ export function useAdvancedSettings(
     tempDistinguishMaybeSlide.value = distinguishMaybeSlide.value
     isUpdatingProgrammatically = false
 
-    await loadImageProcessingConfig()
-    await loadIntranetMappings()
-    await loadNetworkInterfaces()
-    await loadIntranetInterfaceIp()
-    await loadQtExtractorConfig()
     intranetInterfaceWarning.value = null
-
-    // Call additional setup callback
-    if (onOpenModal) {
-      await onOpenModal()
-    }
-
     showAdvancedModal.value = true
+
+    await nextTick()
+
+    const shouldContinue = () => requestId === advancedSettingsOpenRequestId && showAdvancedModal.value
+
+    await Promise.all([
+      loadImageProcessingConfig(),
+      loadIntranetMappings(),
+      loadNetworkInterfaces(),
+      loadIntranetInterfaceIp(),
+      loadQtExtractorConfig().then(() => {
+        if (shouldContinue()) {
+          void qtExtractorVerify()
+        }
+      }),
+      onOpenModal ? onOpenModal() : Promise.resolve()
+    ])
   }
 
   // Close modal
   const closeAdvancedSettings = () => {
+    advancedSettingsOpenRequestId++
+
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
     tempDownloadMaxWorkers.value = downloadMaxWorkers.value
     tempDownloadNumRetries.value = downloadNumRetries.value
