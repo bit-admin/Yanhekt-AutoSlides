@@ -9,6 +9,7 @@ import { compareToolFolders, compareToolImages, formatToolFolderName } from '../
 export interface Folder {
   name: string
   path: string
+  imageCount: number
 }
 
 export interface FolderEntry {

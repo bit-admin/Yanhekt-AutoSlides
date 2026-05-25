@@ -1088,6 +1088,7 @@
     "delete": "Delete",
     "selected": "Selected",
     "total": "Total",
+    "totalImages": "Images",
     "noFolders": "No Slide Folders Found",
     "noImages": "No Slide Images in This Folder",
     "loading": "Loading...",

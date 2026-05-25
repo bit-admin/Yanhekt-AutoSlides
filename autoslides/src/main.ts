@@ -1941,12 +1941,19 @@ ipcMain.handle('pdfmaker:getFolders', async () => {
       : outputDir;
 
     const entries = await fs.promises.readdir(expandedPath, { withFileTypes: true });
-    const folders = entries
-      .filter(entry => entry.isDirectory() && entry.name.startsWith('slides_'))
-      .map(entry => ({
-        name: entry.name,
-        path: path.join(expandedPath, entry.name)
-      }));
+    const slideFolders = entries.filter(entry => entry.isDirectory() && entry.name.startsWith('slides_'));
+
+    const folders = await Promise.all(
+      slideFolders.map(async entry => {
+        const folderPath = path.join(expandedPath, entry.name);
+        let imageCount = 0;
+        try {
+          const files = await fs.promises.readdir(folderPath);
+          imageCount = files.filter(f => f.startsWith('Slide_') && f.endsWith('.png')).length;
+        } catch { /* folder unreadable — count stays 0 */ }
+        return { name: entry.name, path: folderPath, imageCount };
+      })
+    );
 
     return folders;
   } catch (error) {

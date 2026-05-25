@@ -6,7 +6,7 @@
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          {{ useCustomOrder ? $t('pdfmaker.customOrderHint') : $t('pdfmaker.sortAZ') }}
+          {{ useCustomOrder ? $t('pdfmaker.customOrder') : $t('pdfmaker.sortAZ') }}
         </button>
 
         <button class="refresh-btn" @click="refresh" :disabled="isLoading">
@@ -174,6 +174,13 @@
 
           <span class="folder-name">{{ formatToolFolderName(folder.name) }}</span>
 
+          <div class="folder-counts">
+            <span class="folder-count-text">
+              <span class="count-value">{{ folder.imageCount }}</span>
+              <span class="count-label">{{ $t('trash.active') }}</span>
+            </span>
+          </div>
+
           <div class="drag-handle" :title="$t('pdfmaker.customOrderHint')">
             <svg width="20" height="20" viewBox="0 0 16 16">
               <path d="M4 4h2v2H4zM4 7h2v2H4zM4 10h2v2H4zM10 4h2v2h-2zM10 7h2v2h-2zM10 10h2v2h-2z" fill="currentColor"/>
@@ -192,6 +199,8 @@
 
     <div class="footer">
       <span>{{ $t('pdfmaker.selected') }}: {{ selectedItems.length }} / {{ $t('pdfmaker.total') }}: {{ sortedFolders.length }}</span>
+      <span class="footer-separator">|</span>
+      <span>{{ $t('pdfmaker.totalImages') }}: {{ selectedImageCount }}</span>
     </div>
   </div>
 </template>
@@ -251,6 +260,12 @@ const outputModeLabel = computed(() => {
 })
 
 const exportMenuLabel = computed(() => `${outputFormat.value.toUpperCase()} · ${outputModeLabel.value}`)
+
+const selectedImageCount = computed(() =>
+  sortedFolders.value
+    .filter(f => selectedItems.value.includes(f.name))
+    .reduce((sum, f) => sum + f.imageCount, 0)
+)
 
 const toggleExportMenu = () => {
   isExportMenuOpen.value = !isExportMenuOpen.value
@@ -718,6 +733,31 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
+.folder-counts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  color: #7b8794;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.folder-count-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.count-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.count-label {
+  color: inherit;
+  text-transform: lowercase;
+}
+
 .drag-handle {
   flex-shrink: 0;
   cursor: grab;
@@ -765,11 +805,16 @@ onUnmounted(() => {
   display: flex;
   justify-content: flex-start;
   align-items: center;
+  gap: 8px;
   padding: 8px 16px;
   background-color: #fafafa;
   border-top: 1px solid #e0e0e0;
   font-size: 12px;
   color: #666;
+}
+
+.footer-separator {
+  color: #ccc;
 }
 
 @keyframes spin {
@@ -787,6 +832,10 @@ onUnmounted(() => {
   .footer {
     background-color: #252525;
     border-color: #3d3d3d;
+  }
+
+  .footer-separator {
+    color: #555;
   }
 
   .sort-btn,

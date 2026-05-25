@@ -1088,6 +1088,7 @@
     "delete": "삭제",
     "selected": "선택됨",
     "total": "전체",
+    "totalImages": "이미지",
     "noFolders": "슬라이드 폴더를 찾을 수 없습니다",
     "noImages": "이 폴더에 슬라이드 이미지가 없습니다",
     "loading": "로딩 중...",

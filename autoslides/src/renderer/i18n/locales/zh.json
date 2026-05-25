@@ -1088,6 +1088,7 @@
     "delete": "删除",
     "selected": "已选",
     "total": "总计",
+    "totalImages": "图片",
     "noFolders": "未找到幻灯片文件夹",
     "noImages": "此文件夹中没有幻灯片图片。",
     "loading": "加载中...",
