@@ -1,5 +1,10 @@
 import { ref, shallowRef, type Ref, type ShallowRef } from 'vue'
-import { slideExtractionManager, type SlideExtractor, type ExtractedSlide } from '../services/slideExtractor'
+import {
+  slideExtractionManager,
+  type SlideExtractionHandle,
+  type SlideExtractionInput,
+  type ExtractedSlide,
+} from '../processing'
 import { ssimThresholdService } from '../services/ssimThresholdService'
 
 // Types for slide extraction
@@ -61,7 +66,7 @@ export interface UseSlideExtractionReturn {
   // State
   isSlideExtractionEnabled: Ref<boolean>
   slideExtractionStatus: Ref<SlideExtractionStatus>
-  slideExtractorInstance: ShallowRef<SlideExtractor | null>
+  slideExtractorInstance: ShallowRef<SlideExtractionHandle | null>
   extractorInstanceId: Ref<string | null>
   extractedSlides: Ref<ExtractedSlide[]>
 
@@ -89,7 +94,7 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     verificationState: 'none',
     currentVerification: 0
   })
-  const slideExtractorInstance = shallowRef<SlideExtractor | null>(null)
+  const slideExtractorInstance = shallowRef<SlideExtractionHandle | null>(null)
   const extractorInstanceId = ref<string | null>(null)
   const extractedSlides = ref<ExtractedSlide[]>([])
 
@@ -107,6 +112,8 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
   }
 
   // Update SSIM threshold based on classroom information
+  // Kept as a standalone method so PlaybackPage can refresh the adaptive
+  // threshold display even when extraction is not running.
   const updateSSIMThresholdForClassrooms = () => {
     try {
       const classrooms = course.value?.classrooms
@@ -123,47 +130,51 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     }
   }
 
-  // Initialize slide extraction with course/session context
-  const initializeSlideExtraction = async () => {
-    try {
-      // Update SSIM threshold based on classroom information before starting extraction
-      updateSSIMThresholdForClassrooms()
+  // Build the SlideExtractionInput payload from current course/session state.
+  const buildExtractionInput = async (): Promise<SlideExtractionInput> => {
+    const config = await window.electronAPI.config.get()
+    const outputDir = config.outputDirectory || '~/Downloads/AutoSlides'
 
-      // Get output directory from config
-      const config = await window.electronAPI.config.get()
-      const outputDir = config.outputDirectory || '~/Downloads/AutoSlides'
+    let folderName = 'slides'
+    if (course.value?.title) {
+      folderName += `_${sanitizeFileName(course.value.title)}`
+    }
+    if (session.value?.title) {
+      folderName += `_${sanitizeFileName(session.value.title)}`
+    } else if (course.value?.session?.section_group_title && mode === 'live') {
+      folderName += `_${sanitizeFileName(course.value.session.section_group_title)}`
+    }
 
-      // Create folder name based on course and session info
-      let folderName = 'slides'
+    const slideOutputPath = `${outputDir}/${folderName}`
+    await window.electronAPI.slideExtraction.ensureDirectory(slideOutputPath)
 
-      if (course.value?.title) {
-        folderName += `_${sanitizeFileName(course.value.title)}`
-      }
+    const instanceId = `${mode}_${course.value?.id || 'unknown'}_${Date.now()}`
+    extractorInstanceId.value = instanceId
 
-      if (session.value?.title) {
-        folderName += `_${sanitizeFileName(session.value.title)}`
-      } else if (course.value?.session?.section_group_title && mode === 'live') {
-        folderName += `_${sanitizeFileName(course.value.session.section_group_title)}`
-      }
-
-      // Set up slide extraction output directory
-      const slideOutputPath = `${outputDir}/${folderName}`
-
-      // Prepare course info for slide extractor
-      const courseInfo = {
+    return {
+      mode,
+      instanceId,
+      sourceMode: 'video',
+      outputPath: slideOutputPath,
+      courseInfo: {
         courseName: course.value?.title,
         sessionTitle: session.value?.title || course.value?.session?.section_group_title,
-        mode: mode
-      }
+        mode,
+      },
+      initialPlaybackRate: Number(currentPlaybackRate.value),
+      classrooms: course.value?.classrooms ?? null,
+    }
+  }
 
-      // Ensure the output directory exists
-      await window.electronAPI.slideExtraction.ensureDirectory(slideOutputPath)
-
-      // Store the output path and course info for later use when saving slides
-      if (slideExtractorInstance.value) {
-        slideExtractorInstance.value.setOutputPath(slideOutputPath, courseInfo)
-      }
-
+  // Preserved for callers that still invoke initializeSlideExtraction()
+  // directly (e.g. setting up output paths before toggling). The new run()
+  // path also rebuilds the input internally, so this is now a no-op success
+  // path on the data we'd hand to the pipeline.
+  const initializeSlideExtraction = async () => {
+    try {
+      updateSSIMThresholdForClassrooms()
+      // Rebuild the input as a side effect (validates directory + sets instanceId).
+      await buildExtractionInput()
     } catch (error) {
       console.error('Failed to initialize slide extraction:', error)
       throw error
@@ -174,25 +185,22 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
   const toggleSlideExtraction = async () => {
     if (isSlideExtractionEnabled.value) {
       try {
-        // Get or create extractor instance for this mode
-        const instanceId = `${mode}_${course.value?.id || 'unknown'}_${Date.now()}`
-        slideExtractorInstance.value = slideExtractionManager.getExtractor(mode, instanceId)
-        extractorInstanceId.value = instanceId
-
-        // Initialize slide extraction with current course/session info
-        await initializeSlideExtraction()
-
-        // Sync with current playback rate before starting extraction
-        slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
-
-        // Start the extraction process
-        const success = slideExtractorInstance.value.startExtraction()
-        if (!success) {
+        const input = await buildExtractionInput()
+        const handle = await slideExtractionManager.run(input, {
+          onStatusChanged: (status) => {
+            slideExtractionStatus.value = {
+              isRunning: status.isRunning,
+              slideCount: status.slideCount,
+              verificationState: status.verificationState,
+              currentVerification: status.currentVerification,
+            }
+          },
+        })
+        if (!handle) {
           isSlideExtractionEnabled.value = false
           return
         }
-
-        // Update status
+        slideExtractorInstance.value = handle
         updateSlideExtractionStatus()
       } catch (error) {
         console.error('Failed to start slide extraction:', error)
@@ -201,7 +209,7 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     } else {
       // Stop slide extraction
       if (slideExtractorInstance.value) {
-        slideExtractorInstance.value.stopExtraction()
+        slideExtractorInstance.value.stop()
         slideExtractionStatus.value.isRunning = false
       }
     }
@@ -262,12 +270,12 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
   const cleanupSlideExtraction = () => {
     // Stop slide extraction if running
     if (isSlideExtractionEnabled.value && slideExtractorInstance.value) {
-      slideExtractorInstance.value.stopExtraction()
+      slideExtractorInstance.value.stop()
     }
 
     // Clean up extractor instance if it was created specifically for this component
     if (extractorInstanceId.value) {
-      slideExtractionManager.removeExtractor(extractorInstanceId.value)
+      slideExtractionManager.remove(extractorInstanceId.value)
     }
 
     // Remove event listeners

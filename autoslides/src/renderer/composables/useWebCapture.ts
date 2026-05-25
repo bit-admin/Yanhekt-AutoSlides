@@ -1,9 +1,9 @@
 import { ref, shallowRef, computed, onBeforeUnmount, onMounted, type Ref, type ShallowRef } from 'vue'
 import {
-  SlideExtractor,
   slideExtractionManager,
+  type SlideExtractionHandle,
   type ExtractedSlide,
-} from '../services/slideExtractor'
+} from '../processing'
 
 export type WebCaptureMode = 'inject' | 'capturePage'
 export type WebCaptureState = 'idle' | 'confirming' | 'running'
@@ -98,7 +98,7 @@ export function useWebCapture() {
 
   // Extractor + interval handles
   const extractedSlides: Ref<ExtractedSlide[]> = ref([])
-  const slideExtractorInstance: ShallowRef<SlideExtractor | null> = shallowRef(null)
+  const slideExtractorInstance: ShallowRef<SlideExtractionHandle | null> = shallowRef(null)
   let captureInterval: ReturnType<typeof setInterval> | null = null
   let webviewRef: WebviewTag | null = null
   let slideExtractedHandler: ((event: Event) => void) | null = null
@@ -367,9 +367,6 @@ export function useWebCapture() {
       await window.electronAPI.slideExtraction.ensureDirectory(folder)
 
       const instanceId = `webcapture_${Date.now()}`
-      const extractor = slideExtractionManager.getExtractor('live', instanceId)
-      extractor.setOutputPath(folder, { courseName: name, mode: 'live' })
-      slideExtractorInstance.value = extractor
       extractedSlides.value = []
       tickCount.value = 0
       savedCount.value = 0
@@ -386,8 +383,15 @@ export function useWebCapture() {
       }
       window.addEventListener('slideExtracted', slideExtractedHandler)
 
-      const started = extractor.startPushedExtraction()
-      if (!started) throw new Error('Failed to start pushed extraction')
+      const extractor = await slideExtractionManager.run({
+        mode: 'live',
+        instanceId,
+        sourceMode: 'pushed',
+        outputPath: folder,
+        courseInfo: { courseName: name, mode: 'live' },
+      })
+      if (!extractor) throw new Error('Failed to start pushed extraction')
+      slideExtractorInstance.value = extractor
 
       try {
         await window.electronAPI.powerManagement.preventSleep()
@@ -481,7 +485,7 @@ export function useWebCapture() {
     }
     if (webviewRef) webviewRef.send('capture:stop')
     const extractor = slideExtractorInstance.value
-    if (extractor) extractor.stopExtraction()
+    if (extractor) extractor.stop()
     if (slideExtractedHandler) {
       window.removeEventListener('slideExtracted', slideExtractedHandler)
       slideExtractedHandler = null

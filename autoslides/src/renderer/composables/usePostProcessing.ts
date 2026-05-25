@@ -1,6 +1,6 @@
 import { ref, type Ref, type ShallowRef } from 'vue'
 import { TokenManager } from '../services/authService'
-import type { ExtractedSlide, SlideExtractor } from '../services/slideExtractor'
+import type { ExtractedSlide, SlideExtractionHandle } from '../processing'
 import { PostProcessingPipeline } from '../postProcessing/pipeline'
 import { createSlideExtractionDataSource } from '../postProcessing/imageSources'
 import {
@@ -43,7 +43,7 @@ export interface PostProcessStatus {
 export interface UsePostProcessingOptions {
   mode: 'live' | 'recorded'
   extractedSlides: Ref<ExtractedSlide[]>
-  slideExtractorInstance: ShallowRef<SlideExtractor | null>
+  slideExtractorInstance: ShallowRef<SlideExtractionHandle | null>
   deleteSlide?: (slide: ExtractedSlide, showConfirmation?: boolean) => Promise<void>  // Deprecated; kept for back-compat
 }
 

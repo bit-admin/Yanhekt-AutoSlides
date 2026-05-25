@@ -2,7 +2,7 @@ import { ref, shallowRef, computed, nextTick, type Ref, type ShallowRef, type Co
 import Hls, { Events, ErrorTypes, ErrorDetails } from 'hls.js'
 import { DataStore } from '../services/dataStore'
 import { TokenManager } from '../services/authService'
-import type { SlideExtractor } from '../services/slideExtractor'
+import type { SlideExtractionHandle } from '../processing'
 
 export const DUAL_STREAM_KEY = '__dual__'
 export type DualAudioSource = 'screen' | 'camera'
@@ -38,7 +38,7 @@ export interface UseVideoPlayerOptions {
   mode: 'live' | 'recorded'
   streamId?: string
   session: Ref<SessionInput | null>
-  slideExtractorInstance: Ref<SlideExtractor | null>
+  slideExtractorInstance: Ref<SlideExtractionHandle | null>
   onTaskError?: (message: string) => void
 }
 
@@ -664,13 +664,13 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
                 videoPlayer.value.playbackRate = targetRate
                 currentPlaybackRate.value = targetRate
                 if (slideExtractorInstance.value) {
-                  slideExtractorInstance.value.updatePlaybackRate(targetRate)
+                  slideExtractorInstance.value.setPlaybackRate(targetRate)
                 }
               } else {
                 videoPlayer.value.playbackRate = 1
                 currentPlaybackRate.value = 1
                 if (slideExtractorInstance.value) {
-                  slideExtractorInstance.value.updatePlaybackRate(1)
+                  slideExtractorInstance.value.setPlaybackRate(1)
                 }
               }
 
@@ -806,13 +806,13 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
               if (mode === 'recorded') {
                 videoPlayer.value.playbackRate = currentPlaybackRate.value
                 if (slideExtractorInstance.value) {
-                  slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
+                  slideExtractorInstance.value.setPlaybackRate(Number(currentPlaybackRate.value))
                 }
               } else {
                 videoPlayer.value.playbackRate = 1
                 currentPlaybackRate.value = 1
                 if (slideExtractorInstance.value) {
-                  slideExtractorInstance.value.updatePlaybackRate(1)
+                  slideExtractorInstance.value.setPlaybackRate(1)
                 }
               }
 
@@ -969,13 +969,13 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         if (mode === 'recorded') {
           videoPlayer.value.playbackRate = currentPlaybackRate.value
           if (slideExtractorInstance.value) {
-            slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
+            slideExtractorInstance.value.setPlaybackRate(Number(currentPlaybackRate.value))
           }
         } else {
           videoPlayer.value.playbackRate = 1
           currentPlaybackRate.value = 1
           if (slideExtractorInstance.value) {
-            slideExtractorInstance.value.updatePlaybackRate(1)
+            slideExtractorInstance.value.setPlaybackRate(1)
           }
         }
 
@@ -1033,7 +1033,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       videoPlayer.value.playbackRate = playbackRateNumber
 
       if (slideExtractorInstance.value) {
-        slideExtractorInstance.value.updatePlaybackRate(playbackRateNumber)
+        slideExtractorInstance.value.setPlaybackRate(playbackRateNumber)
       }
     }
   }

@@ -1,9 +1,9 @@
 import { ref, type Ref, type ShallowRef } from 'vue'
-import type { ExtractedSlide, SlideExtractor } from '../services/slideExtractor'
+import type { ExtractedSlide, SlideExtractionHandle } from '../processing'
 
 export interface UseSlideGalleryOptions {
   extractedSlides: Ref<ExtractedSlide[]>
-  slideExtractorInstance: ShallowRef<SlideExtractor | null>
+  slideExtractorInstance: ShallowRef<SlideExtractionHandle | null>
 }
 
 export interface UseSlideGalleryReturn {

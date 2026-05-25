@@ -2,7 +2,7 @@ import { ref, computed, type Ref, type ShallowRef, type ComputedRef } from 'vue'
 import { DataStore } from '../services/dataStore'
 import { TaskQueue } from '../services/taskQueueService'
 import { ssimThresholdService } from '../services/ssimThresholdService'
-import type { SlideExtractor } from '../services/slideExtractor'
+import type { SlideExtractionHandle } from '../processing'
 import type { PlaybackData } from './useVideoPlayer'
 import type Hls from 'hls.js'
 
@@ -17,7 +17,7 @@ export interface UseTaskQueueOptions {
   error: Ref<string | null>
   currentPlaybackRate: Ref<number>
   isSlideExtractionEnabled: Ref<boolean>
-  slideExtractorInstance: ShallowRef<SlideExtractor | null>
+  slideExtractorInstance: ShallowRef<SlideExtractionHandle | null>
   slideExtractionStatus: Ref<{ isRunning: boolean }>
   extractedSlides: Ref<any[]>
   isRetrying: Ref<boolean>
@@ -224,7 +224,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
 
       // Update slide extractor with task speed
       if (slideExtractorInstance.value) {
-        slideExtractorInstance.value.updatePlaybackRate(taskSpeed.value)
+        slideExtractorInstance.value.setPlaybackRate(taskSpeed.value)
       }
 
       // Auto-play the video if not already playing
@@ -332,7 +332,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
         videoPlayer.value.playbackRate = taskSpeed.value
 
         if (slideExtractorInstance.value) {
-          slideExtractorInstance.value.updatePlaybackRate(taskSpeed.value)
+          slideExtractorInstance.value.setPlaybackRate(taskSpeed.value)
         }
       }
 

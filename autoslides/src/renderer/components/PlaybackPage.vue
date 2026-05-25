@@ -1140,7 +1140,7 @@ watch(isScreenRecordingSelected, (isScreenRecording) => {
   if (!isScreenRecording && isSlideExtractionEnabled.value) {
     slideExtraction.isSlideExtractionEnabled.value = false
     if (slideExtraction.slideExtractorInstance.value) {
-      slideExtraction.slideExtractorInstance.value.stopExtraction()
+      slideExtraction.slideExtractorInstance.value.stop()
     }
     slideExtraction.slideExtractionStatus.value.isRunning = false
   }
@@ -1150,7 +1150,7 @@ watch(isDualStreamSelected, async (isDual) => {
   if (isDual && isSlideExtractionEnabled.value) {
     slideExtraction.isSlideExtractionEnabled.value = false
     if (slideExtraction.slideExtractorInstance.value) {
-      slideExtraction.slideExtractorInstance.value.stopExtraction()
+      slideExtraction.slideExtractorInstance.value.stop()
     }
     slideExtraction.slideExtractionStatus.value.isRunning = false
   }
@@ -1167,7 +1167,7 @@ watch(isDualStreamSelected, async (isDual) => {
 // Watch for slide extraction toggle
 watch(isSlideExtractionEnabled, (enabled) => {
   if (enabled && videoPlayer.value && slideExtraction.slideExtractorInstance.value) {
-    slideExtraction.slideExtractorInstance.value.updatePlaybackRate(Number(currentPlaybackRate.value))
+    slideExtraction.slideExtractorInstance.value.setPlaybackRate(Number(currentPlaybackRate.value))
   }
 })
 
@@ -1242,7 +1242,7 @@ onMounted(async () => {
 onUnmounted(async () => {
   // Stop slide extraction if running
   if (isSlideExtractionEnabled.value && slideExtraction.slideExtractorInstance.value) {
-    slideExtraction.slideExtractorInstance.value.stopExtraction()
+    slideExtraction.slideExtractorInstance.value.stop()
   }
 
   // Cleanup slide extraction
