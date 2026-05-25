@@ -105,6 +105,7 @@ const RATE_LIMIT_RETRY_MAX = 4;          // up to 4 attempts after the initial o
 const RATE_LIMIT_RETRY_BASE_MS = 2000;   // 2s base
 const RATE_LIMIT_RETRY_MAX_MS = 30000;   // cap single backoff at 30s
 const RATE_LIMIT_RETRY_JITTER_MS = 500;  // random jitter added to each backoff
+const RATE_LIMIT_RESERVOIR_REFRESH_MS = 60000;
 
 // Some OpenAI-compatible gateways return HTTP 200 with `choices:null` and zero
 // usage when the selected model cannot produce a response. Retry once for a
@@ -194,17 +195,23 @@ export class LLMApiService {
     const maxConcurrent = config.maxConcurrent || 1;
     const minTime = config.minTime || 6000;
 
-    this.limiter = new Bottleneck({
+    this.limiter = this.createLimiter(rateLimit, maxConcurrent, minTime);
+  }
+
+  private createLimiter(rateLimit: number, maxConcurrent: number, minTime: number): Bottleneck {
+    const limiter = new Bottleneck({
       maxConcurrent,
       minTime,
       reservoir: rateLimit,
       reservoirRefreshAmount: rateLimit,
-      reservoirRefreshInterval: 60000
+      reservoirRefreshInterval: RATE_LIMIT_RESERVOIR_REFRESH_MS
     });
 
-    this.limiter.on('depleted', () => {
+    limiter.on('depleted', () => {
       console.log('[LLM] Rate limit reservoir depleted, waiting for refresh');
     });
+
+    return limiter;
   }
 
   updateRateLimitConfig(): void {
@@ -212,13 +219,17 @@ export class LLMApiService {
     const rateLimit = config.rateLimit || 10;
     const maxConcurrent = config.maxConcurrent || 1;
     const minTime = config.minTime || 6000;
-    this.limiter.updateSettings({
-      reservoir: rateLimit,
-      reservoirRefreshAmount: rateLimit,
+    // Bottleneck 2.19.x can leave queued jobs stuck at reservoir=0 forever after
+    // updateSettings() touches reservoir settings. Recreate the limiter so the
+    // refresh timer is definitely installed; already-scheduled jobs continue on
+    // the previous limiter instance.
+    this.limiter = this.createLimiter(rateLimit, maxConcurrent, minTime);
+    debugLog('Rate limit config updated', {
+      rateLimit,
       maxConcurrent,
-      minTime
+      minTime,
+      reservoirRefreshInterval: RATE_LIMIT_RESERVOIR_REFRESH_MS
     });
-    debugLog('Rate limit config updated', { rateLimit, maxConcurrent, minTime });
   }
 
   getRateLimit(): number {
