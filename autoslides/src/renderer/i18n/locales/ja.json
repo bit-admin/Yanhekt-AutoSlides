@@ -1079,9 +1079,7 @@
     "confirmClearFoldersTitle": "フォルダを削除",
     "confirmClearFolders": "{count} 個のフォルダをシステムのゴミ箱に移動しますか？関連する抽出画像とゴミ箱の記録もすべて削除されます。",
     "clearFoldersSummary": "削除済み: {removed} · 失敗: {failed}",
-    "groupByCourse": "コースでグループ化",
-    "selectAllInCourse": "すべて選択",
-    "deselectAllInCourse": "選択解除"
+    "groupByCourse": "コースでグループ化"
   },
   "pdfmaker": {
     "title": "スライド書き出し",
@@ -1133,9 +1131,7 @@
     "openOutputFolder": "出力フォルダを開く",
     "errorTitle": "エラー",
     "groupByCourse": "コースでグループ化",
-    "groupByCourseDisabledHint": "カスタム順序のとき無効",
-    "selectAllInCourse": "すべて選択",
-    "deselectAllInCourse": "選択解除"
+    "groupByCourseDisabledHint": "カスタム順序のとき無効"
   },
   "offlineProcessing": {
     "open": "オフライン後処理",

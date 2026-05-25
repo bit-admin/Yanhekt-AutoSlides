@@ -1079,9 +1079,7 @@
     "confirmClearFoldersTitle": "폴더 삭제",
     "confirmClearFolders": "{count}개의 폴더를 시스템 휴지통으로 이동할까요? 관련된 추출 이미지와 휴지통 항목도 함께 삭제됩니다.",
     "clearFoldersSummary": "삭제됨: {removed} · 실패: {failed}",
-    "groupByCourse": "강좌별 그룹화",
-    "selectAllInCourse": "모두 선택",
-    "deselectAllInCourse": "선택 해제"
+    "groupByCourse": "강좌별 그룹화"
   },
   "pdfmaker": {
     "title": "슬라이드 내보내기",
@@ -1133,9 +1131,7 @@
     "openOutputFolder": "출력 폴더 열기",
     "errorTitle": "오류",
     "groupByCourse": "강좌별 그룹화",
-    "groupByCourseDisabledHint": "사용자 정렬 시 사용 불가",
-    "selectAllInCourse": "모두 선택",
-    "deselectAllInCourse": "선택 해제"
+    "groupByCourseDisabledHint": "사용자 정렬 시 사용 불가"
   },
   "offlineProcessing": {
     "open": "오프라인 후처리",
