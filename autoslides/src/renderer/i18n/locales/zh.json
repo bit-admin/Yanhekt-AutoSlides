@@ -1078,7 +1078,10 @@
     "clearFolder": "清除文件夹",
     "confirmClearFoldersTitle": "移除文件夹",
     "confirmClearFolders": "是否将 {count} 个文件夹移至系统回收站？相关的提取图像与回收记录也会一并清除。",
-    "clearFoldersSummary": "已移除：{removed} · 失败：{failed}"
+    "clearFoldersSummary": "已移除：{removed} · 失败：{failed}",
+    "groupByCourse": "按课程分组",
+    "selectAllInCourse": "全选",
+    "deselectAllInCourse": "取消全选"
   },
   "pdfmaker": {
     "title": "幻灯片导出",
@@ -1128,7 +1131,11 @@
     "openPdf": "打开 PDF",
     "openPptx": "打开 PPTX",
     "openOutputFolder": "打开输出文件夹",
-    "errorTitle": "错误"
+    "errorTitle": "错误",
+    "groupByCourse": "按课程分组",
+    "groupByCourseDisabledHint": "自定义排序时不可用",
+    "selectAllInCourse": "全选",
+    "deselectAllInCourse": "取消全选"
   },
   "offlineProcessing": {
     "open": "离线后处理",

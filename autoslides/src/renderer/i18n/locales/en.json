@@ -1078,7 +1078,10 @@
     "clearFolder": "Clear Folder",
     "confirmClearFoldersTitle": "Remove Folders",
     "confirmClearFolders": "Move {count} folder(s) to system trash? This will also clear all related extracted images and trash entries.",
-    "clearFoldersSummary": "Removed: {removed} · Failed: {failed}"
+    "clearFoldersSummary": "Removed: {removed} · Failed: {failed}",
+    "groupByCourse": "Group by Course",
+    "selectAllInCourse": "Select All",
+    "deselectAllInCourse": "Deselect All"
   },
   "pdfmaker": {
     "title": "Slides Export",
@@ -1128,7 +1131,11 @@
     "openPdf": "Open PDF",
     "openPptx": "Open PPTX",
     "openOutputFolder": "Open Output Folder",
-    "errorTitle": "Error"
+    "errorTitle": "Error",
+    "groupByCourse": "Group by Course",
+    "groupByCourseDisabledHint": "Disabled while using custom order",
+    "selectAllInCourse": "Select All",
+    "deselectAllInCourse": "Deselect All"
   },
   "offlineProcessing": {
     "open": "Offline Post-Processing",

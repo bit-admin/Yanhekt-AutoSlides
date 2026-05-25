@@ -219,55 +219,71 @@
         </div>
 
         <div v-else class="folder-list">
-          <button
-            v-for="folder in folders"
-            :key="folder.name"
-            class="folder-item"
-            :class="{
-              'folder-item-last-visited': !isFolderEditMode && folder.name === lastVisitedFolderName,
-              'folder-item-selected': isFolderEditMode && selectedFolderNames.includes(folder.name),
-              'folder-item-edit': isFolderEditMode,
-            }"
-            :ref="(el) => setFolderItemRef(folder.name, el as HTMLButtonElement | null)"
-            @click="isFolderEditMode ? toggleFolderSelection(folder.name) : handleOpenFolder(folder)"
-          >
-            <div v-if="isFolderEditMode" class="folder-checkbox">
-              <input
-                type="checkbox"
-                :checked="selectedFolderNames.includes(folder.name)"
-                @click.stop
-                @change="toggleFolderSelection(folder.name)"
-              />
+          <template v-for="(row, rowIdx) in folderRows" :key="row.type === 'header' ? `h-${rowIdx}` : `f-${row.folder.name}`">
+            <div v-if="row.type === 'header'" class="course-header">
+              <span class="course-name">{{ row.courseName }}</span>
+              <button
+                v-if="isFolderEditMode"
+                type="button"
+                class="select-all-in-course-btn"
+                :disabled="isLoading"
+                @click.stop="selectAllInCourse(row.folderNames)"
+              >
+                {{ isCourseFullySelected(row.folderNames) ? $t('trash.deselectAllInCourse') : $t('trash.selectAllInCourse') }}
+              </button>
+              <span class="course-divider"></span>
             </div>
 
-            <div class="folder-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24">
-                <path d="M3 5v14h18V8h-9l-2-3H3z" fill="#f0c36d"/>
-                <path d="M3 8h18v11H3V8z" fill="#f7d994"/>
-              </svg>
-            </div>
+            <button
+              v-else
+              class="folder-item"
+              :class="{
+                'folder-item-grouped': isGroupingActive,
+                'folder-item-last-visited': !isFolderEditMode && row.folder.name === lastVisitedFolderName,
+                'folder-item-selected': isFolderEditMode && selectedFolderNames.includes(row.folder.name),
+                'folder-item-edit': isFolderEditMode,
+              }"
+              :ref="(el) => setFolderItemRef(row.folder.name, el as HTMLButtonElement | null)"
+              @click="isFolderEditMode ? toggleFolderSelection(row.folder.name) : handleOpenFolder(row.folder)"
+            >
+              <div v-if="isFolderEditMode" class="folder-checkbox">
+                <input
+                  type="checkbox"
+                  :checked="selectedFolderNames.includes(row.folder.name)"
+                  @click.stop
+                  @change="toggleFolderSelection(row.folder.name)"
+                />
+              </div>
 
-            <div class="folder-copy">
-              <div class="folder-mainline">
-                <span class="folder-name">{{ formatToolFolderName(folder.name) }}</span>
-                <div class="folder-counts">
-                  <span class="folder-count-text">
-                    <span class="count-value">{{ folder.activeCount }}</span>
-                    <span class="count-label">{{ $t('trash.active') }}</span>
-                  </span>
-                  <span class="folder-count-separator">/</span>
-                  <span class="folder-count-text">
-                    <span class="count-value">{{ folder.removedCount }}</span>
-                    <span class="count-label">{{ $t('trash.removed') }}</span>
-                  </span>
+              <div class="folder-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                  <path d="M3 5v14h18V8h-9l-2-3H3z" fill="#f0c36d"/>
+                  <path d="M3 8h18v11H3V8z" fill="#f7d994"/>
+                </svg>
+              </div>
+
+              <div class="folder-copy">
+                <div class="folder-mainline">
+                  <span class="folder-name">{{ formatToolFolderName(row.folder.name) }}</span>
+                  <div class="folder-counts">
+                    <span class="folder-count-text">
+                      <span class="count-value">{{ row.folder.activeCount }}</span>
+                      <span class="count-label">{{ $t('trash.active') }}</span>
+                    </span>
+                    <span class="folder-count-separator">/</span>
+                    <span class="folder-count-text">
+                      <span class="count-value">{{ row.folder.removedCount }}</span>
+                      <span class="count-label">{{ $t('trash.removed') }}</span>
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <svg v-if="!isFolderEditMode" class="folder-chevron" width="16" height="16" viewBox="0 0 16 16">
-              <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </button>
+              <svg v-if="!isFolderEditMode" class="folder-chevron" width="16" height="16" viewBox="0 0 16 16">
+                <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </template>
         </div>
       </template>
 
@@ -365,6 +381,11 @@
           <rect x="2" y="2" width="12" height="12" fill="currentColor" opacity="0.6"/>
         </svg>
       </div>
+
+      <label v-if="currentView === 'folders'" class="group-toggle">
+        <input type="checkbox" v-model="groupByCourse" />
+        <span>{{ $t('trash.groupByCourse') }}</span>
+      </label>
     </div>
 
     <div v-if="previewItem" class="preview-modal-overlay" @click="closePreview">
@@ -552,6 +573,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAutoCropDetect } from '../composables/useAutoCropDetect'
 import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '../composables/useResultsView'
+import { buildFolderCourseRows } from '../utils/toolWindowFolders'
 
 const { t } = useI18n()
 
@@ -742,6 +764,37 @@ const canClearTrash = computed(() => {
 
 const isFolderEditMode = ref(false)
 const selectedFolderNames = ref<string[]>([])
+const groupByCourse = ref(true)
+
+const isGroupingActive = computed(() => groupByCourse.value)
+
+const folderRows = computed(() => {
+  if (!isGroupingActive.value) {
+    return folders.value.map((folder, index) => ({
+      type: 'folder' as const,
+      folder,
+      index,
+    }))
+  }
+  return buildFolderCourseRows(folders.value)
+})
+
+const isCourseFullySelected = (folderNames: string[]) => {
+  if (folderNames.length === 0) return false
+  return folderNames.every((name) => selectedFolderNames.value.includes(name))
+}
+
+function selectAllInCourse(folderNames: string[]) {
+  if (folderNames.length === 0) return
+  if (isCourseFullySelected(folderNames)) {
+    const remove = new Set(folderNames)
+    selectedFolderNames.value = selectedFolderNames.value.filter((name) => !remove.has(name))
+    return
+  }
+  const merged = new Set(selectedFolderNames.value)
+  folderNames.forEach((name) => merged.add(name))
+  selectedFolderNames.value = Array.from(merged)
+}
 
 const canEditFolders = computed(() => folders.value.length > 0)
 const canClearSelectedFolders = computed(
@@ -1887,6 +1940,62 @@ onBeforeUnmount(() => {
   gap: 8px;
 }
 
+.course-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px 2px;
+}
+
+.course-header:first-child {
+  padding-top: 2px;
+}
+
+.course-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.select-all-in-course-btn {
+  padding: 2px 10px;
+  font-size: 11px;
+  border: 1px solid #ced7e0;
+  border-radius: 999px;
+  background-color: white;
+  color: #495057;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.select-all-in-course-btn:hover:not(:disabled) {
+  background-color: #fff1f0;
+  border-color: #d9534f;
+  color: #b63a30;
+}
+
+.select-all-in-course-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.course-divider {
+  flex: 1;
+  height: 1px;
+  background-color: #e1e6eb;
+}
+
+.folder-item-grouped {
+  margin-left: 20px;
+}
+
 .folder-item {
   display: flex;
   align-items: center;
@@ -2213,6 +2322,24 @@ onBeforeUnmount(() => {
   padding: 4px 8px;
   background-color: #f0f0f0;
   border-radius: 6px;
+}
+
+.group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #495057;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.group-toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #007acc;
+  cursor: pointer;
 }
 
 .size-icon {
@@ -2606,6 +2733,30 @@ onBeforeUnmount(() => {
   .info-value,
   .preview-info-title {
     color: #f1f1f1;
+  }
+
+  .course-name {
+    color: #9ca3af;
+  }
+
+  .course-divider {
+    background-color: #3d3d3d;
+  }
+
+  .select-all-in-course-btn {
+    background-color: #2d2d2d;
+    border-color: #4d4d4d;
+    color: #d0d4d9;
+  }
+
+  .select-all-in-course-btn:hover:not(:disabled) {
+    background-color: #4a1f1d;
+    border-color: #d9534f;
+    color: #ff7b75;
+  }
+
+  .group-toggle {
+    color: #cfd3d8;
   }
 
   .folder-counts {

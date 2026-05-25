@@ -139,54 +139,68 @@
       </div>
 
       <div v-else class="folder-list">
-        <div
-          v-for="(folder, index) in sortedFolders"
-          :key="folder.name"
-          class="folder-item"
-          :class="{
-            selected: selectedItems.includes(folder.name),
-            'drag-over': dragOverIndex === index,
-            dragging: dragStartIndex === index
-          }"
-          @click="toggleSelection(folder.name)"
-          :draggable="true"
-          @dragstart="onDragStart($event, index)"
-          @dragover="onDragOver($event, index)"
-          @dragleave="onDragLeave"
-          @drop="onDrop($event, index)"
-          @dragend="onDragEnd"
-        >
-          <div class="item-checkbox">
-            <input
-              type="checkbox"
-              :checked="selectedItems.includes(folder.name)"
-              @click.stop
-              @change="toggleSelection(folder.name)"
-            />
+        <template v-for="(row, rowIdx) in folderRows" :key="row.type === 'header' ? `h-${rowIdx}` : `f-${row.folder.name}`">
+          <div v-if="row.type === 'header'" class="course-header">
+            <span class="course-name">{{ row.courseName }}</span>
+            <button
+              type="button"
+              class="select-all-in-course-btn"
+              @click.stop="selectAllInCourse(row.folderNames)"
+            >
+              {{ isCourseFullySelected(row.folderNames) ? $t('pdfmaker.deselectAllInCourse') : $t('pdfmaker.selectAllInCourse') }}
+            </button>
+            <span class="course-divider"></span>
           </div>
 
-          <div class="folder-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24">
-              <path d="M3 5v14h18V8h-9l-2-3H3z" fill="#f0c36d"/>
-              <path d="M3 8h18v11H3V8z" fill="#f7d994"/>
-            </svg>
-          </div>
+          <div
+            v-else
+            class="folder-item"
+            :class="{
+              'folder-item-grouped': isGroupingActive,
+              selected: selectedItems.includes(row.folder.name),
+              'drag-over': dragOverIndex === row.index,
+              dragging: dragStartIndex === row.index
+            }"
+            @click="toggleSelection(row.folder.name)"
+            :draggable="true"
+            @dragstart="onDragStart($event, row.index)"
+            @dragover="onDragOver($event, row.index)"
+            @dragleave="onDragLeave"
+            @drop="onDrop($event, row.index)"
+            @dragend="onDragEnd"
+          >
+            <div class="item-checkbox">
+              <input
+                type="checkbox"
+                :checked="selectedItems.includes(row.folder.name)"
+                @click.stop
+                @change="toggleSelection(row.folder.name)"
+              />
+            </div>
 
-          <span class="folder-name">{{ formatToolFolderName(folder.name) }}</span>
+            <div class="folder-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24">
+                <path d="M3 5v14h18V8h-9l-2-3H3z" fill="#f0c36d"/>
+                <path d="M3 8h18v11H3V8z" fill="#f7d994"/>
+              </svg>
+            </div>
 
-          <div class="folder-counts">
-            <span class="folder-count-text">
-              <span class="count-value">{{ folder.imageCount }}</span>
-              <span class="count-label">{{ $t('trash.active') }}</span>
-            </span>
-          </div>
+            <span class="folder-name">{{ formatToolFolderName(row.folder.name) }}</span>
 
-          <div class="drag-handle" :title="$t('pdfmaker.customOrderHint')">
-            <svg width="20" height="20" viewBox="0 0 16 16">
-              <path d="M4 4h2v2H4zM4 7h2v2H4zM4 10h2v2H4zM10 4h2v2h-2zM10 7h2v2h-2zM10 10h2v2h-2z" fill="currentColor"/>
-            </svg>
+            <div class="folder-counts">
+              <span class="folder-count-text">
+                <span class="count-value">{{ row.folder.imageCount }}</span>
+                <span class="count-label">{{ $t('trash.active') }}</span>
+              </span>
+            </div>
+
+            <div class="drag-handle" :title="$t('pdfmaker.customOrderHint')">
+              <svg width="20" height="20" viewBox="0 0 16 16">
+                <path d="M4 4h2v2H4zM4 7h2v2H4zM4 10h2v2H4zM10 4h2v2h-2zM10 7h2v2h-2zM10 10h2v2h-2z" fill="currentColor"/>
+              </svg>
+            </div>
           </div>
-        </div>
+        </template>
       </div>
     </div>
 
@@ -198,18 +212,33 @@
     </div>
 
     <div class="footer">
-      <span>{{ $t('pdfmaker.selected') }}: {{ selectedItems.length }} / {{ $t('pdfmaker.total') }}: {{ sortedFolders.length }}</span>
-      <span class="footer-separator">|</span>
-      <span>{{ $t('pdfmaker.totalImages') }}: {{ selectedImageCount }}</span>
+      <div class="footer-left">
+        <span>{{ $t('pdfmaker.selected') }}: {{ selectedItems.length }} / {{ $t('pdfmaker.total') }}: {{ sortedFolders.length }}</span>
+        <span class="footer-separator">|</span>
+        <span>{{ $t('pdfmaker.totalImages') }}: {{ selectedImageCount }}</span>
+      </div>
+
+      <label
+        class="group-toggle"
+        :class="{ disabled: useCustomOrder }"
+        :title="useCustomOrder ? $t('pdfmaker.groupByCourseDisabledHint') : ''"
+      >
+        <input
+          type="checkbox"
+          v-model="groupByCourse"
+          :disabled="useCustomOrder"
+        />
+        <span>{{ $t('pdfmaker.groupByCourse') }}</span>
+      </label>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePdfMaker } from '../composables/usePdfMaker'
-import { formatToolFolderName } from '../utils/toolWindowFolders'
+import { buildFolderCourseRows, formatToolFolderName } from '../utils/toolWindowFolders'
 
 const { t } = useI18n()
 
@@ -246,6 +275,43 @@ const formatSizeOption = (size: string) => {
 const dragStartIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 const isExportMenuOpen = ref(false)
+const groupByCourse = ref(true)
+
+watch(useCustomOrder, (value) => {
+  if (value) {
+    groupByCourse.value = false
+  }
+})
+
+const isGroupingActive = computed(() => groupByCourse.value && !useCustomOrder.value)
+
+const folderRows = computed(() => {
+  if (!isGroupingActive.value) {
+    return sortedFolders.value.map((folder, index) => ({
+      type: 'folder' as const,
+      folder,
+      index,
+    }))
+  }
+  return buildFolderCourseRows(sortedFolders.value)
+})
+
+const isCourseFullySelected = (folderNames: string[]) => {
+  if (folderNames.length === 0) return false
+  return folderNames.every((name) => selectedItems.value.includes(name))
+}
+
+const selectAllInCourse = (folderNames: string[]) => {
+  if (folderNames.length === 0) return
+  if (isCourseFullySelected(folderNames)) {
+    const remove = new Set(folderNames)
+    selectedItems.value = selectedItems.value.filter((name) => !remove.has(name))
+    return
+  }
+  const merged = new Set(selectedItems.value)
+  folderNames.forEach((name) => merged.add(name))
+  selectedItems.value = Array.from(merged)
+}
 
 const outputModeLabel = computed(() => {
   if (outputMode.value === 'single') {
@@ -681,6 +747,57 @@ onUnmounted(() => {
   gap: 4px;
 }
 
+.course-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px 4px;
+}
+
+.course-header:first-child {
+  padding-top: 2px;
+}
+
+.course-name {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.select-all-in-course-btn {
+  padding: 2px 10px;
+  font-size: 11px;
+  border: 1px solid #ced7e0;
+  border-radius: 999px;
+  background-color: white;
+  color: #495057;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.select-all-in-course-btn:hover {
+  background-color: #e7f3ff;
+  border-color: #007acc;
+  color: #007acc;
+}
+
+.course-divider {
+  flex: 1;
+  height: 1px;
+  background-color: #e1e6eb;
+}
+
+.folder-item-grouped {
+  margin-left: 20px;
+}
+
 .folder-item {
   display: flex;
   align-items: center;
@@ -803,9 +920,9 @@ onUnmounted(() => {
 
 .footer {
   display: flex;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   padding: 8px 16px;
   background-color: #fafafa;
   border-top: 1px solid #e0e0e0;
@@ -813,8 +930,43 @@ onUnmounted(() => {
   color: #666;
 }
 
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .footer-separator {
   color: #ccc;
+}
+
+.group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #495057;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.group-toggle.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.group-toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #007acc;
+  cursor: pointer;
+}
+
+.group-toggle.disabled input {
+  cursor: not-allowed;
 }
 
 @keyframes spin {
@@ -914,6 +1066,30 @@ onUnmounted(() => {
 
   .folder-name {
     color: #e0e0e0;
+  }
+
+  .course-name {
+    color: #9ca3af;
+  }
+
+  .course-divider {
+    background-color: #3d3d3d;
+  }
+
+  .select-all-in-course-btn {
+    background-color: #2d2d2d;
+    border-color: #4d4d4d;
+    color: #d0d4d9;
+  }
+
+  .select-all-in-course-btn:hover {
+    background-color: #1a3a5c;
+    border-color: #1e6fb3;
+    color: #66bfff;
+  }
+
+  .group-toggle {
+    color: #cfd3d8;
   }
 
   .drag-handle {

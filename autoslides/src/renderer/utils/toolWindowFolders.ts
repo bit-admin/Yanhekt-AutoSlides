@@ -63,6 +63,49 @@ export function formatToolFolderName(name: string): string {
   return name.startsWith('slides_') ? name.slice(7) : name
 }
 
+/**
+ * Extract a course-level grouping key from a folder name.
+ *
+ * Folders with a session pattern collapse to their parsed courseName so
+ * sessions of the same course share one group; folders without a session
+ * pattern fall back to their formatted name, becoming a single-folder group.
+ */
+export function getCourseName(folderName: string): string {
+  const info = parseSessionInfo(folderName)
+  if (info) return info.courseName
+  return formatToolFolderName(folderName)
+}
+
+export type FolderCourseRow<T extends { name: string }> =
+  | { type: 'header'; courseName: string; folderNames: string[] }
+  | { type: 'folder'; folder: T; index: number }
+
+/**
+ * Build a render-ready row sequence for grouped folder display.
+ * Each header row carries the names of the folders in its group so callers
+ * can wire "select all in course" actions without re-deriving the grouping.
+ */
+export function buildFolderCourseRows<T extends { name: string }>(
+  folders: T[],
+): FolderCourseRow<T>[] {
+  const rows: FolderCourseRow<T>[] = []
+  let prevCourse: string | null = null
+  let currentHeader: { type: 'header'; courseName: string; folderNames: string[] } | null = null
+
+  folders.forEach((folder, index) => {
+    const courseName = getCourseName(folder.name)
+    if (courseName !== prevCourse) {
+      currentHeader = { type: 'header', courseName, folderNames: [] }
+      rows.push(currentHeader)
+      prevCourse = courseName
+    }
+    currentHeader!.folderNames.push(folder.name)
+    rows.push({ type: 'folder', folder, index })
+  })
+
+  return rows
+}
+
 export function compareToolImages(a: string, b: string): number {
   return a.localeCompare(b, undefined, {
     numeric: true,
