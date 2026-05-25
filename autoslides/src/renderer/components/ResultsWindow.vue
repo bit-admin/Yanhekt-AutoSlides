@@ -1969,6 +1969,36 @@ onBeforeUnmount(() => {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.content-area:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.content-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.content-area::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.content-area::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.content-area:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.content-area::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .loading-state,
@@ -2934,6 +2964,30 @@ onBeforeUnmount(() => {
   .size-icon,
   .folder-chevron {
     color: #888;
+  }
+
+  .content-area {
+    scrollbar-color: transparent transparent;
+  }
+
+  .content-area:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+
+  .content-area::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .content-area::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
+  .content-area:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .content-area::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
   }
 }
 </style>
