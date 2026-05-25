@@ -415,7 +415,8 @@ export function useResultsView() {
     lastVisitedFolderName.value = folder.name
     selectedIds.value = []
     selectedReason.value = ''
-    contextMode.value = 'context'
+    // Commented out to preserve the selected view mode (e.g. "Extracted only") when reviewing next folder
+    // contextMode.value = 'context'
     previewItem.value = null
     isLoading.value = true
 
@@ -434,7 +435,8 @@ export function useResultsView() {
     folderItems.value = []
     selectedIds.value = []
     selectedReason.value = ''
-    contextMode.value = 'context'
+    // Commented out to preserve the selected view mode (e.g. "Extracted only") when reviewing next folder
+    // contextMode.value = 'context'
     previewItem.value = null
     baselineCrop.value = null
     thumbnails.value = {}
