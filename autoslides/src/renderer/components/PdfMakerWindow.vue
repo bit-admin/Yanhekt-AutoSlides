@@ -106,6 +106,14 @@
                 </label>
               </div>
             </div>
+
+            <div class="export-menu-section" role="group" :aria-label="$t('pdfmaker.pages')">
+              <span class="export-menu-section-label">{{ $t('pdfmaker.pages') }}</span>
+              <label class="cover-toggle">
+                <input type="checkbox" v-model="includeCover" />
+                <span>{{ $t('pdfmaker.includeCover') }}</span>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -277,6 +285,7 @@ const {
   customSize,
   outputMode,
   outputFormat,
+  includeCover,
   sizeOptions,
   displaySize,
   isGenerating,
@@ -744,6 +753,33 @@ onUnmounted(() => {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
+.cover-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.cover-toggle:hover {
+  background-color: #f0f0f0;
+  border-color: #ccc;
+}
+
+.cover-toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: #007acc;
+}
+
 .make-pdf-btn {
   display: flex;
   align-items: center;
@@ -1124,10 +1160,16 @@ onUnmounted(() => {
 
   .reduce-toggle,
   .config-value,
-  .mode-option.active {
+  .mode-option.active,
+  .cover-toggle {
     background-color: #2d2d2d;
     border-color: #404040;
     color: #e0e0e0;
+  }
+
+  .cover-toggle:hover {
+    background-color: #3d3d3d;
+    border-color: #505050;
   }
 
   .mode-segmented {

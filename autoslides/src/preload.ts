@@ -346,6 +346,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       customHeight?: number | null;
       outputMode?: 'single' | 'batch';
       outputFormat?: 'pdf' | 'pptx';
+      includeCover?: boolean;
+      copyrightText?: string;
     }) => ipcRenderer.invoke('pdfmaker:makePdf', folders, options),
     onProgress: (callback: (progress: { current: number; total: number }) => void) => {
       const handler = (_event: Electron.IpcRendererEvent, progress: { current: number; total: number }) => callback(progress);

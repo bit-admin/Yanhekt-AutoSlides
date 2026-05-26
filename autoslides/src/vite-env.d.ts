@@ -839,6 +839,8 @@ interface ElectronAPI {
         customHeight?: number | null;
         outputMode?: 'single' | 'batch';
         outputFormat?: 'pdf' | 'pptx';
+        includeCover?: boolean;
+        copyrightText?: string;
       }
     ) => Promise<
       | { success: true; mode: 'single'; format: 'pdf' | 'pptx'; path: string }

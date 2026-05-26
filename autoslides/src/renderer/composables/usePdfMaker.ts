@@ -4,6 +4,7 @@
  */
 
 import { ref, computed, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { compareToolFolders, compareToolImages, formatToolFolderName } from '../utils/toolWindowFolders'
 
 export interface Folder {
@@ -53,6 +54,8 @@ const EFFORT_PRESETS: Record<AspectRatio, Record<string, { colors: number; size:
 }
 
 export function usePdfMaker() {
+  const { t } = useI18n()
+
   const folders = ref<Folder[]>([])
   const selectedItems = ref<string[]>([])
   const customOrder = ref<string[]>([])
@@ -66,6 +69,7 @@ export function usePdfMaker() {
   const customSize = ref<string>('1280x720')
   const outputMode = ref<PdfOutputMode>('single')
   const outputFormat = ref<SlidesOutputFormat>('pdf')
+  const includeCover = ref(true)
   const isGenerating = ref(false)
   const generateProgress = ref({ current: 0, total: 0 })
 
@@ -234,6 +238,8 @@ export function usePdfMaker() {
         ...options,
         outputMode: outputMode.value,
         outputFormat: outputFormat.value,
+        includeCover: includeCover.value,
+        copyrightText: includeCover.value ? t('pdfmaker.coverCopyright') : undefined,
       })
     } catch (error) {
       console.error('Failed to make PDF:', error)
@@ -271,6 +277,7 @@ export function usePdfMaker() {
     customSize,
     outputMode,
     outputFormat,
+    includeCover,
     sizeOptions,
     displaySize,
     isGenerating,

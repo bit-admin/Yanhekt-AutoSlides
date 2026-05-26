@@ -1,7 +1,38 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
+import path from 'path';
+import fs from 'fs';
+
+// Copy PDFKit's bundled font metric files (AFM) and the sRGB ICC profile next
+// to the built main.js. PDFKit's StandardFont loader calls
+// `fs.readFileSync(__dirname + '/data/<Name>.afm')` from within its own
+// source, which after Vite bundling resolves to `<outDir>/data/<Name>.afm`.
+// Without these the very first `new PDFDocument({})` call throws ENOENT when
+// it auto-initializes Helvetica.
+function pdfkitDataCopy(): Plugin {
+  const sourceDir = path.resolve(__dirname, 'node_modules/pdfkit/js/data');
+  return {
+    name: 'copy-pdfkit-data',
+    writeBundle(options) {
+      const outDir = options.dir ?? path.resolve(__dirname, '.vite/build');
+      const destDir = path.join(outDir, 'data');
+      fs.mkdirSync(destDir, { recursive: true });
+      if (!fs.existsSync(sourceDir)) return;
+      for (const entry of fs.readdirSync(sourceDir)) {
+        const src = path.join(sourceDir, entry);
+        const dst = path.join(destDir, entry);
+        try {
+          fs.copyFileSync(src, dst);
+        } catch {
+          // continue
+        }
+      }
+    }
+  };
+}
 
 // https://vitejs.dev/config
 export default defineConfig(({ mode }) => ({
+  plugins: [pdfkitDataCopy()],
   build: {
     minify: mode === 'production' ? 'terser' : false,
     terserOptions: mode === 'production' ? {

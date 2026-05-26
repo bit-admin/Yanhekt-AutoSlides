@@ -1131,7 +1131,10 @@
     "openOutputFolder": "출력 폴더 열기",
     "errorTitle": "오류",
     "groupByCourse": "강좌별 그룹화",
-    "groupByCourseDisabledHint": "사용자 정렬 시 사용 불가"
+    "groupByCourseDisabledHint": "사용자 정렬 시 사용 불가",
+    "pages": "페이지",
+    "includeCover": "표지 페이지 포함",
+    "coverCopyright": "This file may contain copyrighted material. The text, images, and video stills within this document are protected by intellectual property law, with all rights reserved by their respective holders. This material was extracted from a recorded lecture solely for personal study, academic reference, and non-commercial educational use. External distribution, commercial exploitation, or unauthorized reproduction is strictly prohibited and may result in legal liability.\nAutoSlides operates strictly as an automated processing tool and does not claim ownership, endorse, or assume responsibility for the extracted content. The views and opinions expressed within these materials represent the original authors and not AutoSlides or its affiliates."
   },
   "offlineProcessing": {
     "open": "오프라인 후처리",
