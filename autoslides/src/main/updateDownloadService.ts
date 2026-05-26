@@ -1,8 +1,7 @@
-import { app, shell } from 'electron';
+import { shell } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as https from 'https';
-import * as http from 'http';
+import { FileDownloadService, DownloadProgress } from './fileDownloadService';
 
 export interface UpdateAsset {
   name: string;
@@ -19,11 +18,7 @@ export interface ReleaseInfo {
   assets: UpdateAsset[];
 }
 
-export interface DownloadProgress {
-  downloaded: number;
-  total: number;
-  percent: number;
-}
+export type { DownloadProgress };
 
 // Asset filename patterns for each platform
 const ASSET_PATTERNS = {
@@ -36,31 +31,11 @@ const ASSET_PATTERNS = {
 // Pattern to extract version from filename
 const VERSION_PATTERN = /[\d]+\.[\d]+\.[\d]+/;
 
-export class UpdateDownloadService {
-  private readonly updatesPath: string;
-  private activeDownload: {
-    request: http.ClientRequest;
-    filename: string;
-  } | null = null;
-
+export class UpdateDownloadService extends FileDownloadService {
   constructor() {
-    this.updatesPath = path.join(app.getPath('userData'), 'updates');
-    this.ensureUpdatesFolder();
+    super({ userAgent: 'AutoSlides-Updater' });
   }
 
-  private ensureUpdatesFolder(): void {
-    if (!fs.existsSync(this.updatesPath)) {
-      fs.mkdirSync(this.updatesPath, { recursive: true });
-    }
-  }
-
-  getUpdatesPath(): string {
-    return this.updatesPath;
-  }
-
-  /**
-   * Get the appropriate asset(s) for the current platform
-   */
   getAssetsForPlatform(assets: UpdateAsset[]): UpdateAsset[] {
     const platform = process.platform;
     const result: UpdateAsset[] = [];
@@ -71,7 +46,6 @@ export class UpdateDownloadService {
       } else if (platform === 'darwin' && ASSET_PATTERNS.darwin.test(asset.name)) {
         result.push(asset);
       } else if (platform === 'linux') {
-        // For Linux, include both AppImage and deb
         if (ASSET_PATTERNS.linux_appimage.test(asset.name) || ASSET_PATTERNS.linux_deb.test(asset.name)) {
           result.push(asset);
         }
@@ -81,142 +55,20 @@ export class UpdateDownloadService {
     return result;
   }
 
-  /**
-   * Download an update file with progress callback
-   */
   async downloadUpdate(
     url: string,
     filename: string,
     progressCallback: (progress: DownloadProgress) => void
   ): Promise<string> {
-    this.ensureUpdatesFolder();
-
-    const filePath = path.join(this.updatesPath, filename);
-
-    // Remove partial file if exists
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
-
-    return new Promise((resolve, reject) => {
-      const makeRequest = (requestUrl: string, redirectCount = 0) => {
-        if (redirectCount > 10) {
-          reject(new Error('Too many redirects'));
-          return;
-        }
-
-        const parsedUrl = new URL(requestUrl);
-        const protocol = parsedUrl.protocol === 'https:' ? https : http;
-
-        const request = protocol.get(
-          requestUrl,
-          {
-            headers: {
-              'User-Agent': 'AutoSlides-Updater',
-            },
-            timeout: 30000,
-          },
-          (response) => {
-            // Handle redirects
-            if (response.statusCode && response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
-              request.destroy();
-              makeRequest(response.headers.location, redirectCount + 1);
-              return;
-            }
-
-            if (response.statusCode !== 200) {
-              reject(new Error(`HTTP error: ${response.statusCode}`));
-              return;
-            }
-
-            const totalSize = parseInt(response.headers['content-length'] || '0', 10);
-            let downloadedSize = 0;
-
-            const fileStream = fs.createWriteStream(filePath);
-
-            response.on('data', (chunk: Buffer) => {
-              downloadedSize += chunk.length;
-              progressCallback({
-                downloaded: downloadedSize,
-                total: totalSize,
-                percent: totalSize > 0 ? Math.round((downloadedSize / totalSize) * 100) : 0,
-              });
-            });
-
-            response.pipe(fileStream);
-
-            fileStream.on('finish', () => {
-              fileStream.close();
-              this.activeDownload = null;
-              resolve(filePath);
-            });
-
-            fileStream.on('error', (err) => {
-              fs.unlinkSync(filePath);
-              this.activeDownload = null;
-              reject(err);
-            });
-          }
-        );
-
-        request.on('error', (err) => {
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-          this.activeDownload = null;
-          reject(err);
-        });
-
-        request.on('timeout', () => {
-          request.destroy();
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-          this.activeDownload = null;
-          reject(new Error('Download timeout'));
-        });
-
-        this.activeDownload = { request, filename };
-      };
-
-      makeRequest(url);
-    });
+    return this.downloadFile(url, filename, progressCallback);
   }
 
-  /**
-   * Cancel the current download
-   */
-  cancelDownload(): boolean {
-    if (this.activeDownload) {
-      this.activeDownload.request.destroy();
-      const partialFile = path.join(this.updatesPath, this.activeDownload.filename);
-      if (fs.existsSync(partialFile)) {
-        fs.unlinkSync(partialFile);
-      }
-      this.activeDownload = null;
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Check if a download is in progress
-   */
-  isDownloading(): boolean {
-    return this.activeDownload !== null;
-  }
-
-  /**
-   * List all downloaded update files
-   */
   listDownloadedUpdates(): { filename: string; size: number; version: string | null }[] {
     this.ensureUpdatesFolder();
-
     const files = fs.readdirSync(this.updatesPath);
     const updates: { filename: string; size: number; version: string | null }[] = [];
 
     for (const file of files) {
-      // Check if file matches any of our asset patterns
       const isUpdateFile =
         ASSET_PATTERNS.win32.test(file) ||
         ASSET_PATTERNS.darwin.test(file) ||
@@ -238,9 +90,6 @@ export class UpdateDownloadService {
     return updates;
   }
 
-  /**
-   * Find old update files (not matching current version)
-   */
   findOldUpdates(currentVersion: string): string[] {
     const updates = this.listDownloadedUpdates();
     return updates
@@ -248,9 +97,6 @@ export class UpdateDownloadService {
       .map((u) => u.filename);
   }
 
-  /**
-   * Delete specified update files (move to system trash)
-   */
   async deleteUpdates(filenames: string[]): Promise<{ success: boolean; errors: string[] }> {
     const errors: string[] = [];
 
@@ -271,47 +117,9 @@ export class UpdateDownloadService {
     };
   }
 
-  /**
-   * Open the updates folder in file explorer
-   */
-  async openUpdatesFolder(): Promise<void> {
-    this.ensureUpdatesFolder();
-    await shell.openPath(this.updatesPath);
-  }
-
-  /**
-   * Install update by opening the file
-   * Returns the file path that was opened
-   */
   async installUpdate(filename: string): Promise<string> {
-    const filePath = path.join(this.updatesPath, filename);
-
-    if (!fs.existsSync(filePath)) {
-      throw new Error(`Update file not found: ${filename}`);
-    }
-
-    await shell.openPath(filePath);
-    return filePath;
-  }
-
-  /**
-   * Format bytes to human-readable string
-   */
-  static formatBytes(bytes: number): string {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-  }
-
-  /**
-   * Construct proxy URL from GitHub URL
-   */
-  static getProxyUrl(githubUrl: string): string {
-    return `https://gh-proxy.org/${githubUrl}`;
+    return this.installFile(filename, 'Update file');
   }
 }
 
-// Export singleton instance
 export const updateDownloadService = new UpdateDownloadService();

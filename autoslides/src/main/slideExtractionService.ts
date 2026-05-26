@@ -8,45 +8,15 @@ import path from 'path';
 import os from 'os';
 import { shell } from 'electron';
 import { sharpService } from './sharpService';
+import type { TrashEntry, TrashMetadata, CropEntry, CropRect } from './slideExtraction/types';
+import {
+  getRootOutputDirectory as getRootOutputDirectoryHelper,
+  getRelativePathFromRoot as getRelativePathFromRootHelper,
+  isPathInside as isPathInsideHelper,
+  pathExists as pathExistsHelper
+} from './slideExtraction/pathHelpers';
 
-/**
- * Trash entry metadata for in-app trash system
- */
-export interface TrashEntry {
-  id: string;
-  filename: string;
-  originalPath: string;
-  originalParentFolder: string;
-  trashPath: string;
-  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual';
-  reasonDetails?: string;
-  trashedAt: string;
-}
-
-/**
- * Metadata for moving to in-app trash
- */
-export interface TrashMetadata {
-  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual';
-  reasonDetails?: string;
-}
-
-export interface CropRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-export interface CropEntry {
-  filename: string;
-  originalPath: string;
-  originalParentFolder: string;
-  cropPath: string;
-  rect: CropRect;
-  croppedAt: string;
-  autoCropped?: boolean;
-}
+export type { TrashEntry, TrashMetadata, CropEntry, CropRect };
 
 export class SlideExtractionService {
   /**
@@ -224,42 +194,20 @@ export class SlideExtractionService {
     }
   }
 
-  /**
-   * Get the root output directory from a session output path
-   * The session path is typically: outputDir/slides_courseName_sessionName
-   * We need to find the root output directory to place .autoslidesTrash
-   */
   private getRootOutputDirectory(sessionOutputPath: string): string {
-    // Go up one level from session path to get root output directory
-    // e.g., ~/Downloads/AutoSlides/slides_Course_Session -> ~/Downloads/AutoSlides
-    return path.dirname(sessionOutputPath);
+    return getRootOutputDirectoryHelper(sessionOutputPath);
   }
 
-  /**
-   * Get the relative path from root output directory to the file
-   */
   private getRelativePathFromRoot(rootDir: string, filePath: string): string {
-    return path.relative(rootDir, filePath);
+    return getRelativePathFromRootHelper(rootDir, filePath);
   }
 
-  /**
-   * Check whether a resolved path is inside the resolved base directory
-   */
   private isPathInside(basePath: string, targetPath: string): boolean {
-    const relativePath = path.relative(basePath, targetPath);
-    return relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath));
+    return isPathInsideHelper(basePath, targetPath);
   }
 
-  /**
-   * Check whether a path exists
-   */
   private async pathExists(targetPath: string): Promise<boolean> {
-    try {
-      await fs.access(targetPath);
-      return true;
-    } catch {
-      return false;
-    }
+    return pathExistsHelper(targetPath);
   }
 
   /**

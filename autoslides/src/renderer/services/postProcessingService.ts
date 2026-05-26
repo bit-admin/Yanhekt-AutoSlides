@@ -1,5 +1,5 @@
 import { reactive, computed } from 'vue'
-import { TokenManager } from './authService'
+import { tokenManager } from './authService'
 import { PostProcessingPipeline } from '../postProcessing/pipeline'
 import { createSlideExtractionDataSource } from '../postProcessing/imageSources'
 import type {
@@ -58,7 +58,6 @@ class PostProcessingServiceClass {
     isProcessing: false
   })
 
-  private tokenManager = new TokenManager()
   private processingPromise: Promise<void> | null = null
 
   get jobs() { return this.state.jobs }
@@ -147,7 +146,7 @@ class PostProcessingServiceClass {
     try {
       const config = await this.loadConfig()
       const dataSource = createSlideExtractionDataSource(job.outputPath)
-      const token = this.tokenManager.getToken() || undefined
+      const token = tokenManager.getToken() || undefined
 
       const result = await PostProcessingPipeline.run(
         {

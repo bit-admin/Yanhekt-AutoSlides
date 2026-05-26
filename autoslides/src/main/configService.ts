@@ -1,321 +1,63 @@
 import ElectronStore from 'electron-store';
 import { dialog } from 'electron';
-import * as path from 'path';
 import * as fs from 'fs';
-import * as os from 'os';
 import { ThemeService, ThemeMode } from './themeService';
+import {
+  AUTO_CROP_YOLO_INPUT_SIZES,
+  DEFAULT_AUTO_CROP_CONFIG,
+  DEFAULT_AUTO_CROP_YOLO_CONFIG,
+  DEFAULT_QT_EXTRACTOR_CONFIG,
+  DEFAULT_ML_THRESHOLDS,
+  DEFAULT_MODELSCOPE_MODELS,
+  MODELSCOPE_API_BASE_URL,
+  defaultAIFilteringConfig,
+  defaultConfig,
+  defaultSlideExtractionConfig,
+  detectCustomProviderFromUrl
+} from './config/defaults';
+import type {
+  AIClassifierMode,
+  AIFilteringConfig,
+  AIServiceType,
+  AppConfig,
+  AutoCropActiveModel,
+  AutoCropConfig,
+  AutoCropDetectorMode,
+  AutoCropYoloConfig,
+  CustomProviderId,
+  LanguageMode,
+  MlClassifierThresholds,
+  PHashExclusionItem,
+  QtExtractorConfig,
+  SlideExtractionConfig
+} from './config/types';
 
-export interface PHashExclusionItem {
-  id: string;                      // Unique identifier for the exclusion item
-  name: string;                    // User-defined name for the exclusion item
-  pHash: string;                   // 256-bit pHash value as hex string
-  createdAt: number;               // Timestamp when the item was created
-  isPreset?: boolean;              // Whether this is a preset item (cannot be deleted)
-  isEnabled?: boolean;             // Whether this preset item is enabled (only for presets)
-}
-
-export interface AutoCropConfig {
-  aspectTolerance: number;     // Tolerance band for 16:9 / 4:3 aspect matching
-  blackThreshold: number;      // Grayscale value below which a border row/col is considered black
-  maxBorderFrac: number;       // Maximum fraction of image dim to scan for black borders
-  cannyLowThreshold: number;   // Canny lower threshold
-  cannyHighThreshold: number;  // Canny upper threshold
-  areaRatioMin: number;        // Minimum candidate area / inner area
-  areaRatioMax: number;        // Maximum candidate area / inner area
-  marginFrac: number;          // Minimum top+bottom margin fraction to accept candidate
-  fillRatioMin: number;        // Minimum contour fill ratio (vs bounding rect area)
-}
-
-export type AutoCropDetectorMode = 'canny_then_yolo' | 'canny_only' | 'yolo_only';
-export type AutoCropActiveModel = 'builtin' | 'custom';
-
-export interface AutoCropYoloConfig {
-  confidenceThreshold: number; // Minimum detection confidence [0.05, 0.95]
-  iouThreshold: number;        // NMS IoU threshold [0.1, 0.9]
-  inputSize: number;           // Model input size (must be one of supported sizes)
-}
-
-export const AUTO_CROP_YOLO_INPUT_SIZES = [320, 480, 640, 960, 1280] as const;
-
-export interface SlideExtractionConfig {
-  // User configurable parameters
-  checkInterval: number;           // Detection interval in milliseconds
-  enableDoubleVerification: boolean; // Enable dual verification
-  verificationCount: number;       // Number of verification attempts
-
-  // Advanced image processing parameters
-  ssimThreshold: number;           // SSIM similarity threshold
-  ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom'; // SSIM preset mode
-  isAdaptiveMode?: boolean;        // Whether currently in adaptive mode
-
-  // Downsampling parameters for SSIM
-  enableDownsampling: boolean;     // Enable downsampling before SSIM calculation
-  downsampleWidth: number;         // Target width for downsampling
-  downsampleHeight: number;        // Target height for downsampling
-
-  // Post-processing parameters
-  pHashThreshold: number;          // pHash Hamming distance threshold for post-processing
-  pHashExclusionList: PHashExclusionItem[]; // List of images to exclude from post-processing
-  enableDuplicateRemoval: boolean; // Enable duplicate removal phase in post-processing
-  enableExclusionList: boolean;    // Enable exclusion list phase in post-processing
-
-  // Image output parameters
-  enablePngColorReduction: boolean; // Enable PNG color reduction to 128 colors
-
-  // Auto-crop detection parameters
-  autoCrop: AutoCropConfig;
-
-  // Auto-crop detector backend selection + YOLO-specific parameters
-  autoCropDetectorMode: AutoCropDetectorMode;
-  autoCropYolo: AutoCropYoloConfig;
-  autoCropActiveModel: AutoCropActiveModel;
-  autoCropCustomModelName: string | null;
-}
-
-export const DEFAULT_AUTO_CROP_CONFIG: AutoCropConfig = {
-  aspectTolerance: 0.05,
-  blackThreshold: 20,
-  maxBorderFrac: 0.10,
-  cannyLowThreshold: 20,
-  cannyHighThreshold: 60,
-  areaRatioMin: 0.08,
-  areaRatioMax: 0.95,
-  marginFrac: 0.02,
-  fillRatioMin: 0.85
+export type {
+  AIClassifierMode,
+  AIFilteringConfig,
+  AIServiceType,
+  AppConfig,
+  AutoCropActiveModel,
+  AutoCropConfig,
+  AutoCropDetectorMode,
+  AutoCropYoloConfig,
+  CustomProviderId,
+  LanguageMode,
+  MlClassifierThresholds,
+  PHashExclusionItem,
+  QtExtractorConfig,
+  SlideExtractionConfig
 };
 
-export const DEFAULT_AUTO_CROP_YOLO_CONFIG: AutoCropYoloConfig = {
-  confidenceThreshold: 0.25,
-  iouThreshold: 0.45,
-  inputSize: 640
-};
-
-export interface QtExtractorConfig {
-  binaryPath: string;            // '' = auto-detect using platform defaults
-  autoRunAfterDownload: boolean; // Run external Qt extractor after each screen download
-  autoPostProcessAfter: boolean; // Chain Electron post-processing after extraction
-}
-
-export const DEFAULT_QT_EXTRACTOR_CONFIG: QtExtractorConfig = {
-  binaryPath: '',
-  autoRunAfterDownload: false,
-  autoPostProcessAfter: true
-};
-
-export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
-
-export type AIServiceType = 'builtin' | 'custom' | 'copilot';
-
-export type AIClassifierMode = 'llm' | 'ml';
-
-export type CustomProviderId = 'modelscope' | 'lm_studio' | 'other';
-
-export const MODELSCOPE_API_BASE_URL = 'https://api-inference.modelscope.cn/v1';
-
-// Canonical ModelScope preset model list. The renderer owns the display labels;
-// this list is used for migration and default-chain seeding in the main process.
-export const DEFAULT_MODELSCOPE_MODELS: string[] = [
-  'Qwen/Qwen3.5-397B-A17B',
-  'Qwen/Qwen3.5-122B-A10B',
-  'Qwen/Qwen3.5-35B-A3B',
-  'Qwen/Qwen3.5-27B',
-  'moonshotai/Kimi-K2.5'
-];
-
-export function detectCustomProviderFromUrl(url: string): CustomProviderId {
-  if (!url) return 'other';
-  if (url.includes('api-inference.modelscope.cn')) return 'modelscope';
-  if (/localhost:1234|127\.0\.0\.1:1234/.test(url)) return 'lm_studio';
-  return 'other';
-}
-
-export interface MlClassifierThresholds {
-  trustLow: number;
-  trustHigh: number;
-  slideCheckLow: number;
-}
-
-export interface AIFilteringConfig {
-  classifierMode: AIClassifierMode;
-  serviceType: AIServiceType;
-  customApiBaseUrl: string;
-  customApiKey: string;
-  customModelName: string;
-  // Ordered model chain used for ModelScope session-scoped 429 fallback.
-  // First entry is the primary model. Kept in sync with customModelName
-  // (customModelName mirrors customModelChain[0]). For non-ModelScope providers this
-  // is either empty or a single-entry [customModelName].
-  customModelChain: string[];
-  // Explicit provider identity derived from customApiBaseUrl. Persisted so the
-  // renderer and main process agree without each re-deriving from the URL.
-  customProviderId: CustomProviderId;
-  copilotGhoToken: string; // GitHub OAuth token (gho_*)
-  copilotModelName: string; // Copilot model name, default 'gpt-4.1'
-  copilotUsername: string; // GitHub username for display
-  copilotAvatarUrl: string; // GitHub avatar URL for display
-  rateLimit: number; // requests per minute, default 10
-  batchSize: number; // number of images per batch for recorded mode, default 5
-  imageResizeWidth: number; // width to resize images before sending to AI, default 768
-  imageResizeHeight: number; // height to resize images before sending to AI, default 432
-  maxConcurrent: number; // max concurrent requests, default 1
-  minTime: number; // minimum time between requests in ms, default 6000
-  mlThresholds: MlClassifierThresholds;
-  mlClassifierActiveModel: 'builtin' | 'custom';
-  mlClassifierCustomModelName: string | null;
-}
-
-export interface AppConfig {
-  outputDirectory: string;
-  connectionMode: 'internal' | 'external';
-  intranetMode?: boolean;
-  intranetMappings?: Record<string, string>;
-  intranetInterfaceIp?: string;
-  maxConcurrentDownloads: number;
-  downloadMaxWorkers: number;
-  downloadNumRetries: number;
-  muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-  videoRetryCount: number;
-  taskSpeed: number;
-  showMorePlaybackSpeed: boolean;
-  autoPostProcessing: boolean;
-  autoPostProcessingLive: boolean;
-  enableAIFiltering: boolean;
-  distinguishMaybeSlide: boolean;
-  themeMode: ThemeMode;
-  languageMode: LanguageMode;
-  preventSystemSleep: boolean;
-  slideExtraction: SlideExtractionConfig;
-  aiFiltering: AIFilteringConfig;
-  qtExtractor: QtExtractorConfig;
-  skipUpdateCheckUntil: number;
-  userOriginalNickname: string;
-  userDisplayName: string;
-  lastGreetingId: string;
-  savedSearchesLive: string[];
-  savedSearchesRecorded: string[];
-}
-
-const defaultSlideExtractionConfig: SlideExtractionConfig = {
-  // User configurable parameters (from UI)
-  checkInterval: 2000,              // 2 seconds
-  enableDoubleVerification: true,   // Enable dual verification
-  verificationCount: 2,             // 2 verification attempts
-
-  // Advanced image processing parameters
-  ssimThreshold: 0.9987,           // SSIM similarity threshold (default to normal)
-  ssimPresetMode: 'adaptive',      // Default to adaptive mode
-  isAdaptiveMode: true,            // Start in adaptive mode
-
-  // Downsampling parameters
-  enableDownsampling: true,        // Enable downsampling by default
-  downsampleWidth: 480,            // Default downsample width
-  downsampleHeight: 270,           // Default downsample height
-
-  // Post-processing parameters
-  pHashThreshold: 10,              // pHash Hamming distance threshold (default: 10)
-  pHashExclusionList: [            // Default preset exclusion items
-    {
-      id: 'preset_no_signal',
-      name: 'No Signal',
-      pHash: '4ccccccc33333333cccccccc33333333cccccccccccc333333336666ccccdccc',
-      createdAt: 0,
-      isPreset: true,
-      isEnabled: true
-    },
-    {
-      id: 'preset_no_input',
-      name: 'No Input',
-      pHash: '4ccc33333333ccc933338ccccc73666399cc9999ce633333cccccccc3333999c',
-      createdAt: 0,
-      isPreset: true,
-      isEnabled: true
-    },
-    {
-      id: 'preset_black_screen',
-      name: 'Black Screen',
-      pHash: '4118adfc4b08ba71510bbf680718b166c99a96d6d718cee474f3fcb52a1c7d4a',
-      createdAt: 0,
-      isPreset: true,
-      isEnabled: true
-    },
-    {
-      id: 'preset_desktop',
-      name: 'Desktop',
-      pHash: '5555f4f43d0a1f0b3b8ec4f1c2e43f070932f0fcc07c3c093d0bcf07c3969b93',
-      createdAt: 0,
-      isPreset: true,
-      isEnabled: true
-    }
-  ],
-  enableDuplicateRemoval: true,    // Enable duplicate removal phase by default
-  enableExclusionList: true,       // Enable exclusion list phase by default
-
-  // Image output parameters
-  enablePngColorReduction: true,   // Enable PNG color reduction by default
-
-  // Auto-crop detection defaults
-  autoCrop: { ...DEFAULT_AUTO_CROP_CONFIG },
-  autoCropDetectorMode: 'canny_then_yolo',
-  autoCropYolo: { ...DEFAULT_AUTO_CROP_YOLO_CONFIG },
-  autoCropActiveModel: 'builtin',
-  autoCropCustomModelName: null
-};
-
-export const DEFAULT_ML_THRESHOLDS: MlClassifierThresholds = {
-  trustLow: 0.75,
-  trustHigh: 0.9,
-  slideCheckLow: 0.25
-};
-
-const defaultAIFilteringConfig: AIFilteringConfig = {
-  classifierMode: 'llm',
-  serviceType: 'builtin',
-  customApiBaseUrl: '',
-  customApiKey: '',
-  customModelName: '',
-  customModelChain: [],
-  customProviderId: 'other',
-  copilotGhoToken: '',
-  copilotModelName: 'gpt-4.1',
-  copilotUsername: '',
-  copilotAvatarUrl: '',
-  rateLimit: 10, // default 10 requests per minute
-  batchSize: 5, // default 5 images per batch for recorded mode
-  imageResizeWidth: 768, // default 768px width (40% of 1920)
-  imageResizeHeight: 432, // default 432px height (40% of 1080)
-  maxConcurrent: 1, // default 1 concurrent request
-  minTime: 6000, // default 6000ms between requests
-  mlThresholds: { ...DEFAULT_ML_THRESHOLDS },
-  mlClassifierActiveModel: 'builtin',
-  mlClassifierCustomModelName: null
-};
-
-const defaultConfig: AppConfig = {
-  outputDirectory: path.join(os.homedir(), 'Downloads', 'AutoSlides'),
-  connectionMode: 'external',
-  maxConcurrentDownloads: 5,
-  downloadMaxWorkers: 32,
-  downloadNumRetries: 15,
-  muteMode: 'normal',
-  videoRetryCount: 5,
-  taskSpeed: 10,
-  showMorePlaybackSpeed: false,
-  autoPostProcessing: true,
-  autoPostProcessingLive: true,
-  enableAIFiltering: true,
-  distinguishMaybeSlide: true,
-  themeMode: 'system',
-  languageMode: 'system',
-  preventSystemSleep: true,
-  slideExtraction: defaultSlideExtractionConfig,
-  aiFiltering: defaultAIFilteringConfig,
-  qtExtractor: { ...DEFAULT_QT_EXTRACTOR_CONFIG },
-  skipUpdateCheckUntil: 0,
-  userOriginalNickname: '',
-  userDisplayName: '',
-  lastGreetingId: '',
-  savedSearchesLive: [],
-  savedSearchesRecorded: []
+export {
+  AUTO_CROP_YOLO_INPUT_SIZES,
+  DEFAULT_AUTO_CROP_CONFIG,
+  DEFAULT_AUTO_CROP_YOLO_CONFIG,
+  DEFAULT_QT_EXTRACTOR_CONFIG,
+  DEFAULT_ML_THRESHOLDS,
+  DEFAULT_MODELSCOPE_MODELS,
+  MODELSCOPE_API_BASE_URL,
+  detectCustomProviderFromUrl
 };
 
 export class ConfigService {

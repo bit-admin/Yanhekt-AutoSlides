@@ -61,3 +61,5 @@ export class TokenManager {
     return !!this.getToken();
   }
 }
+
+export const tokenManager = new TokenManager();

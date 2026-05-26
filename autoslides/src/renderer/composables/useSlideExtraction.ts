@@ -6,6 +6,7 @@ import {
   type ExtractedSlide,
 } from '../processing'
 import { ssimThresholdService } from '../services/ssimThresholdService'
+import { sanitizeFileName } from '../../shared/sanitizeFileName'
 
 // Types for slide extraction
 export interface SlideExtractionStatus {
@@ -15,31 +16,8 @@ export interface SlideExtractionStatus {
   currentVerification: number
 }
 
-export interface Course {
-  id: string
-  title: string
-  instructor: string
-  time: string
-  status?: number
-  subtitle?: string
-  schedule_started_at?: string
-  schedule_ended_at?: string
-  participant_count?: number
-  session?: {
-    professor?: {
-      name: string
-    }
-    section_group_title?: string
-  }
-  target?: string // Camera stream URL
-  target_vga?: string // Screen stream URL
-  // Record mode specific fields
-  professors?: string[]
-  classrooms?: { name: string }[]
-  school_year?: string
-  semester?: string
-  college_name?: string
-}
+export type { Course } from './useCourseList'
+import type { Course } from './useCourseList'
 
 export interface Session {
   id: string
@@ -101,15 +79,6 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
   // Event handlers stored for cleanup
   let slideExtractedHandler: ((event: CustomEvent) => Promise<void>) | null = null
   let slidesClearedHandler: ((event: CustomEvent) => void) | null = null
-
-  // Sanitize filename by removing special characters
-  const sanitizeFileName = (name: string): string => {
-    return name
-      .replace(/[<>:"/\\|?*]/g, '')
-      .replace(/\s+/g, '_')
-      .replace(/_{2,}/g, '_')
-      .trim()
-  }
 
   // Update SSIM threshold based on classroom information
   // Kept as a standalone method so PlaybackPage can refresh the adaptive

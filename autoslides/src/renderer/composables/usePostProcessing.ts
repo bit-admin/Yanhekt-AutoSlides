@@ -1,5 +1,5 @@
 import { ref, type Ref, type ShallowRef } from 'vue'
-import { TokenManager } from '../services/authService'
+import { tokenManager } from '../services/authService'
 import type { ExtractedSlide, SlideExtractionHandle } from '../processing'
 import { PostProcessingPipeline } from '../postProcessing/pipeline'
 import { createSlideExtractionDataSource } from '../postProcessing/imageSources'
@@ -64,7 +64,6 @@ export interface UsePostProcessingReturn {
 
 export function usePostProcessing(options: UsePostProcessingOptions): UsePostProcessingReturn {
   const { mode, extractedSlides, slideExtractorInstance } = options
-  const tokenManager = new TokenManager()
 
   const isPostProcessing = ref(false)
   // When true, an auto-trigger arrived while a run was in progress — the AI phase

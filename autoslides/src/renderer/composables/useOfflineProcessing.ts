@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { TokenManager } from '../services/authService'
+import { tokenManager } from '../services/authService'
 import { PostProcessingPipeline } from '../postProcessing/pipeline'
 import { createOfflineDataSource } from '../postProcessing/imageSources'
 import type {
@@ -18,8 +18,6 @@ export interface OfflineProgress {
 }
 
 export function useOfflineProcessing() {
-  const tokenManager = new TokenManager()
-
   const showOfflineModal = ref(false)
   const inputFolderPath = ref('')
   const inputFolderName = ref('')

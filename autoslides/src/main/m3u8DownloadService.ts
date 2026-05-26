@@ -4,15 +4,13 @@ import http from 'http';
 import https from 'https';
 import os from 'os';
 import axios, { type AxiosInstance } from 'axios';
-import crypto from 'crypto';
 import { spawn } from 'child_process';
 import { pipeline } from 'stream/promises';
 import { FFmpegService } from './ffmpegService';
 import { ConfigService } from './configService';
 import { IntranetMappingService } from './intranetMappingService';
 import { ApiClient } from './apiClient';
-
-const magic = "1138b69dfef641d9d7ba49137d2d4875";
+import { encryptVideoUrl, getVideoSignature, addSignatureToUrl } from '../shared/crypto';
 
 export interface DownloadProgress {
   current: number;
@@ -236,16 +234,11 @@ class M3u8Downloader {
   }
 
   private encryptURL(url: string): string {
-    const urlList = url.split("/");
-    // Insert MD5 hash before the last segment
-    urlList.splice(-1, 0, crypto.createHash('md5').update(magic + "_100").digest('hex'));
-    return urlList.join("/");
+    return encryptVideoUrl(url);
   }
 
   private getSignature(): { timestamp: string; signature: string } {
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    const signature = crypto.createHash('md5').update(magic + "_v1_" + timestamp).digest('hex');
-    return { timestamp, signature };
+    return getVideoSignature();
   }
 
   private async getToken(): Promise<string> {
@@ -264,7 +257,7 @@ class M3u8Downloader {
 
 
   private addSignatureForUrl(url: string, token: string, timestamp: string, signature: string): string {
-    return `${url}?Xvideo_Token=${token}&Xclient_Timestamp=${timestamp}&Xclient_Signature=${signature}&Xclient_Version=v1&Platform=yhkt_user`;
+    return addSignatureToUrl(url, token, timestamp, signature);
   }
 
   private startUpdateSignatureLoop(): void {

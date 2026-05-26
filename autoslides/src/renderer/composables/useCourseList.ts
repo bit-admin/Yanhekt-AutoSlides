@@ -1,6 +1,6 @@
 import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import { ApiClient, type LiveStream, type LiveListResponse, type CourseData, type CourseListResponse, type SemesterOption } from '../services/apiClient'
-import { TokenManager } from '../services/authService'
+import { tokenManager } from '../services/authService'
 import { DataStore } from '../services/dataStore'
 
 export interface Course {
@@ -83,7 +83,6 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
   const { mode, t, onCourseSelected } = options
 
   const apiClient = new ApiClient()
-  const tokenManager = new TokenManager()
   const coursesPerPage = 16
 
   // Core state

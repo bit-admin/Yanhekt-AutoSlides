@@ -1,5 +1,5 @@
 import { ref, type Ref } from 'vue'
-import { AuthService, TokenManager } from '../services/authService'
+import { AuthService, TokenManager, tokenManager } from '../services/authService'
 import { ApiClient } from '../services/apiClient'
 import { toDisplayName } from './usePinyinName'
 
@@ -11,7 +11,6 @@ const userId = ref('user123')
 const isVerifyingToken = ref(false)
 
 // Shared services (singleton)
-const tokenManager = new TokenManager()
 const authService = new AuthService(tokenManager)
 const apiClient = new ApiClient()
 

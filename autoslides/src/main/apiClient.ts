@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
-import CryptoJS from 'crypto-js';
 import { app } from 'electron';
+import { getClientSignature } from '../shared/crypto';
 
 export interface UserData {
   badge: string;
@@ -152,7 +152,6 @@ interface VideoTokenApiResponse extends BaseApiResponse {
 }
 
 export class ApiClient {
-  private readonly MAGIC = "1138b69dfef641d9d7ba49137d2d4875";
   private readonly BASE_HEADERS = {
     "Origin": "https://www.yanhekt.cn",
     "Referer": "https://www.yanhekt.cn/",
@@ -166,7 +165,7 @@ export class ApiClient {
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const headers: Record<string, string> = { ...this.BASE_HEADERS };
 
-    headers["Xclient-Signature"] = CryptoJS.MD5(this.MAGIC + "_v1_undefined").toString();
+    headers["Xclient-Signature"] = getClientSignature();
     headers["Xclient-Timestamp"] = timestamp;
     headers["Authorization"] = `Bearer ${token}`;
 

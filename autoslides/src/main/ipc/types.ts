@@ -1,0 +1,40 @@
+import type { MainAuthService } from '../authService';
+import type { ApiClient } from '../apiClient';
+import type { ConfigService } from '../configService';
+import type { IntranetMappingService } from '../intranetMappingService';
+import type { VideoProxyService } from '../videoProxyService';
+import type { FFmpegService } from '../ffmpegService';
+import type { M3u8DownloadService } from '../m3u8DownloadService';
+import type { PowerManagementService } from '../powerManagementService';
+import type { AIPromptsService } from '../aiPromptsService';
+import type { AIFilteringService } from '../aiFilteringService';
+import type { LLMApiService } from '../llmApiService';
+import type { UpdateDownloadService } from '../updateDownloadService';
+import type { QtExtractorService } from '../qtExtractorService';
+import type { ExtractorInstallerService } from '../extractorInstallerService';
+import type { AutoCropModelService } from '../autoCropModelService';
+import type { MlClassifierModelService } from '../mlClassifierModelService';
+import type { CompressLectureService } from '../compressLectureService';
+import type { WindowManager } from '../windowManager';
+
+export interface IpcServices {
+  authService: MainAuthService;
+  apiClient: ApiClient;
+  configService: ConfigService;
+  intranetMappingService: IntranetMappingService;
+  videoProxyService: VideoProxyService;
+  ffmpegService: FFmpegService;
+  m3u8DownloadService: M3u8DownloadService;
+  powerManagementService: PowerManagementService;
+  aiPromptsService: AIPromptsService;
+  aiFilteringService: AIFilteringService;
+  llmApiService: LLMApiService;
+  updateDownloadService: UpdateDownloadService;
+  qtExtractorService: QtExtractorService;
+  extractorInstallerService: ExtractorInstallerService;
+  autoCropModelService: AutoCropModelService;
+  mlClassifierModelService: MlClassifierModelService;
+  compressLectureService: CompressLectureService;
+  windowManager: WindowManager;
+  updateApplicationMenu: () => void;
+}

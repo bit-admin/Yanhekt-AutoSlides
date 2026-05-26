@@ -1,6 +1,6 @@
 import { ref, type Ref } from 'vue'
 import { ApiClient, type SessionData, type CourseInfoResponse } from '../services/apiClient'
-import { TokenManager } from '../services/authService'
+import { tokenManager } from '../services/authService'
 import { DataStore } from '../services/dataStore'
 import { DownloadService, type DownloadQueueAddResult } from '../services/downloadService'
 import { TaskQueue, type TaskQueueAddResult } from '../services/taskQueueService'
@@ -68,7 +68,6 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   const { course, t, onSessionSelected, onBackToCourses, onSwitchToDownload, onSwitchToTask } = options
 
   const apiClient = new ApiClient()
-  const tokenManager = new TokenManager()
 
   // State
   const sessions = ref<Session[]>([])

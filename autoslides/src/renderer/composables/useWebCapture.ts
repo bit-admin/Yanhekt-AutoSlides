@@ -4,6 +4,7 @@ import {
   type SlideExtractionHandle,
   type ExtractedSlide,
 } from '../processing'
+import { sanitizeFileName } from '../../shared/sanitizeFileName'
 
 export type WebCaptureMode = 'inject' | 'capturePage'
 export type WebCaptureState = 'idle' | 'confirming' | 'running'
@@ -62,9 +63,6 @@ const PRESETS: WebCapturePreset[] = [
     },
   },
 ]
-
-const sanitizeFileName = (name: string): string =>
-  name.replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, '_').replace(/_{2,}/g, '_').trim()
 
 const normalizeUrl = (raw: string): string => {
   const trimmed = raw.trim()

@@ -1,7 +1,7 @@
 import { ref, shallowRef, computed, nextTick, type Ref, type ShallowRef, type ComputedRef } from 'vue'
 import Hls, { Events, ErrorTypes, ErrorDetails } from 'hls.js'
 import { DataStore } from '../services/dataStore'
-import { TokenManager } from '../services/authService'
+import { tokenManager } from '../services/authService'
 import type { SlideExtractionHandle } from '../processing'
 
 export const DUAL_STREAM_KEY = '__dual__'
@@ -124,9 +124,6 @@ export interface UseVideoPlayerReturn {
 
 export function useVideoPlayer(options: UseVideoPlayerOptions) {
   const { mode, streamId, session, slideExtractorInstance, onTaskError } = options
-
-  // TokenManager instance
-  const tokenManager = new TokenManager()
 
   // Reactive state
   const loading = ref(true)

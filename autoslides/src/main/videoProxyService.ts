@@ -1,11 +1,21 @@
 import * as http from 'http';
 import * as url from 'url';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
-import * as crypto from 'crypto';
 import * as https from 'https';
 import * as os from 'os';
 import { ApiClient } from './apiClient';
 import { IntranetMappingService } from './intranetMappingService';
+import {
+  encryptVideoUrl,
+  getVideoSignature,
+  addSignatureToUrl
+} from '../shared/crypto';
+import {
+  fixUrlEscaping,
+  extractHostFromUrl,
+  resolveUrl,
+  rewriteM3u8TsUrls
+} from './videoProxy/urlHelpers';
 
 export interface VideoStream {
   type: 'camera' | 'screen';
@@ -50,7 +60,6 @@ export interface RecordedSessionInput {
 }
 
 export class VideoProxyService {
-  private readonly MAGIC = "1138b69dfef641d9d7ba49137d2d4875";
   private readonly BASE_HEADERS = {
     "Origin": "https://www.yanhekt.cn",
     "Referer": "https://www.yanhekt.cn/",
@@ -238,11 +247,8 @@ export class VideoProxyService {
     }
   }
 
-  /**
-   * Fix URL escaping issues
-   */
   private fixUrlEscaping(url: string): string {
-    return url.replace(/\\\//g, '/');
+    return fixUrlEscaping(url);
   }
 
   /**
@@ -939,110 +945,32 @@ export class VideoProxyService {
     }
   }
 
-  /**
-   * Process live stream m3u8 content to rewrite TS URLs
-   */
   private processLiveM3u8Content(content: string, baseUrl: string): string {
-    const lines = content.split('\n');
-    const result: string[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      if (!line.startsWith('#') && line.trim() !== '') {
-        // This is a TS file line - rewrite it to point to our proxy
-        const tsFileName = line.trim();
-        const proxyTsUrl = `http://localhost:${this.proxyPort}/live/${tsFileName}?baseUrl=${encodeURIComponent(baseUrl)}`;
-        result.push(proxyTsUrl);
-      } else {
-        // Keep other lines as-is
-        result.push(line);
-      }
-    }
-
-    return result.join('\n');
+    return rewriteM3u8TsUrls(content, this.proxyPort, baseUrl, 'live');
   }
 
-  /**
-   * Process m3u8 content to rewrite TS URLs for recorded videos
-   */
   private processM3u8Content(content: string, baseUrl: string): string {
-    const lines = content.split('\n');
-    const result: string[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-
-      if (!line.startsWith('#') && line.trim() !== '') {
-        // This is a TS file line - rewrite it to point to our proxy with /recorded/ prefix
-        const tsFileName = line.trim();
-        const proxyTsUrl = `http://localhost:${this.proxyPort}/recorded/${tsFileName}?baseUrl=${encodeURIComponent(baseUrl)}`;
-        result.push(proxyTsUrl);
-      } else {
-        // Keep other lines as-is
-        result.push(line);
-      }
-    }
-
-    return result.join('\n');
+    return rewriteM3u8TsUrls(content, this.proxyPort, baseUrl, 'recorded');
   }
 
-  /**
-   * Extract hostname from URL (helper function)
-   */
   private extractHostFromUrl(url: string): string {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.hostname;
-    } catch (error) {
-      console.error('Error extracting host from URL:', url, error);
-      return 'localhost'; // fallback
-    }
+    return extractHostFromUrl(url);
   }
 
-  /**
-   * Resolve relative URL (helper function)
-   */
   private resolveUrl(base: string, relative: string): string {
-    if (relative.startsWith('http')) {
-      return relative;
-    }
-
-    const baseUrl = new URL(base);
-
-    if (relative.startsWith('/')) {
-      return `${baseUrl.protocol}//${baseUrl.host}${relative}`;
-    }
-
-    const basePath = baseUrl.pathname.substring(0, baseUrl.pathname.lastIndexOf('/') + 1);
-    return `${baseUrl.protocol}//${baseUrl.host}${basePath}${relative}`;
+    return resolveUrl(base, relative);
   }
 
-  /**
-   * Add signature to URL for video playback
-   */
   private addSignatureForUrl(url: string, videoToken: string, timestamp: string, signature: string): string {
-    return `${url}?Xvideo_Token=${videoToken}&Xclient_Timestamp=${timestamp}&Xclient_Signature=${signature}&Xclient_Version=v1&Platform=yhkt_user`;
+    return addSignatureToUrl(url, videoToken, timestamp, signature);
   }
 
-  /**
-   * Get signature for video requests
-   */
   private getSignature(): { timestamp: string; signature: string } {
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    const signature = crypto.createHash('md5').update(this.MAGIC + "_v1_" + timestamp).digest('hex');
-    return { timestamp, signature };
+    return getVideoSignature();
   }
 
-  /**
-   * Encrypt URL for video requests
-   */
   private encryptURL(url: string): string {
-    const urlList = url.split("/");
-    // Insert MD5 hash before the last segment
-    const hash = crypto.createHash('md5').update(this.MAGIC + "_100").digest('hex');
-    urlList.splice(-1, 0, hash);
-    return urlList.join("/");
+    return encryptVideoUrl(url);
   }
 
   /**
