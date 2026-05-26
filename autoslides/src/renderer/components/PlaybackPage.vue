@@ -690,6 +690,8 @@ const showDualMorePanel = ref(false)
 const defaultPlaybackRates = [1, 1.25, 1.5, 2, 5, 10, 16]
 const allPlaybackRates = [0.5, 0.75, 0.8, 0.9, 1, 1.1, 1.15, 1.2, 1.25, 1.5, 1.75, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
+const SEEK_SECONDS = 5
+
 const playbackRateOptions = computed(() => {
   return showMorePlaybackSpeed.value ? allPlaybackRates : defaultPlaybackRates
 })
@@ -909,6 +911,36 @@ const handleDualPlayStateChanged = () => {
 const onDualSeekInput = (event: Event) => {
   const target = event.target as HTMLInputElement
   seekDualStreams(Number(target.value))
+}
+
+const handleKeyboardSeek = (event: KeyboardEvent) => {
+  if (props.mode !== 'recorded') return
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+  if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+
+  const target = event.target as HTMLElement | null
+  if (target) {
+    const tag = target.tagName
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return
+  }
+
+  if (selectedSlide.value) return
+  if (shouldDisableControls.value) return
+
+  const delta = event.key === 'ArrowRight' ? SEEK_SECONDS : -SEEK_SECONDS
+
+  if (isDualStreamSelected.value) {
+    if (!dualCanSeek.value) return
+    event.preventDefault()
+    seekDualStreams(dualCurrentTime.value + delta)
+    return
+  }
+
+  const video = videoPlayer.value
+  if (!video || !Number.isFinite(video.duration)) return
+  event.preventDefault()
+  const next = Math.min(Math.max(video.currentTime + delta, 0), video.duration)
+  video.currentTime = next
 }
 
 const setDualAudio = (source: DualAudioSource) => {
@@ -1230,6 +1262,7 @@ onMounted(async () => {
   window.addEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.addEventListener('slidesCleared', onSlidesCleared as EventListener)
   window.addEventListener('showMorePlaybackSpeedChanged', onShowMorePlaybackSpeedChanged as EventListener)
+  window.addEventListener('keydown', handleKeyboardSeek)
   document.addEventListener('fullscreenchange', onFullscreenChange)
   taskQueue.setupEventListeners()
   performanceOptimization.setupEventListeners()
@@ -1252,6 +1285,7 @@ onUnmounted(async () => {
   window.removeEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.removeEventListener('slidesCleared', onSlidesCleared as EventListener)
   window.removeEventListener('showMorePlaybackSpeedChanged', onShowMorePlaybackSpeedChanged as EventListener)
+  window.removeEventListener('keydown', handleKeyboardSeek)
   document.removeEventListener('fullscreenchange', onFullscreenChange)
   taskQueue.removeEventListeners()
 
