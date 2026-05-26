@@ -3,6 +3,7 @@ import Hls, { Events, ErrorTypes, ErrorDetails } from 'hls.js'
 import { DataStore } from '../services/dataStore'
 import { tokenManager } from '../services/authService'
 import type { SlideExtractionHandle } from '../processing'
+import { setupDualHlsErrorHandler } from './video/useVideoErrorRecovery'
 
 export const DUAL_STREAM_KEY = '__dual__'
 export type DualAudioSource = 'screen' | 'camera'
@@ -456,60 +457,11 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   }
 
   const setupDualHlsErrorHandling = (hlsInstance: Hls, video: HTMLVideoElement, label: string) => {
-    let mediaErrorRecoveryCount = 0
-    let networkErrorRecoveryCount = 0
-    const maxRecoveryAttempts = 3
-
-    hlsInstance.on(Events.ERROR, (_event, data) => {
-      console.error(`Dual HLS error (${label}):`, _event, data)
-
-      if (!data.fatal) {
-        console.warn(`Non-fatal dual HLS error (${label}):`, data.details, data)
-        return
-      }
-
-      switch (data.type) {
-        case ErrorTypes.NETWORK_ERROR:
-          if (networkErrorRecoveryCount < maxRecoveryAttempts) {
-            networkErrorRecoveryCount++
-            setTimeout(() => {
-              hlsInstance.startLoad()
-            }, 1000 * networkErrorRecoveryCount)
-          } else {
-            const errorMessage = `Network error: Unable to load ${label} stream after multiple attempts`
-            error.value = errorMessage
-            handleTaskError(errorMessage)
-          }
-          break
-
-        case ErrorTypes.MEDIA_ERROR:
-          if (mediaErrorRecoveryCount < maxRecoveryAttempts) {
-            mediaErrorRecoveryCount++
-            const currentPosition = video.currentTime || 0
-            setTimeout(() => {
-              try {
-                hlsInstance.recoverMediaError()
-                if (currentPosition > 0 && mode === 'recorded') {
-                  video.currentTime = currentPosition + 0.5
-                }
-              } catch (recoveryError) {
-                console.error(`Dual media recovery failed (${label}):`, recoveryError)
-              }
-            }, 500 * mediaErrorRecoveryCount)
-          } else {
-            const errorMessage = `Video decoding error: Unable to decode ${label} stream after multiple attempts`
-            error.value = errorMessage
-            handleTaskError(errorMessage)
-          }
-          break
-
-        default:
-          {
-            const errorMessage = `Video playback error (${label}): ${data.details}`
-            error.value = errorMessage
-            handleTaskError(errorMessage)
-          }
-          break
+    setupDualHlsErrorHandler(hlsInstance, video, label, {
+      mode,
+      onFatal: (message) => {
+        error.value = message
+        handleTaskError(message)
       }
     })
   }

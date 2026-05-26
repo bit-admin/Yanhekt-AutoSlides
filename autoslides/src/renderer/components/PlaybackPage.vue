@@ -143,44 +143,22 @@
           </div>
         </div>
 
-        <!-- Stream Selection and Playback Controls -->
-        <div class="controls-row">
-          <div v-if="Object.keys(playbackData.streams).length > 1" class="stream-selector">
-            <label>{{ $t('playback.selectStream') }}</label>
-            <select v-model="selectedStream" @change="switchStream" :disabled="shouldDisableControls">
-              <option v-if="hasDualStreams" :value="DUAL_STREAM_KEY">
-                {{ $t('playback.bothStreams') }}
-              </option>
-              <option v-for="(stream, key) in playbackData.streams" :key="key" :value="key">
-                {{ stream.type === 'camera' ? $t('playback.streamCamera') : stream.type === 'screen' ? $t('playback.streamScreen') : stream.name }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Custom Playback Rate Control (only for recorded videos) -->
-          <div v-if="props.mode === 'recorded'" class="playback-rate-control">
-            <label>{{ $t('playback.playbackSpeed') }}</label>
-            <select v-model="currentPlaybackRate" @change="changePlaybackRate" :disabled="shouldDisableControls">
-              <option v-for="rate in playbackRateOptions" :key="rate" :value="rate">{{ rate }}x</option>
-            </select>
-          </div>
-
-          <!-- Picture in Picture Toggle -->
-          <div v-if="!isDualStreamSelected" class="pip-control">
-            <button
-              class="pip-button"
-              @click="togglePictureInPicture"
-              :disabled="shouldDisableControls || !videoPlayer"
-              :title="isPictureInPicture ? $t('playback.exitPictureInPicture') : $t('playback.enterPictureInPicture')"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-top: 1px;">
-                <rect x="2" y="3" width="20" height="14" rx="2"/>
-                <rect x="14" y="12" width="6" height="4" rx="1" fill="currentColor"/>
-              </svg>
-              <span>{{ isPictureInPicture ? $t('playback.exitPiP') : $t('playback.picInPic') }}</span>
-            </button>
-          </div>
-        </div>
+        <DualStreamControls
+          v-model:selected-stream="selectedStream"
+          v-model:current-playback-rate="currentPlaybackRate"
+          :streams="playbackData.streams"
+          :playback-rate-options="playbackRateOptions"
+          :mode="props.mode"
+          :is-dual-stream-selected="isDualStreamSelected"
+          :is-picture-in-picture="isPictureInPicture"
+          :should-disable-controls="shouldDisableControls"
+          :video-player-ready="!!videoPlayer"
+          :has-dual-streams="hasDualStreams"
+          :dual-stream-key="DUAL_STREAM_KEY"
+          @switch-stream="switchStream"
+          @change-playback-rate="changePlaybackRate"
+          @toggle-picture-in-picture="togglePictureInPicture"
+        />
 
         <!-- Video Player -->
         <div
@@ -474,133 +452,18 @@
           <!-- In recorded task mode, post-processing progress is shown in RightPanel.vue -->
           <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0 && (mode === 'live' || !isTaskRunning)" class="post-process-status-bar">
             <div class="status-bar-content">
-              <!-- Phase 1: Duplicate Removal -->
-              <div class="phase-progress-item">
-                <div class="phase-header">
-                  <span class="phase-name">{{ $t('playback.postProcessStatus.phase1Name') }}</span>
-                  <span v-if="postProcessStatus.phase1Skipped" class="phase-status skipped">
-                    {{ $t('playback.postProcessStatus.disabled') }}
-                  </span>
-                  <span v-else-if="postProcessStatus.currentPhase === 'phase1'" class="phase-status active">
-                    {{ postProcessStatus.currentIndex }}/{{ postProcessStatus.totalCount }}
-                  </span>
-                  <span v-else-if="postProcessStatus.duplicatesRemoved > 0" class="phase-status completed">
-                    -{{ postProcessStatus.duplicatesRemoved }}
-                  </span>
-                </div>
-                <div class="phase-progress-bar" :class="{ disabled: postProcessStatus.phase1Skipped }">
-                  <div
-                    class="phase-progress-fill"
-                    :class="{
-                      'active': postProcessStatus.currentPhase === 'phase1',
-                      'completed': postProcessStatus.currentPhase !== 'idle' && postProcessStatus.currentPhase !== 'phase1' && !postProcessStatus.phase1Skipped
-                    }"
-                    :style="{
-                      width: postProcessStatus.phase1Skipped ? '0%' :
-                             postProcessStatus.currentPhase === 'phase1' ? `${(postProcessStatus.currentIndex / postProcessStatus.totalCount) * 100}%` :
-                             (postProcessStatus.currentPhase === 'phase2' || postProcessStatus.currentPhase === 'phase3' || postProcessStatus.currentPhase === 'completed') ? '100%' : '0%'
-                    }"
-                  ></div>
-                </div>
-              </div>
-
-              <!-- Phase 2: Exclusion List -->
-              <div class="phase-progress-item">
-                <div class="phase-header">
-                  <span class="phase-name">{{ $t('playback.postProcessStatus.phase2Name') }}</span>
-                  <span v-if="postProcessStatus.phase2Skipped" class="phase-status skipped">
-                    {{ $t('playback.postProcessStatus.disabled') }}
-                  </span>
-                  <span v-else-if="postProcessStatus.currentPhase === 'phase2'" class="phase-status active">
-                    {{ postProcessStatus.currentIndex }}/{{ postProcessStatus.totalCount }}
-                  </span>
-                  <span v-else-if="postProcessStatus.excludedRemoved > 0" class="phase-status completed">
-                    -{{ postProcessStatus.excludedRemoved }}
-                  </span>
-                </div>
-                <div class="phase-progress-bar" :class="{ disabled: postProcessStatus.phase2Skipped }">
-                  <div
-                    class="phase-progress-fill"
-                    :class="{
-                      'active': postProcessStatus.currentPhase === 'phase2',
-                      'completed': (postProcessStatus.currentPhase === 'phase3' || postProcessStatus.currentPhase === 'completed') && !postProcessStatus.phase2Skipped
-                    }"
-                    :style="{
-                      width: postProcessStatus.phase2Skipped ? '0%' :
-                             postProcessStatus.currentPhase === 'phase2' ? `${(postProcessStatus.currentIndex / postProcessStatus.totalCount) * 100}%` :
-                             (postProcessStatus.currentPhase === 'phase3' || postProcessStatus.currentPhase === 'completed') ? '100%' : '0%'
-                    }"
-                  ></div>
-                </div>
-              </div>
-
-              <!-- Phase 3: AI Processing -->
-              <div class="phase-progress-item">
-                <div class="phase-header">
-                  <span class="phase-name">{{ $t('playback.postProcessStatus.phase3Name') }}</span>
-                  <span v-if="postProcessStatus.phase3Skipped" class="phase-status skipped">
-                    {{ $t('playback.postProcessStatus.disabled') }}
-                  </span>
-                  <span v-else-if="postProcessStatus.currentPhase === 'phase3' || postProcessStatus.aiTotal > 0" class="phase-status" :class="{ active: postProcessStatus.currentPhase === 'phase3' }">
-                    {{ postProcessStatus.aiCompleted }}/{{ postProcessStatus.aiTotal }}
-                  </span>
-                  <span v-else-if="postProcessStatus.aiFiltered > 0" class="phase-status completed">
-                    -{{ postProcessStatus.aiFiltered }}
-                  </span>
-                </div>
-                <div class="phase-progress-bar three-color" :class="{ disabled: postProcessStatus.phase3Skipped }">
-                  <!-- Green: completed AI decisions -->
-                  <div
-                    class="phase-progress-fill completed"
-                    :style="{
-                      width: postProcessStatus.phase3Skipped || postProcessStatus.aiTotal === 0 ? '0%' :
-                             `${(postProcessStatus.aiCompleted / postProcessStatus.aiTotal) * 100}%`
-                    }"
-                  ></div>
-                  <!-- Blue: in-progress batch -->
-                  <div
-                    class="phase-progress-fill in-progress"
-                    :style="{
-                      left: postProcessStatus.aiTotal === 0 ? '0%' :
-                            `${(postProcessStatus.aiCompleted / postProcessStatus.aiTotal) * 100}%`,
-                      width: postProcessStatus.phase3Skipped || postProcessStatus.aiTotal === 0 ? '0%' :
-                             `${(postProcessStatus.aiInProgress / postProcessStatus.aiTotal) * 100}%`
-                    }"
-                  ></div>
-                </div>
-              </div>
+              <PostProcessingProgressBar :state="fromPlaybackStatus(postProcessStatus)" labels="long" />
             </div>
           </div>
 
           <!-- Gallery Grid (only show when slides exist) -->
-          <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0" class="gallery-grid">
-            <div
-              v-for="slide in extractedSlides"
-              :key="slide.id"
-              class="slide-thumbnail"
-              @click="openSlideModal(slide)"
-            >
-              <img :src="slide.dataUrl" :alt="slide.title" />
-              <div class="thumbnail-overlay">
-                <div class="slide-info">
-                  <span class="slide-title">{{ slide.title }}</span>
-                  <span class="slide-time">{{ formatSlideTime(slide.timestamp) }}</span>
-                </div>
-                <button
-                  @click.stop="deleteSlide(slide)"
-                  class="delete-btn"
-                  :title="`Move ${slide.title} to trash`"
-                >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3,6 5,6 21,6"/>
-                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
-                    <line x1="10" y1="11" x2="10" y2="17"/>
-                    <line x1="14" y1="11" x2="14" y2="17"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-          </div>
+          <SlideGallery
+            v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
+            :slides="extractedSlides"
+            :format-slide-time="formatSlideTime"
+            @preview="openSlideModal"
+            @delete="deleteSlide"
+          />
         </div>
 
       </div>
@@ -613,39 +476,12 @@
       </div>
     </div>
 
-    <!-- Slide Preview Modal -->
-    <div v-if="selectedSlide" class="slide-modal" @click="closeSlideModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>{{ selectedSlide.title }}</h3>
-          <div class="modal-actions">
-            <button @click="deleteSlide(selectedSlide)" class="modal-delete-btn" title="Move slide to trash">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3,6 5,6 21,6"/>
-                <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
-              </svg>
-              {{ $t('playback.moveToTrash') }}
-            </button>
-            <button @click="closeSlideModal" class="modal-close-btn">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="18" y1="6" x2="6" y2="18"/>
-                <line x1="6" y1="6" x2="18" y2="18"/>
-              </svg>
-              {{ $t('playback.close') }}
-            </button>
-          </div>
-        </div>
-        <div class="modal-body">
-          <img :src="selectedSlide.dataUrl" :alt="selectedSlide.title" class="modal-image" />
-          <div class="slide-metadata">
-            <p><strong>{{ $t('playback.extractedAt') }}</strong> {{ formatSlideTime(selectedSlide.timestamp) }}</p>
-            <p><strong>{{ $t('playback.fileName') }}</strong> {{ selectedSlide.title }}.png</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <PreviewModal
+      :slide="selectedSlide"
+      :format-slide-time="formatSlideTime"
+      @close="closeSlideModal"
+      @delete="deleteSlide"
+    />
   </div>
 </template>
 
@@ -657,6 +493,11 @@ import { usePostProcessing } from '../composables/usePostProcessing'
 import { useTaskQueue } from '../composables/useTaskQueue'
 import { usePerformanceOptimization } from '../composables/usePerformanceOptimization'
 import { useSlideGallery } from '../composables/useSlideGallery'
+import PostProcessingProgressBar from './PostProcessingProgressBar.vue'
+import SlideGallery from './playback/SlideGallery.vue'
+import PreviewModal from './playback/PreviewModal.vue'
+import DualStreamControls from './playback/DualStreamControls.vue'
+import { fromPlaybackStatus } from '../postProcessing/displayAdapter'
 
 // Props
 const props = defineProps<{
@@ -1599,41 +1440,6 @@ onUnmounted(async () => {
   margin-top: 0;
 }
 
-.controls-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px 8px 0 0;
-  gap: 16px;
-}
-
-.stream-selector {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.stream-selector label {
-  font-weight: 500;
-  color: #333;
-}
-
-.stream-selector select {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 14px;
-}
-
-.stream-selector select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #f8f9fa;
-}
 
 .video-container {
   position: relative;
@@ -1723,72 +1529,6 @@ onUnmounted(async () => {
   100% { transform: rotate(360deg); }
 }
 
-.playback-rate-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.playback-rate-control label {
-  font-weight: 500;
-  color: #333;
-  white-space: nowrap;
-}
-
-.playback-rate-control select {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.playback-rate-control select:focus {
-  outline: none;
-  border-color: #007acc;
-}
-
-.playback-rate-control select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #f8f9fa;
-}
-
-/* Picture in Picture Control */
-.pip-control {
-  display: flex;
-  align-items: center;
-}
-
-.pip-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  color: #333;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.pip-button:hover:not(:disabled) {
-  background-color: #f8f9fa;
-  border-color: #007acc;
-}
-
-.pip-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #f8f9fa;
-}
-
-.pip-button svg {
-  flex-shrink: 0;
-}
 
 .video-player {
   width: 100%;
@@ -2507,199 +2247,6 @@ onUnmounted(async () => {
   border-color: #c82333;
 }
 
-.gallery-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
-}
-
-.slide-thumbnail {
-  position: relative;
-  background-color: white;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 2px solid #e9ecef;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.slide-thumbnail:hover {
-  border-color: #007acc;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.slide-thumbnail img {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-  display: block;
-}
-
-.thumbnail-overlay {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
-  padding: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.slide-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
-}
-
-.slide-title {
-  font-size: 12px;
-  font-weight: 500;
-  color: white;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.slide-time {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.delete-btn {
-  padding: 4px;
-  border: none;
-  border-radius: 4px;
-  background-color: rgba(220, 53, 69, 0.8);
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.delete-btn:hover {
-  background-color: rgba(220, 53, 69, 1);
-  transform: scale(1.1);
-}
-
-/* Slide Modal */
-.slide-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
-}
-
-.modal-content {
-  background-color: white;
-  border-radius: 12px;
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e9ecef;
-  background-color: #f8f9fa;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.modal-delete-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid #dc3545;
-  border-radius: 4px;
-  background-color: #dc3545;
-  color: white;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.modal-delete-btn:hover {
-  background-color: #c82333;
-  border-color: #c82333;
-}
-
-.modal-close-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid #6c757d;
-  border-radius: 4px;
-  background-color: #6c757d;
-  color: white;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.modal-close-btn:hover {
-  background-color: #5a6268;
-  border-color: #5a6268;
-}
-
-.modal-body {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.modal-image {
-  max-width: 100%;
-  max-height: 70vh;
-  object-fit: contain;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.slide-metadata {
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
-}
-
-.slide-metadata p {
-  margin: 4px 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.slide-metadata strong {
-  color: #333;
-}
 
 /* Responsive design */
 @media (max-width: 768px) {
@@ -2730,31 +2277,6 @@ onUnmounted(async () => {
     min-width: 0;
   }
 
-  .gallery-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 12px;
-  }
-
-  .slide-thumbnail img {
-    height: 100px;
-  }
-
-  .modal-content {
-    max-width: 95vw;
-    max-height: 95vh;
-  }
-
-  .modal-header {
-    padding: 12px 16px;
-  }
-
-  .modal-body {
-    padding: 16px;
-  }
-
-  .modal-image {
-    max-height: 60vh;
-  }
 }
 
 /* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */

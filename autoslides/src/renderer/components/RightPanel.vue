@@ -132,104 +132,7 @@
                 :class="[`pp-status-${getPostProcessJob(item.id)?.status}`]"
               >
                 <div class="pp-panel-content">
-                  <!-- Phase 1: Duplicate Removal -->
-                  <div class="pp-phase-item">
-                    <div class="pp-phase-header">
-                      <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase1NameShort') }}</span>
-                      <span
-                        v-if="getPostProcessJob(item.id)!.progress.phase === 'phase1'"
-                        class="pp-phase-status active"
-                      >
-                        {{ getPostProcessJob(item.id)!.progress.currentIndex }}/{{ getPostProcessJob(item.id)!.progress.total }}
-                      </span>
-                      <span
-                        v-else-if="isPhaseCompleted(getPostProcessJob(item.id)!, 'phase1') && getPostProcessJob(item.id)!.progress.duplicatesRemoved > 0"
-                        class="pp-phase-status completed"
-                      >
-                        -{{ getPostProcessJob(item.id)!.progress.duplicatesRemoved }}
-                      </span>
-                    </div>
-                    <div class="pp-phase-bar">
-                      <div
-                        class="pp-phase-fill"
-                        :class="{
-                          'active': getPostProcessJob(item.id)!.progress.phase === 'phase1',
-                          'completed': isPhaseCompleted(getPostProcessJob(item.id)!, 'phase1')
-                        }"
-                        :style="{ width: `${getPhaseProgress(getPostProcessJob(item.id)!, 'phase1')}%` }"
-                      ></div>
-                    </div>
-                  </div>
-
-                  <!-- Phase 2: Exclusion List -->
-                  <div class="pp-phase-item">
-                    <div class="pp-phase-header">
-                      <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase2NameShort') }}</span>
-                      <span
-                        v-if="getPostProcessJob(item.id)!.progress.phase === 'phase2'"
-                        class="pp-phase-status active"
-                      >
-                        {{ getPostProcessJob(item.id)!.progress.currentIndex }}/{{ getPostProcessJob(item.id)!.progress.total }}
-                      </span>
-                      <span
-                        v-else-if="isPhaseCompleted(getPostProcessJob(item.id)!, 'phase2') && getPostProcessJob(item.id)!.progress.excludedRemoved > 0"
-                        class="pp-phase-status completed"
-                      >
-                        -{{ getPostProcessJob(item.id)!.progress.excludedRemoved }}
-                      </span>
-                    </div>
-                    <div class="pp-phase-bar">
-                      <div
-                        class="pp-phase-fill"
-                        :class="{
-                          'active': getPostProcessJob(item.id)!.progress.phase === 'phase2',
-                          'completed': isPhaseCompleted(getPostProcessJob(item.id)!, 'phase2')
-                        }"
-                        :style="{ width: `${getPhaseProgress(getPostProcessJob(item.id)!, 'phase2')}%` }"
-                      ></div>
-                    </div>
-                  </div>
-
-                  <!-- Phase 3: AI Classification -->
-                  <div class="pp-phase-item">
-                    <div class="pp-phase-header">
-                      <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase3NameShort') }}</span>
-                      <span
-                        v-if="getPostProcessJob(item.id)!.progress.phase === 'phase3'"
-                        class="pp-phase-status active"
-                      >
-                        {{ getPostProcessJob(item.id)!.progress.currentIndex }}/{{ getPostProcessJob(item.id)!.progress.total }}
-                      </span>
-                      <span
-                        v-else-if="isPhaseCompleted(getPostProcessJob(item.id)!, 'phase3') && getPostProcessJob(item.id)!.progress.aiFiltered > 0"
-                        class="pp-phase-status completed"
-                      >
-                        -{{ getPostProcessJob(item.id)!.progress.aiFiltered }}
-                      </span>
-                    </div>
-                    <div class="pp-phase-bar three-color">
-                      <!-- Green: completed progress -->
-                      <div
-                        class="pp-phase-fill"
-                        :class="{
-                          'active': getPostProcessJob(item.id)!.progress.phase === 'phase3',
-                          'completed': isPhaseCompleted(getPostProcessJob(item.id)!, 'phase3')
-                        }"
-                        :style="{
-                          width: `${getAIProgress(getPostProcessJob(item.id)!)}%`
-                        }"
-                      ></div>
-                      <!-- Blue: in-progress batch overlay (shows current batch being processed) -->
-                      <div
-                        v-if="getPostProcessJob(item.id)!.progress.phase === 'phase3' && getAIInProgressWidth(getPostProcessJob(item.id)!) > 0"
-                        class="pp-phase-fill in-progress"
-                        :style="{
-                          left: `${getAIProgress(getPostProcessJob(item.id)!)}%`,
-                          width: `${getAIInProgressWidth(getPostProcessJob(item.id)!)}%`
-                        }"
-                      ></div>
-                    </div>
-                  </div>
+                  <PostProcessingProgressBar :state="fromJobProgress(getPostProcessJob(item.id)!)" />
                 </div>
               </div>
             </div>
@@ -404,100 +307,7 @@
               :class="[`pp-status-${getDownloadPostProcessJob(item.id)?.status}`]"
             >
               <div class="pp-panel-content">
-                <!-- Phase 1: Duplicate Removal -->
-                <div class="pp-phase-item">
-                  <div class="pp-phase-header">
-                    <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase1NameShort') }}</span>
-                    <span
-                      v-if="getDownloadPostProcessJob(item.id)!.progress.phase === 'phase1'"
-                      class="pp-phase-status active"
-                    >
-                      {{ getDownloadPostProcessJob(item.id)!.progress.currentIndex }}/{{ getDownloadPostProcessJob(item.id)!.progress.total }}
-                    </span>
-                    <span
-                      v-else-if="isPhaseCompleted(getDownloadPostProcessJob(item.id)!, 'phase1') && getDownloadPostProcessJob(item.id)!.progress.duplicatesRemoved > 0"
-                      class="pp-phase-status completed"
-                    >
-                      -{{ getDownloadPostProcessJob(item.id)!.progress.duplicatesRemoved }}
-                    </span>
-                  </div>
-                  <div class="pp-phase-bar">
-                    <div
-                      class="pp-phase-fill"
-                      :class="{
-                        'active': getDownloadPostProcessJob(item.id)!.progress.phase === 'phase1',
-                        'completed': isPhaseCompleted(getDownloadPostProcessJob(item.id)!, 'phase1')
-                      }"
-                      :style="{ width: `${getPhaseProgress(getDownloadPostProcessJob(item.id)!, 'phase1')}%` }"
-                    ></div>
-                  </div>
-                </div>
-
-                <!-- Phase 2: Exclusion List -->
-                <div class="pp-phase-item">
-                  <div class="pp-phase-header">
-                    <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase2NameShort') }}</span>
-                    <span
-                      v-if="getDownloadPostProcessJob(item.id)!.progress.phase === 'phase2'"
-                      class="pp-phase-status active"
-                    >
-                      {{ getDownloadPostProcessJob(item.id)!.progress.currentIndex }}/{{ getDownloadPostProcessJob(item.id)!.progress.total }}
-                    </span>
-                    <span
-                      v-else-if="isPhaseCompleted(getDownloadPostProcessJob(item.id)!, 'phase2') && getDownloadPostProcessJob(item.id)!.progress.excludedRemoved > 0"
-                      class="pp-phase-status completed"
-                    >
-                      -{{ getDownloadPostProcessJob(item.id)!.progress.excludedRemoved }}
-                    </span>
-                  </div>
-                  <div class="pp-phase-bar">
-                    <div
-                      class="pp-phase-fill"
-                      :class="{
-                        'active': getDownloadPostProcessJob(item.id)!.progress.phase === 'phase2',
-                        'completed': isPhaseCompleted(getDownloadPostProcessJob(item.id)!, 'phase2')
-                      }"
-                      :style="{ width: `${getPhaseProgress(getDownloadPostProcessJob(item.id)!, 'phase2')}%` }"
-                    ></div>
-                  </div>
-                </div>
-
-                <!-- Phase 3: AI Classification -->
-                <div class="pp-phase-item">
-                  <div class="pp-phase-header">
-                    <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase3NameShort') }}</span>
-                    <span
-                      v-if="getDownloadPostProcessJob(item.id)!.progress.phase === 'phase3'"
-                      class="pp-phase-status active"
-                    >
-                      {{ getDownloadPostProcessJob(item.id)!.progress.currentIndex }}/{{ getDownloadPostProcessJob(item.id)!.progress.total }}
-                    </span>
-                    <span
-                      v-else-if="isPhaseCompleted(getDownloadPostProcessJob(item.id)!, 'phase3') && getDownloadPostProcessJob(item.id)!.progress.aiFiltered > 0"
-                      class="pp-phase-status completed"
-                    >
-                      -{{ getDownloadPostProcessJob(item.id)!.progress.aiFiltered }}
-                    </span>
-                  </div>
-                  <div class="pp-phase-bar three-color">
-                    <div
-                      class="pp-phase-fill"
-                      :class="{
-                        'active': getDownloadPostProcessJob(item.id)!.progress.phase === 'phase3',
-                        'completed': isPhaseCompleted(getDownloadPostProcessJob(item.id)!, 'phase3')
-                      }"
-                      :style="{ width: `${getAIProgress(getDownloadPostProcessJob(item.id)!)}%` }"
-                    ></div>
-                    <div
-                      v-if="getDownloadPostProcessJob(item.id)!.progress.phase === 'phase3' && getAIInProgressWidth(getDownloadPostProcessJob(item.id)!) > 0"
-                      class="pp-phase-fill in-progress"
-                      :style="{
-                        left: `${getAIProgress(getDownloadPostProcessJob(item.id)!)}%`,
-                        width: `${getAIInProgressWidth(getDownloadPostProcessJob(item.id)!)}%`
-                      }"
-                    ></div>
-                  </div>
-                </div>
+                <PostProcessingProgressBar :state="fromJobProgress(getDownloadPostProcessJob(item.id)!)" />
               </div>
             </div>
           </div>
@@ -526,6 +336,8 @@ import { ExtractionQueue } from '../services/extractionQueueService'
 import { TaskQueue, taskQueueState, type TaskItem } from '../services/taskQueueService'
 import { PostProcessingService, postProcessingState, type PostProcessJob } from '../services/postProcessingService'
 import { useI18n } from 'vue-i18n'
+import PostProcessingProgressBar from './PostProcessingProgressBar.vue'
+import { fromJobProgress } from '../postProcessing/displayAdapter'
 
 type Tab = 'task' | 'download'
 

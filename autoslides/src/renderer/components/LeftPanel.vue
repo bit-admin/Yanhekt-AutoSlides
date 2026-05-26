@@ -281,51 +281,15 @@
       </div>
     </div>
 
-    <div v-if="showAdvancedModal" class="modal-overlay" @click="closeAdvancedSettings">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>{{ $t('settings.advancedSettings') }}</h3>
-          <button @click="closeAdvancedSettings" class="close-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-        <div class="modal-body">
-          <!-- Tab Navigation -->
-          <div class="advanced-tabs">
-            <button
-              v-for="tab in advancedSettingsTabs"
-              :key="tab.id"
-              @click="activeAdvancedTab = tab.id"
-              :class="['tab-btn', { active: activeAdvancedTab === tab.id }]"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path v-if="tab.id === 'general'" d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
-                <circle v-if="tab.id === 'general'" cx="12" cy="12" r="3"/>
-                <path v-if="tab.id === 'imageProcessing'" d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
-                <circle v-if="tab.id === 'imageProcessing'" cx="12" cy="13" r="3"/>
-                <polygon v-if="tab.id === 'playback'" points="5 3 19 12 5 21 5 3"/>
-                <path v-if="tab.id === 'network'" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/>
-                <path v-if="tab.id === 'network'" d="M2 12h20"/>
-                <path v-if="tab.id === 'network'" d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                <!-- AI tab icon (brain/chip) -->
-                <rect v-if="tab.id === 'ai'" x="4" y="4" width="16" height="16" rx="2" ry="2"/>
-                <path v-if="tab.id === 'ai'" d="M9 9h.01"/>
-                <path v-if="tab.id === 'ai'" d="M15 9h.01"/>
-                <path v-if="tab.id === 'ai'" d="M9 15h.01"/>
-                <path v-if="tab.id === 'ai'" d="M15 15h.01"/>
-                <path v-if="tab.id === 'ai'" d="M12 9v6"/>
-                <path v-if="tab.id === 'ai'" d="M9 12h6"/>
-              </svg>
-              {{ $t(`advanced.tabs.${tab.id}`) }}
-            </button>
-          </div>
-
-          <div class="advanced-settings-content">
-            <!-- General Tab -->
-            <div v-show="activeAdvancedTab === 'general'" class="tab-content">
+    <AdvancedSettingsModal
+      :visible="showAdvancedModal"
+      :active-tab="activeAdvancedTab"
+      :tabs="advancedSettingsTabs"
+      @update:active-tab="activeAdvancedTab = $event"
+      @cancel="closeAdvancedSettings"
+      @save="saveAdvancedSettings"
+    >
+      <template #general>
             <div class="advanced-setting-section">
               <h4>{{ $t('advanced.authentication') }}</h4>
               <div class="setting-item">
@@ -448,10 +412,9 @@
                 </div>
               </div>
             </div>
-            </div>
+      </template>
 
-            <!-- Image Processing Tab -->
-            <div v-show="activeAdvancedTab === 'imageProcessing'" class="tab-content">
+      <template #imageProcessing>
             <div class="advanced-setting-section">
               <h4>{{ $t('advanced.imageOutput') }}</h4>
               <div class="setting-item">
@@ -878,10 +841,9 @@
 
 
             </div>
-            </div>
+      </template>
 
-            <!-- Download & Playback Tab -->
-            <div v-show="activeAdvancedTab === 'playback'" class="tab-content">
+      <template #playback>
             <!-- Auto Extraction After Download -->
             <div class="advanced-setting-section">
               <div class="section-header-with-action">
@@ -1082,10 +1044,9 @@
                 </div>
               </div>
             </div>
-            </div>
+      </template>
 
-            <!-- Network Tab -->
-            <div v-show="activeAdvancedTab === 'network'" class="tab-content">
+      <template #network>
             <div class="advanced-setting-section">
               <h4>{{ $t('advanced.intranetInterface') }}</h4>
               <div class="setting-item">
@@ -1166,10 +1127,9 @@
                 </div>
               </div>
             </div>
-            </div>
+      </template>
 
-            <!-- AI Tab -->
-            <div v-show="activeAdvancedTab === 'ai'" class="tab-content">
+      <template #ai>
 
             <!-- Classifier Mode Toggle -->
             <div class="advanced-setting-section">
@@ -1858,15 +1818,8 @@
                 </div>
               </template>
             </div>
-            </div>
-          </div>
-          <div class="modal-actions">
-            <button @click="closeAdvancedSettings" class="cancel-btn">{{ $t('advanced.cancel') }}</button>
-            <button @click="saveAdvancedSettings" class="save-btn">{{ $t('advanced.save') }}</button>
-          </div>
-        </div>
-      </div>
-    </div>
+      </template>
+    </AdvancedSettingsModal>
 
     <!-- Custom Name Input Dialog -->
     <div v-if="showNameInputModal" class="modal-overlay" @click="cancelNameInput">
@@ -1922,6 +1875,7 @@ import { useAISettings } from '../composables/useAISettings'
 import { usePHashExclusion } from '../composables/usePHashExclusion'
 import MlThresholdSlider from './MlThresholdSlider.vue'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
+import AdvancedSettingsModal from './settings/AdvancedSettingsModal.vue'
 
 const { t } = useI18n()
 
@@ -3171,57 +3125,6 @@ defineExpose({
   color: #333;
 }
 
-/* Advanced Settings Tabs */
-.advanced-tabs {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #fafafa;
-  flex-shrink: 0;
-}
-
-.advanced-tabs .tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: #666;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: -1px;
-}
-
-.advanced-tabs .tab-btn:hover {
-  color: #333;
-  background-color: rgba(0, 0, 0, 0.04);
-}
-
-.advanced-tabs .tab-btn.active {
-  color: #007acc;
-  border-bottom-color: #007acc;
-  background-color: white;
-}
-
-.advanced-tabs .tab-btn svg {
-  flex-shrink: 0;
-}
-
-.tab-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.advanced-settings-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  margin-bottom: 0;
-}
 
 .advanced-setting-section {
   margin-bottom: 24px;

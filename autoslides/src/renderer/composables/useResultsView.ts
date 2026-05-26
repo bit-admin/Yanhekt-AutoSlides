@@ -1,87 +1,35 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { compareToolFolders, compareToolImages, formatToolFolderName } from '../utils/toolWindowFolders'
 import { useAutoCropDetect } from './useAutoCropDetect'
+import { createPHashWorkerClient } from './results/pHashWorker'
+import type {
+  ResultsReason,
+  CropRect,
+  CropEntry,
+  RemovedEntry,
+  ResultsFolder,
+  BaselineCrop,
+  AutoCropActionSummary,
+  BaselineCropActionSummary,
+  DedupActionSummary,
+  ResultsItem,
+  ResultsViewMode,
+  ContextMode,
+  AutoCropTarget,
+  DedupCandidate
+} from './results/types'
 
-export type ResultsReason = 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual'
-export interface CropRect {
-  x: number
-  y: number
-  width: number
-  height: number
+export type {
+  ResultsReason,
+  CropRect,
+  CropEntry,
+  ResultsFolder,
+  BaselineCrop,
+  AutoCropActionSummary,
+  BaselineCropActionSummary,
+  DedupActionSummary,
+  ResultsItem
 }
-
-export interface CropEntry {
-  filename: string
-  originalPath: string
-  originalParentFolder: string
-  cropPath: string
-  rect: CropRect
-  croppedAt: string
-  autoCropped?: boolean
-}
-
-interface RemovedEntry {
-  id: string
-  filename: string
-  originalPath: string
-  originalParentFolder: string
-  trashPath: string
-  reason: ResultsReason
-  reasonDetails?: string
-  trashedAt: string
-}
-
-export interface ResultsFolder {
-  name: string
-  path?: string
-  activeCount: number
-  removedCount: number
-}
-
-export interface BaselineCrop {
-  rect: CropRect
-  sourceFilename: string
-  sourceImagePath: string
-}
-
-export interface AutoCropActionSummary {
-  cropped: number
-  noDetection: number
-  deduped: number
-  failed: number
-}
-
-export interface BaselineCropActionSummary {
-  cropped: number
-  outOfBounds: number
-  deduped: number
-  failed: number
-}
-
-export interface DedupActionSummary {
-  deduped: number
-  failed: number
-}
-
-export interface ResultsItem {
-  id: string
-  name: string
-  status: 'active' | 'removed'
-  imagePath?: string
-  trashPath?: string
-  originalPath?: string
-  reason?: ResultsReason
-  reasonDetails?: string
-  trashedAt?: string
-  isCropped?: boolean
-  isAutoCropped?: boolean
-  cropPath?: string
-  cropRect?: CropRect
-  croppedAt?: string
-}
-
-type ResultsViewMode = 'folders' | 'images'
-type ContextMode = 'context' | 'removed-only' | 'extracted-only'
 
 export function useResultsView() {
   const folders = ref<ResultsFolder[]>([])
@@ -494,18 +442,6 @@ export function useResultsView() {
     }
   }
 
-  interface AutoCropTarget {
-    id?: string
-    originalPath: string
-    filename: string
-    needsRestore: boolean
-  }
-
-  interface DedupCandidate {
-    originalPath: string
-    filename: string
-  }
-
   function buildSelectedCropTargets(): AutoCropTarget[] {
     return selectedItems.value.map((item) => {
       const isRemoved = item.status === 'removed'
@@ -679,68 +615,7 @@ export function useResultsView() {
     await loadFolderSummaries()
     const activeFolder = activeFolders.value.find((f) => f.name === folder.name)
 
-    const worker = new Worker(
-      new URL('../workers/postProcessor.worker.ts', import.meta.url),
-      { type: 'module' },
-    )
-
-    const calculatePHash = (imageData: ImageData): Promise<string> => {
-      return new Promise((resolve, reject) => {
-        const messageId = `pHash_${Date.now()}_${Math.random()}`
-        const messageHandler = (event: MessageEvent) => {
-          const { id, success, result, error } = event.data
-          if (id === messageId) {
-            worker.removeEventListener('message', messageHandler)
-            success ? resolve(result) : reject(new Error(error))
-          }
-        }
-        worker.addEventListener('message', messageHandler)
-        worker.postMessage({ id: messageId, type: 'calculatePHash', data: { imageData } })
-      })
-    }
-
-    const calculateHammingDistance = (hash1: string, hash2: string): Promise<number> => {
-      return new Promise((resolve, reject) => {
-        const messageId = `hamming_${Date.now()}_${Math.random()}`
-        const messageHandler = (event: MessageEvent) => {
-          const { id, success, result, error } = event.data
-          if (id === messageId) {
-            worker.removeEventListener('message', messageHandler)
-            success ? resolve(result) : reject(new Error(error))
-          }
-        }
-        worker.addEventListener('message', messageHandler)
-        worker.postMessage({ id: messageId, type: 'calculateHammingDistance', data: { hash1, hash2 } })
-      })
-    }
-
-    const bufferToImageData = (buffer: Uint8Array): Promise<ImageData> => {
-      return new Promise((resolve, reject) => {
-        const blob = new Blob([buffer as BlobPart])
-        const url = URL.createObjectURL(blob)
-        const img = new Image()
-        img.onload = () => {
-          const canvas = document.createElement('canvas')
-          canvas.width = img.width
-          canvas.height = img.height
-          const ctx = canvas.getContext('2d')
-          if (!ctx) {
-            URL.revokeObjectURL(url)
-            reject(new Error('Failed to get canvas context'))
-            return
-          }
-          ctx.drawImage(img, 0, 0)
-          const imageData = ctx.getImageData(0, 0, img.width, img.height)
-          URL.revokeObjectURL(url)
-          resolve(imageData)
-        }
-        img.onerror = () => {
-          URL.revokeObjectURL(url)
-          reject(new Error('Failed to load image'))
-        }
-        img.src = url
-      })
-    }
+    const { calculatePHash, calculateHammingDistance, bufferToImageData, terminate } = createPHashWorkerClient()
 
     try {
       const seen: Array<{ filename: string; pHash: string }> = []
@@ -800,7 +675,7 @@ export function useResultsView() {
         }
       }
     } finally {
-      worker.terminate()
+      terminate()
     }
   }
 
