@@ -1,7 +1,9 @@
 import { ipcMain, dialog } from 'electron';
-import { offlineProcessingService } from '../offlineProcessingService';
+import type { IpcServices } from './types';
 
-export function registerOfflineIpcHandlers(): void {
+export function registerOfflineIpcHandlers(services: IpcServices): void {
+  const { offlineProcessingService } = services;
+
   ipcMain.handle('offline:selectInputFolder', async () => {
     try {
       const result = await dialog.showOpenDialog({

@@ -1,7 +1,7 @@
 import { shell } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { FileDownloadService, DownloadProgress } from './fileDownloadService';
+import { FileDownloadService, DownloadProgress } from '@main/infra/fileDownloadService';
 
 export interface UpdateAsset {
   name: string;

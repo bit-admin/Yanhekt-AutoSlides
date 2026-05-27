@@ -1,5 +1,5 @@
 import { ipcMain, shell } from 'electron';
-import { ExtractorInstallerService } from '../extractorInstallerService';
+import { ExtractorInstallerService } from '@main/download/extractorInstallerService';
 import { fetchGithubRelease, buildGithubReleaseOptions } from '../../shared/githubRelease';
 import type { IpcServices } from './types';
 

@@ -1,7 +1,9 @@
 import { ipcMain } from 'electron';
-import { cacheManagementService } from '../cacheManagementService';
+import type { IpcServices } from './types';
 
-export function registerCacheIpcHandlers(): void {
+export function registerCacheIpcHandlers(services: IpcServices): void {
+  const { cacheManagementService } = services;
+
   ipcMain.handle('cache:getStats', async () => {
     try {
       return await cacheManagementService.getStats();

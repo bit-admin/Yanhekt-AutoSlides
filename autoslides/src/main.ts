@@ -1,103 +1,35 @@
-import { app, BrowserWindow, Menu, shell } from 'electron';
+import { app, BrowserWindow, Menu } from 'electron';
 import path from 'node:path';
-import { MainAuthService } from './main/authService';
-import { MainApiClient } from './main/apiClient';
-import { ConfigService } from './main/configService';
-import { IntranetMappingService } from './main/intranetMappingService';
-import { VideoProxyService } from './main/videoProxyService';
-import { FFmpegService } from './main/ffmpegService';
-import { M3u8DownloadService } from './main/m3u8DownloadService';
-import { PowerManagementService } from './main/powerManagementService';
-import { AIPromptsService } from './main/aiPromptsService';
-import { AIFilteringService } from './main/aiFilteringService';
-import { LLMApiService } from './main/llmApiService';
-import { updateDownloadService } from './main/updateDownloadService';
-import { QtExtractorService } from './main/qtExtractorService';
-import { extractorInstallerService } from './main/extractorInstallerService';
-import { AutoCropModelService } from './main/autoCropModelService';
-import { MlClassifierModelService } from './main/mlClassifierModelService';
-import { CompressLectureService } from './main/compressLectureService';
-import { WindowManager, getWindowBackgroundColor } from './main/windowManager';
-import { registerAllIpcHandlers } from './main/ipc';
-
-import enTranslations from './renderer/i18n/locales/en.json';
-import zhTranslations from './renderer/i18n/locales/zh.json';
+import { MainAuthService } from '@main/platform/authService';
+import { MainApiClient } from '@main/platform/apiClient';
+import { ConfigService } from '@main/platform/configService';
+import { IntranetMappingService } from '@main/platform/intranetMappingService';
+import { VideoProxyService } from '@main/video/videoProxyService';
+import { FFmpegService } from '@main/infra/ffmpegService';
+import { M3u8DownloadService } from '@main/video/m3u8DownloadService';
+import { PowerManagementService } from '@main/platform/powerManagementService';
+import { AIPromptsService } from '@main/ai/aiPromptsService';
+import { AIFilteringService } from '@main/ai/aiFilteringService';
+import { LLMApiService } from '@main/ai/llmApiService';
+import { updateDownloadService } from '@main/download/updateDownloadService';
+import { QtExtractorService } from '@main/extraction/qtExtractorService';
+import { extractorInstallerService } from '@main/download/extractorInstallerService';
+import { AutoCropModelService } from '@main/ai/autoCropModelService';
+import { MlClassifierModelService } from '@main/ai/mlClassifierModelService';
+import { CompressLectureService } from '@main/video/compressLectureService';
+import { WindowManager, getWindowBackgroundColor } from '@main/platform/windowManager';
+import { pdfService } from '@main/export/pdfService';
+import { slideExtractionService } from '@main/extraction/slideExtractionService';
+import { offlineProcessingService } from '@main/extraction/offlineProcessingService';
+import { cacheManagementService } from '@main/platform/cacheManagementService';
+import { registerAllIpcHandlers } from '@main/ipc';
 
 const configService = new ConfigService();
-
-const getTranslation = (key: string): string => {
-  const languageMode = configService.getLanguageMode();
-  let locale: 'en' | 'zh' = 'en';
-
-  if (languageMode === 'zh') {
-    locale = 'zh';
-  } else if (languageMode === 'system') {
-    const systemLang = app.getLocale();
-    locale = systemLang.startsWith('zh') ? 'zh' : 'en';
-  }
-
-  const translations = locale === 'zh' ? zhTranslations : enTranslations;
-  const keys = key.split('.');
-  let result: unknown = translations;
-
-  for (const k of keys) {
-    result = (result as Record<string, unknown>)?.[k];
-  }
-
-  return (typeof result === 'string' ? result : key);
-};
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
 
 app.setName('AutoSlides');
-
-const createMenuTemplate = (): Electron.MenuItemConstructorOptions[] => {
-  return [
-    { label: app.name, submenu: [
-      { role: 'about', label: getTranslation('titlebar.about') },
-      { type: 'separator' },
-      { label: getTranslation('titlebar.checkForUpdates'), click: async () => {
-        const mainWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
-        if (mainWindow) {
-          mainWindow.webContents.send('menu:checkForUpdates');
-        }
-      } },
-      {
-        label: getTranslation('titlebar.legalNotices'),
-        click: () => {
-          const termsPath = app.isPackaged
-            ? path.join(process.resourcesPath, 'terms/terms.rtf')
-            : path.join(__dirname, '../../resources/terms/terms.rtf');
-          shell.openPath(termsPath);
-        }
-      },
-      { type: 'separator' },
-      { role: 'services', label: getTranslation('titlebar.services') },
-      { type: 'separator' },
-      { role: 'hide', label: getTranslation('titlebar.hide') },
-      { role: 'hideOthers', label: getTranslation('titlebar.hideOthers') },
-      { role: 'unhide', label: getTranslation('titlebar.showAll') },
-      { type: 'separator' },
-      { role: 'quit', label: getTranslation('titlebar.quit') }
-    ] },
-    { label: getTranslation('titlebar.file'), submenu: [{ label: getTranslation('titlebar.new'), accelerator: 'CmdOrCtrl+N', enabled: false }, { label: getTranslation('titlebar.open'), accelerator: 'CmdOrCtrl+O', enabled: false }, { type: 'separator' }, { role: 'close', label: getTranslation('titlebar.close') }] },
-    { label: getTranslation('titlebar.edit'), submenu: [{ role: 'undo', label: getTranslation('titlebar.undo') }, { role: 'redo', label: getTranslation('titlebar.redo') }, { type: 'separator' }, { role: 'cut', label: getTranslation('titlebar.cut') }, { role: 'copy', label: getTranslation('titlebar.copy') }, { role: 'paste', label: getTranslation('titlebar.paste') }, { role: 'selectAll', label: getTranslation('titlebar.selectAll') }] },
-    { label: getTranslation('titlebar.view'), submenu: [{ role: 'reload', label: getTranslation('titlebar.reload') }, { role: 'forceReload', label: getTranslation('titlebar.forceReload') }, { role: 'toggleDevTools', label: getTranslation('titlebar.toggleDevTools') }, { type: 'separator' }, { role: 'resetZoom', label: getTranslation('titlebar.resetZoom') }, { role: 'zoomIn', label: getTranslation('titlebar.zoomIn') }, { role: 'zoomOut', label: getTranslation('titlebar.zoomOut') }, { type: 'separator' }, { role: 'togglefullscreen', label: getTranslation('titlebar.toggleFullscreen') }] },
-    { label: getTranslation('titlebar.window'), submenu: [{ role: 'minimize', label: getTranslation('titlebar.minimize') }, { role: 'close', label: getTranslation('titlebar.close') }, { type: 'separator' }, { role: 'front', label: getTranslation('titlebar.bringAllToFront') }] },
-    { label: getTranslation('titlebar.help'), role: 'help', submenu: [
-      { label: getTranslation('titlebar.visitGitHub'), click: () => { shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides'); } },
-      { label: getTranslation('titlebar.itCenterSoftware'), click: () => { shell.openExternal('https://it.ruc.edu.kg/zh/software'); } }
-    ] }
-  ];
-};
-
-const updateApplicationMenu = () => {
-  if (process.platform === 'darwin') {
-    const menu = Menu.buildFromTemplate(createMenuTemplate());
-    Menu.setApplicationMenu(menu);
-  }
-};
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
@@ -136,7 +68,7 @@ const createWindow = () => {
 
 app.on('ready', () => {
   if (process.platform === 'darwin') {
-    updateApplicationMenu();
+    windowManager.updateApplicationMenu();
   } else {
     Menu.setApplicationMenu(null);
   }
@@ -172,6 +104,7 @@ const aiFilteringService = new AIFilteringService(configService, aiPromptsServic
 const qtExtractorService = new QtExtractorService(configService);
 
 const windowManager = new WindowManager();
+windowManager.setConfigService(configService);
 windowManager.setOnToolsWindowClosed(() => compressLectureService.cancel());
 
 // Initialize power management based on config
@@ -211,5 +144,8 @@ registerAllIpcHandlers({
   mlClassifierModelService,
   compressLectureService,
   windowManager,
-  updateApplicationMenu
+  pdfService,
+  slideExtractionService,
+  offlineProcessingService,
+  cacheManagementService
 });

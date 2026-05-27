@@ -2,7 +2,7 @@ import { ipcMain, dialog } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IpcServices } from './types';
-import type { AIServiceType } from '../configService';
+import type { AIServiceType } from '@main/platform/configService';
 
 export function registerConfigIpcHandlers(services: IpcServices): void {
   const {
@@ -11,7 +11,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     powerManagementService,
     llmApiService,
     aiPromptsService,
-    updateApplicationMenu
+    windowManager
   } = services;
 
   ipcMain.handle('config:get', async () => {
@@ -143,7 +143,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setLanguageMode', async (_event, language: 'system' | 'en' | 'zh') => {
     configService.setLanguageMode(language);
-    updateApplicationMenu();
+    windowManager.updateApplicationMenu();
     return configService.getConfig();
   });
 

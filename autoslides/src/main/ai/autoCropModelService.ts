@@ -1,5 +1,5 @@
-import { ConfigService } from './configService';
-import { OnnxModelService, OnnxModelInfo } from './onnxModelService';
+import { ConfigService } from '@main/platform/configService';
+import { OnnxModelService, OnnxModelInfo } from '@main/infra/onnxModelService';
 
 export type AutoCropModelInfo = OnnxModelInfo;
 

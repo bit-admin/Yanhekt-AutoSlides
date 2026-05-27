@@ -1,9 +1,9 @@
 import { ipcMain } from 'electron';
-import { slideExtractionService, CropRect } from '../slideExtractionService';
+import type { CropRect } from '@main/extraction/slideExtractionService';
 import type { IpcServices } from './types';
 
 export function registerCropIpcHandlers(services: IpcServices): void {
-  const { configService } = services;
+  const { configService, slideExtractionService } = services;
 
   ipcMain.handle('crop:getEntries', async () => {
     try {

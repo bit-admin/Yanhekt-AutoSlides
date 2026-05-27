@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import { slideExtractionService, TrashMetadata } from '../slideExtractionService';
+import { slideExtractionService, TrashMetadata } from '@main/extraction/slideExtractionService';
 import type { IpcServices } from './types';
 
 export function registerSlideExtractionIpcHandlers(services: IpcServices): void {

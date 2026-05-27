@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import type { IpcServices } from './types';
-import type { LiveStreamInput, RecordedSessionInput } from '../videoProxyService';
+import type { LiveStreamInput, RecordedSessionInput } from '@main/video/videoProxyService';
 
 export function registerVideoIpcHandlers(services: IpcServices): void {
   const { videoProxyService } = services;

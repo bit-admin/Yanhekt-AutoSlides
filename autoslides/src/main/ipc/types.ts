@@ -1,21 +1,25 @@
-import type { MainAuthService } from '../authService';
-import type { ApiClient } from '../apiClient';
-import type { ConfigService } from '../configService';
-import type { IntranetMappingService } from '../intranetMappingService';
-import type { VideoProxyService } from '../videoProxyService';
-import type { FFmpegService } from '../ffmpegService';
-import type { M3u8DownloadService } from '../m3u8DownloadService';
-import type { PowerManagementService } from '../powerManagementService';
-import type { AIPromptsService } from '../aiPromptsService';
-import type { AIFilteringService } from '../aiFilteringService';
-import type { LLMApiService } from '../llmApiService';
-import type { UpdateDownloadService } from '../updateDownloadService';
-import type { QtExtractorService } from '../qtExtractorService';
-import type { ExtractorInstallerService } from '../extractorInstallerService';
-import type { AutoCropModelService } from '../autoCropModelService';
-import type { MlClassifierModelService } from '../mlClassifierModelService';
-import type { CompressLectureService } from '../compressLectureService';
-import type { WindowManager } from '../windowManager';
+import type { MainAuthService } from '@main/platform/authService';
+import type { ApiClient } from '@main/platform/apiClient';
+import type { ConfigService } from '@main/platform/configService';
+import type { IntranetMappingService } from '@main/platform/intranetMappingService';
+import type { VideoProxyService } from '@main/video/videoProxyService';
+import type { FFmpegService } from '@main/infra/ffmpegService';
+import type { M3u8DownloadService } from '@main/video/m3u8DownloadService';
+import type { PowerManagementService } from '@main/platform/powerManagementService';
+import type { AIPromptsService } from '@main/ai/aiPromptsService';
+import type { AIFilteringService } from '@main/ai/aiFilteringService';
+import type { LLMApiService } from '@main/ai/llmApiService';
+import type { UpdateDownloadService } from '@main/download/updateDownloadService';
+import type { QtExtractorService } from '@main/extraction/qtExtractorService';
+import type { ExtractorInstallerService } from '@main/download/extractorInstallerService';
+import type { AutoCropModelService } from '@main/ai/autoCropModelService';
+import type { MlClassifierModelService } from '@main/ai/mlClassifierModelService';
+import type { CompressLectureService } from '@main/video/compressLectureService';
+import type { WindowManager } from '@main/platform/windowManager';
+import type { PdfService } from '@main/export/pdfService';
+import type { SlideExtractionService } from '@main/extraction/slideExtractionService';
+import type { OfflineProcessingService } from '@main/extraction/offlineProcessingService';
+import type { CacheManagementService } from '@main/platform/cacheManagementService';
 
 export interface IpcServices {
   authService: MainAuthService;
@@ -36,5 +40,8 @@ export interface IpcServices {
   mlClassifierModelService: MlClassifierModelService;
   compressLectureService: CompressLectureService;
   windowManager: WindowManager;
-  updateApplicationMenu: () => void;
+  pdfService: PdfService;
+  slideExtractionService: SlideExtractionService;
+  offlineProcessingService: OfflineProcessingService;
+  cacheManagementService: CacheManagementService;
 }

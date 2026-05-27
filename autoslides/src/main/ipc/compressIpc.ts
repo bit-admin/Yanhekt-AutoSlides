@@ -1,7 +1,7 @@
 import { ipcMain, dialog, app } from 'electron';
 import path from 'node:path';
 import type { IpcServices } from './types';
-import type { CompressLectureOptions } from '../compressLectureService';
+import type { CompressLectureOptions } from '@main/video/compressLectureService';
 
 export function registerCompressIpcHandlers(services: IpcServices): void {
   const { compressLectureService } = services;

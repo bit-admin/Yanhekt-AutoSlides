@@ -6,7 +6,7 @@
 
 import { promises as fs } from 'fs'
 import path from 'path'
-import { sharpService } from './sharpService'
+import { sharpService } from '@main/infra/sharpService'
 
 const SUPPORTED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp']
 

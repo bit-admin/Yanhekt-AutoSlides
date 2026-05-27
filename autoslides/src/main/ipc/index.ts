@@ -41,13 +41,13 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerCompressIpcHandlers(services);
   registerDownloadIpcHandlers(services);
   registerSlideExtractionIpcHandlers(services);
-  registerOfflineIpcHandlers();
+  registerOfflineIpcHandlers(services);
   registerDialogIpcHandlers();
   registerWindowIpcHandlers();
   registerShellIpcHandlers();
   registerMenuIpcHandlers();
   registerPowerIpcHandlers(services);
-  registerCacheIpcHandlers();
+  registerCacheIpcHandlers(services);
   registerAppIpcHandlers();
   registerToolsWindowIpcHandlers(services);
   registerYuketangIpcHandlers(services);

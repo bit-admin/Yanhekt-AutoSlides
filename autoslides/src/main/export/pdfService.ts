@@ -7,7 +7,7 @@ import { app } from 'electron';
 import fs from 'fs';
 import PDFDocument from 'pdfkit';
 import PptxGenJS from 'pptxgenjs';
-import { sharpService } from './sharpService';
+import { sharpService } from '@main/infra/sharpService';
 import {
   chineseToPinyin,
   containsCjk,

@@ -6,11 +6,11 @@ import os from 'os';
 import axios, { type AxiosInstance } from 'axios';
 import { spawn } from 'child_process';
 import { pipeline } from 'stream/promises';
-import { FFmpegService } from './ffmpegService';
-import { ConfigService } from './configService';
-import { IntranetMappingService } from './intranetMappingService';
-import { ApiClient } from './apiClient';
-import { encryptVideoUrl, getVideoSignature, addSignatureToUrl } from '../shared/crypto';
+import { FFmpegService } from '@main/infra/ffmpegService';
+import { ConfigService } from '@main/platform/configService';
+import { IntranetMappingService } from '@main/platform/intranetMappingService';
+import { ApiClient } from '@main/platform/apiClient';
+import { encryptVideoUrl, getVideoSignature, addSignatureToUrl } from '../../shared/crypto';
 
 export interface DownloadProgress {
   current: number;

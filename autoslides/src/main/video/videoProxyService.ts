@@ -3,13 +3,13 @@ import * as url from 'url';
 import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 import * as https from 'https';
 import * as os from 'os';
-import { ApiClient } from './apiClient';
-import { IntranetMappingService } from './intranetMappingService';
+import { ApiClient } from '@main/platform/apiClient';
+import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import {
   encryptVideoUrl,
   getVideoSignature,
   addSignatureToUrl
-} from '../shared/crypto';
+} from '../../shared/crypto';
 import {
   fixUrlEscaping,
   extractHostFromUrl,

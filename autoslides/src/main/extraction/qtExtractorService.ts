@@ -3,8 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as readline from 'readline';
 import { dialog } from 'electron';
-import { ConfigService } from './configService';
-import { sharpService } from './sharpService';
+import { ConfigService } from '@main/platform/configService';
+import { sharpService } from '@main/infra/sharpService';
 
 export interface QtExtractorStatus {
   ok: boolean;

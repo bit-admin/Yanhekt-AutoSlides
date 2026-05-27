@@ -33,6 +33,14 @@ function pdfkitDataCopy(): Plugin {
 // https://vitejs.dev/config
 export default defineConfig(({ mode }) => ({
   plugins: [pdfkitDataCopy()],
+  resolve: {
+    alias: {
+      '@main': path.resolve(__dirname, 'src/main'),
+      '@renderer': path.resolve(__dirname, 'src/renderer'),
+      '@shared': path.resolve(__dirname, 'src/shared'),
+      '@features': path.resolve(__dirname, 'src/renderer/features'),
+    },
+  },
   build: {
     minify: mode === 'production' ? 'terser' : false,
     terserOptions: mode === 'production' ? {

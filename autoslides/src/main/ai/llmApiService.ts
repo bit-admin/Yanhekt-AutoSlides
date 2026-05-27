@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import Bottleneck from 'bottleneck';
 import { app } from 'electron';
-import { ConfigService } from './configService';
+import { ConfigService } from '@main/platform/configService';
 
 const DEBUG = true;
 

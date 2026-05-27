@@ -1,5 +1,5 @@
 import { setI18nLanguage, detectSystemLanguage } from '../i18n'
-import type { LanguageMode } from '../../main/configService'
+import type { LanguageMode } from '@main/platform/configService'
 
 export class LanguageService {
   private currentLanguageMode: LanguageMode = 'system'

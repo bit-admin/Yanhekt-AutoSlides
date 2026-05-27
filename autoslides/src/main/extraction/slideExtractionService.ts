@@ -7,7 +7,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import os from 'os';
 import { shell } from 'electron';
-import { sharpService } from './sharpService';
+import { sharpService } from '@main/infra/sharpService';
 import type { TrashEntry, TrashMetadata, CropEntry, CropRect } from './slideExtraction/types';
 import {
   getRootOutputDirectory as getRootOutputDirectoryHelper,

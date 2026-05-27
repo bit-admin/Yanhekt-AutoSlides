@@ -5,8 +5,8 @@ import {
   exportClassPresentation,
   fetchLessonTitle,
   fetchClassPresentationTitle
-} from '../yuketangService';
-import { buildYuketangCookieHeader } from '../windowManager';
+} from '@main/export/yuketangService';
+import { buildYuketangCookieHeader } from '@main/platform/windowManager';
 import type { IpcServices } from './types';
 
 export function registerYuketangIpcHandlers(services: IpcServices): void {

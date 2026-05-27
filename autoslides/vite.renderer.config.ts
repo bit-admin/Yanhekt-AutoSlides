@@ -91,6 +91,14 @@ export default defineConfig(({ mode }) => ({
     ortWasmDevServer(),
     ortWasmBuildCopy()
   ],
+  resolve: {
+    alias: {
+      '@main': path.resolve(__dirname, 'src/main'),
+      '@renderer': path.resolve(__dirname, 'src/renderer'),
+      '@shared': path.resolve(__dirname, 'src/shared'),
+      '@features': path.resolve(__dirname, 'src/renderer/features'),
+    },
+  },
   optimizeDeps: {
     exclude: ['onnxruntime-web']
   },

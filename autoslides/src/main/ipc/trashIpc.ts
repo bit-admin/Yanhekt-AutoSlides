@@ -1,9 +1,8 @@
 import { ipcMain } from 'electron';
-import { slideExtractionService } from '../slideExtractionService';
 import type { IpcServices } from './types';
 
 export function registerTrashIpcHandlers(services: IpcServices): void {
-  const { configService } = services;
+  const { configService, slideExtractionService } = services;
 
   ipcMain.handle('trash:getEntries', async () => {
     try {

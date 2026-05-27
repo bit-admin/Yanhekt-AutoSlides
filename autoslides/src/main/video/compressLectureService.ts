@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { FFmpegService } from './ffmpegService';
+import { FFmpegService } from '@main/infra/ffmpegService';
 
 export type CompressLecturePreset = 'tiny' | 'small' | 'readable';
 export type CompressLectureAudioPreset = 'low' | 'mid' | 'high' | 'max';

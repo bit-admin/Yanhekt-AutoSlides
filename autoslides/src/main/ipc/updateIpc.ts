@@ -1,5 +1,5 @@
 import { ipcMain, app } from 'electron';
-import { UpdateDownloadService } from '../updateDownloadService';
+import { UpdateDownloadService } from '@main/download/updateDownloadService';
 import { fetchGithubRelease, buildGithubReleaseOptions } from '../../shared/githubRelease';
 import type { IpcServices } from './types';
 

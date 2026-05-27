@@ -1,5 +1,8 @@
-import { BrowserWindow, nativeTheme, session } from 'electron';
+import { app, BrowserWindow, Menu, nativeTheme, session, shell } from 'electron';
 import path from 'node:path';
+import type { ConfigService } from '@main/platform/configService';
+import enTranslations from '../../renderer/i18n/locales/en.json';
+import zhTranslations from '../../renderer/i18n/locales/zh.json';
 
 export interface YuketangClassCapture {
   presentationId: string;
@@ -28,6 +31,81 @@ export class WindowManager {
   };
 
   private onToolsWindowClosed?: () => void;
+  private configService?: ConfigService;
+
+  setConfigService(configService: ConfigService): void {
+    this.configService = configService;
+  }
+
+  private getTranslation(key: string): string {
+    const languageMode = this.configService?.getLanguageMode() ?? 'system';
+    let locale: 'en' | 'zh' = 'en';
+
+    if (languageMode === 'zh') {
+      locale = 'zh';
+    } else if (languageMode === 'system') {
+      const systemLang = app.getLocale();
+      locale = systemLang.startsWith('zh') ? 'zh' : 'en';
+    }
+
+    const translations = locale === 'zh' ? zhTranslations : enTranslations;
+    const keys = key.split('.');
+    let result: unknown = translations;
+
+    for (const k of keys) {
+      result = (result as Record<string, unknown>)?.[k];
+    }
+
+    return (typeof result === 'string' ? result : key);
+  }
+
+  private createMenuTemplate(): Electron.MenuItemConstructorOptions[] {
+    const t = (key: string) => this.getTranslation(key);
+    return [
+      { label: app.name, submenu: [
+        { role: 'about', label: t('titlebar.about') },
+        { type: 'separator' },
+        { label: t('titlebar.checkForUpdates'), click: async () => {
+          const mainWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+          if (mainWindow) {
+            mainWindow.webContents.send('menu:checkForUpdates');
+          }
+        } },
+        {
+          label: t('titlebar.legalNotices'),
+          click: () => {
+            const termsPath = app.isPackaged
+              ? path.join(process.resourcesPath, 'terms/terms.rtf')
+              : path.join(__dirname, '../../resources/terms/terms.rtf');
+            shell.openPath(termsPath);
+          }
+        },
+        { type: 'separator' },
+        { role: 'services', label: t('titlebar.services') },
+        { type: 'separator' },
+        { role: 'hide', label: t('titlebar.hide') },
+        { role: 'hideOthers', label: t('titlebar.hideOthers') },
+        { role: 'unhide', label: t('titlebar.showAll') },
+        { type: 'separator' },
+        { role: 'quit', label: t('titlebar.quit') }
+      ] },
+      { label: t('titlebar.file'), submenu: [{ label: t('titlebar.new'), accelerator: 'CmdOrCtrl+N', enabled: false }, { label: t('titlebar.open'), accelerator: 'CmdOrCtrl+O', enabled: false }, { type: 'separator' }, { role: 'close', label: t('titlebar.close') }] },
+      { label: t('titlebar.edit'), submenu: [{ role: 'undo', label: t('titlebar.undo') }, { role: 'redo', label: t('titlebar.redo') }, { type: 'separator' }, { role: 'cut', label: t('titlebar.cut') }, { role: 'copy', label: t('titlebar.copy') }, { role: 'paste', label: t('titlebar.paste') }, { role: 'selectAll', label: t('titlebar.selectAll') }] },
+      { label: t('titlebar.view'), submenu: [{ role: 'reload', label: t('titlebar.reload') }, { role: 'forceReload', label: t('titlebar.forceReload') }, { role: 'toggleDevTools', label: t('titlebar.toggleDevTools') }, { type: 'separator' }, { role: 'resetZoom', label: t('titlebar.resetZoom') }, { role: 'zoomIn', label: t('titlebar.zoomIn') }, { role: 'zoomOut', label: t('titlebar.zoomOut') }, { type: 'separator' }, { role: 'togglefullscreen', label: t('titlebar.toggleFullscreen') }] },
+      { label: t('titlebar.window'), submenu: [{ role: 'minimize', label: t('titlebar.minimize') }, { role: 'close', label: t('titlebar.close') }, { type: 'separator' }, { role: 'front', label: t('titlebar.bringAllToFront') }] },
+      { label: t('titlebar.help'), role: 'help', submenu: [
+        { label: t('titlebar.visitGitHub'), click: () => { shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides'); } },
+        { label: t('titlebar.itCenterSoftware'), click: () => { shell.openExternal('https://it.ruc.edu.kg/zh/software'); } }
+      ] }
+    ];
+  }
+
+  updateApplicationMenu(): void {
+    if (process.platform === 'darwin') {
+      const menu = Menu.buildFromTemplate(this.createMenuTemplate());
+      Menu.setApplicationMenu(menu);
+    }
+  }
 
   setOnToolsWindowClosed(fn: () => void): void {
     this.onToolsWindowClosed = fn;

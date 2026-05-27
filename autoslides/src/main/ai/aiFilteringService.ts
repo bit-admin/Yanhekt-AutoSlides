@@ -1,4 +1,4 @@
-import { ConfigService, MODELSCOPE_API_BASE_URL } from './configService';
+import { ConfigService, MODELSCOPE_API_BASE_URL } from '@main/platform/configService';
 import { AIPromptsService, AIPromptType } from './aiPromptsService';
 import { CopilotService } from './copilotService';
 import {

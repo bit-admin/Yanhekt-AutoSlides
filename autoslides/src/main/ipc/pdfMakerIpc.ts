@@ -2,13 +2,12 @@ import { ipcMain, BrowserWindow, dialog, app } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import { slideExtractionService } from '../slideExtractionService';
-import { pdfService, type PdfMakeOptions, type FolderEntry, type CoverPageInfo } from '../pdfService';
+import type { PdfMakeOptions, FolderEntry, CoverPageInfo } from '@main/export/pdfService';
 import {
   extractCourseName,
   extractSessionLabel,
   formatCoverTimestamp
-} from '../coverFontService';
+} from '@main/export/coverFontService';
 import enTranslations from '../../renderer/i18n/locales/en.json';
 import type { IpcServices } from './types';
 
@@ -90,6 +89,7 @@ function getUniqueExportPath(
 }
 
 function makeSlidesExport(
+  pdfService: IpcServices['pdfService'],
   format: SlidesExportFormat,
   folders: FolderEntry[],
   options: PdfMakeOptions,
@@ -102,7 +102,7 @@ function makeSlidesExport(
 }
 
 export function registerPdfMakerIpcHandlers(services: IpcServices): void {
-  const { configService, windowManager } = services;
+  const { configService, windowManager, slideExtractionService, pdfService } = services;
 
   ipcMain.handle('pdfmaker:getFolders', async () => {
     try {
@@ -234,6 +234,7 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
             : options;
 
           const exportResult = await makeSlidesExport(
+            pdfService,
             outputFormat,
             [folder],
             perFolderOptions,
@@ -292,6 +293,7 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
         : options;
 
       const exportResult = await makeSlidesExport(
+        pdfService,
         outputFormat,
         folders,
         singleOptions,

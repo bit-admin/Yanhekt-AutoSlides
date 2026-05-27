@@ -1,4 +1,4 @@
-import { FileDownloadService, DownloadProgress } from './fileDownloadService';
+import { FileDownloadService, DownloadProgress } from '@main/infra/fileDownloadService';
 
 export interface ExtractorAsset {
   name: string;
