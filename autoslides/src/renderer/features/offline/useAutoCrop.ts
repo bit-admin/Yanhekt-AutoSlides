@@ -1,6 +1,7 @@
 import { onUnmounted, ref } from 'vue';
 
 import type { DetectorMode } from '@shared/workers/autoCrop.worker';
+import { configStore } from '@shared/services/configStore'
 import {
   createAutoCropWorkerClient,
   processBatch,
@@ -53,7 +54,7 @@ export function useAutoCrop() {
     if (selectedImagePaths.value.length === 0) return;
     const images = [...selectedImagePaths.value];
 
-    const config = await window.electronAPI.config.get();
+    const config = configStore;
     const configuredOutputDir = config.outputDirectory || '';
     if (!configuredOutputDir) {
       console.error('No output directory configured');
@@ -112,7 +113,7 @@ export function useAutoCrop() {
   };
 
   const refreshDetectorMode = async (): Promise<DetectorMode> => {
-    const config = await window.electronAPI.config.get();
+    const config = configStore;
     const mode: DetectorMode = config.slideExtraction?.autoCropDetectorMode ?? 'canny_then_yolo';
     detectorMode.value = mode;
     return mode;

@@ -478,6 +478,7 @@ interface ElectronAPI {
 
   config: {
     get: () => Promise<AppConfig>;
+    onUpdate: (callback: (cfg: AppConfig) => void) => () => void;
     setOutputDirectory: (directory: string) => Promise<AppConfig>;
     selectOutputDirectory: () => Promise<AppConfig | null>;
     setConnectionMode: (mode: 'internal' | 'external') => Promise<AppConfig>;

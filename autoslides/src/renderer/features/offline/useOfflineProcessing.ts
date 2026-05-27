@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import { tokenManager } from '@shared/services/authService'
 import { PostProcessingPipeline } from '@shared/postProcessing/pipeline'
 import { createOfflineDataSource } from '@shared/postProcessing/imageSources'
+import { configStore } from '@shared/services/configStore'
 import type {
   PostProcessingConfig,
   PostProcessingProgress
@@ -76,7 +77,7 @@ export function useOfflineProcessing() {
       inputFolderPath.value = folderPath
       const parts = folderPath.replace(/\\/g, '/').split('/')
       inputFolderName.value = parts[parts.length - 1] || parts[parts.length - 2] || 'unknown'
-      const config = await window.electronAPI.config.get()
+      const config = configStore
       const configuredOutputDir = config.outputDirectory || ''
       outputDir.value = configuredOutputDir
         ? `${configuredOutputDir}/slides_${inputFolderName.value}`

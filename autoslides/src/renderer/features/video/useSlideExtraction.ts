@@ -18,6 +18,7 @@ export interface SlideExtractionStatus {
 
 export type { Course } from '@features/course/useCourseList'
 import type { Course } from '@features/course/useCourseList'
+import { configStore } from '@shared/services/configStore'
 
 export interface Session {
   id: string
@@ -101,7 +102,7 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
 
   // Build the SlideExtractionInput payload from current course/session state.
   const buildExtractionInput = async (): Promise<SlideExtractionInput> => {
-    const config = await window.electronAPI.config.get()
+    const config = configStore
     const outputDir = config.outputDirectory || '~/Downloads/AutoSlides'
 
     let folderName = 'slides'

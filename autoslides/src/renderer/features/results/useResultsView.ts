@@ -1,6 +1,7 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { createAutoCropWorkerClient } from '@shared/autoCrop'
+import { configStore } from '@shared/services/configStore'
 import {
   createResultsDataIO,
   loadFolderSummaries as loadFolderSummariesCore,
@@ -387,7 +388,7 @@ export function useResultsView() {
   }
 
   async function readDetectConfig() {
-    const appConfig = await window.electronAPI.config.get()
+    const appConfig = configStore
     const slideCfg = appConfig.slideExtraction
     return {
       detectConfig: {

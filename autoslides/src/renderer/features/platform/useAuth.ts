@@ -2,6 +2,7 @@ import { ref, type Ref } from 'vue'
 import { AuthService, TokenManager, tokenManager } from '@shared/services/authService'
 import { ApiClient } from '@shared/services/apiClient'
 import { toDisplayName } from './usePinyinName'
+import { configStore } from '@shared/services/configStore'
 
 // Shared state (singleton pattern for cross-component access)
 const isBrowserLoginActive = ref(false)
@@ -120,7 +121,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     if (!token) return
 
     // Pre-populate from stored names while waiting for API
-    const stored = await window.electronAPI.config.get()
+    const stored = configStore
     if (stored.userOriginalNickname) {
       userNickname.value = stored.userOriginalNickname
       isLoggedIn.value = true

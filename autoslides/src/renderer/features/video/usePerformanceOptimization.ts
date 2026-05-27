@@ -1,5 +1,6 @@
 import { ref, type Ref, type ShallowRef, type ComputedRef } from 'vue'
 import type Hls from 'hls.js'
+import { configStore } from '@shared/services/configStore'
 
 export interface UsePerformanceOptimizationOptions {
   mode: 'live' | 'recorded'
@@ -303,7 +304,7 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
 
   const initConfig = async () => {
     try {
-      const config = await window.electronAPI.config.get()
+      const config = configStore
       preventSystemSleep.value = config.preventSystemSleep !== undefined ? config.preventSystemSleep : true
       console.log('Performance optimization setting (preventSystemSleep):', preventSystemSleep.value)
     } catch (error) {

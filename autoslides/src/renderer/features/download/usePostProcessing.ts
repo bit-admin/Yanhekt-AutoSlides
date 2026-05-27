@@ -3,6 +3,7 @@ import { tokenManager } from '@shared/services/authService'
 import type { ExtractedSlide, SlideExtractionHandle } from '@shared/processing'
 import { PostProcessingPipeline } from '@shared/postProcessing/pipeline'
 import { createSlideExtractionDataSource } from '@shared/postProcessing/imageSources'
+import { configStore } from '@shared/services/configStore'
 import {
   errorInfoToBanner,
   parseBannerError,
@@ -328,7 +329,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
   const initConfig = async (): Promise<void> => {
     try {
-      const config = await window.electronAPI.config.get()
+      const config = configStore
       autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
       autoPostProcessingLive.value = config.autoPostProcessingLive !== undefined ? config.autoPostProcessingLive : true
       enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true

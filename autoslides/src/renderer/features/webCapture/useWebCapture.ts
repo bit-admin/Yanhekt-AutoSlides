@@ -5,6 +5,7 @@ import {
   type ExtractedSlide,
 } from '@shared/processing'
 import { sanitizeFileName } from '@common/sanitizeFileName'
+import { configStore } from '@shared/services/configStore'
 
 export type WebCaptureMode = 'inject' | 'capturePage'
 export type WebCaptureState = 'idle' | 'confirming' | 'running'
@@ -358,7 +359,7 @@ export function useWebCapture() {
     captureMode.value = customRegion.value ? 'capturePage' : 'inject'
     const name = courseName.value.trim() || pageTitle.value.trim() || 'Untitled'
     try {
-      const appConfig = await window.electronAPI.config.get()
+      const appConfig = configStore
       const slideConfig = await window.electronAPI.config.getSlideExtractionConfig()
       const outputDir = appConfig.outputDirectory || '~/Downloads/AutoSlides'
       const folder = `${outputDir}/slides_${sanitizeFileName(name)}`

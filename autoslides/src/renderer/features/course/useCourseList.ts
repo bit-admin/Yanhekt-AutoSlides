@@ -2,6 +2,7 @@ import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import { ApiClient, type LiveStream, type LiveListResponse, type CourseData, type CourseListResponse, type SemesterOption } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
 import { DataStore } from '@shared/services/dataStore'
+import { configStore } from '@shared/services/configStore'
 
 export interface Course {
   id: string
@@ -345,7 +346,7 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
   }
 
   const loadSavedSearches = async () => {
-    const config = await window.electronAPI.config.get()
+    const config = configStore
     savedSearches.value = mode.value === 'live'
       ? (config.savedSearchesLive ?? [])
       : (config.savedSearchesRecorded ?? [])

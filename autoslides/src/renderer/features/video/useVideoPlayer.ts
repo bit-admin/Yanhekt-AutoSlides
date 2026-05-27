@@ -4,6 +4,7 @@ import { DataStore } from '@shared/services/dataStore'
 import { tokenManager } from '@shared/services/authService'
 import type { SlideExtractionHandle } from '@shared/processing'
 import { setupDualHlsErrorHandler } from './useVideoErrorRecovery'
+import { configStore } from '@shared/services/configStore'
 
 export const DUAL_STREAM_KEY = '__dual__'
 export type DualAudioSource = 'screen' | 'camera'
@@ -1231,7 +1232,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
 
   const initConfig = async () => {
     try {
-      const config = await window.electronAPI.config.get()
+      const config = configStore
       connectionMode.value = config.connectionMode
       muteMode.value = config.muteMode || 'normal'
       maxVideoErrorRetries.value = config.videoRetryCount || 5

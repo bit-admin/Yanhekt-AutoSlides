@@ -8,6 +8,13 @@ export const auth = {
 
 export const config = {
   get: () => ipcRenderer.invoke('config:get'),
+  // Subscribe to push updates from the main process. Fires after every setter
+  // so the renderer-side configStore can mirror the latest AppConfig snapshot.
+  onUpdate: (callback: (cfg: unknown) => void) => {
+    const handler = (_e: Electron.IpcRendererEvent, cfg: unknown) => callback(cfg);
+    ipcRenderer.on('config:onUpdate', handler);
+    return () => ipcRenderer.removeListener('config:onUpdate', handler);
+  },
   setOutputDirectory: (directory: string) => ipcRenderer.invoke('config:setOutputDirectory', directory),
   selectOutputDirectory: () => ipcRenderer.invoke('config:selectOutputDirectory'),
   setConnectionMode: (mode: 'internal' | 'external') => ipcRenderer.invoke('config:setConnectionMode', mode),

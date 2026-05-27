@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { configStore } from '@shared/services/configStore'
 
 type GreetingCategory =
   | 'general'
@@ -309,7 +310,7 @@ export function useGreeting() {
   const loadGreeting = async () => {
     if (!sessionPromise) {
       sessionPromise = (async () => {
-        const config = await window.electronAPI.config.get()
+        const config = configStore
         const systemLocale = (navigator.language || locale.value || 'en').toLowerCase()
         const preferredLanguage = resolveGreetingLanguage(config.languageMode, systemLocale)
 

@@ -1,6 +1,7 @@
 import { DownloadService, type DownloadItem } from './downloadService'
 import { PostProcessingService } from './postProcessingService'
 import { SSIM_PRESET_VALUES } from './ssimThresholdService'
+import { configStore } from '@shared/services/configStore'
 
 export type ExtractionStatus =
   | 'none'
@@ -92,7 +93,7 @@ class ExtractionQueueServiceClass {
     await this.ensureStatusInitialized()
     if (!this.extractorReady) return
     try {
-      const cfg = await window.electronAPI.config.get()
+      const cfg = configStore
       const qtCfg = cfg.qtExtractor
       const slideCfg = cfg.slideExtraction
       if (!qtCfg?.autoRunAfterDownload) return
@@ -250,7 +251,7 @@ class ExtractionQueueServiceClass {
     // Optional PNG-8 palette quantization (only when the user enabled it).
     // Qt extractor `--compatible` mode produces lossless 8-bit RGB PNG; this
     // pass shrinks files dramatically when color reduction is desired.
-    const cfg = await window.electronAPI.config.get()
+    const cfg = configStore
     const reduceColors = !!cfg.slideExtraction?.enablePngColorReduction
     if (reduceColors) {
       item.extractionStatus = 'normalizing'

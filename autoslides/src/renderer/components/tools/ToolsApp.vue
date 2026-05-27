@@ -6,13 +6,14 @@
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { configStore } from '@shared/services/configStore'
 import ToolsWindow from './components/ToolsWindow.vue'
 import { setI18nLanguage, detectSystemLanguage } from './i18n'
 
 // Load language from config on mount
 onMounted(async () => {
   try {
-    const config = await window.electronAPI.config.get()
+    const config = configStore
     if (config.languageMode === 'system') {
       setI18nLanguage(detectSystemLanguage())
     } else if (config.languageMode) {

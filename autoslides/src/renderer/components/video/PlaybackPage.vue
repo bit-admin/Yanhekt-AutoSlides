@@ -487,6 +487,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'vue'
+import { configStore } from '@shared/services/configStore'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '@features/video/useVideoPlayer'
 import { useSlideExtraction, type Course, type Session } from '@features/video/useSlideExtraction'
 import { usePostProcessing } from '@features/download/usePostProcessing'
@@ -874,7 +875,7 @@ const ensureCurrentPlaybackRateVisible = () => {
 
 const loadShowMorePlaybackSpeedConfig = async () => {
   try {
-    const config = await window.electronAPI.config.get()
+    const config = configStore
     showMorePlaybackSpeed.value = config.showMorePlaybackSpeed ?? false
   } catch (error) {
     console.error('Failed to load show-more playback speed config:', error)

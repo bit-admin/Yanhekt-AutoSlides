@@ -1,4 +1,4 @@
-import { ipcMain, dialog } from 'electron';
+import { ipcMain, dialog, BrowserWindow } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { IpcServices } from './types';
@@ -14,68 +14,94 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     windowManager
   } = services;
 
+  // Push the current AppConfig snapshot to every live BrowserWindow. The
+  // renderer-side configStore listens for 'config:onUpdate' and merges the
+  // payload into its reactive state, so any consumer that reads configStore
+  // sees the new values within one event-loop tick of a setter completing.
+  const broadcastConfig = (): void => {
+    const cfg = configService.getConfig();
+    for (const w of BrowserWindow.getAllWindows()) {
+      if (!w.isDestroyed()) {
+        w.webContents.send('config:onUpdate', cfg);
+      }
+    }
+  };
+
   ipcMain.handle('config:get', async () => {
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setOutputDirectory', async (_event, directory: string) => {
     configService.setOutputDirectory(directory);
+    broadcastConfig();
     return configService.getConfig();
   });
 
   ipcMain.handle('config:selectOutputDirectory', async () => {
     const selectedPath = await configService.selectOutputDirectory();
-    return selectedPath ? configService.getConfig() : null;
+    if (!selectedPath) return null;
+    broadcastConfig();
+    return configService.getConfig();
   });
 
   ipcMain.handle('config:setConnectionMode', async (_event, mode: 'internal' | 'external') => {
     configService.setConnectionMode(mode);
     intranetMappingService.setEnabled(mode === 'internal');
+    broadcastConfig();
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setMaxConcurrentDownloads', async (_event, count: number) => {
     configService.setMaxConcurrentDownloads(count);
+    broadcastConfig();
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setDownloadMaxWorkers', async (_event, count: number) => {
     configService.setDownloadMaxWorkers(count);
+    broadcastConfig();
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setDownloadNumRetries', async (_event, count: number) => {
     configService.setDownloadNumRetries(count);
+    broadcastConfig();
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setMuteMode', async (_event, mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => {
     configService.setMuteMode(mode);
+    broadcastConfig();
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setVideoRetryCount', async (_event, count: number) => {
     configService.setVideoRetryCount(count);
+    broadcastConfig();
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setTaskSpeed', async (_event, speed: number) => {
     configService.setTaskSpeed(speed);
+    broadcastConfig();
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setShowMorePlaybackSpeed', async (_event, enabled: boolean) => {
     configService.setShowMorePlaybackSpeed(enabled);
+    broadcastConfig();
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setAutoPostProcessing', async (_event, enabled: boolean) => {
     configService.setAutoPostProcessing(enabled);
+    broadcastConfig();
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setAutoPostProcessingLive', async (_event, enabled: boolean) => {
     configService.setAutoPostProcessingLive(enabled);
+    broadcastConfig();
     return configService.getConfig();
   });
 
@@ -85,6 +111,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setEnableAIFiltering', async (_event, enabled: boolean) => {
     configService.setEnableAIFiltering(enabled);
+    broadcastConfig();
     return configService.getConfig();
   });
 
@@ -94,6 +121,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setDistinguishMaybeSlide', async (_event, enabled: boolean) => {
     configService.setDistinguishMaybeSlide(enabled);
+    broadcastConfig();
     return configService.getConfig();
   });
 
@@ -103,6 +131,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setAutoCropParams', async (_event, params) => {
     configService.setAutoCropParams(params);
+    broadcastConfig();
     return configService.getSlideExtractionConfig();
   });
 
@@ -112,11 +141,13 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setAutoCropDetectorMode', async (_event, mode) => {
     configService.setAutoCropDetectorMode(mode);
+    broadcastConfig();
     return configService.getSlideExtractionConfig();
   });
 
   ipcMain.handle('config:setAutoCropYoloParams', async (_event, params) => {
     configService.setAutoCropYoloParams(params);
+    broadcastConfig();
     return configService.getSlideExtractionConfig();
   });
 
@@ -126,6 +157,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setThemeMode', async (_event, theme: 'system' | 'light' | 'dark') => {
     configService.setThemeMode(theme);
+    broadcastConfig();
     return configService.getConfig();
   });
 
@@ -144,6 +176,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   ipcMain.handle('config:setLanguageMode', async (_event, language: 'system' | 'en' | 'zh') => {
     configService.setLanguageMode(language);
     windowManager.updateApplicationMenu();
+    broadcastConfig();
     return configService.getConfig();
   });
 
@@ -158,11 +191,13 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     } else {
       await powerManagementService.allowSleep();
     }
+    broadcastConfig();
     return configService.getConfig();
   });
 
   ipcMain.handle('config:setAuthToken', async (_event, token: string | null) => {
     configService.setAuthToken(token);
+    broadcastConfig();
   });
 
   ipcMain.handle('config:getAuthToken', async () => {
@@ -175,18 +210,22 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setSkipUpdateCheckUntil', async (_event, timestamp: number) => {
     configService.setSkipUpdateCheckUntil(timestamp);
+    broadcastConfig();
   });
 
   ipcMain.handle('config:setUserNames', async (_event, original: string, display: string) => {
     configService.setUserNames(original, display);
+    broadcastConfig();
   });
 
   ipcMain.handle('config:setLastGreetingId', async (_, id: string) => {
     configService.setLastGreetingId(id);
+    broadcastConfig();
   });
 
   ipcMain.handle('config:setSavedSearches', async (_, mode: 'live' | 'recorded', searches: string[]) => {
     configService.setSavedSearches(mode, searches);
+    broadcastConfig();
   });
 
   ipcMain.handle('config:getSlideExtractionConfig', async () => {
@@ -195,11 +234,13 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setSlideCheckInterval', async (_event, interval: number) => {
     configService.setSlideCheckInterval(interval);
+    broadcastConfig();
     return configService.getSlideExtractionConfig();
   });
 
   ipcMain.handle('config:setSlideDoubleVerification', async (_event, enabled: boolean, count?: number) => {
     configService.setSlideDoubleVerification(enabled, count);
+    broadcastConfig();
     return configService.getSlideExtractionConfig();
   });
 
@@ -213,6 +254,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     enablePngColorReduction?: boolean;
   }) => {
     configService.setSlideImageProcessingParams(params);
+    broadcastConfig();
     return configService.getSlideExtractionConfig();
   });
 
@@ -221,6 +263,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     enableExclusionList?: boolean;
   }) => {
     configService.setSlideExtractionConfig(config);
+    broadcastConfig();
     return configService.getSlideExtractionConfig();
   });
 
@@ -242,6 +285,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:clearPHashExclusionList', async () => {
     configService.clearPHashExclusionList();
+    broadcastConfig();
     return configService.getPHashExclusionList();
   });
 
@@ -323,6 +367,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setAIBatchSize', async (_event, batchSize: number) => {
     configService.setAIBatchSize(batchSize);
+    broadcastConfig();
     return configService.getAIFilteringConfig();
   });
 
@@ -332,6 +377,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setAIClassifierMode', async (_event, mode: 'llm' | 'ml') => {
     configService.setAIClassifierMode(mode);
+    broadcastConfig();
     return configService.getAIFilteringConfig();
   });
 

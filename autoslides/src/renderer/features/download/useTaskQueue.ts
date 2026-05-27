@@ -5,6 +5,7 @@ import { ssimThresholdService } from '@shared/services/ssimThresholdService'
 import type { SlideExtractionHandle } from '@shared/processing'
 import type { PlaybackData } from '@features/video/useVideoPlayer'
 import type Hls from 'hls.js'
+import { configStore } from '@shared/services/configStore'
 
 export interface UseTaskQueueOptions {
   mode: 'live' | 'recorded'
@@ -417,7 +418,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
 
     // Get slide extraction info for post-processing (non-blocking)
     // Check config directly to ensure we respect the latest setting value
-    const config = await window.electronAPI.config.get()
+    const config = configStore
     const autoPostProcessingEnabled = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
     if (autoPostProcessingEnabled && isSlideExtractionEnabled.value && extractedSlides.value.length > 0) {
       console.log('Auto post-processing enabled, queuing post-processing for task:', taskId)
@@ -559,7 +560,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
 
   const initConfig = async () => {
     try {
-      const config = await window.electronAPI.config.get()
+      const config = configStore
       taskSpeed.value = config.taskSpeed || 10
     } catch (configError) {
       console.error('Failed to load task queue config:', configError)

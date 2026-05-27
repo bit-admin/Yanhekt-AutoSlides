@@ -331,6 +331,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { configStore } from '@shared/services/configStore'
 import { DownloadService, type DownloadItem } from '@shared/services/downloadService'
 import { ExtractionQueue } from '@shared/services/extractionQueueService'
 import { TaskQueue, taskQueueState, type TaskItem } from '@shared/services/taskQueueService'
@@ -579,7 +580,7 @@ onMounted(async () => {
 
   // Load autoPostProcessing config
   try {
-    const config = await window.electronAPI.config.get()
+    const config = configStore
     autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
   } catch (error) {
     console.error('Failed to load autoPostProcessing config:', error)

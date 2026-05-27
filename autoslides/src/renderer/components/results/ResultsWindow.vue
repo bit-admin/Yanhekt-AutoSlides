@@ -551,6 +551,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { configStore } from '@shared/services/configStore'
 import { useI18n } from 'vue-i18n'
 import { createAutoCropWorkerClient } from '@shared/autoCrop'
 import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '@features/results/useResultsView'
@@ -1249,7 +1250,7 @@ const startAutoCropMode = async () => {
     const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
     bitmap.close()
 
-    const appConfig = await window.electronAPI.config.get()
+    const appConfig = configStore
     const slideCfg = appConfig.slideExtraction
     const response = await detectBbox(imageData, false, {
       mode: slideCfg?.autoCropDetectorMode ?? 'canny_then_yolo',
