@@ -70,24 +70,15 @@
           -{{ state.phase3.removed }}
         </span>
       </div>
-      <div class="pp-phase-bar three-color" :class="{ disabled: state.phase3.status === 'skipped' }">
-        <!-- Green: completed AI decisions -->
+      <div class="pp-phase-bar" :class="{ disabled: state.phase3.status === 'skipped' }">
         <div
           class="pp-phase-fill"
           :class="{
             active: state.phase3.status === 'active',
-            completed: state.phase3.status === 'completed'
+            completed: state.phase3.status === 'completed',
+            pulsing: state.phase3.status === 'active' && state.ai.inProgress > 0
           }"
-          :style="{ width: aiCompletedWidth }"
-        ></div>
-        <!-- Blue: in-progress batch overlay -->
-        <div
-          v-if="state.phase3.status === 'active' && state.ai.inProgress > 0 && state.ai.total > 0"
-          class="pp-phase-fill in-progress"
-          :style="{
-            left: aiCompletedWidth,
-            width: aiInProgressWidth
-          }"
+          :style="{ width: phase3Width }"
         ></div>
       </div>
     </div>
@@ -133,28 +124,20 @@ function fillWidthForPhase(p: { status: string; current: number; total: number }
 
 const phase1Width = computed(() => fillWidthForPhase(props.state.phase1))
 const phase2Width = computed(() => fillWidthForPhase(props.state.phase2))
-
-const aiCompletedWidth = computed(() => {
-  const { completed, total } = props.state.ai
-  if (props.state.phase3.status === 'skipped' || total === 0) return '0%'
-  return `${(completed / total) * 100}%`
-})
-
-const aiInProgressWidth = computed(() => {
-  const { inProgress, total } = props.state.ai
-  if (props.state.phase3.status === 'skipped' || total === 0) return '0%'
-  return `${(inProgress / total) * 100}%`
-})
+const phase3Width = computed(() => fillWidthForPhase(props.state.phase3))
 </script>
 
 <style scoped>
 .pp-bar {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  gap: 12px;
+  width: 100%;
 }
 
 .pp-phase-item {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -203,10 +186,6 @@ const aiInProgressWidth = computed(() => {
   opacity: 0.5;
 }
 
-.pp-phase-bar.three-color {
-  position: relative;
-}
-
 .pp-phase-fill {
   height: 100%;
   border-radius: 2px;
@@ -222,10 +201,13 @@ const aiInProgressWidth = computed(() => {
   background-color: #16a34a;
 }
 
-.pp-phase-bar.three-color .pp-phase-fill.in-progress {
-  position: absolute;
-  top: 0;
-  background-color: #007acc;
+.pp-phase-fill.pulsing {
+  animation: pp-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pp-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -259,10 +241,6 @@ const aiInProgressWidth = computed(() => {
 
   .pp-phase-fill.completed {
     background-color: #4ade80;
-  }
-
-  .pp-phase-bar.three-color .pp-phase-fill.in-progress {
-    background-color: #4fc3f7;
   }
 }
 </style>

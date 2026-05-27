@@ -87,9 +87,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import PdfMakerWindow from '../export/PdfMakerWindow.vue'
-import ResultsWindow from '../results/ResultsWindow.vue'
-import OfflineProcessingTab from '../offline/OfflineProcessingTab.vue'
+import PdfMakerWindow from '@renderer/components/export/PdfMakerWindow.vue'
+import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
+import OfflineProcessingTab from '@renderer/components/offline/OfflineProcessingTab.vue'
 import CompressLectureTab from './CompressLectureTab.vue'
 
 type TabId = 'pdfmaker' | 'trash' | 'compress' | 'offline'

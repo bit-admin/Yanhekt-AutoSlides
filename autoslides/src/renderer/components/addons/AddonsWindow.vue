@@ -61,8 +61,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import YuketangTab from '../export/YuketangTab.vue'
-import WebCaptureTab from '../webCapture/WebCaptureTab.vue'
+import YuketangTab from '@renderer/components/export/YuketangTab.vue'
+import WebCaptureTab from '@renderer/components/webCapture/WebCaptureTab.vue'
 
 type TabId = 'yuketang' | 'webcapture'
 

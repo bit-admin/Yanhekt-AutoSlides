@@ -86,9 +86,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import CoursePage from './course/CoursePage.vue'
-import SessionPage from './course/SessionPage.vue'
-import PlaybackPage from './video/PlaybackPage.vue'
+import CoursePage from '@renderer/components/course/CoursePage.vue'
+import SessionPage from '@renderer/components/course/SessionPage.vue'
+import PlaybackPage from '@renderer/components/video/PlaybackPage.vue'
 import { DataStore } from '@shared/services/dataStore'
 
 type Mode = 'live' | 'recorded'

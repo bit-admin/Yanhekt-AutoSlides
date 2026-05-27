@@ -337,7 +337,7 @@ import { ExtractionQueue } from '@shared/services/extractionQueueService'
 import { TaskQueue, taskQueueState, type TaskItem } from '@shared/services/taskQueueService'
 import { PostProcessingService, postProcessingState, type PostProcessJob } from '@shared/services/postProcessingService'
 import { useI18n } from 'vue-i18n'
-import PostProcessingProgressBar from '../video/PostProcessingProgressBar.vue'
+import PostProcessingProgressBar from '@renderer/components/video/PostProcessingProgressBar.vue'
 import { fromJobProgress } from '@shared/postProcessing/displayAdapter'
 
 type Tab = 'task' | 'download'
@@ -1024,103 +1024,12 @@ defineExpose({
   font-size: 8px;
 }
 
-.pp-phase-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
+.pp-panel-content :deep(.pp-bar) {
+  gap: 8px;
 }
 
-.pp-phase-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 4px;
-}
-
-.pp-phase-name {
-  font-weight: 500;
-  color: #333;
-  font-size: 8px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.pp-phase-status {
-  font-size: 7px;
-  padding: 1px 3px;
-  border-radius: 2px;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.pp-phase-status.active {
-  background-color: #007acc;
-  color: white;
-}
-
-.pp-phase-status.completed {
-  background-color: #28a745;
-  color: white;
-}
-
-.pp-phase-status.skipped {
-  background-color: #e2e3e5;
-  color: #6c757d;
-  font-style: italic;
-}
-
-.pp-phase-bar {
+.pp-panel-content :deep(.pp-phase-bar) {
   height: 3px;
-  background-color: #e0e0e0;
-  border-radius: 2px;
-  overflow: hidden;
-  position: relative;
-}
-
-.pp-phase-bar.disabled {
-  background-color: #f0f0f0;
-}
-
-.pp-phase-fill {
-  height: 100%;
-  background-color: #e0e0e0;
-  transition: width 0.3s ease;
-}
-
-.pp-phase-fill.active {
-  background-color: #007acc;
-  animation: progressPulse 1.5s infinite;
-}
-
-.pp-phase-fill.completed {
-  background-color: #28a745;
-}
-
-/* 3-color progress bar for AI processing */
-.pp-phase-bar.three-color .pp-phase-fill {
-  position: absolute;
-  top: 0;
-  height: 100%;
-}
-
-.pp-phase-bar.three-color .pp-phase-fill.completed {
-  left: 0;
-  background-color: #28a745;
-  z-index: 2;
-}
-
-.pp-phase-bar.three-color .pp-phase-fill.in-progress {
-  background-color: #007acc;
-  animation: progressPulse 1.5s infinite;
-  z-index: 1;
-}
-
-@keyframes progressPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
 }
 
 /* Qt extractor (download item affiliated) extraction panel.
