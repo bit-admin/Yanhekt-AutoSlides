@@ -5,8 +5,8 @@
 
 import './index.css';
 import { createApp } from 'vue';
-import AddonsApp from './renderer/AddonsApp.vue';
-import { i18n } from './renderer/i18n';
+import AddonsApp from './renderer/components/addons/AddonsApp.vue';
+import { i18n } from './renderer/shared/i18n';
 
 const app = createApp(AddonsApp);
 app.use(i18n);

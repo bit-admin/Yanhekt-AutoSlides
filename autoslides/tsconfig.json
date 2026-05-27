@@ -12,7 +12,8 @@
     "paths": {
       "@main/*": ["main/*"],
       "@renderer/*": ["renderer/*"],
-      "@shared/*": ["shared/*"],
+      "@shared/*": ["renderer/shared/*"],
+      "@common/*": ["shared/*"],
       "@features/*": ["renderer/features/*"]
     },
     "outDir": "dist",

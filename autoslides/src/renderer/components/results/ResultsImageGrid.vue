@@ -53,7 +53,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import type { ResultsItem, ResultsReason } from '../../composables/results/types'
+import type { ResultsItem, ResultsReason } from '@features/results/resultsTypes'
 
 defineProps<{
   items: ResultsItem[]

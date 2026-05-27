@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
 import { app } from 'electron';
-import { getClientSignature } from '../../shared/crypto';
+import { getClientSignature } from '@common/crypto';
 
 export interface UserData {
   badge: string;

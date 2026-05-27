@@ -1,6 +1,6 @@
 import { ipcMain, shell } from 'electron';
 import { ExtractorInstallerService } from '@main/download/extractorInstallerService';
-import { fetchGithubRelease, buildGithubReleaseOptions } from '../../shared/githubRelease';
+import { fetchGithubRelease, buildGithubReleaseOptions } from '@common/githubRelease';
 import type { IpcServices } from './types';
 
 export function registerExtractorInstallerIpcHandlers(services: IpcServices): void {

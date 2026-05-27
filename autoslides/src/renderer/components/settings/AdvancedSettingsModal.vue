@@ -66,7 +66,7 @@
 </template>
 
 <script setup lang="ts">
-import type { AdvancedTabId } from '../../composables/settings/types'
+import type { AdvancedTabId } from '@features/settings/settingsTypes'
 
 defineProps<{
   visible: boolean

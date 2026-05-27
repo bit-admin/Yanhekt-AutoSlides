@@ -10,7 +10,7 @@ import { FFmpegService } from '@main/infra/ffmpegService';
 import { ConfigService } from '@main/platform/configService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { ApiClient } from '@main/platform/apiClient';
-import { encryptVideoUrl, getVideoSignature, addSignatureToUrl } from '../../shared/crypto';
+import { encryptVideoUrl, getVideoSignature, addSignatureToUrl } from '@common/crypto';
 
 export interface DownloadProgress {
   current: number;

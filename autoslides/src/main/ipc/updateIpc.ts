@@ -1,6 +1,6 @@
 import { ipcMain, app } from 'electron';
 import { UpdateDownloadService } from '@main/download/updateDownloadService';
-import { fetchGithubRelease, buildGithubReleaseOptions } from '../../shared/githubRelease';
+import { fetchGithubRelease, buildGithubReleaseOptions } from '@common/githubRelease';
 import type { IpcServices } from './types';
 
 export function registerUpdateIpcHandlers(services: IpcServices): void {

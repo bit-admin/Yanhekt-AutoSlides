@@ -1,8 +1,8 @@
 import { app, BrowserWindow, Menu, nativeTheme, session, shell } from 'electron';
 import path from 'node:path';
 import type { ConfigService } from '@main/platform/configService';
-import enTranslations from '../../renderer/i18n/locales/en.json';
-import zhTranslations from '../../renderer/i18n/locales/zh.json';
+import enTranslations from '../../renderer/shared/i18n/locales/en.json';
+import zhTranslations from '../../renderer/shared/i18n/locales/zh.json';
 
 export interface YuketangClassCapture {
   presentationId: string;

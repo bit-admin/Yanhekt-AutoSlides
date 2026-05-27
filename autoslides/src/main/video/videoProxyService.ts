@@ -9,7 +9,7 @@ import {
   encryptVideoUrl,
   getVideoSignature,
   addSignatureToUrl
-} from '../../shared/crypto';
+} from '@common/crypto';
 import {
   fixUrlEscaping,
   extractHostFromUrl,

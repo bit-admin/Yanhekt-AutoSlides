@@ -8,7 +8,7 @@ import {
   extractSessionLabel,
   formatCoverTimestamp
 } from '@main/export/coverFontService';
-import enTranslations from '../../renderer/i18n/locales/en.json';
+import enTranslations from '../../renderer/shared/i18n/locales/en.json';
 import type { IpcServices } from './types';
 
 type PdfMakerOutputMode = 'single' | 'batch';

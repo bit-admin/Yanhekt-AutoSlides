@@ -2,6 +2,39 @@ import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import importPlugin from 'eslint-plugin-import';
 
+// Domain-boundary helper: a feature domain may not import from sibling feature
+// domains. Returns a no-restricted-imports rule that forbids every domain other
+// than `self` and explicitly-allowed cross-domain edges.
+const FEATURE_DOMAINS = ['video', 'results', 'offline', 'download', 'ai', 'export', 'course', 'settings', 'platform', 'webCapture', 'tools'];
+function featureBoundaryRule(self, allowed = []) {
+  const allow = new Set([self, ...allowed]);
+  const forbidden = FEATURE_DOMAINS.filter(d => !allow.has(d));
+  return {
+    'no-restricted-imports': ['error', {
+      patterns: forbidden.map(d => ({
+        group: [`@features/${d}/*`, `@features/${d}`],
+        message: `Feature domain '${self}' may not import from sibling domain '${d}'. Move shared code into @shared/* or whitelist the edge in eslint.config.mjs.`,
+      })),
+    }],
+  };
+}
+
+// Main process domain rule. Every domain may import @main/infra/* and
+// @main/platform/* freely. Sibling domains are forbidden by default.
+const MAIN_DOMAINS = ['video', 'extraction', 'ai', 'export', 'download'];
+function mainDomainRule(self, allowed = []) {
+  const allow = new Set([self, 'infra', 'platform', ...allowed]);
+  const forbidden = [...MAIN_DOMAINS, 'platform', 'infra'].filter(d => !allow.has(d));
+  return {
+    'no-restricted-imports': ['error', {
+      patterns: forbidden.map(d => ({
+        group: [`@main/${d}/*`],
+        message: `Main domain '${self}' may not import from sibling domain '${d}'.`,
+      })),
+    }],
+  };
+}
+
 export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
@@ -62,6 +95,59 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-expressions': 'off',
     },
   },
+
+  // ----------------------------------------------------------------------
+  // Renderer feature-domain boundaries: a domain may not import from a
+  // sibling domain unless the edge is whitelisted below.
+  //
+  // Whitelisted edges (current usage):
+  //   video → course      (Course type in useSlideExtraction)
+  //   download → video    (PlaybackData type in useTaskQueue)
+  //   results → offline   (useAutoCropDetect — removed when Phase 12 lands)
+  // ----------------------------------------------------------------------
+  { files: ['src/renderer/features/video/**/*.{ts,vue}'],     rules: featureBoundaryRule('video',     ['course']) },
+  { files: ['src/renderer/features/results/**/*.{ts,vue}'],   rules: featureBoundaryRule('results',   ['offline']) },
+  { files: ['src/renderer/features/offline/**/*.{ts,vue}'],   rules: featureBoundaryRule('offline') },
+  { files: ['src/renderer/features/download/**/*.{ts,vue}'],  rules: featureBoundaryRule('download',  ['video', 'course']) },
+  { files: ['src/renderer/features/ai/**/*.{ts,vue}'],        rules: featureBoundaryRule('ai') },
+  { files: ['src/renderer/features/export/**/*.{ts,vue}'],    rules: featureBoundaryRule('export') },
+  { files: ['src/renderer/features/course/**/*.{ts,vue}'],    rules: featureBoundaryRule('course') },
+  { files: ['src/renderer/features/settings/**/*.{ts,vue}'],  rules: featureBoundaryRule('settings') },
+  { files: ['src/renderer/features/platform/**/*.{ts,vue}'],  rules: featureBoundaryRule('platform') },
+  { files: ['src/renderer/features/webCapture/**/*.{ts,vue}'],rules: featureBoundaryRule('webCapture') },
+  { files: ['src/renderer/features/tools/**/*.{ts,vue}'],     rules: featureBoundaryRule('tools') },
+
+  // shared/ is foundational — it must not depend on features/ (one-way layering).
+  // Exception: phase3AI imports the AI classifier from features/ai; this is
+  // resolved in Phase 12 by extracting a mlClassifierClient into features/ai/
+  // and injecting the classify callback from the adapter.
+  {
+    files: ['src/renderer/shared/**/*.{ts,vue}'],
+    ignores: ['src/renderer/shared/postProcessing/phase3AI.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{ group: ['@features/*', '@features'], message: 'shared/ is foundational; do not import from features/.' }],
+      }],
+    },
+  },
+
+  // Main process domain boundaries. Sibling domains are forbidden;
+  // infra/ and platform/ are always allowed.
+  { files: ['src/main/video/**/*.ts'],      rules: mainDomainRule('video') },
+  { files: ['src/main/extraction/**/*.ts'], rules: mainDomainRule('extraction') },
+  { files: ['src/main/ai/**/*.ts'],         rules: mainDomainRule('ai') },
+  { files: ['src/main/export/**/*.ts'],     rules: mainDomainRule('export') },
+  { files: ['src/main/download/**/*.ts'],   rules: mainDomainRule('download') },
+  {
+    files: ['src/main/infra/**/*.ts'],
+    rules: {
+      'no-restricted-imports': ['error', {
+        patterns: [{ group: ['@main/video/*', '@main/extraction/*', '@main/ai/*', '@main/export/*', '@main/download/*', '@main/platform/*'],
+                     message: 'infra/ is foundational; do not import from other main domains.' }],
+      }],
+    },
+  },
+
   {
     ignores: ['node_modules/**', '.vite/**', 'out/**', 'dist/**'],
   }

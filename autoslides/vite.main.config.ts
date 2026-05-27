@@ -37,7 +37,8 @@ export default defineConfig(({ mode }) => ({
     alias: {
       '@main': path.resolve(__dirname, 'src/main'),
       '@renderer': path.resolve(__dirname, 'src/renderer'),
-      '@shared': path.resolve(__dirname, 'src/shared'),
+      '@shared': path.resolve(__dirname, 'src/renderer/shared'),
+      '@common': path.resolve(__dirname, 'src/shared'),
       '@features': path.resolve(__dirname, 'src/renderer/features'),
     },
   },

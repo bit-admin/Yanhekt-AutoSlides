@@ -89,7 +89,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import CoursePage from './CoursePage.vue'
 import SessionPage from './SessionPage.vue'
 import PlaybackPage from './PlaybackPage.vue'
-import { DataStore } from '../services/dataStore'
+import { DataStore } from '@shared/services/dataStore'
 
 type Mode = 'live' | 'recorded'
 type Page = 'courses' | 'sessions' | 'playback'
