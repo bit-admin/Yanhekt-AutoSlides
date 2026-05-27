@@ -30,7 +30,7 @@
         </div>
         <div class="course-detail-item" v-if="course?.classrooms && course.classrooms.length > 0">
           <span class="detail-label">{{ $t('sessions.classrooms') }}</span>
-          <span class="detail-value">{{ course.classrooms.map(c => c.name).join(', ') }}</span>
+          <span class="detail-value">{{ course.classrooms.map((c: { name: string }) => c.name).join(', ') }}</span>
         </div>
         <div class="course-detail-item" v-if="course?.college_name">
           <span class="detail-label">{{ $t('sessions.college') }}</span>
@@ -158,7 +158,7 @@
 <script setup lang="ts">
 import { onMounted, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useSessionPage, type SessionCourse, type Session } from '@features'
+import { useSessionPage, type SessionCourse, type Session } from '@features/course/useSessionPage'
 
 const props = defineProps<{
   course: SessionCourse | null
@@ -194,10 +194,10 @@ const {
 } = useSessionPage({
   course: toRef(() => props.course),
   t,
-  onSessionSelected: (session) => emit('sessionSelected', session),
+  onSessionSelected: (session: Session) => emit('sessionSelected', session),
   onBackToCourses: () => emit('backToCourses'),
-  onSwitchToDownload: (downloadItemId) => emit('switchToDownload', downloadItemId),
-  onSwitchToTask: (taskId) => emit('switchToTask', taskId)
+  onSwitchToDownload: (downloadItemId?: string) => emit('switchToDownload', downloadItemId),
+  onSwitchToTask: (taskId?: string) => emit('switchToTask', taskId)
 })
 
 onMounted(() => {
