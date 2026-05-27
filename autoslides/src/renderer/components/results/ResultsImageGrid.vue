@@ -103,186 +103,192 @@ const getCropLabel = (item: ResultsItem) => {
 .results-grid {
   display: grid;
   gap: 16px;
-  padding: 8px 0;
 }
 
 .result-item {
   position: relative;
-  display: flex;
-  flex-direction: column;
   background-color: white;
   border: 2px solid #e9ecef;
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s;
 }
 
 .result-item:hover {
   border-color: #007acc;
-  transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .result-item.selected {
   border-color: #007acc;
-  box-shadow: 0 0 0 1px #007acc;
+  background-color: #e7f3ff;
 }
 
 .result-item.removed {
-  opacity: 0.75;
+  border-color: #d9534f;
+}
+
+.result-item.removed.selected {
+  background-color: #fff1f0;
+  border-color: #d9534f;
 }
 
 .item-checkbox {
   position: absolute;
-  top: 6px;
-  left: 6px;
-  z-index: 2;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 4px;
-  padding: 2px;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+}
+
+.item-checkbox input {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
 }
 
 .item-preview-btn {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  z-index: 2;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.92);
+  color: #555;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #333;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.item-preview-btn:hover {
-  background: white;
-  color: #007acc;
 }
 
 .item-thumbnail {
-  position: relative;
   width: 100%;
-  background-color: #f8f9fa;
+  aspect-ratio: 16 / 9;
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
 }
 
 .item-thumbnail img {
   width: 100%;
-  height: auto;
-  display: block;
+  height: 100%;
+  object-fit: contain;
 }
 
 .thumbnail-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 120px;
-  color: #adb5bd;
+  color: #c3c7cb;
 }
 
 .item-copy {
-  padding: 8px 10px 10px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
 .item-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: #666;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-bottom: 4px;
 }
 
 .item-badges {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
-.status-badge {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 4px;
+.status-badge,
+.reason-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 3px 8px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .status-badge.active {
-  background-color: #d4edda;
-  color: #155724;
-}
-
-.status-badge.removed {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #e7f3ff;
+  color: #1768a8;
 }
 
 .status-badge.cropped {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: #edf0f3;
+  color: #58616b;
 }
 
-.reason-badge {
-  display: inline-block;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  background-color: #e9ecef;
-  color: #555;
+.status-badge.removed {
+  background-color: #ffe8e6;
+  color: #b63a30;
 }
 
 .reason-badge.reason-duplicate {
-  background-color: #cfe2ff;
-  color: #084298;
+  background-color: #fff2cc;
+  color: #8a5b00;
 }
 
 .reason-badge.reason-exclusion {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: #ede7ff;
+  color: #6546c2;
 }
 
 .reason-badge.reason-ai_filtered {
-  background-color: #e2d9f3;
-  color: #432874;
+  background-color: #dff7ea;
+  color: #257550;
 }
 
 .reason-badge.reason-ai_filtered_edit {
-  background-color: #d1ecf1;
-  color: #0c5460;
+  background-color: #fff3d6;
+  color: #955800;
 }
 
 .reason-badge.reason-manual {
-  background-color: #e9ecef;
-  color: #495057;
+  background-color: #ffe8e6;
+  color: #b63a30;
 }
 
 @media (prefers-color-scheme: dark) {
   .result-item {
     background-color: #2d2d2d;
     border-color: #3d3d3d;
-  }
-
-  .item-checkbox,
-  .item-preview-btn {
-    background: rgba(50, 50, 50, 0.9);
     color: #e0e0e0;
-  }
-
-  .item-thumbnail {
-    background-color: #1e1e1e;
   }
 
   .item-name {
-    color: #e0e0e0;
+    color: #aaa;
+  }
+
+  .item-thumbnail {
+    background-color: #252525;
+  }
+
+  .item-preview-btn {
+    background-color: rgba(40, 40, 40, 0.92);
+    color: #ddd;
+  }
+
+  .result-item.selected {
+    background-color: #1a3a5c;
+  }
+
+  .result-item.removed.selected {
+    background-color: #482220;
+  }
+
+  .status-badge.cropped {
+    background-color: #40464d;
+    color: #d9dde1;
   }
 }
 </style>
