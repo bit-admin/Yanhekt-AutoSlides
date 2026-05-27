@@ -103,10 +103,10 @@ export default tseslint.config(
   // Whitelisted edges (current usage):
   //   video → course      (Course type in useSlideExtraction)
   //   download → video    (PlaybackData type in useTaskQueue)
-  //   results → offline   (useAutoCropDetect — removed when Phase 12 lands)
+  //   (results → offline edge removed once Phase 10 extracted shared/autoCrop)
   // ----------------------------------------------------------------------
   { files: ['src/renderer/features/video/**/*.{ts,vue}'],     rules: featureBoundaryRule('video',     ['course']) },
-  { files: ['src/renderer/features/results/**/*.{ts,vue}'],   rules: featureBoundaryRule('results',   ['offline']) },
+  { files: ['src/renderer/features/results/**/*.{ts,vue}'],   rules: featureBoundaryRule('results') },
   { files: ['src/renderer/features/offline/**/*.{ts,vue}'],   rules: featureBoundaryRule('offline') },
   { files: ['src/renderer/features/download/**/*.{ts,vue}'],  rules: featureBoundaryRule('download',  ['video', 'course']) },
   { files: ['src/renderer/features/ai/**/*.{ts,vue}'],        rules: featureBoundaryRule('ai') },

@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { resetMlClassifier } from './useMlClassifier'
+import { resetMlClassifier } from './mlClassifierClient'
 
 export type AIClassifierMode = 'llm' | 'ml'
 

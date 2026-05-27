@@ -552,7 +552,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useAutoCropDetect } from '@features/offline/useAutoCropDetect'
+import { createAutoCropWorkerClient } from '@shared/autoCrop'
 import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '@features/results/useResultsView'
 import { getCourseName } from '@shared/utils/toolWindowFolders'
 import ResultsImageGrid from './results/ResultsImageGrid.vue'
@@ -688,7 +688,9 @@ const cropSourceRequestId = ref(0)
 const isAutoCropDetecting = ref(false)
 const isAutoCropPending = ref(false)
 
-const { detectBbox } = useAutoCropDetect()
+const autoCropClient = createAutoCropWorkerClient()
+onBeforeUnmount(() => autoCropClient.destroy())
+const detectBbox = autoCropClient.detectBbox
 
 const DEDUP_AFTER_CROP_ACTIONS_KEY = 'autoslides.results.dedupAfterCropActions'
 

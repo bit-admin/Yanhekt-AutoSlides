@@ -85,10 +85,3 @@ export function resetMlClassifier(): void {
   pending.clear()
 }
 
-export function useMlClassifier() {
-  return {
-    ensureReady: ensureMlClassifierReady,
-    classify: classifyImage,
-    reset: resetMlClassifier,
-  }
-}

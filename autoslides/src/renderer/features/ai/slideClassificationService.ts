@@ -1,5 +1,5 @@
 import type { ClassifierClass, ClassifyResult } from '@shared/workers/slideClassifier.worker'
-import { classifyImage as runMlClassify, ensureMlClassifierReady } from '@features/ai/useMlClassifier'
+import { classifyImage as runMlClassify, ensureMlClassifierReady } from '@features/ai/mlClassifierClient'
 
 export type ClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit'
 

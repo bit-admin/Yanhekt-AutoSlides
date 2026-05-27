@@ -1,7 +1,7 @@
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { compareToolFolders, compareToolImages, formatToolFolderName } from '@shared/utils/toolWindowFolders'
-import { useAutoCropDetect } from '@features/offline/useAutoCropDetect'
-import { createPHashWorkerClient } from './pHashWorker'
+import { createAutoCropWorkerClient } from '@shared/autoCrop'
+import { createPHashWorkerClient } from '@shared/workers/pHashWorkerClient'
 import type {
   ResultsReason,
   CropRect,
@@ -180,7 +180,9 @@ export function useResultsView() {
     )
   })
 
-  const { detectBbox } = useAutoCropDetect()
+  const autoCropClient = createAutoCropWorkerClient()
+  onUnmounted(() => autoCropClient.destroy())
+  const detectBbox = autoCropClient.detectBbox
 
   watch([selectedReason, contextMode], () => {
     selectedIds.value = []
@@ -615,7 +617,7 @@ export function useResultsView() {
     await loadFolderSummaries()
     const activeFolder = activeFolders.value.find((f) => f.name === folder.name)
 
-    const { calculatePHash, calculateHammingDistance, bufferToImageData, terminate } = createPHashWorkerClient()
+    const { calculatePHash, calculateHammingDistance, bufferToImageData, destroy: terminate } = createPHashWorkerClient()
 
     try {
       const seen: Array<{ filename: string; pHash: string }> = []

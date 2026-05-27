@@ -1,5 +1,6 @@
 import { ref, nextTick, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { createPHashWorkerClient } from '@shared/workers/pHashWorkerClient'
 
 export interface PHashExclusionItem {
   id: string
@@ -53,44 +54,23 @@ export function usePHashExclusion(): UsePHashExclusionReturn {
     }
   }
 
-  // Calculate pHash with worker
-  const calculatePHashWithWorker = (imageData: ImageData): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const worker = new Worker(new URL('../../shared/workers/postProcessor.worker.ts', import.meta.url), { type: 'module' })
-
-      const messageId = `phash_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
-
-      const timeout = setTimeout(() => {
-        worker.terminate()
-        reject(new Error('pHash calculation timeout'))
-      }, 30000)
-
-      worker.onmessage = (e) => {
-        clearTimeout(timeout)
-        worker.terminate()
-
-        const { id, success, result, error } = e.data
-        if (id === messageId) {
-          if (success) {
-            resolve(result)
-          } else {
-            reject(new Error(error || 'pHash calculation failed'))
-          }
-        }
-      }
-
-      worker.onerror = (error) => {
-        clearTimeout(timeout)
-        worker.terminate()
-        reject(error)
-      }
-
-      worker.postMessage({
-        id: messageId,
-        type: 'calculatePHash',
-        data: { imageData }
-      })
-    })
+  // Calculate pHash via the shared worker client (one-shot — worker is
+  // destroyed after the result resolves or after a 30s timeout).
+  const calculatePHashWithWorker = async (imageData: ImageData): Promise<string> => {
+    const client = createPHashWorkerClient()
+    let timer: ReturnType<typeof setTimeout> | null = null
+    try {
+      const result = await Promise.race<string>([
+        client.calculatePHash(imageData),
+        new Promise<string>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('pHash calculation timeout')), 30000)
+        }),
+      ])
+      return result
+    } finally {
+      if (timer) clearTimeout(timer)
+      client.destroy()
+    }
   }
 
   // Show name input dialog

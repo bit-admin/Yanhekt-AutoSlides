@@ -86,7 +86,7 @@ export class PostProcessingPipeline {
     const trashedSet = new Set<string>()
 
     const needsPHash = input.config.enableDuplicateRemoval || input.config.enableExclusionList
-    let worker: Worker | null = null
+    let worker: ReturnType<typeof createPostProcessorWorker> | null = null
 
     try {
       let slideHashes: SlideHashInfo[] = []
