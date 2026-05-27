@@ -1,7 +1,21 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { compareToolFolders, compareToolImages, formatToolFolderName } from '@shared/utils/toolWindowFolders'
+import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { createAutoCropWorkerClient } from '@shared/autoCrop'
-import { createPHashWorkerClient } from '@shared/workers/pHashWorkerClient'
+import {
+  createResultsDataIO,
+  loadFolderSummaries as loadFolderSummariesCore,
+  buildFolderItems as buildFolderItemsCore,
+} from './resultsDataLoader'
+import {
+  createResultsDedupIO,
+  runPHashDedup as runPHashDedupCore,
+} from './resultsDedupPipeline'
+import {
+  createResultsCropIO,
+  runResultsAutoCropPipeline,
+  runBaselineCropPipeline as runBaselineCropPipelineCore,
+  type CroppedItem,
+} from './resultsCropPipeline'
 import type {
   ResultsReason,
   CropRect,
@@ -16,7 +30,7 @@ import type {
   ResultsViewMode,
   ContextMode,
   AutoCropTarget,
-  DedupCandidate
+  DedupCandidate,
 } from './resultsTypes'
 
 export type {
@@ -28,7 +42,7 @@ export type {
   AutoCropActionSummary,
   BaselineCropActionSummary,
   DedupActionSummary,
-  ResultsItem
+  ResultsItem,
 }
 
 export function useResultsView() {
@@ -50,6 +64,11 @@ export function useResultsView() {
   const baselineCrop = ref<BaselineCrop | null>(null)
 
   let thumbnailLoadVersion = 0
+
+  // IO adapters wrap electronAPI for the extracted pipelines.
+  const dataIO = createResultsDataIO()
+  const dedupIO = createResultsDedupIO()
+  const cropIO = createResultsCropIO()
 
   const currentFolderDisplayName = computed(() => {
     return currentFolder.value ? formatToolFolderName(currentFolder.value.name) : ''
@@ -182,114 +201,27 @@ export function useResultsView() {
 
   const autoCropClient = createAutoCropWorkerClient()
   onUnmounted(() => autoCropClient.destroy())
-  const detectBbox = autoCropClient.detectBbox
 
   watch([selectedReason, contextMode], () => {
     selectedIds.value = []
   })
 
   async function loadFolderSummaries() {
-    const [activeFolderList, removedEntries, currentCropEntries] = await Promise.all([
-      window.electronAPI.pdfmaker.getFolders(),
-      window.electronAPI.trash.getEntries(),
-      window.electronAPI.crop.getEntries(),
-    ])
-
-    activeFolders.value = activeFolderList
-    trashEntries.value = removedEntries
-    cropEntries.value = currentCropEntries
-
-    const activeCounts = await Promise.all(
-      activeFolderList.map(async (folder) => {
-        try {
-          const images = await window.electronAPI.pdfmaker.getImages(folder.path)
-          return { folder, count: images.length }
-        } catch (error) {
-          console.warn(`Failed to count images for ${folder.name}:`, error)
-          return { folder, count: 0 }
-        }
-      })
-    )
-
-    const folderMap = new Map<string, ResultsFolder>()
-
-    for (const { folder, count } of activeCounts) {
-      folderMap.set(folder.name, {
-        name: folder.name,
-        path: folder.path,
-        activeCount: count,
-        removedCount: 0,
-      })
-    }
-
-    for (const entry of removedEntries) {
-      const existing = folderMap.get(entry.originalParentFolder)
-      if (existing) {
-        existing.removedCount += 1
-      } else {
-        folderMap.set(entry.originalParentFolder, {
-          name: entry.originalParentFolder,
-          activeCount: 0,
-          removedCount: 1,
-        })
-      }
-    }
-
-    folders.value = Array.from(folderMap.values()).sort((a, b) => compareToolFolders(a.name, b.name))
+    const result = await loadFolderSummariesCore(dataIO)
+    activeFolders.value = result.activeFolders
+    trashEntries.value = result.trashEntries
+    cropEntries.value = result.cropEntries
+    folders.value = result.folders
   }
 
   async function buildFolderItems(folder: ResultsFolder): Promise<ResultsItem[]> {
     const activeFolder = activeFolders.value.find((entry) => entry.name === folder.name)
-    const cropMap = cropEntriesByOriginalPath.value
-
-    let activeItems: ResultsItem[] = []
-    if (activeFolder?.path) {
-      try {
-        const images = await window.electronAPI.pdfmaker.getImages(activeFolder.path)
-        activeItems = images.map((image) => {
-          const cropEntry = cropMap.get(image.path)
-
-          return {
-            id: image.path,
-            name: image.name,
-            status: 'active' as const,
-            imagePath: image.path,
-            originalPath: image.path,
-            isCropped: !!cropEntry,
-            isAutoCropped: cropEntry?.autoCropped ?? false,
-            cropPath: cropEntry?.cropPath,
-            cropRect: cropEntry?.rect,
-            croppedAt: cropEntry?.croppedAt,
-          }
-        })
-      } catch (error) {
-        console.warn(`Failed to load images for ${folder.name}:`, error)
-      }
-    }
-
-    const removedItems: ResultsItem[] = trashEntries.value
-      .filter((entry) => entry.originalParentFolder === folder.name)
-      .map((entry) => {
-        const cropEntry = cropMap.get(entry.originalPath)
-
-        return {
-          id: entry.id,
-          name: entry.filename,
-          status: 'removed' as const,
-          trashPath: entry.trashPath,
-          originalPath: entry.originalPath,
-          reason: entry.reason,
-          reasonDetails: entry.reasonDetails,
-          trashedAt: entry.trashedAt,
-          isCropped: !!cropEntry,
-          isAutoCropped: cropEntry?.autoCropped ?? false,
-          cropPath: cropEntry?.cropPath,
-          cropRect: cropEntry?.rect,
-          croppedAt: cropEntry?.croppedAt,
-        }
-      })
-
-    return [...activeItems, ...removedItems].sort((a, b) => compareToolImages(a.name, b.name))
+    return buildFolderItemsCore(folder, {
+      io: dataIO,
+      activeFolderPath: activeFolder?.path,
+      trashEntries: trashEntries.value,
+      cropEntriesByOriginalPath: cropEntriesByOriginalPath.value,
+    })
   }
 
   async function loadCurrentFolderItems(folder: ResultsFolder, previewImagePath?: string) {
@@ -365,8 +297,6 @@ export function useResultsView() {
     lastVisitedFolderName.value = folder.name
     selectedIds.value = []
     selectedReason.value = ''
-    // Commented out to preserve the selected view mode (e.g. "Extracted only") when reviewing next folder
-    // contextMode.value = 'context'
     previewItem.value = null
     isLoading.value = true
 
@@ -385,8 +315,6 @@ export function useResultsView() {
     folderItems.value = []
     selectedIds.value = []
     selectedReason.value = ''
-    // Commented out to preserve the selected view mode (e.g. "Extracted only") when reviewing next folder
-    // contextMode.value = 'context'
     previewItem.value = null
     baselineCrop.value = null
     thumbnails.value = {}
@@ -458,69 +386,37 @@ export function useResultsView() {
     })
   }
 
-  async function runAutoCropPipeline(
-    targets: AutoCropTarget[],
-    summary: { cropped: number; noDetection: number; failed: number },
-  ): Promise<Array<{ originalPath: string; filename: string }>> {
-    const cropped: Array<{ originalPath: string; filename: string }> = []
-
-    const restoreIds = targets
-      .filter((t) => t.needsRestore && t.id)
-      .map((t) => t.id as string)
-    if (restoreIds.length > 0) {
-      await window.electronAPI.trash.restore(restoreIds)
-    }
-
+  async function readDetectConfig() {
     const appConfig = await window.electronAPI.config.get()
     const slideCfg = appConfig.slideExtraction
-    const detectConfig = {
-      mode: slideCfg?.autoCropDetectorMode ?? 'canny_then_yolo',
-      canny: slideCfg?.autoCrop,
-      yolo: slideCfg?.autoCropYolo,
-    } as const
-
-    for (const target of targets) {
-      if (!target.originalPath) {
-        summary.failed++
-        continue
-      }
-      try {
-        const buffer = await window.electronAPI.offline.readImageBuffer(target.originalPath)
-        const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
-        const blobArrayBuffer = new ArrayBuffer(bytes.byteLength)
-        new Uint8Array(blobArrayBuffer).set(bytes)
-        const blob = new Blob([blobArrayBuffer], { type: 'image/*' })
-        const bitmap = await createImageBitmap(blob)
-
-        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          bitmap.close()
-          summary.failed++
-          continue
-        }
-        ctx.drawImage(bitmap, 0, 0)
-        const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
-        bitmap.close()
-
-        const response = await detectBbox(imageData, false, detectConfig)
-        if (!response.success || !response.result?.bbox) {
-          if (!response.success) summary.failed++
-          else summary.noDetection++
-          continue
-        }
-
-        const { x, y, w, h } = response.result.bbox
-        await window.electronAPI.crop.apply(target.originalPath, { x, y, width: w, height: h }, true)
-        summary.cropped++
-        cropped.push({ originalPath: target.originalPath, filename: target.filename })
-      } catch (err) {
-        console.error(`Failed to autocrop ${target.originalPath}:`, err)
-        summary.failed++
-      }
+    return {
+      detectConfig: {
+        mode: slideCfg?.autoCropDetectorMode ?? 'canny_then_yolo',
+        canny: slideCfg?.autoCrop,
+        yolo: slideCfg?.autoCropYolo,
+      } as const,
+      pHashThreshold: slideCfg?.pHashThreshold ?? 10,
     }
+  }
 
-    return cropped
+  async function dedupAfterCrop(
+    folder: ResultsFolder | null,
+    croppedItems: CroppedItem[],
+    pHashThreshold: number,
+  ): Promise<{ deduped: number; failed: number; croppedDelta: number }> {
+    if (!folder || croppedItems.length === 0) {
+      return { deduped: 0, failed: 0, croppedDelta: 0 }
+    }
+    // Refresh active folder map before dedup so we hash the freshest set of
+    // existing images in the folder, not stale paths.
+    await loadFolderSummaries()
+    const activeFolder = activeFolders.value.find((f) => f.name === folder.name)
+    const dedupResult = await runPHashDedupCore(folder, croppedItems, {
+      pHashThreshold,
+      activeFolderPath: activeFolder?.path,
+      io: dedupIO,
+    })
+    return dedupResult
   }
 
   async function autoCropSelected(
@@ -533,18 +429,22 @@ export function useResultsView() {
 
     isLoading.value = true
     try {
-      const cropSummary = { cropped: 0, noDetection: 0, failed: 0 }
-      const croppedItems = await runAutoCropPipeline(buildSelectedCropTargets(), cropSummary)
-      summary.cropped = cropSummary.cropped
-      summary.noDetection = cropSummary.noDetection
-      summary.failed = cropSummary.failed
+      const { detectConfig, pHashThreshold } = await readDetectConfig()
+      const cropResult = await runResultsAutoCropPipeline(
+        buildSelectedCropTargets(),
+        autoCropClient,
+        detectConfig,
+        cropIO,
+      )
+      summary.cropped = cropResult.cropped
+      summary.noDetection = cropResult.noDetection
+      summary.failed = cropResult.failed
 
-      if (options.removeDuplicates && folder && croppedItems.length > 0) {
-        const dedupSummary = { cropped: summary.cropped, deduped: 0, failed: 0 }
-        await runPHashDedup(folder, croppedItems, dedupSummary)
-        summary.cropped = dedupSummary.cropped
-        summary.deduped = dedupSummary.deduped
-        summary.failed += dedupSummary.failed
+      if (options.removeDuplicates && cropResult.croppedItems.length > 0) {
+        const dedup = await dedupAfterCrop(folder, cropResult.croppedItems, pHashThreshold)
+        summary.cropped = Math.max(0, summary.cropped + dedup.croppedDelta)
+        summary.deduped = dedup.deduped
+        summary.failed += dedup.failed
       }
 
       await refresh()
@@ -569,7 +469,11 @@ export function useResultsView() {
         needsRestore: false,
       }))
 
-      await runAutoCropPipeline(targets, summary)
+      const { detectConfig } = await readDetectConfig()
+      const cropResult = await runResultsAutoCropPipeline(targets, autoCropClient, detectConfig, cropIO)
+      summary.cropped = cropResult.cropped
+      summary.noDetection = cropResult.noDetection
+      summary.failed = cropResult.failed
       await refresh()
     } catch (error) {
       console.error('Failed to auto-crop selected active items:', error)
@@ -593,7 +497,11 @@ export function useResultsView() {
         needsRestore: true,
       }))
 
-      await runAutoCropPipeline(targets, summary)
+      const { detectConfig } = await readDetectConfig()
+      const cropResult = await runResultsAutoCropPipeline(targets, autoCropClient, detectConfig, cropIO)
+      summary.cropped = cropResult.cropped
+      summary.noDetection = cropResult.noDetection
+      summary.failed = cropResult.failed
       await refresh()
     } catch (error) {
       console.error('Failed to restore and auto-crop selected:', error)
@@ -602,83 +510,6 @@ export function useResultsView() {
     }
 
     return summary
-  }
-
-  async function runPHashDedup(
-    folder: ResultsFolder,
-    candidates: DedupCandidate[],
-    summary: { cropped: number; deduped: number; failed: number },
-  ): Promise<void> {
-    if (candidates.length === 0) return
-
-    const appConfig = await window.electronAPI.config.get()
-    const pHashThreshold = appConfig.slideExtraction?.pHashThreshold ?? 10
-
-    await loadFolderSummaries()
-    const activeFolder = activeFolders.value.find((f) => f.name === folder.name)
-
-    const { calculatePHash, calculateHammingDistance, bufferToImageData, destroy: terminate } = createPHashWorkerClient()
-
-    try {
-      const seen: Array<{ filename: string; pHash: string }> = []
-      const candidateSet = new Set(candidates.map((c) => c.originalPath))
-
-      if (activeFolder?.path) {
-        try {
-          const existingImages = await window.electronAPI.pdfmaker.getImages(activeFolder.path)
-          for (const img of existingImages) {
-            if (candidateSet.has(img.path)) continue
-            try {
-              const buffer = await window.electronAPI.offline.readImageBuffer(img.path)
-              const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
-              const imageData = await bufferToImageData(bytes)
-              const pHash = await calculatePHash(imageData)
-              seen.push({ filename: img.name, pHash })
-            } catch (err) {
-              console.warn(`Failed to compute pHash for existing ${img.path}:`, err)
-            }
-          }
-        } catch (err) {
-          console.warn('Failed to list existing images for dedup:', err)
-        }
-      }
-
-      const folderPath = activeFolder?.path
-      for (const item of candidates) {
-        try {
-          const buffer = await window.electronAPI.offline.readImageBuffer(item.originalPath)
-          const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
-          const imageData = await bufferToImageData(bytes)
-          const pHash = await calculatePHash(imageData)
-
-          let duplicateOf = ''
-          for (const s of seen) {
-            if (!s.pHash) continue
-            const distance = await calculateHammingDistance(pHash, s.pHash)
-            if (distance <= pHashThreshold) {
-              duplicateOf = s.filename
-              break
-            }
-          }
-
-          if (duplicateOf && folderPath) {
-            await window.electronAPI.slideExtraction.moveToInAppTrash(folderPath, item.filename, {
-              reason: 'duplicate',
-              reasonDetails: `Duplicate of ${duplicateOf}`,
-            })
-            summary.deduped++
-            summary.cropped = Math.max(0, summary.cropped - 1)
-          } else {
-            seen.push({ filename: item.filename, pHash })
-          }
-        } catch (err) {
-          console.warn(`Failed to dedup ${item.filename}:`, err)
-          summary.failed++
-        }
-      }
-    } finally {
-      terminate()
-    }
   }
 
   async function cropAndDedupSelected(): Promise<{ cropped: number; noDetection: number; deduped: number; failed: number }> {
@@ -702,18 +533,17 @@ export function useResultsView() {
         }
       })
 
-      const cropSummary = { cropped: 0, noDetection: 0, failed: 0 }
-      const croppedItems = await runAutoCropPipeline(targets, cropSummary)
-      summary.cropped = cropSummary.cropped
-      summary.noDetection = cropSummary.noDetection
-      summary.failed = cropSummary.failed
+      const { detectConfig, pHashThreshold } = await readDetectConfig()
+      const cropResult = await runResultsAutoCropPipeline(targets, autoCropClient, detectConfig, cropIO)
+      summary.cropped = cropResult.cropped
+      summary.noDetection = cropResult.noDetection
+      summary.failed = cropResult.failed
 
-      if (croppedItems.length > 0) {
-        const dedupSummary = { cropped: summary.cropped, deduped: 0, failed: 0 }
-        await runPHashDedup(folder, croppedItems, dedupSummary)
-        summary.cropped = dedupSummary.cropped
-        summary.deduped = dedupSummary.deduped
-        summary.failed += dedupSummary.failed
+      if (cropResult.croppedItems.length > 0) {
+        const dedup = await dedupAfterCrop(folder, cropResult.croppedItems, pHashThreshold)
+        summary.cropped = Math.max(0, summary.cropped + dedup.croppedDelta)
+        summary.deduped = dedup.deduped
+        summary.failed += dedup.failed
       }
 
       await refresh()
@@ -752,69 +582,6 @@ export function useResultsView() {
     baselineCrop.value = null
   }
 
-  async function runBaselineCropPipeline(
-    targets: AutoCropTarget[],
-    baselineRect: CropRect,
-    summary: { cropped: number; outOfBounds: number; failed: number },
-  ): Promise<Array<{ originalPath: string; filename: string }>> {
-    const cropped: Array<{ originalPath: string; filename: string }> = []
-
-    const restoreIds = targets
-      .filter((t) => t.needsRestore && t.id)
-      .map((t) => t.id as string)
-    if (restoreIds.length > 0) {
-      await window.electronAPI.trash.restore(restoreIds)
-    }
-
-    for (const target of targets) {
-      if (!target.originalPath) {
-        summary.failed++
-        continue
-      }
-      try {
-        const buffer = await window.electronAPI.offline.readImageBuffer(target.originalPath)
-        const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer)
-        const blobArrayBuffer = new ArrayBuffer(bytes.byteLength)
-        new Uint8Array(blobArrayBuffer).set(bytes)
-        const blob = new Blob([blobArrayBuffer], { type: 'image/*' })
-        const bitmap = await createImageBitmap(blob)
-        const width = bitmap.width
-        const height = bitmap.height
-        bitmap.close()
-
-        if (
-          baselineRect.x < 0 ||
-          baselineRect.y < 0 ||
-          baselineRect.width <= 0 ||
-          baselineRect.height <= 0 ||
-          baselineRect.x + baselineRect.width > width ||
-          baselineRect.y + baselineRect.height > height
-        ) {
-          summary.outOfBounds++
-          continue
-        }
-
-        await window.electronAPI.crop.apply(
-          target.originalPath,
-          {
-            x: baselineRect.x,
-            y: baselineRect.y,
-            width: baselineRect.width,
-            height: baselineRect.height,
-          },
-          false,
-        )
-        summary.cropped++
-        cropped.push({ originalPath: target.originalPath, filename: target.filename })
-      } catch (err) {
-        console.error(`Failed to apply baseline crop to ${target.originalPath}:`, err)
-        summary.failed++
-      }
-    }
-
-    return cropped
-  }
-
   async function applyBaselineToSelected(
     options: { removeDuplicates?: boolean } = {},
   ): Promise<BaselineCropActionSummary> {
@@ -825,22 +592,21 @@ export function useResultsView() {
 
     isLoading.value = true
     try {
-      const cropSummary = { cropped: 0, outOfBounds: 0, failed: 0 }
-      const croppedItems = await runBaselineCropPipeline(
+      const cropResult = await runBaselineCropPipelineCore(
         buildSelectedCropTargets(),
         baselineCrop.value.rect,
-        cropSummary,
+        cropIO,
       )
-      summary.cropped = cropSummary.cropped
-      summary.outOfBounds = cropSummary.outOfBounds
-      summary.failed = cropSummary.failed
+      summary.cropped = cropResult.cropped
+      summary.outOfBounds = cropResult.outOfBounds
+      summary.failed = cropResult.failed
 
-      if (options.removeDuplicates && folder && croppedItems.length > 0) {
-        const dedupSummary = { cropped: summary.cropped, deduped: 0, failed: 0 }
-        await runPHashDedup(folder, croppedItems, dedupSummary)
-        summary.cropped = dedupSummary.cropped
-        summary.deduped = dedupSummary.deduped
-        summary.failed += dedupSummary.failed
+      if (options.removeDuplicates && cropResult.croppedItems.length > 0) {
+        const { pHashThreshold } = await readDetectConfig()
+        const dedup = await dedupAfterCrop(folder, cropResult.croppedItems, pHashThreshold)
+        summary.cropped = Math.max(0, summary.cropped + dedup.croppedDelta)
+        summary.deduped = dedup.deduped
+        summary.failed += dedup.failed
       }
 
       await refresh()
@@ -870,7 +636,10 @@ export function useResultsView() {
           needsRestore: isRemoved,
         }
       })
-      await runBaselineCropPipeline(targets, baselineCrop.value.rect, summary)
+      const cropResult = await runBaselineCropPipelineCore(targets, baselineCrop.value.rect, cropIO)
+      summary.cropped = cropResult.cropped
+      summary.outOfBounds = cropResult.outOfBounds
+      summary.failed = cropResult.failed
       await refresh()
     } catch (error) {
       console.error('Failed to restore and apply baseline crop:', error)
@@ -902,18 +671,17 @@ export function useResultsView() {
         }
       })
 
-      const cropSummary = { cropped: 0, outOfBounds: 0, failed: 0 }
-      const croppedItems = await runBaselineCropPipeline(targets, baselineCrop.value.rect, cropSummary)
-      summary.cropped = cropSummary.cropped
-      summary.outOfBounds = cropSummary.outOfBounds
-      summary.failed = cropSummary.failed
+      const cropResult = await runBaselineCropPipelineCore(targets, baselineCrop.value.rect, cropIO)
+      summary.cropped = cropResult.cropped
+      summary.outOfBounds = cropResult.outOfBounds
+      summary.failed = cropResult.failed
 
-      if (croppedItems.length > 0) {
-        const dedupSummary = { cropped: summary.cropped, deduped: 0, failed: 0 }
-        await runPHashDedup(folder, croppedItems, dedupSummary)
-        summary.cropped = dedupSummary.cropped
-        summary.deduped = dedupSummary.deduped
-        summary.failed += dedupSummary.failed
+      if (cropResult.croppedItems.length > 0) {
+        const { pHashThreshold } = await readDetectConfig()
+        const dedup = await dedupAfterCrop(folder, cropResult.croppedItems, pHashThreshold)
+        summary.cropped = Math.max(0, summary.cropped + dedup.croppedDelta)
+        summary.deduped = dedup.deduped
+        summary.failed += dedup.failed
       }
 
       await refresh()
@@ -940,10 +708,10 @@ export function useResultsView() {
           filename: item.name,
         }))
 
-      const dedupSummary = { cropped: 0, deduped: 0, failed: 0 }
-      await runPHashDedup(folder, candidates, dedupSummary)
-      summary.deduped = dedupSummary.deduped
-      summary.failed = dedupSummary.failed
+      const { pHashThreshold } = await readDetectConfig()
+      const dedup = await dedupAfterCrop(folder, candidates, pHashThreshold)
+      summary.deduped = dedup.deduped
+      summary.failed = dedup.failed
       await refresh()
     } catch (error) {
       console.error('Failed to remove duplicates in current folder:', error)
