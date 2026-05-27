@@ -42,19 +42,19 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
-import TitleBar from './renderer/components/TitleBar.vue'
-import LeftPanel from './renderer/components/LeftPanel.vue'
+import TitleBar from './renderer/components/titlebar/TitleBar.vue'
+import LeftPanel from './renderer/components/settings/LeftPanel.vue'
 import LeftPanelDemo from './renderer/components/demo/LeftPanelDemo.vue'
 import MainContent from './renderer/components/MainContent.vue'
 import MainContentDemo from './renderer/components/demo/MainContentDemo.vue'
 import SessionPageDemo from './renderer/components/demo/SessionPageDemo.vue'
 import PlaybackPageDemo from './renderer/components/demo/PlaybackPageDemo.vue'
-import RightPanel from './renderer/components/RightPanel.vue'
+import RightPanel from './renderer/components/download/RightPanel.vue'
 import RightPanelDemo from './renderer/components/demo/RightPanelDemo.vue'
 import ToolsWindowDemo from './renderer/components/demo/ToolsWindowDemo.vue'
-import BrowserLoginView from './renderer/components/BrowserLoginView.vue'
-import { useTour } from './renderer/composables/useTour'
-import { useAuth } from './renderer/composables/useAuth'
+import BrowserLoginView from './renderer/components/settings/BrowserLoginView.vue'
+import { useTour } from './renderer/features/platform/useTour'
+import { useAuth } from './renderer/features/platform/useAuth'
 
 const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken } = useAuth()
 

@@ -127,7 +127,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useTour } from '@features/platform/useTour';
-import UpdateManager from './titlebar/UpdateManager.vue';
+import UpdateManager from './UpdateManager.vue';
 
 const { t: $t } = useI18n();
 const { restartTour } = useTour();

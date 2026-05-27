@@ -7,8 +7,8 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { configStore } from '@shared/services/configStore'
-import AddonsWindow from './components/AddonsWindow.vue'
-import { setI18nLanguage, detectSystemLanguage } from './i18n'
+import AddonsWindow from './AddonsWindow.vue'
+import { setI18nLanguage, detectSystemLanguage } from '@shared/i18n'
 
 // Load language from config on mount
 onMounted(async () => {

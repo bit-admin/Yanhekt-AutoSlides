@@ -337,7 +337,7 @@ import { ExtractionQueue } from '@shared/services/extractionQueueService'
 import { TaskQueue, taskQueueState, type TaskItem } from '@shared/services/taskQueueService'
 import { PostProcessingService, postProcessingState, type PostProcessJob } from '@shared/services/postProcessingService'
 import { useI18n } from 'vue-i18n'
-import PostProcessingProgressBar from './PostProcessingProgressBar.vue'
+import PostProcessingProgressBar from '../video/PostProcessingProgressBar.vue'
 import { fromJobProgress } from '@shared/postProcessing/displayAdapter'
 
 type Tab = 'task' | 'download'

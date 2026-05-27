@@ -495,9 +495,9 @@ import { useTaskQueue } from '@features/download/useTaskQueue'
 import { usePerformanceOptimization } from '@features/video/usePerformanceOptimization'
 import { useSlideGallery } from '@features/video/useSlideGallery'
 import PostProcessingProgressBar from './PostProcessingProgressBar.vue'
-import SlideGallery from './playback/SlideGallery.vue'
-import PreviewModal from './playback/PreviewModal.vue'
-import DualStreamControls from './playback/DualStreamControls.vue'
+import SlideGallery from './SlideGallery.vue'
+import PreviewModal from './PreviewModal.vue'
+import DualStreamControls from './DualStreamControls.vue'
 import { fromPlaybackStatus } from '@shared/postProcessing/displayAdapter'
 
 // Props

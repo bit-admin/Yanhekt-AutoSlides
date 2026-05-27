@@ -1875,7 +1875,7 @@ import { useAISettings } from '@features/ai/useAISettings'
 import { usePHashExclusion } from '@features/ai/usePHashExclusion'
 import MlThresholdSlider from './MlThresholdSlider.vue'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
-import AdvancedSettingsModal from './settings/AdvancedSettingsModal.vue'
+import AdvancedSettingsModal from './AdvancedSettingsModal.vue'
 
 const { t } = useI18n()
 

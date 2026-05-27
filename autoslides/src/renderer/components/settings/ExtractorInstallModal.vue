@@ -150,7 +150,7 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import '../assets/github-markdown.css'
+import '../../assets/github-markdown.css'
 
 interface ReleaseAsset {
   name: string

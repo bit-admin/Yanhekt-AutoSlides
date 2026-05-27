@@ -186,7 +186,7 @@
 import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useWebCapture, type WebCapturePreset } from '@features/webCapture/useWebCapture'
-import RegionOverlay from './webCapture/RegionOverlay.vue'
+import RegionOverlay from './RegionOverlay.vue'
 
 const { t } = useI18n()
 

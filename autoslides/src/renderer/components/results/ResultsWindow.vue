@@ -556,7 +556,7 @@ import { useI18n } from 'vue-i18n'
 import { createAutoCropWorkerClient } from '@shared/autoCrop'
 import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '@features/results/useResultsView'
 import { getCourseName } from '@shared/utils/toolWindowFolders'
-import ResultsImageGrid from './results/ResultsImageGrid.vue'
+import ResultsImageGrid from './ResultsImageGrid.vue'
 
 const { t } = useI18n()
 
