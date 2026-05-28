@@ -6,16 +6,12 @@ import * as os from 'os';
 import { ApiClient } from '@main/platform/apiClient';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import {
-  encryptVideoUrl,
-  getVideoSignature,
-  addSignatureToUrl
-} from '@common/crypto';
-import {
   fixUrlEscaping,
   extractHostFromUrl,
   resolveUrl,
   rewriteM3u8TsUrls
 } from './videoProxy/urlHelpers';
+import { ProxyAuth } from './videoProxy/proxyAuth';
 
 export interface VideoStream {
   type: 'camera' | 'screen';
@@ -68,20 +64,11 @@ export class VideoProxyService {
 
   private proxyServer: http.Server | null = null;
   private proxyPort = 0;
-  private loginToken: string | null = null;
   private httpAgent: http.Agent = new http.Agent({ keepAlive: true });
   private httpsAgent: https.Agent = new https.Agent({ keepAlive: true });
   private httpsAgentNoVerify: https.Agent = new https.Agent({ keepAlive: true, rejectUnauthorized: false });
   // Track the local IP the agents are currently bound to ('' means unbound / system default).
   private boundInterfaceIp = '';
-  private tokenCache: TokenCache = {
-    videoToken: null,
-    timestamp: null,
-    signature: null,
-    lastRefresh: 0,
-    refreshInterval: 10000 // 10 seconds
-  };
-  private signatureInterval: NodeJS.Timeout | null = null;
 
   // Reference counting for independent mode support
   private activeClients: Set<string> = new Set();
@@ -89,10 +76,12 @@ export class VideoProxyService {
 
   private apiClient: ApiClient;
   private intranetMapping: IntranetMappingService;
+  private auth: ProxyAuth;
 
   constructor(apiClient: ApiClient, intranetMapping: IntranetMappingService) {
     this.apiClient = apiClient;
     this.intranetMapping = intranetMapping;
+    this.auth = new ProxyAuth(apiClient);
 
     // Proactively invalidate bound agents when the user changes the selected
     // intranet interface IP in Advanced Settings.
@@ -201,10 +190,10 @@ export class VideoProxyService {
       const proxyPort = await this.startVideoProxy();
 
       // Store the login token for dynamic token refresh
-      this.loginToken = token;
+      this.auth.setLoginToken(token);
 
       // Start signature update loop for recorded videos
-      this.startUpdateSignatureLoop();
+      this.auth.startUpdateSignatureLoop();
 
       const result: VideoPlaybackUrls = {
         session_id: session.session_id,
@@ -257,7 +246,7 @@ export class VideoProxyService {
   async getLiveStreamUrls(stream: LiveStreamInput, token: string): Promise<VideoPlaybackUrls> {
     try {
       // Store the login token for dynamic token refresh
-      this.loginToken = token;
+      this.auth.setLoginToken(token);
 
       const result: VideoPlaybackUrls = {
         stream_id: stream.id || stream.live_id,
@@ -412,7 +401,7 @@ export class VideoProxyService {
     }
 
     // Store login token for future use
-    this.loginToken = loginToken as string;
+    this.auth.setLoginToken(loginToken as string);
 
     // Set proper headers for live stream request
     const liveHeaders: Record<string, string> = {
@@ -538,15 +527,15 @@ export class VideoProxyService {
     }
 
     // Store login token for future use
-    this.loginToken = loginToken as string;
+    this.auth.setLoginToken(loginToken as string);
 
     // Get fresh token and signature (more aggressive approach)
-    const tokenData = await this.refreshTokenAndSignature();
-    const freshSignature = this.getSignature(); // Always get fresh signature
+    const tokenData = await this.auth.refreshTokenAndSignature();
+    const freshSignature = this.auth.getSignature(); // Always get fresh signature
 
     // First encrypt the URL, then add signature with fresh timestamp
-    const encryptedUrl = this.encryptURL(originalUrl as string);
-    const signedUrl = this.addSignatureForUrl(
+    const encryptedUrl = this.auth.encryptURL(originalUrl as string);
+    const signedUrl = this.auth.addSignatureForUrl(
       encryptedUrl,
       tokenData.videoToken!,
       freshSignature.timestamp,
@@ -607,12 +596,12 @@ export class VideoProxyService {
 
           // Regenerate token and signature for retry
           console.log('Regenerating token and signature for M3U8 403 retry...');
-          const newTokenData = await this.refreshTokenAndSignature();
-          const newFreshSignature = this.getSignature();
+          const newTokenData = await this.auth.refreshTokenAndSignature();
+          const newFreshSignature = this.auth.getSignature();
 
           // Recreate the signed URL with fresh credentials
-          const newEncryptedUrl = this.encryptURL(originalUrl as string);
-          const newSignedUrl = this.addSignatureForUrl(
+          const newEncryptedUrl = this.auth.encryptURL(originalUrl as string);
+          const newSignedUrl = this.auth.addSignatureForUrl(
             newEncryptedUrl,
             newTokenData.videoToken!,
             newFreshSignature.timestamp,
@@ -645,7 +634,7 @@ export class VideoProxyService {
           // If we've exhausted retries due to 403, clear token cache
           if (error.response?.status === 403 || error.message.includes('403')) {
             console.log('Clearing token cache due to persistent M3U8 403 errors');
-            this.tokenCache.videoToken = null;
+            this.auth.invalidateToken();
           }
 
           res.writeHead(500, { 'Content-Type': 'text/plain' });
@@ -723,14 +712,14 @@ export class VideoProxyService {
 
     } else if (isRecordedStream) {
       // Recorded video - use encryption and signing (more aggressive like download service)
-      const tokenData = await this.refreshTokenAndSignature();
+      const tokenData = await this.auth.refreshTokenAndSignature();
 
       // Get fresh signature for each TS request (like download service)
-      const freshSignature = this.getSignature();
+      const freshSignature = this.auth.getSignature();
 
       // Encrypt and sign the TS URL with fresh signature
-      const encryptedUrl = this.encryptURL(tsUrl);
-      const signedUrl = this.addSignatureForUrl(
+      const encryptedUrl = this.auth.encryptURL(tsUrl);
+      const signedUrl = this.auth.addSignatureForUrl(
         encryptedUrl,
         tokenData.videoToken!,
         freshSignature.timestamp,
@@ -754,10 +743,10 @@ export class VideoProxyService {
 
     } else {
       // Fallback for backward compatibility - treat as recorded video
-      const tokenData = await this.refreshTokenAndSignature();
-      const freshSignature = this.getSignature();
-      const encryptedUrl = this.encryptURL(tsUrl);
-      const signedUrl = this.addSignatureForUrl(
+      const tokenData = await this.auth.refreshTokenAndSignature();
+      const freshSignature = this.auth.getSignature();
+      const encryptedUrl = this.auth.encryptURL(tsUrl);
+      const signedUrl = this.auth.addSignatureForUrl(
         encryptedUrl,
         tokenData.videoToken!,
         freshSignature.timestamp,
@@ -817,12 +806,12 @@ export class VideoProxyService {
           // For recorded videos, regenerate signature and token for retry
           if (isRecordedStream || (!isLiveStream && !isRecordedStream)) {
             console.log('Regenerating token and signature for 403 retry...');
-            const newTokenData = await this.refreshTokenAndSignature();
-            const newFreshSignature = this.getSignature();
+            const newTokenData = await this.auth.refreshTokenAndSignature();
+            const newFreshSignature = this.auth.getSignature();
 
             // Recreate the signed URL with fresh credentials
-            const newEncryptedUrl = this.encryptURL(tsUrl);
-            const newSignedUrl = this.addSignatureForUrl(
+            const newEncryptedUrl = this.auth.encryptURL(tsUrl);
+            const newSignedUrl = this.auth.addSignatureForUrl(
               newEncryptedUrl,
               newTokenData.videoToken!,
               newFreshSignature.timestamp,
@@ -856,92 +845,12 @@ export class VideoProxyService {
           // If we've exhausted retries due to 403, clear token cache
           if (error.response?.status === 403) {
             console.log('Clearing token cache due to persistent 403 errors');
-            this.tokenCache.videoToken = null;
+            this.auth.invalidateToken();
           }
 
           throw error; // Re-throw the error
         }
       }
-    }
-  }
-
-  /**
-   * Start signature update loop (similar to m3u8DownloadService)
-   */
-  private startUpdateSignatureLoop(): void {
-    // Clear existing interval if any
-    if (this.signatureInterval) {
-      clearInterval(this.signatureInterval);
-    }
-
-    this.signatureInterval = setInterval(async () => {
-      try {
-        await this.refreshTokenAndSignature();
-      } catch (error) {
-        console.error('Error updating signature in loop:', error);
-      }
-    }, 10000); // Update every 10 seconds
-  }
-
-  /**
-   * Stop signature update loop
-   */
-  private stopUpdateSignatureLoop(): void {
-    if (this.signatureInterval) {
-      clearInterval(this.signatureInterval);
-      this.signatureInterval = null;
-    }
-  }
-
-  /**
-   * Get fresh token (similar to m3u8DownloadService) - ALWAYS refresh
-   */
-  private async getToken(): Promise<string> {
-    try {
-      // ALWAYS get fresh token (like m3u8DownloadService does)
-      console.log('Getting fresh video token...');
-      this.tokenCache.videoToken = await this.apiClient.getVideoToken(this.loginToken!);
-      return this.tokenCache.videoToken!;
-    } catch (error) {
-      console.error("Error getting fresh token:", error);
-      throw new Error("获取 Token 失败");
-    }
-  }
-
-  /**
-   * Refresh video token and signature (with caching to avoid excessive API calls)
-   */
-  private async refreshTokenAndSignature(): Promise<TokenCache> {
-    try {
-      const now = Date.now();
-      const timeSinceLastRefresh = now - this.tokenCache.lastRefresh;
-
-      // Return cached token if still valid (within refresh interval)
-      if (this.tokenCache.videoToken && timeSinceLastRefresh < this.tokenCache.refreshInterval) {
-        // Still update signature for each request (signature is local, no API call)
-        const { timestamp, signature } = this.getSignature();
-        this.tokenCache.timestamp = timestamp;
-        this.tokenCache.signature = signature;
-        return this.tokenCache;
-      }
-
-      // Token expired or not cached, get fresh token
-      const videoToken = await this.getToken();
-      const { timestamp, signature } = this.getSignature();
-
-      // Update cache
-      this.tokenCache = {
-        ...this.tokenCache,
-        videoToken,
-        timestamp,
-        signature,
-        lastRefresh: Date.now()
-      };
-
-      return this.tokenCache;
-    } catch (error) {
-      console.error('Failed to refresh token:', error);
-      throw error;
     }
   }
 
@@ -959,18 +868,6 @@ export class VideoProxyService {
 
   private resolveUrl(base: string, relative: string): string {
     return resolveUrl(base, relative);
-  }
-
-  private addSignatureForUrl(url: string, videoToken: string, timestamp: string, signature: string): string {
-    return addSignatureToUrl(url, videoToken, timestamp, signature);
-  }
-
-  private getSignature(): { timestamp: string; signature: string } {
-    return getVideoSignature();
-  }
-
-  private encryptURL(url: string): string {
-    return encryptVideoUrl(url);
   }
 
   /**
@@ -992,7 +889,7 @@ export class VideoProxyService {
    */
   stopSignatureLoop(): void {
     console.log('Stopping signature update loop (playback ended)');
-    this.stopUpdateSignatureLoop();
+    this.auth.stopUpdateSignatureLoop();
   }
 
   /**
@@ -1000,7 +897,7 @@ export class VideoProxyService {
    */
   private forceStopVideoProxy(): void {
     // Stop signature update loop
-    this.stopUpdateSignatureLoop();
+    this.auth.stopUpdateSignatureLoop();
 
     if (this.proxyServer) {
       this.proxyServer.close();
