@@ -389,6 +389,20 @@ export class VideoProxyService {
   }
 
   /**
+   * Mark the IP behind `requestUrl` as failed for `originalUrl`'s domain so the
+   * intranet round-robin advances to the next IP. Parse errors are ignored.
+   */
+  private markIpFailedForUrl(requestUrl: string, originalUrl: string): void {
+    try {
+      const urlObj = new URL(requestUrl);
+      const domain = new URL(originalUrl).hostname;
+      this.intranetMapping.markIPFailed(urlObj.hostname, domain);
+    } catch (_e) {
+      // Ignore URL parsing errors
+    }
+  }
+
+  /**
    * Handle live stream m3u8 requests
    */
   private async handleLiveM3u8Request(_req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery): Promise<void> {
@@ -440,13 +454,7 @@ export class VideoProxyService {
           // Non-200 status, try next IP if in intranet mode
           if (this.intranetMapping.isEnabled() && retryCount < maxRetries) {
             // Mark current IP as failed to trigger round-robin to next IP
-            try {
-              const urlObj = new URL(requestUrl);
-              const domain = new URL(originalUrl as string).hostname;
-              this.intranetMapping.markIPFailed(urlObj.hostname, domain);
-            } catch (_e) {
-              // Ignore URL parsing errors
-            }
+            this.markIpFailedForUrl(requestUrl, originalUrl as string);
             retryCount++;
             console.log(`Live M3U8 got status ${response.status}, trying next IP (${retryCount}/${maxRetries})`);
             continue;
@@ -473,14 +481,7 @@ export class VideoProxyService {
 
         // Mark current IP as failed for intranet mode
         if (this.intranetMapping.isEnabled()) {
-          try {
-            const requestUrl = this.intranetMapping.rewriteUrl(originalUrl as string);
-            const urlObj = new URL(requestUrl);
-            const domain = new URL(originalUrl as string).hostname;
-            this.intranetMapping.markIPFailed(urlObj.hostname, domain);
-          } catch (_e) {
-            // Ignore URL parsing errors
-          }
+          this.markIpFailedForUrl(this.intranetMapping.rewriteUrl(originalUrl as string), originalUrl as string);
         }
 
         if (retryCount < maxRetries) {
