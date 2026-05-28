@@ -67,7 +67,11 @@ export function createAutoCropWorkerClient(): AutoCropWorkerClient {
     if (config?.mode) {
       await ensureYoloReady(config.mode);
     }
-    return client.request({ type: 'detect', imageData, debug, config });
+    // config comes from the reactive configStore; its nested proxies can't be structured-cloned to the worker.
+    const plainConfig = config
+      ? (JSON.parse(JSON.stringify(config)) as Partial<DetectConfig>)
+      : config;
+    return client.request({ type: 'detect', imageData, debug, config: plainConfig });
   };
 
   const destroy = (): void => {
