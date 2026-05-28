@@ -1,6 +1,6 @@
 import * as crypto from 'crypto';
 
-export const VIDEO_MAGIC = '1138b69dfef641d9d7ba49137d2d4875';
+const VIDEO_MAGIC = '1138b69dfef641d9d7ba49137d2d4875';
 
 export function encryptVideoUrl(url: string): string {
   const urlList = url.split('/');

@@ -73,23 +73,4 @@ export function registerSlideExtractionIpcHandlers(services: IpcServices): void 
       throw error;
     }
   });
-
-  ipcMain.handle('slideExtraction:loadSlideImage', async (_event, filePath: string) => {
-    try {
-      return await slideExtractionService.loadSlideImage(filePath);
-    } catch (error) {
-      console.error('Failed to load slide image:', error);
-      throw error;
-    }
-  });
-
-  ipcMain.handle('slideExtraction:savePostProcessingResults', async (_event, filePath: string, data: any) => {
-    try {
-      await slideExtractionService.savePostProcessingResults(filePath, data);
-      return { success: true };
-    } catch (error) {
-      console.error('Failed to save post-processing results:', error);
-      throw error;
-    }
-  });
 }

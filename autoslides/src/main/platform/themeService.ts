@@ -1,6 +1,7 @@
 import { nativeTheme } from 'electron';
+import type { ThemeMode } from '@common/types';
 
-export type ThemeMode = 'system' | 'light' | 'dark';
+export type { ThemeMode };
 
 export class ThemeService {
   private currentTheme: ThemeMode = 'system';

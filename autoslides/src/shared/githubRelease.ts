@@ -1,19 +1,19 @@
 import * as https from 'https';
 
-export interface GithubReleaseRequestOptions {
+interface GithubReleaseRequestOptions {
   hostname: string;
   path: string;
   method: string;
   headers: Record<string, string>;
 }
 
-export interface GithubReleaseResult {
+interface GithubReleaseResult {
   success: boolean;
   data?: string;
   error?: string;
 }
 
-export function fetchGithubReleaseRaw(
+function fetchGithubReleaseOnce(
   options: GithubReleaseRequestOptions,
   timeoutMs = 10000
 ): Promise<GithubReleaseResult> {
@@ -40,16 +40,16 @@ export function fetchGithubReleaseRaw(
   });
 }
 
-export interface FetchReleaseConfig {
+interface FetchReleaseConfig {
   primary: GithubReleaseRequestOptions;
   fallback: GithubReleaseRequestOptions;
   timeoutMs?: number;
 }
 
 export async function fetchGithubRelease(config: FetchReleaseConfig): Promise<GithubReleaseResult> {
-  const result = await fetchGithubReleaseRaw(config.primary, config.timeoutMs);
+  const result = await fetchGithubReleaseOnce(config.primary, config.timeoutMs);
   if (result.success && result.data) return result;
-  const fallback = await fetchGithubReleaseRaw(config.fallback, config.timeoutMs);
+  const fallback = await fetchGithubReleaseOnce(config.fallback, config.timeoutMs);
   if (fallback.success && fallback.data) return fallback;
   return { success: false, error: fallback.error || result.error || 'Unknown error' };
 }

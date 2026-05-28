@@ -1,6 +1,18 @@
 /// <reference types="vite/client" />
 /// <reference types="electron" />
 
+import type {
+  AppConfig,
+  AIFilteringConfig,
+  MlClassifierThresholds,
+  PHashExclusionItem,
+  SlideExtractionConfig,
+  TrashEntry,
+  TrashMetadata,
+  CropRect,
+  CropEntry,
+} from './shared/types';
+
 declare const _MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const _MAIN_WINDOW_VITE_NAME: string;
 
@@ -8,89 +20,6 @@ declare module '*.vue' {
   import type { DefineComponent } from 'vue'
   const component: DefineComponent<Record<string, never>, Record<string, never>, unknown>
   export default component
-}
-
-// ============================================================================
-// Configuration Types
-// ============================================================================
-
-interface AppConfig {
-  outputDirectory: string;
-  connectionMode: 'internal' | 'external';
-  maxConcurrentDownloads: number;
-  downloadMaxWorkers: number;
-  downloadNumRetries: number;
-  muteMode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded';
-  videoRetryCount: number;
-  taskSpeed: number;
-  showMorePlaybackSpeed: boolean;
-  autoPostProcessing: boolean;
-  autoPostProcessingLive: boolean;
-  enableAIFiltering: boolean;
-  themeMode: 'system' | 'light' | 'dark';
-  languageMode: 'system' | 'en' | 'zh' | 'ja' | 'ko';
-  preventSystemSleep: boolean;
-  userOriginalNickname: string;
-  userDisplayName: string;
-  lastGreetingId: string;
-  savedSearchesLive: string[];
-  savedSearchesRecorded: string[];
-  distinguishMaybeSlide: boolean;
-  slideExtraction?: SlideExtractionConfig;
-  qtExtractor?: QtExtractorConfig;
-}
-
-interface QtExtractorConfig {
-  binaryPath: string;
-  autoRunAfterDownload: boolean;
-  autoPostProcessAfter: boolean;
-}
-
-interface PHashExclusionItem {
-  id: string;
-  name: string;
-  pHash: string;
-  createdAt: number;
-  isPreset?: boolean;
-  isEnabled?: boolean;
-}
-
-interface SlideExtractionConfig {
-  checkInterval: number;
-  enableDoubleVerification: boolean;
-  verificationCount: number;
-  hammingThresholdLow: number;
-  hammingThresholdUp: number;
-  ssimThreshold: number;
-  ssimPresetMode?: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom';
-  isAdaptiveMode?: boolean;
-  enableDownsampling: boolean;
-  downsampleWidth: number;
-  downsampleHeight: number;
-  pHashThreshold: number;
-  pHashExclusionList: PHashExclusionItem[];
-  enableDuplicateRemoval: boolean;
-  enableExclusionList: boolean;
-  enablePngColorReduction: boolean;
-  autoCrop?: {
-    aspectTolerance: number;
-    blackThreshold: number;
-    maxBorderFrac: number;
-    cannyLowThreshold: number;
-    cannyHighThreshold: number;
-    areaRatioMin: number;
-    areaRatioMax: number;
-    marginFrac: number;
-    fillRatioMin: number;
-  };
-  autoCropDetectorMode?: 'canny_then_yolo' | 'canny_only' | 'yolo_only';
-  autoCropYolo?: {
-    confidenceThreshold: number;
-    iouThreshold: number;
-    inputSize: number;
-  };
-  autoCropActiveModel?: 'builtin' | 'custom';
-  autoCropCustomModelName?: string | null;
 }
 
 interface AutoCropModelInfo {
@@ -207,18 +136,6 @@ interface RecordedSessionInput {
   duration?: string | number;
   main_url?: string;
   vga_url?: string;
-}
-
-// Post-processing result data structure
-interface PostProcessingResultData {
-  originalCount: number;
-  filteredCount: number;
-  removedCount: number;
-  slides: Array<{
-    id: string;
-    filename: string;
-    timestamp: string;
-  }>;
 }
 
 interface AuthResponse {
@@ -431,38 +348,6 @@ interface DialogResponse {
 
 interface SlideOperationResponse {
   success: boolean;
-}
-
-interface TrashMetadata {
-  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual';
-  reasonDetails?: string;
-}
-
-interface TrashEntry {
-  id: string;
-  filename: string;
-  originalPath: string;
-  originalParentFolder: string;
-  trashPath: string;
-  reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual';
-  reasonDetails?: string;
-  trashedAt: string;
-}
-
-interface CropRect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
-interface CropEntry {
-  filename: string;
-  originalPath: string;
-  originalParentFolder: string;
-  cropPath: string;
-  rect: CropRect;
-  croppedAt: string;
 }
 
 // ============================================================================
@@ -701,8 +586,6 @@ interface ElectronAPI {
     readSlideAsBase64: (outputPath: string, filename: string) => Promise<string>;
     readSlideForAI: (outputPath: string, filename: string, targetWidth: number, targetHeight: number) => Promise<string>;
     listSlides: (outputPath: string) => Promise<string[]>;
-    loadSlideImage: (filePath: string) => Promise<Uint8Array>;
-    savePostProcessingResults: (filePath: string, data: PostProcessingResultData) => Promise<void>;
   };
 
   dialog?: {

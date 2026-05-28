@@ -1,21 +1,11 @@
-export type ResultsReason = 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual'
+// Renderer-side Results View view models. Canonical crop/trash types come from
+// @common/types; renderer-only types (ResultsFolder, ResultsItem, etc.) stay here.
 
-export interface CropRect {
-  x: number
-  y: number
-  width: number
-  height: number
-}
+import type { CropRect, CropEntry, TrashReason } from '@common/types'
 
-export interface CropEntry {
-  filename: string
-  originalPath: string
-  originalParentFolder: string
-  cropPath: string
-  rect: CropRect
-  croppedAt: string
-  autoCropped?: boolean
-}
+export type { CropRect, CropEntry, TrashReason }
+// Historic alias preserved for renderer call sites.
+export type ResultsReason = TrashReason
 
 export interface RemovedEntry {
   id: string
