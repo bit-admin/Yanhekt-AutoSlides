@@ -331,6 +331,113 @@
   text-decoration: underline;
 }
 
+.mode-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  background-color: #f8f9fa;
+  color: #666;
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn:hover {
+  background-color: #e9ecef;
+}
+
+.mode-btn.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.downsampling-controls {
+  margin-top: 8px;
+}
+
+.downsampling-controls + .setting-description {
+  margin-top: 8px;
+}
+
+.downsampling-control {
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  min-height: 35px;
+}
+
+.downsampling-control:hover {
+  background-color: #e9ecef;
+  border-color: #007bff;
+}
+
+.downsampling-control .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  user-select: none;
+  height: 35px;
+}
+
+.downsampling-control .checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #007bff;
+}
+
+.downsampling-presets {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-top: 1px solid #e0e0e0;
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.downsampling-presets.no-border-top {
+  border-top: none;
+}
+
+.reset-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  color: #666;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+.reset-btn:hover {
+  background-color: #f0f0f0;
+  color: #333;
+  opacity: 1;
+}
+
+.reset-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
 @media (prefers-color-scheme: dark) {
   .slide-interval-input-wrapper {
     background-color: #2d2d2d;
@@ -423,6 +530,50 @@
   }
 
   .prevent-sleep-control .checkbox-label {
+    color: #e0e0e0;
+  }
+
+  .mode-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .mode-btn:hover {
+    background-color: #3d3d3d;
+  }
+
+  .mode-btn.active {
+    background-color: #2563eb;
+    color: white;
+    border-color: #2563eb;
+  }
+
+  .downsampling-control {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .downsampling-control:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .downsampling-control .checkbox-label {
+    color: #e0e0e0;
+  }
+
+  .downsampling-presets {
+    border-top-color: #404040;
+    background-color: rgba(45, 45, 45, 0.7);
+  }
+
+  .reset-btn {
+    color: #b0b0b0;
+  }
+
+  .reset-btn:hover {
+    background-color: #3d3d3d;
     color: #e0e0e0;
   }
 }

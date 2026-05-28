@@ -586,62 +586,6 @@ const {
   white-space: nowrap;
 }
 
-.downsampling-controls {
-  margin-top: 8px;
-}
-
-.downsampling-controls + .setting-description {
-  margin-top: 8px;
-}
-
-.downsampling-control {
-  display: flex;
-  flex-direction: column;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  overflow: hidden;
-  transition: all 0.2s ease;
-  min-height: 35px;
-}
-
-.downsampling-control:hover {
-  background-color: #e9ecef;
-  border-color: #007bff;
-}
-
-.downsampling-control .checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #333;
-  cursor: pointer;
-  padding: 8px 12px;
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  transition: none;
-  user-select: none;
-  height: 35px;
-}
-
-.downsampling-control .checkbox-label input[type="checkbox"] {
-  margin: 0;
-  cursor: pointer;
-  width: 16px;
-  height: 16px;
-  accent-color: #007bff;
-}
-
-.downsampling-presets {
-  display: flex;
-  gap: 4px;
-  padding: 8px 12px;
-  border-top: 1px solid #e0e0e0;
-  background-color: rgba(255, 255, 255, 0.7);
-}
-
 .classroom-rules-info {
   margin-top: 12px;
   padding: 12px;
@@ -1000,25 +944,6 @@ const {
 
   .advanced-setting-subsection h5 {
     color: #e0e0e0;
-  }
-
-  .downsampling-control {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .downsampling-control:hover {
-    background-color: #3d3d3d;
-    border-color: #4a9eff;
-  }
-
-  .downsampling-control .checkbox-label {
-    color: #e0e0e0;
-  }
-
-  .downsampling-presets {
-    border-top-color: #404040;
-    background-color: rgba(45, 45, 45, 0.7);
   }
 
   .phase-toggle-item,
