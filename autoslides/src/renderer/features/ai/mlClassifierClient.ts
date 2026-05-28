@@ -1,38 +1,16 @@
 import type {
   ClassifyResult,
-  WorkerLog,
   WorkerResponse,
 } from '@shared/workers/slideClassifier.worker'
+import { createWorkerClient } from '@shared/workers/workerClientFactory'
 
-let worker: Worker | null = null
-let nextId = 0
-const pending = new Map<string, (r: WorkerResponse) => void>()
+const client = createWorkerClient<WorkerResponse>({
+  workerUrl: new URL('../../shared/workers/slideClassifier.worker.ts', import.meta.url),
+  workerName: 'slideClassifier',
+})
 
 let ensureInitPromise: Promise<void> | null = null
 let initialized = false
-
-const ensureWorker = (): Worker => {
-  if (worker) return worker
-  worker = new Worker(
-    new URL('../../shared/workers/slideClassifier.worker.ts', import.meta.url),
-    { type: 'module' },
-  )
-  worker.addEventListener('message', (event: MessageEvent<WorkerResponse | WorkerLog>) => {
-    const data = event.data as WorkerResponse | WorkerLog | null
-    if (!data || typeof data !== 'object') return
-    if ((data as WorkerLog).type === 'log') return
-    const response = data as WorkerResponse
-    if (!response.id) return
-    const resolver = pending.get(response.id)
-    if (!resolver) return
-    pending.delete(response.id)
-    resolver(response)
-  })
-  worker.addEventListener('error', (e) => {
-    console.error('[slideClassifier worker error]', e)
-  })
-  return worker
-}
 
 export async function ensureMlClassifierReady(): Promise<void> {
   if (initialized) return
@@ -41,13 +19,11 @@ export async function ensureMlClassifierReady(): Promise<void> {
     return
   }
   ensureInitPromise = (async () => {
-    const w = ensureWorker()
     const modelBuffer = await window.electronAPI.mlClassifier.getModelBuffer()
-    const id = String(++nextId)
-    const response = await new Promise<WorkerResponse>((resolve) => {
-      pending.set(id, resolve)
-      w.postMessage({ id, type: 'init', modelBuffer }, [modelBuffer])
-    })
+    const response = await client.request(
+      { type: 'init', modelBuffer },
+      [modelBuffer],
+    )
     if (!response.success) {
       throw new Error(response.error || 'Failed to initialize ML classifier')
     }
@@ -63,12 +39,7 @@ export async function ensureMlClassifierReady(): Promise<void> {
 
 export async function classifyImage(imageData: ImageData): Promise<ClassifyResult> {
   await ensureMlClassifierReady()
-  const w = ensureWorker()
-  const id = String(++nextId)
-  const response = await new Promise<WorkerResponse>((resolve) => {
-    pending.set(id, resolve)
-    w.postMessage({ id, type: 'classify', imageData })
-  })
+  const response = await client.request({ type: 'classify', imageData })
   if (!response.success || !response.result) {
     throw new Error(response.error || 'Classification failed')
   }
@@ -78,10 +49,5 @@ export async function classifyImage(imageData: ImageData): Promise<ClassifyResul
 export function resetMlClassifier(): void {
   initialized = false
   ensureInitPromise = null
-  if (worker) {
-    worker.terminate()
-    worker = null
-  }
-  pending.clear()
+  client.destroy()
 }
-

@@ -1,9 +1,9 @@
 import type {
   DetectConfig,
   DetectorMode,
-  WorkerLog,
   WorkerResponse,
 } from '../workers/autoCrop.worker';
+import { createWorkerClient } from '../workers/workerClientFactory';
 
 export interface AutoCropWorkerClient {
   detectBbox(
@@ -20,35 +20,13 @@ const modeNeedsYolo = (mode: DetectorMode | undefined): boolean =>
   mode === 'yolo_only' || mode === 'canny_then_yolo';
 
 export function createAutoCropWorkerClient(): AutoCropWorkerClient {
-  let worker: Worker | null = null;
-  let nextId = 0;
-  const pending = new Map<string, (r: WorkerResponse) => void>();
+  const client = createWorkerClient<WorkerResponse>({
+    workerUrl: new URL('../workers/autoCrop.worker.ts', import.meta.url),
+    workerName: 'autoCrop',
+  });
 
   let ensureYoloInitPromise: Promise<void> | null = null;
   let yoloInitialized = false;
-
-  const ensureWorker = (): Worker => {
-    if (worker) return worker;
-    worker = new Worker(
-      new URL('../workers/autoCrop.worker.ts', import.meta.url),
-      { type: 'module' },
-    );
-    worker.addEventListener('message', (event: MessageEvent<WorkerResponse | WorkerLog>) => {
-      const data = event.data as WorkerResponse | WorkerLog | null;
-      if (!data || typeof data !== 'object') return;
-      if ((data as WorkerLog).type === 'log') return;
-      const response = data as WorkerResponse;
-      if (!response.id) return;
-      const resolver = pending.get(response.id);
-      if (!resolver) return;
-      pending.delete(response.id);
-      resolver(response);
-    });
-    worker.addEventListener('error', (e) => {
-      console.error('[autoCrop worker error]', e);
-    });
-    return worker;
-  };
 
   const ensureYoloReady = async (mode: DetectorMode): Promise<void> => {
     if (!modeNeedsYolo(mode)) return;
@@ -58,13 +36,11 @@ export function createAutoCropWorkerClient(): AutoCropWorkerClient {
       return;
     }
     ensureYoloInitPromise = (async () => {
-      const w = ensureWorker();
       const modelBuffer = await window.electronAPI.autoCrop.getModelBuffer();
-      const id = String(++nextId);
-      const response = await new Promise<WorkerResponse>((resolve) => {
-        pending.set(id, resolve);
-        w.postMessage({ id, type: 'init', modelBuffer }, [modelBuffer]);
-      });
+      const response = await client.request(
+        { type: 'init', modelBuffer },
+        [modelBuffer],
+      );
       if (!response.success) {
         throw new Error(response.error || 'Failed to initialize YOLO backend');
       }
@@ -91,20 +67,11 @@ export function createAutoCropWorkerClient(): AutoCropWorkerClient {
     if (config?.mode) {
       await ensureYoloReady(config.mode);
     }
-    const w = ensureWorker();
-    const id = String(++nextId);
-    return new Promise<WorkerResponse>((resolve) => {
-      pending.set(id, resolve);
-      w.postMessage({ id, type: 'detect', imageData, debug, config });
-    });
+    return client.request({ type: 'detect', imageData, debug, config });
   };
 
   const destroy = (): void => {
-    pending.clear();
-    if (worker) {
-      worker.terminate();
-      worker = null;
-    }
+    client.destroy();
     resetYoloInit();
   };
 
