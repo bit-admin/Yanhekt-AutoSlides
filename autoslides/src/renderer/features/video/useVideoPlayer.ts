@@ -3,7 +3,7 @@ import Hls, { Events, ErrorTypes, ErrorDetails } from 'hls.js'
 import { DataStore } from '@shared/services/dataStore'
 import { tokenManager } from '@shared/services/authService'
 import type { SlideExtractionHandle } from '@shared/processing'
-import { setupDualHlsErrorHandler } from './useVideoErrorRecovery'
+import { setupDualHlsErrorHandler, createFatalErrorReporter } from './useVideoErrorRecovery'
 import { configStore } from '@shared/services/configStore'
 
 export const DUAL_STREAM_KEY = '__dual__'
@@ -658,6 +658,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         let mediaErrorRecoveryCount = 0
         let networkErrorRecoveryCount = 0
         const maxRecoveryAttempts = 3
+        const reportFatal = createFatalErrorReporter({ error, isRetrying, retryMessage, handleTaskError })
 
         hls.value.on(Events.ERROR, async (_event, data) => {
           console.error('HLS error during position restore:', _event, data)
@@ -673,10 +674,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
                     }
                   }, 1000 * networkErrorRecoveryCount)
                 } else {
-                  error.value = 'Network error: Unable to load video after multiple attempts'
-                  isRetrying.value = false
-                  retryMessage.value = ''
-                  handleTaskError('Network error: Unable to load video after multiple attempts')
+                  reportFatal('Network error: Unable to load video after multiple attempts')
                 }
                 break
 
@@ -702,19 +700,13 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
                     }, 1000 * mediaErrorRecoveryCount)
                   }
                 } else {
-                  error.value = 'Video decoding error: Unable to decode video after multiple attempts'
-                  isRetrying.value = false
-                  retryMessage.value = ''
-                  handleTaskError('Video decoding error: Unable to decode video after multiple attempts')
+                  reportFatal('Video decoding error: Unable to decode video after multiple attempts')
                 }
                 break
 
               default:
                 console.error('Other fatal error during restore:', data.details)
-                error.value = 'Video playback error: ' + data.details
-                isRetrying.value = false
-                retryMessage.value = ''
-                handleTaskError('Video playback error: ' + data.details)
+                reportFatal('Video playback error: ' + data.details)
                 break
             }
           }
@@ -784,6 +776,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         let mediaErrorRecoveryCount = 0
         let networkErrorRecoveryCount = 0
         const maxRecoveryAttempts = 3
+        const reportFatal = createFatalErrorReporter({ error, isRetrying, retryMessage, handleTaskError })
 
         hls.value.on(Events.ERROR, async (_event, data) => {
           console.error('HLS error:', _event, data)
@@ -800,10 +793,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
                     }
                   }, 1000 * networkErrorRecoveryCount)
                 } else {
-                  error.value = 'Network error: Unable to load video after multiple attempts'
-                  isRetrying.value = false
-                  retryMessage.value = ''
-                  handleTaskError('Network error: Unable to load video after multiple attempts')
+                  reportFatal('Network error: Unable to load video after multiple attempts')
                 }
                 break
 
@@ -863,19 +853,13 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
                     }, 500 * mediaErrorRecoveryCount)
                   }
                 } else {
-                  error.value = 'Video decoding error: Unable to decode video after multiple attempts'
-                  isRetrying.value = false
-                  retryMessage.value = ''
-                  handleTaskError('Video decoding error: Unable to decode video after multiple attempts')
+                  reportFatal('Video decoding error: Unable to decode video after multiple attempts')
                 }
                 break
 
               default:
                 console.error('Other fatal error:', data.details)
-                error.value = 'Video playback error: ' + data.details
-                isRetrying.value = false
-                retryMessage.value = ''
-                handleTaskError('Video playback error: ' + data.details)
+                reportFatal('Video playback error: ' + data.details)
                 break
             }
           } else {

@@ -1,5 +1,29 @@
+import type { Ref } from 'vue'
 import type Hls from 'hls.js'
 import { Events, ErrorTypes } from 'hls.js'
+
+export interface FatalErrorContext {
+  error: Ref<string | null>
+  isRetrying: Ref<boolean>
+  retryMessage: Ref<string>
+  handleTaskError: (message: string) => void
+}
+
+/**
+ * Report a terminal (unrecoverable) playback error. This 4-line block was
+ * duplicated at six sites across the two single-stream HLS error handlers
+ * (network-exhausted, media-exhausted, and default for each); it surfaces the
+ * message, clears the retry UI, and notifies the task layer. Behavior is
+ * identical at every former call site — only the message varies.
+ */
+export function createFatalErrorReporter(ctx: FatalErrorContext) {
+  return (message: string): void => {
+    ctx.error.value = message
+    ctx.isRetrying.value = false
+    ctx.retryMessage.value = ''
+    ctx.handleTaskError(message)
+  }
+}
 
 /**
  * Error recovery counters used across the three HLS / video-element error
