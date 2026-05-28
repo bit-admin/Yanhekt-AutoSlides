@@ -1,5 +1,6 @@
-import type { Ref } from 'vue'
+import type { Ref, ShallowRef } from 'vue'
 import type Hls from 'hls.js'
+import type { ErrorData } from 'hls.js'
 import { Events, ErrorTypes } from 'hls.js'
 
 export interface FatalErrorContext {
@@ -109,4 +110,81 @@ export function setupDualHlsErrorHandler(
         break
     }
   })
+}
+
+export interface SingleStreamHlsErrorOptions {
+  /** The reactive HLS instance ref the handler operates on (read at fire time). */
+  hls: ShallowRef<Hls | null>
+  /** Report a terminal error (typically createFatalErrorReporter's result). */
+  reportFatal: (message: string) => void
+  /** Prefix for the top-level console.error log. */
+  logLabel: string
+  /** Prefix for the default (other-fatal) console.error log. */
+  defaultErrorLabel: string
+  /** Called at the start of every fatal error, before the type switch. */
+  onFatalStart?: () => void
+  /** Called for non-fatal errors. */
+  onNonFatal?: (data: ErrorData) => void
+  /**
+   * Divergent media-error recovery body, invoked after the per-instance media
+   * counter is incremented (`attempt` = the new count). Each caller supplies its
+   * own recorded/restore recovery strategy (buffer-skip amounts, append-error
+   * branch, position replay) — this is where the two single-stream handlers
+   * genuinely differ.
+   */
+  recoverMediaError: (data: ErrorData, attempt: number) => void
+}
+
+/**
+ * Build the ERROR handler for a single-stream HLS instance. Captures the parts
+ * the two call sites (loadVideoSource / loadVideoSourceWithPosition) share
+ * verbatim — the fatal/non-fatal gate, the identical NETWORK_ERROR linear-backoff
+ * retry, the media-error count gate, and the default fatal report — while leaving
+ * the divergent media recovery body to `opts.recoverMediaError`. Each call gets
+ * its own private counters.
+ */
+export function createSingleStreamHlsErrorHandler(
+  opts: SingleStreamHlsErrorOptions
+): (event: Events.ERROR, data: ErrorData) => void {
+  const counters = createRecoveryCounters()
+
+  return (_event: Events.ERROR, data: ErrorData): void => {
+    console.error(opts.logLabel, _event, data)
+
+    if (!data.fatal) {
+      opts.onNonFatal?.(data)
+      return
+    }
+
+    opts.onFatalStart?.()
+
+    switch (data.type) {
+      case ErrorTypes.NETWORK_ERROR:
+        if (counters.networkErrorRecoveryCount < counters.maxRecoveryAttempts) {
+          counters.networkErrorRecoveryCount++
+          setTimeout(() => {
+            if (opts.hls.value) {
+              opts.hls.value.startLoad()
+            }
+          }, 1000 * counters.networkErrorRecoveryCount)
+        } else {
+          opts.reportFatal('Network error: Unable to load video after multiple attempts')
+        }
+        break
+
+      case ErrorTypes.MEDIA_ERROR:
+        if (counters.mediaErrorRecoveryCount < counters.maxRecoveryAttempts) {
+          counters.mediaErrorRecoveryCount++
+          opts.recoverMediaError(data, counters.mediaErrorRecoveryCount)
+        } else {
+          opts.reportFatal('Video decoding error: Unable to decode video after multiple attempts')
+        }
+        break
+
+      default:
+        console.error(opts.defaultErrorLabel, data.details)
+        opts.reportFatal('Video playback error: ' + data.details)
+        break
+    }
+  }
 }

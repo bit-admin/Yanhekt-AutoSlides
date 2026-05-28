@@ -1,9 +1,9 @@
 import { ref, shallowRef, computed, nextTick, type Ref, type ShallowRef, type ComputedRef } from 'vue'
-import Hls, { Events, ErrorTypes, ErrorDetails } from 'hls.js'
+import Hls, { Events, ErrorDetails } from 'hls.js'
 import { DataStore } from '@shared/services/dataStore'
 import { tokenManager } from '@shared/services/authService'
 import type { SlideExtractionHandle } from '@shared/processing'
-import { setupDualHlsErrorHandler, createFatalErrorReporter } from './useVideoErrorRecovery'
+import { setupDualHlsErrorHandler, createFatalErrorReporter, createSingleStreamHlsErrorHandler } from './useVideoErrorRecovery'
 import { applyPlaybackRate, applyMute } from './singleStreamPlayback'
 import { configStore } from '@shared/services/configStore'
 
@@ -638,62 +638,33 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
           }, 100)
         })
 
-        let mediaErrorRecoveryCount = 0
-        let networkErrorRecoveryCount = 0
-        const maxRecoveryAttempts = 3
         const reportFatal = createFatalErrorReporter({ error, isRetrying, retryMessage, handleTaskError })
 
-        hls.value.on(Events.ERROR, async (_event, data) => {
-          console.error('HLS error during position restore:', _event, data)
-
-          if (data.fatal) {
-            switch (data.type) {
-              case ErrorTypes.NETWORK_ERROR:
-                if (networkErrorRecoveryCount < maxRecoveryAttempts) {
-                  networkErrorRecoveryCount++
-                  setTimeout(() => {
-                    if (hls.value) {
-                      hls.value.startLoad()
-                    }
-                  }, 1000 * networkErrorRecoveryCount)
-                } else {
-                  reportFatal('Network error: Unable to load video after multiple attempts')
+        hls.value.on(Events.ERROR, createSingleStreamHlsErrorHandler({
+          hls,
+          reportFatal,
+          logLabel: 'HLS error during position restore:',
+          defaultErrorLabel: 'Other fatal error during restore:',
+          recoverMediaError: (data, attempt) => {
+            if (data.details === ErrorDetails.BUFFER_STALLED_ERROR ||
+                data.details === ErrorDetails.BUFFER_FULL_ERROR ||
+                data.details === ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
+              setTimeout(() => {
+                if (hls.value && videoPlayer.value) {
+                  const currentTime = videoPlayer.value.currentTime
+                  videoPlayer.value.currentTime = currentTime + 0.1
+                  hls.value.recoverMediaError()
                 }
-                break
-
-              case ErrorTypes.MEDIA_ERROR:
-                if (mediaErrorRecoveryCount < maxRecoveryAttempts) {
-                  mediaErrorRecoveryCount++
-
-                  if (data.details === ErrorDetails.BUFFER_STALLED_ERROR ||
-                      data.details === ErrorDetails.BUFFER_FULL_ERROR ||
-                      data.details === ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
-                    setTimeout(() => {
-                      if (hls.value && videoPlayer.value) {
-                        const currentTime = videoPlayer.value.currentTime
-                        videoPlayer.value.currentTime = currentTime + 0.1
-                        hls.value.recoverMediaError()
-                      }
-                    }, 500)
-                  } else {
-                    setTimeout(() => {
-                      if (hls.value) {
-                        hls.value.recoverMediaError()
-                      }
-                    }, 1000 * mediaErrorRecoveryCount)
-                  }
-                } else {
-                  reportFatal('Video decoding error: Unable to decode video after multiple attempts')
+              }, 500)
+            } else {
+              setTimeout(() => {
+                if (hls.value) {
+                  hls.value.recoverMediaError()
                 }
-                break
-
-              default:
-                console.error('Other fatal error during restore:', data.details)
-                reportFatal('Video playback error: ' + data.details)
-                break
+              }, 1000 * attempt)
             }
           }
-        })
+        }))
 
       } else {
         throw new Error('HLS is not supported in this browser')
@@ -736,99 +707,69 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
           }, 100)
         })
 
-        let mediaErrorRecoveryCount = 0
-        let networkErrorRecoveryCount = 0
-        const maxRecoveryAttempts = 3
         const reportFatal = createFatalErrorReporter({ error, isRetrying, retryMessage, handleTaskError })
 
-        hls.value.on(Events.ERROR, async (_event, data) => {
-          console.error('HLS error:', _event, data)
+        hls.value.on(Events.ERROR, createSingleStreamHlsErrorHandler({
+          hls,
+          reportFatal,
+          logLabel: 'HLS error:',
+          defaultErrorLabel: 'Other fatal error:',
+          onFatalStart: () => { isHlsRecovering = true },
+          onNonFatal: (data) => { console.warn('Non-fatal HLS error:', data.details, data) },
+          recoverMediaError: (data, attempt) => {
+            const currentPosition = videoPlayer.value?.currentTime || 0
+            const wasPlaying = videoPlayer.value ? !videoPlayer.value.paused : false
 
-          if (data.fatal) {
-            isHlsRecovering = true
-            switch (data.type) {
-              case ErrorTypes.NETWORK_ERROR:
-                if (networkErrorRecoveryCount < maxRecoveryAttempts) {
-                  networkErrorRecoveryCount++
-                  setTimeout(() => {
-                    if (hls.value) {
-                      hls.value.startLoad()
-                    }
-                  }, 1000 * networkErrorRecoveryCount)
-                } else {
-                  reportFatal('Network error: Unable to load video after multiple attempts')
+            if (data.details === ErrorDetails.BUFFER_STALLED_ERROR ||
+                data.details === ErrorDetails.BUFFER_FULL_ERROR ||
+                data.details === ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
+              setTimeout(() => {
+                if (hls.value && videoPlayer.value) {
+                  const skipAmount = 0.5 + (attempt * 0.5)
+                  videoPlayer.value.currentTime = currentPosition + skipAmount
+                  hls.value.recoverMediaError()
                 }
-                break
-
-              case ErrorTypes.MEDIA_ERROR:
-                if (mediaErrorRecoveryCount < maxRecoveryAttempts) {
-                  mediaErrorRecoveryCount++
-
-                  const currentPosition = videoPlayer.value?.currentTime || 0
-                  const wasPlaying = videoPlayer.value ? !videoPlayer.value.paused : false
-
-                  if (data.details === ErrorDetails.BUFFER_STALLED_ERROR ||
-                      data.details === ErrorDetails.BUFFER_FULL_ERROR ||
-                      data.details === ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
+              }, 500)
+            } else if (data.details === ErrorDetails.BUFFER_APPEND_ERROR ||
+                       data.details === ErrorDetails.BUFFER_APPENDING_ERROR) {
+              setTimeout(() => {
+                if (hls.value && videoPlayer.value) {
+                  const skipAmount = 1 + (attempt * 1)
+                  try {
+                    hls.value.recoverMediaError()
                     setTimeout(() => {
-                      if (hls.value && videoPlayer.value) {
-                        const skipAmount = 0.5 + (mediaErrorRecoveryCount * 0.5)
+                      if (videoPlayer.value) {
                         videoPlayer.value.currentTime = currentPosition + skipAmount
-                        hls.value.recoverMediaError()
-                      }
-                    }, 500)
-                  } else if (data.details === ErrorDetails.BUFFER_APPEND_ERROR ||
-                             data.details === ErrorDetails.BUFFER_APPENDING_ERROR) {
-                    setTimeout(() => {
-                      if (hls.value && videoPlayer.value) {
-                        const skipAmount = 1 + (mediaErrorRecoveryCount * 1)
-                        try {
-                          hls.value.recoverMediaError()
-                          setTimeout(() => {
-                            if (videoPlayer.value) {
-                              videoPlayer.value.currentTime = currentPosition + skipAmount
-                              if (wasPlaying) {
-                                videoPlayer.value.play().catch(() => { /* Ignore buffer recovery play error */ })
-                              }
-                            }
-                            isHlsRecovering = false
-                          }, 500)
-                        } catch (e) {
-                          console.error('Error during buffer append recovery:', e)
-                          isHlsRecovering = false
+                        if (wasPlaying) {
+                          videoPlayer.value.play().catch(() => { /* Ignore buffer recovery play error */ })
                         }
                       }
-                    }, 200)
-                  } else {
-                    setTimeout(() => {
-                      if (hls.value) {
-                        hls.value.recoverMediaError()
-                        setTimeout(() => {
-                          if (videoPlayer.value && currentPosition > 0) {
-                            videoPlayer.value.currentTime = currentPosition
-                            if (wasPlaying) {
-                              videoPlayer.value.play().catch(() => { /* Ignore media recovery play error */ })
-                            }
-                          }
-                          isHlsRecovering = false
-                        }, 1000)
-                      }
-                    }, 500 * mediaErrorRecoveryCount)
+                      isHlsRecovering = false
+                    }, 500)
+                  } catch (e) {
+                    console.error('Error during buffer append recovery:', e)
+                    isHlsRecovering = false
                   }
-                } else {
-                  reportFatal('Video decoding error: Unable to decode video after multiple attempts')
                 }
-                break
-
-              default:
-                console.error('Other fatal error:', data.details)
-                reportFatal('Video playback error: ' + data.details)
-                break
+              }, 200)
+            } else {
+              setTimeout(() => {
+                if (hls.value) {
+                  hls.value.recoverMediaError()
+                  setTimeout(() => {
+                    if (videoPlayer.value && currentPosition > 0) {
+                      videoPlayer.value.currentTime = currentPosition
+                      if (wasPlaying) {
+                        videoPlayer.value.play().catch(() => { /* Ignore media recovery play error */ })
+                      }
+                    }
+                    isHlsRecovering = false
+                  }, 1000)
+                }
+              }, 500 * attempt)
             }
-          } else {
-            console.warn('Non-fatal HLS error:', data.details, data)
           }
-        })
+        }))
 
       } else {
         throw new Error('HLS is not supported in this browser')
