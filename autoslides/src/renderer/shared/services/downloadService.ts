@@ -1,11 +1,12 @@
 import { reactive, ref } from 'vue'
+import { sanitizeDownloadName } from './downloadNaming'
 
 export type DownloadStatus = 'queued' | 'downloading' | 'processing' | 'completed' | 'error'
 
-// Extraction state added by the Qt AutoSlides Extractor integration. Mirrors
-// the union in extractionQueueService.ts (kept here to avoid a circular type
-// import).
-export type DownloadExtractionStatus =
+// Extraction state added by the Qt AutoSlides Extractor integration. Canonical
+// home for the union — extractionQueueService imports it from here (it already
+// imports DownloadItem from this module, so there is no circular-type concern).
+export type ExtractionStatus =
   | 'none'
   | 'pending'
   | 'extracting'
@@ -30,7 +31,7 @@ export interface DownloadItem {
   completedAt?: number
 
   // Qt extractor state (populated only when auto-extract is enabled and the binary is ready)
-  extractionStatus?: DownloadExtractionStatus
+  extractionStatus?: ExtractionStatus
   extractionProgress?: number
   extractionError?: string
   videoFilePath?: string
@@ -52,17 +53,6 @@ class DownloadServiceClass {
   private items = reactive<DownloadItem[]>([])
   private activeDownloads = new Set<string>()
   private maxConcurrent = ref(5)
-
-  // Helper function to sanitize file names
-  private sanitizeFileName(fileName: string): string {
-    // Remove or replace problematic characters
-    return fileName
-      .replace(/[:"*?<>|]/g, '') // Remove Windows/macOS problematic characters
-      .replace(/\s+/g, '_') // Replace spaces with underscores
-      .replace(/[/\\]/g, '_') // Replace path separators with underscores
-      .replace(/_{2,}/g, '_') // Replace multiple underscores with single underscore
-      .trim() // Remove leading/trailing whitespace
-  }
 
   // Queue management
   addToQueue(item: Omit<DownloadItem, 'id' | 'status' | 'progress' | 'addedAt'>): DownloadQueueAddResult {
@@ -350,7 +340,7 @@ class DownloadServiceClass {
       }
 
       // Start the download with sanitized file name
-      const sanitizedName = this.sanitizeFileName(item.name)
+      const sanitizedName = sanitizeDownloadName(item.name)
       window.electronAPI.download.start(item.id, m3u8Url, sanitizedName)
         .catch((error: Error) => {
           if (!completed) {

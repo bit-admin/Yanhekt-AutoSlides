@@ -1,17 +1,10 @@
-import { DownloadService, type DownloadItem } from './downloadService'
+import { DownloadService, type DownloadItem, type ExtractionStatus } from './downloadService'
 import { PostProcessingService } from './postProcessingService'
 import { SSIM_PRESET_VALUES } from './ssimThresholdService'
+import { sanitizeDownloadName } from './downloadNaming'
 import { configStore } from '@shared/services/configStore'
 
-export type ExtractionStatus =
-  | 'none'
-  | 'pending'
-  | 'extracting'
-  | 'normalizing'
-  | 'post_processing'
-  | 'completed'
-  | 'error'
-  | 'cancelled'
+export type { ExtractionStatus }
 
 interface ExtractorStatusSnapshot {
   ok: boolean
@@ -194,13 +187,16 @@ class ExtractionQueueServiceClass {
         continue
       }
 
-      // Resolve the mp4 path. The downloader writes <outputDir>/<sanitizedName>.mp4.
-      const outputDir = earliest.extractorOutputDir
-      const sanitizedName = (earliest.name || '').replace(/[:"*?<>|]/g, '').replace(/\s+/g, '_').replace(/[/\\]/g, '_').replace(/_{2,}/g, '_').trim()
-      const videoFilePath = `${outputDir}/${sanitizedName}.mp4`
-
-      await this.runOne(earliest, videoFilePath)
+      await this.runOne(earliest, this.resolveExtractorMp4Path(earliest))
     }
+  }
+
+  /**
+   * Resolve the mp4 path the downloader produced for this item. Must match
+   * DownloadService's naming exactly — both go through sanitizeDownloadName.
+   */
+  private resolveExtractorMp4Path(item: DownloadItem): string {
+    return `${item.extractorOutputDir}/${sanitizeDownloadName(item.name || '')}.mp4`
   }
 
   private async runOne(item: DownloadItem, videoFilePath: string): Promise<void> {
