@@ -239,6 +239,98 @@
   color: white;
 }
 
+.auto-post-processing-control {
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.auto-post-processing-control:hover {
+  background-color: #e9ecef;
+  border-color: #007bff;
+}
+
+.auto-post-processing-control .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  user-select: none;
+}
+
+.auto-post-processing-control .checkbox-label:not(:last-child) {
+  border-bottom: 1px solid #ddd;
+}
+
+.auto-post-processing-control .checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #007bff;
+}
+
+.prevent-sleep-control {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  height: 35px;
+}
+
+.prevent-sleep-control:hover {
+  background-color: #e9ecef;
+  border-color: #007bff;
+}
+
+.prevent-sleep-control .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  user-select: none;
+  flex: 1;
+}
+
+.prevent-sleep-control .checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #007bff;
+}
+
+.external-link {
+  color: #007acc;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.external-link:hover {
+  text-decoration: underline;
+}
+
 @media (prefers-color-scheme: dark) {
   .slide-interval-input-wrapper {
     background-color: #2d2d2d;
@@ -300,5 +392,37 @@
     background-color: #4a9eff;
     border-color: #4a9eff;
     color: white;
+  }
+
+  .auto-post-processing-control {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .auto-post-processing-control:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .auto-post-processing-control .checkbox-label {
+    color: #e0e0e0;
+  }
+
+  .auto-post-processing-control .checkbox-label:not(:last-child) {
+    border-bottom-color: #404040;
+  }
+
+  .prevent-sleep-control {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .prevent-sleep-control:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .prevent-sleep-control .checkbox-label {
+    color: #e0e0e0;
   }
 }
