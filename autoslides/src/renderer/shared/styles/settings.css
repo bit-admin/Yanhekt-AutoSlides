@@ -1,0 +1,110 @@
+/*
+ * Shared settings form styles. Phase 6 extracts LeftPanel's per-tab content
+ * into child components; these classes are the ones used in 2+ tabs.
+ * Components opt in by NOT redeclaring the same selectors inside their own
+ * <style scoped> block — scoped styles override these unscoped definitions
+ * inside the same component.
+ */
+
+.setting-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.setting-item:last-child {
+  border-bottom: none;
+}
+
+.setting-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.setting-description {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.setting-label-with-reset {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.setting-label-with-reset .setting-label {
+  margin-bottom: 0;
+}
+
+.advanced-setting-section {
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.advanced-setting-section:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
+.advanced-setting-subsection {
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+.two-col-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.phase-toggle-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--text-primary);
+}

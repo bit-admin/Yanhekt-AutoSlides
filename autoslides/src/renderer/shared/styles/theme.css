@@ -1,0 +1,76 @@
+/*
+ * Shared theme tokens. Variables are declared on :root with light defaults
+ * and overridden under prefers-color-scheme: dark. Existing scoped component
+ * styles continue to use hardcoded colors; this file is the migration target
+ * for Phase 6 and future cleanup, not a forced rewrite.
+ */
+
+:root {
+  /* Surfaces */
+  --bg-page: #f5f5f5;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f8f9fa;
+  --bg-subtle: #fafafa;
+  --bg-modal: #ffffff;
+  --bg-input: #ffffff;
+  --bg-input-disabled: #f8f9fa;
+  --bg-hover: #e9ecef;
+
+  /* Text */
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-muted: #999999;
+  --text-on-accent: #ffffff;
+
+  /* Borders */
+  --border-color: #e0e0e0;
+  --border-strong: #adb5bd;
+  --border-input: #dddddd;
+
+  /* Accents */
+  --accent: #007acc;
+  --accent-hover: #0056b3;
+  --accent-strong: #005a9e;
+
+  /* Status */
+  --danger: #d32f2f;
+  --danger-hover: #b71c1c;
+  --success: #2e7d32;
+  --warning: #ed6c02;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Surfaces */
+    --bg-page: #1a1a1a;
+    --bg-surface: #1e1e1e;
+    --bg-elevated: #252525;
+    --bg-subtle: #252525;
+    --bg-modal: #2d2d2d;
+    --bg-input: #3d3d3d;
+    --bg-input-disabled: #2d2d2d;
+    --bg-hover: #404040;
+
+    /* Text */
+    --text-primary: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --text-muted: #888888;
+    --text-on-accent: #ffffff;
+
+    /* Borders */
+    --border-color: #404040;
+    --border-strong: #555555;
+    --border-input: #555555;
+
+    /* Accents */
+    --accent: #4a9eff;
+    --accent-hover: #0080ff;
+    --accent-strong: #4da6ff;
+
+    /* Status */
+    --danger: #ef5350;
+    --danger-hover: #e53935;
+    --success: #66bb6a;
+    --warning: #ffa726;
+  }
+}
