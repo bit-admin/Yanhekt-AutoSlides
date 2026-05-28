@@ -1,6 +1,6 @@
 import * as http from 'http';
 import * as url from 'url';
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosResponse } from 'axios';
 import * as https from 'https';
 import * as os from 'os';
 import { ApiClient } from '@main/platform/apiClient';
@@ -12,6 +12,7 @@ import {
   rewriteM3u8TsUrls
 } from './videoProxy/urlHelpers';
 import { ProxyAuth } from './videoProxy/proxyAuth';
+import { signRecordedUrl, buildAxiosConfig } from './videoProxy/proxyRequest';
 
 export interface VideoStream {
   type: 'camera' | 'screen';
@@ -428,15 +429,9 @@ export class VideoProxyService {
         // Create axios instance with proper configuration
         // Use shorter timeout for live streams to fail fast and try next IP
         const agents = this.resolveAgents();
-        const axiosConfig: AxiosRequestConfig = {
-          headers: liveHeaders,
-          timeout: this.intranetMapping.isEnabled() ? 8000 : 30000, // 8s for intranet, 30s for external
-          httpAgent: agents.httpAgent,
-          httpsAgent: this.intranetMapping.isEnabled() ? agents.httpsAgentNoVerify : agents.httpsAgent,
-          validateStatus: function (status: number) {
-            return status < 500; // Accept all status codes below 500
-          }
-        };
+        const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, liveHeaders, {
+          timeout: this.intranetMapping.isEnabled() ? 8000 : 30000 // 8s for intranet, 30s for external
+        });
 
         // Proxy the request
         const response = await axios.get(requestUrl, axiosConfig);
@@ -529,45 +524,14 @@ export class VideoProxyService {
     // Store login token for future use
     this.auth.setLoginToken(loginToken as string);
 
-    // Get fresh token and signature (more aggressive approach)
-    const tokenData = await this.auth.refreshTokenAndSignature();
-    const freshSignature = this.auth.getSignature(); // Always get fresh signature
-
-    // First encrypt the URL, then add signature with fresh timestamp
-    const encryptedUrl = this.auth.encryptURL(originalUrl as string);
-    const signedUrl = this.auth.addSignatureForUrl(
-      encryptedUrl,
-      tokenData.videoToken!,
-      freshSignature.timestamp,
-      freshSignature.signature
+    // Get fresh token + signature, encrypt + sign the URL, apply intranet rewrite.
+    let { requestUrl, headers: videoHeaders } = await signRecordedUrl(
+      this.auth, this.intranetMapping, originalUrl as string, this.BASE_HEADERS
     );
-
-    // Set proper headers for video request
-    const videoHeaders: Record<string, string> = {
-      ...this.BASE_HEADERS,
-      "Host": "cvideo.yanhekt.cn"
-    };
-
-    // Rewrite URL for intranet mode if needed
-    let requestUrl = this.intranetMapping.rewriteUrl(signedUrl);
-
-    // Add Host header if URL was rewritten
-    if (requestUrl !== signedUrl) {
-      const originalHost = new URL(signedUrl).hostname;
-      videoHeaders['Host'] = originalHost;
-    }
 
     // Create axios instance with proper configuration
     const agents = this.resolveAgents();
-    const axiosConfig: any = {
-      headers: videoHeaders,
-      timeout: 30000,
-      httpAgent: agents.httpAgent,
-      httpsAgent: this.intranetMapping.isEnabled() ? agents.httpsAgentNoVerify : agents.httpsAgent,
-      validateStatus: function (status: number) {
-        return status < 500; // Accept all status codes below 500
-      }
-    };
+    const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, videoHeaders, { timeout: 30000 });
 
     // Proxy the request with retry logic for 403 errors
     let retryCount = 0;
@@ -594,27 +558,11 @@ export class VideoProxyService {
           retryCount++;
           console.log(`M3U8 request got 403, retrying (${retryCount}/${maxRetries}) for: ${originalUrl}`);
 
-          // Regenerate token and signature for retry
+          // Regenerate token + signature, re-sign, re-apply intranet rewrite.
           console.log('Regenerating token and signature for M3U8 403 retry...');
-          const newTokenData = await this.auth.refreshTokenAndSignature();
-          const newFreshSignature = this.auth.getSignature();
-
-          // Recreate the signed URL with fresh credentials
-          const newEncryptedUrl = this.auth.encryptURL(originalUrl as string);
-          const newSignedUrl = this.auth.addSignatureForUrl(
-            newEncryptedUrl,
-            newTokenData.videoToken!,
-            newFreshSignature.timestamp,
-            newFreshSignature.signature
-          );
-
-          requestUrl = this.intranetMapping.rewriteUrl(newSignedUrl);
-
-          // Update headers if URL was rewritten
-          if (requestUrl !== newSignedUrl) {
-            const originalHost = new URL(newSignedUrl).hostname;
-            videoHeaders['Host'] = originalHost;
-          }
+          ({ requestUrl, headers: videoHeaders } = await signRecordedUrl(
+            this.auth, this.intranetMapping, originalUrl as string, this.BASE_HEADERS
+          ));
 
           // Update axios config
           axiosConfig.headers = videoHeaders;
@@ -711,73 +659,24 @@ export class VideoProxyService {
       }
 
     } else if (isRecordedStream) {
-      // Recorded video - use encryption and signing (more aggressive like download service)
-      const tokenData = await this.auth.refreshTokenAndSignature();
-
-      // Get fresh signature for each TS request (like download service)
-      const freshSignature = this.auth.getSignature();
-
-      // Encrypt and sign the TS URL with fresh signature
-      const encryptedUrl = this.auth.encryptURL(tsUrl);
-      const signedUrl = this.auth.addSignatureForUrl(
-        encryptedUrl,
-        tokenData.videoToken!,
-        freshSignature.timestamp,
-        freshSignature.signature
-      );
-
-      // Set proper headers for video request
-      videoHeaders = {
-        ...this.BASE_HEADERS,
-        "Host": "cvideo.yanhekt.cn"
-      };
-
-      // Rewrite URL for intranet mode if needed
-      requestUrl = this.intranetMapping.rewriteUrl(signedUrl);
-
-      // Add Host header if URL was rewritten
-      if (requestUrl !== signedUrl) {
-        const originalHost = new URL(signedUrl).hostname;
-        videoHeaders['Host'] = originalHost;
-      }
+      // Recorded video - encrypt + sign the TS URL (fresh signature per request).
+      ({ requestUrl, headers: videoHeaders } = await signRecordedUrl(
+        this.auth, this.intranetMapping, tsUrl, this.BASE_HEADERS
+      ));
 
     } else {
       // Fallback for backward compatibility - treat as recorded video
-      const tokenData = await this.auth.refreshTokenAndSignature();
-      const freshSignature = this.auth.getSignature();
-      const encryptedUrl = this.auth.encryptURL(tsUrl);
-      const signedUrl = this.auth.addSignatureForUrl(
-        encryptedUrl,
-        tokenData.videoToken!,
-        freshSignature.timestamp,
-        freshSignature.signature
-      );
-
-      videoHeaders = {
-        ...this.BASE_HEADERS,
-        "Host": "cvideo.yanhekt.cn"
-      };
-
-      requestUrl = this.intranetMapping.rewriteUrl(signedUrl);
-
-      if (requestUrl !== signedUrl) {
-        const originalHost = new URL(signedUrl).hostname;
-        videoHeaders['Host'] = originalHost;
-      }
+      ({ requestUrl, headers: videoHeaders } = await signRecordedUrl(
+        this.auth, this.intranetMapping, tsUrl, this.BASE_HEADERS
+      ));
     }
 
     // Create axios instance with proper configuration
     const agents = this.resolveAgents();
-    const axiosConfig: any = {
-      headers: videoHeaders,
-      responseType: 'stream',
+    const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, videoHeaders, {
       timeout: 30000,
-      httpAgent: agents.httpAgent,
-      httpsAgent: this.intranetMapping.isEnabled() ? agents.httpsAgentNoVerify : agents.httpsAgent,
-      validateStatus: function (status: number) {
-        return status < 500; // Accept all status codes below 500
-      }
-    };
+      responseType: 'stream'
+    });
 
     // Proxy the request with retry logic for 403 errors
     let retryCount = 0;
@@ -806,25 +705,9 @@ export class VideoProxyService {
           // For recorded videos, regenerate signature and token for retry
           if (isRecordedStream || (!isLiveStream && !isRecordedStream)) {
             console.log('Regenerating token and signature for 403 retry...');
-            const newTokenData = await this.auth.refreshTokenAndSignature();
-            const newFreshSignature = this.auth.getSignature();
-
-            // Recreate the signed URL with fresh credentials
-            const newEncryptedUrl = this.auth.encryptURL(tsUrl);
-            const newSignedUrl = this.auth.addSignatureForUrl(
-              newEncryptedUrl,
-              newTokenData.videoToken!,
-              newFreshSignature.timestamp,
-              newFreshSignature.signature
-            );
-
-            requestUrl = this.intranetMapping.rewriteUrl(newSignedUrl);
-
-            // Update headers if URL was rewritten
-            if (requestUrl !== newSignedUrl) {
-              const originalHost = new URL(newSignedUrl).hostname;
-              videoHeaders['Host'] = originalHost;
-            }
+            ({ requestUrl, headers: videoHeaders } = await signRecordedUrl(
+              this.auth, this.intranetMapping, tsUrl, this.BASE_HEADERS
+            ));
 
             // Update axios config with new headers
             axiosConfig.headers = videoHeaders;
