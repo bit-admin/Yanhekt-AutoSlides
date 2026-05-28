@@ -108,3 +108,197 @@
   font-size: 13px;
   color: var(--text-primary);
 }
+
+/* Used by 2+ tab components (imageProcessing, ai). Live here so each tab
+ * doesn't need to redeclare them in its <style scoped> block. */
+.slide-interval-group {
+  display: flex;
+  align-items: center;
+}
+
+.slide-interval-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+
+.slide-interval-input-wrapper:focus-within {
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.slide-interval-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  background-color: transparent;
+  font-size: 12px;
+  outline: none;
+}
+
+.interval-unit {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #666;
+  background-color: #f8f9fa;
+  border-left: 1px solid #e0e0e0;
+  white-space: nowrap;
+}
+
+.model-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 6px;
+  background: var(--bg-subtle, rgba(0, 0, 0, 0.02));
+}
+
+.model-row .model-info {
+  font-size: 12px;
+  color: var(--text-primary, #222);
+  word-break: break-all;
+}
+
+.model-row .model-size {
+  color: #666;
+  margin-left: 4px;
+}
+
+.model-row .model-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.secondary-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #222);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.secondary-btn:hover:not(:disabled) {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+  border-color: var(--border-color-strong, rgba(0, 0, 0, 0.25));
+}
+
+.secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.concurrent-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+}
+
+.concurrent-select:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.preset-btn {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #666;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.preset-btn:hover {
+  background-color: #f8f9fa;
+  border-color: #007bff;
+  color: #007bff;
+}
+
+.preset-btn.active {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: white;
+}
+
+@media (prefers-color-scheme: dark) {
+  .slide-interval-input-wrapper {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .slide-interval-input-wrapper:focus-within {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .slide-interval-input {
+    color: #e0e0e0;
+  }
+
+  .interval-unit {
+    background-color: #2d2d2d;
+    border-left-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .model-row {
+    border-color: #404040;
+    background: #252525;
+  }
+
+  .model-row .model-info {
+    color: #e0e0e0;
+  }
+
+  .model-row .model-size {
+    color: #b0b0b0;
+  }
+
+  .secondary-btn {
+    background: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .secondary-btn:hover:not(:disabled) {
+    background: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .preset-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .preset-btn:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+    color: #4a9eff;
+  }
+
+  .preset-btn.active {
+    background-color: #4a9eff;
+    border-color: #4a9eff;
+    color: white;
+  }
+}
