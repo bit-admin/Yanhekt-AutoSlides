@@ -1,7 +1,7 @@
 import { DownloadService, type DownloadItem, type ExtractionStatus } from './downloadService'
 import { PostProcessingService } from './postProcessingService'
-import { SSIM_PRESET_VALUES } from './ssimThresholdService'
 import { sanitizeDownloadName } from './downloadNaming'
+import { computePendingExtractionFields, hasRequiredExtractionParams } from './extractionQueueLogic'
 import { configStore } from '@shared/services/configStore'
 
 export type { ExtractionStatus }
@@ -62,30 +62,6 @@ class ExtractionQueueServiceClass {
   }
 
   /**
-   * Resolve the SSIM threshold to pass to the CLI given the current preset mode.
-   * Adaptive mode uses the static normal default (0.9987) per user direction —
-   * the CLI receives a fixed numeric threshold, no per-session classroom lookup.
-   */
-  private resolveSsimThreshold(
-    presetMode: 'adaptive' | 'strict' | 'normal' | 'loose' | 'custom' | undefined,
-    customValue: number
-  ): number {
-    switch (presetMode) {
-      case 'custom':
-        return customValue
-      case 'strict':
-        return SSIM_PRESET_VALUES.strict
-      case 'loose':
-        return SSIM_PRESET_VALUES.loose
-      case 'normal':
-        return SSIM_PRESET_VALUES.normal
-      case 'adaptive':
-      default:
-        return SSIM_PRESET_VALUES.normal
-    }
-  }
-
-  /**
    * Mark a freshly-added screen download as `pending` for extraction (only when
    * the user has auto-extract enabled and the binary is ready). Called from
    * DownloadService.addToQueue immediately after the item is pushed.
@@ -95,20 +71,9 @@ class ExtractionQueueServiceClass {
     await this.ensureStatusInitialized()
     if (!this.extractorReady) return
     try {
-      const cfg = configStore
-      const qtCfg = cfg.qtExtractor
-      const slideCfg = cfg.slideExtraction
-      if (!qtCfg?.autoRunAfterDownload) return
-      if (!slideCfg) return
-      const ssimThreshold = this.resolveSsimThreshold(slideCfg.ssimPresetMode, slideCfg.ssimThreshold)
-      item.extractionStatus = 'pending'
-      item.extractionProgress = 0
-      item.ssimThreshold = ssimThreshold
-      item.extractionEnableDownsampling = slideCfg.enableDownsampling
-      item.extractionDownsampleWidth = slideCfg.downsampleWidth
-      item.extractionDownsampleHeight = slideCfg.downsampleHeight
-      item.autoPostProcessAfter = !!qtCfg.autoPostProcessAfter
-      item.extractorOutputDir = cfg.outputDirectory
+      const fields = computePendingExtractionFields(configStore)
+      if (!fields) return
+      Object.assign(item, fields)
       this.notifyChange()
     } catch (err) {
       console.error('[ExtractionQueue] Failed to mark item pending:', err)
@@ -200,13 +165,7 @@ class ExtractionQueueServiceClass {
   }
 
   private async runOne(item: DownloadItem, videoFilePath: string): Promise<void> {
-    if (
-      item.ssimThreshold == null ||
-      item.extractionEnableDownsampling == null ||
-      item.extractionDownsampleWidth == null ||
-      item.extractionDownsampleHeight == null ||
-      !item.extractorOutputDir
-    ) {
+    if (!hasRequiredExtractionParams(item)) {
       item.extractionStatus = 'error'
       item.extractionError = 'Missing extraction parameters'
       return
