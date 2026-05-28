@@ -3,7 +3,8 @@ import Hls, { Events, ErrorDetails } from 'hls.js'
 import { DataStore } from '@shared/services/dataStore'
 import { tokenManager } from '@shared/services/authService'
 import type { SlideExtractionHandle } from '@shared/processing'
-import { setupDualHlsErrorHandler, createFatalErrorReporter, createSingleStreamHlsErrorHandler } from './useVideoErrorRecovery'
+import { createFatalErrorReporter, createSingleStreamHlsErrorHandler } from './useVideoErrorRecovery'
+import { useDualStreamPlayer } from './useDualStreamPlayer'
 import { applyPlaybackRate, applyMute } from './singleStreamPlayback'
 import { configStore } from '@shared/services/configStore'
 
@@ -138,8 +139,6 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   const cameraVideoPlayer = ref<HTMLVideoElement | null>(null)
   const screenVideoPlayer = ref<HTMLVideoElement | null>(null)
   const hls = shallowRef<Hls | null>(null)
-  const cameraHls = shallowRef<Hls | null>(null)
-  const screenHls = shallowRef<Hls | null>(null)
   const currentPlaybackRate = ref(1)
   const connectionMode = ref<'internal' | 'external'>('external')
   const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
@@ -148,9 +147,6 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   const isRetrying = ref(false)
   const retryMessage = ref('')
   const maxVideoErrorRetries = ref(5)
-  const dualAudioSource = ref<DualAudioSource>('screen')
-  const dualCurrentTime = ref(0)
-  const dualDuration = ref(0)
 
   // Error tracking state (non-reactive for performance)
   let videoErrorRetryCount = 0
@@ -160,8 +156,6 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   let consecutiveErrorsAtSamePosition = 0
   let lastErrorPosition = -1
   let isHlsRecovering = false
-  let dualSyncInterval: ReturnType<typeof setInterval> | null = null
-  let isApplyingDualAudioState = false
 
   // Computed properties
   const shouldVideoMute = computed(() => {
@@ -209,31 +203,23 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     return playbackData.value.streams[selectedStream.value]
   })
 
-  const dualCanSeek = computed(() => {
-    return Number.isFinite(dualDuration.value) && dualDuration.value > 0
-  })
-
   const showSpeedWarning = computed(() => {
     return connectionMode.value === 'external' && currentPlaybackRate.value > 2
   })
 
-  const getDualMasterVideo = () => {
-    return screenVideoPlayer.value || cameraVideoPlayer.value
-  }
-
   const getCurrentPlaybackTime = () => {
     if (videoPlayer.value) return videoPlayer.value.currentTime
 
-    const masterVideo = getDualMasterVideo()
+    const masterVideo = dual.getDualMasterVideo()
     if (masterVideo) return masterVideo.currentTime
 
-    return dualCurrentTime.value
+    return dual.dualCurrentTime.value
   }
 
   const isAnyVideoPlaying = () => {
     if (videoPlayer.value) return !videoPlayer.value.paused
 
-    const masterVideo = getDualMasterVideo()
+    const masterVideo = dual.getDualMasterVideo()
     return Boolean(masterVideo && !masterVideo.paused)
   }
 
@@ -338,207 +324,25 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     }
   }
 
-  const stopDualSync = () => {
-    if (dualSyncInterval) {
-      clearInterval(dualSyncInterval)
-      dualSyncInterval = null
-    }
-  }
-
-  const cleanupDualVideoSources = () => {
-    stopDualSync()
-
-    if (cameraHls.value) {
-      cameraHls.value.destroy()
-      cameraHls.value = null
-    }
-
-    if (screenHls.value) {
-      screenHls.value.destroy()
-      screenHls.value = null
-    }
-  }
-
-  const applyDualAudioState = () => {
-    if (isApplyingDualAudioState) return
-
-    isApplyingDualAudioState = true
-    try {
-      const cameraVideo = cameraVideoPlayer.value
-      const screenVideo = screenVideoPlayer.value
-
-      if (shouldVideoMute.value) {
-        if (cameraVideo) {
-          cameraVideo.volume = 0
-          cameraVideo.muted = false
-          cameraVideo.setAttribute('data-muted-by-app', 'true')
-        }
-        if (screenVideo) {
-          screenVideo.volume = 0
-          screenVideo.muted = false
-          screenVideo.setAttribute('data-muted-by-app', 'true')
-        }
-        isVideoMuted.value = true
-        return
-      }
-
-      if (cameraVideo) {
-        cameraVideo.volume = dualAudioSource.value === 'camera' ? 1 : 0
-        cameraVideo.muted = false
-        cameraVideo.removeAttribute('data-muted-by-app')
-      }
-
-      if (screenVideo) {
-        screenVideo.volume = dualAudioSource.value === 'screen' ? 1 : 0
-        screenVideo.muted = false
-        screenVideo.removeAttribute('data-muted-by-app')
-      }
-
-      isVideoMuted.value = false
-    } finally {
-      isApplyingDualAudioState = false
-    }
-  }
-
-  const setDualAudioSource = (source: DualAudioSource) => {
-    dualAudioSource.value = source
-    applyDualAudioState()
-  }
-
-  const updateDualPlaybackState = () => {
-    const masterVideo = getDualMasterVideo()
-    if (!masterVideo) {
-      dualCurrentTime.value = 0
-      dualDuration.value = 0
-      isPlaying.value = false
-      return
-    }
-
-    dualCurrentTime.value = masterVideo.currentTime || 0
-    dualDuration.value = Number.isFinite(masterVideo.duration) ? masterVideo.duration : 0
-    isPlaying.value = !masterVideo.paused && !masterVideo.ended
-  }
-
-  const syncDualStreams = () => {
-    if (!isDualStreamSelected.value) return
-
-    const cameraVideo = cameraVideoPlayer.value
-    const screenVideo = screenVideoPlayer.value
-    if (!cameraVideo || !screenVideo) return
-    if (cameraVideo.readyState < 2 || screenVideo.readyState < 2) return
-
-    if (mode === 'recorded') {
-      const playbackRateNumber = Number(currentPlaybackRate.value)
-      cameraVideo.playbackRate = playbackRateNumber
-      screenVideo.playbackRate = playbackRateNumber
-    } else {
-      cameraVideo.playbackRate = 1
-      screenVideo.playbackRate = 1
-      currentPlaybackRate.value = 1
-    }
-
-    applyDualAudioState()
-
-    if (!screenVideo.paused && cameraVideo.paused) {
-      cameraVideo.play().catch(() => { /* Ignore sync play errors */ })
-    } else if (screenVideo.paused && !cameraVideo.paused) {
-      cameraVideo.pause()
-    }
-
-    const drift = Math.abs(cameraVideo.currentTime - screenVideo.currentTime)
-    if (!screenVideo.paused && Number.isFinite(drift) && drift > 0.75) {
-      cameraVideo.currentTime = screenVideo.currentTime
-    }
-
-    updateDualPlaybackState()
-  }
-
-  const startDualSync = () => {
-    stopDualSync()
-    dualSyncInterval = setInterval(syncDualStreams, 1500)
-  }
-
-  const setupDualHlsErrorHandling = (hlsInstance: Hls, video: HTMLVideoElement, label: string) => {
-    setupDualHlsErrorHandler(hlsInstance, video, label, {
-      mode,
-      onFatal: (message) => {
-        error.value = message
-        handleTaskError(message)
-      }
-    })
-  }
-
-  const attachDualHls = (
-    video: HTMLVideoElement,
-    stream: VideoStream,
-    hlsRef: ShallowRef<Hls | null>,
-    label: string,
-    seekToTime?: number,
-    shouldAutoPlay?: boolean
-  ) => {
-    const hlsInstance = new Hls(getHlsConfig(mode))
-    hlsRef.value = hlsInstance
-
-    hlsInstance.loadSource(stream.url)
-    hlsInstance.attachMedia(video)
-
-    hlsInstance.on(Events.MANIFEST_PARSED, () => {
-      setTimeout(() => {
-        if (mode === 'recorded') {
-          video.playbackRate = Number(currentPlaybackRate.value)
-        } else {
-          video.playbackRate = 1
-          currentPlaybackRate.value = 1
-        }
-
-        if (seekToTime !== undefined && seekToTime > 0 && Number.isFinite(seekToTime)) {
-          try {
-            video.currentTime = seekToTime
-          } catch (seekError) {
-            console.warn(`Could not seek ${label} stream during dual load:`, seekError)
-          }
-        }
-
-        applyDualAudioState()
-        updateDualPlaybackState()
-
-        if (shouldAutoPlay !== false) {
-          video.play().catch(() => { /* Ignore dual autoplay error */ })
-        }
-      }, 100)
-    })
-
-    setupDualHlsErrorHandling(hlsInstance, video, label)
-  }
-
-  const loadDualVideoSources = async (seekToTime?: number, shouldAutoPlay?: boolean) => {
-    const cameraVideo = cameraVideoPlayer.value
-    const screenVideo = screenVideoPlayer.value
-    const cameraStream = cameraStreamData.value
-    const screenStream = screenStreamData.value
-
-    if (!cameraVideo || !screenVideo || !cameraStream || !screenStream) {
-      return
-    }
-
-    try {
-      cleanupSingleVideoSource()
-      cleanupDualVideoSources()
-
-      if (!Hls.isSupported()) {
-        throw new Error('HLS is not supported in this browser')
-      }
-
-      attachDualHls(cameraVideo, cameraStream, cameraHls, 'camera', seekToTime, shouldAutoPlay)
-      attachDualHls(screenVideo, screenStream, screenHls, 'screen', seekToTime, shouldAutoPlay)
-      startDualSync()
-    } catch (err: any) {
-      console.error('Failed to load dual video sources:', err)
-      const errorMessage = 'Failed to load dual video sources: ' + err.message
-      error.value = errorMessage
-      handleTaskError(errorMessage)
-    }
-  }
+  // Dual-stream (camera + screen) subsystem. onEnded is wrapped so this can be
+  // constructed before onEnded is declared below (it is only invoked at runtime).
+  const dual = useDualStreamPlayer({
+    mode,
+    cameraVideoPlayer,
+    screenVideoPlayer,
+    currentPlaybackRate,
+    shouldVideoMute,
+    isVideoMuted,
+    isPlaying,
+    isDualStreamSelected,
+    cameraStreamData,
+    screenStreamData,
+    error,
+    getHlsConfig,
+    handleTaskError,
+    cleanupSingleVideoSource,
+    onEnded: () => onEnded()
+  })
 
   const loadVideoStreams = async () => {
     try {
@@ -596,7 +400,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     }
 
     try {
-      cleanupDualVideoSources()
+      dual.cleanupDualVideoSources()
       cleanupSingleVideoSource()
 
       const videoUrl = currentStreamData.value.url
@@ -685,7 +489,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     }
 
     try {
-      cleanupDualVideoSources()
+      dual.cleanupDualVideoSources()
       cleanupSingleVideoSource()
 
       const videoUrl = currentStreamData.value.url
@@ -791,11 +595,11 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     if (isDualStreamSelected.value) {
       cleanupSingleVideoSource()
       await nextTick()
-      await loadDualVideoSources(currentTime, true)
+      await dual.loadDualVideoSources(currentTime, true)
       return
     }
 
-    cleanupDualVideoSources()
+    dual.cleanupDualVideoSources()
     await nextTick()
 
     if (videoPlayer.value) {
@@ -827,7 +631,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   const retryLoad = () => {
     error.value = null
     lastPlaybackPosition = 0
-    cleanupDualVideoSources()
+    dual.cleanupDualVideoSources()
     loadVideoStreams()
   }
 
@@ -856,58 +660,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     }
   }
 
-  const playDualStreams = async () => {
-    const cameraVideo = cameraVideoPlayer.value
-    const screenVideo = screenVideoPlayer.value
-
-    if (!cameraVideo || !screenVideo) return
-
-    applyDualAudioState()
-
-    try {
-      await Promise.allSettled([cameraVideo.play(), screenVideo.play()])
-      isPlaying.value = true
-      startDualSync()
-    } catch (playError) {
-      console.warn('Could not start dual playback:', playError)
-    }
-  }
-
-  const pauseDualStreams = () => {
-    cameraVideoPlayer.value?.pause()
-    screenVideoPlayer.value?.pause()
-    isPlaying.value = false
-  }
-
-  const toggleDualPlayback = async () => {
-    const masterVideo = getDualMasterVideo()
-    if (!masterVideo) return
-
-    if (masterVideo.paused) {
-      await playDualStreams()
-    } else {
-      pauseDualStreams()
-    }
-  }
-
-  const seekDualStreams = (time: number) => {
-    if (!dualCanSeek.value || !Number.isFinite(time)) return
-
-    const boundedTime = Math.min(Math.max(time, 0), dualDuration.value)
-
-    if (screenVideoPlayer.value) {
-      screenVideoPlayer.value.currentTime = boundedTime
-    }
-    if (cameraVideoPlayer.value) {
-      cameraVideoPlayer.value.currentTime = boundedTime
-    }
-
-    dualCurrentTime.value = boundedTime
-  }
-
   const cleanup = () => {
     cleanupSingleVideoSource()
-    cleanupDualVideoSources()
+    dual.cleanupDualVideoSources()
   }
 
   // Event handlers
@@ -1059,36 +814,6 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     }
   }
 
-  const preventDualUnmute = (event: Event) => {
-    if (isApplyingDualAudioState) return
-
-    const target = event.target as HTMLVideoElement
-    if (shouldVideoMute.value) {
-      event.preventDefault()
-      target.volume = 0
-      target.muted = false
-      return
-    }
-
-    applyDualAudioState()
-  }
-
-  const onDualTimeUpdate = () => {
-    updateDualPlaybackState()
-  }
-
-  const onDualPlayStateChanged = () => {
-    updateDualPlaybackState()
-    if (isPlaying.value) {
-      startDualSync()
-    }
-  }
-
-  const onDualEnded = async () => {
-    pauseDualStreams()
-    await onEnded()
-  }
-
   const resetErrorCounters = () => {
     videoErrorRetryCount = 0
     consecutiveErrorsAtSamePosition = 0
@@ -1146,9 +871,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     retryMessage,
     maxVideoErrorRetries,
     videoProxyClientId,
-    dualAudioSource,
-    dualCurrentTime,
-    dualDuration,
+    dualAudioSource: dual.dualAudioSource,
+    dualCurrentTime: dual.dualCurrentTime,
+    dualDuration: dual.dualDuration,
 
     // Computed
     shouldVideoMute,
@@ -1158,7 +883,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     currentStreamData,
     cameraStreamData,
     screenStreamData,
-    dualCanSeek,
+    dualCanSeek: dual.dualCanSeek,
     showSpeedWarning,
 
     // Error tracking state (exposed for task queue access)
@@ -1181,16 +906,16 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     loadVideoStreams,
     loadVideoSource,
     loadVideoSourceWithPosition,
-    loadDualVideoSources,
+    loadDualVideoSources: dual.loadDualVideoSources,
     switchStream,
     retryLoad,
     changePlaybackRate,
-    toggleDualPlayback,
-    playDualStreams,
-    pauseDualStreams,
-    seekDualStreams,
-    setDualAudioSource,
-    applyDualAudioState,
+    toggleDualPlayback: dual.toggleDualPlayback,
+    playDualStreams: dual.playDualStreams,
+    pauseDualStreams: dual.pauseDualStreams,
+    seekDualStreams: dual.seekDualStreams,
+    setDualAudioSource: dual.setDualAudioSource,
+    applyDualAudioState: dual.applyDualAudioState,
     cleanup,
     getHlsConfig,
     createSerializableCopy,
@@ -1202,10 +927,10 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     onCanPlay,
     onEnded,
     preventUnmute,
-    onDualTimeUpdate,
-    onDualPlayStateChanged,
-    onDualEnded,
-    preventDualUnmute,
+    onDualTimeUpdate: dual.onDualTimeUpdate,
+    onDualPlayStateChanged: dual.onDualPlayStateChanged,
+    onDualEnded: dual.onDualEnded,
+    preventDualUnmute: dual.preventDualUnmute,
 
     // Utility
     resetErrorCounters,
