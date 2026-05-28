@@ -4,6 +4,7 @@ import { DataStore } from '@shared/services/dataStore'
 import { tokenManager } from '@shared/services/authService'
 import type { SlideExtractionHandle } from '@shared/processing'
 import { setupDualHlsErrorHandler, createFatalErrorReporter } from './useVideoErrorRecovery'
+import { applyPlaybackRate, applyMute } from './singleStreamPlayback'
 import { configStore } from '@shared/services/configStore'
 
 export const DUAL_STREAM_KEY = '__dual__'
@@ -609,30 +610,12 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         hls.value.on(Events.MANIFEST_PARSED, () => {
           setTimeout(() => {
             if (videoPlayer.value) {
-              if (mode === 'recorded') {
-                const targetRate = lastPlaybackRateBeforeError > 1 ? lastPlaybackRateBeforeError : currentPlaybackRate.value
-                videoPlayer.value.playbackRate = targetRate
-                currentPlaybackRate.value = targetRate
-                if (slideExtractorInstance.value) {
-                  slideExtractorInstance.value.setPlaybackRate(targetRate)
-                }
-              } else {
-                videoPlayer.value.playbackRate = 1
-                currentPlaybackRate.value = 1
-                if (slideExtractorInstance.value) {
-                  slideExtractorInstance.value.setPlaybackRate(1)
-                }
-              }
+              const targetRate = mode === 'recorded' && lastPlaybackRateBeforeError > 1
+                ? lastPlaybackRateBeforeError
+                : currentPlaybackRate.value
+              currentPlaybackRate.value = applyPlaybackRate(videoPlayer.value, mode, targetRate, slideExtractorInstance.value)
 
-              if (shouldVideoMute.value) {
-                videoPlayer.value.volume = 0
-                videoPlayer.value.setAttribute('data-muted-by-app', 'true')
-                isVideoMuted.value = true
-              } else {
-                videoPlayer.value.volume = 1
-                videoPlayer.value.removeAttribute('data-muted-by-app')
-                isVideoMuted.value = false
-              }
+              isVideoMuted.value = applyMute(videoPlayer.value, shouldVideoMute.value)
 
               if (seekToTime && seekToTime > 0) {
                 videoPlayer.value.currentTime = seekToTime
@@ -745,28 +728,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         hls.value.on(Events.MANIFEST_PARSED, () => {
           setTimeout(() => {
             if (videoPlayer.value) {
-              if (mode === 'recorded') {
-                videoPlayer.value.playbackRate = currentPlaybackRate.value
-                if (slideExtractorInstance.value) {
-                  slideExtractorInstance.value.setPlaybackRate(Number(currentPlaybackRate.value))
-                }
-              } else {
-                videoPlayer.value.playbackRate = 1
-                currentPlaybackRate.value = 1
-                if (slideExtractorInstance.value) {
-                  slideExtractorInstance.value.setPlaybackRate(1)
-                }
-              }
-
-              if (shouldVideoMute.value) {
-                videoPlayer.value.volume = 0
-                videoPlayer.value.setAttribute('data-muted-by-app', 'true')
-                isVideoMuted.value = true
-              } else {
-                videoPlayer.value.volume = 1
-                videoPlayer.value.removeAttribute('data-muted-by-app')
-                isVideoMuted.value = false
-              }
+              currentPlaybackRate.value = applyPlaybackRate(videoPlayer.value, mode, currentPlaybackRate.value, slideExtractorInstance.value)
+              isVideoMuted.value = applyMute(videoPlayer.value, shouldVideoMute.value)
 
               videoPlayer.value.play().catch(() => { /* Ignore manifest parsed play error */ })
             }
@@ -900,28 +863,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       if (videoPlayer.value) {
         videoPlayer.value.currentTime = currentTime
 
-        if (mode === 'recorded') {
-          videoPlayer.value.playbackRate = currentPlaybackRate.value
-          if (slideExtractorInstance.value) {
-            slideExtractorInstance.value.setPlaybackRate(Number(currentPlaybackRate.value))
-          }
-        } else {
-          videoPlayer.value.playbackRate = 1
-          currentPlaybackRate.value = 1
-          if (slideExtractorInstance.value) {
-            slideExtractorInstance.value.setPlaybackRate(1)
-          }
-        }
-
-        if (shouldVideoMute.value) {
-          videoPlayer.value.volume = 0
-          videoPlayer.value.setAttribute('data-muted-by-app', 'true')
-          isVideoMuted.value = true
-        } else {
-          videoPlayer.value.volume = 1
-          videoPlayer.value.removeAttribute('data-muted-by-app')
-          isVideoMuted.value = false
-        }
+        currentPlaybackRate.value = applyPlaybackRate(videoPlayer.value, mode, currentPlaybackRate.value, slideExtractorInstance.value)
+        isVideoMuted.value = applyMute(videoPlayer.value, shouldVideoMute.value)
 
         if (wasPlaying) {
           try {
