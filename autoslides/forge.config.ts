@@ -78,8 +78,10 @@ const config: ForgeConfig = {
         },
       ],
     }),
-    // Auto-unpack native modules from asar
-    new AutoUnpackNativesPlugin({}),
+    // Auto-unpack native modules from asar (packaging only — during dev
+    // the modules are loaded directly from node_modules, and this plugin
+    // also overrides the start command which conflicts with VitePlugin)
+    ...(!isDev ? [new AutoUnpackNativesPlugin({})] : []),
     // Fuses are used to enable/disable various Electron functionality
     // at package time, before code signing the application
     // Only include during packaging to avoid plugin conflict with VitePlugin during dev

@@ -7,27 +7,32 @@
  */
 
 .setting-item {
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 16px;
 }
 
 .setting-item:last-child {
-  border-bottom: none;
+  margin-bottom: 0;
+  margin-top: 6px;
 }
 
 .setting-label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 6px;
 }
 
 .setting-description {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
-  margin-top: 4px;
-  line-height: 1.4;
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.setting-item .setting-description {
+  margin-top: 2px;
+  margin-bottom: 6px;
 }
 
 .setting-row {
@@ -40,7 +45,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
   margin-bottom: 6px;
 }
 
@@ -49,44 +53,72 @@
 }
 
 .advanced-setting-section {
-  border-top: 1px solid var(--border-color);
-  padding-top: 12px;
-  margin-top: 12px;
+  margin-bottom: 24px;
 }
 
-.advanced-setting-section:first-child {
-  border-top: none;
-  padding-top: 0;
-  margin-top: 0;
+.advanced-setting-section h4 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.advanced-setting-section .setting-item {
+  margin-bottom: 20px;
+}
+
+.advanced-setting-section .setting-item:last-child {
+  margin-bottom: 0;
 }
 
 .advanced-setting-subsection {
-  padding-top: 8px;
-  margin-top: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.advanced-setting-subsection h5 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .two-col-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 12px;
+}
+
+.two-col-item {
+  flex: 1;
 }
 
 .detail-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 4px 0;
-  font-size: 12px;
+  align-items: flex-start;
+  margin-bottom: 4px;
+  font-size: 10px;
+  line-height: 1.3;
   color: var(--text-secondary);
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
 }
 
 .status-row {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
+  margin-bottom: 8px;
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.status-row:last-child {
+  margin-bottom: 0;
 }
 
 .checkbox-label {
@@ -97,16 +129,6 @@
   color: var(--text-primary);
   cursor: pointer;
   user-select: none;
-}
-
-.phase-toggle-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 6px 0;
-  font-size: 13px;
-  color: var(--text-primary);
 }
 
 /* Used by 2+ tab components (imageProcessing, ai). Live here so each tab

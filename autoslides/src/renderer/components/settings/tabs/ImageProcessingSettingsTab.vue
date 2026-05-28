@@ -481,6 +481,7 @@ const {
   gap: 6px;
 }
 
+.phase-toggle-item,
 .image-output-toggle-item {
   display: flex;
   align-items: center;
@@ -493,11 +494,13 @@ const {
   transition: all 0.2s;
 }
 
+.phase-toggle-item:hover,
 .image-output-toggle-item:hover {
   background-color: #f0f0f0;
   border-color: #ccc;
 }
 
+.phase-toggle-item input[type="checkbox"],
 .image-output-toggle-item input[type="checkbox"] {
   margin: 0;
   cursor: pointer;

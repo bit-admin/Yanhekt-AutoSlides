@@ -138,6 +138,7 @@ defineEmits<{
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  padding: 0;
   color: #333;
 }
 
