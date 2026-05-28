@@ -1,21 +1,12 @@
 import type { ClassifierClass, ClassifyResult } from '@shared/workers/slideClassifier.worker'
 import { classifyImage as runMlClassify, ensureMlClassifierReady } from '@features/ai/mlClassifierClient'
+import type {
+  ClassificationValue,
+  UnifiedClassificationResult,
+  UnifiedSingleClassificationResult,
+} from '@shared/postProcessing/types'
 
-export type ClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit'
-
-export interface UnifiedClassificationResult {
-  success: boolean
-  result?: Record<string, ClassificationValue>
-  error?: string
-  errorKind?: string
-}
-
-export interface UnifiedSingleClassificationResult {
-  success: boolean
-  result?: { classification: ClassificationValue }
-  error?: string
-  errorKind?: string
-}
+export type { ClassificationValue, UnifiedClassificationResult, UnifiedSingleClassificationResult }
 
 export interface MlThresholdValues {
   trustLow: number

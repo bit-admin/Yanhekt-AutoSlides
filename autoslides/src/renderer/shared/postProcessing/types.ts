@@ -113,6 +113,38 @@ export interface PostProcessingResult {
   failed: PostProcessingFailure[]
 }
 
+export type ClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit'
+
+export interface UnifiedClassificationResult {
+  success: boolean
+  result?: Record<string, ClassificationValue>
+  error?: string
+  errorKind?: string
+}
+
+export interface UnifiedSingleClassificationResult {
+  success: boolean
+  result?: { classification: ClassificationValue }
+  error?: string
+  errorKind?: string
+}
+
+// Phase 3 (AI classification) needs to call into features/ai/ for the actual
+// classifier. The shared/ layer is forbidden from importing features/, so the
+// caller injects the classify functions through the PostProcessingContext.
+export interface ClassifierCallbacks {
+  classifyMultipleImages: (
+    base64Images: string[],
+    type: 'live' | 'recorded',
+    token?: string,
+  ) => Promise<UnifiedClassificationResult>
+  classifySingleImage: (
+    base64Image: string,
+    type: 'live' | 'recorded',
+    token?: string,
+  ) => Promise<UnifiedSingleClassificationResult>
+}
+
 export interface PostProcessingContext {
   signal?: AbortSignal
   onProgress?: (snap: PostProcessingProgress) => void
@@ -122,7 +154,11 @@ export interface PostProcessingContext {
   onItemRemoved?: (filename: string, reason: TrashReason) => void
   // Called once per file with its AI verdict (including 'slide'). Used by the
   // playback page to set each slide's `aiDecision` field for the UI.
-  onItemClassified?: (filename: string, classification: 'slide' | 'not_slide' | 'may_be_slide_edit') => void
+  onItemClassified?: (filename: string, classification: ClassificationValue) => void
+  // Injected by the adapter so phase3AI can call into the AI classifier without
+  // a shared -> features import. Required when input.config.enableAIFiltering
+  // is true; callers can omit it when phase3 is disabled.
+  classifier?: ClassifierCallbacks
 }
 
 export interface SlideHashInfo {

@@ -11,21 +11,17 @@
 // only retries genuine network/timeout one more time (maxRetries=2). 413 is
 // handled via recursive split-batch.
 
-import {
-  classifyMultipleImages as dispatchClassifyMultiple,
-  classifySingleImage as dispatchClassifySingle,
-  type UnifiedClassificationResult
-} from '@features/ai/slideClassificationService'
 import { parseError, type ErrorInfo } from './errorModel'
 import { trashReasonForAI, trashReasonDetailsForAI } from './trashWriter'
 import type {
+  ClassificationValue,
+  ClassifierCallbacks,
   PipelineDataSource,
   PostProcessingConfig,
   PostProcessingContext,
-  PostProcessingFailure
+  PostProcessingFailure,
+  UnifiedClassificationResult
 } from './types'
-
-type ClassificationValue = 'slide' | 'not_slide' | 'may_be_slide_edit'
 
 const MAX_RETRIES = 2
 const RETRY_DELAY_BASE_MS = 1000
@@ -70,13 +66,14 @@ function emptyOutcome(): BatchOutcome {
 // variant expects a `{ classification }` response (live mode); the batch endpoint
 // is used otherwise. This shields the rest of phase3AI from the dual-shape API.
 async function dispatchClassification(
+  classifier: ClassifierCallbacks,
   base64s: string[],
   promptType: 'live' | 'recorded',
   token: string | undefined,
   useSingleImageWhenAlone: boolean
 ): Promise<UnifiedClassificationResult> {
   if (useSingleImageWhenAlone && base64s.length === 1) {
-    const single = await dispatchClassifySingle(base64s[0], promptType, token)
+    const single = await classifier.classifySingleImage(base64s[0], promptType, token)
     if (single.success && single.result) {
       return {
         success: true,
@@ -85,7 +82,7 @@ async function dispatchClassification(
     }
     return { success: false, error: single.error, errorKind: single.errorKind }
   }
-  return dispatchClassifyMultiple(base64s, promptType, token)
+  return classifier.classifyMultipleImages(base64s, promptType, token)
 }
 
 async function readAndResizeImages(
@@ -170,7 +167,11 @@ async function processBatchWithRetry(
   let result: UnifiedClassificationResult
   let errorInfo: ErrorInfo | null = null
   try {
+    if (!ctx.classifier) {
+      throw new Error('phase3AI requires ctx.classifier to be injected by the caller')
+    }
     result = await dispatchClassification(
+      ctx.classifier,
       validBase64,
       input.promptType,
       input.token,

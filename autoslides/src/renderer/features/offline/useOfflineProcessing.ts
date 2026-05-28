@@ -2,6 +2,10 @@ import { ref } from 'vue'
 import { tokenManager } from '@shared/services/authService'
 import { PostProcessingPipeline } from '@shared/postProcessing/pipeline'
 import { createOfflineDataSource } from '@shared/postProcessing/imageSources'
+import {
+  classifyMultipleImages,
+  classifySingleImage,
+} from '@features/ai/slideClassificationService'
 import { configStore } from '@shared/services/configStore'
 import type {
   PostProcessingConfig,
@@ -217,7 +221,11 @@ export function useOfflineProcessing() {
         dataSource,
         {
           signal: abortController.signal,
-          onProgress: mirrorProgress
+          onProgress: mirrorProgress,
+          classifier: {
+            classifyMultipleImages,
+            classifySingleImage,
+          }
         }
       )
 

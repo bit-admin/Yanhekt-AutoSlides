@@ -103,12 +103,15 @@ export default tseslint.config(
   // Whitelisted edges (current usage):
   //   video → course      (Course type in useSlideExtraction)
   //   download → video    (PlaybackData type in useTaskQueue)
+  //   download → ai       (classifier callbacks injected into post-processing
+  //                        pipeline ctx — shared/ cannot import from features/)
+  //   offline → ai        (same; offline post-processing path)
   //   (results → offline edge removed once Phase 10 extracted shared/autoCrop)
   // ----------------------------------------------------------------------
   { files: ['src/renderer/features/video/**/*.{ts,vue}'],     rules: featureBoundaryRule('video',     ['course']) },
   { files: ['src/renderer/features/results/**/*.{ts,vue}'],   rules: featureBoundaryRule('results') },
-  { files: ['src/renderer/features/offline/**/*.{ts,vue}'],   rules: featureBoundaryRule('offline') },
-  { files: ['src/renderer/features/download/**/*.{ts,vue}'],  rules: featureBoundaryRule('download',  ['video', 'course']) },
+  { files: ['src/renderer/features/offline/**/*.{ts,vue}'],   rules: featureBoundaryRule('offline',   ['ai']) },
+  { files: ['src/renderer/features/download/**/*.{ts,vue}'],  rules: featureBoundaryRule('download',  ['video', 'course', 'ai']) },
   { files: ['src/renderer/features/ai/**/*.{ts,vue}'],        rules: featureBoundaryRule('ai') },
   { files: ['src/renderer/features/export/**/*.{ts,vue}'],    rules: featureBoundaryRule('export') },
   { files: ['src/renderer/features/course/**/*.{ts,vue}'],    rules: featureBoundaryRule('course') },
@@ -118,12 +121,8 @@ export default tseslint.config(
   { files: ['src/renderer/features/tools/**/*.{ts,vue}'],     rules: featureBoundaryRule('tools') },
 
   // shared/ is foundational — it must not depend on features/ (one-way layering).
-  // Exception: phase3AI imports the AI classifier from features/ai; this is
-  // resolved in Phase 12 by extracting a mlClassifierClient into features/ai/
-  // and injecting the classify callback from the adapter.
   {
     files: ['src/renderer/shared/**/*.{ts,vue}'],
-    ignores: ['src/renderer/shared/postProcessing/phase3AI.ts'],
     rules: {
       'no-restricted-imports': ['error', {
         patterns: [{ group: ['@features/*', '@features'], message: 'shared/ is foundational; do not import from features/.' }],

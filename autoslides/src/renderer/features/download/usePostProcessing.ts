@@ -3,6 +3,10 @@ import { tokenManager } from '@shared/services/authService'
 import type { ExtractedSlide, SlideExtractionHandle } from '@shared/processing'
 import { PostProcessingPipeline } from '@shared/postProcessing/pipeline'
 import { createSlideExtractionDataSource } from '@shared/postProcessing/imageSources'
+import {
+  classifyMultipleImages,
+  classifySingleImage,
+} from '@features/ai/slideClassificationService'
 import { configStore } from '@shared/services/configStore'
 import {
   errorInfoToBanner,
@@ -216,6 +220,10 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       dataSource,
       {
         onProgress: mirrorProgress,
+        classifier: {
+          classifyMultipleImages,
+          classifySingleImage,
+        },
         onItemRemoved: (filename: string, reason: TrashReason) => {
           const slide = filenameToSlide.get(filename)
           if (!slide) return

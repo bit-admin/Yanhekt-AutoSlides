@@ -4,6 +4,7 @@ import { PostProcessingPipeline } from '@shared/postProcessing/pipeline'
 import { createSlideExtractionDataSource } from '@shared/postProcessing/imageSources'
 import type {
   AIErrorKind,
+  ClassifierCallbacks,
   PostProcessingConfig,
   PostProcessingProgress
 } from '@shared/postProcessing/types'
@@ -59,6 +60,13 @@ class PostProcessingServiceClass {
   })
 
   private processingPromise: Promise<void> | null = null
+  // Injected once at startup by the renderer entrypoint. shared/ cannot import
+  // from features/ai/, so the renderer wires the callbacks here after import.
+  private classifier: ClassifierCallbacks | null = null
+
+  setClassifier(callbacks: ClassifierCallbacks): void {
+    this.classifier = callbacks
+  }
 
   get jobs() { return this.state.jobs }
   get isProcessing() { return this.state.isProcessing }
@@ -158,7 +166,8 @@ class PostProcessingServiceClass {
         },
         dataSource,
         {
-          onProgress: (snap) => this.mirrorProgress(job, snap)
+          onProgress: (snap) => this.mirrorProgress(job, snap),
+          classifier: this.classifier ?? undefined
         }
       )
 

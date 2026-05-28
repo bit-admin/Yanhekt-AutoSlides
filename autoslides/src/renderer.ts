@@ -31,6 +31,13 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import { i18n } from './renderer/shared/i18n';
 import { loadConfig } from './renderer/shared/services/configStore';
+import { PostProcessingService } from './renderer/shared/services/postProcessingService';
+import {
+  classifyMultipleImages,
+  classifySingleImage,
+} from './renderer/features/ai/slideClassificationService';
+
+PostProcessingService.setClassifier({ classifyMultipleImages, classifySingleImage });
 
 const app = createApp(App);
 app.use(i18n);
