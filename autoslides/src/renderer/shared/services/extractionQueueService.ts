@@ -45,10 +45,19 @@ class ExtractionQueueServiceClass {
    */
   async refreshExtractorStatus(): Promise<ExtractorStatusSnapshot> {
     const status = await window.electronAPI.qtExtractor.getStatus()
+    this.applyExtractorStatus(status)
+    return status
+  }
+
+  /**
+   * Update cached readiness from a status snapshot already obtained elsewhere
+   * (e.g. a `qtExtractor.verify` call in settings). Avoids a redundant
+   * `getStatus` IPC that would re-spawn the binary verification probe.
+   */
+  applyExtractorStatus(status: ExtractorStatusSnapshot): void {
     this.extractorStatus = status
     this.extractorReady = !!status.ok
     this.statusInitialized = true
-    return status
   }
 
   isExtractorReady(): boolean {

@@ -51,9 +51,10 @@ export function useExtractorSettings() {
     try {
       const status = await window.electronAPI.qtExtractor.verify(qtExtractorBinaryPath.value || undefined)
       applyQtStatus(status)
-      // Refresh extraction queue's cached readiness
+      // Reuse the snapshot we just obtained to refresh the extraction queue's
+      // cached readiness — no second IPC verification probe.
       const { ExtractionQueue } = await import('@shared/services/extractionQueueService')
-      await ExtractionQueue.refreshExtractorStatus()
+      ExtractionQueue.applyExtractorStatus(status)
     } catch (error) {
       console.error('Failed to verify extractor binary:', error)
       qtExtractorStatusOk.value = false
