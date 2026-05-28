@@ -106,6 +106,8 @@ export default tseslint.config(
   //   download → ai       (classifier callbacks injected into post-processing
   //                        pipeline ctx — shared/ cannot import from features/)
   //   offline → ai        (same; offline post-processing path)
+  //   settings → platform, ai (SettingsContext bundles useAuth/useCache/useAI*
+  //                            composables for the LeftPanel tab children)
   //   (results → offline edge removed once Phase 10 extracted shared/autoCrop)
   // ----------------------------------------------------------------------
   { files: ['src/renderer/features/video/**/*.{ts,vue}'],     rules: featureBoundaryRule('video',     ['course']) },
@@ -115,7 +117,7 @@ export default tseslint.config(
   { files: ['src/renderer/features/ai/**/*.{ts,vue}'],        rules: featureBoundaryRule('ai') },
   { files: ['src/renderer/features/export/**/*.{ts,vue}'],    rules: featureBoundaryRule('export') },
   { files: ['src/renderer/features/course/**/*.{ts,vue}'],    rules: featureBoundaryRule('course') },
-  { files: ['src/renderer/features/settings/**/*.{ts,vue}'],  rules: featureBoundaryRule('settings') },
+  { files: ['src/renderer/features/settings/**/*.{ts,vue}'],  rules: featureBoundaryRule('settings',  ['platform', 'ai']) },
   { files: ['src/renderer/features/platform/**/*.{ts,vue}'],  rules: featureBoundaryRule('platform') },
   { files: ['src/renderer/features/webCapture/**/*.{ts,vue}'],rules: featureBoundaryRule('webCapture') },
   { files: ['src/renderer/features/tools/**/*.{ts,vue}'],     rules: featureBoundaryRule('tools') },
