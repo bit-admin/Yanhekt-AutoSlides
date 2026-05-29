@@ -1,28 +1,105 @@
+/*
+ * Global stylesheet for all three renderer windows (main, tools, addons).
+ *
+ * Tailwind v4 is layered WITHOUT Preflight during the CSS refactor migration:
+ * Preflight resets headings/lists/buttons/form defaults globally and would
+ * break components that haven't been migrated yet. We keep the minimal reset
+ * below and adopt Preflight as a dedicated, verified step at the end (Phase 7).
+ */
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* App theme tokens — light defaults + dark overrides via prefers-color-scheme.
+   Single source of truth for color *values*. */
 @import './renderer/shared/styles/theme.css';
+
+/* Shared component CSS — folded into @layer components in Phase 1, kept as-is
+   for now so consuming components keep working. */
 @import './renderer/shared/styles/modal.css';
 @import './renderer/shared/styles/settings.css';
 
-* {
-  box-sizing: border-box;
+/*
+ * Token bridge: map app theme tokens onto Tailwind's color scale so that
+ * semantic utilities (bg-surface, text-fg, border-line, bg-accent, …) resolve
+ * to var(--bg-surface) etc. and therefore AUTO-DARKEN under the dark media
+ * query with no `dark:` prefix needed. The `dark:` variant still works for the
+ * rare explicit override.
+ */
+@theme {
+  /* Surfaces → bg-page / bg-surface / bg-elevated / bg-subtle / bg-modal / bg-field / bg-hover */
+  --color-page: var(--bg-page);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-subtle: var(--bg-subtle);
+  --color-modal: var(--bg-modal);
+  --color-field: var(--bg-input);
+  --color-field-disabled: var(--bg-input-disabled);
+  --color-hover: var(--bg-hover);
+
+  /* Text → text-fg / text-fg-secondary / text-fg-muted / text-on-accent */
+  --color-fg: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-muted: var(--text-muted);
+  --color-on-accent: var(--text-on-accent);
+
+  /* Borders → border-line / border-line-strong / border-line-input */
+  --color-line: var(--border-color);
+  --color-line-strong: var(--border-strong);
+  --color-line-input: var(--border-input);
+
+  /* Accents → bg-accent / text-accent / border-accent (+ hover / strong) */
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-strong: var(--accent-strong);
+
+  /* Status → bg-danger / text-success / … */
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
 }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: #f5f5f5;
+/* z-index scale (Tailwind v4 has no z-index theme namespace) — intentional
+   layering replaces the scattered 1/2/5/10/.../1000/10000 values. */
+@utility z-dropdown {
+  z-index: 100;
+}
+@utility z-overlay {
+  z-index: 500;
+}
+@utility z-modal {
+  z-index: 1000;
+}
+@utility z-toast {
+  z-index: 2000;
 }
 
-#app {
-  height: 100vh;
-  overflow: hidden;
-}
+/* Minimal reset + base document styling (stands in for Preflight for now). */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-button {
-  font-family: inherit;
-}
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+  }
 
-input {
-  font-family: inherit;
+  #app {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  button,
+  input {
+    font-family: inherit;
+  }
 }
