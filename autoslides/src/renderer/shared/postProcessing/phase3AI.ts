@@ -200,15 +200,18 @@ async function processBatchWithRetry(
     return outcome
   }
 
-  // Error path.
-  if (errorInfo!.type === '413') {
+  // Error path. errorInfo is always assigned above whenever the result did
+  // not succeed, but fall back to parsing the result so the reads below need
+  // no non-null assertions.
+  const err = errorInfo ?? parseError(result)
+  if (err.type === '413') {
     outcome.pending413.push(validFilenames)
     return outcome
   }
-  if (errorInfo!.retryable && retryCount < MAX_RETRIES) {
+  if (err.retryable && retryCount < MAX_RETRIES) {
     const delay = RETRY_DELAY_BASE_MS * (retryCount + 1)
     console.log(
-      `[PostProcessing] AI batch ${errorInfo!.type} (attempt ${retryCount + 1}/${MAX_RETRIES}, delay ${delay}ms)`
+      `[PostProcessing] AI batch ${err.type} (attempt ${retryCount + 1}/${MAX_RETRIES}, delay ${delay}ms)`
     )
     stats.retrying = validFilenames.length
     reportStats()
@@ -232,13 +235,13 @@ async function processBatchWithRetry(
     return outcome
   }
 
-  console.warn(`[PostProcessing] AI batch failed with ${errorInfo!.type}: ${errorInfo!.message}`)
+  console.warn(`[PostProcessing] AI batch failed with ${err.type}: ${err.message}`)
   for (const filename of validFilenames) {
     outcome.failed.push({
       filename,
-      errorType: errorInfo!.type,
-      errorKind: errorInfo!.kind,
-      message: errorInfo!.message,
+      errorType: err.type,
+      errorKind: err.kind,
+      message: err.message,
       retryCount
     })
   }
