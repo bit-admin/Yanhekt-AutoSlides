@@ -75,12 +75,10 @@ export class VideoProxyService {
   private activeClients: Set<string> = new Set();
   private clientIdCounter = 0;
 
-  private apiClient: ApiClient;
   private intranetMapping: IntranetMappingService;
   private auth: ProxyAuth;
 
   constructor(apiClient: ApiClient, intranetMapping: IntranetMappingService) {
-    this.apiClient = apiClient;
     this.intranetMapping = intranetMapping;
     this.auth = new ProxyAuth(apiClient);
 
@@ -402,6 +400,144 @@ export class VideoProxyService {
     }
   }
 
+  private delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Discard an undrained upstream body. With keep-alive agents an unconsumed
+   * stream (e.g. a 403 we are about to retry or surface) would otherwise pin the
+   * socket. No-op for buffered (string) bodies.
+   */
+  private destroyStreamBody(response: AxiosResponse, responseType?: 'stream'): void {
+    if (responseType !== 'stream') return;
+    try {
+      response.data?.destroy?.();
+    } catch {
+      // Ignore — best-effort cleanup.
+    }
+  }
+
+  /**
+   * GET a recorded-video URL (m3u8 or TS) with anti-hotlink signing and 403
+   * re-sign retry. Each attempt fetches a fresh token + signature.
+   *
+   * axios is configured with `validateStatus < 500`, so a 403 arrives as a
+   * RESOLVED response — we branch on `response.status`, not on a thrown error
+   * (the original code only retried 403s that happened to throw, so TS 403s were
+   * never retried and persistent-403 token invalidation almost never fired). On
+   * 403 we re-sign and retry with linear backoff; once retries are exhausted we
+   * invalidate the cached token so the next playback starts fresh and return the
+   * final 403 for the caller to surface. Network errors / 5xx (which axios
+   * throws) propagate to the caller.
+   */
+  private async getRecordedWithResign(
+    rawUrl: string,
+    opts: { timeout: number; responseType?: 'stream' }
+  ): Promise<AxiosResponse> {
+    const maxRetries = 3;
+    let attempt = 0;
+
+    while (true) {
+      const { requestUrl, headers } = await signRecordedUrl(
+        this.auth, this.intranetMapping, rawUrl, this.BASE_HEADERS
+      );
+      const agents = this.resolveAgents();
+      const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, headers, opts);
+
+      const response = await axios.get(requestUrl, axiosConfig);
+
+      if (response.status !== 403) {
+        return response; // 200 (serve) or other status (caller surfaces it)
+      }
+
+      // 403: the signature/token was rejected. Re-sign and retry, or give up.
+      this.destroyStreamBody(response, opts.responseType);
+      if (attempt < maxRetries) {
+        attempt++;
+        console.log(`Recorded request got 403, re-signing and retrying (${attempt}/${maxRetries}) for: ${rawUrl}`);
+        await this.delay(1000 * attempt);
+        continue;
+      }
+
+      console.log('Clearing token cache due to persistent recorded 403 errors');
+      this.auth.invalidateToken();
+      return response; // exhausted — caller surfaces the 403
+    }
+  }
+
+  /**
+   * GET a live-stream URL (m3u8 or TS) with intranet IP failover. Live streams
+   * need no signing. Each attempt round-robins to the next available IP via
+   * `rewriteUrl`; on failure we mark the IP we ACTUALLY USED (captured before the
+   * request) as failed — the original code re-rewrote the URL first, advancing
+   * the round-robin and marking the wrong IP. Returns the final response (caller
+   * surfaces non-200) or throws after exhausting retries on network errors.
+   */
+  private async getLiveWithFailover(
+    rawUrl: string,
+    headers: Record<string, string>,
+    opts: { timeout: number; responseType?: 'stream' }
+  ): Promise<AxiosResponse> {
+    const maxRetries = 3;
+    let attempt = 0;
+
+    while (true) {
+      const requestUrl = this.intranetMapping.rewriteUrl(rawUrl);
+      const agents = this.resolveAgents();
+      const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, headers, opts);
+
+      try {
+        const response = await axios.get(requestUrl, axiosConfig);
+        if (response.status === 200) {
+          return response;
+        }
+        // Non-200: fail over to the next IP (intranet only), else surface it.
+        if (this.intranetMapping.isEnabled() && attempt < maxRetries) {
+          this.markIpFailedForUrl(requestUrl, rawUrl);
+          this.destroyStreamBody(response, opts.responseType);
+          attempt++;
+          console.log(`Live request got status ${response.status}, trying next IP (${attempt}/${maxRetries})`);
+          continue;
+        }
+        return response;
+      } catch (error: any) {
+        if (this.intranetMapping.isEnabled()) {
+          this.markIpFailedForUrl(requestUrl, rawUrl);
+        }
+        if (attempt < maxRetries) {
+          attempt++;
+          console.log(`Live request failed, trying next IP (${attempt}/${maxRetries}):`, error.message);
+          await this.delay(500);
+          continue;
+        }
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Pipe a successful upstream TS response to the client, or surface a non-200
+   * status as a plain error (never pipe an error body as if it were segment data).
+   */
+  private pipeUpstream(res: http.ServerResponse, response: AxiosResponse): void {
+    if (response.status !== 200) {
+      this.destroyStreamBody(response, 'stream');
+      res.writeHead(response.status, { 'Content-Type': 'text/plain' });
+      res.end(`TS request failed with status ${response.status}`);
+      return;
+    }
+
+    Object.keys(response.headers).forEach(key => {
+      if (!key.toLowerCase().startsWith('access-control-')) {
+        res.setHeader(key, response.headers[key] as string);
+      }
+    });
+
+    res.writeHead(response.status);
+    response.data.pipe(res);
+  }
+
   /**
    * Handle live stream m3u8 requests
    */
@@ -418,95 +554,43 @@ export class VideoProxyService {
     // Store login token for future use
     this.auth.setLoginToken(loginToken as string);
 
-    // Set proper headers for live stream request
+    // Set proper headers for live stream request. Under intranet mode the URL is
+    // rewritten to an IP, so Host must carry the original hostname.
     const liveHeaders: Record<string, string> = {
       ...this.BASE_HEADERS,
       "Host": this.extractHostFromUrl(originalUrl as string)
     };
-
-    // Add Host header for intranet mode
     if (this.intranetMapping.isEnabled()) {
-      const originalHost = new URL(originalUrl as string).hostname;
-      liveHeaders['Host'] = originalHost;
+      liveHeaders['Host'] = new URL(originalUrl as string).hostname;
     }
 
-    // Retry logic with IP failover for intranet mode
-    let retryCount = 0;
-    const maxRetries = 3;
-    let lastError: Error | null = null;
-
-    while (retryCount <= maxRetries) {
-      try {
-        // Rewrite URL for intranet mode - this will try different IPs on each retry due to round-robin
-        const requestUrl = this.intranetMapping.rewriteUrl(originalUrl as string);
-
-        // Create axios instance with proper configuration
-        // Use shorter timeout for live streams to fail fast and try next IP
-        const agents = this.resolveAgents();
-        const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, liveHeaders, {
-          timeout: this.intranetMapping.isEnabled() ? 8000 : 30000 // 8s for intranet, 30s for external
-        });
-
-        // Proxy the request
-        const response = await axios.get(requestUrl, axiosConfig);
-
-        if (response.status !== 200) {
-          // Non-200 status, try next IP if in intranet mode
-          if (this.intranetMapping.isEnabled() && retryCount < maxRetries) {
-            // Mark current IP as failed to trigger round-robin to next IP
-            this.markIpFailedForUrl(requestUrl, originalUrl as string);
-            retryCount++;
-            console.log(`Live M3U8 got status ${response.status}, trying next IP (${retryCount}/${maxRetries})`);
-            continue;
-          }
-          res.writeHead(response.status, { 'Content-Type': 'text/plain' });
-          res.end(`Live M3U8 request failed with status ${response.status}`);
-          return;
-        }
-
-        // Get m3u8 content and process it
-        let content = response.data;
-
-        // Process m3u8 content to rewrite TS URLs to point to our proxy
-        content = this.processLiveM3u8Content(content, originalUrl as string);
-
-        // Return processed m3u8 content
-        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-        res.writeHead(200);
-        res.end(content);
-        return;
-
-      } catch (error: any) {
-        lastError = error;
-
-        // Mark current IP as failed for intranet mode
-        if (this.intranetMapping.isEnabled()) {
-          this.markIpFailedForUrl(this.intranetMapping.rewriteUrl(originalUrl as string), originalUrl as string);
-        }
-
-        if (retryCount < maxRetries) {
-          retryCount++;
-          console.log(`Live M3U8 request failed, trying next IP (${retryCount}/${maxRetries}):`, error.message);
-          // Small delay before retry
-          await new Promise(resolve => setTimeout(resolve, 500));
-          continue;
-        }
-
-        // All retries exhausted
-        console.error(`Live M3U8 request failed after ${retryCount} retries:`, {
-          message: error.message,
-          code: error.code,
-          originalUrl: originalUrl
-        });
-        res.writeHead(502, { 'Content-Type': 'text/plain' });
-        res.end(`Live M3U8 request failed: ${error.message}`);
-        return;
-      }
+    let response: AxiosResponse;
+    try {
+      response = await this.getLiveWithFailover(originalUrl as string, liveHeaders, {
+        timeout: this.intranetMapping.isEnabled() ? 8000 : 30000 // 8s for intranet, 30s for external
+      });
+    } catch (error: any) {
+      console.error('Live M3U8 request failed after retries:', {
+        message: error.message,
+        code: error.code,
+        originalUrl
+      });
+      res.writeHead(502, { 'Content-Type': 'text/plain' });
+      res.end(`Live M3U8 request failed: ${error.message}`);
+      return;
     }
 
-    // Should not reach here, but handle just in case
-    res.writeHead(502, { 'Content-Type': 'text/plain' });
-    res.end(`Live M3U8 request failed after ${maxRetries} retries: ${lastError?.message || 'Unknown error'}`);
+    if (response.status !== 200) {
+      res.writeHead(response.status, { 'Content-Type': 'text/plain' });
+      res.end(`Live M3U8 request failed with status ${response.status}`);
+      return;
+    }
+
+    // Process m3u8 content to rewrite TS URLs to point to our proxy.
+    const content = this.processLiveM3u8Content(response.data, originalUrl as string);
+    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+    res.writeHead(200);
+    res.end(content);
   }
 
   /**
@@ -525,87 +609,28 @@ export class VideoProxyService {
     // Store login token for future use
     this.auth.setLoginToken(loginToken as string);
 
-    // Get fresh token + signature, encrypt + sign the URL, apply intranet rewrite.
-    let { requestUrl, headers: videoHeaders } = await signRecordedUrl(
-      this.auth, this.intranetMapping, originalUrl as string, this.BASE_HEADERS
-    );
-
-    // Create axios instance with proper configuration
-    const agents = this.resolveAgents();
-    const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, videoHeaders, { timeout: 30000 });
-
-    // Proxy the request with retry logic for 403 errors
-    let retryCount = 0;
-    const maxRetries = 3;
-    let response: AxiosResponse | undefined;
-
-    while (retryCount <= maxRetries) {
-      try {
-        const currentResponse = await axios.get(requestUrl, axiosConfig);
-        response = currentResponse;
-
-        if (currentResponse.status === 200) {
-          break; // Success, exit retry loop
-        } else if (currentResponse.status === 403 && retryCount < maxRetries) {
-          throw new Error(`HTTP ${currentResponse.status}: ${currentResponse.statusText}`);
-        } else {
-          res.writeHead(currentResponse.status, { 'Content-Type': 'text/plain' });
-          res.end(`M3U8 request failed with status ${currentResponse.status}`);
-          return;
-        }
-
-      } catch (error: any) {
-        if ((error.response?.status === 403 || error.message.includes('403')) && retryCount < maxRetries) {
-          retryCount++;
-          console.log(`M3U8 request got 403, retrying (${retryCount}/${maxRetries}) for: ${originalUrl}`);
-
-          // Regenerate token + signature, re-sign, re-apply intranet rewrite.
-          console.log('Regenerating token and signature for M3U8 403 retry...');
-          ({ requestUrl, headers: videoHeaders } = await signRecordedUrl(
-            this.auth, this.intranetMapping, originalUrl as string, this.BASE_HEADERS
-          ));
-
-          // Update axios config
-          axiosConfig.headers = videoHeaders;
-
-          // Wait before retry with exponential backoff
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-          continue; // Retry the request
-
-        } else {
-          // Non-403 error or max retries reached
-          console.error(`M3U8 request failed after ${retryCount} retries:`, {
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            url: requestUrl
-          });
-
-          // If we've exhausted retries due to 403, clear token cache
-          if (error.response?.status === 403 || error.message.includes('403')) {
-            console.log('Clearing token cache due to persistent M3U8 403 errors');
-            this.auth.invalidateToken();
-          }
-
-          res.writeHead(500, { 'Content-Type': 'text/plain' });
-          res.end(`M3U8 request failed: ${error.message}`);
-          return;
-        }
-      }
-    }
-
-    // Get m3u8 content and process it - response is guaranteed here due to loop logic
-    if (!response) {
+    let response: AxiosResponse;
+    try {
+      response = await this.getRecordedWithResign(originalUrl as string, { timeout: 30000 });
+    } catch (error: any) {
+      console.error('M3U8 request failed:', {
+        status: error.response?.status,
+        message: error.message,
+        url: originalUrl
+      });
       res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Failed to get M3U8 response');
+      res.end(`M3U8 request failed: ${error.message}`);
       return;
     }
 
-    let content = response.data;
+    if (response.status !== 200) {
+      res.writeHead(response.status, { 'Content-Type': 'text/plain' });
+      res.end(`M3U8 request failed with status ${response.status}`);
+      return;
+    }
 
-    // Process m3u8 content to rewrite TS URLs to point to our proxy
-    content = this.processM3u8Content(content, originalUrl as string);
-
-    // Return processed m3u8 content
+    // Process m3u8 content to rewrite TS URLs to point to our proxy.
+    const content = this.processM3u8Content(response.data, originalUrl as string);
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
     res.writeHead(200);
     res.end(content);
@@ -642,100 +667,48 @@ export class VideoProxyService {
 
     const tsUrl = this.resolveUrl(baseUrl as string, tsFileName);
 
-    let requestUrl: string;
-    let videoHeaders: Record<string, string>;
-
     if (isLiveStream) {
-      // Live stream - no encryption/signing needed, just use original URL with intranet mapping
-      requestUrl = this.intranetMapping.rewriteUrl(tsUrl);
-      videoHeaders = {
+      // Live stream — no signing; round-robin IP failover only.
+      const headers: Record<string, string> = {
         ...this.BASE_HEADERS,
         "Host": this.extractHostFromUrl(tsUrl)
       };
-
-      // Add Host header if URL was rewritten
-      if (requestUrl !== tsUrl) {
-        const originalHost = new URL(tsUrl).hostname;
-        videoHeaders['Host'] = originalHost;
-      }
-
-    } else if (isRecordedStream) {
-      // Recorded video - encrypt + sign the TS URL (fresh signature per request).
-      ({ requestUrl, headers: videoHeaders } = await signRecordedUrl(
-        this.auth, this.intranetMapping, tsUrl, this.BASE_HEADERS
-      ));
-
-    } else {
-      // Fallback for backward compatibility - treat as recorded video
-      ({ requestUrl, headers: videoHeaders } = await signRecordedUrl(
-        this.auth, this.intranetMapping, tsUrl, this.BASE_HEADERS
-      ));
-    }
-
-    // Create axios instance with proper configuration
-    const agents = this.resolveAgents();
-    const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, videoHeaders, {
-      timeout: 30000,
-      responseType: 'stream'
-    });
-
-    // Proxy the request with retry logic for 403 errors
-    let retryCount = 0;
-    const maxRetries = 3;
-
-    while (retryCount <= maxRetries) {
-      try {
-        const response = await axios.get(requestUrl, axiosConfig);
-
-        // Success - copy response headers and pipe data
-        Object.keys(response.headers).forEach(key => {
-          if (!key.toLowerCase().startsWith('access-control-')) {
-            res.setHeader(key, response.headers[key]);
-          }
-        });
-
-        res.writeHead(response.status);
-        response.data.pipe(res);
-        return; // Success, exit retry loop
-
-      } catch (error: any) {
-        if (error.response?.status === 403 && retryCount < maxRetries) {
-          retryCount++;
-          console.log(`TS request got 403, retrying (${retryCount}/${maxRetries}) for: ${tsFileName}`);
-
-          // For recorded videos, regenerate signature and token for retry
-          if (isRecordedStream || (!isLiveStream && !isRecordedStream)) {
-            console.log('Regenerating token and signature for 403 retry...');
-            ({ requestUrl, headers: videoHeaders } = await signRecordedUrl(
-              this.auth, this.intranetMapping, tsUrl, this.BASE_HEADERS
-            ));
-
-            // Update axios config with new headers
-            axiosConfig.headers = videoHeaders;
-          }
-
-          // Wait before retry with exponential backoff
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
-          continue; // Retry the request
-
-        } else {
-          // Non-403 error or max retries reached
-          console.error(`TS request failed after ${retryCount} retries:`, {
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            url: requestUrl
-          });
-
-          // If we've exhausted retries due to 403, clear token cache
-          if (error.response?.status === 403) {
-            console.log('Clearing token cache due to persistent 403 errors');
-            this.auth.invalidateToken();
-          }
-
-          throw error; // Re-throw the error
+      if (this.intranetMapping.isEnabled()) {
+        try {
+          headers['Host'] = new URL(tsUrl).hostname;
+        } catch {
+          // Keep the extractHostFromUrl value if parsing fails.
         }
       }
+
+      let response: AxiosResponse;
+      try {
+        response = await this.getLiveWithFailover(tsUrl, headers, { timeout: 30000, responseType: 'stream' });
+      } catch (error: any) {
+        console.error('Live TS request failed after retries:', {
+          message: error.message,
+          code: error.code,
+          url: tsUrl
+        });
+        throw error; // Surfaced as a 500 by the server handler.
+      }
+      this.pipeUpstream(res, response);
+      return;
     }
+
+    // Recorded video (and the legacy fallback) — encrypt + sign with 403 re-sign.
+    let response: AxiosResponse;
+    try {
+      response = await this.getRecordedWithResign(tsUrl, { timeout: 30000, responseType: 'stream' });
+    } catch (error: any) {
+      console.error('Recorded TS request failed:', {
+        status: error.response?.status,
+        message: error.message,
+        url: tsUrl
+      });
+      throw error; // Surfaced as a 500 by the server handler.
+    }
+    this.pipeUpstream(res, response);
   }
 
   private processLiveM3u8Content(content: string, baseUrl: string): string {

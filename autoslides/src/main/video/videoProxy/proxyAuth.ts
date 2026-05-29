@@ -59,7 +59,7 @@ export class ProxyAuth {
       return this.tokenCache.videoToken!;
     } catch (error) {
       console.error("Error getting fresh token:", error);
-      throw new Error("获取 Token 失败");
+      throw new Error("Failed to get video token");
     }
   }
 

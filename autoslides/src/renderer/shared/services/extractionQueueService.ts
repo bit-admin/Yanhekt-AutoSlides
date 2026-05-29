@@ -212,6 +212,11 @@ class ExtractionQueueServiceClass {
       return
     }
 
+    // A cancel may have arrived while runExtraction was resolving (the SIGTERM
+    // lost the race with a clean exit). Honor it before advancing into the
+    // color-reduction / post-processing chain, which the user no longer wants.
+    if ((item.extractionStatus as ExtractionStatus) === 'cancelled') return
+
     // Optional PNG-8 palette quantization (only when the user enabled it).
     // Qt extractor `--compatible` mode produces lossless 8-bit RGB PNG; this
     // pass shrinks files dramatically when color reduction is desired.
@@ -228,6 +233,10 @@ class ExtractionQueueServiceClass {
         return
       }
     }
+
+    // Re-check after the (awaited) color-reduction pass — a cancel during
+    // normalizing flips the status but cannot interrupt the in-JS await.
+    if ((item.extractionStatus as ExtractionStatus) === 'cancelled') return
 
     if (!item.autoPostProcessAfter) {
       item.extractionStatus = 'completed'
