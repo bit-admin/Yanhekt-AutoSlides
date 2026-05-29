@@ -86,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import PdfMakerWindow from '@renderer/components/export/PdfMakerWindow.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
 import OfflineProcessingTab from '@renderer/components/offline/OfflineProcessingTab.vue'
@@ -111,12 +111,17 @@ const switchTab = (tab: TabId) => {
 }
 
 // Listen for tab switch IPC from main process
+let cleanupSwitchTab: (() => void) | undefined
 onMounted(() => {
-  window.electronAPI.tools?.onSwitchTab?.((tab: string) => {
+  cleanupSwitchTab = window.electronAPI.tools?.onSwitchTab?.((tab: string) => {
     if (tab === 'pdfmaker' || tab === 'trash' || tab === 'compress' || tab === 'offline') {
       activeTab.value = tab
     }
   })
+})
+
+onUnmounted(() => {
+  cleanupSwitchTab?.()
 })
 
 // Window controls

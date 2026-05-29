@@ -136,7 +136,9 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('config:resetAutoCropParams', async () => {
-    return configService.resetAutoCropParams();
+    const result = configService.resetAutoCropParams();
+    broadcastConfig();
+    return result;
   });
 
   ipcMain.handle('config:setAutoCropDetectorMode', async (_event, mode) => {
@@ -152,7 +154,9 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('config:resetAutoCropYoloParams', async () => {
-    return configService.resetAutoCropYoloParams();
+    const result = configService.resetAutoCropYoloParams();
+    broadcastConfig();
+    return result;
   });
 
   ipcMain.handle('config:setThemeMode', async (_event, theme: 'system' | 'light' | 'dark') => {
@@ -272,15 +276,21 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
   });
 
   ipcMain.handle('config:addPHashExclusionItem', async (_event, name: string, pHash: string) => {
-    return configService.addPHashExclusionItem(name, pHash);
+    const result = configService.addPHashExclusionItem(name, pHash);
+    broadcastConfig();
+    return result;
   });
 
   ipcMain.handle('config:removePHashExclusionItem', async (_event, id: string) => {
-    return configService.removePHashExclusionItem(id);
+    const result = configService.removePHashExclusionItem(id);
+    broadcastConfig();
+    return result;
   });
 
   ipcMain.handle('config:updatePHashExclusionItemName', async (_event, id: string, newName: string) => {
-    return configService.updatePHashExclusionItemName(id, newName);
+    const result = configService.updatePHashExclusionItemName(id, newName);
+    broadcastConfig();
+    return result;
   });
 
   ipcMain.handle('config:clearPHashExclusionList', async () => {
@@ -362,6 +372,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     ) {
       llmApiService.updateRateLimitConfig();
     }
+    broadcastConfig();
     return next;
   });
 
@@ -385,6 +396,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     'config:setMlThresholds',
     async (_event, thresholds: { trustLow?: number; trustHigh?: number; slideCheckLow?: number }) => {
       configService.setMlThresholds(thresholds);
+      broadcastConfig();
       return configService.getAIFilteringConfig();
     }
   );

@@ -736,12 +736,12 @@ interface ElectronAPI {
 
   tools: {
     openWindow: (tab?: string) => Promise<{ success: boolean }>;
-    onSwitchTab: (callback: (tab: string) => void) => void;
+    onSwitchTab: (callback: (tab: string) => void) => () => void;
   };
 
   addons: {
     openWindow: (tab?: string) => Promise<{ success: boolean }>;
-    onSwitchTab: (callback: (tab: string) => void) => void;
+    onSwitchTab: (callback: (tab: string) => void) => () => void;
   };
 
   webCapture: {

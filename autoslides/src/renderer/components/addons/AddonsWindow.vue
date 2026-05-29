@@ -60,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import YuketangTab from '@renderer/components/export/YuketangTab.vue'
 import WebCaptureTab from '@renderer/components/webCapture/WebCaptureTab.vue'
 
@@ -83,12 +83,17 @@ const switchTab = (tab: TabId) => {
 }
 
 // Listen for tab switch IPC from main process
+let cleanupSwitchTab: (() => void) | undefined
 onMounted(() => {
-  window.electronAPI.addons?.onSwitchTab?.((tab: string) => {
+  cleanupSwitchTab = window.electronAPI.addons?.onSwitchTab?.((tab: string) => {
     if (tab === 'yuketang' || tab === 'webcapture') {
       activeTab.value = tab as TabId
     }
   })
+})
+
+onUnmounted(() => {
+  cleanupSwitchTab?.()
 })
 
 // Window controls

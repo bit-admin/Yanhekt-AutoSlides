@@ -25,6 +25,13 @@ export class ProxyAuth {
 
   private signatureInterval: NodeJS.Timeout | null = null;
 
+  /**
+   * In-flight token fetch shared by concurrent callers. Without this, two
+   * proxy requests that both miss the cache would each call getVideoToken,
+   * issuing redundant API requests for the same token.
+   */
+  private tokenFetchInFlight: Promise<string> | null = null;
+
   constructor(private apiClient: ApiClient) {}
 
   setLoginToken(token: string): void {
@@ -52,15 +59,28 @@ export class ProxyAuth {
    * Get fresh token (similar to m3u8DownloadService) - ALWAYS refresh
    */
   private async getToken(): Promise<string> {
-    try {
-      // ALWAYS get fresh token (like m3u8DownloadService does)
-      console.log('Getting fresh video token...');
-      this.tokenCache.videoToken = await this.apiClient.getVideoToken(this.loginToken!);
-      return this.tokenCache.videoToken!;
-    } catch (error) {
-      console.error("Error getting fresh token:", error);
-      throw new Error("Failed to get video token");
+    // Coalesce concurrent fetches so simultaneous cache-miss requests share a
+    // single getVideoToken call instead of each hitting the API.
+    if (this.tokenFetchInFlight) {
+      return this.tokenFetchInFlight;
     }
+
+    this.tokenFetchInFlight = (async () => {
+      try {
+        // ALWAYS get fresh token (like m3u8DownloadService does)
+        console.log('Getting fresh video token...');
+        const token = await this.apiClient.getVideoToken(this.loginToken!);
+        this.tokenCache.videoToken = token;
+        return token;
+      } catch (error) {
+        console.error("Error getting fresh token:", error);
+        throw new Error("Failed to get video token");
+      } finally {
+        this.tokenFetchInFlight = null;
+      }
+    })();
+
+    return this.tokenFetchInFlight;
   }
 
   /**

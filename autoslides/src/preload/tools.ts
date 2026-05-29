@@ -3,14 +3,18 @@ import { ipcRenderer } from 'electron';
 export const tools = {
   openWindow: (tab?: string) => ipcRenderer.invoke('tools:openWindow', tab),
   onSwitchTab: (callback: (tab: string) => void) => {
-    ipcRenderer.on('tools:switchTab', (_event, tab) => callback(tab));
+    const handler = (_event: unknown, tab: string) => callback(tab);
+    ipcRenderer.on('tools:switchTab', handler);
+    return () => ipcRenderer.removeListener('tools:switchTab', handler);
   },
 };
 
 export const addons = {
   openWindow: (tab?: string) => ipcRenderer.invoke('addons:openWindow', tab),
   onSwitchTab: (callback: (tab: string) => void) => {
-    ipcRenderer.on('addons:switchTab', (_event, tab) => callback(tab));
+    const handler = (_event: unknown, tab: string) => callback(tab);
+    ipcRenderer.on('addons:switchTab', handler);
+    return () => ipcRenderer.removeListener('addons:switchTab', handler);
   },
 };
 

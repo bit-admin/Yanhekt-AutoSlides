@@ -94,7 +94,7 @@ export class ConfigService {
       languageMode: this.store.get('languageMode'),
       preventSystemSleep: this.store.get('preventSystemSleep'),
       slideExtraction: this.store.get('slideExtraction'),
-      aiFiltering: this.store.get('aiFiltering') || defaultAIFilteringConfig,
+      aiFiltering: this.store.get('aiFiltering') ?? defaultAIFilteringConfig,
       qtExtractor: this.getQtExtractorConfig(),
       skipUpdateCheckUntil: this.store.get('skipUpdateCheckUntil') ?? 0,
       userOriginalNickname: this.store.get('userOriginalNickname') ?? '',
