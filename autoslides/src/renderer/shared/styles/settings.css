@@ -481,6 +481,17 @@
     color: #b0b0b0;
   }
 
+  .concurrent-select {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .concurrent-select:focus {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
   .model-row {
     border-color: #404040;
     background: #252525;
