@@ -108,8 +108,6 @@ export interface UseVideoPlayerReturn {
   createSerializableCopy: (obj: any) => any
 
   // Event handlers
-  onLoadStart: () => void
-  onLoadedMetadata: () => void
   onVideoError: (event: Event) => Promise<void>
   onCanPlay: () => void
   onEnded: () => Promise<void>
@@ -666,14 +664,6 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   }
 
   // Event handlers
-  const onLoadStart = () => {
-    // Video load started
-  }
-
-  const onLoadedMetadata = () => {
-    // Video metadata loaded
-  }
-
   const onVideoError = async (event: Event) => {
     const target = event.target as HTMLVideoElement
     const errorCode = target.error?.code
@@ -921,8 +911,6 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     createSerializableCopy,
 
     // Event handlers
-    onLoadStart,
-    onLoadedMetadata,
     onVideoError,
     onCanPlay,
     onEnded,

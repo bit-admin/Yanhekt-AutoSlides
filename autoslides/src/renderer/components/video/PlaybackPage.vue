@@ -173,8 +173,6 @@
             controls
             controlslist="noplaybackrate"
             preload="metadata"
-            @loadstart="onLoadStart"
-            @loadedmetadata="onLoadedMetadata"
             @error="onVideoError"
             @canplay="onCanPlay"
             @ended="onEnded"
@@ -699,8 +697,6 @@ const {
   switchStream,
   changePlaybackRate,
   retryLoad,
-  onLoadStart,
-  onLoadedMetadata,
   onVideoError,
   onCanPlay,
   onEnded,

@@ -893,10 +893,6 @@ async function handleClearSelectedFolders() {
   })
 }
 
-const formatImageName = (name: string): string => {
-  return name.replace(/\.png$/i, '')
-}
-
 const getReasonLabel = (reason: ResultsReason) => {
   switch (reason) {
     case 'duplicate':
