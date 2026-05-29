@@ -1,48 +1,44 @@
 <template>
-  <div class="left-panel">
-    <div class="login-section">
-      <div v-if="isVerifyingToken" class="verifying-state">
-        <h3>{{ $t('auth.verifying') }}</h3>
-        <p>{{ $t('auth.verifyingMessage') }}</p>
-        <div class="loading-spinner"></div>
+  <div class="flex h-full flex-col">
+    <!-- 'login-section' retained as a Driver.js tour hook -->
+    <div class="login-section border-b border-line bg-elevated p-4">
+      <div v-if="isVerifyingToken" class="flex min-h-[140px] flex-col justify-center py-5 text-center">
+        <h3 class="m-0 mb-2 text-base font-semibold text-fg">{{ $t('auth.verifying') }}</h3>
+        <p class="m-0 mb-3 text-xs text-fg-secondary">{{ $t('auth.verifyingMessage') }}</p>
+        <div class="mx-auto h-5 w-5 animate-spin rounded-full border-2 border-[#f3f3f3] border-t-accent dark:border-[#404040]"></div>
       </div>
-      <div v-else-if="!isLoggedIn" class="login-form">
-        <h3>{{ $t('auth.signIn') }}</h3>
-        <p>{{ $t('auth.signInMessage') }}</p>
-        <div class="input-group">
-          <input
-            v-model="username"
-            type="text"
-            :placeholder="$t('auth.username')"
-            class="input-field"
-          />
-          <input
-            v-model="password"
-            type="password"
-            :placeholder="$t('auth.password')"
-            class="input-field"
-          />
+      <div v-else-if="!isLoggedIn" class="flex min-h-[140px] flex-col justify-between">
+        <h3 class="m-0 mb-2 text-base font-semibold text-fg">{{ $t('auth.signIn') }}</h3>
+        <p class="m-0 mb-3 text-xs text-fg-secondary">{{ $t('auth.signInMessage') }}</p>
+        <div class="mb-3 flex flex-col gap-2">
+          <input v-model="username" type="text" :placeholder="$t('auth.username')" :class="loginInput" />
+          <input v-model="password" type="password" :placeholder="$t('auth.password')" :class="loginInput" />
         </div>
-        <div class="login-buttons">
-          <button @click="login" :disabled="isLoading" class="login-btn">
+        <div class="flex w-full flex-row gap-2">
+          <button @click="login" :disabled="isLoading" class="flex-1 cursor-pointer rounded border-none bg-accent px-3 py-2 text-[13px] text-white transition-colors enabled:hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-[#ccc] dark:bg-[#2563eb] dark:enabled:hover:bg-[#1d4ed8] dark:disabled:bg-[#555]">
             {{ isLoading ? $t('auth.signingIn') : $t('auth.signIn') }}
           </button>
-          <button @click="openBrowserLogin" class="browser-login-btn">
+          <button @click="openBrowserLogin" class="flex-1 cursor-pointer whitespace-nowrap rounded border border-accent bg-transparent px-3 py-2 text-[13px] text-accent transition-colors hover:bg-accent hover:text-white">
             {{ $t('auth.signInWithBrowser') }}
           </button>
         </div>
       </div>
-      <div v-else ref="userInfoRef" class="user-info">
-        <button type="button" class="user-banner" :class="{ open: showUserMenu }" @click="toggleUserMenu">
-          <span class="user-avatar">{{ userInitial }}</span>
-          <span class="user-banner-name">{{
+      <div v-else ref="userInfoRef" class="relative min-h-9">
+        <button
+          type="button"
+          class="flex w-full cursor-pointer items-center gap-2 rounded-md border-none bg-transparent px-0.5 py-[3px] transition-colors hover:bg-[#eef1f4] dark:hover:bg-[#383838]"
+          :class="{ '!gap-2.5 rounded-b-none rounded-t-lg !border !border-b-0 !border-[#d5d9de] !bg-white !px-2 !py-[5px] dark:!border-[#4a4a4a] dark:!bg-[#2d2d2d]': showUserMenu }"
+          @click="toggleUserMenu"
+        >
+          <span class="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[#2563eb] text-[11px] font-bold text-white dark:bg-[#3b82f6]">{{ userInitial }}</span>
+          <span class="min-w-0 flex-1 truncate text-left text-[13px] font-semibold text-[#1f2937] dark:text-[#e0e0e0]">{{
             showUserMenu && isChineseName
               ? `${displayNickname} (${userNickname})`
               : displayNickname
           }}</span>
           <svg
-            class="user-banner-chevron"
-            :class="{ open: showUserMenu }"
+            class="h-3.5 w-3.5 text-[#6b7280] transition-transform dark:text-[#a0a0a0]"
+            :class="{ 'rotate-180': showUserMenu }"
             width="16"
             height="16"
             viewBox="0 0 24 24"
@@ -57,18 +53,18 @@
           </svg>
         </button>
 
-        <div v-if="showUserMenu" class="user-menu">
-          <p class="user-menu-username">{{ $t('auth.signInAs', { userId }) }}</p>
-          <p class="user-menu-message">{{ $t('auth.accessMessage') }}</p>
-          <button class="logout-btn user-menu-signout" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
+        <div v-if="showUserMenu" class="absolute left-0 right-0 top-[calc(100%-1px)] z-20 rounded-b-lg border border-t-0 border-[#d5d9de] bg-white p-2 shadow-[0_6px_14px_rgba(15,23,42,0.08)] dark:border-[#4a4a4a] dark:bg-[#2d2d2d] dark:shadow-[0_6px_16px_rgba(0,0,0,0.35)]">
+          <p class="m-0 text-xs font-semibold text-[#1f2937] dark:text-[#e0e0e0]">{{ $t('auth.signInAs', { userId }) }}</p>
+          <p class="mb-2 mt-1 text-xs leading-[1.35] text-[#6b7280] dark:text-[#b0b0b0]">{{ $t('auth.accessMessage') }}</p>
+          <button class="w-full cursor-pointer rounded-md border border-[#dc3545] bg-transparent px-2.5 py-1.5 text-center text-xs font-medium text-[#dc3545] transition-colors hover:bg-[#dc3545] hover:text-white dark:border-[#ff6b6b] dark:text-[#ff6b6b] dark:hover:bg-[#ff6b6b] dark:hover:text-white" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
         </div>
       </div>
     </div>
 
-    <div class="control-section">
-      <div class="control-header">
-        <h3>{{ $t('settings.settings') }}</h3>
-        <button @click="openAdvancedSettings" class="advanced-btn">
+    <div class="flex-1 overflow-y-auto p-4">
+      <div class="mb-4 flex items-center justify-between">
+        <h3 class="m-0 text-base font-semibold text-fg">{{ $t('settings.settings') }}</h3>
+        <button @click="openAdvancedSettings" class="flex items-center gap-1 rounded border border-line bg-elevated px-3 py-1.5 text-xs text-fg cursor-pointer transition-colors hover:bg-hover">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -76,7 +72,7 @@
           {{ $t('settings.advancedSettings') }}
         </button>
       </div>
-      <div class="settings-content">
+      <div>
         <div class="setting-item">
           <div class="setting-label-with-reset">
             <label class="setting-label">{{ $t('settings.outputDirectory') }}</label>
@@ -86,21 +82,21 @@
               </svg>
             </button>
           </div>
-          <div class="directory-input-group">
+          <div class="flex gap-2">
             <input
               v-model="outputDirectory"
               type="text"
               readonly
-              class="directory-input"
+              class="min-w-0 flex-1 truncate rounded border border-line-input bg-elevated px-2 py-1.5 text-xs text-fg-secondary"
               :title="outputDirectory"
             />
-            <button @click="selectOutputDirectory" class="browse-btn">{{ $t('settings.browse') }}</button>
+            <button @click="selectOutputDirectory" class="cursor-pointer rounded border-none bg-accent px-3 py-1.5 text-xs text-white transition-colors hover:bg-accent-hover dark:bg-[#2563eb] dark:hover:bg-[#1d4ed8]">{{ $t('settings.browse') }}</button>
           </div>
         </div>
 
         <div class="setting-item">
           <label class="setting-label">{{ $t('settings.connectionMode') }}</label>
-          <div class="mode-toggle">
+          <div class="flex gap-1">
             <button
               @click="setConnectionMode('internal')"
               :class="['mode-btn', { active: connectionMode === 'internal' }]"
@@ -118,8 +114,8 @@
 
         <div class="setting-item">
           <label class="setting-label">{{ $t('settings.audioMode') }}</label>
-          <div class="audio-mode-selector">
-            <select v-model="muteMode" @change="setMuteMode" class="audio-mode-select">
+          <div class="w-full">
+            <select v-model="muteMode" @change="setMuteMode" class="select cursor-pointer">
               <option value="normal">{{ $t('settings.normal') }}</option>
               <option value="mute_all">{{ $t('settings.muteAll') }}</option>
               <option value="mute_live">{{ $t('settings.muteLive') }}</option>
@@ -171,24 +167,25 @@
             </button>
           </div>
           <div class="setting-description">{{ $t('settings.slideStabilityDescription') }}</div>
-          <div class="verification-unified-control">
-            <label class="checkbox-label">
+          <div class="flex h-[35px] items-stretch overflow-hidden rounded-md border border-line bg-elevated transition-colors hover:border-accent hover:bg-hover">
+            <label class="checkbox-label flex-1 px-3 py-2">
               <input
                 type="checkbox"
+                class="h-4 w-4 accent-accent"
                 v-model="slideDoubleVerification"
                 @change="setSlideDoubleVerification"
               />
               {{ $t('settings.enableChecks') }}
             </label>
-            <div class="verification-count-control" v-if="slideDoubleVerification">
+            <div class="flex items-center gap-1.5 border-l border-line bg-white/70 px-3 py-2 dark:bg-[rgba(45,45,45,0.7)]" v-if="slideDoubleVerification">
               <select
                 v-model="slideVerificationCount"
                 @change="setSlideDoubleVerification"
-                class="verification-count-select"
+                class="min-w-[50px] cursor-pointer rounded border border-line-input bg-field px-1.5 py-1 text-[11px] text-fg focus:border-accent focus:outline-none"
               >
                 <option v-for="i in 5" :key="i" :value="i">{{ i }}</option>
               </select>
-              <span class="count-label">{{ $t('settings.counts') }}</span>
+              <span class="whitespace-nowrap text-[11px] text-fg-secondary">{{ $t('settings.counts') }}</span>
             </div>
           </div>
         </div>
@@ -196,8 +193,8 @@
         <div class="setting-item">
           <label class="setting-label">{{ $t('settings.taskSpeed') }}</label>
           <div class="setting-description">{{ $t('settings.taskSpeedDescription') }}</div>
-          <div class="task-speed-selector">
-            <select v-model="taskSpeed" @change="setTaskSpeed" class="task-speed-select">
+          <div class="w-full">
+            <select v-model="taskSpeed" @change="setTaskSpeed" class="select cursor-pointer">
               <option :value="1">1x</option>
               <option :value="2">2x</option>
               <option :value="3">3x</option>
@@ -243,41 +240,40 @@
       </div>
     </div>
 
-    <div class="status-section">
-      <!-- Action Buttons Row -->
+    <div class="border-t border-line bg-elevated p-4">
       <!-- Tools Launcher -->
-      <div class="tools-dropdown">
-        <button class="tools-trigger" @click="openToolsWindow()">
-          <svg width="14" height="14" viewBox="0 0 16 16">
+      <div class="mb-2.5">
+        <button :class="toolsTrigger" @click="openToolsWindow()">
+          <svg class="shrink-0 opacity-70" width="14" height="14" viewBox="0 0 16 16">
             <path d="M1 3h4v4H1V3zm5 0h4v4H6V3zm5 0h4v4h-4V3zM1 9h4v4H1V9zm5 0h4v4H6V9zm5 0h4v4h-4V9z" fill="currentColor"/>
           </svg>
           <span>{{ $t('tools.openTools') }}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" class="tools-chevron">
+          <svg width="10" height="10" viewBox="0 0 10 10" class="ml-auto opacity-45">
             <path d="M3 2l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
         </button>
       </div>
 
       <!-- Add-ons Launcher -->
-      <div class="tools-dropdown addons-dropdown">
-        <button class="tools-trigger" @click="openAddonsWindow()">
-          <svg width="14" height="14" viewBox="0 0 16 16">
+      <div class="mb-2.5">
+        <button :class="toolsTrigger" @click="openAddonsWindow()">
+          <svg class="shrink-0 opacity-70" width="14" height="14" viewBox="0 0 16 16">
             <path d="M8 1L1 5v6l7 4 7-4V5L8 1zm0 2l4.5 2.5L8 8 3.5 5.5 8 3zM2.5 6.3L7.5 9v4.2l-5-2.8V6.3zm11 0v4.1l-5 2.8V9l5-2.7z" fill="currentColor"/>
           </svg>
           <span>{{ $t('addons.openAddons') }}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" class="tools-chevron">
+          <svg width="10" height="10" viewBox="0 0 10 10" class="ml-auto opacity-45">
             <path d="M3 2l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
         </button>
       </div>
 
       <div class="status-row">
-        <span class="status-label">{{ $t('status.taskStatus') }}</span>
-        <span class="status-value">{{ taskStatus }}</span>
+        <span class="font-medium text-fg">{{ $t('status.taskStatus') }}</span>
+        <span class="text-fg-secondary">{{ taskStatus }}</span>
       </div>
       <div class="status-row">
-        <span class="status-label">{{ $t('status.downloadQueue') }}</span>
-        <span class="status-value">{{ downloadQueueStatus }}</span>
+        <span class="font-medium text-fg">{{ $t('status.downloadQueue') }}</span>
+        <span class="text-fg-secondary">{{ downloadQueueStatus }}</span>
       </div>
     </div>
 
@@ -311,24 +307,24 @@
     </AdvancedSettingsModal>
 
     <!-- Custom Name Input Dialog -->
-    <div v-if="showNameInputModal" class="modal-overlay" @click="cancelNameInput">
-      <div class="modal-content name-input-modal" @click.stop>
-        <div class="modal-header">
-          <h3>{{ $t('advanced.enterExclusionName') }}</h3>
-          <button @click="cancelNameInput" class="close-btn">
+    <div v-if="showNameInputModal" class="fixed inset-0 z-modal flex items-center justify-center bg-black/50" @click="cancelNameInput">
+      <div class="flex max-h-[80vh] w-[400px] max-w-[90vw] flex-col overflow-hidden rounded-lg bg-modal" @click.stop>
+        <div class="flex items-center justify-between border-b border-line p-4">
+          <h3 class="m-0 text-base font-semibold text-fg">{{ $t('advanced.enterExclusionName') }}</h3>
+          <button @click="cancelNameInput" class="btn-icon">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
         </div>
-        <div class="modal-body">
-          <div class="name-input-content">
+        <div class="flex flex-1 flex-col overflow-hidden text-fg">
+          <div class="p-4">
             <label class="setting-label">{{ $t('advanced.exclusionItemName') }}</label>
             <input
               v-model="nameInputValue"
               type="text"
-              class="name-input-field"
+              class="mt-2 w-full rounded border border-line-input bg-field px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none"
               :placeholder="$t('advanced.enterNamePlaceholder')"
               @keyup.enter="confirmNameInput"
               @keyup.escape="cancelNameInput"
@@ -336,9 +332,9 @@
             />
           </div>
         </div>
-        <div class="modal-actions">
-          <button @click="cancelNameInput" class="cancel-btn">{{ $t('advanced.cancel') }}</button>
-          <button @click="confirmNameInput" :disabled="!nameInputValue.trim()" class="save-btn">{{ $t('advanced.confirm') }}</button>
+        <div class="flex flex-shrink-0 justify-end gap-2 border-t border-line bg-elevated p-4">
+          <button @click="cancelNameInput" :class="lpCancelBtn">{{ $t('advanced.cancel') }}</button>
+          <button @click="confirmNameInput" :disabled="!nameInputValue.trim()" :class="lpSaveBtn">{{ $t('advanced.confirm') }}</button>
         </div>
       </div>
     </div>
@@ -353,6 +349,11 @@
 </template>
 
 <script setup lang="ts">
+// ---- Tailwind class-string constants (LeftPanel widgets) ----
+const loginInput = 'rounded border border-line-input bg-field px-3 py-2 text-sm text-fg focus:border-accent focus:outline-none'
+const toolsTrigger = 'flex w-full cursor-pointer items-center gap-1 rounded border border-line-input bg-modal px-2 py-1.5 text-[11px] font-medium text-fg transition-colors hover:border-[#ccc] hover:bg-[#f0f0f0] dark:bg-[#333] dark:hover:border-[#666] dark:hover:bg-[#404040]'
+const lpCancelBtn = 'rounded border border-line bg-elevated px-4 py-2 text-xs text-fg-secondary cursor-pointer transition-colors hover:border-line-strong hover:bg-hover'
+const lpSaveBtn = 'rounded border border-accent bg-accent px-4 py-2 text-xs text-white cursor-pointer transition-colors hover:border-accent-hover hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50'
 import { onMounted, onUnmounted, provide, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePinyinName } from '@features/platform/usePinyinName'
@@ -588,1418 +589,3 @@ defineExpose({
 })
 </script>
 
-<style scoped>
-.left-panel {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 0;
-}
-
-.login-section {
-  padding: 16px;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
-}
-
-.login-form {
-  min-height: 140px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.user-info {
-  position: relative;
-  min-height: 36px;
-}
-
-.login-form h3, .verifying-state h3 {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.login-form p, .verifying-state p {
-  margin: 0 0 12px 0;
-  font-size: 12px;
-  color: #666;
-}
-
-.user-banner {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: none;
-  border-radius: 6px;
-  padding: 3px 2px;
-  background-color: transparent;
-  cursor: pointer;
-  transition: background-color 0.18s ease;
-}
-
-.user-banner:hover {
-  background-color: #eef1f4;
-}
-
-.user-banner.open {
-  gap: 10px;
-  padding: 5px 8px;
-  border: 1px solid #d5d9de;
-  border-bottom: none;
-  border-radius: 8px 8px 0 0;
-  background-color: #ffffff;
-}
-
-.user-banner.open:hover {
-  background-color: #ffffff;
-}
-
-.user-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background-color: #2563eb;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.user-banner-name {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-  font-size: 13px;
-  font-weight: 600;
-  color: #1f2937;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.user-banner-chevron {
-  width: 14px;
-  height: 14px;
-  color: #6b7280;
-  transition: transform 0.2s ease;
-}
-
-.user-banner-chevron.open {
-  transform: rotate(180deg);
-}
-
-.user-menu {
-  position: absolute;
-  top: calc(100% - 1px);
-  left: 0;
-  right: 0;
-  z-index: 20;
-  border: 1px solid #d5d9de;
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  background-color: #ffffff;
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
-  padding: 8px;
-}
-
-.user-menu-username {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.user-menu-message {
-  margin: 4px 0 8px 0;
-  font-size: 12px;
-  color: #6b7280;
-  line-height: 1.35;
-}
-
-.verifying-state {
-  text-align: center;
-  padding: 20px 0;
-  min-height: 140px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.loading-spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #007acc;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.input-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.input-field {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.logout-btn {
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
-}
-
-.login-btn {
-  background-color: #007acc;
-  color: white;
-}
-
-.login-btn:hover:not(:disabled) {
-  background-color: #005a9e;
-}
-
-.login-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.login-buttons {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  width: 100%;
-}
-
-.login-btn {
-  flex: 1;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 4px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.browser-login-btn {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #007acc;
-  border-radius: 4px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: transparent;
-  color: #007acc;
-  white-space: nowrap;
-}
-
-.browser-login-btn:hover {
-  background-color: #007acc;
-  color: white;
-}
-
-.logout-btn {
-  width: auto;
-  background-color: transparent;
-  color: #dc3545;
-  border: 1px solid #dc3545;
-  padding: 6px 10px;
-  align-self: flex-start;
-  margin: 0;
-}
-
-.user-menu-signout {
-  width: 100%;
-  margin: 0;
-  text-align: center;
-}
-
-.logout-btn:hover {
-  background-color: #dc3545;
-  border-color: #dc3545;
-  color: white;
-}
-
-.control-section {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-}
-
-.control-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.control-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.advanced-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  color: #333;
-}
-
-.advanced-btn:hover {
-  background-color: #e9ecef;
-}
-
-.settings-content {
-  padding: 0;
-}
-
-.setting-item {
-  margin-bottom: 16px;
-}
-
-.setting-item:last-child {
-  margin-bottom: 0;
-  margin-top: 6px;
-}
-
-.setting-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 6px;
-}
-
-.setting-label-with-reset {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.setting-label-with-reset .reset-btn {
-  margin-bottom: 6px;
-}
-
-.reset-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 3px;
-  color: #666;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.7;
-}
-
-.reset-btn:hover {
-  background-color: #f0f0f0;
-  color: #333;
-  opacity: 1;
-}
-
-.reset-btn svg {
-  width: 12px;
-  height: 12px;
-}
-
-.directory-input-group {
-  display: flex;
-  gap: 8px;
-}
-
-.directory-input {
-  flex: 1;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: #f8f9fa;
-  color: #666;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.browse-btn {
-  padding: 6px 12px;
-  background-color: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.browse-btn:hover {
-  background-color: #0056b3;
-}
-
-.mode-toggle {
-  display: flex;
-  gap: 4px;
-}
-
-.mode-btn {
-  flex: 1;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  background-color: #f8f9fa;
-  color: #666;
-  font-size: 11px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.mode-btn:hover {
-  background-color: #e9ecef;
-}
-
-.mode-btn.active {
-  background-color: var(--accent);
-  color: white;
-  border-color: var(--accent);
-}
-
-.audio-mode-selector {
-  width: 100%;
-}
-
-.audio-mode-select {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 12px;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.audio-mode-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-}
-
-.two-col-item .setting-label {
-  margin-bottom: 6px;
-}
-
-/* Slide extraction settings styles */
-
-.verification-unified-control {
-  display: flex;
-  align-items: stretch;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  overflow: hidden;
-  transition: all 0.2s ease;
-  height: 35px;
-}
-
-.verification-unified-control:hover {
-  background-color: #e9ecef;
-  border-color: var(--accent);
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #333;
-  cursor: pointer;
-  padding: 8px 12px;
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  transition: none;
-  user-select: none;
-  flex: 1;
-}
-
-.checkbox-label input[type="checkbox"] {
-  margin: 0;
-  cursor: pointer;
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-}
-
-.verification-count-control {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background-color: rgba(255, 255, 255, 0.7);
-  border-left: 1px solid #ddd;
-}
-
-.count-label {
-  font-size: 11px;
-  color: #666;
-  white-space: nowrap;
-}
-
-.verification-count-select {
-  padding: 4px 6px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 11px;
-  cursor: pointer;
-  transition: border-color 0.2s;
-  min-width: 50px;
-}
-
-.verification-count-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-}
-
-.task-speed-selector {
-  width: 100%;
-}
-
-.task-speed-select {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 12px;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.task-speed-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-}
-
-/* Auto post-processing control styles */
-/* Post-processing phases list styles */
-
-.status-section {
-  padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
-}
-
-.status-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  font-size: 12px;
-}
-
-.status-row:last-child {
-  margin-bottom: 0;
-}
-
-.status-label {
-  font-weight: 500;
-  color: #333;
-}
-
-.status-value {
-  color: #666;
-}
-
-.status-value.internal {
-  color: #28a745;
-}
-
-.status-value.external {
-  color: #ffc107;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background-color: white;
-  border-radius: 8px;
-  width: 600px;
-  max-width: 90vw;
-  max-height: 80vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.close-btn:hover {
-  background-color: #f8f9fa;
-}
-
-.modal-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  color: #333;
-}
-
-.advanced-setting-section .setting-item {
-  margin-bottom: 20px;
-}
-
-.advanced-setting-section .setting-item:last-child {
-  margin-bottom: 0;
-}
-
-.auto-crop-grid .setting-item {
-  margin-bottom: 16px;
-}
-
-.auto-crop-grid .setting-item:last-child {
-  margin-top: 0;
-}
-
-.auto-crop-grid .setting-item.full-width {
-  grid-column: 1 / -1;
-}
-
-.auto-crop-grid .setting-item .slide-interval-input-wrapper {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.setting-description {
-  font-size: 11px;
-  color: #666;
-  margin-bottom: 8px;
-  line-height: 1.3;
-}
-
-.setting-description .json-example {
-  font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
-  font-size: 10px;
-  background-color: rgba(0, 0, 0, 0.06);
-  padding: 2px 5px;
-  border-radius: 3px;
-  color: #333;
-  white-space: nowrap;
-}
-
-/* General setting description for main settings */
-.setting-item .setting-description {
-  margin-top: 2px;
-  margin-bottom: 6px;
-}
-
-/* Setting description after controls needs more top margin */
-.downsampling-controls + .setting-description {
-  margin-top: 8px;
-}
-
-/* pHash threshold input styles */
-
-/* Downsampling controls styles */
-
-/* Classroom Rules Styles */
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
-  flex-shrink: 0;
-}
-
-.cancel-btn, .save-btn {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cancel-btn {
-  background-color: #f8f9fa;
-  color: #666;
-}
-
-.cancel-btn:hover {
-  background-color: #e9ecef;
-  border-color: #adb5bd;
-}
-
-.save-btn {
-  background-color: #007acc;
-  color: white;
-  border-color: #007acc;
-}
-
-.save-btn:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
-}
-
-/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
-.control-section,
-.advanced-settings-content {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-.control-section:hover,
-.advanced-settings-content:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
-.control-section::-webkit-scrollbar,
-.advanced-settings-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.control-section::-webkit-scrollbar-track,
-.advanced-settings-content::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.control-section::-webkit-scrollbar-thumb,
-.advanced-settings-content::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  border: none;
-  transition: background 0.3s ease;
-}
-
-.control-section:hover::-webkit-scrollbar-thumb,
-.advanced-settings-content:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.control-section::-webkit-scrollbar-thumb:hover,
-.advanced-settings-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3) !important;
-}
-
-/* Tools Flyout */
-.tools-dropdown {
-  margin-bottom: 10px;
-}
-
-.tools-trigger {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: #ffffff;
-  color: #333;
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.tools-trigger:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
-}
-
-.tools-trigger svg:first-child {
-  flex-shrink: 0;
-  opacity: 0.7;
-}
-
-.tools-chevron {
-  margin-left: auto;
-  opacity: 0.45;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .left-panel {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-
-  .login-section {
-    border-bottom-color: #404040;
-    background-color: #2d2d2d;
-  }
-
-  .login-form h3, .verifying-state h3 {
-    color: #e0e0e0;
-  }
-
-  .login-form p, .verifying-state p {
-    color: #b0b0b0;
-  }
-
-  .user-banner {
-    background-color: transparent;
-  }
-
-  .user-banner:hover {
-    background-color: #383838;
-  }
-
-  .user-banner.open {
-    border-color: #4a4a4a;
-    background-color: #2d2d2d;
-  }
-
-  .user-banner.open:hover {
-    background-color: #2d2d2d;
-  }
-
-  .user-avatar {
-    background-color: #3b82f6;
-  }
-
-  .user-banner-name {
-    color: #e0e0e0;
-  }
-
-  .user-banner-chevron {
-    color: #a0a0a0;
-  }
-
-  .user-menu {
-    background-color: #2d2d2d;
-    border-color: #4a4a4a;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-  }
-
-  .user-menu-username {
-    color: #e0e0e0;
-  }
-
-  .user-menu-message {
-    color: #b0b0b0;
-  }
-
-  .loading-spinner {
-    border-color: #404040;
-    border-top-color: #4a9eff;
-  }
-
-  .input-field {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .input-field::placeholder {
-    color: #888;
-  }
-
-  .login-btn {
-    background-color: #2563eb;
-  }
-
-  .login-btn:hover:not(:disabled) {
-    background-color: #1d4ed8;
-  }
-
-  .login-btn:disabled {
-    background-color: #555;
-  }
-
-  .browser-login-btn {
-    border-color: #4a9eff;
-    color: #4a9eff;
-  }
-
-  .browser-login-btn:hover {
-    background-color: #4a9eff;
-    color: white;
-  }
-
-  .logout-btn {
-    color: #ff6b6b;
-    border-color: #ff6b6b;
-  }
-
-  .logout-btn:hover {
-    background-color: #ff6b6b;
-    color: white;
-  }
-
-  .control-section {
-    background-color: #2d2d2d;
-  }
-
-  .control-header h3 {
-    color: #e0e0e0;
-  }
-
-  .advanced-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .advanced-btn:hover {
-    background-color: #3d3d3d;
-  }
-
-  .setting-label {
-    color: #e0e0e0;
-  }
-
-  .reset-btn {
-    color: #b0b0b0;
-  }
-
-  .reset-btn:hover {
-    background-color: #3d3d3d;
-    color: #e0e0e0;
-  }
-
-  .setting-description {
-    color: #b0b0b0;
-  }
-
-  .setting-description .json-example {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #e0e0e0;
-  }
-
-  .directory-input {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .browse-btn {
-    background-color: #2563eb;
-  }
-
-  .browse-btn:hover {
-    background-color: #1d4ed8;
-  }
-
-  .mode-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .mode-btn:hover {
-    background-color: #3d3d3d;
-  }
-
-  .mode-btn.active {
-    background-color: #2563eb;
-    color: white;
-    border-color: #2563eb;
-  }
-
-  .audio-mode-select, .task-speed-select, .verification-count-select, .concurrent-select, .ssim-select, .ssim-preset-select, .ssim-input, .phash-threshold-input {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .audio-mode-select:focus, .task-speed-select:focus, .verification-count-select:focus, .concurrent-select:focus, .ssim-select:focus, .ssim-preset-select:focus, .ssim-input:focus {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
-  }
-
-  /* pHash threshold input dark mode */
-  
-
-  
-
-  
-
-  
-
-  /* Downsampling controls dark mode */
-  
-
-  
-
-  
-
-  
-
-  
-
-  /* Classroom Rules Dark Theme */
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  .verification-unified-control {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .verification-unified-control:hover {
-    background-color: #3d3d3d;
-    border-color: #4a9eff;
-  }
-
-  .checkbox-label {
-    color: #e0e0e0;
-  }
-
-  .verification-count-control {
-    background-color: rgba(45, 45, 45, 0.7);
-    border-left-color: #404040;
-  }
-
-  .count-label {
-    color: #b0b0b0;
-  }
-
-  .status-section {
-    background-color: #2d2d2d;
-    border-top-color: #404040;
-  }
-
-  
-
-  
-
-  .status-label {
-    color: #e0e0e0;
-  }
-
-  .status-value {
-    color: #b0b0b0;
-  }
-
-  .status-value.internal {
-    color: #4caf50;
-  }
-
-  .status-value.external {
-    color: #ffc107;
-  }
-
-  .modal-overlay {
-    background-color: rgba(0, 0, 0, 0.7);
-  }
-
-  .modal-content {
-    background-color: #2d2d2d;
-  }
-
-  .modal-header {
-    border-bottom-color: #404040;
-  }
-
-  .modal-header h3 {
-    color: #e0e0e0;
-  }
-
-  .close-btn {
-    color: #e0e0e0;
-  }
-
-  .close-btn:hover {
-    background-color: #3d3d3d;
-  }
-
-  .modal-body {
-    color: #e0e0e0;
-  }
-
-  
-
-  
-
-  
-
-  .advanced-tabs .tab-btn.active {
-    color: #4a9eff;
-    border-bottom-color: #4a9eff;
-    background-color: #2d2d2d;
-  }
-
-  
-
-  
-
-  
-
-  
-
-  .modal-actions {
-    background-color: #2d2d2d;
-    border-top-color: #404040;
-  }
-
-  .cancel-btn {
-    background-color: #2d2d2d;
-    color: #b0b0b0;
-    border-color: #404040;
-  }
-
-  .cancel-btn:hover {
-    background-color: #3d3d3d;
-    border-color: #555;
-  }
-
-  .save-btn {
-    background-color: #4a9eff;
-    border-color: #4a9eff;
-  }
-
-  .save-btn:hover {
-    background-color: #3a8eef;
-    border-color: #3a8eef;
-  }
-
-  .control-section,
-  .advanced-settings-content {
-    scrollbar-color: transparent transparent;
-  }
-
-  .control-section:hover,
-  .advanced-settings-content:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .control-section::-webkit-scrollbar-track,
-  .advanced-settings-content::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .control-section::-webkit-scrollbar-thumb,
-  .advanced-settings-content::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .control-section:hover::-webkit-scrollbar-thumb,
-  .advanced-settings-content:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .control-section::-webkit-scrollbar-thumb:hover,
-  .advanced-settings-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-  }
-}
-
-/* Downsampling control styles - modified to accommodate presets */
-
-.downsampling-control .checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #333;
-  cursor: pointer;
-  padding: 8px 12px;
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  transition: none;
-  user-select: none;
-  height: 35px;
-}
-
-.downsampling-control .checkbox-label input[type="checkbox"] {
-  margin: 0;
-  cursor: pointer;
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-}
-
-/* Downsampling presets styles */
-
-@media (prefers-color-scheme: dark) {
-  /* Dark mode support for downsampling control */
-  
-
-  
-
-  .downsampling-control .checkbox-label {
-    color: #e0e0e0;
-  }
-
-  
-
-  /* Dark mode support for post-processing phases list */
-  
-
-  
-
-  
-}
-
-/* pHash exclusion list styles */
-
-/* Dark mode support for pHash exclusion list */
-
-/* Custom name input dialog styles */
-.name-input-modal {
-  width: 400px;
-  max-width: 90vw;
-}
-
-.name-input-content {
-  padding: 16px;
-}
-
-.name-input-field {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  background-color: white;
-  margin-top: 8px;
-}
-
-.name-input-field:focus {
-  outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
-}
-
-/* Dark mode support for name input dialog */
-@media (prefers-color-scheme: dark) {
-  .name-input-field {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .name-input-field:focus {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
-  }
-
-  .name-input-field::placeholder {
-    color: #888;
-  }
-}
-
-/* AI Settings Tab Styles */
-
-/* Copilot settings */
-
-/* Built-in model display styles */
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Dark mode support for AI settings */
-@media (prefers-color-scheme: dark) {
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  /* ModelScope Model Chain dark mode */
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  /* Copilot dark mode */
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  /* Tools Dropdown Dark Mode */
-  .tools-trigger {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .tools-trigger:hover {
-    background-color: #404040;
-    border-color: #666;
-  }
-
-}
-
-</style>
