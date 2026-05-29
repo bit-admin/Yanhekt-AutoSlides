@@ -587,7 +587,7 @@ onUnmounted(() => {
   cursor: pointer;
   width: 14px;
   height: 14px;
-  accent-color: #007bff;
+  accent-color: var(--accent);
 }
 
 .reduce-config-group {

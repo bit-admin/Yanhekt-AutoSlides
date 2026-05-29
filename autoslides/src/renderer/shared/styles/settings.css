@@ -150,7 +150,7 @@
 }
 
 .slide-interval-input-wrapper:focus-within {
-  border-color: #007bff;
+  border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
@@ -251,13 +251,13 @@
 
 .preset-btn:hover {
   background-color: #f8f9fa;
-  border-color: #007bff;
-  color: #007bff;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .preset-btn.active {
-  background-color: #007bff;
-  border-color: #007bff;
+  background-color: var(--accent);
+  border-color: var(--accent);
   color: white;
 }
 
@@ -273,7 +273,7 @@
 
 .auto-post-processing-control:hover {
   background-color: #e9ecef;
-  border-color: #007bff;
+  border-color: var(--accent);
 }
 
 .auto-post-processing-control .checkbox-label {
@@ -300,7 +300,7 @@
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: #007bff;
+  accent-color: var(--accent);
 }
 
 .prevent-sleep-control {
@@ -316,7 +316,7 @@
 
 .prevent-sleep-control:hover {
   background-color: #e9ecef;
-  border-color: #007bff;
+  border-color: var(--accent);
 }
 
 .prevent-sleep-control .checkbox-label {
@@ -340,7 +340,7 @@
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: #007bff;
+  accent-color: var(--accent);
 }
 
 .external-link {
@@ -370,9 +370,9 @@
 }
 
 .mode-btn.active {
-  background-color: #007bff;
+  background-color: var(--accent);
   color: white;
-  border-color: #007bff;
+  border-color: var(--accent);
 }
 
 .downsampling-controls {
@@ -396,7 +396,7 @@
 
 .downsampling-control:hover {
   background-color: #e9ecef;
-  border-color: #007bff;
+  border-color: var(--accent);
 }
 
 .downsampling-control .checkbox-label {
@@ -420,7 +420,7 @@
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: #007bff;
+  accent-color: var(--accent);
 }
 
 .downsampling-presets {

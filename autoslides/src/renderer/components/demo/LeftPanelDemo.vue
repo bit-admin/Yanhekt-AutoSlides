@@ -548,9 +548,9 @@ defineExpose({
 }
 
 .mode-btn.active {
-  background-color: #007bff;
+  background-color: var(--accent);
   color: white;
-  border-color: #007bff;
+  border-color: var(--accent);
 }
 
 .audio-mode-selector, .task-speed-selector {
@@ -640,7 +640,7 @@ defineExpose({
   cursor: not-allowed;
   width: 16px;
   height: 16px;
-  accent-color: #007bff;
+  accent-color: var(--accent);
 }
 
 .verification-count-control {
@@ -694,7 +694,7 @@ defineExpose({
   cursor: not-allowed;
   width: 16px;
   height: 16px;
-  accent-color: #007bff;
+  accent-color: var(--accent);
 }
 
 .status-section {

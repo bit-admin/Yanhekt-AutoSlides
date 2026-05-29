@@ -952,7 +952,7 @@ defineExpose({
 
 .browse-btn {
   padding: 6px 12px;
-  background-color: #007bff;
+  background-color: var(--accent);
   color: white;
   border: none;
   border-radius: 4px;
@@ -987,9 +987,9 @@ defineExpose({
 }
 
 .mode-btn.active {
-  background-color: #007bff;
+  background-color: var(--accent);
   color: white;
-  border-color: #007bff;
+  border-color: var(--accent);
 }
 
 .audio-mode-selector {
@@ -1009,7 +1009,7 @@ defineExpose({
 
 .audio-mode-select:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
@@ -1032,7 +1032,7 @@ defineExpose({
 
 .verification-unified-control:hover {
   background-color: #e9ecef;
-  border-color: #007bff;
+  border-color: var(--accent);
 }
 
 .checkbox-label {
@@ -1056,7 +1056,7 @@ defineExpose({
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: #007bff;
+  accent-color: var(--accent);
 }
 
 .verification-count-control {
@@ -1087,7 +1087,7 @@ defineExpose({
 
 .verification-count-select:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
@@ -1108,7 +1108,7 @@ defineExpose({
 
 .task-speed-select:focus {
   outline: none;
-  border-color: #007bff;
+  border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
@@ -1790,7 +1790,7 @@ defineExpose({
   cursor: pointer;
   width: 16px;
   height: 16px;
-  accent-color: #007bff;
+  accent-color: var(--accent);
 }
 
 /* Downsampling presets styles */

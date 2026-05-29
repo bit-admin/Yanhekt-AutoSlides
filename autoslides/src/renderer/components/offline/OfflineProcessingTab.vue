@@ -396,7 +396,7 @@ const autoCropOverallProgress = computed(() => {
   cursor: pointer;
   width: 14px;
   height: 14px;
-  accent-color: #007bff;
+  accent-color: var(--accent);
 }
 
 .toggle-item input[type="checkbox"]:disabled {

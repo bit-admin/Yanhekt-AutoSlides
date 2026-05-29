@@ -352,7 +352,7 @@ defineExpose({
   font-size: 28px;
   font-weight: 700;
   color: #2c3e50;
-  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #0056b3 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -386,9 +386,9 @@ defineExpose({
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border: 1px solid #007bff;
+  border: 1px solid var(--accent);
   border-radius: 4px;
-  background-color: #007bff;
+  background-color: var(--accent);
   color: white;
   font-size: 14px;
   cursor: pointer;

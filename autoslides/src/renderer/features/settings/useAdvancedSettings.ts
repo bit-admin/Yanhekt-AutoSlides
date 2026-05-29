@@ -80,6 +80,10 @@ export function useAdvancedSettings(
         if (shouldContinue()) {
           void extractor.qtExtractorVerify()
         }
+      }).catch((err) => {
+        // Isolate extractor load/verify failure so it does not reject the
+        // whole Promise.all and abort the other settings loads.
+        console.error('Failed to load extractor settings:', err)
       }),
       onOpenModal ? onOpenModal() : Promise.resolve()
     ])
