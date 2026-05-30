@@ -1353,7 +1353,7 @@ const confirmClearTrash = async () => {
   border-top: 1px solid rgba(255, 255, 255, 0.25);
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
-  z-index: 30;
+  z-index: var(--z-overlay);
   overflow: hidden;
 }
 
@@ -1701,23 +1701,23 @@ const confirmClearTrash = async () => {
 
 
 .reason-badge.reason-duplicate {
-  background-color: #fff2cc;
-  color: #8a5b00;
+  background-color: var(--reason-duplicate-bg);
+  color: var(--reason-duplicate-text);
 }
 
 .reason-badge.reason-exclusion {
-  background-color: #ede7ff;
-  color: #6546c2;
+  background-color: var(--reason-exclusion-bg);
+  color: var(--reason-exclusion-text);
 }
 
 .reason-badge.reason-ai_filtered {
-  background-color: #dff7ea;
-  color: #257550;
+  background-color: var(--reason-ai-bg);
+  color: var(--reason-ai-text);
 }
 
 .reason-badge.reason-ai_filtered_edit {
-  background-color: #fff3d6;
-  color: #955800;
+  background-color: var(--reason-ai-edit-bg);
+  color: var(--reason-ai-edit-text);
 }
 
 .reason-badge.reason-manual {
@@ -1835,7 +1835,7 @@ const confirmClearTrash = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .preview-modal {
@@ -1858,7 +1858,7 @@ const confirmClearTrash = async () => {
   position: absolute;
   top: 12px;
   right: 12px;
-  z-index: 1;
+  z-index: var(--z-base);
   width: 32px;
   height: 32px;
   border: none;
@@ -1941,7 +1941,7 @@ const confirmClearTrash = async () => {
   position: absolute;
   right: 14px;
   bottom: 14px;
-  z-index: 1;
+  z-index: var(--z-base);
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
