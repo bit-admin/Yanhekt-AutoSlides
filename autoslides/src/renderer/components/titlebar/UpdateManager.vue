@@ -1,10 +1,10 @@
 <template>
   <!-- Update Modal -->
-  <div v-if="showUpdateModal" class="modal-overlay" @click="closeUpdateModal">
-    <div class="modal-content update-modal" @click.stop>
-      <div class="modal-header">
-        <h3>{{ $t('titlebar.updateModal.title') }}</h3>
-        <button @click="closeUpdateModal" class="close-btn">
+  <div v-if="showUpdateModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]" @click="closeUpdateModal">
+    <div class="bg-surface rounded-lg w-[640px] max-w-[90vw] max-h-[85vh] overflow-hidden flex flex-col" @click.stop>
+      <div class="flex justify-between items-center p-4 border-b border-border">
+        <h3 class="m-0 text-base font-semibold text-text">{{ $t('titlebar.updateModal.title') }}</h3>
+        <button @click="closeUpdateModal" class="bg-transparent border-none cursor-pointer p-1 rounded text-text-secondary transition-colors hover:bg-elevated">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -12,42 +12,42 @@
         </button>
       </div>
 
-      <div class="modal-body">
+      <div class="flex-1 flex flex-col overflow-y-auto p-4 text-text">
         <!-- Version Info -->
-        <div class="version-header">
-          <div class="version-badge">v{{ releaseInfo?.latestVersion }}</div>
-          <div class="version-meta">
-            <span class="current-version">{{ $t('titlebar.updateModal.currentVersion') }}: v{{ releaseInfo?.currentVersion }}</span>
-            <span v-if="releaseInfo?.publishedAt" class="publish-date">{{ formatDate(releaseInfo.publishedAt) }}</span>
+        <div class="flex items-center gap-3 mb-4">
+          <div class="bg-accent text-white px-3 py-1.5 rounded-full text-sm font-semibold">v{{ releaseInfo?.latestVersion }}</div>
+          <div class="flex flex-col gap-px">
+            <span class="text-xs text-text-secondary">{{ $t('titlebar.updateModal.currentVersion') }}: v{{ releaseInfo?.currentVersion }}</span>
+            <span v-if="releaseInfo?.publishedAt" class="text-[11px] text-text-muted">{{ formatDate(releaseInfo.publishedAt) }}</span>
           </div>
         </div>
 
         <!-- Release Notes -->
-        <div class="release-notes-section">
-          <h4>{{ $t('titlebar.updateModal.releaseNotes') }}</h4>
-          <div class="release-notes-scroll" @click="handleReleaseNotesClick">
+        <div class="mb-4 flex-1 min-h-0 flex flex-col">
+          <h4 class="m-0 mb-2 text-[13px] font-semibold text-text shrink-0">{{ $t('titlebar.updateModal.releaseNotes') }}</h4>
+          <div class="flex-1 min-h-[120px] max-h-[300px] overflow-y-auto p-3 bg-elevated rounded-md text-[13px]" @click="handleReleaseNotesClick">
             <div class="markdown-body" v-html="releaseInfo?.releaseBody || $t('titlebar.updateModal.noReleaseNotes')"></div>
           </div>
         </div>
 
         <!-- Download Section -->
-        <div class="download-section">
+        <div class="shrink-0">
           <!-- Download Buttons -->
-          <div v-if="!isDownloading && !downloadedFile" class="download-assets">
-            <div v-for="asset in releaseInfo?.assets" :key="asset.name" class="asset-item">
-              <div class="asset-info">
-                <span class="asset-name">{{ asset.name }}</span>
-                <span class="asset-size">{{ asset.formattedSize }}</span>
+          <div v-if="!isDownloading && !downloadedFile" class="flex flex-col gap-2.5">
+            <div v-for="asset in releaseInfo?.assets" :key="asset.name" class="p-2.5 px-3 bg-elevated rounded-md">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs text-text font-medium overflow-hidden text-ellipsis whitespace-nowrap">{{ asset.name }}</span>
+                <span class="text-[11px] text-text-secondary shrink-0 ml-2">{{ asset.formattedSize }}</span>
               </div>
-              <div class="asset-actions">
-                <button class="download-btn" @click="startDownload(asset.url, asset.name)">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+              <div class="flex gap-2">
+                <button class="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 border-none rounded text-xs font-medium cursor-pointer transition-all bg-bg-surface text-white hover:bg-[#1a1e22]" @click="startDownload(asset.url, asset.name)">
+                  <svg class="shrink-0" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
                   </svg>
                   {{ $t('titlebar.updateModal.downloadFromGitHub') }}
                 </button>
-                <button class="download-btn secondary" @click="startDownload(asset.proxyUrl, asset.name)">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <button class="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 border-none rounded text-xs font-medium cursor-pointer transition-all bg-accent text-white hover:bg-accent-hover" @click="startDownload(asset.proxyUrl, asset.name)">
+                  <svg class="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="7,10 12,15 17,10"/>
                     <line x1="12" y1="15" x2="12" y2="3"/>
@@ -59,17 +59,17 @@
           </div>
 
           <!-- Download Progress -->
-          <div v-if="isDownloading" class="download-progress-section">
-            <div class="progress-header">
-              <span class="progress-label">{{ $t('titlebar.updateModal.downloading') }}</span>
-              <span class="progress-percent">{{ downloadProgress.percent }}%</span>
+          <div v-if="isDownloading" class="p-3 bg-elevated rounded-md">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs text-text font-medium">{{ $t('titlebar.updateModal.downloading') }}</span>
+              <span class="text-xs text-accent font-semibold">{{ downloadProgress.percent }}%</span>
             </div>
-            <div class="progress-bar">
-              <div class="progress-fill" :style="{ width: downloadProgress.percent + '%' }"></div>
+            <div class="w-full h-1 bg-hover rounded-sm overflow-hidden mb-2">
+              <div class="h-full bg-accent rounded-sm transition-[width] duration-300 ease-linear" :style="{ width: downloadProgress.percent + '%' }"></div>
             </div>
-            <div class="progress-footer">
-              <span class="progress-bytes">{{ formatBytes(downloadProgress.downloaded) }} / {{ formatBytes(downloadProgress.total) }}</span>
-              <button class="cancel-download-btn" @click="cancelDownload">
+            <div class="flex justify-between items-center">
+              <span class="text-[11px] text-text-secondary">{{ formatBytes(downloadProgress.downloaded) }} / {{ formatBytes(downloadProgress.total) }}</span>
+              <button class="flex items-center gap-1 py-1 px-2 bg-transparent border border-border-input rounded text-[11px] text-text-secondary cursor-pointer transition-all hover:bg-page hover:border-border" @click="cancelDownload">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="18" y1="6" x2="6" y2="18"/>
                   <line x1="6" y1="6" x2="18" y2="18"/>
@@ -80,21 +80,21 @@
           </div>
 
           <!-- Download Complete -->
-          <div v-if="downloadedFile && !isDownloading" class="download-complete-section">
-            <div class="complete-badge">
+          <div v-if="downloadedFile && !isDownloading" class="p-3 bg-success/10 border border-success/40 rounded-md">
+            <div class="flex items-center gap-1.5 mb-2.5 text-[13px] font-medium text-success">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20,6 9,17 4,12"/>
               </svg>
               <span>{{ $t('titlebar.updateModal.downloadComplete') }}</span>
             </div>
-            <div class="complete-actions">
-              <button class="action-btn" @click="openDownloadFolder">
+            <div class="flex gap-2">
+              <button class="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 border border-border-input bg-surface rounded text-xs cursor-pointer transition-all hover:bg-elevated hover:border-border" @click="openDownloadFolder">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 </svg>
                 {{ $t('titlebar.updateModal.openDownloadFolder') }}
               </button>
-              <button class="action-btn primary" @click="installUpdate">
+              <button class="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-3 border border-accent bg-accent text-white rounded text-xs cursor-pointer transition-all hover:bg-accent-hover hover:border-accent-hover" @click="installUpdate">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="7,10 12,15 17,10"/>
@@ -105,17 +105,17 @@
             </div>
 
             <!-- macOS Quarantine Notice -->
-            <div v-if="isMacOS" class="quarantine-notice">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <div v-if="isMacOS" class="flex gap-2.5 p-2.5 px-3 bg-warning/10 border border-warning/40 rounded-md mt-3">
+              <svg class="shrink-0 text-warning mt-px" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="12" y1="16" x2="12" y2="12"/>
                 <line x1="12" y1="8" x2="12.01" y2="8"/>
               </svg>
-              <div class="notice-text">
+              <div class="flex-1 text-[11px] text-warning leading-[1.4]">
                 <span>{{ $t('titlebar.updateModal.macQuarantineNotice') }}</span>
-                <div class="code-with-copy">
-                  <code>sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app</code>
-                  <button class="copy-btn" @click="copyQuarantineCommand" :title="$t('titlebar.copy')">
+                <div class="flex items-center gap-1.5 mt-1.5">
+                  <code class="flex-1 py-1.5 px-2 bg-surface/60 rounded text-[10px] font-mono text-warning break-all">sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app</code>
+                  <button class="shrink-0 p-1 bg-transparent border-none rounded cursor-pointer text-warning transition-all hover:bg-surface/50 active:scale-95" @click="copyQuarantineCommand" :title="$t('titlebar.copy')">
                     <svg v-if="!commandCopied" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -131,9 +131,9 @@
         </div>
       </div>
 
-      <div class="modal-actions">
-        <button v-if="isAutoCheck" class="cancel-btn" @click="skipFor7Days">{{ $t('titlebar.skipFor7Days') }}</button>
-        <button class="save-btn" @click="closeUpdateModal">
+      <div class="flex justify-end gap-2 p-4 border-t border-border bg-elevated shrink-0">
+        <button v-if="isAutoCheck" class="py-2 px-4 border border-border-input bg-elevated text-text-secondary rounded text-xs cursor-pointer transition-all hover:bg-hover hover:border-border-strong" @click="skipFor7Days">{{ $t('titlebar.skipFor7Days') }}</button>
+        <button class="py-2 px-4 border border-accent bg-accent text-white rounded text-xs cursor-pointer transition-all hover:bg-accent-hover hover:border-accent-hover" @click="closeUpdateModal">
           {{ isAutoCheck ? $t('titlebar.remindMeLater') : $t('titlebar.updateModal.close') }}
         </button>
       </div>
@@ -431,632 +431,3 @@ defineExpose({
   getCurrentVersion: () => releaseInfo.value?.currentVersion ?? ''
 })
 </script>
-
-<style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-.modal-content {
-  background-color: white;
-  border-radius: 8px;
-  width: 640px;
-  max-width: 90vw;
-  max-height: 85vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  color: #666;
-  transition: background-color 0.2s;
-}
-
-.close-btn:hover {
-  background-color: #f8f9fa;
-}
-
-.modal-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  padding: 16px;
-  color: #333;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
-  flex-shrink: 0;
-}
-
-.cancel-btn, .save-btn {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cancel-btn {
-  background-color: #f8f9fa;
-  color: #666;
-}
-
-.cancel-btn:hover {
-  background-color: #e9ecef;
-  border-color: #adb5bd;
-}
-
-.save-btn {
-  background-color: #007acc;
-  color: white;
-  border-color: #007acc;
-}
-
-.save-btn:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
-}
-
-.version-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.version-badge {
-  background: #007acc;
-  color: white;
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.version-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.current-version {
-  font-size: 12px;
-  color: #666;
-}
-
-.publish-date {
-  font-size: 11px;
-  color: #999;
-}
-
-.release-notes-section {
-  margin-bottom: 16px;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.release-notes-section h4 {
-  margin: 0 0 8px 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #333;
-  flex-shrink: 0;
-}
-
-.release-notes-scroll {
-  flex: 1;
-  min-height: 120px;
-  max-height: 300px;
-  overflow-y: auto;
-  padding: 12px;
-  background: #f6f8fa;
-  border-radius: 6px;
-  font-size: 13px;
-}
-
-.download-section {
-  flex-shrink: 0;
-}
-
-.download-assets {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.asset-item {
-  padding: 10px 12px;
-  background: #f6f8fa;
-  border-radius: 6px;
-}
-
-.asset-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.asset-name {
-  font-size: 12px;
-  color: #333;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.asset-size {
-  font-size: 11px;
-  color: #666;
-  flex-shrink: 0;
-  margin-left: 8px;
-}
-
-.asset-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.download-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #24292e;
-  color: white;
-}
-
-.download-btn:hover {
-  background: #1a1e22;
-}
-
-.download-btn.secondary {
-  background: #007acc;
-}
-
-.download-btn.secondary:hover {
-  background: #0068b3;
-}
-
-.download-btn svg {
-  flex-shrink: 0;
-}
-
-.download-progress-section {
-  padding: 12px;
-  background: #f6f8fa;
-  border-radius: 6px;
-}
-
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.progress-label {
-  font-size: 12px;
-  color: #333;
-  font-weight: 500;
-}
-
-.progress-percent {
-  font-size: 12px;
-  color: #007acc;
-  font-weight: 600;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 4px;
-  background-color: #e9ecef;
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: #007acc;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.progress-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.progress-bytes {
-  font-size: 11px;
-  color: #666;
-}
-
-.cancel-download-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: transparent;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 11px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cancel-download-btn:hover {
-  background: #f0f0f0;
-  border-color: #ccc;
-}
-
-.download-complete-section {
-  padding: 12px;
-  background: #f0fff4;
-  border: 1px solid #86efac;
-  border-radius: 6px;
-}
-
-.complete-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #16a34a;
-}
-
-.complete-badge svg {
-  color: #16a34a;
-}
-
-.complete-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  background: white;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.action-btn:hover {
-  background: #f6f8fa;
-  border-color: #ccc;
-}
-
-.action-btn.primary {
-  background: #007acc;
-  border-color: #007acc;
-  color: white;
-}
-
-.action-btn.primary:hover {
-  background: #0068b3;
-  border-color: #0068b3;
-}
-
-.quarantine-notice {
-  display: flex;
-  gap: 10px;
-  padding: 10px 12px;
-  background: #fef9e7;
-  border: 1px solid #fcd34d;
-  border-radius: 6px;
-  margin-top: 12px;
-}
-
-.quarantine-notice > svg {
-  color: #ca8a04;
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.notice-text {
-  flex: 1;
-  font-size: 11px;
-  color: #854d0e;
-  line-height: 1.4;
-}
-
-.code-with-copy {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.notice-text code {
-  flex: 1;
-  padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 4px;
-  font-size: 10px;
-  font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
-  color: #713f12;
-  word-break: break-all;
-}
-
-.copy-btn {
-  flex-shrink: 0;
-  padding: 4px;
-  background: transparent;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  color: #854d0e;
-  transition: all 0.2s;
-}
-
-.copy-btn:hover {
-  background: rgba(255, 255, 255, 0.5);
-  color: #713f12;
-}
-
-.copy-btn:active {
-  transform: scale(0.95);
-}
-
-@media (prefers-color-scheme: dark) {
-  .modal-overlay {
-    background-color: rgba(0, 0, 0, 0.7);
-  }
-
-  .modal-content {
-    background-color: #2d2d2d;
-  }
-
-  .modal-header {
-    border-bottom-color: #404040;
-  }
-
-  .modal-header h3 {
-    color: #e0e0e0;
-  }
-
-  .close-btn {
-    color: #e0e0e0;
-  }
-
-  .close-btn:hover {
-    background-color: #3d3d3d;
-  }
-
-  .modal-body {
-    color: #e0e0e0;
-  }
-
-  .modal-actions {
-    background-color: #2d2d2d;
-    border-top-color: #404040;
-  }
-
-  .cancel-btn {
-    background-color: #2d2d2d;
-    color: #b0b0b0;
-    border-color: #404040;
-  }
-
-  .cancel-btn:hover {
-    background-color: #3d3d3d;
-    border-color: #555;
-  }
-
-  .save-btn {
-    background-color: #4a9eff;
-    border-color: #4a9eff;
-  }
-
-  .save-btn:hover {
-    background-color: #3a8eef;
-    border-color: #3a8eef;
-  }
-
-  .version-badge {
-    background: #4a9eff;
-  }
-
-  .current-version {
-    color: #aaa;
-  }
-
-  .publish-date {
-    color: #888;
-  }
-
-  .release-notes-section h4 {
-    color: #e0e0e0;
-  }
-
-  .release-notes-scroll {
-    background: #1e1e1e;
-  }
-
-  .asset-item {
-    background: #1e1e1e;
-  }
-
-  .asset-name {
-    color: #e0e0e0;
-  }
-
-  .asset-size {
-    color: #aaa;
-  }
-
-  .download-btn {
-    background: #3d3d3d;
-  }
-
-  .download-btn:hover {
-    background: #4d4d4d;
-  }
-
-  .download-btn.secondary {
-    background: #4a9eff;
-  }
-
-  .download-btn.secondary:hover {
-    background: #3a8eef;
-  }
-
-  .download-progress-section {
-    background: #1e1e1e;
-  }
-
-  .progress-label {
-    color: #e0e0e0;
-  }
-
-  .progress-percent {
-    color: #4fc3f7;
-  }
-
-  .progress-bar {
-    background-color: #404040;
-  }
-
-  .progress-fill {
-    background-color: #4fc3f7;
-  }
-
-  .progress-bytes {
-    color: #aaa;
-  }
-
-  .cancel-download-btn {
-    border-color: #555;
-    color: #aaa;
-  }
-
-  .cancel-download-btn:hover {
-    background: #404040;
-    border-color: #666;
-  }
-
-  .download-complete-section {
-    background: #1a3a2a;
-    border-color: #2d8a56;
-  }
-
-  .complete-badge {
-    color: #4ade80;
-  }
-
-  .complete-badge svg {
-    color: #4ade80;
-  }
-
-  .action-btn {
-    background: #3d3d3d;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .action-btn:hover {
-    background: #4d4d4d;
-    border-color: #666;
-  }
-
-  .action-btn.primary {
-    background: #4a9eff;
-    border-color: #4a9eff;
-  }
-
-  .action-btn.primary:hover {
-    background: #3a8eef;
-    border-color: #3a8eef;
-  }
-
-  .quarantine-notice {
-    background: #3d2f0d;
-    border-color: #d97706;
-  }
-
-  .quarantine-notice > svg {
-    color: #fbbf24;
-  }
-
-  .notice-text {
-    color: #fcd34d;
-  }
-
-  .notice-text code {
-    background: rgba(0, 0, 0, 0.3);
-    color: #fde68a;
-  }
-
-  .copy-btn {
-    background: transparent;
-    color: #fcd34d;
-  }
-
-  .copy-btn:hover {
-    background: rgba(0, 0, 0, 0.3);
-    color: #fde68a;
-  }
-}
-</style>

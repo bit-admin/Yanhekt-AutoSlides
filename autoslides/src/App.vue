@@ -1,17 +1,17 @@
 <template>
-  <div class="app">
+  <div class="h-screen overflow-hidden font-sans">
     <!-- Custom Title Bar -->
     <TitleBar />
 
-    <div class="layout">
-      <div class="left-panel" :style="{ width: leftWidth + 'px' }">
+    <div class="flex h-[calc(100%-36px)] w-full bg-page overflow-hidden max-[768px]:h-[calc(100%-32px)]">
+      <div class="bg-surface border-r border-border shrink-0" :style="{ width: leftWidth + 'px' }">
         <LeftPanelDemo v-if="isDemoMode" ref="leftPanelDemoRef" />
         <LeftPanel v-else />
       </div>
-      <div class="divider left-divider" @mousedown="startResize('left', $event)"></div>
+      <div class="w-[5px] bg-border cursor-col-resize shrink-0 transition-colors hover:bg-accent active:bg-accent-strong" @mousedown="startResize('left', $event)"></div>
 
       <!-- Browser Login View (replaces MainContent and RightPanel) -->
-      <div v-if="isBrowserLoginActive" class="browser-login-container" :style="{ width: (mainWidth + rightWidth + 5) + 'px' }">
+      <div v-if="isBrowserLoginActive" class="flex-1 bg-surface flex flex-col overflow-hidden" :style="{ width: (mainWidth + rightWidth + 5) + 'px' }">
         <BrowserLoginView
           @close="closeBrowserLogin"
           @token-received="handleBrowserToken"
@@ -20,15 +20,15 @@
 
       <!-- Normal content when not in browser login mode -->
       <template v-else>
-        <div class="main-content" :style="{ width: mainWidth + 'px' }">
+        <div class="bg-surface shrink-0" :style="{ width: mainWidth + 'px' }">
           <PlaybackPageDemo v-if="isDemoMode && showPlaybackDemo" ref="playbackPageDemoRef" @back="handleBackFromPlayback" />
           <SessionPageDemo v-else-if="isDemoMode && showSessionDemo" ref="sessionPageDemoRef" @back-to-courses="handleBackToCourses" />
           <MainContentDemo v-else-if="isDemoMode && showMainDemo" ref="mainContentDemoRef" @course-selected="handleCourseSelectedFromMain" />
           <MainContent v-else @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
         </div>
-        <div class="divider right-divider" @mousedown="startResize('right', $event)"></div>
+        <div class="w-[5px] bg-border cursor-col-resize shrink-0 transition-colors hover:bg-accent active:bg-accent-strong" @mousedown="startResize('right', $event)"></div>
 
-        <div class="right-panel" :style="{ width: rightWidth + 'px' }">
+        <div class="bg-surface border-l border-border shrink-0" :style="{ width: rightWidth + 'px' }">
           <RightPanelDemo v-if="isDemoMode && showRightPanelDemo" ref="rightPanelDemoRef" />
           <RightPanel v-else ref="rightPanelRef" />
         </div>
@@ -329,109 +329,3 @@ onMounted(() => {
   })
 })
 </script>
-
-<style scoped>
-.app {
-  height: 100vh;
-  overflow: hidden;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.layout {
-  display: flex;
-  height: calc(100% - 36px); /* Subtract titlebar height */
-  width: 100%;
-  background-color: #f5f5f5;
-  overflow: hidden;
-}
-
-/* Adjust for macOS titlebar height */
-@media screen and (-webkit-min-device-pixel-ratio: 1) {
-  .layout {
-    height: calc(100% - 32px); /* macOS titlebar is slightly shorter */
-  }
-}
-
-.left-panel {
-  background-color: #ffffff;
-  border-right: 1px solid #e0e0e0;
-  flex-shrink: 0;
-}
-
-.main-content {
-  background-color: #ffffff;
-  flex-shrink: 0;
-}
-
-.right-panel {
-  background-color: #ffffff;
-  border-left: 1px solid #e0e0e0;
-  flex-shrink: 0;
-}
-
-.browser-login-container {
-  flex: 1;
-  background-color: #ffffff;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.divider {
-  width: 5px;
-  background-color: #e0e0e0;
-  cursor: col-resize;
-  flex-shrink: 0;
-  transition: background-color 0.2s;
-}
-
-.divider:hover {
-  background-color: #007acc;
-}
-
-.divider:active {
-  background-color: #005a9e;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .app {
-    background-color: #1a1a1a;
-    color: #e0e0e0;
-  }
-
-  .layout {
-    background-color: #1a1a1a;
-  }
-
-  .left-panel {
-    background-color: #2d2d2d;
-    border-right: 1px solid #404040;
-  }
-
-  .main-content {
-    background-color: #1a1a1a;
-  }
-
-  .right-panel {
-    background-color: #2d2d2d;
-    border-left: 1px solid #404040;
-  }
-
-  .browser-login-container {
-    background-color: #1a1a1a;
-  }
-
-  .divider {
-    background-color: #404040;
-  }
-
-  .divider:hover {
-    background-color: #4da6ff;
-  }
-
-  .divider:active {
-    background-color: #0080ff;
-  }
-}
-</style>

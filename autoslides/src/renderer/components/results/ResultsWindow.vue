@@ -1,26 +1,26 @@
 <template>
-  <div class="results-window">
-    <div class="toolbar">
-      <div class="toolbar-left">
-        <button v-if="currentView === 'images'" class="back-btn" @click="goBack">
+  <div class="flex flex-col h-full bg-surface text-text">
+    <div class="flex justify-between items-center py-2.5 px-4 bg-subtle border-b border-border gap-3">
+      <div class="flex items-center gap-2">
+        <button v-if="currentView === 'images'" class="flex items-center gap-1 py-1.5 px-2.5 border border-border-input rounded bg-surface text-xs cursor-pointer transition-all whitespace-nowrap hover:bg-elevated hover:border-text-muted" @click="goBack">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
           {{ $t('trash.back') }}
         </button>
 
-        <div v-if="currentView === 'images'" class="filter-group">
-          <label>{{ $t('trash.viewMode') }}:</label>
-          <select v-model="contextMode" class="filter-select">
+        <div v-if="currentView === 'images'" class="flex items-center gap-1.5">
+          <label class="text-xs text-text-secondary whitespace-nowrap">{{ $t('trash.viewMode') }}:</label>
+          <select v-model="contextMode" class="flex items-center gap-1 py-1.5 px-2.5 border border-border-input rounded bg-surface text-xs cursor-pointer transition-all whitespace-nowrap focus:outline-none focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed">
             <option value="context">{{ $t('trash.showContext') }}</option>
             <option value="extracted-only">{{ $t('trash.extractedOnly') }}</option>
             <option value="removed-only">{{ $t('trash.removedOnly') }}</option>
           </select>
         </div>
 
-        <div v-if="currentView === 'images'" class="filter-group">
-          <label>{{ $t('trash.filterReason') }}:</label>
-          <select v-model="selectedReason" class="filter-select" :disabled="!hasRemovedItems">
+        <div v-if="currentView === 'images'" class="flex items-center gap-1.5">
+          <label class="text-xs text-text-secondary whitespace-nowrap">{{ $t('trash.filterReason') }}:</label>
+          <select v-model="selectedReason" class="flex items-center gap-1 py-1.5 px-2.5 border border-border-input rounded bg-surface text-xs cursor-pointer transition-all whitespace-nowrap focus:outline-none focus:border-accent disabled:opacity-50 disabled:cursor-not-allowed" :disabled="!hasRemovedItems">
             <option value="">{{ $t('trash.all') }}</option>
             <option value="duplicate">{{ $t('trash.duplicate') }}</option>
             <option value="exclusion">{{ $t('trash.exclusion') }}</option>
@@ -30,18 +30,18 @@
           </select>
         </div>
 
-        <button class="refresh-btn" @click="refresh" :disabled="isLoading">
-          <svg width="16" height="16" viewBox="0 0 16 16" :class="{ spinning: isLoading }">
+        <button class="flex items-center gap-1 py-1.5 px-2.5 border border-border-input rounded bg-surface text-xs cursor-pointer transition-all whitespace-nowrap hover:bg-elevated hover:border-text-muted disabled:opacity-50 disabled:cursor-not-allowed" @click="refresh" :disabled="isLoading">
+          <svg width="16" height="16" viewBox="0 0 16 16" :class="{ 'animate-spin': isLoading }">
             <path d="M13.65 2.35A7.958 7.958 0 008 0a8 8 0 108 8h-2a6 6 0 11-1.76-4.24l-2.12 2.12H16V0l-2.35 2.35z" fill="currentColor"/>
           </svg>
           {{ $t('trash.refresh') }}
         </button>
       </div>
 
-      <div class="actions">
+      <div class="flex items-center gap-2">
         <button
           v-if="currentView === 'images'"
-          class="delete-btn"
+          class="flex items-center gap-1 py-1.5 px-2.5 border-none rounded bg-danger text-white text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-danger-hover disabled:text-white/55 disabled:cursor-not-allowed"
           @click="confirmDelete"
           :disabled="selectedActiveItems.length === 0 || isLoading"
         >
@@ -53,11 +53,11 @@
 
         <div
           v-if="currentView === 'images'"
-          class="action-split action-split-restore"
+          class="action-split"
           :class="{ 'action-split-open': showRestoreMenu }"
         >
           <button
-            class="restore-btn action-split-main"
+            class="action-split-main flex items-center gap-1 py-1.5 px-2.5 border-none bg-success text-white text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:opacity-90 disabled:text-white/55 disabled:cursor-not-allowed"
             @click="restoreSelected"
             :disabled="selectedRemovedItems.length === 0 || isLoading"
           >
@@ -68,7 +68,7 @@
             {{ $t('trash.restore') }}
           </button>
           <button
-            class="restore-btn action-split-toggle"
+            class="action-split-toggle border-none bg-success text-white text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:opacity-90 disabled:text-white/55 disabled:cursor-not-allowed"
             :title="$t('trash.restoreAutoCropMoreOptions')"
             @click.stop="toggleRestoreMenu"
           >
@@ -83,18 +83,18 @@
               :title="$t('trash.restoreAllCroppedHint')"
               @click="handleRestoreCropped"
             >
-              <div class="action-split-menu-title">{{ $t('trash.restoreAllCropped') }}</div>
+              <div class="text-[11px] font-medium leading-tight whitespace-nowrap">{{ $t('trash.restoreAllCropped') }}</div>
             </button>
           </div>
         </div>
 
         <div
           v-if="currentView === 'images'"
-          class="action-split action-split-auto-crop"
+          class="action-split"
           :class="{ 'action-split-open': showAutoCropMenu }"
         >
           <button
-            class="restore-btn auto-crop-btn action-split-main"
+            class="action-split-main flex items-center gap-1 py-1.5 px-2.5 border-none bg-accent text-white text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-accent-hover disabled:text-white/55 disabled:cursor-not-allowed"
             @click="handleAutoCropSelected"
             :disabled="!canAutoCropSelected || isLoading"
             :title="$t('trash.autoCropSelectedHint')"
@@ -105,7 +105,7 @@
             {{ $t('trash.autoCropSelected') }}
           </button>
           <button
-            class="restore-btn auto-crop-btn action-split-toggle"
+            class="action-split-toggle border-none bg-accent text-white text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-accent-hover disabled:text-white/55 disabled:cursor-not-allowed"
             :title="$t('trash.restoreAutoCropMoreOptions')"
             @click.stop="toggleAutoCropMenu"
           >
@@ -113,25 +113,25 @@
               <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-          <div v-if="showAutoCropMenu" class="action-split-menu">
+          <div v-if="showAutoCropMenu" class="action-split-menu action-split-menu-accent">
             <button
-              class="action-split-menu-item"
+              class="action-split-menu-item action-split-menu-item-accent"
               :disabled="!canRunBaselineAction || isLoading"
               :title="baselineActionTitle"
               @click="handleBaselineAction"
             >
-              <div class="action-split-menu-title">{{ baselineActionLabel }}</div>
+              <div class="text-[11px] font-medium leading-tight whitespace-nowrap">{{ baselineActionLabel }}</div>
             </button>
           </div>
         </div>
 
         <div
           v-if="currentView === 'images'"
-          class="action-split action-split-dedup"
+          class="action-split"
           :class="{ 'action-split-open': showRemoveDuplicatesMenu }"
         >
           <button
-            class="clear-btn dedup-btn action-split-main"
+            class="action-split-main flex items-center gap-1 py-1.5 px-2.5 border-none bg-text-warning text-white text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-text-warning disabled:text-white/55 disabled:cursor-not-allowed"
             @click="handleRemoveDuplicates"
             :disabled="!canRemoveDuplicatesInCurrentFolder || isLoading"
             :title="$t('trash.removeDuplicatesHint')"
@@ -144,7 +144,7 @@
             {{ $t('trash.removeDuplicates') }}
           </button>
           <button
-            class="clear-btn dedup-btn action-split-toggle"
+            class="action-split-toggle border-none bg-text-warning text-white text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-text-warning disabled:text-white/55 disabled:cursor-not-allowed"
             :title="$t('trash.restoreAutoCropMoreOptions')"
             @click.stop="toggleRemoveDuplicatesMenu"
           >
@@ -152,21 +152,21 @@
               <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-          <div v-if="showRemoveDuplicatesMenu" class="action-split-menu action-split-menu-wide">
+          <div v-if="showRemoveDuplicatesMenu" class="action-split-menu action-split-menu-dedup">
             <label
-              class="action-split-checkbox"
+              class="flex items-center gap-1.5 min-h-[30px] py-1.5 px-2.5 text-white cursor-pointer transition-colors hover:bg-text-warning"
               :title="$t('trash.removeDuplicatesAfterActionsHint')"
               @click.stop
             >
-              <input type="checkbox" v-model="dedupAfterCropActions" :disabled="isLoading" />
-              <span>{{ $t('trash.removeDuplicatesAfterActions') }}</span>
+              <input type="checkbox" v-model="dedupAfterCropActions" class="shrink-0 w-3.5 h-3.5 m-0 accent-accent cursor-pointer" :disabled="isLoading" />
+              <span class="flex-1 min-w-0 text-[11px] font-medium leading-tight whitespace-nowrap">{{ $t('trash.removeDuplicatesAfterActions') }}</span>
             </label>
           </div>
         </div>
 
         <button
           v-if="currentView === 'folders' && isFolderEditMode"
-          class="delete-btn"
+          class="flex items-center gap-1 py-1.5 px-2.5 border-none rounded bg-danger text-white text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-danger-hover disabled:text-white/55 disabled:cursor-not-allowed"
           :disabled="!canClearSelectedFolders || isLoading"
           @click="handleClearSelectedFolders"
         >
@@ -174,13 +174,13 @@
             <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
           </svg>
           {{ $t('trash.clearFolder') }}
-          <span v-if="selectedFolderNames.length > 0" class="edit-count">{{ selectedFolderNames.length }}</span>
+          <span v-if="selectedFolderNames.length > 0" class="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.25 ml-1 rounded-full bg-white/25 text-white text-[11px] font-semibold tabular-nums">{{ selectedFolderNames.length }}</span>
         </button>
 
         <button
           v-if="currentView === 'folders'"
-          class="edit-btn"
-          :class="{ 'edit-btn-active': isFolderEditMode }"
+          class="flex items-center gap-1 py-1.5 px-3 border border-border-input rounded bg-surface text-text text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-elevated hover:border-text-muted disabled:opacity-50 disabled:cursor-not-allowed"
+          :class="{ '!bg-accent !border-accent !text-white hover:!bg-accent-hover hover:!border-accent-hover': isFolderEditMode }"
           :disabled="!canEditFolders || isLoading"
           @click="toggleFolderEditMode"
         >
@@ -192,7 +192,7 @@
         </button>
 
         <button
-          class="clear-btn"
+          class="flex items-center gap-1 py-1.5 px-2.5 border-none rounded bg-text-muted text-white text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:opacity-90 disabled:text-white/55 disabled:cursor-not-allowed"
           @click="confirmClearTrash"
           :disabled="!canClearTrash || isLoading"
         >
@@ -204,21 +204,21 @@
       </div>
     </div>
 
-    <div class="content-area" ref="contentAreaRef">
-      <div v-if="isLoading" class="loading-state">
+    <div class="flex-1 overflow-y-auto p-4 scrollbar-thin" ref="contentAreaRef">
+      <div v-if="isLoading" class="flex flex-col items-center justify-center h-full gap-4 text-text-muted">
         <div class="spinner"></div>
         <span>{{ $t('trash.loading') }}</span>
       </div>
 
       <template v-else-if="currentView === 'folders'">
-        <div v-if="folders.length === 0" class="empty-state">
+        <div v-if="folders.length === 0" class="flex flex-col items-center justify-center h-full gap-4 text-text-muted">
           <svg width="64" height="64" viewBox="0 0 64 64">
             <path d="M8 12v40h48V20H32l-6-8H8z" fill="currentColor" opacity="0.3"/>
           </svg>
           <span>{{ $t('trash.noResultsFolders') }}</span>
         </div>
 
-        <div v-else class="folder-list">
+        <div v-else class="flex flex-col gap-1">
           <div
             v-for="(group, groupIdx) in courseGroups"
             :key="group.courseName || groupIdx"
@@ -238,7 +238,7 @@
                 @click.stop
                 @change="selectAllInCourse(group.folderNames)"
               />
-              <svg class="course-icon" width="16" height="16" viewBox="0 0 16 16">
+              <svg class="shrink-0" width="16" height="16" viewBox="0 0 16 16">
                 <path d="M8 2L1 6l7 4 7-4L8 2z" fill="#3b6ea5"/>
                 <path d="M4 7.5v4c0 1.2 1.8 2 4 2s4-.8 4-2v-4L8 10.5 4 7.5z" fill="#5a9fd4"/>
               </svg>
@@ -267,40 +267,41 @@
               :ref="(el) => setFolderItemRef(entry.folder.name, el as HTMLButtonElement | null)"
               @click="isFolderEditMode ? toggleFolderSelection(entry.folder.name) : handleOpenFolder(entry.folder)"
             >
-              <div v-if="isFolderEditMode" class="folder-checkbox">
+              <div v-if="isFolderEditMode" class="flex items-center shrink-0">
                 <input
                   type="checkbox"
                   :checked="selectedFolderNames.includes(entry.folder.name)"
+                  class="w-4 h-4 cursor-pointer"
                   @click.stop
                   @change="toggleFolderSelection(entry.folder.name)"
                 />
               </div>
 
-              <div class="folder-icon">
+              <div class="flex items-center shrink-0">
                 <svg width="24" height="24" viewBox="0 0 24 24">
                   <path d="M3 5v14h18V8h-9l-2-3H3z" fill="#f0c36d"/>
                   <path d="M3 8h18v11H3V8z" fill="#f7d994"/>
                 </svg>
               </div>
 
-              <div class="folder-copy">
-                <div class="folder-mainline">
-                  <span class="folder-name">{{ formatToolFolderName(entry.folder.name) }}</span>
-                  <div class="folder-counts">
-                    <span class="folder-count-text">
-                      <span class="count-value">{{ entry.folder.activeCount }}</span>
-                      <span class="count-label">{{ $t('trash.active') }}</span>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="flex-1 min-w-0 text-[13px] font-semibold text-text overflow-hidden text-ellipsis whitespace-nowrap">{{ formatToolFolderName(entry.folder.name) }}</span>
+                  <div class="flex items-center gap-2 shrink-0 text-text-muted text-xs font-medium">
+                    <span class="inline-flex items-baseline gap-1">
+                      <span class="tabular-nums">{{ entry.folder.activeCount }}</span>
+                      <span class="text-inherit lowercase">{{ $t('trash.active') }}</span>
                     </span>
-                    <span class="folder-count-separator">/</span>
-                    <span class="folder-count-text">
-                      <span class="count-value">{{ entry.folder.removedCount }}</span>
-                      <span class="count-label">{{ $t('trash.removed') }}</span>
+                    <span class="text-[#a0a8b1]">/</span>
+                    <span class="inline-flex items-baseline gap-1">
+                      <span class="tabular-nums">{{ entry.folder.removedCount }}</span>
+                      <span class="text-inherit lowercase">{{ $t('trash.removed') }}</span>
                     </span>
                   </div>
                 </div>
               </div>
 
-              <svg v-if="!isFolderEditMode" class="folder-chevron" width="16" height="16" viewBox="0 0 16 16">
+              <svg v-if="!isFolderEditMode" class="shrink-0 text-text-muted" width="16" height="16" viewBox="0 0 16 16">
                 <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
@@ -310,7 +311,7 @@
       </template>
 
       <template v-else>
-        <div v-if="filteredItems.length === 0" class="empty-state">
+        <div v-if="filteredItems.length === 0" class="flex flex-col items-center justify-center h-full gap-4 text-text-muted">
           <svg width="64" height="64" viewBox="0 0 64 64">
             <rect x="8" y="8" width="48" height="48" fill="currentColor" opacity="0.3"/>
             <circle cx="22" cy="22" r="6" fill="currentColor" opacity="0.2"/>
@@ -331,12 +332,12 @@
       </template>
     </div>
 
-    <div class="footer">
-      <div class="footer-left">
+    <div class="flex justify-between items-center py-2 px-4 bg-subtle border-t border-border text-xs text-text-secondary">
+      <div class="flex items-center gap-3">
         <span v-if="currentView === 'folders'">{{ $t('trash.total') }}: {{ folders.length }}</span>
         <template v-else>
           <button
-            class="select-all-btn"
+            class="py-1 px-2.5 text-xs border border-border-strong rounded bg-surface text-text cursor-pointer transition-colors hover:bg-elevated hover:border-text-muted disabled:opacity-50 disabled:cursor-not-allowed"
             :disabled="filteredItems.length === 0"
             @click="toggleSelectAllFiltered"
           >
@@ -346,8 +347,8 @@
         </template>
       </div>
 
-      <div v-if="currentView === 'images'" class="size-slider-group">
-        <svg width="12" height="12" viewBox="0 0 16 16" class="size-icon small">
+      <div v-if="currentView === 'images'" class="flex items-center gap-1.5 py-1 px-2 bg-elevated rounded-md">
+        <svg width="12" height="12" viewBox="0 0 16 16" class="text-text-secondary shrink-0">
           <rect x="3" y="3" width="10" height="10" fill="currentColor" opacity="0.6"/>
         </svg>
         <input
@@ -358,27 +359,27 @@
           step="20"
           class="size-slider"
         />
-        <svg width="16" height="16" viewBox="0 0 16 16" class="size-icon large">
+        <svg width="16" height="16" viewBox="0 0 16 16" class="text-text-secondary shrink-0">
           <rect x="2" y="2" width="12" height="12" fill="currentColor" opacity="0.6"/>
         </svg>
       </div>
 
-      <label v-if="currentView === 'folders'" class="group-toggle">
-        <input type="checkbox" v-model="groupByCourse" />
+      <label v-if="currentView === 'folders'" class="flex items-center gap-1.5 py-0.5 px-2 border border-border rounded bg-elevated text-xs text-text-secondary cursor-pointer whitespace-nowrap transition-colors hover:bg-hover hover:border-border-strong">
+        <input type="checkbox" v-model="groupByCourse" class="w-[11px] h-[11px] m-0 accent-accent cursor-pointer" />
         <span>{{ $t('trash.groupByCourse') }}</span>
       </label>
     </div>
 
-    <div v-if="previewItem" class="preview-modal-overlay" @click="closePreview">
+    <div v-if="previewItem" class="preview-overlay" @click="closePreview">
       <div class="preview-modal" :class="{ 'metadata-visible': showPreviewMetadata, 'crop-mode': isCropMode }" @click.stop>
-        <button class="preview-close-btn" @click="closePreview">
+        <button class="preview-close" @click="closePreview">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
 
         <div class="preview-content">
-          <div class="preview-image-container" :class="{ 'crop-mode': isCropMode }">
+          <div class="preview-image-container">
             <div ref="previewStageShell" class="preview-stage-shell" :class="{ 'crop-active': isCropMode }">
               <div
                 ref="previewStage"
@@ -428,7 +429,7 @@
                 <button class="preview-action-btn" :disabled="isLoading" @click="cancelCropMode">
                   {{ $t('trash.cancel') }}
                 </button>
-                <button class="preview-action-btn primary" :disabled="!canApplyCrop || isLoading" @click="applyCrop">
+                <button class="preview-action-btn preview-action-btn-primary" :disabled="!canApplyCrop || isLoading" @click="applyCrop">
                   {{ $t('trash.applyCrop') }}
                 </button>
               </template>
@@ -506,8 +507,8 @@
                 <tr>
                   <td class="info-label">{{ $t('trash.status') }}</td>
                   <td class="info-value">
-                    <span v-if="previewItem.status === 'active' && previewItem.isCropped" class="status-badge cropped">{{ getCropLabel() }}</span>
-                    <span class="status-badge" :class="previewItem.status">{{ getStatusLabel(previewItem.status) }}</span>
+                    <span v-if="previewItem.status === 'active' && previewItem.isCropped" class="status-badge status-cropped">{{ getCropLabel() }}</span>
+                    <span class="status-badge" :class="previewItem.status === 'active' ? 'status-active' : 'status-removed'">{{ getStatusLabel(previewItem.status) }}</span>
                   </td>
                 </tr>
                 <tr v-if="previewItem.status === 'active'">
@@ -1122,197 +1123,9 @@ const confirmClearTrash = async () => {
 </script>
 
 <style scoped>
-.results-window {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background-color: #ffffff;
-  color: #333;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  background-color: #fafafa;
-  border-bottom: 1px solid #e0e0e0;
-  gap: 12px;
-}
-
-.toolbar-left,
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.back-btn,
-.refresh-btn,
-.filter-select {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.filter-group label {
-  font-size: 12px;
-  color: #666;
-  white-space: nowrap;
-}
-
-.back-btn:hover,
-.refresh-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  border-color: #ccc;
-}
-
-.filter-select:focus {
-  outline: none;
-  border-color: #007acc;
-}
-
-.refresh-btn:disabled,
-.filter-select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.refresh-btn svg.spinning {
-  animation: spin 1s linear infinite;
-}
-
-.delete-btn,
-.restore-btn,
-.clear-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border: none;
-  border-radius: 4px;
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.delete-btn {
-  background-color: #d9534f;
-}
-
-.delete-btn:hover:not(:disabled) {
-  background-color: #c43d39;
-}
-
-.restore-btn {
-  background-color: #2c7a51;
-}
-
-.restore-btn:hover:not(:disabled) {
-  background-color: #236341;
-}
-
-.auto-crop-btn {
-  background-color: #007acc;
-}
-
-.auto-crop-btn:hover:not(:disabled) {
-  background-color: #006bb3;
-}
-
-.clear-btn {
-  background-color: #6c757d;
-}
-
-.clear-btn:hover:not(:disabled) {
-  background-color: #5b646b;
-}
-
-.dedup-btn {
-  background-color: #9a6a14;
-}
-
-.dedup-btn:hover:not(:disabled) {
-  background-color: #81570f;
-}
-
-.delete-btn:disabled,
-.restore-btn:disabled,
-.clear-btn:disabled {
-  color: rgba(255, 255, 255, 0.55);
-  cursor: not-allowed;
-}
-
-.edit-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  color: #333;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.edit-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  border-color: #ccc;
-}
-
-.edit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.edit-btn-active {
-  background-color: #007acc;
-  border-color: #007acc;
-  color: white;
-}
-
-.edit-btn-active:hover:not(:disabled) {
-  background-color: #006bb3;
-  border-color: #006bb3;
-}
-
-.edit-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  margin-left: 4px;
-  border-radius: 999px;
-  background-color: rgba(255, 255, 255, 0.25);
-  color: white;
-  font-size: 11px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
+/* ------------------------------------------------------------------ */
+/* Action split button group (compound button + dropdown toggle)       */
+/* ------------------------------------------------------------------ */
 .action-split {
   position: relative;
   display: inline-flex;
@@ -1343,12 +1156,13 @@ const confirmClearTrash = async () => {
   border-bottom-right-radius: 0;
 }
 
+/* Base dropdown menu (green / restore) */
 .action-split-menu {
   position: absolute;
   top: 100%;
   left: 0;
   right: 0;
-  background-color: #2c7a51;
+  background-color: var(--success);
   border-top: 1px solid rgba(255, 255, 255, 0.25);
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
@@ -1356,31 +1170,21 @@ const confirmClearTrash = async () => {
   overflow: hidden;
 }
 
-.action-split-auto-crop .action-split-menu {
-  background-color: #007acc;
+/* Accent variant (auto-crop) */
+.action-split-menu-accent {
+  background-color: var(--accent);
 }
 
-.action-split-auto-crop .action-split-menu-item:hover:not(:disabled) {
-  background-color: #006bb3;
+.action-split-menu-item-accent:hover:not(:disabled) {
+  background-color: var(--accent-hover);
 }
 
-.action-split-dedup .action-split-menu {
-  background-color: #9a6a14;
+/* Dedup variant */
+.action-split-menu-dedup {
+  background-color: var(--warning);
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-}
-
-.action-split-dedup .action-split-menu-item:hover:not(:disabled) {
-  background-color: #81570f;
-}
-
-.action-split-dedup .action-split-menu-wide {
-  min-width: 0;
-}
-
-.action-split-menu-wide {
-  min-width: 260px;
 }
 
 .action-split-menu-item {
@@ -1393,7 +1197,7 @@ const confirmClearTrash = async () => {
   border: none;
   padding: 6px 10px;
   cursor: pointer;
-  color: #ffffff;
+  color: var(--text-on-accent);
 }
 
 .action-split-menu-item + .action-split-menu-item {
@@ -1401,7 +1205,7 @@ const confirmClearTrash = async () => {
 }
 
 .action-split-menu-item:hover:not(:disabled) {
-  background-color: #236341;
+  opacity: 0.85;
 }
 
 .action-split-menu-item:disabled {
@@ -1409,111 +1213,12 @@ const confirmClearTrash = async () => {
   cursor: not-allowed;
 }
 
-.action-split-menu-title {
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.action-split-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 6px 10px;
-  color: #ffffff;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.action-split-checkbox:hover {
-  background-color: #81570f;
-}
-
-.action-split-checkbox input {
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  accent-color: #007acc;
-  cursor: pointer;
-}
-
-.action-split-checkbox span {
-  flex: 1;
-  min-width: 0;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.content-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-.content-area:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
-.content-area::-webkit-scrollbar {
-  width: 6px;
-}
-
-.content-area::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.content-area::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  transition: background 0.3s ease;
-}
-
-.content-area:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.content-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  gap: 16px;
-  color: #999;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #e0e0e0;
-  border-top-color: #007acc;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.folder-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
+/* ------------------------------------------------------------------ */
+/* Folder list                                                         */
+/* ------------------------------------------------------------------ */
 .course-group {
-  background-color: #f0f4f8;
-  border: 1px solid #dfe5ec;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   margin-top: 8px;
   overflow: hidden;
@@ -1533,14 +1238,10 @@ const confirmClearTrash = async () => {
   user-select: none;
 }
 
-.course-icon {
-  flex-shrink: 0;
-}
-
 .course-chevron {
   flex-shrink: 0;
   margin-left: auto;
-  color: #7b8794;
+  color: var(--text-secondary);
   transition: transform 0.15s;
   cursor: pointer;
 }
@@ -1556,7 +1257,7 @@ const confirmClearTrash = async () => {
 .course-name {
   font-size: 13px;
   font-weight: 700;
-  color: #3b6ea5;
+  color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   line-height: 1;
@@ -1571,7 +1272,7 @@ const confirmClearTrash = async () => {
   height: 18px;
   margin: 0;
   cursor: pointer;
-  accent-color: #007acc;
+  accent-color: var(--accent);
 }
 
 .folder-item {
@@ -1580,28 +1281,28 @@ const confirmClearTrash = async () => {
   gap: 12px;
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid #e1e6eb;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background-color: white;
+  background-color: var(--bg-surface);
   text-align: left;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .folder-item:hover {
-  background-color: #f8f9fa;
-  border-color: #ced7e0;
+  background-color: var(--bg-elevated);
+  border-color: var(--border-strong);
 }
 
 .folder-item-last-visited {
-  background-color: #e7f1ff;
-  border-color: #7aa9e6;
-  box-shadow: 0 0 0 1px #7aa9e6 inset;
+  background-color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
 }
 
 .folder-item-last-visited:hover {
-  background-color: #d9e7fb;
-  border-color: #5f95d8;
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .folder-item-edit {
@@ -1609,14 +1310,14 @@ const confirmClearTrash = async () => {
 }
 
 .folder-item-selected {
-  background-color: #fff1f0;
-  border-color: #d9534f;
-  box-shadow: 0 0 0 1px #d9534f inset;
+  background-color: var(--danger);
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger) inset;
 }
 
 .folder-item-selected:hover {
-  background-color: #ffe2df;
-  border-color: #c43d39;
+  background-color: var(--danger-hover);
+  border-color: var(--danger-hover);
 }
 
 .folder-item-grouped {
@@ -1625,58 +1326,9 @@ const confirmClearTrash = async () => {
   border-radius: 6px;
 }
 
-.folder-checkbox {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.folder-checkbox input[type='checkbox'] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
-.folder-icon {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.folder-copy {
-  flex: 1;
-  min-width: 0;
-}
-
-.folder-mainline {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.folder-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #2b2b2b;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.folder-counts {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  color: #7b8794;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.count-badge,
+/* ------------------------------------------------------------------ */
+/* Status / reason badges                                              */
+/* ------------------------------------------------------------------ */
 .status-badge,
 .reason-badge {
   display: inline-flex;
@@ -1687,159 +1339,108 @@ const confirmClearTrash = async () => {
   font-weight: 600;
 }
 
-.folder-count-text {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
+.status-active {
+  background-color: var(--accent);
+  color: var(--accent-strong);
 }
 
-.count-label {
-  color: inherit;
-  text-transform: lowercase;
+.status-cropped {
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
 }
 
-.folder-count-separator {
-  color: #a0a8b1;
+.status-removed {
+  background-color: var(--danger);
+  color: var(--danger);
 }
 
-.count-value {
-  font-variant-numeric: tabular-nums;
+.reason-badge + .reason-badge,
+.status-badge + .status-badge {
+  margin-left: 6px;
 }
 
-.count-badge.active,
-.status-badge.active {
-  background-color: #e7f3ff;
-  color: #1768a8;
+.reason-duplicate {
+  background-color: var(--warning-bg);
+  color: var(--warning);
 }
 
-.status-badge.cropped {
-  background-color: #edf0f3;
-  color: #58616b;
+.reason-exclusion {
+  background-color: var(--accent);
+  color: var(--accent);
 }
 
-.count-badge.removed,
-.status-badge.removed {
-  background-color: #ffe8e6;
-  color: #b63a30;
+.reason-ai_filtered {
+  background-color: var(--success-bg);
+  color: var(--success);
 }
 
-.folder-chevron {
-  flex-shrink: 0;
-  color: #7b8794;
+.reason-ai_filtered_edit {
+  background-color: var(--warning-bg);
+  color: var(--warning);
 }
 
-
-.reason-badge.reason-duplicate {
-  background-color: #fff2cc;
-  color: #8a5b00;
+.reason-manual {
+  background-color: var(--danger);
+  color: var(--danger);
 }
 
-.reason-badge.reason-exclusion {
-  background-color: #ede7ff;
-  color: #6546c2;
+/* ------------------------------------------------------------------ */
+/* Content area scrollbar                                              */
+/* ------------------------------------------------------------------ */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
 }
 
-.reason-badge.reason-ai_filtered {
-  background-color: #dff7ea;
-  color: #257550;
+.scrollbar-thin:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
-.reason-badge.reason-ai_filtered_edit {
-  background-color: #fff3d6;
-  color: #955800;
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
 }
 
-.reason-badge.reason-manual {
-  background-color: #ffe8e6;
-  color: #b63a30;
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
 }
 
-.footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 16px;
-  background-color: #fafafa;
-  border-top: 1px solid #e0e0e0;
-  font-size: 12px;
-  color: #666;
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.3s ease;
 }
 
-.footer-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.scrollbar-thin:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
 }
 
-.select-all-btn {
-  padding: 4px 10px;
-  font-size: 12px;
-  border: 1px solid #ced7e0;
-  border-radius: 4px;
-  background-color: white;
-  color: #333;
-  cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
-.select-all-btn:hover:not(:disabled) {
-  background-color: #f0f4f8;
-  border-color: #a8b7c4;
+/* ------------------------------------------------------------------ */
+/* Spinner                                                             */
+/* ------------------------------------------------------------------ */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
-.select-all-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.size-slider-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background-color: #f0f0f0;
-  border-radius: 6px;
-}
-
-.group-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  background-color: #f8f9fa;
-  font-size: 12px;
-  color: #666;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color 0.15s, border-color 0.15s;
-}
-
-.group-toggle:hover {
-  background-color: #f0f0f0;
-  border-color: #d0d0d0;
-}
-
-.group-toggle input {
-  width: 11px;
-  height: 11px;
-  margin: 0;
-  accent-color: #007acc;
-  cursor: pointer;
-}
-
-.size-icon {
-  color: #666;
-  flex-shrink: 0;
-}
-
+/* ------------------------------------------------------------------ */
+/* Size slider                                                         */
+/* ------------------------------------------------------------------ */
 .size-slider {
   -webkit-appearance: none;
   appearance: none;
   width: 140px;
   height: 4px;
-  background: #ccc;
+  background: var(--text-muted);
   border-radius: 2px;
   outline: none;
   cursor: pointer;
@@ -1850,21 +1451,24 @@ const confirmClearTrash = async () => {
   appearance: none;
   width: 14px;
   height: 14px;
-  background: #fff;
-  border: 1px solid #999;
+  background: var(--bg-surface);
+  border: 1px solid var(--text-muted);
   border-radius: 50%;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
-.preview-modal-overlay {
+/* ------------------------------------------------------------------ */
+/* Preview modal                                                       */
+/* ------------------------------------------------------------------ */
+.preview-overlay {
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
 }
 
 .preview-modal {
@@ -1872,7 +1476,7 @@ const confirmClearTrash = async () => {
   width: min(960px, calc(100vw - 48px));
   aspect-ratio: 16 / 10;
   max-height: calc(100vh - 48px);
-  background-color: white;
+  background-color: var(--bg-surface);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
@@ -1883,7 +1487,7 @@ const confirmClearTrash = async () => {
   aspect-ratio: auto;
 }
 
-.preview-close-btn {
+.preview-close {
   position: absolute;
   top: 12px;
   right: 12px;
@@ -1893,7 +1497,7 @@ const confirmClearTrash = async () => {
   border: none;
   border-radius: 50%;
   background-color: rgba(255, 255, 255, 0.9);
-  color: #444;
+  color: var(--text-primary);
   cursor: pointer;
 }
 
@@ -1910,7 +1514,7 @@ const confirmClearTrash = async () => {
 
 .preview-image-container {
   position: relative;
-  background-color: #fff;
+  background-color: var(--bg-surface);
   padding: 54px 18px 58px;
   height: 100%;
 }
@@ -1985,16 +1589,16 @@ const confirmClearTrash = async () => {
   border: none;
   border-radius: 999px;
   background-color: rgba(255, 255, 255, 0.92);
-  color: #444;
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.preview-action-btn.primary {
-  background-color: #007acc;
-  color: #fff;
+.preview-action-btn-primary {
+  background-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .preview-action-btn:disabled {
@@ -2002,9 +1606,55 @@ const confirmClearTrash = async () => {
   cursor: not-allowed;
 }
 
+.preview-modal:not(.metadata-visible) .preview-info-container {
+  display: none;
+}
+
+.preview-info-container {
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.preview-info-title {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  color: var(--text-primary);
+}
+
+.preview-info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.preview-info-table td {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: top;
+}
+
+.info-label {
+  width: 110px;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.info-value {
+  font-size: 12px;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.info-path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ------------------------------------------------------------------ */
+/* Crop overlay (drag handles + grid — complex positioning math)       */
+/* ------------------------------------------------------------------ */
 .crop-selection {
   position: absolute;
-  border: 2px solid #ffffff;
+  border: 2px solid var(--bg-surface);
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.56);
   cursor: move;
   touch-action: none;
@@ -2041,7 +1691,7 @@ const confirmClearTrash = async () => {
   height: 16px;
   border: 1px solid rgba(0, 0, 0, 0.2);
   border-radius: 50%;
-  background-color: #ffffff;
+  background-color: var(--bg-surface);
   transform: translate(-50%, -50%);
   padding: 0;
   cursor: pointer;
@@ -2072,299 +1722,11 @@ const confirmClearTrash = async () => {
   cursor: nwse-resize;
 }
 
-.preview-modal:not(.metadata-visible) .preview-info-container {
-  display: none;
-}
-
-.preview-info-container {
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.preview-info-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 14px;
-}
-
-.preview-info-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.preview-info-table td {
-  padding: 10px 0;
-  border-bottom: 1px solid #edf0f2;
-  vertical-align: top;
-}
-
-.info-label {
-  width: 110px;
-  color: #666;
-  font-size: 12px;
-}
-
-.info-value {
-  font-size: 12px;
-  color: #2c2c2c;
-  word-break: break-word;
-}
-
-.info-value .status-badge + .status-badge {
-  margin-left: 6px;
-}
-
-.info-path {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
+/* ------------------------------------------------------------------ */
+/* Animation                                                           */
+/* ------------------------------------------------------------------ */
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
-}
-
-@media (prefers-color-scheme: dark) {
-  .results-window {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-
-  .toolbar,
-  .footer {
-    background-color: #252525;
-    border-color: #3d3d3d;
-    color: #e0e0e0;
-  }
-
-  .select-all-btn {
-    background-color: #2d2d2d;
-    border-color: #4d4d4d;
-    color: #e0e0e0;
-  }
-
-  .select-all-btn:hover:not(:disabled) {
-    background-color: #353535;
-    border-color: #5d5d5d;
-  }
-
-  .back-btn,
-  .refresh-btn,
-  .filter-select {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .filter-group label,
-  .item-name {
-    color: #aaa;
-  }
-
-  .folder-item,
-  .result-item {
-    background-color: #2d2d2d;
-    border-color: #3d3d3d;
-    color: #e0e0e0;
-  }
-
-  .folder-item:hover {
-    background-color: #353535;
-    border-color: #4d4d4d;
-  }
-
-  .folder-item-last-visited {
-    background-color: #1f3557;
-    border-color: #3e6aa8;
-    box-shadow: 0 0 0 1px #3e6aa8 inset;
-  }
-
-  .folder-item-last-visited:hover {
-    background-color: #264068;
-    border-color: #4d7dbd;
-  }
-
-  .folder-item-selected {
-    background-color: #4a1f1d;
-    border-color: #d9534f;
-    box-shadow: 0 0 0 1px #d9534f inset;
-  }
-
-  .folder-item-selected:hover {
-    background-color: #5a2725;
-    border-color: #c43d39;
-  }
-
-  .edit-btn {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .edit-btn:hover:not(:disabled) {
-    background-color: #3d3d3d;
-    border-color: #6d6d6d;
-  }
-
-  .edit-btn-active {
-    background-color: #1e6fb3;
-    border-color: #1e6fb3;
-    color: #fff;
-  }
-
-  .edit-btn-active:hover:not(:disabled) {
-    background-color: #1c5d96;
-    border-color: #1c5d96;
-  }
-
-  .folder-name,
-  .info-value,
-  .preview-info-title {
-    color: #f1f1f1;
-  }
-
-  .course-group {
-    background-color: #25282d;
-    border-color: #3d4450;
-  }
-
-  .course-name {
-    color: #66bfff;
-  }
-
-  .course-icon path:first-child {
-    fill: #66bfff;
-  }
-
-  .course-icon path:last-child {
-    fill: #93d0ff;
-  }
-
-  .course-chevron {
-    color: #9098a2;
-  }
-
-  .group-toggle {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .group-toggle:hover {
-    background-color: #353535;
-    border-color: #505050;
-  }
-
-  .folder-counts {
-    color: #9098a2;
-  }
-
-  .folder-count-separator {
-    color: #666f79;
-  }
-
-  .item-thumbnail {
-    background-color: #252525;
-  }
-
-  .item-preview-btn,
-  .preview-close-btn,
-  .preview-action-btn {
-    background-color: rgba(40, 40, 40, 0.92);
-    color: #ddd;
-  }
-
-  .preview-action-btn.primary {
-    background-color: #1e6fb3;
-    color: #fff;
-  }
-
-  .result-item.selected {
-    background-color: #1a3a5c;
-  }
-
-  .result-item.removed.selected {
-    background-color: #482220;
-  }
-
-  .preview-modal {
-    background-color: #232323;
-  }
-
-  .preview-image-container {
-    background-color: #111;
-  }
-
-  .preview-image-placeholder {
-    color: rgba(255, 255, 255, 0.6);
-  }
-
-  .status-badge.cropped {
-    background-color: #40464d;
-    color: #d9dde1;
-  }
-
-  .crop-selection {
-    border-color: #f5f7fa;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.48);
-  }
-
-  .crop-grid-line {
-    background-color: rgba(245, 247, 250, 0.7);
-  }
-
-  .crop-handle {
-    background-color: #f5f7fa;
-    border-color: #f5f7fa;
-  }
-
-  .preview-info-table td {
-    border-bottom-color: #353535;
-  }
-
-  .info-label {
-    color: #999;
-  }
-
-  .size-slider-group {
-    background-color: #333;
-  }
-
-  .size-slider {
-    background: #555;
-  }
-
-  .size-slider::-webkit-slider-thumb {
-    background: #444;
-    border-color: #666;
-  }
-
-  .size-icon,
-  .folder-chevron {
-    color: #888;
-  }
-
-  .content-area {
-    scrollbar-color: transparent transparent;
-  }
-
-  .content-area:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .content-area::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .content-area::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .content-area:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .content-area::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
 }
 </style>

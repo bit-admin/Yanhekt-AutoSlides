@@ -1,8 +1,8 @@
 <template>
-  <div class="right-panel">
-    <div class="navigation-bar">
+  <div class="flex flex-col h-full">
+    <div class="flex border-b border-border bg-elevated">
       <button
-        :class="['nav-btn', { active: currentTab === 'task' }]"
+        :class="['flex-1 flex items-center justify-center gap-1.5 py-3 px-4 border-none bg-transparent text-sm font-medium cursor-pointer transition-all border-b-[3px] border-b-transparent hover:bg-hover', currentTab === 'task' ? 'bg-surface border-b-accent text-accent' : 'text-text-secondary']"
         @click="switchTab('task')"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -12,7 +12,7 @@
         {{ $t('navigation.task') }}
       </button>
       <button
-        :class="['nav-btn', { active: currentTab === 'download' }]"
+        :class="['flex-1 flex items-center justify-center gap-1.5 py-3 px-4 border-none bg-transparent text-sm font-medium cursor-pointer transition-all border-b-[3px] border-b-transparent hover:bg-hover', currentTab === 'download' ? 'bg-surface border-b-accent text-accent' : 'text-text-secondary']"
         @click="switchTab('download')"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -24,9 +24,9 @@
       </button>
     </div>
 
-    <div class="content-area">
+    <div class="flex-1 overflow-hidden relative">
       <div
-        :class="['tab-container', { 'tab-hidden': currentTab !== 'task' }]"
+        :class="['h-full w-full absolute top-0 left-0 transition-opacity duration-200 overflow-y-auto custom-scrollbar', currentTab !== 'task' ? 'opacity-0 pointer-events-none -z-1' : '']"
         data-tab="task"
       >
         <TaskQueuePanel
@@ -36,7 +36,7 @@
       </div>
 
       <div
-        :class="['tab-container', { 'tab-hidden': currentTab !== 'download' }]"
+        :class="['h-full w-full absolute top-0 left-0 transition-opacity duration-200 overflow-y-auto custom-scrollbar', currentTab !== 'download' ? 'opacity-0 pointer-events-none -z-1' : '']"
         data-tab="download"
       >
         <DownloadQueuePanel
@@ -175,154 +175,36 @@ defineExpose({
 </script>
 
 <style scoped>
-.right-panel {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.navigation-bar {
-  display: flex;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
-}
-
-.nav-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 12px 16px;
-  border: none;
-  background-color: transparent;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  border-bottom: 3px solid transparent;
-}
-
-.nav-btn:hover {
-  background-color: #e9ecef;
-}
-
-.nav-btn.active {
-  background-color: white;
-  border-bottom-color: #007acc;
-  color: #007acc;
-}
-
-.content-area {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-}
-
-.tab-container {
-  height: 100%;
-  width: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  transition: opacity 0.2s ease-in-out;
-  overflow-y: auto;
-}
-
-.tab-container.tab-hidden {
-  opacity: 0;
-  pointer-events: none;
-  z-index: -1;
-}
-
-@media (prefers-color-scheme: dark) {
-  .right-panel {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-
-  .content-area {
-    background-color: #1e1e1e;
-  }
-
-  .navigation-bar {
-    border-bottom-color: #404040;
-    background-color: #2d2d2d;
-  }
-
-  .nav-btn {
-    color: #e0e0e0;
-  }
-
-  .nav-btn:hover {
-    background-color: #404040;
-  }
-
-  .nav-btn.active {
-    background-color: #1e1e1e;
-    color: #4fc3f7;
-    border-bottom-color: #4fc3f7;
-  }
-}
-
-/* Custom scrollbar - macOS style thin scrollbars that auto-hide */
-.tab-container {
+/* Custom scrollbar — macOS-style thin scrollbars that auto-hide */
+.custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
 }
 
-.tab-container:hover {
+.custom-scrollbar:hover {
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
-.tab-container::-webkit-scrollbar {
+.custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
 
-.tab-container::-webkit-scrollbar-track {
+.custom-scrollbar::-webkit-scrollbar-track {
   background: transparent;
   border-radius: 3px;
 }
 
-.tab-container::-webkit-scrollbar-thumb {
+.custom-scrollbar::-webkit-scrollbar-thumb {
   background: transparent;
   border-radius: 3px;
-  border: none;
   transition: background 0.3s ease;
 }
 
-.tab-container:hover::-webkit-scrollbar-thumb {
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.2);
 }
 
-.tab-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3) !important;
-}
-
-@media (prefers-color-scheme: dark) {
-  .tab-container {
-    scrollbar-color: transparent transparent;
-  }
-
-  .tab-container:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .tab-container::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .tab-container::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .tab-container:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .tab-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-  }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 </style>

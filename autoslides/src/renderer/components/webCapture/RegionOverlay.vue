@@ -1,19 +1,19 @@
 <template>
   <div
     ref="overlayRef"
-    class="region-overlay"
+    class="absolute inset-0 z-10 cursor-crosshair bg-black/25 select-none touch-none"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
     @pointercancel="onPointerUp"
   >
-    <div v-if="rect" class="region-rect" :style="rectStyle"></div>
-    <div class="region-hint" @pointerdown.stop @pointerup.stop>
+    <div v-if="rect" class="absolute border-2 border-accent bg-accent/18 pointer-events-none" :style="rectStyle"></div>
+    <div class="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-3 py-2 px-3.5 bg-[rgba(30,30,30,0.9)] text-white rounded-md text-xs pointer-events-auto cursor-default z-11" @pointerdown.stop @pointerup.stop>
       <span v-if="!rect">{{ hintText }}</span>
       <span v-else>{{ Math.round(rect.width / 10) * 10 }}×{{ Math.round(rect.height / 10) * 10 }}</span>
-      <div class="region-actions">
-        <button class="action-btn" @click.stop="onConfirm" :disabled="!rect">{{ useRegionLabel || 'Use Region' }}</button>
-        <button class="action-btn secondary" @click.stop="onCancel">{{ cancelLabel || 'Cancel' }}</button>
+      <div class="flex gap-1.5">
+        <button class="py-1 px-2.5 border-none rounded bg-accent text-white text-xs cursor-pointer hover:bg-accent-strong disabled:bg-[var(--text-secondary)] disabled:cursor-not-allowed" @click.stop="onConfirm" :disabled="!rect">{{ useRegionLabel || 'Use Region' }}</button>
+        <button class="py-1 px-2.5 border border-[var(--text-muted)] bg-transparent text-white text-xs cursor-pointer hover:bg-white/10" @click.stop="onCancel">{{ cancelLabel || 'Cancel' }}</button>
       </div>
     </div>
   </div>
@@ -110,73 +110,3 @@ const onCancel = () => {
   emit('cancel')
 }
 </script>
-
-<style scoped>
-.region-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 10;
-  cursor: crosshair;
-  background-color: rgba(0, 0, 0, 0.25);
-  user-select: none;
-  touch-action: none;
-}
-
-.region-rect {
-  position: absolute;
-  border: 2px solid #007acc;
-  background-color: rgba(0, 122, 204, 0.18);
-  pointer-events: none;
-}
-
-.region-hint {
-  position: absolute;
-  top: 12px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 14px;
-  background-color: rgba(30, 30, 30, 0.9);
-  color: #fff;
-  border-radius: 6px;
-  font-size: 12px;
-  pointer-events: auto;
-  cursor: default;
-  z-index: 11;
-}
-
-.region-actions {
-  display: flex;
-  gap: 6px;
-}
-
-.action-btn {
-  padding: 4px 10px;
-  border: none;
-  border-radius: 4px;
-  background-color: #007acc;
-  color: white;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.action-btn:hover:not(:disabled) {
-  background-color: #005a9e;
-}
-
-.action-btn:disabled {
-  background-color: #555;
-  cursor: not-allowed;
-}
-
-.action-btn.secondary {
-  background-color: transparent;
-  border: 1px solid #aaa;
-}
-
-.action-btn.secondary:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-</style>

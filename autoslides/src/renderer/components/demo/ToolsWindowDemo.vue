@@ -1,12 +1,12 @@
 <template>
-  <div class="tools-demo-overlay">
-    <div class="tools-demo-modal">
+  <div class="fixed inset-0 z-[999] flex items-center justify-center bg-black/40">
+    <div class="w-[85%] h-[80%] max-w-[1100px] max-h-[700px] bg-surface rounded-[10px] shadow-[0_16px_48px_rgba(0,0,0,0.24)] flex flex-col overflow-hidden">
       <!-- Title Bar with Tabs -->
-      <div class="tools-demo-title-bar">
-        <div class="tab-buttons">
+      <div class="flex items-center h-[38px] bg-page border-b border-border px-3 shrink-0">
+        <div class="flex gap-0.5">
           <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'results' }"
+            class="flex items-center gap-[5px] py-1 px-3 border-none rounded bg-transparent text-xs text-text-secondary cursor-default transition-all duration-150 whitespace-nowrap"
+            :class="{ 'bg-accent/12 text-accent font-medium': activeTab === 'results' }"
             @click.stop
           >
             <svg width="14" height="14" viewBox="0 0 16 16">
@@ -15,8 +15,8 @@
             Results View
           </button>
           <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'pdfmaker' }"
+            class="flex items-center gap-[5px] py-1 px-3 border-none rounded bg-transparent text-xs text-text-secondary cursor-default transition-all duration-150 whitespace-nowrap"
+            :class="{ 'bg-accent/12 text-accent font-medium': activeTab === 'pdfmaker' }"
             @click.stop
           >
             <svg width="14" height="14" viewBox="0 0 16 16">
@@ -28,54 +28,54 @@
       </div>
 
       <!-- Tab Content -->
-      <div class="tools-demo-content">
+      <div class="flex-1 overflow-hidden">
         <!-- Results View -->
-        <div v-if="activeTab === 'results'" class="results-demo">
+        <div v-if="activeTab === 'results'" class="flex flex-col h-full">
           <!-- Toolbar -->
-          <div class="toolbar">
-            <div class="toolbar-left">
-              <button v-if="resultsView === 'images'" class="back-btn" disabled>
+          <div class="flex justify-between items-center py-2.5 px-4 border-b border-hover shrink-0">
+            <div class="flex items-center gap-2.5">
+              <button v-if="resultsView === 'images'" class="flex items-center gap-1 py-[5px] px-2.5 border border-border-input rounded-[5px] bg-surface text-text-secondary text-xs cursor-default opacity-70" disabled>
                 <svg width="16" height="16" viewBox="0 0 16 16">
                   <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
                 </svg>
                 Back
               </button>
               <template v-if="resultsView === 'images'">
-                <div class="filter-group">
+                <div class="flex items-center gap-1 text-xs text-text-secondary">
                   <label>View:</label>
-                  <select class="filter-select" disabled>
+                  <select class="py-0.5 px-1.5 border border-border-input rounded text-xs bg-surface text-text" disabled>
                     <option>Show Context</option>
                   </select>
                 </div>
-                <div class="filter-group">
+                <div class="flex items-center gap-1 text-xs text-text-secondary">
                   <label>Reason:</label>
-                  <select class="filter-select" disabled>
+                  <select class="py-0.5 px-1.5 border border-border-input rounded text-xs bg-surface text-text" disabled>
                     <option>All</option>
                   </select>
                 </div>
               </template>
-              <button class="refresh-btn" disabled>
+              <button class="flex items-center gap-1 py-[5px] px-2.5 border border-border-input rounded-[5px] bg-surface text-text-secondary text-xs cursor-default opacity-70" disabled>
                 <svg width="16" height="16" viewBox="0 0 16 16">
                   <path d="M13.65 2.35A7.958 7.958 0 008 0a8 8 0 108 8h-2a6 6 0 11-1.76-4.24l-2.12 2.12H16V0l-2.35 2.35z" fill="currentColor"/>
                 </svg>
                 Refresh
               </button>
             </div>
-            <div v-if="resultsView === 'images'" class="actions">
-              <button class="delete-btn" disabled>
+            <div v-if="resultsView === 'images'" class="flex items-center gap-2.5">
+              <button class="flex items-center gap-1 py-[5px] px-2.5 border rounded-[5px] text-xs cursor-default bg-danger/5 text-danger border-danger/20 opacity-60" disabled>
                 <svg width="16" height="16" viewBox="0 0 16 16">
                   <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
                 </svg>
                 Delete
               </button>
-              <button class="restore-btn" disabled>
+              <button class="flex items-center gap-1 py-[5px] px-2.5 border rounded-[5px] text-xs cursor-default bg-success/5 text-success border-success/20 opacity-60" disabled>
                 <svg width="16" height="16" viewBox="0 0 16 16">
                   <path d="M8 2L4 6h3v6h2V6h3L8 2z" fill="currentColor"/>
                   <path d="M2 13h12v1H2v-1z" fill="currentColor"/>
                 </svg>
                 Restore
               </button>
-              <button class="clear-btn" disabled>
+              <button class="flex items-center gap-1 py-[5px] px-2.5 border border-border-input rounded-[5px] bg-surface text-text-secondary text-xs cursor-default opacity-60" disabled>
                 <svg width="16" height="16" viewBox="0 0 16 16">
                   <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
                 </svg>
@@ -85,37 +85,37 @@
           </div>
 
           <!-- Folder List -->
-          <div v-if="resultsView === 'folders'" class="content-area">
-            <div class="folder-list">
+          <div v-if="resultsView === 'folders'" class="flex-1 overflow-y-auto p-4">
+            <div class="flex flex-col gap-1">
               <button
                 v-for="folder in demoFolders"
                 :key="folder.name"
-                class="folder-item"
-                :class="{ 'folder-item-last-visited': folder.lastVisited }"
+                class="flex items-center gap-3 w-full py-3 px-4 border border-hover rounded-lg bg-surface cursor-default text-left transition-colors duration-150 hover:bg-elevated"
+                :class="{ 'bg-accent/10 border-accent': folder.lastVisited }"
               >
-                <div class="folder-icon">
+                <div class="shrink-0">
                   <svg width="24" height="24" viewBox="0 0 24 24">
                     <path d="M3 5v14h18V8h-9l-2-3H3z" fill="#f0c36d"/>
                     <path d="M3 8h18v11H3V8z" fill="#f7d994"/>
                   </svg>
                 </div>
-                <div class="folder-copy">
-                  <div class="folder-mainline">
-                    <span class="folder-name">{{ folder.name }}</span>
-                    <div class="folder-counts">
-                      <span class="folder-count-text">
-                        <span class="count-value">{{ folder.activeCount }}</span>
-                        <span class="count-label">active</span>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-3">
+                    <span class="text-[13px] font-medium text-text whitespace-nowrap overflow-hidden text-ellipsis">{{ folder.name }}</span>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <span class="flex items-center gap-[3px] text-[11px]">
+                        <span class="font-semibold text-text">{{ folder.activeCount }}</span>
+                        <span class="text-text-muted">active</span>
                       </span>
-                      <span class="folder-count-separator">/</span>
-                      <span class="folder-count-text">
-                        <span class="count-value">{{ folder.removedCount }}</span>
-                        <span class="count-label">removed</span>
+                      <span class="text-text-muted text-[11px]">/</span>
+                      <span class="flex items-center gap-[3px] text-[11px]">
+                        <span class="font-semibold text-text">{{ folder.removedCount }}</span>
+                        <span class="text-text-muted">removed</span>
                       </span>
                     </div>
                   </div>
                 </div>
-                <svg class="folder-chevron" width="16" height="16" viewBox="0 0 16 16">
+                <svg class="shrink-0 text-text-muted" width="16" height="16" viewBox="0 0 16 16">
                   <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
               </button>
@@ -123,16 +123,16 @@
           </div>
 
           <!-- Image Grid -->
-          <div v-else id="tour-results-grid" class="content-area">
-            <div class="results-grid">
+          <div v-else id="tour-results-grid" class="flex-1 overflow-y-auto p-4">
+            <div class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-4">
               <div
                 v-for="item in demoImages"
                 :key="item.name"
-                class="result-item"
-                :class="{ removed: item.status === 'removed' }"
+                class="relative bg-surface border-2 rounded-lg overflow-hidden transition-colors duration-150"
+                :class="item.status === 'removed' ? 'border-danger/20 opacity-[0.85]' : 'border-hover'"
               >
-                <div class="item-thumbnail">
-                  <div class="thumbnail-placeholder" :style="{ backgroundColor: item.color }">
+                <div class="aspect-video overflow-hidden">
+                  <div class="w-full h-full flex items-center justify-center" :style="{ backgroundColor: item.color }">
                     <svg width="32" height="32" viewBox="0 0 32 32">
                       <rect x="4" y="4" width="24" height="24" rx="2" fill="white" opacity="0.3"/>
                       <rect x="7" y="12" width="18" height="2" rx="1" fill="white" opacity="0.4"/>
@@ -140,14 +140,24 @@
                     </svg>
                   </div>
                 </div>
-                <div class="item-copy">
-                  <div class="item-name">{{ item.name }}</div>
-                  <div class="item-badges">
-                    <span v-if="item.isCropped" class="status-badge cropped">Cropped</span>
-                    <span class="status-badge" :class="item.status">{{ item.status === 'active' ? 'Extracted' : 'Removed' }}</span>
+                <div class="py-2 px-2.5">
+                  <div class="text-[11px] text-text-secondary whitespace-nowrap overflow-hidden text-ellipsis mb-1">{{ item.name }}</div>
+                  <div class="flex flex-wrap gap-1">
+                    <span v-if="item.isCropped" class="inline-flex items-center rounded-full py-0.5 px-[7px] text-[10px] font-medium whitespace-nowrap bg-elevated text-text-secondary">Cropped</span>
+                    <span
+                      class="inline-flex items-center rounded-full py-0.5 px-[7px] text-[10px] font-medium whitespace-nowrap"
+                      :class="item.status === 'active' ? 'bg-accent/10 text-accent-strong' : 'bg-danger/10 text-danger'"
+                    >{{ item.status === 'active' ? 'Extracted' : 'Removed' }}</span>
                     <span
                       v-if="item.reason"
-                      :class="['reason-badge', `reason-${item.reason}`]"
+                      class="inline-flex items-center rounded-full py-0.5 px-[7px] text-[10px] font-medium whitespace-nowrap"
+                      :class="{
+                        'bg-bg-warning-bg text-warning': item.reason === 'duplicate',
+                        'bg-[#ede7ff] text-[#6546c2]': item.reason === 'exclusion',
+                        'bg-success/10 text-success': item.reason === 'ai_filtered',
+                        'bg-warning-bg text-warning': item.reason === 'ai_filtered_edit',
+                        'bg-danger/10 text-danger': item.reason === 'manual'
+                      }"
                     >{{ reasonLabels[item.reason] }}</span>
                   </div>
                 </div>
@@ -156,8 +166,8 @@
           </div>
 
           <!-- Footer -->
-          <div class="footer">
-            <div class="footer-left">
+          <div class="flex justify-between items-center py-2 px-4 border-t border-hover text-xs text-text-secondary shrink-0">
+            <div class="flex items-center gap-3">
               <span v-if="resultsView === 'folders'">Total: {{ demoFolders.length }}</span>
               <span v-else>Selected: 0 / Total: {{ demoImages.length }}</span>
             </div>
@@ -165,41 +175,41 @@
         </div>
 
         <!-- Slides Export -->
-        <div v-if="activeTab === 'pdfmaker'" id="tour-pdfmaker-content" class="pdfmaker-demo">
-          <div class="toolbar">
-            <div class="toolbar-left">
-              <button class="sort-btn" disabled>
+        <div v-if="activeTab === 'pdfmaker'" id="tour-pdfmaker-content" class="flex flex-col h-full">
+          <div class="flex justify-between items-center py-2.5 px-4 border-b border-hover shrink-0">
+            <div class="flex items-center gap-2.5">
+              <button class="flex items-center gap-1 py-[5px] px-2.5 border border-border-input rounded-[5px] bg-surface text-text-secondary text-xs cursor-default opacity-70" disabled>
                 <svg width="16" height="16" viewBox="0 0 16 16">
                   <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
                 A→Z
               </button>
-              <button class="refresh-btn" disabled>
+              <button class="flex items-center gap-1 py-[5px] px-2.5 border border-border-input rounded-[5px] bg-surface text-text-secondary text-xs cursor-default opacity-70" disabled>
                 <svg width="16" height="16" viewBox="0 0 16 16">
                   <path d="M13.65 2.35A7.958 7.958 0 008 0a8 8 0 108 8h-2a6 6 0 11-1.76-4.24l-2.12 2.12H16V0l-2.35 2.35z" fill="currentColor"/>
                 </svg>
                 Refresh
               </button>
             </div>
-            <div class="toolbar-right">
-              <label class="reduce-toggle">
-                <input type="checkbox" checked disabled />
+            <div class="flex items-center gap-2.5">
+              <label class="flex items-center gap-[5px] text-xs text-text-secondary cursor-default">
+                <input type="checkbox" checked disabled class="w-4 h-4 accent-accent" />
                 <span>Reduce Size</span>
               </label>
-              <div class="reduce-config-group">
-                <select class="effort-select" disabled>
+              <div class="flex items-center gap-2">
+                <select class="py-0.5 px-1.5 border border-border-input rounded text-xs bg-surface" disabled>
                   <option>Standard</option>
                 </select>
-                <div class="config-item">
-                  <label class="config-label">Colors</label>
-                  <span class="config-value">256</span>
+                <div class="flex items-center gap-1 text-[11px]">
+                  <label class="text-text-muted">Colors</label>
+                  <span class="text-text font-medium">256</span>
                 </div>
-                <div class="config-item">
-                  <label class="config-label">Size</label>
-                  <span class="config-value">1280×720</span>
+                <div class="flex items-center gap-1 text-[11px]">
+                  <label class="text-text-muted">Size</label>
+                  <span class="text-text font-medium">1280×720</span>
                 </div>
               </div>
-              <button class="make-pdf-btn" disabled>
+              <button class="flex items-center gap-[5px] py-1.5 px-3.5 border-none rounded-[5px] bg-accent text-surface text-xs font-medium cursor-default opacity-60" disabled>
                 <svg width="16" height="16" viewBox="0 0 16 16">
                   <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1H4V8zm0 2h8v1H4v-1zm0 2h5v1H4v-1z" fill="currentColor"/>
                 </svg>
@@ -208,25 +218,25 @@
             </div>
           </div>
 
-          <div class="content-area">
-            <div class="folder-list pdf-folder-list">
+          <div class="flex-1 overflow-y-auto p-4">
+            <div class="flex flex-col gap-1">
               <div
                 v-for="folder in pdfFolders"
                 :key="folder.name"
-                class="folder-item"
-                :class="{ selected: folder.selected }"
+                class="flex items-center gap-2.5 w-full py-2.5 px-3.5 border rounded-lg bg-surface cursor-default text-left transition-colors duration-150 hover:bg-elevated"
+                :class="folder.selected ? 'bg-accent/10 border-accent' : 'border-hover'"
               >
-                <div class="item-checkbox">
-                  <input type="checkbox" :checked="folder.selected" disabled />
+                <div class="shrink-0">
+                  <input type="checkbox" :checked="folder.selected" disabled class="w-4 h-4 accent-accent" />
                 </div>
-                <div class="folder-icon">
+                <div class="shrink-0">
                   <svg width="24" height="24" viewBox="0 0 24 24">
                     <path d="M3 5v14h18V8h-9l-2-3H3z" fill="#f0c36d"/>
                     <path d="M3 8h18v11H3V8z" fill="#f7d994"/>
                   </svg>
                 </div>
-                <span class="folder-name">{{ folder.name }}</span>
-                <div class="drag-handle">
+                <span class="text-[13px] font-medium text-text whitespace-nowrap overflow-hidden text-ellipsis">{{ folder.name }}</span>
+                <div class="ml-auto text-text-muted shrink-0">
                   <svg width="20" height="20" viewBox="0 0 16 16">
                     <path d="M4 4h2v2H4zM4 7h2v2H4zM4 10h2v2H4zM10 4h2v2h-2zM10 7h2v2h-2zM10 10h2v2h-2z" fill="currentColor"/>
                   </svg>
@@ -235,7 +245,7 @@
             </div>
           </div>
 
-          <div class="footer">
+          <div class="flex justify-between items-center py-2 px-4 border-t border-hover text-xs text-text-secondary shrink-0">
             <span>Selected: {{ pdfFolders.filter(f => f.selected).length }} / Total: {{ pdfFolders.length }}</span>
           </div>
         </div>
@@ -292,474 +302,3 @@ defineExpose({
   switchToPdfMaker
 })
 </script>
-
-<style scoped>
-.tools-demo-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.4);
-}
-
-.tools-demo-modal {
-  width: 85%;
-  height: 80%;
-  max-width: 1100px;
-  max-height: 700px;
-  background-color: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* Title Bar */
-.tools-demo-title-bar {
-  display: flex;
-  align-items: center;
-  height: 38px;
-  background-color: #f0f0f0;
-  border-bottom: 1px solid #e0e0e0;
-  padding: 0 12px;
-  flex-shrink: 0;
-}
-
-.tab-buttons {
-  display: flex;
-  gap: 2px;
-}
-
-.tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  font-size: 12px;
-  color: #666;
-  cursor: default;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-
-.tab-btn.active {
-  background-color: rgba(0, 122, 204, 0.12);
-  color: #007acc;
-  font-weight: 500;
-}
-
-/* Content Area */
-.tools-demo-content {
-  flex: 1;
-  overflow: hidden;
-}
-
-.results-demo,
-.pdfmaker-demo {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-/* Toolbar */
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  border-bottom: 1px solid #e9ecef;
-  flex-shrink: 0;
-}
-
-.toolbar-left,
-.toolbar-right,
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.back-btn,
-.refresh-btn,
-.sort-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 5px;
-  background-color: white;
-  color: #555;
-  font-size: 12px;
-  cursor: default;
-}
-
-.back-btn:disabled,
-.refresh-btn:disabled,
-.sort-btn:disabled {
-  opacity: 0.7;
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #666;
-}
-
-.filter-select {
-  padding: 3px 6px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: white;
-  color: #333;
-}
-
-.delete-btn,
-.restore-btn,
-.clear-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 5px;
-  font-size: 12px;
-  cursor: default;
-}
-
-.delete-btn {
-  background-color: #fff5f5;
-  color: #c53030;
-  border-color: #feb2b2;
-}
-
-.restore-btn {
-  background-color: #f0fff4;
-  color: #276749;
-  border-color: #9ae6b4;
-}
-
-.clear-btn {
-  background-color: white;
-  color: #555;
-}
-
-.delete-btn:disabled,
-.restore-btn:disabled,
-.clear-btn:disabled {
-  opacity: 0.6;
-}
-
-/* Content */
-.content-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-}
-
-/* Folder list (Results View) */
-.folder-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.folder-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 16px;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  background-color: white;
-  cursor: default;
-  text-align: left;
-  transition: background-color 0.15s;
-}
-
-.folder-item:hover {
-  background-color: #f8f9fa;
-}
-
-.folder-item-last-visited {
-  background-color: #e7f1ff;
-  border-color: #7aa9e6;
-}
-
-.folder-icon {
-  flex-shrink: 0;
-}
-
-.folder-copy {
-  flex: 1;
-  min-width: 0;
-}
-
-.folder-mainline {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.folder-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.folder-counts {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.folder-count-text {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 11px;
-}
-
-.count-value {
-  font-weight: 600;
-  color: #333;
-}
-
-.count-label {
-  color: #888;
-}
-
-.folder-count-separator {
-  color: #ccc;
-  font-size: 11px;
-}
-
-.folder-chevron {
-  flex-shrink: 0;
-  color: #aaa;
-}
-
-/* Results Grid */
-.results-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 16px;
-}
-
-.result-item {
-  position: relative;
-  background-color: white;
-  border: 2px solid #e9ecef;
-  border-radius: 8px;
-  overflow: hidden;
-  transition: border-color 0.15s;
-}
-
-.result-item.removed {
-  border-color: #fecaca;
-  opacity: 0.85;
-}
-
-.item-thumbnail {
-  aspect-ratio: 16/9;
-  overflow: hidden;
-}
-
-.thumbnail-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.item-copy {
-  padding: 8px 10px;
-}
-
-.item-name {
-  font-size: 11px;
-  color: #555;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 4px;
-}
-
-.item-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.status-badge,
-.reason-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 2px 7px;
-  font-size: 10px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.status-badge.active {
-  background-color: #e7f3ff;
-  color: #1768a8;
-}
-
-.status-badge.cropped {
-  background-color: #edf0f3;
-  color: #58616b;
-}
-
-.status-badge.removed {
-  background-color: #ffe8e6;
-  color: #b63a30;
-}
-
-.reason-badge.reason-duplicate {
-  background-color: #fff2cc;
-  color: #8a5b00;
-}
-
-.reason-badge.reason-exclusion {
-  background-color: #ede7ff;
-  color: #6546c2;
-}
-
-.reason-badge.reason-ai_filtered {
-  background-color: #dff7ea;
-  color: #257550;
-}
-
-.reason-badge.reason-ai_filtered_edit {
-  background-color: #fff3d6;
-  color: #955800;
-}
-
-.reason-badge.reason-manual {
-  background-color: #ffe8e6;
-  color: #b63a30;
-}
-
-/* Footer */
-.footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 16px;
-  border-top: 1px solid #e9ecef;
-  font-size: 12px;
-  color: #666;
-  flex-shrink: 0;
-}
-
-.footer-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-/* Slides Export */
-.pdf-folder-list .folder-item {
-  gap: 10px;
-  padding: 10px 14px;
-}
-
-.pdf-folder-list .folder-item.selected {
-  background-color: #e7f1ff;
-  border-color: #7aa9e6;
-}
-
-.item-checkbox {
-  flex-shrink: 0;
-}
-
-.item-checkbox input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
-  accent-color: #007acc;
-}
-
-.drag-handle {
-  margin-left: auto;
-  color: #aaa;
-  flex-shrink: 0;
-}
-
-.reduce-toggle {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  color: #555;
-  cursor: default;
-}
-
-.reduce-toggle input[type="checkbox"] {
-  accent-color: #007acc;
-}
-
-.reduce-config-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.effort-select {
-  padding: 3px 6px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: white;
-}
-
-.config-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-}
-
-.config-label {
-  color: #888;
-}
-
-.config-value {
-  color: #333;
-  font-weight: 500;
-}
-
-.make-pdf-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
-  border: none;
-  border-radius: 5px;
-  background-color: #007acc;
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: default;
-}
-
-.make-pdf-btn:disabled {
-  opacity: 0.6;
-}
-</style>

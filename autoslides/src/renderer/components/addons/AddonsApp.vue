@@ -1,5 +1,5 @@
 <template>
-  <div class="addons-app">
+  <div class="w-full h-screen overflow-hidden bg-page">
     <AddonsWindow />
   </div>
 </template>
@@ -24,18 +24,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-<style scoped>
-.addons-app {
-  width: 100%;
-  height: 100vh;
-  overflow: hidden;
-  background-color: #f5f5f5;
-}
-
-@media (prefers-color-scheme: dark) {
-  .addons-app {
-    background-color: #1e1e1e;
-  }
-}
-</style>
