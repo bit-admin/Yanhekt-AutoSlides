@@ -2,14 +2,14 @@
   <div class="pdfmaker-window">
     <div class="toolbar">
       <div class="toolbar-left">
-        <button class="sort-btn" @click="toggleSortOrder">
+        <button class="btn" @click="toggleSortOrder">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
           {{ useCustomOrder ? $t('pdfmaker.customOrder') : $t('pdfmaker.sortAZ') }}
         </button>
 
-        <button class="refresh-btn" @click="refresh" :disabled="isLoading">
+        <button class="btn refresh-btn" @click="refresh" :disabled="isLoading">
           <svg width="16" height="16" viewBox="0 0 16 16" :class="{ spinning: isLoading }">
             <path d="M13.65 2.35A7.958 7.958 0 008 0a8 8 0 108 8h-2a6 6 0 11-1.76-4.24l-2.12 2.12H16V0l-2.35 2.35z" fill="currentColor"/>
           </svg>
@@ -118,7 +118,7 @@
         </div>
 
         <button
-          class="make-pdf-btn"
+          class="btn btn--primary"
           @click="handleMakePdf"
           :disabled="selectedItems.length === 0 || isGenerating"
         >
@@ -533,32 +533,6 @@ onUnmounted(() => {
   justify-content: flex-end;
 }
 
-.sort-btn,
-.refresh-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-surface);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.sort-btn:hover,
-.refresh-btn:hover:not(:disabled) {
-  background-color: var(--bg-hover);
-  border-color: var(--border-input);
-}
-
-.refresh-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .refresh-btn svg.spinning {
   animation: spin 1s linear infinite;
 }
@@ -779,31 +753,6 @@ onUnmounted(() => {
   margin: 0;
   cursor: pointer;
   accent-color: var(--accent);
-}
-
-.make-pdf-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.make-pdf-btn:hover:not(:disabled) {
-  background-color: var(--accent-strong);
-}
-
-.make-pdf-btn:disabled {
-  background-color: var(--border-strong);
-  cursor: not-allowed;
 }
 
 .progress-text {
