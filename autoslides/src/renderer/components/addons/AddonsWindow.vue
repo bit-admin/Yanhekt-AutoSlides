@@ -129,7 +129,7 @@ const startDrag = () => {
   justify-content: space-between;
   align-items: center;
   height: 38px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-page-alt);
   border-bottom: 1px solid var(--border-color);
   -webkit-app-region: drag;
   padding: 0 8px;

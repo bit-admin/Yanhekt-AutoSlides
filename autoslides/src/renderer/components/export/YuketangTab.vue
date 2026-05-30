@@ -214,7 +214,7 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-surface);
   cursor: pointer;
@@ -242,7 +242,7 @@ onMounted(() => {
 .lesson-id-input {
   width: 120px;
   padding: 5px 8px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
   background-color: var(--bg-modal);
@@ -257,7 +257,7 @@ onMounted(() => {
 
 .format-select {
   padding: 5px 8px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
   font-size: 12px;

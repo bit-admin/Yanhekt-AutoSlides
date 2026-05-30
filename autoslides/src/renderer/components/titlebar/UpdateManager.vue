@@ -739,7 +739,7 @@ defineExpose({
 
 .cancel-download-btn:hover {
   background: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: var(--border-input);
 }
 
 .download-complete-section {
@@ -785,7 +785,7 @@ defineExpose({
 
 .action-btn:hover {
   background: var(--bg-elevated);
-  border-color: var(--border-strong);
+  border-color: var(--border-input);
 }
 
 .action-btn.primary {

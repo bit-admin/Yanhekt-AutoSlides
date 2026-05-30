@@ -190,7 +190,7 @@ const phase3Width = computed(() => fillWidthForPhase(props.state.phase3))
   height: 100%;
   border-radius: 2px;
   transition: width 0.3s ease;
-  background-color: var(--border-strong);
+  background-color: var(--border-input);
 }
 
 .pp-phase-fill.active {

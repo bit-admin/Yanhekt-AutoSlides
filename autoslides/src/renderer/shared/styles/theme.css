@@ -75,6 +75,11 @@
   --success-bg: #f0fff4;
   --success-border: #9ae6b4;
   --warning-bg: #fff8e1;
+
+  /* Purple buttons (screen/download) */
+  --purple: #6f42c1;
+  --purple-hover-bg: #f3e5f5;
+  --purple-hover-border: #59359a;
   --warning-border: #ffeaa7;
 
   /* Form controls */
@@ -166,6 +171,11 @@
     --success-bg: #1a4a2e;
     --success-border: #276749;
     --warning-bg: #4a3800;
+
+    /* Purple buttons (screen/download) */
+    --purple: #cc99ff;
+    --purple-hover-bg: #2d1a3d;
+    --purple-hover-border: #d9b3ff;
     --warning-border: #665c2a;
 
     /* Hover tint */

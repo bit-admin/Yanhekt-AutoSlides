@@ -1154,7 +1154,7 @@ const confirmClearTrash = async () => {
   align-items: center;
   gap: 4px;
   padding: 6px 10px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
   color: var(--text-primary);
@@ -1266,7 +1266,7 @@ const confirmClearTrash = async () => {
   align-items: center;
   gap: 4px;
   padding: 6px 12px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
   color: var(--text-primary);
@@ -1551,7 +1551,7 @@ const confirmClearTrash = async () => {
   gap: 12px;
   width: 100%;
   padding: 12px 14px;
-  border: 1px solid #e1e6eb;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   background-color: var(--bg-input);
   text-align: left;
@@ -1561,7 +1561,7 @@ const confirmClearTrash = async () => {
 
 .folder-item:hover {
   background-color: var(--bg-hover);
-  border-color: #ced7e0;
+  border-color: var(--border-strong);
 }
 
 .folder-item-last-visited {
@@ -1733,7 +1733,7 @@ const confirmClearTrash = async () => {
   background-color: var(--bg-elevated);
   border-top: 1px solid var(--border-color);
   font-size: 12px;
-  color: var(--text-primary);
+  color: var(--text-secondary);
 }
 
 .footer-left {
@@ -1745,7 +1745,7 @@ const confirmClearTrash = async () => {
 .select-all-btn {
   padding: 4px 10px;
   font-size: 12px;
-  border: 1px solid #ced7e0;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   background-color: var(--bg-input);
   color: var(--text-primary);
@@ -1779,9 +1779,9 @@ const confirmClearTrash = async () => {
   padding: 3px 8px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   font-size: 12px;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
   transition: background-color 0.15s, border-color 0.15s;
@@ -2072,7 +2072,7 @@ const confirmClearTrash = async () => {
 
 .info-label {
   width: 110px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   font-size: 12px;
 }
 

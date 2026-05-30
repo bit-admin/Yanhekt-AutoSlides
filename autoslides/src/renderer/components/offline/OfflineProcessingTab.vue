@@ -354,7 +354,7 @@ const autoCropOverallProgress = computed(() => {
 
 .browse-btn:hover:not(:disabled) {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: var(--border-input);
 }
 
 .browse-btn:disabled {
@@ -383,7 +383,7 @@ const autoCropOverallProgress = computed(() => {
 
 .toggle-item:hover {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: var(--border-input);
 }
 
 .toggle-item.toggle-item-disabled {
@@ -474,7 +474,7 @@ const autoCropOverallProgress = computed(() => {
 
 .secondary-btn {
   padding: 8px 16px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-surface);
   font-size: 12px;
@@ -485,7 +485,7 @@ const autoCropOverallProgress = computed(() => {
 
 .secondary-btn:hover {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: var(--border-input);
 }
 
 .primary-btn {

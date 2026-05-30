@@ -551,7 +551,7 @@ onUnmounted(() => {
 .sort-btn:hover,
 .refresh-btn:hover:not(:disabled) {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: var(--border-input);
 }
 
 .refresh-btn:disabled {
@@ -579,7 +579,7 @@ onUnmounted(() => {
 
 .reduce-toggle:hover {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: var(--border-input);
 }
 
 .reduce-toggle input {
@@ -670,7 +670,7 @@ onUnmounted(() => {
 
 .export-menu-toggle:hover {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: var(--border-input);
 }
 
 .export-menu-chevron {
@@ -770,7 +770,7 @@ onUnmounted(() => {
 
 .cover-toggle:hover {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: var(--border-input);
 }
 
 .cover-toggle input {
@@ -1071,7 +1071,7 @@ onUnmounted(() => {
 
 .group-toggle:hover:not(.disabled) {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: var(--border-input);
 }
 
 .group-toggle.disabled {

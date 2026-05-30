@@ -323,7 +323,7 @@ onUnmounted(() => {
   align-items: flex-start;
   margin-bottom: 16px;
   gap: 24px;
-  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-modal) 100%);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
   border-radius: 8px;
   padding: 10px 24px;
   box-shadow: 0 2px 12px var(--shadow-sm);
@@ -478,7 +478,7 @@ onUnmounted(() => {
 }
 
 .status-ended {
-  background-color: var(--border-color);
+  background-color: var(--bg-page-alt);
   color: var(--text-secondary);
 }
 
@@ -778,7 +778,7 @@ onUnmounted(() => {
   width: 16px;
   height: 16px;
   border: none;
-  background: var(--overlay-light);
+  background: var(--hover-tint-strong);
   border-radius: 50%;
   padding: 0;
   color: var(--text-secondary);
@@ -889,7 +889,7 @@ onUnmounted(() => {
 }
 
 .modal-cancel {
-  background: var(--border-color);
+  background: var(--bg-hover);
   color: var(--text-primary);
   border-color: var(--border-strong);
 }

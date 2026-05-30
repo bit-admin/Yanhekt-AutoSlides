@@ -116,9 +116,9 @@ defineEmits<{
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--text-secondary);
   border-radius: 4px;
-  background-color: var(--border-strong);
+  background-color: var(--text-secondary);
   color: var(--text-on-accent);
   font-size: 13px;
   cursor: pointer;

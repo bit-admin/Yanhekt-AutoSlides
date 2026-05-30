@@ -425,7 +425,7 @@ const checkForUpdates = () => {
   display: flex;
   align-items: center;
   height: 36px;
-  background: var(--bg-surface);
+  background: var(--bg-modal);
   border-bottom: 1px solid var(--border-color);
   user-select: none;
   position: relative;
@@ -434,7 +434,7 @@ const checkForUpdates = () => {
 
 .titlebar.is-macos {
   height: 36px;
-  background: var(--bg-surface);
+  background: var(--bg-modal);
   border-bottom: 1px solid var(--border-color);
 }
 

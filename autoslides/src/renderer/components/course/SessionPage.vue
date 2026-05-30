@@ -218,7 +218,7 @@ onMounted(() => {
 .header {
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   margin-bottom: 24px;
   overflow: hidden;
 }
@@ -354,7 +354,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   border-radius: 8px;
   padding: 4px;
 }
@@ -440,7 +440,7 @@ onMounted(() => {
   gap: 8px;
   margin-bottom: 16px;
   padding: 16px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   border-radius: 8px;
   border: 1px solid var(--border-color);
 }
@@ -487,13 +487,13 @@ onMounted(() => {
 }
 
 .download-screen-btn {
-  color: #cc99ff;
-  border-color: #cc99ff;
+  color: var(--purple);
+  border-color: var(--purple);
 }
 
 .download-screen-btn:hover {
-  background-color: #2d1a3d;
-  border-color: #d9b3ff;
+  background-color: var(--purple-hover-bg);
+  border-color: var(--purple-hover-border);
 }
 
 .session-actions {
@@ -552,13 +552,13 @@ onMounted(() => {
 }
 
 .screen-btn {
-  color: #cc99ff;
-  border-color: #cc99ff;
+  color: var(--purple);
+  border-color: var(--purple);
 }
 
 .screen-btn:hover {
-  background-color: #2d1a3d;
-  border-color: #d9b3ff;
+  background-color: var(--purple-hover-bg);
+  border-color: var(--purple-hover-border);
 }
 
 .error-message {

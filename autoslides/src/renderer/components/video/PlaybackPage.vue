@@ -1164,7 +1164,7 @@ onUnmounted(async () => {
 .header {
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   margin-bottom: 24px;
   overflow: hidden;
 }
@@ -1199,9 +1199,7 @@ onUnmounted(async () => {
 .back-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: var(--bg-modal);
-  color: var(--text-muted);
-  border-color: var(--border-strong);
+  background-color: var(--bg-elevated);
 }
 
 .title-info {
@@ -1260,8 +1258,7 @@ onUnmounted(async () => {
 .refresh-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: var(--bg-modal);
-  border-color: var(--border-strong);
+  background-color: var(--bg-elevated);
 }
 
 .expand-btn {
@@ -1342,7 +1339,7 @@ onUnmounted(async () => {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid var(--border-strong);
+  border: 4px solid var(--border-color);
   border-top: 4px solid var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -1372,7 +1369,7 @@ onUnmounted(async () => {
 .error-info {
   margin: 12px 0;
   padding: 8px 12px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   border-radius: 4px;
   border-left: 3px solid var(--accent);
 }
@@ -1449,7 +1446,7 @@ onUnmounted(async () => {
   position: relative;
   width: 100%;
   background-color: #000;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--bg-hover);
   border-top: none;
   border-radius: 0;
   overflow: hidden;
@@ -1458,8 +1455,8 @@ onUnmounted(async () => {
 
 .video-container.collapsed {
   height: 60px;
-  background-color: var(--bg-modal);
-  border-color: var(--border-strong);
+  background-color: var(--bg-elevated);
+  border-color: var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1840,9 +1837,9 @@ onUnmounted(async () => {
 .details-section {
   margin-top: 12px;
   padding: 12px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   border-radius: 6px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--bg-hover);
 }
 
 .detail-item {
@@ -1918,8 +1915,8 @@ onUnmounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background-color: var(--bg-modal);
-  border: 1px solid var(--border-strong);
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--bg-hover);
   border-radius: 0 0 8px 8px;
 }
 
@@ -2041,8 +2038,8 @@ onUnmounted(async () => {
 /* Slide Gallery */
 .slide-gallery {
   margin-top: 24px;
-  background-color: var(--bg-modal);
-  border: 1px solid var(--border-strong);
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--bg-hover);
   border-radius: 8px;
 }
 
@@ -2086,7 +2083,7 @@ onUnmounted(async () => {
 
 /* Post-processing status bar styles */
 .post-process-status-bar {
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 8px 12px;

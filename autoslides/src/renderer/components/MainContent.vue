@@ -271,8 +271,8 @@ onUnmounted(() => {
 
 .nav-btn.active {
   background-color: var(--bg-page);
-  border-bottom-color: var(--accent-strong);
-  color: var(--accent-strong);
+  border-bottom-color: var(--accent);
+  color: var(--accent);
 }
 
 .content-area {

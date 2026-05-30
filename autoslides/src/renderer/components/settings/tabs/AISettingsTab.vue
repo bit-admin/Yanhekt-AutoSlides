@@ -1314,7 +1314,7 @@ const openCopilotVerificationUrl = () => {
   font-weight: 600;
   background-color: var(--badge-active-bg);
   color: var(--badge-active-text);
-  border: 1px solid var(--accent-deep);
+  border: 1px solid var(--badge-active-bg);
 }
 
 .variant-badge-distinguish {
@@ -1355,7 +1355,7 @@ const openCopilotVerificationUrl = () => {
 .setting-description .json-example {
   font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
   font-size: 10px;
-  background-color: var(--overlay-light);
+  background-color: var(--hover-tint);
   padding: 2px 5px;
   border-radius: 3px;
   color: var(--text-primary);
@@ -1475,7 +1475,7 @@ const openCopilotVerificationUrl = () => {
   font-size: 10px;
   color: var(--text-muted);
   line-height: 1.5;
-  background-color: var(--overlay-light);
+  background-color: var(--hover-tint);
   border-radius: 4px;
 }
 

@@ -601,7 +601,7 @@ defineExpose({
 .login-section {
   padding: 16px;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
 }
 
 .login-form {
@@ -871,7 +871,7 @@ defineExpose({
   align-items: center;
   gap: 4px;
   padding: 6px 12px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
@@ -952,7 +952,7 @@ defineExpose({
   border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 12px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -983,7 +983,7 @@ defineExpose({
   flex: 1;
   padding: 6px 8px;
   border: 1px solid var(--border-color);
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   color: var(--text-secondary);
   font-size: 11px;
   border-radius: 4px;
@@ -1032,7 +1032,7 @@ defineExpose({
 .verification-unified-control {
   display: flex;
   align-items: stretch;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   overflow: hidden;
@@ -1130,7 +1130,7 @@ defineExpose({
 .status-section {
   padding: 16px;
   border-top: 1px solid var(--border-color);
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
 }
 
 .status-row {
@@ -1256,7 +1256,7 @@ defineExpose({
 .setting-description .json-example {
   font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
   font-size: 10px;
-  background-color: var(--overlay-light);
+  background-color: var(--hover-tint);
   padding: 2px 5px;
   border-radius: 3px;
   color: var(--text-primary);
@@ -1286,7 +1286,7 @@ defineExpose({
   gap: 8px;
   padding: 16px;
   border-top: 1px solid var(--border-color);
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   flex-shrink: 0;
 }
 
@@ -1300,7 +1300,7 @@ defineExpose({
 }
 
 .cancel-btn {
-  background-color: var(--bg-hover);
+  background-color: var(--bg-elevated);
   color: var(--text-secondary);
 }
 
@@ -1331,7 +1331,7 @@ defineExpose({
   gap: 4px;
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-modal);
   color: var(--text-primary);
@@ -1343,7 +1343,7 @@ defineExpose({
 
 .tools-trigger:hover {
   background-color: var(--bg-hover);
-  border-color: var(--text-secondary);
+  border-color: var(--border-strong);
 }
 
 .tools-trigger svg:first-child {
