@@ -3,7 +3,7 @@
     <div class="modal-content extractor-install-modal" @click.stop>
       <div class="modal-header">
         <h3>{{ $t('extractorInstall.title') }}</h3>
-        <button @click="onClose" class="close-btn">
+        <button @click="onClose" class="btn--icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -18,13 +18,13 @@
 
         <div v-else-if="loadError" class="error-section">
           <p>{{ $t('extractorInstall.loadError') }}: {{ loadError }}</p>
-          <button class="action-btn" @click="loadRelease">{{ $t('extractorInstall.retry') }}</button>
+          <button class="btn action-btn" @click="loadRelease">{{ $t('extractorInstall.retry') }}</button>
         </div>
 
         <template v-else-if="release">
           <!-- Version Info -->
           <div class="version-header">
-            <div class="version-badge">{{ release.tagName }}</div>
+            <div class="badge badge--version">{{ release.tagName }}</div>
             <div class="version-meta">
               <span v-if="release.publishedAt" class="publish-date">{{ formatDate(release.publishedAt) }}</span>
             </div>
@@ -43,7 +43,7 @@
             <!-- Linux: Build from Source notice -->
             <div v-if="isLinux" class="build-from-source-section">
               <p>{{ $t('extractorInstall.linuxBuildNotice') }}</p>
-              <button class="action-btn primary" @click="openRepo">
+              <button class="btn btn--primary action-btn" @click="openRepo">
                 {{ $t('extractorInstall.openRepo') }}
               </button>
             </div>
@@ -51,7 +51,7 @@
             <!-- No matching asset for current platform -->
             <div v-else-if="!release.assets || release.assets.length === 0" class="build-from-source-section">
               <p>{{ $t('extractorInstall.noPlatformAsset') }}</p>
-              <button class="action-btn" @click="openRepo">{{ $t('extractorInstall.openRepo') }}</button>
+              <button class="btn action-btn" @click="openRepo">{{ $t('extractorInstall.openRepo') }}</button>
             </div>
 
             <!-- Asset list (idle) -->
@@ -91,7 +91,7 @@
               </div>
               <div class="progress-footer">
                 <span class="progress-bytes">{{ formatBytes(downloadProgress.downloaded) }} / {{ formatBytes(downloadProgress.total) }}</span>
-                <button class="cancel-download-btn" @click="cancelDownload">
+                <button class="btn btn--sm" @click="cancelDownload">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"/>
                     <line x1="6" y1="6" x2="18" y2="18"/>
@@ -110,13 +110,13 @@
                 <span>{{ $t('extractorInstall.downloadComplete') }}</span>
               </div>
               <div class="complete-actions">
-                <button class="action-btn" @click="openDownloadFolder">
+                <button class="btn action-btn" @click="openDownloadFolder">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                   </svg>
                   {{ $t('extractorInstall.openDownloadFolder') }}
                 </button>
-                <button class="action-btn primary" @click="installInstaller">
+                <button class="btn btn--primary action-btn" @click="installInstaller">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                     <polyline points="7,10 12,15 17,10"/>
@@ -142,7 +142,7 @@
       </div>
 
       <div class="modal-actions">
-        <button class="save-btn" @click="onClose">{{ $t('extractorInstall.close') }}</button>
+        <button class="btn btn--primary" @click="onClose">{{ $t('extractorInstall.close') }}</button>
       </div>
     </div>
   </div>
@@ -348,7 +348,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: var(--z-super-modal);
 }
 
 .modal-content {
@@ -377,20 +377,6 @@ onBeforeUnmount(() => {
   color: var(--text-primary);
 }
 
-.close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  color: var(--text-secondary);
-  transition: background-color 0.2s;
-}
-
-.close-btn:hover {
-  background-color: var(--bg-elevated);
-}
-
 .modal-body {
   flex: 1;
   display: flex;
@@ -410,22 +396,6 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-.save-btn {
-  padding: 8px 16px;
-  border: 1px solid var(--accent);
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.save-btn:hover {
-  background-color: var(--accent-hover);
-  border-color: var(--accent-hover);
-}
-
 .loading-section,
 .error-section {
   padding: 16px 0;
@@ -442,15 +412,6 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
-}
-
-.version-badge {
-  background: var(--accent);
-  color: var(--text-on-accent);
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 14px;
-  font-weight: 600;
 }
 
 .version-meta {
@@ -643,25 +604,6 @@ onBeforeUnmount(() => {
   color: var(--text-secondary);
 }
 
-.cancel-download-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: transparent;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cancel-download-btn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-strong);
-}
-
 /* Download complete */
 .download-complete-section {
   padding: 12px;
@@ -691,34 +633,6 @@ onBeforeUnmount(() => {
 
 .action-btn {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--border-input);
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.action-btn:hover {
-  background: var(--bg-page);
-  border-color: var(--border-strong);
-}
-
-.action-btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--text-on-accent);
-}
-
-.action-btn.primary:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
 }
 
 /* Quarantine notice */
