@@ -12,7 +12,7 @@
           :class="{ 'placeholder-text': !inputPath }"
           :title="inputPath"
         />
-        <button class="browse-btn" @click="selectInput" :disabled="isRunning">
+        <button class="btn browse-btn" @click="selectInput" :disabled="isRunning">
           {{ $t('compressLecture.browse') }}
         </button>
       </div>
@@ -29,12 +29,12 @@
           :class="{ 'placeholder-text': !outputPath && !suggestedOutputPath }"
           :title="outputPath || suggestedOutputPath"
         />
-        <button class="browse-btn" @click="selectOutput" :disabled="isRunning || !inputPath">
+        <button class="btn browse-btn" @click="selectOutput" :disabled="isRunning || !inputPath">
           {{ $t('compressLecture.browse') }}
         </button>
         <button
           v-if="hasCustomOutputPath"
-          class="secondary-btn"
+          class="btn"
           @click="useSuggestedOutput"
           :disabled="isRunning || !inputPath"
         >
@@ -143,26 +143,26 @@
     </div>
 
     <div class="action-row">
-      <button class="secondary-btn" @click="preview" :disabled="isRunning || !inputPath">
+      <button class="btn" @click="preview" :disabled="isRunning || !inputPath">
         {{ $t('compressLecture.previewCommand') }}
       </button>
       <button
         v-if="isRunning"
-        class="danger-btn"
+        class="btn danger-btn"
         @click="cancel"
       >
         {{ $t('compressLecture.cancel') }}
       </button>
       <button
         v-else
-        class="primary-btn"
+        class="btn btn--primary"
         @click="start"
         :disabled="!canStart"
       >
         {{ $t('compressLecture.start') }}
       </button>
       <button
-        class="secondary-btn"
+        class="btn"
         @click="openOutput"
         :disabled="!lastOutputPath && !outputPath"
       >
@@ -376,35 +376,9 @@ const statusText = computed(() => {
   flex-wrap: wrap;
 }
 
-.browse-btn,
-.primary-btn,
-.secondary-btn,
 .danger-btn {
-  border-radius: 4px;
-  border: 1px solid var(--border-input);
-  background: var(--bg-input);
-  font-size: 12px;
-  padding: 7px 14px;
-  cursor: pointer;
-}
-
-.primary-btn {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--text-on-accent);
-}
-
-.primary-btn:disabled,
-.secondary-btn:disabled,
-.browse-btn:disabled,
-.danger-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.danger-btn {
-  border-color: var(--danger);
   color: var(--danger);
+  border-color: var(--danger);
 }
 
 .status-row {
