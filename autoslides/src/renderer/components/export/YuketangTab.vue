@@ -4,12 +4,12 @@
     <div class="toolbar">
       <div class="toolbar-left">
         <!-- Nav Buttons -->
-        <button class="nav-btn" @click="goBack" :title="$t('pdfmaker.back')">
+        <button class="btn nav-btn" @click="goBack" :title="$t('pdfmaker.back')">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
         </button>
-        <button class="nav-btn" @click="goHome" title="Home">
+        <button class="btn nav-btn" @click="goHome" title="Home">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M2.5 8L8 2.5 13.5 8M4 7v5.5a1 1 0 001 1h2v-3h2v3h2a1 1 0 001-1V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
@@ -19,7 +19,7 @@
         <div class="lesson-id-group">
           <label class="field-label">{{ $t('yuketang.lessonId') }}</label>
           <input
-            class="lesson-id-input"
+            class="text-input lesson-id-input"
             :value="lessonId"
             :placeholder="$t('yuketang.lessonIdPlaceholder')"
             readonly
@@ -31,7 +31,7 @@
         <!-- Format -->
         <div class="format-group">
           <label class="field-label">{{ $t('yuketang.format') }}</label>
-          <select v-model="exportFormat" class="format-select">
+          <select v-model="exportFormat" class="text-input format-select">
             <option value="pdf">{{ $t('yuketang.formatPdf') }}</option>
             <option value="images">{{ $t('yuketang.formatImages') }}</option>
           </select>
@@ -39,7 +39,7 @@
 
         <!-- Export Button -->
         <button
-          class="export-btn"
+          class="btn btn--primary"
           @click="startExport"
           :disabled="!canExport"
         >
@@ -209,22 +209,8 @@ onMounted(() => {
 }
 
 .nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-surface);
-  cursor: pointer;
-  transition: all 0.2s;
-  color: var(--text-secondary);
-}
-
-.nav-btn:hover {
-  background-color: var(--bg-hover);
-  border-color: var(--border-strong);
 }
 
 .lesson-id-group {
@@ -233,20 +219,8 @@ onMounted(() => {
   gap: 6px;
 }
 
-.field-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
 .lesson-id-input {
   width: 120px;
-  padding: 5px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: var(--bg-modal);
-  color: var(--text-secondary);
 }
 
 .format-group {
@@ -256,42 +230,7 @@ onMounted(() => {
 }
 
 .format-select {
-  padding: 5px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  font-size: 12px;
   cursor: pointer;
-}
-
-.format-select:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.export-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
-  border: none;
-  border-radius: 4px;
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.export-btn:hover:not(:disabled) {
-  background-color: var(--accent-strong);
-}
-
-.export-btn:disabled {
-  background-color: var(--border-strong);
-  cursor: not-allowed;
 }
 
 .spinner-small {
