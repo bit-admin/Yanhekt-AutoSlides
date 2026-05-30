@@ -4,7 +4,7 @@
       <div class="modal-header">
         <h3>{{ slide.title }}</h3>
         <div class="modal-actions">
-          <button @click="$emit('delete', slide)" class="modal-delete-btn" title="Move slide to trash">
+          <button @click="$emit('delete', slide)" class="btn btn--danger modal-delete-btn" title="Move slide to trash">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3,6 5,6 21,6"/>
               <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2"/>
@@ -93,22 +93,7 @@ defineEmits<{
 }
 
 .modal-delete-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--danger);
-  border-radius: 4px;
-  background-color: var(--danger);
-  color: var(--text-on-accent);
   font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.modal-delete-btn:hover {
-  background-color: var(--danger-hover);
-  border-color: var(--danger-hover);
 }
 
 .modal-close-btn {

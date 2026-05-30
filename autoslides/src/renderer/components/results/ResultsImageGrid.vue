@@ -235,23 +235,23 @@ const getCropLabel = (item: ResultsItem) => {
 }
 
 .reason-badge.reason-duplicate {
-  background-color: var(--warning-bg);
-  color: var(--warning);
+  background-color: var(--reason-duplicate-bg);
+  color: var(--reason-duplicate-text);
 }
 
 .reason-badge.reason-exclusion {
-  background-color: #ede7ff;
-  color: #6546c2;
+  background-color: var(--reason-exclusion-bg);
+  color: var(--reason-exclusion-text);
 }
 
 .reason-badge.reason-ai_filtered {
-  background-color: var(--success-bg);
-  color: var(--success);
+  background-color: var(--reason-ai-bg);
+  color: var(--reason-ai-text);
 }
 
 .reason-badge.reason-ai_filtered_edit {
-  background-color: var(--warning-bg);
-  color: var(--warning);
+  background-color: var(--reason-ai-edit-bg);
+  color: var(--reason-ai-edit-text);
 }
 
 .reason-badge.reason-manual {
