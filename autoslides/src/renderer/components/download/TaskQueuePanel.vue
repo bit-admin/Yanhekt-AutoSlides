@@ -5,7 +5,7 @@
       <div class="queue-controls">
         <button
           @click="toggleTaskQueue"
-          :class="['control-btn', taskStats.isProcessing ? 'pause-btn' : 'start-btn']"
+          :class="['btn', 'btn--sm', taskStats.isProcessing ? 'pause-btn' : 'start-btn']"
           :title="taskStats.isProcessing ? 'Pause Queue' : 'Start Queue'"
           :disabled="!taskStats.hasQueuedTasks && !taskStats.isProcessing"
         >
@@ -18,7 +18,7 @@
           </svg>
           {{ taskStats.isProcessing ? $t('tasks.pause') : $t('tasks.start') }}
         </button>
-        <button @click="clearCompletedTasks" class="control-btn clear-btn" title="Clear Completed">
+        <button @click="clearCompletedTasks" class="btn btn--sm clear-btn" title="Clear Completed">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3,6 5,6 21,6"/>
             <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"/>
@@ -159,40 +159,9 @@ const removeTask = (taskId: string) => {
   height: 100%;
 }
 
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.section-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
 .queue-controls {
   display: flex;
   gap: 8px;
-}
-
-.control-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-surface);
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.control-btn:hover {
-  background-color: var(--bg-elevated);
 }
 
 .clear-btn {
@@ -223,16 +192,6 @@ const removeTask = (taskId: string) => {
 .pause-btn:hover {
   background-color: var(--warning-bg);
   border-color: var(--warning);
-}
-
-.control-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.control-btn:disabled:hover {
-  background-color: var(--bg-surface);
-  border-color: var(--border-input);
 }
 
 .task-queue {

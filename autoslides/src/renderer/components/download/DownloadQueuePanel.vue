@@ -3,14 +3,14 @@
     <div class="section-header">
       <h3>{{ $t('downloads.downloadList') }}</h3>
       <div class="queue-controls">
-        <button @click="cancelAllDownloads" class="control-btn cancel-all-btn" title="Cancel All">
+        <button @click="cancelAllDownloads" class="btn btn--sm cancel-all-btn" title="Cancel All">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
           {{ $t('downloads.cancelAll') }}
         </button>
-        <button @click="clearCompleted" class="control-btn clear-btn" title="Clear Completed">
+        <button @click="clearCompleted" class="btn btn--sm clear-btn" title="Clear Completed">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3,6 5,6 21,6"/>
             <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"/>
@@ -214,40 +214,9 @@ const extractionBarWidth = (item: DownloadItem): number => {
   height: 100%;
 }
 
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.section-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
 .queue-controls {
   display: flex;
   gap: 8px;
-}
-
-.control-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-surface);
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.control-btn:hover {
-  background-color: var(--bg-elevated);
 }
 
 .cancel-all-btn {
