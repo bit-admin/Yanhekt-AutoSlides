@@ -30,6 +30,6 @@ onMounted(async () => {
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  background-color: var(--bg-page);
+  background-color: var(--bg-surface);
 }
 </style>

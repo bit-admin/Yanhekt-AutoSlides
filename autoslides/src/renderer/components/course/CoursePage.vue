@@ -323,7 +323,7 @@ onUnmounted(() => {
   align-items: flex-start;
   margin-bottom: 16px;
   gap: 24px;
-  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-modal) 100%);
   border-radius: 8px;
   padding: 10px 24px;
   box-shadow: 0 2px 12px var(--shadow-sm);
@@ -335,7 +335,7 @@ onUnmounted(() => {
   font-size: 28px;
   font-weight: 700;
   color: var(--text-primary);
-  background: linear-gradient(135deg, var(--accent) 0%, #0056b3 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -365,14 +365,18 @@ onUnmounted(() => {
   color: var(--text-primary);
 }
 
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
 .search-btn, .fetch-btn {
   display: flex;
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border: 1px solid var(--accent);
+  border: 1px solid var(--accent-deep);
   border-radius: 4px;
-  background-color: var(--accent);
+  background-color: var(--accent-deep);
   color: var(--text-on-accent);
   font-size: 14px;
   cursor: pointer;
@@ -380,7 +384,7 @@ onUnmounted(() => {
 }
 
 .search-btn:hover, .fetch-btn:hover {
-  background-color: var(--accent-strong);
+  background-color: var(--accent-deep-hover);
 }
 
 .fetch-btn {
@@ -404,7 +408,7 @@ onUnmounted(() => {
   background-color: var(--danger-bg);
   border: 1px solid var(--danger-border);
   border-radius: 4px;
-  color: var(--danger);
+  color: var(--danger-bright);
   font-size: 14px;
   flex-shrink: 0;
 }
@@ -449,7 +453,7 @@ onUnmounted(() => {
   padding: 10px;
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-card);
   cursor: pointer;
   transition: all 0.2s;
   height: 140px; /* Fixed height for consistent layout */
@@ -474,7 +478,7 @@ onUnmounted(() => {
 }
 
 .status-ended {
-  background-color: var(--bg-page);
+  background-color: var(--border-color);
   color: var(--text-secondary);
 }
 
@@ -489,8 +493,8 @@ onUnmounted(() => {
 }
 
 .status-unknown {
-  background-color: var(--bg-elevated);
-  color: var(--border-strong);
+  background-color: var(--bg-modal);
+  color: var(--text-muted);
 }
 
 .course-id {
@@ -501,7 +505,7 @@ onUnmounted(() => {
   border-radius: 3px;
   font-size: 10px;
   font-weight: 600;
-  background-color: var(--bg-hover);
+  background-color: var(--border-color);
   color: var(--text-secondary);
 }
 
@@ -583,7 +587,7 @@ onUnmounted(() => {
   padding: 12px 0;
   border-top: 1px solid var(--border-color);
   flex-shrink: 0; /* Prevent pagination from shrinking */
-  background-color: var(--bg-surface); /* Ensure visibility */
+  background-color: var(--bg-modal); /* Ensure visibility */
 }
 
 .page-btn {
@@ -594,14 +598,14 @@ onUnmounted(() => {
   height: 32px;
   border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .page-btn:hover:not(:disabled) {
   border-color: var(--accent);
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-hover);
 }
 
 .page-btn:disabled {
@@ -629,7 +633,7 @@ onUnmounted(() => {
   padding: 8px 12px;
   border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   color: var(--text-primary);
   font-size: 14px;
   cursor: pointer;
@@ -648,7 +652,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   z-index: 1000;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-card);
   border: 1px solid var(--border-input);
   border-radius: 4px;
   box-shadow: 0 2px 8px var(--shadow-sm);
@@ -672,7 +676,7 @@ onUnmounted(() => {
 }
 
 .semester-option:hover {
-  background-color: var(--bg-page);
+  background-color: var(--bg-hover);
 }
 
 .semester-option input[type="checkbox"] {
@@ -749,7 +753,7 @@ onUnmounted(() => {
   gap: 6px;
   width: 88px;
   height: 64px;
-  background: var(--bg-surface);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   cursor: pointer;
@@ -774,7 +778,7 @@ onUnmounted(() => {
   width: 16px;
   height: 16px;
   border: none;
-  background: var(--shadow-md);
+  background: var(--overlay-light);
   border-radius: 50%;
   padding: 0;
   color: var(--text-secondary);
@@ -809,8 +813,8 @@ onUnmounted(() => {
 
 .course-shortcut-add {
   border-style: dashed;
-  border-color: var(--border-strong);
-  background: var(--bg-elevated);
+  border-color: var(--border-color);
+  background: var(--bg-modal);
 }
 
 .course-shortcut-add:hover {
@@ -819,7 +823,7 @@ onUnmounted(() => {
 }
 
 .shortcut-add-icon {
-  color: var(--text-muted);
+  color: var(--text-dim);
 }
 
 .course-shortcut-add:hover .shortcut-add-icon {
@@ -885,9 +889,9 @@ onUnmounted(() => {
 }
 
 .modal-cancel {
-  background: var(--bg-elevated);
+  background: var(--border-color);
   color: var(--text-primary);
-  border-color: var(--border-color);
+  border-color: var(--border-strong);
 }
 
 .modal-cancel:hover {

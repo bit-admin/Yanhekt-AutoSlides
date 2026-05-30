@@ -1164,7 +1164,7 @@ onUnmounted(async () => {
 .header {
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   margin-bottom: 24px;
   overflow: hidden;
 }
@@ -1199,7 +1199,9 @@ onUnmounted(async () => {
 .back-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
+  color: var(--text-muted);
+  border-color: var(--border-strong);
 }
 
 .title-info {
@@ -1258,7 +1260,8 @@ onUnmounted(async () => {
 .refresh-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
+  border-color: var(--border-strong);
 }
 
 .expand-btn {
@@ -1270,6 +1273,7 @@ onUnmounted(async () => {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -1338,7 +1342,7 @@ onUnmounted(async () => {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid var(--bg-hover);
+  border: 4px solid var(--border-strong);
   border-top: 4px solid var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -1350,7 +1354,7 @@ onUnmounted(async () => {
 }
 
 .error-state svg {
-  color: var(--danger);
+  color: var(--danger-bright);
 }
 
 .error-details {
@@ -1368,7 +1372,7 @@ onUnmounted(async () => {
 .error-info {
   margin: 12px 0;
   padding: 8px 12px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   border-radius: 4px;
   border-left: 3px solid var(--accent);
 }
@@ -1383,14 +1387,14 @@ onUnmounted(async () => {
   margin: 16px 0;
   padding: 12px;
   background-color: var(--warning-bg);
-  border: 1px solid var(--warning-bg);
+  border: 1px solid var(--warning-border);
   border-radius: 4px;
 }
 
 .suggestion-text {
   margin: 0;
   font-size: 14px;
-  color: #856404;
+  color: var(--text-warning);
   line-height: 1.4;
 }
 
@@ -1406,7 +1410,7 @@ onUnmounted(async () => {
 }
 
 .retry-btn:hover {
-  background-color: var(--accent-hover);
+  background-color: var(--accent-deep-hover);
 }
 
 /* Video Content */
@@ -1445,7 +1449,7 @@ onUnmounted(async () => {
   position: relative;
   width: 100%;
   background-color: #000;
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-strong);
   border-top: none;
   border-radius: 0;
   overflow: hidden;
@@ -1454,8 +1458,8 @@ onUnmounted(async () => {
 
 .video-container.collapsed {
   height: 60px;
-  background-color: var(--bg-elevated);
-  border-color: var(--bg-hover);
+  background-color: var(--bg-modal);
+  border-color: var(--border-strong);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1836,9 +1840,9 @@ onUnmounted(async () => {
 .details-section {
   margin-top: 12px;
   padding: 12px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   border-radius: 6px;
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-strong);
 }
 
 .detail-item {
@@ -1859,9 +1863,9 @@ onUnmounted(async () => {
   padding: 12px 16px;
   margin: 0 0 8px 0;
   background-color: var(--warning-bg);
-  border: 1px solid var(--warning-bg);
+  border: 1px solid var(--warning-border);
   border-radius: 6px;
-  color: #856404;
+  color: var(--text-warning);
   font-size: 14px;
   line-height: 1.4;
 }
@@ -1914,8 +1918,8 @@ onUnmounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--bg-hover);
+  background-color: var(--bg-modal);
+  border: 1px solid var(--border-strong);
   border-radius: 0 0 8px 8px;
 }
 
@@ -2010,9 +2014,9 @@ onUnmounted(async () => {
   gap: 8px;
   padding: 6px 12px;
   background-color: var(--badge-active-bg);
-  border: 1px solid var(--badge-active-bg);
+  border: 1px solid var(--accent-deep);
   border-radius: 6px;
-  color: var(--badge-active-text);
+  color: var(--accent);
   font-size: 14px;
   font-weight: 500;
 }
@@ -2037,8 +2041,8 @@ onUnmounted(async () => {
 /* Slide Gallery */
 .slide-gallery {
   margin-top: 24px;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--bg-hover);
+  background-color: var(--bg-modal);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
 }
 
@@ -2068,7 +2072,7 @@ onUnmounted(async () => {
 }
 
 .post-process-btn:hover:not(:disabled) {
-  background-color: var(--accent-hover);
+  background-color: var(--accent-deep-hover);
   border-color: var(--accent-hover);
 }
 
@@ -2077,11 +2081,12 @@ onUnmounted(async () => {
   cursor: not-allowed;
   background-color: var(--border-strong);
   border-color: var(--border-strong);
+  color: var(--text-muted);
 }
 
 /* Post-processing status bar styles */
 .post-process-status-bar {
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 8px 12px;
@@ -2111,7 +2116,7 @@ onUnmounted(async () => {
   padding: 6px 12px;
   border: 1px solid var(--danger);
   border-radius: 4px;
-  background-color: var(--danger);
+  background-color: var(--danger-bright);
   color: white;
   font-size: 13px;
   cursor: pointer;
@@ -2119,7 +2124,7 @@ onUnmounted(async () => {
 }
 
 .clear-all-btn:hover {
-  background-color: var(--danger-hover);
+  background-color: var(--danger-bright);
   border-color: var(--danger-hover);
 }
 

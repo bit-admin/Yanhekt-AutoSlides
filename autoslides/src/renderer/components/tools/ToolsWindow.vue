@@ -147,7 +147,7 @@ const startDrag = () => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 

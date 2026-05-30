@@ -639,7 +639,7 @@ onUnmounted(() => {
 
 .config-value {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   padding: 4px 8px;
   background-color: var(--bg-page);
   border: 1px solid var(--border-input);
@@ -814,6 +814,7 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  background-color: var(--bg-surface);
 }
 
 .loading-state,
@@ -843,8 +844,8 @@ onUnmounted(() => {
 }
 
 .course-group {
-  background-color: #f0f4f8;
-  border: 1px solid #dfe5ec;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   margin-top: 8px;
   overflow: hidden;
@@ -887,7 +888,7 @@ onUnmounted(() => {
 .course-name {
   font-size: 13px;
   font-weight: 700;
-  color: #3b6ea5;
+  color: var(--link-color);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   line-height: 1;
@@ -994,7 +995,7 @@ onUnmounted(() => {
   opacity: 0.6;
   transition: opacity 0.2s, background-color 0.2s;
   border-radius: 4px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
 }
 
 .folder-item:hover .drag-handle {
@@ -1039,7 +1040,7 @@ onUnmounted(() => {
   background-color: var(--bg-elevated);
   border-top: 1px solid var(--border-color);
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .footer-left {
@@ -1062,7 +1063,7 @@ onUnmounted(() => {
   border-radius: 4px;
   background-color: var(--bg-elevated);
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   white-space: nowrap;
   transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
@@ -1070,7 +1071,7 @@ onUnmounted(() => {
 
 .group-toggle:hover:not(.disabled) {
   background-color: var(--bg-hover);
-  border-color: var(--border-color);
+  border-color: var(--border-strong);
 }
 
 .group-toggle.disabled {

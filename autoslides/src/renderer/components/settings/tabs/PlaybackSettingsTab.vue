@@ -335,8 +335,8 @@ const openExtractorRepository = async () => {
 .extractor-platform-row code {
   display: block;
   padding: 2px 5px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
   font-size: 10.5px;
@@ -368,7 +368,7 @@ const openExtractorRepository = async () => {
 }
 .section-action-pill:hover {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: var(--accent);
 }
 
 /* Single-row layout: [path input ............] [↻ icon] [Browse] */
@@ -411,8 +411,12 @@ const openExtractorRepository = async () => {
 }
 .extractor-refresh-btn:hover:not(:disabled) {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: var(--accent);
 }
+.extractor-path-input::placeholder {
+  color: var(--text-muted);
+}
+
 .extractor-refresh-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;

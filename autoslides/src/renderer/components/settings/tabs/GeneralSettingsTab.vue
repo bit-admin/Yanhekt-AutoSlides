@@ -291,7 +291,7 @@ const {
 
 .token-status.error {
   background-color: var(--danger-bg);
-  color: var(--danger);
+  color: var(--danger-bright);
   border: 1px solid var(--danger-border);
 }
 
@@ -403,7 +403,7 @@ const {
 
 .cache-status.error {
   background-color: var(--danger-bg);
-  color: var(--danger);
+  color: var(--danger-bright);
   border: 1px solid var(--danger-border);
 }
 

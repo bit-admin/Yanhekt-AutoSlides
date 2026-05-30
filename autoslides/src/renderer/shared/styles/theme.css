@@ -15,12 +15,16 @@
   --bg-input: #ffffff;
   --bg-input-disabled: #f8f9fa;
   --bg-hover: #e9ecef;
+  --bg-control: #ffffff;
+  --bg-card: #ffffff;
 
   /* Text */
   --text-primary: #333333;
   --text-secondary: #666666;
   --text-muted: #999999;
   --text-on-accent: #ffffff;
+  --text-dim: #999999;
+  --text-warning: #856404;
 
   /* Borders */
   --border-color: #e0e0e0;
@@ -31,10 +35,14 @@
   --accent: #007acc;
   --accent-hover: #0056b3;
   --accent-strong: #005a9e;
+  --accent-deep: #007acc;
+  --accent-deep-hover: #0056b3;
 
   /* Status */
   --danger: #d32f2f;
   --danger-hover: #b71c1c;
+  --danger-bright: #d32f2f;
+  --danger-pink: #d32f2f;
   --success: #2e7d32;
   --warning: #ed6c02;
 
@@ -67,10 +75,15 @@
   --success-bg: #f0fff4;
   --success-border: #9ae6b4;
   --warning-bg: #fff8e1;
+  --warning-border: #ffeaa7;
 
   /* Form controls */
   --focus-ring: rgba(0, 122, 204, 0.1);
   --link-color: #007acc;
+
+  /* Hover tint (semi-transparent overlays for hover/active states) */
+  --hover-tint: rgba(0, 0, 0, 0.05);
+  --hover-tint-strong: rgba(0, 0, 0, 0.1);
 
   /* Z-index scale */
   --z-base: 1;
@@ -90,34 +103,42 @@
     --bg-elevated: #252525;
     --bg-subtle: #252525;
     --bg-modal: #2d2d2d;
-    --bg-input: #3d3d3d;
+    --bg-input: #2d2d2d;
     --bg-input-disabled: #2d2d2d;
-    --bg-hover: #404040;
+    --bg-hover: #353535;
+    --bg-control: #2d2d2d;
+    --bg-card: #2d2d2d;
 
     /* Text */
     --text-primary: #e0e0e0;
     --text-secondary: #b0b0b0;
     --text-muted: #888888;
     --text-on-accent: #ffffff;
+    --text-dim: #9e9e9e;
+    --text-warning: #d4b942;
 
     /* Borders */
     --border-color: #404040;
     --border-strong: #555555;
-    --border-input: #555555;
+    --border-input: #404040;
 
     /* Accents */
     --accent: #4a9eff;
     --accent-hover: #0080ff;
     --accent-strong: #4da6ff;
+    --accent-deep: #2563eb;
+    --accent-deep-hover: #1d4ed8;
 
     /* Status */
     --danger: #ef5350;
     --danger-hover: #e53935;
+    --danger-bright: #ff6b6b;
+    --danger-pink: #f48fb1;
     --success: #66bb6a;
     --warning: #ffa726;
 
     /* Overlays */
-    --overlay-dark: rgba(0, 0, 0, 0.5);
+    --overlay-dark: rgba(0, 0, 0, 0.7);
     --overlay-light: rgba(255, 255, 255, 0.15);
 
     /* Scrollbar */
@@ -145,6 +166,11 @@
     --success-bg: #1a4a2e;
     --success-border: #276749;
     --warning-bg: #4a3800;
+    --warning-border: #665c2a;
+
+    /* Hover tint */
+    --hover-tint: rgba(255, 255, 255, 0.08);
+    --hover-tint-strong: rgba(255, 255, 255, 0.15);
 
     /* Form controls */
     --focus-ring: rgba(74, 158, 255, 0.15);

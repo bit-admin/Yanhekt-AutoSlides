@@ -251,7 +251,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: var(--bg-surface);
+  background: var(--bg-modal);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
@@ -281,12 +281,12 @@ onUnmounted(() => {
 
 .control-btn.close-btn {
   background: var(--bg-surface);
-  color: var(--danger);
-  border-color: var(--danger);
+  color: var(--danger-bright);
+  border-color: var(--danger-bright);
 }
 
 .control-btn.close-btn:hover {
-  background: var(--danger);
+  background: var(--danger-bright);
   color: var(--text-on-accent);
 }
 
@@ -295,14 +295,14 @@ onUnmounted(() => {
 }
 
 .control-btn.token-btn {
-  background: var(--accent);
+  background: var(--accent-deep);
   color: var(--text-on-accent);
-  border-color: var(--accent);
+  border-color: var(--accent-deep);
 }
 
 .control-btn.token-btn:hover {
-  background: var(--accent-strong);
-  border-color: var(--accent-strong);
+  background: var(--accent-deep-hover);
+  border-color: var(--accent-deep-hover);
 }
 
 .control-btn.token-btn svg {
@@ -334,7 +334,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 16px;
   padding: 6px 16px;
-  background: var(--bg-surface);
+  background: var(--bg-modal);
   border-top: 1px solid var(--border-color);
   flex-shrink: 0;
   min-height: 28px;
@@ -370,7 +370,7 @@ onUnmounted(() => {
 }
 
 .status-message.info {
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 .status-message.success {
@@ -378,7 +378,7 @@ onUnmounted(() => {
 }
 
 .status-message.error {
-  color: var(--danger);
+  color: var(--danger-bright);
 }
 
 /* Responsive adjustments */

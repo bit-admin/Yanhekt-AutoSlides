@@ -107,7 +107,7 @@ const getCropLabel = (item: ResultsItem) => {
 
 .result-item {
   position: relative;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   color: var(--text-primary);
   border: 2px solid var(--bg-hover);
   border-radius: 8px;
@@ -158,7 +158,7 @@ const getCropLabel = (item: ResultsItem) => {
   border: none;
   border-radius: 50%;
   background-color: var(--bg-surface);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -168,7 +168,7 @@ const getCropLabel = (item: ResultsItem) => {
 .item-thumbnail {
   width: 100%;
   aspect-ratio: 16 / 9;
-  background-color: var(--bg-page);
+  background-color: var(--bg-subtle);
   display: flex;
   align-items: center;
   justify-content: center;

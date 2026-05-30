@@ -177,7 +177,7 @@ const phase3Width = computed(() => fillWidthForPhase(props.state.phase3))
 .pp-phase-bar {
   position: relative;
   height: 4px;
-  background-color: var(--bg-hover);
+  background-color: var(--border-color);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -190,7 +190,7 @@ const phase3Width = computed(() => fillWidthForPhase(props.state.phase3))
   height: 100%;
   border-radius: 2px;
   transition: width 0.3s ease;
-  background-color: var(--border-input);
+  background-color: var(--border-strong);
 }
 
 .pp-phase-fill.active {

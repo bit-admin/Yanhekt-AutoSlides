@@ -602,13 +602,13 @@ const {
 
 .rules-title {
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   margin-bottom: 6px;
   font-size: 12px;
 }
 
 .rules-description {
-  color: var(--border-strong);
+  color: var(--text-secondary);
   margin-bottom: 8px;
   line-height: 1.4;
 }
@@ -627,7 +627,7 @@ const {
 }
 
 .rule-condition {
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-weight: 500;
   background-color: var(--badge-active-bg);
   padding: 2px 6px;
@@ -637,7 +637,7 @@ const {
 
 .rule-arrow {
   margin: 0 8px;
-  color: var(--border-strong);
+  color: var(--text-secondary);
   font-weight: bold;
 }
 
@@ -654,7 +654,7 @@ const {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid var(--bg-hover);
-  color: var(--border-strong);
+  color: var(--text-secondary);
   font-style: italic;
   line-height: 1.4;
 }
@@ -845,7 +845,7 @@ const {
 }
 
 .exclusion-remove-btn {
-  color: var(--danger);
+  color: var(--danger-bright);
 }
 
 .exclusion-remove-btn:hover {

@@ -803,14 +803,14 @@ defineExpose({
   display: flex;
   gap: 10px;
   padding: 10px 12px;
-  background: #fef9e7;
-  border: 1px solid #fcd34d;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
   border-radius: 6px;
   margin-top: 12px;
 }
 
 .quarantine-notice > svg {
-  color: #ca8a04;
+  color: var(--warning);
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -818,7 +818,7 @@ defineExpose({
 .notice-text {
   flex: 1;
   font-size: 11px;
-  color: #854d0e;
+  color: var(--text-warning);
   line-height: 1.4;
 }
 

@@ -594,14 +594,14 @@ defineExpose({
   flex-direction: column;
   height: 100%;
   padding: 0;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 
 .login-section {
   padding: 16px;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
 }
 
 .login-form {
@@ -736,7 +736,7 @@ defineExpose({
 .loading-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid var(--bg-hover);
+  border: 2px solid var(--border-color);
   border-top: 2px solid var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -764,6 +764,10 @@ defineExpose({
   color: var(--text-primary);
 }
 
+.input-field::placeholder {
+  color: var(--text-muted);
+}
+
 .logout-btn {
   border-radius: 6px;
   font-size: 12px;
@@ -773,12 +777,12 @@ defineExpose({
 }
 
 .login-btn {
-  background-color: var(--accent);
+  background-color: var(--accent-deep);
   color: var(--text-on-accent);
 }
 
 .login-btn:hover:not(:disabled) {
-  background-color: var(--accent-strong);
+  background-color: var(--accent-deep-hover);
 }
 
 .login-btn:disabled {
@@ -824,8 +828,8 @@ defineExpose({
 .logout-btn {
   width: auto;
   background-color: transparent;
-  color: var(--danger);
-  border: 1px solid var(--danger);
+  color: var(--danger-bright);
+  border: 1px solid var(--danger-bright);
   padding: 6px 10px;
   align-self: flex-start;
   margin: 0;
@@ -838,8 +842,8 @@ defineExpose({
 }
 
 .logout-btn:hover {
-  background-color: var(--danger);
-  border-color: var(--danger);
+  background-color: var(--danger-bright);
+  border-color: var(--danger-bright);
   color: var(--text-on-accent);
 }
 
@@ -867,7 +871,7 @@ defineExpose({
   align-items: center;
   gap: 4px;
   padding: 6px 12px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
@@ -945,10 +949,10 @@ defineExpose({
 .directory-input {
   flex: 1;
   padding: 6px 8px;
-  border: 1px solid var(--border-input);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 12px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -957,7 +961,7 @@ defineExpose({
 
 .browse-btn {
   padding: 6px 12px;
-  background-color: var(--accent);
+  background-color: var(--accent-deep);
   color: var(--text-on-accent);
   border: none;
   border-radius: 4px;
@@ -967,7 +971,7 @@ defineExpose({
 }
 
 .browse-btn:hover {
-  background-color: var(--accent-hover);
+  background-color: var(--accent-deep-hover);
 }
 
 .mode-toggle {
@@ -978,8 +982,8 @@ defineExpose({
 .mode-btn {
   flex: 1;
   padding: 6px 8px;
-  border: 1px solid var(--border-input);
-  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-modal);
   color: var(--text-secondary);
   font-size: 11px;
   border-radius: 4px;
@@ -992,9 +996,9 @@ defineExpose({
 }
 
 .mode-btn.active {
-  background-color: var(--accent);
+  background-color: var(--accent-deep);
   color: var(--text-on-accent);
-  border-color: var(--accent);
+  border-color: var(--accent-deep);
 }
 
 .audio-mode-selector {
@@ -1028,8 +1032,8 @@ defineExpose({
 .verification-unified-control {
   display: flex;
   align-items: stretch;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-input);
+  background-color: var(--bg-modal);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   overflow: hidden;
   transition: all 0.2s ease;
@@ -1070,7 +1074,7 @@ defineExpose({
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   border-left: 1px solid var(--border-input);
 }
 
@@ -1126,7 +1130,7 @@ defineExpose({
 .status-section {
   padding: 16px;
   border-top: 1px solid var(--border-color);
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
 }
 
 .status-row {
@@ -1172,7 +1176,7 @@ defineExpose({
 }
 
 .modal-content {
-  background-color: var(--bg-input);
+  background-color: var(--bg-modal);
   border-radius: 8px;
   width: 600px;
   max-width: 90vw;
@@ -1206,7 +1210,7 @@ defineExpose({
 }
 
 .close-btn:hover {
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-hover);
 }
 
 .modal-body {
@@ -1252,7 +1256,7 @@ defineExpose({
 .setting-description .json-example {
   font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
   font-size: 10px;
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: var(--overlay-light);
   padding: 2px 5px;
   border-radius: 3px;
   color: var(--text-primary);
@@ -1282,7 +1286,7 @@ defineExpose({
   gap: 8px;
   padding: 16px;
   border-top: 1px solid var(--border-color);
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   flex-shrink: 0;
 }
 
@@ -1296,7 +1300,7 @@ defineExpose({
 }
 
 .cancel-btn {
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-hover);
   color: var(--text-secondary);
 }
 
@@ -1327,9 +1331,9 @@ defineExpose({
   gap: 4px;
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid var(--border-input);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   color: var(--text-primary);
   font-size: 11px;
   font-weight: 500;
@@ -1339,7 +1343,7 @@ defineExpose({
 
 .tools-trigger:hover {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  border-color: var(--text-secondary);
 }
 
 .tools-trigger svg:first-child {
@@ -1405,6 +1409,10 @@ defineExpose({
   background-color: var(--bg-input);
   color: var(--text-primary);
   margin-top: 8px;
+}
+
+.name-input-field::placeholder {
+  color: var(--text-muted);
 }
 
 .name-input-field:focus {

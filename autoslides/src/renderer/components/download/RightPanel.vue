@@ -179,7 +179,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 
@@ -198,7 +198,7 @@ defineExpose({
   padding: 12px 16px;
   border: none;
   background-color: transparent;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;

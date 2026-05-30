@@ -1126,7 +1126,7 @@ const confirmClearTrash = async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 
@@ -1154,7 +1154,7 @@ const confirmClearTrash = async () => {
   align-items: center;
   gap: 4px;
   padding: 6px 10px;
-  border: 1px solid var(--border-input);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   background-color: var(--bg-input);
   color: var(--text-primary);
@@ -1266,7 +1266,7 @@ const confirmClearTrash = async () => {
   align-items: center;
   gap: 4px;
   padding: 6px 12px;
-  border: 1px solid var(--border-input);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   background-color: var(--bg-input);
   color: var(--text-primary);
@@ -1483,8 +1483,8 @@ const confirmClearTrash = async () => {
 }
 
 .course-group {
-  background-color: #f0f4f8;
-  border: 1px solid #dfe5ec;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   margin-top: 8px;
   overflow: hidden;
@@ -1527,7 +1527,7 @@ const confirmClearTrash = async () => {
 .course-name {
   font-size: 13px;
   font-weight: 700;
-  color: #3b6ea5;
+  color: var(--link-color);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   line-height: 1;
@@ -1560,19 +1560,19 @@ const confirmClearTrash = async () => {
 }
 
 .folder-item:hover {
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-hover);
   border-color: #ced7e0;
 }
 
 .folder-item-last-visited {
-  background-color: #e7f1ff;
-  border-color: #7aa9e6;
-  box-shadow: 0 0 0 1px #7aa9e6 inset;
+  background-color: var(--badge-active-bg);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
 }
 
 .folder-item-last-visited:hover {
-  background-color: #d9e7fb;
-  border-color: #5f95d8;
+  background-color: var(--bg-hover);
+  border-color: var(--accent);
 }
 
 .folder-item-edit {
@@ -1586,7 +1586,7 @@ const confirmClearTrash = async () => {
 }
 
 .folder-item-selected:hover {
-  background-color: #ffe2df;
+  background-color: var(--danger-bg);
   border-color: #c43d39;
 }
 
@@ -1733,7 +1733,7 @@ const confirmClearTrash = async () => {
   background-color: var(--bg-elevated);
   border-top: 1px solid var(--border-color);
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .footer-left {
@@ -1754,8 +1754,8 @@ const confirmClearTrash = async () => {
 }
 
 .select-all-btn:hover:not(:disabled) {
-  background-color: #f0f4f8;
-  border-color: #a8b7c4;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .select-all-btn:disabled {
@@ -1779,9 +1779,9 @@ const confirmClearTrash = async () => {
   padding: 3px 8px;
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   white-space: nowrap;
   transition: background-color 0.15s, border-color 0.15s;
@@ -1789,7 +1789,7 @@ const confirmClearTrash = async () => {
 
 .group-toggle:hover {
   background-color: var(--bg-hover);
-  border-color: #d0d0d0;
+  border-color: var(--border-strong);
 }
 
 .group-toggle input {
@@ -1863,8 +1863,8 @@ const confirmClearTrash = async () => {
   height: 32px;
   border: none;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.9);
-  color: #444;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
@@ -1934,7 +1934,7 @@ const confirmClearTrash = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(51, 51, 51, 0.28);
+  color: var(--text-muted);
 }
 
 .preview-actions {
@@ -1955,8 +1955,8 @@ const confirmClearTrash = async () => {
   padding: 7px 10px;
   border: none;
   border-radius: 999px;
-  background-color: rgba(255, 255, 255, 0.92);
-  color: #444;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 12px;
   font-weight: 600;
@@ -2072,7 +2072,7 @@ const confirmClearTrash = async () => {
 
 .info-label {
   width: 110px;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   font-size: 12px;
 }
 

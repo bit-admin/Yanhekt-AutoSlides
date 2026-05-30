@@ -201,8 +201,8 @@ const {
 }
 
 .type-badge.loadbalance {
-  background-color: #f3e5f5;
-  color: #7b1fa2;
+  background-color: #2d1b2e;
+  color: #ba68c8;
 }
 
 .mapping-expand-icon {
@@ -269,7 +269,7 @@ const {
   border-radius: 3px;
   font-size: 9px;
   font-family: 'Courier New', monospace;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   display: inline-block;
   white-space: nowrap;
   line-height: 1.2;

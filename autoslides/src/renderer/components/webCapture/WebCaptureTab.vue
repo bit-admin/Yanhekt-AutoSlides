@@ -321,7 +321,7 @@ watch(captureState, (val) => {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid var(--border-input);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   background-color: var(--bg-input);
   cursor: pointer;
@@ -362,7 +362,7 @@ watch(captureState, (val) => {
   padding: 4px 0;
   list-style: none;
   background-color: var(--bg-surface);
-  border: 1px solid var(--border-input);
+  border: 1px solid var(--border-strong);
   border-radius: 6px;
   box-shadow: 0 4px 12px var(--shadow-md);
   z-index: var(--z-sticky);
@@ -423,7 +423,7 @@ watch(captureState, (val) => {
 
 .secondary-btn {
   padding: 5px 10px;
-  border: 1px solid var(--border-input);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   background-color: var(--bg-input);
   color: var(--text-primary);
@@ -444,7 +444,7 @@ watch(captureState, (val) => {
   align-items: center;
   gap: 10px;
   padding: 5px 12px;
-  background-color: var(--bg-page-alt);
+  background-color: var(--bg-subtle);
   border-bottom: 1px solid var(--border-color);
   font-size: 11px;
   color: var(--text-secondary);
@@ -455,8 +455,8 @@ watch(captureState, (val) => {
   display: inline-flex;
   gap: 4px;
   padding: 2px 6px;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-input);
+  background-color: var(--bg-hover);
+  border: 1px solid var(--border-strong);
   border-radius: 3px;
 }
 

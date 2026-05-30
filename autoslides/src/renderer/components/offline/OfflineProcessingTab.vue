@@ -462,7 +462,7 @@ const autoCropOverallProgress = computed(() => {
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   color: var(--accent);
   margin-right: auto;
 }
@@ -474,7 +474,7 @@ const autoCropOverallProgress = computed(() => {
 
 .secondary-btn {
   padding: 8px 16px;
-  border: 1px solid var(--border-input);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   background-color: var(--bg-surface);
   font-size: 12px;

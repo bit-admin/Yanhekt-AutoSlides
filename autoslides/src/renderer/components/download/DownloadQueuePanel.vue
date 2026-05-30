@@ -251,8 +251,8 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 
 .cancel-all-btn {
-  color: var(--danger);
-  border-color: var(--danger);
+  color: var(--danger-pink);
+  border-color: var(--danger-pink);
 }
 
 .cancel-all-btn:hover {
@@ -261,8 +261,8 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 
 .clear-btn {
-  color: var(--border-strong);
-  border-color: var(--border-strong);
+  color: var(--text-secondary);
+  border-color: var(--text-secondary);
 }
 
 .clear-btn:hover {
@@ -319,7 +319,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 
 .download-item.status-queued {
-  border-left: 3px solid var(--border-strong);
+  border-left: 3px solid var(--text-dim);
 }
 
 .download-item.status-downloading {
@@ -335,7 +335,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 
 .download-item.status-error {
-  border-left: 3px solid var(--danger);
+  border-left: 3px solid var(--danger-pink);
 }
 
 .item-status {
@@ -353,7 +353,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 
 .status-indicator.status-queued {
-  color: var(--border-strong);
+  color: var(--text-dim);
   background-color: var(--bg-elevated);
 }
 
@@ -375,7 +375,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 
 .status-indicator.status-error {
-  color: var(--danger);
+  color: var(--danger-pink);
   background-color: var(--danger-bg);
 }
 
@@ -526,10 +526,10 @@ const extractionBarWidth = (item: DownloadItem): number => {
   background-color: var(--danger);
 }
 
-.ext-status-pending .ext-name { color: var(--border-strong); }
+.ext-status-pending .ext-name { color: var(--text-dim); }
 .ext-status-completed .ext-name { color: var(--success); }
 .ext-status-error .ext-name,
-.ext-status-cancelled .ext-name { color: var(--danger); }
+.ext-status-cancelled .ext-name { color: var(--danger-pink); }
 
 .item-actions {
   flex-shrink: 0;
@@ -543,7 +543,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
   height: 24px;
   border: none;
   background-color: transparent;
-  color: var(--danger);
+  color: var(--danger-pink);
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;

@@ -214,7 +214,7 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--border-input);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   background-color: var(--bg-surface);
   cursor: pointer;
@@ -242,10 +242,10 @@ onMounted(() => {
 .lesson-id-input {
   width: 120px;
   padding: 5px 8px;
-  border: 1px solid var(--border-input);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   font-size: 12px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   color: var(--text-secondary);
 }
 
@@ -257,7 +257,7 @@ onMounted(() => {
 
 .format-select {
   padding: 5px 8px;
-  border: 1px solid var(--border-input);
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   background-color: var(--bg-input);
   font-size: 12px;
@@ -314,7 +314,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 6px 16px;
-  background-color: var(--bg-page);
+  background-color: var(--bg-subtle);
   border-bottom: 1px solid var(--border-color);
   min-height: 28px;
 }

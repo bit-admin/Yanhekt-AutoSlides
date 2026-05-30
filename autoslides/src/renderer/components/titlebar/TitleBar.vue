@@ -466,11 +466,11 @@ const checkForUpdates = () => {
 }
 
 .menu-item:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--hover-tint);
 }
 
 .menu-item:active {
-  background-color: rgba(0, 0, 0, 0.1);
+  background-color: var(--hover-tint-strong);
 }
 
 /* Dropdown menu */
@@ -628,12 +628,12 @@ const checkForUpdates = () => {
 }
 
 .link-button:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--hover-tint);
   color: var(--text-primary);
 }
 
 .link-button:active {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--hover-tint-strong);
   transform: scale(0.95);
 }
 
@@ -673,12 +673,12 @@ const checkForUpdates = () => {
 }
 
 .feedback-trigger:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--hover-tint);
   color: var(--text-primary);
 }
 
 .feedback-trigger:active {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--hover-tint-strong);
 }
 
 .feedback-text {
@@ -770,11 +770,11 @@ const checkForUpdates = () => {
 }
 
 .control-button:hover {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--hover-tint);
 }
 
 .control-button:active {
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--hover-tint-strong);
 }
 
 /* Windows 11 style hover effects */

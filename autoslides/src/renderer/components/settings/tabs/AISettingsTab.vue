@@ -942,7 +942,7 @@ const openCopilotVerificationUrl = () => {
   border: 1px solid var(--danger-border);
   border-radius: 4px;
   font-size: 12px;
-  color: var(--danger);
+  color: var(--danger-bright);
 }
 
 .copilot-waiting {
@@ -967,8 +967,8 @@ const openCopilotVerificationUrl = () => {
   letter-spacing: 4px;
   color: var(--text-primary);
   padding: 12px;
-  background-color: var(--bg-elevated);
-  border: 2px dashed var(--border-input);
+  background-color: var(--bg-modal);
+  border: 2px dashed var(--border-strong);
   border-radius: 8px;
   margin-bottom: 12px;
   cursor: pointer;
@@ -1027,7 +1027,7 @@ const openCopilotVerificationUrl = () => {
 
 .copilot-cancel-btn:hover {
   background-color: var(--bg-hover);
-  color: var(--danger);
+  color: var(--danger-bright);
 }
 
 .copilot-model-setting {
@@ -1174,7 +1174,7 @@ const openCopilotVerificationUrl = () => {
   padding: 0;
   border: 1px solid var(--border-input);
   border-radius: 4px;
-  background: var(--bg-surface);
+  background: var(--bg-modal);
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
@@ -1194,7 +1194,7 @@ const openCopilotVerificationUrl = () => {
 
 .model-chain-remove-btn:hover:not(:disabled) {
   background: var(--danger-bg);
-  color: var(--danger);
+  color: var(--danger-bright);
   border-color: var(--danger-border);
 }
 
@@ -1288,7 +1288,7 @@ const openCopilotVerificationUrl = () => {
 }
 
 .api-key-toggle-btn:hover {
-  background-color: var(--bg-page);
+  background-color: var(--bg-hover);
   color: var(--text-primary);
 }
 
@@ -1314,13 +1314,13 @@ const openCopilotVerificationUrl = () => {
   font-weight: 600;
   background-color: var(--badge-active-bg);
   color: var(--badge-active-text);
-  border: 1px solid var(--accent);
+  border: 1px solid var(--accent-deep);
 }
 
 .variant-badge-distinguish {
   background-color: var(--warning-bg);
   color: var(--warning);
-  border-color: var(--warning);
+  border-color: var(--warning-border);
 }
 
 .ai-prompts-variant-hint {
@@ -1348,10 +1348,14 @@ const openCopilotVerificationUrl = () => {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
+.ai-prompt-textarea::placeholder {
+  color: var(--text-muted);
+}
+
 .setting-description .json-example {
   font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
   font-size: 10px;
-  background-color: var(--shadow-sm);
+  background-color: var(--overlay-light);
   padding: 2px 5px;
   border-radius: 3px;
   color: var(--text-primary);
@@ -1370,7 +1374,7 @@ const openCopilotVerificationUrl = () => {
   align-items: center;
   margin-top: 8px;
   padding: 10px 12px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   border: 1px solid var(--border-color);
   border-radius: 4px;
   min-height: 20px;
@@ -1402,7 +1406,7 @@ const openCopilotVerificationUrl = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--danger);
+  color: var(--danger-bright);
   font-size: 13px;
 }
 
@@ -1453,7 +1457,7 @@ const openCopilotVerificationUrl = () => {
   margin-top: 10px;
   padding: 10px 12px;
   background-color: var(--warning-bg);
-  border: 1px solid var(--warning);
+  border: 1px solid var(--warning-border);
   border-radius: 4px;
   font-size: 12px;
   color: var(--warning);
@@ -1471,7 +1475,7 @@ const openCopilotVerificationUrl = () => {
   font-size: 10px;
   color: var(--text-muted);
   line-height: 1.5;
-  background-color: var(--shadow-sm);
+  background-color: var(--overlay-light);
   border-radius: 4px;
 }
 

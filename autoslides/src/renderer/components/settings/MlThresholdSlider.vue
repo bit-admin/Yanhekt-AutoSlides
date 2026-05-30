@@ -273,7 +273,7 @@ function onSlideCheckInput(event: Event) {
   border: none;
   cursor: pointer;
   pointer-events: auto;
-  box-shadow: 0 0 0 2px var(--bg-surface), 0 1px 4px var(--shadow-md);
+  box-shadow: 0 0 0 2px var(--bg-modal), 0 1px 4px var(--shadow-md);
 }
 
 .threshold-range::-moz-range-thumb {
@@ -284,7 +284,7 @@ function onSlideCheckInput(event: Event) {
   border: none;
   cursor: pointer;
   pointer-events: auto;
-  box-shadow: 0 0 0 2px var(--bg-surface), 0 1px 4px var(--shadow-md);
+  box-shadow: 0 0 0 2px var(--bg-modal), 0 1px 4px var(--shadow-md);
 }
 
 .handle-value {

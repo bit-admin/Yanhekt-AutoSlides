@@ -196,8 +196,8 @@ const removeTask = (taskId: string) => {
 }
 
 .clear-btn {
-  color: var(--border-strong);
-  border-color: var(--border-strong);
+  color: var(--text-secondary);
+  border-color: var(--text-secondary);
 }
 
 .clear-btn:hover {
@@ -288,7 +288,7 @@ const removeTask = (taskId: string) => {
 }
 
 .task-item.status-queued {
-  border-left: 3px solid var(--border-strong);
+  border-left: 3px solid var(--text-dim);
 }
 
 .task-item.status-in_progress {
@@ -300,7 +300,7 @@ const removeTask = (taskId: string) => {
 }
 
 .task-item.status-error {
-  border-left: 3px solid var(--danger);
+  border-left: 3px solid var(--danger-pink);
 }
 
 .item-status {
@@ -318,7 +318,7 @@ const removeTask = (taskId: string) => {
 }
 
 .status-indicator.status-queued {
-  color: var(--border-strong);
+  color: var(--text-dim);
   background-color: var(--bg-elevated);
 }
 
@@ -328,7 +328,7 @@ const removeTask = (taskId: string) => {
 }
 
 .status-indicator.status-error {
-  color: var(--danger);
+  color: var(--danger-pink);
   background-color: var(--danger-bg);
 }
 
@@ -426,7 +426,7 @@ const removeTask = (taskId: string) => {
   height: 24px;
   border: none;
   background-color: transparent;
-  color: var(--danger);
+  color: var(--danger-pink);
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;

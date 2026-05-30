@@ -335,6 +335,8 @@ onMounted(() => {
   height: 100vh;
   overflow: hidden;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
 }
 
 .layout {
@@ -353,25 +355,25 @@ onMounted(() => {
 }
 
 .left-panel {
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   border-right: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
 .main-content {
-  background-color: var(--bg-surface);
+  background-color: var(--bg-page);
   flex-shrink: 0;
 }
 
 .right-panel {
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   border-left: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
 .browser-login-container {
   flex: 1;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-page);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -386,10 +388,10 @@ onMounted(() => {
 }
 
 .divider:hover {
-  background-color: var(--accent);
+  background-color: var(--accent-strong);
 }
 
 .divider:active {
-  background-color: var(--accent-strong);
+  background-color: var(--accent-hover);
 }
 </style>

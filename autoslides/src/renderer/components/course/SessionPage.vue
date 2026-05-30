@@ -218,7 +218,7 @@ onMounted(() => {
 .header {
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   margin-bottom: 24px;
   overflow: hidden;
 }
@@ -238,7 +238,7 @@ onMounted(() => {
   padding: 8px 16px;
   border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
@@ -266,7 +266,7 @@ onMounted(() => {
   height: 32px;
   border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
@@ -274,7 +274,7 @@ onMounted(() => {
 
 .expand-btn:hover {
   border-color: var(--accent);
-  background-color: var(--badge-active-bg);
+  background-color: var(--bg-hover);
 }
 
 .expand-btn svg {
@@ -354,7 +354,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   border-radius: 8px;
   padding: 4px;
 }
@@ -364,7 +364,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
@@ -440,9 +440,9 @@ onMounted(() => {
   gap: 8px;
   margin-bottom: 16px;
   padding: 16px;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
   border-radius: 8px;
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-color);
 }
 
 .batch-btn {
@@ -454,7 +454,7 @@ onMounted(() => {
   padding: 8px 12px;
   border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
@@ -487,13 +487,13 @@ onMounted(() => {
 }
 
 .download-screen-btn {
-  color: #6f42c1;
-  border-color: #6f42c1;
+  color: #cc99ff;
+  border-color: #cc99ff;
 }
 
 .download-screen-btn:hover {
-  background-color: #f3e5f5;
-  border-color: #59359a;
+  background-color: #2d1a3d;
+  border-color: #d9b3ff;
 }
 
 .session-actions {
@@ -514,7 +514,7 @@ onMounted(() => {
   height: 40px;
   border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   cursor: pointer;
   transition: all 0.2s;
   gap: 2px;
@@ -552,13 +552,13 @@ onMounted(() => {
 }
 
 .screen-btn {
-  color: #6f42c1;
-  border-color: #6f42c1;
+  color: #cc99ff;
+  border-color: #cc99ff;
 }
 
 .screen-btn:hover {
-  background-color: #f3e5f5;
-  border-color: #59359a;
+  background-color: #2d1a3d;
+  border-color: #d9b3ff;
 }
 
 .error-message {
