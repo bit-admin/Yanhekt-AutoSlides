@@ -116,6 +116,7 @@ const {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .intranet-interface-row .refresh-button {
@@ -127,6 +128,7 @@ const {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   cursor: pointer;
 }
 
@@ -194,8 +196,8 @@ const {
 }
 
 .type-badge.single {
-  background-color: #e3f2fd;
-  color: #1976d2;
+  background-color: var(--badge-active-bg);
+  color: var(--badge-active-text);
 }
 
 .type-badge.loadbalance {

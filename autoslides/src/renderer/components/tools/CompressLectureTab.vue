@@ -429,7 +429,7 @@ const statusText = computed(() => {
   padding: 6px 16px;
   display: flex;
   align-items: center;
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-elevated);
   border-top: 1px solid var(--border-color);
 }
 

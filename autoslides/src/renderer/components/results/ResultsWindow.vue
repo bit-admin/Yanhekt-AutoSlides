@@ -1126,7 +1126,7 @@ const confirmClearTrash = async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   color: var(--text-primary);
 }
 
@@ -1135,7 +1135,7 @@ const confirmClearTrash = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-elevated);
   border-bottom: 1px solid var(--border-color);
   gap: 12px;
 }
@@ -1157,6 +1157,7 @@ const confirmClearTrash = async () => {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
@@ -1729,7 +1730,7 @@ const confirmClearTrash = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 16px;
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-elevated);
   border-top: 1px solid var(--border-color);
   font-size: 12px;
   color: var(--text-secondary);

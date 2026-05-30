@@ -815,8 +815,8 @@ const openCopilotVerificationUrl = () => {
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
-  background-color: #f0f9f0;
-  border: 1px solid #c3e6c3;
+  background-color: var(--success-bg);
+  border: 1px solid var(--success-border);
   border-radius: 4px;
 }
 
@@ -1052,6 +1052,7 @@ const openCopilotVerificationUrl = () => {
   border-radius: 4px;
   font-size: 13px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   min-width: 0;
 }
 
@@ -1071,6 +1072,7 @@ const openCopilotVerificationUrl = () => {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
 }
@@ -1125,6 +1127,7 @@ const openCopilotVerificationUrl = () => {
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .model-chain-input:focus {
@@ -1149,13 +1152,13 @@ const openCopilotVerificationUrl = () => {
 }
 
 .model-chain-badge.primary {
-  background: #e7f3ff;
-  color: #0366d6;
+  background: var(--badge-active-bg);
+  color: var(--badge-active-text);
 }
 
 .model-chain-badge.exhausted {
-  background: #fff4e5;
-  color: #b26a00;
+  background: var(--warning-bg);
+  color: var(--warning);
 }
 
 .model-chain-actions {
@@ -1226,6 +1229,7 @@ const openCopilotVerificationUrl = () => {
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .model-chain-add-input:focus {
@@ -1241,6 +1245,7 @@ const openCopilotVerificationUrl = () => {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
 }
@@ -1289,7 +1294,7 @@ const openCopilotVerificationUrl = () => {
 
 .rate-limit-hint {
   font-size: 11px;
-  color: #e67700;
+  color: var(--warning);
   line-height: 1.4;
   margin-bottom: 16px;
 }
@@ -1307,15 +1312,15 @@ const openCopilotVerificationUrl = () => {
   border-radius: 10px;
   font-size: 11px;
   font-weight: 600;
-  background-color: #e3f2fd;
-  color: #0d47a1;
-  border: 1px solid #bbdefb;
+  background-color: var(--badge-active-bg);
+  color: var(--badge-active-text);
+  border: 1px solid var(--accent);
 }
 
 .variant-badge-distinguish {
-  background-color: #fff3d6;
-  color: #955800;
-  border-color: #ffd99c;
+  background-color: var(--warning-bg);
+  color: var(--warning);
+  border-color: var(--warning);
 }
 
 .ai-prompts-variant-hint {
@@ -1330,6 +1335,7 @@ const openCopilotVerificationUrl = () => {
   font-size: 12px;
   font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   resize: vertical;
   min-height: 100px;
   margin-top: 8px;
@@ -1401,7 +1407,7 @@ const openCopilotVerificationUrl = () => {
 }
 
 .model-error.model-error-warning {
-  color: #b26a00;
+  color: var(--warning);
 }
 
 .model-name-display {

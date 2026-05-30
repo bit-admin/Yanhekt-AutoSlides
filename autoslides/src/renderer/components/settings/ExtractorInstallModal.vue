@@ -698,6 +698,7 @@ onBeforeUnmount(() => {
   padding: 6px 12px;
   border: 1px solid var(--border-input);
   background: var(--bg-surface);
+  color: var(--text-primary);
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;

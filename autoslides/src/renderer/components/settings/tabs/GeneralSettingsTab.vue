@@ -180,6 +180,7 @@ const {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -201,6 +202,7 @@ const {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -225,6 +227,7 @@ const {
   border-radius: 4px;
   font-size: 12px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   font-family: 'Courier New', monospace;
 }
 
@@ -237,6 +240,7 @@ const {
 .token-toggle-btn {
   padding: 5px 8px;
   background-color: var(--bg-elevated);
+  color: var(--text-primary);
   border: 1px solid var(--border-input);
   border-radius: 4px;
   cursor: pointer;
@@ -357,12 +361,12 @@ const {
 .cache-clear-btn {
   background-color: var(--warning);
   border-color: var(--warning);
-  color: #212529;
+  color: var(--text-primary);
 }
 
 .cache-clear-btn:hover:not(:disabled) {
-  background-color: #e0a800;
-  border-color: #e0a800;
+  background-color: var(--warning);
+  border-color: var(--warning);
 }
 
 .cache-reset-btn {

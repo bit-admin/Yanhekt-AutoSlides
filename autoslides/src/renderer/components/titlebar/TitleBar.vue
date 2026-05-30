@@ -565,7 +565,7 @@ const checkForUpdates = () => {
   justify-content: center;
   gap: 8px;
   padding: 6px 16px;
-  background: var(--bg-elevated);
+  background: var(--bg-hover);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;

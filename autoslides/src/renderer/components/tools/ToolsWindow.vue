@@ -147,7 +147,7 @@ const startDrag = () => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   color: var(--text-primary);
 }
 
@@ -157,7 +157,7 @@ const startDrag = () => {
   justify-content: space-between;
   align-items: center;
   height: 38px;
-  background-color: var(--bg-page-alt);
+  background-color: var(--bg-modal);
   border-bottom: 1px solid var(--border-color);
   -webkit-app-region: drag;
   padding: 0 8px;

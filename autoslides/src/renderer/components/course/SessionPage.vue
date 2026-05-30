@@ -92,7 +92,7 @@
               {{ $t('sessions.downloadAllScreen') }}
             </button>
           </div>
-          <div class="sessions-list">
+          <div class="sessions-list custom-scrollbar">
             <div
               v-for="session in sessions"
               :key="session.session_id"
@@ -211,6 +211,8 @@ onMounted(() => {
   flex-direction: column;
   height: 100%;
   padding: 16px;
+  background-color: var(--bg-modal);
+  color: var(--text-primary);
 }
 
 .header {
@@ -226,6 +228,7 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   padding: 16px;
+  background-color: var(--bg-modal);
 }
 
 .back-btn {
@@ -264,13 +267,14 @@ onMounted(() => {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-surface);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .expand-btn:hover {
   border-color: var(--accent);
-  background-color: #f0f8ff;
+  background-color: var(--badge-active-bg);
 }
 
 .expand-btn svg {
@@ -284,7 +288,7 @@ onMounted(() => {
 .course-details {
   padding: 16px;
   border-top: 1px solid var(--border-color);
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
@@ -368,8 +372,8 @@ onMounted(() => {
 }
 
 .session-item:hover {
-  background-color: #f0f8ff;
-  box-shadow: 0 1px 3px rgba(0, 122, 204, 0.1);
+  background-color: var(--badge-active-bg);
+  box-shadow: 0 1px 3px var(--focus-ring);
 }
 
 .session-main {
@@ -386,7 +390,7 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  background-color: #f0f8ff;
+  background-color: var(--badge-active-bg);
   border-radius: 6px;
   color: var(--accent);
   flex-shrink: 0;
@@ -459,17 +463,17 @@ onMounted(() => {
 
 .batch-btn:hover {
   border-color: var(--accent);
-  background-color: #f0f8ff;
+  background-color: var(--badge-active-bg);
 }
 
 .add-all-btn {
-  color: #28a745;
-  border-color: #28a745;
+  color: var(--success);
+  border-color: var(--success);
 }
 
 .add-all-btn:hover {
-  background-color: #d4edda;
-  border-color: #1e7e34;
+  background-color: var(--success-bg);
+  border-color: var(--success-border);
 }
 
 .download-camera-btn {
@@ -478,7 +482,7 @@ onMounted(() => {
 }
 
 .download-camera-btn:hover {
-  background-color: #e3f2fd;
+  background-color: var(--badge-active-bg);
   border-color: var(--accent-hover);
 }
 
@@ -528,13 +532,13 @@ onMounted(() => {
 }
 
 .add-btn {
-  color: #28a745;
-  border-color: #28a745;
+  color: var(--success);
+  border-color: var(--success);
 }
 
 .add-btn:hover {
-  background-color: #d4edda;
-  border-color: #1e7e34;
+  background-color: var(--success-bg);
+  border-color: var(--success-border);
 }
 
 .camera-btn {
@@ -543,7 +547,7 @@ onMounted(() => {
 }
 
 .camera-btn:hover {
-  background-color: #e3f2fd;
+  background-color: var(--badge-active-bg);
   border-color: var(--accent-hover);
 }
 
@@ -563,10 +567,10 @@ onMounted(() => {
   gap: 8px;
   padding: 12px 16px;
   margin-bottom: 16px;
-  background-color: #fee;
-  border: 1px solid #fcc;
+  background-color: var(--danger-bg);
+  border: 1px solid var(--danger-border);
   border-radius: 4px;
-  color: #c33;
+  color: var(--danger);
   font-size: 14px;
 }
 
@@ -601,39 +605,5 @@ onMounted(() => {
   font-style: italic;
 }
 
-/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
-.sessions-list {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-.sessions-list:hover {
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
-.sessions-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.sessions-list::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.sessions-list::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  border: none;
-  transition: background 0.3s ease;
-}
-
-.sessions-list:hover::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-}
-
-.sessions-list::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover) !important;
-}
 
 </style>

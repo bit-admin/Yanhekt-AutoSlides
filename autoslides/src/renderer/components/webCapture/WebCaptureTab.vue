@@ -338,6 +338,7 @@ watch(captureState, (val) => {
   border-radius: 4px;
   font-size: 12px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .url-input:focus { outline: none; border-color: var(--accent); }
@@ -398,6 +399,7 @@ watch(captureState, (val) => {
   border-radius: 4px;
   font-size: 12px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   min-width: 120px;
 }
 .field-group.grow .text-input { width: 100%; min-width: 0; }

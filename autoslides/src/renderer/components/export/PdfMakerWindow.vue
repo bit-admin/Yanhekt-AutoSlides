@@ -133,7 +133,7 @@
       </div>
     </div>
 
-    <div class="content-area">
+    <div class="content-area custom-scrollbar">
       <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
         <span>{{ $t('pdfmaker.loading') }}</span>
@@ -506,7 +506,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   color: var(--text-primary);
 }
 
@@ -516,7 +516,7 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-elevated);
   border-bottom: 1px solid var(--border-color);
   gap: 12px;
 }
@@ -619,6 +619,7 @@ onUnmounted(() => {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 13px;
   cursor: pointer;
 }
@@ -813,36 +814,6 @@ onUnmounted(() => {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-.content-area:hover {
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
-.content-area::-webkit-scrollbar {
-  width: 6px;
-}
-
-.content-area::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.content-area::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  transition: background 0.3s ease;
-}
-
-.content-area:hover::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-}
-
-.content-area::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover);
 }
 
 .loading-state,
@@ -1065,7 +1036,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-elevated);
   border-top: 1px solid var(--border-color);
   font-size: 12px;
   color: var(--text-secondary);

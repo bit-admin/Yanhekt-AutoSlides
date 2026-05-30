@@ -530,6 +530,7 @@ const {
   border-radius: 4px;
   font-size: 12px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   cursor: pointer;
   transition: border-color 0.2s;
 }
@@ -547,6 +548,7 @@ const {
   border-radius: 4px;
   font-size: 12px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .ssim-input:focus {
@@ -627,7 +629,7 @@ const {
 .rule-condition {
   color: var(--text-secondary);
   font-weight: 500;
-  background-color: #e3f2fd;
+  background-color: var(--badge-active-bg);
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 10px;
@@ -794,7 +796,7 @@ const {
   font-size: 9px;
   font-weight: 600;
   color: var(--accent);
-  background-color: #e3f2fd;
+  background-color: var(--badge-active-bg);
   padding: 2px 6px;
   border-radius: 8px;
   text-transform: uppercase;

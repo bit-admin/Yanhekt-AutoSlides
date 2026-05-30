@@ -345,6 +345,7 @@ const autoCropOverallProgress = computed(() => {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;

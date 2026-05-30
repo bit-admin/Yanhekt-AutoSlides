@@ -197,7 +197,7 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 16px;
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-elevated);
   border-bottom: 1px solid var(--border-color);
   gap: 12px;
 }

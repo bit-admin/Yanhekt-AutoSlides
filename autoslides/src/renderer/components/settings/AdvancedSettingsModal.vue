@@ -118,6 +118,7 @@ defineEmits<{
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .close-btn {
@@ -126,6 +127,7 @@ defineEmits<{
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
+  color: var(--text-secondary);
   transition: background-color 0.2s;
 }
 
@@ -146,7 +148,7 @@ defineEmits<{
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-subtle);
+  background-color: var(--bg-elevated);
   flex-shrink: 0;
 }
 
@@ -174,7 +176,7 @@ defineEmits<{
 .advanced-tabs .tab-btn.active {
   color: var(--accent);
   border-bottom-color: var(--accent);
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
 }
 
 .advanced-tabs .tab-btn svg {

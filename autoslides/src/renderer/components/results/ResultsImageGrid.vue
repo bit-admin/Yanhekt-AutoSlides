@@ -108,6 +108,7 @@ const getCropLabel = (item: ResultsItem) => {
 .result-item {
   position: relative;
   background-color: var(--bg-surface);
+  color: var(--text-primary);
   border: 2px solid var(--bg-hover);
   border-radius: 8px;
   overflow: hidden;
@@ -234,8 +235,8 @@ const getCropLabel = (item: ResultsItem) => {
 }
 
 .reason-badge.reason-duplicate {
-  background-color: #fff2cc;
-  color: #8a5b00;
+  background-color: var(--warning-bg);
+  color: var(--warning);
 }
 
 .reason-badge.reason-exclusion {
@@ -244,13 +245,13 @@ const getCropLabel = (item: ResultsItem) => {
 }
 
 .reason-badge.reason-ai_filtered {
-  background-color: #dff7ea;
-  color: #257550;
+  background-color: var(--success-bg);
+  color: var(--success);
 }
 
 .reason-badge.reason-ai_filtered_edit {
-  background-color: #fff3d6;
-  color: #955800;
+  background-color: var(--warning-bg);
+  color: var(--warning);
 }
 
 .reason-badge.reason-manual {

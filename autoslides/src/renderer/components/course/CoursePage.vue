@@ -133,7 +133,7 @@
         <p>{{ $t('courses.loading') }}</p>
       </div>
 
-      <div v-else-if="!errorMessage && !showWelcome" class="courses-grid">
+      <div v-else-if="!errorMessage && !showWelcome" class="courses-grid custom-scrollbar">
         <div
           v-for="course in paginatedCourses"
           :key="course.id"
@@ -313,6 +313,8 @@ onUnmounted(() => {
   flex-direction: column;
   height: 100%;
   padding: 16px;
+  background-color: var(--bg-modal);
+  color: var(--text-primary);
 }
 
 .header {
@@ -359,6 +361,8 @@ onUnmounted(() => {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 14px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .search-btn, .fetch-btn {
@@ -397,10 +401,10 @@ onUnmounted(() => {
   gap: 8px;
   padding: 12px 16px;
   margin-bottom: 16px;
-  background-color: #fee;
-  border: 1px solid #fcc;
+  background-color: var(--danger-bg);
+  border: 1px solid var(--danger-border);
   border-radius: 4px;
-  color: #c33;
+  color: var(--danger);
   font-size: 14px;
   flex-shrink: 0;
 }
@@ -475,13 +479,13 @@ onUnmounted(() => {
 }
 
 .status-live {
-  background-color: #e8f5e8;
-  color: #2d8f2d;
+  background-color: var(--success-bg);
+  color: var(--success);
 }
 
 .status-upcoming {
-  background-color: #fff3cd;
-  color: #856404;
+  background-color: var(--warning-bg);
+  color: var(--warning);
 }
 
 .status-unknown {
@@ -755,9 +759,9 @@ onUnmounted(() => {
 }
 
 .course-shortcut-card:hover {
-  border-color: #93c5fd;
-  background: #eff6ff;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  border-color: var(--accent);
+  background: var(--badge-active-bg);
+  box-shadow: 0 2px 8px var(--focus-ring);
 }
 
 .shortcut-remove {
@@ -788,7 +792,7 @@ onUnmounted(() => {
 }
 
 .shortcut-icon {
-  color: #3b82f6;
+  color: var(--accent);
   flex-shrink: 0;
 }
 
@@ -810,8 +814,8 @@ onUnmounted(() => {
 }
 
 .course-shortcut-add:hover {
-  border-color: #60a5fa;
-  background: #eff6ff;
+  border-color: var(--accent);
+  background: var(--badge-active-bg);
 }
 
 .shortcut-add-icon {
@@ -819,7 +823,7 @@ onUnmounted(() => {
 }
 
 .course-shortcut-add:hover .shortcut-add-icon {
-  color: #3b82f6;
+  color: var(--accent);
 }
 
 .modal-overlay {
@@ -857,6 +861,8 @@ onUnmounted(() => {
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .modal-input:focus {
@@ -920,39 +926,5 @@ onUnmounted(() => {
   }
 }
 
-/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
-.courses-grid {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-.courses-grid:hover {
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
-.courses-grid::-webkit-scrollbar {
-  width: 6px;
-}
-
-.courses-grid::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.courses-grid::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  border: none;
-  transition: background 0.3s ease;
-}
-
-.courses-grid:hover::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-}
-
-.courses-grid::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover) !important;
-}
 
 </style>

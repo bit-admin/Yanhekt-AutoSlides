@@ -594,6 +594,8 @@ defineExpose({
   flex-direction: column;
   height: 100%;
   padding: 0;
+  background-color: var(--bg-modal);
+  color: var(--text-primary);
 }
 
 .login-section {
@@ -618,6 +620,7 @@ defineExpose({
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .login-form p, .verifying-state p {
@@ -649,11 +652,11 @@ defineExpose({
   border: 1px solid var(--border-input);
   border-bottom: none;
   border-radius: 8px 8px 0 0;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
 }
 
 .user-banner.open:hover {
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
 }
 
 .user-avatar {
@@ -702,7 +705,7 @@ defineExpose({
   border: 1px solid var(--border-input);
   border-top: none;
   border-radius: 0 0 8px 8px;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-modal);
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
   padding: 8px;
 }
@@ -757,6 +760,8 @@ defineExpose({
   border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 14px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .logout-btn {
@@ -1002,6 +1007,7 @@ defineExpose({
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -1064,7 +1070,7 @@ defineExpose({
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: var(--bg-elevated);
   border-left: 1px solid var(--border-input);
 }
 
@@ -1079,6 +1085,7 @@ defineExpose({
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 11px;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -1101,6 +1108,7 @@ defineExpose({
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -1395,6 +1403,7 @@ defineExpose({
   border-radius: 4px;
   font-size: 14px;
   background-color: var(--bg-input);
+  color: var(--text-primary);
   margin-top: 8px;
 }
 

@@ -26,7 +26,7 @@
 
     <div class="content-area">
       <div
-        :class="['tab-container', { 'tab-hidden': currentTab !== 'task' }]"
+        :class="['tab-container', 'custom-scrollbar', { 'tab-hidden': currentTab !== 'task' }]"
         data-tab="task"
       >
         <TaskQueuePanel
@@ -36,7 +36,7 @@
       </div>
 
       <div
-        :class="['tab-container', { 'tab-hidden': currentTab !== 'download' }]"
+        :class="['tab-container', 'custom-scrollbar', { 'tab-hidden': currentTab !== 'download' }]"
         data-tab="download"
       >
         <DownloadQueuePanel
@@ -179,12 +179,14 @@ defineExpose({
   display: flex;
   flex-direction: column;
   height: 100%;
+  background-color: var(--bg-modal);
+  color: var(--text-primary);
 }
 
 .navigation-bar {
   display: flex;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
 }
 
 .nav-btn {
@@ -196,6 +198,7 @@ defineExpose({
   padding: 12px 16px;
   border: none;
   background-color: transparent;
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -235,38 +238,4 @@ defineExpose({
   z-index: -1;
 }
 
-/* Custom scrollbar - macOS style thin scrollbars that auto-hide */
-.tab-container {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-.tab-container:hover {
-  scrollbar-color: var(--scrollbar-thumb) transparent;
-}
-
-.tab-container::-webkit-scrollbar {
-  width: 6px;
-}
-
-.tab-container::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.tab-container::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  border: none;
-  transition: background 0.3s ease;
-}
-
-.tab-container:hover::-webkit-scrollbar-thumb {
-  background: var(--scrollbar-thumb);
-}
-
-.tab-container::-webkit-scrollbar-thumb:hover {
-  background: var(--scrollbar-thumb-hover) !important;
-}
 </style>

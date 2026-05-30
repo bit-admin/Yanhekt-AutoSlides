@@ -234,12 +234,14 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
 }
 
 .navigation-bar {
   display: flex;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-modal);
 }
 
 .nav-btn {
@@ -247,6 +249,7 @@ onUnmounted(() => {
   padding: 12px 24px;
   border: none;
   background-color: transparent;
+  color: var(--text-secondary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;

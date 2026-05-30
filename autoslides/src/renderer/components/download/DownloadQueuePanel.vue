@@ -359,7 +359,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
 
 .status-indicator.status-downloading {
   color: var(--accent);
-  background-color: #e3f2fd;
+  background-color: var(--badge-active-bg);
   animation: pulse 2s infinite;
 }
 

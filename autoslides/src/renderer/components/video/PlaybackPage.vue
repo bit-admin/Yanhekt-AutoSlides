@@ -1157,6 +1157,8 @@ onUnmounted(async () => {
   flex-direction: column;
   height: 100%;
   padding: 16px;
+  background-color: var(--bg-modal);
+  color: var(--text-primary);
 }
 
 .header {
@@ -1172,6 +1174,7 @@ onUnmounted(async () => {
   align-items: center;
   gap: 16px;
   padding: 16px;
+  background-color: var(--bg-modal);
 }
 
 .back-btn {
@@ -1242,6 +1245,7 @@ onUnmounted(async () => {
   border: 1px solid var(--border-input);
   border-radius: 4px;
   background-color: var(--bg-input);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -1286,7 +1290,7 @@ onUnmounted(async () => {
 .course-details {
   padding: 16px;
   border-top: 1px solid var(--border-color);
-  background-color: var(--bg-input);
+  background-color: var(--bg-modal);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
