@@ -180,7 +180,7 @@ function onSlideCheckInput(event: Event) {
 .threshold-slider-label {
   font-size: 12px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: var(--text-primary, #222);
 }
 
 .zone-labels {
@@ -269,22 +269,22 @@ function onSlideCheckInput(event: Event) {
   width: 4px;
   height: 18px;
   border-radius: 2px;
-  background: var(--text-primary);
+  background: var(--text-primary, #333);
   border: none;
   cursor: pointer;
   pointer-events: auto;
-  box-shadow: 0 0 0 2px var(--bg-modal), 0 1px 4px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 2px var(--bg-primary, #fff), 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .threshold-range::-moz-range-thumb {
   width: 4px;
   height: 18px;
   border-radius: 2px;
-  background: var(--text-primary);
+  background: var(--text-primary, #333);
   border: none;
   cursor: pointer;
   pointer-events: auto;
-  box-shadow: 0 0 0 2px var(--bg-modal), 0 1px 4px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 2px var(--bg-primary, #fff), 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .handle-value {
@@ -293,7 +293,7 @@ function onSlideCheckInput(event: Event) {
   transform: translateX(-50%);
   font-size: 10px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #666);
   font-family: 'SF Mono', 'Menlo', monospace;
   white-space: nowrap;
   pointer-events: none;
@@ -309,5 +309,25 @@ function onSlideCheckInput(event: Event) {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  .threshold-slider-label {
+    color: #e0e0e0;
+  }
+
+  .handle-value {
+    color: #b0b0b0;
+  }
+
+  .threshold-range::-webkit-slider-thumb {
+    background: #e0e0e0;
+    box-shadow: 0 0 0 2px #2d2d2d, 0 1px 4px rgba(0, 0, 0, 0.5);
+  }
+
+  .threshold-range::-moz-range-thumb {
+    background: #e0e0e0;
+    box-shadow: 0 0 0 2px #2d2d2d, 0 1px 4px rgba(0, 0, 0, 0.5);
+  }
 }
 </style>

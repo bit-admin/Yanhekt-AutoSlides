@@ -1,0 +1,612 @@
+/*
+ * Shared settings form styles. Phase 6 extracts LeftPanel's per-tab content
+ * into child components; these classes are the ones used in 2+ tabs.
+ * Components opt in by NOT redeclaring the same selectors inside their own
+ * <style scoped> block — scoped styles override these unscoped definitions
+ * inside the same component.
+ */
+
+.setting-item {
+  margin-bottom: 16px;
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
+  margin-top: 6px;
+}
+
+.setting-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.setting-description {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.3;
+}
+
+.setting-item .setting-description {
+  margin-top: 2px;
+  margin-bottom: 6px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.setting-label-with-reset {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.setting-label-with-reset .setting-label {
+  margin-bottom: 0;
+}
+
+.advanced-setting-section {
+  margin-bottom: 24px;
+}
+
+.advanced-setting-section h4 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.advanced-setting-section .setting-item {
+  margin-bottom: 20px;
+}
+
+.advanced-setting-section .setting-item:last-child {
+  margin-bottom: 0;
+}
+
+.advanced-setting-subsection {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.advanced-setting-subsection h5 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.two-col-row {
+  display: flex;
+  gap: 12px;
+}
+
+.two-col-item {
+  flex: 1;
+}
+
+.detail-row {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 4px;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--text-secondary);
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.status-row:last-child {
+  margin-bottom: 0;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Used by 2+ tab components (imageProcessing, ai). Live here so each tab
+ * doesn't need to redeclare them in its <style scoped> block. */
+.slide-interval-group {
+  display: flex;
+  align-items: center;
+}
+
+.slide-interval-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+
+.slide-interval-input-wrapper:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.slide-interval-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  background-color: transparent;
+  font-size: 12px;
+  outline: none;
+}
+
+.interval-unit {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #666;
+  background-color: #f8f9fa;
+  border-left: 1px solid #e0e0e0;
+  white-space: nowrap;
+}
+
+.model-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-radius: 6px;
+  background: var(--bg-subtle, rgba(0, 0, 0, 0.02));
+}
+
+.model-row .model-info {
+  font-size: 12px;
+  color: var(--text-primary, #222);
+  word-break: break-all;
+}
+
+.model-row .model-size {
+  color: #666;
+  margin-left: 4px;
+}
+
+.model-row .model-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.secondary-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #222);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.secondary-btn:hover:not(:disabled) {
+  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
+  border-color: var(--border-color-strong, rgba(0, 0, 0, 0.25));
+}
+
+.secondary-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.concurrent-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+}
+
+.concurrent-select:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.preset-btn {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  color: #666;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.preset-btn:hover {
+  background-color: #f8f9fa;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.preset-btn.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.auto-post-processing-control {
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.auto-post-processing-control:hover {
+  background-color: #e9ecef;
+  border-color: var(--accent);
+}
+
+.auto-post-processing-control .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  user-select: none;
+}
+
+.auto-post-processing-control .checkbox-label:not(:last-child) {
+  border-bottom: 1px solid #ddd;
+}
+
+.auto-post-processing-control .checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.prevent-sleep-control {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  height: 35px;
+}
+
+.prevent-sleep-control:hover {
+  background-color: #e9ecef;
+  border-color: var(--accent);
+}
+
+.prevent-sleep-control .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  user-select: none;
+  flex: 1;
+}
+
+.prevent-sleep-control .checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.external-link {
+  color: #007acc;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.external-link:hover {
+  text-decoration: underline;
+}
+
+.mode-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  background-color: #f8f9fa;
+  color: #666;
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-btn:hover {
+  background-color: #e9ecef;
+}
+
+.mode-btn.active {
+  background-color: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+
+.downsampling-controls {
+  margin-top: 8px;
+}
+
+.downsampling-controls + .setting-description {
+  margin-top: 8px;
+}
+
+.downsampling-control {
+  display: flex;
+  flex-direction: column;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  min-height: 35px;
+}
+
+.downsampling-control:hover {
+  background-color: #e9ecef;
+  border-color: var(--accent);
+}
+
+.downsampling-control .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  user-select: none;
+  height: 35px;
+}
+
+.downsampling-control .checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.downsampling-presets {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  border-top: 1px solid #e0e0e0;
+  background-color: rgba(255, 255, 255, 0.7);
+}
+
+.downsampling-presets.no-border-top {
+  border-top: none;
+}
+
+.reset-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 3px;
+  color: #666;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+.reset-btn:hover {
+  background-color: #f0f0f0;
+  color: #333;
+  opacity: 1;
+}
+
+.reset-btn svg {
+  width: 12px;
+  height: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .slide-interval-input-wrapper {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .slide-interval-input-wrapper:focus-within {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .slide-interval-input {
+    color: #e0e0e0;
+  }
+
+  .interval-unit {
+    background-color: #2d2d2d;
+    border-left-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .concurrent-select {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .concurrent-select:focus {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .model-row {
+    border-color: #404040;
+    background: #252525;
+  }
+
+  .model-row .model-info {
+    color: #e0e0e0;
+  }
+
+  .model-row .model-size {
+    color: #b0b0b0;
+  }
+
+  .secondary-btn {
+    background: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .secondary-btn:hover:not(:disabled) {
+    background: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .preset-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .preset-btn:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+    color: #4a9eff;
+  }
+
+  .preset-btn.active {
+    background-color: #4a9eff;
+    border-color: #4a9eff;
+    color: white;
+  }
+
+  .auto-post-processing-control {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .auto-post-processing-control:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .auto-post-processing-control .checkbox-label {
+    color: #e0e0e0;
+  }
+
+  .auto-post-processing-control .checkbox-label:not(:last-child) {
+    border-bottom-color: #404040;
+  }
+
+  .prevent-sleep-control {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .prevent-sleep-control:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .prevent-sleep-control .checkbox-label {
+    color: #e0e0e0;
+  }
+
+  .mode-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .mode-btn:hover {
+    background-color: #3d3d3d;
+  }
+
+  .mode-btn.active {
+    background-color: #2563eb;
+    color: white;
+    border-color: #2563eb;
+  }
+
+  .downsampling-control {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .downsampling-control:hover {
+    background-color: #3d3d3d;
+    border-color: #4a9eff;
+  }
+
+  .downsampling-control .checkbox-label {
+    color: #e0e0e0;
+  }
+
+  .downsampling-presets {
+    border-top-color: #404040;
+    background-color: rgba(45, 45, 45, 0.7);
+  }
+
+  .reset-btn {
+    color: #b0b0b0;
+  }
+
+  .reset-btn:hover {
+    background-color: #3d3d3d;
+    color: #e0e0e0;
+  }
+}

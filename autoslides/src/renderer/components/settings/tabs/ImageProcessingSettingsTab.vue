@@ -4,14 +4,13 @@
     <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.enablePngColorReduction') }}</label>
       <div class="setting-description">{{ $t('advanced.pngColorReductionDescription') }}</div>
-      <div class="flex flex-col gap-1.5">
-        <label :class="toggleItemCls">
+      <div class="image-output-options">
+        <label class="image-output-toggle-item">
           <input
             type="checkbox"
             v-model="tempEnablePngColorReduction"
-            class="m-0 h-3.5 w-3.5 cursor-pointer accent-accent"
           />
-          <span class="text-xs text-fg">{{ $t('advanced.enablePngColorReduction') }}</span>
+          <span class="image-output-toggle-text">{{ $t('advanced.enablePngColorReduction') }}</span>
         </label>
       </div>
     </div>
@@ -22,20 +21,20 @@
     <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.ssimThreshold') }}</label>
       <div class="setting-description">{{ $t('advanced.ssimDescription') }}</div>
-      <div class="mb-1 flex items-center gap-2">
+      <div class="ssim-input-group">
         <input
           v-model.number="tempSsimThreshold"
           type="number"
           min="0.9"
           max="1.0"
           step="0.0001"
-          class="input flex-1"
+          class="ssim-input"
           @input="onSsimInputChange"
         />
         <select
           v-model="ssimPreset"
           @change="onSsimPresetChange"
-          class="select !w-auto min-w-[140px] flex-none cursor-pointer"
+          class="ssim-preset-select"
         >
           <option value="adaptive">{{ $t('advanced.ssimPresets.adaptive') }}</option>
           <option value="strict">{{ $t('advanced.ssimPresets.strict') }}</option>
@@ -46,17 +45,27 @@
       </div>
       <div class="setting-description">{{ $t('advanced.ssimWarning') }}</div>
 
-      <div class="mt-3 rounded-md border border-line bg-elevated p-3 text-[11px]">
-        <div class="mb-1.5 text-xs font-semibold text-[#495057] dark:text-[#e0e0e0]">{{ $t('advanced.classroomRules.title') }}</div>
-        <div class="mb-2 leading-[1.4] text-[#6c757d] dark:text-[#b0b0b0]">{{ $t('advanced.classroomRules.description') }}</div>
-        <ul class="m-0 list-none p-0">
-          <li v-for="r in [1, 2, 3]" :key="r" class="mb-1 flex items-center py-1">
-            <span class="rounded-[3px] bg-[#e3f2fd] px-1.5 py-0.5 text-[10px] font-medium text-[#495057] dark:bg-[#1a2332] dark:text-[#e0e0e0]">{{ $t(`advanced.classroomRules.rule${r}.condition`) }}</span>
-            <span class="mx-2 font-bold text-[#6c757d] dark:text-[#b0b0b0]">→</span>
-            <span class="rounded-[3px] bg-[#d4edda] px-1.5 py-0.5 text-[10px] font-medium text-[#28a745] dark:bg-[#1b2e1b] dark:text-[#4caf50]">{{ $t(`advanced.classroomRules.rule${r}.action`) }}</span>
+      <div class="classroom-rules-info">
+        <div class="rules-title">{{ $t('advanced.classroomRules.title') }}</div>
+        <div class="rules-description">{{ $t('advanced.classroomRules.description') }}</div>
+        <ul class="rules-list">
+          <li class="rule-item">
+            <span class="rule-condition">{{ $t('advanced.classroomRules.rule1.condition') }}</span>
+            <span class="rule-arrow">→</span>
+            <span class="rule-action">{{ $t('advanced.classroomRules.rule1.action') }}</span>
+          </li>
+          <li class="rule-item">
+            <span class="rule-condition">{{ $t('advanced.classroomRules.rule2.condition') }}</span>
+            <span class="rule-arrow">→</span>
+            <span class="rule-action">{{ $t('advanced.classroomRules.rule2.action') }}</span>
+          </li>
+          <li class="rule-item">
+            <span class="rule-condition">{{ $t('advanced.classroomRules.rule3.condition') }}</span>
+            <span class="rule-arrow">→</span>
+            <span class="rule-action">{{ $t('advanced.classroomRules.rule3.action') }}</span>
           </li>
         </ul>
-        <div class="mt-2 border-t border-[#dee2e6] pt-2 italic leading-[1.4] text-[#6c757d] dark:border-[#404040] dark:text-[#b0b0b0]">{{ $t('advanced.classroomRules.reason') }}</div>
+        <div class="rules-reason">{{ $t('advanced.classroomRules.reason') }}</div>
       </div>
     </div>
 
@@ -91,21 +100,30 @@
     <h4>{{ $t('advanced.postProcessing') }}</h4>
     <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.postProcessingPhases') }}</label>
-      <div class="flex flex-col gap-1.5">
-        <label :class="toggleItemCls">
-          <input type="checkbox" v-model="tempEnableDuplicateRemoval" class="m-0 h-3.5 w-3.5 cursor-pointer accent-accent" />
-          <span class="text-xs text-fg">{{ $t('advanced.enableDuplicateRemoval') }}</span>
+      <div class="post-processing-phases-list">
+        <label class="phase-toggle-item">
+          <input
+            type="checkbox"
+            v-model="tempEnableDuplicateRemoval"
+          />
+          <span class="phase-toggle-text">{{ $t('advanced.enableDuplicateRemoval') }}</span>
         </label>
-        <label :class="toggleItemCls">
-          <input type="checkbox" v-model="tempEnableExclusionList" class="m-0 h-3.5 w-3.5 cursor-pointer accent-accent" />
-          <span class="text-xs text-fg">{{ $t('advanced.enableExclusionList') }}</span>
+        <label class="phase-toggle-item">
+          <input
+            type="checkbox"
+            v-model="tempEnableExclusionList"
+          />
+          <span class="phase-toggle-text">{{ $t('advanced.enableExclusionList') }}</span>
         </label>
-        <label :class="toggleItemCls">
-          <input type="checkbox" v-model="tempEnableAIFiltering" class="m-0 h-3.5 w-3.5 cursor-pointer accent-accent" />
-          <span class="text-xs text-fg">{{ $t('advanced.enableAIFiltering') }}</span>
+        <label class="phase-toggle-item">
+          <input
+            type="checkbox"
+            v-model="tempEnableAIFiltering"
+          />
+          <span class="phase-toggle-text">{{ $t('advanced.enableAIFiltering') }}</span>
         </label>
       </div>
-      <div v-if="tempEnableAIFiltering" class="setting-description">
+      <div v-if="tempEnableAIFiltering" class="setting-description ai-reminder">
         {{ $t('advanced.aiFilteringReminder') }}
       </div>
     </div>
@@ -113,16 +131,16 @@
     <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.pHashThreshold') }}</label>
       <div class="setting-description">{{ $t('advanced.pHashDescription') }}</div>
-      <div class="slide-interval-input-wrapper">
+      <div class="phash-threshold-input-wrapper">
         <input
           v-model.number="tempPHashThreshold"
           type="number"
           min="0"
           max="256"
           step="1"
-          class="slide-interval-input"
+          class="phash-threshold-input"
         />
-        <span class="interval-unit">{{ $t('advanced.hammingDistance') }}</span>
+        <span class="threshold-unit">{{ $t('advanced.hammingDistance') }}</span>
       </div>
     </div>
 
@@ -130,32 +148,31 @@
       <label class="setting-label">{{ $t('advanced.pHashExclusionList') }}</label>
       <div class="setting-description">{{ $t('advanced.pHashExclusionDescription') }}</div>
 
-      <div class="mb-3">
-        <div v-if="pHashExclusionList.length === 0" class="rounded border border-line bg-elevated p-3 text-center text-[11px] italic text-fg-secondary">
+      <div class="exclusion-list-container">
+        <div v-if="pHashExclusionList.length === 0" class="exclusion-list-empty">
           {{ $t('advanced.noExclusionItems') }}
         </div>
-        <div v-else class="max-h-[200px] overflow-y-auto rounded border border-line bg-elevated">
+        <div v-else class="exclusion-list">
           <div
             v-for="item in pHashExclusionList"
             :key="item.id"
-            class="flex items-center justify-between border-b border-line bg-modal px-3 py-2 transition-colors last:border-b-0 hover:bg-elevated"
-            :class="{
-              'border-l-[3px] border-l-accent': item.isPreset,
-              'opacity-60': item.isPreset && !item.isEnabled
-            }"
+            :class="['exclusion-item', {
+              'preset-item': item.isPreset,
+              'disabled-item': item.isPreset && !item.isEnabled
+            }]"
           >
-            <div class="min-w-0 flex-1">
-              <div class="mb-0.5 flex items-center gap-1.5 truncate text-xs font-medium text-fg">
-                <span v-if="item.isPreset" class="flex-shrink-0 rounded-lg bg-[#e3f2fd] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-[0.3px] text-accent dark:bg-[#1a2332] dark:text-[#4a9eff]">{{ $t('advanced.presetLabel') }}</span>
+            <div class="exclusion-item-info">
+              <div class="exclusion-item-name">
+                <span v-if="item.isPreset" class="preset-badge">{{ $t('advanced.presetLabel') }}</span>
                 {{ item.name }}
               </div>
-              <div class="mb-0.5 truncate break-all font-mono text-[10px] text-fg-secondary" :title="item.pHash">{{ item.pHash }}</div>
+              <div class="exclusion-item-hash" :title="item.pHash">{{ item.pHash }}</div>
             </div>
-            <div class="ml-2 flex gap-1">
+            <div class="exclusion-item-actions">
               <button
                 v-if="!item.isPreset"
                 @click="editExclusionItemName(item)"
-                :class="[exclBtnBase, exclBtnEdit]"
+                class="exclusion-edit-btn"
                 :title="$t('advanced.editName')"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -165,7 +182,7 @@
               </button>
               <button
                 @click="removeExclusionItem(item.id)"
-                :class="[exclBtnBase, item.isPreset ? exclBtnToggle : exclBtnRemove]"
+                :class="item.isPreset ? 'exclusion-toggle-btn' : 'exclusion-remove-btn'"
                 :title="item.isPreset ? (item.isEnabled ? $t('advanced.disableItem') : $t('advanced.enableItem')) : $t('advanced.removeItem')"
               >
                 <svg v-if="item.isPreset" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -188,11 +205,11 @@
         </div>
       </div>
 
-      <div class="flex flex-wrap gap-2">
+      <div class="exclusion-actions">
         <button
           @click="addExclusionItem"
           :disabled="isAddingExclusion"
-          :class="[exclActionBtn, exclAddBtn]"
+          class="exclusion-add-btn"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"/>
@@ -203,7 +220,7 @@
         <button
           v-if="pHashExclusionList.length > 0"
           @click="clearExclusionList"
-          :class="[exclActionBtn, exclClearBtn]"
+          class="exclusion-clear-btn"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3,6 5,6 21,6"/>
@@ -242,7 +259,7 @@
         </div>
       </div>
 
-      <div class="mb-5 grid grid-cols-2 gap-x-4">
+      <div class="auto-crop-grid">
         <div class="setting-item">
           <label class="setting-label">{{ $t('advanced.autoCrop.blackThreshold') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.blackThresholdDescription') }}</div>
@@ -315,8 +332,8 @@
     <div v-if="tempAutoCropDetectorMode !== 'canny_only'" class="advanced-setting-subsection">
       <h5>{{ $t('advanced.autoCrop.yolo.title') }}</h5>
 
-      <div class="mb-5 grid grid-cols-2 gap-x-4">
-        <div class="setting-item col-span-2">
+      <div class="auto-crop-grid">
+        <div class="setting-item full-width">
           <label class="setting-label">{{ $t('advanced.autoCrop.yolo.confidenceThreshold') }}</label>
           <div class="setting-description">{{ $t('advanced.autoCrop.yolo.confidenceThresholdDescription') }}</div>
           <div class="slide-interval-group">
@@ -333,7 +350,7 @@
           </div>
         </div>
 
-        <div class="setting-item col-span-2">
+        <div class="setting-item full-width">
           <div class="two-col-row">
             <div class="two-col-item">
               <label class="setting-label">{{ $t('advanced.autoCrop.yolo.iouThreshold') }}</label>
@@ -357,7 +374,7 @@
               <div class="setting-description">{{ $t('advanced.autoCrop.yolo.inputSizeDescription') }}</div>
               <div class="slide-interval-group">
                 <div class="slide-interval-input-wrapper">
-                  <select v-model.number="tempAutoCropYoloInputSize" class="flex-1 border-none bg-transparent px-2 py-1.5 text-xs text-fg outline-none">
+                  <select v-model.number="tempAutoCropYoloInputSize" class="slide-interval-select">
                     <option v-for="s in autoCropYoloInputSizes" :key="s" :value="s">{{ s }}</option>
                   </select>
                   <span class="interval-unit">px</span>
@@ -454,22 +471,629 @@ const {
   editExclusionItemName,
   clearExclusionList,
 } = phash
-
-// Repeated bespoke patterns (toggle rows, exclusion buttons). Theme-aware.
-const toggleItemCls =
-  'flex cursor-pointer items-center gap-2 rounded border border-[#ddd] bg-[#f8f9fa] px-2.5 py-2 transition-colors hover:border-[#ccc] hover:bg-[#f0f0f0] dark:border-[#404040] dark:bg-[#2d2d2d] dark:hover:border-[#505050] dark:hover:bg-[#3d3d3d]'
-const exclBtnBase =
-  'flex h-6 w-6 cursor-pointer items-center justify-center rounded-[3px] border border-[#ddd] bg-[#f8f9fa] transition-all dark:border-[#404040] dark:bg-[#2d2d2d]'
-const exclBtnEdit = 'text-accent hover:border-accent hover:bg-accent hover:text-white'
-const exclBtnRemove =
-  'text-[#dc3545] hover:border-[#dc3545] hover:bg-[#dc3545] hover:text-white dark:text-[#ff6b6b] dark:hover:border-[#ff6b6b] dark:hover:bg-[#ff6b6b]'
-const exclBtnToggle =
-  'text-[#28a745] hover:border-[#28a745] hover:bg-[#28a745] hover:text-white dark:text-[#4caf50] dark:hover:border-[#4caf50] dark:hover:bg-[#4caf50]'
-const exclActionBtn =
-  'flex min-w-0 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded border px-3 py-1.5 text-[11px] transition-all'
-const exclAddBtn =
-  'border-[#28a745] bg-[#28a745] text-white enabled:hover:border-[#218838] enabled:hover:bg-[#218838] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#4caf50] dark:bg-[#4caf50] dark:enabled:hover:border-[#45a049] dark:enabled:hover:bg-[#45a049]'
-const exclClearBtn =
-  'border-[#ffc107] bg-[#ffc107] text-[#212529] hover:border-[#e0a800] hover:bg-[#e0a800] dark:border-[#f39c12] dark:bg-[#f39c12] dark:text-[#1a1a1a] dark:hover:border-[#e67e22] dark:hover:bg-[#e67e22]'
 </script>
 
+<style scoped>
+.post-processing-phases-list,
+.image-output-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.phase-toggle-item,
+.image-output-toggle-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.phase-toggle-item:hover,
+.image-output-toggle-item:hover {
+  background-color: #f0f0f0;
+  border-color: #ccc;
+}
+
+.phase-toggle-item input[type="checkbox"],
+.image-output-toggle-item input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+}
+
+.phase-toggle-text,
+.image-output-toggle-text {
+  font-size: 12px;
+  color: #333;
+}
+
+.ssim-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.ssim-preset-select {
+  flex: 0 0 auto;
+  min-width: 140px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.ssim-preset-select:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.ssim-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+}
+
+.ssim-input:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.phash-threshold-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+
+.phash-threshold-input-wrapper:focus-within {
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.phash-threshold-input {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  background-color: transparent;
+  font-size: 12px;
+  outline: none;
+}
+
+.threshold-unit {
+  padding: 6px 8px;
+  font-size: 11px;
+  color: #666;
+  background-color: #f8f9fa;
+  border-left: 1px solid #e0e0e0;
+  white-space: nowrap;
+}
+
+.classroom-rules-info {
+  margin-top: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.rules-title {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.rules-description {
+  color: #6c757d;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.rules-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  padding: 4px 0;
+}
+
+.rule-condition {
+  color: #495057;
+  font-weight: 500;
+  background-color: #e3f2fd;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.rule-arrow {
+  margin: 0 8px;
+  color: #6c757d;
+  font-weight: bold;
+}
+
+.rule-action {
+  color: #28a745;
+  font-weight: 500;
+  background-color: #d4edda;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+
+.rules-reason {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #dee2e6;
+  color: #6c757d;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.auto-crop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 16px;
+  row-gap: 0;
+  margin-bottom: 20px;
+}
+
+.auto-crop-grid .setting-item {
+  margin-bottom: 16px;
+}
+
+.auto-crop-grid .setting-item:last-child {
+  margin-top: 0;
+}
+
+.auto-crop-grid .setting-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.auto-crop-grid .setting-item .slide-interval-input-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.advanced-setting-subsection {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+}
+
+.advanced-setting-subsection h5 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary, #222);
+}
+
+.slide-interval-select {
+  flex: 1;
+  padding: 6px 8px;
+  border: none;
+  background-color: transparent;
+  font-size: 12px;
+  outline: none;
+}
+
+.two-col-row {
+  display: flex;
+  gap: 12px;
+}
+
+.two-col-item {
+  flex: 1;
+}
+
+.two-col-item .setting-label {
+  margin-bottom: 6px;
+}
+
+.exclusion-list-container {
+  margin-bottom: 12px;
+}
+
+.exclusion-list-empty {
+  padding: 12px;
+  text-align: center;
+  color: #666;
+  font-size: 11px;
+  font-style: italic;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+}
+
+.exclusion-list {
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.exclusion-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e9ecef;
+  background-color: white;
+  transition: background-color 0.2s;
+}
+
+.exclusion-item:last-child {
+  border-bottom: none;
+}
+
+.exclusion-item:hover {
+  background-color: #f8f9fa;
+}
+
+.exclusion-item.preset-item {
+  border-left: 3px solid #007acc;
+}
+
+.exclusion-item.disabled-item {
+  opacity: 0.6;
+  background-color: #f8f9fa;
+}
+
+.exclusion-item.disabled-item .exclusion-item-name,
+.exclusion-item.disabled-item .exclusion-item-hash {
+  color: #999;
+}
+
+.exclusion-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.exclusion-item-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.preset-badge {
+  font-size: 9px;
+  font-weight: 600;
+  color: #007acc;
+  background-color: #e3f2fd;
+  padding: 2px 6px;
+  border-radius: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  flex-shrink: 0;
+}
+
+.exclusion-item-hash {
+  font-size: 10px;
+  color: #666;
+  font-family: 'Courier New', monospace;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: break-all;
+}
+
+.exclusion-item-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.exclusion-edit-btn, .exclusion-remove-btn, .exclusion-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.exclusion-edit-btn {
+  color: #007acc;
+}
+
+.exclusion-edit-btn:hover {
+  background-color: #007acc;
+  color: white;
+  border-color: #007acc;
+}
+
+.exclusion-remove-btn {
+  color: #dc3545;
+}
+
+.exclusion-remove-btn:hover {
+  background-color: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.exclusion-toggle-btn {
+  color: #28a745;
+}
+
+.exclusion-toggle-btn:hover {
+  background-color: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.exclusion-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.exclusion-add-btn, .exclusion-clear-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+.exclusion-add-btn {
+  background-color: #28a745;
+  border-color: #28a745;
+  color: white;
+}
+
+.exclusion-add-btn:hover:not(:disabled) {
+  background-color: #218838;
+  border-color: #218838;
+}
+
+.exclusion-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.exclusion-clear-btn {
+  background-color: #ffc107;
+  border-color: #ffc107;
+  color: #212529;
+}
+
+.exclusion-clear-btn:hover {
+  background-color: #e0a800;
+  border-color: #e0a800;
+}
+
+@media (prefers-color-scheme: dark) {
+  .ssim-input,
+  .ssim-preset-select,
+  .phash-threshold-input {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .ssim-input:focus,
+  .ssim-preset-select:focus {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .phash-threshold-input-wrapper {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .phash-threshold-input-wrapper:focus-within {
+    border-color: #4a9eff;
+    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
+  }
+
+  .threshold-unit {
+    background-color: #2d2d2d;
+    border-left-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .slide-interval-select {
+    color: #e0e0e0;
+  }
+
+  .advanced-setting-subsection h5 {
+    color: #e0e0e0;
+  }
+
+  .phase-toggle-item,
+  .image-output-toggle-item {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .phase-toggle-item:hover,
+  .image-output-toggle-item:hover {
+    background-color: #3d3d3d;
+    border-color: #505050;
+  }
+
+  .phase-toggle-text,
+  .image-output-toggle-text {
+    color: #e0e0e0;
+  }
+
+  .classroom-rules-info {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .rules-title {
+    color: #e0e0e0;
+  }
+
+  .rules-description,
+  .rules-reason {
+    color: #b0b0b0;
+  }
+
+  .rules-reason {
+    border-top-color: #404040;
+  }
+
+  .rule-condition {
+    color: #e0e0e0;
+    background-color: #1a2332;
+  }
+
+  .rule-arrow {
+    color: #b0b0b0;
+  }
+
+  .rule-action {
+    color: #4caf50;
+    background-color: #1b2e1b;
+  }
+
+  .exclusion-list-empty {
+    background-color: #2d2d2d;
+    border-color: #404040;
+    color: #b0b0b0;
+  }
+
+  .exclusion-list {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .exclusion-item {
+    background-color: #2d2d2d;
+    border-bottom-color: #404040;
+  }
+
+  .exclusion-item:hover {
+    background-color: #3d3d3d;
+  }
+
+  .exclusion-item-name {
+    color: #e0e0e0;
+  }
+
+  .preset-badge {
+    color: #4a9eff;
+    background-color: #1a2332;
+  }
+
+  .exclusion-item.preset-item {
+    border-left-color: #4a9eff;
+  }
+
+  .exclusion-item.disabled-item .exclusion-item-name,
+  .exclusion-item.disabled-item .exclusion-item-hash {
+    color: #666;
+  }
+
+  .exclusion-item-hash {
+    color: #b0b0b0;
+  }
+
+  .exclusion-edit-btn, .exclusion-remove-btn, .exclusion-toggle-btn {
+    background-color: #2d2d2d;
+    border-color: #404040;
+  }
+
+  .exclusion-edit-btn {
+    color: #4a9eff;
+  }
+
+  .exclusion-edit-btn:hover {
+    background-color: #4a9eff;
+    color: white;
+    border-color: #4a9eff;
+  }
+
+  .exclusion-remove-btn {
+    color: #ff6b6b;
+  }
+
+  .exclusion-remove-btn:hover {
+    background-color: #ff6b6b;
+    color: white;
+    border-color: #ff6b6b;
+  }
+
+  .exclusion-toggle-btn {
+    color: #4caf50;
+  }
+
+  .exclusion-toggle-btn:hover {
+    background-color: #4caf50;
+    color: white;
+    border-color: #4caf50;
+  }
+
+  .exclusion-add-btn {
+    background-color: #4caf50;
+    border-color: #4caf50;
+  }
+
+  .exclusion-add-btn:hover:not(:disabled) {
+    background-color: #45a049;
+    border-color: #45a049;
+  }
+
+  .exclusion-clear-btn {
+    background-color: #f39c12;
+    border-color: #f39c12;
+    color: #1a1a1a;
+  }
+
+  .exclusion-clear-btn:hover {
+    background-color: #e67e22;
+    border-color: #e67e22;
+  }
+}
+</style>

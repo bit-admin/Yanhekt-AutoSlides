@@ -1,8 +1,8 @@
 <template>
-  <div class="flex h-full flex-col dark:bg-[#1e1e1e] dark:text-[#e0e0e0]">
-    <div class="flex border-b border-line bg-[#f8f9fa] dark:bg-[#2d2d2d]">
+  <div class="right-panel">
+    <div class="navigation-bar">
       <button
-        :class="[navBtnBase, currentTab === 'task' ? navActive : navIdle]"
+        :class="['nav-btn', { active: currentTab === 'task' }]"
         @click="switchTab('task')"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -12,7 +12,7 @@
         {{ $t('navigation.task') }}
       </button>
       <button
-        :class="[navBtnBase, currentTab === 'download' ? navActive : navIdle]"
+        :class="['nav-btn', { active: currentTab === 'download' }]"
         @click="switchTab('download')"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -24,10 +24,9 @@
       </button>
     </div>
 
-    <div class="relative flex-1 overflow-hidden dark:bg-[#1e1e1e]">
+    <div class="content-area">
       <div
-        class="absolute left-0 top-0 h-full w-full overflow-y-auto transition-opacity duration-200 ease-in-out"
-        :class="{ 'pointer-events-none -z-10 opacity-0': currentTab !== 'task' }"
+        :class="['tab-container', { 'tab-hidden': currentTab !== 'task' }]"
         data-tab="task"
       >
         <TaskQueuePanel
@@ -37,8 +36,7 @@
       </div>
 
       <div
-        class="absolute left-0 top-0 h-full w-full overflow-y-auto transition-opacity duration-200 ease-in-out"
-        :class="{ 'pointer-events-none -z-10 opacity-0': currentTab !== 'download' }"
+        :class="['tab-container', { 'tab-hidden': currentTab !== 'download' }]"
         data-tab="download"
       >
         <DownloadQueuePanel
@@ -57,10 +55,6 @@ import TaskQueuePanel from './TaskQueuePanel.vue'
 import DownloadQueuePanel from './DownloadQueuePanel.vue'
 
 type Tab = 'task' | 'download'
-
-const navBtnBase = 'flex flex-1 cursor-pointer items-center justify-center gap-1.5 border-none border-b-[3px] bg-transparent px-4 py-3 text-sm font-medium transition-all'
-const navIdle = 'border-b-transparent text-fg hover:bg-hover'
-const navActive = 'border-b-accent bg-surface text-accent dark:border-b-[#4fc3f7] dark:bg-[#1e1e1e] dark:text-[#4fc3f7]'
 
 const currentTab = ref<Tab>('task')
 const autoPostProcessing = ref<boolean>(true)
@@ -180,3 +174,155 @@ defineExpose({
 })
 </script>
 
+<style scoped>
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.navigation-bar {
+  display: flex;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+}
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border: none;
+  background-color: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+}
+
+.nav-btn:hover {
+  background-color: #e9ecef;
+}
+
+.nav-btn.active {
+  background-color: white;
+  border-bottom-color: #007acc;
+  color: #007acc;
+}
+
+.content-area {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.tab-container {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 0.2s ease-in-out;
+  overflow-y: auto;
+}
+
+.tab-container.tab-hidden {
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@media (prefers-color-scheme: dark) {
+  .right-panel {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+  }
+
+  .content-area {
+    background-color: #1e1e1e;
+  }
+
+  .navigation-bar {
+    border-bottom-color: #404040;
+    background-color: #2d2d2d;
+  }
+
+  .nav-btn {
+    color: #e0e0e0;
+  }
+
+  .nav-btn:hover {
+    background-color: #404040;
+  }
+
+  .nav-btn.active {
+    background-color: #1e1e1e;
+    color: #4fc3f7;
+    border-bottom-color: #4fc3f7;
+  }
+}
+
+/* Custom scrollbar - macOS style thin scrollbars that auto-hide */
+.tab-container {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+.tab-container:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
+
+.tab-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tab-container::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.tab-container::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  border: none;
+  transition: background 0.3s ease;
+}
+
+.tab-container:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.tab-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .tab-container {
+    scrollbar-color: transparent transparent;
+  }
+
+  .tab-container:hover {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  }
+
+  .tab-container::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .tab-container::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
+  .tab-container:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .tab-container::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+  }
+}
+</style>
