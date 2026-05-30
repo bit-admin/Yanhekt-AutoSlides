@@ -20,7 +20,7 @@
             {{ tempIntranetInterfaceIp }}
           </option>
         </select>
-        <button type="button" class="refresh-button" @click="refreshNetworkInterfaces">
+        <button type="button" class="btn btn--sm" @click="refreshNetworkInterfaces">
           {{ $t('advanced.intranetInterfaceRefresh') }}
         </button>
       </div>
@@ -119,21 +119,8 @@ const {
   color: var(--text-primary);
 }
 
-.intranet-interface-row .refresh-button {
-  box-sizing: border-box;
+.intranet-interface-row .btn {
   height: 28px;
-  padding: 0 10px;
-  font-size: 11px;
-  line-height: 1;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.intranet-interface-row .refresh-button:hover {
-  background-color: var(--bg-hover);
 }
 
 .intranet-interface-warning {

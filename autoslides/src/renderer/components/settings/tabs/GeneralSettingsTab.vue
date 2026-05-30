@@ -9,10 +9,10 @@
           v-model="manualToken"
           type="password"
           :placeholder="$t('advanced.tokenPlaceholder')"
-          class="token-input"
+          class="text-input token-input"
           @input="onTokenInput"
         />
-        <button @click="toggleTokenVisibility" class="token-toggle-btn" :title="showToken ? $t('advanced.hideToken') : $t('advanced.showToken')">
+        <button @click="toggleTokenVisibility" class="btn btn--sm" :title="showToken ? $t('advanced.hideToken') : $t('advanced.showToken')">
           <svg v-if="showToken" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
             <line x1="1" y1="1" x2="23" y2="23"/>
@@ -22,7 +22,7 @@
             <circle cx="12" cy="12" r="3"/>
           </svg>
         </button>
-        <button @click="verifyManualToken" :disabled="!manualToken || isVerifyingManualToken" class="verify-token-btn">
+        <button @click="verifyManualToken" :disabled="!manualToken || isVerifyingManualToken" class="btn btn--success">
           {{ isVerifyingManualToken ? $t('advanced.verifying') : $t('advanced.verify') }}
         </button>
       </div>
@@ -39,7 +39,7 @@
         <div class="two-col-item">
           <label class="setting-label">{{ $t('settings.theme') }}</label>
           <div class="theme-selector">
-            <select v-model="tempThemeMode" class="theme-select">
+            <select v-model="tempThemeMode" class="text-input theme-select">
               <option value="system">{{ $t('settings.followSystem') }}</option>
               <option value="light">{{ $t('settings.light') }}</option>
               <option value="dark">{{ $t('settings.dark') }}</option>
@@ -49,7 +49,7 @@
         <div class="two-col-item">
           <label class="setting-label">{{ $t('settings.language') }}</label>
           <div class="language-selector">
-            <select v-model="tempLanguageMode" class="language-select">
+            <select v-model="tempLanguageMode" class="text-input language-select">
               <option value="system">{{ $t('settings.followSystem') }}</option>
               <option value="en">{{ $t('settings.english') }}</option>
               <option value="zh">{{ $t('settings.chinese') }}</option>
@@ -80,7 +80,7 @@
         <button
           @click="refreshCacheStats"
           :disabled="isRefreshingCache"
-          class="cache-refresh-btn"
+          class="btn"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -93,7 +93,7 @@
         <button
           @click="clearCache"
           :disabled="isClearingCache || cacheStats.totalSize === 0"
-          class="cache-clear-btn"
+          class="btn btn--warning"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3,6 5,6 21,6"/>
@@ -106,7 +106,7 @@
         <button
           @click="resetAllData"
           :disabled="isResettingData"
-          class="cache-reset-btn"
+          class="btn btn--danger"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2L2 7l10 5 10-5-10-5z"/>
@@ -170,48 +170,15 @@ const {
   margin-bottom: 6px;
 }
 
-.theme-selector {
-  width: 100%;
-}
-
-.theme-select {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.theme-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--focus-ring);
-}
-
+.theme-selector,
 .language-selector {
   width: 100%;
 }
 
+.theme-select,
 .language-select {
   width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 12px;
   cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.language-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .token-input-group {
@@ -222,57 +189,7 @@ const {
 
 .token-input {
   flex: 1;
-  padding: 6px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
   font-family: 'Courier New', monospace;
-}
-
-.token-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--focus-ring);
-}
-
-.token-toggle-btn {
-  padding: 5px 8px;
-  background-color: var(--bg-elevated);
-  color: var(--text-primary);
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.token-toggle-btn:hover {
-  background-color: var(--bg-hover);
-}
-
-.verify-token-btn {
-  padding: 6px 12px;
-  background-color: var(--success);
-  color: var(--text-on-accent);
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  white-space: nowrap;
-}
-
-.verify-token-btn:hover:not(:disabled) {
-  background-color: var(--success);
-}
-
-.verify-token-btn:disabled {
-  background-color: var(--border-strong);
-  cursor: not-allowed;
 }
 
 .token-status {
@@ -331,60 +248,9 @@ const {
   margin-bottom: 8px;
 }
 
-.cache-refresh-btn, .cache-clear-btn, .cache-reset-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid;
-  border-radius: 4px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.2s;
+.cache-actions .btn {
   flex: 1;
   min-width: 0;
-  justify-content: center;
-}
-
-.cache-refresh-btn {
-  background-color: var(--bg-elevated);
-  border-color: var(--border-input);
-  color: var(--text-secondary);
-}
-
-.cache-refresh-btn:hover:not(:disabled) {
-  background-color: var(--bg-hover);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.cache-clear-btn {
-  background-color: var(--warning-btn);
-  border-color: var(--warning-btn);
-  color: var(--text-primary);
-}
-
-.cache-clear-btn:hover:not(:disabled) {
-  background-color: var(--warning-btn-hover);
-  border-color: var(--warning-btn-hover);
-}
-
-.cache-reset-btn {
-  background-color: var(--danger);
-  border-color: var(--danger);
-  color: var(--text-on-accent);
-}
-
-.cache-reset-btn:hover:not(:disabled) {
-  background-color: var(--danger-hover);
-  border-color: var(--danger-hover);
-}
-
-.cache-refresh-btn:disabled,
-.cache-clear-btn:disabled,
-.cache-reset-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .cache-status {

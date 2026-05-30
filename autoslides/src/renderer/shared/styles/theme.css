@@ -44,6 +44,7 @@
   --danger-bright: #d32f2f;
   --danger-pink: #d32f2f;
   --success: #2e7d32;
+  --success-hover: #1b5e20;
   --warning: #ed6c02;
   --warning-btn: #ffc107;
   --warning-btn-hover: #e0a800;
@@ -91,6 +92,16 @@
   --blue-badge-bg: #e3f2fd;
   --blue-badge-text: #1976d2;
   --warning-border: #ffeaa7;
+
+  /* Reason badges (Results View trash chips) */
+  --reason-duplicate-bg: #fff2cc;
+  --reason-duplicate-text: #8a5b00;
+  --reason-exclusion-bg: #ede7ff;
+  --reason-exclusion-text: #6546c2;
+  --reason-ai-bg: #dff7ea;
+  --reason-ai-text: #257550;
+  --reason-ai-edit-bg: #fff3d6;
+  --reason-ai-edit-text: #955800;
 
   /* Form controls */
   --focus-ring: rgba(0, 122, 204, 0.1);
@@ -150,6 +161,7 @@
     --danger-bright: #ff6b6b;
     --danger-pink: #f48fb1;
     --success: #66bb6a;
+    --success-hover: #4caf50;
     --warning: #ffa726;
     --warning-btn: #f39c12;
     --warning-btn-hover: #e67e22;
@@ -197,6 +209,16 @@
     --blue-badge-bg: #1a2332;
     --blue-badge-text: #64b5f6;
     --warning-border: #665c2a;
+
+    /* Reason badges (Results View trash chips) */
+    --reason-duplicate-bg: #4a3a10;
+    --reason-duplicate-text: #f0c674;
+    --reason-exclusion-bg: #2d1b3d;
+    --reason-exclusion-text: #c4a5f0;
+    --reason-ai-bg: #1a4a2e;
+    --reason-ai-text: #9ae6b4;
+    --reason-ai-edit-bg: #4a3a00;
+    --reason-ai-edit-text: #e6c860;
 
     /* Hover tint */
     --hover-tint: rgba(255, 255, 255, 0.08);
