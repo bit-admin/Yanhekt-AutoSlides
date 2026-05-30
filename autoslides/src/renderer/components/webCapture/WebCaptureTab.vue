@@ -1,59 +1,59 @@
 <template>
-  <div class="flex h-full flex-col bg-surface text-fg">
+  <div class="webcapture-tab">
     <!-- Top toolbar: navigation + URL -->
-    <div class="flex flex-wrap items-center gap-2 border-b border-line bg-[#fafafa] px-3 py-1.5 dark:bg-[#252525]">
-      <button :class="navBtn" @click="goBack" :title="$t('webCapture.back')">
+    <div class="toolbar nav-toolbar">
+      <button class="nav-btn" @click="goBack" :title="$t('webCapture.back')">
         <svg width="16" height="16" viewBox="0 0 16 16">
           <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         </svg>
       </button>
-      <button :class="navBtn" @click="goForward" :title="$t('webCapture.forward')">
+      <button class="nav-btn" @click="goForward" :title="$t('webCapture.forward')">
         <svg width="16" height="16" viewBox="0 0 16 16">
           <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         </svg>
       </button>
-      <button :class="navBtn" @click="reload" :title="$t('webCapture.reload')">
+      <button class="nav-btn" @click="reload" :title="$t('webCapture.reload')">
         <svg width="16" height="16" viewBox="0 0 16 16">
           <path d="M13 8a5 5 0 11-1.5-3.5M13 3v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         </svg>
       </button>
       <input
-        :class="[fieldInput, 'min-w-[200px] flex-1']"
+        class="url-input"
         :value="pendingUrl"
         @input="(e) => pendingUrl = (e.target as HTMLInputElement).value"
         @keydown.enter="navigate()"
         :placeholder="$t('webCapture.urlPlaceholder')"
         spellcheck="false"
       />
-      <button :class="primaryBtn" @click="navigate()" :disabled="!pendingUrl.trim()">{{ $t('webCapture.go') }}</button>
-      <div class="relative">
-        <button :class="[secondaryBtn, 'flex items-center gap-1']" @click.stop="presetOpen = !presetOpen">
+      <button class="primary-btn" @click="navigate()" :disabled="!pendingUrl.trim()">{{ $t('webCapture.go') }}</button>
+      <div class="preset-dropdown">
+        <button class="secondary-btn preset-toggle" @click.stop="presetOpen = !presetOpen">
           {{ $t('webCapture.presets') }}
           <svg width="10" height="10" viewBox="0 0 10 10">
             <path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
         </button>
-        <ul v-if="presetOpen" class="absolute right-0 top-full z-dropdown mt-1 min-w-[140px] list-none rounded-md border border-line-input bg-surface py-1 shadow-[0_4px_12px_rgba(0,0,0,0.12)] dark:border-[#555] dark:bg-[#2a2a2a]">
-          <li v-for="p in presets" :key="p.url" class="cursor-pointer whitespace-nowrap px-3 py-1 text-xs hover:bg-accent/[0.08] hover:text-accent dark:hover:bg-accent/[0.12]" @click="onSelectPreset(p)">{{ $t(p.labelKey) }}</li>
+        <ul v-if="presetOpen" class="preset-menu">
+          <li v-for="p in presets" :key="p.url" @click="onSelectPreset(p)">{{ $t(p.labelKey) }}</li>
         </ul>
       </div>
     </div>
 
     <!-- Second toolbar: course + selector + capture actions -->
-    <div class="flex flex-wrap items-center gap-2 border-b border-line bg-[#f5f5f5] px-3 py-1.5 dark:bg-[#2a2a2a]">
-      <div class="flex items-center gap-1.5">
-        <label class="whitespace-nowrap text-[11px] text-fg-secondary">{{ $t('webCapture.name') }}</label>
+    <div class="toolbar action-toolbar">
+      <div class="field-group">
+        <label class="field-label">{{ $t('webCapture.name') }}</label>
         <input
-          :class="[fieldInput, 'min-w-[120px]']"
+          class="text-input"
           :value="courseName"
           @input="(e) => onCourseNameInput((e.target as HTMLInputElement).value)"
           :placeholder="pageTitle || $t('webCapture.courseNamePlaceholder')"
         />
       </div>
-      <div class="flex min-w-[180px] flex-1 items-center gap-1.5" :class="{ 'opacity-40': regionOverridesSelector }">
-        <label class="whitespace-nowrap text-[11px] text-fg-secondary">{{ $t('webCapture.selector') }}</label>
+      <div class="field-group grow" :class="{ faded: regionOverridesSelector }">
+        <label class="field-label">{{ $t('webCapture.selector') }}</label>
         <input
-          :class="[fieldInput, 'w-full min-w-0']"
+          class="text-input"
           :value="userSelector"
           @input="(e) => onUserSelectorInput((e.target as HTMLInputElement).value)"
           :placeholder="regionOverridesSelector ? $t('webCapture.regionOverride') : (detectedVideo?.selector || 'video')"
@@ -61,28 +61,31 @@
         />
       </div>
       <button
-        :class="[secondaryBtn, pickerActive === 'pick' ? secondaryActive : '', regionOverridesSelector ? 'opacity-40' : '']"
+        class="secondary-btn"
+        :class="{ active: pickerActive === 'pick', faded: regionOverridesSelector }"
         @click="pickerActive === 'pick' ? cancelPicker() : pickVideoSelector()"
         :disabled="captureState === 'running'"
       >
         {{ pickerActive === 'pick' ? $t('webCapture.cancelPick') : $t('webCapture.pickVideo') }}
       </button>
       <button
-        :class="[secondaryBtn, pickerActive === 'block' ? secondaryActive : '']"
+        class="secondary-btn"
+        :class="{ active: pickerActive === 'block' }"
         @click="pickerActive === 'block' ? cancelPicker() : startBlocker()"
         :disabled="captureState === 'running'"
       >
         {{ pickerActive === 'block' ? $t('webCapture.cancelBlock') : $t('webCapture.blockElement') }}
       </button>
       <button
-        :class="secondaryBtn"
+        class="secondary-btn"
         @click="clearBlocks"
         :disabled="blockedSelectors.length === 0"
       >
         {{ $t('webCapture.clearBlocks', { n: blockedSelectors.length }) }}
       </button>
       <button
-        :class="[secondaryBtn, regionDrawMode ? secondaryActive : '']"
+        class="secondary-btn"
+        :class="{ active: regionDrawMode }"
         @click="regionDrawMode ? cancelRegionDraw() : beginRegionDraw()"
         :disabled="captureState === 'running'"
       >
@@ -90,7 +93,7 @@
       </button>
       <button
         v-if="customRegion"
-        :class="secondaryBtn"
+        class="secondary-btn"
         @click="clearRegion"
         :disabled="captureState === 'running'"
       >
@@ -98,7 +101,7 @@
       </button>
       <button
         v-if="captureState !== 'running'"
-        :class="primaryBtn"
+        class="primary-btn"
         @click="requestStart"
         :disabled="!canStart"
       >
@@ -106,7 +109,7 @@
       </button>
       <button
         v-else
-        :class="[primaryBtn, '!bg-[#d9534f] hover:!bg-[#b52b27]']"
+        class="primary-btn danger"
         @click="stopCapture"
       >
         {{ $t('webCapture.stop') }}
@@ -114,18 +117,18 @@
     </div>
 
     <!-- Status strip -->
-    <div class="flex flex-wrap items-center gap-2.5 border-b border-line bg-[#f0f0f0] px-3 py-[5px] text-[11px] text-fg-secondary dark:bg-[#252525]">
-      <span :class="statusChip">{{ $t('webCapture.modeLabel') }}: <b>{{ captureMode }}</b></span>
-      <span :class="statusChip" v-if="detectedVideo">{{ $t('webCapture.detected') }}: {{ detectedVideo.width }}×{{ detectedVideo.height }}</span>
-      <span :class="statusChip" v-else-if="captureState === 'idle'">{{ $t('webCapture.noVideoDetected') }}</span>
-      <span :class="statusChip" v-if="customRegion">{{ $t('webCapture.regionLabel') }}: {{ customRegion.width }}×{{ customRegion.height }}</span>
-      <span :class="statusChip">{{ $t('webCapture.ticks') }}: {{ tickCount }}</span>
-      <span :class="statusChip">{{ $t('webCapture.saved') }}: {{ savedCount }}</span>
-      <span class="flex-1 truncate italic text-fg-secondary">{{ displayStatus }}</span>
+    <div class="status-bar">
+      <span class="status-chip">{{ $t('webCapture.modeLabel') }}: <b>{{ captureMode }}</b></span>
+      <span class="status-chip" v-if="detectedVideo">{{ $t('webCapture.detected') }}: {{ detectedVideo.width }}×{{ detectedVideo.height }}</span>
+      <span class="status-chip" v-else-if="captureState === 'idle'">{{ $t('webCapture.noVideoDetected') }}</span>
+      <span class="status-chip" v-if="customRegion">{{ $t('webCapture.regionLabel') }}: {{ customRegion.width }}×{{ customRegion.height }}</span>
+      <span class="status-chip">{{ $t('webCapture.ticks') }}: {{ tickCount }}</span>
+      <span class="status-chip">{{ $t('webCapture.saved') }}: {{ savedCount }}</span>
+      <span class="status-message">{{ displayStatus }}</span>
     </div>
 
     <!-- Webview area -->
-    <div class="relative flex-1 overflow-hidden bg-[#222]">
+    <div class="webview-container">
       <webview
         v-if="preloadPath"
         ref="webviewEl"
@@ -133,9 +136,9 @@
         src="about:blank"
         partition="persist:webcapture"
         allowpopups
-        class="flex h-full w-full border-none"
+        class="capture-webview"
       ></webview>
-      <div v-else class="flex h-full items-center justify-center text-xs text-[#aaa]">{{ $t('webCapture.initializing') }}</div>
+      <div v-else class="webview-placeholder">{{ $t('webCapture.initializing') }}</div>
       <RegionOverlay
         v-if="regionDrawMode"
         :hint="$t('webCapture.regionHint')"
@@ -146,7 +149,7 @@
       />
       <div
         v-if="customRegion && !regionDrawMode"
-        class="pointer-events-none absolute z-[5] border-2 border-dashed border-accent"
+        class="region-indicator"
         :style="{
           left: customRegion.x + 'px',
           top: customRegion.y + 'px',
@@ -154,25 +157,25 @@
           height: customRegion.height + 'px',
         }"
       >
-        <span class="absolute -top-[18px] left-0 whitespace-nowrap rounded-[3px] bg-accent/80 px-1.5 py-px text-[10px] text-white">{{ customRegion.width }}×{{ customRegion.height }}</span>
+        <span class="region-indicator-label">{{ customRegion.width }}×{{ customRegion.height }}</span>
       </div>
     </div>
 
     <!-- Confirm name modal -->
-    <div v-if="captureState === 'confirming'" class="absolute inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="cancelStart">
-      <div class="w-[420px] rounded-lg bg-modal p-5 shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
-        <h3 class="m-0 mb-2 text-[15px] text-fg">{{ $t('webCapture.confirmTitle') }}</h3>
-        <p class="m-0 mb-3 text-xs text-fg-secondary">{{ $t('webCapture.confirmDesc') }} <code class="rounded-[3px] bg-[#f0f0f0] px-1 py-px text-[11px] dark:bg-[#3a3a3a]">slides_{{ sanitizedPreview }}</code>.</p>
+    <div v-if="captureState === 'confirming'" class="modal-overlay" @click.self="cancelStart">
+      <div class="modal">
+        <h3>{{ $t('webCapture.confirmTitle') }}</h3>
+        <p>{{ $t('webCapture.confirmDesc') }} <code>slides_{{ sanitizedPreview }}</code>.</p>
         <input
-          :class="[fieldInput, 'w-full px-2.5 py-2 text-[13px]']"
+          class="text-input modal-input"
           :value="courseName"
           @input="(e) => onCourseNameInput((e.target as HTMLInputElement).value)"
           @keydown.enter="confirmAndStart"
           ref="modalInputRef"
         />
-        <div class="mt-3.5 flex justify-end gap-2">
-          <button :class="secondaryBtn" @click="cancelStart">{{ $t('webCapture.cancel') }}</button>
-          <button :class="primaryBtn" @click="confirmAndStart" :disabled="!courseName.trim()">{{ $t('webCapture.start') }}</button>
+        <div class="modal-actions">
+          <button class="secondary-btn" @click="cancelStart">{{ $t('webCapture.cancel') }}</button>
+          <button class="primary-btn" @click="confirmAndStart" :disabled="!courseName.trim()">{{ $t('webCapture.start') }}</button>
         </div>
       </div>
     </div>
@@ -229,14 +232,6 @@ const {
   onCourseNameInput,
   onUserSelectorInput,
 } = useWebCapture()
-
-// ---- Tailwind class-string constants ----
-const navBtn = 'flex h-7 w-7 items-center justify-center rounded border border-line-input bg-surface text-fg-secondary cursor-pointer hover:bg-[#f0f0f0] dark:bg-[#333] dark:border-[#555] dark:hover:bg-[#404040]'
-const fieldInput = 'rounded border border-line-input bg-surface px-2 py-[5px] text-xs text-fg focus:border-accent focus:outline-none dark:border-[#555] dark:bg-[#2d2d2d]'
-const primaryBtn = 'rounded border-none bg-accent px-3.5 py-[5px] text-xs font-medium text-white cursor-pointer enabled:hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-[#ccc]'
-const secondaryBtn = 'rounded border border-[#ccc] bg-surface px-2.5 py-[5px] text-xs text-fg cursor-pointer enabled:hover:bg-[#f0f0f0] disabled:cursor-not-allowed disabled:text-[#aaa] dark:border-[#555] dark:bg-[#333] dark:enabled:hover:bg-[#404040]'
-const secondaryActive = 'border-accent bg-accent/15 text-accent'
-const statusChip = 'inline-flex gap-1 rounded-[3px] border border-line-input bg-surface px-1.5 py-0.5 dark:border-[#555] dark:bg-[#333]'
 
 const webviewEl = ref<HTMLElement | null>(null)
 const modalInputRef = ref<HTMLInputElement | null>(null)
@@ -297,3 +292,291 @@ watch(captureState, (val) => {
 })
 </script>
 
+<style scoped>
+.webcapture-tab {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #ffffff;
+  color: #333;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: #fafafa;
+  border-bottom: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+}
+
+.action-toolbar {
+  background-color: #f5f5f5;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  cursor: pointer;
+  color: #555;
+}
+
+.nav-btn:hover { background-color: #f0f0f0; }
+
+.url-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 5px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+}
+
+.url-input:focus { outline: none; border-color: #007acc; }
+
+.preset-dropdown {
+  position: relative;
+}
+
+.preset-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.preset-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 140px;
+  padding: 4px 0;
+  list-style: none;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 20;
+}
+
+.preset-menu li {
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.preset-menu li:hover {
+  background-color: rgba(0, 122, 204, 0.08);
+  color: #007acc;
+}
+
+.field-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.field-group.grow { flex: 1; min-width: 180px; }
+
+.field-label {
+  font-size: 11px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.text-input {
+  padding: 5px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background-color: white;
+  min-width: 120px;
+}
+.field-group.grow .text-input { width: 100%; min-width: 0; }
+
+.text-input:focus { outline: none; border-color: #007acc; }
+
+.primary-btn {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 4px;
+  background-color: #007acc;
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.primary-btn:hover:not(:disabled) { background-color: #005a9e; }
+.primary-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+.primary-btn.danger { background-color: #d9534f; }
+.primary-btn.danger:hover { background-color: #b52b27; }
+
+.secondary-btn {
+  padding: 5px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+  color: #333;
+  font-size: 12px;
+  cursor: pointer;
+}
+.secondary-btn:hover:not(:disabled) { background-color: #f0f0f0; }
+.secondary-btn:disabled { color: #aaa; cursor: not-allowed; }
+.faded { opacity: 0.4; pointer-events: auto; }
+.secondary-btn.active {
+  background-color: rgba(0, 122, 204, 0.12);
+  border-color: #007acc;
+  color: #007acc;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 12px;
+  background-color: #f0f0f0;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 11px;
+  color: #555;
+  flex-wrap: wrap;
+}
+
+.status-chip {
+  display: inline-flex;
+  gap: 4px;
+  padding: 2px 6px;
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+}
+
+.status-message {
+  flex: 1;
+  color: #666;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.webview-container {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background-color: #222;
+}
+
+.capture-webview {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: flex;
+}
+
+.webview-placeholder {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-size: 12px;
+}
+
+.region-indicator {
+  position: absolute;
+  border: 2px dashed #007acc;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.region-indicator-label {
+  position: absolute;
+  top: -18px;
+  left: 0;
+  font-size: 10px;
+  color: #fff;
+  background-color: rgba(0, 122, 204, 0.8);
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal {
+  width: 420px;
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.modal h3 {
+  margin: 0 0 8px 0;
+  font-size: 15px;
+}
+
+.modal p {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 12px 0;
+}
+
+.modal code {
+  padding: 1px 4px;
+  background-color: #f0f0f0;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.modal-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.modal-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .webcapture-tab { background-color: #1e1e1e; color: #e0e0e0; }
+  .toolbar { background-color: #252525; border-bottom-color: #3d3d3d; }
+  .action-toolbar { background-color: #2a2a2a; }
+  .nav-btn { background-color: #333; border-color: #555; color: #ccc; }
+  .nav-btn:hover { background-color: #404040; }
+  .url-input, .text-input { background-color: #2d2d2d; border-color: #555; color: #e0e0e0; }
+  .field-label { color: #aaa; }
+  .secondary-btn { background-color: #333; border-color: #555; color: #e0e0e0; }
+  .secondary-btn:hover:not(:disabled) { background-color: #404040; }
+  .secondary-btn.active { background-color: rgba(74, 158, 255, 0.15); border-color: #4a9eff; color: #4a9eff; }
+  .status-bar { background-color: #252525; border-bottom-color: #3d3d3d; color: #bbb; }
+  .status-chip { background-color: #333; border-color: #555; color: #ccc; }
+  .status-message { color: #999; }
+  .modal { background-color: #2a2a2a; color: #e0e0e0; }
+  .modal p { color: #aaa; }
+  .modal code { background-color: #3a3a3a; color: #e0e0e0; }
+  .preset-menu { background-color: #2a2a2a; border-color: #555; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
+  .preset-menu li:hover { background-color: rgba(74, 158, 255, 0.12); color: #4a9eff; }
+}
+</style>

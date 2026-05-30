@@ -1,36 +1,19 @@
 <template>
   <div
     ref="overlayRef"
-    class="absolute inset-0 z-10 cursor-crosshair touch-none select-none bg-black/25"
+    class="region-overlay"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
     @pointerup="onPointerUp"
     @pointercancel="onPointerUp"
   >
-    <div
-      v-if="rect"
-      class="pointer-events-none absolute border-2 border-accent bg-accent/20"
-      :style="rectStyle"
-    ></div>
-    <!-- Floating toolbar sits over arbitrary web content, so it stays a fixed
-         dark bar regardless of app theme. -->
-    <div
-      class="pointer-events-auto absolute left-1/2 top-3 z-[11] flex -translate-x-1/2 cursor-default items-center gap-3 rounded-md bg-[rgba(30,30,30,0.9)] px-3.5 py-2 text-xs text-white"
-      @pointerdown.stop
-      @pointerup.stop
-    >
+    <div v-if="rect" class="region-rect" :style="rectStyle"></div>
+    <div class="region-hint" @pointerdown.stop @pointerup.stop>
       <span v-if="!rect">{{ hintText }}</span>
       <span v-else>{{ Math.round(rect.width / 10) * 10 }}×{{ Math.round(rect.height / 10) * 10 }}</span>
-      <div class="flex gap-1.5">
-        <button
-          class="cursor-pointer rounded border-none bg-accent px-2.5 py-1 text-xs text-white enabled:hover:bg-accent-strong disabled:cursor-not-allowed disabled:bg-[#555]"
-          @click.stop="onConfirm"
-          :disabled="!rect"
-        >{{ useRegionLabel || 'Use Region' }}</button>
-        <button
-          class="cursor-pointer rounded border border-[#aaa] bg-transparent px-2.5 py-1 text-xs text-white hover:bg-white/10"
-          @click.stop="onCancel"
-        >{{ cancelLabel || 'Cancel' }}</button>
+      <div class="region-actions">
+        <button class="action-btn" @click.stop="onConfirm" :disabled="!rect">{{ useRegionLabel || 'Use Region' }}</button>
+        <button class="action-btn secondary" @click.stop="onCancel">{{ cancelLabel || 'Cancel' }}</button>
       </div>
     </div>
   </div>
@@ -127,3 +110,73 @@ const onCancel = () => {
   emit('cancel')
 }
 </script>
+
+<style scoped>
+.region-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  cursor: crosshair;
+  background-color: rgba(0, 0, 0, 0.25);
+  user-select: none;
+  touch-action: none;
+}
+
+.region-rect {
+  position: absolute;
+  border: 2px solid #007acc;
+  background-color: rgba(0, 122, 204, 0.18);
+  pointer-events: none;
+}
+
+.region-hint {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background-color: rgba(30, 30, 30, 0.9);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 12px;
+  pointer-events: auto;
+  cursor: default;
+  z-index: 11;
+}
+
+.region-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.action-btn {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 4px;
+  background-color: #007acc;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.action-btn:hover:not(:disabled) {
+  background-color: #005a9e;
+}
+
+.action-btn:disabled {
+  background-color: #555;
+  cursor: not-allowed;
+}
+
+.action-btn.secondary {
+  background-color: transparent;
+  border: 1px solid #aaa;
+}
+
+.action-btn.secondary:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+</style>

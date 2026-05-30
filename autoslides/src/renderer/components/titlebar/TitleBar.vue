@@ -1,139 +1,119 @@
 <template>
-  <div
-    class="relative z-modal flex h-9 select-none items-center border-b"
-    :class="isMacOS ? 'border-[#d0d0d0] bg-white dark:border-[#484848] dark:bg-[#323232]' : 'border-line bg-modal'"
-  >
+  <div class="titlebar" :class="{ 'is-macos': isMacOS }">
     <!-- macOS traffic lights space -->
-    <div v-if="isMacOS" class="h-full w-[78px] flex-shrink-0"></div>
+    <div v-if="isMacOS" class="traffic-lights-space"></div>
 
     <!-- Menu bar for non-macOS platforms -->
-    <div v-if="!isMacOS" class="flex h-full items-center pl-2 [-webkit-app-region:no-drag]">
-      <div :class="menuItemCls" @click="toggleFileMenu" ref="fileMenuTrigger">
+    <div v-if="!isMacOS" class="menu-bar">
+      <div class="menu-item" @click="toggleFileMenu" ref="fileMenuTrigger">
         {{ $t('titlebar.file') }}
-        <div v-if="showFileMenu" :class="dropdownCls" @click.stop>
-          <div :class="menuOptionCls" @click="showAbout">{{ $t('titlebar.aboutAutoSlides') }}</div>
-          <div :class="menuSepCls"></div>
-          <div :class="menuOptionDisabledCls">{{ $t('titlebar.new') }} <span :class="shortcutCls">Ctrl+N</span></div>
-          <div :class="menuOptionDisabledCls">{{ $t('titlebar.open') }} <span :class="shortcutCls">Ctrl+O</span></div>
-          <div :class="menuSepCls"></div>
-          <div :class="menuOptionCls" @click="closeWindow">{{ $t('titlebar.close') }}</div>
+        <div v-if="showFileMenu" class="dropdown-menu" @click.stop>
+          <div class="menu-option" @click="showAbout">{{ $t('titlebar.aboutAutoSlides') }}</div>
+          <div class="menu-separator"></div>
+          <div class="menu-option disabled">{{ $t('titlebar.new') }} <span class="shortcut">Ctrl+N</span></div>
+          <div class="menu-option disabled">{{ $t('titlebar.open') }} <span class="shortcut">Ctrl+O</span></div>
+          <div class="menu-separator"></div>
+          <div class="menu-option" @click="closeWindow">{{ $t('titlebar.close') }}</div>
         </div>
       </div>
 
-      <div :class="menuItemCls" @click="toggleEditMenu" ref="editMenuTrigger">
+      <div class="menu-item" @click="toggleEditMenu" ref="editMenuTrigger">
         {{ $t('titlebar.edit') }}
-        <div v-if="showEditMenu" :class="dropdownCls" @click.stop>
-          <div :class="menuOptionCls" @click="executeEdit('undo')">{{ $t('titlebar.undo') }} <span :class="shortcutCls">Ctrl+Z</span></div>
-          <div :class="menuOptionCls" @click="executeEdit('redo')">{{ $t('titlebar.redo') }} <span :class="shortcutCls">Ctrl+Y</span></div>
-          <div :class="menuSepCls"></div>
-          <div :class="menuOptionCls" @click="executeEdit('cut')">{{ $t('titlebar.cut') }} <span :class="shortcutCls">Ctrl+X</span></div>
-          <div :class="menuOptionCls" @click="executeEdit('copy')">{{ $t('titlebar.copy') }} <span :class="shortcutCls">Ctrl+C</span></div>
-          <div :class="menuOptionCls" @click="executeEdit('paste')">{{ $t('titlebar.paste') }} <span :class="shortcutCls">Ctrl+V</span></div>
-          <div :class="menuOptionCls" @click="executeEdit('selectAll')">{{ $t('titlebar.selectAll') }} <span :class="shortcutCls">Ctrl+A</span></div>
+        <div v-if="showEditMenu" class="dropdown-menu" @click.stop>
+          <div class="menu-option" @click="executeEdit('undo')">{{ $t('titlebar.undo') }} <span class="shortcut">Ctrl+Z</span></div>
+          <div class="menu-option" @click="executeEdit('redo')">{{ $t('titlebar.redo') }} <span class="shortcut">Ctrl+Y</span></div>
+          <div class="menu-separator"></div>
+          <div class="menu-option" @click="executeEdit('cut')">{{ $t('titlebar.cut') }} <span class="shortcut">Ctrl+X</span></div>
+          <div class="menu-option" @click="executeEdit('copy')">{{ $t('titlebar.copy') }} <span class="shortcut">Ctrl+C</span></div>
+          <div class="menu-option" @click="executeEdit('paste')">{{ $t('titlebar.paste') }} <span class="shortcut">Ctrl+V</span></div>
+          <div class="menu-option" @click="executeEdit('selectAll')">{{ $t('titlebar.selectAll') }} <span class="shortcut">Ctrl+A</span></div>
         </div>
       </div>
 
-      <div :class="menuItemCls" @click="toggleViewMenu" ref="viewMenuTrigger">
+      <div class="menu-item" @click="toggleViewMenu" ref="viewMenuTrigger">
         {{ $t('titlebar.view') }}
-        <div v-if="showViewMenu" :class="dropdownCls" @click.stop>
-          <div :class="menuOptionCls" @click="menuReload">{{ $t('titlebar.reload') }} <span :class="shortcutCls">Ctrl+R</span></div>
-          <div :class="menuOptionCls" @click="menuForceReload">{{ $t('titlebar.forceReload') }} <span :class="shortcutCls">Ctrl+Shift+R</span></div>
-          <div :class="menuOptionCls" @click="menuToggleDevTools">{{ $t('titlebar.toggleDevTools') }} <span :class="shortcutCls">F12</span></div>
-          <div :class="menuSepCls"></div>
-          <div :class="menuOptionCls" @click="menuResetZoom">{{ $t('titlebar.resetZoom') }} <span :class="shortcutCls">Ctrl+0</span></div>
-          <div :class="menuOptionCls" @click="menuZoomIn">{{ $t('titlebar.zoomIn') }} <span :class="shortcutCls">Ctrl++</span></div>
-          <div :class="menuOptionCls" @click="menuZoomOut">{{ $t('titlebar.zoomOut') }} <span :class="shortcutCls">Ctrl+-</span></div>
-          <div :class="menuSepCls"></div>
-          <div :class="menuOptionCls" @click="menuToggleFullscreen">{{ $t('titlebar.toggleFullscreen') }} <span :class="shortcutCls">F11</span></div>
+        <div v-if="showViewMenu" class="dropdown-menu" @click.stop>
+          <div class="menu-option" @click="menuReload">{{ $t('titlebar.reload') }} <span class="shortcut">Ctrl+R</span></div>
+          <div class="menu-option" @click="menuForceReload">{{ $t('titlebar.forceReload') }} <span class="shortcut">Ctrl+Shift+R</span></div>
+          <div class="menu-option" @click="menuToggleDevTools">{{ $t('titlebar.toggleDevTools') }} <span class="shortcut">F12</span></div>
+          <div class="menu-separator"></div>
+          <div class="menu-option" @click="menuResetZoom">{{ $t('titlebar.resetZoom') }} <span class="shortcut">Ctrl+0</span></div>
+          <div class="menu-option" @click="menuZoomIn">{{ $t('titlebar.zoomIn') }} <span class="shortcut">Ctrl++</span></div>
+          <div class="menu-option" @click="menuZoomOut">{{ $t('titlebar.zoomOut') }} <span class="shortcut">Ctrl+-</span></div>
+          <div class="menu-separator"></div>
+          <div class="menu-option" @click="menuToggleFullscreen">{{ $t('titlebar.toggleFullscreen') }} <span class="shortcut">F11</span></div>
         </div>
       </div>
 
-      <div :class="menuItemCls" @click="toggleHelpMenu" ref="helpMenuTrigger">
+      <div class="menu-item" @click="toggleHelpMenu" ref="helpMenuTrigger">
         {{ $t('titlebar.help') }}
-        <div v-if="showHelpMenu" :class="dropdownCls" @click.stop>
-          <div :class="menuOptionCls" @click="openGitHub">{{ $t('titlebar.visitGitHub') }}</div>
-          <div :class="menuOptionCls" @click="openITCenter">{{ $t('titlebar.itCenterSoftware') }}</div>
-          <div :class="menuSepCls"></div>
-          <div :class="menuOptionCls" @click="checkForUpdates">{{ $t('titlebar.checkForUpdates') }}</div>
-          <div :class="menuSepCls"></div>
-          <div :class="menuOptionCls" @click="openTermsAndConditions">{{ $t('titlebar.termsAndConditions') }}</div>
+        <div v-if="showHelpMenu" class="dropdown-menu" @click.stop>
+          <div class="menu-option" @click="openGitHub">{{ $t('titlebar.visitGitHub') }}</div>
+          <div class="menu-option" @click="openITCenter">{{ $t('titlebar.itCenterSoftware') }}</div>
+          <div class="menu-separator"></div>
+          <div class="menu-option" @click="checkForUpdates">{{ $t('titlebar.checkForUpdates') }}</div>
+          <div class="menu-separator"></div>
+          <div class="menu-option" @click="openTermsAndConditions">{{ $t('titlebar.termsAndConditions') }}</div>
         </div>
       </div>
     </div>
 
     <!-- App title and drag area -->
-    <div
-      class="relative flex h-full flex-1 cursor-grab items-center justify-center gap-4 px-5 [-webkit-app-region:drag] active:cursor-grabbing"
-      :class="isMacOS ? '-ml-[85px]' : 'mr-[75px]'"
-    >
+    <div class="titlebar-drag-region">
       <!-- Left link buttons -->
-      <div class="flex items-center gap-2 [-webkit-app-region:no-drag]">
-        <button :class="linkBtnCls" @click="openGitHub" :title="$t('titlebar.visitGitHub')">
-          <svg class="pointer-events-none" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+      <div class="link-buttons left">
+        <button class="link-button" @click="openGitHub" :title="$t('titlebar.visitGitHub')">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
             <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
           </svg>
         </button>
-        <button :class="linkBtnCls" @click="openITCenter" :title="$t('titlebar.itCenterSoftware')">
-          <svg class="pointer-events-none" width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+        <button class="link-button" @click="openITCenter" :title="$t('titlebar.itCenterSoftware')">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
             <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
           </svg>
         </button>
       </div>
 
-      <!-- VS Code style search box ('search-box' retained as a tour hook) -->
-      <button
-        class="search-box flex min-w-[280px] max-w-[400px] cursor-pointer items-center justify-center gap-2 rounded-md border bg-[#f3f3f3] font-medium text-[#666] transition-all [-webkit-app-region:no-drag] border-[#e0e0e0] hover:border-[#d0d0d0] hover:bg-[#ebebeb] active:bg-[#e0e0e0] dark:border-[#555] dark:bg-[#404040] dark:text-[#ccc] dark:hover:border-[#666] dark:hover:bg-[#4a4a4a] dark:active:bg-[#555]"
-        :class="isMacOS ? 'px-3.5 py-1 text-xs' : 'px-4 py-1.5 text-[13px]'"
-        @click="handleSearchClick"
-      >
-        <svg class="shrink-0 text-[#888] dark:text-[#aaa]" width="14" height="14" viewBox="0 0 14 14">
+      <!-- VS Code style search box -->
+      <button class="search-box" @click="handleSearchClick">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 14 14">
           <path d="M6.5 1a5.5 5.5 0 0 1 4.383 8.823l2.647 2.647a.75.75 0 1 1-1.06 1.06l-2.647-2.647A5.5 5.5 0 1 1 6.5 1zm0 1.5a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" fill="currentColor"/>
         </svg>
-        <span class="font-medium text-[#555] dark:text-[#ddd]">AutoSlides</span>
+        <span class="search-text">AutoSlides</span>
       </button>
 
-      <!-- Feedback button with inline expand ('feedback-control' retained for outside-click handling) -->
-      <div class="feedback-control relative z-20 flex flex-shrink-0 items-center [-webkit-app-region:no-drag]" @click.stop>
-        <button
-          class="flex h-[25px] cursor-pointer items-center gap-1 rounded-md border border-[#d9d9d9] bg-[#f8f8f8] px-2 text-xs font-medium text-[#555] transition-colors hover:bg-black/5 hover:text-[#333] active:bg-black/10 dark:border-[#585858] dark:bg-[#3b3b3b] dark:text-[#ddd] dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/15"
-          :class="{ 'rounded-r-none dark:!border-[#6a6a6a]': showFeedbackActions }"
-          @click="toggleFeedbackActions"
-          :title="$t('titlebar.feedback')"
-        >
+      <!-- Feedback button with inline expand -->
+      <div class="feedback-control" :class="{ expanded: showFeedbackActions }" @click.stop>
+        <button class="feedback-trigger" @click="toggleFeedbackActions" :title="$t('titlebar.feedback')">
           <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
             <path d="M2.5 2A1.5 1.5 0 0 0 1 3.5v6A1.5 1.5 0 0 0 2.5 11H4v2.5a.5.5 0 0 0 .82.384L7.714 11H13.5A1.5 1.5 0 0 0 15 9.5v-6A1.5 1.5 0 0 0 13.5 2h-11z"/>
           </svg>
-          <span class="whitespace-nowrap">{{ $t('titlebar.feedback') }}</span>
-          <svg class="transition-opacity" width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <span class="feedback-text">{{ $t('titlebar.feedback') }}</span>
+          <svg class="feedback-chevron" width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
             <path d="M6.646 3.646a.5.5 0 0 1 .708 0l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 1 1-.708-.708L10.293 8 6.646 4.354a.5.5 0 0 1 0-.708z"/>
           </svg>
         </button>
-        <div
-          class="absolute left-[calc(100%-1px)] top-0 z-30 flex h-[25px] items-center gap-1 overflow-hidden whitespace-nowrap rounded-r-md border border-l-0 transition-all duration-[250ms]"
-          :class="showFeedbackActions
-            ? 'pointer-events-auto max-w-[400px] border-[#d9d9d9] bg-[#f3f3f3] px-1 opacity-100 [-webkit-app-region:no-drag] dark:border-[#6a6a6a] dark:bg-[#434343]'
-            : 'pointer-events-none max-w-0 border-transparent bg-transparent p-0 opacity-0'"
-        >
-          <button :class="feedbackActionCls" @click="openFeedbackIssue">{{ $t('titlebar.openIssue') }}</button>
-          <button :class="feedbackActionCls" @click="openFeedbackEmail">{{ $t('titlebar.sendEmail') }}</button>
+        <div class="feedback-actions" :class="{ interactive: showFeedbackActions }">
+          <button class="feedback-action-button" :class="{ interactive: showFeedbackActions }" @click="openFeedbackIssue">{{ $t('titlebar.openIssue') }}</button>
+          <button class="feedback-action-button" :class="{ interactive: showFeedbackActions }" @click="openFeedbackEmail">{{ $t('titlebar.sendEmail') }}</button>
         </div>
       </div>
     </div>
 
     <!-- Window controls for non-macOS -->
-    <div v-if="!isMacOS" class="flex h-full [-webkit-app-region:no-drag]">
-      <button :class="[ctrlBtnBase, ctrlBtnHover]" @click="minimizeWindow" :title="$t('titlebar.minimize')">
-        <svg class="pointer-events-none transition-transform" width="12" height="12" viewBox="0 0 12 12">
+    <div v-if="!isMacOS" class="window-controls">
+      <button class="control-button minimize" @click="minimizeWindow" :title="$t('titlebar.minimize')">
+        <svg width="12" height="12" viewBox="0 0 12 12">
           <rect x="2" y="5" width="8" height="2" fill="currentColor"/>
         </svg>
       </button>
-      <button :class="[ctrlBtnBase, ctrlBtnHover]" @click="maximizeWindow" :title="$t('titlebar.maximize')">
-        <svg class="pointer-events-none transition-transform" width="12" height="12" viewBox="0 0 12 12">
+      <button class="control-button maximize" @click="maximizeWindow" :title="$t('titlebar.maximize')">
+        <svg width="12" height="12" viewBox="0 0 12 12">
           <rect x="2" y="2" width="8" height="8" stroke="currentColor" stroke-width="1" fill="none"/>
         </svg>
       </button>
-      <button :class="[ctrlBtnBase, ctrlBtnClose]" @click="closeWindow" :title="$t('titlebar.close')">
-        <svg class="pointer-events-none transition-transform" width="12" height="12" viewBox="0 0 12 12">
+      <button class="control-button close" @click="closeWindow" :title="$t('titlebar.close')">
+        <svg width="12" height="12" viewBox="0 0 12 12">
           <path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5"/>
         </svg>
       </button>
@@ -169,26 +149,6 @@ const helpMenuTrigger = ref<HTMLElement>();
 
 // Reference to the extracted UpdateManager — exposes checkForUpdates() / autoCheckForUpdates()
 const updateManager = ref<InstanceType<typeof UpdateManager> | null>(null);
-
-// Shared chrome class strings. '.menu-item' is also matched by handleOutsideClick.
-const menuItemCls =
-  'menu-item relative cursor-pointer select-none rounded-[3px] px-3 py-2 text-[13px] text-[#333] transition-colors hover:bg-black/5 active:bg-black/10 dark:text-[#ccc] dark:hover:bg-white/[0.08] dark:active:bg-white/15';
-const dropdownCls =
-  'absolute left-0 top-full z-modal mt-0.5 min-w-[200px] rounded-md border border-[#d0d0d0] bg-modal py-1 shadow-[0_4px_12px_rgba(0,0,0,0.15)] dark:border-[#555]';
-const menuOptionCls =
-  'group flex cursor-pointer items-center justify-between px-4 py-2 text-[13px] text-[#333] transition-colors hover:bg-[#0078d4] hover:text-white dark:text-[#ccc]';
-const menuOptionDisabledCls =
-  'flex cursor-not-allowed items-center justify-between px-4 py-2 text-[13px] text-[#999] dark:text-[#666]';
-const menuSepCls = 'my-1 h-px bg-line';
-const shortcutCls = 'ml-5 text-[11px] text-[#666] group-hover:text-white/80 dark:text-[#888]';
-const linkBtnCls =
-  'relative flex h-7 w-7 cursor-pointer items-center justify-center rounded border-none bg-transparent text-[#666] transition-all hover:bg-black/5 hover:text-[#333] active:scale-95 active:bg-black/10 dark:text-[#ccc] dark:hover:bg-white/[0.08] dark:hover:text-white dark:active:bg-white/15';
-const feedbackActionCls =
-  'h-5 cursor-pointer whitespace-nowrap rounded border border-[#d0d0d0] bg-white px-2 text-[11px] text-[#444] transition-all [-webkit-app-region:no-drag] hover:border-[#0078d4] hover:bg-[#0078d4] hover:text-white active:scale-[0.98] dark:border-[#696969] dark:bg-[#4a4a4a] dark:text-[#e5e5e5]';
-const ctrlBtnBase =
-  'relative flex h-full w-[46px] items-center justify-center border-none bg-transparent text-[#666] cursor-pointer transition-all active:[&>svg]:scale-95 dark:text-[#ccc]';
-const ctrlBtnHover = 'hover:bg-black/[0.08] active:bg-black/10 dark:hover:bg-white/10 dark:active:bg-white/15';
-const ctrlBtnClose = 'hover:bg-[#c42b1c] hover:text-white active:bg-[#a23216] active:text-white';
 
 onMounted(() => {
   // Detect platform using userAgent as navigator.platform is deprecated
@@ -460,3 +420,540 @@ const checkForUpdates = () => {
 };
 </script>
 
+<style scoped>
+.titlebar {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  background: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+  user-select: none;
+  position: relative;
+  z-index: 1000;
+}
+
+.titlebar.is-macos {
+  height: 36px;
+  background: #ffffff;
+  border-bottom: 1px solid #d0d0d0;
+}
+
+/* macOS traffic lights space - reserve space for red/yellow/green buttons */
+.traffic-lights-space {
+  width: 78px; /* Standard macOS traffic lights width */
+  height: 100%;
+  flex-shrink: 0;
+}
+
+/* Menu bar for non-macOS platforms */
+.menu-bar {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding-left: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.menu-item {
+  position: relative;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 3px;
+  transition: background-color 0.15s ease;
+}
+
+.menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.menu-item:active {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Dropdown menu */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 200px;
+  background: #ffffff;
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  padding: 4px 0;
+  margin-top: 2px;
+}
+
+.menu-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: #333;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.menu-option:hover:not(.disabled) {
+  background-color: #0078d4;
+  color: white;
+}
+
+.menu-option.disabled {
+  color: #999;
+  cursor: not-allowed;
+}
+
+.menu-option.disabled:hover {
+  background-color: transparent;
+  color: #999;
+}
+
+.menu-separator {
+  height: 1px;
+  background-color: #e0e0e0;
+  margin: 4px 0;
+}
+
+.shortcut {
+  font-size: 11px;
+  color: #666;
+  margin-left: 20px;
+}
+
+.menu-option:hover:not(.disabled) .shortcut {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Drag region - allows window dragging */
+.titlebar-drag-region {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-app-region: drag; /* Enable dragging */
+  cursor: grab;
+  padding: 0 20px; /* Add some padding for better centering */
+  position: relative;
+  gap: 16px; /* Space between link buttons and search box */
+}
+
+/* For macOS, offset the search box to account for traffic lights */
+.titlebar.is-macos .titlebar-drag-region {
+  margin-left: -85px; /* Half of traffic lights width to center properly */
+}
+
+/* For non-macOS, offset the search box to account for window controls on the right */
+.titlebar:not(.is-macos) .titlebar-drag-region {
+  margin-right: 75px; /* Half of window controls width (138px / 2) to center properly */
+}
+
+.titlebar-drag-region:active {
+  cursor: grabbing;
+}
+
+/* VS Code style search box */
+.search-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 16px;
+  background: #f3f3f3;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  font-size: 13px;
+  color: #666;
+  min-width: 280px;
+  max-width: 400px;
+  -webkit-app-region: no-drag; /* Prevent dragging on search box */
+}
+
+.search-box:hover {
+  background: #ebebeb;
+  border-color: #d0d0d0;
+}
+
+.search-box:active {
+  background: #e0e0e0;
+}
+
+.search-icon {
+  color: #888;
+  flex-shrink: 0;
+}
+
+.search-text {
+  font-weight: 500;
+  color: #555;
+}
+
+.titlebar.is-macos .search-box {
+  font-size: 12px;
+  padding: 4px 14px;
+  min-width: 280px;
+  max-width: 400px;
+}
+
+/* Link buttons */
+.link-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-app-region: no-drag; /* Prevent dragging on link buttons */
+}
+
+.link-button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.link-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.link-button:active {
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(0.95);
+}
+
+.link-button svg {
+  pointer-events: none;
+  transition: transform 0.15s ease;
+}
+
+.feedback-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  z-index: 20;
+  -webkit-app-region: no-drag;
+}
+
+.feedback-trigger {
+  height: 25px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #f8f8f8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  color: #555;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.feedback-control.expanded .feedback-trigger {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.feedback-trigger:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #333;
+}
+
+.feedback-trigger:active {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.feedback-text {
+  white-space: nowrap;
+}
+
+.feedback-chevron {
+  transition: opacity 0.2s ease;
+}
+
+.feedback-actions {
+  position: absolute;
+  left: calc(100% - 1px);
+  top: 0;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  padding: 0;
+  border: 1px solid transparent;
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  background: transparent;
+  pointer-events: none;
+  z-index: 30;
+  transition: max-width 0.25s ease, opacity 0.2s ease, padding 0.25s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.feedback-control.expanded .feedback-actions {
+  max-width: 400px;
+  opacity: 1;
+  padding: 0 4px;
+  border-color: #d9d9d9;
+  background: #f3f3f3;
+  pointer-events: auto;
+}
+
+.feedback-action-button {
+  height: 20px;
+  border: 1px solid #d0d0d0;
+  background: #fff;
+  border-radius: 4px;
+  padding: 0 8px;
+  color: #444;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.feedback-actions.interactive,
+.feedback-action-button.interactive {
+  -webkit-app-region: no-drag;
+}
+
+.feedback-action-button:hover {
+  background: #0078d4;
+  border-color: #0078d4;
+  color: #fff;
+}
+
+.feedback-action-button:active {
+  transform: scale(0.98);
+}
+
+/* Window controls for non-macOS */
+.window-controls {
+  display: flex;
+  height: 100%;
+  -webkit-app-region: no-drag; /* Prevent dragging on controls */
+}
+
+.control-button {
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #666;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.control-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.control-button:active {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Windows 11 style hover effects */
+.control-button.minimize:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.control-button.maximize:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.control-button.close:hover {
+  background: #c42b1c;
+  color: white;
+}
+
+.control-button.close:active {
+  background: #a23216;
+  color: white;
+}
+
+.control-button svg {
+  pointer-events: none;
+  transition: transform 0.15s ease;
+}
+
+.control-button:active svg {
+  transform: scale(0.95);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .titlebar {
+    background: #2d2d2d;
+    border-bottom-color: #404040;
+  }
+
+  .titlebar.is-macos {
+    background: #323232;
+    border-bottom-color: #484848;
+  }
+
+  .search-box {
+    background: #404040;
+    border-color: #555;
+    color: #ccc;
+  }
+
+  .search-box:hover {
+    background: #4a4a4a;
+    border-color: #666;
+  }
+
+  .search-box:active {
+    background: #555;
+  }
+
+  .search-icon {
+    color: #aaa;
+  }
+
+  .search-text {
+    color: #ddd;
+  }
+
+  .control-button {
+    color: #ccc;
+  }
+
+  .control-button:hover {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .control-button:active {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .control-button.minimize:hover,
+  .control-button.maximize:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .control-button.close:hover {
+    background: #c42b1c;
+    color: white;
+  }
+
+  .control-button.close:active {
+    background: #a23216;
+    color: white;
+  }
+
+  .link-button {
+    color: #ccc;
+  }
+
+  .link-button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
+  .link-button:active {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .feedback-trigger {
+    background: #3b3b3b;
+    border-color: #585858;
+    color: #ddd;
+  }
+
+  .feedback-control.expanded .feedback-trigger {
+    border-color: #6a6a6a;
+  }
+
+  .feedback-trigger:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+  }
+
+  .feedback-trigger:active {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .feedback-control.expanded .feedback-actions {
+    border-color: #6a6a6a;
+    background: #434343;
+  }
+
+  .feedback-action-button {
+    background: #4a4a4a;
+    border-color: #696969;
+    color: #e5e5e5;
+  }
+
+  .feedback-action-button:hover {
+    background: #0078d4;
+    border-color: #0078d4;
+    color: #fff;
+  }
+
+  /* Menu bar dark mode */
+  .menu-item {
+    color: #ccc;
+  }
+
+  .menu-item:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .menu-item:active {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .dropdown-menu {
+    background: #2d2d2d;
+    border-color: #555;
+  }
+
+  .menu-option {
+    color: #ccc;
+  }
+
+  .menu-option:hover:not(.disabled) {
+    background-color: #0078d4;
+    color: white;
+  }
+
+  .menu-option.disabled {
+    color: #666;
+  }
+
+  .menu-separator {
+    background-color: #555;
+  }
+
+  .shortcut {
+    color: #888;
+  }
+}
+
+</style>

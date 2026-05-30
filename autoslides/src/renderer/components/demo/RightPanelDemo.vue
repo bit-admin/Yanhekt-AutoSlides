@@ -1,16 +1,18 @@
 <template>
-  <!-- 'right-panel' retained as a Driver.js tour hook -->
-  <div class="right-panel flex h-full flex-col" :data-tab="currentTab">
-    <!-- 'navigation-bar' retained as a Driver.js tour hook -->
-    <div class="navigation-bar flex border-b border-line bg-elevated">
-      <button :class="[navBtnBase, currentTab === 'task' ? navActive : navIdle]">
+  <div class="right-panel" :data-tab="currentTab">
+    <div class="navigation-bar">
+      <button
+        :class="['nav-btn', { active: currentTab === 'task' }]"
+      >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 11l3 3 8-8"/>
           <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
         </svg>
         {{ $t('navigation.task') }}
       </button>
-      <button :class="[navBtnBase, currentTab === 'download' ? navActive : navIdle]">
+      <button
+        :class="['nav-btn', { active: currentTab === 'download' }]"
+      >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="7,10 12,15 17,10"/>
@@ -20,23 +22,23 @@
       </button>
     </div>
 
-    <div class="relative flex-1 overflow-hidden">
+    <div class="content-area">
       <!-- Task Mode Container -->
       <div
-        :class="['absolute left-0 top-0 h-full w-full overflow-y-auto transition-opacity duration-200', currentTab !== 'task' ? 'pointer-events-none -z-10 opacity-0' : '']"
+        :class="['tab-container', { 'tab-hidden': currentTab !== 'task' }]"
         data-tab="task"
       >
-        <div class="h-full p-4">
-          <div class="mb-5 flex items-center justify-between">
-            <h3 class="m-0 text-base font-semibold text-fg">{{ $t('tasks.taskList') }}</h3>
-            <div class="flex gap-2">
-              <button :class="[ctlBtn, ctlStart, demoDisabled]">
+        <div class="task-content">
+          <div class="section-header">
+            <h3>{{ $t('tasks.taskList') }}</h3>
+            <div class="queue-controls">
+              <button class="control-btn start-btn demo-disabled">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polygon points="5,3 19,12 5,21"/>
                 </svg>
                 {{ $t('tasks.start') }}
               </button>
-              <button :class="[ctlBtn, ctlClear, demoDisabled]">
+              <button class="control-btn clear-btn demo-disabled">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3,6 5,6 21,6"/>
                   <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"/>
@@ -46,18 +48,18 @@
             </div>
           </div>
 
-          <div class="mb-4 flex flex-col gap-2">
+          <div class="task-queue">
             <div
               v-for="item in mockTaskItems"
               :key="item.id"
-              class="flex flex-col"
+              class="task-item-wrapper"
             >
               <div
-                class="flex items-center gap-3 border border-line bg-surface p-3 transition-all hover:border-accent hover:shadow-[0_2px_4px_rgba(0,122,204,0.1)]"
-                :class="[itemBorder(item.status), item.postProcess ? 'rounded-t-md' : 'rounded-md']"
+                class="task-item"
+                :class="[`status-${item.status}`]"
               >
-                <div class="shrink-0">
-                  <div class="flex h-6 w-6 items-center justify-center rounded-full border-2 border-current" :class="indicatorCls(item.status)">
+                <div class="item-status">
+                  <div :class="['status-indicator', `status-${item.status}`]">
                     <svg v-if="item.status === 'queued'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <circle cx="12" cy="12" r="10"/>
                       <polyline points="12,6 12,12 16,14"/>
@@ -72,15 +74,15 @@
                   </div>
                 </div>
 
-                <div class="min-w-0 flex-1">
-                  <div class="mb-1.5 truncate text-[13px] font-medium text-fg" :title="item.name">
+                <div class="item-info">
+                  <div class="item-name" :title="item.name">
                     {{ item.name }}
                   </div>
-                  <div class="flex flex-col gap-1">
-                    <div class="h-1 w-full overflow-hidden rounded-sm bg-[#e9ecef] dark:bg-[#3a3a3a]">
-                      <div class="h-full rounded-sm bg-accent transition-[width] duration-300" :style="{ width: `${item.progress}%` }"></div>
+                  <div class="item-progress">
+                    <div class="progress-bar">
+                      <div class="progress-fill" :style="{ width: `${item.progress}%` }"></div>
                     </div>
-                    <div class="text-[11px] text-fg-secondary">
+                    <div class="progress-text">
                       <span v-if="item.status === 'queued'">{{ $t('tasks.queued') }}</span>
                       <span v-else-if="item.status === 'in_progress'">{{ $t('tasks.processing') }} {{ item.progress }}%</span>
                       <span v-else-if="item.status === 'completed'">{{ $t('tasks.completed') }}</span>
@@ -88,9 +90,9 @@
                   </div>
                 </div>
 
-                <div class="shrink-0">
+                <div class="item-actions">
                   <button
-                    class="flex h-6 w-6 items-center justify-center rounded text-[#dc3545] pointer-events-none opacity-70"
+                    class="cancel-item-btn demo-disabled"
                     v-if="item.status !== 'in_progress'"
                   >
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -101,46 +103,47 @@
                 </div>
               </div>
 
-              <!-- Post-processing affiliated panel ('post-process-affiliated-panel' is a tour hook) -->
+              <!-- Post-processing affiliated panel -->
               <div
                 v-if="item.postProcess"
-                class="post-process-affiliated-panel w-full rounded-b-md border border-l-[3px] border-t-0 border-line border-l-[#9acd32] bg-surface px-1.5 py-1"
+                class="post-process-affiliated-panel"
+                :class="[`pp-status-${item.postProcess.status}`]"
               >
-                <div class="flex items-stretch gap-2 text-[8px]">
-                  <div class="flex min-w-0 flex-1 flex-col gap-[3px]">
-                    <div class="flex items-center justify-between gap-1">
-                      <span class="truncate text-[8px] font-medium text-fg">{{ $t('playback.postProcessStatus.phase1NameShort') }}</span>
-                      <span v-if="item.postProcess.phase1 === 'completed'" class="shrink-0 whitespace-nowrap rounded-sm bg-[#28a745] px-[3px] py-px text-[7px] text-white">
+                <div class="pp-panel-content">
+                  <div class="pp-phase-item">
+                    <div class="pp-phase-header">
+                      <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase1NameShort') }}</span>
+                      <span v-if="item.postProcess.phase1 === 'completed'" class="pp-phase-status completed">
                         -{{ item.postProcess.phase1Removed }}
                       </span>
                     </div>
-                    <div class="h-[3px] overflow-hidden rounded-sm bg-line">
-                      <div class="h-full transition-[width] duration-300" :class="item.postProcess.phase1 === 'completed' ? 'bg-[#28a745]' : 'bg-line'" :style="{ width: item.postProcess.phase1 === 'completed' ? '100%' : '0%' }"></div>
+                    <div class="pp-phase-bar">
+                      <div class="pp-phase-fill" :class="{ completed: item.postProcess.phase1 === 'completed' }" :style="{ width: item.postProcess.phase1 === 'completed' ? '100%' : '0%' }"></div>
                     </div>
                   </div>
-                  <div class="flex min-w-0 flex-1 flex-col gap-[3px]">
-                    <div class="flex items-center justify-between gap-1">
-                      <span class="truncate text-[8px] font-medium text-fg">{{ $t('playback.postProcessStatus.phase2NameShort') }}</span>
-                      <span v-if="item.postProcess.phase2 === 'completed'" class="shrink-0 whitespace-nowrap rounded-sm bg-[#28a745] px-[3px] py-px text-[7px] text-white">
+                  <div class="pp-phase-item">
+                    <div class="pp-phase-header">
+                      <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase2NameShort') }}</span>
+                      <span v-if="item.postProcess.phase2 === 'completed'" class="pp-phase-status completed">
                         -{{ item.postProcess.phase2Removed }}
                       </span>
                     </div>
-                    <div class="h-[3px] overflow-hidden rounded-sm bg-line">
-                      <div class="h-full transition-[width] duration-300" :class="item.postProcess.phase2 === 'completed' ? 'bg-[#28a745]' : 'bg-line'" :style="{ width: item.postProcess.phase2 === 'completed' ? '100%' : '0%' }"></div>
+                    <div class="pp-phase-bar">
+                      <div class="pp-phase-fill" :class="{ completed: item.postProcess.phase2 === 'completed' }" :style="{ width: item.postProcess.phase2 === 'completed' ? '100%' : '0%' }"></div>
                     </div>
                   </div>
-                  <div class="flex min-w-0 flex-1 flex-col gap-[3px]">
-                    <div class="flex items-center justify-between gap-1">
-                      <span class="truncate text-[8px] font-medium text-fg">{{ $t('playback.postProcessStatus.phase3NameShort') }}</span>
-                      <span v-if="item.postProcess.phase3 === 'completed'" class="shrink-0 whitespace-nowrap rounded-sm bg-[#28a745] px-[3px] py-px text-[7px] text-white">
+                  <div class="pp-phase-item">
+                    <div class="pp-phase-header">
+                      <span class="pp-phase-name">{{ $t('playback.postProcessStatus.phase3NameShort') }}</span>
+                      <span v-if="item.postProcess.phase3 === 'completed'" class="pp-phase-status completed">
                         -{{ item.postProcess.phase3Removed }}
                       </span>
-                      <span v-else-if="item.postProcess.phase3 === 'active'" class="shrink-0 whitespace-nowrap rounded-sm bg-accent px-[3px] py-px text-[7px] text-white">
+                      <span v-else-if="item.postProcess.phase3 === 'active'" class="pp-phase-status active">
                         {{ item.postProcess.phase3Progress }}/{{ item.postProcess.phase3Total }}
                       </span>
                     </div>
-                    <div class="h-[3px] overflow-hidden rounded-sm bg-line">
-                      <div class="h-full transition-[width] duration-300" :class="item.postProcess.phase3 === 'completed' ? 'bg-[#28a745]' : item.postProcess.phase3 === 'active' ? 'bg-accent' : 'bg-line'" :style="{ width: item.postProcess.phase3 === 'completed' ? '100%' : item.postProcess.phase3 === 'active' ? `${(item.postProcess.phase3Progress / item.postProcess.phase3Total) * 100}%` : '0%' }"></div>
+                    <div class="pp-phase-bar">
+                      <div class="pp-phase-fill" :class="{ completed: item.postProcess.phase3 === 'completed', active: item.postProcess.phase3 === 'active' }" :style="{ width: item.postProcess.phase3 === 'completed' ? '100%' : item.postProcess.phase3 === 'active' ? `${(item.postProcess.phase3Progress / item.postProcess.phase3Total) * 100}%` : '0%' }"></div>
                     </div>
                   </div>
                 </div>
@@ -152,21 +155,21 @@
 
       <!-- Download Mode Container -->
       <div
-        :class="['absolute left-0 top-0 h-full w-full overflow-y-auto transition-opacity duration-200', currentTab !== 'download' ? 'pointer-events-none -z-10 opacity-0' : '']"
+        :class="['tab-container', { 'tab-hidden': currentTab !== 'download' }]"
         data-tab="download"
       >
-        <div class="h-full p-4">
-          <div class="mb-5 flex items-center justify-between">
-            <h3 class="m-0 text-base font-semibold text-fg">{{ $t('downloads.downloadList') }}</h3>
-            <div class="flex gap-2">
-              <button :class="[ctlBtn, ctlCancelAll, demoDisabled]">
+        <div class="download-content">
+          <div class="section-header">
+            <h3>{{ $t('downloads.downloadList') }}</h3>
+            <div class="queue-controls">
+              <button class="control-btn cancel-all-btn demo-disabled">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="18" y1="6" x2="6" y2="18"/>
                   <line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
                 {{ $t('downloads.cancelAll') }}
               </button>
-              <button :class="[ctlBtn, ctlClear, demoDisabled]">
+              <button class="control-btn clear-btn demo-disabled">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3,6 5,6 21,6"/>
                   <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"/>
@@ -176,15 +179,15 @@
             </div>
           </div>
 
-          <div class="mb-4 flex flex-col gap-2">
+          <div class="download-queue">
             <div
               v-for="item in mockDownloadItems"
               :key="item.id"
-              class="flex items-center gap-3 rounded-md border border-line bg-surface p-3 transition-all hover:border-accent hover:shadow-[0_2px_4px_rgba(0,122,204,0.1)]"
-              :class="itemBorder(item.status)"
+              class="download-item"
+              :class="[`status-${item.status}`]"
             >
-              <div class="shrink-0">
-                <div class="flex h-6 w-6 items-center justify-center rounded-full border-2 border-current" :class="indicatorCls(item.status)">
+              <div class="item-status">
+                <div :class="['status-indicator', `status-${item.status}`]">
                   <svg v-if="item.status === 'completed'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="20,6 9,17 4,12"/>
                   </svg>
@@ -196,24 +199,24 @@
                 </div>
               </div>
 
-              <div class="min-w-0 flex-1">
-                <div class="mb-1.5 truncate text-[13px] font-medium text-fg" :title="item.name">
+              <div class="item-info">
+                <div class="item-name" :title="item.name">
                   {{ item.name }}
                 </div>
-                <div class="flex flex-col gap-1">
-                  <div class="h-1 w-full overflow-hidden rounded-sm bg-[#e9ecef] dark:bg-[#3a3a3a]">
-                    <div class="h-full rounded-sm bg-accent transition-[width] duration-300" :style="{ width: `${item.progress}%` }"></div>
+                <div class="item-progress">
+                  <div class="progress-bar">
+                    <div class="progress-fill" :style="{ width: `${item.progress}%` }"></div>
                   </div>
-                  <div class="text-[11px] text-fg-secondary">
+                  <div class="progress-text">
                     <span v-if="item.status === 'downloading'">{{ $t('downloads.downloading') }} {{ item.progress }}%</span>
                     <span v-else-if="item.status === 'completed'">{{ $t('downloads.completed') }}</span>
                   </div>
                 </div>
               </div>
 
-              <div class="shrink-0">
+              <div class="item-actions">
                 <button
-                  class="flex h-6 w-6 items-center justify-center rounded text-[#dc3545] pointer-events-none opacity-70"
+                  class="cancel-item-btn demo-disabled"
                   v-if="item.status !== 'completed'"
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -238,36 +241,6 @@ type Tab = 'task' | 'download'
 
 const { t } = useI18n()
 const currentTab = ref<Tab>('task')
-
-// Nav tab + control-button class strings (idle/active split so one color set wins).
-const navBtnBase = 'flex flex-1 items-center justify-center gap-1.5 border-b-[3px] px-4 py-3 text-sm font-medium cursor-pointer transition-colors'
-const navActive = 'border-accent bg-surface text-accent'
-const navIdle = 'border-transparent bg-transparent text-fg hover:bg-hover'
-const demoDisabled = 'pointer-events-none opacity-70'
-const ctlBtn = 'flex items-center gap-1 rounded border bg-surface px-2 py-1.5 text-[11px] cursor-pointer transition-colors'
-const ctlStart = 'border-[#28a745] text-[#28a745]'
-const ctlClear = 'border-[#6c757d] text-[#6c757d]'
-const ctlCancelAll = 'border-[#dc3545] text-[#dc3545]'
-
-// Status-driven utilities (dynamic `status-${x}` strings can't be Tailwind-generated).
-const itemBorder = (status: string) => {
-  switch (status) {
-    case 'queued': return 'border-l-[3px] border-l-[#6c757d]'
-    case 'downloading': return 'border-l-[3px] border-l-accent'
-    case 'in_progress':
-    case 'completed': return 'border-l-[3px] border-l-[#28a745]'
-    default: return ''
-  }
-}
-const indicatorCls = (status: string) => {
-  switch (status) {
-    case 'queued': return 'text-[#6c757d] bg-[#f8f9fa] dark:bg-[#333]'
-    case 'downloading': return 'text-accent bg-[#e3f2fd] animate-pulse dark:bg-[#1e3a52]'
-    case 'in_progress': return 'text-[#28a745] bg-[#e8f5e8] animate-pulse dark:bg-[#1f3a28]'
-    case 'completed': return 'text-[#28a745] bg-[#e8f5e8] dark:bg-[#1f3a28]'
-    default: return ''
-  }
-}
 
 // Mock task items for demo
 const mockTaskItems = computed(() => [
@@ -337,3 +310,401 @@ defineExpose({
   switchToTask: () => switchTab('task')
 })
 </script>
+
+<style scoped>
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.navigation-bar {
+  display: flex;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+}
+
+.nav-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 16px;
+  border: none;
+  background-color: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+}
+
+.nav-btn:hover {
+  background-color: #e9ecef;
+}
+
+.nav-btn.active {
+  background-color: white;
+  border-bottom-color: #007acc;
+  color: #007acc;
+}
+
+.content-area {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.tab-container {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 0.2s ease-in-out;
+  overflow-y: auto;
+}
+
+.tab-container.tab-hidden {
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.task-content, .download-content {
+  padding: 16px;
+  height: 100%;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.queue-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.control-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  background-color: #f8f9fa;
+}
+
+.cancel-all-btn {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.cancel-all-btn:hover {
+  background-color: #f8d7da;
+  border-color: #c82333;
+}
+
+.clear-btn {
+  color: #6c757d;
+  border-color: #6c757d;
+}
+
+.clear-btn:hover {
+  background-color: #e2e3e5;
+  border-color: #545b62;
+}
+
+.start-btn {
+  color: #28a745;
+  border-color: #28a745;
+}
+
+.start-btn:hover {
+  background-color: #d4edda;
+  border-color: #1e7e34;
+}
+
+.task-queue, .download-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.task-item-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.task-item-wrapper:has(.post-process-affiliated-panel) .task-item {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.task-item, .download-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.task-item:hover, .download-item:hover {
+  border-color: #007acc;
+  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
+}
+
+.task-item-wrapper:hover .task-item {
+  border-color: #007acc;
+  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
+}
+
+.task-item-wrapper:hover .post-process-affiliated-panel {
+  border-color: #007acc;
+}
+
+.task-item.status-queued, .download-item.status-queued {
+  border-left: 3px solid #6c757d;
+}
+
+.task-item.status-in_progress {
+  border-left: 3px solid #28a745;
+}
+
+.download-item.status-downloading {
+  border-left: 3px solid #007acc;
+}
+
+.task-item.status-completed, .download-item.status-completed {
+  border-left: 3px solid #28a745;
+}
+
+.item-status {
+  flex-shrink: 0;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+
+.status-indicator.status-queued {
+  color: #6c757d;
+  background-color: #f8f9fa;
+}
+
+.status-indicator.status-downloading {
+  color: #007acc;
+  background-color: #e3f2fd;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.status-in_progress {
+  color: #28a745;
+  background-color: #e8f5e8;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.status-completed {
+  color: #28a745;
+  background-color: #e8f5e8;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: #e9ecef;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: #007acc;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  font-size: 11px;
+  color: #666;
+}
+
+.item-actions {
+  flex-shrink: 0;
+}
+
+.cancel-item-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background-color: transparent;
+  color: #dc3545;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.cancel-item-btn:hover {
+  background-color: #f8d7da;
+}
+
+/* Post-processing affiliated panel */
+.post-process-affiliated-panel {
+  width: 100%;
+  background-color: white;
+  border: 1px solid #e0e0e0;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 4px 6px;
+  margin-top: 0;
+}
+
+.task-item.status-completed + .post-process-affiliated-panel {
+  border-left: 3px solid #9acd32;
+}
+
+.task-item.status-in_progress + .post-process-affiliated-panel {
+  border-left: 3px solid #9acd32;
+}
+
+.pp-panel-content {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  font-size: 8px;
+}
+
+.pp-phase-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pp-phase-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.pp-phase-name {
+  font-weight: 500;
+  color: #333;
+  font-size: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pp-phase-status {
+  font-size: 7px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.pp-phase-status.active {
+  background-color: #007acc;
+  color: white;
+}
+
+.pp-phase-status.completed {
+  background-color: #28a745;
+  color: white;
+}
+
+.pp-phase-bar {
+  height: 3px;
+  background-color: #e0e0e0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.pp-phase-fill {
+  height: 100%;
+  background-color: #e0e0e0;
+  transition: width 0.3s ease;
+}
+
+.pp-phase-fill.active {
+  background-color: #007acc;
+}
+
+.pp-phase-fill.completed {
+  background-color: #28a745;
+}
+
+/* Demo mode disabled styles */
+.demo-disabled {
+  pointer-events: none !important;
+  cursor: default !important;
+  opacity: 0.7 !important;
+}
+
+.demo-disabled:hover {
+  background-color: inherit !important;
+  border-color: inherit !important;
+}
+
+</style>

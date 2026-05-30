@@ -1,36 +1,34 @@
 <template>
-  <div class="flex h-full flex-col dark:bg-[#1a1a1a] dark:text-[#e0e0e0]">
-    <!-- 'navigation-bar' retained as a Driver.js tour hook -->
-    <div class="navigation-bar flex border-b border-line bg-[#f8f9fa] dark:bg-[#2d2d2d]">
+  <div class="main-content">
+    <div class="navigation-bar">
       <button
-        :class="[navBtnBase, currentMode === 'live' ? navActive : navIdle]"
+        :class="['nav-btn', { active: currentMode === 'live' }]"
         @click="switchMode('live')"
       >
-        <svg class="shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
         </svg>
         {{ $t('navigation.live') }}
-        <span v-if="liveState.page === 'playback'" class="ml-1.5 animate-pulse text-xs font-bold text-[#28a745] dark:text-[#66cc66]">●</span>
+        <span v-if="liveState.page === 'playback'" class="playback-indicator">●</span>
       </button>
       <button
-        :class="[navBtnBase, currentMode === 'recorded' ? navActive : navIdle]"
+        :class="['nav-btn', { active: currentMode === 'recorded' }]"
         @click="switchMode('recorded')"
       >
-        <svg class="shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
           <line x1="8" y1="21" x2="16" y2="21"/>
           <line x1="12" y1="17" x2="12" y2="21"/>
         </svg>
         {{ $t('navigation.recorded') }}
-        <span v-if="recordedState.page === 'playback'" class="ml-1.5 animate-pulse text-xs font-bold text-[#28a745] dark:text-[#66cc66]">●</span>
+        <span v-if="recordedState.page === 'playback'" class="playback-indicator">●</span>
       </button>
     </div>
 
-    <div class="relative flex-1 overflow-hidden">
+    <div class="content-area">
       <!-- Live Mode Components -->
       <div
-        class="absolute left-0 top-0 h-full w-full transition-opacity duration-200 ease-in-out"
-        :class="{ 'pointer-events-none -z-10 opacity-0': currentMode !== 'live' }"
+        :class="['mode-container', { 'mode-hidden': currentMode !== 'live' }]"
         data-mode="live"
       >
         <CoursePage
@@ -53,8 +51,7 @@
 
       <!-- Recorded Mode Components -->
       <div
-        class="absolute left-0 top-0 h-full w-full transition-opacity duration-200 ease-in-out"
-        :class="{ 'pointer-events-none -z-10 opacity-0': currentMode !== 'recorded' }"
+        :class="['mode-container', { 'mode-hidden': currentMode !== 'recorded' }]"
         data-mode="recorded"
       >
         <CoursePage
@@ -104,12 +101,6 @@ interface ModeState {
 }
 
 const currentMode = ref<Mode>('live')
-
-// Nav tab class strings (split idle/active so only one color set applies).
-const navBtnBase =
-  'flex flex-1 items-center justify-center gap-1.5 border-none border-b-[3px] bg-transparent px-6 py-3 text-sm font-medium cursor-pointer transition-all'
-const navIdle = 'border-b-transparent text-fg hover:bg-hover hover:text-fg dark:text-fg-secondary'
-const navActive = 'border-b-accent bg-surface text-accent'
 
 // 为每个模式维护独立的状态
 const liveState = ref<ModeState>({
@@ -237,3 +228,114 @@ onUnmounted(() => {
   window.removeEventListener('taskNavigation', handleTaskNavigation as EventListener)
 })
 </script>
+
+<style scoped>
+.main-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.navigation-bar {
+  display: flex;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+}
+
+.nav-btn {
+  flex: 1;
+  padding: 12px 24px;
+  border: none;
+  background-color: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.nav-icon {
+  flex-shrink: 0;
+}
+
+.nav-btn:hover {
+  background-color: #e9ecef;
+}
+
+.nav-btn.active {
+  background-color: white;
+  border-bottom-color: #007acc;
+  color: #007acc;
+}
+
+.content-area {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+.mode-container {
+  height: 100%;
+  width: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.mode-container.mode-hidden {
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.playback-indicator {
+  margin-left: 6px;
+  color: #28a745;
+  font-size: 12px;
+  font-weight: bold;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .main-content {
+    background-color: #1a1a1a;
+    color: #e0e0e0;
+  }
+
+  .navigation-bar {
+    border-bottom: 1px solid #404040;
+    background-color: #2d2d2d;
+  }
+
+  .nav-btn {
+    color: #b0b0b0;
+  }
+
+  .nav-btn:hover {
+    background-color: #404040;
+    color: #e0e0e0;
+  }
+
+  .nav-btn.active {
+    background-color: #1a1a1a;
+    border-bottom-color: #4da6ff;
+    color: #4da6ff;
+  }
+
+  .playback-indicator {
+    color: #66cc66;
+  }
+}
+
+</style>

@@ -1,6 +1,5 @@
 import { defineConfig, type Plugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import fs from 'fs';
 
@@ -89,7 +88,6 @@ export default defineConfig(({ mode }) => ({
         }
       }
     }),
-    tailwindcss(),
     ortWasmDevServer(),
     ortWasmBuildCopy()
   ],

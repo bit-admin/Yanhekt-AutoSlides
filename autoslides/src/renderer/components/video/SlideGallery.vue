@@ -1,22 +1,20 @@
 <template>
-  <div
-    class="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(200px,1fr))] max-md:gap-3 max-md:[grid-template-columns:repeat(auto-fill,minmax(150px,1fr))]"
-  >
+  <div class="gallery-grid">
     <div
       v-for="slide in slides"
       :key="slide.id"
-      class="group relative cursor-pointer overflow-hidden rounded-lg border-2 border-line bg-surface transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)]"
+      class="slide-thumbnail"
       @click="$emit('preview', slide)"
     >
-      <img :src="slide.dataUrl" :alt="slide.title" class="block h-[120px] w-full object-cover max-md:h-[100px]" />
-      <div class="absolute inset-x-0 bottom-0 flex items-end justify-between bg-gradient-to-t from-black/80 to-transparent p-2">
-        <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span class="truncate text-xs font-medium text-white">{{ slide.title }}</span>
-          <span class="text-[11px] text-white/80">{{ formatSlideTime(slide.timestamp) }}</span>
+      <img :src="slide.dataUrl" :alt="slide.title" />
+      <div class="thumbnail-overlay">
+        <div class="slide-info">
+          <span class="slide-title">{{ slide.title }}</span>
+          <span class="slide-time">{{ formatSlideTime(slide.timestamp) }}</span>
         </div>
         <button
           @click.stop="$emit('delete', slide)"
-          class="flex-shrink-0 cursor-pointer rounded border-none bg-[rgba(220,53,69,0.8)] p-1 text-white transition-all hover:scale-110 hover:bg-[rgb(220,53,69)]"
+          class="delete-btn"
           :title="`Move ${slide.title} to trash`"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -44,3 +42,106 @@ defineEmits<{
   (e: 'delete', slide: ExtractedSlide): void
 }>()
 </script>
+
+<style scoped>
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.slide-thumbnail {
+  position: relative;
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #e9ecef;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.slide-thumbnail:hover {
+  border-color: #007acc;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.slide-thumbnail img {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
+.thumbnail-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+  padding: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.slide-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.slide-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slide-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.delete-btn {
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background-color: rgba(220, 53, 69, 0.8);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.delete-btn:hover {
+  background-color: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+  .gallery-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+  }
+
+  .slide-thumbnail img {
+    height: 100px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .slide-thumbnail {
+    background-color: #1e1e1e;
+    border-color: #3d3d3d;
+  }
+
+  .slide-thumbnail:hover {
+    border-color: #4a9eff;
+  }
+}
+</style>
