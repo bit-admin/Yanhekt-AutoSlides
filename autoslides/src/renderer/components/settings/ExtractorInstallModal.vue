@@ -352,7 +352,7 @@ onBeforeUnmount(() => {
 }
 
 .modal-content {
-  background-color: white;
+  background-color: var(--bg-modal);
   border-radius: 8px;
   width: 640px;
   max-width: 90vw;
@@ -367,14 +367,14 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .close-btn {
@@ -383,12 +383,12 @@ onBeforeUnmount(() => {
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
-  color: #666;
+  color: var(--text-secondary);
   transition: background-color 0.2s;
 }
 
 .close-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
 }
 
 .modal-body {
@@ -397,7 +397,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   overflow-y: auto;
   padding: 16px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .modal-actions {
@@ -405,16 +405,16 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
   gap: 8px;
   padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
   flex-shrink: 0;
 }
 
 .save-btn {
   padding: 8px 16px;
-  border: 1px solid #007acc;
-  background-color: #007acc;
-  color: white;
+  border: 1px solid var(--accent);
+  background-color: var(--accent);
+  color: var(--text-on-accent);
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
@@ -422,18 +422,18 @@ onBeforeUnmount(() => {
 }
 
 .save-btn:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .loading-section,
 .error-section {
   padding: 16px 0;
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
-.error-section { color: #b1361e; }
+.error-section { color: var(--danger); }
 .error-section p { margin: 0 0 8px 0; }
 
 /* Version header */
@@ -445,8 +445,8 @@ onBeforeUnmount(() => {
 }
 
 .version-badge {
-  background: #007acc;
-  color: white;
+  background: var(--accent);
+  color: var(--text-on-accent);
   padding: 6px 12px;
   border-radius: 16px;
   font-size: 14px;
@@ -461,7 +461,7 @@ onBeforeUnmount(() => {
 
 .publish-date {
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 /* Release notes section */
@@ -477,7 +477,7 @@ onBeforeUnmount(() => {
   margin: 0 0 8px 0;
   font-size: 13px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   flex-shrink: 0;
 }
 
@@ -487,7 +487,7 @@ onBeforeUnmount(() => {
   max-height: 300px;
   overflow-y: auto;
   padding: 12px;
-  background: #f6f8fa;
+  background: var(--bg-page);
   border-radius: 6px;
   font-size: 13px;
 }
@@ -497,7 +497,7 @@ onBeforeUnmount(() => {
   white-space: pre-wrap;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 /* Download section */
@@ -513,7 +513,7 @@ onBeforeUnmount(() => {
 
 .asset-item {
   padding: 10px 12px;
-  background: #f6f8fa;
+  background: var(--bg-page);
   border-radius: 6px;
 }
 
@@ -526,7 +526,7 @@ onBeforeUnmount(() => {
 
 .asset-name {
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -535,7 +535,7 @@ onBeforeUnmount(() => {
 
 .asset-size {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   flex-shrink: 0;
   margin-left: 8px;
 }
@@ -567,11 +567,11 @@ onBeforeUnmount(() => {
 }
 
 .download-btn.secondary {
-  background: #007acc;
+  background: var(--accent);
 }
 
 .download-btn.secondary:hover {
-  background: #0068b3;
+  background: var(--accent-hover);
 }
 
 .download-btn svg {
@@ -581,10 +581,10 @@ onBeforeUnmount(() => {
 /* Build-from-source / no-asset notice */
 .build-from-source-section {
   padding: 12px;
-  background: #f6f8fa;
+  background: var(--bg-page);
   border-radius: 6px;
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
 }
 .build-from-source-section p {
   margin: 0 0 10px 0;
@@ -593,7 +593,7 @@ onBeforeUnmount(() => {
 /* Download progress */
 .download-progress-section {
   padding: 12px;
-  background: #f6f8fa;
+  background: var(--bg-page);
   border-radius: 6px;
 }
 
@@ -606,20 +606,20 @@ onBeforeUnmount(() => {
 
 .progress-label {
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .progress-percent {
   font-size: 12px;
-  color: #007acc;
+  color: var(--accent);
   font-weight: 600;
 }
 
 .progress-bar {
   width: 100%;
   height: 4px;
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -627,7 +627,7 @@ onBeforeUnmount(() => {
 
 .progress-fill {
   height: 100%;
-  background-color: #007acc;
+  background-color: var(--accent);
   border-radius: 2px;
   transition: width 0.3s ease;
 }
@@ -640,7 +640,7 @@ onBeforeUnmount(() => {
 
 .progress-bytes {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .cancel-download-btn {
@@ -649,24 +649,24 @@ onBeforeUnmount(() => {
   gap: 4px;
   padding: 4px 8px;
   background: transparent;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .cancel-download-btn:hover {
-  background: #f0f0f0;
-  border-color: #ccc;
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 /* Download complete */
 .download-complete-section {
   padding: 12px;
-  background: #f0fff4;
-  border: 1px solid #86efac;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
   border-radius: 6px;
 }
 
@@ -677,11 +677,11 @@ onBeforeUnmount(() => {
   margin-bottom: 10px;
   font-size: 13px;
   font-weight: 500;
-  color: #16a34a;
+  color: var(--success);
 }
 
 .complete-badge svg {
-  color: #16a34a;
+  color: var(--success);
 }
 
 .complete-actions {
@@ -696,8 +696,8 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--border-input);
+  background: var(--bg-surface);
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
@@ -705,19 +705,19 @@ onBeforeUnmount(() => {
 }
 
 .action-btn:hover {
-  background: #f6f8fa;
-  border-color: #ccc;
+  background: var(--bg-page);
+  border-color: var(--border-strong);
 }
 
 .action-btn.primary {
-  background: #007acc;
-  border-color: #007acc;
-  color: white;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .action-btn.primary:hover {
-  background: #0068b3;
-  border-color: #0068b3;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 /* Quarantine notice */
@@ -725,14 +725,14 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 10px;
   padding: 10px 12px;
-  background: #fef9e7;
-  border: 1px solid #fcd34d;
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
   border-radius: 6px;
   margin-top: 12px;
 }
 
 .quarantine-notice > svg {
-  color: #ca8a04;
+  color: var(--warning);
   flex-shrink: 0;
   margin-top: 1px;
 }
@@ -740,68 +740,7 @@ onBeforeUnmount(() => {
 .notice-text {
   flex: 1;
   font-size: 11px;
-  color: #854d0e;
+  color: var(--warning);
   line-height: 1.4;
-}
-
-/* Dark mode */
-@media (prefers-color-scheme: dark) {
-  .modal-overlay {
-    background-color: rgba(0, 0, 0, 0.7);
-  }
-
-  .modal-content { background-color: #2d2d2d; }
-  .modal-header { border-bottom-color: #404040; }
-  .modal-header h3 { color: #e0e0e0; }
-  .close-btn { color: #e0e0e0; }
-  .close-btn:hover { background-color: #3d3d3d; }
-  .modal-body { color: #e0e0e0; }
-  .modal-actions { background-color: #2d2d2d; border-top-color: #404040; }
-
-  .save-btn {
-    background-color: #4a9eff;
-    border-color: #4a9eff;
-  }
-  .save-btn:hover {
-    background-color: #3a8eef;
-    border-color: #3a8eef;
-  }
-
-  .version-badge { background: #4a9eff; }
-  .publish-date { color: #888; }
-  .release-notes-section h4 { color: #e0e0e0; }
-  .release-notes-scroll { background: #1e1e1e; }
-  .asset-item { background: #1e1e1e; }
-  .asset-name { color: #e0e0e0; }
-  .asset-size { color: #aaa; }
-
-  .download-btn { background: #3d3d3d; }
-  .download-btn:hover { background: #4d4d4d; }
-  .download-btn.secondary { background: #4a9eff; }
-  .download-btn.secondary:hover { background: #3a8eef; }
-
-  .build-from-source-section { background: #1e1e1e; color: #e0e0e0; }
-
-  .download-progress-section { background: #1e1e1e; }
-  .progress-label { color: #e0e0e0; }
-  .progress-percent { color: #4fc3f7; }
-  .progress-bar { background-color: #404040; }
-  .progress-fill { background-color: #4fc3f7; }
-  .progress-bytes { color: #aaa; }
-  .cancel-download-btn { border-color: #555; color: #aaa; }
-  .cancel-download-btn:hover { background: #404040; border-color: #666; }
-
-  .download-complete-section { background: #1a3a2a; border-color: #2d8a56; }
-  .complete-badge,
-  .complete-badge svg { color: #4ade80; }
-
-  .action-btn {
-    background: #3d3d3d;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-  .action-btn:hover { background: #4d4d4d; border-color: #666; }
-  .action-btn.primary { background: #4a9eff; border-color: #4a9eff; }
-  .action-btn.primary:hover { background: #3a8eef; border-color: #3a8eef; }
 }
 </style>

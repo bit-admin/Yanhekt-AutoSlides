@@ -119,8 +119,8 @@ const startDrag = () => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: #ffffff;
-  color: #333;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
 }
 
 /* Title Bar */
@@ -129,8 +129,8 @@ const startDrag = () => {
   justify-content: space-between;
   align-items: center;
   height: 38px;
-  background-color: #f0f0f0;
-  border-bottom: 1px solid #e0e0e0;
+  background-color: var(--bg-page-alt);
+  border-bottom: 1px solid var(--border-color);
   -webkit-app-region: drag;
   padding: 0 8px;
   flex-shrink: 0;
@@ -162,20 +162,20 @@ const startDrag = () => {
   border-radius: 4px;
   background: transparent;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s;
   white-space: nowrap;
 }
 
 .tab-btn:hover {
-  background-color: rgba(0, 0, 0, 0.06);
-  color: #333;
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .tab-btn.active {
-  background-color: rgba(0, 122, 204, 0.12);
-  color: #007acc;
+  background-color: var(--focus-ring);
+  color: var(--accent);
   font-weight: 500;
 }
 
@@ -196,17 +196,17 @@ const startDrag = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: var(--text-secondary);
   transition: background-color 0.2s;
 }
 
 .window-btn:hover {
-  background-color: #e0e0e0;
+  background-color: var(--bg-hover);
 }
 
 .close-btn:hover {
-  background-color: #e81123;
-  color: white;
+  background-color: var(--danger);
+  color: var(--text-on-accent);
 }
 
 /* Tab Content */
@@ -219,38 +219,4 @@ const startDrag = () => {
   height: 100%;
 }
 
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .addons-window {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-
-  .title-bar {
-    background-color: #2d2d2d;
-    border-bottom-color: #3d3d3d;
-  }
-
-  .tab-btn {
-    color: #999;
-  }
-
-  .tab-btn:hover {
-    background-color: rgba(255, 255, 255, 0.06);
-    color: #e0e0e0;
-  }
-
-  .tab-btn.active {
-    background-color: rgba(74, 158, 255, 0.15);
-    color: #4a9eff;
-  }
-
-  .window-btn {
-    color: #ccc;
-  }
-
-  .window-btn:hover {
-    background-color: #3d3d3d;
-  }
-}
 </style>

@@ -4,6 +4,8 @@
  * Components opt in by NOT redeclaring the same selectors inside their own
  * <style scoped> block — scoped styles override these unscoped definitions
  * inside the same component.
+ *
+ * All colors reference theme tokens from theme.css — dark mode is automatic.
  */
 
 .setting-item {
@@ -143,15 +145,15 @@
   display: flex;
   align-items: center;
   width: 100%;
-  background-color: white;
-  border: 1px solid #ddd;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   transition: border-color 0.2s;
 }
 
 .slide-interval-input-wrapper:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .slide-interval-input {
@@ -160,15 +162,16 @@
   border: none;
   background-color: transparent;
   font-size: 12px;
+  color: var(--text-primary);
   outline: none;
 }
 
 .interval-unit {
   padding: 6px 8px;
   font-size: 11px;
-  color: #666;
-  background-color: #f8f9fa;
-  border-left: 1px solid #e0e0e0;
+  color: var(--text-secondary);
+  background-color: var(--bg-elevated);
+  border-left: 1px solid var(--border-color);
   white-space: nowrap;
 }
 
@@ -179,19 +182,19 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 10px;
-  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  background: var(--bg-subtle, rgba(0, 0, 0, 0.02));
+  background: var(--bg-subtle);
 }
 
 .model-row .model-info {
   font-size: 12px;
-  color: var(--text-primary, #222);
+  color: var(--text-primary);
   word-break: break-all;
 }
 
 .model-row .model-size {
-  color: #666;
+  color: var(--text-secondary);
   margin-left: 4px;
 }
 
@@ -204,17 +207,17 @@
 .secondary-btn {
   padding: 6px 12px;
   border-radius: 4px;
-  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
-  background: var(--bg-primary, #fff);
-  color: var(--text-primary, #222);
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .secondary-btn:hover:not(:disabled) {
-  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
-  border-color: var(--border-color-strong, rgba(0, 0, 0, 0.25));
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .secondary-btn:disabled {
@@ -225,24 +228,25 @@
 .concurrent-select {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
-  background-color: white;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .concurrent-select:focus {
   outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .preset-btn {
   padding: 4px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
-  color: #666;
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
   font-size: 11px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -250,7 +254,7 @@
 }
 
 .preset-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   border-color: var(--accent);
   color: var(--accent);
 }
@@ -258,21 +262,21 @@
 .preset-btn.active {
   background-color: var(--accent);
   border-color: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .auto-post-processing-control {
   display: flex;
   flex-direction: column;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
   border-radius: 6px;
   overflow: hidden;
   transition: all 0.2s ease;
 }
 
 .auto-post-processing-control:hover {
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
   border-color: var(--accent);
 }
 
@@ -281,7 +285,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   padding: 8px 12px;
   background-color: transparent;
@@ -292,7 +296,7 @@
 }
 
 .auto-post-processing-control .checkbox-label:not(:last-child) {
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--border-input);
 }
 
 .auto-post-processing-control .checkbox-label input[type="checkbox"] {
@@ -306,8 +310,8 @@
 .prevent-sleep-control {
   display: flex;
   align-items: center;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
   border-radius: 6px;
   overflow: hidden;
   transition: all 0.2s ease;
@@ -315,7 +319,7 @@
 }
 
 .prevent-sleep-control:hover {
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
   border-color: var(--accent);
 }
 
@@ -324,7 +328,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   padding: 8px 12px;
   background-color: transparent;
@@ -344,7 +348,7 @@
 }
 
 .external-link {
-  color: #007acc;
+  color: var(--link-color);
   text-decoration: none;
   cursor: pointer;
 }
@@ -356,9 +360,9 @@
 .mode-btn {
   flex: 1;
   padding: 6px 8px;
-  border: 1px solid #ddd;
-  background-color: #f8f9fa;
-  color: #666;
+  border: 1px solid var(--border-input);
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
   font-size: 11px;
   border-radius: 4px;
   cursor: pointer;
@@ -366,12 +370,12 @@
 }
 
 .mode-btn:hover {
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
 }
 
 .mode-btn.active {
   background-color: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
   border-color: var(--accent);
 }
 
@@ -386,8 +390,8 @@
 .downsampling-control {
   display: flex;
   flex-direction: column;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
   border-radius: 6px;
   overflow: hidden;
   transition: all 0.2s ease;
@@ -395,7 +399,7 @@
 }
 
 .downsampling-control:hover {
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
   border-color: var(--accent);
 }
 
@@ -404,7 +408,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   padding: 8px 12px;
   background-color: transparent;
@@ -427,8 +431,8 @@
   display: flex;
   gap: 4px;
   padding: 8px 12px;
-  border-top: 1px solid #e0e0e0;
-  background-color: rgba(255, 255, 255, 0.7);
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
 }
 
 .downsampling-presets.no-border-top {
@@ -441,7 +445,7 @@
   cursor: pointer;
   padding: 2px;
   border-radius: 3px;
-  color: #666;
+  color: var(--text-secondary);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -450,163 +454,12 @@
 }
 
 .reset-btn:hover {
-  background-color: #f0f0f0;
-  color: #333;
+  background-color: var(--bg-page-alt);
+  color: var(--text-primary);
   opacity: 1;
 }
 
 .reset-btn svg {
   width: 12px;
   height: 12px;
-}
-
-@media (prefers-color-scheme: dark) {
-  .slide-interval-input-wrapper {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .slide-interval-input-wrapper:focus-within {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
-  }
-
-  .slide-interval-input {
-    color: #e0e0e0;
-  }
-
-  .interval-unit {
-    background-color: #2d2d2d;
-    border-left-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .concurrent-select {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .concurrent-select:focus {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
-  }
-
-  .model-row {
-    border-color: #404040;
-    background: #252525;
-  }
-
-  .model-row .model-info {
-    color: #e0e0e0;
-  }
-
-  .model-row .model-size {
-    color: #b0b0b0;
-  }
-
-  .secondary-btn {
-    background: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .secondary-btn:hover:not(:disabled) {
-    background: #3d3d3d;
-    border-color: #4a9eff;
-  }
-
-  .preset-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .preset-btn:hover {
-    background-color: #3d3d3d;
-    border-color: #4a9eff;
-    color: #4a9eff;
-  }
-
-  .preset-btn.active {
-    background-color: #4a9eff;
-    border-color: #4a9eff;
-    color: white;
-  }
-
-  .auto-post-processing-control {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .auto-post-processing-control:hover {
-    background-color: #3d3d3d;
-    border-color: #4a9eff;
-  }
-
-  .auto-post-processing-control .checkbox-label {
-    color: #e0e0e0;
-  }
-
-  .auto-post-processing-control .checkbox-label:not(:last-child) {
-    border-bottom-color: #404040;
-  }
-
-  .prevent-sleep-control {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .prevent-sleep-control:hover {
-    background-color: #3d3d3d;
-    border-color: #4a9eff;
-  }
-
-  .prevent-sleep-control .checkbox-label {
-    color: #e0e0e0;
-  }
-
-  .mode-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .mode-btn:hover {
-    background-color: #3d3d3d;
-  }
-
-  .mode-btn.active {
-    background-color: #2563eb;
-    color: white;
-    border-color: #2563eb;
-  }
-
-  .downsampling-control {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .downsampling-control:hover {
-    background-color: #3d3d3d;
-    border-color: #4a9eff;
-  }
-
-  .downsampling-control .checkbox-label {
-    color: #e0e0e0;
-  }
-
-  .downsampling-presets {
-    border-top-color: #404040;
-    background-color: rgba(45, 45, 45, 0.7);
-  }
-
-  .reset-btn {
-    color: #b0b0b0;
-  }
-
-  .reset-btn:hover {
-    background-color: #3d3d3d;
-    color: #e0e0e0;
-  }
 }

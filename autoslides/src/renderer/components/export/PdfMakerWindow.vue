@@ -506,8 +506,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #ffffff;
-  color: #333;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
 }
 
 .toolbar {
@@ -516,8 +516,8 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  background-color: #fafafa;
-  border-bottom: 1px solid #e0e0e0;
+  background-color: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-color);
   gap: 12px;
 }
 
@@ -539,9 +539,9 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   padding: 6px 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-surface);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
@@ -550,8 +550,8 @@ onUnmounted(() => {
 
 .sort-btn:hover,
 .refresh-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .refresh-btn:disabled {
@@ -568,8 +568,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 13px;
   cursor: pointer;
@@ -578,8 +578,8 @@ onUnmounted(() => {
 }
 
 .reduce-toggle:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .reduce-toggle input {
@@ -609,16 +609,16 @@ onUnmounted(() => {
 
 .config-label {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .effort-select,
 .custom-select {
   padding: 4px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   font-size: 13px;
   cursor: pointer;
 }
@@ -626,22 +626,22 @@ onUnmounted(() => {
 .effort-select:disabled,
 .custom-select:disabled {
   cursor: not-allowed;
-  background-color: #f5f5f5;
-  color: #999;
+  background-color: var(--bg-page);
+  color: var(--text-muted);
 }
 
 .effort-select:focus,
 .custom-select:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: var(--accent);
 }
 
 .config-value {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   padding: 4px 8px;
-  background-color: #f5f5f5;
-  border: 1px solid #ddd;
+  background-color: var(--bg-page);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   white-space: nowrap;
 }
@@ -657,10 +657,10 @@ onUnmounted(() => {
   gap: 6px;
   min-height: 30px;
   padding: 6px 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
-  color: #333;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
@@ -668,8 +668,8 @@ onUnmounted(() => {
 }
 
 .export-menu-toggle:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .export-menu-chevron {
@@ -690,10 +690,10 @@ onUnmounted(() => {
   gap: 10px;
   min-width: 260px;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 6px;
-  background-color: #ffffff;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  background-color: var(--bg-modal);
+  box-shadow: 0 8px 24px var(--shadow-md);
 }
 
 .export-menu-section {
@@ -704,7 +704,7 @@ onUnmounted(() => {
 
 .export-menu-section-label {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -721,8 +721,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding: 2px;
-  background-color: #f1f3f5;
-  border: 1px solid #ddd;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
   border-radius: 5px;
 }
 
@@ -733,7 +733,7 @@ onUnmounted(() => {
   min-height: 24px;
   padding: 3px 8px;
   border-radius: 4px;
-  color: #555;
+  color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.2;
   cursor: pointer;
@@ -748,9 +748,9 @@ onUnmounted(() => {
 }
 
 .mode-option.active {
-  background-color: #ffffff;
-  color: #007acc;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  background-color: var(--bg-surface);
+  color: var(--accent);
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 .cover-toggle {
@@ -759,17 +759,17 @@ onUnmounted(() => {
   gap: 8px;
   padding: 6px 8px;
   border-radius: 4px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--bg-hover);
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s;
 }
 
 .cover-toggle:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .cover-toggle input {
@@ -777,7 +777,7 @@ onUnmounted(() => {
   height: 14px;
   margin: 0;
   cursor: pointer;
-  accent-color: #007acc;
+  accent-color: var(--accent);
 }
 
 .make-pdf-btn {
@@ -787,8 +787,8 @@ onUnmounted(() => {
   padding: 6px 12px;
   border: none;
   border-radius: 4px;
-  background-color: #007acc;
-  color: white;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -797,11 +797,11 @@ onUnmounted(() => {
 }
 
 .make-pdf-btn:hover:not(:disabled) {
-  background-color: #005a9e;
+  background-color: var(--accent-strong);
 }
 
 .make-pdf-btn:disabled {
-  background-color: #ccc;
+  background-color: var(--border-strong);
   cursor: not-allowed;
 }
 
@@ -819,7 +819,7 @@ onUnmounted(() => {
 }
 
 .content-area:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .content-area::-webkit-scrollbar {
@@ -838,11 +838,11 @@ onUnmounted(() => {
 }
 
 .content-area:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--scrollbar-thumb);
 }
 
 .content-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--scrollbar-thumb-hover);
 }
 
 .loading-state,
@@ -853,14 +853,14 @@ onUnmounted(() => {
   justify-content: center;
   height: 100%;
   gap: 16px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #e0e0e0;
-  border-top-color: #007acc;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -900,7 +900,7 @@ onUnmounted(() => {
 .course-chevron {
   flex-shrink: 0;
   margin-left: auto;
-  color: #7b8794;
+  color: var(--text-secondary);
   transition: transform 0.15s;
   cursor: pointer;
 }
@@ -931,7 +931,7 @@ onUnmounted(() => {
   height: 18px;
   margin: 0;
   cursor: pointer;
-  accent-color: #007acc;
+  accent-color: var(--accent);
 }
 
 .folder-item-grouped {
@@ -944,27 +944,27 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  background-color: white;
-  border: 1px solid #e9ecef;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--bg-hover);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .folder-item:hover {
-  background-color: #f8f9fa;
-  border-color: #dee2e6;
+  background-color: var(--bg-elevated);
+  border-color: var(--bg-hover);
 }
 
 .folder-item.selected {
-  background-color: #e7f3ff;
-  border-color: #007acc;
+  background-color: var(--badge-active-bg);
+  border-color: var(--accent);
 }
 
 .folder-item.drag-over {
-  border-color: #007acc;
+  border-color: var(--accent);
   border-style: dashed;
-  background-color: #f0f7ff;
+  background-color: var(--badge-active-bg);
 }
 
 .folder-item.dragging {
@@ -985,7 +985,7 @@ onUnmounted(() => {
 .folder-name {
   flex: 1;
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -996,7 +996,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  color: #7b8794;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
 }
@@ -1023,7 +1023,7 @@ onUnmounted(() => {
   opacity: 0.6;
   transition: opacity 0.2s, background-color 0.2s;
   border-radius: 4px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .folder-item:hover .drag-handle {
@@ -1048,14 +1048,14 @@ onUnmounted(() => {
 
 .progress-bar-container {
   height: 3px;
-  background-color: #e0e0e0;
+  background-color: var(--border-color);
   width: 100%;
   overflow: hidden;
 }
 
 .progress-bar {
   height: 100%;
-  background-color: #007acc;
+  background-color: var(--accent);
   transition: width 0.15s ease-out;
 }
 
@@ -1065,10 +1065,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 8px 16px;
-  background-color: #fafafa;
-  border-top: 1px solid #e0e0e0;
+  background-color: var(--bg-subtle);
+  border-top: 1px solid var(--border-color);
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .footer-left {
@@ -1079,7 +1079,7 @@ onUnmounted(() => {
 }
 
 .footer-separator {
-  color: #ccc;
+  color: var(--border-strong);
 }
 
 .group-toggle {
@@ -1087,19 +1087,19 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   padding: 3px 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
   transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
 }
 
 .group-toggle:hover:not(.disabled) {
-  background-color: #f0f0f0;
-  border-color: #d0d0d0;
+  background-color: var(--bg-hover);
+  border-color: var(--border-color);
 }
 
 .group-toggle.disabled {
@@ -1111,7 +1111,7 @@ onUnmounted(() => {
   width: 11px;
   height: 11px;
   margin: 0;
-  accent-color: #007acc;
+  accent-color: var(--accent);
   cursor: pointer;
 }
 
@@ -1124,177 +1124,5 @@ onUnmounted(() => {
   to { transform: rotate(360deg); }
 }
 
-@media (prefers-color-scheme: dark) {
-  .pdfmaker-window {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
 
-  .toolbar,
-  .footer {
-    background-color: #252525;
-    border-color: #3d3d3d;
-    color: #e0e0e0;
-  }
-
-  .footer-separator {
-    color: #555;
-  }
-
-  .sort-btn,
-  .refresh-btn,
-  .export-menu-toggle,
-  .effort-select,
-  .custom-select {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .sort-btn:hover,
-  .refresh-btn:hover:not(:disabled),
-  .export-menu-toggle:hover {
-    background-color: #404040;
-    border-color: #666;
-  }
-
-  .reduce-toggle,
-  .config-value,
-  .mode-option.active,
-  .cover-toggle {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .cover-toggle:hover {
-    background-color: #3d3d3d;
-    border-color: #505050;
-  }
-
-  .mode-segmented {
-    background-color: #252525;
-    border-color: #404040;
-  }
-
-  .mode-option {
-    color: #aaa;
-  }
-
-  .mode-option.active {
-    color: #66bfff;
-    box-shadow: none;
-  }
-
-  .export-menu-panel {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  }
-
-  .reduce-toggle:hover {
-    background-color: #3d3d3d;
-    border-color: #505050;
-  }
-
-  .config-label,
-  .export-menu-section-label {
-    color: #aaa;
-  }
-
-  .content-area {
-    background-color: #1e1e1e;
-  }
-
-  .folder-item {
-    background-color: #2d2d2d;
-    border-color: #3d3d3d;
-  }
-
-  .folder-item:hover {
-    background-color: #353535;
-    border-color: #4d4d4d;
-  }
-
-  .folder-item.selected {
-    background-color: #1a3a5c;
-    border-color: #007acc;
-  }
-
-  .folder-name {
-    color: #e0e0e0;
-  }
-
-  .course-group {
-    background-color: #25282d;
-    border-color: #3d4450;
-  }
-
-  .course-name {
-    color: #66bfff;
-  }
-
-  .course-icon path:first-child {
-    fill: #66bfff;
-  }
-
-  .course-icon path:last-child {
-    fill: #93d0ff;
-  }
-
-  .course-chevron {
-    color: #9098a2;
-  }
-
-  .group-toggle {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .group-toggle:hover:not(.disabled) {
-    background-color: #353535;
-    border-color: #505050;
-  }
-
-  .drag-handle {
-    color: #888;
-  }
-
-  .folder-item:hover .drag-handle {
-    background-color: rgba(255, 255, 255, 0.05);
-  }
-
-  .drag-handle:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-  }
-
-  .drag-handle:active {
-    background-color: rgba(255, 255, 255, 0.15);
-  }
-
-  .content-area {
-    scrollbar-color: transparent transparent;
-  }
-
-  .content-area:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .content-area::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .content-area::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .content-area:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .content-area::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-}
 </style>

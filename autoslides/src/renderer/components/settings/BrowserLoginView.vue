@@ -243,7 +243,7 @@ onUnmounted(() => {
   flex-direction: column;
   height: 100%;
   width: 100%;
-  background: #f5f5f5;
+  background: var(--bg-page);
 }
 
 .control-bar {
@@ -251,8 +251,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
@@ -265,29 +265,29 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: #f5f5f5;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-page);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   font-size: 13px;
   transition: all 0.2s ease;
 }
 
 .control-btn:hover {
-  background: #e8e8e8;
-  border-color: #d0d0d0;
+  background: var(--bg-hover);
+  border-color: var(--border-input);
 }
 
 .control-btn.close-btn {
-  background: #fff;
-  color: #dc3545;
-  border-color: #dc3545;
+  background: var(--bg-surface);
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .control-btn.close-btn:hover {
-  background: #dc3545;
-  color: white;
+  background: var(--danger);
+  color: var(--text-on-accent);
 }
 
 .control-btn.close-btn svg {
@@ -295,18 +295,18 @@ onUnmounted(() => {
 }
 
 .control-btn.token-btn {
-  background: #007acc;
-  color: white;
-  border-color: #007acc;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--accent);
 }
 
 .control-btn.token-btn:hover {
-  background: #005a9e;
-  border-color: #005a9e;
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
 }
 
 .control-btn.token-btn svg {
-  stroke: white;
+  stroke: var(--text-on-accent);
 }
 
 .control-btn svg {
@@ -334,8 +334,8 @@ onUnmounted(() => {
   align-items: center;
   gap: 16px;
   padding: 6px 16px;
-  background: #ffffff;
-  border-top: 1px solid #e0e0e0;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-color);
   flex-shrink: 0;
   min-height: 28px;
   margin-bottom: 5px;
@@ -352,12 +352,12 @@ onUnmounted(() => {
 
 .url-icon {
   flex-shrink: 0;
-  stroke: #888;
+  stroke: var(--text-muted);
 }
 
 .url-text {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -370,15 +370,15 @@ onUnmounted(() => {
 }
 
 .status-message.info {
-  color: #888;
+  color: var(--text-muted);
 }
 
 .status-message.success {
-  color: #28a745;
+  color: var(--success);
 }
 
 .status-message.error {
-  color: #dc3545;
+  color: var(--danger);
 }
 
 /* Responsive adjustments */
@@ -389,75 +389,6 @@ onUnmounted(() => {
 
   .control-btn {
     padding: 6px 8px;
-  }
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .browser-login-view {
-    background: #1a1a1a;
-  }
-
-  .control-bar {
-    background: #2d2d2d;
-    border-bottom-color: #404040;
-  }
-
-  .control-btn {
-    background: #3d3d3d;
-    border-color: #505050;
-    color: #e0e0e0;
-  }
-
-  .control-btn:hover {
-    background: #4d4d4d;
-    border-color: #606060;
-  }
-
-  .control-btn.close-btn {
-    background: #3d3d3d;
-    color: #ff6b6b;
-    border-color: #ff6b6b;
-  }
-
-  .control-btn.close-btn:hover {
-    background: #ff6b6b;
-    color: white;
-  }
-
-  .control-btn.token-btn {
-    background: #2563eb;
-    border-color: #2563eb;
-  }
-
-  .control-btn.token-btn:hover {
-    background: #1d4ed8;
-    border-color: #1d4ed8;
-  }
-
-  .status-bar {
-    background: #2d2d2d;
-    border-top-color: #404040;
-  }
-
-  .url-icon {
-    stroke: #666;
-  }
-
-  .url-text {
-    color: #888;
-  }
-
-  .status-message.info {
-    color: #b0b0b0;
-  }
-
-  .status-message.success {
-    color: #4caf50;
-  }
-
-  .status-message.error {
-    color: #ff6b6b;
   }
 }
 </style>

@@ -297,8 +297,8 @@ watch(captureState, (val) => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #ffffff;
-  color: #333;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
 }
 
 .toolbar {
@@ -306,13 +306,13 @@ watch(captureState, (val) => {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background-color: #fafafa;
-  border-bottom: 1px solid #e0e0e0;
+  background-color: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-color);
   flex-wrap: wrap;
 }
 
 .action-toolbar {
-  background-color: #f5f5f5;
+  background-color: var(--bg-page);
 }
 
 .nav-btn {
@@ -321,26 +321,26 @@ watch(captureState, (val) => {
   justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   cursor: pointer;
-  color: #555;
+  color: var(--text-secondary);
 }
 
-.nav-btn:hover { background-color: #f0f0f0; }
+.nav-btn:hover { background-color: var(--bg-hover); }
 
 .url-input {
   flex: 1;
   min-width: 200px;
   padding: 5px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
-  background-color: white;
+  background-color: var(--bg-input);
 }
 
-.url-input:focus { outline: none; border-color: #007acc; }
+.url-input:focus { outline: none; border-color: var(--accent); }
 
 .preset-dropdown {
   position: relative;
@@ -360,11 +360,11 @@ watch(captureState, (val) => {
   min-width: 140px;
   padding: 4px 0;
   list-style: none;
-  background-color: white;
-  border: 1px solid #ddd;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-input);
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  z-index: 20;
+  box-shadow: 0 4px 12px var(--shadow-md);
+  z-index: var(--z-sticky);
 }
 
 .preset-menu li {
@@ -375,8 +375,8 @@ watch(captureState, (val) => {
 }
 
 .preset-menu li:hover {
-  background-color: rgba(0, 122, 204, 0.08);
-  color: #007acc;
+  background-color: var(--focus-ring);
+  color: var(--accent);
 }
 
 .field-group {
@@ -388,53 +388,53 @@ watch(captureState, (val) => {
 
 .field-label {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .text-input {
   padding: 5px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
-  background-color: white;
+  background-color: var(--bg-input);
   min-width: 120px;
 }
 .field-group.grow .text-input { width: 100%; min-width: 0; }
 
-.text-input:focus { outline: none; border-color: #007acc; }
+.text-input:focus { outline: none; border-color: var(--accent); }
 
 .primary-btn {
   padding: 5px 14px;
   border: none;
   border-radius: 4px;
-  background-color: #007acc;
-  color: white;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
 }
-.primary-btn:hover:not(:disabled) { background-color: #005a9e; }
-.primary-btn:disabled { background-color: #ccc; cursor: not-allowed; }
-.primary-btn.danger { background-color: #d9534f; }
-.primary-btn.danger:hover { background-color: #b52b27; }
+.primary-btn:hover:not(:disabled) { background-color: var(--accent-strong); }
+.primary-btn:disabled { background-color: var(--bg-hover); cursor: not-allowed; }
+.primary-btn.danger { background-color: var(--danger); }
+.primary-btn.danger:hover { background-color: var(--danger-hover); }
 
 .secondary-btn {
   padding: 5px 10px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
-  color: #333;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 12px;
   cursor: pointer;
 }
-.secondary-btn:hover:not(:disabled) { background-color: #f0f0f0; }
-.secondary-btn:disabled { color: #aaa; cursor: not-allowed; }
+.secondary-btn:hover:not(:disabled) { background-color: var(--bg-hover); }
+.secondary-btn:disabled { color: var(--text-muted); cursor: not-allowed; }
 .faded { opacity: 0.4; pointer-events: auto; }
 .secondary-btn.active {
-  background-color: rgba(0, 122, 204, 0.12);
-  border-color: #007acc;
-  color: #007acc;
+  background-color: var(--focus-ring);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .status-bar {
@@ -442,10 +442,10 @@ watch(captureState, (val) => {
   align-items: center;
   gap: 10px;
   padding: 5px 12px;
-  background-color: #f0f0f0;
-  border-bottom: 1px solid #e0e0e0;
+  background-color: var(--bg-page-alt);
+  border-bottom: 1px solid var(--border-color);
   font-size: 11px;
-  color: #555;
+  color: var(--text-secondary);
   flex-wrap: wrap;
 }
 
@@ -453,14 +453,14 @@ watch(captureState, (val) => {
   display: inline-flex;
   gap: 4px;
   padding: 2px 6px;
-  background-color: white;
-  border: 1px solid #ddd;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-input);
   border-radius: 3px;
 }
 
 .status-message {
   flex: 1;
-  color: #666;
+  color: var(--text-secondary);
   font-style: italic;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -486,15 +486,15 @@ watch(captureState, (val) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #aaa;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
 .region-indicator {
   position: absolute;
-  border: 2px dashed #007acc;
+  border: 2px dashed var(--accent);
   pointer-events: none;
-  z-index: 5;
+  z-index: var(--z-dropdown);
 }
 
 .region-indicator-label {
@@ -502,7 +502,7 @@ watch(captureState, (val) => {
   top: -18px;
   left: 0;
   font-size: 10px;
-  color: #fff;
+  color: var(--text-on-accent);
   background-color: rgba(0, 122, 204, 0.8);
   padding: 1px 5px;
   border-radius: 3px;
@@ -516,15 +516,15 @@ watch(captureState, (val) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: var(--z-overlay);
 }
 
 .modal {
   width: 420px;
-  background-color: white;
+  background-color: var(--bg-modal);
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 20px var(--shadow-lg);
 }
 
 .modal h3 {
@@ -534,13 +534,13 @@ watch(captureState, (val) => {
 
 .modal p {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   margin: 0 0 12px 0;
 }
 
 .modal code {
   padding: 1px 4px;
-  background-color: #f0f0f0;
+  background-color: var(--bg-hover);
   border-radius: 3px;
   font-size: 11px;
 }
@@ -559,24 +559,4 @@ watch(captureState, (val) => {
   gap: 8px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .webcapture-tab { background-color: #1e1e1e; color: #e0e0e0; }
-  .toolbar { background-color: #252525; border-bottom-color: #3d3d3d; }
-  .action-toolbar { background-color: #2a2a2a; }
-  .nav-btn { background-color: #333; border-color: #555; color: #ccc; }
-  .nav-btn:hover { background-color: #404040; }
-  .url-input, .text-input { background-color: #2d2d2d; border-color: #555; color: #e0e0e0; }
-  .field-label { color: #aaa; }
-  .secondary-btn { background-color: #333; border-color: #555; color: #e0e0e0; }
-  .secondary-btn:hover:not(:disabled) { background-color: #404040; }
-  .secondary-btn.active { background-color: rgba(74, 158, 255, 0.15); border-color: #4a9eff; color: #4a9eff; }
-  .status-bar { background-color: #252525; border-bottom-color: #3d3d3d; color: #bbb; }
-  .status-chip { background-color: #333; border-color: #555; color: #ccc; }
-  .status-message { color: #999; }
-  .modal { background-color: #2a2a2a; color: #e0e0e0; }
-  .modal p { color: #aaa; }
-  .modal code { background-color: #3a3a3a; color: #e0e0e0; }
-  .preset-menu { background-color: #2a2a2a; border-color: #555; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); }
-  .preset-menu li:hover { background-color: rgba(74, 158, 255, 0.12); color: #4a9eff; }
-}
 </style>

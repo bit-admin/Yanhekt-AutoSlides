@@ -425,8 +425,8 @@ const checkForUpdates = () => {
   display: flex;
   align-items: center;
   height: 36px;
-  background: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
   user-select: none;
   position: relative;
   z-index: 1000;
@@ -434,8 +434,8 @@ const checkForUpdates = () => {
 
 .titlebar.is-macos {
   height: 36px;
-  background: #ffffff;
-  border-bottom: 1px solid #d0d0d0;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-color);
 }
 
 /* macOS traffic lights space - reserve space for red/yellow/green buttons */
@@ -458,7 +458,7 @@ const checkForUpdates = () => {
   position: relative;
   padding: 8px 12px;
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   user-select: none;
   border-radius: 3px;
@@ -479,8 +479,8 @@ const checkForUpdates = () => {
   top: 100%;
   left: 0;
   min-width: 200px;
-  background: #ffffff;
-  border: 1px solid #d0d0d0;
+  background: var(--bg-modal);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
@@ -494,35 +494,35 @@ const checkForUpdates = () => {
   justify-content: space-between;
   padding: 8px 16px;
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   transition: background-color 0.15s ease;
 }
 
 .menu-option:hover:not(.disabled) {
-  background-color: #0078d4;
-  color: white;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .menu-option.disabled {
-  color: #999;
+  color: var(--text-muted);
   cursor: not-allowed;
 }
 
 .menu-option.disabled:hover {
   background-color: transparent;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .menu-separator {
   height: 1px;
-  background-color: #e0e0e0;
+  background-color: var(--border-color);
   margin: 4px 0;
 }
 
 .shortcut {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   margin-left: 20px;
 }
 
@@ -565,36 +565,36 @@ const checkForUpdates = () => {
   justify-content: center;
   gap: 8px;
   padding: 6px 16px;
-  background: #f3f3f3;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
   font-family: inherit;
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   min-width: 280px;
   max-width: 400px;
   -webkit-app-region: no-drag; /* Prevent dragging on search box */
 }
 
 .search-box:hover {
-  background: #ebebeb;
-  border-color: #d0d0d0;
+  background: var(--bg-hover);
+  border-color: var(--border-color);
 }
 
 .search-box:active {
-  background: #e0e0e0;
+  background: var(--bg-hover);
 }
 
 .search-icon {
-  color: #888;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
 .search-text {
   font-weight: 500;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .titlebar.is-macos .search-box {
@@ -622,14 +622,14 @@ const checkForUpdates = () => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #666;
+  color: var(--text-secondary);
   transition: all 0.2s ease;
   position: relative;
 }
 
 .link-button:hover {
   background: rgba(0, 0, 0, 0.05);
-  color: #333;
+  color: var(--text-primary);
 }
 
 .link-button:active {
@@ -653,14 +653,14 @@ const checkForUpdates = () => {
 
 .feedback-trigger {
   height: 25px;
-  border: 1px solid #d9d9d9;
+  border: 1px solid var(--border-input);
   border-radius: 6px;
-  background: #f8f8f8;
+  background: var(--bg-elevated);
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 0 8px;
-  color: #555;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -674,7 +674,7 @@ const checkForUpdates = () => {
 
 .feedback-trigger:hover {
   background: rgba(0, 0, 0, 0.05);
-  color: #333;
+  color: var(--text-primary);
 }
 
 .feedback-trigger:active {
@@ -715,18 +715,18 @@ const checkForUpdates = () => {
   max-width: 400px;
   opacity: 1;
   padding: 0 4px;
-  border-color: #d9d9d9;
-  background: #f3f3f3;
+  border-color: var(--border-input);
+  background: var(--bg-elevated);
   pointer-events: auto;
 }
 
 .feedback-action-button {
   height: 20px;
-  border: 1px solid #d0d0d0;
-  background: #fff;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
   border-radius: 4px;
   padding: 0 8px;
-  color: #444;
+  color: var(--text-primary);
   font-size: 11px;
   white-space: nowrap;
   cursor: pointer;
@@ -739,9 +739,9 @@ const checkForUpdates = () => {
 }
 
 .feedback-action-button:hover {
-  background: #0078d4;
-  border-color: #0078d4;
-  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .feedback-action-button:active {
@@ -764,7 +764,7 @@ const checkForUpdates = () => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #666;
+  color: var(--text-secondary);
   transition: all 0.15s ease;
   position: relative;
 }
@@ -805,155 +805,5 @@ const checkForUpdates = () => {
   transform: scale(0.95);
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .titlebar {
-    background: #2d2d2d;
-    border-bottom-color: #404040;
-  }
-
-  .titlebar.is-macos {
-    background: #323232;
-    border-bottom-color: #484848;
-  }
-
-  .search-box {
-    background: #404040;
-    border-color: #555;
-    color: #ccc;
-  }
-
-  .search-box:hover {
-    background: #4a4a4a;
-    border-color: #666;
-  }
-
-  .search-box:active {
-    background: #555;
-  }
-
-  .search-icon {
-    color: #aaa;
-  }
-
-  .search-text {
-    color: #ddd;
-  }
-
-  .control-button {
-    color: #ccc;
-  }
-
-  .control-button:hover {
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  .control-button:active {
-    background: rgba(255, 255, 255, 0.15);
-  }
-
-  .control-button.minimize:hover,
-  .control-button.maximize:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
-
-  .control-button.close:hover {
-    background: #c42b1c;
-    color: white;
-  }
-
-  .control-button.close:active {
-    background: #a23216;
-    color: white;
-  }
-
-  .link-button {
-    color: #ccc;
-  }
-
-  .link-button:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-  }
-
-  .link-button:active {
-    background: rgba(255, 255, 255, 0.15);
-  }
-
-  .feedback-trigger {
-    background: #3b3b3b;
-    border-color: #585858;
-    color: #ddd;
-  }
-
-  .feedback-control.expanded .feedback-trigger {
-    border-color: #6a6a6a;
-  }
-
-  .feedback-trigger:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-  }
-
-  .feedback-trigger:active {
-    background: rgba(255, 255, 255, 0.15);
-  }
-
-  .feedback-control.expanded .feedback-actions {
-    border-color: #6a6a6a;
-    background: #434343;
-  }
-
-  .feedback-action-button {
-    background: #4a4a4a;
-    border-color: #696969;
-    color: #e5e5e5;
-  }
-
-  .feedback-action-button:hover {
-    background: #0078d4;
-    border-color: #0078d4;
-    color: #fff;
-  }
-
-  /* Menu bar dark mode */
-  .menu-item {
-    color: #ccc;
-  }
-
-  .menu-item:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-  }
-
-  .menu-item:active {
-    background-color: rgba(255, 255, 255, 0.15);
-  }
-
-  .dropdown-menu {
-    background: #2d2d2d;
-    border-color: #555;
-  }
-
-  .menu-option {
-    color: #ccc;
-  }
-
-  .menu-option:hover:not(.disabled) {
-    background-color: #0078d4;
-    color: white;
-  }
-
-  .menu-option.disabled {
-    color: #666;
-  }
-
-  .menu-separator {
-    background-color: #555;
-  }
-
-  .shortcut {
-    color: #888;
-  }
-}
 
 </style>

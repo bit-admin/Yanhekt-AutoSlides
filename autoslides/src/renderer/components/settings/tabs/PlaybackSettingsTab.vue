@@ -264,7 +264,7 @@ const openExtractorRepository = async () => {
   gap: 12px;
   margin: 0 0 16px 0;
   padding-bottom: 8px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 .section-header-with-action h4 {
   margin: 0;
@@ -275,7 +275,7 @@ const openExtractorRepository = async () => {
   margin: 0 0 12px 0;
   font-size: 12px;
   line-height: 1.5;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
 }
 
 .extractor-description .external-link {
@@ -287,9 +287,9 @@ const openExtractorRepository = async () => {
   flex-direction: column;
   gap: 10px;
   padding: 8px 10px;
-  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  background: var(--bg-subtle, rgba(0, 0, 0, 0.02));
+  background: var(--bg-subtle);
 }
 
 .extractor-reference {
@@ -297,13 +297,13 @@ const openExtractorRepository = async () => {
   flex-direction: column;
   gap: 8px;
   padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-color, rgba(0, 0, 0, 0.08));
+  border-bottom: 1px solid var(--border-color);
 }
 
 .extractor-reference-header {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-primary, #222);
+  color: var(--text-primary);
 }
 
 .extractor-platform-list {
@@ -322,14 +322,14 @@ const openExtractorRepository = async () => {
 }
 
 .extractor-platform-name {
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   font-weight: 600;
 }
 
 .extractor-platform-row code,
 .extractor-linux-note {
   min-width: 0;
-  color: var(--text-primary, #222);
+  color: var(--text-primary);
 }
 
 .extractor-platform-row code {
@@ -359,16 +359,16 @@ const openExtractorRepository = async () => {
   border-radius: 12px;
   font-size: 11px;
   font-weight: 500;
-  background-color: #fff;
-  color: var(--text-primary, #222);
-  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s, color 0.2s;
   white-space: nowrap;
 }
 .section-action-pill:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 /* Single-row layout: [path input ............] [↻ icon] [Browse] */
@@ -381,11 +381,11 @@ const openExtractorRepository = async () => {
   flex: 1;
   min-width: 0;
   padding: 6px 8px;
-  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   font-size: 12px;
-  background: var(--bg-primary, #fff);
-  color: var(--text-primary, #222);
+  background: var(--bg-input);
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -401,17 +401,17 @@ const openExtractorRepository = async () => {
   width: 30px;
   height: 30px;
   padding: 0;
-  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.15));
-  background: var(--bg-primary, #fff);
-  color: var(--text-primary, #222);
+  border: 1px solid var(--border-color);
+  background: var(--bg-input);
+  color: var(--text-primary);
   border-radius: 4px;
   cursor: pointer;
   flex-shrink: 0;
   transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
 .extractor-refresh-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 .extractor-refresh-btn:disabled {
   opacity: 0.55;
@@ -431,96 +431,19 @@ const openExtractorRepository = async () => {
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .extractor-status-line .extractor-status-dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #adb5bd;
+  background-color: var(--border-strong);
   flex-shrink: 0;
 }
-.extractor-status-line.ok { color: #1a7f37; }
-.extractor-status-line.ok .extractor-status-dot { background-color: #2ea44f; }
-.extractor-status-line.error { color: #b1361e; }
-.extractor-status-line.error .extractor-status-dot { background-color: #d73a49; }
-.extractor-status-line.unknown .extractor-status-dot { background-color: #adb5bd; }
-
-/* Dark-mode overrides for everything in the Auto Extraction section. */
-@media (prefers-color-scheme: dark) {
-  .section-header-with-action {
-    border-bottom-color: #404040;
-  }
-
-  .section-help-text {
-    color: #b0b0b0;
-  }
-
-  .extractor-config-box {
-    border-color: #404040;
-    background: #252525;
-  }
-
-  .extractor-reference {
-    border-bottom-color: #404040;
-  }
-
-  .extractor-reference-header,
-  .extractor-platform-row code,
-  .extractor-linux-note {
-    color: #e0e0e0;
-  }
-
-  .extractor-platform-name {
-    color: #b0b0b0;
-  }
-
-  .extractor-platform-row code {
-    background: rgba(0, 0, 0, 0.22);
-    border-color: #404040;
-  }
-
-  .section-action-pill {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-    border-color: #404040;
-  }
-  .section-action-pill:hover {
-    background-color: #3d3d3d;
-    border-color: #4a9eff;
-  }
-
-  .extractor-path-input {
-    background: #1e1e1e;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-  .extractor-path-input::placeholder {
-    color: #888;
-  }
-
-  .extractor-refresh-btn {
-    background: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-  .extractor-refresh-btn:hover:not(:disabled) {
-    background: #3d3d3d;
-    border-color: #4a9eff;
-  }
-
-  .extractor-status-line {
-    color: #b0b0b0;
-  }
-  .extractor-status-line .extractor-status-dot {
-    background-color: #6e6e6e;
-  }
-  /* Brighter greens/reds for legibility against the dark background. */
-  .extractor-status-line.ok { color: #4ade80; }
-  .extractor-status-line.ok .extractor-status-dot { background-color: #4ade80; }
-  .extractor-status-line.error { color: #f87171; }
-  .extractor-status-line.error .extractor-status-dot { background-color: #f87171; }
-  .extractor-status-line.unknown .extractor-status-dot { background-color: #6e6e6e; }
-}
+.extractor-status-line.ok { color: var(--success); }
+.extractor-status-line.ok .extractor-status-dot { background-color: var(--success); }
+.extractor-status-line.error { color: var(--danger); }
+.extractor-status-line.error .extractor-status-dot { background-color: var(--danger); }
+.extractor-status-line.unknown .extractor-status-dot { background-color: var(--border-strong); }
 </style>

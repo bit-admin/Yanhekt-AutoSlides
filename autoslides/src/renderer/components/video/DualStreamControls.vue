@@ -91,8 +91,8 @@ function onRateChange(event: Event) {
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
   border-radius: 8px 8px 0 0;
   gap: 16px;
 }
@@ -105,21 +105,22 @@ function onRateChange(event: Event) {
 
 .stream-selector label {
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .stream-selector select {
   padding: 6px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 14px;
 }
 
 .stream-selector select:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: #f8f9fa;
+  background-color: var(--bg-input-disabled);
 }
 
 .playback-rate-control {
@@ -130,28 +131,29 @@ function onRateChange(event: Event) {
 
 .playback-rate-control label {
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
 .playback-rate-control select {
   padding: 6px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 14px;
   cursor: pointer;
 }
 
 .playback-rate-control select:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: var(--accent);
 }
 
 .playback-rate-control select:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: #f8f9fa;
+  background-color: var(--bg-input-disabled);
 }
 
 .pip-control {
@@ -164,52 +166,27 @@ function onRateChange(event: Event) {
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
-  color: #333;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .pip-button:hover:not(:disabled) {
-  background-color: #f8f9fa;
-  border-color: #007acc;
+  background-color: var(--bg-hover);
+  border-color: var(--accent);
 }
 
 .pip-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: #f8f9fa;
+  background-color: var(--bg-input-disabled);
 }
 
 .pip-button svg {
   flex-shrink: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  .controls-row {
-    background-color: #252525;
-    border-color: #3d3d3d;
-  }
-
-  .stream-selector label,
-  .playback-rate-control label {
-    color: #e0e0e0;
-  }
-
-  .stream-selector select,
-  .playback-rate-control select,
-  .pip-button {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .pip-button:hover:not(:disabled) {
-    background-color: #3d3d3d;
-    border-color: #4a9eff;
-  }
 }
 </style>

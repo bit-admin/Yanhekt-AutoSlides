@@ -170,7 +170,7 @@ const removeTask = (taskId: string) => {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .queue-controls {
@@ -183,46 +183,46 @@ const removeTask = (taskId: string) => {
   align-items: center;
   gap: 4px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-surface);
   font-size: 11px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .control-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
 }
 
 .clear-btn {
-  color: #6c757d;
-  border-color: #6c757d;
+  color: var(--border-strong);
+  border-color: var(--border-strong);
 }
 
 .clear-btn:hover {
-  background-color: #e2e3e5;
-  border-color: #545b62;
+  background-color: var(--bg-hover);
+  border-color: var(--text-secondary);
 }
 
 .start-btn {
-  color: #28a745;
-  border-color: #28a745;
+  color: var(--success);
+  border-color: var(--success);
 }
 
 .start-btn:hover:not(:disabled) {
-  background-color: #d4edda;
-  border-color: #1e7e34;
+  background-color: var(--success-bg);
+  border-color: var(--success);
 }
 
 .pause-btn {
-  color: #ffc107;
-  border-color: #ffc107;
+  color: var(--warning);
+  border-color: var(--warning);
 }
 
 .pause-btn:hover {
-  background-color: #fff8e1;
-  border-color: #e0a800;
+  background-color: var(--warning-bg);
+  border-color: var(--warning);
 }
 
 .control-btn:disabled {
@@ -231,8 +231,8 @@ const removeTask = (taskId: string) => {
 }
 
 .control-btn:disabled:hover {
-  background-color: white;
-  border-color: #ddd;
+  background-color: var(--bg-surface);
+  border-color: var(--border-input);
 }
 
 .task-queue {
@@ -258,49 +258,49 @@ const removeTask = (taskId: string) => {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background-color: white;
-  border: 1px solid #e0e0e0;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   transition: all 0.2s;
 }
 
 .task-item-wrapper:hover .task-item {
-  border-color: #007acc;
-  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 2px 4px var(--focus-ring);
 }
 
 .task-item-wrapper.row-highlight .task-item {
-  border-color: #007acc;
-  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 2px 4px var(--focus-ring);
 }
 
 .task-item-wrapper:hover .post-process-affiliated-panel {
-  border-color: #007acc;
+  border-color: var(--accent);
 }
 
 .task-item-wrapper.row-highlight .post-process-affiliated-panel {
-  border-color: #007acc;
+  border-color: var(--accent);
 }
 
 .task-item:hover {
-  border-color: #007acc;
-  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 2px 4px var(--focus-ring);
 }
 
 .task-item.status-queued {
-  border-left: 3px solid #6c757d;
+  border-left: 3px solid var(--border-strong);
 }
 
 .task-item.status-in_progress {
-  border-left: 3px solid #28a745;
+  border-left: 3px solid var(--success);
 }
 
 .task-item.status-completed {
-  border-left: 3px solid #28a745;
+  border-left: 3px solid var(--success);
 }
 
 .task-item.status-error {
-  border-left: 3px solid #dc3545;
+  border-left: 3px solid var(--danger);
 }
 
 .item-status {
@@ -318,18 +318,18 @@ const removeTask = (taskId: string) => {
 }
 
 .status-indicator.status-queued {
-  color: #6c757d;
-  background-color: #f8f9fa;
+  color: var(--border-strong);
+  background-color: var(--bg-elevated);
 }
 
 .status-indicator.status-completed {
-  color: #28a745;
-  background-color: #e8f5e8;
+  color: var(--success);
+  background-color: var(--success-bg);
 }
 
 .status-indicator.status-error {
-  color: #dc3545;
-  background-color: #ffeaea;
+  color: var(--danger);
+  background-color: var(--danger-bg);
 }
 
 .item-info {
@@ -340,7 +340,7 @@ const removeTask = (taskId: string) => {
 .item-name {
   font-size: 13px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -356,27 +356,27 @@ const removeTask = (taskId: string) => {
 .progress-bar {
   width: 100%;
   height: 4px;
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background-color: #007acc;
+  background-color: var(--accent);
   border-radius: 2px;
   transition: width 0.3s ease;
 }
 
 .progress-text {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .post-process-affiliated-panel {
   width: 100%;
-  background-color: white;
-  border: 1px solid #e0e0e0;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
   border-top: none;
   border-radius: 0 0 6px 6px;
   padding: 4px 6px;
@@ -426,14 +426,14 @@ const removeTask = (taskId: string) => {
   height: 24px;
   border: none;
   background-color: transparent;
-  color: #dc3545;
+  color: var(--danger);
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .cancel-item-btn:hover {
-  background-color: #f8d7da;
+  background-color: var(--danger-bg);
 }
 
 .empty-queue {
@@ -442,7 +442,7 @@ const removeTask = (taskId: string) => {
   align-items: center;
   text-align: center;
   padding: 32px 16px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .empty-icon {
@@ -456,159 +456,5 @@ const removeTask = (taskId: string) => {
   font-style: italic;
 }
 
-@media (prefers-color-scheme: dark) {
-  .section-header h3 {
-    color: #e0e0e0;
-  }
 
-  .control-btn {
-    background-color: #2d2d2d;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .control-btn:hover {
-    background-color: #404040;
-  }
-
-  .clear-btn {
-    color: #bdbdbd;
-    border-color: #bdbdbd;
-  }
-
-  .clear-btn:hover {
-    background-color: #404040;
-    border-color: #9e9e9e;
-  }
-
-  .start-btn {
-    color: #81c784;
-    border-color: #81c784;
-  }
-
-  .start-btn:hover:not(:disabled) {
-    background-color: #2e4a2e;
-    border-color: #66bb6a;
-  }
-
-  .pause-btn {
-    color: #ffb74d;
-    border-color: #ffb74d;
-  }
-
-  .pause-btn:hover {
-    background-color: #4a3a2a;
-    border-color: #ffa726;
-  }
-
-  .control-btn:disabled:hover {
-    background-color: #2d2d2d;
-    border-color: #555;
-  }
-
-  .task-item-wrapper:hover .task-item {
-    border-color: #4fc3f7;
-    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
-  }
-
-  .task-item-wrapper.row-highlight .task-item {
-    border-color: #4fc3f7;
-    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
-  }
-
-  .task-item-wrapper:hover .post-process-affiliated-panel,
-  .task-item-wrapper.row-highlight .post-process-affiliated-panel {
-    border-color: #4fc3f7;
-  }
-
-  .task-item {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .task-item:hover {
-    border-color: #4fc3f7;
-    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
-  }
-
-  .task-item.status-queued {
-    border-left-color: #bdbdbd;
-  }
-
-  .task-item.status-in_progress {
-    border-left-color: #81c784;
-  }
-
-  .task-item.status-completed {
-    border-left-color: #81c784;
-  }
-
-  .task-item.status-error {
-    border-left-color: #f48fb1;
-  }
-
-  .status-indicator.status-queued {
-    color: #bdbdbd;
-    background-color: #404040;
-  }
-
-  .status-indicator.status-completed {
-    color: #81c784;
-    background-color: #2e4a2e;
-  }
-
-  .status-indicator.status-error {
-    color: #f48fb1;
-    background-color: #4a2c35;
-  }
-
-  .item-name {
-    color: #e0e0e0;
-  }
-
-  .progress-bar {
-    background-color: #404040;
-  }
-
-  .progress-fill {
-    background-color: #4fc3f7;
-  }
-
-  .progress-text {
-    color: #bdbdbd;
-  }
-
-  .post-process-affiliated-panel {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .task-item.status-queued + .post-process-affiliated-panel {
-    border-left-color: #9e9e9e;
-  }
-
-  .task-item.status-in_progress + .post-process-affiliated-panel {
-    border-left-color: #b8e986;
-  }
-
-  .task-item.status-completed + .post-process-affiliated-panel {
-    border-left-color: #b8e986;
-  }
-
-  .task-item.status-error + .post-process-affiliated-panel {
-    border-left-color: #ffb74d;
-  }
-
-  .cancel-item-btn {
-    color: #f48fb1;
-  }
-
-  .cancel-item-btn:hover {
-    background-color: #4a2c35;
-  }
-
-  .empty-queue {
-    color: #bdbdbd;
-  }
-}
 </style>

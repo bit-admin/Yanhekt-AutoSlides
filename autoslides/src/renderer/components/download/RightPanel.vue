@@ -183,8 +183,8 @@ defineExpose({
 
 .navigation-bar {
   display: flex;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
 }
 
 .nav-btn {
@@ -204,13 +204,13 @@ defineExpose({
 }
 
 .nav-btn:hover {
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
 }
 
 .nav-btn.active {
-  background-color: white;
-  border-bottom-color: #007acc;
-  color: #007acc;
+  background-color: var(--bg-surface);
+  border-bottom-color: var(--accent);
+  color: var(--accent);
 }
 
 .content-area {
@@ -235,36 +235,6 @@ defineExpose({
   z-index: -1;
 }
 
-@media (prefers-color-scheme: dark) {
-  .right-panel {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-
-  .content-area {
-    background-color: #1e1e1e;
-  }
-
-  .navigation-bar {
-    border-bottom-color: #404040;
-    background-color: #2d2d2d;
-  }
-
-  .nav-btn {
-    color: #e0e0e0;
-  }
-
-  .nav-btn:hover {
-    background-color: #404040;
-  }
-
-  .nav-btn.active {
-    background-color: #1e1e1e;
-    color: #4fc3f7;
-    border-bottom-color: #4fc3f7;
-  }
-}
-
 /* Custom scrollbar - macOS style thin scrollbars that auto-hide */
 .tab-container {
   scrollbar-width: thin;
@@ -273,7 +243,7 @@ defineExpose({
 }
 
 .tab-container:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .tab-container::-webkit-scrollbar {
@@ -293,36 +263,10 @@ defineExpose({
 }
 
 .tab-container:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--scrollbar-thumb);
 }
 
 .tab-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3) !important;
-}
-
-@media (prefers-color-scheme: dark) {
-  .tab-container {
-    scrollbar-color: transparent transparent;
-  }
-
-  .tab-container:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .tab-container::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .tab-container::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .tab-container:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .tab-container::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-  }
+  background: var(--scrollbar-thumb-hover) !important;
 }
 </style>

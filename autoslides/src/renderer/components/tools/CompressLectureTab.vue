@@ -290,7 +290,7 @@ const statusText = computed(() => {
 .setting-label {
   font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .path-row {
@@ -312,20 +312,20 @@ const statusText = computed(() => {
 .text-input,
 .command-preview {
   width: 100%;
-  border: 1px solid #d9d9d9;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
   padding: 7px 10px;
-  background: #fff;
-  color: #333;
+  background: var(--bg-input);
+  color: var(--text-primary);
 }
 
 .path-input {
-  background: #fafafa;
+  background: var(--bg-subtle);
 }
 
 .path-input.placeholder-text {
-  color: #999;
+  color: var(--text-muted);
 }
 
 .settings-grid {
@@ -340,16 +340,16 @@ const statusText = computed(() => {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .toggle-item:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-input);
 }
 
 .toggle-item input[type="checkbox"] {
@@ -367,7 +367,7 @@ const statusText = computed(() => {
 
 .toggle-text {
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .action-row {
@@ -381,17 +381,17 @@ const statusText = computed(() => {
 .secondary-btn,
 .danger-btn {
   border-radius: 4px;
-  border: 1px solid #d9d9d9;
-  background: #fff;
+  border: 1px solid var(--border-input);
+  background: var(--bg-input);
   font-size: 12px;
   padding: 7px 14px;
   cursor: pointer;
 }
 
 .primary-btn {
-  border-color: #007acc;
-  background: #007acc;
-  color: #fff;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .primary-btn:disabled,
@@ -403,8 +403,8 @@ const statusText = computed(() => {
 }
 
 .danger-btn {
-  border-color: #d9534f;
-  color: #d9534f;
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .status-row {
@@ -415,12 +415,12 @@ const statusText = computed(() => {
 }
 
 .status-text {
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .status-phase {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .status-footer {
@@ -429,21 +429,21 @@ const statusText = computed(() => {
   padding: 6px 16px;
   display: flex;
   align-items: center;
-  background-color: #fafafa;
-  border-top: 1px solid #e0e0e0;
+  background-color: var(--bg-subtle);
+  border-top: 1px solid var(--border-color);
 }
 
 .progress-bar-container {
   flex-shrink: 0;
   height: 3px;
-  background-color: #e0e0e0;
+  background-color: var(--bg-hover);
   width: 100%;
   overflow: hidden;
 }
 
 .progress-bar {
   height: 100%;
-  background-color: #007acc;
+  background-color: var(--accent);
   transition: width 0.15s ease-out;
 }
 
@@ -464,7 +464,7 @@ const statusText = computed(() => {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   font-size: 12px;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 @media (max-width: 980px) {
@@ -481,66 +481,4 @@ const statusText = computed(() => {
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  .setting-label,
-  .toggle-text,
-  .status-text {
-    color: #ddd;
-  }
-
-  .path-input,
-  .select-input,
-  .text-input,
-  .command-preview {
-    background: #2b2b2b;
-    border-color: #4a4a4a;
-    color: #ddd;
-  }
-
-  .path-input {
-    background: #242424;
-  }
-
-  .toggle-item {
-    background-color: #2a2a2a;
-    border-color: #404040;
-  }
-
-  .toggle-item:hover {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .browse-btn,
-  .secondary-btn,
-  .danger-btn {
-    background: #2b2b2b;
-    border-color: #4a4a4a;
-    color: #ddd;
-  }
-
-  .primary-btn {
-    border-color: #3a8edb;
-    background: #3a8edb;
-    color: #fff;
-  }
-
-  .status-phase,
-  .summary-grid {
-    color: #aaa;
-  }
-
-  .status-footer {
-    background-color: #252525;
-    border-top-color: #3d3d3d;
-  }
-
-  .progress-bar-container {
-    background: #3a3a3a;
-  }
-
-  .progress-bar {
-    background-color: #4a9eff;
-  }
-}
 </style>

@@ -96,7 +96,7 @@ defineEmits<{
 }
 
 .modal-content {
-  background-color: white;
+  background-color: var(--bg-modal);
   border-radius: 8px;
   width: 600px;
   max-width: 90vw;
@@ -111,7 +111,7 @@ defineEmits<{
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-header h3 {
@@ -130,7 +130,7 @@ defineEmits<{
 }
 
 .close-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
 }
 
 .modal-body {
@@ -139,14 +139,14 @@ defineEmits<{
   flex-direction: column;
   overflow: hidden;
   padding: 0;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .advanced-tabs {
   display: flex;
   gap: 4px;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #fafafa;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-subtle);
   flex-shrink: 0;
 }
 
@@ -158,7 +158,7 @@ defineEmits<{
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -167,14 +167,14 @@ defineEmits<{
 }
 
 .advanced-tabs .tab-btn:hover {
-  color: #333;
+  color: var(--text-primary);
   background-color: rgba(0, 0, 0, 0.04);
 }
 
 .advanced-tabs .tab-btn.active {
-  color: #007acc;
-  border-bottom-color: #007acc;
-  background-color: white;
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background-color: var(--bg-surface);
 }
 
 .advanced-tabs .tab-btn svg {
@@ -198,14 +198,14 @@ defineEmits<{
   justify-content: flex-end;
   gap: 8px;
   padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
   flex-shrink: 0;
 }
 
 .cancel-btn, .save-btn {
   padding: 8px 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
@@ -213,95 +213,23 @@ defineEmits<{
 }
 
 .cancel-btn {
-  background-color: #f8f9fa;
-  color: #666;
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
 }
 
 .cancel-btn:hover {
-  background-color: #e9ecef;
-  border-color: #adb5bd;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .save-btn {
-  background-color: #007acc;
-  color: white;
-  border-color: #007acc;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--accent);
 }
 
 .save-btn:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
-}
-
-@media (prefers-color-scheme: dark) {
-  .modal-content {
-    background-color: #2d2d2d;
-  }
-
-  .modal-header {
-    border-bottom-color: #404040;
-  }
-
-  .modal-header h3 {
-    color: #e0e0e0;
-  }
-
-  .close-btn {
-    color: #e0e0e0;
-  }
-
-  .close-btn:hover {
-    background-color: #3d3d3d;
-  }
-
-  .modal-body {
-    color: #e0e0e0;
-  }
-
-  .advanced-tabs {
-    background-color: #252525;
-    border-bottom-color: #404040;
-  }
-
-  .advanced-tabs .tab-btn {
-    color: #aaa;
-  }
-
-  .advanced-tabs .tab-btn:hover {
-    color: #e0e0e0;
-    background-color: rgba(255, 255, 255, 0.04);
-  }
-
-  .advanced-tabs .tab-btn.active {
-    color: #4a9eff;
-    border-bottom-color: #4a9eff;
-    background-color: #2d2d2d;
-  }
-
-  .modal-actions {
-    background-color: #252525;
-    border-top-color: #404040;
-  }
-
-  .cancel-btn {
-    background-color: #2d2d2d;
-    color: #b0b0b0;
-    border-color: #404040;
-  }
-
-  .cancel-btn:hover {
-    background-color: #3d3d3d;
-    border-color: #555;
-  }
-
-  .save-btn {
-    background-color: #4a9eff;
-    border-color: #4a9eff;
-  }
-
-  .save-btn:hover {
-    background-color: #3a8eef;
-    border-color: #3a8eef;
-  }
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 </style>

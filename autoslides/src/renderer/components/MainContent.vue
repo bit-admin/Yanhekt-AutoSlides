@@ -238,8 +238,8 @@ onUnmounted(() => {
 
 .navigation-bar {
   display: flex;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
 }
 
 .nav-btn {
@@ -263,13 +263,13 @@ onUnmounted(() => {
 }
 
 .nav-btn:hover {
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
 }
 
 .nav-btn.active {
-  background-color: white;
-  border-bottom-color: #007acc;
-  color: #007acc;
+  background-color: var(--bg-surface);
+  border-bottom-color: var(--accent);
+  color: var(--accent);
 }
 
 .content-area {
@@ -295,7 +295,7 @@ onUnmounted(() => {
 
 .playback-indicator {
   margin-left: 6px;
-  color: #28a745;
+  color: var(--success);
   font-size: 12px;
   font-weight: bold;
   animation: pulse 2s infinite;
@@ -306,36 +306,5 @@ onUnmounted(() => {
   50% { opacity: 0.5; }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .main-content {
-    background-color: #1a1a1a;
-    color: #e0e0e0;
-  }
-
-  .navigation-bar {
-    border-bottom: 1px solid #404040;
-    background-color: #2d2d2d;
-  }
-
-  .nav-btn {
-    color: #b0b0b0;
-  }
-
-  .nav-btn:hover {
-    background-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .nav-btn.active {
-    background-color: #1a1a1a;
-    border-bottom-color: #4da6ff;
-    color: #4da6ff;
-  }
-
-  .playback-indicator {
-    color: #66cc66;
-  }
-}
 
 </style>

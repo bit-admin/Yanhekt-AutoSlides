@@ -341,7 +341,7 @@ onMounted(() => {
   display: flex;
   height: calc(100% - 36px); /* Subtract titlebar height */
   width: 100%;
-  background-color: #f5f5f5;
+  background-color: var(--bg-page);
   overflow: hidden;
 }
 
@@ -353,25 +353,25 @@ onMounted(() => {
 }
 
 .left-panel {
-  background-color: #ffffff;
-  border-right: 1px solid #e0e0e0;
+  background-color: var(--bg-surface);
+  border-right: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
 .main-content {
-  background-color: #ffffff;
+  background-color: var(--bg-surface);
   flex-shrink: 0;
 }
 
 .right-panel {
-  background-color: #ffffff;
-  border-left: 1px solid #e0e0e0;
+  background-color: var(--bg-surface);
+  border-left: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
 .browser-login-container {
   flex: 1;
-  background-color: #ffffff;
+  background-color: var(--bg-surface);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -379,59 +379,17 @@ onMounted(() => {
 
 .divider {
   width: 5px;
-  background-color: #e0e0e0;
+  background-color: var(--border-color);
   cursor: col-resize;
   flex-shrink: 0;
   transition: background-color 0.2s;
 }
 
 .divider:hover {
-  background-color: #007acc;
+  background-color: var(--accent);
 }
 
 .divider:active {
-  background-color: #005a9e;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .app {
-    background-color: #1a1a1a;
-    color: #e0e0e0;
-  }
-
-  .layout {
-    background-color: #1a1a1a;
-  }
-
-  .left-panel {
-    background-color: #2d2d2d;
-    border-right: 1px solid #404040;
-  }
-
-  .main-content {
-    background-color: #1a1a1a;
-  }
-
-  .right-panel {
-    background-color: #2d2d2d;
-    border-left: 1px solid #404040;
-  }
-
-  .browser-login-container {
-    background-color: #1a1a1a;
-  }
-
-  .divider {
-    background-color: #404040;
-  }
-
-  .divider:hover {
-    background-color: #4da6ff;
-  }
-
-  .divider:active {
-    background-color: #0080ff;
-  }
+  background-color: var(--accent-strong);
 }
 </style>

@@ -447,7 +447,7 @@ defineExpose({
 }
 
 .modal-content {
-  background-color: white;
+  background-color: var(--bg-modal);
   border-radius: 8px;
   width: 640px;
   max-width: 90vw;
@@ -462,14 +462,14 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .close-btn {
@@ -478,12 +478,12 @@ defineExpose({
   cursor: pointer;
   padding: 4px;
   border-radius: 4px;
-  color: #666;
+  color: var(--text-secondary);
   transition: background-color 0.2s;
 }
 
 .close-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
 }
 
 .modal-body {
@@ -492,7 +492,7 @@ defineExpose({
   flex-direction: column;
   overflow-y: auto;
   padding: 16px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .modal-actions {
@@ -500,14 +500,14 @@ defineExpose({
   justify-content: flex-end;
   gap: 8px;
   padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
   flex-shrink: 0;
 }
 
 .cancel-btn, .save-btn {
   padding: 8px 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
@@ -515,24 +515,24 @@ defineExpose({
 }
 
 .cancel-btn {
-  background-color: #f8f9fa;
-  color: #666;
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
 }
 
 .cancel-btn:hover {
-  background-color: #e9ecef;
-  border-color: #adb5bd;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .save-btn {
-  background-color: #007acc;
-  color: white;
-  border-color: #007acc;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--accent);
 }
 
 .save-btn:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .version-header {
@@ -543,8 +543,8 @@ defineExpose({
 }
 
 .version-badge {
-  background: #007acc;
-  color: white;
+  background: var(--accent);
+  color: var(--text-on-accent);
   padding: 6px 12px;
   border-radius: 16px;
   font-size: 14px;
@@ -559,12 +559,12 @@ defineExpose({
 
 .current-version {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .publish-date {
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .release-notes-section {
@@ -579,7 +579,7 @@ defineExpose({
   margin: 0 0 8px 0;
   font-size: 13px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   flex-shrink: 0;
 }
 
@@ -589,7 +589,7 @@ defineExpose({
   max-height: 300px;
   overflow-y: auto;
   padding: 12px;
-  background: #f6f8fa;
+  background: var(--bg-elevated);
   border-radius: 6px;
   font-size: 13px;
 }
@@ -606,7 +606,7 @@ defineExpose({
 
 .asset-item {
   padding: 10px 12px;
-  background: #f6f8fa;
+  background: var(--bg-elevated);
   border-radius: 6px;
 }
 
@@ -619,7 +619,7 @@ defineExpose({
 
 .asset-name {
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -628,7 +628,7 @@ defineExpose({
 
 .asset-size {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   flex-shrink: 0;
   margin-left: 8px;
 }
@@ -660,11 +660,11 @@ defineExpose({
 }
 
 .download-btn.secondary {
-  background: #007acc;
+  background: var(--accent);
 }
 
 .download-btn.secondary:hover {
-  background: #0068b3;
+  background: var(--accent-hover);
 }
 
 .download-btn svg {
@@ -673,7 +673,7 @@ defineExpose({
 
 .download-progress-section {
   padding: 12px;
-  background: #f6f8fa;
+  background: var(--bg-elevated);
   border-radius: 6px;
 }
 
@@ -686,20 +686,20 @@ defineExpose({
 
 .progress-label {
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
 .progress-percent {
   font-size: 12px;
-  color: #007acc;
+  color: var(--accent);
   font-weight: 600;
 }
 
 .progress-bar {
   width: 100%;
   height: 4px;
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -707,7 +707,7 @@ defineExpose({
 
 .progress-fill {
   height: 100%;
-  background-color: #007acc;
+  background-color: var(--accent);
   border-radius: 2px;
   transition: width 0.3s ease;
 }
@@ -720,7 +720,7 @@ defineExpose({
 
 .progress-bytes {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .cancel-download-btn {
@@ -729,23 +729,23 @@ defineExpose({
   gap: 4px;
   padding: 4px 8px;
   background: transparent;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .cancel-download-btn:hover {
-  background: #f0f0f0;
-  border-color: #ccc;
+  background: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .download-complete-section {
   padding: 12px;
-  background: #f0fff4;
-  border: 1px solid #86efac;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
   border-radius: 6px;
 }
 
@@ -756,11 +756,11 @@ defineExpose({
   margin-bottom: 10px;
   font-size: 13px;
   font-weight: 500;
-  color: #16a34a;
+  color: var(--success);
 }
 
 .complete-badge svg {
-  color: #16a34a;
+  color: var(--success);
 }
 
 .complete-actions {
@@ -775,8 +775,8 @@ defineExpose({
   justify-content: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid #ddd;
-  background: white;
+  border: 1px solid var(--border-input);
+  background: var(--bg-surface);
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
@@ -784,19 +784,19 @@ defineExpose({
 }
 
 .action-btn:hover {
-  background: #f6f8fa;
-  border-color: #ccc;
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
 }
 
 .action-btn.primary {
-  background: #007acc;
-  border-color: #007acc;
-  color: white;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .action-btn.primary:hover {
-  background: #0068b3;
-  border-color: #0068b3;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .quarantine-notice {
@@ -860,203 +860,5 @@ defineExpose({
   transform: scale(0.95);
 }
 
-@media (prefers-color-scheme: dark) {
-  .modal-overlay {
-    background-color: rgba(0, 0, 0, 0.7);
-  }
 
-  .modal-content {
-    background-color: #2d2d2d;
-  }
-
-  .modal-header {
-    border-bottom-color: #404040;
-  }
-
-  .modal-header h3 {
-    color: #e0e0e0;
-  }
-
-  .close-btn {
-    color: #e0e0e0;
-  }
-
-  .close-btn:hover {
-    background-color: #3d3d3d;
-  }
-
-  .modal-body {
-    color: #e0e0e0;
-  }
-
-  .modal-actions {
-    background-color: #2d2d2d;
-    border-top-color: #404040;
-  }
-
-  .cancel-btn {
-    background-color: #2d2d2d;
-    color: #b0b0b0;
-    border-color: #404040;
-  }
-
-  .cancel-btn:hover {
-    background-color: #3d3d3d;
-    border-color: #555;
-  }
-
-  .save-btn {
-    background-color: #4a9eff;
-    border-color: #4a9eff;
-  }
-
-  .save-btn:hover {
-    background-color: #3a8eef;
-    border-color: #3a8eef;
-  }
-
-  .version-badge {
-    background: #4a9eff;
-  }
-
-  .current-version {
-    color: #aaa;
-  }
-
-  .publish-date {
-    color: #888;
-  }
-
-  .release-notes-section h4 {
-    color: #e0e0e0;
-  }
-
-  .release-notes-scroll {
-    background: #1e1e1e;
-  }
-
-  .asset-item {
-    background: #1e1e1e;
-  }
-
-  .asset-name {
-    color: #e0e0e0;
-  }
-
-  .asset-size {
-    color: #aaa;
-  }
-
-  .download-btn {
-    background: #3d3d3d;
-  }
-
-  .download-btn:hover {
-    background: #4d4d4d;
-  }
-
-  .download-btn.secondary {
-    background: #4a9eff;
-  }
-
-  .download-btn.secondary:hover {
-    background: #3a8eef;
-  }
-
-  .download-progress-section {
-    background: #1e1e1e;
-  }
-
-  .progress-label {
-    color: #e0e0e0;
-  }
-
-  .progress-percent {
-    color: #4fc3f7;
-  }
-
-  .progress-bar {
-    background-color: #404040;
-  }
-
-  .progress-fill {
-    background-color: #4fc3f7;
-  }
-
-  .progress-bytes {
-    color: #aaa;
-  }
-
-  .cancel-download-btn {
-    border-color: #555;
-    color: #aaa;
-  }
-
-  .cancel-download-btn:hover {
-    background: #404040;
-    border-color: #666;
-  }
-
-  .download-complete-section {
-    background: #1a3a2a;
-    border-color: #2d8a56;
-  }
-
-  .complete-badge {
-    color: #4ade80;
-  }
-
-  .complete-badge svg {
-    color: #4ade80;
-  }
-
-  .action-btn {
-    background: #3d3d3d;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .action-btn:hover {
-    background: #4d4d4d;
-    border-color: #666;
-  }
-
-  .action-btn.primary {
-    background: #4a9eff;
-    border-color: #4a9eff;
-  }
-
-  .action-btn.primary:hover {
-    background: #3a8eef;
-    border-color: #3a8eef;
-  }
-
-  .quarantine-notice {
-    background: #3d2f0d;
-    border-color: #d97706;
-  }
-
-  .quarantine-notice > svg {
-    color: #fbbf24;
-  }
-
-  .notice-text {
-    color: #fcd34d;
-  }
-
-  .notice-text code {
-    background: rgba(0, 0, 0, 0.3);
-    color: #fde68a;
-  }
-
-  .copy-btn {
-    background: transparent;
-    color: #fcd34d;
-  }
-
-  .copy-btn:hover {
-    background: rgba(0, 0, 0, 0.3);
-    color: #fde68a;
-  }
-}
 </style>

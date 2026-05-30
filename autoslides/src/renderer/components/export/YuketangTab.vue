@@ -187,8 +187,8 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #ffffff;
-  color: #333;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
 }
 
 /* Toolbar */
@@ -197,8 +197,8 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 16px;
-  background-color: #fafafa;
-  border-bottom: 1px solid #e0e0e0;
+  background-color: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-color);
   gap: 12px;
 }
 
@@ -214,17 +214,17 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-surface);
   cursor: pointer;
   transition: all 0.2s;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .nav-btn:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .lesson-id-group {
@@ -235,18 +235,18 @@ onMounted(() => {
 
 .field-label {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .lesson-id-input {
   width: 120px;
   padding: 5px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
-  background-color: #f8f8f8;
-  color: #666;
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
 }
 
 .format-group {
@@ -257,16 +257,16 @@ onMounted(() => {
 
 .format-select {
   padding: 5px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   font-size: 12px;
   cursor: pointer;
 }
 
 .format-select:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: var(--accent);
 }
 
 .export-btn {
@@ -276,8 +276,8 @@ onMounted(() => {
   padding: 6px 14px;
   border: none;
   border-radius: 4px;
-  background-color: #007acc;
-  color: white;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -286,19 +286,19 @@ onMounted(() => {
 }
 
 .export-btn:hover:not(:disabled) {
-  background-color: #005a9e;
+  background-color: var(--accent-strong);
 }
 
 .export-btn:disabled {
-  background-color: #ccc;
+  background-color: var(--border-strong);
   cursor: not-allowed;
 }
 
 .spinner-small {
   width: 12px;
   height: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  border: 2px solid var(--overlay-light);
+  border-top-color: var(--text-on-accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -314,14 +314,14 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 6px 16px;
-  background-color: #f5f5f5;
-  border-bottom: 1px solid #e0e0e0;
+  background-color: var(--bg-page);
+  border-bottom: 1px solid var(--border-color);
   min-height: 28px;
 }
 
 .status-message {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -334,7 +334,7 @@ onMounted(() => {
   gap: 4px;
   border: none;
   background: transparent;
-  color: #007acc;
+  color: var(--link-color);
   font-size: 11px;
   cursor: pointer;
   padding: 2px 6px;
@@ -344,7 +344,7 @@ onMounted(() => {
 }
 
 .open-folder-btn:hover {
-  background-color: rgba(0, 122, 204, 0.1);
+  background-color: var(--focus-ring);
 }
 
 /* Webview Container */
@@ -357,66 +357,5 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   border: none;
-}
-
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .yuketang-tab {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-
-  .toolbar {
-    background-color: #252525;
-    border-bottom-color: #3d3d3d;
-  }
-
-  .nav-btn {
-    background-color: #333;
-    border-color: #555;
-    color: #ccc;
-  }
-
-  .nav-btn:hover {
-    background-color: #404040;
-    border-color: #666;
-  }
-
-  .field-label {
-    color: #aaa;
-  }
-
-  .lesson-id-input {
-    background-color: #2d2d2d;
-    border-color: #555;
-    color: #aaa;
-  }
-
-  .format-select {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .format-select:focus {
-    border-color: #007acc;
-  }
-
-  .status-bar {
-    background-color: #252525;
-    border-bottom-color: #3d3d3d;
-  }
-
-  .status-message {
-    color: #aaa;
-  }
-
-  .open-folder-btn {
-    color: #4a9eff;
-  }
-
-  .open-folder-btn:hover {
-    background-color: rgba(74, 158, 255, 0.1);
-  }
 }
 </style>

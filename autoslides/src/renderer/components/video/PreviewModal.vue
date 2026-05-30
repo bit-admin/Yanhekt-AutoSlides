@@ -58,17 +58,17 @@ defineEmits<{
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
   backdrop-filter: blur(4px);
 }
 
 .modal-content {
-  background-color: white;
+  background-color: var(--bg-modal);
   border-radius: 12px;
   max-width: 90vw;
   max-height: 90vh;
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 40px var(--shadow-lg);
 }
 
 .modal-header {
@@ -76,15 +76,15 @@ defineEmits<{
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #e9ecef;
-  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
 }
 
 .modal-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .modal-actions {
@@ -97,18 +97,18 @@ defineEmits<{
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid #dc3545;
+  border: 1px solid var(--danger);
   border-radius: 4px;
-  background-color: #dc3545;
-  color: white;
+  background-color: var(--danger);
+  color: var(--text-on-accent);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .modal-delete-btn:hover {
-  background-color: #c82333;
-  border-color: #c82333;
+  background-color: var(--danger-hover);
+  border-color: var(--danger-hover);
 }
 
 .modal-close-btn {
@@ -116,18 +116,18 @@ defineEmits<{
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid #6c757d;
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
-  background-color: #6c757d;
-  color: white;
+  background-color: var(--border-strong);
+  color: var(--text-on-accent);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .modal-close-btn:hover {
-  background-color: #5a6268;
-  border-color: #5a6268;
+  background-color: var(--text-muted);
+  border-color: var(--text-muted);
 }
 
 .modal-body {
@@ -142,24 +142,24 @@ defineEmits<{
   max-height: 70vh;
   object-fit: contain;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px var(--shadow-sm);
 }
 
 .slide-metadata {
   padding: 12px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   border-radius: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-color);
 }
 
 .slide-metadata p {
   margin: 4px 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .slide-metadata strong {
-  color: #333;
+  color: var(--text-primary);
 }
 
 @media (max-width: 768px) {
@@ -178,34 +178,6 @@ defineEmits<{
 
   .modal-image {
     max-height: 60vh;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .modal-content {
-    background-color: #2d2d2d;
-  }
-
-  .modal-header {
-    background-color: #252525;
-    border-bottom-color: #3d3d3d;
-  }
-
-  .modal-header h3 {
-    color: #e0e0e0;
-  }
-
-  .slide-metadata {
-    background-color: #252525;
-    border-color: #3d3d3d;
-  }
-
-  .slide-metadata p {
-    color: #b0b0b0;
-  }
-
-  .slide-metadata strong {
-    color: #e0e0e0;
   }
 }
 </style>

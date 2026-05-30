@@ -52,18 +52,18 @@ defineEmits<{
 
 .slide-thumbnail {
   position: relative;
-  background-color: white;
+  background-color: var(--bg-surface);
   border-radius: 8px;
   overflow: hidden;
-  border: 2px solid #e9ecef;
+  border: 2px solid var(--bg-hover);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .slide-thumbnail:hover {
-  border-color: #007acc;
+  border-color: var(--accent);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px var(--shadow-md);
 }
 
 .slide-thumbnail img {
@@ -131,17 +131,6 @@ defineEmits<{
 
   .slide-thumbnail img {
     height: 100px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .slide-thumbnail {
-    background-color: #1e1e1e;
-    border-color: #3d3d3d;
-  }
-
-  .slide-thumbnail:hover {
-    border-color: #4a9eff;
   }
 }
 </style>

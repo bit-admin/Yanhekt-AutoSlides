@@ -113,9 +113,9 @@ const {
   padding: 0 6px;
   font-size: 12px;
   line-height: 1;
-  border: 1px solid #d0d0d0;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
 }
 
 .intranet-interface-row .refresh-button {
@@ -124,32 +124,32 @@ const {
   padding: 0 10px;
   font-size: 11px;
   line-height: 1;
-  border: 1px solid #d0d0d0;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   cursor: pointer;
 }
 
 .intranet-interface-row .refresh-button:hover {
-  background-color: #f3f4f6;
+  background-color: var(--bg-hover);
 }
 
 .intranet-interface-warning {
   margin-top: 4px;
   font-size: 11px;
-  color: #b45309;
+  color: var(--warning);
 }
 
 .intranet-mapping-list {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   overflow: hidden;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   font-size: 11px;
 }
 
 .mapping-item {
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .mapping-item:last-child {
@@ -162,19 +162,19 @@ const {
   padding: 6px 10px;
   cursor: pointer;
   transition: background-color 0.2s ease;
-  background-color: white;
+  background-color: var(--bg-surface);
   min-height: 28px;
 }
 
 .mapping-header:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
 }
 
 .mapping-domain {
   flex: 1;
   font-size: 11px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   font-family: 'Courier New', monospace;
   line-height: 1.2;
 }
@@ -205,7 +205,7 @@ const {
 
 .mapping-expand-icon {
   transition: transform 0.2s ease;
-  color: #666;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -224,8 +224,8 @@ const {
 
 .mapping-details {
   padding: 8px 10px;
-  background-color: #f8f9fa;
-  border-top: 1px solid #e0e0e0;
+  background-color: var(--bg-elevated);
+  border-top: 1px solid var(--border-color);
 }
 
 .detail-row {
@@ -242,14 +242,14 @@ const {
 
 .detail-label {
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   min-width: 60px;
   margin-right: 8px;
   flex-shrink: 0;
 }
 
 .detail-value {
-  color: #333;
+  color: var(--text-primary);
   font-family: 'Courier New', monospace;
   font-size: 10px;
 }
@@ -263,101 +263,13 @@ const {
 
 .ip-item {
   padding: 2px 6px;
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
   border-radius: 3px;
   font-size: 9px;
   font-family: 'Courier New', monospace;
-  color: #495057;
+  color: var(--text-secondary);
   display: inline-block;
   white-space: nowrap;
   line-height: 1.2;
-}
-
-@media (prefers-color-scheme: dark) {
-  .intranet-interface-select {
-    border-color: #404040;
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .intranet-interface-select option {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .intranet-interface-row .refresh-button {
-    border-color: #404040;
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .intranet-interface-row .refresh-button:hover {
-    background-color: #3d3d3d;
-  }
-
-  .intranet-interface-warning {
-    color: #f5b971;
-  }
-
-  .intranet-mapping-list {
-    border-color: #404040;
-    background-color: #2d2d2d;
-  }
-
-  .mapping-item {
-    border-bottom-color: #404040;
-  }
-
-  .mapping-header {
-    background-color: #2d2d2d;
-    min-height: 28px;
-  }
-
-  .mapping-header:hover {
-    background-color: #3d3d3d;
-  }
-
-  .mapping-domain {
-    color: #e0e0e0;
-    font-size: 11px;
-  }
-
-  .type-badge.single {
-    background-color: #1a2332;
-    color: #64b5f6;
-  }
-
-  .type-badge.loadbalance {
-    background-color: #2d1b2e;
-    color: #ba68c8;
-  }
-
-  .mapping-expand-icon {
-    color: #b0b0b0;
-  }
-
-  .mapping-details {
-    background-color: #2d2d2d;
-    border-top-color: #404040;
-    padding: 8px 10px;
-  }
-
-  .detail-label {
-    color: #b0b0b0;
-    font-size: 10px;
-  }
-
-  .detail-value {
-    color: #e0e0e0;
-    font-size: 10px;
-  }
-
-  .ip-item {
-    background-color: #404040;
-    color: #e0e0e0;
-    font-size: 9px;
-    padding: 2px 6px;
-    white-space: nowrap;
-  }
 }
 </style>

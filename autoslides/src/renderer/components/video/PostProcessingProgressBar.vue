@@ -151,33 +151,33 @@ const phase3Width = computed(() => fillWidthForPhase(props.state.phase3))
 }
 
 .pp-phase-name {
-  color: #555;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 .pp-phase-status {
-  color: #888;
+  color: var(--text-muted);
 }
 
 .pp-phase-status.active {
-  color: #007acc;
+  color: var(--accent);
   font-weight: 600;
 }
 
 .pp-phase-status.completed {
-  color: #16a34a;
+  color: var(--success);
   font-weight: 600;
 }
 
 .pp-phase-status.skipped {
-  color: #999;
+  color: var(--text-muted);
   font-style: italic;
 }
 
 .pp-phase-bar {
   position: relative;
   height: 4px;
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -190,15 +190,15 @@ const phase3Width = computed(() => fillWidthForPhase(props.state.phase3))
   height: 100%;
   border-radius: 2px;
   transition: width 0.3s ease;
-  background-color: #ddd;
+  background-color: var(--border-input);
 }
 
 .pp-phase-fill.active {
-  background-color: #007acc;
+  background-color: var(--accent);
 }
 
 .pp-phase-fill.completed {
-  background-color: #16a34a;
+  background-color: var(--success);
 }
 
 .pp-phase-fill.pulsing {
@@ -208,39 +208,5 @@ const phase3Width = computed(() => fillWidthForPhase(props.state.phase3))
 @keyframes pp-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }
-}
-
-@media (prefers-color-scheme: dark) {
-  .pp-phase-name {
-    color: #ccc;
-  }
-
-  .pp-phase-status {
-    color: #999;
-  }
-
-  .pp-phase-status.active {
-    color: #4fc3f7;
-  }
-
-  .pp-phase-status.completed {
-    color: #4ade80;
-  }
-
-  .pp-phase-bar {
-    background-color: #404040;
-  }
-
-  .pp-phase-fill {
-    background-color: #555;
-  }
-
-  .pp-phase-fill.active {
-    background-color: #4fc3f7;
-  }
-
-  .pp-phase-fill.completed {
-    background-color: #4ade80;
-  }
 }
 </style>

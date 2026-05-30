@@ -796,14 +796,14 @@ const openCopilotVerificationUrl = () => {
 .custom-api-settings {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color);
 }
 
 /* Copilot settings */
 .copilot-settings {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color);
 }
 
 .copilot-user-info {
@@ -830,14 +830,14 @@ const openCopilotVerificationUrl = () => {
   flex: 1;
   font-size: 13px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .copilot-disconnect-btn {
   padding: 4px 10px;
-  border: 1px solid #dc3545;
+  border: 1px solid var(--danger);
   background-color: transparent;
-  color: #dc3545;
+  color: var(--danger);
   font-size: 11px;
   border-radius: 4px;
   cursor: pointer;
@@ -845,8 +845,8 @@ const openCopilotVerificationUrl = () => {
 }
 
 .copilot-disconnect-btn:hover {
-  background-color: #dc3545;
-  color: white;
+  background-color: var(--danger);
+  color: var(--text-on-accent);
 }
 
 .copilot-auth-section {
@@ -890,12 +890,12 @@ const openCopilotVerificationUrl = () => {
 .copilot-or-divider::after {
   content: '';
   flex: 1;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--border-input);
 }
 
 .copilot-or-divider span {
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
   text-transform: uppercase;
 }
 
@@ -913,9 +913,9 @@ const openCopilotVerificationUrl = () => {
 .copilot-verify-btn {
   flex: 0 0 auto;
   padding: 6px 12px;
-  border: 1px solid #007acc;
-  background-color: #007acc;
-  color: white;
+  border: 1px solid var(--accent);
+  background-color: var(--accent);
+  color: var(--text-on-accent);
   font-size: 12px;
   border-radius: 4px;
   cursor: pointer;
@@ -927,7 +927,7 @@ const openCopilotVerificationUrl = () => {
 }
 
 .copilot-verify-btn:hover:not(:disabled) {
-  background-color: #005ea6;
+  background-color: var(--accent-hover);
 }
 
 .copilot-verify-btn:disabled {
@@ -938,11 +938,11 @@ const openCopilotVerificationUrl = () => {
 .copilot-error {
   margin-top: 8px;
   padding: 8px 10px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
+  background-color: var(--danger-bg);
+  border: 1px solid var(--danger-border);
   border-radius: 4px;
   font-size: 12px;
-  color: #dc2626;
+  color: var(--danger);
 }
 
 .copilot-waiting {
@@ -952,7 +952,7 @@ const openCopilotVerificationUrl = () => {
 
 .copilot-enter-code-label {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
@@ -965,10 +965,10 @@ const openCopilotVerificationUrl = () => {
   font-weight: 700;
   font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
   letter-spacing: 4px;
-  color: #24292e;
+  color: var(--text-primary);
   padding: 12px;
-  background-color: #f6f8fa;
-  border: 2px dashed #d0d7de;
+  background-color: var(--bg-elevated);
+  border: 2px dashed var(--border-input);
   border-radius: 8px;
   margin-bottom: 12px;
   cursor: pointer;
@@ -977,8 +977,8 @@ const openCopilotVerificationUrl = () => {
 }
 
 .copilot-user-code:hover {
-  background-color: #eef1f5;
-  border-color: #0969da;
+  background-color: var(--bg-hover);
+  border-color: var(--accent);
 }
 
 .copilot-code-copied {
@@ -987,7 +987,7 @@ const openCopilotVerificationUrl = () => {
   font-size: 11px;
   font-weight: 400;
   letter-spacing: 0;
-  color: #1a7f37;
+  color: var(--success);
 }
 
 .copilot-waiting-status {
@@ -996,18 +996,18 @@ const openCopilotVerificationUrl = () => {
   justify-content: center;
   gap: 8px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .copilot-verification-url {
-  color: #0969da;
+  color: var(--link-color);
   cursor: pointer;
   text-decoration: underline;
   word-break: break-all;
 }
 
 .copilot-verification-url:hover {
-  color: #0550ae;
+  color: var(--accent-hover);
 }
 
 .copilot-cancel-btn {
@@ -1018,7 +1018,7 @@ const openCopilotVerificationUrl = () => {
   height: 22px;
   border: none;
   background: none;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   border-radius: 4px;
   padding: 0;
@@ -1026,8 +1026,8 @@ const openCopilotVerificationUrl = () => {
 }
 
 .copilot-cancel-btn:hover {
-  background-color: #f0f0f0;
-  color: #dc2626;
+  background-color: var(--bg-hover);
+  color: var(--danger);
 }
 
 .copilot-model-setting {
@@ -1048,10 +1048,10 @@ const openCopilotVerificationUrl = () => {
 .model-name-input {
   flex: 1;
   padding: 6px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 13px;
-  background-color: white;
+  background-color: var(--bg-input);
   min-width: 0;
 }
 
@@ -1059,8 +1059,8 @@ const openCopilotVerificationUrl = () => {
 .api-key-input:focus,
 .model-name-input:focus {
   outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .api-url-preset-select,
@@ -1068,16 +1068,16 @@ const openCopilotVerificationUrl = () => {
   flex: 0 0 auto;
   min-width: 130px;
   padding: 6px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   font-size: 12px;
   cursor: pointer;
 }
 
 .model-chain-hint {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.4;
   margin-bottom: 8px;
 }
@@ -1086,9 +1086,9 @@ const openCopilotVerificationUrl = () => {
   list-style: none;
   margin: 0;
   padding: 0;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-subtle);
 }
 
 .model-chain-row {
@@ -1096,7 +1096,7 @@ const openCopilotVerificationUrl = () => {
   align-items: center;
   gap: 6px;
   padding: 6px 8px 6px 4px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .model-chain-row:last-child {
@@ -1112,7 +1112,7 @@ const openCopilotVerificationUrl = () => {
   min-width: 14px;
   text-align: center;
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1120,17 +1120,17 @@ const openCopilotVerificationUrl = () => {
   flex: 1 1 auto;
   min-width: 0;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: white;
+  background: var(--bg-input);
 }
 
 .model-chain-input:focus {
   outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .model-chain-badges {
@@ -1169,30 +1169,30 @@ const openCopilotVerificationUrl = () => {
   width: 24px;
   height: 24px;
   padding: 0;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background: white;
-  color: #555;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
 }
 
 .model-chain-move-btn:hover:not(:disabled),
 .model-chain-remove-btn:hover:not(:disabled) {
-  background: #f0f0f0;
-  color: #333;
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .model-chain-remove-btn {
   font-size: 16px;
   line-height: 1;
-  color: #888;
+  color: var(--text-muted);
 }
 
 .model-chain-remove-btn:hover:not(:disabled) {
-  background: #fee;
-  color: #c00;
-  border-color: #fcc;
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: var(--danger-border);
 }
 
 .model-chain-move-btn:disabled,
@@ -1204,11 +1204,11 @@ const openCopilotVerificationUrl = () => {
 .model-chain-empty {
   padding: 10px;
   font-size: 11px;
-  color: #888;
+  color: var(--text-muted);
   text-align: center;
-  border: 1px dashed #ddd;
+  border: 1px dashed var(--border-input);
   border-radius: 4px;
-  background: #fafafa;
+  background: var(--bg-subtle);
 }
 
 .model-chain-add-row {
@@ -1221,26 +1221,26 @@ const openCopilotVerificationUrl = () => {
   flex: 1 1 auto;
   min-width: 0;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: white;
+  background: var(--bg-input);
 }
 
 .model-chain-add-input:focus {
   outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .model-chain-preset-select {
   flex: 0 0 auto;
   min-width: 130px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   font-size: 12px;
   cursor: pointer;
 }
@@ -1248,17 +1248,17 @@ const openCopilotVerificationUrl = () => {
 .model-chain-add-btn {
   flex: 0 0 auto;
   padding: 6px 12px;
-  border: 1px solid #007acc;
+  border: 1px solid var(--accent);
   border-radius: 4px;
-  background: #007acc;
-  color: white;
+  background: var(--accent);
+  color: var(--text-on-accent);
   font-size: 12px;
   cursor: pointer;
 }
 
 .model-chain-add-btn:hover:not(:disabled) {
-  background: #0066a8;
-  border-color: #0066a8;
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .model-chain-add-btn:disabled {
@@ -1273,18 +1273,18 @@ const openCopilotVerificationUrl = () => {
   width: 30px;
   height: 30px;
   padding: 0;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   cursor: pointer;
-  color: #666;
+  color: var(--text-secondary);
   box-sizing: border-box;
   flex: 0 0 auto;
 }
 
 .api-key-toggle-btn:hover {
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
 }
 
 .rate-limit-hint {
@@ -1325,11 +1325,11 @@ const openCopilotVerificationUrl = () => {
 .ai-prompt-textarea {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
   font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
-  background-color: white;
+  background-color: var(--bg-input);
   resize: vertical;
   min-height: 100px;
   margin-top: 8px;
@@ -1338,17 +1338,17 @@ const openCopilotVerificationUrl = () => {
 
 .ai-prompt-textarea:focus {
   outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .setting-description .json-example {
   font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
   font-size: 10px;
-  background-color: rgba(0, 0, 0, 0.06);
+  background-color: var(--shadow-sm);
   padding: 2px 5px;
   border-radius: 3px;
-  color: #333;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
@@ -1356,7 +1356,7 @@ const openCopilotVerificationUrl = () => {
 .builtin-model-info {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color);
 }
 
 .builtin-model-display {
@@ -1364,8 +1364,8 @@ const openCopilotVerificationUrl = () => {
   align-items: center;
   margin-top: 8px;
   padding: 10px 12px;
-  background-color: #f8f9fa;
-  border: 1px solid #e0e0e0;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   min-height: 20px;
 }
@@ -1374,15 +1374,15 @@ const openCopilotVerificationUrl = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .loading-spinner-small {
   width: 14px;
   height: 14px;
-  border: 2px solid #e0e0e0;
-  border-top: 2px solid #007acc;
+  border: 2px solid var(--border-color);
+  border-top: 2px solid var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -1396,7 +1396,7 @@ const openCopilotVerificationUrl = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #dc3545;
+  color: var(--danger);
   font-size: 13px;
 }
 
@@ -1414,7 +1414,7 @@ const openCopilotVerificationUrl = () => {
 .model-name {
   font-size: 13px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
 }
 
@@ -1426,14 +1426,14 @@ const openCopilotVerificationUrl = () => {
   border: none;
   background: transparent;
   cursor: pointer;
-  color: #666;
+  color: var(--text-secondary);
   border-radius: 4px;
   transition: background-color 0.2s, color 0.2s;
 }
 
 .refresh-btn:hover {
-  background-color: #e0e0e0;
-  color: #333;
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .cloudflare-error {
@@ -1446,11 +1446,11 @@ const openCopilotVerificationUrl = () => {
   gap: 8px;
   margin-top: 10px;
   padding: 10px 12px;
-  background-color: #fff3cd;
-  border: 1px solid #ffc107;
+  background-color: var(--warning-bg);
+  border: 1px solid var(--warning);
   border-radius: 4px;
   font-size: 12px;
-  color: #856404;
+  color: var(--warning);
   line-height: 1.4;
 }
 
@@ -1463,290 +1463,10 @@ const openCopilotVerificationUrl = () => {
   margin-top: 12px;
   padding: 10px 12px;
   font-size: 10px;
-  color: #888;
+  color: var(--text-muted);
   line-height: 1.5;
-  background-color: rgba(0, 0, 0, 0.03);
+  background-color: var(--shadow-sm);
   border-radius: 4px;
 }
 
-/* Dark mode support for AI settings */
-@media (prefers-color-scheme: dark) {
-  .custom-api-settings {
-    border-top-color: #404040;
-  }
-
-  .api-url-input,
-  .api-key-input,
-  .model-name-input {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .api-url-input:focus,
-  .api-key-input:focus,
-  .model-name-input:focus {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
-  }
-
-  .api-url-preset-select,
-  .model-preset-select {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .api-key-toggle-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #aaa;
-  }
-
-  .api-key-toggle-btn:hover {
-    background-color: #3a3a3a;
-    color: #e0e0e0;
-  }
-
-  .ai-prompt-textarea {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .ai-prompt-textarea:focus {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
-  }
-
-  .variant-badge {
-    background-color: #1b3a5c;
-    color: #a6c8ff;
-    border-color: #2d5985;
-  }
-
-  .variant-badge-distinguish {
-    background-color: #3d2f14;
-    color: #f4c67a;
-    border-color: #6a4c1d;
-  }
-
-  .ai-prompt-textarea::placeholder {
-    color: #888;
-  }
-
-  .setting-description .json-example {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #e0e0e0;
-  }
-
-  .builtin-model-info {
-    border-top-color: #404040;
-  }
-
-  .builtin-model-display {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .model-loading {
-    color: #aaa;
-  }
-
-  .loading-spinner-small {
-    border-color: #404040;
-    border-top-color: #4a9eff;
-  }
-
-  .model-error {
-    color: #ff6b6b;
-  }
-
-  .model-name {
-    color: #e0e0e0;
-  }
-
-  .refresh-btn {
-    color: #aaa;
-  }
-
-  .refresh-btn:hover {
-    background-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .cloudflare-hint {
-    background-color: #4a3f00;
-    border-color: #6b5a00;
-    color: #ffd54f;
-  }
-
-  .model-error.model-error-warning {
-    color: #f4c67a;
-  }
-
-  .builtin-disclaimer {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #888;
-  }
-
-  /* ModelScope Model Chain dark mode */
-  .model-chain-hint {
-    color: #aaa;
-  }
-
-  .model-chain-list {
-    background-color: #262626;
-    border-color: #404040;
-  }
-
-  .model-chain-row {
-    border-bottom-color: #333;
-  }
-
-  .model-chain-index {
-    color: #888;
-  }
-
-  .model-chain-input,
-  .model-chain-add-input {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .model-chain-input:focus,
-  .model-chain-add-input:focus {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.15);
-  }
-
-  .model-chain-badge.primary {
-    background-color: #1b3a5c;
-    color: #a6c8ff;
-  }
-
-  .model-chain-badge.exhausted {
-    background-color: #4a3400;
-    color: #f4c67a;
-  }
-
-  .model-chain-move-btn,
-  .model-chain-remove-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #ccc;
-  }
-
-  .model-chain-move-btn:hover:not(:disabled),
-  .model-chain-remove-btn:hover:not(:disabled) {
-    background-color: #3a3a3a;
-    color: #e0e0e0;
-  }
-
-  .model-chain-remove-btn:hover:not(:disabled) {
-    background-color: #4a1f1f;
-    color: #ff8080;
-    border-color: #6a2d2d;
-  }
-
-  .model-chain-empty {
-    color: #888;
-    border-color: #404040;
-    background-color: rgba(255, 255, 255, 0.02);
-  }
-
-  .model-chain-preset-select {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .model-chain-add-btn {
-    background-color: #2d5a8c;
-    border-color: #2d5a8c;
-    color: #ffffff;
-  }
-
-  .model-chain-add-btn:hover:not(:disabled) {
-    background-color: #3a6ea3;
-    border-color: #3a6ea3;
-  }
-
-  /* Copilot dark mode */
-  .copilot-settings {
-    border-top-color: #404040;
-  }
-
-  .copilot-user-row {
-    background-color: #1a2e1a;
-    border-color: #2d5a2d;
-  }
-
-  .copilot-username {
-    color: #e0e0e0;
-  }
-
-  .copilot-oauth-btn {
-    background-color: #f0f6fc;
-    border-color: #d0d7de;
-    color: #24292e;
-  }
-
-  .copilot-oauth-btn:hover:not(:disabled) {
-    background-color: #e6edf5;
-  }
-
-  .copilot-or-divider::before,
-  .copilot-or-divider::after {
-    border-top-color: #404040;
-  }
-
-  .copilot-or-divider span {
-    color: #666;
-  }
-
-  .copilot-error {
-    background-color: #3a1a1a;
-    border-color: #5a2d2d;
-    color: #ff6b6b;
-  }
-
-  .copilot-user-code {
-    background-color: #2d2d2d;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .copilot-user-code:hover {
-    background-color: #363636;
-    border-color: #58a6ff;
-  }
-
-  .copilot-code-copied {
-    color: #3fb950;
-  }
-
-  .copilot-verification-url {
-    color: #58a6ff;
-  }
-
-  .copilot-verification-url:hover {
-    color: #79c0ff;
-  }
-
-  .copilot-cancel-btn {
-    color: #aaa;
-  }
-
-  .copilot-cancel-btn:hover {
-    background-color: #404040;
-    color: #ff6b6b;
-  }
-
-  .copilot-enter-code-label,
-  .copilot-waiting-status {
-    color: #aaa;
-  }
-}
 </style>

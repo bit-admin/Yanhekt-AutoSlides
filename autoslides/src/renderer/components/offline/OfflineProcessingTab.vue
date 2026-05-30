@@ -296,16 +296,16 @@ const autoCropOverallProgress = computed(() => {
 }
 
 .offline-column:first-child {
-  border-right: 1px solid #e0e0e0;
+  border-right: 1px solid var(--border-color);
 }
 
 .column-title {
   margin: 0 0 20px 0;
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   padding-bottom: 10px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 /* Setting Groups */
@@ -317,7 +317,7 @@ const autoCropOverallProgress = computed(() => {
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
@@ -329,22 +329,22 @@ const autoCropOverallProgress = computed(() => {
 .directory-input {
   flex: 1;
   padding: 7px 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
-  background-color: #fafafa;
-  color: #333;
+  background-color: var(--bg-subtle);
+  color: var(--text-primary);
 }
 
 .directory-input.placeholder-text {
-  color: #999;
+  color: var(--text-muted);
 }
 
 .browse-btn {
   padding: 7px 14px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   font-size: 12px;
   cursor: pointer;
   white-space: nowrap;
@@ -352,8 +352,8 @@ const autoCropOverallProgress = computed(() => {
 }
 
 .browse-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .browse-btn:disabled {
@@ -373,16 +373,16 @@ const autoCropOverallProgress = computed(() => {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .toggle-item:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .toggle-item.toggle-item-disabled {
@@ -406,12 +406,12 @@ const autoCropOverallProgress = computed(() => {
 
 .toggle-text {
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .setting-note {
   font-size: 11px;
-  color: #888;
+  color: var(--text-muted);
   margin-top: 6px;
 }
 
@@ -424,7 +424,7 @@ const autoCropOverallProgress = computed(() => {
 .progress-track {
   width: 100%;
   height: 4px;
-  background-color: #e0e0e0;
+  background-color: var(--border-color);
   border-radius: 2px;
   overflow: hidden;
   margin-bottom: 16px;
@@ -432,7 +432,7 @@ const autoCropOverallProgress = computed(() => {
 
 .progress-fill {
   height: 100%;
-  background-color: #007acc;
+  background-color: var(--accent);
   transition: width 0.3s ease;
 }
 
@@ -442,7 +442,7 @@ const autoCropOverallProgress = computed(() => {
 }
 
 .offline-status-error {
-  color: #c62828;
+  color: var(--danger);
 }
 
 /* Actions */
@@ -451,31 +451,31 @@ const autoCropOverallProgress = computed(() => {
   align-items: center;
   gap: 8px;
   padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color);
 }
 
 .open-output-btn {
   padding: 8px 16px;
-  border: 1px solid #007acc;
+  border: 1px solid var(--accent);
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
-  background-color: white;
-  color: #007acc;
+  background-color: var(--bg-surface);
+  color: var(--accent);
   margin-right: auto;
 }
 
 .open-output-btn:hover {
-  background-color: #007acc;
-  color: white;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .secondary-btn {
   padding: 8px 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-surface);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
@@ -483,16 +483,16 @@ const autoCropOverallProgress = computed(() => {
 }
 
 .secondary-btn:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .primary-btn {
   padding: 8px 16px;
   border: none;
   border-radius: 4px;
-  background-color: #007acc;
-  color: white;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -500,104 +500,11 @@ const autoCropOverallProgress = computed(() => {
 }
 
 .primary-btn:hover:not(:disabled) {
-  background-color: #005a9e;
+  background-color: var(--accent-hover);
 }
 
 .primary-btn:disabled {
-  background-color: #ccc;
+  background-color: var(--border-strong);
   cursor: not-allowed;
-}
-
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .offline-column:first-child {
-    border-right-color: #3d3d3d;
-  }
-
-  .column-title {
-    color: #e0e0e0;
-    border-bottom-color: #3d3d3d;
-  }
-
-  .setting-label {
-    color: #ccc;
-  }
-
-  .directory-input {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .directory-input.placeholder-text {
-    color: #666;
-  }
-
-  .browse-btn {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .browse-btn:hover:not(:disabled) {
-    background-color: #404040;
-    border-color: #666;
-  }
-
-  .toggle-item {
-    background-color: #2a2a2a;
-    border-color: #404040;
-  }
-
-  .toggle-item:hover {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .toggle-text {
-    color: #ccc;
-  }
-
-  .setting-note {
-    color: #777;
-  }
-
-  .offline-status-error {
-    color: #ff8a80;
-  }
-
-  .progress-track {
-    background-color: #404040;
-  }
-
-  .progress-fill {
-    background-color: #4a9eff;
-  }
-
-  .offline-actions {
-    border-top-color: #3d3d3d;
-  }
-
-  .open-output-btn {
-    background-color: #2d2d2d;
-    border-color: #4a9eff;
-    color: #4a9eff;
-  }
-
-  .open-output-btn:hover {
-    background-color: #4a9eff;
-    color: #1e1e1e;
-  }
-
-  .secondary-btn {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .secondary-btn:hover {
-    background-color: #404040;
-    border-color: #666;
-  }
 }
 </style>

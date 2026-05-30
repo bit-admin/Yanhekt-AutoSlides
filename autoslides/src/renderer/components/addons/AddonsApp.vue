@@ -30,12 +30,6 @@ onMounted(async () => {
   width: 100%;
   height: 100vh;
   overflow: hidden;
-  background-color: #f5f5f5;
-}
-
-@media (prefers-color-scheme: dark) {
-  .addons-app {
-    background-color: #1e1e1e;
-  }
+  background-color: var(--bg-page);
 }
 </style>

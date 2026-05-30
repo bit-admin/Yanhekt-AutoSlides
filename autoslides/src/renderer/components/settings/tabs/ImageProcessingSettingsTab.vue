@@ -487,8 +487,8 @@ const {
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
@@ -496,8 +496,8 @@ const {
 
 .phase-toggle-item:hover,
 .image-output-toggle-item:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .phase-toggle-item input[type="checkbox"],
@@ -512,7 +512,7 @@ const {
 .phase-toggle-text,
 .image-output-toggle-text {
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .ssim-input-group {
@@ -526,33 +526,33 @@ const {
   flex: 0 0 auto;
   min-width: 140px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
-  background-color: white;
+  background-color: var(--bg-input);
   cursor: pointer;
   transition: border-color 0.2s;
 }
 
 .ssim-preset-select:focus {
   outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .ssim-input {
   flex: 1;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
-  background-color: white;
+  background-color: var(--bg-input);
 }
 
 .ssim-input:focus {
   outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .phash-threshold-input-wrapper {
@@ -560,15 +560,15 @@ const {
   display: flex;
   align-items: center;
   width: 100%;
-  background-color: white;
-  border: 1px solid #ddd;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   transition: border-color 0.2s;
 }
 
 .phash-threshold-input-wrapper:focus-within {
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .phash-threshold-input {
@@ -583,30 +583,30 @@ const {
 .threshold-unit {
   padding: 6px 8px;
   font-size: 11px;
-  color: #666;
-  background-color: #f8f9fa;
-  border-left: 1px solid #e0e0e0;
+  color: var(--text-secondary);
+  background-color: var(--bg-elevated);
+  border-left: 1px solid var(--border-color);
   white-space: nowrap;
 }
 
 .classroom-rules-info {
   margin-top: 12px;
   padding: 12px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--bg-hover);
   border-radius: 6px;
   font-size: 11px;
 }
 
 .rules-title {
   font-weight: 600;
-  color: #495057;
+  color: var(--text-secondary);
   margin-bottom: 6px;
   font-size: 12px;
 }
 
 .rules-description {
-  color: #6c757d;
+  color: var(--border-strong);
   margin-bottom: 8px;
   line-height: 1.4;
 }
@@ -625,7 +625,7 @@ const {
 }
 
 .rule-condition {
-  color: #495057;
+  color: var(--text-secondary);
   font-weight: 500;
   background-color: #e3f2fd;
   padding: 2px 6px;
@@ -635,14 +635,14 @@ const {
 
 .rule-arrow {
   margin: 0 8px;
-  color: #6c757d;
+  color: var(--border-strong);
   font-weight: bold;
 }
 
 .rule-action {
-  color: #28a745;
+  color: var(--success);
   font-weight: 500;
-  background-color: #d4edda;
+  background-color: var(--success-bg);
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 10px;
@@ -651,8 +651,8 @@ const {
 .rules-reason {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid #dee2e6;
-  color: #6c757d;
+  border-top: 1px solid var(--bg-hover);
+  color: var(--border-strong);
   font-style: italic;
   line-height: 1.4;
 }
@@ -724,18 +724,18 @@ const {
 .exclusion-list-empty {
   padding: 12px;
   text-align: center;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 11px;
   font-style: italic;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--bg-hover);
   border-radius: 4px;
 }
 
 .exclusion-list {
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--bg-hover);
   border-radius: 4px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   max-height: 200px;
   overflow-y: auto;
 }
@@ -745,8 +745,8 @@ const {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-bottom: 1px solid #e9ecef;
-  background-color: white;
+  border-bottom: 1px solid var(--bg-hover);
+  background-color: var(--bg-surface);
   transition: background-color 0.2s;
 }
 
@@ -755,21 +755,21 @@ const {
 }
 
 .exclusion-item:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
 }
 
 .exclusion-item.preset-item {
-  border-left: 3px solid #007acc;
+  border-left: 3px solid var(--accent);
 }
 
 .exclusion-item.disabled-item {
   opacity: 0.6;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
 }
 
 .exclusion-item.disabled-item .exclusion-item-name,
 .exclusion-item.disabled-item .exclusion-item-hash {
-  color: #999;
+  color: var(--text-muted);
 }
 
 .exclusion-item-info {
@@ -780,7 +780,7 @@ const {
 .exclusion-item-name {
   font-size: 12px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -793,7 +793,7 @@ const {
 .preset-badge {
   font-size: 9px;
   font-weight: 600;
-  color: #007acc;
+  color: var(--accent);
   background-color: #e3f2fd;
   padding: 2px 6px;
   border-radius: 8px;
@@ -804,7 +804,7 @@ const {
 
 .exclusion-item-hash {
   font-size: 10px;
-  color: #666;
+  color: var(--text-secondary);
   font-family: 'Courier New', monospace;
   margin-bottom: 2px;
   overflow: hidden;
@@ -825,41 +825,41 @@ const {
   justify-content: center;
   width: 24px;
   height: 24px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 3px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .exclusion-edit-btn {
-  color: #007acc;
+  color: var(--accent);
 }
 
 .exclusion-edit-btn:hover {
-  background-color: #007acc;
-  color: white;
-  border-color: #007acc;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--accent);
 }
 
 .exclusion-remove-btn {
-  color: #dc3545;
+  color: var(--danger);
 }
 
 .exclusion-remove-btn:hover {
-  background-color: #dc3545;
-  color: white;
-  border-color: #dc3545;
+  background-color: var(--danger);
+  color: var(--text-on-accent);
+  border-color: var(--danger);
 }
 
 .exclusion-toggle-btn {
-  color: #28a745;
+  color: var(--success);
 }
 
 .exclusion-toggle-btn:hover {
-  background-color: #28a745;
-  color: white;
-  border-color: #28a745;
+  background-color: var(--success);
+  color: var(--text-on-accent);
+  border-color: var(--success);
 }
 
 .exclusion-actions {
@@ -884,14 +884,14 @@ const {
 }
 
 .exclusion-add-btn {
-  background-color: #28a745;
-  border-color: #28a745;
-  color: white;
+  background-color: var(--success);
+  border-color: var(--success);
+  color: var(--text-on-accent);
 }
 
 .exclusion-add-btn:hover:not(:disabled) {
-  background-color: #218838;
-  border-color: #218838;
+  background-color: var(--success);
+  border-color: var(--success);
 }
 
 .exclusion-add-btn:disabled {
@@ -900,200 +900,15 @@ const {
 }
 
 .exclusion-clear-btn {
-  background-color: #ffc107;
-  border-color: #ffc107;
-  color: #212529;
+  background-color: var(--warning);
+  border-color: var(--warning);
+  color: var(--text-on-accent);
 }
 
 .exclusion-clear-btn:hover {
-  background-color: #e0a800;
-  border-color: #e0a800;
+  background-color: var(--warning);
+  border-color: var(--warning);
 }
 
-@media (prefers-color-scheme: dark) {
-  .ssim-input,
-  .ssim-preset-select,
-  .phash-threshold-input {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
 
-  .ssim-input:focus,
-  .ssim-preset-select:focus {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
-  }
-
-  .phash-threshold-input-wrapper {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .phash-threshold-input-wrapper:focus-within {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
-  }
-
-  .threshold-unit {
-    background-color: #2d2d2d;
-    border-left-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .slide-interval-select {
-    color: #e0e0e0;
-  }
-
-  .advanced-setting-subsection h5 {
-    color: #e0e0e0;
-  }
-
-  .phase-toggle-item,
-  .image-output-toggle-item {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .phase-toggle-item:hover,
-  .image-output-toggle-item:hover {
-    background-color: #3d3d3d;
-    border-color: #505050;
-  }
-
-  .phase-toggle-text,
-  .image-output-toggle-text {
-    color: #e0e0e0;
-  }
-
-  .classroom-rules-info {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .rules-title {
-    color: #e0e0e0;
-  }
-
-  .rules-description,
-  .rules-reason {
-    color: #b0b0b0;
-  }
-
-  .rules-reason {
-    border-top-color: #404040;
-  }
-
-  .rule-condition {
-    color: #e0e0e0;
-    background-color: #1a2332;
-  }
-
-  .rule-arrow {
-    color: #b0b0b0;
-  }
-
-  .rule-action {
-    color: #4caf50;
-    background-color: #1b2e1b;
-  }
-
-  .exclusion-list-empty {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .exclusion-list {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .exclusion-item {
-    background-color: #2d2d2d;
-    border-bottom-color: #404040;
-  }
-
-  .exclusion-item:hover {
-    background-color: #3d3d3d;
-  }
-
-  .exclusion-item-name {
-    color: #e0e0e0;
-  }
-
-  .preset-badge {
-    color: #4a9eff;
-    background-color: #1a2332;
-  }
-
-  .exclusion-item.preset-item {
-    border-left-color: #4a9eff;
-  }
-
-  .exclusion-item.disabled-item .exclusion-item-name,
-  .exclusion-item.disabled-item .exclusion-item-hash {
-    color: #666;
-  }
-
-  .exclusion-item-hash {
-    color: #b0b0b0;
-  }
-
-  .exclusion-edit-btn, .exclusion-remove-btn, .exclusion-toggle-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .exclusion-edit-btn {
-    color: #4a9eff;
-  }
-
-  .exclusion-edit-btn:hover {
-    background-color: #4a9eff;
-    color: white;
-    border-color: #4a9eff;
-  }
-
-  .exclusion-remove-btn {
-    color: #ff6b6b;
-  }
-
-  .exclusion-remove-btn:hover {
-    background-color: #ff6b6b;
-    color: white;
-    border-color: #ff6b6b;
-  }
-
-  .exclusion-toggle-btn {
-    color: #4caf50;
-  }
-
-  .exclusion-toggle-btn:hover {
-    background-color: #4caf50;
-    color: white;
-    border-color: #4caf50;
-  }
-
-  .exclusion-add-btn {
-    background-color: #4caf50;
-    border-color: #4caf50;
-  }
-
-  .exclusion-add-btn:hover:not(:disabled) {
-    background-color: #45a049;
-    border-color: #45a049;
-  }
-
-  .exclusion-clear-btn {
-    background-color: #f39c12;
-    border-color: #f39c12;
-    color: #1a1a1a;
-  }
-
-  .exclusion-clear-btn:hover {
-    background-color: #e67e22;
-    border-color: #e67e22;
-  }
-}
 </style>

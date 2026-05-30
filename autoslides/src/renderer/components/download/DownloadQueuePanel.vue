@@ -225,7 +225,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .queue-controls {
@@ -238,36 +238,36 @@ const extractionBarWidth = (item: DownloadItem): number => {
   align-items: center;
   gap: 4px;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-surface);
   font-size: 11px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .control-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
 }
 
 .cancel-all-btn {
-  color: #dc3545;
-  border-color: #dc3545;
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .cancel-all-btn:hover {
-  background-color: #f8d7da;
-  border-color: #c82333;
+  background-color: var(--danger-bg);
+  border-color: var(--danger-hover);
 }
 
 .clear-btn {
-  color: #6c757d;
-  border-color: #6c757d;
+  color: var(--border-strong);
+  border-color: var(--border-strong);
 }
 
 .clear-btn:hover {
-  background-color: #e2e3e5;
-  border-color: #545b62;
+  background-color: var(--bg-hover);
+  border-color: var(--text-secondary);
 }
 
 .download-queue {
@@ -302,40 +302,40 @@ const extractionBarWidth = (item: DownloadItem): number => {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background-color: white;
-  border: 1px solid #e0e0e0;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   transition: all 0.2s;
 }
 
 .download-item.row-highlight {
-  border-color: #007acc;
-  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 2px 4px var(--focus-ring);
 }
 
 .download-item:hover {
-  border-color: #007acc;
-  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 2px 4px var(--focus-ring);
 }
 
 .download-item.status-queued {
-  border-left: 3px solid #6c757d;
+  border-left: 3px solid var(--border-strong);
 }
 
 .download-item.status-downloading {
-  border-left: 3px solid #007acc;
+  border-left: 3px solid var(--accent);
 }
 
 .download-item.status-processing {
-  border-left: 3px solid #ffc107;
+  border-left: 3px solid var(--warning);
 }
 
 .download-item.status-completed {
-  border-left: 3px solid #28a745;
+  border-left: 3px solid var(--success);
 }
 
 .download-item.status-error {
-  border-left: 3px solid #dc3545;
+  border-left: 3px solid var(--danger);
 }
 
 .item-status {
@@ -353,30 +353,30 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 
 .status-indicator.status-queued {
-  color: #6c757d;
-  background-color: #f8f9fa;
+  color: var(--border-strong);
+  background-color: var(--bg-elevated);
 }
 
 .status-indicator.status-downloading {
-  color: #007acc;
+  color: var(--accent);
   background-color: #e3f2fd;
   animation: pulse 2s infinite;
 }
 
 .status-indicator.status-processing {
-  color: #ffc107;
-  background-color: #fff8e1;
+  color: var(--warning);
+  background-color: var(--warning-bg);
   animation: spin 2s linear infinite;
 }
 
 .status-indicator.status-completed {
-  color: #28a745;
-  background-color: #e8f5e8;
+  color: var(--success);
+  background-color: var(--success-bg);
 }
 
 .status-indicator.status-error {
-  color: #dc3545;
-  background-color: #ffeaea;
+  color: var(--danger);
+  background-color: var(--danger-bg);
 }
 
 @keyframes pulse {
@@ -397,7 +397,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
 .item-name {
   font-size: 13px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 6px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -413,27 +413,27 @@ const extractionBarWidth = (item: DownloadItem): number => {
 .progress-bar {
   width: 100%;
   height: 4px;
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  background-color: #007acc;
+  background-color: var(--accent);
   border-radius: 2px;
   transition: width 0.3s ease;
 }
 
 .progress-text {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .post-process-affiliated-panel {
   width: 100%;
-  background-color: white;
-  border: 1px solid #e0e0e0;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
   border-top: none;
   border-radius: 0 0 6px 6px;
   padding: 4px 6px;
@@ -457,8 +457,8 @@ const extractionBarWidth = (item: DownloadItem): number => {
 
 .extraction-affiliated-panel {
   width: 100%;
-  background-color: white;
-  border: 1px solid #e0e0e0;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
   border-top: none;
   border-radius: 0 0 6px 6px;
   padding: 3px 8px;
@@ -492,7 +492,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .ext-row .cancel-item-btn {
@@ -503,33 +503,33 @@ const extractionBarWidth = (item: DownloadItem): number => {
 
 .ext-bar {
   height: 3px;
-  background-color: #e0e0e0;
+  background-color: var(--border-color);
   border-radius: 2px;
   overflow: hidden;
 }
 
 .ext-fill {
   height: 100%;
-  background-color: #e0e0e0;
+  background-color: var(--border-color);
   transition: width 0.3s ease;
 }
 
 .ext-fill.active {
-  background-color: #007acc;
+  background-color: var(--accent);
 }
 
 .ext-fill.completed {
-  background-color: #28a745;
+  background-color: var(--success);
 }
 
 .ext-fill.errored {
-  background-color: #dc3545;
+  background-color: var(--danger);
 }
 
-.ext-status-pending .ext-name { color: #6c757d; }
-.ext-status-completed .ext-name { color: #28a745; }
+.ext-status-pending .ext-name { color: var(--border-strong); }
+.ext-status-completed .ext-name { color: var(--success); }
 .ext-status-error .ext-name,
-.ext-status-cancelled .ext-name { color: #dc3545; }
+.ext-status-cancelled .ext-name { color: var(--danger); }
 
 .item-actions {
   flex-shrink: 0;
@@ -543,14 +543,14 @@ const extractionBarWidth = (item: DownloadItem): number => {
   height: 24px;
   border: none;
   background-color: transparent;
-  color: #dc3545;
+  color: var(--danger);
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .cancel-item-btn:hover {
-  background-color: #f8d7da;
+  background-color: var(--danger-bg);
 }
 
 .retry-item-btn {
@@ -561,7 +561,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
   height: 24px;
   border: none;
   background-color: transparent;
-  color: #28a745;
+  color: var(--success);
   border-radius: 4px;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -569,7 +569,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 
 .retry-item-btn:hover {
-  background-color: #d4edda;
+  background-color: var(--success-bg);
 }
 
 .empty-queue {
@@ -578,7 +578,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
   align-items: center;
   text-align: center;
   padding: 32px 16px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .empty-icon {
@@ -592,170 +592,5 @@ const extractionBarWidth = (item: DownloadItem): number => {
   font-style: italic;
 }
 
-@media (prefers-color-scheme: dark) {
-  .section-header h3 {
-    color: #e0e0e0;
-  }
 
-  .control-btn {
-    background-color: #2d2d2d;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .control-btn:hover {
-    background-color: #404040;
-  }
-
-  .cancel-all-btn {
-    color: #f48fb1;
-    border-color: #f48fb1;
-  }
-
-  .cancel-all-btn:hover {
-    background-color: #4a2c35;
-    border-color: #f06292;
-  }
-
-  .clear-btn {
-    color: #bdbdbd;
-    border-color: #bdbdbd;
-  }
-
-  .clear-btn:hover {
-    background-color: #404040;
-    border-color: #9e9e9e;
-  }
-
-  .download-item {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .download-item.row-highlight {
-    border-color: #4fc3f7;
-    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
-  }
-
-  .download-item:hover {
-    border-color: #4fc3f7;
-    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
-  }
-
-  .download-item.status-queued {
-    border-left-color: #bdbdbd;
-  }
-
-  .download-item.status-downloading {
-    border-left-color: #4fc3f7;
-  }
-
-  .download-item.status-processing {
-    border-left-color: #ffb74d;
-  }
-
-  .download-item.status-completed {
-    border-left-color: #81c784;
-  }
-
-  .download-item.status-error {
-    border-left-color: #f48fb1;
-  }
-
-  .status-indicator.status-queued {
-    color: #bdbdbd;
-    background-color: #404040;
-  }
-
-  .status-indicator.status-downloading {
-    color: #4fc3f7;
-    background-color: #1a3a4a;
-  }
-
-  .status-indicator.status-processing {
-    color: #ffb74d;
-    background-color: #4a3a2a;
-  }
-
-  .status-indicator.status-completed {
-    color: #81c784;
-    background-color: #2e4a2e;
-  }
-
-  .status-indicator.status-error {
-    color: #f48fb1;
-    background-color: #4a2c35;
-  }
-
-  .item-name {
-    color: #e0e0e0;
-  }
-
-  .progress-bar {
-    background-color: #404040;
-  }
-
-  .progress-fill {
-    background-color: #4fc3f7;
-  }
-
-  .progress-text {
-    color: #bdbdbd;
-  }
-
-  .post-process-affiliated-panel,
-  .extraction-affiliated-panel {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .ext-name {
-    color: #e0e0e0;
-  }
-
-  .ext-bar {
-    background-color: #404040;
-  }
-
-  .ext-fill {
-    background-color: #404040;
-  }
-
-  .ext-fill.active {
-    background-color: #4fc3f7;
-  }
-
-  .ext-fill.completed {
-    background-color: #81c784;
-  }
-
-  .ext-fill.errored {
-    background-color: #f48fb1;
-  }
-
-  .ext-status-pending .ext-name { color: #9e9e9e; }
-  .ext-status-completed .ext-name { color: #81c784; }
-  .ext-status-error .ext-name,
-  .ext-status-cancelled .ext-name { color: #f48fb1; }
-
-  .cancel-item-btn {
-    color: #f48fb1;
-  }
-
-  .cancel-item-btn:hover {
-    background-color: #4a2c35;
-  }
-
-  .retry-item-btn {
-    color: #81c784;
-  }
-
-  .retry-item-btn:hover {
-    background-color: #2e4a2e;
-  }
-
-  .empty-queue {
-    color: #bdbdbd;
-  }
-}
 </style>

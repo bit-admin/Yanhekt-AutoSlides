@@ -214,9 +214,9 @@ onMounted(() => {
 }
 
 .header {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   margin-bottom: 24px;
   overflow: hidden;
 }
@@ -233,25 +233,25 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
-  color: #666;
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .back-btn:hover {
-  border-color: #007acc;
-  color: #007acc;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .header h2 {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   flex: 1;
 }
 
@@ -261,15 +261,15 @@ onMounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-surface);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .expand-btn:hover {
-  border-color: #007acc;
+  border-color: var(--accent);
   background-color: #f0f8ff;
 }
 
@@ -283,8 +283,8 @@ onMounted(() => {
 
 .course-details {
   padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  background-color: white;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-surface);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
@@ -299,14 +299,14 @@ onMounted(() => {
 .detail-label {
   font-size: 12px;
   font-weight: 600;
-  color: #666;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .detail-value {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -318,7 +318,7 @@ onMounted(() => {
 }
 
 .placeholder {
-  color: #666;
+  color: var(--text-secondary);
   font-style: italic;
   margin-bottom: 16px;
 }
@@ -326,7 +326,7 @@ onMounted(() => {
 .course-info, .instructor-info {
   margin: 8px 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .main-content {
@@ -350,7 +350,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   border-radius: 8px;
   padding: 4px;
 }
@@ -360,7 +360,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background-color: white;
+  background-color: var(--bg-surface);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
@@ -388,7 +388,7 @@ onMounted(() => {
   height: 32px;
   background-color: #f0f8ff;
   border-radius: 6px;
-  color: #007acc;
+  color: var(--accent);
   flex-shrink: 0;
 }
 
@@ -400,7 +400,7 @@ onMounted(() => {
 .session-title {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -411,7 +411,7 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .session-meta span {
@@ -419,16 +419,16 @@ onMounted(() => {
 }
 
 .session-time {
-  color: #007acc;
+  color: var(--accent);
   font-weight: 500;
 }
 
 .session-duration {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .session-date {
-  color: #888;
+  color: var(--text-muted);
 }
 
 .batch-actions {
@@ -436,9 +436,9 @@ onMounted(() => {
   gap: 8px;
   margin-bottom: 16px;
   padding: 16px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--bg-hover);
 }
 
 .batch-btn {
@@ -448,9 +448,9 @@ onMounted(() => {
   justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-surface);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
@@ -458,7 +458,7 @@ onMounted(() => {
 }
 
 .batch-btn:hover {
-  border-color: #007acc;
+  border-color: var(--accent);
   background-color: #f0f8ff;
 }
 
@@ -473,13 +473,13 @@ onMounted(() => {
 }
 
 .download-camera-btn {
-  color: #007acc;
-  border-color: #007acc;
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .download-camera-btn:hover {
   background-color: #e3f2fd;
-  border-color: #0056b3;
+  border-color: var(--accent-hover);
 }
 
 .download-screen-btn {
@@ -508,9 +508,9 @@ onMounted(() => {
   justify-content: center;
   width: 60px;
   height: 40px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-surface);
   cursor: pointer;
   transition: all 0.2s;
   gap: 2px;
@@ -524,7 +524,7 @@ onMounted(() => {
 
 .action-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px var(--shadow-sm);
 }
 
 .add-btn {
@@ -538,13 +538,13 @@ onMounted(() => {
 }
 
 .camera-btn {
-  color: #007acc;
-  border-color: #007acc;
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .camera-btn:hover {
   background-color: #e3f2fd;
-  border-color: #0056b3;
+  border-color: var(--accent-hover);
 }
 
 .screen-btn {
@@ -582,8 +582,8 @@ onMounted(() => {
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #007acc;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -597,7 +597,7 @@ onMounted(() => {
 .no-sessions {
   text-align: center;
   padding: 48px 16px;
-  color: #666;
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -609,7 +609,7 @@ onMounted(() => {
 }
 
 .sessions-list:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .sessions-list::-webkit-scrollbar {
@@ -629,235 +629,11 @@ onMounted(() => {
 }
 
 .sessions-list:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--scrollbar-thumb);
 }
 
 .sessions-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3) !important;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .session-page {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .header {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-  }
-
-  .header-main {
-    background-color: #2d2d2d;
-  }
-
-  .header h2 {
-    color: #e0e0e0;
-  }
-
-  .back-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #b0b0b0;
-  }
-
-  .back-btn:hover {
-    border-color: #4da6ff;
-    color: #4da6ff;
-  }
-
-  .expand-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #b0b0b0;
-  }
-
-  .expand-btn:hover {
-    border-color: #4da6ff;
-    background-color: #333;
-  }
-
-  .course-details {
-    background-color: #2d2d2d;
-    border-top: 1px solid #404040;
-  }
-
-  .detail-label {
-    color: #b0b0b0;
-  }
-
-  .detail-value {
-    color: #e0e0e0;
-  }
-
-  .error-message {
-    background-color: #3d1a1a;
-    border: 1px solid #5d2d2d;
-    color: #ff6b6b;
-  }
-
-  .spinner {
-    border: 3px solid #404040;
-    border-top: 3px solid #4da6ff;
-  }
-
-  .sessions-container {
-    background-color: #2d2d2d;
-  }
-
-  .sessions-list {
-    background-color: #333;
-  }
-
-  .session-item {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .session-item:hover {
-    background-color: #1a2332;
-  }
-
-  .session-icon {
-    background-color: #1a2332;
-    color: #4da6ff;
-  }
-
-  .session-title {
-    color: #e0e0e0;
-  }
-
-  .session-meta {
-    color: #b0b0b0;
-  }
-
-  .session-time {
-    color: #4da6ff;
-  }
-
-  .session-duration {
-    color: #b0b0b0;
-  }
-
-  .session-date {
-    color: #999;
-  }
-
-  .batch-actions {
-    background-color: #333;
-    border: 1px solid #404040;
-  }
-
-  .batch-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #e0e0e0;
-  }
-
-  .batch-btn:hover {
-    border-color: #4da6ff;
-    background-color: #1a2332;
-  }
-
-  .add-all-btn {
-    color: #66cc66;
-    border-color: #66cc66;
-  }
-
-  .add-all-btn:hover {
-    background-color: #1a3d1a;
-    border-color: #4dcc4d;
-  }
-
-  .download-camera-btn {
-    color: #4da6ff;
-    border-color: #4da6ff;
-  }
-
-  .download-camera-btn:hover {
-    background-color: #1a2332;
-    border-color: #66b3ff;
-  }
-
-  .download-screen-btn {
-    color: #cc99ff;
-    border-color: #cc99ff;
-  }
-
-  .download-screen-btn:hover {
-    background-color: #2d1a3d;
-    border-color: #d9b3ff;
-  }
-
-  .action-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #e0e0e0;
-  }
-
-  .action-btn:hover {
-    background-color: #333;
-  }
-
-  .add-btn {
-    color: #66cc66;
-    border-color: #66cc66;
-  }
-
-  .add-btn:hover {
-    background-color: #1a3d1a;
-    border-color: #4dcc4d;
-  }
-
-  .camera-btn {
-    color: #4da6ff;
-    border-color: #4da6ff;
-  }
-
-  .camera-btn:hover {
-    background-color: #1a2332;
-    border-color: #66b3ff;
-  }
-
-  .screen-btn {
-    color: #cc99ff;
-    border-color: #cc99ff;
-  }
-
-  .screen-btn:hover {
-    background-color: #2d1a3d;
-    border-color: #d9b3ff;
-  }
-
-  .no-sessions {
-    color: #b0b0b0;
-  }
-
-  /* Scrollbar styles for dark mode */
-  .sessions-list {
-    scrollbar-color: transparent transparent;
-  }
-
-  .sessions-list:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .sessions-list::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .sessions-list::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .sessions-list:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .sessions-list::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-  }
+  background: var(--scrollbar-thumb-hover) !important;
 }
 
 </style>

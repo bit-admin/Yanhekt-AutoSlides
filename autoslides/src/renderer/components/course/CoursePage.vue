@@ -321,23 +321,23 @@ onUnmounted(() => {
   align-items: flex-start;
   margin-bottom: 16px;
   gap: 24px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
   border-radius: 8px;
   padding: 10px 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(0, 122, 204, 0.1);
+  box-shadow: 0 2px 12px var(--shadow-sm);
+  border: 1px solid var(--focus-ring);
 }
 
 .title-section h2 {
   margin: 25px 0 0 25px;
   font-size: 28px;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--text-primary);
   background: linear-gradient(135deg, var(--accent) 0%, #0056b3 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  text-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
+  text-shadow: 0 2px 4px var(--focus-ring);
 }
 
 .controls-section {
@@ -356,7 +356,7 @@ onUnmounted(() => {
 .search-input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 14px;
 }
@@ -369,14 +369,14 @@ onUnmounted(() => {
   border: 1px solid var(--accent);
   border-radius: 4px;
   background-color: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
   font-size: 14px;
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .search-btn:hover, .fetch-btn:hover {
-  background-color: #005a9e;
+  background-color: var(--accent-strong);
 }
 
 .fetch-btn {
@@ -417,8 +417,8 @@ onUnmounted(() => {
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #007acc;
+  border: 3px solid var(--border-color);
+  border-top: 3px solid var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -443,9 +443,9 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   padding: 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  background-color: white;
+  background-color: var(--bg-surface);
   cursor: pointer;
   transition: all 0.2s;
   height: 140px; /* Fixed height for consistent layout */
@@ -454,8 +454,8 @@ onUnmounted(() => {
 }
 
 .course-card:hover {
-  border-color: #007acc;
-  box-shadow: 0 2px 8px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px var(--focus-ring);
 }
 
 .course-status {
@@ -470,8 +470,8 @@ onUnmounted(() => {
 }
 
 .status-ended {
-  background-color: #f5f5f5;
-  color: #666;
+  background-color: var(--bg-page);
+  color: var(--text-secondary);
 }
 
 .status-live {
@@ -485,8 +485,8 @@ onUnmounted(() => {
 }
 
 .status-unknown {
-  background-color: #f8f9fa;
-  color: #6c757d;
+  background-color: var(--bg-elevated);
+  color: var(--border-strong);
 }
 
 .course-id {
@@ -497,8 +497,8 @@ onUnmounted(() => {
   border-radius: 3px;
   font-size: 10px;
   font-weight: 600;
-  background-color: #f0f0f0;
-  color: #666;
+  background-color: var(--bg-hover);
+  color: var(--text-secondary);
 }
 
 .course-info {
@@ -514,7 +514,7 @@ onUnmounted(() => {
   margin: 0 0 4px 0;
   font-size: 12px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   line-height: 1.2;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -526,7 +526,7 @@ onUnmounted(() => {
 .course-instructor {
   margin: 0 0 3px 0;
   font-size: 10px;
-  color: #666;
+  color: var(--text-secondary);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -536,7 +536,7 @@ onUnmounted(() => {
 .course-location {
   margin: 0 0 3px 0;
   font-size: 10px;
-  color: #888;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -545,7 +545,7 @@ onUnmounted(() => {
 .course-time {
   margin: 0 0 3px 0;
   font-size: 10px;
-  color: #999;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -554,7 +554,7 @@ onUnmounted(() => {
 .course-section {
   margin: 0 0 3px 0;
   font-size: 9px;
-  color: #aaa;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -563,7 +563,7 @@ onUnmounted(() => {
 .course-participants {
   margin: 0;
   font-size: 9px;
-  color: #007acc;
+  color: var(--accent);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -577,9 +577,9 @@ onUnmounted(() => {
   gap: 16px;
   margin-top: 12px;
   padding: 12px 0;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color);
   flex-shrink: 0; /* Prevent pagination from shrinking */
-  background-color: white; /* Ensure visibility */
+  background-color: var(--bg-surface); /* Ensure visibility */
 }
 
 .page-btn {
@@ -588,16 +588,16 @@ onUnmounted(() => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-surface);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .page-btn:hover:not(:disabled) {
-  border-color: #007acc;
-  background-color: #f8f9fa;
+  border-color: var(--accent);
+  background-color: var(--bg-elevated);
 }
 
 .page-btn:disabled {
@@ -607,7 +607,7 @@ onUnmounted(() => {
 
 .page-info {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   min-width: 60px;
   text-align: center;
 }
@@ -623,10 +623,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
-  color: #333;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
   font-size: 14px;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -635,7 +635,7 @@ onUnmounted(() => {
 }
 
 .semester-dropdown-btn:hover {
-  border-color: #007acc;
+  border-color: var(--accent);
 }
 
 .semester-dropdown {
@@ -644,10 +644,10 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   z-index: 1000;
-  background-color: white;
-  border: 1px solid #ddd;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px var(--shadow-sm);
   max-height: 200px;
   overflow-y: auto;
   margin-top: 2px;
@@ -668,7 +668,7 @@ onUnmounted(() => {
 }
 
 .semester-option:hover {
-  background-color: #f5f5f5;
+  background-color: var(--bg-page);
 }
 
 .semester-option input[type="checkbox"] {
@@ -698,7 +698,7 @@ onUnmounted(() => {
   margin: 0;
   font-size: 28px;
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
   letter-spacing: -0.3px;
 }
 
@@ -707,7 +707,7 @@ onUnmounted(() => {
   width: 640px;
   max-width: calc(100% - 32px);
   padding: 16px 24px 20px;
-  border: 1px solid rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--shadow-md);
   border-radius: 12px;
 }
 
@@ -717,14 +717,14 @@ onUnmounted(() => {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #9ca3af;
+  color: var(--text-muted);
   text-align: center;
 }
 
 .welcome-subtitle {
   margin: 24px 0 0;
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -745,8 +745,8 @@ onUnmounted(() => {
   gap: 6px;
   width: 88px;
   height: 64px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
@@ -770,10 +770,10 @@ onUnmounted(() => {
   width: 16px;
   height: 16px;
   border: none;
-  background: rgba(0, 0, 0, 0.15);
+  background: var(--shadow-md);
   border-radius: 50%;
   padding: 0;
-  color: #555;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -794,7 +794,7 @@ onUnmounted(() => {
 
 .shortcut-label {
   font-size: 11px;
-  color: #374151;
+  color: var(--text-primary);
   text-align: center;
   line-height: 1.2;
   max-width: 80px;
@@ -805,8 +805,8 @@ onUnmounted(() => {
 
 .course-shortcut-add {
   border-style: dashed;
-  border-color: #cbd5e1;
-  background: #f8fafc;
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
 }
 
 .course-shortcut-add:hover {
@@ -815,7 +815,7 @@ onUnmounted(() => {
 }
 
 .shortcut-add-icon {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .course-shortcut-add:hover .shortcut-add-icon {
@@ -825,7 +825,7 @@ onUnmounted(() => {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.35);
+  background: var(--overlay-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -833,11 +833,11 @@ onUnmounted(() => {
 }
 
 .modal-box {
-  background: white;
+  background: var(--bg-modal);
   border-radius: 12px;
   padding: 24px;
   width: 320px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 32px var(--shadow-lg);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -847,12 +847,12 @@ onUnmounted(() => {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .modal-input {
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-input);
   border-radius: 6px;
   font-size: 14px;
   outline: none;
@@ -860,7 +860,7 @@ onUnmounted(() => {
 }
 
 .modal-input:focus {
-  border-color: #3b82f6;
+  border-color: var(--accent);
 }
 
 .modal-actions {
@@ -879,22 +879,22 @@ onUnmounted(() => {
 }
 
 .modal-cancel {
-  background: #f3f4f6;
-  color: #374151;
-  border-color: #e5e7eb;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border-color: var(--border-color);
 }
 
 .modal-cancel:hover {
-  background: #e5e7eb;
+  background: var(--bg-hover);
 }
 
 .modal-confirm {
-  background: #3b82f6;
-  color: white;
+  background: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .modal-confirm:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--accent-hover);
 }
 
 .modal-confirm:disabled {
@@ -928,7 +928,7 @@ onUnmounted(() => {
 }
 
 .courses-grid:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
 .courses-grid::-webkit-scrollbar {
@@ -948,291 +948,11 @@ onUnmounted(() => {
 }
 
 .courses-grid:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--scrollbar-thumb);
 }
 
 .courses-grid::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3) !important;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .course-page {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .header {
-    background: linear-gradient(135deg, #2d2d2d 0%, #1f1f1f 100%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .title-section h2 {
-    color: #e0e0e0;
-    background: linear-gradient(135deg, #4da6ff 0%, #0080ff 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 2px 4px rgba(77, 166, 255, 0.2);
-  }
-
-  .search-input {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #e0e0e0;
-  }
-
-  .search-input::placeholder {
-    color: #888;
-  }
-
-  .search-input:focus {
-    border-color: #4da6ff;
-    outline: none;
-  }
-
-  .search-btn, .fetch-btn {
-    background-color: #2563eb;
-    border: 1px solid #2563eb;
-    color: #ffffff;
-  }
-
-  .search-btn:hover, .fetch-btn:hover {
-    background-color: #1d4ed8;
-    border-color: #1d4ed8;
-  }
-
-  .error-message {
-    background-color: #3d1a1a;
-    border: 1px solid #5d2d2d;
-    color: #ff6b6b;
-  }
-
-  .spinner {
-    border: 3px solid #404040;
-    border-top: 3px solid #4da6ff;
-  }
-
-  .course-card {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #e0e0e0;
-  }
-
-  .course-card:hover {
-    border-color: #4da6ff;
-    box-shadow: 0 2px 8px rgba(77, 166, 255, 0.2);
-  }
-
-  .course-title {
-    color: #e0e0e0;
-  }
-
-  .course-instructor {
-    color: #b0b0b0;
-  }
-
-  .course-location {
-    color: #999;
-  }
-
-  .course-time {
-    color: #888;
-  }
-
-  .course-section {
-    color: #777;
-  }
-
-  .course-participants {
-    color: #4da6ff;
-  }
-
-  .status-ended {
-    background-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .status-live {
-    background-color: #1a3d1a;
-    color: #66cc66;
-  }
-
-  .status-upcoming {
-    background-color: #3d3d1a;
-    color: #cccc66;
-  }
-
-  .status-unknown {
-    background-color: #333;
-    color: #999;
-  }
-
-  .course-id {
-    background-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .pagination {
-    border-top: 1px solid #404040;
-    background-color: #2d2d2d;
-  }
-
-  .page-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #e0e0e0;
-  }
-
-  .page-btn:hover:not(:disabled) {
-    border-color: #4da6ff;
-    background-color: #333;
-  }
-
-  .page-info {
-    color: #b0b0b0;
-  }
-
-  .semester-dropdown-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #e0e0e0;
-  }
-
-  .semester-dropdown-btn:hover {
-    border-color: #4da6ff;
-  }
-
-  .semester-dropdown {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  }
-
-  .semester-option:hover {
-    background-color: #404040;
-  }
-
-  .greeting-line {
-    color: #e0e0e0;
-  }
-
-  .saved-courses-section {
-    background: linear-gradient(#2d2d2d, #2d2d2d) padding-box,
-                linear-gradient(to right, transparent, rgba(255,255,255,0.10), transparent) border-box;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
-  }
-
-  .saved-courses-title {
-    color: #6b7280;
-  }
-
-  .welcome-subtitle {
-    color: #6b7280;
-  }
-
-  .course-shortcut-card {
-    background: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .course-shortcut-card:hover {
-    border-color: #4da6ff;
-    background: #1e2a4a;
-    box-shadow: 0 2px 8px rgba(77, 166, 255, 0.2);
-  }
-
-  .shortcut-label {
-    color: #e0e0e0;
-  }
-
-  .shortcut-icon {
-    color: #4da6ff;
-  }
-
-  .shortcut-remove {
-    background: rgba(255, 255, 255, 0.15);
-    color: #ccc;
-  }
-
-  .shortcut-remove:hover {
-    background: rgba(239, 68, 68, 0.8);
-    color: white;
-  }
-
-  .course-shortcut-add {
-    background: #222;
-    border-color: #404040;
-  }
-
-  .course-shortcut-add:hover {
-    border-color: #4da6ff;
-    background: #1e2a4a;
-  }
-
-  .shortcut-add-icon {
-    color: #555;
-  }
-
-  .course-shortcut-add:hover .shortcut-add-icon {
-    color: #4da6ff;
-  }
-
-  .modal-box {
-    background: #2d2d2d;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-  }
-
-  .modal-title {
-    color: #e0e0e0;
-  }
-
-  .modal-input {
-    background: #1f1f1f;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .modal-input:focus {
-    border-color: #4da6ff;
-  }
-
-  .modal-cancel {
-    background: #404040;
-    color: #e0e0e0;
-    border-color: #555;
-  }
-
-  .modal-cancel:hover {
-    background: #505050;
-  }
-
-  /* Scrollbar styles for dark mode */
-  .courses-grid {
-    scrollbar-color: transparent transparent;
-  }
-
-  .courses-grid:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .courses-grid::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .courses-grid::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .courses-grid:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .courses-grid::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-  }
+  background: var(--scrollbar-thumb-hover) !important;
 }
 
 </style>

@@ -76,7 +76,7 @@
       </div>
     </div>
 
-    <div class="content">
+    <div class="content custom-scrollbar">
       <div v-if="loading" class="loading-state">
         <div class="spinner"></div>
         <p>{{ $t('playback.loadingVideoStreams') }}</p>
@@ -1160,9 +1160,9 @@ onUnmounted(async () => {
 }
 
 .header {
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   margin-bottom: 24px;
   overflow: hidden;
 }
@@ -1179,24 +1179,24 @@ onUnmounted(async () => {
   align-items: center;
   gap: 6px;
   padding: 8px 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
-  color: #666;
+  background-color: var(--bg-input);
+  color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .back-btn:hover:not(:disabled) {
-  border-color: #007acc;
-  color: #007acc;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .back-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
 }
 
 .title-info {
@@ -1207,13 +1207,13 @@ onUnmounted(async () => {
   margin: 0;
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .title-info p {
   margin: 4px 0 0 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .background-mode-indicator {
@@ -1222,7 +1222,7 @@ onUnmounted(async () => {
   gap: 4px;
   margin-top: 4px;
   padding: 2px 6px;
-  background-color: #28a745;
+  background-color: var(--success);
   color: white;
   font-size: 12px;
   border-radius: 4px;
@@ -1239,22 +1239,22 @@ onUnmounted(async () => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .refresh-btn:hover:not(:disabled) {
-  border-color: #007acc;
-  background-color: #f0f8ff;
+  border-color: var(--accent);
+  background-color: var(--bg-hover);
 }
 
 .refresh-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
 }
 
 .expand-btn {
@@ -1263,16 +1263,16 @@ onUnmounted(async () => {
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .expand-btn:hover {
-  border-color: #007acc;
-  background-color: #f0f8ff;
+  border-color: var(--accent);
+  background-color: var(--bg-hover);
 }
 
 .expand-btn svg {
@@ -1285,8 +1285,8 @@ onUnmounted(async () => {
 
 .course-details {
   padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  background-color: white;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-input);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
@@ -1301,14 +1301,14 @@ onUnmounted(async () => {
 .detail-label {
   font-size: 12px;
   font-weight: 600;
-  color: #666;
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .detail-value {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -1328,14 +1328,14 @@ onUnmounted(async () => {
   justify-content: center;
   height: 400px;
   gap: 16px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #007acc;
+  border: 4px solid var(--bg-hover);
+  border-top: 4px solid var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -1346,7 +1346,7 @@ onUnmounted(async () => {
 }
 
 .error-state svg {
-  color: #dc3545;
+  color: var(--danger);
 }
 
 .error-details {
@@ -1358,28 +1358,28 @@ onUnmounted(async () => {
   font-size: 16px;
   font-weight: 500;
   margin-bottom: 12px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .error-info {
   margin: 12px 0;
   padding: 8px 12px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   border-radius: 4px;
-  border-left: 3px solid #007acc;
+  border-left: 3px solid var(--accent);
 }
 
 .playback-position {
   margin: 0;
   font-size: 14px;
-  color: #555;
+  color: var(--text-secondary);
 }
 
 .error-suggestion {
   margin: 16px 0;
   padding: 12px;
-  background-color: #fff3cd;
-  border: 1px solid #ffeaa7;
+  background-color: var(--warning-bg);
+  border: 1px solid var(--warning-bg);
   border-radius: 4px;
 }
 
@@ -1392,17 +1392,17 @@ onUnmounted(async () => {
 
 .retry-btn {
   padding: 8px 16px;
-  border: 1px solid #007acc;
+  border: 1px solid var(--accent);
   border-radius: 4px;
-  background-color: #007acc;
-  color: white;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .retry-btn:hover {
-  background-color: #0056b3;
+  background-color: var(--accent-hover);
 }
 
 /* Video Content */
@@ -1437,12 +1437,11 @@ onUnmounted(async () => {
   margin-top: 0;
 }
 
-
 .video-container {
   position: relative;
   width: 100%;
   background-color: #000;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--bg-hover);
   border-top: none;
   border-radius: 0;
   overflow: hidden;
@@ -1451,8 +1450,8 @@ onUnmounted(async () => {
 
 .video-container.collapsed {
   height: 60px;
-  background-color: #f8f9fa;
-  border-color: #dee2e6;
+  background-color: var(--bg-elevated);
+  border-color: var(--bg-hover);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1469,7 +1468,7 @@ onUnmounted(async () => {
 
 .video-container.collapsed::after {
   content: attr(data-pip-message);
-  color: #6c757d;
+  color: var(--text-secondary);
   font-size: 14px;
   font-style: italic;
 }
@@ -1525,7 +1524,6 @@ onUnmounted(async () => {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-
 
 .video-player {
   width: 100%;
@@ -1809,18 +1807,18 @@ onUnmounted(async () => {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
-  color: #666;
+  background-color: var(--bg-input);
+  color: var(--text-secondary);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .toggle-btn:hover {
-  border-color: #007acc;
-  color: #007acc;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .toggle-btn svg {
@@ -1834,19 +1832,19 @@ onUnmounted(async () => {
 .details-section {
   margin-top: 12px;
   padding: 12px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   border-radius: 6px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--bg-hover);
 }
 
 .detail-item {
   margin: 6px 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .detail-item strong {
-  color: #333;
+  color: var(--text-primary);
 }
 
 /* Combined warning */
@@ -1856,8 +1854,8 @@ onUnmounted(async () => {
   gap: 8px;
   padding: 12px 16px;
   margin: 0 0 8px 0;
-  background-color: #fff3cd;
-  border: 1px solid #ffeaa7;
+  background-color: var(--warning-bg);
+  border: 1px solid var(--warning-bg);
   border-radius: 6px;
   color: #856404;
   font-size: 14px;
@@ -1886,17 +1884,13 @@ onUnmounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  color: #c0392b;
-}
-
-[data-theme="dark"] .warning-message.ai-error {
-  color: #e74c3c;
+  color: var(--danger);
 }
 
 .warning-message .dismiss-btn {
   background: none;
   border: none;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 16px;
   padding: 0 4px;
@@ -1907,15 +1901,7 @@ onUnmounted(async () => {
 
 .warning-message .dismiss-btn:hover {
   opacity: 1;
-  color: #333;
-}
-
-[data-theme="dark"] .warning-message .dismiss-btn {
-  color: #aaa;
-}
-
-[data-theme="dark"] .warning-message .dismiss-btn:hover {
-  color: #fff;
+  color: var(--text-primary);
 }
 
 /* Slide extraction controls */
@@ -1924,8 +1910,8 @@ onUnmounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--bg-hover);
   border-radius: 0 0 8px 8px;
 }
 
@@ -1938,7 +1924,7 @@ onUnmounted(async () => {
 /* When gallery is part of the video content group, adjust the control styling */
 .video-content .slide-gallery .slide-extraction-control {
   border-radius: 0 0 8px 8px;
-  border-top: 1px solid #dee2e6;
+  border-top: 1px solid var(--bg-hover);
 }
 
 .extraction-main {
@@ -1954,7 +1940,7 @@ onUnmounted(async () => {
   gap: 12px;
   cursor: pointer;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   user-select: none;
 }
 
@@ -1970,7 +1956,7 @@ onUnmounted(async () => {
   display: inline-block;
   width: 48px;
   height: 24px;
-  background-color: #ccc;
+  background-color: var(--border-strong);
   border-radius: 24px;
   transition: all 0.3s ease;
   cursor: pointer;
@@ -1983,14 +1969,14 @@ onUnmounted(async () => {
   left: 2px;
   width: 20px;
   height: 20px;
-  background-color: white;
+  background-color: var(--bg-input);
   border-radius: 50%;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .extraction-toggle input:checked + .toggle-slider {
-  background-color: #007acc;
+  background-color: var(--accent);
 }
 
 .extraction-toggle input:checked + .toggle-slider::before {
@@ -2019,17 +2005,17 @@ onUnmounted(async () => {
   align-items: center;
   gap: 8px;
   padding: 6px 12px;
-  background-color: #e3f2fd;
-  border: 1px solid #bbdefb;
+  background-color: var(--badge-active-bg);
+  border: 1px solid var(--badge-active-bg);
   border-radius: 6px;
-  color: #1565c0;
+  color: var(--badge-active-text);
   font-size: 14px;
   font-weight: 500;
 }
 
 .slide-counter svg {
   flex-shrink: 0;
-  color: #1976d2;
+  color: var(--accent);
 }
 
 .counter-text {
@@ -2039,7 +2025,7 @@ onUnmounted(async () => {
 }
 
 .counter-status {
-  color: #1565c0;
+  color: var(--badge-active-text);
   font-weight: 400;
   opacity: 0.8;
 }
@@ -2047,8 +2033,8 @@ onUnmounted(async () => {
 /* Slide Gallery */
 .slide-gallery {
   margin-top: 24px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--bg-hover);
   border-radius: 8px;
 }
 
@@ -2068,31 +2054,31 @@ onUnmounted(async () => {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid #007acc;
+  border: 1px solid var(--accent);
   border-radius: 4px;
-  background-color: #007acc;
-  color: white;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .post-process-btn:hover:not(:disabled) {
-  background-color: #0056b3;
-  border-color: #0056b3;
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .post-process-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background-color: #6c757d;
-  border-color: #6c757d;
+  background-color: var(--border-strong);
+  border-color: var(--border-strong);
 }
 
 /* Post-processing status bar styles */
 .post-process-status-bar {
-  background-color: #f8f9fa;
-  border: 1px solid #e0e0e0;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 8px 12px;
   margin-bottom: 12px;
@@ -2119,9 +2105,9 @@ onUnmounted(async () => {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  border: 1px solid #dc3545;
+  border: 1px solid var(--danger);
   border-radius: 4px;
-  background-color: #dc3545;
+  background-color: var(--danger);
   color: white;
   font-size: 13px;
   cursor: pointer;
@@ -2129,10 +2115,9 @@ onUnmounted(async () => {
 }
 
 .clear-all-btn:hover {
-  background-color: #c82333;
-  border-color: #c82333;
+  background-color: var(--danger-hover);
+  border-color: var(--danger-hover);
 }
-
 
 /* Responsive design */
 @media (max-width: 768px) {
@@ -2165,472 +2150,5 @@ onUnmounted(async () => {
 
 }
 
-/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
-.content {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-.content:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
-.content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.content::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.content::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  border: none;
-  transition: background 0.3s ease;
-}
-
-.content:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.content::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3) !important;
-}
-
 /* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .playback-page {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .header {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-  }
-
-  .header-main {
-    background-color: #2d2d2d;
-  }
-
-  .back-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #b0b0b0;
-  }
-
-  .back-btn:hover {
-    border-color: #4da6ff;
-    color: #4da6ff;
-  }
-
-  .back-btn:disabled {
-    background-color: #333;
-    border-color: #555;
-    color: #666;
-  }
-
-  .title-info h2 {
-    color: #e0e0e0;
-  }
-
-  .title-info p {
-    color: #b0b0b0;
-  }
-
-  .refresh-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #b0b0b0;
-  }
-
-  .refresh-btn:hover:not(:disabled) {
-    border-color: #4da6ff;
-    background-color: #333;
-  }
-
-  .refresh-btn:disabled {
-    background-color: #333;
-    border-color: #555;
-    color: #666;
-  }
-
-  .expand-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #b0b0b0;
-  }
-
-  .expand-btn:hover {
-    border-color: #4da6ff;
-    background-color: #333;
-  }
-
-  .course-details {
-    background-color: #2d2d2d;
-    border-top: 1px solid #404040;
-  }
-
-  .detail-label {
-    color: #b0b0b0;
-  }
-
-  .detail-value {
-    color: #e0e0e0;
-  }
-
-  .background-mode-indicator {
-    background-color: #66cc66;
-    color: #1a1a1a;
-  }
-
-  /* Slide extraction controls dark mode */
-  .slide-extraction-control {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .extraction-toggle {
-    color: #e0e0e0;
-  }
-
-  .toggle-slider {
-    background-color: #555;
-  }
-
-  .extraction-toggle input:checked + .toggle-slider {
-    background-color: #4da6ff;
-  }
-
-  .slide-counter {
-    background-color: #1a2332;
-    border-color: #2d4a66;
-    color: #4da6ff;
-  }
-
-  .slide-counter svg {
-    color: #66b3ff;
-  }
-
-  .counter-status {
-    color: #4da6ff;
-  }
-
-  .slide-gallery {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .controls-row {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .video-container {
-    border-color: #555;
-  }
-
-  .dual-mute-status {
-    color: rgba(255, 255, 255, 0.72);
-  }
-
-  .video-content .slide-gallery .slide-extraction-control {
-    border-top-color: #666;
-  }
-
-  /* Scrollbar styles for dark mode */
-  .content {
-    scrollbar-color: transparent transparent;
-  }
-
-  .content:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .content::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .content::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .content:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .content::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-  }
-
-  /* Picture in Picture Control Dark Mode */
-  .pip-button {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .pip-button:hover:not(:disabled) {
-    background-color: #333;
-    border-color: #4da6ff;
-  }
-
-  .pip-button:disabled {
-    background-color: #333;
-    border-color: #555;
-    color: #666;
-  }
-
-  .playback-rate-control label {
-    color: #e0e0e0;
-  }
-
-  .playback-rate-control select {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .playback-rate-control select:focus {
-    border-color: #4da6ff;
-  }
-
-  .playback-rate-control select:disabled {
-    background-color: #333;
-    color: #666;
-  }
-
-  /* Stream selector dark mode */
-  .stream-selector label {
-    color: #e0e0e0;
-  }
-
-  .stream-selector select {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .stream-selector select:focus {
-    border-color: #4da6ff;
-  }
-
-  .stream-selector select:disabled {
-    background-color: #333;
-    border-color: #555;
-    color: #666;
-  }
-
-  /* Loading and error states dark mode */
-  .loading-state, .error-state, .no-streams {
-    color: #b0b0b0;
-  }
-
-  .error-state svg {
-    color: #ff6b6b;
-  }
-
-  .error-message {
-    color: #e0e0e0;
-  }
-
-  .error-info {
-    background-color: #333;
-    border-left-color: #4da6ff;
-  }
-
-  .playback-position {
-    color: #b0b0b0;
-  }
-
-  .error-suggestion {
-    background-color: #3d3520;
-    border-color: #665c2a;
-  }
-
-  .suggestion-text {
-    color: #d4b942;
-  }
-
-  .retry-btn {
-    background-color: #4da6ff;
-    border-color: #4da6ff;
-    color: #1a1a1a;
-  }
-
-  .retry-btn:hover {
-    background-color: #3399ff;
-    border-color: #3399ff;
-  }
-
-  /* Combined warning dark mode */
-  .combined-warning {
-    background-color: #3d3520;
-    border-color: #665c2a;
-    color: #d4b942;
-  }
-
-  .combined-warning svg {
-    color: #f39c12;
-  }
-
-  /* Video container dark mode */
-  .video-container.collapsed {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .video-container.collapsed::after {
-    color: #b0b0b0;
-  }
-
-  /* Mute indicator dark mode */
-  .mute-indicator {
-    background-color: rgba(255, 107, 107, 0.9);
-    color: #1a1a1a;
-  }
-
-  /* Retry indicator dark mode */
-  .retry-indicator {
-    background-color: rgba(45, 45, 45, 0.9);
-    color: #e0e0e0;
-  }
-
-  /* Post-processing button dark mode */
-  .post-process-btn {
-    background-color: #4da6ff;
-    border-color: #4da6ff;
-    color: #1a1a1a;
-  }
-
-  .post-process-btn:hover:not(:disabled) {
-    background-color: #3399ff;
-    border-color: #3399ff;
-  }
-
-  .post-process-btn:disabled {
-    background-color: #666;
-    border-color: #666;
-    color: #999;
-  }
-
-  /* Post-processing status bar dark mode */
-  .post-process-status-bar {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .processing-spinner {
-    border-color: rgba(26, 26, 26, 0.3);
-    border-top-color: #1a1a1a;
-  }
-
-  /* Clear all button dark mode */
-  .clear-all-btn {
-    background-color: #ff6b6b;
-    border-color: #ff6b6b;
-  }
-
-  .clear-all-btn:hover {
-    background-color: #ff5252;
-    border-color: #ff5252;
-  }
-
-  /* Slide gallery dark mode */
-  .gallery-grid .slide-thumbnail {
-    background-color: #2d2d2d;
-    border-color: #555;
-  }
-
-  .gallery-grid .slide-thumbnail:hover {
-    border-color: #4da6ff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .thumbnail-overlay {
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
-  }
-
-  .delete-btn {
-    background-color: rgba(255, 107, 107, 0.8);
-  }
-
-  .delete-btn:hover {
-    background-color: rgba(255, 107, 107, 1);
-  }
-
-  /* Slide modal dark mode */
-  .slide-modal {
-    background-color: rgba(0, 0, 0, 0.9);
-  }
-
-  .modal-content {
-    background-color: #2d2d2d;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-  }
-
-  .modal-header {
-    background-color: #333;
-    border-bottom-color: #555;
-  }
-
-  .modal-header h3 {
-    color: #e0e0e0;
-  }
-
-  .modal-delete-btn {
-    background-color: #ff6b6b;
-    border-color: #ff6b6b;
-  }
-
-  .modal-delete-btn:hover {
-    background-color: #ff5252;
-    border-color: #ff5252;
-  }
-
-  .modal-close-btn {
-    background-color: #666;
-    border-color: #666;
-  }
-
-  .modal-close-btn:hover {
-    background-color: #777;
-    border-color: #777;
-  }
-
-  .modal-body {
-    background-color: #2d2d2d;
-  }
-
-  .modal-image {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .slide-metadata {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .slide-metadata p {
-    color: #b0b0b0;
-  }
-
-  .slide-metadata strong {
-    color: #e0e0e0;
-  }
-
-  /* Spinner dark mode */
-  .spinner {
-    border-color: #555;
-    border-top-color: #4da6ff;
-  }
-
-  .retry-spinner {
-    border-color: rgba(224, 224, 224, 0.3);
-    border-top-color: #e0e0e0;
-  }
-}
 </style>

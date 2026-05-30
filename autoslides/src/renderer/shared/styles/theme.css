@@ -1,13 +1,13 @@
 /*
  * Shared theme tokens. Variables are declared on :root with light defaults
- * and overridden under prefers-color-scheme: dark. Existing scoped component
- * styles continue to use hardcoded colors; this file is the migration target
- * for Phase 6 and future cleanup, not a forced rewrite.
+ * and overridden under prefers-color-scheme: dark. Component styles consume
+ * these tokens so dark mode is automatic — no per-component media queries.
  */
 
 :root {
   /* Surfaces */
   --bg-page: #f5f5f5;
+  --bg-page-alt: #f0f0f0;
   --bg-surface: #ffffff;
   --bg-elevated: #f8f9fa;
   --bg-subtle: #fafafa;
@@ -37,12 +37,55 @@
   --danger-hover: #b71c1c;
   --success: #2e7d32;
   --warning: #ed6c02;
+
+  /* Overlays */
+  --overlay-dark: rgba(0, 0, 0, 0.3);
+  --overlay-light: rgba(255, 255, 255, 0.3);
+
+  /* Scrollbar */
+  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
+
+  /* Shadows */
+  --shadow-sm: rgba(0, 0, 0, 0.08);
+  --shadow-md: rgba(0, 0, 0, 0.12);
+  --shadow-lg: rgba(0, 0, 0, 0.2);
+
+  /* Badges */
+  --badge-active-bg: #e7f3ff;
+  --badge-active-text: #1768a8;
+  --badge-cropped-bg: #edf0f3;
+  --badge-cropped-text: #58616b;
+  --badge-removed-bg: #ffe8e6;
+  --badge-removed-text: #b63a30;
+  --badge-version-bg: #007acc;
+  --badge-version-text: #ffffff;
+
+  /* Status backgrounds/borders */
+  --danger-bg: #ffe8e6;
+  --danger-border: #feb2b2;
+  --success-bg: #f0fff4;
+  --success-border: #9ae6b4;
+  --warning-bg: #fff8e1;
+
+  /* Form controls */
+  --focus-ring: rgba(0, 122, 204, 0.1);
+  --link-color: #007acc;
+
+  /* Z-index scale */
+  --z-base: 1;
+  --z-dropdown: 10;
+  --z-sticky: 20;
+  --z-overlay: 30;
+  --z-modal: 1000;
+  --z-super-modal: 10000;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     /* Surfaces */
     --bg-page: #1a1a1a;
+    --bg-page-alt: #222222;
     --bg-surface: #1e1e1e;
     --bg-elevated: #252525;
     --bg-subtle: #252525;
@@ -72,5 +115,39 @@
     --danger-hover: #e53935;
     --success: #66bb6a;
     --warning: #ffa726;
+
+    /* Overlays */
+    --overlay-dark: rgba(0, 0, 0, 0.5);
+    --overlay-light: rgba(255, 255, 255, 0.15);
+
+    /* Scrollbar */
+    --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
+
+    /* Shadows */
+    --shadow-sm: rgba(0, 0, 0, 0.2);
+    --shadow-md: rgba(0, 0, 0, 0.3);
+    --shadow-lg: rgba(0, 0, 0, 0.5);
+
+    /* Badges */
+    --badge-active-bg: #1a3a5c;
+    --badge-active-text: #6cb4ee;
+    --badge-cropped-bg: #2d3748;
+    --badge-cropped-text: #a0aec0;
+    --badge-removed-bg: #5c2020;
+    --badge-removed-text: #feb2b2;
+    --badge-version-bg: #4a9eff;
+    --badge-version-text: #ffffff;
+
+    /* Status backgrounds/borders */
+    --danger-bg: #5c2020;
+    --danger-border: #c53030;
+    --success-bg: #1a4a2e;
+    --success-border: #276749;
+    --warning-bg: #4a3800;
+
+    /* Form controls */
+    --focus-ring: rgba(74, 158, 255, 0.15);
+    --link-color: #4a9eff;
   }
 }

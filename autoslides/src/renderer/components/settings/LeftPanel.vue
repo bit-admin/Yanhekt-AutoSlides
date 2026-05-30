@@ -65,7 +65,7 @@
       </div>
     </div>
 
-    <div class="control-section">
+    <div class="control-section custom-scrollbar">
       <div class="control-header">
         <h3>{{ $t('settings.settings') }}</h3>
         <button @click="openAdvancedSettings" class="advanced-btn">
@@ -598,8 +598,8 @@ defineExpose({
 
 .login-section {
   padding: 16px;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
 }
 
 .login-form {
@@ -623,7 +623,7 @@ defineExpose({
 .login-form p, .verifying-state p {
   margin: 0 0 12px 0;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .user-banner {
@@ -640,27 +640,27 @@ defineExpose({
 }
 
 .user-banner:hover {
-  background-color: #eef1f4;
+  background-color: var(--bg-hover);
 }
 
 .user-banner.open {
   gap: 10px;
   padding: 5px 8px;
-  border: 1px solid #d5d9de;
+  border: 1px solid var(--border-input);
   border-bottom: none;
   border-radius: 8px 8px 0 0;
-  background-color: #ffffff;
+  background-color: var(--bg-surface);
 }
 
 .user-banner.open:hover {
-  background-color: #ffffff;
+  background-color: var(--bg-surface);
 }
 
 .user-avatar {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background-color: #2563eb;
+  background-color: var(--accent);
   color: white;
   display: flex;
   align-items: center;
@@ -676,7 +676,7 @@ defineExpose({
   text-align: left;
   font-size: 13px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -685,7 +685,7 @@ defineExpose({
 .user-banner-chevron {
   width: 14px;
   height: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   transition: transform 0.2s ease;
 }
 
@@ -699,10 +699,10 @@ defineExpose({
   left: 0;
   right: 0;
   z-index: 20;
-  border: 1px solid #d5d9de;
+  border: 1px solid var(--border-input);
   border-top: none;
   border-radius: 0 0 8px 8px;
-  background-color: #ffffff;
+  background-color: var(--bg-surface);
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
   padding: 8px;
 }
@@ -711,13 +711,13 @@ defineExpose({
   margin: 0;
   font-size: 12px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
 }
 
 .user-menu-message {
   margin: 4px 0 8px 0;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-secondary);
   line-height: 1.35;
 }
 
@@ -733,8 +733,8 @@ defineExpose({
 .loading-spinner {
   width: 20px;
   height: 20px;
-  border: 2px solid #f3f3f3;
-  border-top: 2px solid #007acc;
+  border: 2px solid var(--bg-hover);
+  border-top: 2px solid var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto;
@@ -754,7 +754,7 @@ defineExpose({
 
 .input-field {
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 14px;
 }
@@ -768,16 +768,16 @@ defineExpose({
 }
 
 .login-btn {
-  background-color: #007acc;
-  color: white;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .login-btn:hover:not(:disabled) {
-  background-color: #005a9e;
+  background-color: var(--accent-strong);
 }
 
 .login-btn:disabled {
-  background-color: #ccc;
+  background-color: var(--border-strong);
   cursor: not-allowed;
 }
 
@@ -801,26 +801,26 @@ defineExpose({
 .browser-login-btn {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #007acc;
+  border: 1px solid var(--accent);
   border-radius: 4px;
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
   background-color: transparent;
-  color: #007acc;
+  color: var(--accent);
   white-space: nowrap;
 }
 
 .browser-login-btn:hover {
-  background-color: #007acc;
-  color: white;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .logout-btn {
   width: auto;
   background-color: transparent;
-  color: #dc3545;
-  border: 1px solid #dc3545;
+  color: var(--danger);
+  border: 1px solid var(--danger);
   padding: 6px 10px;
   align-self: flex-start;
   margin: 0;
@@ -833,9 +833,9 @@ defineExpose({
 }
 
 .logout-btn:hover {
-  background-color: #dc3545;
-  border-color: #dc3545;
-  color: white;
+  background-color: var(--danger);
+  border-color: var(--danger);
+  color: var(--text-on-accent);
 }
 
 .control-section {
@@ -862,17 +862,17 @@ defineExpose({
   align-items: center;
   gap: 4px;
   padding: 6px 12px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
   transition: background-color 0.2s;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .advanced-btn:hover {
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
 }
 
 .settings-content {
@@ -892,7 +892,7 @@ defineExpose({
   display: block;
   font-size: 12px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 6px;
 }
 
@@ -913,7 +913,7 @@ defineExpose({
   cursor: pointer;
   padding: 2px;
   border-radius: 3px;
-  color: #666;
+  color: var(--text-secondary);
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -922,8 +922,8 @@ defineExpose({
 }
 
 .reset-btn:hover {
-  background-color: #f0f0f0;
-  color: #333;
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
   opacity: 1;
 }
 
@@ -940,11 +940,11 @@ defineExpose({
 .directory-input {
   flex: 1;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
-  background-color: #f8f9fa;
-  color: #666;
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -953,7 +953,7 @@ defineExpose({
 .browse-btn {
   padding: 6px 12px;
   background-color: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
   border: none;
   border-radius: 4px;
   font-size: 12px;
@@ -962,7 +962,7 @@ defineExpose({
 }
 
 .browse-btn:hover {
-  background-color: #0056b3;
+  background-color: var(--accent-hover);
 }
 
 .mode-toggle {
@@ -973,9 +973,9 @@ defineExpose({
 .mode-btn {
   flex: 1;
   padding: 6px 8px;
-  border: 1px solid #ddd;
-  background-color: #f8f9fa;
-  color: #666;
+  border: 1px solid var(--border-input);
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
   font-size: 11px;
   border-radius: 4px;
   cursor: pointer;
@@ -983,12 +983,12 @@ defineExpose({
 }
 
 .mode-btn:hover {
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
 }
 
 .mode-btn.active {
   background-color: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
   border-color: var(--accent);
 }
 
@@ -999,9 +999,9 @@ defineExpose({
 .audio-mode-select {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   font-size: 12px;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -1010,7 +1010,7 @@ defineExpose({
 .audio-mode-select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .two-col-item .setting-label {
@@ -1022,8 +1022,8 @@ defineExpose({
 .verification-unified-control {
   display: flex;
   align-items: stretch;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
   border-radius: 6px;
   overflow: hidden;
   transition: all 0.2s ease;
@@ -1031,7 +1031,7 @@ defineExpose({
 }
 
 .verification-unified-control:hover {
-  background-color: #e9ecef;
+  background-color: var(--bg-hover);
   border-color: var(--accent);
 }
 
@@ -1040,7 +1040,7 @@ defineExpose({
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   padding: 8px 12px;
   background-color: transparent;
@@ -1065,20 +1065,20 @@ defineExpose({
   gap: 6px;
   padding: 8px 12px;
   background-color: rgba(255, 255, 255, 0.7);
-  border-left: 1px solid #ddd;
+  border-left: 1px solid var(--border-input);
 }
 
 .count-label {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .verification-count-select {
   padding: 4px 6px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   font-size: 11px;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -1088,7 +1088,7 @@ defineExpose({
 .verification-count-select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .task-speed-selector {
@@ -1098,9 +1098,9 @@ defineExpose({
 .task-speed-select {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   font-size: 12px;
   cursor: pointer;
   transition: border-color 0.2s;
@@ -1109,7 +1109,7 @@ defineExpose({
 .task-speed-select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 /* Auto post-processing control styles */
@@ -1117,8 +1117,8 @@ defineExpose({
 
 .status-section {
   padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
 }
 
 .status-row {
@@ -1135,15 +1135,15 @@ defineExpose({
 
 .status-label {
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .status-value {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .status-value.internal {
-  color: #28a745;
+  color: var(--success);
 }
 
 .status-value.external {
@@ -1156,7 +1156,7 @@ defineExpose({
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: var(--overlay-dark);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1164,7 +1164,7 @@ defineExpose({
 }
 
 .modal-content {
-  background-color: white;
+  background-color: var(--bg-input);
   border-radius: 8px;
   width: 600px;
   max-width: 90vw;
@@ -1179,7 +1179,7 @@ defineExpose({
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .modal-header h3 {
@@ -1198,7 +1198,7 @@ defineExpose({
 }
 
 .close-btn:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
 }
 
 .modal-body {
@@ -1206,7 +1206,7 @@ defineExpose({
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .advanced-setting-section .setting-item {
@@ -1236,7 +1236,7 @@ defineExpose({
 
 .setting-description {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 8px;
   line-height: 1.3;
 }
@@ -1247,7 +1247,7 @@ defineExpose({
   background-color: rgba(0, 0, 0, 0.06);
   padding: 2px 5px;
   border-radius: 3px;
-  color: #333;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
@@ -1273,14 +1273,14 @@ defineExpose({
   justify-content: flex-end;
   gap: 8px;
   padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
   flex-shrink: 0;
 }
 
 .cancel-btn, .save-btn {
   padding: 8px 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 12px;
   cursor: pointer;
@@ -1288,66 +1288,24 @@ defineExpose({
 }
 
 .cancel-btn {
-  background-color: #f8f9fa;
-  color: #666;
+  background-color: var(--bg-elevated);
+  color: var(--text-secondary);
 }
 
 .cancel-btn:hover {
-  background-color: #e9ecef;
-  border-color: #adb5bd;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .save-btn {
-  background-color: #007acc;
-  color: white;
-  border-color: #007acc;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--accent);
 }
 
 .save-btn:hover {
-  background-color: #0056b3;
-  border-color: #0056b3;
-}
-
-/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
-.control-section,
-.advanced-settings-content {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-.control-section:hover,
-.advanced-settings-content:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
-.control-section::-webkit-scrollbar,
-.advanced-settings-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.control-section::-webkit-scrollbar-track,
-.advanced-settings-content::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.control-section::-webkit-scrollbar-thumb,
-.advanced-settings-content::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  border: none;
-  transition: background 0.3s ease;
-}
-
-.control-section:hover::-webkit-scrollbar-thumb,
-.advanced-settings-content:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.control-section::-webkit-scrollbar-thumb:hover,
-.advanced-settings-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3) !important;
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 /* Tools Flyout */
@@ -1361,10 +1319,10 @@ defineExpose({
   gap: 4px;
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: #ffffff;
-  color: #333;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
   font-size: 11px;
   font-weight: 500;
   cursor: pointer;
@@ -1372,8 +1330,8 @@ defineExpose({
 }
 
 .tools-trigger:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .tools-trigger svg:first-child {
@@ -1387,385 +1345,6 @@ defineExpose({
 }
 
 /* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .left-panel {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-
-  .login-section {
-    border-bottom-color: #404040;
-    background-color: #2d2d2d;
-  }
-
-  .login-form h3, .verifying-state h3 {
-    color: #e0e0e0;
-  }
-
-  .login-form p, .verifying-state p {
-    color: #b0b0b0;
-  }
-
-  .user-banner {
-    background-color: transparent;
-  }
-
-  .user-banner:hover {
-    background-color: #383838;
-  }
-
-  .user-banner.open {
-    border-color: #4a4a4a;
-    background-color: #2d2d2d;
-  }
-
-  .user-banner.open:hover {
-    background-color: #2d2d2d;
-  }
-
-  .user-avatar {
-    background-color: #3b82f6;
-  }
-
-  .user-banner-name {
-    color: #e0e0e0;
-  }
-
-  .user-banner-chevron {
-    color: #a0a0a0;
-  }
-
-  .user-menu {
-    background-color: #2d2d2d;
-    border-color: #4a4a4a;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
-  }
-
-  .user-menu-username {
-    color: #e0e0e0;
-  }
-
-  .user-menu-message {
-    color: #b0b0b0;
-  }
-
-  .loading-spinner {
-    border-color: #404040;
-    border-top-color: #4a9eff;
-  }
-
-  .input-field {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .input-field::placeholder {
-    color: #888;
-  }
-
-  .login-btn {
-    background-color: #2563eb;
-  }
-
-  .login-btn:hover:not(:disabled) {
-    background-color: #1d4ed8;
-  }
-
-  .login-btn:disabled {
-    background-color: #555;
-  }
-
-  .browser-login-btn {
-    border-color: #4a9eff;
-    color: #4a9eff;
-  }
-
-  .browser-login-btn:hover {
-    background-color: #4a9eff;
-    color: white;
-  }
-
-  .logout-btn {
-    color: #ff6b6b;
-    border-color: #ff6b6b;
-  }
-
-  .logout-btn:hover {
-    background-color: #ff6b6b;
-    color: white;
-  }
-
-  .control-section {
-    background-color: #2d2d2d;
-  }
-
-  .control-header h3 {
-    color: #e0e0e0;
-  }
-
-  .advanced-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .advanced-btn:hover {
-    background-color: #3d3d3d;
-  }
-
-  .setting-label {
-    color: #e0e0e0;
-  }
-
-  .reset-btn {
-    color: #b0b0b0;
-  }
-
-  .reset-btn:hover {
-    background-color: #3d3d3d;
-    color: #e0e0e0;
-  }
-
-  .setting-description {
-    color: #b0b0b0;
-  }
-
-  .setting-description .json-example {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #e0e0e0;
-  }
-
-  .directory-input {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .browse-btn {
-    background-color: #2563eb;
-  }
-
-  .browse-btn:hover {
-    background-color: #1d4ed8;
-  }
-
-  .mode-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #b0b0b0;
-  }
-
-  .mode-btn:hover {
-    background-color: #3d3d3d;
-  }
-
-  .mode-btn.active {
-    background-color: #2563eb;
-    color: white;
-    border-color: #2563eb;
-  }
-
-  .audio-mode-select, .task-speed-select, .verification-count-select, .concurrent-select, .ssim-select, .ssim-preset-select, .ssim-input, .phash-threshold-input {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .audio-mode-select:focus, .task-speed-select:focus, .verification-count-select:focus, .concurrent-select:focus, .ssim-select:focus, .ssim-preset-select:focus, .ssim-input:focus {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
-  }
-
-  /* pHash threshold input dark mode */
-  
-
-  
-
-  
-
-  
-
-  /* Downsampling controls dark mode */
-  
-
-  
-
-  
-
-  
-
-  
-
-  /* Classroom Rules Dark Theme */
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  .verification-unified-control {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .verification-unified-control:hover {
-    background-color: #3d3d3d;
-    border-color: #4a9eff;
-  }
-
-  .checkbox-label {
-    color: #e0e0e0;
-  }
-
-  .verification-count-control {
-    background-color: rgba(45, 45, 45, 0.7);
-    border-left-color: #404040;
-  }
-
-  .count-label {
-    color: #b0b0b0;
-  }
-
-  .status-section {
-    background-color: #2d2d2d;
-    border-top-color: #404040;
-  }
-
-  
-
-  
-
-  .status-label {
-    color: #e0e0e0;
-  }
-
-  .status-value {
-    color: #b0b0b0;
-  }
-
-  .status-value.internal {
-    color: #4caf50;
-  }
-
-  .status-value.external {
-    color: #ffc107;
-  }
-
-  .modal-overlay {
-    background-color: rgba(0, 0, 0, 0.7);
-  }
-
-  .modal-content {
-    background-color: #2d2d2d;
-  }
-
-  .modal-header {
-    border-bottom-color: #404040;
-  }
-
-  .modal-header h3 {
-    color: #e0e0e0;
-  }
-
-  .close-btn {
-    color: #e0e0e0;
-  }
-
-  .close-btn:hover {
-    background-color: #3d3d3d;
-  }
-
-  .modal-body {
-    color: #e0e0e0;
-  }
-
-  
-
-  
-
-  
-
-  .advanced-tabs .tab-btn.active {
-    color: #4a9eff;
-    border-bottom-color: #4a9eff;
-    background-color: #2d2d2d;
-  }
-
-  
-
-  
-
-  
-
-  
-
-  .modal-actions {
-    background-color: #2d2d2d;
-    border-top-color: #404040;
-  }
-
-  .cancel-btn {
-    background-color: #2d2d2d;
-    color: #b0b0b0;
-    border-color: #404040;
-  }
-
-  .cancel-btn:hover {
-    background-color: #3d3d3d;
-    border-color: #555;
-  }
-
-  .save-btn {
-    background-color: #4a9eff;
-    border-color: #4a9eff;
-  }
-
-  .save-btn:hover {
-    background-color: #3a8eef;
-    border-color: #3a8eef;
-  }
-
-  .control-section,
-  .advanced-settings-content {
-    scrollbar-color: transparent transparent;
-  }
-
-  .control-section:hover,
-  .advanced-settings-content:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .control-section::-webkit-scrollbar-track,
-  .advanced-settings-content::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .control-section::-webkit-scrollbar-thumb,
-  .advanced-settings-content::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .control-section:hover::-webkit-scrollbar-thumb,
-  .advanced-settings-content:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .control-section::-webkit-scrollbar-thumb:hover,
-  .advanced-settings-content::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-  }
-}
 
 /* Downsampling control styles - modified to accommodate presets */
 
@@ -1774,7 +1353,7 @@ defineExpose({
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   padding: 8px 12px;
   background-color: transparent;
@@ -1795,26 +1374,6 @@ defineExpose({
 
 /* Downsampling presets styles */
 
-@media (prefers-color-scheme: dark) {
-  /* Dark mode support for downsampling control */
-  
-
-  
-
-  .downsampling-control .checkbox-label {
-    color: #e0e0e0;
-  }
-
-  
-
-  /* Dark mode support for post-processing phases list */
-  
-
-  
-
-  
-}
-
 /* pHash exclusion list styles */
 
 /* Dark mode support for pHash exclusion list */
@@ -1832,36 +1391,20 @@ defineExpose({
 .name-input-field {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
   font-size: 14px;
-  background-color: white;
+  background-color: var(--bg-input);
   margin-top: 8px;
 }
 
 .name-input-field:focus {
   outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 /* Dark mode support for name input dialog */
-@media (prefers-color-scheme: dark) {
-  .name-input-field {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .name-input-field:focus {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
-  }
-
-  .name-input-field::placeholder {
-    color: #888;
-  }
-}
 
 /* AI Settings Tab Styles */
 
@@ -1875,131 +1418,5 @@ defineExpose({
 }
 
 /* Dark mode support for AI settings */
-@media (prefers-color-scheme: dark) {
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  /* ModelScope Model Chain dark mode */
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  /* Copilot dark mode */
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  
-
-  /* Tools Dropdown Dark Mode */
-  .tools-trigger {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .tools-trigger:hover {
-    background-color: #404040;
-    border-color: #666;
-  }
-
-}
 
 </style>

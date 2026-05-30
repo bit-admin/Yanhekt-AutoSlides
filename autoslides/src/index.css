@@ -1,6 +1,7 @@
 @import './renderer/shared/styles/theme.css';
 @import './renderer/shared/styles/modal.css';
 @import './renderer/shared/styles/settings.css';
+@import './renderer/shared/styles/components.css';
 
 * {
   box-sizing: border-box;

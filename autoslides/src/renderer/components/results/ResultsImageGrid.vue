@@ -107,8 +107,8 @@ const getCropLabel = (item: ResultsItem) => {
 
 .result-item {
   position: relative;
-  background-color: white;
-  border: 2px solid #e9ecef;
+  background-color: var(--bg-surface);
+  border: 2px solid var(--bg-hover);
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
@@ -116,29 +116,29 @@ const getCropLabel = (item: ResultsItem) => {
 }
 
 .result-item:hover {
-  border-color: #007acc;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px var(--shadow-sm);
 }
 
 .result-item.selected {
-  border-color: #007acc;
-  background-color: #e7f3ff;
+  border-color: var(--accent);
+  background-color: var(--badge-active-bg);
 }
 
 .result-item.removed {
-  border-color: #d9534f;
+  border-color: var(--danger);
 }
 
 .result-item.removed.selected {
-  background-color: #fff1f0;
-  border-color: #d9534f;
+  background-color: var(--danger-bg);
+  border-color: var(--danger);
 }
 
 .item-checkbox {
   position: absolute;
   top: 8px;
   left: 8px;
-  z-index: 1;
+  z-index: var(--z-base);
 }
 
 .item-checkbox input {
@@ -151,13 +151,13 @@ const getCropLabel = (item: ResultsItem) => {
   position: absolute;
   top: 8px;
   right: 8px;
-  z-index: 1;
+  z-index: var(--z-base);
   width: 28px;
   height: 28px;
   border: none;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.92);
-  color: #555;
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -167,7 +167,7 @@ const getCropLabel = (item: ResultsItem) => {
 .item-thumbnail {
   width: 100%;
   aspect-ratio: 16 / 9;
-  background-color: #f5f5f5;
+  background-color: var(--bg-page);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -181,7 +181,7 @@ const getCropLabel = (item: ResultsItem) => {
 }
 
 .thumbnail-placeholder {
-  color: #c3c7cb;
+  color: var(--text-muted);
 }
 
 .item-copy {
@@ -196,7 +196,7 @@ const getCropLabel = (item: ResultsItem) => {
   flex: 1;
   min-width: 0;
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -219,18 +219,18 @@ const getCropLabel = (item: ResultsItem) => {
 }
 
 .status-badge.active {
-  background-color: #e7f3ff;
-  color: #1768a8;
+  background-color: var(--badge-active-bg);
+  color: var(--badge-active-text);
 }
 
 .status-badge.cropped {
-  background-color: #edf0f3;
-  color: #58616b;
+  background-color: var(--badge-cropped-bg);
+  color: var(--badge-cropped-text);
 }
 
 .status-badge.removed {
-  background-color: #ffe8e6;
-  color: #b63a30;
+  background-color: var(--badge-removed-bg);
+  color: var(--badge-removed-text);
 }
 
 .reason-badge.reason-duplicate {
@@ -254,41 +254,7 @@ const getCropLabel = (item: ResultsItem) => {
 }
 
 .reason-badge.reason-manual {
-  background-color: #ffe8e6;
-  color: #b63a30;
-}
-
-@media (prefers-color-scheme: dark) {
-  .result-item {
-    background-color: #2d2d2d;
-    border-color: #3d3d3d;
-    color: #e0e0e0;
-  }
-
-  .item-name {
-    color: #aaa;
-  }
-
-  .item-thumbnail {
-    background-color: #252525;
-  }
-
-  .item-preview-btn {
-    background-color: rgba(40, 40, 40, 0.92);
-    color: #ddd;
-  }
-
-  .result-item.selected {
-    background-color: #1a3a5c;
-  }
-
-  .result-item.removed.selected {
-    background-color: #482220;
-  }
-
-  .status-badge.cropped {
-    background-color: #40464d;
-    color: #d9dde1;
-  }
+  background-color: var(--badge-removed-bg);
+  color: var(--badge-removed-text);
 }
 </style>

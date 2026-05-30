@@ -204,7 +204,7 @@
       </div>
     </div>
 
-    <div class="content-area" ref="contentAreaRef">
+    <div class="content-area custom-scrollbar" ref="contentAreaRef">
       <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
         <span>{{ $t('trash.loading') }}</span>
@@ -1126,8 +1126,8 @@ const confirmClearTrash = async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: #ffffff;
-  color: #333;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
 }
 
 .toolbar {
@@ -1135,8 +1135,8 @@ const confirmClearTrash = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  background-color: #fafafa;
-  border-bottom: 1px solid #e0e0e0;
+  background-color: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-color);
   gap: 12px;
 }
 
@@ -1154,9 +1154,9 @@ const confirmClearTrash = async () => {
   align-items: center;
   gap: 4px;
   padding: 6px 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
+  background-color: var(--bg-input);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
@@ -1171,19 +1171,19 @@ const confirmClearTrash = async () => {
 
 .filter-group label {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .back-btn:hover,
 .refresh-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: var(--accent);
 }
 
 .refresh-btn:disabled,
@@ -1205,7 +1205,7 @@ const confirmClearTrash = async () => {
   padding: 6px 10px;
   border: none;
   border-radius: 4px;
-  color: white;
+  color: var(--text-on-accent);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1230,7 +1230,7 @@ const confirmClearTrash = async () => {
 }
 
 .auto-crop-btn {
-  background-color: #007acc;
+  background-color: var(--accent);
 }
 
 .auto-crop-btn:hover:not(:disabled) {
@@ -1238,7 +1238,7 @@ const confirmClearTrash = async () => {
 }
 
 .clear-btn {
-  background-color: #6c757d;
+  background-color: var(--border-strong);
 }
 
 .clear-btn:hover:not(:disabled) {
@@ -1265,10 +1265,10 @@ const confirmClearTrash = async () => {
   align-items: center;
   gap: 4px;
   padding: 6px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: white;
-  color: #333;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -1277,8 +1277,8 @@ const confirmClearTrash = async () => {
 }
 
 .edit-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  border-color: #ccc;
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
 }
 
 .edit-btn:disabled {
@@ -1287,9 +1287,9 @@ const confirmClearTrash = async () => {
 }
 
 .edit-btn-active {
-  background-color: #007acc;
-  border-color: #007acc;
-  color: white;
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .edit-btn-active:hover:not(:disabled) {
@@ -1307,7 +1307,7 @@ const confirmClearTrash = async () => {
   margin-left: 4px;
   border-radius: 999px;
   background-color: rgba(255, 255, 255, 0.25);
-  color: white;
+  color: var(--text-on-accent);
   font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -1357,7 +1357,7 @@ const confirmClearTrash = async () => {
 }
 
 .action-split-auto-crop .action-split-menu {
-  background-color: #007acc;
+  background-color: var(--accent);
 }
 
 .action-split-auto-crop .action-split-menu-item:hover:not(:disabled) {
@@ -1436,7 +1436,7 @@ const confirmClearTrash = async () => {
   width: 14px;
   height: 14px;
   margin: 0;
-  accent-color: #007acc;
+  accent-color: var(--accent);
   cursor: pointer;
 }
 
@@ -1453,36 +1453,6 @@ const confirmClearTrash = async () => {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-.content-area:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
-.content-area::-webkit-scrollbar {
-  width: 6px;
-}
-
-.content-area::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.content-area::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  transition: background 0.3s ease;
-}
-
-.content-area:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.content-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
 }
 
 .loading-state,
@@ -1493,14 +1463,14 @@ const confirmClearTrash = async () => {
   justify-content: center;
   height: 100%;
   gap: 16px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid #e0e0e0;
-  border-top-color: #007acc;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -1571,7 +1541,7 @@ const confirmClearTrash = async () => {
   height: 18px;
   margin: 0;
   cursor: pointer;
-  accent-color: #007acc;
+  accent-color: var(--accent);
 }
 
 .folder-item {
@@ -1582,14 +1552,14 @@ const confirmClearTrash = async () => {
   padding: 12px 14px;
   border: 1px solid #e1e6eb;
   border-radius: 8px;
-  background-color: white;
+  background-color: var(--bg-input);
   text-align: left;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .folder-item:hover {
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   border-color: #ced7e0;
 }
 
@@ -1609,9 +1579,9 @@ const confirmClearTrash = async () => {
 }
 
 .folder-item-selected {
-  background-color: #fff1f0;
-  border-color: #d9534f;
-  box-shadow: 0 0 0 1px #d9534f inset;
+  background-color: var(--danger-bg);
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px var(--danger) inset;
 }
 
 .folder-item-selected:hover {
@@ -1660,7 +1630,7 @@ const confirmClearTrash = async () => {
   min-width: 0;
   font-size: 13px;
   font-weight: 600;
-  color: #2b2b2b;
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1708,19 +1678,19 @@ const confirmClearTrash = async () => {
 
 .count-badge.active,
 .status-badge.active {
-  background-color: #e7f3ff;
-  color: #1768a8;
+  background-color: var(--badge-active-bg);
+  color: var(--badge-active-text);
 }
 
 .status-badge.cropped {
-  background-color: #edf0f3;
-  color: #58616b;
+  background-color: var(--badge-cropped-bg);
+  color: var(--badge-cropped-text);
 }
 
 .count-badge.removed,
 .status-badge.removed {
-  background-color: #ffe8e6;
-  color: #b63a30;
+  background-color: var(--badge-removed-bg);
+  color: var(--badge-removed-text);
 }
 
 .folder-chevron {
@@ -1750,8 +1720,8 @@ const confirmClearTrash = async () => {
 }
 
 .reason-badge.reason-manual {
-  background-color: #ffe8e6;
-  color: #b63a30;
+  background-color: var(--badge-removed-bg);
+  color: var(--badge-removed-text);
 }
 
 .footer {
@@ -1759,10 +1729,10 @@ const confirmClearTrash = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 8px 16px;
-  background-color: #fafafa;
-  border-top: 1px solid #e0e0e0;
+  background-color: var(--bg-subtle);
+  border-top: 1px solid var(--border-color);
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .footer-left {
@@ -1776,8 +1746,8 @@ const confirmClearTrash = async () => {
   font-size: 12px;
   border: 1px solid #ced7e0;
   border-radius: 4px;
-  background-color: white;
-  color: #333;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
   cursor: pointer;
   transition: background-color 0.15s, border-color 0.15s;
 }
@@ -1797,7 +1767,7 @@ const confirmClearTrash = async () => {
   align-items: center;
   gap: 6px;
   padding: 4px 8px;
-  background-color: #f0f0f0;
+  background-color: var(--bg-hover);
   border-radius: 6px;
 }
 
@@ -1806,18 +1776,18 @@ const confirmClearTrash = async () => {
   align-items: center;
   gap: 6px;
   padding: 3px 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
-  background-color: #f8f9fa;
+  background-color: var(--bg-elevated);
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
   transition: background-color 0.15s, border-color 0.15s;
 }
 
 .group-toggle:hover {
-  background-color: #f0f0f0;
+  background-color: var(--bg-hover);
   border-color: #d0d0d0;
 }
 
@@ -1825,12 +1795,12 @@ const confirmClearTrash = async () => {
   width: 11px;
   height: 11px;
   margin: 0;
-  accent-color: #007acc;
+  accent-color: var(--accent);
   cursor: pointer;
 }
 
 .size-icon {
-  color: #666;
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
@@ -1839,7 +1809,7 @@ const confirmClearTrash = async () => {
   appearance: none;
   width: 140px;
   height: 4px;
-  background: #ccc;
+  background: var(--border-strong);
   border-radius: 2px;
   outline: none;
   cursor: pointer;
@@ -1850,11 +1820,11 @@ const confirmClearTrash = async () => {
   appearance: none;
   width: 14px;
   height: 14px;
-  background: #fff;
-  border: 1px solid #999;
+  background: var(--bg-input);
+  border: 1px solid var(--text-muted);
   border-radius: 50%;
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 1px 3px var(--shadow-lg);
 }
 
 .preview-modal-overlay {
@@ -1872,7 +1842,7 @@ const confirmClearTrash = async () => {
   width: min(960px, calc(100vw - 48px));
   aspect-ratio: 16 / 10;
   max-height: calc(100vh - 48px);
-  background-color: white;
+  background-color: var(--bg-modal);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
@@ -1910,7 +1880,7 @@ const confirmClearTrash = async () => {
 
 .preview-image-container {
   position: relative;
-  background-color: #fff;
+  background-color: var(--bg-surface);
   padding: 54px 18px 58px;
   height: 100%;
 }
@@ -1993,8 +1963,8 @@ const confirmClearTrash = async () => {
 }
 
 .preview-action-btn.primary {
-  background-color: #007acc;
-  color: #fff;
+  background-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .preview-action-btn:disabled {
@@ -2085,6 +2055,7 @@ const confirmClearTrash = async () => {
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 14px;
+  color: var(--text-primary);
 }
 
 .preview-info-table {
@@ -2094,19 +2065,19 @@ const confirmClearTrash = async () => {
 
 .preview-info-table td {
   padding: 10px 0;
-  border-bottom: 1px solid #edf0f2;
+  border-bottom: 1px solid var(--border-color);
   vertical-align: top;
 }
 
 .info-label {
   width: 110px;
-  color: #666;
+  color: var(--text-secondary);
   font-size: 12px;
 }
 
 .info-value {
   font-size: 12px;
-  color: #2c2c2c;
+  color: var(--text-primary);
   word-break: break-word;
 }
 
@@ -2121,250 +2092,5 @@ const confirmClearTrash = async () => {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
-}
-
-@media (prefers-color-scheme: dark) {
-  .results-window {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-
-  .toolbar,
-  .footer {
-    background-color: #252525;
-    border-color: #3d3d3d;
-    color: #e0e0e0;
-  }
-
-  .select-all-btn {
-    background-color: #2d2d2d;
-    border-color: #4d4d4d;
-    color: #e0e0e0;
-  }
-
-  .select-all-btn:hover:not(:disabled) {
-    background-color: #353535;
-    border-color: #5d5d5d;
-  }
-
-  .back-btn,
-  .refresh-btn,
-  .filter-select {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .filter-group label,
-  .item-name {
-    color: #aaa;
-  }
-
-  .folder-item,
-  .result-item {
-    background-color: #2d2d2d;
-    border-color: #3d3d3d;
-    color: #e0e0e0;
-  }
-
-  .folder-item:hover {
-    background-color: #353535;
-    border-color: #4d4d4d;
-  }
-
-  .folder-item-last-visited {
-    background-color: #1f3557;
-    border-color: #3e6aa8;
-    box-shadow: 0 0 0 1px #3e6aa8 inset;
-  }
-
-  .folder-item-last-visited:hover {
-    background-color: #264068;
-    border-color: #4d7dbd;
-  }
-
-  .folder-item-selected {
-    background-color: #4a1f1d;
-    border-color: #d9534f;
-    box-shadow: 0 0 0 1px #d9534f inset;
-  }
-
-  .folder-item-selected:hover {
-    background-color: #5a2725;
-    border-color: #c43d39;
-  }
-
-  .edit-btn {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .edit-btn:hover:not(:disabled) {
-    background-color: #3d3d3d;
-    border-color: #6d6d6d;
-  }
-
-  .edit-btn-active {
-    background-color: #1e6fb3;
-    border-color: #1e6fb3;
-    color: #fff;
-  }
-
-  .edit-btn-active:hover:not(:disabled) {
-    background-color: #1c5d96;
-    border-color: #1c5d96;
-  }
-
-  .folder-name,
-  .info-value,
-  .preview-info-title {
-    color: #f1f1f1;
-  }
-
-  .course-group {
-    background-color: #25282d;
-    border-color: #3d4450;
-  }
-
-  .course-name {
-    color: #66bfff;
-  }
-
-  .course-icon path:first-child {
-    fill: #66bfff;
-  }
-
-  .course-icon path:last-child {
-    fill: #93d0ff;
-  }
-
-  .course-chevron {
-    color: #9098a2;
-  }
-
-  .group-toggle {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .group-toggle:hover {
-    background-color: #353535;
-    border-color: #505050;
-  }
-
-  .folder-counts {
-    color: #9098a2;
-  }
-
-  .folder-count-separator {
-    color: #666f79;
-  }
-
-  .item-thumbnail {
-    background-color: #252525;
-  }
-
-  .item-preview-btn,
-  .preview-close-btn,
-  .preview-action-btn {
-    background-color: rgba(40, 40, 40, 0.92);
-    color: #ddd;
-  }
-
-  .preview-action-btn.primary {
-    background-color: #1e6fb3;
-    color: #fff;
-  }
-
-  .result-item.selected {
-    background-color: #1a3a5c;
-  }
-
-  .result-item.removed.selected {
-    background-color: #482220;
-  }
-
-  .preview-modal {
-    background-color: #232323;
-  }
-
-  .preview-image-container {
-    background-color: #111;
-  }
-
-  .preview-image-placeholder {
-    color: rgba(255, 255, 255, 0.6);
-  }
-
-  .status-badge.cropped {
-    background-color: #40464d;
-    color: #d9dde1;
-  }
-
-  .crop-selection {
-    border-color: #f5f7fa;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.48);
-  }
-
-  .crop-grid-line {
-    background-color: rgba(245, 247, 250, 0.7);
-  }
-
-  .crop-handle {
-    background-color: #f5f7fa;
-    border-color: #f5f7fa;
-  }
-
-  .preview-info-table td {
-    border-bottom-color: #353535;
-  }
-
-  .info-label {
-    color: #999;
-  }
-
-  .size-slider-group {
-    background-color: #333;
-  }
-
-  .size-slider {
-    background: #555;
-  }
-
-  .size-slider::-webkit-slider-thumb {
-    background: #444;
-    border-color: #666;
-  }
-
-  .size-icon,
-  .folder-chevron {
-    color: #888;
-  }
-
-  .content-area {
-    scrollbar-color: transparent transparent;
-  }
-
-  .content-area:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .content-area::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .content-area::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .content-area:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .content-area::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
 }
 </style>
