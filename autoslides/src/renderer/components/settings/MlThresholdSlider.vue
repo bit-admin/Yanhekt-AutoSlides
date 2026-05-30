@@ -1,8 +1,8 @@
 <template>
-  <div class="ml-threshold-sliders">
+  <div class="flex flex-col gap-0">
     <!-- Confidence slider (dual-thumb): trustLow / trustHigh -->
-    <div class="threshold-slider-group">
-      <label class="threshold-slider-label">{{ $t('advanced.ai.ml.confidenceSliderLabel') }}</label>
+    <div class="flex flex-col gap-0.5">
+      <label class="text-xs font-medium text-text">{{ $t('advanced.ai.ml.confidenceSliderLabel') }}</label>
       <div class="zone-labels">
         <span class="zone-label zone-label-keep" :style="{ width: (trustLow * 100) + '%' }">
           <span v-if="trustLow > 0.12">{{ $t('advanced.ai.ml.keep') }}</span>
@@ -44,8 +44,8 @@
     </div>
 
     <!-- Connector line from confidence "check" zone to slide probability slider -->
-    <div class="slider-connector">
-      <svg class="connector-svg" :viewBox="`0 0 ${connectorWidth} 28`" preserveAspectRatio="none">
+    <div class="h-7 relative mx-0 mb-0.5">
+      <svg class="w-full h-full block" :viewBox="`0 0 ${connectorWidth} 28`" preserveAspectRatio="none">
         <path
           :d="connectorPath"
           fill="none"
@@ -66,8 +66,8 @@
     </div>
 
     <!-- Slide probability slider (single-thumb): slideCheckLow -->
-    <div class="threshold-slider-group">
-      <label class="threshold-slider-label">{{ $t('advanced.ai.ml.slideCheckSliderLabel') }}</label>
+    <div class="flex flex-col gap-0.5">
+      <label class="text-xs font-medium text-text">{{ $t('advanced.ai.ml.slideCheckSliderLabel') }}</label>
       <div class="zone-labels">
         <span class="zone-label zone-label-delete" :style="{ width: (slideCheckLow * 100) + '%' }">
           <span v-if="slideCheckLow > 0.12">{{ $t('advanced.ai.ml.delete') }}</span>
@@ -161,26 +161,12 @@ function onSlideCheckInput(event: Event) {
 </script>
 
 <style scoped>
-.ml-threshold-sliders {
+/* Slider geometry and thumb styles — cannot be expressed as Tailwind utilities */
+.ml-threshold-sliders,
+:host {
   --zone-keep-color: #34a853;
   --zone-check-color: #f59e0b;
   --zone-delete-color: #ef4444;
-
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.threshold-slider-group {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.threshold-slider-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-primary, #222);
 }
 
 .zone-labels {
@@ -202,17 +188,9 @@ function onSlideCheckInput(event: Event) {
   user-select: none;
 }
 
-.zone-label-keep {
-  color: var(--zone-keep-color);
-}
-
-.zone-label-check {
-  color: var(--zone-check-color);
-}
-
-.zone-label-delete {
-  color: var(--zone-delete-color);
-}
+.zone-label-keep { color: var(--zone-keep-color); }
+.zone-label-check { color: var(--zone-check-color); }
+.zone-label-delete { color: var(--zone-delete-color); }
 
 .threshold-slider-track-wrapper {
   position: relative;
@@ -237,17 +215,9 @@ function onSlideCheckInput(event: Event) {
   height: 100%;
 }
 
-.zone-keep {
-  background: var(--zone-keep-color);
-}
-
-.zone-check {
-  background: var(--zone-check-color);
-}
-
-.zone-delete {
-  background: var(--zone-delete-color);
-}
+.zone-keep { background: var(--zone-keep-color); }
+.zone-check { background: var(--zone-check-color); }
+.zone-delete { background: var(--zone-delete-color); }
 
 .threshold-range {
   position: absolute;
@@ -273,7 +243,7 @@ function onSlideCheckInput(event: Event) {
   border: none;
   cursor: pointer;
   pointer-events: auto;
-  box-shadow: 0 0 0 2px var(--bg-primary, #fff), 0 1px 4px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 2px var(--bg-surface, #fff), 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .threshold-range::-moz-range-thumb {
@@ -284,7 +254,7 @@ function onSlideCheckInput(event: Event) {
   border: none;
   cursor: pointer;
   pointer-events: auto;
-  box-shadow: 0 0 0 2px var(--bg-primary, #fff), 0 1px 4px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 0 2px var(--bg-surface, #fff), 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .handle-value {
@@ -297,37 +267,5 @@ function onSlideCheckInput(event: Event) {
   font-family: 'SF Mono', 'Menlo', monospace;
   white-space: nowrap;
   pointer-events: none;
-}
-
-.slider-connector {
-  height: 28px;
-  position: relative;
-  margin: 0 0 2px 0;
-}
-
-.connector-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-@media (prefers-color-scheme: dark) {
-  .threshold-slider-label {
-    color: #e0e0e0;
-  }
-
-  .handle-value {
-    color: #b0b0b0;
-  }
-
-  .threshold-range::-webkit-slider-thumb {
-    background: #e0e0e0;
-    box-shadow: 0 0 0 2px #2d2d2d, 0 1px 4px rgba(0, 0, 0, 0.5);
-  }
-
-  .threshold-range::-moz-range-thumb {
-    background: #e0e0e0;
-    box-shadow: 0 0 0 2px #2d2d2d, 0 1px 4px rgba(0, 0, 0, 0.5);
-  }
 }
 </style>

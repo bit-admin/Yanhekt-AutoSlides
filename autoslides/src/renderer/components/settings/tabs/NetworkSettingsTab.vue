@@ -3,8 +3,8 @@
     <h4>{{ $t('advanced.intranetInterface') }}</h4>
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.intranetInterfaceDescription') }}</div>
-      <div class="intranet-interface-row">
-        <select v-model="tempIntranetInterfaceIp" class="intranet-interface-select">
+      <div class="flex items-stretch gap-2 mt-1.5">
+        <select v-model="tempIntranetInterfaceIp" class="concurrent-select">
           <option value="">{{ $t('advanced.intranetInterfaceSystemDefault') }}</option>
           <option
             v-for="iface in availableNetworkInterfaces"
@@ -20,13 +20,13 @@
             {{ tempIntranetInterfaceIp }}
           </option>
         </select>
-        <button type="button" class="refresh-button" @click="refreshNetworkInterfaces">
+        <button type="button" class="secondary-btn" @click="refreshNetworkInterfaces">
           {{ $t('advanced.intranetInterfaceRefresh') }}
         </button>
       </div>
       <div
         v-if="tempIntranetInterfaceIp && !availableNetworkInterfaces.some(i => i.address === tempIntranetInterfaceIp)"
-        class="intranet-interface-warning"
+        class="mt-1 text-[11px] text-warning"
       >
         {{ $t('advanced.intranetInterfaceNotFound') }}
       </div>
@@ -36,39 +36,39 @@
     <h4>{{ $t('advanced.intranetMapping') }}</h4>
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.intranetMappingDescription') }}</div>
-      <div class="intranet-mapping-list">
-        <div v-for="(mapping, domain) in intranetMappings" :key="String(domain)" class="mapping-item">
-          <div class="mapping-header" @click="toggleMappingExpanded(String(domain))">
-            <div class="mapping-domain">{{ domain }}</div>
-            <div class="mapping-type">
-              <span class="type-badge" :class="mapping.type">
+      <div class="border border-border rounded overflow-hidden bg-elevated text-[11px]">
+        <div v-for="(mapping, domain) in intranetMappings" :key="String(domain)" class="border-b border-border last:border-b-0">
+          <div class="flex items-center py-1.5 px-2.5 cursor-pointer transition-colors bg-surface min-h-[28px] hover:bg-elevated" @click="toggleMappingExpanded(String(domain))">
+            <div class="flex-1 text-[11px] font-medium text-text font-mono leading-snug">{{ domain }}</div>
+            <div class="mr-2">
+              <span class="py-0.5 px-1.5 rounded-lg text-[9px] font-medium uppercase tracking-[0.3px] leading-none" :class="mapping.type === 'single' ? 'bg-accent/10 text-[#1976d2] dark:bg-[#1a2332] dark:text-[#64b5f6]' : 'bg-[#f3e5f5] text-[#7b1fa2] dark:bg-[#2d1b2e] dark:text-[#ba68c8]'">
                 {{ mapping.type === 'single' ? $t('advanced.singleIP') : $t('advanced.loadBalance') }}
               </span>
             </div>
-            <div class="mapping-expand-icon" :class="{ expanded: expandedMappings[String(domain)] }">
+            <div class="transition-transform text-text-secondary flex items-center justify-center w-4 h-4" :class="{ 'rotate-180': expandedMappings[String(domain)] }">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="6,9 12,15 18,9"></polyline>
               </svg>
             </div>
           </div>
-          <div v-if="expandedMappings[String(domain)]" class="mapping-details">
-            <div v-if="mapping.type === 'single'" class="single-ip-details">
-              <div class="detail-row">
-                <span class="detail-label">{{ $t('advanced.ipAddresses') }}:</span>
-                <span class="detail-value">{{ mapping.ip }}</span>
+          <div v-if="expandedMappings[String(domain)]" class="py-2 px-2.5 bg-elevated border-t border-border">
+            <div v-if="mapping.type === 'single'">
+              <div class="flex items-start mb-1 text-[10px] leading-snug">
+                <span class="font-medium text-text-secondary min-w-[60px] mr-2 shrink-0 text-[12px]">{{ $t('advanced.ipAddresses') }}:</span>
+                <span class="text-text font-mono text-[10px]">{{ mapping.ip }}</span>
               </div>
             </div>
-            <div v-else class="load-balance-details">
-              <div class="detail-row">
-                <span class="detail-label">{{ $t('advanced.strategy') }}:</span>
-                <span class="detail-value">
+            <div v-else>
+              <div class="flex items-start mb-1 text-[10px] leading-snug">
+                <span class="font-medium text-text-secondary min-w-[60px] mr-2 shrink-0 text-[12px]">{{ $t('advanced.strategy') }}:</span>
+                <span class="text-text font-mono text-[10px]">
                   {{ getStrategyDisplayName(mapping.strategy) }}
                 </span>
               </div>
-              <div class="detail-row">
-                <span class="detail-label">{{ $t('advanced.ipAddresses') }}:</span>
-                <div class="ip-list">
-                  <span v-for="ip in mapping.ips" :key="ip" class="ip-item">
+              <div class="flex items-start mb-1 text-[10px] leading-snug">
+                <span class="font-medium text-text-secondary min-w-[60px] mr-2 shrink-0 text-[12px]">{{ $t('advanced.ipAddresses') }}:</span>
+                <div class="flex flex-wrap gap-1 items-start">
+                  <span v-for="ip in mapping.ips" :key="ip" class="py-0.5 px-1.5 bg-hover rounded-sm text-[9px] font-mono text-text-secondary whitespace-nowrap leading-snug">
                     {{ ip }}
                   </span>
                 </div>
@@ -96,268 +96,3 @@ const {
   getStrategyDisplayName,
 } = advanced
 </script>
-
-<style scoped>
-.intranet-interface-row {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-  margin-top: 6px;
-}
-
-.intranet-interface-select {
-  flex: 1;
-  min-width: 0;
-  box-sizing: border-box;
-  height: 28px;
-  padding: 0 6px;
-  font-size: 12px;
-  line-height: 1;
-  border: 1px solid #d0d0d0;
-  border-radius: 4px;
-  background-color: white;
-}
-
-.intranet-interface-row .refresh-button {
-  box-sizing: border-box;
-  height: 28px;
-  padding: 0 10px;
-  font-size: 11px;
-  line-height: 1;
-  border: 1px solid #d0d0d0;
-  border-radius: 4px;
-  background-color: white;
-  cursor: pointer;
-}
-
-.intranet-interface-row .refresh-button:hover {
-  background-color: #f3f4f6;
-}
-
-.intranet-interface-warning {
-  margin-top: 4px;
-  font-size: 11px;
-  color: #b45309;
-}
-
-.intranet-mapping-list {
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  overflow: hidden;
-  background-color: #f8f9fa;
-  font-size: 11px;
-}
-
-.mapping-item {
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.mapping-item:last-child {
-  border-bottom: none;
-}
-
-.mapping-header {
-  display: flex;
-  align-items: center;
-  padding: 6px 10px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  background-color: white;
-  min-height: 28px;
-}
-
-.mapping-header:hover {
-  background-color: #f8f9fa;
-}
-
-.mapping-domain {
-  flex: 1;
-  font-size: 11px;
-  font-weight: 500;
-  color: #333;
-  font-family: 'Courier New', monospace;
-  line-height: 1.2;
-}
-
-.mapping-type {
-  margin-right: 8px;
-}
-
-.type-badge {
-  padding: 2px 6px;
-  border-radius: 8px;
-  font-size: 9px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  line-height: 1;
-}
-
-.type-badge.single {
-  background-color: #e3f2fd;
-  color: #1976d2;
-}
-
-.type-badge.loadbalance {
-  background-color: #f3e5f5;
-  color: #7b1fa2;
-}
-
-.mapping-expand-icon {
-  transition: transform 0.2s ease;
-  color: #666;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-}
-
-.mapping-expand-icon.expanded {
-  transform: rotate(180deg);
-}
-
-.mapping-expand-icon svg {
-  width: 10px;
-  height: 10px;
-}
-
-.mapping-details {
-  padding: 8px 10px;
-  background-color: #f8f9fa;
-  border-top: 1px solid #e0e0e0;
-}
-
-.detail-row {
-  display: flex;
-  align-items: flex-start;
-  margin-bottom: 4px;
-  font-size: 10px;
-  line-height: 1.3;
-}
-
-.detail-row:last-child {
-  margin-bottom: 0;
-}
-
-.detail-label {
-  font-weight: 500;
-  color: #666;
-  min-width: 60px;
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-
-.detail-value {
-  color: #333;
-  font-family: 'Courier New', monospace;
-  font-size: 10px;
-}
-
-.ip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px;
-  align-items: flex-start;
-}
-
-.ip-item {
-  padding: 2px 6px;
-  background-color: #e9ecef;
-  border-radius: 3px;
-  font-size: 9px;
-  font-family: 'Courier New', monospace;
-  color: #495057;
-  display: inline-block;
-  white-space: nowrap;
-  line-height: 1.2;
-}
-
-@media (prefers-color-scheme: dark) {
-  .intranet-interface-select {
-    border-color: #404040;
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .intranet-interface-select option {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .intranet-interface-row .refresh-button {
-    border-color: #404040;
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .intranet-interface-row .refresh-button:hover {
-    background-color: #3d3d3d;
-  }
-
-  .intranet-interface-warning {
-    color: #f5b971;
-  }
-
-  .intranet-mapping-list {
-    border-color: #404040;
-    background-color: #2d2d2d;
-  }
-
-  .mapping-item {
-    border-bottom-color: #404040;
-  }
-
-  .mapping-header {
-    background-color: #2d2d2d;
-    min-height: 28px;
-  }
-
-  .mapping-header:hover {
-    background-color: #3d3d3d;
-  }
-
-  .mapping-domain {
-    color: #e0e0e0;
-    font-size: 11px;
-  }
-
-  .type-badge.single {
-    background-color: #1a2332;
-    color: #64b5f6;
-  }
-
-  .type-badge.loadbalance {
-    background-color: #2d1b2e;
-    color: #ba68c8;
-  }
-
-  .mapping-expand-icon {
-    color: #b0b0b0;
-  }
-
-  .mapping-details {
-    background-color: #2d2d2d;
-    border-top-color: #404040;
-    padding: 8px 10px;
-  }
-
-  .detail-label {
-    color: #b0b0b0;
-    font-size: 10px;
-  }
-
-  .detail-value {
-    color: #e0e0e0;
-    font-size: 10px;
-  }
-
-  .ip-item {
-    background-color: #404040;
-    color: #e0e0e0;
-    font-size: 9px;
-    padding: 2px 6px;
-    white-space: nowrap;
-  }
-}
-</style>

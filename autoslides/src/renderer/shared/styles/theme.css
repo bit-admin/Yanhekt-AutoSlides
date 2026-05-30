@@ -36,7 +36,11 @@
   --danger: #d32f2f;
   --danger-hover: #b71c1c;
   --success: #2e7d32;
+  --success-bg: #f0fff4;
+  --success-border: #86efac;
   --warning: #ed6c02;
+  --warning-bg: #fef9e7;
+  --warning-border: #fcd34d;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -71,6 +75,10 @@
     --danger: #ef5350;
     --danger-hover: #e53935;
     --success: #66bb6a;
+    --success-bg: #1a3a2a;
+    --success-border: #2d8a56;
     --warning: #ffa726;
+    --warning-bg: #3a2a0a;
+    --warning-border: #8b6914;
   }
 }

@@ -1,68 +1,68 @@
 <template>
-  <div class="offline-processing-tab">
-    <div class="offline-columns">
+  <div class="h-full overflow-hidden">
+    <div class="flex h-full">
       <!-- Left Column: Offline Post-Processing -->
-      <div class="offline-column">
-        <h3 class="column-title">{{ $t('offlineProcessing.title') }}</h3>
+      <div class="flex-1 flex flex-col p-6 overflow-y-auto border-r border-border">
+        <h3 class="m-0 mb-5 text-[15px] font-semibold text-text pb-2.5 border-b border-border">{{ $t('offlineProcessing.title') }}</h3>
 
         <!-- Input Folder -->
-        <div class="setting-group">
-          <label class="setting-label">{{ $t('offlineProcessing.inputFolder') }}</label>
-          <div class="directory-input-group">
+        <div class="mb-5">
+          <label class="block text-xs font-semibold text-text mb-2">{{ $t('offlineProcessing.inputFolder') }}</label>
+          <div class="flex gap-2">
             <input
               :value="offlineInputFolderPath || $t('offlineProcessing.noFolderSelected')"
               type="text"
               readonly
-              class="directory-input"
-              :class="{ 'placeholder-text': !offlineInputFolderPath }"
+              class="flex-1 py-[7px] px-2.5 border border-border-input rounded text-xs bg-subtle text-text"
+              :class="{ 'text-text-muted': !offlineInputFolderPath }"
               :title="offlineInputFolderPath"
             />
-            <button @click="offlineProcessing.selectInputFolder()" class="browse-btn" :disabled="offlineIsProcessing">
+            <button @click="offlineProcessing.selectInputFolder()" class="py-[7px] px-3.5 border border-border-input rounded bg-surface text-xs cursor-pointer whitespace-nowrap transition-all hover:bg-hover hover:border-border disabled:opacity-50 disabled:cursor-not-allowed" :disabled="offlineIsProcessing">
               {{ $t('offlineProcessing.selectFolder') }}
             </button>
           </div>
         </div>
 
         <!-- Post-Processing Configuration -->
-        <div class="setting-group">
-          <label class="setting-label">{{ $t('offlineProcessing.postProcessingConfig') }}</label>
-          <div class="toggle-list">
-            <label class="toggle-item">
-              <input type="checkbox" v-model="offlineEnableDuplicateRemoval" :disabled="offlineIsProcessing" />
-              <span class="toggle-text">{{ $t('offlineProcessing.enableDuplicateRemoval') }}</span>
+        <div class="mb-5">
+          <label class="block text-xs font-semibold text-text mb-2">{{ $t('offlineProcessing.postProcessingConfig') }}</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="flex items-center gap-2 py-2 px-2.5 bg-elevated border border-border-input rounded cursor-pointer transition-all hover:bg-hover hover:border-border">
+              <input type="checkbox" v-model="offlineEnableDuplicateRemoval" :disabled="offlineIsProcessing" class="m-0 cursor-pointer w-3.5 h-3.5 accent-accent disabled:opacity-50 disabled:cursor-not-allowed" />
+              <span class="text-xs text-text">{{ $t('offlineProcessing.enableDuplicateRemoval') }}</span>
             </label>
-            <label class="toggle-item">
-              <input type="checkbox" v-model="offlineEnableExclusionList" :disabled="offlineIsProcessing" />
-              <span class="toggle-text">{{ $t('offlineProcessing.enableExclusionList') }}</span>
+            <label class="flex items-center gap-2 py-2 px-2.5 bg-elevated border border-border-input rounded cursor-pointer transition-all hover:bg-hover hover:border-border">
+              <input type="checkbox" v-model="offlineEnableExclusionList" :disabled="offlineIsProcessing" class="m-0 cursor-pointer w-3.5 h-3.5 accent-accent disabled:opacity-50 disabled:cursor-not-allowed" />
+              <span class="text-xs text-text">{{ $t('offlineProcessing.enableExclusionList') }}</span>
             </label>
-            <label class="toggle-item">
-              <input type="checkbox" v-model="offlineEnableAIFiltering" :disabled="offlineIsProcessing" />
-              <span class="toggle-text">{{ $t('offlineProcessing.enableAIFiltering') }}</span>
+            <label class="flex items-center gap-2 py-2 px-2.5 bg-elevated border border-border-input rounded cursor-pointer transition-all hover:bg-hover hover:border-border">
+              <input type="checkbox" v-model="offlineEnableAIFiltering" :disabled="offlineIsProcessing" class="m-0 cursor-pointer w-3.5 h-3.5 accent-accent disabled:opacity-50 disabled:cursor-not-allowed" />
+              <span class="text-xs text-text">{{ $t('offlineProcessing.enableAIFiltering') }}</span>
             </label>
           </div>
-          <div class="setting-note">{{ $t('offlineProcessing.exclusionListNote') }}</div>
+          <div class="text-[11px] text-text-muted mt-1.5">{{ $t('offlineProcessing.exclusionListNote') }}</div>
         </div>
 
         <!-- Output Options -->
-        <div class="setting-group">
-          <label class="setting-label">{{ $t('offlineProcessing.outputOptions') }}</label>
-          <div class="toggle-list">
-            <label class="toggle-item">
-              <input type="checkbox" v-model="offlineEnablePngColorReduction" :disabled="offlineIsProcessing" />
-              <span class="toggle-text">{{ $t('offlineProcessing.enablePngColorReduction') }}</span>
+        <div class="mb-5">
+          <label class="block text-xs font-semibold text-text mb-2">{{ $t('offlineProcessing.outputOptions') }}</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="flex items-center gap-2 py-2 px-2.5 bg-elevated border border-border-input rounded cursor-pointer transition-all hover:bg-hover hover:border-border">
+              <input type="checkbox" v-model="offlineEnablePngColorReduction" :disabled="offlineIsProcessing" class="m-0 cursor-pointer w-3.5 h-3.5 accent-accent disabled:opacity-50 disabled:cursor-not-allowed" />
+              <span class="text-xs text-text">{{ $t('offlineProcessing.enablePngColorReduction') }}</span>
             </label>
           </div>
         </div>
 
         <!-- Spacer to push controls to bottom -->
-        <div class="offline-spacer"></div>
+        <div class="flex-1"></div>
 
         <!-- Progress bar -->
-        <div v-if="offlineProgress.phase !== 'idle' && offlineProgress.phase !== 'error'" class="progress-track">
-          <div class="progress-fill" :style="{ width: overallOfflineProgress + '%' }"></div>
+        <div v-if="offlineProgress.phase !== 'idle' && offlineProgress.phase !== 'error'" class="w-full h-1 bg-border rounded-sm overflow-hidden mb-4">
+          <div class="h-full bg-accent transition-[width] duration-300 ease-in-out" :style="{ width: overallOfflineProgress + '%' }"></div>
         </div>
 
-        <div v-if="offlineProgress.errorMessage && !offlineIsProcessing" class="offline-status-message offline-status-error">
+        <div v-if="offlineProgress.errorMessage && !offlineIsProcessing" class="text-xs mb-3 text-danger">
           {{
             offlineProgress.errorMessage === 'noImagesFound'
               ? $t('offlineProcessing.noImagesFound')
@@ -71,112 +71,113 @@
         </div>
 
         <!-- Actions -->
-        <div class="offline-actions">
+        <div class="flex items-center gap-2 pt-4 border-t border-border">
           <button
             v-if="offlineProgress.phase === 'completed'"
             @click="openOfflineOutputFolder"
-            class="open-output-btn"
+            class="py-2 px-4 border border-accent rounded text-xs cursor-pointer transition-all bg-surface text-accent mr-auto hover:bg-accent hover:text-white"
           >{{ $t('offlineProcessing.openOutput') }}</button>
           <button
             v-if="offlineIsProcessing"
             @click="offlineProcessing.cancelProcessing()"
-            class="secondary-btn"
+            class="py-2 px-4 border border-border-input rounded bg-surface text-xs cursor-pointer transition-all ml-auto hover:bg-hover hover:border-border"
           >{{ $t('offlineProcessing.cancel') }}</button>
           <button
             v-else
             @click="resetAndClose"
-            class="secondary-btn"
+            class="py-2 px-4 border border-border-input rounded bg-surface text-xs cursor-pointer transition-all ml-auto hover:bg-hover hover:border-border"
           >{{ $t('offlineProcessing.close') }}</button>
           <button
             @click="offlineProcessing.startProcessing()"
             :disabled="!offlineInputFolderPath || offlineIsProcessing || offlineProgress.phase === 'completed'"
-            class="primary-btn"
+            class="py-2 px-4 border-none rounded bg-accent text-white text-xs font-medium cursor-pointer transition-all hover:bg-accent-strong disabled:bg-border disabled:cursor-not-allowed"
           >{{ offlineIsProcessing ? $t('offlineProcessing.processing') : $t('offlineProcessing.start') }}</button>
         </div>
       </div>
 
       <!-- Right Column: Auto Crop -->
-      <div class="offline-column">
-        <h3 class="column-title">{{ $t('offlineProcessing.autoCrop.title') }}</h3>
+      <div class="flex-1 flex flex-col p-6 overflow-y-auto">
+        <h3 class="m-0 mb-5 text-[15px] font-semibold text-text pb-2.5 border-b border-border">{{ $t('offlineProcessing.autoCrop.title') }}</h3>
 
         <!-- Input Images -->
-        <div class="setting-group">
-          <label class="setting-label">{{ $t('offlineProcessing.autoCrop.inputImages') }}</label>
-          <div class="directory-input-group">
+        <div class="mb-5">
+          <label class="block text-xs font-semibold text-text mb-2">{{ $t('offlineProcessing.autoCrop.inputImages') }}</label>
+          <div class="flex gap-2">
             <input
               :value="autoCropSelectedImagePaths.length === 0
                 ? $t('offlineProcessing.autoCrop.noImagesSelected')
                 : $t('offlineProcessing.autoCrop.imagesSelected', { count: autoCropSelectedImagePaths.length })"
               type="text"
               readonly
-              class="directory-input"
-              :class="{ 'placeholder-text': autoCropSelectedImagePaths.length === 0 }"
+              class="flex-1 py-[7px] px-2.5 border border-border-input rounded text-xs bg-subtle text-text"
+              :class="{ 'text-text-muted': autoCropSelectedImagePaths.length === 0 }"
             />
-            <button @click="autoCrop.selectImages()" class="browse-btn" :disabled="autoCropIsProcessing">
+            <button @click="autoCrop.selectImages()" class="py-[7px] px-3.5 border border-border-input rounded bg-surface text-xs cursor-pointer whitespace-nowrap transition-all hover:bg-hover hover:border-border disabled:opacity-50 disabled:cursor-not-allowed" :disabled="autoCropIsProcessing">
               {{ $t('offlineProcessing.autoCrop.select') }}
             </button>
           </div>
         </div>
 
         <!-- Configuration -->
-        <div class="setting-group">
-          <label class="setting-label">{{ $t('offlineProcessing.autoCrop.config') }}</label>
-          <div class="toggle-list">
-            <label class="toggle-item">
-              <input type="checkbox" v-model="autoCropRedBoxMode" :disabled="autoCropIsProcessing" />
-              <span class="toggle-text">{{ $t('offlineProcessing.autoCrop.redBoxMode') }}</span>
+        <div class="mb-5">
+          <label class="block text-xs font-semibold text-text mb-2">{{ $t('offlineProcessing.autoCrop.config') }}</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="flex items-center gap-2 py-2 px-2.5 bg-elevated border border-border-input rounded cursor-pointer transition-all hover:bg-hover hover:border-border">
+              <input type="checkbox" v-model="autoCropRedBoxMode" :disabled="autoCropIsProcessing" class="m-0 cursor-pointer w-3.5 h-3.5 accent-accent disabled:opacity-50 disabled:cursor-not-allowed" />
+              <span class="text-xs text-text">{{ $t('offlineProcessing.autoCrop.redBoxMode') }}</span>
             </label>
-            <label class="toggle-item" :class="{ 'toggle-item-disabled': !autoCropRedBoxMode || autoCropEdgesUnavailable }">
+            <label class="flex items-center gap-2 py-2 px-2.5 bg-elevated border border-border-input rounded cursor-pointer transition-all hover:bg-hover hover:border-border" :class="{ 'opacity-50 cursor-not-allowed pointer-events-none': !autoCropRedBoxMode || autoCropEdgesUnavailable }">
               <input
                 type="checkbox"
                 v-model="autoCropShowEdges"
                 :disabled="autoCropIsProcessing || !autoCropRedBoxMode || autoCropEdgesUnavailable"
+                class="m-0 cursor-pointer w-3.5 h-3.5 accent-accent disabled:opacity-50 disabled:cursor-not-allowed"
               />
-              <span class="toggle-text">{{ $t('offlineProcessing.autoCrop.showEdges') }}</span>
+              <span class="text-xs text-text">{{ $t('offlineProcessing.autoCrop.showEdges') }}</span>
             </label>
           </div>
         </div>
 
         <!-- Output Options -->
-        <div class="setting-group">
-          <label class="setting-label">{{ $t('offlineProcessing.outputOptions') }}</label>
-          <div class="toggle-list">
-            <label class="toggle-item">
-              <input type="checkbox" v-model="autoCropEnablePngColorReduction" :disabled="autoCropIsProcessing" />
-              <span class="toggle-text">{{ $t('offlineProcessing.enablePngColorReduction') }}</span>
+        <div class="mb-5">
+          <label class="block text-xs font-semibold text-text mb-2">{{ $t('offlineProcessing.outputOptions') }}</label>
+          <div class="flex flex-col gap-1.5">
+            <label class="flex items-center gap-2 py-2 px-2.5 bg-elevated border border-border-input rounded cursor-pointer transition-all hover:bg-hover hover:border-border">
+              <input type="checkbox" v-model="autoCropEnablePngColorReduction" :disabled="autoCropIsProcessing" class="m-0 cursor-pointer w-3.5 h-3.5 accent-accent disabled:opacity-50 disabled:cursor-not-allowed" />
+              <span class="text-xs text-text">{{ $t('offlineProcessing.enablePngColorReduction') }}</span>
             </label>
           </div>
         </div>
 
         <!-- Spacer -->
-        <div class="offline-spacer"></div>
+        <div class="flex-1"></div>
 
         <!-- Progress bar -->
-        <div v-if="autoCropProgress.phase !== 'idle'" class="progress-track">
-          <div class="progress-fill" :style="{ width: autoCropOverallProgress + '%' }"></div>
+        <div v-if="autoCropProgress.phase !== 'idle'" class="w-full h-1 bg-border rounded-sm overflow-hidden mb-4">
+          <div class="h-full bg-accent transition-[width] duration-300 ease-in-out" :style="{ width: autoCropOverallProgress + '%' }"></div>
         </div>
 
         <!-- Actions -->
-        <div class="offline-actions">
+        <div class="flex items-center gap-2 pt-4 border-t border-border">
           <button
             v-if="autoCropProgress.phase === 'completed' || autoCropProgress.phase === 'cancelled'"
             @click="autoCrop.openOutputFolder()"
-            class="open-output-btn"
+            class="py-2 px-4 border border-accent rounded text-xs cursor-pointer transition-all bg-surface text-accent mr-auto hover:bg-accent hover:text-white"
           >{{ $t('offlineProcessing.autoCrop.openOutput') }}</button>
           <button
             v-if="autoCropIsProcessing"
             @click="autoCrop.cancelProcessing()"
-            class="secondary-btn"
+            class="py-2 px-4 border border-border-input rounded bg-surface text-xs cursor-pointer transition-all ml-auto hover:bg-hover hover:border-border"
           >{{ $t('offlineProcessing.autoCrop.cancel') }}</button>
           <button
             v-else
             @click="resetAndClose"
-            class="secondary-btn"
+            class="py-2 px-4 border border-border-input rounded bg-surface text-xs cursor-pointer transition-all ml-auto hover:bg-hover hover:border-border"
           >{{ $t('offlineProcessing.autoCrop.close') }}</button>
           <button
             @click="autoCrop.startProcessing()"
             :disabled="autoCropSelectedImagePaths.length === 0 || autoCropIsProcessing || autoCropProgress.phase === 'completed'"
-            class="primary-btn"
+            class="py-2 px-4 border-none rounded bg-accent text-white text-xs font-medium cursor-pointer transition-all hover:bg-accent-strong disabled:bg-border disabled:cursor-not-allowed"
           >{{ autoCropIsProcessing ? $t('offlineProcessing.autoCrop.processing') : $t('offlineProcessing.autoCrop.start') }}</button>
         </div>
       </div>
@@ -275,329 +276,3 @@ const autoCropOverallProgress = computed(() => {
   return (current / total) * 100
 })
 </script>
-
-<style scoped>
-.offline-processing-tab {
-  height: 100%;
-  overflow: hidden;
-}
-
-.offline-columns {
-  display: flex;
-  height: 100%;
-}
-
-.offline-column {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 24px;
-  overflow-y: auto;
-}
-
-.offline-column:first-child {
-  border-right: 1px solid #e0e0e0;
-}
-
-.column-title {
-  margin: 0 0 20px 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-/* Setting Groups */
-.setting-group {
-  margin-bottom: 20px;
-}
-
-.setting-label {
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 8px;
-}
-
-.directory-input-group {
-  display: flex;
-  gap: 8px;
-}
-
-.directory-input {
-  flex: 1;
-  padding: 7px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: #fafafa;
-  color: #333;
-}
-
-.directory-input.placeholder-text {
-  color: #999;
-}
-
-.browse-btn {
-  padding: 7px 14px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
-}
-
-.browse-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  border-color: #ccc;
-}
-
-.browse-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Toggle List — matches LeftPanel advanced settings checkbox style */
-.toggle-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.toggle-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.toggle-item:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
-}
-
-.toggle-item.toggle-item-disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.toggle-item input[type="checkbox"] {
-  margin: 0;
-  cursor: pointer;
-  width: 14px;
-  height: 14px;
-  accent-color: var(--accent);
-}
-
-.toggle-item input[type="checkbox"]:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.toggle-text {
-  font-size: 12px;
-  color: #333;
-}
-
-.setting-note {
-  font-size: 11px;
-  color: #888;
-  margin-top: 6px;
-}
-
-/* Spacer */
-.offline-spacer {
-  flex: 1;
-}
-
-/* Progress */
-.progress-track {
-  width: 100%;
-  height: 4px;
-  background-color: #e0e0e0;
-  border-radius: 2px;
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: #007acc;
-  transition: width 0.3s ease;
-}
-
-.offline-status-message {
-  font-size: 12px;
-  margin-bottom: 12px;
-}
-
-.offline-status-error {
-  color: #c62828;
-}
-
-/* Actions */
-.offline-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
-}
-
-.open-output-btn {
-  padding: 8px 16px;
-  border: 1px solid #007acc;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  background-color: white;
-  color: #007acc;
-  margin-right: auto;
-}
-
-.open-output-btn:hover {
-  background-color: #007acc;
-  color: white;
-}
-
-.secondary-btn {
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-left: auto;
-}
-
-.secondary-btn:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
-}
-
-.primary-btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  background-color: #007acc;
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.primary-btn:hover:not(:disabled) {
-  background-color: #005a9e;
-}
-
-.primary-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .offline-column:first-child {
-    border-right-color: #3d3d3d;
-  }
-
-  .column-title {
-    color: #e0e0e0;
-    border-bottom-color: #3d3d3d;
-  }
-
-  .setting-label {
-    color: #ccc;
-  }
-
-  .directory-input {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .directory-input.placeholder-text {
-    color: #666;
-  }
-
-  .browse-btn {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .browse-btn:hover:not(:disabled) {
-    background-color: #404040;
-    border-color: #666;
-  }
-
-  .toggle-item {
-    background-color: #2a2a2a;
-    border-color: #404040;
-  }
-
-  .toggle-item:hover {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .toggle-text {
-    color: #ccc;
-  }
-
-  .setting-note {
-    color: #777;
-  }
-
-  .offline-status-error {
-    color: #ff8a80;
-  }
-
-  .progress-track {
-    background-color: #404040;
-  }
-
-  .progress-fill {
-    background-color: #4a9eff;
-  }
-
-  .offline-actions {
-    border-top-color: #3d3d3d;
-  }
-
-  .open-output-btn {
-    background-color: #2d2d2d;
-    border-color: #4a9eff;
-    color: #4a9eff;
-  }
-
-  .open-output-btn:hover {
-    background-color: #4a9eff;
-    color: #1e1e1e;
-  }
-
-  .secondary-btn {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .secondary-btn:hover {
-    background-color: #404040;
-    border-color: #666;
-  }
-}
-</style>

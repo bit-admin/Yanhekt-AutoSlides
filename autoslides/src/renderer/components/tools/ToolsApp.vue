@@ -1,5 +1,5 @@
 <template>
-  <div class="tools-app">
+  <div class="w-full h-screen overflow-hidden bg-page">
     <ToolsWindow />
   </div>
 </template>
@@ -24,18 +24,3 @@ onMounted(async () => {
   }
 })
 </script>
-
-<style scoped>
-.tools-app {
-  width: 100%;
-  height: 100vh;
-  overflow: hidden;
-  background-color: #f5f5f5;
-}
-
-@media (prefers-color-scheme: dark) {
-  .tools-app {
-    background-color: #1e1e1e;
-  }
-}
-</style>

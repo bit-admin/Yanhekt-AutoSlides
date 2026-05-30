@@ -1,34 +1,34 @@
 <template>
-  <div class="main-content">
-    <div class="navigation-bar">
+  <div class="flex flex-col h-full">
+    <div class="flex border-b border-border bg-elevated">
       <button
-        :class="['nav-btn', { active: currentMode === 'live' }]"
+        :class="['flex-1 py-3 px-6 border-none bg-transparent text-sm font-medium cursor-pointer transition-all border-b-[3px] border-b-transparent flex items-center justify-center gap-1.5 hover:bg-hover', currentMode === 'live' ? 'bg-surface border-b-accent text-accent' : 'text-text-secondary']"
         @click="switchMode('live')"
       >
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
         </svg>
         {{ $t('navigation.live') }}
-        <span v-if="liveState.page === 'playback'" class="playback-indicator">●</span>
+        <span v-if="liveState.page === 'playback'" class="ml-1.5 text-success text-xs font-bold animate-pulse-indicator">●</span>
       </button>
       <button
-        :class="['nav-btn', { active: currentMode === 'recorded' }]"
+        :class="['flex-1 py-3 px-6 border-none bg-transparent text-sm font-medium cursor-pointer transition-all border-b-[3px] border-b-transparent flex items-center justify-center gap-1.5 hover:bg-hover', currentMode === 'recorded' ? 'bg-surface border-b-accent text-accent' : 'text-text-secondary']"
         @click="switchMode('recorded')"
       >
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <svg class="shrink-0" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
           <line x1="8" y1="21" x2="16" y2="21"/>
           <line x1="12" y1="17" x2="12" y2="21"/>
         </svg>
         {{ $t('navigation.recorded') }}
-        <span v-if="recordedState.page === 'playback'" class="playback-indicator">●</span>
+        <span v-if="recordedState.page === 'playback'" class="ml-1.5 text-success text-xs font-bold animate-pulse-indicator">●</span>
       </button>
     </div>
 
-    <div class="content-area">
+    <div class="flex-1 overflow-hidden relative">
       <!-- Live Mode Components -->
       <div
-        :class="['mode-container', { 'mode-hidden': currentMode !== 'live' }]"
+        :class="['h-full w-full absolute top-0 left-0 transition-opacity duration-200', currentMode !== 'live' ? 'opacity-0 pointer-events-none -z-1' : '']"
         data-mode="live"
       >
         <CoursePage
@@ -51,7 +51,7 @@
 
       <!-- Recorded Mode Components -->
       <div
-        :class="['mode-container', { 'mode-hidden': currentMode !== 'recorded' }]"
+        :class="['h-full w-full absolute top-0 left-0 transition-opacity duration-200', currentMode !== 'recorded' ? 'opacity-0 pointer-events-none -z-1' : '']"
         data-mode="recorded"
       >
         <CoursePage
@@ -230,112 +230,12 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.main-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.navigation-bar {
-  display: flex;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #f8f9fa;
-}
-
-.nav-btn {
-  flex: 1;
-  padding: 12px 24px;
-  border: none;
-  background-color: transparent;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  border-bottom: 3px solid transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.nav-icon {
-  flex-shrink: 0;
-}
-
-.nav-btn:hover {
-  background-color: #e9ecef;
-}
-
-.nav-btn.active {
-  background-color: white;
-  border-bottom-color: #007acc;
-  color: #007acc;
-}
-
-.content-area {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
-}
-
-.mode-container {
-  height: 100%;
-  width: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  transition: opacity 0.2s ease-in-out;
-}
-
-.mode-container.mode-hidden {
-  opacity: 0;
-  pointer-events: none;
-  z-index: -1;
-}
-
-.playback-indicator {
-  margin-left: 6px;
-  color: #28a745;
-  font-size: 12px;
-  font-weight: bold;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
+@keyframes pulse-indicator {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .main-content {
-    background-color: #1a1a1a;
-    color: #e0e0e0;
-  }
-
-  .navigation-bar {
-    border-bottom: 1px solid #404040;
-    background-color: #2d2d2d;
-  }
-
-  .nav-btn {
-    color: #b0b0b0;
-  }
-
-  .nav-btn:hover {
-    background-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .nav-btn.active {
-    background-color: #1a1a1a;
-    border-bottom-color: #4da6ff;
-    color: #4da6ff;
-  }
-
-  .playback-indicator {
-    color: #66cc66;
-  }
+.animate-pulse-indicator {
+  animation: pulse-indicator 2s infinite;
 }
-
 </style>

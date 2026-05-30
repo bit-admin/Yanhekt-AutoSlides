@@ -1,25 +1,25 @@
 <template>
-  <div class="playback-page">
-    <div class="header">
-      <div class="header-main">
-        <button @click="goBack" class="back-btn" :disabled="shouldDisableControls">
+  <div class="flex flex-col h-full p-4">
+    <div class="border border-border rounded-lg bg-elevated mb-6 overflow-hidden">
+      <div class="flex items-center gap-4 p-4">
+        <button @click="goBack" class="flex items-center gap-1.5 py-2 px-4 border border-border-input rounded bg-surface text-text-secondary text-sm cursor-pointer transition-all hover:border-accent hover:text-accent disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-elevated" :disabled="shouldDisableControls">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
           {{ $t('playback.back') }}
         </button>
-        <div class="title-info">
-          <h2>{{ course?.title || $t('playback.unknownCourse') }}</h2>
-          <p v-if="session">{{ session.title }}</p>
-          <p v-if="course?.session?.section_group_title && props.mode === 'live'">{{ course.session.section_group_title }}</p>
-          <div v-if="!isVisible && isPlaying" class="background-mode-indicator">
+        <div class="flex-1">
+          <h2 class="m-0 text-xl font-semibold text-text">{{ course?.title || $t('playback.unknownCourse') }}</h2>
+          <p v-if="session" class="mt-1 mb-0 text-sm text-text-secondary">{{ session.title }}</p>
+          <p v-if="course?.session?.section_group_title && props.mode === 'live'" class="mt-1 mb-0 text-sm text-text-secondary">{{ course.session.section_group_title }}</p>
+          <div v-if="!isVisible && isPlaying" class="flex items-center gap-1 mt-1 py-0.5 px-1.5 bg-success text-white text-xs rounded w-fit [&_svg]:animate-pulse">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="5,3 19,12 5,21"/>
             </svg>
             {{ $t('playback.playingInBackground') }}
           </div>
         </div>
-        <button @click="refreshPage" class="refresh-btn" :disabled="shouldDisableControls" :title="$t('playback.refresh')">
+        <button @click="refreshPage" class="flex items-center justify-center w-8 h-8 border border-border-input rounded bg-surface cursor-pointer transition-all hover:border-accent hover:bg-hover disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-elevated" :disabled="shouldDisableControls" :title="$t('playback.refresh')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
             <path d="M21 3v5h-5"/>
@@ -27,118 +27,118 @@
             <path d="M3 21v-5h5"/>
           </svg>
         </button>
-        <button @click="toggleCourseDetails" class="expand-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showDetails }">
+        <button @click="toggleCourseDetails" class="flex items-center justify-center w-8 h-8 border border-border-input rounded bg-surface cursor-pointer transition-all hover:border-accent hover:bg-hover">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="transition-transform duration-200" :class="{ 'rotate-180': showDetails }">
             <polyline points="6,9 12,15 18,9"/>
           </svg>
         </button>
       </div>
-      <div v-show="showDetails" class="course-details">
-        <div class="course-detail-item" v-if="course?.instructor">
-          <span class="detail-label">{{ $t('playback.instructor') }}</span>
-          <span class="detail-value">{{ course.instructor }}</span>
+      <div v-show="showDetails" class="p-4 border-t border-border bg-surface grid [grid-template-columns:repeat(auto-fit,minmax(200px,1fr))] gap-3">
+        <div class="flex flex-col gap-1" v-if="course?.instructor">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-[0.5px]">{{ $t('playback.instructor') }}</span>
+          <span class="text-sm text-text font-medium">{{ course.instructor }}</span>
         </div>
-        <div class="course-detail-item" v-if="course?.professors && course.professors.length > 0">
-          <span class="detail-label">{{ $t('playback.professors') }}</span>
-          <span class="detail-value">{{ course.professors.join(', ') }}</span>
+        <div class="flex flex-col gap-1" v-if="course?.professors && course.professors.length > 0">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-[0.5px]">{{ $t('playback.professors') }}</span>
+          <span class="text-sm text-text font-medium">{{ course.professors.join(', ') }}</span>
         </div>
-        <div class="course-detail-item" v-if="course?.time">
-          <span class="detail-label">{{ $t('sessions.academicTerm') }}</span>
-          <span class="detail-value">{{ course.time }}</span>
+        <div class="flex flex-col gap-1" v-if="course?.time">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-[0.5px]">{{ $t('sessions.academicTerm') }}</span>
+          <span class="text-sm text-text font-medium">{{ course.time }}</span>
         </div>
-        <div class="course-detail-item" v-if="course?.classrooms && course.classrooms.length > 0">
-          <span class="detail-label">{{ $t('sessions.classrooms') }}</span>
-          <span class="detail-value">{{ course.classrooms.map(c => c.name).join(', ') }}</span>
+        <div class="flex flex-col gap-1" v-if="course?.classrooms && course.classrooms.length > 0">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-[0.5px]">{{ $t('sessions.classrooms') }}</span>
+          <span class="text-sm text-text font-medium">{{ course.classrooms.map(c => c.name).join(', ') }}</span>
         </div>
-        <div class="course-detail-item" v-if="course?.college_name">
-          <span class="detail-label">{{ $t('sessions.college') }}</span>
-          <span class="detail-value">{{ course.college_name }}</span>
+        <div class="flex flex-col gap-1" v-if="course?.college_name">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-[0.5px]">{{ $t('sessions.college') }}</span>
+          <span class="text-sm text-text font-medium">{{ course.college_name }}</span>
         </div>
-        <div class="course-detail-item" v-if="course?.participant_count !== undefined">
-          <span class="detail-label">{{ $t('sessions.participants') }}</span>
-          <span class="detail-value">{{ course.participant_count }} {{ $t('sessions.participantsCount') }}</span>
+        <div class="flex flex-col gap-1" v-if="course?.participant_count !== undefined">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-[0.5px]">{{ $t('sessions.participants') }}</span>
+          <span class="text-sm text-text font-medium">{{ course.participant_count }} {{ $t('sessions.participantsCount') }}</span>
         </div>
-        <div class="course-detail-item" v-if="session">
-          <span class="detail-label">{{ $t('playback.sessionDate') }}</span>
-          <span class="detail-value">{{ formatDate(session.started_at) }}</span>
+        <div class="flex flex-col gap-1" v-if="session">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-[0.5px]">{{ $t('playback.sessionDate') }}</span>
+          <span class="text-sm text-text font-medium">{{ formatDate(session.started_at) }}</span>
         </div>
-        <div class="course-detail-item" v-if="playbackData?.duration">
-          <span class="detail-label">{{ $t('playback.duration') }}</span>
-          <span class="detail-value">{{ formatDuration(playbackData.duration) }}</span>
+        <div class="flex flex-col gap-1" v-if="playbackData?.duration">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-[0.5px]">{{ $t('playback.duration') }}</span>
+          <span class="text-sm text-text font-medium">{{ formatDuration(playbackData.duration) }}</span>
         </div>
-        <div class="course-detail-item" v-if="currentStreamData || isDualStreamSelected">
-          <span class="detail-label">{{ $t('playback.currentStream') }}</span>
-          <span v-if="isDualStreamSelected" class="detail-value">{{ $t('playback.bothStreams') }}</span>
-          <span v-else-if="currentStreamData" class="detail-value">
+        <div class="flex flex-col gap-1" v-if="currentStreamData || isDualStreamSelected">
+          <span class="text-xs font-semibold text-text-secondary uppercase tracking-[0.5px]">{{ $t('playback.currentStream') }}</span>
+          <span v-if="isDualStreamSelected" class="text-sm text-text font-medium">{{ $t('playback.bothStreams') }}</span>
+          <span v-else-if="currentStreamData" class="text-sm text-text font-medium">
             {{ currentStreamData.type === 'camera' ? $t('playback.streamCamera') : currentStreamData.type === 'screen' ? $t('playback.streamScreen') : currentStreamData.name }}
           </span>
         </div>
       </div>
     </div>
 
-    <div class="content">
-      <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
+    <div class="flex-1 flex flex-col min-h-0 overflow-y-auto content-scrollbar">
+      <div v-if="loading" class="flex flex-col items-center justify-center h-[400px] gap-4 text-text-secondary">
+        <div class="w-10 h-10 border-4 border-[var(--bg-elevated)] border-t-accent rounded-full animate-spin"></div>
         <p>{{ $t('playback.loadingVideoStreams') }}</p>
       </div>
 
-      <div v-else-if="error" class="error-state">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <div v-else-if="error" class="flex flex-col items-center justify-center h-[400px] gap-4 text-text-secondary">
+        <svg class="text-danger" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
           <line x1="15" y1="9" x2="9" y2="15"/>
           <line x1="9" y1="9" x2="15" y2="15"/>
         </svg>
-        <div class="error-details">
-          <p class="error-message">{{ error }}</p>
-          <div v-if="lastPlaybackPosition > 0" class="error-info">
-            <p class="playback-position">
+        <div class="text-center max-w-[500px]">
+          <p class="text-base font-medium mb-3 text-text">{{ error }}</p>
+          <div v-if="lastPlaybackPosition > 0" class="my-3 py-2 px-3 bg-elevated rounded border-l-[3px] border-l-accent">
+            <p class="m-0 text-sm text-text-secondary">
               <strong>{{ $t('playback.lastPlayedPosition') }}</strong> {{ formatDuration(Math.floor(lastPlaybackPosition)) }}
             </p>
           </div>
-          <div v-if="error.includes('Failed after') || error.includes('retry attempts')" class="error-suggestion">
-            <p class="suggestion-text">
+          <div v-if="error.includes('Failed after') || error.includes('retry attempts')" class="my-4 p-3 bg-warning-bg border border-warning-border rounded">
+            <p class="m-0 text-sm text-warning leading-[1.4]">
               {{ $t('playback.networkProblems') }}
             </p>
           </div>
         </div>
-        <button @click="retryLoad" class="retry-btn">{{ $t('playback.retry') }}</button>
+        <button @click="retryLoad" class="py-2 px-4 border border-accent rounded bg-accent text-white text-sm cursor-pointer transition-all hover:bg-accent-hover">{{ $t('playback.retry') }}</button>
       </div>
 
-      <div v-else-if="playbackData" class="video-content" :data-playback-mode="props.mode">
+      <div v-else-if="playbackData" class="flex flex-col gap-3" :data-playback-mode="props.mode">
 
         <!-- Combined Warning Messages -->
-        <div v-if="isTaskRunning || (props.mode === 'recorded' && showSpeedWarning) || aiFilteringError.type !== 'none'" class="combined-warning">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div v-if="isTaskRunning || (props.mode === 'recorded' && showSpeedWarning) || aiFilteringError.type !== 'none'" class="flex items-start gap-2 py-3 px-4 mb-2 bg-warning-bg border border-warning-border rounded-md text-warning text-sm leading-[1.4]">
+          <svg class="shrink-0 text-[#f39c12] mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
             <path d="M12 9v4"/>
             <path d="m12 17 .01 0"/>
           </svg>
-          <div class="warning-messages">
-            <div v-if="isTaskRunning" class="warning-message">
+          <div class="flex-1 flex flex-col gap-2">
+            <div v-if="isTaskRunning" class="m-0">
               {{ $t('playback.taskInProgress') }}
             </div>
-            <div v-if="props.mode === 'recorded' && showSpeedWarning" class="warning-message">
+            <div v-if="props.mode === 'recorded' && showSpeedWarning" class="m-0">
               {{ $t('playback.highSpeedWarning') }}
             </div>
-            <div v-if="aiFilteringError.type === '403'" class="warning-message ai-error">
+            <div v-if="aiFilteringError.type === '403'" class="m-0 flex items-center justify-between gap-2 text-danger">
               {{ $t('playback.aiError403') }}
-              <button @click="dismissAIError" class="dismiss-btn" :title="$t('playback.dismiss')">×</button>
+              <button @click="dismissAIError" class="bg-none border-none text-text-secondary cursor-pointer text-base py-0 px-1 leading-none opacity-70 transition-opacity hover:opacity-100 hover:text-text" :title="$t('playback.dismiss')">×</button>
             </div>
-            <div v-if="aiFilteringError.type === '413'" class="warning-message ai-error">
+            <div v-if="aiFilteringError.type === '413'" class="m-0 flex items-center justify-between gap-2 text-danger">
               {{ $t('playback.aiError413') }}
-              <button @click="dismissAIError" class="dismiss-btn" :title="$t('playback.dismiss')">×</button>
+              <button @click="dismissAIError" class="bg-none border-none text-text-secondary cursor-pointer text-base py-0 px-1 leading-none opacity-70 transition-opacity hover:opacity-100 hover:text-text" :title="$t('playback.dismiss')">×</button>
             </div>
-            <div v-if="aiFilteringError.type === '429'" class="warning-message ai-error">
+            <div v-if="aiFilteringError.type === '429'" class="m-0 flex items-center justify-between gap-2 text-danger">
               {{ $t('playback.aiError429') }}
-              <button @click="dismissAIError" class="dismiss-btn" :title="$t('playback.dismiss')">×</button>
+              <button @click="dismissAIError" class="bg-none border-none text-text-secondary cursor-pointer text-base py-0 px-1 leading-none opacity-70 transition-opacity hover:opacity-100 hover:text-text" :title="$t('playback.dismiss')">×</button>
             </div>
-            <div v-if="aiFilteringError.type === 'http'" class="warning-message ai-error">
+            <div v-if="aiFilteringError.type === 'http'" class="m-0 flex items-center justify-between gap-2 text-danger">
               {{ $t('playback.aiErrorHttp', { code: aiFilteringError.httpCode }) }}
-              <button @click="dismissAIError" class="dismiss-btn" :title="$t('playback.dismiss')">×</button>
+              <button @click="dismissAIError" class="bg-none border-none text-text-secondary cursor-pointer text-base py-0 px-1 leading-none opacity-70 transition-opacity hover:opacity-100 hover:text-text" :title="$t('playback.dismiss')">×</button>
             </div>
-            <div v-if="aiFilteringError.type === 'unknown'" class="warning-message ai-error">
+            <div v-if="aiFilteringError.type === 'unknown'" class="m-0 flex items-center justify-between gap-2 text-danger">
               {{ $t('playback.aiErrorUnknown') }}
-              <button @click="dismissAIError" class="dismiss-btn" :title="$t('playback.dismiss')">×</button>
+              <button @click="dismissAIError" class="bg-none border-none text-text-secondary cursor-pointer text-base py-0 px-1 leading-none opacity-70 transition-opacity hover:opacity-100 hover:text-text" :title="$t('playback.dismiss')">×</button>
             </div>
           </div>
         </div>
@@ -163,13 +163,16 @@
         <!-- Video Player -->
         <div
           v-if="!isDualStreamSelected"
-          class="video-container"
-          :class="{ 'collapsed': isVideoContainerCollapsed }"
+          class="video-container relative w-full border border-border border-t-0 overflow-hidden transition-all duration-300"
+          :class="isVideoContainerCollapsed
+            ? 'h-[60px] bg-elevated border-border-border flex items-center justify-center collapsed'
+            : 'bg-black'"
           :data-pip-message="$t('playback.videoPlayingInPiP')"
         >
           <video
+            v-show="!isVideoContainerCollapsed"
             ref="videoPlayer"
-            class="video-player"
+            class="w-full h-auto min-h-[400px] block"
             controls
             controlslist="noplaybackrate"
             preload="metadata"
@@ -182,7 +185,7 @@
           >
             {{ $t('playback.browserNotSupported') }}
           </video>
-          <div v-if="shouldVideoMute" class="mute-indicator">
+          <div v-if="shouldVideoMute && !isVideoContainerCollapsed" class="absolute top-3 right-3 flex items-center gap-1.5 py-1.5 px-3 bg-danger/90 text-white rounded text-xs font-medium z-10 [&_svg]:shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
               <line x1="23" y1="9" x2="17" y2="15"/>
@@ -191,8 +194,8 @@
             <span>{{ muteMode === 'mute_all' ? $t('playback.mutedByApp') : muteMode === 'mute_live' ? $t('playback.liveMuted') : $t('playback.recordedMuted') }}</span>
           </div>
           <!-- Retry Indicator -->
-          <div v-if="isRetrying" class="retry-indicator">
-            <div class="retry-spinner"></div>
+          <div v-if="isRetrying && !isVideoContainerCollapsed" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 py-3 px-5 bg-black/80 text-white rounded-lg text-sm font-medium z-20 backdrop-blur-[4px]">
+            <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
             <span>{{ retryMessage }}</span>
           </div>
         </div>
@@ -200,16 +203,15 @@
         <div
           v-else
           ref="dualVideoContainer"
-          class="dual-playback-shell"
-          :class="{ 'is-fullscreen': isDualFullscreen }"
+          class="dual-playback-shell flex flex-col relative"
         >
-          <div class="video-container dual-video-container">
-            <div class="dual-video-grid">
-              <div class="dual-video-panel" :style="{ order: cameraPanelOrder }">
-                <div class="dual-video-label">{{ $t('playback.streamCamera') }}</div>
+          <div class="video-container dual-video-container min-h-[400px] relative w-full bg-black border border-border border-t-0 overflow-hidden transition-all duration-300">
+            <div class="grid grid-cols-2 gap-px bg-[#111] min-h-[400px] max-md:grid-cols-1 max-md:min-h-[250px]">
+              <div class="relative min-w-0 bg-black flex items-center justify-center" :style="{ order: cameraPanelOrder }">
+                <div class="absolute top-3 left-3 z-[5] py-1 px-2 rounded bg-black/65 text-white text-xs font-semibold">{{ $t('playback.streamCamera') }}</div>
                 <video
                   ref="cameraVideoPlayer"
-                  class="dual-video-player"
+                  class="w-full h-full min-h-[400px] object-contain block bg-black max-md:min-h-[220px]"
                   preload="metadata"
                   playsinline
                   @timeupdate="onDualTimeUpdate"
@@ -221,11 +223,11 @@
                   {{ $t('playback.browserNotSupported') }}
                 </video>
               </div>
-              <div class="dual-video-panel" :style="{ order: screenPanelOrder }">
-                <div class="dual-video-label">{{ $t('playback.streamScreen') }}</div>
+              <div class="relative min-w-0 bg-black flex items-center justify-center" :style="{ order: screenPanelOrder }">
+                <div class="absolute top-3 left-3 z-[5] py-1 px-2 rounded bg-black/65 text-white text-xs font-semibold">{{ $t('playback.streamScreen') }}</div>
                 <video
                   ref="screenVideoPlayer"
-                  class="dual-video-player"
+                  class="w-full h-full min-h-[400px] object-contain block bg-black max-md:min-h-[220px]"
                   preload="metadata"
                   playsinline
                   @timeupdate="onDualTimeUpdate"
@@ -239,7 +241,7 @@
               </div>
             </div>
 
-            <div v-if="shouldVideoMute" class="mute-indicator">
+            <div v-if="shouldVideoMute" class="absolute top-3 right-3 flex items-center gap-1.5 py-1.5 px-3 bg-danger/90 text-white rounded text-xs font-medium z-10 [&_svg]:shrink-0">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
                 <line x1="23" y1="9" x2="17" y2="15"/>
@@ -248,17 +250,17 @@
               <span>{{ $t(globalMuteModeLabelKey) }}</span>
             </div>
 
-            <div v-if="isRetrying" class="retry-indicator">
-              <div class="retry-spinner"></div>
+            <div v-if="isRetrying" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 py-3 px-5 bg-black/80 text-white rounded-lg text-sm font-medium z-20 backdrop-blur-[4px]">
+              <div class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
               <span>{{ retryMessage }}</span>
             </div>
           </div>
 
-          <div class="dual-controls-section">
-            <div class="dual-controls-main-row">
-              <div class="dual-controls-left">
+          <div class="dual-controls-section absolute left-0 right-0 bottom-0 z-30 flex flex-col gap-1 pt-[18px] px-2.5 pb-[7px] bg-[linear-gradient(180deg,rgba(0,0,0,0)_0%,rgba(0,0,0,0.58)_28%,rgba(0,0,0,0.86)_100%)] border-none rounded-none text-[var(--bg-page)]">
+            <div class="flex items-center justify-between gap-3 min-w-0 h-7 max-md:h-auto">
+              <div class="flex items-center gap-2.5 min-w-0 flex-1">
                 <button
-                  class="dual-icon-button"
+                  class="flex items-center justify-center w-7 h-7 p-0 border-none rounded-full bg-transparent text-[var(--bg-page)] cursor-pointer transition-all shrink-0 hover:bg-white/14 disabled:opacity-45 disabled:cursor-not-allowed"
                   @click="toggleDualPlaybackControl"
                   :disabled="shouldDisableControls"
                   :title="isPlaying ? $t('playback.dual.pause') : $t('playback.dual.play')"
@@ -272,13 +274,13 @@
                   </svg>
                 </button>
 
-                <span class="dual-time">{{ formatPlaybackTime(dualCurrentTime) }} / {{ dualCanSeek ? formatPlaybackTime(dualDuration) : $t('playback.dual.live') }}</span>
+                <span class="min-w-[92px] text-xs text-[var(--bg-page)] text-left whitespace-nowrap tabular-nums [text-shadow:0_1px_2px_rgba(0,0,0,0.8)]">{{ formatPlaybackTime(dualCurrentTime) }} / {{ dualCanSeek ? formatPlaybackTime(dualDuration) : $t('playback.dual.live') }}</span>
               </div>
 
-              <div class="dual-controls-right">
-                <div class="dual-popover-anchor">
+              <div class="flex items-center gap-2.5 min-w-0 shrink-0">
+                <div class="relative flex items-center justify-center">
                   <button
-                    class="dual-icon-button"
+                    class="flex items-center justify-center w-7 h-7 p-0 border-none rounded-full bg-transparent text-[var(--bg-page)] cursor-pointer transition-all shrink-0 hover:bg-white/14 disabled:opacity-45 disabled:cursor-not-allowed"
                     @click="toggleDualAudioPanel"
                     :disabled="shouldDisableControls || shouldVideoMute"
                     :title="$t('playback.dual.audioSource')"
@@ -289,10 +291,10 @@
                       <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
                     </svg>
                   </button>
-                  <div v-if="showDualAudioPanel" class="dual-popover dual-audio-popover">
+                  <div v-if="showDualAudioPanel" class="dual-popover absolute right-[-42px] bottom-[34px] z-40 min-w-[168px] p-1.5 rounded-md bg-[rgba(28,28,28,0.96)] border border-white/16 shadow-[0_8px_24px_rgba(0,0,0,0.38)] backdrop-blur-lg">
                     <button
-                      class="dual-popover-option"
-                      :class="{ active: dualAudioSource === 'screen' }"
+                      class="w-full flex items-center gap-2 py-2 px-[9px] border-none rounded bg-transparent text-white/88 text-xs text-left cursor-pointer transition-colors hover:bg-white/14 [&_svg]:shrink-0"
+                      :class="{ 'bg-white/14': dualAudioSource === 'screen' }"
                       @click="setDualAudio('screen')"
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -304,8 +306,8 @@
                       <span>{{ $t('playback.dual.screenAudio') }}</span>
                     </button>
                     <button
-                      class="dual-popover-option"
-                      :class="{ active: dualAudioSource === 'camera' }"
+                      class="w-full flex items-center gap-2 py-2 px-[9px] border-none rounded bg-transparent text-white/88 text-xs text-left cursor-pointer transition-colors hover:bg-white/14 [&_svg]:shrink-0"
+                      :class="{ 'bg-white/14': dualAudioSource === 'camera' }"
                       @click="setDualAudio('camera')"
                     >
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -319,7 +321,7 @@
                 </div>
 
                 <button
-                  class="dual-icon-button"
+                  class="flex items-center justify-center w-7 h-7 p-0 border-none rounded-full bg-transparent text-[var(--bg-page)] cursor-pointer transition-all shrink-0 hover:bg-white/14 disabled:opacity-45 disabled:cursor-not-allowed"
                   @click="toggleDualFullscreen"
                   :disabled="shouldDisableControls"
                   :title="isDualFullscreen ? $t('playback.dual.exitFullscreen') : $t('playback.dual.fullscreen')"
@@ -338,9 +340,9 @@
                   </svg>
                 </button>
 
-                <div class="dual-popover-anchor">
+                <div class="relative flex items-center justify-center">
                   <button
-                    class="dual-icon-button"
+                    class="flex items-center justify-center w-7 h-7 p-0 border-none rounded-full bg-transparent text-[var(--bg-page)] cursor-pointer transition-all shrink-0 hover:bg-white/14 disabled:opacity-45 disabled:cursor-not-allowed"
                     @click="toggleDualMorePanel"
                     :disabled="shouldDisableControls"
                     :title="$t('playback.dual.moreOptions')"
@@ -351,8 +353,8 @@
                       <circle cx="12" cy="19" r="2"/>
                     </svg>
                   </button>
-                  <div v-if="showDualMorePanel" class="dual-popover dual-more-popover">
-                    <button class="dual-popover-option" @click="toggleDualStreamOrder">
+                  <div v-if="showDualMorePanel" class="dual-popover absolute right-0 bottom-[34px] z-40 min-w-[168px] p-1.5 rounded-md bg-[rgba(28,28,28,0.96)] border border-white/16 shadow-[0_8px_24px_rgba(0,0,0,0.38)] backdrop-blur-lg">
+                    <button class="w-full flex items-center gap-2 py-2 px-[9px] border-none rounded bg-transparent text-white/88 text-xs text-left cursor-pointer transition-colors hover:bg-white/14 [&_svg]:shrink-0" @click="toggleDualStreamOrder">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                         <path d="M7 7h11l-4-4"/>
                         <path d="M17 17H6l4 4"/>
@@ -365,7 +367,7 @@
             </div>
 
             <input
-              class="dual-seek"
+              class="dual-seek w-full h-3 m-0 appearance-none bg-transparent cursor-pointer max-md:min-w-0 disabled:opacity-[0.45] disabled:cursor-not-allowed"
               type="range"
               min="0"
               :max="dualDuration || 0"
@@ -380,12 +382,12 @@
         </div>
 
         <!-- Slide Gallery -->
-        <div v-if="isScreenRecordingSelected && !isDualStreamSelected" class="slide-gallery">
-          <div class="gallery-header">
+        <div v-if="isScreenRecordingSelected && !isDualStreamSelected" class="bg-elevated border border-border border-t-0 rounded-b-lg">
+          <div class="gallery-header mb-2">
             <!-- Slide Extraction Controls -->
-            <div class="slide-extraction-control">
-              <div class="extraction-main">
-                <label class="extraction-toggle">
+            <div class="slide-extraction-control flex justify-between items-center p-4 bg-elevated border border-border border-t-border-border rounded-b-lg">
+              <div class="flex items-center gap-5">
+                <label class="extraction-toggle flex items-center gap-3 cursor-pointer font-medium text-text select-none">
                   <input
                     type="checkbox"
                     v-model="isSlideExtractionEnabled"
@@ -393,28 +395,28 @@
                     :disabled="shouldDisableControls"
                   />
                   <span class="toggle-slider"></span>
-                  <span class="toggle-text">{{ $t('playback.slideExtraction') }}</span>
+                  <span class="text-[15px] font-semibold select-none">{{ $t('playback.slideExtraction') }}</span>
                 </label>
 
-                <div class="slide-counter">
+                <div class="flex items-center gap-2 py-1.5 px-3 bg-accent/10 border border-bg-accent/20 rounded-md text-[#1565c0] text-sm font-medium [&_svg]:shrink-0 [&_svg]:text-[#1976d2]">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                     <circle cx="9" cy="9" r="2"/>
                     <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
                   </svg>
-                  <span class="counter-text">
+                  <span class="flex items-center gap-1">
                     {{ isSlideExtractionEnabled ? extractedSlides.length : 0 }} {{ $t('playback.slides') }}
-                    <span v-if="isSlideExtractionEnabled" class="counter-status">{{ $t('playback.extracted') }}</span>
+                    <span v-if="isSlideExtractionEnabled" class="text-[#1565c0] font-normal opacity-80">{{ $t('playback.extracted') }}</span>
                   </span>
                 </div>
               </div>
 
-              <div class="slide-actions">
+              <div class="flex gap-2 items-center">
                 <!-- Post-processing Button (only show when slides exist) -->
                 <button
                   v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
                   @click="executePostProcessing()"
-                  class="post-process-btn"
+                  class="flex items-center gap-1.5 py-1.5 px-3 border border-accent rounded bg-accent text-white text-[13px] cursor-pointer transition-all hover:bg-accent-hover hover:border-accent-hover disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-text-muted disabled:border-text-muted"
                   :disabled="isPostProcessing"
                   title="Execute post-processing on all saved slides"
                 >
@@ -423,7 +425,7 @@
                     <path d="m2 17 10 5 10-5"/>
                     <path d="m2 12 10 5 10-5"/>
                   </svg>
-                  <div v-else class="processing-spinner"></div>
+                  <div v-else class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                   {{ isPostProcessing ? $t('playback.postProcessing') : $t('playback.postProcess') }}
                 </button>
 
@@ -431,7 +433,7 @@
                 <button
                   v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
                   @click="clearAllSlides"
-                  class="clear-all-btn"
+                  class="flex items-center gap-1.5 py-1.5 px-3 border border-danger rounded bg-danger text-white text-[13px] cursor-pointer transition-all hover:bg-danger-hover hover:border-danger-hover"
                   title="Move all slides to trash"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -448,8 +450,8 @@
 
           <!-- Post-processing Status Bar (only visible for manual post-processing or live mode) -->
           <!-- In recorded task mode, post-processing progress is shown in RightPanel.vue -->
-          <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0 && (mode === 'live' || !isTaskRunning)" class="post-process-status-bar">
-            <div class="status-bar-content">
+          <div v-if="isSlideExtractionEnabled && extractedSlides.length > 0 && (mode === 'live' || !isTaskRunning)" class="bg-elevated border border-border rounded py-2 px-3 mb-3">
+            <div class="flex items-stretch gap-3 text-[11px]">
               <PostProcessingProgressBar :state="fromPlaybackStatus(postProcessStatus)" labels="long" />
             </div>
           </div>
@@ -466,7 +468,7 @@
 
       </div>
 
-      <div v-else class="no-streams">
+      <div v-else class="flex flex-col items-center justify-center h-[400px] gap-4 text-text-secondary">
         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <polygon points="5,3 19,12 5,21"/>
         </svg>
@@ -1152,437 +1154,150 @@ onUnmounted(async () => {
 </script>
 
 <style scoped>
-.playback-page {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 16px;
+/* Toggle switch — pseudo-elements and sibling selectors require CSS */
+.extraction-toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
 }
 
-.header {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  background-color: #f8f9fa;
-  margin-bottom: 24px;
-  overflow: hidden;
-}
-
-.header-main {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  color: #666;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-btn:hover:not(:disabled) {
-  border-color: #007acc;
-  color: #007acc;
-}
-
-.back-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #f8f9fa;
-}
-
-.title-info {
-  flex: 1;
-}
-
-.title-info h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
-}
-
-.title-info p {
-  margin: 4px 0 0 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.background-mode-indicator {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-top: 4px;
-  padding: 2px 6px;
-  background-color: #28a745;
-  color: white;
-  font-size: 12px;
-  border-radius: 4px;
-  width: fit-content;
-}
-
-.background-mode-indicator svg {
-  animation: pulse 2s infinite;
-}
-
-.refresh-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.refresh-btn:hover:not(:disabled) {
-  border-color: #007acc;
-  background-color: #f0f8ff;
-}
-
-.refresh-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #f8f9fa;
-}
-
-.expand-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.expand-btn:hover {
-  border-color: #007acc;
-  background-color: #f0f8ff;
-}
-
-.expand-btn svg {
-  transition: transform 0.2s;
-}
-
-.expand-btn svg.rotated {
-  transform: rotate(180deg);
-}
-
-.course-details {
-  padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  background-color: white;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.course-detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.detail-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.detail-value {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-}
-
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-/* Loading and Error States */
-.loading-state, .error-state, .no-streams {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 400px;
-  gap: 16px;
-  color: #666;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #007acc;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.error-state svg {
-  color: #dc3545;
-}
-
-.error-details {
-  text-align: center;
-  max-width: 500px;
-}
-
-.error-message {
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 12px;
-  color: #333;
-}
-
-.error-info {
-  margin: 12px 0;
-  padding: 8px 12px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  border-left: 3px solid #007acc;
-}
-
-.playback-position {
-  margin: 0;
-  font-size: 14px;
-  color: #555;
-}
-
-.error-suggestion {
-  margin: 16px 0;
-  padding: 12px;
-  background-color: #fff3cd;
-  border: 1px solid #ffeaa7;
-  border-radius: 4px;
-}
-
-.suggestion-text {
-  margin: 0;
-  font-size: 14px;
-  color: #856404;
-  line-height: 1.4;
-}
-
-.retry-btn {
-  padding: 8px 16px;
-  border: 1px solid #007acc;
-  border-radius: 4px;
-  background-color: #007acc;
-  color: white;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.retry-btn:hover {
-  background-color: #0056b3;
-}
-
-/* Video Content */
-.video-content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-/* Video content group - controls, video, and gallery header form a visual unit */
-.video-content .controls-row {
-  margin-bottom: 0;
-}
-
-.video-content .video-container {
-  margin-bottom: 0;
-}
-
-.video-content .slide-gallery {
-  margin-top: 0;
-}
-
-.video-content .slide-gallery .gallery-header {
-  margin-bottom: 8px;
-  border-top: none;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-}
-
-/* Compact spacing for warning when it appears before the main content group */
-.video-content .combined-warning + .controls-row {
-  margin-top: 0;
-}
-
-
-.video-container {
+.toggle-slider {
   position: relative;
-  width: 100%;
-  background-color: #000;
-  border: 1px solid #e9ecef;
-  border-top: none;
-  border-radius: 0;
-  overflow: hidden;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+  background-color: var(--border-strong);
+  border-radius: 24px;
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.video-container.collapsed {
-  height: 60px;
-  background-color: #f8f9fa;
-  border-color: #dee2e6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: var(--bg-surface);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.video-container.collapsed .video-player {
-  display: none;
+.extraction-toggle input:checked + .toggle-slider {
+  background-color: var(--accent);
 }
 
+.extraction-toggle input:checked + .toggle-slider::before {
+  transform: translateX(24px);
+}
+
+.extraction-toggle input:disabled + .toggle-slider {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.extraction-toggle:has(input:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Collapsed video container — pseudo-element and descendant hiding */
+.video-container.collapsed::after {
+  content: attr(data-pip-message);
+  color: var(--text-muted);
+  font-size: 14px;
+  font-style: italic;
+}
+
+.video-container.collapsed .video-player,
 .video-container.collapsed .mute-indicator,
 .video-container.collapsed .retry-indicator {
   display: none;
 }
 
-.video-container.collapsed::after {
-  content: attr(data-pip-message);
-  color: #6c757d;
-  font-size: 14px;
-  font-style: italic;
+/* Custom scrollbar — pseudo-elements require CSS */
+.content-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
 }
 
-.mute-indicator {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background-color: rgba(220, 53, 69, 0.9);
-  color: white;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  z-index: 10;
+.content-scrollbar:hover {
+  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
 }
 
-.mute-indicator svg {
-  flex-shrink: 0;
+.content-scrollbar::-webkit-scrollbar {
+  width: 6px;
 }
 
-.retry-indicator {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  z-index: 20;
-  backdrop-filter: blur(4px);
+.content-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
 }
 
-.retry-spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
+.content-scrollbar::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  border: none;
+  transition: background 0.3s ease;
+}
+
+.content-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.content-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Dual seek range slider — pseudo-elements require CSS */
+.dual-seek::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #f5f5f5 0%,
+    #f5f5f5 var(--dual-progress),
+    rgba(255, 255, 255, 0.34) var(--dual-progress),
+    rgba(255, 255, 255, 0.34) 100%
+  );
+}
+
+.dual-seek::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  margin-top: -3px;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  background-color: var(--bg-page);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.dual-seek::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
 }
 
-
-.video-player {
-  width: 100%;
-  height: auto;
-  min-height: 400px;
-  display: block;
+.dual-seek::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg-page);
 }
 
-.dual-playback-shell {
-  display: flex;
-  flex-direction: column;
-  position: relative;
+.dual-seek::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: none;
+  border-radius: 50%;
+  background-color: var(--bg-page);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
 }
 
-.dual-video-container {
-  min-height: 400px;
-}
-
-.dual-video-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 1px;
-  background-color: #111;
-  min-height: 400px;
-}
-
-.dual-video-panel {
-  position: relative;
-  min-width: 0;
-  background-color: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dual-video-label {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-  z-index: 5;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background-color: rgba(0, 0, 0, 0.65);
-  color: white;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.dual-video-player {
-  width: 100%;
-  height: 100%;
-  min-height: 400px;
-  object-fit: contain;
-  display: block;
-  background-color: #000;
-}
-
+/* Fullscreen styles — pseudo-class requires CSS */
 .dual-playback-shell:fullscreen {
   display: flex;
   flex-direction: column;
@@ -1616,1021 +1331,9 @@ onUnmounted(async () => {
   border-radius: 0;
 }
 
-.dual-controls-section {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 30;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 18px 10px 7px;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.58) 28%, rgba(0, 0, 0, 0.86) 100%);
-  border: none;
-  border-radius: 0;
-  color: #f5f5f5;
-}
-
-.dual-controls-main-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  min-width: 0;
-  height: 28px;
-}
-
-.dual-controls-left,
-.dual-controls-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.dual-controls-left {
-  flex: 1;
-}
-
-.dual-controls-right {
-  flex-shrink: 0;
-}
-
-.dual-icon-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  background-color: transparent;
-  color: #f5f5f5;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.dual-icon-button:hover:not(:disabled) {
-  background-color: rgba(255, 255, 255, 0.14);
-}
-
-.dual-icon-button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.dual-popover-anchor {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.dual-popover {
-  position: absolute;
-  right: 0;
-  bottom: 34px;
-  z-index: 40;
-  min-width: 168px;
-  padding: 6px;
-  border-radius: 6px;
-  background-color: rgba(28, 28, 28, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
-  backdrop-filter: blur(8px);
-}
-
-.dual-popover-option {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 9px;
-  border: none;
-  border-radius: 4px;
-  background-color: transparent;
-  color: rgba(255, 255, 255, 0.88);
-  font-size: 12px;
-  text-align: left;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.dual-popover-option svg {
-  flex-shrink: 0;
-}
-
-.dual-popover-option:hover,
-.dual-popover-option.active {
-  background-color: rgba(255, 255, 255, 0.14);
-}
-
-.dual-audio-popover {
-  right: -42px;
-}
-
-.dual-time {
-  min-width: 92px;
-  font-size: 12px;
-  color: #f5f5f5;
-  text-align: left;
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-.dual-seek {
-  width: 100%;
-  height: 12px;
-  margin: 0;
-  appearance: none;
-  background-color: transparent;
-  cursor: pointer;
-}
-
-.dual-seek::-webkit-slider-runnable-track {
-  height: 4px;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    #f5f5f5 0%,
-    #f5f5f5 var(--dual-progress),
-    rgba(255, 255, 255, 0.34) var(--dual-progress),
-    rgba(255, 255, 255, 0.34) 100%
-  );
-}
-
-.dual-seek::-webkit-slider-thumb {
-  appearance: none;
-  width: 10px;
-  height: 10px;
-  margin-top: -3px;
-  border-radius: 50%;
-  background-color: #f5f5f5;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-}
-
-.dual-seek::-moz-range-track {
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.34);
-}
-
-.dual-seek::-moz-range-progress {
-  height: 4px;
-  border-radius: 999px;
-  background: #f5f5f5;
-}
-
-.dual-seek::-moz-range-thumb {
-  width: 10px;
-  height: 10px;
-  border: none;
-  border-radius: 50%;
-  background-color: #f5f5f5;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-}
-
-.dual-seek:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-/* Details toggle section */
-.details-toggle {
-  margin-top: 12px;
-}
-
-.toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  color: #666;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.toggle-btn:hover {
-  border-color: #007acc;
-  color: #007acc;
-}
-
-.toggle-btn svg {
-  transition: transform 0.2s;
-}
-
-.toggle-btn svg.rotated {
-  transform: rotate(180deg);
-}
-
-.details-section {
-  margin-top: 12px;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
-}
-
-.detail-item {
-  margin: 6px 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.detail-item strong {
-  color: #333;
-}
-
-/* Combined warning */
-.combined-warning {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 12px 16px;
-  margin: 0 0 8px 0;
-  background-color: #fff3cd;
-  border: 1px solid #ffeaa7;
-  border-radius: 6px;
-  color: #856404;
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.combined-warning svg {
-  flex-shrink: 0;
-  color: #f39c12;
-  margin-top: 2px;
-}
-
-.warning-messages {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.warning-message {
-  margin: 0;
-}
-
-.warning-message.ai-error {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  color: #c0392b;
-}
-
-[data-theme="dark"] .warning-message.ai-error {
-  color: #e74c3c;
-}
-
-.warning-message .dismiss-btn {
-  background: none;
-  border: none;
-  color: #666;
-  cursor: pointer;
-  font-size: 16px;
-  padding: 0 4px;
-  line-height: 1;
-  opacity: 0.7;
-  transition: opacity 0.2s;
-}
-
-.warning-message .dismiss-btn:hover {
-  opacity: 1;
-  color: #333;
-}
-
-[data-theme="dark"] .warning-message .dismiss-btn {
-  color: #aaa;
-}
-
-[data-theme="dark"] .warning-message .dismiss-btn:hover {
-  color: #fff;
-}
-
-/* Slide extraction controls */
-.slide-extraction-control {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 0 0 8px 8px;
-}
-
-.slide-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-/* When gallery is part of the video content group, adjust the control styling */
-.video-content .slide-gallery .slide-extraction-control {
-  border-radius: 0 0 8px 8px;
-  border-top: 1px solid #dee2e6;
-}
-
-.extraction-main {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-/* Beautiful custom toggle switch */
-.extraction-toggle {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  cursor: pointer;
-  font-weight: 500;
-  color: #333;
-  user-select: none;
-}
-
-.extraction-toggle input[type="checkbox"] {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.toggle-slider {
-  position: relative;
-  display: inline-block;
-  width: 48px;
-  height: 24px;
-  background-color: #ccc;
-  border-radius: 24px;
-  transition: all 0.3s ease;
-  cursor: pointer;
-}
-
-.toggle-slider::before {
-  content: '';
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 20px;
-  height: 20px;
-  background-color: white;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.extraction-toggle input:checked + .toggle-slider {
-  background-color: #007acc;
-}
-
-.extraction-toggle input:checked + .toggle-slider::before {
-  transform: translateX(24px);
-}
-
-.extraction-toggle input:disabled + .toggle-slider {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.extraction-toggle:has(input:disabled) {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.toggle-text {
-  font-size: 15px;
-  font-weight: 600;
-  user-select: none;
-}
-
-/* Slide counter */
-.slide-counter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background-color: #e3f2fd;
-  border: 1px solid #bbdefb;
-  border-radius: 6px;
-  color: #1565c0;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.slide-counter svg {
-  flex-shrink: 0;
-  color: #1976d2;
-}
-
-.counter-text {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.counter-status {
-  color: #1565c0;
-  font-weight: 400;
-  opacity: 0.8;
-}
-
-/* Slide Gallery */
-.slide-gallery {
-  margin-top: 24px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-}
-
-/* When gallery is part of the video content group */
-.video-content .slide-gallery {
-  margin-top: 0;
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-}
-
-.gallery-header {
-  margin-bottom: 8px;
-}
-
-.post-process-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid #007acc;
-  border-radius: 4px;
-  background-color: #007acc;
-  color: white;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.post-process-btn:hover:not(:disabled) {
-  background-color: #0056b3;
-  border-color: #0056b3;
-}
-
-.post-process-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background-color: #6c757d;
-  border-color: #6c757d;
-}
-
-/* Post-processing status bar styles */
-.post-process-status-bar {
-  background-color: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-}
-
-.status-bar-content {
-  display: flex;
-  align-items: stretch;
-  gap: 12px;
-  font-size: 11px;
-}
-
-.processing-spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.clear-all-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid #dc3545;
-  border-radius: 4px;
-  background-color: #dc3545;
-  color: white;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.clear-all-btn:hover {
-  background-color: #c82333;
-  border-color: #c82333;
-}
-
-
-/* Responsive design */
-@media (max-width: 768px) {
-  .stream-info {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .video-player {
-    min-height: 250px;
-  }
-
-  .dual-video-grid {
-    grid-template-columns: 1fr;
-    min-height: 250px;
-  }
-
-  .dual-video-player {
-    min-height: 220px;
-  }
-
-  .dual-controls-main-row {
-    height: auto;
-  }
-
-  .dual-seek {
-    min-width: 0;
-  }
-
-}
-
-/* Custom scrollbar styles - macOS style thin scrollbars that auto-hide */
-.content {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-.content:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
-.content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.content::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.content::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  border: none;
-  transition: background 0.3s ease;
-}
-
-.content:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.content::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3) !important;
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .playback-page {
-    background-color: #2d2d2d;
-    color: #e0e0e0;
-  }
-
-  .header {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-  }
-
-  .header-main {
-    background-color: #2d2d2d;
-  }
-
-  .back-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #b0b0b0;
-  }
-
-  .back-btn:hover {
-    border-color: #4da6ff;
-    color: #4da6ff;
-  }
-
-  .back-btn:disabled {
-    background-color: #333;
-    border-color: #555;
-    color: #666;
-  }
-
-  .title-info h2 {
-    color: #e0e0e0;
-  }
-
-  .title-info p {
-    color: #b0b0b0;
-  }
-
-  .refresh-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #b0b0b0;
-  }
-
-  .refresh-btn:hover:not(:disabled) {
-    border-color: #4da6ff;
-    background-color: #333;
-  }
-
-  .refresh-btn:disabled {
-    background-color: #333;
-    border-color: #555;
-    color: #666;
-  }
-
-  .expand-btn {
-    background-color: #2d2d2d;
-    border: 1px solid #404040;
-    color: #b0b0b0;
-  }
-
-  .expand-btn:hover {
-    border-color: #4da6ff;
-    background-color: #333;
-  }
-
-  .course-details {
-    background-color: #2d2d2d;
-    border-top: 1px solid #404040;
-  }
-
-  .detail-label {
-    color: #b0b0b0;
-  }
-
-  .detail-value {
-    color: #e0e0e0;
-  }
-
-  .background-mode-indicator {
-    background-color: #66cc66;
-    color: #1a1a1a;
-  }
-
-  /* Slide extraction controls dark mode */
-  .slide-extraction-control {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .extraction-toggle {
-    color: #e0e0e0;
-  }
-
-  .toggle-slider {
-    background-color: #555;
-  }
-
-  .extraction-toggle input:checked + .toggle-slider {
-    background-color: #4da6ff;
-  }
-
-  .slide-counter {
-    background-color: #1a2332;
-    border-color: #2d4a66;
-    color: #4da6ff;
-  }
-
-  .slide-counter svg {
-    color: #66b3ff;
-  }
-
-  .counter-status {
-    color: #4da6ff;
-  }
-
-  .slide-gallery {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .controls-row {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .video-container {
-    border-color: #555;
-  }
-
-  .dual-mute-status {
-    color: rgba(255, 255, 255, 0.72);
-  }
-
-  .video-content .slide-gallery .slide-extraction-control {
-    border-top-color: #666;
-  }
-
-  /* Scrollbar styles for dark mode */
-  .content {
-    scrollbar-color: transparent transparent;
-  }
-
-  .content:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .content::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .content::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .content:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .content::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-  }
-
-  /* Picture in Picture Control Dark Mode */
-  .pip-button {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .pip-button:hover:not(:disabled) {
-    background-color: #333;
-    border-color: #4da6ff;
-  }
-
-  .pip-button:disabled {
-    background-color: #333;
-    border-color: #555;
-    color: #666;
-  }
-
-  .playback-rate-control label {
-    color: #e0e0e0;
-  }
-
-  .playback-rate-control select {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .playback-rate-control select:focus {
-    border-color: #4da6ff;
-  }
-
-  .playback-rate-control select:disabled {
-    background-color: #333;
-    color: #666;
-  }
-
-  /* Stream selector dark mode */
-  .stream-selector label {
-    color: #e0e0e0;
-  }
-
-  .stream-selector select {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .stream-selector select:focus {
-    border-color: #4da6ff;
-  }
-
-  .stream-selector select:disabled {
-    background-color: #333;
-    border-color: #555;
-    color: #666;
-  }
-
-  /* Loading and error states dark mode */
-  .loading-state, .error-state, .no-streams {
-    color: #b0b0b0;
-  }
-
-  .error-state svg {
-    color: #ff6b6b;
-  }
-
-  .error-message {
-    color: #e0e0e0;
-  }
-
-  .error-info {
-    background-color: #333;
-    border-left-color: #4da6ff;
-  }
-
-  .playback-position {
-    color: #b0b0b0;
-  }
-
-  .error-suggestion {
-    background-color: #3d3520;
-    border-color: #665c2a;
-  }
-
-  .suggestion-text {
-    color: #d4b942;
-  }
-
-  .retry-btn {
-    background-color: #4da6ff;
-    border-color: #4da6ff;
-    color: #1a1a1a;
-  }
-
-  .retry-btn:hover {
-    background-color: #3399ff;
-    border-color: #3399ff;
-  }
-
-  /* Combined warning dark mode */
-  .combined-warning {
-    background-color: #3d3520;
-    border-color: #665c2a;
-    color: #d4b942;
-  }
-
-  .combined-warning svg {
-    color: #f39c12;
-  }
-
-  /* Video container dark mode */
-  .video-container.collapsed {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .video-container.collapsed::after {
-    color: #b0b0b0;
-  }
-
-  /* Mute indicator dark mode */
-  .mute-indicator {
-    background-color: rgba(255, 107, 107, 0.9);
-    color: #1a1a1a;
-  }
-
-  /* Retry indicator dark mode */
-  .retry-indicator {
-    background-color: rgba(45, 45, 45, 0.9);
-    color: #e0e0e0;
-  }
-
-  /* Post-processing button dark mode */
-  .post-process-btn {
-    background-color: #4da6ff;
-    border-color: #4da6ff;
-    color: #1a1a1a;
-  }
-
-  .post-process-btn:hover:not(:disabled) {
-    background-color: #3399ff;
-    border-color: #3399ff;
-  }
-
-  .post-process-btn:disabled {
-    background-color: #666;
-    border-color: #666;
-    color: #999;
-  }
-
-  /* Post-processing status bar dark mode */
-  .post-process-status-bar {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .processing-spinner {
-    border-color: rgba(26, 26, 26, 0.3);
-    border-top-color: #1a1a1a;
-  }
-
-  /* Clear all button dark mode */
-  .clear-all-btn {
-    background-color: #ff6b6b;
-    border-color: #ff6b6b;
-  }
-
-  .clear-all-btn:hover {
-    background-color: #ff5252;
-    border-color: #ff5252;
-  }
-
-  /* Slide gallery dark mode */
-  .gallery-grid .slide-thumbnail {
-    background-color: #2d2d2d;
-    border-color: #555;
-  }
-
-  .gallery-grid .slide-thumbnail:hover {
-    border-color: #4da6ff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .thumbnail-overlay {
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
-  }
-
-  .delete-btn {
-    background-color: rgba(255, 107, 107, 0.8);
-  }
-
-  .delete-btn:hover {
-    background-color: rgba(255, 107, 107, 1);
-  }
-
-  /* Slide modal dark mode */
-  .slide-modal {
-    background-color: rgba(0, 0, 0, 0.9);
-  }
-
-  .modal-content {
-    background-color: #2d2d2d;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-  }
-
-  .modal-header {
-    background-color: #333;
-    border-bottom-color: #555;
-  }
-
-  .modal-header h3 {
-    color: #e0e0e0;
-  }
-
-  .modal-delete-btn {
-    background-color: #ff6b6b;
-    border-color: #ff6b6b;
-  }
-
-  .modal-delete-btn:hover {
-    background-color: #ff5252;
-    border-color: #ff5252;
-  }
-
-  .modal-close-btn {
-    background-color: #666;
-    border-color: #666;
-  }
-
-  .modal-close-btn:hover {
-    background-color: #777;
-    border-color: #777;
-  }
-
-  .modal-body {
-    background-color: #2d2d2d;
-  }
-
-  .modal-image {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .slide-metadata {
-    background-color: #333;
-    border-color: #555;
-  }
-
-  .slide-metadata p {
-    color: #b0b0b0;
-  }
-
-  .slide-metadata strong {
-    color: #e0e0e0;
-  }
-
-  /* Spinner dark mode */
-  .spinner {
-    border-color: #555;
-    border-top-color: #4da6ff;
-  }
-
-  .retry-spinner {
-    border-color: rgba(224, 224, 224, 0.3);
-    border-top-color: #e0e0e0;
-  }
+/* Keyframes */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 </style>

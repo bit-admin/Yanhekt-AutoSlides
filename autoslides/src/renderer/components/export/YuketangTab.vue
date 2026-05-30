@@ -1,25 +1,25 @@
 <template>
-  <div class="yuketang-tab">
+  <div class="flex flex-col h-full bg-surface text-text">
     <!-- Toolbar -->
-    <div class="toolbar">
-      <div class="toolbar-left">
+    <div class="flex justify-between items-center py-2 px-4 bg-subtle border-b border-border gap-3">
+      <div class="flex items-center gap-2">
         <!-- Nav Buttons -->
-        <button class="nav-btn" @click="goBack" :title="$t('pdfmaker.back')">
+        <button class="flex items-center justify-center w-8 h-8 border border-border-input rounded bg-surface cursor-pointer transition-all text-text-secondary hover:bg-page hover:border-border" @click="goBack" :title="$t('pdfmaker.back')">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
         </button>
-        <button class="nav-btn" @click="goHome" title="Home">
+        <button class="flex items-center justify-center w-8 h-8 border border-border-input rounded bg-surface cursor-pointer transition-all text-text-secondary hover:bg-page hover:border-border" @click="goHome" title="Home">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M2.5 8L8 2.5 13.5 8M4 7v5.5a1 1 0 001 1h2v-3h2v3h2a1 1 0 001-1V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
         </button>
 
         <!-- Lesson ID -->
-        <div class="lesson-id-group">
-          <label class="field-label">{{ $t('yuketang.lessonId') }}</label>
+        <div class="flex items-center gap-1.5">
+          <label class="text-xs text-text-secondary whitespace-nowrap">{{ $t('yuketang.lessonId') }}</label>
           <input
-            class="lesson-id-input"
+            class="w-[120px] py-[5px] px-2 border border-border-input rounded text-xs bg-elevated text-text-secondary"
             :value="lessonId"
             :placeholder="$t('yuketang.lessonIdPlaceholder')"
             readonly
@@ -27,11 +27,11 @@
         </div>
       </div>
 
-      <div class="toolbar-right">
+      <div class="flex items-center gap-2">
         <!-- Format -->
-        <div class="format-group">
-          <label class="field-label">{{ $t('yuketang.format') }}</label>
-          <select v-model="exportFormat" class="format-select">
+        <div class="flex items-center gap-1.5">
+          <label class="text-xs text-text-secondary whitespace-nowrap">{{ $t('yuketang.format') }}</label>
+          <select v-model="exportFormat" class="py-[5px] px-2 border border-border-input rounded bg-surface text-xs cursor-pointer focus:outline-none focus:border-accent">
             <option value="pdf">{{ $t('yuketang.formatPdf') }}</option>
             <option value="images">{{ $t('yuketang.formatImages') }}</option>
           </select>
@@ -39,25 +39,25 @@
 
         <!-- Export Button -->
         <button
-          class="export-btn"
+          class="flex items-center gap-1 py-1.5 px-3.5 border-none rounded bg-accent text-white text-xs font-medium cursor-pointer transition-all whitespace-nowrap hover:bg-accent-strong disabled:bg-border disabled:cursor-not-allowed"
           @click="startExport"
           :disabled="!canExport"
         >
           <svg v-if="!isExporting" width="16" height="16" viewBox="0 0 16 16">
             <path d="M8 1v10M4 7l4 4 4-4M2 13h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
-          <span v-if="isExporting" class="spinner-small"></span>
+          <span v-if="isExporting" class="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
           <span>{{ isExporting ? $t('yuketang.exporting') : $t('yuketang.export') }}</span>
         </button>
       </div>
     </div>
 
     <!-- Status Bar -->
-    <div class="status-bar">
-      <span class="status-message">{{ displayStatus }}</span>
+    <div class="flex items-center justify-between py-1.5 px-4 bg-page border-b border-border min-h-[28px]">
+      <span class="text-[11px] text-text-secondary flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ displayStatus }}</span>
       <button
         v-if="latestExportDir || latestPdfPath"
-        class="open-folder-btn"
+        class="flex items-center gap-1 border-none bg-transparent text-accent text-[11px] cursor-pointer py-0.5 px-1.5 rounded transition-colors hover:bg-accent/10 whitespace-nowrap"
         @click="openExportResult"
       >
         <span>{{ latestPdfPath ? $t('yuketang.openPdf') : $t('yuketang.openFolder') }}</span>
@@ -68,13 +68,13 @@
     </div>
 
     <!-- Webview -->
-    <div class="webview-container">
+    <div class="flex-1 overflow-hidden">
       <webview
         ref="webviewRef"
         src="https://www.yuketang.cn/web"
         partition="persist:yuketang"
         allowpopups
-        class="yuketang-webview"
+        class="w-full h-full border-none"
       ></webview>
     </div>
   </div>
@@ -181,242 +181,3 @@ onMounted(() => {
   setTimeout(setupWebview, 100)
 })
 </script>
-
-<style scoped>
-.yuketang-tab {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background-color: #ffffff;
-  color: #333;
-}
-
-/* Toolbar */
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 16px;
-  background-color: #fafafa;
-  border-bottom: 1px solid #e0e0e0;
-  gap: 12px;
-}
-
-.toolbar-left, .toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-  color: #555;
-}
-
-.nav-btn:hover {
-  background-color: #f0f0f0;
-  border-color: #ccc;
-}
-
-.lesson-id-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.field-label {
-  font-size: 12px;
-  color: #666;
-  white-space: nowrap;
-}
-
-.lesson-id-input {
-  width: 120px;
-  padding: 5px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: #f8f8f8;
-  color: #666;
-}
-
-.format-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.format-select {
-  padding: 5px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.format-select:focus {
-  outline: none;
-  border-color: #007acc;
-}
-
-.export-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 14px;
-  border: none;
-  border-radius: 4px;
-  background-color: #007acc;
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.export-btn:hover:not(:disabled) {
-  background-color: #005a9e;
-}
-
-.export-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.spinner-small {
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Status Bar */
-.status-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 16px;
-  background-color: #f5f5f5;
-  border-bottom: 1px solid #e0e0e0;
-  min-height: 28px;
-}
-
-.status-message {
-  font-size: 11px;
-  color: #666;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.open-folder-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  background: transparent;
-  color: #007acc;
-  font-size: 11px;
-  cursor: pointer;
-  padding: 2px 6px;
-  border-radius: 3px;
-  transition: background-color 0.15s;
-  white-space: nowrap;
-}
-
-.open-folder-btn:hover {
-  background-color: rgba(0, 122, 204, 0.1);
-}
-
-/* Webview Container */
-.webview-container {
-  flex: 1;
-  overflow: hidden;
-}
-
-.yuketang-webview {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .yuketang-tab {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-
-  .toolbar {
-    background-color: #252525;
-    border-bottom-color: #3d3d3d;
-  }
-
-  .nav-btn {
-    background-color: #333;
-    border-color: #555;
-    color: #ccc;
-  }
-
-  .nav-btn:hover {
-    background-color: #404040;
-    border-color: #666;
-  }
-
-  .field-label {
-    color: #aaa;
-  }
-
-  .lesson-id-input {
-    background-color: #2d2d2d;
-    border-color: #555;
-    color: #aaa;
-  }
-
-  .format-select {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .format-select:focus {
-    border-color: #007acc;
-  }
-
-  .status-bar {
-    background-color: #252525;
-    border-bottom-color: #3d3d3d;
-  }
-
-  .status-message {
-    color: #aaa;
-  }
-
-  .open-folder-btn {
-    color: #4a9eff;
-  }
-
-  .open-folder-btn:hover {
-    background-color: rgba(74, 158, 255, 0.1);
-  }
-}
-</style>

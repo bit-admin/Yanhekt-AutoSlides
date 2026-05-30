@@ -1,13 +1,12 @@
 <template>
-  <div class="tools-window">
+  <div class="flex flex-col h-screen bg-surface text-text">
     <!-- Title Bar -->
-    <div class="title-bar" @mousedown="startDrag">
-      <div class="title-bar-drag-region" :class="{ 'macos-padding': isMacOS }">
+    <div class="flex justify-between items-center h-[38px] bg-page border-b border-border px-2 shrink-0 [-webkit-app-region:drag]" @mousedown="startDrag">
+      <div class="flex-1 flex items-center" :class="{ 'pl-[70px]': isMacOS }">
         <!-- Tab Buttons -->
-        <div class="tab-buttons">
+        <div class="flex gap-0.5 [-webkit-app-region:no-drag]">
           <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'trash' }"
+            :class="['flex items-center gap-1 py-1 px-3 border-none rounded bg-transparent text-xs text-text-secondary cursor-pointer transition-all whitespace-nowrap hover:bg-black/6 hover:text-text', activeTab === 'trash' ? 'bg-accent/12 text-accent font-medium' : '']"
             @click="switchTab('trash')"
           >
             <svg width="14" height="14" viewBox="0 0 16 16">
@@ -16,8 +15,7 @@
             {{ $t('tools.tabTrash') }}
           </button>
           <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'pdfmaker' }"
+            :class="['flex items-center gap-1 py-1 px-3 border-none rounded bg-transparent text-xs text-text-secondary cursor-pointer transition-all whitespace-nowrap hover:bg-black/6 hover:text-text', activeTab === 'pdfmaker' ? 'bg-accent/12 text-accent font-medium' : '']"
             @click="switchTab('pdfmaker')"
           >
             <svg width="14" height="14" viewBox="0 0 16 16">
@@ -26,8 +24,7 @@
             {{ $t('tools.tabPdfMaker') }}
           </button>
           <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'offline' }"
+            :class="['flex items-center gap-1 py-1 px-3 border-none rounded bg-transparent text-xs text-text-secondary cursor-pointer transition-all whitespace-nowrap hover:bg-black/6 hover:text-text', activeTab === 'offline' ? 'bg-accent/12 text-accent font-medium' : '']"
             @click="switchTab('offline')"
           >
             <svg width="14" height="14" viewBox="0 0 16 16">
@@ -37,8 +34,7 @@
             {{ $t('tools.tabOffline') }}
           </button>
           <button
-            class="tab-btn"
-            :class="{ active: activeTab === 'compress' }"
+            :class="['flex items-center gap-1 py-1 px-3 border-none rounded bg-transparent text-xs text-text-secondary cursor-pointer transition-all whitespace-nowrap hover:bg-black/6 hover:text-text', activeTab === 'compress' ? 'bg-accent/12 text-accent font-medium' : '']"
             @click="switchTab('compress')"
           >
             <svg width="14" height="14" viewBox="0 0 16 16">
@@ -48,18 +44,18 @@
           </button>
         </div>
       </div>
-      <div v-if="!isMacOS" class="window-controls">
-        <button class="window-btn minimize-btn" @click="minimizeWindow" :title="$t('window.minimize')">
+      <div v-if="!isMacOS" class="flex gap-2 [-webkit-app-region:no-drag]">
+        <button class="w-7 h-7 border-none bg-transparent rounded cursor-pointer flex items-center justify-center text-text-secondary transition-colors hover:bg-border" @click="minimizeWindow" :title="$t('window.minimize')">
           <svg width="12" height="12" viewBox="0 0 12 12">
             <rect x="2" y="5.5" width="8" height="1" fill="currentColor"/>
           </svg>
         </button>
-        <button class="window-btn maximize-btn" @click="maximizeWindow" :title="$t('window.maximize')">
+        <button class="w-7 h-7 border-none bg-transparent rounded cursor-pointer flex items-center justify-center text-text-secondary transition-colors hover:bg-border" @click="maximizeWindow" :title="$t('window.maximize')">
           <svg width="12" height="12" viewBox="0 0 12 12">
             <rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/>
           </svg>
         </button>
-        <button class="window-btn close-btn" @click="closeWindow" :title="$t('window.close')">
+        <button class="w-7 h-7 border-none bg-transparent rounded cursor-pointer flex items-center justify-center text-text-secondary transition-colors hover:bg-bg-danger hover:text-white" @click="closeWindow" :title="$t('window.close')">
           <svg width="12" height="12" viewBox="0 0 12 12">
             <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
@@ -68,17 +64,17 @@
     </div>
 
     <!-- Tab Content -->
-    <div class="tab-content">
-      <div v-show="activeTab === 'trash'" class="tab-panel">
+    <div class="flex-1 overflow-hidden">
+      <div v-show="activeTab === 'trash'" class="h-full">
         <ResultsWindow />
       </div>
-      <div v-show="activeTab === 'pdfmaker'" class="tab-panel">
+      <div v-show="activeTab === 'pdfmaker'" class="h-full">
         <PdfMakerWindow />
       </div>
-      <div v-show="activeTab === 'offline'" class="tab-panel">
+      <div v-show="activeTab === 'offline'" class="h-full">
         <OfflineProcessingTab />
       </div>
-      <div v-show="activeTab === 'compress'" class="tab-panel">
+      <div v-show="activeTab === 'compress'" class="h-full">
         <CompressLectureTab />
       </div>
     </div>
@@ -141,144 +137,3 @@ const startDrag = () => {
   // Handled by -webkit-app-region: drag in CSS
 }
 </script>
-
-<style scoped>
-.tools-window {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-  background-color: #ffffff;
-  color: #333;
-}
-
-/* Title Bar */
-.title-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 38px;
-  background-color: #f0f0f0;
-  border-bottom: 1px solid #e0e0e0;
-  -webkit-app-region: drag;
-  padding: 0 8px;
-  flex-shrink: 0;
-}
-
-.title-bar-drag-region {
-  flex: 1;
-  display: flex;
-  align-items: center;
-}
-
-.title-bar-drag-region.macos-padding {
-  padding-left: 70px;
-}
-
-/* Tab Buttons */
-.tab-buttons {
-  display: flex;
-  gap: 2px;
-  -webkit-app-region: no-drag;
-}
-
-.tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  font-size: 12px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-
-.tab-btn:hover {
-  background-color: rgba(0, 0, 0, 0.06);
-  color: #333;
-}
-
-.tab-btn.active {
-  background-color: rgba(0, 122, 204, 0.12);
-  color: #007acc;
-  font-weight: 500;
-}
-
-/* Window Controls */
-.window-controls {
-  display: flex;
-  gap: 8px;
-  -webkit-app-region: no-drag;
-}
-
-.window-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  transition: background-color 0.2s;
-}
-
-.window-btn:hover {
-  background-color: #e0e0e0;
-}
-
-.close-btn:hover {
-  background-color: #e81123;
-  color: white;
-}
-
-/* Tab Content */
-.tab-content {
-  flex: 1;
-  overflow: hidden;
-}
-
-.tab-panel {
-  height: 100%;
-}
-
-/* Dark Mode */
-@media (prefers-color-scheme: dark) {
-  .tools-window {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-
-  .title-bar {
-    background-color: #2d2d2d;
-    border-bottom-color: #3d3d3d;
-  }
-
-  .tab-btn {
-    color: #999;
-  }
-
-  .tab-btn:hover {
-    background-color: rgba(255, 255, 255, 0.06);
-    color: #e0e0e0;
-  }
-
-  .tab-btn.active {
-    background-color: rgba(74, 158, 255, 0.15);
-    color: #4a9eff;
-  }
-
-  .window-btn {
-    color: #ccc;
-  }
-
-  .window-btn:hover {
-    background-color: #3d3d3d;
-  }
-}
-</style>

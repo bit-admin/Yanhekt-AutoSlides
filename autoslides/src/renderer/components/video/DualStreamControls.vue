@@ -1,11 +1,12 @@
 <template>
-  <div class="controls-row">
-    <div v-if="streamCount > 1" class="stream-selector">
-      <label>{{ $t('playback.selectStream') }}</label>
+  <div class="flex justify-between items-center p-3 bg-elevated border border-border rounded-t-lg gap-4">
+    <div v-if="streamCount > 1" class="flex items-center gap-3">
+      <label class="font-medium text-text">{{ $t('playback.selectStream') }}</label>
       <select
         :value="selectedStream"
         @change="onStreamChange($event)"
         :disabled="shouldDisableControls"
+        class="py-1.5 px-3 border border-border-input rounded bg-surface text-sm disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-elevated focus:outline-none focus:border-accent"
       >
         <option v-if="hasDualStreams" :value="dualStreamKey">
           {{ $t('playback.bothStreams') }}
@@ -16,20 +17,21 @@
       </select>
     </div>
 
-    <div v-if="mode === 'recorded'" class="playback-rate-control">
-      <label>{{ $t('playback.playbackSpeed') }}</label>
+    <div v-if="mode === 'recorded'" class="flex items-center gap-2">
+      <label class="font-medium text-text whitespace-nowrap">{{ $t('playback.playbackSpeed') }}</label>
       <select
         :value="currentPlaybackRate"
         @change="onRateChange($event)"
         :disabled="shouldDisableControls"
+        class="py-1.5 px-3 border border-border-input rounded bg-surface text-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-elevated focus:outline-none focus:border-accent"
       >
         <option v-for="rate in playbackRateOptions" :key="rate" :value="rate">{{ rate }}x</option>
       </select>
     </div>
 
-    <div v-if="!isDualStreamSelected" class="pip-control">
+    <div v-if="!isDualStreamSelected" class="flex items-center">
       <button
-        class="pip-button"
+        class="flex items-center gap-1.5 py-2 px-3 border border-border-input rounded bg-surface text-text text-sm cursor-pointer transition-all hover:bg-elevated hover:border-accent disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-elevated [&_svg]:shrink-0"
         @click="$emit('togglePictureInPicture')"
         :disabled="shouldDisableControls || !videoPlayerReady"
         :title="isPictureInPicture ? $t('playback.exitPictureInPicture') : $t('playback.enterPictureInPicture')"
@@ -84,132 +86,3 @@ function onRateChange(event: Event) {
   emit('changePlaybackRate')
 }
 </script>
-
-<style scoped>
-.controls-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px 8px 0 0;
-  gap: 16px;
-}
-
-.stream-selector {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.stream-selector label {
-  font-weight: 500;
-  color: #333;
-}
-
-.stream-selector select {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 14px;
-}
-
-.stream-selector select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #f8f9fa;
-}
-
-.playback-rate-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.playback-rate-control label {
-  font-weight: 500;
-  color: #333;
-  white-space: nowrap;
-}
-
-.playback-rate-control select {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.playback-rate-control select:focus {
-  outline: none;
-  border-color: #007acc;
-}
-
-.playback-rate-control select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #f8f9fa;
-}
-
-.pip-control {
-  display: flex;
-  align-items: center;
-}
-
-.pip-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  color: #333;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.pip-button:hover:not(:disabled) {
-  background-color: #f8f9fa;
-  border-color: #007acc;
-}
-
-.pip-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #f8f9fa;
-}
-
-.pip-button svg {
-  flex-shrink: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  .controls-row {
-    background-color: #252525;
-    border-color: #3d3d3d;
-  }
-
-  .stream-selector label,
-  .playback-rate-control label {
-    color: #e0e0e0;
-  }
-
-  .stream-selector select,
-  .playback-rate-control select,
-  .pip-button {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .pip-button:hover:not(:disabled) {
-    background-color: #3d3d3d;
-    border-color: #4a9eff;
-  }
-}
-</style>
