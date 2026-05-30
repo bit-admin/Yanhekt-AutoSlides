@@ -196,13 +196,13 @@ const {
 }
 
 .type-badge.single {
-  background-color: var(--badge-active-bg);
-  color: var(--badge-active-text);
+  background-color: var(--blue-badge-bg);
+  color: var(--blue-badge-text);
 }
 
 .type-badge.loadbalance {
-  background-color: #2d1b2e;
-  color: #ba68c8;
+  background-color: var(--purple-badge-bg);
+  color: var(--purple-badge-text);
 }
 
 .mapping-expand-icon {

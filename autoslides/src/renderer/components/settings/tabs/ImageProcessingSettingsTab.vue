@@ -902,14 +902,14 @@ const {
 }
 
 .exclusion-clear-btn {
-  background-color: var(--warning);
-  border-color: var(--warning);
+  background-color: var(--warning-btn);
+  border-color: var(--warning-btn);
   color: var(--text-on-accent);
 }
 
 .exclusion-clear-btn:hover {
-  background-color: var(--warning);
-  border-color: var(--warning);
+  background-color: var(--warning-btn-hover);
+  border-color: var(--warning-btn-hover);
 }
 
 

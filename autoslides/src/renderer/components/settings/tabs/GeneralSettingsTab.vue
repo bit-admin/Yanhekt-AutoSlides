@@ -359,14 +359,14 @@ const {
 }
 
 .cache-clear-btn {
-  background-color: var(--warning);
-  border-color: var(--warning);
+  background-color: var(--warning-btn);
+  border-color: var(--warning-btn);
   color: var(--text-primary);
 }
 
 .cache-clear-btn:hover:not(:disabled) {
-  background-color: var(--warning);
-  border-color: var(--warning);
+  background-color: var(--warning-btn-hover);
+  border-color: var(--warning-btn-hover);
 }
 
 .cache-reset-btn {

@@ -45,6 +45,8 @@
   --danger-pink: #d32f2f;
   --success: #2e7d32;
   --warning: #ed6c02;
+  --warning-btn: #ffc107;
+  --warning-btn-hover: #e0a800;
 
   /* Overlays */
   --overlay-dark: rgba(0, 0, 0, 0.3);
@@ -80,6 +82,14 @@
   --purple: #6f42c1;
   --purple-hover-bg: #f3e5f5;
   --purple-hover-border: #59359a;
+
+  /* Purple badge (network type) */
+  --purple-badge-bg: #f3e5f5;
+  --purple-badge-text: #7b1fa2;
+
+  /* Blue badge (network type) */
+  --blue-badge-bg: #e3f2fd;
+  --blue-badge-text: #1976d2;
   --warning-border: #ffeaa7;
 
   /* Form controls */
@@ -141,6 +151,8 @@
     --danger-pink: #f48fb1;
     --success: #66bb6a;
     --warning: #ffa726;
+    --warning-btn: #f39c12;
+    --warning-btn-hover: #e67e22;
 
     /* Overlays */
     --overlay-dark: rgba(0, 0, 0, 0.7);
@@ -176,6 +188,14 @@
     --purple: #cc99ff;
     --purple-hover-bg: #2d1a3d;
     --purple-hover-border: #d9b3ff;
+
+    /* Purple badge (network type) */
+    --purple-badge-bg: #2d1b2e;
+    --purple-badge-text: #ba68c8;
+
+    /* Blue badge (network type) */
+    --blue-badge-bg: #1a2332;
+    --blue-badge-text: #64b5f6;
     --warning-border: #665c2a;
 
     /* Hover tint */
