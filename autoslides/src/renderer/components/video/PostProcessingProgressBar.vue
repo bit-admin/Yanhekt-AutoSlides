@@ -1,83 +1,90 @@
 <template>
-  <div class="pp-bar">
+  <div class="flex w-full flex-row gap-3">
     <!-- Phase 1: Duplicate Removal -->
-    <div class="pp-phase-item">
-      <div class="pp-phase-header">
-        <span class="pp-phase-name">{{ phase1Name }}</span>
-        <span v-if="state.phase1.status === 'skipped'" class="pp-phase-status skipped">
+    <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div class="flex items-center justify-between text-[11px]">
+        <span class="font-medium text-[#555] dark:text-[#ccc]">{{ phase1Name }}</span>
+        <span v-if="state.phase1.status === 'skipped'" class="italic text-fg-muted">
           {{ disabledLabel }}
         </span>
-        <span v-else-if="state.phase1.status === 'active'" class="pp-phase-status active">
+        <span v-else-if="state.phase1.status === 'active'" class="font-semibold text-accent">
           {{ state.phase1.current }}/{{ state.phase1.total }}
         </span>
-        <span v-else-if="state.phase1.status === 'completed' && state.phase1.removed > 0" class="pp-phase-status completed">
+        <span v-else-if="state.phase1.status === 'completed' && state.phase1.removed > 0" class="font-semibold text-[#16a34a] dark:text-[#4ade80]">
           -{{ state.phase1.removed }}
         </span>
       </div>
-      <div class="pp-phase-bar" :class="{ disabled: state.phase1.status === 'skipped' }">
+      <div
+        class="relative h-1 overflow-hidden rounded-[2px] bg-[#e9ecef] dark:bg-[#404040]"
+        :class="{ 'opacity-50': state.phase1.status === 'skipped' }"
+      >
         <div
-          class="pp-phase-fill"
-          :class="{
-            active: state.phase1.status === 'active',
-            completed: state.phase1.status === 'completed'
-          }"
+          class="h-full rounded-[2px] transition-[width] duration-300"
+          :class="state.phase1.status === 'active' ? 'bg-accent'
+            : state.phase1.status === 'completed' ? 'bg-[#16a34a] dark:bg-[#4ade80]'
+            : 'bg-[#ddd] dark:bg-[#555]'"
           :style="{ width: phase1Width }"
         ></div>
       </div>
     </div>
 
     <!-- Phase 2: Exclusion List -->
-    <div class="pp-phase-item">
-      <div class="pp-phase-header">
-        <span class="pp-phase-name">{{ phase2Name }}</span>
-        <span v-if="state.phase2.status === 'skipped'" class="pp-phase-status skipped">
+    <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div class="flex items-center justify-between text-[11px]">
+        <span class="font-medium text-[#555] dark:text-[#ccc]">{{ phase2Name }}</span>
+        <span v-if="state.phase2.status === 'skipped'" class="italic text-fg-muted">
           {{ disabledLabel }}
         </span>
-        <span v-else-if="state.phase2.status === 'active'" class="pp-phase-status active">
+        <span v-else-if="state.phase2.status === 'active'" class="font-semibold text-accent">
           {{ state.phase2.current }}/{{ state.phase2.total }}
         </span>
-        <span v-else-if="state.phase2.status === 'completed' && state.phase2.removed > 0" class="pp-phase-status completed">
+        <span v-else-if="state.phase2.status === 'completed' && state.phase2.removed > 0" class="font-semibold text-[#16a34a] dark:text-[#4ade80]">
           -{{ state.phase2.removed }}
         </span>
       </div>
-      <div class="pp-phase-bar" :class="{ disabled: state.phase2.status === 'skipped' }">
+      <div
+        class="relative h-1 overflow-hidden rounded-[2px] bg-[#e9ecef] dark:bg-[#404040]"
+        :class="{ 'opacity-50': state.phase2.status === 'skipped' }"
+      >
         <div
-          class="pp-phase-fill"
-          :class="{
-            active: state.phase2.status === 'active',
-            completed: state.phase2.status === 'completed'
-          }"
+          class="h-full rounded-[2px] transition-[width] duration-300"
+          :class="state.phase2.status === 'active' ? 'bg-accent'
+            : state.phase2.status === 'completed' ? 'bg-[#16a34a] dark:bg-[#4ade80]'
+            : 'bg-[#ddd] dark:bg-[#555]'"
           :style="{ width: phase2Width }"
         ></div>
       </div>
     </div>
 
     <!-- Phase 3: AI Classification -->
-    <div class="pp-phase-item">
-      <div class="pp-phase-header">
-        <span class="pp-phase-name">{{ phase3Name }}</span>
-        <span v-if="state.phase3.status === 'skipped'" class="pp-phase-status skipped">
+    <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div class="flex items-center justify-between text-[11px]">
+        <span class="font-medium text-[#555] dark:text-[#ccc]">{{ phase3Name }}</span>
+        <span v-if="state.phase3.status === 'skipped'" class="italic text-fg-muted">
           {{ disabledLabel }}
         </span>
         <span
           v-else-if="state.phase3.status === 'active' || state.ai.total > 0"
-          class="pp-phase-status"
-          :class="{ active: state.phase3.status === 'active' }"
+          :class="state.phase3.status === 'active' ? 'font-semibold text-accent' : 'text-[#888] dark:text-[#999]'"
         >
           {{ state.ai.completed }}/{{ state.ai.total }}
         </span>
-        <span v-else-if="state.phase3.status === 'completed' && state.phase3.removed > 0" class="pp-phase-status completed">
+        <span v-else-if="state.phase3.status === 'completed' && state.phase3.removed > 0" class="font-semibold text-[#16a34a] dark:text-[#4ade80]">
           -{{ state.phase3.removed }}
         </span>
       </div>
-      <div class="pp-phase-bar" :class="{ disabled: state.phase3.status === 'skipped' }">
+      <div
+        class="relative h-1 overflow-hidden rounded-[2px] bg-[#e9ecef] dark:bg-[#404040]"
+        :class="{ 'opacity-50': state.phase3.status === 'skipped' }"
+      >
         <div
-          class="pp-phase-fill"
-          :class="{
-            active: state.phase3.status === 'active',
-            completed: state.phase3.status === 'completed',
-            pulsing: state.phase3.status === 'active' && state.ai.inProgress > 0
-          }"
+          class="h-full rounded-[2px] transition-[width] duration-300"
+          :class="[
+            state.phase3.status === 'active' ? 'bg-accent'
+              : state.phase3.status === 'completed' ? 'bg-[#16a34a] dark:bg-[#4ade80]'
+              : 'bg-[#ddd] dark:bg-[#555]',
+            { 'pp-pulsing': state.phase3.status === 'active' && state.ai.inProgress > 0 }
+          ]"
           :style="{ width: phase3Width }"
         ></div>
       </div>
@@ -128,119 +135,14 @@ const phase3Width = computed(() => fillWidthForPhase(props.state.phase3))
 </script>
 
 <style scoped>
-.pp-bar {
-  display: flex;
-  flex-direction: row;
-  gap: 12px;
-  width: 100%;
-}
-
-.pp-phase-item {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.pp-phase-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-}
-
-.pp-phase-name {
-  color: #555;
-  font-weight: 500;
-}
-
-.pp-phase-status {
-  color: #888;
-}
-
-.pp-phase-status.active {
-  color: #007acc;
-  font-weight: 600;
-}
-
-.pp-phase-status.completed {
-  color: #16a34a;
-  font-weight: 600;
-}
-
-.pp-phase-status.skipped {
-  color: #999;
-  font-style: italic;
-}
-
-.pp-phase-bar {
-  position: relative;
-  height: 4px;
-  background-color: #e9ecef;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.pp-phase-bar.disabled {
-  opacity: 0.5;
-}
-
-.pp-phase-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-  background-color: #ddd;
-}
-
-.pp-phase-fill.active {
-  background-color: #007acc;
-}
-
-.pp-phase-fill.completed {
-  background-color: #16a34a;
-}
-
-.pp-phase-fill.pulsing {
+/* Custom pulse for the AI phase while batches are in flight (differs from
+   Tailwind's animate-pulse timing/opacity). */
+.pp-pulsing {
   animation: pp-pulse 1.2s ease-in-out infinite;
 }
 
 @keyframes pp-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.55; }
-}
-
-@media (prefers-color-scheme: dark) {
-  .pp-phase-name {
-    color: #ccc;
-  }
-
-  .pp-phase-status {
-    color: #999;
-  }
-
-  .pp-phase-status.active {
-    color: #4fc3f7;
-  }
-
-  .pp-phase-status.completed {
-    color: #4ade80;
-  }
-
-  .pp-phase-bar {
-    background-color: #404040;
-  }
-
-  .pp-phase-fill {
-    background-color: #555;
-  }
-
-  .pp-phase-fill.active {
-    background-color: #4fc3f7;
-  }
-
-  .pp-phase-fill.completed {
-    background-color: #4ade80;
-  }
 }
 </style>

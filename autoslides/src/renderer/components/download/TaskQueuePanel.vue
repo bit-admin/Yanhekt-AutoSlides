@@ -1,11 +1,11 @@
 <template>
-  <div class="task-content">
-    <div class="section-header">
-      <h3>{{ $t('tasks.taskList') }}</h3>
-      <div class="queue-controls">
+  <div class="h-full p-4">
+    <div class="mb-5 flex items-center justify-between">
+      <h3 class="m-0 text-base font-semibold text-fg">{{ $t('tasks.taskList') }}</h3>
+      <div class="flex gap-2">
         <button
           @click="toggleTaskQueue"
-          :class="['control-btn', taskStats.isProcessing ? 'pause-btn' : 'start-btn']"
+          :class="[ctrlBtn, taskStats.isProcessing ? ctrlPause : ctrlStart]"
           :title="taskStats.isProcessing ? 'Pause Queue' : 'Start Queue'"
           :disabled="!taskStats.hasQueuedTasks && !taskStats.isProcessing"
         >
@@ -18,7 +18,7 @@
           </svg>
           {{ taskStats.isProcessing ? $t('tasks.pause') : $t('tasks.start') }}
         </button>
-        <button @click="clearCompletedTasks" class="control-btn clear-btn" title="Clear Completed">
+        <button @click="clearCompletedTasks" :class="[ctrlBtn, ctrlClear]" title="Clear Completed">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3,6 5,6 21,6"/>
             <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"/>
@@ -28,20 +28,23 @@
       </div>
     </div>
 
-    <div class="task-queue" v-if="taskItems.length > 0">
+    <div class="mb-4 flex flex-col gap-2" v-if="taskItems.length > 0">
       <div
         v-for="item in taskItems"
         :key="item.id"
-        class="task-item-wrapper"
-        :class="{ 'row-highlight': highlightedTaskId === item.id }"
+        class="group flex flex-col"
         :data-task-id="item.id"
       >
         <div
-          class="task-item"
-          :class="[`status-${item.status}`]"
+          class="flex items-center gap-3 rounded-md border border-line bg-modal p-3 transition-all group-hover:border-accent group-hover:shadow-[0_2px_4px_rgba(0,122,204,0.1)]"
+          :class="[
+            itemBorderByStatus(item.status),
+            { 'border-accent': highlightedTaskId === item.id,
+              'rounded-b-none': getPostProcessJob(item.id) && autoPostProcessing }
+          ]"
         >
-          <div class="item-status">
-            <div :class="['status-indicator', `status-${item.status}`]">
+          <div class="flex-shrink-0">
+            <div :class="indicatorByStatus(item.status)">
               <svg v-if="item.status === 'queued'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12,6 12,12 16,14"/>
@@ -61,15 +64,15 @@
             </div>
           </div>
 
-          <div class="item-info">
-            <div class="item-name" :title="item.name">
+          <div class="min-w-0 flex-1">
+            <div class="mb-1.5 truncate text-[13px] font-medium text-fg" :title="item.name">
               {{ item.name }}
             </div>
-            <div class="item-progress">
-              <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: `${item.progress}%` }"></div>
+            <div class="flex flex-col gap-1">
+              <div class="h-1 w-full overflow-hidden rounded-[2px] bg-[#e9ecef] dark:bg-[#404040]">
+                <div class="h-full rounded-[2px] bg-accent transition-[width] duration-300 dark:bg-[#4fc3f7]" :style="{ width: `${item.progress}%` }"></div>
               </div>
-              <div class="progress-text">
+              <div class="text-[11px] text-fg-secondary">
                 <span v-if="item.status === 'queued'">{{ $t('tasks.queued') }}</span>
                 <span v-else-if="item.status === 'in_progress'">{{ $t('tasks.processing') }} {{ item.progress }}%</span>
                 <span v-else-if="item.status === 'completed'">{{ $t('tasks.completed') }}</span>
@@ -78,10 +81,10 @@
             </div>
           </div>
 
-          <div class="item-actions">
+          <div class="flex-shrink-0">
             <button
               @click="removeTask(item.id)"
-              class="cancel-item-btn"
+              class="flex h-6 w-6 cursor-pointer items-center justify-center rounded border-none bg-transparent text-[#dc3545] transition-colors hover:bg-[#f8d7da] dark:text-[#f48fb1] dark:hover:bg-[#4a2c35]"
               title="Remove"
               v-if="item.status !== 'in_progress'"
             >
@@ -93,27 +96,28 @@
           </div>
         </div>
 
+        <!-- 'post-process-affiliated-panel' retained as a Driver.js tour hook -->
         <div
           v-if="getPostProcessJob(item.id) && autoPostProcessing"
-          class="post-process-affiliated-panel"
-          :class="[`pp-status-${getPostProcessJob(item.id)?.status}`]"
+          class="post-process-affiliated-panel w-full rounded-b-md border border-t-0 border-line bg-modal px-1.5 py-1 group-hover:border-accent"
+          :class="ppBorderByStatus(getPostProcessJob(item.id)?.status)"
         >
-          <div class="pp-panel-content">
+          <div class="flex items-stretch gap-2 text-[8px]">
             <PostProcessingProgressBar :state="fromJobProgress(getPostProcessJob(item.id)!)" />
           </div>
         </div>
       </div>
     </div>
 
-    <div v-else class="empty-queue">
-      <div class="empty-icon">
+    <div v-else class="flex flex-col items-center p-8 text-center text-fg-secondary">
+      <div class="mb-4 opacity-60">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M9 11l3 3 8-8"/>
           <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
         </svg>
       </div>
-      <p>{{ $t('tasks.noTasks') }}</p>
-      <p>{{ $t('tasks.noTasksDescription') }}</p>
+      <p class="m-0 mb-5 text-sm italic">{{ $t('tasks.noTasks') }}</p>
+      <p class="m-0 mb-5 text-sm italic">{{ $t('tasks.noTasksDescription') }}</p>
     </div>
   </div>
 </template>
@@ -129,6 +133,37 @@ defineProps<{
   highlightedTaskId: string | null
   autoPostProcessing: boolean
 }>()
+
+// ---- Tailwind class-string helpers (queue controls + per-status styling) ----
+const ctrlBtn = 'flex items-center gap-1 rounded border px-2 py-1.5 text-[11px] cursor-pointer transition-all disabled:cursor-not-allowed disabled:opacity-50'
+const ctrlStart = 'border-[#28a745] bg-white text-[#28a745] enabled:hover:border-[#1e7e34] enabled:hover:bg-[#d4edda] dark:border-[#81c784] dark:bg-[#2d2d2d] dark:text-[#81c784] dark:enabled:hover:bg-[#2e4a2e]'
+const ctrlPause = 'border-[#ffc107] bg-white text-[#ffc107] hover:border-[#e0a800] hover:bg-[#fff8e1] dark:border-[#ffb74d] dark:bg-[#2d2d2d] dark:text-[#ffb74d] dark:hover:bg-[#4a3a2a]'
+const ctrlClear = 'border-[#6c757d] bg-white text-[#6c757d] hover:border-[#545b62] hover:bg-[#e2e3e5] dark:border-[#bdbdbd] dark:bg-[#2d2d2d] dark:text-[#bdbdbd] dark:hover:bg-[#404040]'
+
+const itemBorderByStatus = (status: string) => ({
+  queued: 'border-l-[3px] border-l-[#6c757d] dark:border-l-[#bdbdbd]',
+  in_progress: 'border-l-[3px] border-l-[#28a745] dark:border-l-[#81c784]',
+  completed: 'border-l-[3px] border-l-[#28a745] dark:border-l-[#81c784]',
+  error: 'border-l-[3px] border-l-[#dc3545] dark:border-l-[#f48fb1]',
+}[status] || '')
+
+const indicatorByStatus = (status: string) => {
+  const base = 'flex h-6 w-6 items-center justify-center rounded-full border-2 border-current'
+  const v = {
+    queued: 'text-[#6c757d] bg-[#f8f9fa] dark:text-[#bdbdbd] dark:bg-[#404040]',
+    in_progress: 'text-[#28a745] dark:text-[#81c784]',
+    completed: 'text-[#28a745] bg-[#e8f5e8] dark:text-[#81c784] dark:bg-[#2e4a2e]',
+    error: 'text-[#dc3545] bg-[#ffeaea] dark:text-[#f48fb1] dark:bg-[#4a2c35]',
+  }[status] || ''
+  return `${base} ${v}`
+}
+
+const ppBorderByStatus = (status: string | undefined) => ({
+  queued: 'border-l-[3px] border-l-[#9e9e9e]',
+  in_progress: 'border-l-[3px] border-l-[#9acd32] dark:border-l-[#b8e986]',
+  completed: 'border-l-[3px] border-l-[#9acd32] dark:border-l-[#b8e986]',
+  error: 'border-l-[3px] border-l-[#ff9800] dark:border-l-[#ffb74d]',
+}[status || ''] || '')
 
 const taskItems = computed(() => TaskQueue.tasks)
 const taskStats = computed(() => taskQueueState.value)
@@ -153,462 +188,3 @@ const removeTask = (taskId: string) => {
 }
 </script>
 
-<style scoped>
-.task-content {
-  padding: 16px;
-  height: 100%;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.section-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.queue-controls {
-  display: flex;
-  gap: 8px;
-}
-
-.control-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.control-btn:hover {
-  background-color: #f8f9fa;
-}
-
-.clear-btn {
-  color: #6c757d;
-  border-color: #6c757d;
-}
-
-.clear-btn:hover {
-  background-color: #e2e3e5;
-  border-color: #545b62;
-}
-
-.start-btn {
-  color: #28a745;
-  border-color: #28a745;
-}
-
-.start-btn:hover:not(:disabled) {
-  background-color: #d4edda;
-  border-color: #1e7e34;
-}
-
-.pause-btn {
-  color: #ffc107;
-  border-color: #ffc107;
-}
-
-.pause-btn:hover {
-  background-color: #fff8e1;
-  border-color: #e0a800;
-}
-
-.control-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.control-btn:disabled:hover {
-  background-color: white;
-  border-color: #ddd;
-}
-
-.task-queue {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.task-item-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.task-item-wrapper:has(.post-process-affiliated-panel) .task-item {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.task-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.task-item-wrapper:hover .task-item {
-  border-color: #007acc;
-  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
-}
-
-.task-item-wrapper.row-highlight .task-item {
-  border-color: #007acc;
-  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
-}
-
-.task-item-wrapper:hover .post-process-affiliated-panel {
-  border-color: #007acc;
-}
-
-.task-item-wrapper.row-highlight .post-process-affiliated-panel {
-  border-color: #007acc;
-}
-
-.task-item:hover {
-  border-color: #007acc;
-  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
-}
-
-.task-item.status-queued {
-  border-left: 3px solid #6c757d;
-}
-
-.task-item.status-in_progress {
-  border-left: 3px solid #28a745;
-}
-
-.task-item.status-completed {
-  border-left: 3px solid #28a745;
-}
-
-.task-item.status-error {
-  border-left: 3px solid #dc3545;
-}
-
-.item-status {
-  flex-shrink: 0;
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-}
-
-.status-indicator.status-queued {
-  color: #6c757d;
-  background-color: #f8f9fa;
-}
-
-.status-indicator.status-completed {
-  color: #28a745;
-  background-color: #e8f5e8;
-}
-
-.status-indicator.status-error {
-  color: #dc3545;
-  background-color: #ffeaea;
-}
-
-.item-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.item-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.item-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 4px;
-  background-color: #e9ecef;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: #007acc;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.progress-text {
-  font-size: 11px;
-  color: #666;
-}
-
-.post-process-affiliated-panel {
-  width: 100%;
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  border-top: none;
-  border-radius: 0 0 6px 6px;
-  padding: 4px 6px;
-  margin-top: 0;
-}
-
-.task-item.status-queued + .post-process-affiliated-panel {
-  border-left: 3px solid #9e9e9e;
-}
-
-.task-item.status-in_progress + .post-process-affiliated-panel {
-  border-left: 3px solid #9acd32;
-}
-
-.task-item.status-completed + .post-process-affiliated-panel {
-  border-left: 3px solid #9acd32;
-}
-
-.task-item.status-error + .post-process-affiliated-panel {
-  border-left: 3px solid #ff9800;
-}
-
-.pp-panel-content {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-  font-size: 8px;
-}
-
-.pp-panel-content :deep(.pp-bar) {
-  gap: 8px;
-}
-
-.pp-panel-content :deep(.pp-phase-bar) {
-  height: 3px;
-}
-
-.item-actions {
-  flex-shrink: 0;
-}
-
-.cancel-item-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background-color: transparent;
-  color: #dc3545;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.cancel-item-btn:hover {
-  background-color: #f8d7da;
-}
-
-.empty-queue {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 32px 16px;
-  color: #666;
-}
-
-.empty-icon {
-  margin-bottom: 16px;
-  opacity: 0.6;
-}
-
-.empty-queue p {
-  margin: 0 0 20px 0;
-  font-size: 14px;
-  font-style: italic;
-}
-
-@media (prefers-color-scheme: dark) {
-  .section-header h3 {
-    color: #e0e0e0;
-  }
-
-  .control-btn {
-    background-color: #2d2d2d;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .control-btn:hover {
-    background-color: #404040;
-  }
-
-  .clear-btn {
-    color: #bdbdbd;
-    border-color: #bdbdbd;
-  }
-
-  .clear-btn:hover {
-    background-color: #404040;
-    border-color: #9e9e9e;
-  }
-
-  .start-btn {
-    color: #81c784;
-    border-color: #81c784;
-  }
-
-  .start-btn:hover:not(:disabled) {
-    background-color: #2e4a2e;
-    border-color: #66bb6a;
-  }
-
-  .pause-btn {
-    color: #ffb74d;
-    border-color: #ffb74d;
-  }
-
-  .pause-btn:hover {
-    background-color: #4a3a2a;
-    border-color: #ffa726;
-  }
-
-  .control-btn:disabled:hover {
-    background-color: #2d2d2d;
-    border-color: #555;
-  }
-
-  .task-item-wrapper:hover .task-item {
-    border-color: #4fc3f7;
-    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
-  }
-
-  .task-item-wrapper.row-highlight .task-item {
-    border-color: #4fc3f7;
-    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
-  }
-
-  .task-item-wrapper:hover .post-process-affiliated-panel,
-  .task-item-wrapper.row-highlight .post-process-affiliated-panel {
-    border-color: #4fc3f7;
-  }
-
-  .task-item {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .task-item:hover {
-    border-color: #4fc3f7;
-    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
-  }
-
-  .task-item.status-queued {
-    border-left-color: #bdbdbd;
-  }
-
-  .task-item.status-in_progress {
-    border-left-color: #81c784;
-  }
-
-  .task-item.status-completed {
-    border-left-color: #81c784;
-  }
-
-  .task-item.status-error {
-    border-left-color: #f48fb1;
-  }
-
-  .status-indicator.status-queued {
-    color: #bdbdbd;
-    background-color: #404040;
-  }
-
-  .status-indicator.status-completed {
-    color: #81c784;
-    background-color: #2e4a2e;
-  }
-
-  .status-indicator.status-error {
-    color: #f48fb1;
-    background-color: #4a2c35;
-  }
-
-  .item-name {
-    color: #e0e0e0;
-  }
-
-  .progress-bar {
-    background-color: #404040;
-  }
-
-  .progress-fill {
-    background-color: #4fc3f7;
-  }
-
-  .progress-text {
-    color: #bdbdbd;
-  }
-
-  .post-process-affiliated-panel {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .task-item.status-queued + .post-process-affiliated-panel {
-    border-left-color: #9e9e9e;
-  }
-
-  .task-item.status-in_progress + .post-process-affiliated-panel {
-    border-left-color: #b8e986;
-  }
-
-  .task-item.status-completed + .post-process-affiliated-panel {
-    border-left-color: #b8e986;
-  }
-
-  .task-item.status-error + .post-process-affiliated-panel {
-    border-left-color: #ffb74d;
-  }
-
-  .cancel-item-btn {
-    color: #f48fb1;
-  }
-
-  .cancel-item-btn:hover {
-    background-color: #4a2c35;
-  }
-
-  .empty-queue {
-    color: #bdbdbd;
-  }
-}
-</style>

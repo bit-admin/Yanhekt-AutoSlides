@@ -4,7 +4,7 @@
     <h4>{{ $t('advanced.ai.ml.classifierMode') }}</h4>
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.ai.ml.classifierModeDescription') }}</div>
-      <div class="ai-service-type-selector">
+      <div class="mt-2 flex gap-2">
         <button
           @click="tempAiClassifierMode = 'llm'"
           :class="['mode-btn', { active: tempAiClassifierMode === 'llm' }]"
@@ -86,7 +86,7 @@
         {{ $t('advanced.ai.serviceTypeDescription') }}
         <a href="#" @click.prevent="openCustomServiceDocs" class="external-link">{{ $t('advanced.ai.customServiceDocsLink') }}</a>
       </div>
-      <div class="ai-service-type-selector">
+      <div class="mt-2 flex gap-2">
         <button
           @click="tempAiServiceType = 'builtin'"
           :class="['mode-btn', { active: tempAiServiceType === 'builtin' }]"
@@ -109,20 +109,20 @@
     </div>
 
     <!-- Built-in Model Info (shown only when builtin is selected) -->
-    <div v-if="tempAiServiceType === 'builtin'" class="builtin-model-info">
+    <div v-if="tempAiServiceType === 'builtin'" :class="sectionDivider">
       <div class="setting-item">
         <label class="setting-label">{{ $t('advanced.ai.builtinModel') }}</label>
-        <div class="builtin-model-display">
-          <div v-if="isLoadingBuiltinModel" class="model-loading">
-            <div class="loading-spinner-small"></div>
+        <div class="mt-2 flex min-h-5 items-center rounded border border-line bg-elevated px-3 py-2.5">
+          <div v-if="isLoadingBuiltinModel" class="flex items-center gap-2 text-[13px] text-fg-secondary">
+            <div :class="spinnerCls"></div>
             <span>{{ $t('advanced.ai.loadingModel') }}</span>
           </div>
-          <div v-else-if="builtinModelError === 'notLoggedIn'" class="model-error">
+          <div v-else-if="builtinModelError === 'notLoggedIn'" :class="modelErrorCls">
             <span>{{ $t('advanced.ai.modelNotLoggedIn') }}</span>
           </div>
-          <div v-else-if="builtinModelError === 'cloudflareBlocked'" class="model-error cloudflare-error">
+          <div v-else-if="builtinModelError === 'cloudflareBlocked'" :class="[modelErrorCls, 'flex-wrap']">
             <span>{{ $t('advanced.ai.modelCloudflareBlocked') }}</span>
-            <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
+            <button @click="refreshBuiltinModel" :class="refreshBtnCls" :title="$t('advanced.ai.refreshModel')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                 <path d="M21 3v5h-5"/>
@@ -131,9 +131,9 @@
               </svg>
             </button>
           </div>
-          <div v-else-if="builtinModelError === 'temporarilyUnavailable'" class="model-error model-error-warning">
+          <div v-else-if="builtinModelError === 'temporarilyUnavailable'" :class="modelErrorWarnCls">
             <span>{{ $t('advanced.ai.modelTemporarilyUnavailable') }}</span>
-            <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
+            <button @click="refreshBuiltinModel" :class="refreshBtnCls" :title="$t('advanced.ai.refreshModel')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                 <path d="M21 3v5h-5"/>
@@ -142,9 +142,9 @@
               </svg>
             </button>
           </div>
-          <div v-else-if="builtinModelError === 'fetchFailed'" class="model-error">
+          <div v-else-if="builtinModelError === 'fetchFailed'" :class="modelErrorCls">
             <span>{{ $t('advanced.ai.modelFetchFailed') }}</span>
-            <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
+            <button @click="refreshBuiltinModel" :class="refreshBtnCls" :title="$t('advanced.ai.refreshModel')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                 <path d="M21 3v5h-5"/>
@@ -153,9 +153,9 @@
               </svg>
             </button>
           </div>
-          <div v-else class="model-name-display">
-            <span class="model-name">{{ builtinModelName || $t('advanced.ai.modelUnknown') }}</span>
-            <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
+          <div v-else class="flex w-full items-center justify-between">
+            <span class="font-mono text-[13px] font-medium text-fg">{{ builtinModelName || $t('advanced.ai.modelUnknown') }}</span>
+            <button @click="refreshBuiltinModel" :class="refreshBtnCls" :title="$t('advanced.ai.refreshModel')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                 <path d="M21 3v5h-5"/>
@@ -166,8 +166,8 @@
           </div>
         </div>
         <!-- Cloudflare warning hint -->
-        <div v-if="builtinModelError === 'cloudflareBlocked'" class="cloudflare-hint">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <div v-if="builtinModelError === 'cloudflareBlocked'" class="mt-2.5 flex items-start gap-2 rounded border border-[#ffc107] bg-[#fff3cd] px-3 py-2.5 text-xs leading-[1.4] text-[#856404] dark:border-[#6b5a00] dark:bg-[#4a3f00] dark:text-[#ffd54f]">
+          <svg class="mt-px shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="8" x2="12" y2="12"/>
             <line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -176,46 +176,46 @@
         </div>
       </div>
       <!-- Built-in service disclaimer -->
-      <div class="builtin-disclaimer">
+      <div class="mt-3 rounded bg-black/[0.03] px-3 py-2.5 text-[10px] leading-[1.5] text-fg-muted dark:bg-white/5">
         {{ $t('advanced.ai.builtinDisclaimer') }}
       </div>
     </div>
 
     <!-- Copilot Settings (shown only when copilot is selected) -->
-    <div v-if="tempAiServiceType === 'copilot'" class="copilot-settings">
+    <div v-if="tempAiServiceType === 'copilot'" :class="sectionDivider">
       <!-- Authenticated state -->
-      <div v-if="copilotOAuthStep === 'success'" class="copilot-user-info">
-        <div class="copilot-user-row">
-          <img v-if="copilotAvatarUrl" :src="copilotAvatarUrl" class="copilot-avatar" alt="" />
-          <span class="copilot-username">{{ copilotUsername }}</span>
-          <button @click="disconnectCopilot" class="copilot-disconnect-btn">
+      <div v-if="copilotOAuthStep === 'success'" class="mb-3">
+        <div class="flex items-center gap-2.5 rounded border border-[#c3e6c3] bg-[#f0f9f0] px-3 py-2.5 dark:border-[#2d5a2d] dark:bg-[#1a2e1a]">
+          <img v-if="copilotAvatarUrl" :src="copilotAvatarUrl" class="h-7 w-7 rounded-full" alt="" />
+          <span class="flex-1 text-[13px] font-medium text-fg">{{ copilotUsername }}</span>
+          <button @click="disconnectCopilot" class="cursor-pointer rounded border border-[#dc3545] bg-transparent px-2.5 py-1 text-[11px] text-[#dc3545] transition-colors hover:bg-[#dc3545] hover:text-white">
             {{ $t('advanced.ai.copilotDisconnect') }}
           </button>
         </div>
       </div>
 
       <!-- Idle / Error state -->
-      <div v-else-if="copilotOAuthStep === 'idle' || copilotOAuthStep === 'error'" class="copilot-auth-section">
-        <button @click="startCopilotOAuth" class="copilot-oauth-btn" :disabled="isCopilotLoading">
+      <div v-else-if="copilotOAuthStep === 'idle' || copilotOAuthStep === 'error'" class="mb-3">
+        <button @click="startCopilotOAuth" class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-md border border-[#24292e] bg-[#24292e] px-3.5 py-[7px] text-xs font-medium text-white transition-colors enabled:hover:bg-[#3b434b] disabled:cursor-not-allowed disabled:opacity-60 dark:border-[#d0d7de] dark:bg-[#f0f6fc] dark:text-[#24292e] dark:enabled:hover:bg-[#e6edf5]" :disabled="isCopilotLoading">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
           </svg>
           {{ $t('advanced.ai.copilotSignInWithGitHub') }}
         </button>
 
-        <div class="copilot-or-divider">
-          <span>{{ $t('advanced.ai.or') }}</span>
+        <div class="my-3 flex items-center gap-2 before:h-px before:flex-1 before:bg-line before:content-[''] after:h-px after:flex-1 after:bg-line after:content-['']">
+          <span class="text-[11px] uppercase text-fg-muted">{{ $t('advanced.ai.or') }}</span>
         </div>
 
-        <div class="copilot-manual-token">
-          <div class="api-key-input-group">
+        <div>
+          <div :class="inputGroup">
             <input
               v-model="tempCopilotGhoToken"
               :type="showCopilotToken ? 'text' : 'password'"
-              class="api-key-input"
+              class="input flex-1"
               :placeholder="$t('advanced.ai.copilotTokenPlaceholder')"
             />
-            <button @click="showCopilotToken = !showCopilotToken" class="api-key-toggle-btn">
+            <button @click="showCopilotToken = !showCopilotToken" :class="keyToggleBtn">
               <svg v-if="showCopilotToken" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
                 <line x1="1" y1="1" x2="23" y2="23"/>
@@ -227,17 +227,17 @@
             </button>
             <button
               @click="validateCopilotToken(tempCopilotGhoToken)"
-              class="copilot-verify-btn"
+              class="flex min-w-[60px] flex-none cursor-pointer items-center justify-center rounded border border-accent bg-accent px-3 py-1.5 text-xs text-white transition-colors enabled:hover:bg-[#005ea6] disabled:cursor-not-allowed disabled:opacity-60"
               :disabled="!tempCopilotGhoToken || isCopilotLoading"
             >
-              <div v-if="isCopilotLoading" class="loading-spinner-small"></div>
+              <div v-if="isCopilotLoading" :class="spinnerCls"></div>
               <span v-else>{{ $t('advanced.ai.copilotAuth') }}</span>
             </button>
           </div>
         </div>
 
         <!-- Error messages -->
-        <div v-if="copilotOAuthError" class="copilot-error">
+        <div v-if="copilotOAuthError" class="mt-2 rounded border border-[#fecaca] bg-[#fef2f2] px-2.5 py-2 text-xs text-[#dc2626] dark:border-[#5a2d2d] dark:bg-[#3a1a1a] dark:text-[#ff6b6b]">
           <span v-if="copilotOAuthError === 'expired_token'">{{ $t('advanced.ai.copilotDeviceCodeExpired') }}</span>
           <span v-else-if="copilotOAuthError === 'access_denied'">{{ $t('advanced.ai.copilotAccessDenied') }}</span>
           <span v-else-if="copilotOAuthError === 'invalid_token'">{{ $t('advanced.ai.copilotInvalidToken') }}</span>
@@ -246,19 +246,19 @@
       </div>
 
       <!-- Waiting / Polling state -->
-      <div v-else-if="copilotOAuthStep === 'waiting' || copilotOAuthStep === 'polling'" class="copilot-waiting">
-        <div class="copilot-enter-code-label">
+      <div v-else-if="copilotOAuthStep === 'waiting' || copilotOAuthStep === 'polling'" class="py-4 text-center">
+        <div class="mb-2 text-xs text-fg-secondary">
           {{ $t('advanced.ai.copilotEnterCode') }}
-          <a class="copilot-verification-url" @click.prevent="openCopilotVerificationUrl" :title="copilotVerificationUri">{{ copilotVerificationUri }}</a>
+          <a class="cursor-pointer break-all text-[#0969da] underline hover:text-[#0550ae] dark:text-[#58a6ff] dark:hover:text-[#79c0ff]" @click.prevent="openCopilotVerificationUrl" :title="copilotVerificationUri">{{ copilotVerificationUri }}</a>
         </div>
-        <div class="copilot-user-code" @click="copyUserCode" :title="$t('advanced.ai.copilotClickToCopy')">
+        <div class="relative mb-3 flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-[#d0d7de] bg-[#f6f8fa] p-3 font-mono text-2xl font-bold tracking-[4px] text-[#24292e] transition-colors hover:border-[#0969da] hover:bg-[#eef1f5] dark:border-[#555] dark:bg-[#2d2d2d] dark:text-[#e0e0e0] dark:hover:border-[#58a6ff] dark:hover:bg-[#363636]" @click="copyUserCode" :title="$t('advanced.ai.copilotClickToCopy')">
           <span>{{ copilotUserCode }}</span>
-          <span class="copilot-code-copied" v-if="copilotCodeCopied">{{ $t('advanced.ai.copilotCopied') }}</span>
+          <span class="absolute right-2.5 text-[11px] font-normal tracking-normal text-[#1a7f37] dark:text-[#3fb950]" v-if="copilotCodeCopied">{{ $t('advanced.ai.copilotCopied') }}</span>
         </div>
-        <div class="copilot-waiting-status">
-          <div class="loading-spinner-small"></div>
+        <div class="flex items-center justify-center gap-2 text-xs text-fg-secondary">
+          <div :class="spinnerCls"></div>
           <span>{{ $t('advanced.ai.copilotWaitingForAuth') }}</span>
-          <button class="copilot-cancel-btn" @click="cancelCopilotOAuth" :title="$t('advanced.ai.copilotCancel')">
+          <button class="flex h-[22px] w-[22px] flex-shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent p-0 text-fg-secondary hover:bg-line hover:text-[#dc2626] dark:hover:bg-[#404040]" @click="cancelCopilotOAuth" :title="$t('advanced.ai.copilotCancel')">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"/>
               <line x1="6" y1="6" x2="18" y2="18"/>
@@ -268,16 +268,16 @@
       </div>
 
       <!-- Model name input (always visible in copilot mode) -->
-      <div class="setting-item copilot-model-setting">
+      <div class="setting-item mt-3">
         <label class="setting-label">{{ $t('advanced.ai.modelName') }}</label>
-        <div class="model-name-input-group">
+        <div :class="inputGroup">
           <input
             v-model="tempCopilotModelName"
             type="text"
-            class="model-name-input"
+            class="input flex-1"
             :placeholder="$t('advanced.ai.copilotModelPlaceholder')"
           />
-          <select v-model="selectedCopilotModelPreset" @change="onCopilotModelPresetChange" class="model-preset-select">
+          <select v-model="selectedCopilotModelPreset" @change="onCopilotModelPresetChange" :class="presetSelectCls">
             <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
             <option v-for="preset in copilotModelPresets" :key="preset.name" :value="preset.name">
               {{ preset.label }}
@@ -288,17 +288,17 @@
     </div>
 
     <!-- Custom API Settings (shown only when custom is selected) -->
-    <div v-if="tempAiServiceType === 'custom'" class="custom-api-settings">
+    <div v-if="tempAiServiceType === 'custom'" :class="sectionDivider">
       <div class="setting-item">
         <label class="setting-label">{{ $t('advanced.ai.apiBaseUrl') }}</label>
-        <div class="api-url-input-group">
+        <div :class="inputGroup">
           <input
             v-model="tempAiCustomApiBaseUrl"
             type="text"
-            class="api-url-input"
+            class="input flex-1"
             :placeholder="$t('advanced.ai.apiBaseUrlPlaceholder')"
           />
-          <select v-model="selectedApiUrlPreset" @change="onApiUrlPresetChange" class="api-url-preset-select">
+          <select v-model="selectedApiUrlPreset" @change="onApiUrlPresetChange" :class="presetSelectCls">
             <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
             <option v-for="preset in apiUrlPresets" :key="preset.url" :value="preset.url">
               {{ preset.label }}
@@ -309,14 +309,14 @@
 
       <div class="setting-item">
         <label class="setting-label">{{ $t('advanced.ai.apiKey') }}</label>
-        <div class="api-key-input-group">
+        <div :class="inputGroup">
           <input
             v-model="tempAiCustomApiKey"
             :type="showApiKey ? 'text' : 'password'"
-            class="api-key-input"
+            class="input flex-1"
             :placeholder="$t('advanced.ai.apiKeyPlaceholder')"
           />
-          <button @click="showApiKey = !showApiKey" class="api-key-toggle-btn" :title="showApiKey ? $t('advanced.hideToken') : $t('advanced.showToken')">
+          <button @click="showApiKey = !showApiKey" :class="keyToggleBtn" :title="showApiKey ? $t('advanced.hideToken') : $t('advanced.showToken')">
             <svg v-if="showApiKey" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
               <line x1="1" y1="1" x2="23" y2="23"/>
@@ -331,14 +331,14 @@
 
       <div class="setting-item" v-if="currentCustomProvider !== 'modelscope'">
         <label class="setting-label">{{ $t('advanced.ai.modelName') }}</label>
-        <div class="model-name-input-group">
+        <div :class="inputGroup">
           <input
             v-model="tempAiCustomModelName"
             type="text"
-            class="model-name-input"
+            class="input flex-1"
             :placeholder="$t('advanced.ai.modelNamePlaceholder')"
           />
-          <select v-model="selectedModelPreset" @change="onModelPresetChange" class="model-preset-select">
+          <select v-model="selectedModelPreset" @change="onModelPresetChange" :class="presetSelectCls">
             <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
             <option v-for="preset in modelPresets" :key="preset.name" :value="preset.name">
               {{ preset.label }}
@@ -349,34 +349,34 @@
 
       <div class="setting-item" v-else>
         <label class="setting-label">{{ $t('advanced.ai.modelChain') }}</label>
-        <div class="model-chain-hint">{{ $t('advanced.ai.modelChainHint') }}</div>
+        <div class="mb-2 text-[11px] leading-[1.4] text-fg-secondary">{{ $t('advanced.ai.modelChainHint') }}</div>
 
-        <ul v-if="tempCustomModelChain.length > 0" class="model-chain-list">
+        <ul v-if="tempCustomModelChain.length > 0" class="m-0 list-none rounded border border-line bg-subtle p-0">
           <li
             v-for="(model, idx) in tempCustomModelChain"
             :key="idx"
-            class="model-chain-row"
-            :class="{ 'is-exhausted': exhaustedModels.includes(model) }"
+            class="flex items-center gap-1.5 border-b border-line py-1.5 pl-1 pr-2 last:border-b-0"
           >
-            <div class="model-chain-index">{{ idx + 1 }}</div>
+            <div class="min-w-[14px] flex-none text-center text-[11px] tabular-nums text-fg-muted">{{ idx + 1 }}</div>
             <input
               type="text"
-              class="model-chain-input"
+              class="input flex-1 font-mono"
+              :class="{ 'opacity-60': exhaustedModels.includes(model) }"
               :value="model"
               @input="updateModelAt(idx, ($event.target as HTMLInputElement).value)"
             />
-            <div class="model-chain-badges">
-              <span v-if="idx === 0" class="model-chain-badge primary">
+            <div class="flex flex-none gap-1">
+              <span v-if="idx === 0" :class="chainBadgePrimary">
                 {{ $t('advanced.ai.modelChainPrimary') }}
               </span>
-              <span v-if="exhaustedModels.includes(model)" class="model-chain-badge exhausted">
+              <span v-if="exhaustedModels.includes(model)" :class="chainBadgeExhausted">
                 {{ $t('advanced.ai.modelChainExhausted') }}
               </span>
             </div>
-            <div class="model-chain-actions">
+            <div class="flex flex-none gap-0.5">
               <button
                 type="button"
-                class="model-chain-move-btn"
+                :class="chainBtn"
                 :disabled="idx === 0"
                 @click="moveModelUp(idx)"
                 :title="$t('advanced.ai.modelChainMoveUp')"
@@ -384,7 +384,7 @@
               >↑</button>
               <button
                 type="button"
-                class="model-chain-move-btn"
+                :class="chainBtn"
                 :disabled="idx >= tempCustomModelChain.length - 1"
                 @click="moveModelDown(idx)"
                 :title="$t('advanced.ai.modelChainMoveDown')"
@@ -392,7 +392,7 @@
               >↓</button>
               <button
                 type="button"
-                class="model-chain-remove-btn"
+                :class="chainRemoveBtn"
                 @click="removeModelAt(idx)"
                 :title="$t('advanced.ai.modelChainRemove')"
                 aria-label="Remove"
@@ -400,20 +400,20 @@
             </div>
           </li>
         </ul>
-        <div v-else class="model-chain-empty">{{ $t('advanced.ai.modelChainEmpty') }}</div>
+        <div v-else class="rounded border border-dashed border-line bg-subtle p-2.5 text-center text-[11px] text-fg-muted">{{ $t('advanced.ai.modelChainEmpty') }}</div>
 
-        <div class="model-chain-add-row">
+        <div class="mt-2 flex gap-1.5">
           <input
             v-model="newModelInput"
             type="text"
-            class="model-chain-add-input"
+            class="input flex-1 font-mono"
             :placeholder="$t('advanced.ai.modelChainAddPlaceholder')"
             @keydown.enter.prevent="addPendingModel"
           />
           <select
             v-model="selectedAddPreset"
             @change="onAddPresetSelect"
-            class="model-chain-preset-select"
+            :class="presetSelectCls"
           >
             <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
             <option
@@ -427,7 +427,7 @@
           </select>
           <button
             type="button"
-            class="model-chain-add-btn"
+            :class="chainAddBtn"
             :disabled="!newModelInput.trim()"
             @click="addPendingModel"
           >
@@ -440,13 +440,13 @@
 
   <div class="advanced-setting-section">
     <h4>{{ $t('advanced.ai.requestSettings') }}</h4>
-    <div v-if="tempAiServiceType === 'builtin'" class="rate-limit-hint">
+    <div v-if="tempAiServiceType === 'builtin'" class="mb-4 text-[11px] leading-[1.4] text-[#e67700]">
       {{ $t('advanced.ai.rateLimitBuiltinHint') }}
     </div>
-    <div v-else-if="tempAiServiceType === 'copilot'" class="rate-limit-hint">
+    <div v-else-if="tempAiServiceType === 'copilot'" class="mb-4 text-[11px] leading-[1.4] text-[#e67700]">
       {{ $t('advanced.ai.rateLimitCopilotHint') }}
     </div>
-    <div v-else class="rate-limit-hint">
+    <div v-else class="mb-4 text-[11px] leading-[1.4] text-[#e67700]">
       {{ $t('advanced.ai.rateLimitCustomHint') }}
     </div>
 
@@ -565,18 +565,15 @@
   </div>
 
   <div v-if="tempAiClassifierMode === 'llm'" class="advanced-setting-section">
-    <h4 class="ai-prompts-header">
+    <h4 class="flex items-center gap-2">
       {{ $t('advanced.ai.prompts') }}
-      <span
-        class="variant-badge"
-        :class="{ 'variant-badge-distinguish': tempDistinguishMaybeSlide }"
-      >
+      <span :class="tempDistinguishMaybeSlide ? variantBadgeDistinguish : variantBadgeSimple">
         {{ tempDistinguishMaybeSlide
           ? $t('advanced.ai.variantDistinguish')
           : $t('advanced.ai.variantSimple') }}
       </span>
     </h4>
-    <div class="setting-description ai-prompts-variant-hint">
+    <div class="setting-description mb-3">
       {{ tempDistinguishMaybeSlide
         ? $t('advanced.ai.variantDistinguishHint')
         : $t('advanced.ai.variantSimpleHint') }}
@@ -598,11 +595,11 @@
         </div>
         <div class="setting-description">
           {{ $t('advanced.ai.promptLiveDescription') }}
-          <code class="json-example">{"classification": "slide"}</code> {{ $t('advanced.ai.or') }} <code class="json-example">{"classification": "not_slide"}</code>
+          <code :class="jsonExampleCls">{"classification": "slide"}</code> {{ $t('advanced.ai.or') }} <code :class="jsonExampleCls">{"classification": "not_slide"}</code>
         </div>
         <textarea
           v-model="tempAiPromptLive"
-          class="ai-prompt-textarea"
+          :class="aiTextareaCls"
           rows="6"
           :placeholder="$t('advanced.ai.promptPlaceholder')"
         ></textarea>
@@ -622,11 +619,11 @@
         </div>
         <div class="setting-description">
           {{ $t('advanced.ai.promptRecordedDescription') }}
-          <code class="json-example">{"image_0": "slide", "image_1": "not_slide", ...}</code>
+          <code :class="jsonExampleCls">{"image_0": "slide", "image_1": "not_slide", ...}</code>
         </div>
         <textarea
           v-model="tempAiPromptRecorded"
-          class="ai-prompt-textarea"
+          :class="aiTextareaCls"
           rows="6"
           :placeholder="$t('advanced.ai.promptPlaceholder')"
         ></textarea>
@@ -649,13 +646,13 @@
         </div>
         <div class="setting-description">
           {{ $t('advanced.ai.promptLiveDescription') }}
-          <code class="json-example">{"classification": "slide"}</code>,
-          <code class="json-example">{"classification": "not_slide"}</code> {{ $t('advanced.ai.or') }}
-          <code class="json-example">{"classification": "may_be_slide_edit"}</code>
+          <code :class="jsonExampleCls">{"classification": "slide"}</code>,
+          <code :class="jsonExampleCls">{"classification": "not_slide"}</code> {{ $t('advanced.ai.or') }}
+          <code :class="jsonExampleCls">{"classification": "may_be_slide_edit"}</code>
         </div>
         <textarea
           v-model="tempAiPromptLiveDistinguish"
-          class="ai-prompt-textarea"
+          :class="aiTextareaCls"
           rows="6"
           :placeholder="$t('advanced.ai.promptPlaceholder')"
         ></textarea>
@@ -675,11 +672,11 @@
         </div>
         <div class="setting-description">
           {{ $t('advanced.ai.promptRecordedDescription') }}
-          <code class="json-example">{"image_0": "slide", "image_1": "not_slide", "image_2": "may_be_slide_edit", ...}</code>
+          <code :class="jsonExampleCls">{"image_0": "slide", "image_1": "not_slide", "image_2": "may_be_slide_edit", ...}</code>
         </div>
         <textarea
           v-model="tempAiPromptRecordedDistinguish"
-          class="ai-prompt-textarea"
+          :class="aiTextareaCls"
           rows="6"
           :placeholder="$t('advanced.ai.promptPlaceholder')"
         ></textarea>
@@ -767,6 +764,33 @@ const {
   deleteCustomMlModel,
 } = ai
 
+// ---- Tailwind class-string constants (bespoke AI-settings widgets) ----
+const sectionDivider = 'mt-4 border-t border-line pt-4'
+const inputGroup = 'mt-2 flex items-center gap-2'
+const presetSelectCls = 'select !w-auto min-w-[130px] flex-none cursor-pointer'
+const keyToggleBtn =
+  'flex h-[30px] w-[30px] flex-none cursor-pointer items-center justify-center rounded border border-line-input bg-field text-fg-secondary transition-colors hover:bg-hover hover:text-fg'
+const refreshBtnCls =
+  'flex cursor-pointer items-center justify-center rounded border-none bg-transparent p-1 text-fg-secondary transition-colors hover:bg-line hover:text-fg'
+const spinnerCls = 'h-3.5 w-3.5 animate-spin rounded-full border-2 border-line border-t-accent'
+const modelErrorCls = 'flex items-center gap-2 text-[13px] text-[#dc3545] dark:text-[#ff6b6b]'
+const modelErrorWarnCls = 'flex items-center gap-2 text-[13px] text-[#b26a00] dark:text-[#f4c67a]'
+const chainBadgeBase = 'inline-block whitespace-nowrap rounded-[10px] px-1.5 py-px text-[10px] font-medium'
+const chainBadgePrimary = `${chainBadgeBase} bg-[#e7f3ff] text-[#0366d6] dark:bg-[#1b3a5c] dark:text-[#a6c8ff]`
+const chainBadgeExhausted = `${chainBadgeBase} bg-[#fff4e5] text-[#b26a00] dark:bg-[#4a3400] dark:text-[#f4c67a]`
+const chainBtn =
+  'h-6 w-6 cursor-pointer rounded border border-line-input bg-field text-xs text-fg-secondary enabled:hover:bg-hover enabled:hover:text-fg disabled:cursor-not-allowed disabled:opacity-[0.35]'
+const chainRemoveBtn =
+  'h-6 w-6 cursor-pointer rounded border border-line-input bg-field text-base leading-none text-[#888] enabled:hover:border-[#fcc] enabled:hover:bg-[#fee] enabled:hover:text-[#c00] disabled:cursor-not-allowed disabled:opacity-[0.35] dark:enabled:hover:border-[#6a2d2d] dark:enabled:hover:bg-[#4a1f1f] dark:enabled:hover:text-[#ff8080]'
+const chainAddBtn =
+  'flex-none cursor-pointer rounded border border-accent bg-accent px-3 py-1.5 text-xs text-white enabled:hover:border-[#0066a8] enabled:hover:bg-[#0066a8] disabled:cursor-not-allowed disabled:opacity-40 dark:border-[#2d5a8c] dark:bg-[#2d5a8c] dark:enabled:hover:border-[#3a6ea3] dark:enabled:hover:bg-[#3a6ea3]'
+const variantBadgeBase = 'inline-flex items-center rounded-[10px] border px-2 py-0.5 text-[11px] font-semibold'
+const variantBadgeSimple = `${variantBadgeBase} border-[#bbdefb] bg-[#e3f2fd] text-[#0d47a1] dark:border-[#2d5985] dark:bg-[#1b3a5c] dark:text-[#a6c8ff]`
+const variantBadgeDistinguish = `${variantBadgeBase} border-[#ffd99c] bg-[#fff3d6] text-[#955800] dark:border-[#6a4c1d] dark:bg-[#3d2f14] dark:text-[#f4c67a]`
+const jsonExampleCls = 'whitespace-nowrap rounded-[3px] bg-black/[0.06] px-[5px] py-0.5 font-mono text-[10px] text-fg dark:bg-white/10'
+const aiTextareaCls =
+  'mt-2 min-h-[100px] w-full resize-y rounded border border-line-input bg-field px-3 py-2.5 font-mono text-xs leading-[1.5] text-fg focus:border-accent focus:outline-none'
+
 const copilotCodeCopied = ref(false)
 const copyUserCode = async () => {
   if (!copilotUserCode.value) return
@@ -786,967 +810,3 @@ const openCopilotVerificationUrl = () => {
 }
 </script>
 
-<style scoped>
-.ai-service-type-selector {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.custom-api-settings {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
-}
-
-/* Copilot settings */
-.copilot-settings {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
-}
-
-.copilot-user-info {
-  margin-bottom: 12px;
-}
-
-.copilot-user-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background-color: #f0f9f0;
-  border: 1px solid #c3e6c3;
-  border-radius: 4px;
-}
-
-.copilot-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-}
-
-.copilot-username {
-  flex: 1;
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
-}
-
-.copilot-disconnect-btn {
-  padding: 4px 10px;
-  border: 1px solid #dc3545;
-  background-color: transparent;
-  color: #dc3545;
-  font-size: 11px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.copilot-disconnect-btn:hover {
-  background-color: #dc3545;
-  color: white;
-}
-
-.copilot-auth-section {
-  margin-bottom: 12px;
-}
-
-.copilot-oauth-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 14px;
-  border: 1px solid #24292e;
-  background-color: #24292e;
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.copilot-oauth-btn:hover:not(:disabled) {
-  background-color: #3b434b;
-}
-
-.copilot-oauth-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.copilot-or-divider {
-  display: flex;
-  align-items: center;
-  margin: 12px 0;
-  gap: 8px;
-}
-
-.copilot-or-divider::before,
-.copilot-or-divider::after {
-  content: '';
-  flex: 1;
-  border-top: 1px solid #ddd;
-}
-
-.copilot-or-divider span {
-  font-size: 11px;
-  color: #999;
-  text-transform: uppercase;
-}
-
-.copilot-manual-token .api-key-input-group {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.copilot-manual-token .api-key-input {
-  padding: 6px 8px;
-  font-size: 12px;
-}
-
-.copilot-verify-btn {
-  flex: 0 0 auto;
-  padding: 6px 12px;
-  border: 1px solid #007acc;
-  background-color: #007acc;
-  color: white;
-  font-size: 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  min-width: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.copilot-verify-btn:hover:not(:disabled) {
-  background-color: #005ea6;
-}
-
-.copilot-verify-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.copilot-error {
-  margin-top: 8px;
-  padding: 8px 10px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #dc2626;
-}
-
-.copilot-waiting {
-  text-align: center;
-  padding: 16px 0;
-}
-
-.copilot-enter-code-label {
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.copilot-user-code {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 24px;
-  font-weight: 700;
-  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
-  letter-spacing: 4px;
-  color: #24292e;
-  padding: 12px;
-  background-color: #f6f8fa;
-  border: 2px dashed #d0d7de;
-  border-radius: 8px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  position: relative;
-  transition: background-color 0.15s, border-color 0.15s;
-}
-
-.copilot-user-code:hover {
-  background-color: #eef1f5;
-  border-color: #0969da;
-}
-
-.copilot-code-copied {
-  position: absolute;
-  right: 10px;
-  font-size: 11px;
-  font-weight: 400;
-  letter-spacing: 0;
-  color: #1a7f37;
-}
-
-.copilot-waiting-status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #666;
-}
-
-.copilot-verification-url {
-  color: #0969da;
-  cursor: pointer;
-  text-decoration: underline;
-  word-break: break-all;
-}
-
-.copilot-verification-url:hover {
-  color: #0550ae;
-}
-
-.copilot-cancel-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border: none;
-  background: none;
-  color: #666;
-  cursor: pointer;
-  border-radius: 4px;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.copilot-cancel-btn:hover {
-  background-color: #f0f0f0;
-  color: #dc2626;
-}
-
-.copilot-model-setting {
-  margin-top: 12px;
-}
-
-.api-url-input-group,
-.api-key-input-group,
-.model-name-input-group {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 8px;
-}
-
-.api-url-input,
-.api-key-input,
-.model-name-input {
-  flex: 1;
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 13px;
-  background-color: white;
-  min-width: 0;
-}
-
-.api-url-input:focus,
-.api-key-input:focus,
-.model-name-input:focus {
-  outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
-}
-
-.api-url-preset-select,
-.model-preset-select {
-  flex: 0 0 auto;
-  min-width: 130px;
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.model-chain-hint {
-  font-size: 11px;
-  color: #666;
-  line-height: 1.4;
-  margin-bottom: 8px;
-}
-
-.model-chain-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  border: 1px solid #e5e5e5;
-  border-radius: 4px;
-  background: #fafafa;
-}
-
-.model-chain-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 8px 6px 4px;
-  border-bottom: 1px solid #eee;
-}
-
-.model-chain-row:last-child {
-  border-bottom: none;
-}
-
-.model-chain-row.is-exhausted .model-chain-input {
-  opacity: 0.6;
-}
-
-.model-chain-index {
-  flex: 0 0 auto;
-  min-width: 14px;
-  text-align: center;
-  font-size: 11px;
-  color: #999;
-  font-variant-numeric: tabular-nums;
-}
-
-.model-chain-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: white;
-}
-
-.model-chain-input:focus {
-  outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
-}
-
-.model-chain-badges {
-  flex: 0 0 auto;
-  display: flex;
-  gap: 4px;
-}
-
-.model-chain-badge {
-  display: inline-block;
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 10px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.model-chain-badge.primary {
-  background: #e7f3ff;
-  color: #0366d6;
-}
-
-.model-chain-badge.exhausted {
-  background: #fff4e5;
-  color: #b26a00;
-}
-
-.model-chain-actions {
-  flex: 0 0 auto;
-  display: flex;
-  gap: 2px;
-}
-
-.model-chain-move-btn,
-.model-chain-remove-btn {
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  color: #555;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.model-chain-move-btn:hover:not(:disabled),
-.model-chain-remove-btn:hover:not(:disabled) {
-  background: #f0f0f0;
-  color: #333;
-}
-
-.model-chain-remove-btn {
-  font-size: 16px;
-  line-height: 1;
-  color: #888;
-}
-
-.model-chain-remove-btn:hover:not(:disabled) {
-  background: #fee;
-  color: #c00;
-  border-color: #fcc;
-}
-
-.model-chain-move-btn:disabled,
-.model-chain-remove-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.model-chain-empty {
-  padding: 10px;
-  font-size: 11px;
-  color: #888;
-  text-align: center;
-  border: 1px dashed #ddd;
-  border-radius: 4px;
-  background: #fafafa;
-}
-
-.model-chain-add-row {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.model-chain-add-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  background: white;
-}
-
-.model-chain-add-input:focus {
-  outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
-}
-
-.model-chain-preset-select {
-  flex: 0 0 auto;
-  min-width: 130px;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.model-chain-add-btn {
-  flex: 0 0 auto;
-  padding: 6px 12px;
-  border: 1px solid #007acc;
-  border-radius: 4px;
-  background: #007acc;
-  color: white;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.model-chain-add-btn:hover:not(:disabled) {
-  background: #0066a8;
-  border-color: #0066a8;
-}
-
-.model-chain-add-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.api-key-toggle-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  cursor: pointer;
-  color: #666;
-  box-sizing: border-box;
-  flex: 0 0 auto;
-}
-
-.api-key-toggle-btn:hover {
-  background-color: #f5f5f5;
-  color: #333;
-}
-
-.rate-limit-hint {
-  font-size: 11px;
-  color: #e67700;
-  line-height: 1.4;
-  margin-bottom: 16px;
-}
-
-.ai-prompts-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.variant-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 600;
-  background-color: #e3f2fd;
-  color: #0d47a1;
-  border: 1px solid #bbdefb;
-}
-
-.variant-badge-distinguish {
-  background-color: #fff3d6;
-  color: #955800;
-  border-color: #ffd99c;
-}
-
-.ai-prompts-variant-hint {
-  margin-bottom: 12px;
-}
-
-.ai-prompt-textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
-  background-color: white;
-  resize: vertical;
-  min-height: 100px;
-  margin-top: 8px;
-  line-height: 1.5;
-}
-
-.ai-prompt-textarea:focus {
-  outline: none;
-  border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
-}
-
-.setting-description .json-example {
-  font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
-  font-size: 10px;
-  background-color: rgba(0, 0, 0, 0.06);
-  padding: 2px 5px;
-  border-radius: 3px;
-  color: #333;
-  white-space: nowrap;
-}
-
-/* Built-in model display styles */
-.builtin-model-info {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #e0e0e0;
-}
-
-.builtin-model-display {
-  display: flex;
-  align-items: center;
-  margin-top: 8px;
-  padding: 10px 12px;
-  background-color: #f8f9fa;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  min-height: 20px;
-}
-
-.model-loading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #666;
-  font-size: 13px;
-}
-
-.loading-spinner-small {
-  width: 14px;
-  height: 14px;
-  border: 2px solid #e0e0e0;
-  border-top: 2px solid #007acc;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.model-error {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #dc3545;
-  font-size: 13px;
-}
-
-.model-error.model-error-warning {
-  color: #b26a00;
-}
-
-.model-name-display {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.model-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
-  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
-}
-
-.refresh-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: #666;
-  border-radius: 4px;
-  transition: background-color 0.2s, color 0.2s;
-}
-
-.refresh-btn:hover {
-  background-color: #e0e0e0;
-  color: #333;
-}
-
-.cloudflare-error {
-  flex-wrap: wrap;
-}
-
-.cloudflare-hint {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 10px;
-  padding: 10px 12px;
-  background-color: #fff3cd;
-  border: 1px solid #ffc107;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #856404;
-  line-height: 1.4;
-}
-
-.cloudflare-hint svg {
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.builtin-disclaimer {
-  margin-top: 12px;
-  padding: 10px 12px;
-  font-size: 10px;
-  color: #888;
-  line-height: 1.5;
-  background-color: rgba(0, 0, 0, 0.03);
-  border-radius: 4px;
-}
-
-/* Dark mode support for AI settings */
-@media (prefers-color-scheme: dark) {
-  .custom-api-settings {
-    border-top-color: #404040;
-  }
-
-  .api-url-input,
-  .api-key-input,
-  .model-name-input {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .api-url-input:focus,
-  .api-key-input:focus,
-  .model-name-input:focus {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
-  }
-
-  .api-url-preset-select,
-  .model-preset-select {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .api-key-toggle-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #aaa;
-  }
-
-  .api-key-toggle-btn:hover {
-    background-color: #3a3a3a;
-    color: #e0e0e0;
-  }
-
-  .ai-prompt-textarea {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .ai-prompt-textarea:focus {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.1);
-  }
-
-  .variant-badge {
-    background-color: #1b3a5c;
-    color: #a6c8ff;
-    border-color: #2d5985;
-  }
-
-  .variant-badge-distinguish {
-    background-color: #3d2f14;
-    color: #f4c67a;
-    border-color: #6a4c1d;
-  }
-
-  .ai-prompt-textarea::placeholder {
-    color: #888;
-  }
-
-  .setting-description .json-example {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #e0e0e0;
-  }
-
-  .builtin-model-info {
-    border-top-color: #404040;
-  }
-
-  .builtin-model-display {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .model-loading {
-    color: #aaa;
-  }
-
-  .loading-spinner-small {
-    border-color: #404040;
-    border-top-color: #4a9eff;
-  }
-
-  .model-error {
-    color: #ff6b6b;
-  }
-
-  .model-name {
-    color: #e0e0e0;
-  }
-
-  .refresh-btn {
-    color: #aaa;
-  }
-
-  .refresh-btn:hover {
-    background-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .cloudflare-hint {
-    background-color: #4a3f00;
-    border-color: #6b5a00;
-    color: #ffd54f;
-  }
-
-  .model-error.model-error-warning {
-    color: #f4c67a;
-  }
-
-  .builtin-disclaimer {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #888;
-  }
-
-  /* ModelScope Model Chain dark mode */
-  .model-chain-hint {
-    color: #aaa;
-  }
-
-  .model-chain-list {
-    background-color: #262626;
-    border-color: #404040;
-  }
-
-  .model-chain-row {
-    border-bottom-color: #333;
-  }
-
-  .model-chain-index {
-    color: #888;
-  }
-
-  .model-chain-input,
-  .model-chain-add-input {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .model-chain-input:focus,
-  .model-chain-add-input:focus {
-    border-color: #4a9eff;
-    box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.15);
-  }
-
-  .model-chain-badge.primary {
-    background-color: #1b3a5c;
-    color: #a6c8ff;
-  }
-
-  .model-chain-badge.exhausted {
-    background-color: #4a3400;
-    color: #f4c67a;
-  }
-
-  .model-chain-move-btn,
-  .model-chain-remove-btn {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #ccc;
-  }
-
-  .model-chain-move-btn:hover:not(:disabled),
-  .model-chain-remove-btn:hover:not(:disabled) {
-    background-color: #3a3a3a;
-    color: #e0e0e0;
-  }
-
-  .model-chain-remove-btn:hover:not(:disabled) {
-    background-color: #4a1f1f;
-    color: #ff8080;
-    border-color: #6a2d2d;
-  }
-
-  .model-chain-empty {
-    color: #888;
-    border-color: #404040;
-    background-color: rgba(255, 255, 255, 0.02);
-  }
-
-  .model-chain-preset-select {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .model-chain-add-btn {
-    background-color: #2d5a8c;
-    border-color: #2d5a8c;
-    color: #ffffff;
-  }
-
-  .model-chain-add-btn:hover:not(:disabled) {
-    background-color: #3a6ea3;
-    border-color: #3a6ea3;
-  }
-
-  /* Copilot dark mode */
-  .copilot-settings {
-    border-top-color: #404040;
-  }
-
-  .copilot-user-row {
-    background-color: #1a2e1a;
-    border-color: #2d5a2d;
-  }
-
-  .copilot-username {
-    color: #e0e0e0;
-  }
-
-  .copilot-oauth-btn {
-    background-color: #f0f6fc;
-    border-color: #d0d7de;
-    color: #24292e;
-  }
-
-  .copilot-oauth-btn:hover:not(:disabled) {
-    background-color: #e6edf5;
-  }
-
-  .copilot-or-divider::before,
-  .copilot-or-divider::after {
-    border-top-color: #404040;
-  }
-
-  .copilot-or-divider span {
-    color: #666;
-  }
-
-  .copilot-error {
-    background-color: #3a1a1a;
-    border-color: #5a2d2d;
-    color: #ff6b6b;
-  }
-
-  .copilot-user-code {
-    background-color: #2d2d2d;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .copilot-user-code:hover {
-    background-color: #363636;
-    border-color: #58a6ff;
-  }
-
-  .copilot-code-copied {
-    color: #3fb950;
-  }
-
-  .copilot-verification-url {
-    color: #58a6ff;
-  }
-
-  .copilot-verification-url:hover {
-    color: #79c0ff;
-  }
-
-  .copilot-cancel-btn {
-    color: #aaa;
-  }
-
-  .copilot-cancel-btn:hover {
-    background-color: #404040;
-    color: #ff6b6b;
-  }
-
-  .copilot-enter-code-label,
-  .copilot-waiting-status {
-    color: #aaa;
-  }
-}
-</style>

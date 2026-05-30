@@ -1,16 +1,16 @@
 <template>
-  <div class="download-content">
-    <div class="section-header">
-      <h3>{{ $t('downloads.downloadList') }}</h3>
-      <div class="queue-controls">
-        <button @click="cancelAllDownloads" class="control-btn cancel-all-btn" title="Cancel All">
+  <div class="h-full p-4">
+    <div class="mb-5 flex items-center justify-between">
+      <h3 class="m-0 text-base font-semibold text-fg">{{ $t('downloads.downloadList') }}</h3>
+      <div class="flex gap-2">
+        <button @click="cancelAllDownloads" :class="[ctrlBtn, ctrlCancelAll]" title="Cancel All">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
           {{ $t('downloads.cancelAll') }}
         </button>
-        <button @click="clearCompleted" class="control-btn clear-btn" title="Clear Completed">
+        <button @click="clearCompleted" :class="[ctrlBtn, ctrlClear]" title="Clear Completed">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="3,6 5,6 21,6"/>
             <path d="M19,6v14a2,2 0 0,1-2,2H7a2,2 0 0,1-2-2V6m3,0V4a2,2 0 0,1,2-2h4a2,2 0 0,1,2,2v2"/>
@@ -20,20 +20,23 @@
       </div>
     </div>
 
-    <div class="download-queue" v-if="downloadItems.length > 0">
+    <div class="mb-4 flex flex-col gap-2" v-if="downloadItems.length > 0">
       <div
         v-for="item in downloadItems"
         :key="item.id"
-        class="download-item-wrapper"
-        :class="{ 'row-highlight': highlightedDownloadId === item.id }"
+        class="group flex flex-col"
         :data-download-id="item.id"
       >
         <div
-          class="download-item"
-          :class="[`status-${item.status}`]"
+          class="flex items-center gap-3 rounded-md border border-line bg-modal p-3 transition-all group-hover:border-accent group-hover:shadow-[0_2px_4px_rgba(0,122,204,0.1)]"
+          :class="[
+            dlItemBorder(item.status),
+            { 'border-accent': highlightedDownloadId === item.id,
+              'rounded-b-none': (item.extractionStatus && item.extractionStatus !== 'none') || getDownloadPostProcessJob(item.id) }
+          ]"
         >
-          <div class="item-status">
-            <div :class="['status-indicator', `status-${item.status}`]">
+          <div class="flex-shrink-0">
+            <div :class="dlIndicator(item.status)">
               <svg v-if="item.status === 'queued'" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <circle cx="12" cy="12" r="10"/>
                 <polyline points="12,6 12,12 16,14"/>
@@ -58,15 +61,15 @@
             </div>
           </div>
 
-          <div class="item-info">
-            <div class="item-name" :title="item.name">
+          <div class="min-w-0 flex-1">
+            <div class="mb-1.5 truncate text-[13px] font-medium text-fg" :title="item.name">
               {{ item.name }}
             </div>
-            <div class="item-progress">
-              <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: `${item.progress}%` }"></div>
+            <div class="flex flex-col gap-1">
+              <div class="h-1 w-full overflow-hidden rounded-[2px] bg-[#e9ecef] dark:bg-[#404040]">
+                <div class="h-full rounded-[2px] bg-accent transition-[width] duration-300 dark:bg-[#4fc3f7]" :style="{ width: `${item.progress}%` }"></div>
               </div>
-              <div class="progress-text">
+              <div class="text-[11px] text-fg-secondary">
                 <span v-if="item.status === 'queued'">{{ $t('downloads.queued') }}</span>
                 <span v-else-if="item.status === 'downloading'">{{ $t('downloads.downloading') }} {{ item.progress }}%</span>
                 <span v-else-if="item.status === 'processing'">{{ $t('downloads.processing') }} {{ item.progress }}%</span>
@@ -76,10 +79,10 @@
             </div>
           </div>
 
-          <div class="item-actions">
+          <div class="flex flex-shrink-0 items-center">
             <button
               @click="retryDownload(item.id)"
-              class="retry-item-btn"
+              class="mr-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded border-none bg-transparent text-[#28a745] transition-colors hover:bg-[#d4edda] dark:text-[#81c784] dark:hover:bg-[#2e4a2e]"
               title="Retry"
               v-if="item.status === 'error'"
             >
@@ -90,7 +93,7 @@
             </button>
             <button
               @click="cancelDownload(item.id)"
-              class="cancel-item-btn"
+              class="flex h-6 w-6 cursor-pointer items-center justify-center rounded border-none bg-transparent text-[#dc3545] transition-colors hover:bg-[#f8d7da] dark:text-[#f48fb1] dark:hover:bg-[#4a2c35]"
               title="Cancel"
               v-if="item.status !== 'completed' && item.status !== 'error'"
             >
@@ -104,11 +107,11 @@
 
         <div
           v-if="item.extractionStatus && item.extractionStatus !== 'none'"
-          class="extraction-affiliated-panel"
-          :class="[`ext-status-${item.extractionStatus}`]"
+          class="w-full border border-t-0 border-line bg-modal px-2 py-[3px]"
+          :class="[affiliatedBorder(item.status), { 'rounded-b-md': !getDownloadPostProcessJob(item.id) }]"
         >
-          <div class="ext-row">
-            <span class="ext-name">
+          <div class="mb-0.5 flex items-center justify-between gap-2 text-[11px]">
+            <span class="flex-1 truncate" :class="extNameColor(item.extractionStatus)">
               <span v-if="item.extractionStatus === 'pending'">{{ $t('downloads.extraction.waiting') }}</span>
               <span v-else-if="item.extractionStatus === 'extracting'">{{ $t('downloads.extraction.extracting') }} {{ item.extractionProgress || 0 }}%</span>
               <span v-else-if="item.extractionStatus === 'normalizing'">{{ $t('downloads.extraction.normalizing') }}</span>
@@ -119,7 +122,7 @@
             </span>
             <button
               v-if="item.extractionStatus === 'pending' || item.extractionStatus === 'extracting' || item.extractionStatus === 'normalizing'"
-              class="cancel-item-btn"
+              class="flex h-5 w-5 flex-shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent text-[#dc3545] transition-colors hover:bg-[#f8d7da] dark:text-[#f48fb1] dark:hover:bg-[#4a2c35]"
               :title="$t('downloads.extraction.cancel')"
               @click="cancelExtraction(item.id)"
             >
@@ -129,40 +132,37 @@
               </svg>
             </button>
           </div>
-          <div class="ext-bar">
+          <div class="h-[3px] overflow-hidden rounded-[2px] bg-[#e0e0e0] dark:bg-[#404040]">
             <div
-              class="ext-fill"
-              :class="{
-                active: item.extractionStatus === 'extracting' || item.extractionStatus === 'normalizing',
-                completed: item.extractionStatus === 'completed' || item.extractionStatus === 'post_processing',
-                errored: item.extractionStatus === 'error' || item.extractionStatus === 'cancelled'
-              }"
+              class="h-full transition-[width] duration-300"
+              :class="extFillColor(item)"
               :style="{ width: extractionBarWidth(item) + '%' }"
             ></div>
           </div>
         </div>
 
+        <!-- 'post-process-affiliated-panel' retained as a Driver.js tour hook -->
         <div
           v-if="getDownloadPostProcessJob(item.id)"
-          class="post-process-affiliated-panel"
-          :class="[`pp-status-${getDownloadPostProcessJob(item.id)?.status}`]"
+          class="post-process-affiliated-panel w-full rounded-b-md border border-t-0 border-line bg-modal px-1.5 py-1"
+          :class="affiliatedBorder(item.status)"
         >
-          <div class="pp-panel-content">
+          <div class="flex items-stretch gap-2 text-[8px]">
             <PostProcessingProgressBar :state="fromJobProgress(getDownloadPostProcessJob(item.id)!)" />
           </div>
         </div>
       </div>
     </div>
 
-    <div v-else class="empty-queue">
-      <div class="empty-icon">
+    <div v-else class="flex flex-col items-center p-8 text-center text-fg-secondary">
+      <div class="mb-4 opacity-60">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="7,10 12,15 17,10"/>
           <line x1="12" y1="15" x2="12" y2="3"/>
         </svg>
       </div>
-      <p>{{ $t('downloads.noDownloads') }}</p>
+      <p class="m-0 text-sm italic">{{ $t('downloads.noDownloads') }}</p>
     </div>
   </div>
 </template>
@@ -179,6 +179,49 @@ defineProps<{
   highlightedDownloadId: string | null
   autoPostProcessing: boolean
 }>()
+
+// ---- Tailwind class-string helpers ----
+const ctrlBtn = 'flex items-center gap-1 rounded border px-2 py-1.5 text-[11px] cursor-pointer transition-all'
+const ctrlCancelAll = 'border-[#dc3545] bg-white text-[#dc3545] hover:border-[#c82333] hover:bg-[#f8d7da] dark:border-[#f48fb1] dark:bg-[#2d2d2d] dark:text-[#f48fb1] dark:hover:bg-[#4a2c35]'
+const ctrlClear = 'border-[#6c757d] bg-white text-[#6c757d] hover:border-[#545b62] hover:bg-[#e2e3e5] dark:border-[#bdbdbd] dark:bg-[#2d2d2d] dark:text-[#bdbdbd] dark:hover:bg-[#404040]'
+
+const dlItemBorder = (s: string) => ({
+  queued: 'border-l-[3px] border-l-[#6c757d] dark:border-l-[#bdbdbd]',
+  downloading: 'border-l-[3px] border-l-[#007acc] dark:border-l-[#4fc3f7]',
+  processing: 'border-l-[3px] border-l-[#ffc107] dark:border-l-[#ffb74d]',
+  completed: 'border-l-[3px] border-l-[#28a745] dark:border-l-[#81c784]',
+  error: 'border-l-[3px] border-l-[#dc3545] dark:border-l-[#f48fb1]',
+}[s] || '')
+
+const dlIndicator = (s: string) => {
+  const base = 'flex h-6 w-6 items-center justify-center rounded-full border-2 border-current'
+  const v = {
+    queued: 'text-[#6c757d] bg-[#f8f9fa] dark:text-[#bdbdbd] dark:bg-[#404040]',
+    downloading: 'animate-pulse text-[#007acc] bg-[#e3f2fd] dark:text-[#4fc3f7] dark:bg-[#1a3a4a]',
+    processing: 'animate-spin text-[#ffc107] bg-[#fff8e1] dark:text-[#ffb74d] dark:bg-[#4a3a2a]',
+    completed: 'text-[#28a745] bg-[#e8f5e8] dark:text-[#81c784] dark:bg-[#2e4a2e]',
+    error: 'text-[#dc3545] bg-[#ffeaea] dark:text-[#f48fb1] dark:bg-[#4a2c35]',
+  }[s] || ''
+  return `${base} ${v}`
+}
+
+const affiliatedBorder = (s: string) =>
+  s === 'error' ? 'border-l-[3px] border-l-[#ff9800]' : 'border-l-[3px] border-l-[#9acd32]'
+
+const extNameColor = (s: string | undefined) => ({
+  pending: 'text-[#6c757d] dark:text-[#9e9e9e]',
+  completed: 'text-[#28a745] dark:text-[#81c784]',
+  error: 'text-[#dc3545] dark:text-[#f48fb1]',
+  cancelled: 'text-[#dc3545] dark:text-[#f48fb1]',
+}[s || ''] || 'text-fg')
+
+const extFillColor = (item: DownloadItem) => {
+  const s = item.extractionStatus
+  if (s === 'extracting' || s === 'normalizing') return 'bg-[#007acc] dark:bg-[#4fc3f7]'
+  if (s === 'completed' || s === 'post_processing') return 'bg-[#28a745] dark:bg-[#81c784]'
+  if (s === 'error' || s === 'cancelled') return 'bg-[#dc3545] dark:bg-[#f48fb1]'
+  return 'bg-[#e0e0e0] dark:bg-[#404040]'
+}
 
 const downloadItems = computed(() => DownloadService.downloadItems)
 
@@ -208,554 +251,3 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 </script>
 
-<style scoped>
-.download-content {
-  padding: 16px;
-  height: 100%;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.section-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.queue-controls {
-  display: flex;
-  gap: 8px;
-}
-
-.control-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 11px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.control-btn:hover {
-  background-color: #f8f9fa;
-}
-
-.cancel-all-btn {
-  color: #dc3545;
-  border-color: #dc3545;
-}
-
-.cancel-all-btn:hover {
-  background-color: #f8d7da;
-  border-color: #c82333;
-}
-
-.clear-btn {
-  color: #6c757d;
-  border-color: #6c757d;
-}
-
-.clear-btn:hover {
-  background-color: #e2e3e5;
-  border-color: #545b62;
-}
-
-.download-queue {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.download-item-wrapper {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-.download-item-wrapper:has(.post-process-affiliated-panel) .download-item {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.download-item-wrapper:has(.post-process-affiliated-panel) .extraction-affiliated-panel {
-  border-radius: 0;
-}
-
-.download-item-wrapper:has(.extraction-affiliated-panel) .download-item {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.download-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.download-item.row-highlight {
-  border-color: #007acc;
-  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
-}
-
-.download-item:hover {
-  border-color: #007acc;
-  box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
-}
-
-.download-item.status-queued {
-  border-left: 3px solid #6c757d;
-}
-
-.download-item.status-downloading {
-  border-left: 3px solid #007acc;
-}
-
-.download-item.status-processing {
-  border-left: 3px solid #ffc107;
-}
-
-.download-item.status-completed {
-  border-left: 3px solid #28a745;
-}
-
-.download-item.status-error {
-  border-left: 3px solid #dc3545;
-}
-
-.item-status {
-  flex-shrink: 0;
-}
-
-.status-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-}
-
-.status-indicator.status-queued {
-  color: #6c757d;
-  background-color: #f8f9fa;
-}
-
-.status-indicator.status-downloading {
-  color: #007acc;
-  background-color: #e3f2fd;
-  animation: pulse 2s infinite;
-}
-
-.status-indicator.status-processing {
-  color: #ffc107;
-  background-color: #fff8e1;
-  animation: spin 2s linear infinite;
-}
-
-.status-indicator.status-completed {
-  color: #28a745;
-  background-color: #e8f5e8;
-}
-
-.status-indicator.status-error {
-  color: #dc3545;
-  background-color: #ffeaea;
-}
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.item-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.item-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.item-progress {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.progress-bar {
-  width: 100%;
-  height: 4px;
-  background-color: #e9ecef;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: #007acc;
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
-.progress-text {
-  font-size: 11px;
-  color: #666;
-}
-
-.post-process-affiliated-panel {
-  width: 100%;
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  border-top: none;
-  border-radius: 0 0 6px 6px;
-  padding: 4px 6px;
-  margin-top: 0;
-}
-
-.pp-panel-content {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-  font-size: 8px;
-}
-
-.pp-panel-content :deep(.pp-bar) {
-  gap: 8px;
-}
-
-.pp-panel-content :deep(.pp-phase-bar) {
-  height: 3px;
-}
-
-.extraction-affiliated-panel {
-  width: 100%;
-  background-color: white;
-  border: 1px solid #e0e0e0;
-  border-top: none;
-  border-radius: 0 0 6px 6px;
-  padding: 3px 8px;
-}
-
-.download-item + .extraction-affiliated-panel,
-.download-item + .post-process-affiliated-panel {
-  border-left: 3px solid #9acd32;
-}
-
-.extraction-affiliated-panel + .post-process-affiliated-panel {
-  border-left: 3px solid #9acd32;
-}
-
-.download-item.status-error + .extraction-affiliated-panel,
-.download-item.status-error + .post-process-affiliated-panel {
-  border-left: 3px solid #ff9800;
-}
-
-.ext-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 11px;
-  margin-bottom: 2px;
-}
-
-.ext-name {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: #333;
-}
-
-.ext-row .cancel-item-btn {
-  flex-shrink: 0;
-  width: 20px;
-  height: 20px;
-}
-
-.ext-bar {
-  height: 3px;
-  background-color: #e0e0e0;
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.ext-fill {
-  height: 100%;
-  background-color: #e0e0e0;
-  transition: width 0.3s ease;
-}
-
-.ext-fill.active {
-  background-color: #007acc;
-}
-
-.ext-fill.completed {
-  background-color: #28a745;
-}
-
-.ext-fill.errored {
-  background-color: #dc3545;
-}
-
-.ext-status-pending .ext-name { color: #6c757d; }
-.ext-status-completed .ext-name { color: #28a745; }
-.ext-status-error .ext-name,
-.ext-status-cancelled .ext-name { color: #dc3545; }
-
-.item-actions {
-  flex-shrink: 0;
-}
-
-.cancel-item-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background-color: transparent;
-  color: #dc3545;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.cancel-item-btn:hover {
-  background-color: #f8d7da;
-}
-
-.retry-item-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border: none;
-  background-color: transparent;
-  color: #28a745;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-right: 4px;
-}
-
-.retry-item-btn:hover {
-  background-color: #d4edda;
-}
-
-.empty-queue {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 32px 16px;
-  color: #666;
-}
-
-.empty-icon {
-  margin-bottom: 16px;
-  opacity: 0.6;
-}
-
-.empty-queue p {
-  margin: 0 0 20px 0;
-  font-size: 14px;
-  font-style: italic;
-}
-
-@media (prefers-color-scheme: dark) {
-  .section-header h3 {
-    color: #e0e0e0;
-  }
-
-  .control-btn {
-    background-color: #2d2d2d;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .control-btn:hover {
-    background-color: #404040;
-  }
-
-  .cancel-all-btn {
-    color: #f48fb1;
-    border-color: #f48fb1;
-  }
-
-  .cancel-all-btn:hover {
-    background-color: #4a2c35;
-    border-color: #f06292;
-  }
-
-  .clear-btn {
-    color: #bdbdbd;
-    border-color: #bdbdbd;
-  }
-
-  .clear-btn:hover {
-    background-color: #404040;
-    border-color: #9e9e9e;
-  }
-
-  .download-item {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .download-item.row-highlight {
-    border-color: #4fc3f7;
-    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
-  }
-
-  .download-item:hover {
-    border-color: #4fc3f7;
-    box-shadow: 0 2px 4px rgba(79, 195, 247, 0.2);
-  }
-
-  .download-item.status-queued {
-    border-left-color: #bdbdbd;
-  }
-
-  .download-item.status-downloading {
-    border-left-color: #4fc3f7;
-  }
-
-  .download-item.status-processing {
-    border-left-color: #ffb74d;
-  }
-
-  .download-item.status-completed {
-    border-left-color: #81c784;
-  }
-
-  .download-item.status-error {
-    border-left-color: #f48fb1;
-  }
-
-  .status-indicator.status-queued {
-    color: #bdbdbd;
-    background-color: #404040;
-  }
-
-  .status-indicator.status-downloading {
-    color: #4fc3f7;
-    background-color: #1a3a4a;
-  }
-
-  .status-indicator.status-processing {
-    color: #ffb74d;
-    background-color: #4a3a2a;
-  }
-
-  .status-indicator.status-completed {
-    color: #81c784;
-    background-color: #2e4a2e;
-  }
-
-  .status-indicator.status-error {
-    color: #f48fb1;
-    background-color: #4a2c35;
-  }
-
-  .item-name {
-    color: #e0e0e0;
-  }
-
-  .progress-bar {
-    background-color: #404040;
-  }
-
-  .progress-fill {
-    background-color: #4fc3f7;
-  }
-
-  .progress-text {
-    color: #bdbdbd;
-  }
-
-  .post-process-affiliated-panel,
-  .extraction-affiliated-panel {
-    background-color: #2d2d2d;
-    border-color: #404040;
-  }
-
-  .ext-name {
-    color: #e0e0e0;
-  }
-
-  .ext-bar {
-    background-color: #404040;
-  }
-
-  .ext-fill {
-    background-color: #404040;
-  }
-
-  .ext-fill.active {
-    background-color: #4fc3f7;
-  }
-
-  .ext-fill.completed {
-    background-color: #81c784;
-  }
-
-  .ext-fill.errored {
-    background-color: #f48fb1;
-  }
-
-  .ext-status-pending .ext-name { color: #9e9e9e; }
-  .ext-status-completed .ext-name { color: #81c784; }
-  .ext-status-error .ext-name,
-  .ext-status-cancelled .ext-name { color: #f48fb1; }
-
-  .cancel-item-btn {
-    color: #f48fb1;
-  }
-
-  .cancel-item-btn:hover {
-    background-color: #4a2c35;
-  }
-
-  .retry-item-btn {
-    color: #81c784;
-  }
-
-  .retry-item-btn:hover {
-    background-color: #2e4a2e;
-  }
-
-  .empty-queue {
-    color: #bdbdbd;
-  }
-}
-</style>

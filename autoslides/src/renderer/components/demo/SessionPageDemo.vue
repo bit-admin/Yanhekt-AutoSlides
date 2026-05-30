@@ -1,54 +1,55 @@
 <template>
-  <div class="session-page">
-    <div class="header">
-      <div class="header-main">
-        <button class="back-btn" disabled>
+  <div class="flex h-full flex-col p-4">
+    <div class="mb-6 overflow-hidden rounded-lg border border-line bg-elevated">
+      <div class="flex items-center gap-4 p-4">
+        <button class="flex items-center gap-1.5 rounded border border-line-input bg-surface px-4 py-2 text-sm text-fg-secondary cursor-pointer transition-colors" disabled>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
           {{ $t('sessions.backToCourses') }}
         </button>
-        <h2>{{ t('demo.course.title') }}</h2>
-        <button class="expand-btn" disabled>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showCourseDetails }">
+        <h2 class="m-0 flex-1 text-xl font-semibold text-fg">{{ t('demo.course.title') }}</h2>
+        <button class="flex h-8 w-8 items-center justify-center rounded border border-line-input bg-surface cursor-pointer transition-colors" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="transition-transform" :class="{ 'rotate-180': showCourseDetails }">
             <polyline points="6,9 12,15 18,9"/>
           </svg>
         </button>
       </div>
-      <div v-show="showCourseDetails" class="course-details">
-        <div class="course-detail-item">
-          <span class="detail-label">{{ $t('playback.instructor') }}</span>
-          <span class="detail-value">{{ t('demo.course.instructor') }}</span>
+      <div v-show="showCourseDetails" class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3 border-t border-line bg-surface p-4">
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-semibold uppercase tracking-wide text-fg-secondary">{{ $t('playback.instructor') }}</span>
+          <span class="text-sm font-medium text-fg">{{ t('demo.course.instructor') }}</span>
         </div>
-        <div class="course-detail-item">
-          <span class="detail-label">{{ $t('sessions.academicTerm') }}</span>
-          <span class="detail-value">{{ t('demo.course.term') }}</span>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-semibold uppercase tracking-wide text-fg-secondary">{{ $t('sessions.academicTerm') }}</span>
+          <span class="text-sm font-medium text-fg">{{ t('demo.course.term') }}</span>
         </div>
-        <div class="course-detail-item">
-          <span class="detail-label">{{ $t('sessions.classrooms') }}</span>
-          <span class="detail-value">{{ t('demo.course.classroom') }}</span>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-semibold uppercase tracking-wide text-fg-secondary">{{ $t('sessions.classrooms') }}</span>
+          <span class="text-sm font-medium text-fg">{{ t('demo.course.classroom') }}</span>
         </div>
-        <div class="course-detail-item">
-          <span class="detail-label">{{ $t('sessions.college') }}</span>
-          <span class="detail-value">{{ t('demo.course.college') }}</span>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-semibold uppercase tracking-wide text-fg-secondary">{{ $t('sessions.college') }}</span>
+          <span class="text-sm font-medium text-fg">{{ t('demo.course.college') }}</span>
         </div>
-        <div class="course-detail-item">
-          <span class="detail-label">{{ $t('sessions.participants') }}</span>
-          <span class="detail-value">120 {{ $t('sessions.participantsCount') }}</span>
+        <div class="flex flex-col gap-1">
+          <span class="text-xs font-semibold uppercase tracking-wide text-fg-secondary">{{ $t('sessions.participants') }}</span>
+          <span class="text-sm font-medium text-fg">120 {{ $t('sessions.participantsCount') }}</span>
         </div>
       </div>
     </div>
 
-    <div class="content">
-      <div v-if="isLoading" class="loading-state">
-        <div class="spinner"></div>
+    <!-- 'content' retained as a Driver.js tour hook -->
+    <div class="content flex min-h-0 flex-1 flex-col">
+      <div v-if="isLoading" class="flex flex-col items-center justify-center gap-4 px-4 py-12">
+        <div class="h-8 w-8 animate-spin rounded-full border-[3px] border-[#f3f3f3] border-t-accent dark:border-[#555]"></div>
         <p>{{ $t('sessions.loadingSessions') }}</p>
       </div>
 
-      <div v-else class="main-content">
-        <div class="sessions-container" id="tour-sessions-container">
-          <div class="batch-actions" id="tour-batch-actions">
-            <button class="batch-btn add-all-btn" disabled>
+      <div v-else class="flex min-h-0 flex-1 flex-col">
+        <div class="mt-4 flex min-h-0 flex-1 flex-col" id="tour-sessions-container">
+          <div class="mb-4 flex gap-2 rounded-lg border border-line bg-elevated p-4" id="tour-batch-actions">
+            <button class="flex flex-1 items-center justify-center gap-1.5 rounded border border-[#28a745] bg-surface px-3 py-2 text-xs text-[#28a745] cursor-pointer" disabled>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14,2 14,8 20,8"/>
@@ -58,14 +59,14 @@
               </svg>
               {{ $t('sessions.addAllToTasks') }}
             </button>
-            <button class="batch-btn download-camera-btn" disabled>
+            <button class="flex flex-1 items-center justify-center gap-1.5 rounded border border-accent bg-surface px-3 py-2 text-xs text-accent cursor-pointer" disabled>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                 <circle cx="12" cy="13" r="4"/>
               </svg>
               {{ $t('sessions.downloadAllCamera') }}
             </button>
-            <button class="batch-btn download-screen-btn" disabled>
+            <button class="flex flex-1 items-center justify-center gap-1.5 rounded border border-[#6f42c1] bg-surface px-3 py-2 text-xs text-[#6f42c1] cursor-pointer dark:border-[#9d7be0] dark:text-[#9d7be0]" disabled>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                 <line x1="8" y1="21" x2="16" y2="21"/>
@@ -74,35 +75,35 @@
               {{ $t('sessions.downloadAllScreen') }}
             </button>
           </div>
-          <div class="sessions-list">
+          <div class="sessions-list flex flex-1 flex-col gap-px overflow-y-auto rounded-lg bg-elevated p-1">
             <div
               v-for="session in mockSessions"
               :key="session.id"
-              class="session-item session-item-demo"
+              class="pointer-events-none flex min-h-[48px] items-center justify-between rounded bg-surface px-3 py-2"
             >
-              <div class="session-main">
-                <div class="session-icon">
+              <div class="flex min-w-0 flex-1 items-center gap-3">
+                <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-[#f0f8ff] text-accent dark:bg-[#243447]">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="5,3 19,12 5,21"/>
                   </svg>
                 </div>
-                <div class="session-info">
-                  <div class="session-title">{{ session.title }}</div>
-                  <div class="session-meta">
-                    <span class="session-time">
+                <div class="min-w-0 flex-1">
+                  <div class="mb-0.5 truncate text-sm font-semibold text-fg">{{ session.title }}</div>
+                  <div class="flex gap-3 text-xs text-fg-secondary">
+                    <span class="whitespace-nowrap font-medium text-accent">
                       {{ $t('sessions.week') }} {{ session.week }}{{ $t('sessions.week') === '第' ? '周' : '' }}, {{ session.day }}
                     </span>
-                    <span class="session-duration">
+                    <span class="whitespace-nowrap text-fg-secondary">
                       {{ session.duration }}
                     </span>
-                    <span class="session-date">
+                    <span class="whitespace-nowrap text-fg-muted">
                       {{ session.date }}
                     </span>
                   </div>
                 </div>
               </div>
-              <div class="session-actions">
-                <button class="action-btn add-btn action-btn-demo" :title="$t('sessions.addToTask')">
+              <div class="flex w-[200px] shrink-0 items-center justify-end gap-1">
+                <button class="pointer-events-none flex h-10 w-[60px] flex-col items-center justify-center gap-0.5 rounded border border-[#28a745] bg-surface text-[#28a745]" :title="$t('sessions.addToTask')">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14,2 14,8 20,8"/>
@@ -110,22 +111,22 @@
                     <line x1="16" y1="17" x2="8" y2="17"/>
                     <line x1="10" y1="9" x2="8" y2="9"/>
                   </svg>
-                  <span class="action-text">{{ $t('sessions.task') }}</span>
+                  <span class="text-[10px] font-medium leading-none">{{ $t('sessions.task') }}</span>
                 </button>
-                <button class="action-btn camera-btn action-btn-demo" :title="$t('sessions.downloadCamera')">
+                <button class="pointer-events-none flex h-10 w-[60px] flex-col items-center justify-center gap-0.5 rounded border border-accent bg-surface text-accent" :title="$t('sessions.downloadCamera')">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                   </svg>
-                  <span class="action-text">{{ $t('sessions.camera') }}</span>
+                  <span class="text-[10px] font-medium leading-none">{{ $t('sessions.camera') }}</span>
                 </button>
-                <button class="action-btn screen-btn action-btn-demo" :title="$t('sessions.downloadScreen')">
+                <button class="pointer-events-none flex h-10 w-[60px] flex-col items-center justify-center gap-0.5 rounded border border-[#6f42c1] bg-surface text-[#6f42c1] dark:border-[#9d7be0] dark:text-[#9d7be0]" :title="$t('sessions.downloadScreen')">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                     <line x1="8" y1="21" x2="16" y2="21"/>
                     <line x1="12" y1="17" x2="12" y2="21"/>
                   </svg>
-                  <span class="action-text">{{ $t('sessions.screen') }}</span>
+                  <span class="text-[10px] font-medium leading-none">{{ $t('sessions.screen') }}</span>
                 </button>
               </div>
             </div>
@@ -262,421 +263,16 @@ defineExpose({
 </script>
 
 <style scoped>
-.session-page {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  padding: 16px;
-}
-
-.header {
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  background-color: #f8f9fa;
-  margin-bottom: 24px;
-  overflow: hidden;
-}
-
-.header-main {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-}
-
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  color: #666;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-btn:hover {
-  border-color: #007acc;
-  color: #007acc;
-}
-
-.header h2 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
-  flex: 1;
-}
-
-.expand-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.expand-btn:hover {
-  border-color: #007acc;
-  background-color: #f0f8ff;
-}
-
-.expand-btn svg {
-  transition: transform 0.2s;
-}
-
-.expand-btn svg.rotated {
-  transform: rotate(180deg);
-}
-
-.course-details {
-  padding: 16px;
-  border-top: 1px solid #e0e0e0;
-  background-color: white;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.course-detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.detail-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.detail-value {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-}
-
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.main-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.sessions-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  margin-top: 16px;
-}
-
-.sessions-list {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  padding: 4px;
-}
-
-.session-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  background-color: white;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-height: 48px;
-}
-
-.session-item:hover {
-  background-color: #f0f8ff;
-  box-shadow: 0 1px 3px rgba(0, 122, 204, 0.1);
-}
-
-.session-item-demo {
-  cursor: default !important;
-  pointer-events: none;
-}
-
-.session-item-demo:hover {
-  background-color: white !important;
-  box-shadow: none !important;
-}
-
-.session-main {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex: 1;
-  min-width: 0;
-}
-
-.session-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  background-color: #f0f8ff;
-  border-radius: 6px;
-  color: #007acc;
-  flex-shrink: 0;
-}
-
-.session-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.session-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.session-meta {
-  display: flex;
-  gap: 12px;
-  font-size: 12px;
-  color: #666;
-}
-
-.session-meta span {
-  white-space: nowrap;
-}
-
-.session-time {
-  color: #007acc;
-  font-weight: 500;
-}
-
-.session-duration {
-  color: #666;
-}
-
-.session-date {
-  color: #888;
-}
-
-.batch-actions {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  padding: 16px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
-}
-
-.batch-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-height: 36px;
-}
-
-.batch-btn:hover {
-  border-color: #007acc;
-  background-color: #f0f8ff;
-}
-
-.add-all-btn {
-  color: #28a745;
-  border-color: #28a745;
-}
-
-.add-all-btn:hover {
-  background-color: #d4edda;
-  border-color: #1e7e34;
-}
-
-.download-camera-btn {
-  color: #007acc;
-  border-color: #007acc;
-}
-
-.download-camera-btn:hover {
-  background-color: #e3f2fd;
-  border-color: #0056b3;
-}
-
-.download-screen-btn {
-  color: #6f42c1;
-  border-color: #6f42c1;
-}
-
-.download-screen-btn:hover {
-  background-color: #f3e5f5;
-  border-color: #59359a;
-}
-
-.session-actions {
-  width: 200px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.action-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 60px;
-  height: 40px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-  gap: 2px;
-}
-
-.action-btn-demo {
-  cursor: default !important;
-  pointer-events: none;
-}
-
-.action-btn-demo:hover {
-  transform: none !important;
-  box-shadow: none !important;
-}
-
-.action-text {
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 1;
-}
-
-.action-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.add-btn {
-  color: #28a745;
-  border-color: #28a745;
-}
-
-.add-btn:hover {
-  background-color: #d4edda;
-  border-color: #1e7e34;
-}
-
-.camera-btn {
-  color: #007acc;
-  border-color: #007acc;
-}
-
-.camera-btn:hover {
-  background-color: #e3f2fd;
-  border-color: #0056b3;
-}
-
-.screen-btn {
-  color: #6f42c1;
-  border-color: #6f42c1;
-}
-
-.screen-btn:hover {
-  background-color: #f3e5f5;
-  border-color: #59359a;
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 48px 16px;
-  gap: 16px;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #007acc;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Custom scrollbar styles */
+/* Custom auto-hiding scrollbar for the demo session list (genuinely custom). */
 .sessions-list {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
   transition: scrollbar-color 0.3s ease;
 }
-
-.sessions-list:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
-.sessions-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.sessions-list::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.sessions-list::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  border: none;
-  transition: background 0.3s ease;
-}
-
-.sessions-list:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.sessions-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3) !important;
-}
-
+.sessions-list:hover { scrollbar-color: rgba(0, 0, 0, 0.2) transparent; }
+.sessions-list::-webkit-scrollbar { width: 6px; }
+.sessions-list::-webkit-scrollbar-track { background: transparent; border-radius: 3px; }
+.sessions-list::-webkit-scrollbar-thumb { background: transparent; border-radius: 3px; transition: background 0.3s ease; }
+.sessions-list:hover::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); }
+.sessions-list::-webkit-scrollbar-thumb:hover { background: rgba(0, 0, 0, 0.3); }
 </style>

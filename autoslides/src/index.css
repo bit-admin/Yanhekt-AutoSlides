@@ -1,28 +1,655 @@
+/*
+ * Global stylesheet for all three renderer windows (main, tools, addons).
+ *
+ * Tailwind v4 is layered WITHOUT Preflight during the CSS refactor migration:
+ * Preflight resets headings/lists/buttons/form defaults globally and would
+ * break components that haven't been migrated yet. We keep the minimal reset
+ * below and adopt Preflight as a dedicated, verified step at the end (Phase 7).
+ */
+
+@layer theme, base, components, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+/* App theme tokens — light defaults + dark overrides via prefers-color-scheme.
+   Single source of truth for color *values*. */
 @import './renderer/shared/styles/theme.css';
-@import './renderer/shared/styles/modal.css';
-@import './renderer/shared/styles/settings.css';
 
-* {
-  box-sizing: border-box;
+/*
+ * Token bridge: map app theme tokens onto Tailwind's color scale so that
+ * semantic utilities (bg-surface, text-fg, border-line, bg-accent, …) resolve
+ * to var(--bg-surface) etc. and therefore AUTO-DARKEN under the dark media
+ * query with no `dark:` prefix needed. The `dark:` variant still works for the
+ * rare explicit override.
+ */
+@theme {
+  /* Surfaces → bg-page / bg-surface / bg-elevated / bg-subtle / bg-modal / bg-field / bg-hover */
+  --color-page: var(--bg-page);
+  --color-surface: var(--bg-surface);
+  --color-elevated: var(--bg-elevated);
+  --color-subtle: var(--bg-subtle);
+  --color-modal: var(--bg-modal);
+  --color-field: var(--bg-input);
+  --color-field-disabled: var(--bg-input-disabled);
+  --color-hover: var(--bg-hover);
+
+  /* Text → text-fg / text-fg-secondary / text-fg-muted / text-on-accent */
+  --color-fg: var(--text-primary);
+  --color-fg-secondary: var(--text-secondary);
+  --color-fg-muted: var(--text-muted);
+  --color-on-accent: var(--text-on-accent);
+
+  /* Borders → border-line / border-line-strong / border-line-input */
+  --color-line: var(--border-color);
+  --color-line-strong: var(--border-strong);
+  --color-line-input: var(--border-input);
+
+  /* Accents → bg-accent / text-accent / border-accent (+ hover / strong) */
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-strong: var(--accent-strong);
+
+  /* Status → bg-danger / text-success / … */
+  --color-danger: var(--danger);
+  --color-danger-hover: var(--danger-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
 }
 
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: #f5f5f5;
+/* z-index scale (Tailwind v4 has no z-index theme namespace) — intentional
+   layering replaces the scattered 1/2/5/10/.../1000/10000 values. */
+@utility z-dropdown {
+  z-index: 100;
+}
+@utility z-overlay {
+  z-index: 500;
+}
+@utility z-modal {
+  z-index: 1000;
+}
+@utility z-toast {
+  z-index: 2000;
 }
 
-#app {
-  height: 100vh;
-  overflow: hidden;
+/*
+ * Shared component layer. All rules are tokenized, so dark mode is handled
+ * by the token swap (no per-rule dark overrides). Lives in @layer components,
+ * which sits below @layer utilities — so a Tailwind utility on an element
+ * always wins, and component <style scoped> blocks (unlayered) win too.
+ */
+@layer components {
+  /* ---- Buttons ------------------------------------------------------- */
+  .btn {
+    @apply inline-flex cursor-pointer items-center justify-center gap-1.5 rounded border border-transparent px-3 py-1.5 text-xs font-medium transition-colors;
+  }
+  .btn:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  .btn-primary {
+    @apply bg-accent text-on-accent;
+  }
+  .btn-primary:hover:not(:disabled) {
+    @apply bg-accent-hover;
+  }
+
+  .btn-secondary {
+    @apply border-line bg-surface text-fg;
+  }
+  .btn-secondary:hover:not(:disabled) {
+    @apply border-line-strong bg-hover;
+  }
+
+  .btn-danger {
+    @apply bg-danger text-white;
+  }
+  .btn-danger:hover:not(:disabled) {
+    @apply bg-danger-hover;
+  }
+
+  .btn-ghost {
+    @apply border-transparent bg-transparent text-fg-secondary;
+  }
+  .btn-ghost:hover:not(:disabled) {
+    @apply bg-hover text-fg;
+  }
+
+  /* Square icon button (no text). */
+  .btn-icon {
+    @apply inline-flex cursor-pointer items-center justify-center rounded bg-transparent p-1 text-fg-secondary transition-colors;
+  }
+  .btn-icon:hover:not(:disabled) {
+    @apply bg-hover text-fg;
+  }
+  .btn-icon:disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  /* ---- Form fields --------------------------------------------------- */
+  .input,
+  .select,
+  .textarea {
+    @apply w-full rounded border border-line-input bg-field px-2 py-1.5 text-xs text-fg transition-colors;
+  }
+  .input:focus,
+  .select:focus,
+  .textarea:focus {
+    @apply border-accent outline-none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent);
+  }
+  .input:disabled,
+  .select:disabled,
+  .textarea:disabled {
+    @apply cursor-not-allowed bg-field-disabled opacity-70;
+  }
+
+  /* ---- Surfaces ------------------------------------------------------ */
+  .card {
+    @apply rounded-lg border border-line bg-surface;
+  }
+  .panel {
+    @apply bg-surface;
+  }
+
+  /* ---- Badges -------------------------------------------------------- */
+  .badge {
+    @apply inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium;
+  }
+  .badge-accent {
+    @apply bg-accent text-on-accent;
+  }
+  .badge-danger {
+    @apply bg-danger text-white;
+  }
+  .badge-success {
+    @apply bg-success text-white;
+  }
+  .badge-warning {
+    @apply bg-warning text-white;
+  }
+
+  /* ---- Modal (relocated from modal.css, tokenized) ------------------- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000; /* z-modal */
+  }
+  .modal-content {
+    background: var(--bg-modal);
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    overflow: hidden;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-elevated);
+  }
+  .modal-header-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .modal-close {
+    background: transparent;
+    border: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s;
+  }
+  .modal-close:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+  .modal-body {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    padding: 16px 20px;
+  }
+  .modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-elevated);
+  }
+
+  /* ---- Settings form (relocated from settings.css, tokenized) -------- */
+  .setting-item {
+    margin-bottom: 16px;
+  }
+  .setting-item:last-child {
+    margin-bottom: 0;
+    margin-top: 6px;
+  }
+  .setting-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+  .setting-description {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+  .setting-item .setting-description {
+    margin-top: 2px;
+    margin-bottom: 6px;
+  }
+  .setting-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .setting-label-with-reset {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .setting-label-with-reset .setting-label {
+    margin-bottom: 0;
+  }
+  .advanced-setting-section {
+    margin-bottom: 24px;
+  }
+  .advanced-setting-section h4 {
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+  }
+  .advanced-setting-section .setting-item {
+    margin-bottom: 20px;
+  }
+  .advanced-setting-section .setting-item:last-child {
+    margin-bottom: 0;
+  }
+  .advanced-setting-subsection {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+  }
+  .advanced-setting-subsection h5 {
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .two-col-row {
+    display: flex;
+    gap: 12px;
+  }
+  .two-col-item {
+    flex: 1;
+  }
+  .detail-row {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 4px;
+    font-size: 10px;
+    line-height: 1.3;
+    color: var(--text-secondary);
+  }
+  .detail-row:last-child {
+    margin-bottom: 0;
+  }
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .status-row:last-child {
+    margin-bottom: 0;
+  }
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+  }
+  .slide-interval-group {
+    display: flex;
+    align-items: center;
+  }
+  .slide-interval-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    transition: border-color 0.2s;
+  }
+  .slide-interval-input-wrapper:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  .slide-interval-input {
+    flex: 1;
+    padding: 6px 8px;
+    border: none;
+    background-color: transparent;
+    font-size: 12px;
+    color: var(--text-primary);
+    outline: none;
+  }
+  .interval-unit {
+    padding: 6px 8px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    background-color: var(--bg-elevated);
+    border-left: 1px solid var(--border-color);
+    white-space: nowrap;
+  }
+  .model-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-subtle);
+  }
+  .model-row .model-info {
+    font-size: 12px;
+    color: var(--text-primary);
+    word-break: break-all;
+  }
+  .model-row .model-size {
+    color: var(--text-secondary);
+    margin-left: 4px;
+  }
+  .model-row .model-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .secondary-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .secondary-btn:hover:not(:disabled) {
+    background: var(--bg-hover);
+    border-color: var(--border-strong);
+  }
+  .secondary-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .concurrent-select {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-primary);
+    background-color: var(--bg-input);
+  }
+  .concurrent-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 12%, transparent);
+  }
+  .preset-btn {
+    padding: 4px 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--bg-surface);
+    color: var(--text-secondary);
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  .preset-btn:hover {
+    background-color: var(--bg-elevated);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .preset-btn.active {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: var(--text-on-accent);
+  }
+  .auto-post-processing-control {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+  }
+  .auto-post-processing-control:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--accent);
+  }
+  .auto-post-processing-control .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 8px 12px;
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    transition: none;
+    user-select: none;
+  }
+  .auto-post-processing-control .checkbox-label:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
+  }
+  .auto-post-processing-control .checkbox-label input[type='checkbox'] {
+    margin: 0;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+  }
+  .prevent-sleep-control {
+    display: flex;
+    align-items: center;
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    height: 35px;
+  }
+  .prevent-sleep-control:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--accent);
+  }
+  .prevent-sleep-control .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 8px 12px;
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    transition: none;
+    user-select: none;
+    flex: 1;
+  }
+  .prevent-sleep-control .checkbox-label input[type='checkbox'] {
+    margin: 0;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+  }
+  .external-link {
+    color: var(--accent);
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .external-link:hover {
+    text-decoration: underline;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-elevated);
+    color: var(--text-secondary);
+    font-size: 11px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .mode-btn:hover {
+    background-color: var(--bg-hover);
+  }
+  .mode-btn.active {
+    background-color: var(--accent);
+    color: var(--text-on-accent);
+    border-color: var(--accent);
+  }
+  .downsampling-controls {
+    margin-top: 8px;
+  }
+  .downsampling-controls + .setting-description {
+    margin-top: 8px;
+  }
+  .downsampling-control {
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+    min-height: 35px;
+  }
+  .downsampling-control:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--accent);
+  }
+  .downsampling-control .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 8px 12px;
+    background-color: transparent;
+    border: none;
+    border-radius: 0;
+    transition: none;
+    user-select: none;
+    height: 35px;
+  }
+  .downsampling-control .checkbox-label input[type='checkbox'] {
+    margin: 0;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+  }
+  .downsampling-presets {
+    display: flex;
+    gap: 4px;
+    padding: 8px 12px;
+    border-top: 1px solid var(--border-color);
+    background-color: color-mix(in srgb, var(--bg-surface) 70%, transparent);
+  }
+  .downsampling-presets.no-border-top {
+    border-top: none;
+  }
+  .reset-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 3px;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+  }
+  .reset-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+    opacity: 1;
+  }
+  .reset-btn svg {
+    width: 12px;
+    height: 12px;
+  }
 }
 
-button {
-  font-family: inherit;
-}
+/* Minimal reset + base document styling (stands in for Preflight for now). */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-input {
-  font-family: inherit;
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-page);
+    color: var(--text-primary);
+  }
+
+  #app {
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  button,
+  input {
+    font-family: inherit;
+  }
 }

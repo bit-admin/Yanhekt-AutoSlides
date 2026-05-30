@@ -1,26 +1,26 @@
 <template>
-  <div class="results-window">
-    <div class="toolbar">
-      <div class="toolbar-left">
-        <button v-if="currentView === 'images'" class="back-btn" @click="goBack">
+  <div class="flex h-full flex-col bg-surface text-fg">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-elevated px-4 py-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <button v-if="currentView === 'images'" :class="toolBtn" @click="goBack">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
           {{ $t('trash.back') }}
         </button>
 
-        <div v-if="currentView === 'images'" class="filter-group">
+        <div v-if="currentView === 'images'" class="flex items-center gap-1.5 text-xs text-fg-secondary">
           <label>{{ $t('trash.viewMode') }}:</label>
-          <select v-model="contextMode" class="filter-select">
+          <select v-model="contextMode" :class="rwSelect">
             <option value="context">{{ $t('trash.showContext') }}</option>
             <option value="extracted-only">{{ $t('trash.extractedOnly') }}</option>
             <option value="removed-only">{{ $t('trash.removedOnly') }}</option>
           </select>
         </div>
 
-        <div v-if="currentView === 'images'" class="filter-group">
+        <div v-if="currentView === 'images'" class="flex items-center gap-1.5 text-xs text-fg-secondary">
           <label>{{ $t('trash.filterReason') }}:</label>
-          <select v-model="selectedReason" class="filter-select" :disabled="!hasRemovedItems">
+          <select v-model="selectedReason" :class="rwSelect" :disabled="!hasRemovedItems">
             <option value="">{{ $t('trash.all') }}</option>
             <option value="duplicate">{{ $t('trash.duplicate') }}</option>
             <option value="exclusion">{{ $t('trash.exclusion') }}</option>
@@ -30,18 +30,18 @@
           </select>
         </div>
 
-        <button class="refresh-btn" @click="refresh" :disabled="isLoading">
-          <svg width="16" height="16" viewBox="0 0 16 16" :class="{ spinning: isLoading }">
+        <button :class="toolBtn" @click="refresh" :disabled="isLoading">
+          <svg width="16" height="16" viewBox="0 0 16 16" :class="{ 'animate-spin': isLoading }">
             <path d="M13.65 2.35A7.958 7.958 0 008 0a8 8 0 108 8h-2a6 6 0 11-1.76-4.24l-2.12 2.12H16V0l-2.35 2.35z" fill="currentColor"/>
           </svg>
           {{ $t('trash.refresh') }}
         </button>
       </div>
 
-      <div class="actions">
+      <div class="flex flex-wrap items-center gap-2">
         <button
           v-if="currentView === 'images'"
-          class="delete-btn"
+          :class="dangerBtn"
           @click="confirmDelete"
           :disabled="selectedActiveItems.length === 0 || isLoading"
         >
@@ -51,13 +51,9 @@
           {{ $t('trash.delete') }}
         </button>
 
-        <div
-          v-if="currentView === 'images'"
-          class="action-split action-split-restore"
-          :class="{ 'action-split-open': showRestoreMenu }"
-        >
+        <div v-if="currentView === 'images'" class="relative flex">
           <button
-            class="restore-btn action-split-main"
+            :class="[toolBtn, 'rounded-r-none']"
             @click="restoreSelected"
             :disabled="selectedRemovedItems.length === 0 || isLoading"
           >
@@ -67,34 +63,24 @@
             </svg>
             {{ $t('trash.restore') }}
           </button>
-          <button
-            class="restore-btn action-split-toggle"
-            :title="$t('trash.restoreAutoCropMoreOptions')"
-            @click.stop="toggleRestoreMenu"
-          >
+          <button :class="splitToggleBtn" :title="$t('trash.restoreAutoCropMoreOptions')" @click.stop="toggleRestoreMenu">
             <svg width="10" height="10" viewBox="0 0 10 10">
               <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-          <div v-if="showRestoreMenu" class="action-split-menu">
+          <div v-if="showRestoreMenu" :class="splitMenu">
             <button
-              class="action-split-menu-item"
+              :class="splitMenuItem"
               :disabled="!hasCroppedInCurrentFolder || isLoading"
               :title="$t('trash.restoreAllCroppedHint')"
               @click="handleRestoreCropped"
-            >
-              <div class="action-split-menu-title">{{ $t('trash.restoreAllCropped') }}</div>
-            </button>
+            >{{ $t('trash.restoreAllCropped') }}</button>
           </div>
         </div>
 
-        <div
-          v-if="currentView === 'images'"
-          class="action-split action-split-auto-crop"
-          :class="{ 'action-split-open': showAutoCropMenu }"
-        >
+        <div v-if="currentView === 'images'" class="relative flex">
           <button
-            class="restore-btn auto-crop-btn action-split-main"
+            :class="[toolBtn, 'rounded-r-none']"
             @click="handleAutoCropSelected"
             :disabled="!canAutoCropSelected || isLoading"
             :title="$t('trash.autoCropSelectedHint')"
@@ -104,34 +90,24 @@
             </svg>
             {{ $t('trash.autoCropSelected') }}
           </button>
-          <button
-            class="restore-btn auto-crop-btn action-split-toggle"
-            :title="$t('trash.restoreAutoCropMoreOptions')"
-            @click.stop="toggleAutoCropMenu"
-          >
+          <button :class="splitToggleBtn" :title="$t('trash.restoreAutoCropMoreOptions')" @click.stop="toggleAutoCropMenu">
             <svg width="10" height="10" viewBox="0 0 10 10">
               <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-          <div v-if="showAutoCropMenu" class="action-split-menu">
+          <div v-if="showAutoCropMenu" :class="splitMenu">
             <button
-              class="action-split-menu-item"
+              :class="splitMenuItem"
               :disabled="!canRunBaselineAction || isLoading"
               :title="baselineActionTitle"
               @click="handleBaselineAction"
-            >
-              <div class="action-split-menu-title">{{ baselineActionLabel }}</div>
-            </button>
+            >{{ baselineActionLabel }}</button>
           </div>
         </div>
 
-        <div
-          v-if="currentView === 'images'"
-          class="action-split action-split-dedup"
-          :class="{ 'action-split-open': showRemoveDuplicatesMenu }"
-        >
+        <div v-if="currentView === 'images'" class="relative flex">
           <button
-            class="clear-btn dedup-btn action-split-main"
+            :class="[toolBtn, 'rounded-r-none']"
             @click="handleRemoveDuplicates"
             :disabled="!canRemoveDuplicatesInCurrentFolder || isLoading"
             :title="$t('trash.removeDuplicatesHint')"
@@ -143,22 +119,14 @@
             </svg>
             {{ $t('trash.removeDuplicates') }}
           </button>
-          <button
-            class="clear-btn dedup-btn action-split-toggle"
-            :title="$t('trash.restoreAutoCropMoreOptions')"
-            @click.stop="toggleRemoveDuplicatesMenu"
-          >
+          <button :class="splitToggleBtn" :title="$t('trash.restoreAutoCropMoreOptions')" @click.stop="toggleRemoveDuplicatesMenu">
             <svg width="10" height="10" viewBox="0 0 10 10">
               <path d="M2 3.5l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </button>
-          <div v-if="showRemoveDuplicatesMenu" class="action-split-menu action-split-menu-wide">
-            <label
-              class="action-split-checkbox"
-              :title="$t('trash.removeDuplicatesAfterActionsHint')"
-              @click.stop
-            >
-              <input type="checkbox" v-model="dedupAfterCropActions" :disabled="isLoading" />
+          <div v-if="showRemoveDuplicatesMenu" :class="[splitMenu, 'min-w-[260px]']">
+            <label class="flex cursor-pointer items-center gap-2 px-2 py-1.5 text-xs text-fg" :title="$t('trash.removeDuplicatesAfterActionsHint')" @click.stop>
+              <input type="checkbox" class="accent-accent" v-model="dedupAfterCropActions" :disabled="isLoading" />
               <span>{{ $t('trash.removeDuplicatesAfterActions') }}</span>
             </label>
           </div>
@@ -166,7 +134,7 @@
 
         <button
           v-if="currentView === 'folders' && isFolderEditMode"
-          class="delete-btn"
+          :class="dangerBtn"
           :disabled="!canClearSelectedFolders || isLoading"
           @click="handleClearSelectedFolders"
         >
@@ -174,13 +142,12 @@
             <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
           </svg>
           {{ $t('trash.clearFolder') }}
-          <span v-if="selectedFolderNames.length > 0" class="edit-count">{{ selectedFolderNames.length }}</span>
+          <span v-if="selectedFolderNames.length > 0" class="rounded-full bg-accent px-1.5 text-[10px] text-white">{{ selectedFolderNames.length }}</span>
         </button>
 
         <button
           v-if="currentView === 'folders'"
-          class="edit-btn"
-          :class="{ 'edit-btn-active': isFolderEditMode }"
+          :class="[toolBtn, isFolderEditMode ? 'border-accent text-accent' : '']"
           :disabled="!canEditFolders || isLoading"
           @click="toggleFolderEditMode"
         >
@@ -191,11 +158,7 @@
           {{ isFolderEditMode ? $t('trash.doneEditing') : $t('trash.editFolders') }}
         </button>
 
-        <button
-          class="clear-btn"
-          @click="confirmClearTrash"
-          :disabled="!canClearTrash || isLoading"
-        >
+        <button :class="dangerBtn" @click="confirmClearTrash" :disabled="!canClearTrash || isLoading">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
           </svg>
@@ -204,48 +167,48 @@
       </div>
     </div>
 
-    <div class="content-area" ref="contentAreaRef">
-      <div v-if="isLoading" class="loading-state">
-        <div class="spinner"></div>
+    <div class="flex-1 overflow-y-auto p-4" ref="contentAreaRef">
+      <div v-if="isLoading" class="flex flex-col items-center justify-center gap-3 py-16 text-fg-secondary">
+        <div class="h-8 w-8 animate-spin rounded-full border-[3px] border-line border-t-accent"></div>
         <span>{{ $t('trash.loading') }}</span>
       </div>
 
       <template v-else-if="currentView === 'folders'">
-        <div v-if="folders.length === 0" class="empty-state">
+        <div v-if="folders.length === 0" class="flex flex-col items-center gap-3 py-16 text-fg-muted">
           <svg width="64" height="64" viewBox="0 0 64 64">
             <path d="M8 12v40h48V20H32l-6-8H8z" fill="currentColor" opacity="0.3"/>
           </svg>
           <span>{{ $t('trash.noResultsFolders') }}</span>
         </div>
 
-        <div v-else class="folder-list">
+        <div v-else class="flex flex-col gap-1">
           <div
             v-for="(group, groupIdx) in courseGroups"
             :key="group.courseName || groupIdx"
-            :class="{ 'course-group': isGroupingActive }"
+            :class="{ 'mb-2': isGroupingActive }"
           >
             <div
               v-if="isGroupingActive"
-              class="course-header"
+              class="flex cursor-pointer items-center gap-2 rounded bg-elevated px-2 py-1.5"
               @click="isFolderEditMode && selectAllInCourse(group.folderNames)"
             >
               <input
                 v-if="isFolderEditMode"
                 type="checkbox"
-                class="course-checkbox"
+                class="accent-accent"
                 :checked="isCourseFullySelected(group.folderNames)"
                 :indeterminate.prop="isCoursePartiallySelected(group.folderNames)"
                 @click.stop
                 @change="selectAllInCourse(group.folderNames)"
               />
-              <svg class="course-icon" width="16" height="16" viewBox="0 0 16 16">
+              <svg class="shrink-0" width="16" height="16" viewBox="0 0 16 16">
                 <path d="M8 2L1 6l7 4 7-4L8 2z" fill="#3b6ea5"/>
                 <path d="M4 7.5v4c0 1.2 1.8 2 4 2s4-.8 4-2v-4L8 10.5 4 7.5z" fill="#5a9fd4"/>
               </svg>
-              <span class="course-name">{{ group.courseName }}</span>
+              <span class="flex-1 text-xs font-semibold text-fg">{{ group.courseName }}</span>
               <svg
-                class="course-chevron"
-                :class="{ collapsed: isCourseCollapsed(group.courseName) }"
+                class="text-fg-secondary transition-transform"
+                :class="{ '-rotate-90': isCourseCollapsed(group.courseName) }"
                 width="14" height="14" viewBox="0 0 16 16"
                 @click.stop="toggleCourseCollapse(group.courseName)"
               >
@@ -257,50 +220,47 @@
             <button
               v-for="entry in group.folders"
               :key="entry.folder.name"
-              class="folder-item"
-              :class="{
-                'folder-item-grouped': isGroupingActive,
-                'folder-item-last-visited': !isFolderEditMode && entry.folder.name === lastVisitedFolderName,
-                'folder-item-selected': isFolderEditMode && selectedFolderNames.includes(entry.folder.name),
-                'folder-item-edit': isFolderEditMode,
-              }"
+              class="flex w-full items-center gap-3 rounded-md border bg-modal px-3 py-2.5 text-left transition-all hover:border-accent"
+              :class="[
+                isGroupingActive ? 'ml-4' : '',
+                isFolderEditMode && selectedFolderNames.includes(entry.folder.name) ? 'border-accent bg-accent/10'
+                  : (!isFolderEditMode && entry.folder.name === lastVisitedFolderName) ? 'border-accent'
+                  : 'border-line',
+              ]"
               :ref="(el) => setFolderItemRef(entry.folder.name, el as HTMLButtonElement | null)"
               @click="isFolderEditMode ? toggleFolderSelection(entry.folder.name) : handleOpenFolder(entry.folder)"
             >
-              <div v-if="isFolderEditMode" class="folder-checkbox">
+              <div v-if="isFolderEditMode" class="flex-shrink-0">
                 <input
                   type="checkbox"
+                  class="accent-accent"
                   :checked="selectedFolderNames.includes(entry.folder.name)"
                   @click.stop
                   @change="toggleFolderSelection(entry.folder.name)"
                 />
               </div>
 
-              <div class="folder-icon">
+              <div class="flex-shrink-0">
                 <svg width="24" height="24" viewBox="0 0 24 24">
                   <path d="M3 5v14h18V8h-9l-2-3H3z" fill="#f0c36d"/>
                   <path d="M3 8h18v11H3V8z" fill="#f7d994"/>
                 </svg>
               </div>
 
-              <div class="folder-copy">
-                <div class="folder-mainline">
-                  <span class="folder-name">{{ formatToolFolderName(entry.folder.name) }}</span>
-                  <div class="folder-counts">
-                    <span class="folder-count-text">
-                      <span class="count-value">{{ entry.folder.activeCount }}</span>
-                      <span class="count-label">{{ $t('trash.active') }}</span>
-                    </span>
-                    <span class="folder-count-separator">/</span>
-                    <span class="folder-count-text">
-                      <span class="count-value">{{ entry.folder.removedCount }}</span>
-                      <span class="count-label">{{ $t('trash.removed') }}</span>
-                    </span>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="min-w-0 truncate text-sm text-fg">{{ formatToolFolderName(entry.folder.name) }}</span>
+                  <div class="flex flex-shrink-0 items-center gap-1 text-xs">
+                    <span class="font-semibold text-fg">{{ entry.folder.activeCount }}</span>
+                    <span class="text-fg-muted">{{ $t('trash.active') }}</span>
+                    <span class="text-fg-muted">/</span>
+                    <span class="font-semibold text-fg">{{ entry.folder.removedCount }}</span>
+                    <span class="text-fg-muted">{{ $t('trash.removed') }}</span>
                   </div>
                 </div>
               </div>
 
-              <svg v-if="!isFolderEditMode" class="folder-chevron" width="16" height="16" viewBox="0 0 16 16">
+              <svg v-if="!isFolderEditMode" class="flex-shrink-0 text-fg-muted" width="16" height="16" viewBox="0 0 16 16">
                 <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </button>
@@ -310,7 +270,7 @@
       </template>
 
       <template v-else>
-        <div v-if="filteredItems.length === 0" class="empty-state">
+        <div v-if="filteredItems.length === 0" class="flex flex-col items-center gap-3 py-16 text-fg-muted">
           <svg width="64" height="64" viewBox="0 0 64 64">
             <rect x="8" y="8" width="48" height="48" fill="currentColor" opacity="0.3"/>
             <circle cx="22" cy="22" r="6" fill="currentColor" opacity="0.2"/>
@@ -331,12 +291,12 @@
       </template>
     </div>
 
-    <div class="footer">
-      <div class="footer-left">
+    <div class="flex items-center justify-between border-t border-line bg-elevated px-4 py-2 text-xs text-fg-secondary">
+      <div class="flex items-center gap-2">
         <span v-if="currentView === 'folders'">{{ $t('trash.total') }}: {{ folders.length }}</span>
         <template v-else>
           <button
-            class="select-all-btn"
+            class="rounded border border-line-input bg-surface px-2 py-1 text-xs text-fg cursor-pointer transition-colors enabled:hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#333]"
             :disabled="filteredItems.length === 0"
             @click="toggleSelectAllFiltered"
           >
@@ -346,8 +306,8 @@
         </template>
       </div>
 
-      <div v-if="currentView === 'images'" class="size-slider-group">
-        <svg width="12" height="12" viewBox="0 0 16 16" class="size-icon small">
+      <div v-if="currentView === 'images'" class="flex items-center gap-2">
+        <svg width="12" height="12" viewBox="0 0 16 16" class="text-fg-muted">
           <rect x="3" y="3" width="10" height="10" fill="currentColor" opacity="0.6"/>
         </svg>
         <input
@@ -356,22 +316,22 @@
           min="180"
           max="640"
           step="20"
-          class="size-slider"
+          class="w-32 accent-accent"
         />
-        <svg width="16" height="16" viewBox="0 0 16 16" class="size-icon large">
+        <svg width="16" height="16" viewBox="0 0 16 16" class="text-fg-muted">
           <rect x="2" y="2" width="12" height="12" fill="currentColor" opacity="0.6"/>
         </svg>
       </div>
 
-      <label v-if="currentView === 'folders'" class="group-toggle">
-        <input type="checkbox" v-model="groupByCourse" />
+      <label v-if="currentView === 'folders'" class="flex cursor-pointer items-center gap-1.5">
+        <input type="checkbox" class="accent-accent" v-model="groupByCourse" />
         <span>{{ $t('trash.groupByCourse') }}</span>
       </label>
     </div>
 
-    <div v-if="previewItem" class="preview-modal-overlay" @click="closePreview">
-      <div class="preview-modal" :class="{ 'metadata-visible': showPreviewMetadata, 'crop-mode': isCropMode }" @click.stop>
-        <button class="preview-close-btn" @click="closePreview">
+    <div v-if="previewItem" class="fixed inset-0 z-modal flex items-center justify-center bg-black/70 p-6" @click="closePreview">
+      <div class="preview-modal relative flex max-h-[90vh] w-[min(1100px,92vw)] flex-col overflow-hidden rounded-lg bg-modal" :class="{ 'metadata-visible': showPreviewMetadata, 'crop-mode': isCropMode }" @click.stop>
+        <button class="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full border-none bg-black/40 text-white cursor-pointer hover:bg-black/60" @click="closePreview">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
@@ -423,19 +383,19 @@
               </div>
             </div>
 
-            <div class="preview-actions">
+            <div class="absolute bottom-3.5 right-3.5 z-[1] flex flex-wrap justify-end gap-2">
               <template v-if="isCropMode">
-                <button class="preview-action-btn" :disabled="isLoading" @click="cancelCropMode">
+                <button :class="previewActionBtn" :disabled="isLoading" @click="cancelCropMode">
                   {{ $t('trash.cancel') }}
                 </button>
-                <button class="preview-action-btn primary" :disabled="!canApplyCrop || isLoading" @click="applyCrop">
+                <button :class="previewActionPrimary" :disabled="!canApplyCrop || isLoading" @click="applyCrop">
                   {{ $t('trash.applyCrop') }}
                 </button>
               </template>
               <template v-else>
                 <button
                   v-if="canRestoreCrop"
-                  class="preview-action-btn"
+                  :class="previewActionBtn"
                   :disabled="isLoading"
                   @click="restoreCrop"
                 >
@@ -443,7 +403,7 @@
                 </button>
                 <button
                   v-if="canRecrop"
-                  class="preview-action-btn"
+                  :class="previewActionBtn"
                   :disabled="isLoading"
                   @click="startCropMode"
                 >
@@ -451,14 +411,14 @@
                 </button>
                 <template v-else-if="canStartCrop">
                   <button
-                    class="preview-action-btn"
+                    :class="previewActionBtn"
                     :disabled="isLoading || isAutoCropDetecting"
                     @click="startCropMode"
                   >
                     {{ $t('trash.crop') }}
                   </button>
                   <button
-                    class="preview-action-btn"
+                    :class="previewActionBtn"
                     :disabled="isLoading || isAutoCropDetecting"
                     @click="startAutoCropMode"
                   >
@@ -467,14 +427,14 @@
                 </template>
                 <button
                   v-if="canSetCurrentAsBaseline"
-                  class="preview-action-btn"
+                  :class="previewActionBtn"
                   :disabled="isLoading || isCurrentPreviewBaseline"
                   :title="isCurrentPreviewBaseline ? $t('trash.currentBaselineTooltip') : $t('trash.useAsCropBaselineHint')"
                   @click="handleSetBaseline"
                 >
                   {{ $t('trash.useAsCropBaseline') }}
                 </button>
-                <button class="preview-action-btn" @click="togglePreviewMetadata">
+                <button :class="previewActionBtn" @click="togglePreviewMetadata">
                   <span>{{ showPreviewMetadata ? $t('trash.hideMetadata') : $t('trash.showMetadata') }}</span>
                   <svg width="14" height="14" viewBox="0 0 16 16">
                     <path
@@ -491,54 +451,54 @@
             </div>
           </div>
 
-          <div class="preview-info-container">
-            <div class="preview-info-title">{{ $t('trash.metadata') }}</div>
-            <table class="preview-info-table">
+          <div class="preview-info-container flex flex-col gap-2 overflow-y-auto border-l border-line bg-elevated p-4">
+            <div class="mb-1 text-sm font-semibold text-fg">{{ $t('trash.metadata') }}</div>
+            <table class="w-full border-collapse text-xs">
               <tbody>
                 <tr>
-                  <td class="info-label">{{ $t('trash.filename') }}</td>
-                  <td class="info-value">{{ previewItem.name }}</td>
+                  <td :class="infoLabel">{{ $t('trash.filename') }}</td>
+                  <td :class="infoValue">{{ previewItem.name }}</td>
                 </tr>
                 <tr>
-                  <td class="info-label">{{ $t('trash.folder') }}</td>
-                  <td class="info-value">{{ currentFolderDisplayName }}</td>
+                  <td :class="infoLabel">{{ $t('trash.folder') }}</td>
+                  <td :class="infoValue">{{ currentFolderDisplayName }}</td>
                 </tr>
                 <tr>
-                  <td class="info-label">{{ $t('trash.status') }}</td>
-                  <td class="info-value">
-                    <span v-if="previewItem.status === 'active' && previewItem.isCropped" class="status-badge cropped">{{ getCropLabel() }}</span>
-                    <span class="status-badge" :class="previewItem.status">{{ getStatusLabel(previewItem.status) }}</span>
+                  <td :class="infoLabel">{{ $t('trash.status') }}</td>
+                  <td :class="infoValue">
+                    <span v-if="previewItem.status === 'active' && previewItem.isCropped" :class="`${mdBadge} bg-[#edf0f3] text-[#58616b] dark:bg-[#40464d] dark:text-[#d9dde1]`">{{ getCropLabel() }}</span>
+                    <span :class="statusBadgeCls(previewItem.status)">{{ getStatusLabel(previewItem.status) }}</span>
                   </td>
                 </tr>
                 <tr v-if="previewItem.status === 'active'">
-                  <td class="info-label">{{ $t('trash.currentPath') }}</td>
-                  <td class="info-value info-path">{{ previewItem.imagePath || previewItem.originalPath }}</td>
+                  <td :class="infoLabel">{{ $t('trash.currentPath') }}</td>
+                  <td :class="[infoValue, 'break-all font-mono']">{{ previewItem.imagePath || previewItem.originalPath }}</td>
                 </tr>
                 <tr v-if="previewItem.status === 'active' && previewItem.isCropped && previewItem.croppedAt">
-                  <td class="info-label">{{ $t('trash.croppedAt') }}</td>
-                  <td class="info-value">{{ formatDate(previewItem.croppedAt) }}</td>
+                  <td :class="infoLabel">{{ $t('trash.croppedAt') }}</td>
+                  <td :class="infoValue">{{ formatDate(previewItem.croppedAt) }}</td>
                 </tr>
                 <tr v-if="previewItem.status === 'active' && previewItem.isCropped && previewItem.cropRect">
-                  <td class="info-label">{{ $t('trash.cropArea') }}</td>
-                  <td class="info-value">{{ formatCropArea(previewItem.cropRect) }}</td>
+                  <td :class="infoLabel">{{ $t('trash.cropArea') }}</td>
+                  <td :class="infoValue">{{ formatCropArea(previewItem.cropRect) }}</td>
                 </tr>
                 <tr v-if="previewItem.status === 'removed'">
-                  <td class="info-label">{{ $t('trash.originalPath') }}</td>
-                  <td class="info-value info-path">{{ previewItem.originalPath }}</td>
+                  <td :class="infoLabel">{{ $t('trash.originalPath') }}</td>
+                  <td :class="[infoValue, 'break-all font-mono']">{{ previewItem.originalPath }}</td>
                 </tr>
                 <tr v-if="previewItem.status === 'removed' && previewItem.reason">
-                  <td class="info-label">{{ $t('trash.filterReason') }}</td>
-                  <td class="info-value">
-                    <span :class="['reason-badge', `reason-${previewItem.reason}`]">{{ getReasonLabel(previewItem.reason) }}</span>
+                  <td :class="infoLabel">{{ $t('trash.filterReason') }}</td>
+                  <td :class="infoValue">
+                    <span :class="reasonBadgeCls(previewItem.reason)">{{ getReasonLabel(previewItem.reason) }}</span>
                   </td>
                 </tr>
                 <tr v-if="previewItem.status === 'removed' && previewItem.reasonDetails">
-                  <td class="info-label">{{ $t('trash.reasonDetails') }}</td>
-                  <td class="info-value">{{ previewItem.reasonDetails }}</td>
+                  <td :class="infoLabel">{{ $t('trash.reasonDetails') }}</td>
+                  <td :class="infoValue">{{ previewItem.reasonDetails }}</td>
                 </tr>
                 <tr v-if="previewItem.status === 'removed' && previewItem.trashedAt">
-                  <td class="info-label">{{ $t('trash.trashedAt') }}</td>
-                  <td class="info-value">{{ formatDate(previewItem.trashedAt) }}</td>
+                  <td :class="infoLabel">{{ $t('trash.trashedAt') }}</td>
+                  <td :class="infoValue">{{ formatDate(previewItem.trashedAt) }}</td>
                 </tr>
               </tbody>
             </table>
@@ -733,6 +693,31 @@ watch(dedupAfterCropActions, (value) => {
 })
 
 const cropHandles: CropHandle[] = ['nw', 'ne', 'sw', 'se']
+
+// ---- Tailwind class-string constants ----
+const toolBtn = 'flex items-center gap-1.5 rounded border border-line-input bg-surface px-3 py-1.5 text-xs text-fg cursor-pointer transition-colors enabled:hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#333]'
+const dangerBtn = 'flex items-center gap-1.5 rounded border border-[#d9534f] bg-surface px-3 py-1.5 text-xs text-[#d9534f] cursor-pointer transition-colors enabled:hover:bg-[#d9534f] enabled:hover:text-white disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#333]'
+const rwSelect = 'rounded border border-line-input bg-field px-2 py-1 text-xs text-fg cursor-pointer focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50'
+const splitToggleBtn = 'flex items-center justify-center border-y border-r border-line-input bg-surface px-1.5 text-fg cursor-pointer enabled:hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 dark:bg-[#333]'
+const splitMenu = 'absolute right-0 top-full z-dropdown mt-1 min-w-[200px] rounded-md border border-line bg-modal p-1 shadow-[0_4px_12px_rgba(0,0,0,0.15)]'
+const splitMenuItem = 'w-full cursor-pointer rounded px-2 py-1.5 text-left text-xs text-fg enabled:hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50'
+const previewActionBtn = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-none bg-white/90 px-2.5 py-1.5 text-xs font-semibold text-[#444] cursor-pointer disabled:cursor-not-allowed disabled:opacity-55 dark:bg-black/60 dark:text-[#ddd]'
+const previewActionPrimary = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border-none bg-accent px-2.5 py-1.5 text-xs font-semibold text-white cursor-pointer disabled:cursor-not-allowed disabled:opacity-55'
+const infoLabel = 'whitespace-nowrap py-1 pr-3 align-top font-medium text-fg-secondary'
+const infoValue = 'py-1 align-top text-fg'
+const mdBadge = 'inline-flex items-center rounded-full px-2 py-[3px] text-[11px] font-semibold'
+const statusBadgeCls = (status: string) => status === 'active'
+  ? `${mdBadge} bg-[#e7f3ff] text-[#1768a8]`
+  : `${mdBadge} bg-[#ffe8e6] text-[#b63a30]`
+const reasonBadgeCls = (reason: string) => {
+  switch (reason) {
+    case 'duplicate': return `${mdBadge} bg-[#fff2cc] text-[#8a5b00]`
+    case 'exclusion': return `${mdBadge} bg-[#ede7ff] text-[#6546c2]`
+    case 'ai_filtered': return `${mdBadge} bg-[#dff7ea] text-[#257550]`
+    case 'ai_filtered_edit': return `${mdBadge} bg-[#fff3d6] text-[#955800]`
+    default: return `${mdBadge} bg-[#ffe8e6] text-[#b63a30]`
+  }
+}
 
 const currentFolderRemovedIds = computed(() => {
   return folderItems.value
@@ -1121,800 +1106,30 @@ const confirmClearTrash = async () => {
 
 </script>
 
+
 <style scoped>
-.results-window {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background-color: #ffffff;
-  color: #333;
-}
-
-.toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 16px;
-  background-color: #fafafa;
-  border-bottom: 1px solid #e0e0e0;
-  gap: 12px;
-}
-
-.toolbar-left,
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.back-btn,
-.refresh-btn,
-.filter-select {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.filter-group label {
-  font-size: 12px;
-  color: #666;
-  white-space: nowrap;
-}
-
-.back-btn:hover,
-.refresh-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  border-color: #ccc;
-}
-
-.filter-select:focus {
-  outline: none;
-  border-color: #007acc;
-}
-
-.refresh-btn:disabled,
-.filter-select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.refresh-btn svg.spinning {
-  animation: spin 1s linear infinite;
-}
-
-.delete-btn,
-.restore-btn,
-.clear-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border: none;
-  border-radius: 4px;
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.delete-btn {
-  background-color: #d9534f;
-}
-
-.delete-btn:hover:not(:disabled) {
-  background-color: #c43d39;
-}
-
-.restore-btn {
-  background-color: #2c7a51;
-}
-
-.restore-btn:hover:not(:disabled) {
-  background-color: #236341;
-}
-
-.auto-crop-btn {
-  background-color: #007acc;
-}
-
-.auto-crop-btn:hover:not(:disabled) {
-  background-color: #006bb3;
-}
-
-.clear-btn {
-  background-color: #6c757d;
-}
-
-.clear-btn:hover:not(:disabled) {
-  background-color: #5b646b;
-}
-
-.dedup-btn {
-  background-color: #9a6a14;
-}
-
-.dedup-btn:hover:not(:disabled) {
-  background-color: #81570f;
-}
-
-.delete-btn:disabled,
-.restore-btn:disabled,
-.clear-btn:disabled {
-  color: rgba(255, 255, 255, 0.55);
-  cursor: not-allowed;
-}
-
-.edit-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  color: #333;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.edit-btn:hover:not(:disabled) {
-  background-color: #f0f0f0;
-  border-color: #ccc;
-}
-
-.edit-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.edit-btn-active {
-  background-color: #007acc;
-  border-color: #007acc;
-  color: white;
-}
-
-.edit-btn-active:hover:not(:disabled) {
-  background-color: #006bb3;
-  border-color: #006bb3;
-}
-
-.edit-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  margin-left: 4px;
-  border-radius: 999px;
-  background-color: rgba(255, 255, 255, 0.25);
-  color: white;
-  font-size: 11px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.action-split {
-  position: relative;
-  display: inline-flex;
-  align-items: stretch;
-}
-
-.action-split-main {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.action-split-toggle {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.25);
-  padding: 0 7px;
-  min-width: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.action-split-open .action-split-main {
-  border-bottom-left-radius: 0;
-}
-
-.action-split-open .action-split-toggle {
-  border-bottom-right-radius: 0;
-}
-
-.action-split-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background-color: #2c7a51;
-  border-top: 1px solid rgba(255, 255, 255, 0.25);
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-  z-index: 30;
-  overflow: hidden;
-}
-
-.action-split-auto-crop .action-split-menu {
-  background-color: #007acc;
-}
-
-.action-split-auto-crop .action-split-menu-item:hover:not(:disabled) {
-  background-color: #006bb3;
-}
-
-.action-split-dedup .action-split-menu {
-  background-color: #9a6a14;
-  box-sizing: border-box;
-  width: 100%;
-  min-width: 0;
-}
-
-.action-split-dedup .action-split-menu-item:hover:not(:disabled) {
-  background-color: #81570f;
-}
-
-.action-split-dedup .action-split-menu-wide {
-  min-width: 0;
-}
-
-.action-split-menu-wide {
-  min-width: 260px;
-}
-
-.action-split-menu-item {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  min-height: 30px;
-  text-align: left;
-  background: transparent;
-  border: none;
-  padding: 6px 10px;
-  cursor: pointer;
-  color: #ffffff;
-}
-
-.action-split-menu-item + .action-split-menu-item {
-  border-top: 1px solid rgba(255, 255, 255, 0.25);
-}
-
-.action-split-menu-item:hover:not(:disabled) {
-  background-color: #236341;
-}
-
-.action-split-menu-item:disabled {
-  color: rgba(255, 255, 255, 0.5);
-  cursor: not-allowed;
-}
-
-.action-split-menu-title {
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.action-split-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 30px;
-  padding: 6px 10px;
-  color: #ffffff;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.action-split-checkbox:hover {
-  background-color: #81570f;
-}
-
-.action-split-checkbox input {
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  accent-color: #007acc;
-  cursor: pointer;
-}
-
-.action-split-checkbox span {
-  flex: 1;
-  min-width: 0;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.content-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
-}
-
-.content-area:hover {
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
-.content-area::-webkit-scrollbar {
-  width: 6px;
-}
-
-.content-area::-webkit-scrollbar-track {
-  background: transparent;
-  border-radius: 3px;
-}
-
-.content-area::-webkit-scrollbar-thumb {
-  background: transparent;
-  border-radius: 3px;
-  transition: background 0.3s ease;
-}
-
-.content-area:hover::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.content-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  gap: 16px;
-  color: #999;
-}
-
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid #e0e0e0;
-  border-top-color: #007acc;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.folder-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.course-group {
-  background-color: #f0f4f8;
-  border: 1px solid #dfe5ec;
-  border-radius: 8px;
-  margin-top: 8px;
-  overflow: hidden;
-}
-
-.course-group:first-child {
-  margin-top: 0;
-}
-
-.course-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 28px;
-  padding: 10px 14px 10px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.course-icon {
-  flex-shrink: 0;
-}
-
-.course-chevron {
-  flex-shrink: 0;
-  margin-left: auto;
-  color: #7b8794;
-  transition: transform 0.15s;
-  cursor: pointer;
-}
-
-.course-chevron.collapsed {
-  transform: rotate(0deg);
-}
-
-.course-chevron:not(.collapsed) {
-  transform: rotate(90deg);
-}
-
-.course-name {
-  font-size: 13px;
-  font-weight: 700;
-  color: #3b6ea5;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  white-space: nowrap;
-  max-width: 60%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.course-checkbox {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-  cursor: pointer;
-  accent-color: #007acc;
-}
-
-.folder-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 12px 14px;
-  border: 1px solid #e1e6eb;
-  border-radius: 8px;
-  background-color: white;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.folder-item:hover {
-  background-color: #f8f9fa;
-  border-color: #ced7e0;
-}
-
-.folder-item-last-visited {
-  background-color: #e7f1ff;
-  border-color: #7aa9e6;
-  box-shadow: 0 0 0 1px #7aa9e6 inset;
-}
-
-.folder-item-last-visited:hover {
-  background-color: #d9e7fb;
-  border-color: #5f95d8;
-}
-
-.folder-item-edit {
-  cursor: pointer;
-}
-
-.folder-item-selected {
-  background-color: #fff1f0;
-  border-color: #d9534f;
-  box-shadow: 0 0 0 1px #d9534f inset;
-}
-
-.folder-item-selected:hover {
-  background-color: #ffe2df;
-  border-color: #c43d39;
-}
-
-.folder-item-grouped {
-  margin: 0 8px 8px;
-  width: calc(100% - 16px);
-  border-radius: 6px;
-}
-
-.folder-checkbox {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.folder-checkbox input[type='checkbox'] {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
-.folder-icon {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.folder-copy {
-  flex: 1;
-  min-width: 0;
-}
-
-.folder-mainline {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.folder-name {
-  flex: 1;
-  min-width: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #2b2b2b;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.folder-counts {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  color: #7b8794;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.count-badge,
-.status-badge,
-.reason-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.folder-count-text {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.count-label {
-  color: inherit;
-  text-transform: lowercase;
-}
-
-.folder-count-separator {
-  color: #a0a8b1;
-}
-
-.count-value {
-  font-variant-numeric: tabular-nums;
-}
-
-.count-badge.active,
-.status-badge.active {
-  background-color: #e7f3ff;
-  color: #1768a8;
-}
-
-.status-badge.cropped {
-  background-color: #edf0f3;
-  color: #58616b;
-}
-
-.count-badge.removed,
-.status-badge.removed {
-  background-color: #ffe8e6;
-  color: #b63a30;
-}
-
-.folder-chevron {
-  flex-shrink: 0;
-  color: #7b8794;
-}
-
-
-.reason-badge.reason-duplicate {
-  background-color: #fff2cc;
-  color: #8a5b00;
-}
-
-.reason-badge.reason-exclusion {
-  background-color: #ede7ff;
-  color: #6546c2;
-}
-
-.reason-badge.reason-ai_filtered {
-  background-color: #dff7ea;
-  color: #257550;
-}
-
-.reason-badge.reason-ai_filtered_edit {
-  background-color: #fff3d6;
-  color: #955800;
-}
-
-.reason-badge.reason-manual {
-  background-color: #ffe8e6;
-  color: #b63a30;
-}
-
-.footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 16px;
-  background-color: #fafafa;
-  border-top: 1px solid #e0e0e0;
-  font-size: 12px;
-  color: #666;
-}
-
-.footer-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.select-all-btn {
-  padding: 4px 10px;
-  font-size: 12px;
-  border: 1px solid #ced7e0;
-  border-radius: 4px;
-  background-color: white;
-  color: #333;
-  cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
-}
-
-.select-all-btn:hover:not(:disabled) {
-  background-color: #f0f4f8;
-  border-color: #a8b7c4;
-}
-
-.select-all-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.size-slider-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background-color: #f0f0f0;
-  border-radius: 6px;
-}
-
-.group-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  background-color: #f8f9fa;
-  font-size: 12px;
-  color: #666;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color 0.15s, border-color 0.15s;
-}
-
-.group-toggle:hover {
-  background-color: #f0f0f0;
-  border-color: #d0d0d0;
-}
-
-.group-toggle input {
-  width: 11px;
-  height: 11px;
-  margin: 0;
-  accent-color: #007acc;
-  cursor: pointer;
-}
-
-.size-icon {
-  color: #666;
-  flex-shrink: 0;
-}
-
-.size-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 140px;
-  height: 4px;
-  background: #ccc;
-  border-radius: 2px;
-  outline: none;
-  cursor: pointer;
-}
-
-.size-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  background: #fff;
-  border: 1px solid #999;
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-.preview-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.preview-modal {
-  position: relative;
-  width: min(960px, calc(100vw - 48px));
-  aspect-ratio: 16 / 10;
-  max-height: calc(100vh - 48px);
-  background-color: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.3);
-}
-
-.preview-modal.metadata-visible {
-  width: min(1200px, calc(100vw - 48px));
-  aspect-ratio: auto;
-}
-
-.preview-close-btn {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 1;
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.9);
-  color: #444;
-  cursor: pointer;
-}
-
+/* Crop-editor + preview-stage geometry kept scoped: pointer-driven crop
+   interactions and image-fit transforms are geometry-critical (theme-independent
+   overlay scrim + white guides). Everything else uses Tailwind utilities. */
 .preview-content {
   height: 100%;
 }
-
 .preview-modal.metadata-visible .preview-content {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
   min-height: 420px;
   height: auto;
 }
+.preview-modal:not(.metadata-visible) .preview-info-container {
+  display: none;
+}
 
 .preview-image-container {
   position: relative;
-  background-color: #fff;
+  background-color: var(--bg-modal);
   padding: 54px 18px 58px;
   height: 100%;
 }
-
 .preview-modal.metadata-visible .preview-image-container {
   min-height: 420px;
   height: auto;
@@ -1927,7 +1142,6 @@ const confirmClearTrash = async () => {
   align-items: center;
   justify-content: center;
 }
-
 .preview-stage-shell.crop-active {
   position: relative;
 }
@@ -1943,7 +1157,6 @@ const confirmClearTrash = async () => {
   justify-content: center;
   overflow: hidden;
 }
-
 .preview-stage.crop-stage {
   cursor: crosshair;
 }
@@ -1954,52 +1167,14 @@ const confirmClearTrash = async () => {
   height: 100%;
   object-fit: contain;
 }
-
 .preview-image {
   user-select: none;
 }
-
 .preview-image-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(51, 51, 51, 0.28);
-}
-
-.preview-actions {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  z-index: 1;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.preview-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 10px;
-  border: none;
-  border-radius: 999px;
-  background-color: rgba(255, 255, 255, 0.92);
-  color: #444;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.preview-action-btn.primary {
-  background-color: #007acc;
-  color: #fff;
-}
-
-.preview-action-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+  color: var(--text-muted);
 }
 
 .crop-selection {
@@ -2009,32 +1184,27 @@ const confirmClearTrash = async () => {
   cursor: move;
   touch-action: none;
 }
-
 .crop-grid {
   position: absolute;
   inset: 0;
   pointer-events: none;
 }
-
 .crop-grid-line {
   position: absolute;
   background-color: rgba(255, 255, 255, 0.62);
 }
-
 .crop-grid-line.vertical {
   top: 0;
   bottom: 0;
   width: 1px;
   transform: translateX(-0.5px);
 }
-
 .crop-grid-line.horizontal {
   left: 0;
   right: 0;
   height: 1px;
   transform: translateY(-0.5px);
 }
-
 .crop-handle {
   position: absolute;
   width: 16px;
@@ -2047,324 +1217,8 @@ const confirmClearTrash = async () => {
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
 }
-
-.crop-handle-nw {
-  top: 0;
-  left: 0;
-  cursor: nwse-resize;
-}
-
-.crop-handle-ne {
-  top: 0;
-  left: 100%;
-  cursor: nesw-resize;
-}
-
-.crop-handle-sw {
-  top: 100%;
-  left: 0;
-  cursor: nesw-resize;
-}
-
-.crop-handle-se {
-  top: 100%;
-  left: 100%;
-  cursor: nwse-resize;
-}
-
-.preview-modal:not(.metadata-visible) .preview-info-container {
-  display: none;
-}
-
-.preview-info-container {
-  padding: 20px;
-  overflow-y: auto;
-}
-
-.preview-info-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 14px;
-}
-
-.preview-info-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.preview-info-table td {
-  padding: 10px 0;
-  border-bottom: 1px solid #edf0f2;
-  vertical-align: top;
-}
-
-.info-label {
-  width: 110px;
-  color: #666;
-  font-size: 12px;
-}
-
-.info-value {
-  font-size: 12px;
-  color: #2c2c2c;
-  word-break: break-word;
-}
-
-.info-value .status-badge + .status-badge {
-  margin-left: 6px;
-}
-
-.info-path {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-@media (prefers-color-scheme: dark) {
-  .results-window {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-  }
-
-  .toolbar,
-  .footer {
-    background-color: #252525;
-    border-color: #3d3d3d;
-    color: #e0e0e0;
-  }
-
-  .select-all-btn {
-    background-color: #2d2d2d;
-    border-color: #4d4d4d;
-    color: #e0e0e0;
-  }
-
-  .select-all-btn:hover:not(:disabled) {
-    background-color: #353535;
-    border-color: #5d5d5d;
-  }
-
-  .back-btn,
-  .refresh-btn,
-  .filter-select {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .filter-group label,
-  .item-name {
-    color: #aaa;
-  }
-
-  .folder-item,
-  .result-item {
-    background-color: #2d2d2d;
-    border-color: #3d3d3d;
-    color: #e0e0e0;
-  }
-
-  .folder-item:hover {
-    background-color: #353535;
-    border-color: #4d4d4d;
-  }
-
-  .folder-item-last-visited {
-    background-color: #1f3557;
-    border-color: #3e6aa8;
-    box-shadow: 0 0 0 1px #3e6aa8 inset;
-  }
-
-  .folder-item-last-visited:hover {
-    background-color: #264068;
-    border-color: #4d7dbd;
-  }
-
-  .folder-item-selected {
-    background-color: #4a1f1d;
-    border-color: #d9534f;
-    box-shadow: 0 0 0 1px #d9534f inset;
-  }
-
-  .folder-item-selected:hover {
-    background-color: #5a2725;
-    border-color: #c43d39;
-  }
-
-  .edit-btn {
-    background-color: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-
-  .edit-btn:hover:not(:disabled) {
-    background-color: #3d3d3d;
-    border-color: #6d6d6d;
-  }
-
-  .edit-btn-active {
-    background-color: #1e6fb3;
-    border-color: #1e6fb3;
-    color: #fff;
-  }
-
-  .edit-btn-active:hover:not(:disabled) {
-    background-color: #1c5d96;
-    border-color: #1c5d96;
-  }
-
-  .folder-name,
-  .info-value,
-  .preview-info-title {
-    color: #f1f1f1;
-  }
-
-  .course-group {
-    background-color: #25282d;
-    border-color: #3d4450;
-  }
-
-  .course-name {
-    color: #66bfff;
-  }
-
-  .course-icon path:first-child {
-    fill: #66bfff;
-  }
-
-  .course-icon path:last-child {
-    fill: #93d0ff;
-  }
-
-  .course-chevron {
-    color: #9098a2;
-  }
-
-  .group-toggle {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .group-toggle:hover {
-    background-color: #353535;
-    border-color: #505050;
-  }
-
-  .folder-counts {
-    color: #9098a2;
-  }
-
-  .folder-count-separator {
-    color: #666f79;
-  }
-
-  .item-thumbnail {
-    background-color: #252525;
-  }
-
-  .item-preview-btn,
-  .preview-close-btn,
-  .preview-action-btn {
-    background-color: rgba(40, 40, 40, 0.92);
-    color: #ddd;
-  }
-
-  .preview-action-btn.primary {
-    background-color: #1e6fb3;
-    color: #fff;
-  }
-
-  .result-item.selected {
-    background-color: #1a3a5c;
-  }
-
-  .result-item.removed.selected {
-    background-color: #482220;
-  }
-
-  .preview-modal {
-    background-color: #232323;
-  }
-
-  .preview-image-container {
-    background-color: #111;
-  }
-
-  .preview-image-placeholder {
-    color: rgba(255, 255, 255, 0.6);
-  }
-
-  .status-badge.cropped {
-    background-color: #40464d;
-    color: #d9dde1;
-  }
-
-  .crop-selection {
-    border-color: #f5f7fa;
-    box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.48);
-  }
-
-  .crop-grid-line {
-    background-color: rgba(245, 247, 250, 0.7);
-  }
-
-  .crop-handle {
-    background-color: #f5f7fa;
-    border-color: #f5f7fa;
-  }
-
-  .preview-info-table td {
-    border-bottom-color: #353535;
-  }
-
-  .info-label {
-    color: #999;
-  }
-
-  .size-slider-group {
-    background-color: #333;
-  }
-
-  .size-slider {
-    background: #555;
-  }
-
-  .size-slider::-webkit-slider-thumb {
-    background: #444;
-    border-color: #666;
-  }
-
-  .size-icon,
-  .folder-chevron {
-    color: #888;
-  }
-
-  .content-area {
-    scrollbar-color: transparent transparent;
-  }
-
-  .content-area:hover {
-    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-  }
-
-  .content-area::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .content-area::-webkit-scrollbar-thumb {
-    background: transparent;
-  }
-
-  .content-area:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
-  .content-area::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-}
+.crop-handle-nw { top: 0; left: 0; cursor: nwse-resize; }
+.crop-handle-ne { top: 0; left: 100%; cursor: nesw-resize; }
+.crop-handle-sw { top: 100%; left: 0; cursor: nesw-resize; }
+.crop-handle-se { top: 100%; left: 100%; cursor: nwse-resize; }
 </style>

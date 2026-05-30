@@ -1,8 +1,9 @@
 <template>
-  <div class="controls-row">
-    <div v-if="streamCount > 1" class="stream-selector">
-      <label>{{ $t('playback.selectStream') }}</label>
+  <div class="flex items-center justify-between gap-4 rounded-t-lg border border-line bg-elevated p-3">
+    <div v-if="streamCount > 1" class="flex items-center gap-3">
+      <label class="whitespace-nowrap font-medium text-fg">{{ $t('playback.selectStream') }}</label>
       <select
+        :class="selCls"
         :value="selectedStream"
         @change="onStreamChange($event)"
         :disabled="shouldDisableControls"
@@ -16,9 +17,10 @@
       </select>
     </div>
 
-    <div v-if="mode === 'recorded'" class="playback-rate-control">
-      <label>{{ $t('playback.playbackSpeed') }}</label>
+    <div v-if="mode === 'recorded'" class="flex items-center gap-2">
+      <label class="whitespace-nowrap font-medium text-fg">{{ $t('playback.playbackSpeed') }}</label>
       <select
+        :class="selCls"
         :value="currentPlaybackRate"
         @change="onRateChange($event)"
         :disabled="shouldDisableControls"
@@ -27,14 +29,14 @@
       </select>
     </div>
 
-    <div v-if="!isDualStreamSelected" class="pip-control">
+    <div v-if="!isDualStreamSelected" class="flex items-center">
       <button
-        class="pip-button"
+        class="flex cursor-pointer items-center gap-1.5 rounded border border-line-input bg-field px-3 py-2 text-sm text-fg transition-all enabled:hover:border-accent enabled:hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50"
         @click="$emit('togglePictureInPicture')"
         :disabled="shouldDisableControls || !videoPlayerReady"
         :title="isPictureInPicture ? $t('playback.exitPictureInPicture') : $t('playback.enterPictureInPicture')"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-top: 1px;">
+        <svg class="shrink-0" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-top: 1px;">
           <rect x="2" y="3" width="20" height="14" rx="2"/>
           <rect x="14" y="12" width="6" height="4" rx="1" fill="currentColor"/>
         </svg>
@@ -70,6 +72,8 @@ const emit = defineEmits<{
   (e: 'togglePictureInPicture'): void
 }>()
 
+const selCls = 'rounded border border-line-input bg-field px-3 py-1.5 text-sm text-fg cursor-pointer focus:border-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-50'
+
 const streamCount = computed(() => Object.keys(props.streams).length)
 
 function onStreamChange(event: Event) {
@@ -85,131 +89,3 @@ function onRateChange(event: Event) {
 }
 </script>
 
-<style scoped>
-.controls-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 8px 8px 0 0;
-  gap: 16px;
-}
-
-.stream-selector {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.stream-selector label {
-  font-weight: 500;
-  color: #333;
-}
-
-.stream-selector select {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 14px;
-}
-
-.stream-selector select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #f8f9fa;
-}
-
-.playback-rate-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.playback-rate-control label {
-  font-weight: 500;
-  color: #333;
-  white-space: nowrap;
-}
-
-.playback-rate-control select {
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.playback-rate-control select:focus {
-  outline: none;
-  border-color: #007acc;
-}
-
-.playback-rate-control select:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #f8f9fa;
-}
-
-.pip-control {
-  display: flex;
-  align-items: center;
-}
-
-.pip-button {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: white;
-  color: #333;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.pip-button:hover:not(:disabled) {
-  background-color: #f8f9fa;
-  border-color: #007acc;
-}
-
-.pip-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background-color: #f8f9fa;
-}
-
-.pip-button svg {
-  flex-shrink: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  .controls-row {
-    background-color: #252525;
-    border-color: #3d3d3d;
-  }
-
-  .stream-selector label,
-  .playback-rate-control label {
-    color: #e0e0e0;
-  }
-
-  .stream-selector select,
-  .playback-rate-control select,
-  .pip-button {
-    background-color: #2d2d2d;
-    border-color: #404040;
-    color: #e0e0e0;
-  }
-
-  .pip-button:hover:not(:disabled) {
-    background-color: #3d3d3d;
-    border-color: #4a9eff;
-  }
-}
-</style>
