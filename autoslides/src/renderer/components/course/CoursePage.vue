@@ -34,7 +34,7 @@
               </div>
             </div>
           </div>
-          <button @click="searchCourses" class="search-btn">
+          <button @click="searchCourses" class="btn btn--primary btn--lg">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="11" cy="11" r="8"/>
               <path d="m21 21-4.35-4.35"/>
@@ -43,7 +43,7 @@
           </button>
         </div>
         <div class="fetch-row">
-          <button @click="fetchPersonalCourses" class="fetch-btn">
+          <button @click="fetchPersonalCourses" class="btn btn--primary btn--lg fetch-btn">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7,10 12,15 17,10"/>
@@ -122,8 +122,8 @@
             ref="modalInputRef"
           />
           <div class="modal-actions">
-            <button class="modal-btn modal-cancel" @click="closeAddModal">{{ $t('courses.savedSearches.cancel') }}</button>
-            <button class="modal-btn modal-confirm" @click="confirmAddSearch" :disabled="!newKeyword.trim()">{{ $t('courses.savedSearches.confirm') }}</button>
+            <button class="btn btn--lg" @click="closeAddModal">{{ $t('courses.savedSearches.cancel') }}</button>
+            <button class="btn btn--primary btn--lg" @click="confirmAddSearch" :disabled="!newKeyword.trim()">{{ $t('courses.savedSearches.confirm') }}</button>
           </div>
         </div>
       </div>
@@ -167,7 +167,7 @@
         <button
           :disabled="currentPage === 1"
           @click="goToPage(currentPage - 1)"
-          class="page-btn"
+          class="btn page-btn"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
@@ -177,7 +177,7 @@
         <button
           :disabled="currentPage === totalPages"
           @click="goToPage(currentPage + 1)"
-          class="page-btn"
+          class="btn page-btn"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="9,18 15,12 9,6"/>
@@ -369,27 +369,8 @@ onUnmounted(() => {
   color: var(--text-muted);
 }
 
-.search-btn, .fetch-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: 1px solid var(--accent-deep);
-  border-radius: 4px;
-  background-color: var(--accent-deep);
-  color: var(--text-on-accent);
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.search-btn:hover, .fetch-btn:hover {
-  background-color: var(--accent-deep-hover);
-}
-
 .fetch-btn {
   width: 100%;
-  justify-content: center;
 }
 
 .content {
@@ -591,26 +572,8 @@ onUnmounted(() => {
 }
 
 .page-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-modal);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.page-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  background-color: var(--bg-hover);
-}
-
-.page-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .page-info {
@@ -877,39 +840,6 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
-}
-
-.modal-btn {
-  padding: 7px 16px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.modal-cancel {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--border-strong);
-}
-
-.modal-cancel:hover {
-  background: var(--bg-hover);
-}
-
-.modal-confirm {
-  background: var(--accent);
-  color: var(--text-on-accent);
-}
-
-.modal-confirm:hover:not(:disabled) {
-  background: var(--accent-hover);
-}
-
-.modal-confirm:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 @media (max-width: 1200px) {

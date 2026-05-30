@@ -2,14 +2,14 @@
   <div class="session-page">
     <div class="header">
       <div class="header-main">
-        <button @click="goBack" class="back-btn">
+        <button @click="goBack" class="btn btn--lg">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
           {{ $t('sessions.backToCourses') }}
         </button>
         <h2>{{ course?.title }}</h2>
-        <button @click="toggleCourseDetails" class="expand-btn">
+        <button @click="toggleCourseDetails" class="btn expand-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showCourseDetails }">
             <polyline points="6,9 12,15 18,9"/>
           </svg>
@@ -66,7 +66,7 @@
 
         <div v-else class="sessions-container">
           <div class="batch-actions">
-            <button @click="addAllToQueue" class="batch-btn add-all-btn">
+            <button @click="addAllToQueue" class="btn batch-btn add-all-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14,2 14,8 20,8"/>
@@ -76,14 +76,14 @@
               </svg>
               {{ $t('sessions.addAllToTasks') }}
             </button>
-            <button @click="downloadAllCamera" class="batch-btn download-camera-btn">
+            <button @click="downloadAllCamera" class="btn batch-btn download-camera-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                 <circle cx="12" cy="13" r="4"/>
               </svg>
               {{ $t('sessions.downloadAllCamera') }}
             </button>
-            <button @click="downloadAllScreen" class="batch-btn download-screen-btn">
+            <button @click="downloadAllScreen" class="btn batch-btn download-screen-btn">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                 <line x1="8" y1="21" x2="16" y2="21"/>
@@ -231,25 +231,6 @@ onMounted(() => {
   background-color: var(--bg-modal);
 }
 
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-modal);
-  color: var(--text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.back-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
 .header h2 {
   margin: 0;
   font-size: 20px;
@@ -259,22 +240,8 @@ onMounted(() => {
 }
 
 .expand-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-modal);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.expand-btn:hover {
-  border-color: var(--accent);
-  background-color: var(--bg-hover);
 }
 
 .expand-btn svg {
@@ -447,23 +414,7 @@ onMounted(() => {
 
 .batch-btn {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-modal);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
   min-height: 36px;
-}
-
-.batch-btn:hover {
-  border-color: var(--accent);
-  background-color: var(--badge-active-bg);
 }
 
 .add-all-btn {
