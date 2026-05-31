@@ -37,11 +37,11 @@
       <div class="item-copy">
         <div class="item-name">{{ formatImageName(item.name) }}</div>
         <div class="item-badges">
-          <span v-if="item.status === 'active' && item.isCropped" class="status-badge cropped">{{ getCropLabel(item) }}</span>
-          <span class="status-badge" :class="item.status">{{ getStatusLabel(item.status) }}</span>
+          <span v-if="item.status === 'active' && item.isCropped" class="badge badge--cropped">{{ getCropLabel(item) }}</span>
+          <span class="badge" :class="`badge--${item.status}`">{{ getStatusLabel(item.status) }}</span>
           <span
             v-if="item.status === 'removed' && item.reason"
-            :class="['reason-badge', `reason-${item.reason}`]"
+            :class="['badge', 'reason-badge', `reason-${item.reason}`]"
           >
             {{ getReasonLabel(item.reason) }}
           </span>
@@ -207,31 +207,6 @@ const getCropLabel = (item: ResultsItem) => {
   display: flex;
   gap: 6px;
   flex-shrink: 0;
-}
-
-.status-badge,
-.reason-badge {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 3px 8px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.status-badge.active {
-  background-color: var(--badge-active-bg);
-  color: var(--badge-active-text);
-}
-
-.status-badge.cropped {
-  background-color: var(--badge-cropped-bg);
-  color: var(--badge-cropped-text);
-}
-
-.status-badge.removed {
-  background-color: var(--badge-removed-bg);
-  color: var(--badge-removed-text);
 }
 
 .reason-badge.reason-duplicate {

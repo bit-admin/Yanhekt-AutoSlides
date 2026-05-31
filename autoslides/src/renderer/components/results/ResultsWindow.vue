@@ -506,8 +506,8 @@
                 <tr>
                   <td class="info-label">{{ $t('trash.status') }}</td>
                   <td class="info-value">
-                    <span v-if="previewItem.status === 'active' && previewItem.isCropped" class="status-badge cropped">{{ getCropLabel() }}</span>
-                    <span class="status-badge" :class="previewItem.status">{{ getStatusLabel(previewItem.status) }}</span>
+                    <span v-if="previewItem.status === 'active' && previewItem.isCropped" class="badge badge--cropped">{{ getCropLabel() }}</span>
+                    <span class="badge" :class="`badge--${previewItem.status}`">{{ getStatusLabel(previewItem.status) }}</span>
                   </td>
                 </tr>
                 <tr v-if="previewItem.status === 'active'">
@@ -1618,7 +1618,6 @@ const confirmClearTrash = async () => {
 }
 
 .count-badge,
-.status-badge,
 .reason-badge {
   display: inline-flex;
   align-items: center;
@@ -1647,19 +1646,12 @@ const confirmClearTrash = async () => {
   font-variant-numeric: tabular-nums;
 }
 
-.count-badge.active,
-.status-badge.active {
+.count-badge.active {
   background-color: var(--badge-active-bg);
   color: var(--badge-active-text);
 }
 
-.status-badge.cropped {
-  background-color: var(--badge-cropped-bg);
-  color: var(--badge-cropped-text);
-}
-
-.count-badge.removed,
-.status-badge.removed {
+.count-badge.removed {
   background-color: var(--badge-removed-bg);
   color: var(--badge-removed-text);
 }
@@ -2052,7 +2044,7 @@ const confirmClearTrash = async () => {
   word-break: break-word;
 }
 
-.info-value .status-badge + .status-badge {
+.info-value .badge + .badge {
   margin-left: 6px;
 }
 
