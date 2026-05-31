@@ -3,7 +3,7 @@
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h3>{{ $t('settings.advancedSettings') }}</h3>
-        <button @click="$emit('cancel')" class="close-btn">
+        <button @click="$emit('cancel')" class="btn--icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -121,20 +121,6 @@ defineEmits<{
   color: var(--text-primary);
 }
 
-.close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  color: var(--text-secondary);
-  transition: background-color 0.2s;
-}
-
-.close-btn:hover {
-  background-color: var(--bg-elevated);
-}
-
 .modal-body {
   flex: 1;
   display: flex;
@@ -170,7 +156,7 @@ defineEmits<{
 
 .advanced-tabs .tab-btn:hover {
   color: var(--text-primary);
-  background-color: rgba(0, 0, 0, 0.04);
+  background-color: var(--hover-tint);
 }
 
 .advanced-tabs .tab-btn.active {
