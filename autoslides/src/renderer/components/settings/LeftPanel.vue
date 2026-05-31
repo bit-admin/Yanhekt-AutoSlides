@@ -24,10 +24,10 @@
           />
         </div>
         <div class="login-buttons">
-          <button @click="login" :disabled="isLoading" class="login-btn">
+          <button @click="login" :disabled="isLoading" class="btn btn--primary login-btn">
             {{ isLoading ? $t('auth.signingIn') : $t('auth.signIn') }}
           </button>
-          <button @click="openBrowserLogin" class="browser-login-btn">
+          <button @click="openBrowserLogin" class="btn browser-login-btn">
             {{ $t('auth.signInWithBrowser') }}
           </button>
         </div>
@@ -60,7 +60,7 @@
         <div v-if="showUserMenu" class="user-menu">
           <p class="user-menu-username">{{ $t('auth.signInAs', { userId }) }}</p>
           <p class="user-menu-message">{{ $t('auth.accessMessage') }}</p>
-          <button class="logout-btn user-menu-signout" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
+          <button class="btn btn--danger-outline logout-btn user-menu-signout" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
         </div>
       </div>
     </div>
@@ -68,7 +68,7 @@
     <div class="control-section custom-scrollbar">
       <div class="control-header">
         <h3>{{ $t('settings.settings') }}</h3>
-        <button @click="openAdvancedSettings" class="advanced-btn">
+        <button @click="openAdvancedSettings" class="btn advanced-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -763,28 +763,6 @@ defineExpose({
   color: var(--text-muted);
 }
 
-.logout-btn {
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
-}
-
-.login-btn {
-  background-color: var(--accent-deep);
-  color: var(--text-on-accent);
-}
-
-.login-btn:hover:not(:disabled) {
-  background-color: var(--accent-deep-hover);
-}
-
-.login-btn:disabled {
-  background-color: var(--border-strong);
-  cursor: not-allowed;
-}
-
 .login-buttons {
   display: flex;
   flex-direction: row;
@@ -794,52 +772,24 @@ defineExpose({
 
 .login-btn {
   flex: 1;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 4px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background-color 0.2s;
 }
 
 .browser-login-btn {
   flex: 1;
-  padding: 8px 12px;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
   background-color: transparent;
+  border-color: var(--accent);
   color: var(--accent);
   white-space: nowrap;
 }
 
 .browser-login-btn:hover {
   background-color: var(--accent);
+  border-color: var(--accent);
   color: var(--text-on-accent);
-}
-
-.logout-btn {
-  width: auto;
-  background-color: transparent;
-  color: var(--danger-bright);
-  border: 1px solid var(--danger-bright);
-  padding: 6px 10px;
-  align-self: flex-start;
-  margin: 0;
 }
 
 .user-menu-signout {
   width: 100%;
-  margin: 0;
-  text-align: center;
-}
-
-.logout-btn:hover {
-  background-color: var(--danger-bright);
-  border-color: var(--danger-bright);
-  color: var(--text-on-accent);
 }
 
 .control-section {
@@ -859,24 +809,6 @@ defineExpose({
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-}
-
-.advanced-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  color: var(--text-primary);
-}
-
-.advanced-btn:hover {
-  background-color: var(--bg-hover);
 }
 
 .settings-content {

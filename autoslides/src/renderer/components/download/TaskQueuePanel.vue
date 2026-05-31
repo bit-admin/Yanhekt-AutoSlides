@@ -81,7 +81,7 @@
           <div class="item-actions">
             <button
               @click="removeTask(item.id)"
-              class="cancel-item-btn"
+              class="btn--icon cancel-item-btn"
               title="Remove"
               v-if="item.status !== 'in_progress'"
             >
@@ -363,17 +363,9 @@ const removeTask = (taskId: string) => {
 }
 
 .cancel-item-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 24px;
   height: 24px;
-  border: none;
-  background-color: transparent;
   color: var(--danger-pink);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
 }
 
 .cancel-item-btn:hover {

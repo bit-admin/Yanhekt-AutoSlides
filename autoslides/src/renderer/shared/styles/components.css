@@ -151,6 +151,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   padding: 4px;
   border: none;
   border-radius: 4px;

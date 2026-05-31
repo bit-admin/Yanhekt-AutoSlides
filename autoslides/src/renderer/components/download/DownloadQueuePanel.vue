@@ -79,7 +79,7 @@
           <div class="item-actions">
             <button
               @click="retryDownload(item.id)"
-              class="retry-item-btn"
+              class="btn--icon retry-item-btn"
               title="Retry"
               v-if="item.status === 'error'"
             >
@@ -90,7 +90,7 @@
             </button>
             <button
               @click="cancelDownload(item.id)"
-              class="cancel-item-btn"
+              class="btn--icon cancel-item-btn"
               title="Cancel"
               v-if="item.status !== 'completed' && item.status !== 'error'"
             >
@@ -119,7 +119,7 @@
             </span>
             <button
               v-if="item.extractionStatus === 'pending' || item.extractionStatus === 'extracting' || item.extractionStatus === 'normalizing'"
-              class="cancel-item-btn"
+              class="btn--icon cancel-item-btn"
               :title="$t('downloads.extraction.cancel')"
               @click="cancelExtraction(item.id)"
             >
@@ -485,17 +485,9 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 
 .cancel-item-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 24px;
   height: 24px;
-  border: none;
-  background-color: transparent;
   color: var(--danger-pink);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
 }
 
 .cancel-item-btn:hover {
@@ -503,17 +495,9 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 
 .retry-item-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 24px;
   height: 24px;
-  border: none;
-  background-color: transparent;
   color: var(--success);
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
   margin-right: 4px;
 }
 
