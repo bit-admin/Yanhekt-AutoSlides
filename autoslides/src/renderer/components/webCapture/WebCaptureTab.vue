@@ -2,17 +2,17 @@
   <div class="webcapture-tab">
     <!-- Top toolbar: navigation + URL -->
     <div class="toolbar nav-toolbar">
-      <button class="nav-btn" @click="goBack" :title="$t('webCapture.back')">
+      <button class="btn nav-btn" @click="goBack" :title="$t('webCapture.back')">
         <svg width="16" height="16" viewBox="0 0 16 16">
           <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         </svg>
       </button>
-      <button class="nav-btn" @click="goForward" :title="$t('webCapture.forward')">
+      <button class="btn nav-btn" @click="goForward" :title="$t('webCapture.forward')">
         <svg width="16" height="16" viewBox="0 0 16 16">
           <path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         </svg>
       </button>
-      <button class="nav-btn" @click="reload" :title="$t('webCapture.reload')">
+      <button class="btn nav-btn" @click="reload" :title="$t('webCapture.reload')">
         <svg width="16" height="16" viewBox="0 0 16 16">
           <path d="M13 8a5 5 0 11-1.5-3.5M13 3v3h-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         </svg>
@@ -25,9 +25,9 @@
         :placeholder="$t('webCapture.urlPlaceholder')"
         spellcheck="false"
       />
-      <button class="primary-btn" @click="navigate()" :disabled="!pendingUrl.trim()">{{ $t('webCapture.go') }}</button>
+      <button class="btn btn--primary" @click="navigate()" :disabled="!pendingUrl.trim()">{{ $t('webCapture.go') }}</button>
       <div class="preset-dropdown">
-        <button class="secondary-btn preset-toggle" @click.stop="presetOpen = !presetOpen">
+        <button class="btn secondary-btn preset-toggle" @click.stop="presetOpen = !presetOpen">
           {{ $t('webCapture.presets') }}
           <svg width="10" height="10" viewBox="0 0 10 10">
             <path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
@@ -61,7 +61,7 @@
         />
       </div>
       <button
-        class="secondary-btn"
+        class="btn secondary-btn"
         :class="{ active: pickerActive === 'pick', faded: regionOverridesSelector }"
         @click="pickerActive === 'pick' ? cancelPicker() : pickVideoSelector()"
         :disabled="captureState === 'running'"
@@ -69,7 +69,7 @@
         {{ pickerActive === 'pick' ? $t('webCapture.cancelPick') : $t('webCapture.pickVideo') }}
       </button>
       <button
-        class="secondary-btn"
+        class="btn secondary-btn"
         :class="{ active: pickerActive === 'block' }"
         @click="pickerActive === 'block' ? cancelPicker() : startBlocker()"
         :disabled="captureState === 'running'"
@@ -77,14 +77,14 @@
         {{ pickerActive === 'block' ? $t('webCapture.cancelBlock') : $t('webCapture.blockElement') }}
       </button>
       <button
-        class="secondary-btn"
+        class="btn secondary-btn"
         @click="clearBlocks"
         :disabled="blockedSelectors.length === 0"
       >
         {{ $t('webCapture.clearBlocks', { n: blockedSelectors.length }) }}
       </button>
       <button
-        class="secondary-btn"
+        class="btn secondary-btn"
         :class="{ active: regionDrawMode }"
         @click="regionDrawMode ? cancelRegionDraw() : beginRegionDraw()"
         :disabled="captureState === 'running'"
@@ -93,7 +93,7 @@
       </button>
       <button
         v-if="customRegion"
-        class="secondary-btn"
+        class="btn secondary-btn"
         @click="clearRegion"
         :disabled="captureState === 'running'"
       >
@@ -101,7 +101,7 @@
       </button>
       <button
         v-if="captureState !== 'running'"
-        class="primary-btn"
+        class="btn btn--primary"
         @click="requestStart"
         :disabled="!canStart"
       >
@@ -109,7 +109,7 @@
       </button>
       <button
         v-else
-        class="primary-btn danger"
+        class="btn btn--danger"
         @click="stopCapture"
       >
         {{ $t('webCapture.stop') }}
@@ -174,8 +174,8 @@
           ref="modalInputRef"
         />
         <div class="modal-actions">
-          <button class="secondary-btn" @click="cancelStart">{{ $t('webCapture.cancel') }}</button>
-          <button class="primary-btn" @click="confirmAndStart" :disabled="!courseName.trim()">{{ $t('webCapture.start') }}</button>
+          <button class="btn secondary-btn" @click="cancelStart">{{ $t('webCapture.cancel') }}</button>
+          <button class="btn btn--primary" @click="confirmAndStart" :disabled="!courseName.trim()">{{ $t('webCapture.start') }}</button>
         </div>
       </div>
     </div>
@@ -315,20 +315,12 @@ watch(captureState, (val) => {
   background-color: var(--bg-page);
 }
 
+/* Square 28×28 icon button for back/forward/reload */
 .nav-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   width: 28px;
   height: 28px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  cursor: pointer;
-  color: var(--text-secondary);
+  padding: 0;
 }
-
-.nav-btn:hover { background-color: var(--bg-hover); }
 
 .url-input {
   flex: 1;
@@ -406,32 +398,6 @@ watch(captureState, (val) => {
 
 .text-input:focus { outline: none; border-color: var(--accent); }
 
-.primary-btn {
-  padding: 5px 14px;
-  border: none;
-  border-radius: 4px;
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-}
-.primary-btn:hover:not(:disabled) { background-color: var(--accent-strong); }
-.primary-btn:disabled { background-color: var(--bg-hover); cursor: not-allowed; }
-.primary-btn.danger { background-color: var(--danger); }
-.primary-btn.danger:hover { background-color: var(--danger-hover); }
-
-.secondary-btn {
-  padding: 5px 10px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 12px;
-  cursor: pointer;
-}
-.secondary-btn:hover:not(:disabled) { background-color: var(--bg-hover); }
-.secondary-btn:disabled { color: var(--text-muted); cursor: not-allowed; }
 .faded { opacity: 0.4; pointer-events: auto; }
 .secondary-btn.active {
   background-color: var(--focus-ring);
