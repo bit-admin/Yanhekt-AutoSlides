@@ -122,7 +122,7 @@
           </div>
           <div v-else-if="builtinModelError === 'cloudflareBlocked'" class="model-error cloudflare-error">
             <span>{{ $t('advanced.ai.modelCloudflareBlocked') }}</span>
-            <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
+            <button @click="refreshBuiltinModel" class="btn--icon" :title="$t('advanced.ai.refreshModel')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                 <path d="M21 3v5h-5"/>
@@ -133,7 +133,7 @@
           </div>
           <div v-else-if="builtinModelError === 'temporarilyUnavailable'" class="model-error model-error-warning">
             <span>{{ $t('advanced.ai.modelTemporarilyUnavailable') }}</span>
-            <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
+            <button @click="refreshBuiltinModel" class="btn--icon" :title="$t('advanced.ai.refreshModel')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                 <path d="M21 3v5h-5"/>
@@ -144,7 +144,7 @@
           </div>
           <div v-else-if="builtinModelError === 'fetchFailed'" class="model-error">
             <span>{{ $t('advanced.ai.modelFetchFailed') }}</span>
-            <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
+            <button @click="refreshBuiltinModel" class="btn--icon" :title="$t('advanced.ai.refreshModel')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                 <path d="M21 3v5h-5"/>
@@ -155,7 +155,7 @@
           </div>
           <div v-else class="model-name-display">
             <span class="model-name">{{ builtinModelName || $t('advanced.ai.modelUnknown') }}</span>
-            <button @click="refreshBuiltinModel" class="refresh-btn" :title="$t('advanced.ai.refreshModel')">
+            <button @click="refreshBuiltinModel" class="btn--icon" :title="$t('advanced.ai.refreshModel')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
                 <path d="M21 3v5h-5"/>
@@ -1348,23 +1348,6 @@ const openCopilotVerificationUrl = () => {
   font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
 }
 
-.refresh-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4px;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  color: var(--text-secondary);
-  border-radius: 4px;
-  transition: background-color 0.2s, color 0.2s;
-}
-
-.refresh-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-}
 
 .cloudflare-error {
   flex-wrap: wrap;
