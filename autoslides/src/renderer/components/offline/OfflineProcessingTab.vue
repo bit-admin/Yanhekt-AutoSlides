@@ -58,7 +58,7 @@
         <div class="offline-spacer"></div>
 
         <!-- Progress bar -->
-        <div v-if="offlineProgress.phase !== 'idle' && offlineProgress.phase !== 'error'" class="progress-track">
+        <div v-if="offlineProgress.phase !== 'idle' && offlineProgress.phase !== 'error'" class="progress-bar">
           <div class="progress-fill" :style="{ width: overallOfflineProgress + '%' }"></div>
         </div>
 
@@ -152,7 +152,7 @@
         <div class="offline-spacer"></div>
 
         <!-- Progress bar -->
-        <div v-if="autoCropProgress.phase !== 'idle'" class="progress-track">
+        <div v-if="autoCropProgress.phase !== 'idle'" class="progress-bar">
           <div class="progress-fill" :style="{ width: autoCropOverallProgress + '%' }"></div>
         </div>
 
@@ -400,19 +400,8 @@ const autoCropOverallProgress = computed(() => {
 }
 
 /* Progress */
-.progress-track {
-  width: 100%;
-  height: 4px;
-  background-color: var(--border-color);
-  border-radius: 2px;
-  overflow: hidden;
+.progress-bar {
   margin-bottom: 16px;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: var(--accent);
-  transition: width 0.3s ease;
 }
 
 .offline-status-message {

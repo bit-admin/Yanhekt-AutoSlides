@@ -374,21 +374,6 @@ const extractionBarWidth = (item: DownloadItem): number => {
   gap: 4px;
 }
 
-.progress-bar {
-  width: 100%;
-  height: 4px;
-  background-color: var(--bg-hover);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: var(--accent);
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-
 .progress-text {
   font-size: 11px;
   color: var(--text-secondary);

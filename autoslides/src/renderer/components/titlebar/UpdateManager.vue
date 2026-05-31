@@ -644,19 +644,7 @@ defineExpose({
 }
 
 .progress-bar {
-  width: 100%;
-  height: 4px;
-  background-color: var(--bg-hover);
-  border-radius: 2px;
-  overflow: hidden;
   margin-bottom: 8px;
-}
-
-.progress-fill {
-  height: 100%;
-  background-color: var(--accent);
-  border-radius: 2px;
-  transition: width 0.3s ease;
 }
 
 .progress-footer {
