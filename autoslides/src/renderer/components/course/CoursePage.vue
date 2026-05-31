@@ -395,12 +395,7 @@ onUnmounted(() => {
 }
 
 .loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   flex: 1;
-  gap: 16px;
 }
 
 .courses-grid {

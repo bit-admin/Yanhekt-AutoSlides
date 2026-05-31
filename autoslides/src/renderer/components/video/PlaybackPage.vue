@@ -82,7 +82,7 @@
         <p>{{ $t('playback.loadingVideoStreams') }}</p>
       </div>
 
-      <div v-else-if="error" class="error-state">
+      <div v-else-if="error" class="loading-state error-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
           <line x1="15" y1="9" x2="9" y2="15"/>
@@ -466,7 +466,7 @@
 
       </div>
 
-      <div v-else class="no-streams">
+      <div v-else class="loading-state no-streams">
         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <polygon points="5,3 19,12 5,21"/>
         </svg>
@@ -1284,13 +1284,8 @@ onUnmounted(async () => {
 }
 
 /* Loading and Error States */
-.loading-state, .error-state, .no-streams {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+.loading-state {
   height: 400px;
-  gap: 16px;
   color: var(--text-secondary);
 }
 

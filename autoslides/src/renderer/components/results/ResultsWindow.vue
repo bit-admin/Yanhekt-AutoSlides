@@ -211,7 +211,7 @@
       </div>
 
       <template v-else-if="currentView === 'folders'">
-        <div v-if="folders.length === 0" class="empty-state">
+        <div v-if="folders.length === 0" class="loading-state empty-state">
           <svg width="64" height="64" viewBox="0 0 64 64">
             <path d="M8 12v40h48V20H32l-6-8H8z" fill="currentColor" opacity="0.3"/>
           </svg>
@@ -310,7 +310,7 @@
       </template>
 
       <template v-else>
-        <div v-if="filteredItems.length === 0" class="empty-state">
+        <div v-if="filteredItems.length === 0" class="loading-state empty-state">
           <svg width="64" height="64" viewBox="0 0 64 64">
             <rect x="8" y="8" width="48" height="48" fill="currentColor" opacity="0.3"/>
             <circle cx="22" cy="22" r="6" fill="currentColor" opacity="0.2"/>
@@ -1441,14 +1441,8 @@ const confirmClearTrash = async () => {
   padding: 16px;
 }
 
-.loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+.loading-state {
   height: 100%;
-  gap: 16px;
   color: var(--text-muted);
 }
 

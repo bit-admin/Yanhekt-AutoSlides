@@ -139,7 +139,7 @@
         <span>{{ $t('pdfmaker.loading') }}</span>
       </div>
 
-      <div v-else-if="sortedFolders.length === 0" class="empty-state">
+      <div v-else-if="sortedFolders.length === 0" class="loading-state empty-state">
         <svg width="64" height="64" viewBox="0 0 64 64">
           <path d="M8 12v40h48V20H32l-6-8H8z" fill="currentColor" opacity="0.3"/>
         </svg>
@@ -747,14 +747,8 @@ onUnmounted(() => {
   background-color: var(--bg-surface);
 }
 
-.loading-state,
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+.loading-state {
   height: 100%;
-  gap: 16px;
   color: var(--text-muted);
 }
 

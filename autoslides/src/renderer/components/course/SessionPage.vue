@@ -526,12 +526,7 @@ onMounted(() => {
 }
 
 .loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
   padding: 48px 16px;
-  gap: 16px;
 }
 
 .no-sessions {
