@@ -2,21 +2,21 @@
   <div class="browser-login-view">
     <!-- Control Bar -->
     <div class="control-bar">
-      <button class="control-btn close-btn" @click="closeBrowser" :title="$t('browserLogin.close')">
+      <button class="btn control-btn close-btn" @click="closeBrowser" :title="$t('browserLogin.close')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
         <span class="btn-text">{{ $t('browserLogin.close') }}</span>
       </button>
-      <button class="control-btn" @click="loadLoginPage" :title="$t('browserLogin.loginPage')">
+      <button class="btn control-btn" @click="loadLoginPage" :title="$t('browserLogin.loginPage')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
           <polyline points="9 22 9 12 15 12 15 22"></polyline>
         </svg>
         <span class="btn-text">{{ $t('browserLogin.loginPage') }}</span>
       </button>
-      <button class="control-btn" @click="refresh" :title="$t('browserLogin.refresh')">
+      <button class="btn control-btn" @click="refresh" :title="$t('browserLogin.refresh')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="23 4 23 10 17 10"></polyline>
           <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
@@ -24,14 +24,14 @@
         <span class="btn-text">{{ $t('browserLogin.refresh') }}</span>
       </button>
       <div class="control-spacer"></div>
-      <button class="control-btn token-btn" @click="getTokenManually" :title="$t('browserLogin.getToken')">
+      <button class="btn control-btn token-btn" @click="getTokenManually" :title="$t('browserLogin.getToken')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
           <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
         </svg>
         <span class="btn-text">{{ $t('browserLogin.getToken') }}</span>
       </button>
-      <button class="control-btn" @click="clearBrowserData" :title="$t('browserLogin.clearData')">
+      <button class="btn control-btn" @click="clearBrowserData" :title="$t('browserLogin.clearData')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="3 6 5 6 21 6"></polyline>
           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -258,25 +258,6 @@ onUnmounted(() => {
 
 .control-spacer {
   flex: 1;
-}
-
-.control-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: var(--bg-page);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  color: var(--text-primary);
-  cursor: pointer;
-  font-size: 13px;
-  transition: all 0.2s ease;
-}
-
-.control-btn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-input);
 }
 
 .control-btn.close-btn {
