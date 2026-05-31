@@ -678,7 +678,7 @@ onUnmounted(() => {
   width: 640px;
   max-width: calc(100% - 32px);
   padding: 16px 24px 20px;
-  border: 1px solid var(--shadow-md);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
 }
 

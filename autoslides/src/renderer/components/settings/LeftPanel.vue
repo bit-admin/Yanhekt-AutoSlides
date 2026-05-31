@@ -1032,7 +1032,7 @@ defineExpose({
 .verification-unified-control {
   display: flex;
   align-items: stretch;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-input);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   overflow: hidden;
