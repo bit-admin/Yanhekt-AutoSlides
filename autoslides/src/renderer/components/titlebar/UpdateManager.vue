@@ -4,7 +4,7 @@
     <div class="modal-content update-modal" @click.stop>
       <div class="modal-header">
         <h3>{{ $t('titlebar.updateModal.title') }}</h3>
-        <button @click="closeUpdateModal" class="close-btn">
+        <button @click="closeUpdateModal" class="btn--icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
@@ -15,7 +15,7 @@
       <div class="modal-body">
         <!-- Version Info -->
         <div class="version-header">
-          <div class="version-badge">v{{ releaseInfo?.latestVersion }}</div>
+          <div class="badge badge--version">v{{ releaseInfo?.latestVersion }}</div>
           <div class="version-meta">
             <span class="current-version">{{ $t('titlebar.updateModal.currentVersion') }}: v{{ releaseInfo?.currentVersion }}</span>
             <span v-if="releaseInfo?.publishedAt" class="publish-date">{{ formatDate(releaseInfo.publishedAt) }}</span>
@@ -69,7 +69,7 @@
             </div>
             <div class="progress-footer">
               <span class="progress-bytes">{{ formatBytes(downloadProgress.downloaded) }} / {{ formatBytes(downloadProgress.total) }}</span>
-              <button class="cancel-download-btn" @click="cancelDownload">
+              <button class="btn btn--sm" @click="cancelDownload">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <line x1="18" y1="6" x2="6" y2="18"/>
                   <line x1="6" y1="6" x2="18" y2="18"/>
@@ -88,13 +88,13 @@
               <span>{{ $t('titlebar.updateModal.downloadComplete') }}</span>
             </div>
             <div class="complete-actions">
-              <button class="action-btn" @click="openDownloadFolder">
+              <button class="btn action-btn" @click="openDownloadFolder">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
                 </svg>
                 {{ $t('titlebar.updateModal.openDownloadFolder') }}
               </button>
-              <button class="action-btn primary" @click="installUpdate">
+              <button class="btn btn--primary action-btn" @click="installUpdate">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                   <polyline points="7,10 12,15 17,10"/>
@@ -132,8 +132,8 @@
       </div>
 
       <div class="modal-actions">
-        <button v-if="isAutoCheck" class="cancel-btn" @click="skipFor7Days">{{ $t('titlebar.skipFor7Days') }}</button>
-        <button class="save-btn" @click="closeUpdateModal">
+        <button v-if="isAutoCheck" class="btn" @click="skipFor7Days">{{ $t('titlebar.skipFor7Days') }}</button>
+        <button class="btn btn--primary" @click="closeUpdateModal">
           {{ isAutoCheck ? $t('titlebar.remindMeLater') : $t('titlebar.updateModal.close') }}
         </button>
       </div>
@@ -472,20 +472,6 @@ defineExpose({
   color: var(--text-primary);
 }
 
-.close-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  color: var(--text-secondary);
-  transition: background-color 0.2s;
-}
-
-.close-btn:hover {
-  background-color: var(--bg-elevated);
-}
-
 .modal-body {
   flex: 1;
   display: flex;
@@ -505,50 +491,11 @@ defineExpose({
   flex-shrink: 0;
 }
 
-.cancel-btn, .save-btn {
-  padding: 8px 16px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cancel-btn {
-  background-color: var(--bg-elevated);
-  color: var(--text-secondary);
-}
-
-.cancel-btn:hover {
-  background-color: var(--bg-hover);
-  border-color: var(--border-strong);
-}
-
-.save-btn {
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  border-color: var(--accent);
-}
-
-.save-btn:hover {
-  background-color: var(--accent-hover);
-  border-color: var(--accent-hover);
-}
-
 .version-header {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
-}
-
-.version-badge {
-  background: var(--accent);
-  color: var(--text-on-accent);
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 14px;
-  font-weight: 600;
 }
 
 .version-meta {
@@ -723,25 +670,6 @@ defineExpose({
   color: var(--text-secondary);
 }
 
-.cancel-download-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: transparent;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 11px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.cancel-download-btn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-input);
-}
-
 .download-complete-section {
   padding: 12px;
   background: var(--success-bg);
@@ -768,35 +696,9 @@ defineExpose({
   gap: 8px;
 }
 
+/* Stretch the complete-action buttons to fill the row */
 .action-btn {
   flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--border-input);
-  background: var(--bg-surface);
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.action-btn:hover {
-  background: var(--bg-elevated);
-  border-color: var(--border-input);
-}
-
-.action-btn.primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--text-on-accent);
-}
-
-.action-btn.primary:hover {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
 }
 
 .quarantine-notice {
