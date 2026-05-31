@@ -12,8 +12,8 @@
       <span v-if="!rect">{{ hintText }}</span>
       <span v-else>{{ Math.round(rect.width / 10) * 10 }}×{{ Math.round(rect.height / 10) * 10 }}</span>
       <div class="region-actions">
-        <button class="action-btn" @click.stop="onConfirm" :disabled="!rect">{{ useRegionLabel || 'Use Region' }}</button>
-        <button class="action-btn secondary" @click.stop="onCancel">{{ cancelLabel || 'Cancel' }}</button>
+        <button class="btn btn--primary" @click.stop="onConfirm" :disabled="!rect">{{ useRegionLabel || 'Use Region' }}</button>
+        <button class="overlay-cancel-btn" @click.stop="onCancel">{{ cancelLabel || 'Cancel' }}</button>
       </div>
     </div>
   </div>
@@ -152,31 +152,19 @@ const onCancel = () => {
   gap: 6px;
 }
 
-.action-btn {
+/* Cancel button floats over arbitrary captured page content, so it keeps fixed
+   high-contrast colors rather than theme tokens (like the video-player chrome). */
+.overlay-cancel-btn {
   padding: 4px 10px;
-  border: none;
+  border: 1px solid #aaa;
   border-radius: 4px;
-  background-color: #007acc;
+  background-color: transparent;
   color: white;
   font-size: 12px;
   cursor: pointer;
 }
 
-.action-btn:hover:not(:disabled) {
-  background-color: #005a9e;
-}
-
-.action-btn:disabled {
-  background-color: #555;
-  cursor: not-allowed;
-}
-
-.action-btn.secondary {
-  background-color: transparent;
-  border: 1px solid #aaa;
-}
-
-.action-btn.secondary:hover {
+.overlay-cancel-btn:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 </style>
