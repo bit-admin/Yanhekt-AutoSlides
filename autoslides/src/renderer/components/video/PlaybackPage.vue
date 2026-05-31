@@ -2,7 +2,7 @@
   <div class="playback-page">
     <div class="header">
       <div class="header-main">
-        <button @click="goBack" class="back-btn" :disabled="shouldDisableControls">
+        <button @click="goBack" class="btn btn--lg back-btn" :disabled="shouldDisableControls">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
@@ -19,7 +19,7 @@
             {{ $t('playback.playingInBackground') }}
           </div>
         </div>
-        <button @click="refreshPage" class="refresh-btn" :disabled="shouldDisableControls" :title="$t('playback.refresh')">
+        <button @click="refreshPage" class="btn refresh-btn" :disabled="shouldDisableControls" :title="$t('playback.refresh')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
             <path d="M21 3v5h-5"/>
@@ -27,7 +27,7 @@
             <path d="M3 21v-5h5"/>
           </svg>
         </button>
-        <button @click="toggleCourseDetails" class="expand-btn">
+        <button @click="toggleCourseDetails" class="btn expand-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showDetails }">
             <polyline points="6,9 12,15 18,9"/>
           </svg>
@@ -101,7 +101,7 @@
             </p>
           </div>
         </div>
-        <button @click="retryLoad" class="retry-btn">{{ $t('playback.retry') }}</button>
+        <button @click="retryLoad" class="btn btn--primary btn--lg">{{ $t('playback.retry') }}</button>
       </div>
 
       <div v-else-if="playbackData" class="video-content" :data-playback-mode="props.mode">
@@ -414,7 +414,7 @@
                 <button
                   v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
                   @click="executePostProcessing()"
-                  class="post-process-btn"
+                  class="btn btn--primary"
                   :disabled="isPostProcessing"
                   title="Execute post-processing on all saved slides"
                 >
@@ -431,7 +431,7 @@
                 <button
                   v-if="isSlideExtractionEnabled && extractedSlides.length > 0"
                   @click="clearAllSlides"
-                  class="clear-all-btn"
+                  class="btn btn--danger"
                   title="Move all slides to trash"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1177,28 +1177,12 @@ onUnmounted(async () => {
   background-color: var(--bg-modal);
 }
 
-.back-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
 .back-btn:hover:not(:disabled) {
   border-color: var(--accent);
   color: var(--accent);
 }
 
 .back-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
   background-color: var(--bg-elevated);
 }
 
@@ -1236,48 +1220,22 @@ onUnmounted(async () => {
   animation: pulse 2s infinite;
 }
 
-.refresh-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Square 32×32 icon buttons */
+.refresh-btn,
+.expand-btn {
   width: 32px;
   height: 32px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
+  padding: 0;
 }
 
-.refresh-btn:hover:not(:disabled) {
+.refresh-btn:hover:not(:disabled),
+.expand-btn:hover {
   border-color: var(--accent);
   background-color: var(--bg-hover);
 }
 
 .refresh-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
   background-color: var(--bg-elevated);
-}
-
-.expand-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.expand-btn:hover {
-  border-color: var(--accent);
-  background-color: var(--bg-hover);
 }
 
 .expand-btn svg {
@@ -1393,21 +1351,6 @@ onUnmounted(async () => {
   font-size: 14px;
   color: var(--text-warning);
   line-height: 1.4;
-}
-
-.retry-btn {
-  padding: 8px 16px;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.retry-btn:hover {
-  background-color: var(--accent-deep-hover);
 }
 
 /* Video Content */
@@ -2054,33 +1997,6 @@ onUnmounted(async () => {
   margin-bottom: 8px;
 }
 
-.post-process-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.post-process-btn:hover:not(:disabled) {
-  background-color: var(--accent-deep-hover);
-  border-color: var(--accent-hover);
-}
-
-.post-process-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background-color: var(--border-strong);
-  border-color: var(--border-strong);
-  color: var(--text-muted);
-}
-
 /* Post-processing status bar styles */
 .post-process-status-bar {
   background-color: var(--bg-elevated);
@@ -2104,25 +2020,6 @@ onUnmounted(async () => {
   border-top: 2px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-}
-
-.clear-all-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--danger);
-  border-radius: 4px;
-  background-color: var(--danger-bright);
-  color: white;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.clear-all-btn:hover {
-  background-color: var(--danger-bright);
-  border-color: var(--danger-hover);
 }
 
 /* Responsive design */
