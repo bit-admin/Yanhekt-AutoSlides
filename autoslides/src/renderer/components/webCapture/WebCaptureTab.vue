@@ -18,7 +18,7 @@
         </svg>
       </button>
       <input
-        class="url-input"
+        class="text-input url-input"
         :value="pendingUrl"
         @input="(e) => pendingUrl = (e.target as HTMLInputElement).value"
         @keydown.enter="navigate()"
@@ -325,15 +325,7 @@ watch(captureState, (val) => {
 .url-input {
   flex: 1;
   min-width: 200px;
-  padding: 5px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
 }
-
-.url-input:focus { outline: none; border-color: var(--accent); }
 
 .preset-dropdown {
   position: relative;

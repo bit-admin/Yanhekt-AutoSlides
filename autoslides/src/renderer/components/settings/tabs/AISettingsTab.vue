@@ -208,14 +208,14 @@
         </div>
 
         <div class="copilot-manual-token">
-          <div class="api-key-input-group">
+          <div class="input-group">
             <input
               v-model="tempCopilotGhoToken"
               :type="showCopilotToken ? 'text' : 'password'"
-              class="api-key-input"
+              class="text-input api-key-input"
               :placeholder="$t('advanced.ai.copilotTokenPlaceholder')"
             />
-            <button @click="showCopilotToken = !showCopilotToken" class="api-key-toggle-btn">
+            <button @click="showCopilotToken = !showCopilotToken" class="btn btn--adornment">
               <svg v-if="showCopilotToken" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
                 <line x1="1" y1="1" x2="23" y2="23"/>
@@ -227,7 +227,7 @@
             </button>
             <button
               @click="validateCopilotToken(tempCopilotGhoToken)"
-              class="copilot-verify-btn"
+              class="btn btn--primary copilot-verify-btn"
               :disabled="!tempCopilotGhoToken || isCopilotLoading"
             >
               <div v-if="isCopilotLoading" class="loading-spinner-small"></div>
@@ -270,11 +270,11 @@
       <!-- Model name input (always visible in copilot mode) -->
       <div class="setting-item copilot-model-setting">
         <label class="setting-label">{{ $t('advanced.ai.modelName') }}</label>
-        <div class="model-name-input-group">
+        <div class="input-group">
           <input
             v-model="tempCopilotModelName"
             type="text"
-            class="model-name-input"
+            class="text-input model-name-input"
             :placeholder="$t('advanced.ai.copilotModelPlaceholder')"
           />
           <select v-model="selectedCopilotModelPreset" @change="onCopilotModelPresetChange" class="select-field model-preset-select">
@@ -291,11 +291,11 @@
     <div v-if="tempAiServiceType === 'custom'" class="custom-api-settings">
       <div class="setting-item">
         <label class="setting-label">{{ $t('advanced.ai.apiBaseUrl') }}</label>
-        <div class="api-url-input-group">
+        <div class="input-group">
           <input
             v-model="tempAiCustomApiBaseUrl"
             type="text"
-            class="api-url-input"
+            class="text-input api-url-input"
             :placeholder="$t('advanced.ai.apiBaseUrlPlaceholder')"
           />
           <select v-model="selectedApiUrlPreset" @change="onApiUrlPresetChange" class="select-field api-url-preset-select">
@@ -309,14 +309,14 @@
 
       <div class="setting-item">
         <label class="setting-label">{{ $t('advanced.ai.apiKey') }}</label>
-        <div class="api-key-input-group">
+        <div class="input-group">
           <input
             v-model="tempAiCustomApiKey"
             :type="showApiKey ? 'text' : 'password'"
-            class="api-key-input"
+            class="text-input api-key-input"
             :placeholder="$t('advanced.ai.apiKeyPlaceholder')"
           />
-          <button @click="showApiKey = !showApiKey" class="api-key-toggle-btn" :title="showApiKey ? $t('advanced.hideToken') : $t('advanced.showToken')">
+          <button @click="showApiKey = !showApiKey" class="btn btn--adornment" :title="showApiKey ? $t('advanced.hideToken') : $t('advanced.showToken')">
             <svg v-if="showApiKey" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
               <line x1="1" y1="1" x2="23" y2="23"/>
@@ -331,11 +331,11 @@
 
       <div class="setting-item" v-if="currentCustomProvider !== 'modelscope'">
         <label class="setting-label">{{ $t('advanced.ai.modelName') }}</label>
-        <div class="model-name-input-group">
+        <div class="input-group">
           <input
             v-model="tempAiCustomModelName"
             type="text"
-            class="model-name-input"
+            class="text-input model-name-input"
             :placeholder="$t('advanced.ai.modelNamePlaceholder')"
           />
           <select v-model="selectedModelPreset" @change="onModelPresetChange" class="select-field model-preset-select">
@@ -899,40 +899,9 @@ const openCopilotVerificationUrl = () => {
   text-transform: uppercase;
 }
 
-.copilot-manual-token .api-key-input-group {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.copilot-manual-token .api-key-input {
-  padding: 6px 8px;
-  font-size: 12px;
-}
-
 .copilot-verify-btn {
   flex: 0 0 auto;
-  padding: 6px 12px;
-  border: 1px solid var(--accent);
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  font-size: 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
   min-width: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.copilot-verify-btn:hover:not(:disabled) {
-  background-color: var(--accent-hover);
-}
-
-.copilot-verify-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .copilot-error {
@@ -1034,12 +1003,8 @@ const openCopilotVerificationUrl = () => {
   margin-top: 12px;
 }
 
-.api-url-input-group,
-.api-key-input-group,
-.model-name-input-group {
-  display: flex;
-  gap: 8px;
-  align-items: center;
+/* Token/key/url rows: shared .input-group, with top spacing under the label */
+.input-group {
   margin-top: 8px;
 }
 
@@ -1047,21 +1012,7 @@ const openCopilotVerificationUrl = () => {
 .api-key-input,
 .model-name-input {
   flex: 1;
-  padding: 6px 12px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 13px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
   min-width: 0;
-}
-
-.api-url-input:focus,
-.api-key-input:focus,
-.model-name-input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 /* Compact auto-width preset selects (inline in a row, not full width) */
@@ -1264,27 +1215,6 @@ const openCopilotVerificationUrl = () => {
 .model-chain-add-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
-}
-
-.api-key-toggle-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  cursor: pointer;
-  color: var(--text-secondary);
-  box-sizing: border-box;
-  flex: 0 0 auto;
-}
-
-.api-key-toggle-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
 }
 
 .rate-limit-hint {

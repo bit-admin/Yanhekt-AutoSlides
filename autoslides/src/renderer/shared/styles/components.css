@@ -46,6 +46,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
+  min-height: var(--control-height);
   gap: 6px;
   padding: 6px 12px;
   border: 1px solid var(--border-input);
@@ -168,6 +170,7 @@
 }
 
 .btn--sm {
+  min-height: 0;
   padding: 4px 8px;
   font-size: 11px;
 }
@@ -210,6 +213,8 @@
 /* === Form Elements === */
 
 .input-field {
+  box-sizing: border-box;
+  min-height: var(--control-height);
   padding: 8px 12px;
   border: 1px solid var(--border-input);
   border-radius: 4px;
@@ -226,6 +231,8 @@
 }
 
 .text-input {
+  box-sizing: border-box;
+  min-height: var(--control-height);
   padding: 6px 8px;
   border: 1px solid var(--border-input);
   border-radius: 4px;
@@ -245,6 +252,24 @@
   font-size: 12px;
   color: var(--text-secondary);
   white-space: nowrap;
+}
+
+/* Input group — an input/select plus adornment buttons (visibility toggle,
+   verify, etc.) on one row. align-items: stretch + the shared --control-height
+   make every child the same height by construction. */
+.input-group {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+/* Square icon button sized to the control height, for use inside .input-group
+   (e.g. a password visibility toggle next to a text input). */
+.btn--adornment {
+  flex: 0 0 auto;
+  width: var(--control-height);
+  min-height: var(--control-height);
+  padding: 0;
 }
 
 /* Native <select>. One shared class replaces ~13 near-identical per-component
