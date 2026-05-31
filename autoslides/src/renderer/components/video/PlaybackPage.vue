@@ -78,7 +78,7 @@
 
     <div class="content custom-scrollbar">
       <div v-if="loading" class="loading-state">
-        <div class="spinner"></div>
+        <div class="spinner spinner--lg"></div>
         <p>{{ $t('playback.loadingVideoStreams') }}</p>
       </div>
 
@@ -1294,20 +1294,6 @@ onUnmounted(async () => {
   color: var(--text-secondary);
 }
 
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--border-color);
-  border-top: 4px solid var(--accent);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 .error-state svg {
   color: var(--danger-bright);
 }
@@ -1466,11 +1452,6 @@ onUnmounted(async () => {
   border-top: 2px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }
 
 .video-player {

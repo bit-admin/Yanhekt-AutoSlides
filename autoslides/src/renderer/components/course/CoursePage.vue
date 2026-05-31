@@ -403,20 +403,6 @@ onUnmounted(() => {
   gap: 16px;
 }
 
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border-color);
-  border-top: 3px solid var(--accent);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
 .courses-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);

@@ -1452,15 +1452,6 @@ const confirmClearTrash = async () => {
   color: var(--text-muted);
 }
 
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid var(--border-color);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
 .folder-list {
   display: flex;
   flex-direction: column;
@@ -2073,10 +2064,5 @@ const confirmClearTrash = async () => {
 
 .info-path {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 </style>

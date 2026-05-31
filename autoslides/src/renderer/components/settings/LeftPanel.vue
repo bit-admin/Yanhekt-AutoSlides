@@ -9,7 +9,7 @@
       <div v-else-if="!isLoggedIn" class="login-form">
         <h3>{{ $t('auth.signIn') }}</h3>
         <p>{{ $t('auth.signInMessage') }}</p>
-        <div class="input-group">
+        <div class="field-group">
           <input
             v-model="username"
             type="text"
@@ -743,12 +743,7 @@ defineExpose({
   margin: 0 auto;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.input-group {
+.field-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -1372,20 +1367,4 @@ defineExpose({
   border-color: var(--accent);
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
-
-/* Dark mode support for name input dialog */
-
-/* AI Settings Tab Styles */
-
-/* Copilot settings */
-
-/* Built-in model display styles */
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Dark mode support for AI settings */
-
 </style>

@@ -353,11 +353,6 @@ const extractionBarWidth = (item: DownloadItem): number => {
   50% { opacity: 0.5; }
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 .item-info {
   flex: 1;
   min-width: 0;
