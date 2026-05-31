@@ -519,12 +519,12 @@ onBeforeUnmount(() => {
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  background: #24292e;
+  background: var(--brand-github);
   color: white;
 }
 
 .download-btn:hover {
-  background: #1a1e22;
+  background: var(--brand-github-hover);
 }
 
 .download-btn.secondary {

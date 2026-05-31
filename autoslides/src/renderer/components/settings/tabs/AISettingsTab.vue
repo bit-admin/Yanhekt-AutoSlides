@@ -860,8 +860,8 @@ const openCopilotVerificationUrl = () => {
   gap: 8px;
   width: 100%;
   padding: 7px 14px;
-  border: 1px solid #24292e;
-  background-color: #24292e;
+  border: 1px solid var(--brand-github);
+  background-color: var(--brand-github);
   color: white;
   font-size: 12px;
   font-weight: 500;

@@ -37,12 +37,6 @@
   margin-bottom: 6px;
 }
 
-.setting-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
 .setting-label-with-reset {
   display: flex;
   align-items: center;

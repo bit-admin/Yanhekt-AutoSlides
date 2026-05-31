@@ -1726,33 +1726,6 @@ onUnmounted(async () => {
   margin-top: 12px;
 }
 
-.toggle-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.toggle-btn:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.toggle-btn svg {
-  transition: transform 0.2s;
-}
-
-.toggle-btn svg.rotated {
-  transform: rotate(180deg);
-}
-
 .details-section {
   margin-top: 12px;
   padding: 12px;
@@ -2028,6 +2001,4 @@ onUnmounted(async () => {
   }
 
 }
-
-/* Dark mode support */
 </style>

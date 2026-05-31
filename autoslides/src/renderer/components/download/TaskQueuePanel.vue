@@ -328,19 +328,19 @@ const removeTask = (taskId: string) => {
 }
 
 .task-item.status-queued + .post-process-affiliated-panel {
-  border-left: 3px solid #9e9e9e;
+  border-left: 3px solid var(--status-queued);
 }
 
 .task-item.status-in_progress + .post-process-affiliated-panel {
-  border-left: 3px solid #9acd32;
+  border-left: 3px solid var(--status-active);
 }
 
 .task-item.status-completed + .post-process-affiliated-panel {
-  border-left: 3px solid #9acd32;
+  border-left: 3px solid var(--status-active);
 }
 
 .task-item.status-error + .post-process-affiliated-panel {
-  border-left: 3px solid #ff9800;
+  border-left: 3px solid var(--status-error);
 }
 
 .pp-panel-content {

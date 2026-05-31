@@ -415,16 +415,16 @@ const extractionBarWidth = (item: DownloadItem): number => {
 
 .download-item + .extraction-affiliated-panel,
 .download-item + .post-process-affiliated-panel {
-  border-left: 3px solid #9acd32;
+  border-left: 3px solid var(--status-active);
 }
 
 .extraction-affiliated-panel + .post-process-affiliated-panel {
-  border-left: 3px solid #9acd32;
+  border-left: 3px solid var(--status-active);
 }
 
 .download-item.status-error + .extraction-affiliated-panel,
 .download-item.status-error + .post-process-affiliated-panel {
-  border-left: 3px solid #ff9800;
+  border-left: 3px solid var(--status-error);
 }
 
 .ext-row {

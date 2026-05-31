@@ -121,6 +121,15 @@
   --hover-tint: rgba(0, 0, 0, 0.05);
   --hover-tint-strong: rgba(0, 0, 0, 0.1);
 
+  /* GitHub brand (intentionally theme-independent: dark button, white text) */
+  --brand-github: #24292e;
+  --brand-github-hover: #1a1e22;
+
+  /* Queue status border-left colors (theme-independent semantic indicators) */
+  --status-queued: #9e9e9e;
+  --status-active: #9acd32;
+  --status-error: #ff9800;
+
   /* Z-index scale */
   --z-base: 1;
   --z-dropdown: 10;

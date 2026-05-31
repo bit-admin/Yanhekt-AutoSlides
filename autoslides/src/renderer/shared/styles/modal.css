@@ -32,12 +32,6 @@
   background: var(--bg-elevated);
 }
 
-.modal-header-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
 .modal-close {
   background: transparent;
   border: none;
