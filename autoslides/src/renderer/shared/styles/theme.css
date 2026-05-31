@@ -5,6 +5,16 @@
  */
 
 :root {
+  /* Native-control color scheme. Drives <select> text, <option> popups,
+     scrollbars, and number-spinner buttons. Without this, native widgets
+     render in the OS light scheme even when the app is in dark mode. */
+  color-scheme: light;
+
+  /* Shared control height — buttons, inputs, and selects share this so any
+     row that composes them (e.g. input + icon button + action button) aligns
+     by construction. */
+  --control-height: 30px;
+
   /* Surfaces */
   --bg-page: #f5f5f5;
   --bg-page-alt: #f0f0f0;
@@ -122,6 +132,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
+
     /* Surfaces */
     --bg-page: #1a1a1a;
     --bg-page-alt: #222222;
