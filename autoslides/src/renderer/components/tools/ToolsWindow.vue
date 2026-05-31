@@ -4,9 +4,9 @@
     <div class="title-bar" @mousedown="startDrag">
       <div class="title-bar-drag-region" :class="{ 'macos-padding': isMacOS }">
         <!-- Tab Buttons -->
-        <div class="tab-buttons">
+        <div class="toolwin-tabs">
           <button
-            class="tab-btn"
+            class="toolwin-tab"
             :class="{ active: activeTab === 'trash' }"
             @click="switchTab('trash')"
           >
@@ -16,7 +16,7 @@
             {{ $t('tools.tabTrash') }}
           </button>
           <button
-            class="tab-btn"
+            class="toolwin-tab"
             :class="{ active: activeTab === 'pdfmaker' }"
             @click="switchTab('pdfmaker')"
           >
@@ -26,7 +26,7 @@
             {{ $t('tools.tabPdfMaker') }}
           </button>
           <button
-            class="tab-btn"
+            class="toolwin-tab"
             :class="{ active: activeTab === 'offline' }"
             @click="switchTab('offline')"
           >
@@ -37,7 +37,7 @@
             {{ $t('tools.tabOffline') }}
           </button>
           <button
-            class="tab-btn"
+            class="toolwin-tab"
             :class="{ active: activeTab === 'compress' }"
             @click="switchTab('compress')"
           >
@@ -48,18 +48,18 @@
           </button>
         </div>
       </div>
-      <div v-if="!isMacOS" class="window-controls">
-        <button class="window-btn minimize-btn" @click="minimizeWindow" :title="$t('window.minimize')">
+      <div v-if="!isMacOS" class="win-controls">
+        <button class="win-btn" @click="minimizeWindow" :title="$t('window.minimize')">
           <svg width="12" height="12" viewBox="0 0 12 12">
             <rect x="2" y="5.5" width="8" height="1" fill="currentColor"/>
           </svg>
         </button>
-        <button class="window-btn maximize-btn" @click="maximizeWindow" :title="$t('window.maximize')">
+        <button class="win-btn" @click="maximizeWindow" :title="$t('window.maximize')">
           <svg width="12" height="12" viewBox="0 0 12 12">
             <rect x="2" y="2" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1"/>
           </svg>
         </button>
-        <button class="window-btn close-btn" @click="closeWindow" :title="$t('window.close')">
+        <button class="win-btn win-btn--close" @click="closeWindow" :title="$t('window.close')">
           <svg width="12" height="12" viewBox="0 0 12 12">
             <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
@@ -174,68 +174,7 @@ const startDrag = () => {
   padding-left: 70px;
 }
 
-/* Tab Buttons */
-.tab-buttons {
-  display: flex;
-  gap: 2px;
-  -webkit-app-region: no-drag;
-}
-
-.tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-
-.tab-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.tab-btn.active {
-  background-color: var(--focus-ring);
-  color: var(--accent);
-  font-weight: 500;
-}
-
-/* Window Controls */
-.window-controls {
-  display: flex;
-  gap: 8px;
-  -webkit-app-region: no-drag;
-}
-
-.window-btn {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  transition: background-color 0.2s;
-}
-
-.window-btn:hover {
-  background-color: var(--bg-hover);
-}
-
-.close-btn:hover {
-  background-color: var(--danger);
-  color: var(--text-on-accent);
-}
+/* Tab bar + window controls use the shared .toolwin-* / .win-* classes */
 
 /* Tab Content */
 .tab-content {
