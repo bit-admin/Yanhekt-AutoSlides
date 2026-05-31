@@ -17,7 +17,7 @@
               :class="{ 'placeholder-text': !offlineInputFolderPath }"
               :title="offlineInputFolderPath"
             />
-            <button @click="offlineProcessing.selectInputFolder()" class="browse-btn" :disabled="offlineIsProcessing">
+            <button @click="offlineProcessing.selectInputFolder()" class="btn" :disabled="offlineIsProcessing">
               {{ $t('offlineProcessing.selectFolder') }}
             </button>
           </div>
@@ -75,22 +75,22 @@
           <button
             v-if="offlineProgress.phase === 'completed'"
             @click="openOfflineOutputFolder"
-            class="open-output-btn"
+            class="btn open-output-btn"
           >{{ $t('offlineProcessing.openOutput') }}</button>
           <button
             v-if="offlineIsProcessing"
             @click="offlineProcessing.cancelProcessing()"
-            class="secondary-btn"
+            class="btn secondary-btn"
           >{{ $t('offlineProcessing.cancel') }}</button>
           <button
             v-else
             @click="resetAndClose"
-            class="secondary-btn"
+            class="btn secondary-btn"
           >{{ $t('offlineProcessing.close') }}</button>
           <button
             @click="offlineProcessing.startProcessing()"
             :disabled="!offlineInputFolderPath || offlineIsProcessing || offlineProgress.phase === 'completed'"
-            class="primary-btn"
+            class="btn btn--primary"
           >{{ offlineIsProcessing ? $t('offlineProcessing.processing') : $t('offlineProcessing.start') }}</button>
         </div>
       </div>
@@ -112,7 +112,7 @@
               class="directory-input"
               :class="{ 'placeholder-text': autoCropSelectedImagePaths.length === 0 }"
             />
-            <button @click="autoCrop.selectImages()" class="browse-btn" :disabled="autoCropIsProcessing">
+            <button @click="autoCrop.selectImages()" class="btn" :disabled="autoCropIsProcessing">
               {{ $t('offlineProcessing.autoCrop.select') }}
             </button>
           </div>
@@ -161,22 +161,22 @@
           <button
             v-if="autoCropProgress.phase === 'completed' || autoCropProgress.phase === 'cancelled'"
             @click="autoCrop.openOutputFolder()"
-            class="open-output-btn"
+            class="btn open-output-btn"
           >{{ $t('offlineProcessing.autoCrop.openOutput') }}</button>
           <button
             v-if="autoCropIsProcessing"
             @click="autoCrop.cancelProcessing()"
-            class="secondary-btn"
+            class="btn secondary-btn"
           >{{ $t('offlineProcessing.autoCrop.cancel') }}</button>
           <button
             v-else
             @click="resetAndClose"
-            class="secondary-btn"
+            class="btn secondary-btn"
           >{{ $t('offlineProcessing.autoCrop.close') }}</button>
           <button
             @click="autoCrop.startProcessing()"
             :disabled="autoCropSelectedImagePaths.length === 0 || autoCropIsProcessing || autoCropProgress.phase === 'completed'"
-            class="primary-btn"
+            class="btn btn--primary"
           >{{ autoCropIsProcessing ? $t('offlineProcessing.autoCrop.processing') : $t('offlineProcessing.autoCrop.start') }}</button>
         </div>
       </div>
@@ -340,28 +340,6 @@ const autoCropOverallProgress = computed(() => {
   color: var(--text-muted);
 }
 
-.browse-btn {
-  padding: 7px 14px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.2s;
-}
-
-.browse-btn:hover:not(:disabled) {
-  background-color: var(--bg-hover);
-  border-color: var(--border-input);
-}
-
-.browse-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 /* Toggle List — matches LeftPanel advanced settings checkbox style */
 .toggle-list {
   display: flex;
@@ -455,14 +433,10 @@ const autoCropOverallProgress = computed(() => {
   border-top: 1px solid var(--border-color);
 }
 
+/* Accent-outline action button (fills on hover); pinned left of the action row */
 .open-output-btn {
-  padding: 8px 16px;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
   background-color: var(--bg-modal);
+  border-color: var(--accent);
   color: var(--accent);
   margin-right: auto;
 }
@@ -472,40 +446,8 @@ const autoCropOverallProgress = computed(() => {
   color: var(--text-on-accent);
 }
 
+/* Pin the cancel/close button to the right edge of the action row */
 .secondary-btn {
-  padding: 8px 16px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-surface);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
   margin-left: auto;
-}
-
-.secondary-btn:hover {
-  background-color: var(--bg-hover);
-  border-color: var(--border-input);
-}
-
-.primary-btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  background-color: var(--accent);
-  color: var(--text-on-accent);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.primary-btn:hover:not(:disabled) {
-  background-color: var(--accent-hover);
-}
-
-.primary-btn:disabled {
-  background-color: var(--border-strong);
-  cursor: not-allowed;
 }
 </style>
