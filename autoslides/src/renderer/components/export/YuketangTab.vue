@@ -31,7 +31,7 @@
         <!-- Format -->
         <div class="format-group">
           <label class="field-label">{{ $t('yuketang.format') }}</label>
-          <select v-model="exportFormat" class="text-input format-select">
+          <select v-model="exportFormat" class="select-field">
             <option value="pdf">{{ $t('yuketang.formatPdf') }}</option>
             <option value="images">{{ $t('yuketang.formatImages') }}</option>
           </select>
@@ -227,10 +227,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.format-select {
-  cursor: pointer;
 }
 
 .spinner-small {

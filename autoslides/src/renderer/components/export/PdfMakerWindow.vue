@@ -20,7 +20,7 @@
       <div class="toolbar-right">
         <div class="config-item">
           <label class="config-label">{{ $t('pdfmaker.aspectRatio') }}</label>
-          <select v-model="aspectRatio" class="custom-select">
+          <select v-model="aspectRatio" class="select-field pdf-select">
             <option value="16:9">16:9</option>
             <option value="4:3">4:3</option>
           </select>
@@ -32,7 +32,7 @@
         </label>
 
         <div class="reduce-config-group" :class="{ disabled: !reduceEnabled }">
-          <select v-model="reduceEffort" class="effort-select" :disabled="!reduceEnabled">
+          <select v-model="reduceEffort" class="select-field pdf-select" :disabled="!reduceEnabled">
             <option value="standard">{{ $t('pdfmaker.effortStandard') }}</option>
             <option value="compact">{{ $t('pdfmaker.effortCompact') }}</option>
             <option value="minimal">{{ $t('pdfmaker.effortMinimal') }}</option>
@@ -42,7 +42,7 @@
           <div class="config-item">
             <label class="config-label">{{ $t('pdfmaker.colors') }}</label>
             <span v-if="reduceEffort !== 'custom'" class="config-value">{{ customColors }}</span>
-            <select v-else v-model="customColors" class="custom-select" :disabled="!reduceEnabled">
+            <select v-else v-model="customColors" class="select-field pdf-select" :disabled="!reduceEnabled">
               <option :value="null">{{ $t('pdfmaker.colorsOriginal') }}</option>
               <option :value="256">256</option>
               <option :value="128">128</option>
@@ -55,7 +55,7 @@
           <div class="config-item">
             <label class="config-label">{{ $t('pdfmaker.size') }}</label>
             <span v-if="reduceEffort !== 'custom'" class="config-value">{{ displaySize }}</span>
-            <select v-else v-model="customSize" class="custom-select" :disabled="!reduceEnabled">
+            <select v-else v-model="customSize" class="select-field pdf-select" :disabled="!reduceEnabled">
               <option v-for="opt in sizeOptions" :key="opt" :value="opt">{{ formatSizeOption(opt) }}</option>
             </select>
           </div>
@@ -587,28 +587,9 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-.effort-select,
-.custom-select {
-  padding: 4px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.effort-select:disabled,
-.custom-select:disabled {
-  cursor: not-allowed;
-  background-color: var(--bg-page);
-  color: var(--text-muted);
-}
-
-.effort-select:focus,
-.custom-select:focus {
-  outline: none;
-  border-color: var(--accent);
+/* Inline config-row selects — auto width instead of the shared full width */
+.pdf-select {
+  width: auto;
 }
 
 .config-value {

@@ -225,22 +225,6 @@
   cursor: not-allowed;
 }
 
-.concurrent-select {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-}
-
-.concurrent-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--focus-ring);
-}
-
 .preset-btn {
   padding: 4px 8px;
   border: 1px solid var(--border-input);

@@ -128,7 +128,7 @@
       <div class="setting-description">{{ $t('advanced.concurrentDownloadDescription') }}</div>
       <select
         v-model="tempMaxConcurrentDownloads"
-        class="concurrent-select"
+        class="select-field"
         @change="updateMaxConcurrentDownloads"
       >
         <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
@@ -139,7 +139,7 @@
       <div class="setting-description">{{ $t('advanced.downloadMaxWorkersDescription') }}</div>
       <select
         v-model="tempDownloadMaxWorkers"
-        class="concurrent-select"
+        class="select-field"
         @change="updateDownloadMaxWorkers"
       >
         <option v-for="v in [1, 2, 4, 8, 16, 32]" :key="v" :value="v">{{ v }}</option>
@@ -149,7 +149,7 @@
       <label class="setting-label">{{ $t('advanced.downloadNumRetries') }}</label>
       <select
         v-model="tempDownloadNumRetries"
-        class="concurrent-select"
+        class="select-field"
         @change="updateDownloadNumRetries"
       >
         <option v-for="v in [5, 10, 15, 20, 30]" :key="v" :value="v">{{ v }}</option>
@@ -164,7 +164,7 @@
       <div class="setting-description">{{ $t('advanced.videoErrorDescription') }}</div>
       <select
         v-model="tempVideoRetryCount"
-        class="concurrent-select"
+        class="select-field"
         @change="updateVideoRetryCount"
       >
         <option v-for="i in 6" :key="i" :value="i + 4">{{ i + 4 }}</option>

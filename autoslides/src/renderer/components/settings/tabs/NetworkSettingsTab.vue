@@ -4,7 +4,7 @@
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.intranetInterfaceDescription') }}</div>
       <div class="intranet-interface-row">
-        <select v-model="tempIntranetInterfaceIp" class="intranet-interface-select">
+        <select v-model="tempIntranetInterfaceIp" class="select-field intranet-interface-select">
           <option value="">{{ $t('advanced.intranetInterfaceSystemDefault') }}</option>
           <option
             v-for="iface in availableNetworkInterfaces"
@@ -108,19 +108,10 @@ const {
 .intranet-interface-select {
   flex: 1;
   min-width: 0;
-  box-sizing: border-box;
-  height: 28px;
-  padding: 0 6px;
-  font-size: 12px;
-  line-height: 1;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
 }
 
 .intranet-interface-row .btn {
-  height: 28px;
+  min-height: var(--control-height);
 }
 
 .intranet-interface-warning {

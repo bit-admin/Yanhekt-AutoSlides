@@ -241,7 +241,7 @@
     <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.autoCrop.detectorMode') }}</label>
       <div class="setting-description">{{ $t('advanced.autoCrop.detectorModeDescription') }}</div>
-      <select v-model="tempAutoCropDetectorMode" class="concurrent-select">
+      <select v-model="tempAutoCropDetectorMode" class="select-field">
         <option value="canny_then_yolo">{{ $t('advanced.autoCrop.cannyThenYolo') }}</option>
         <option value="canny_only">{{ $t('advanced.autoCrop.cannyOnly') }}</option>
         <option value="yolo_only">{{ $t('advanced.autoCrop.yoloOnly') }}</option>
@@ -374,7 +374,7 @@
               <div class="setting-description">{{ $t('advanced.autoCrop.yolo.inputSizeDescription') }}</div>
               <div class="slide-interval-group">
                 <div class="slide-interval-input-wrapper">
-                  <select v-model.number="tempAutoCropYoloInputSize" class="slide-interval-select">
+                  <select v-model.number="tempAutoCropYoloInputSize" class="slide-interval-input slide-interval-select">
                     <option v-for="s in autoCropYoloInputSizes" :key="s" :value="s">{{ s }}</option>
                   </select>
                   <span class="interval-unit">px</span>
@@ -697,13 +697,10 @@ const {
   color: var(--text-primary, #222);
 }
 
+/* Borderless select inside .slide-interval-input-wrapper — reuses the shared
+   .slide-interval-input look; this modifier only adds the pointer cursor. */
 .slide-interval-select {
-  flex: 1;
-  padding: 6px 8px;
-  border: none;
-  background-color: transparent;
-  font-size: 12px;
-  outline: none;
+  cursor: pointer;
 }
 
 .two-col-row {

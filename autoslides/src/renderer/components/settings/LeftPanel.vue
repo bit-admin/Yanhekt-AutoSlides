@@ -119,7 +119,7 @@
         <div class="setting-item">
           <label class="setting-label">{{ $t('settings.audioMode') }}</label>
           <div class="audio-mode-selector">
-            <select v-model="muteMode" @change="setMuteMode" class="audio-mode-select">
+            <select v-model="muteMode" @change="setMuteMode" class="select-field">
               <option value="normal">{{ $t('settings.normal') }}</option>
               <option value="mute_all">{{ $t('settings.muteAll') }}</option>
               <option value="mute_live">{{ $t('settings.muteLive') }}</option>
@@ -184,7 +184,7 @@
               <select
                 v-model="slideVerificationCount"
                 @change="setSlideDoubleVerification"
-                class="verification-count-select"
+                class="select-field verification-count-select"
               >
                 <option v-for="i in 5" :key="i" :value="i">{{ i }}</option>
               </select>
@@ -197,7 +197,7 @@
           <label class="setting-label">{{ $t('settings.taskSpeed') }}</label>
           <div class="setting-description">{{ $t('settings.taskSpeedDescription') }}</div>
           <div class="task-speed-selector">
-            <select v-model="taskSpeed" @change="setTaskSpeed" class="task-speed-select">
+            <select v-model="taskSpeed" @change="setTaskSpeed" class="select-field">
               <option :value="1">1x</option>
               <option :value="2">2x</option>
               <option :value="3">3x</option>
@@ -1005,24 +1005,6 @@ defineExpose({
   width: 100%;
 }
 
-.audio-mode-select {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.audio-mode-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--focus-ring);
-}
-
 .two-col-item .setting-label {
   margin-bottom: 6px;
 }
@@ -1084,44 +1066,14 @@ defineExpose({
   white-space: nowrap;
 }
 
+/* Compact inline count select — auto width instead of the shared full width */
 .verification-count-select {
-  padding: 4px 6px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 11px;
-  cursor: pointer;
-  transition: border-color 0.2s;
+  width: auto;
   min-width: 50px;
-}
-
-.verification-count-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .task-speed-selector {
   width: 100%;
-}
-
-.task-speed-select {
-  width: 100%;
-  padding: 6px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.task-speed-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 /* Auto post-processing control styles */

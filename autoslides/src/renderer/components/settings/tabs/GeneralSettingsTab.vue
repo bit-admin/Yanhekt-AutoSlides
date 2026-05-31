@@ -39,7 +39,7 @@
         <div class="two-col-item">
           <label class="setting-label">{{ $t('settings.theme') }}</label>
           <div class="theme-selector">
-            <select v-model="tempThemeMode" class="text-input theme-select">
+            <select v-model="tempThemeMode" class="select-field">
               <option value="system">{{ $t('settings.followSystem') }}</option>
               <option value="light">{{ $t('settings.light') }}</option>
               <option value="dark">{{ $t('settings.dark') }}</option>
@@ -49,7 +49,7 @@
         <div class="two-col-item">
           <label class="setting-label">{{ $t('settings.language') }}</label>
           <div class="language-selector">
-            <select v-model="tempLanguageMode" class="text-input language-select">
+            <select v-model="tempLanguageMode" class="select-field">
               <option value="system">{{ $t('settings.followSystem') }}</option>
               <option value="en">{{ $t('settings.english') }}</option>
               <option value="zh">{{ $t('settings.chinese') }}</option>
@@ -173,12 +173,6 @@ const {
 .theme-selector,
 .language-selector {
   width: 100%;
-}
-
-.theme-select,
-.language-select {
-  width: 100%;
-  cursor: pointer;
 }
 
 .token-input-group {

@@ -247,6 +247,34 @@
   white-space: nowrap;
 }
 
+/* Native <select>. One shared class replaces ~13 near-identical per-component
+   select styles. Relies on the global color-scheme (theme.css) for a correct
+   dark-mode <option> popup. */
+.select-field {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--control-height);
+  padding: 6px 8px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.select-field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.select-field:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 /* === Tool-window tab bar (ToolsWindow / AddonsWindow pill tabs) === */
 
 .toolwin-tabs {

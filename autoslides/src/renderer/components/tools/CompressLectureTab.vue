@@ -46,7 +46,7 @@
     <div class="settings-grid">
       <div class="setting-group">
         <label class="setting-label">{{ $t('compressLecture.videoPreset') }}</label>
-        <select v-model="preset" class="select-input" :disabled="isRunning">
+        <select v-model="preset" class="select-field" :disabled="isRunning">
           <option value="tiny">{{ $t('compressLecture.presetTiny') }}</option>
           <option value="small">{{ $t('compressLecture.presetSmall') }}</option>
           <option value="readable">{{ $t('compressLecture.presetReadable') }}</option>
@@ -55,7 +55,7 @@
 
       <div class="setting-group">
         <label class="setting-label">{{ $t('compressLecture.cropMode') }}</label>
-        <select v-model="cropMode" class="select-input" :disabled="isRunning">
+        <select v-model="cropMode" class="select-field" :disabled="isRunning">
           <option value="none">{{ $t('compressLecture.cropNone') }}</option>
           <option value="4:3">{{ $t('compressLecture.crop43') }}</option>
           <option value="auto">{{ $t('compressLecture.cropAuto') }}</option>
@@ -64,7 +64,7 @@
 
       <div class="setting-group">
         <label class="setting-label">{{ $t('compressLecture.videoFilter') }}</label>
-        <select v-model="filterMode" class="select-input" :disabled="isRunning">
+        <select v-model="filterMode" class="select-field" :disabled="isRunning">
           <option value="none">{{ $t('compressLecture.filterNone') }}</option>
           <option value="denoise">{{ $t('compressLecture.filterDenoise') }}</option>
           <option value="sharpen">{{ $t('compressLecture.filterSharpen') }}</option>
@@ -74,7 +74,7 @@
 
       <div class="setting-group">
         <label class="setting-label">{{ $t('compressLecture.scaler') }}</label>
-        <select v-model="scaler" class="select-input" :disabled="isRunning">
+        <select v-model="scaler" class="select-field" :disabled="isRunning">
           <option value="lanczos">lanczos</option>
           <option value="bicubic">bicubic</option>
         </select>
@@ -82,7 +82,7 @@
 
       <div class="setting-group">
         <label class="setting-label">{{ $t('compressLecture.audioPreset') }}</label>
-        <select v-model="audioPreset" class="select-input" :disabled="isRunning">
+        <select v-model="audioPreset" class="select-field" :disabled="isRunning">
           <option value="low">{{ $t('compressLecture.audioLow') }}</option>
           <option value="mid">{{ $t('compressLecture.audioMid') }}</option>
           <option value="high">{{ $t('compressLecture.audioHigh') }}</option>
@@ -92,7 +92,7 @@
 
       <div class="setting-group">
         <label class="setting-label">{{ $t('compressLecture.audioFilter') }}</label>
-        <select v-model="audioFilterPreset" class="select-input" :disabled="isRunning">
+        <select v-model="audioFilterPreset" class="select-field" :disabled="isRunning">
           <option value="none">{{ $t('compressLecture.audioFilterNone') }}</option>
           <option value="clean">{{ $t('compressLecture.audioFilterClean') }}</option>
           <option value="speech">{{ $t('compressLecture.audioFilterSpeech') }}</option>
@@ -103,7 +103,7 @@
 
       <div class="setting-group">
         <label class="setting-label">{{ $t('compressLecture.container') }}</label>
-        <select v-model="container" class="select-input" :disabled="isRunning">
+        <select v-model="container" class="select-field" :disabled="isRunning">
           <option value="mp4">mp4</option>
           <option value="mkv">mkv</option>
         </select>
@@ -119,7 +119,7 @@
       <template v-if="!keepAac">
         <div class="setting-group">
           <label class="setting-label">{{ $t('compressLecture.opusVbr') }}</label>
-          <select v-model="opusVbr" class="select-input" :disabled="isRunning">
+          <select v-model="opusVbr" class="select-field" :disabled="isRunning">
             <option value="on">on</option>
             <option value="constrained">constrained</option>
             <option value="off">off</option>
@@ -128,7 +128,7 @@
 
         <div class="setting-group">
           <label class="setting-label">{{ $t('compressLecture.opusFrameDuration') }}</label>
-          <select v-model="opusFrameDuration" class="select-input" :disabled="isRunning">
+          <select v-model="opusFrameDuration" class="select-field" :disabled="isRunning">
             <option :value="20">20</option>
             <option :value="40">40</option>
             <option :value="60">60</option>
@@ -308,7 +308,6 @@ const statusText = computed(() => {
 }
 
 .path-input,
-.select-input,
 .text-input,
 .command-preview {
   width: 100%;

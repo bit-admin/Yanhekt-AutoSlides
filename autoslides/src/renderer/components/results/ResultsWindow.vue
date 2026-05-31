@@ -11,7 +11,7 @@
 
         <div v-if="currentView === 'images'" class="filter-group">
           <label>{{ $t('trash.viewMode') }}:</label>
-          <select v-model="contextMode" class="filter-select">
+          <select v-model="contextMode" class="select-field filter-select">
             <option value="context">{{ $t('trash.showContext') }}</option>
             <option value="extracted-only">{{ $t('trash.extractedOnly') }}</option>
             <option value="removed-only">{{ $t('trash.removedOnly') }}</option>
@@ -20,7 +20,7 @@
 
         <div v-if="currentView === 'images'" class="filter-group">
           <label>{{ $t('trash.filterReason') }}:</label>
-          <select v-model="selectedReason" class="filter-select" :disabled="!hasRemovedItems">
+          <select v-model="selectedReason" class="select-field filter-select" :disabled="!hasRemovedItems">
             <option value="">{{ $t('trash.all') }}</option>
             <option value="duplicate">{{ $t('trash.duplicate') }}</option>
             <option value="exclusion">{{ $t('trash.exclusion') }}</option>
@@ -1149,18 +1149,9 @@ const confirmClearTrash = async () => {
 
 .back-btn,
 .refresh-btn,
+/* Inline filter select — auto width instead of the shared full width */
 .filter-select {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
+  width: auto;
   white-space: nowrap;
 }
 
@@ -1182,13 +1173,7 @@ const confirmClearTrash = async () => {
   border-color: var(--border-strong);
 }
 
-.filter-select:focus {
-  outline: none;
-  border-color: var(--accent);
-}
-
-.refresh-btn:disabled,
-.filter-select:disabled {
+.refresh-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }

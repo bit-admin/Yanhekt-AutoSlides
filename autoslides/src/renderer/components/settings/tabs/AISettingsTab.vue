@@ -277,7 +277,7 @@
             class="model-name-input"
             :placeholder="$t('advanced.ai.copilotModelPlaceholder')"
           />
-          <select v-model="selectedCopilotModelPreset" @change="onCopilotModelPresetChange" class="model-preset-select">
+          <select v-model="selectedCopilotModelPreset" @change="onCopilotModelPresetChange" class="select-field model-preset-select">
             <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
             <option v-for="preset in copilotModelPresets" :key="preset.name" :value="preset.name">
               {{ preset.label }}
@@ -298,7 +298,7 @@
             class="api-url-input"
             :placeholder="$t('advanced.ai.apiBaseUrlPlaceholder')"
           />
-          <select v-model="selectedApiUrlPreset" @change="onApiUrlPresetChange" class="api-url-preset-select">
+          <select v-model="selectedApiUrlPreset" @change="onApiUrlPresetChange" class="select-field api-url-preset-select">
             <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
             <option v-for="preset in apiUrlPresets" :key="preset.url" :value="preset.url">
               {{ preset.label }}
@@ -338,7 +338,7 @@
             class="model-name-input"
             :placeholder="$t('advanced.ai.modelNamePlaceholder')"
           />
-          <select v-model="selectedModelPreset" @change="onModelPresetChange" class="model-preset-select">
+          <select v-model="selectedModelPreset" @change="onModelPresetChange" class="select-field model-preset-select">
             <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
             <option v-for="preset in modelPresets" :key="preset.name" :value="preset.name">
               {{ preset.label }}
@@ -1064,17 +1064,12 @@ const openCopilotVerificationUrl = () => {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
+/* Compact auto-width preset selects (inline in a row, not full width) */
 .api-url-preset-select,
 .model-preset-select {
   flex: 0 0 auto;
+  width: auto;
   min-width: 130px;
-  padding: 6px 12px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 12px;
-  cursor: pointer;
 }
 
 .model-chain-hint {
