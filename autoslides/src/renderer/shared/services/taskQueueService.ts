@@ -319,8 +319,18 @@ class TaskQueueService {
       if (retryCount < maxRetries) {
         setTimeout(checkAndEmitTaskStart, delay)
       } else {
-        console.warn('Max task start retries reached for task:', task.id)
-        // Don't mark as error here - let the PlaybackPage handle timeout
+        // Re-check acknowledgment one last time to avoid a boundary race
+        if (this.acknowledgedTasks.has(task.id)) {
+          return
+        }
+        // The PlaybackPage never acknowledged the start within the retry window.
+        // Fail the task so the queue advances instead of stalling on it forever.
+        console.warn('Max task start retries reached; failing task:', task.id)
+        this.updateTaskStatus(
+          task.id,
+          'error',
+          'Task failed to start: playback page did not become ready in time'
+        )
       }
     }
 
