@@ -1,5 +1,6 @@
 import { reactive, ref } from 'vue'
 import { sanitizeDownloadName } from './downloadNaming'
+import { ExtractionQueue } from './extractionQueueService'
 
 export type DownloadStatus = 'queued' | 'downloading' | 'processing' | 'completed' | 'error'
 
@@ -54,6 +55,12 @@ class DownloadServiceClass {
   private activeDownloads = new Set<string>()
   private maxConcurrent = ref(5)
 
+  constructor() {
+    // The extraction orchestrator reads the queue through this provider rather
+    // than importing DownloadService as a value (breaks the import cycle).
+    ExtractionQueue.setJobProvider(() => this.items)
+  }
+
   // Queue management
   addToQueue(item: Omit<DownloadItem, 'id' | 'status' | 'progress' | 'addedAt'>): DownloadQueueAddResult {
     // Check for duplicates
@@ -77,32 +84,21 @@ class DownloadServiceClass {
 
     this.items.push(downloadItem)
     this.processQueue()
-    // Hook into the extraction queue. This is async but we don't await — the
-    // extraction queue handles its own state transitions, and the download
-    // begins immediately regardless.
-    void this.notifyExtractionQueueAdded(downloadItem)
+    // Hook into the extraction queue. The extraction queue handles its own
+    // state transitions, and the download begins immediately regardless.
+    this.notifyExtractionQueueAdded(downloadItem)
     return { added: true, item: downloadItem }
   }
 
-  private async notifyExtractionQueueAdded(item: DownloadItem): Promise<void> {
-    try {
-      const { ExtractionQueue } = await import('./extractionQueueService')
-      await ExtractionQueue.markPendingIfApplicable(item)
-      ExtractionQueue.ensureWorker()
-    } catch (err) {
-      console.error('[DownloadService] Failed to notify extraction queue:', err)
-    }
+  private notifyExtractionQueueAdded(item: DownloadItem): void {
+    // markPendingIfApplicable is async (it may await the binary-status probe),
+    // but we don't block the download on it — it wakes the worker itself.
+    void ExtractionQueue.markPendingIfApplicable(item)
+    ExtractionQueue.ensureWorker()
   }
 
   private notifyExtractionQueueChange(): void {
-    void (async () => {
-      try {
-        const { ExtractionQueue } = await import('./extractionQueueService')
-        ExtractionQueue.notifyChange()
-      } catch (err) {
-        console.error('[DownloadService] Failed to wake extraction queue:', err)
-      }
-    })()
+    ExtractionQueue.notifyChange()
   }
 
   removeFromQueue(id: string): void {

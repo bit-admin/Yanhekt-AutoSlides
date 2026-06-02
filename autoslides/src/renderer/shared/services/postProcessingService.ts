@@ -63,9 +63,28 @@ class PostProcessingServiceClass {
   // Injected once at startup by the renderer entrypoint. shared/ cannot import
   // from features/ai/, so the renderer wires the callbacks here after import.
   private classifier: ClassifierCallbacks | null = null
+  // Subscribers notified on every job status transition. Lets the extraction
+  // orchestrator watch a job's terminal state without polling.
+  private subscribers = new Set<(job: PostProcessJob) => void>()
 
   setClassifier(callbacks: ClassifierCallbacks): void {
     this.classifier = callbacks
+  }
+
+  /** Subscribe to job status transitions. Returns an unsubscribe function. */
+  subscribe(handler: (job: PostProcessJob) => void): () => void {
+    this.subscribers.add(handler)
+    return () => this.subscribers.delete(handler)
+  }
+
+  private notify(job: PostProcessJob): void {
+    for (const handler of this.subscribers) {
+      try {
+        handler(job)
+      } catch (err) {
+        console.error('[PostProcessing] subscriber error:', err)
+      }
+    }
   }
 
   get jobs() { return this.state.jobs }
@@ -120,7 +139,11 @@ class PostProcessingServiceClass {
 
   removeJob(jobId: string): void {
     const index = this.state.jobs.findIndex(job => job.id === jobId)
-    if (index !== -1) this.state.jobs.splice(index, 1)
+    if (index !== -1) {
+      const [removed] = this.state.jobs.splice(index, 1)
+      // Wake any watcher so it stops waiting on a job that no longer exists.
+      if (removed) this.notify(removed)
+    }
   }
 
   clearCompleted(): void {
@@ -150,6 +173,7 @@ class PostProcessingServiceClass {
     console.log(`[PostProcessing] Starting job ${job.id}`)
     job.status = 'processing'
     job.startedAt = Date.now()
+    this.notify(job)
 
     try {
       const config = await this.loadConfig()
@@ -199,6 +223,7 @@ class PostProcessingServiceClass {
         aiFiltered: job.progress.aiFiltered,
         failed: job.progress.failed
       })
+      this.notify(job)
     } catch (error) {
       console.error(`[PostProcessing] Job ${job.id} failed:`, error)
       job.status = 'failed'
@@ -209,6 +234,7 @@ class PostProcessingServiceClass {
         message: error instanceof Error ? error.message : String(error),
         retryCount: 0
       })
+      this.notify(job)
     }
   }
 

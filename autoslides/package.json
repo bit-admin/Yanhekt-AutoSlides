@@ -11,7 +11,9 @@
     "make:win": "electron-forge package --platform=win32 --arch=x64 && electron-builder --win --config electron-builder.yml --prepackaged out/AutoSlides-win32-x64",
     "make:linux": "electron-forge package --platform=linux --arch=x64 && electron-builder --linux --config electron-builder.yml --prepackaged out/AutoSlides-linux-x64",
     "publish": "electron-forge publish",
-    "lint": "eslint --ext .ts,.tsx ."
+    "lint": "eslint --ext .ts,.tsx .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": {
@@ -40,6 +42,7 @@
     "typescript-eslint": "^8.48.1",
     "vite": "^7.2.6",
     "vite-plugin-static-copy": "^4.1.0",
+    "vitest": "^4.1.8",
     "vue-tsc": "^3.2.6"
   },
   "overrides": {
