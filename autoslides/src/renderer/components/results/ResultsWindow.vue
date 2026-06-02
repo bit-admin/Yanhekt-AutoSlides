@@ -1200,19 +1200,19 @@ const confirmClearTrash = async () => {
 }
 
 .delete-btn {
-  background-color: #d9534f;
+  background-color: var(--danger-strong);
 }
 
 .delete-btn:hover:not(:disabled) {
-  background-color: #c43d39;
+  background-color: var(--danger-strong-hover);
 }
 
 .restore-btn {
-  background-color: #2c7a51;
+  background-color: var(--success-strong);
 }
 
 .restore-btn:hover:not(:disabled) {
-  background-color: #236341;
+  background-color: var(--success-strong-hover);
 }
 
 .auto-crop-btn {
@@ -1220,7 +1220,7 @@ const confirmClearTrash = async () => {
 }
 
 .auto-crop-btn:hover:not(:disabled) {
-  background-color: #006bb3;
+  background-color: var(--accent-hover);
 }
 
 .clear-btn {
@@ -1228,15 +1228,15 @@ const confirmClearTrash = async () => {
 }
 
 .clear-btn:hover:not(:disabled) {
-  background-color: #5b646b;
+  background-color: var(--neutral-strong-hover);
 }
 
 .dedup-btn {
-  background-color: #9a6a14;
+  background-color: var(--warning-strong);
 }
 
 .dedup-btn:hover:not(:disabled) {
-  background-color: #81570f;
+  background-color: var(--warning-strong-hover);
 }
 
 .delete-btn:disabled,
@@ -1279,8 +1279,8 @@ const confirmClearTrash = async () => {
 }
 
 .edit-btn-active:hover:not(:disabled) {
-  background-color: #006bb3;
-  border-color: #006bb3;
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
 }
 
 .edit-count {
@@ -1334,7 +1334,7 @@ const confirmClearTrash = async () => {
   top: 100%;
   left: 0;
   right: 0;
-  background-color: #2c7a51;
+  background-color: var(--success-strong);
   border-top: 1px solid rgba(255, 255, 255, 0.25);
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 4px;
@@ -1347,18 +1347,18 @@ const confirmClearTrash = async () => {
 }
 
 .action-split-auto-crop .action-split-menu-item:hover:not(:disabled) {
-  background-color: #006bb3;
+  background-color: var(--accent-hover);
 }
 
 .action-split-dedup .action-split-menu {
-  background-color: #9a6a14;
+  background-color: var(--warning-strong);
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
 }
 
 .action-split-dedup .action-split-menu-item:hover:not(:disabled) {
-  background-color: #81570f;
+  background-color: var(--warning-strong-hover);
 }
 
 .action-split-dedup .action-split-menu-wide {
@@ -1379,7 +1379,7 @@ const confirmClearTrash = async () => {
   border: none;
   padding: 6px 10px;
   cursor: pointer;
-  color: #ffffff;
+  color: var(--text-on-accent);
 }
 
 .action-split-menu-item + .action-split-menu-item {
@@ -1387,7 +1387,7 @@ const confirmClearTrash = async () => {
 }
 
 .action-split-menu-item:hover:not(:disabled) {
-  background-color: #236341;
+  background-color: var(--success-strong-hover);
 }
 
 .action-split-menu-item:disabled {
@@ -1408,13 +1408,13 @@ const confirmClearTrash = async () => {
   gap: 6px;
   min-height: 30px;
   padding: 6px 10px;
-  color: #ffffff;
+  color: var(--text-on-accent);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .action-split-checkbox:hover {
-  background-color: #81570f;
+  background-color: var(--warning-strong-hover);
 }
 
 .action-split-checkbox input {
@@ -1481,7 +1481,7 @@ const confirmClearTrash = async () => {
 .course-chevron {
   flex-shrink: 0;
   margin-left: auto;
-  color: #7b8794;
+  color: var(--text-muted);
   transition: transform 0.15s;
   cursor: pointer;
 }
@@ -1557,7 +1557,7 @@ const confirmClearTrash = async () => {
 
 .folder-item-selected:hover {
   background-color: var(--danger-bg);
-  border-color: #c43d39;
+  border-color: var(--danger-strong-hover);
 }
 
 .folder-item-grouped {
@@ -1612,7 +1612,7 @@ const confirmClearTrash = async () => {
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
-  color: #7b8794;
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 500;
 }
@@ -1639,7 +1639,7 @@ const confirmClearTrash = async () => {
 }
 
 .folder-count-separator {
-  color: #a0a8b1;
+  color: var(--text-secondary);
 }
 
 .count-value {
@@ -1658,7 +1658,7 @@ const confirmClearTrash = async () => {
 
 .folder-chevron {
   flex-shrink: 0;
-  color: #7b8794;
+  color: var(--text-muted);
 }
 
 

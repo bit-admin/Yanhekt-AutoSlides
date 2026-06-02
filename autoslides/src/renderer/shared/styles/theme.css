@@ -59,6 +59,18 @@
   --warning-btn: #ffc107;
   --warning-btn-hover: #e0a800;
 
+  /* Solid action-button colors (white text on a saturated fill — e.g. Results
+     View delete/restore/dedup). Dark values are only moderately deepened so
+     white text keeps >=4.5:1 contrast; they are NOT the bright --danger/
+     --warning status hues, which white text would fail against. */
+  --danger-strong: #d9534f;
+  --danger-strong-hover: #c43d39;
+  --success-strong: #2c7a51;
+  --success-strong-hover: #236341;
+  --warning-strong: #9a6a14;
+  --warning-strong-hover: #81570f;
+  --neutral-strong-hover: #5b646b;
+
   /* Overlays */
   --overlay-dark: rgba(0, 0, 0, 0.3);
   --overlay-light: rgba(255, 255, 255, 0.3);
@@ -186,6 +198,16 @@
     --warning: #ffa726;
     --warning-btn: #f39c12;
     --warning-btn-hover: #e67e22;
+
+    /* Solid action-button colors — deepened (not brightened) so white text
+       stays legible against dark surfaces. */
+    --danger-strong: #c0392b;
+    --danger-strong-hover: #a93226;
+    --success-strong: #2f8a5b;
+    --success-strong-hover: #246b48;
+    --warning-strong: #a87714;
+    --warning-strong-hover: #8f6310;
+    --neutral-strong-hover: #6b747b;
 
     /* Overlays */
     --overlay-dark: rgba(0, 0, 0, 0.7);
