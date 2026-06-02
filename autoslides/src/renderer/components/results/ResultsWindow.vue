@@ -1178,9 +1178,7 @@ const confirmClearTrash = async () => {
   cursor: not-allowed;
 }
 
-.refresh-btn svg.spinning {
-  animation: spin 1s linear infinite;
-}
+/* svg.spinning rotation is shared (.spinning in components.css). */
 
 .delete-btn,
 .restore-btn,

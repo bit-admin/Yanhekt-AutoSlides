@@ -395,6 +395,13 @@
   border-width: 4px;
 }
 
+/* Rotate any element in place (e.g. a refresh icon) via the shared spin
+   keyframe. A component can still override the timing with a more specific
+   scoped rule. */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
 /* === Loading / empty state === */
 
 .loading-state {
@@ -403,6 +410,55 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
+}
+
+/* Empty-queue placeholder shared by the task + download queue panels. */
+.empty-queue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-secondary);
+}
+
+.empty-icon {
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-queue p {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* Circular per-item status indicator shared by the queue panels. The
+   queued/completed/error variants are common; panel-specific variants
+   (downloading pulse, processing spin) stay local to their component. */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+
+.status-indicator.status-queued {
+  color: var(--text-dim);
+  background-color: var(--bg-elevated);
+}
+
+.status-indicator.status-completed {
+  color: var(--success);
+  background-color: var(--success-bg);
+}
+
+.status-indicator.status-error {
+  color: var(--danger-pink);
+  background-color: var(--danger-bg);
 }
 
 /* === Progress bar === */

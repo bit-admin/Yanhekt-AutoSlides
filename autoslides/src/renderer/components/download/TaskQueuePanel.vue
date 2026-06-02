@@ -266,30 +266,7 @@ const removeTask = (taskId: string) => {
   flex-shrink: 0;
 }
 
-.status-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-}
-
-.status-indicator.status-queued {
-  color: var(--text-dim);
-  background-color: var(--bg-elevated);
-}
-
-.status-indicator.status-completed {
-  color: var(--success);
-  background-color: var(--success-bg);
-}
-
-.status-indicator.status-error {
-  color: var(--danger-pink);
-  background-color: var(--danger-bg);
-}
+/* .status-indicator + queued/completed/error variants are shared (components.css). */
 
 .item-info {
   flex: 1;
@@ -372,25 +349,7 @@ const removeTask = (taskId: string) => {
   background-color: var(--danger-bg);
 }
 
-.empty-queue {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 32px 16px;
-  color: var(--text-secondary);
-}
-
-.empty-icon {
-  margin-bottom: 16px;
-  opacity: 0.6;
-}
-
-.empty-queue p {
-  margin: 0 0 20px 0;
-  font-size: 14px;
-  font-style: italic;
-}
+/* .empty-queue / .empty-icon / .empty-queue p are shared (components.css). */
 
 
 </style>

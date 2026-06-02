@@ -311,21 +311,9 @@ const extractionBarWidth = (item: DownloadItem): number => {
   flex-shrink: 0;
 }
 
-.status-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-}
-
-.status-indicator.status-queued {
-  color: var(--text-dim);
-  background-color: var(--bg-elevated);
-}
-
+/* .status-indicator base + queued/completed/error variants are shared
+   (components.css). The downloading (pulse) + processing (spin) variants below
+   are specific to the download queue. */
 .status-indicator.status-downloading {
   color: var(--accent);
   background-color: var(--badge-active-bg);
@@ -336,16 +324,6 @@ const extractionBarWidth = (item: DownloadItem): number => {
   color: var(--warning);
   background-color: var(--warning-bg);
   animation: spin 2s linear infinite;
-}
-
-.status-indicator.status-completed {
-  color: var(--success);
-  background-color: var(--success-bg);
-}
-
-.status-indicator.status-error {
-  color: var(--danger-pink);
-  background-color: var(--danger-bg);
 }
 
 @keyframes pulse {
@@ -505,25 +483,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
   background-color: var(--success-bg);
 }
 
-.empty-queue {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 32px 16px;
-  color: var(--text-secondary);
-}
-
-.empty-icon {
-  margin-bottom: 16px;
-  opacity: 0.6;
-}
-
-.empty-queue p {
-  margin: 0 0 20px 0;
-  font-size: 14px;
-  font-style: italic;
-}
+/* .empty-queue / .empty-icon / .empty-queue p are shared (components.css). */
 
 
 </style>
