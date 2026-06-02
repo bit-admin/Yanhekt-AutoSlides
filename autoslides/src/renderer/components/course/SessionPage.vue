@@ -239,9 +239,12 @@ onMounted(() => {
   flex: 1;
 }
 
+/* Square 32×32 icon button — padding:0 so the chevron is not crushed by
+   .btn's horizontal padding under box-sizing: border-box. */
 .expand-btn {
   width: 32px;
   height: 32px;
+  padding: 0;
 }
 
 .expand-btn svg {

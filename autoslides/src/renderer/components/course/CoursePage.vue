@@ -552,9 +552,12 @@ onUnmounted(() => {
   background-color: var(--bg-modal); /* Ensure visibility */
 }
 
+/* Square 32×32 icon button — padding:0 so the chevron is not crushed by
+   .btn's horizontal padding under box-sizing: border-box. */
 .page-btn {
   width: 32px;
   height: 32px;
+  padding: 0;
 }
 
 .page-info {
