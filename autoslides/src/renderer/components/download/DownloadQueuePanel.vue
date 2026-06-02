@@ -288,7 +288,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
 }
 
 .download-item.status-queued {
-  border-left: 3px solid var(--text-dim);
+  border-left: 3px solid var(--status-queued);
 }
 
 .download-item.status-downloading {
@@ -326,11 +326,6 @@ const extractionBarWidth = (item: DownloadItem): number => {
   animation: spin 2s linear infinite;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
 .item-info {
   flex: 1;
   min-width: 0;
@@ -357,30 +352,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
   color: var(--text-secondary);
 }
 
-.post-process-affiliated-panel {
-  width: 100%;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-top: none;
-  border-radius: 0 0 6px 6px;
-  padding: 4px 6px;
-  margin-top: 0;
-}
-
-.pp-panel-content {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-  font-size: 8px;
-}
-
-.pp-panel-content :deep(.pp-bar) {
-  gap: 8px;
-}
-
-.pp-panel-content :deep(.pp-phase-bar) {
-  height: 3px;
-}
+/* .post-process-affiliated-panel + .pp-panel-content are shared (components.css). */
 
 .extraction-affiliated-panel {
   width: 100%;
@@ -453,7 +425,7 @@ const extractionBarWidth = (item: DownloadItem): number => {
   background-color: var(--danger);
 }
 
-.ext-status-pending .ext-name { color: var(--text-dim); }
+.ext-status-pending .ext-name { color: var(--text-muted); }
 .ext-status-completed .ext-name { color: var(--success); }
 .ext-status-error .ext-name,
 .ext-status-cancelled .ext-name { color: var(--danger-pink); }

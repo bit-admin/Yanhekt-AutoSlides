@@ -422,11 +422,7 @@ const openExtractorRepository = async () => {
   cursor: not-allowed;
 }
 .extractor-refresh-btn .spinning {
-  animation: extractor-spin 0.8s linear infinite;
-}
-@keyframes extractor-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  animation: spin 0.8s linear infinite;
 }
 
 /* Inline status text on the right of the "Extractor binary" label row. */

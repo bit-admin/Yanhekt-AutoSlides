@@ -862,7 +862,7 @@ const openCopilotVerificationUrl = () => {
   padding: 7px 14px;
   border: 1px solid var(--brand-github);
   background-color: var(--brand-github);
-  color: white;
+  color: var(--text-on-accent);
   font-size: 12px;
   font-weight: 500;
   border-radius: 6px;
@@ -936,7 +936,7 @@ const openCopilotVerificationUrl = () => {
   letter-spacing: 4px;
   color: var(--text-primary);
   padding: 12px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
   border: 2px dashed var(--border-strong);
   border-radius: 8px;
   margin-bottom: 12px;
@@ -1120,7 +1120,7 @@ const openCopilotVerificationUrl = () => {
   padding: 0;
   border: 1px solid var(--border-input);
   border-radius: 4px;
-  background: var(--bg-modal);
+  background: var(--bg-card);
   color: var(--text-secondary);
   cursor: pointer;
   font-size: 12px;
@@ -1295,7 +1295,7 @@ const openCopilotVerificationUrl = () => {
   align-items: center;
   margin-top: 8px;
   padding: 10px 12px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 4px;
   min-height: 20px;

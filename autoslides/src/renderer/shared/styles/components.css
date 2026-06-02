@@ -402,6 +402,12 @@
   animation: spin 1s linear infinite;
 }
 
+/* Shared pulse (opacity breathing) for live/active status indicators. */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* === Loading / empty state === */
 
 .loading-state {
@@ -447,7 +453,7 @@
 }
 
 .status-indicator.status-queued {
-  color: var(--text-dim);
+  color: var(--text-muted);
   background-color: var(--bg-elevated);
 }
 
@@ -459,6 +465,36 @@
 .status-indicator.status-error {
   color: var(--danger-pink);
   background-color: var(--danger-bg);
+}
+
+/* === Post-process affiliated panel ===
+   The post-processing bar wrapper that hangs off the bottom of a queue/download
+   row. Shared by the task + download queue panels; each panel keeps its own
+   status border-left rules (they reference panel-specific item classes). */
+
+.post-process-affiliated-panel {
+  width: 100%;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  padding: 4px 6px;
+  margin-top: 0;
+}
+
+.pp-panel-content {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  font-size: 8px;
+}
+
+.pp-panel-content .pp-bar {
+  gap: 8px;
+}
+
+.pp-panel-content .pp-phase-bar {
+  height: 3px;
 }
 
 /* === Progress bar === */

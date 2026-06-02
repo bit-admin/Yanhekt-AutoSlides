@@ -313,7 +313,7 @@ onUnmounted(() => {
   flex-direction: column;
   height: 100%;
   padding: 16px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 
@@ -455,7 +455,7 @@ onUnmounted(() => {
 }
 
 .status-unknown {
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   color: var(--text-muted);
 }
 
@@ -549,7 +549,7 @@ onUnmounted(() => {
   padding: 12px 0;
   border-top: 1px solid var(--border-color);
   flex-shrink: 0; /* Prevent pagination from shrinking */
-  background-color: var(--bg-modal); /* Ensure visibility */
+  background-color: var(--bg-elevated); /* Ensure visibility */
 }
 
 /* Square 32×32 icon button — padding:0 so the chevron is not crushed by
@@ -580,7 +580,7 @@ onUnmounted(() => {
   padding: 8px 12px;
   border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
   color: var(--text-primary);
   font-size: 14px;
   cursor: pointer;
@@ -739,7 +739,7 @@ onUnmounted(() => {
 
 .shortcut-remove:hover {
   background: rgba(239, 68, 68, 0.8);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .shortcut-icon {
@@ -761,7 +761,7 @@ onUnmounted(() => {
 .course-shortcut-add {
   border-style: dashed;
   border-color: var(--border-color);
-  background: var(--bg-modal);
+  background: var(--bg-card);
 }
 
 .course-shortcut-add:hover {
@@ -770,7 +770,7 @@ onUnmounted(() => {
 }
 
 .shortcut-add-icon {
-  color: var(--text-dim);
+  color: var(--text-muted);
 }
 
 .course-shortcut-add:hover .shortcut-add-icon {

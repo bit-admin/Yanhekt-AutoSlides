@@ -186,7 +186,7 @@ defineExpose({
 .navigation-bar {
   display: flex;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-modal);
+  background-color: var(--bg-surface);
 }
 
 .nav-btn {

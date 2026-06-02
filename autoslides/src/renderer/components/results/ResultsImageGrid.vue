@@ -107,9 +107,9 @@ const getCropLabel = (item: ResultsItem) => {
 
 .result-item {
   position: relative;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
   color: var(--text-primary);
-  border: 2px solid var(--bg-hover);
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;

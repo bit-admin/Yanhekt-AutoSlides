@@ -241,7 +241,7 @@ onUnmounted(() => {
 .navigation-bar {
   display: flex;
   border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-modal);
+  background-color: var(--bg-surface);
 }
 
 .nav-btn {
@@ -303,11 +303,4 @@ onUnmounted(() => {
   font-weight: bold;
   animation: pulse 2s infinite;
 }
-
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-
 </style>

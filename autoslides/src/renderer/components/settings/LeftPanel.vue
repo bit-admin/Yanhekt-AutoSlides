@@ -652,11 +652,11 @@ defineExpose({
   border: 1px solid var(--border-input);
   border-bottom: none;
   border-radius: 8px 8px 0 0;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
 }
 
 .user-banner.open:hover {
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
 }
 
 .user-avatar {
@@ -664,7 +664,7 @@ defineExpose({
   height: 24px;
   border-radius: 50%;
   background-color: var(--accent);
-  color: white;
+  color: var(--text-on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -705,7 +705,7 @@ defineExpose({
   border: 1px solid var(--border-input);
   border-top: none;
   border-radius: 0 0 8px 8px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
   padding: 8px;
 }
@@ -983,7 +983,7 @@ defineExpose({
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-elevated);
   border-left: 1px solid var(--border-input);
 }
 
@@ -1212,7 +1212,7 @@ defineExpose({
   padding: 6px 8px;
   border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
   color: var(--text-primary);
   font-size: 11px;
   font-weight: 500;

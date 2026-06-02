@@ -584,7 +584,7 @@ const {
   margin-top: 12px;
   padding: 12px;
   background-color: var(--bg-elevated);
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 11px;
 }
@@ -642,7 +642,7 @@ const {
 .rules-reason {
   margin-top: 8px;
   padding-top: 8px;
-  border-top: 1px solid var(--bg-hover);
+  border-top: 1px solid var(--border-color);
   color: var(--text-secondary);
   font-style: italic;
   line-height: 1.4;
@@ -716,12 +716,12 @@ const {
   font-size: 11px;
   font-style: italic;
   background-color: var(--bg-elevated);
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
 }
 
 .exclusion-list {
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   background-color: var(--bg-elevated);
   max-height: 200px;
@@ -733,7 +733,7 @@ const {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--bg-hover);
+  border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-surface);
   transition: background-color 0.2s;
 }

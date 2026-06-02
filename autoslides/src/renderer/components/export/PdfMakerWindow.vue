@@ -506,7 +506,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 
@@ -646,7 +646,7 @@ onUnmounted(() => {
   padding: 10px;
   border: 1px solid var(--border-input);
   border-radius: 6px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
   box-shadow: 0 8px 24px var(--shadow-md);
 }
 
@@ -714,7 +714,7 @@ onUnmounted(() => {
   padding: 6px 8px;
   border-radius: 4px;
   background-color: var(--bg-elevated);
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-color);
   font-size: 12px;
   color: var(--text-primary);
   cursor: pointer;
@@ -839,7 +839,7 @@ onUnmounted(() => {
   gap: 12px;
   padding: 10px 12px;
   background-color: var(--bg-surface);
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
@@ -847,7 +847,7 @@ onUnmounted(() => {
 
 .folder-item:hover {
   background-color: var(--bg-elevated);
-  border-color: var(--bg-hover);
+  border-color: var(--border-color);
 }
 
 .folder-item.selected {

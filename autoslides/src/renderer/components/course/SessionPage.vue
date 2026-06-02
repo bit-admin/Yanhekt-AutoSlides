@@ -211,7 +211,7 @@ onMounted(() => {
   flex-direction: column;
   height: 100%;
   padding: 16px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 
@@ -228,7 +228,7 @@ onMounted(() => {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
 }
 
 .header h2 {
@@ -258,7 +258,7 @@ onMounted(() => {
 .course-details {
   padding: 16px;
   border-top: 1px solid var(--border-color);
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
@@ -334,7 +334,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s;
@@ -468,7 +468,7 @@ onMounted(() => {
   height: 40px;
   border: 1px solid var(--border-input);
   border-radius: 4px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
   cursor: pointer;
   transition: all 0.2s;
   gap: 2px;

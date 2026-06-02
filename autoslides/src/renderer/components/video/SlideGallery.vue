@@ -55,7 +55,7 @@ defineEmits<{
   background-color: var(--bg-surface);
   border-radius: 8px;
   overflow: hidden;
-  border: 2px solid var(--bg-hover);
+  border: 2px solid var(--border-color);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -96,7 +96,7 @@ defineEmits<{
 .slide-title {
   font-size: 12px;
   font-weight: 500;
-  color: white;
+  color: var(--text-on-accent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -112,7 +112,7 @@ defineEmits<{
   border: none;
   border-radius: 4px;
   background-color: rgba(220, 53, 69, 0.8);
-  color: white;
+  color: var(--text-on-accent);
   cursor: pointer;
   transition: all 0.2s;
   flex-shrink: 0;

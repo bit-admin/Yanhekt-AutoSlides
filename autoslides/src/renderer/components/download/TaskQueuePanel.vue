@@ -247,7 +247,7 @@ const removeTask = (taskId: string) => {
 }
 
 .task-item.status-queued {
-  border-left: 3px solid var(--text-dim);
+  border-left: 3px solid var(--status-queued);
 }
 
 .task-item.status-in_progress {
@@ -294,15 +294,7 @@ const removeTask = (taskId: string) => {
   color: var(--text-secondary);
 }
 
-.post-process-affiliated-panel {
-  width: 100%;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-top: none;
-  border-radius: 0 0 6px 6px;
-  padding: 4px 6px;
-  margin-top: 0;
-}
+/* .post-process-affiliated-panel + .pp-panel-content are shared (components.css). */
 
 .task-item.status-queued + .post-process-affiliated-panel {
   border-left: 3px solid var(--status-queued);
@@ -318,21 +310,6 @@ const removeTask = (taskId: string) => {
 
 .task-item.status-error + .post-process-affiliated-panel {
   border-left: 3px solid var(--status-error);
-}
-
-.pp-panel-content {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-  font-size: 8px;
-}
-
-.pp-panel-content :deep(.pp-bar) {
-  gap: 8px;
-}
-
-.pp-panel-content :deep(.pp-phase-bar) {
-  height: 3px;
 }
 
 .item-actions {

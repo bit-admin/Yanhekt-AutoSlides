@@ -25,7 +25,6 @@
   --bg-input: #ffffff;
   --bg-input-disabled: #f8f9fa;
   --bg-hover: #e9ecef;
-  --bg-control: #ffffff;
   --bg-card: #ffffff;
 
   /* Text */
@@ -33,7 +32,6 @@
   --text-secondary: #666666;
   --text-muted: #999999;
   --text-on-accent: #ffffff;
-  --text-dim: #999999;
   --text-warning: #856404;
 
   /* Borders */
@@ -165,7 +163,6 @@
     --bg-input: #2d2d2d;
     --bg-input-disabled: #2d2d2d;
     --bg-hover: #353535;
-    --bg-control: #2d2d2d;
     --bg-card: #2d2d2d;
 
     /* Text */
@@ -173,7 +170,6 @@
     --text-secondary: #b0b0b0;
     --text-muted: #888888;
     --text-on-accent: #ffffff;
-    --text-dim: #9e9e9e;
     --text-warning: #d4b942;
 
     /* Borders */

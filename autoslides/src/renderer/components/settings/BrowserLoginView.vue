@@ -251,7 +251,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: var(--bg-modal);
+  background: var(--bg-elevated);
   border-bottom: 1px solid var(--border-color);
   flex-shrink: 0;
 }
@@ -315,7 +315,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 16px;
   padding: 6px 16px;
-  background: var(--bg-modal);
+  background: var(--bg-elevated);
   border-top: 1px solid var(--border-color);
   flex-shrink: 0;
   min-height: 28px;

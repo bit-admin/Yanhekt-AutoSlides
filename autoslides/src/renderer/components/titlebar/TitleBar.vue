@@ -425,7 +425,7 @@ const checkForUpdates = () => {
   display: flex;
   align-items: center;
   height: 36px;
-  background: var(--bg-modal);
+  background: var(--bg-elevated);
   border-bottom: 1px solid var(--border-color);
   user-select: none;
   position: relative;
@@ -434,7 +434,7 @@ const checkForUpdates = () => {
 
 .titlebar.is-macos {
   height: 36px;
-  background: var(--bg-modal);
+  background: var(--bg-elevated);
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -479,7 +479,7 @@ const checkForUpdates = () => {
   top: 100%;
   left: 0;
   min-width: 200px;
-  background: var(--bg-modal);
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -788,12 +788,12 @@ const checkForUpdates = () => {
 
 .control-button.close:hover {
   background: #c42b1c;
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .control-button.close:active {
   background: #a23216;
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .control-button svg {

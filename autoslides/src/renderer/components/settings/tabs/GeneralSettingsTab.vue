@@ -207,7 +207,7 @@ const {
   margin-bottom: 12px;
   padding: 12px;
   background-color: var(--bg-elevated);
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-color);
   border-radius: 6px;
 }
 

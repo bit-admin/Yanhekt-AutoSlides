@@ -424,7 +424,7 @@ const autoCropOverallProgress = computed(() => {
 
 /* Accent-outline action button (fills on hover); pinned left of the action row */
 .open-output-btn {
-  background-color: var(--bg-modal);
+  background-color: var(--bg-surface);
   border-color: var(--accent);
   color: var(--accent);
   margin-right: auto;

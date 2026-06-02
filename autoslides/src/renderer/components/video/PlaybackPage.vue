@@ -1157,7 +1157,7 @@ onUnmounted(async () => {
   flex-direction: column;
   height: 100%;
   padding: 16px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 
@@ -1174,7 +1174,7 @@ onUnmounted(async () => {
   align-items: center;
   gap: 16px;
   padding: 16px;
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
 }
 
 .back-btn:hover:not(:disabled) {
@@ -1210,7 +1210,7 @@ onUnmounted(async () => {
   margin-top: 4px;
   padding: 2px 6px;
   background-color: var(--success);
-  color: white;
+  color: var(--text-on-accent);
   font-size: 12px;
   border-radius: 4px;
   width: fit-content;
@@ -1249,7 +1249,7 @@ onUnmounted(async () => {
 .course-details {
   padding: 16px;
   border-top: 1px solid var(--border-color);
-  background-color: var(--bg-modal);
+  background-color: var(--bg-card);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
@@ -1370,7 +1370,7 @@ onUnmounted(async () => {
   position: relative;
   width: 100%;
   background-color: #000;
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-color);
   border-top: none;
   border-radius: 0;
   overflow: hidden;
@@ -1411,7 +1411,7 @@ onUnmounted(async () => {
   gap: 6px;
   padding: 6px 12px;
   background-color: rgba(220, 53, 69, 0.9);
-  color: white;
+  color: var(--text-on-accent);
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
@@ -1432,7 +1432,7 @@ onUnmounted(async () => {
   gap: 12px;
   padding: 12px 20px;
   background-color: rgba(0, 0, 0, 0.8);
-  color: white;
+  color: var(--text-on-accent);
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
@@ -1491,7 +1491,7 @@ onUnmounted(async () => {
   padding: 4px 8px;
   border-radius: 4px;
   background-color: rgba(0, 0, 0, 0.65);
-  color: white;
+  color: var(--text-on-accent);
   font-size: 12px;
   font-weight: 600;
 }
@@ -1731,7 +1731,7 @@ onUnmounted(async () => {
   padding: 12px;
   background-color: var(--bg-elevated);
   border-radius: 6px;
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-color);
 }
 
 .detail-item {
@@ -1808,7 +1808,7 @@ onUnmounted(async () => {
   align-items: center;
   padding: 16px;
   background-color: var(--bg-elevated);
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-color);
   border-radius: 0 0 8px 8px;
 }
 
@@ -1821,7 +1821,7 @@ onUnmounted(async () => {
 /* When gallery is part of the video content group, adjust the control styling */
 .video-content .slide-gallery .slide-extraction-control {
   border-radius: 0 0 8px 8px;
-  border-top: 1px solid var(--bg-hover);
+  border-top: 1px solid var(--border-color);
 }
 
 .extraction-main {
@@ -1931,7 +1931,7 @@ onUnmounted(async () => {
 .slide-gallery {
   margin-top: 24px;
   background-color: var(--bg-elevated);
-  border: 1px solid var(--bg-hover);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
 }
 

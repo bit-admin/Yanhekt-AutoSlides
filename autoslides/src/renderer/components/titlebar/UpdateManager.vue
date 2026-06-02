@@ -592,7 +592,7 @@ defineExpose({
   cursor: pointer;
   transition: all 0.2s;
   background: var(--brand-github);
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .download-btn:hover {
