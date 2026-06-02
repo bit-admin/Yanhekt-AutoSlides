@@ -413,7 +413,7 @@
           <select
             v-model="selectedAddPreset"
             @change="onAddPresetSelect"
-            class="model-chain-preset-select"
+            class="select-field model-chain-preset-select"
           >
             <option value="">{{ $t('advanced.ai.selectPreset') }}</option>
             <option
@@ -1184,16 +1184,12 @@ const openCopilotVerificationUrl = () => {
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
+/* .select-field provides the look; this only constrains the width so the
+   preset select sits inline next to the model-chain add input. */
 .model-chain-preset-select {
   flex: 0 0 auto;
+  width: auto;
   min-width: 130px;
-  padding: 6px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 12px;
-  cursor: pointer;
 }
 
 .model-chain-add-btn {

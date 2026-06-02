@@ -34,7 +34,7 @@
         <select
           v-model="ssimPreset"
           @change="onSsimPresetChange"
-          class="ssim-preset-select"
+          class="select-field ssim-preset-select"
         >
           <option value="adaptive">{{ $t('advanced.ssimPresets.adaptive') }}</option>
           <option value="strict">{{ $t('advanced.ssimPresets.strict') }}</option>
@@ -522,23 +522,12 @@ const {
   margin-bottom: 4px;
 }
 
+/* .select-field provides the look; this only constrains the width so the
+   preset select sits inline next to the SSIM number input. */
 .ssim-preset-select {
   flex: 0 0 auto;
+  width: auto;
   min-width: 140px;
-  padding: 6px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-
-.ssim-preset-select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .ssim-input {
