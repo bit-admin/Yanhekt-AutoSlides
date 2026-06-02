@@ -82,18 +82,7 @@ defineEmits<{
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: var(--z-modal);
-}
+/* .modal-overlay backdrop is identical to the shared one in modal.css. */
 
 .modal-content {
   background-color: var(--bg-modal);

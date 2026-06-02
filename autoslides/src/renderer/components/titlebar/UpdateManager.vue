@@ -433,16 +433,9 @@ defineExpose({
 </script>
 
 <style scoped>
+/* Backdrop is shared (.modal-overlay in modal.css); only the z-index differs
+   so the update modal sits above the main app modals. */
 .modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   z-index: var(--z-super-modal);
 }
 

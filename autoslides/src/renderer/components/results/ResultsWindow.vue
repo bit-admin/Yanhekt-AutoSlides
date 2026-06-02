@@ -239,8 +239,8 @@
                 @change="selectAllInCourse(group.folderNames)"
               />
               <svg class="course-icon" width="16" height="16" viewBox="0 0 16 16">
-                <path d="M8 2L1 6l7 4 7-4L8 2z" fill="#3b6ea5"/>
-                <path d="M4 7.5v4c0 1.2 1.8 2 4 2s4-.8 4-2v-4L8 10.5 4 7.5z" fill="#5a9fd4"/>
+                <path d="M8 2L1 6l7 4 7-4L8 2z"/>
+                <path d="M4 7.5v4c0 1.2 1.8 2 4 2s4-.8 4-2v-4L8 10.5 4 7.5z"/>
               </svg>
               <span class="course-name">{{ group.courseName }}</span>
               <svg
@@ -1474,6 +1474,15 @@ const confirmClearTrash = async () => {
 
 .course-icon {
   flex-shrink: 0;
+}
+
+/* Two-tone course glyph, themed via accent tokens so it adapts to dark mode. */
+.course-icon path:first-child {
+  fill: var(--accent-strong);
+}
+
+.course-icon path:last-child {
+  fill: var(--accent);
 }
 
 .course-chevron {
