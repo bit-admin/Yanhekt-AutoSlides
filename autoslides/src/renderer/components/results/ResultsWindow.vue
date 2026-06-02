@@ -2,7 +2,7 @@
   <div class="results-window">
     <div class="toolbar">
       <div class="toolbar-left">
-        <button v-if="currentView === 'images'" class="back-btn" @click="goBack">
+        <button v-if="currentView === 'images'" class="btn back-btn" @click="goBack">
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
           </svg>
@@ -30,7 +30,7 @@
           </select>
         </div>
 
-        <button class="refresh-btn" @click="refresh" :disabled="isLoading">
+        <button class="btn refresh-btn" @click="refresh" :disabled="isLoading">
           <svg width="16" height="16" viewBox="0 0 16 16" :class="{ spinning: isLoading }">
             <path d="M13.65 2.35A7.958 7.958 0 008 0a8 8 0 108 8h-2a6 6 0 11-1.76-4.24l-2.12 2.12H16V0l-2.35 2.35z" fill="currentColor"/>
           </svg>
@@ -1147,8 +1147,6 @@ const confirmClearTrash = async () => {
   gap: 8px;
 }
 
-.back-btn,
-.refresh-btn,
 /* Inline filter select — auto width instead of the shared full width */
 .filter-select {
   width: auto;
@@ -1167,18 +1165,8 @@ const confirmClearTrash = async () => {
   white-space: nowrap;
 }
 
-.back-btn:hover,
-.refresh-btn:hover:not(:disabled) {
-  background-color: var(--bg-hover);
-  border-color: var(--border-strong);
-}
-
-.refresh-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* svg.spinning rotation is shared (.spinning in components.css). */
+/* back/refresh use the shared .btn (base, :hover, :disabled all from
+   components.css); svg.spinning rotation is shared too (.spinning). */
 
 .delete-btn,
 .restore-btn,
