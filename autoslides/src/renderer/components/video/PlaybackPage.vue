@@ -1761,7 +1761,7 @@ onUnmounted(async () => {
 
 .combined-warning svg {
   flex-shrink: 0;
-  color: #f39c12;
+  color: var(--warning);
   margin-top: 2px;
 }
 

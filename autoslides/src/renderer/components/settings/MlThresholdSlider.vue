@@ -162,9 +162,9 @@ function onSlideCheckInput(event: Event) {
 
 <style scoped>
 .ml-threshold-sliders {
-  --zone-keep-color: #34a853;
-  --zone-check-color: #f59e0b;
-  --zone-delete-color: #ef4444;
+  --zone-keep-color: var(--success);
+  --zone-check-color: var(--warning-btn);
+  --zone-delete-color: var(--danger);
 
   display: flex;
   flex-direction: column;

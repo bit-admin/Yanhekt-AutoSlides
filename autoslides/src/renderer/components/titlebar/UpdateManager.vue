@@ -722,11 +722,11 @@ defineExpose({
 .notice-text code {
   flex: 1;
   padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.6);
+  background: var(--bg-surface);
   border-radius: 4px;
   font-size: 10px;
   font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, monospace;
-  color: #713f12;
+  color: var(--text-warning);
   word-break: break-all;
 }
 
@@ -737,13 +737,13 @@ defineExpose({
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  color: #854d0e;
+  color: var(--text-warning);
   transition: all 0.2s;
 }
 
 .copy-btn:hover {
-  background: rgba(255, 255, 255, 0.5);
-  color: #713f12;
+  background: var(--hover-tint);
+  color: var(--text-warning);
 }
 
 .copy-btn:active {

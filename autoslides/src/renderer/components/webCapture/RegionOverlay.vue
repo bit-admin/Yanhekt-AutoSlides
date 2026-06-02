@@ -124,7 +124,7 @@ const onCancel = () => {
 
 .region-rect {
   position: absolute;
-  border: 2px solid #007acc;
+  border: 2px solid var(--accent);
   background-color: rgba(0, 122, 204, 0.18);
   pointer-events: none;
 }

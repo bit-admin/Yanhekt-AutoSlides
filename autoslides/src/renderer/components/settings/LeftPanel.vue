@@ -1038,7 +1038,7 @@ defineExpose({
 }
 
 .status-value.external {
-  color: #ffc107;
+  color: var(--warning-btn);
 }
 
 .modal-overlay {

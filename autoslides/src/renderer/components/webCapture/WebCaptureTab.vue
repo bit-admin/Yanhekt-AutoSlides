@@ -431,7 +431,7 @@ watch(captureState, (val) => {
   position: relative;
   flex: 1;
   overflow: hidden;
-  background-color: #222;
+  background-color: var(--bg-page-alt);
 }
 
 .capture-webview {
