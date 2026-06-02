@@ -90,6 +90,7 @@ import CoursePage from '@renderer/components/course/CoursePage.vue'
 import SessionPage from '@renderer/components/course/SessionPage.vue'
 import PlaybackPage from '@renderer/components/video/PlaybackPage.vue'
 import { DataStore } from '@shared/services/dataStore'
+import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
 
 type Mode = 'live' | 'recorded'
 type Page = 'courses' | 'sessions' | 'playback'
@@ -168,9 +169,10 @@ const handleSwitchToTask = (taskId?: string) => {
   emit('switchToTask', taskId)
 }
 
-// Task navigation handler
-const handleTaskNavigation = (event: CustomEvent) => {
-  const { taskId, sessionId, courseId, courseTitle, sessionTitle } = event.detail
+// Task navigation handler — invoked by the task coordinator before it starts a
+// task, so the right recorded-mode PlaybackPage mounts and registers its driver.
+const handleTaskNavigation = (task: TaskContext) => {
+  const { taskId, sessionId, courseId, courseTitle, sessionTitle } = task
 
   // Switch to recorded mode
   currentMode.value = 'recorded'
@@ -218,14 +220,18 @@ const handleTaskNavigation = (event: CustomEvent) => {
   }
 }
 
+let unregisterNavigator: (() => void) | null = null
+
 onMounted(() => {
-  // Listen for task navigation events
-  window.addEventListener('taskNavigation', handleTaskNavigation as EventListener)
+  // Register the navigation handler with the task coordinator.
+  unregisterNavigator = TaskCoordinator.registerNavigator(handleTaskNavigation)
 })
 
 onUnmounted(() => {
-  // Clean up event listeners
-  window.removeEventListener('taskNavigation', handleTaskNavigation as EventListener)
+  if (unregisterNavigator) {
+    unregisterNavigator()
+    unregisterNavigator = null
+  }
 })
 </script>
 

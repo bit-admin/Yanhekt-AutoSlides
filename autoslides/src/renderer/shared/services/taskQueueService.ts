@@ -1,5 +1,7 @@
 import { reactive, computed } from 'vue'
 import { PostProcessingService, type PostProcessJob } from './postProcessingService'
+import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
+import { reduceTask, type TaskEvent } from '@shared/orchestration/taskMachine'
 
 export type TaskStatus = 'queued' | 'in_progress' | 'error' | 'completed'
 
@@ -70,6 +72,31 @@ class TaskQueueService {
     return this.state.tasks.filter(task => task.status === 'error').length
   }
 
+  /**
+   * The single writer of a task's status/progress fields. Runs the event through
+   * the pure machine and applies its patch, translating the timestamp sentinels.
+   */
+  private applyTask(task: TaskItem, event: TaskEvent): void {
+    const patch = reduceTask(task.status, event)
+    if (!patch) return
+    if (patch.status !== undefined) task.status = patch.status
+    if (patch.progress !== undefined) task.progress = patch.progress
+    if (patch.error !== undefined) task.error = patch.error
+    if (patch.startedAt === 'now') task.startedAt = Date.now()
+    else if (patch.startedAt === 'clear') delete task.startedAt
+    if (patch.completedAt === 'now') task.completedAt = Date.now()
+  }
+
+  private toContext(task: TaskItem): TaskContext {
+    return {
+      taskId: task.id,
+      sessionId: task.sessionId,
+      courseId: task.courseId,
+      courseTitle: task.courseTitle,
+      sessionTitle: task.sessionTitle
+    }
+  }
+
   // Add task to queue
   addToQueue(taskData: {
     name: string
@@ -118,23 +145,13 @@ class TaskQueueService {
   pauseQueue(): void {
     this.state.isProcessing = false
 
-    // Emit task pause event to notify PlaybackPage to pause video
+    // Tell the current task's playback driver to stop, then revert the task to
+    // queued so it can be picked up again on the next startQueue.
     if (this.state.currentTaskId) {
       const currentTask = this.state.tasks.find(task => task.id === this.state.currentTaskId)
       if (currentTask && currentTask.status === 'in_progress') {
-        // Emit pause event before changing task status
-        const pauseEvent = new CustomEvent('taskPause', {
-          detail: {
-            taskId: currentTask.id,
-            sessionId: currentTask.sessionId
-          }
-        })
-        window.dispatchEvent(pauseEvent)
-
-        // Mark current task as queued
-        currentTask.status = 'queued'
-        currentTask.progress = 0
-        delete currentTask.startedAt
+        TaskCoordinator.pauseTask(this.toContext(currentTask))
+        this.applyTask(currentTask, { type: 'PAUSE' })
       }
       this.state.currentTaskId = null
     }
@@ -154,18 +171,11 @@ class TaskQueueService {
 
     const task = this.state.tasks[taskIndex]
 
-
     // If removing current task, stop processing and move to next
     if (task.id === this.state.currentTaskId) {
-      // Emit pause event to notify PlaybackPage to stop video and slide extraction
+      // Tell the playback driver to stop video + slide extraction.
       if (task.status === 'in_progress') {
-        const pauseEvent = new CustomEvent('taskPause', {
-          detail: {
-            taskId: task.id,
-            sessionId: task.sessionId
-          }
-        })
-        window.dispatchEvent(pauseEvent)
+        TaskCoordinator.pauseTask(this.toContext(task))
       }
 
       this.state.currentTaskId = null
@@ -184,18 +194,14 @@ class TaskQueueService {
     const task = this.state.tasks.find(task => task.id === taskId)
     if (!task) return
 
-    task.status = status
-    if (error) {
-      task.error = error
-    }
+    const event: TaskEvent =
+      status === 'in_progress' ? { type: 'START' }
+        : status === 'completed' ? { type: 'COMPLETE' }
+          : status === 'error' ? { type: 'FAIL', error: error ?? '' }
+            : { type: 'PAUSE' }
+    this.applyTask(task, event)
 
-    if (status === 'in_progress') {
-      task.startedAt = Date.now()
-      task.progress = 0
-    } else if (status === 'completed' || status === 'error') {
-      task.completedAt = Date.now()
-      task.progress = status === 'completed' ? 100 : 0
-
+    if (status === 'completed' || status === 'error') {
       // If this was the current task, move to next
       if (task.id === this.state.currentTaskId) {
         this.state.currentTaskId = null
@@ -206,12 +212,11 @@ class TaskQueueService {
     }
   }
 
-
   // Update task progress
   updateTaskProgress(taskId: string, progress: number): void {
     const task = this.state.tasks.find(task => task.id === taskId)
-    if (task && task.status === 'in_progress') {
-      task.progress = Math.max(0, Math.min(100, progress))
+    if (task) {
+      this.applyTask(task, { type: 'PROGRESS', value: progress })
     }
   }
 
@@ -236,106 +241,21 @@ class TaskQueueService {
 
     // Start processing the next task
     this.state.currentTaskId = nextTask.id
-    nextTask.status = 'in_progress'
-    nextTask.startedAt = Date.now()
-    nextTask.progress = 0
+    this.applyTask(nextTask, { type: 'START' })
 
-    // Emit event to start slide extraction for this task
-    this.emitTaskStartEvent(nextTask)
-  }
-
-  // Emit event to start task processing with improved timing
-  private emitTaskStartEvent(task: TaskItem): void {
-    // First emit navigation event to go to the session
-    const navigationEvent = new CustomEvent('taskNavigation', {
-      detail: {
-        taskId: task.id,
-        sessionId: task.sessionId,
-        courseId: task.courseId,
-        courseTitle: task.courseTitle,
-        sessionTitle: task.sessionTitle
+    // Drive the task through the coordinator: navigate → wait for the playback
+    // driver → start it. Resolves once running; rejects if the page never
+    // becomes ready or initialization fails, in which case we fail the task so
+    // the queue advances instead of stalling forever.
+    void TaskCoordinator.runTask(this.toContext(nextTask)).catch((err) => {
+      console.warn('[TaskQueue] Failed to start task:', nextTask.id, err)
+      const message = err instanceof Error ? err.message : String(err)
+      // Only fail if the task is still the current in-flight one (a pause/remove
+      // may have moved on in the meantime).
+      if (this.state.currentTaskId === nextTask.id) {
+        this.updateTaskStatus(nextTask.id, 'error', message)
       }
     })
-    window.dispatchEvent(navigationEvent)
-
-    // Wait for navigation and video loading with progressive delays
-    this.waitForTaskReadiness(task)
-  }
-
-  // Track acknowledged tasks to stop retry loops
-  private acknowledgedTasks = new Set<string>()
-
-  // Acknowledge that a task has been successfully started by the PlaybackPage
-  acknowledgeTaskStart(taskId: string): void {
-    this.acknowledgedTasks.add(taskId)
-    console.log('Task start acknowledged:', taskId)
-  }
-
-  // Wait for task readiness with progressive retry mechanism
-  private waitForTaskReadiness(task: TaskItem): void {
-    let retryCount = 0
-    const maxRetries = 30 // 30 retries = up to 15 seconds
-    const baseDelay = 500 // Start with 500ms
-
-    // Clear any previous acknowledgment for this task
-    this.acknowledgedTasks.delete(task.id)
-
-    const checkAndEmitTaskStart = () => {
-      retryCount++
-
-      // Calculate progressive delay (500ms, 750ms, 1000ms, then 1000ms)
-      const delay = Math.min(baseDelay + (retryCount * 250), 1000)
-
-      // Check if task has been acknowledged - stop retrying
-      if (this.acknowledgedTasks.has(task.id)) {
-        console.log('Task start already acknowledged, stopping retries:', task.id)
-        return
-      }
-
-      console.log(`Task readiness check ${retryCount}/${maxRetries} for task: ${task.id}`)
-
-      // Check if task is still valid and processing
-      const currentTask = this.state.tasks.find(t => t.id === task.id)
-      if (!currentTask || currentTask.status !== 'in_progress' || !this.state.isProcessing) {
-        console.log('Task no longer valid or processing stopped:', task.id)
-        return
-      }
-
-      // Emit task start event
-      const taskEvent = new CustomEvent('taskStart', {
-        detail: {
-          taskId: task.id,
-          sessionId: task.sessionId,
-          courseId: task.courseId,
-          courseTitle: task.courseTitle,
-          sessionTitle: task.sessionTitle,
-          retryCount: retryCount
-        }
-      })
-      window.dispatchEvent(taskEvent)
-
-      // If we haven't reached max retries, schedule another attempt
-      // This allows the PlaybackPage to handle the event and potentially succeed
-      if (retryCount < maxRetries) {
-        setTimeout(checkAndEmitTaskStart, delay)
-      } else {
-        // Re-check acknowledgment one last time to avoid a boundary race
-        if (this.acknowledgedTasks.has(task.id)) {
-          return
-        }
-        // The PlaybackPage never acknowledged the start within the retry window.
-        // Fail the task so the queue advances instead of stalling on it forever.
-        console.warn('Max task start retries reached; failing task:', task.id)
-        this.updateTaskStatus(
-          task.id,
-          'error',
-          'Task failed to start: playback page did not become ready in time'
-        )
-      }
-    }
-
-    // Start the first attempt after initial navigation delay
-    setTimeout(checkAndEmitTaskStart, baseDelay)
   }
 
   // Generate unique task ID

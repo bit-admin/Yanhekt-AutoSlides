@@ -1,6 +1,7 @@
 import { ref, computed, type Ref, type ShallowRef, type ComputedRef } from 'vue'
 import { DataStore } from '@shared/services/dataStore'
 import { TaskQueue } from '@shared/services/taskQueueService'
+import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
 import { ssimThresholdService } from '@shared/services/ssimThresholdService'
 import type { SlideExtractionHandle } from '@shared/processing'
 import type { PlaybackData } from '@features/video/useVideoPlayer'
@@ -51,9 +52,6 @@ export interface UseTaskQueueReturn {
   completeCurrentTask: () => Promise<void>
   handleTaskError: (errorMessage: string) => void
   cleanupTaskState: () => void
-  onTaskStart: (event: CustomEvent) => void
-  onTaskPause: (event: CustomEvent) => void
-  onTaskResume: (event: CustomEvent) => void
   setupEventListeners: () => void
   removeEventListeners: () => void
   initConfig: () => Promise<void>
@@ -91,10 +89,8 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
   // Track last reported progress
   let lastReportedProgress = -1
 
-  // Event handlers stored for cleanup
-  let taskStartHandler: ((event: CustomEvent) => void) | null = null
-  let taskPauseHandler: ((event: CustomEvent) => void) | null = null
-  let taskResumeHandler: ((event: CustomEvent) => void) | null = null
+  // Unregister handle for the task driver (set in setupEventListeners)
+  let unregisterDriver: (() => void) | null = null
 
   // Computed
   const isTaskRunning = computed(() => {
@@ -478,83 +474,58 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     console.log('Task state cleaned up')
   }
 
-  // Event handlers
-  const onTaskStart = (event: CustomEvent) => {
-    const { taskId, sessionId: eventSessionId, retryCount } = event.detail
+  // Task driver methods — the coordinator routes a task here by mode + sessionId,
+  // so the per-event mode/session guards the old window handlers carried are now
+  // the coordinator's job. `start` resolves once initialization completes (the
+  // status is already 'in_progress', set by TaskQueue before runTask), replacing
+  // the old acknowledgment + 30-retry handshake.
+  const start = async (task: TaskContext): Promise<void> => {
+    if (currentTaskId.value === task.taskId && isTaskMode.value) {
+      // Already running this task — nothing to do.
+      return
+    }
 
-    if (mode === 'recorded' && sessionId === eventSessionId) {
-      if (currentTaskId.value === taskId && isTaskMode.value) {
-        // Task already active, just acknowledge to stop retries
-        TaskQueue.acknowledgeTaskStart(taskId)
-        return
-      }
+    console.log('Task start received for:', task.taskId)
 
-      console.log(`Task start event received (attempt ${retryCount || 1}) for:`, taskId)
+    currentTaskId.value = task.taskId
+    isTaskMode.value = true
 
-      currentTaskId.value = taskId
-      isTaskMode.value = true
+    // initializeTask handles its own retries and reports failure via
+    // TaskQueue.updateTaskStatus(..., 'error'); it does not throw.
+    await initializeTask(task.taskId)
+  }
 
-      // Acknowledge task start to stop retry loop
-      TaskQueue.acknowledgeTaskStart(taskId)
+  const pause = (task: TaskContext): void => {
+    console.log('Task pause received for:', task.taskId)
 
-      if (!retryCount || retryCount === 1) {
-        TaskQueue.updateTaskStatus(taskId, 'in_progress')
-      }
+    if (videoPlayer.value && !videoPlayer.value.paused) {
+      console.log('Pausing video playback for task:', task.taskId)
+      videoPlayer.value.pause()
+    }
 
-      initializeTask(taskId)
+    isTaskMode.value = false
+
+    if (isSlideExtractionEnabled.value) {
+      console.log('Stopping slide extraction for task:', task.taskId)
+      isSlideExtractionEnabled.value = false
+      toggleSlideExtraction()
     }
   }
 
-  const onTaskPause = (event: CustomEvent) => {
-    const { taskId, sessionId: eventSessionId } = event.detail
-
-    if ((mode === 'recorded' && sessionId === eventSessionId) ||
-        (isTaskMode.value && currentTaskId.value === taskId)) {
-
-      console.log('Task pause received for:', taskId)
-
-      if (videoPlayer.value && !videoPlayer.value.paused) {
-        console.log('Pausing video playback for task:', taskId)
-        videoPlayer.value.pause()
-      }
-
-      isTaskMode.value = false
-
-      if (isSlideExtractionEnabled.value) {
-        console.log('Stopping slide extraction for task:', taskId)
-        isSlideExtractionEnabled.value = false
-        toggleSlideExtraction()
-      }
-    }
-  }
-
-  const onTaskResume = (event: CustomEvent) => {
-    const { taskId, sessionId: eventSessionId } = event.detail
-
-    if (mode === 'recorded' && sessionId === eventSessionId && currentTaskId.value === taskId) {
-      isTaskMode.value = true
-      initializeTaskResume(taskId)
-    }
+  const resume = async (task: TaskContext): Promise<void> => {
+    isTaskMode.value = true
+    await initializeTaskResume(task.taskId)
   }
 
   const setupEventListeners = () => {
-    taskStartHandler = onTaskStart
-    taskPauseHandler = onTaskPause
-    taskResumeHandler = onTaskResume
-    window.addEventListener('taskStart', taskStartHandler as EventListener)
-    window.addEventListener('taskPause', taskPauseHandler as EventListener)
-    window.addEventListener('taskResume', taskResumeHandler as EventListener)
+    // Register this PlaybackPage as the task driver for its mode + session.
+    unregisterDriver = TaskCoordinator.registerDriver({ mode, sessionId, start, pause, resume })
   }
 
   const removeEventListeners = () => {
-    if (taskStartHandler) {
-      window.removeEventListener('taskStart', taskStartHandler as EventListener)
-    }
-    if (taskPauseHandler) {
-      window.removeEventListener('taskPause', taskPauseHandler as EventListener)
-    }
-    if (taskResumeHandler) {
-      window.removeEventListener('taskResume', taskResumeHandler as EventListener)
+    if (unregisterDriver) {
+      unregisterDriver()
+      unregisterDriver = null
     }
   }
 
@@ -589,9 +560,6 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     completeCurrentTask,
     handleTaskError,
     cleanupTaskState,
-    onTaskStart,
-    onTaskPause,
-    onTaskResume,
     setupEventListeners,
     removeEventListeners,
     initConfig
