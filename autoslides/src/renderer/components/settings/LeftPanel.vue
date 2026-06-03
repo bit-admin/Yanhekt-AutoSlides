@@ -271,14 +271,6 @@
         </button>
       </div>
 
-      <div class="status-row">
-        <span class="status-label">{{ $t('status.taskStatus') }}</span>
-        <span class="status-value">{{ taskStatus }}</span>
-      </div>
-      <div class="status-row">
-        <span class="status-label">{{ $t('status.downloadQueue') }}</span>
-        <span class="status-value">{{ downloadQueueStatus }}</span>
-      </div>
     </div>
 
     <AdvancedSettingsModal
@@ -490,8 +482,6 @@ const {
   autoPostProcessingLive,
   tempEnableAIFiltering,
   preventSystemSleep,
-  taskStatus,
-  downloadQueueStatus,
   selectOutputDirectory,
   setConnectionMode,
   setMuteMode,
@@ -1007,39 +997,11 @@ defineExpose({
 /* Post-processing phases list styles */
 
 .status-section {
-  padding: 16px;
+  padding: 12px 16px 16px;
   border-top: 1px solid var(--border-color);
   background-color: var(--bg-elevated);
 }
 
-.status-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-  font-size: 12px;
-}
-
-.status-row:last-child {
-  margin-bottom: 0;
-}
-
-.status-label {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.status-value {
-  color: var(--text-secondary);
-}
-
-.status-value.internal {
-  color: var(--success);
-}
-
-.status-value.external {
-  color: var(--warning-btn);
-}
 
 .modal-overlay {
   position: fixed;
@@ -1201,7 +1163,11 @@ defineExpose({
 
 /* Tools Flyout */
 .tools-dropdown {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+}
+
+.addons-dropdown {
+  margin-bottom: 0;
 }
 
 .tools-trigger {

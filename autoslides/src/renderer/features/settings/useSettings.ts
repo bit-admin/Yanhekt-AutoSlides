@@ -1,7 +1,5 @@
-import { ref, computed, type Ref, type ComputedRef } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { ref, type Ref } from 'vue'
 import { DownloadService } from '@shared/services/downloadService'
-import { taskQueueState } from '@shared/services/taskQueueService'
 import { languageService } from '@features/settings/languageService'
 
 export interface UseSettingsReturn {
@@ -32,10 +30,6 @@ export interface UseSettingsReturn {
   themeMode: Ref<'system' | 'light' | 'dark'>
   languageMode: Ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>
 
-  // Computed status
-  taskStatus: ComputedRef<string>
-  downloadQueueStatus: ComputedRef<string>
-
   // Methods
   loadConfig: () => Promise<void>
   selectOutputDirectory: () => Promise<void>
@@ -57,8 +51,6 @@ export interface UseSettingsReturn {
 }
 
 export function useSettings(): UseSettingsReturn {
-  const { t } = useI18n()
-
   // Basic settings state
   const outputDirectory = ref('')
   const connectionMode = ref<'internal' | 'external'>('external')
@@ -85,51 +77,6 @@ export function useSettings(): UseSettingsReturn {
   const videoRetryCount = ref(5)
   const themeMode = ref<'system' | 'light' | 'dark'>('system')
   const languageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
-
-  // Computed status
-  const taskStatus = computed(() => {
-    const stats = taskQueueState.value
-    const queued = stats.queuedCount
-    const inProgress = stats.inProgressCount
-    const completed = stats.completedCount
-    const errors = stats.errorCount
-
-    if (stats.isProcessing && inProgress > 0) {
-      const currentTask = stats.currentTask
-      if (currentTask && currentTask.progress > 0) {
-        return `Processing ${currentTask.progress}%, ${queued} queued`
-      } else {
-        return `${inProgress} processing, ${queued} queued`
-      }
-    } else if (queued > 0) {
-      if (stats.isProcessing) {
-        return `Starting tasks... ${queued} queued`
-      } else {
-        return `${queued} queued (paused)`
-      }
-    } else if (completed > 0 || errors > 0) {
-      return `${completed} completed, ${errors} failed`
-    } else {
-      return t('status.noTasks')
-    }
-  })
-
-  const downloadQueueStatus = computed(() => {
-    const queued = DownloadService.queuedCount
-    const active = DownloadService.activeCount
-    const completed = DownloadService.completedCount
-    const errors = DownloadService.errorCount
-
-    if (active > 0) {
-      return `${active} downloading, ${queued} queued`
-    } else if (queued > 0) {
-      return `${queued} queued`
-    } else if (completed > 0 || errors > 0) {
-      return `${completed} done, ${errors} failed`
-    } else {
-      return t('status.noDownloads')
-    }
-  })
 
   // Validation function
   const validateAndCorrectInterval = () => {
@@ -375,10 +322,6 @@ export function useSettings(): UseSettingsReturn {
     videoRetryCount,
     themeMode,
     languageMode,
-
-    // Computed status
-    taskStatus,
-    downloadQueueStatus,
 
     // Methods
     loadConfig,
