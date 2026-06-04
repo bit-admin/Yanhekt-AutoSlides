@@ -211,6 +211,12 @@ onMounted(() => {
 .nav-btn {
   width: 32px;
   height: 32px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.nav-btn svg {
+  flex-shrink: 0;
 }
 
 .lesson-id-group {
