@@ -5,8 +5,16 @@ import { execSync } from 'child_process';
 
 export class FFmpegService {
   private ffmpegPath: string | null = null;
+  private resolved = false;
 
-  constructor() {
+  /**
+   * Resolve the FFmpeg path lazily on first access. The probing runs up to a
+   * few synchronous execSync calls, so we keep it off the startup/import path
+   * and run it once, on first actual use, caching the result.
+   */
+  private ensureResolved(): void {
+    if (this.resolved) return;
+    this.resolved = true;
     this.initializeFfmpegPath();
   }
 
@@ -151,14 +159,17 @@ export class FFmpegService {
   }
 
   getFfmpegPath(): string | null {
+    this.ensureResolved();
     return this.ffmpegPath;
   }
 
   isAvailable(): boolean {
+    this.ensureResolved();
     return this.ffmpegPath !== null;
   }
 
   getPlatformInfo(): { platform: string; ffmpegPath: string | null } {
+    this.ensureResolved();
     return {
       platform: process.platform,
       ffmpegPath: this.ffmpegPath

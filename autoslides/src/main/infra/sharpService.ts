@@ -12,8 +12,16 @@ type SharpStatic = typeof import('sharp');
 export class SharpService {
   private sharp: SharpStatic | null = null;
   private initialized = false;
+  private initAttempted = false;
 
-  constructor() {
+  /**
+   * Load sharp lazily on first use. `require('sharp')` synchronously loads the
+   * native libvips binding, so we keep it off the startup/import path and run
+   * it once, on first actual use, caching the result.
+   */
+  private ensureInitialized(): void {
+    if (this.initAttempted) return;
+    this.initAttempted = true;
     this.initializeSharp();
   }
 
@@ -143,11 +151,19 @@ export class SharpService {
             return originalResolveFilename.call(this, request, ...args);
           };
 
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          this.sharp = require(sharpPath);
-          this.initialized = true;
-          console.log('Sharp loaded from extraResource:', sharpPath);
-          return;
+          // The patched resolver is only needed while sharp loads its native
+          // binding (sharp resolves @img/*, detect-libc and semver synchronously
+          // at require time). Restore the original resolver immediately after so
+          // we never leak a global hijack of common module names past this point.
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            this.sharp = require(sharpPath);
+            this.initialized = true;
+            console.log('Sharp loaded from extraResource:', sharpPath);
+            return;
+          } finally {
+            Module._resolveFilename = originalResolveFilename;
+          }
         }
       }
 
@@ -167,6 +183,7 @@ export class SharpService {
    * Check if sharp is available
    */
   isAvailable(): boolean {
+    this.ensureInitialized();
     return this.sharp !== null && this.initialized;
   }
 
@@ -174,6 +191,7 @@ export class SharpService {
    * Get the sharp module
    */
   getSharp(): SharpStatic | null {
+    this.ensureInitialized();
     return this.sharp;
   }
 
@@ -213,6 +231,7 @@ export class SharpService {
     }
 
     // Not indexed - resize with Sharp
+    this.ensureInitialized();
     if (!this.sharp) {
       console.warn('[SharpService] Sharp not available, returning original');
       return imageBuffer.toString('base64');
@@ -238,6 +257,7 @@ export class SharpService {
    * @returns Optimized PNG buffer with reduced colors, or null if failed
    */
   async reducePngColors(imageBuffer: Uint8Array): Promise<Uint8Array | null> {
+    this.ensureInitialized();
     if (!this.sharp) {
       console.warn('Sharp not available, skipping color reduction');
       return null;
@@ -268,6 +288,7 @@ export class SharpService {
    * @returns Resized image buffer, or null if failed
    */
   async resize(imageBuffer: Uint8Array, width: number, height: number): Promise<Uint8Array | null> {
+    this.ensureInitialized();
     if (!this.sharp) {
       console.warn('Sharp not available, skipping resize');
       return null;
@@ -297,6 +318,7 @@ export class SharpService {
     width: number;
     height: number;
   }): Promise<Uint8Array | null> {
+    this.ensureInitialized();
     if (!this.sharp) {
       console.warn('Sharp not available, skipping crop');
       return null;
@@ -355,6 +377,7 @@ export class SharpService {
     width?: number | null;   // null = keep original width
     height?: number | null;  // null = keep original height
   }): Promise<Uint8Array> {
+    this.ensureInitialized();
     if (!this.sharp) {
       console.warn('Sharp not available, returning original image');
       return imageBuffer;
@@ -400,6 +423,7 @@ export class SharpService {
   }
 
   async getImageDimensions(imageBuffer: Uint8Array): Promise<{ width: number; height: number } | null> {
+    this.ensureInitialized();
     if (!this.sharp) return null;
 
     try {
