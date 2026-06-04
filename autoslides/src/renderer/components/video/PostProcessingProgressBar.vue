@@ -53,7 +53,7 @@
     </div>
 
     <!-- Phase 3: AI Classification -->
-    <div class="pp-phase-item">
+    <div class="pp-phase-item" :class="{ 'pp-phase-item--cancellable': showCancel }">
       <div class="pp-phase-header">
         <span class="pp-phase-name">{{ phase3Name }}</span>
         <span v-if="state.phase3.status === 'skipped'" class="pp-phase-status skipped">
@@ -81,6 +81,21 @@
           :style="{ width: phase3Width }"
         ></div>
       </div>
+
+      <!-- On hover (LLM mode, AI phase active) the whole AI cell becomes a Cancel button. -->
+      <button
+        v-if="showCancel"
+        class="pp-cancel-overlay"
+        :class="{ 'is-cancelling': cancelling }"
+        :disabled="cancelling"
+        @click="$emit('cancel')"
+      >
+        <svg v-if="!cancelling" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        <span>{{ cancelling ? cancellingLabel : cancelLabel }}</span>
+      </button>
     </div>
   </div>
 </template>
@@ -94,13 +109,29 @@ interface Props {
   state: PostProcessingDisplayState
   /** When true, use the compact label set (postProcessStatus.phaseXNameShort). Default short. */
   labels?: 'short' | 'long'
+  /** Whether the AI (phase 3) run can be cancelled (LLM mode only). */
+  cancellable?: boolean
+  /** Whether a cancel has already been requested for this run. */
+  cancelling?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  labels: 'short'
+  labels: 'short',
+  cancellable: false,
+  cancelling: false
 })
 
+defineEmits<{ cancel: [] }>()
+
 const { t } = useI18n()
+
+// Show the cancel affordance only while the AI phase is actively running, or
+// once a cancel has been requested (so the "cancelling…" state stays visible).
+const showCancel = computed(() =>
+  props.cancellable && (props.state.phase3.status === 'active' || props.cancelling)
+)
+const cancelLabel = computed(() => t('playback.postProcessStatus.cancelAI'))
+const cancellingLabel = computed(() => t('playback.postProcessStatus.cancellingAI'))
 
 const phase1Name = computed(() =>
   props.labels === 'long' ? t('playback.postProcessStatus.phase1Name') : t('playback.postProcessStatus.phase1NameShort')
@@ -148,6 +179,48 @@ const phase3Width = computed(() => fillWidthForPhase(props.state.phase3))
   justify-content: space-between;
   align-items: center;
   font-size: 11px;
+}
+
+/* The AI cell becomes a hover target so its full area can flip to a Cancel button. */
+.pp-phase-item--cancellable {
+  position: relative;
+}
+
+.pp-cancel-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--danger-border);
+  border-radius: 4px;
+  background-color: var(--danger-bg);
+  color: var(--danger);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+/* Reveal across the whole AI cell on hover, or whenever a cancel is in flight. */
+.pp-phase-item--cancellable:hover .pp-cancel-overlay,
+.pp-cancel-overlay.is-cancelling {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pp-cancel-overlay:hover:not(:disabled) {
+  background-color: var(--danger);
+  border-color: var(--danger);
+  color: var(--text-on-accent);
+}
+
+.pp-cancel-overlay:disabled {
+  cursor: default;
+  opacity: 0.9;
 }
 
 .pp-phase-name {

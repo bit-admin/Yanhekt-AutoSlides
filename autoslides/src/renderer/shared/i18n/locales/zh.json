@@ -557,7 +557,9 @@
       "duplicatesRemoved": "已去除 {count} 个重复项",
       "excludedRemoved": "已排除 {count} 个",
       "skippedPhase1": "阶段一已跳过（已禁用）",
-      "skippedPhase2": "阶段二已跳过（已禁用）"
+      "skippedPhase2": "阶段二已跳过（已禁用）",
+      "cancelAI": "取消",
+      "cancellingAI": "正在取消…"
     },
     "moveToTrash": "移至废纸篓",
     "close": "关闭",

@@ -148,7 +148,12 @@
           :class="[`pp-status-${getDownloadPostProcessJob(item.id)?.status}`]"
         >
           <div class="pp-panel-content">
-            <PostProcessingProgressBar :state="fromJobProgress(getDownloadPostProcessJob(item.id)!)" />
+            <PostProcessingProgressBar
+              :state="fromJobProgress(getDownloadPostProcessJob(item.id)!)"
+              :cancellable="getDownloadPostProcessJob(item.id)?.classifierMode === 'llm' && getDownloadPostProcessJob(item.id)?.status === 'processing'"
+              :cancelling="getDownloadPostProcessJob(item.id)?.cancelRequested === true"
+              @cancel="cancelPostProcessing(item.id)"
+            />
           </div>
         </div>
       </div>
@@ -186,6 +191,11 @@ const downloadItems = computed(() => DownloadService.downloadItems)
 // job's taskId, so a reverse lookup by taskId works.
 const getDownloadPostProcessJob = (itemId: string): PostProcessJob | undefined =>
   PostProcessingService.getJobByTaskId(itemId)
+
+const cancelPostProcessing = (itemId: string) => {
+  const job = getDownloadPostProcessJob(itemId)
+  if (job) PostProcessingService.cancelJob(job.id)
+}
 
 const cancelAllDownloads = () => DownloadService.cancelAll()
 const clearCompleted = () => DownloadService.clearCompleted()

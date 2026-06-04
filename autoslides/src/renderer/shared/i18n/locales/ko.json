@@ -557,7 +557,9 @@
       "duplicatesRemoved": "{count}개 중복 제거됨",
       "excludedRemoved": "{count}개 제외됨",
       "skippedPhase1": "1단계 건너뜀 (비활성화됨)",
-      "skippedPhase2": "2단계 건너뜀 (비활성화됨)"
+      "skippedPhase2": "2단계 건너뜀 (비활성화됨)",
+      "cancelAI": "취소",
+      "cancellingAI": "취소 중…"
     },
     "moveToTrash": "휴지통으로 이동",
     "close": "닫기",

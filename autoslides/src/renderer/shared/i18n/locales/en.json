@@ -557,7 +557,9 @@
       "duplicatesRemoved": "{count} duplicates removed",
       "excludedRemoved": "{count} excluded",
       "skippedPhase1": "Phase 1 skipped (disabled)",
-      "skippedPhase2": "Phase 2 skipped (disabled)"
+      "skippedPhase2": "Phase 2 skipped (disabled)",
+      "cancelAI": "Cancel",
+      "cancellingAI": "Cancelling…"
     },
     "moveToTrash": "Move to Trash",
     "close": "Close",

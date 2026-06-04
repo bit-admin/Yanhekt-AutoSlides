@@ -46,6 +46,13 @@ export interface PostProcessJob {
   createdAt: number
   startedAt?: number
   completedAt?: number
+  // Resolved AI classifier mode for this run, frozen when the job starts
+  // processing. Only `'llm'` jobs are cancellable (ML inference is local and
+  // fast). Undefined until the job begins.
+  classifierMode?: 'llm' | 'ml'
+  // Set when the user requests cancellation of the AI phase. Drives the UI's
+  // "cancelling…" affordance; the pipeline aborts at the next batch boundary.
+  cancelRequested?: boolean
 }
 
 export interface PostProcessingServiceState {
@@ -60,6 +67,9 @@ class PostProcessingServiceClass {
   })
 
   private processingPromise: Promise<void> | null = null
+  // Per-job abort controllers, live only while a job is processing. Used to
+  // cancel the in-flight AI (phase 3) run in LLM mode.
+  private controllers = new Map<string, AbortController>()
   // Injected once at startup by the renderer entrypoint. shared/ cannot import
   // from features/ai/, so the renderer wires the callbacks here after import.
   private classifier: ClassifierCallbacks | null = null
@@ -100,6 +110,22 @@ class PostProcessingServiceClass {
 
   getJob(jobId: string): PostProcessJob | undefined {
     return this.state.jobs.find(job => job.id === jobId)
+  }
+
+  /**
+   * Cancel the AI (phase 3) classification of a running job. Only valid in LLM
+   * mode and while phase 3 is active — ML classification is local/fast and not
+   * cancellable. Batches already classified (their API responses applied) are
+   * preserved on disk; the pipeline stops at the next batch boundary and the
+   * job resolves as completed.
+   */
+  cancelJob(jobId: string): void {
+    const job = this.getJob(jobId)
+    if (!job || job.status !== 'processing') return
+    if (job.classifierMode !== 'llm') return
+    if (job.progress.phase !== 'phase3') return
+    job.cancelRequested = true
+    this.controllers.get(jobId)?.abort()
   }
 
   addJob(taskId: string, outputPath: string, imageFiles: string[]): string {
@@ -173,10 +199,13 @@ class PostProcessingServiceClass {
     console.log(`[PostProcessing] Starting job ${job.id}`)
     job.status = 'processing'
     job.startedAt = Date.now()
+    const controller = new AbortController()
+    this.controllers.set(job.id, controller)
     this.notify(job)
 
     try {
-      const config = await this.loadConfig()
+      const { config, classifierMode } = await this.loadConfig()
+      job.classifierMode = classifierMode
       const dataSource = createSlideExtractionDataSource(job.outputPath)
       const token = tokenManager.getToken() || undefined
 
@@ -190,6 +219,7 @@ class PostProcessingServiceClass {
         },
         dataSource,
         {
+          signal: controller.signal,
           onProgress: (snap) => this.mirrorProgress(job, snap),
           classifier: this.classifier ?? undefined
         }
@@ -212,9 +242,14 @@ class PostProcessingServiceClass {
       job.progress.phase = 'completed'
       job.completedAt = Date.now()
 
-      // 'cancelled' is treated like 'completed' for queue progression — the pipeline
-      // already applied whatever trash moves it managed before abort. The queue
-      // watcher in extractionQueueService only branches on 'completed' vs 'failed'.
+      // A 'cancelled' pipeline result is a SUCCESS, not a failure. This covers
+      // both the (legacy) extraction-abort path and a user-initiated AI cancel
+      // (cancelJob): the pipeline already applied every trash move it completed
+      // before the abort, and the un-classified remainder is correctly kept as
+      // slides. Only a genuinely thrown pipeline error ('failed') is an error.
+      // The orchestrator's watchPostProcessingJob branches solely on
+      // 'completed' vs 'failed', so mapping cancel→completed makes the download
+      // item finish as 'completed' (POSTPROCESS_DONE) rather than 'error'.
       job.status = result.status === 'failed' ? 'failed' : 'completed'
 
       console.log(`[PostProcessing] Job ${job.id} ${job.status}:`, {
@@ -235,6 +270,8 @@ class PostProcessingServiceClass {
         retryCount: 0
       })
       this.notify(job)
+    } finally {
+      this.controllers.delete(job.id)
     }
   }
 
@@ -272,7 +309,7 @@ class PostProcessingServiceClass {
     }
   }
 
-  private async loadConfig(): Promise<PostProcessingConfig> {
+  private async loadConfig(): Promise<{ config: PostProcessingConfig; classifierMode: 'llm' | 'ml' }> {
     const slideConfig = await window.electronAPI.config?.getSlideExtractionConfig?.()
     const enableAIFiltering = await window.electronAPI.config?.getEnableAIFiltering?.() ?? true
     const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
@@ -283,14 +320,17 @@ class PostProcessingServiceClass {
     )
 
     return {
-      pHashThreshold: slideConfig?.pHashThreshold || 10,
-      enableDuplicateRemoval: slideConfig?.enableDuplicateRemoval !== false,
-      enableExclusionList: slideConfig?.enableExclusionList !== false,
-      enableAIFiltering,
-      exclusionList,
-      aiBatchSize: aiConfig?.batchSize || 5,
-      aiImageResizeWidth: aiConfig?.imageResizeWidth || 768,
-      aiImageResizeHeight: aiConfig?.imageResizeHeight || 432
+      config: {
+        pHashThreshold: slideConfig?.pHashThreshold || 10,
+        enableDuplicateRemoval: slideConfig?.enableDuplicateRemoval !== false,
+        enableExclusionList: slideConfig?.enableExclusionList !== false,
+        enableAIFiltering,
+        exclusionList,
+        aiBatchSize: aiConfig?.batchSize || 5,
+        aiImageResizeWidth: aiConfig?.imageResizeWidth || 768,
+        aiImageResizeHeight: aiConfig?.imageResizeHeight || 432
+      },
+      classifierMode: aiConfig?.classifierMode === 'ml' ? 'ml' : 'llm'
     }
   }
 

@@ -557,7 +557,9 @@
       "duplicatesRemoved": "{count}件の重複を削除",
       "excludedRemoved": "{count}件を除外",
       "skippedPhase1": "フェーズ1をスキップ（無効）",
-      "skippedPhase2": "フェーズ2をスキップ（無効）"
+      "skippedPhase2": "フェーズ2をスキップ（無効）",
+      "cancelAI": "キャンセル",
+      "cancellingAI": "キャンセル中…"
     },
     "moveToTrash": "ゴミ箱に移動",
     "close": "閉じる",

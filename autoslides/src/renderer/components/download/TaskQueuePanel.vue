@@ -99,7 +99,12 @@
           :class="[`pp-status-${getPostProcessJob(item.id)?.status}`]"
         >
           <div class="pp-panel-content">
-            <PostProcessingProgressBar :state="fromJobProgress(getPostProcessJob(item.id)!)" />
+            <PostProcessingProgressBar
+              :state="fromJobProgress(getPostProcessJob(item.id)!)"
+              :cancellable="getPostProcessJob(item.id)?.classifierMode === 'llm' && getPostProcessJob(item.id)?.status === 'processing'"
+              :cancelling="getPostProcessJob(item.id)?.cancelRequested === true"
+              @cancel="cancelPostProcessing(item.id)"
+            />
           </div>
         </div>
       </div>
@@ -121,7 +126,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { TaskQueue, taskQueueState } from '@shared/services/taskQueueService'
-import type { PostProcessJob } from '@shared/services/postProcessingService'
+import { PostProcessingService, type PostProcessJob } from '@shared/services/postProcessingService'
 import { fromJobProgress } from '@shared/postProcessing/displayAdapter'
 import PostProcessingProgressBar from '@renderer/components/video/PostProcessingProgressBar.vue'
 
@@ -135,6 +140,11 @@ const taskStats = computed(() => taskQueueState.value)
 
 const getPostProcessJob = (taskId: string): PostProcessJob | undefined =>
   TaskQueue.getPostProcessJob(taskId)
+
+const cancelPostProcessing = (taskId: string) => {
+  const job = getPostProcessJob(taskId)
+  if (job) PostProcessingService.cancelJob(job.id)
+}
 
 const toggleTaskQueue = () => {
   if (taskStats.value.isProcessing) {
