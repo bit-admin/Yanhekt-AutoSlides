@@ -4,39 +4,49 @@
  * scoped overrides win when needed.
  */
 
-/* === Scrollbar === */
+/* === Scrollbar ===
+ *
+ * Global default: every scrollbar in the app is the thin, macOS-style
+ * auto-hide bar (transparent until the cursor enters the scroll container).
+ * Making this the universal default — rather than an opt-in class — means
+ * new scrollable elements are consistent automatically and can never drift
+ * back to the wide native scrollbar.
+ *
+ * `.custom-scrollbar` is retained as an explicit alias for the same look so
+ * existing markup and docs keep working; it is no longer required.
+ */
 
-.custom-scrollbar {
+* {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
-  transition: scrollbar-color 0.3s ease;
 }
 
-.custom-scrollbar:hover {
+*:hover {
   scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
+*::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
+*::-webkit-scrollbar-track {
   background: transparent;
   border-radius: 3px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
+*::-webkit-scrollbar-thumb {
   background: transparent;
   border-radius: 3px;
   border: none;
   transition: background 0.3s ease;
 }
 
-.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+*:hover::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+*::-webkit-scrollbar-thumb:hover {
   background: var(--scrollbar-thumb-hover) !important;
 }
 
