@@ -7,7 +7,7 @@ export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
 
 export type AIServiceType = 'builtin' | 'custom' | 'copilot';
 export type AIClassifierMode = 'llm' | 'ml';
-export type CustomProviderId = 'modelscope' | 'lm_studio' | 'other';
+export type CustomProviderId = 'modelscope' | 'lm_studio' | 'nvidia' | 'agnes' | 'other';
 
 export type AutoCropDetectorMode = 'canny_then_yolo' | 'canny_only' | 'yolo_only';
 export type AutoCropActiveModel = 'builtin' | 'custom';

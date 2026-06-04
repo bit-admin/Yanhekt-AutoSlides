@@ -97,7 +97,7 @@ export const config = {
     customApiKey?: string;
     customModelName?: string;
     customModelChain?: string[];
-    customProviderId?: 'modelscope' | 'lm_studio' | 'other';
+    customProviderId?: 'modelscope' | 'lm_studio' | 'nvidia' | 'agnes' | 'other';
     copilotGhoToken?: string;
     copilotModelName?: string;
     copilotUsername?: string;

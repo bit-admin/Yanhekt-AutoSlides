@@ -92,7 +92,9 @@ export function useAISettings(options: UseAISettingsOptions) {
   // Presets
   const apiUrlPresets: ApiUrlPreset[] = [
     { id: 'modelscope', label: 'ModelScope', url: MODELSCOPE_API_BASE_URL },
-    { id: 'lm_studio', label: 'LM Studio', url: 'http://localhost:1234/v1' }
+    { id: 'lm_studio', label: 'LM Studio', url: 'http://localhost:1234/v1' },
+    { id: 'nvidia', label: 'NVIDIA NIM', url: 'https://integrate.api.nvidia.com/v1' },
+    { id: 'agnes', label: 'Agnes AI', url: 'https://apihub.agnes-ai.com/v1' }
   ]
 
   const modelPresetsByProvider: Record<CustomProviderId, ModelPreset[]> = {
@@ -104,6 +106,16 @@ export function useAISettings(options: UseAISettingsOptions) {
       { label: 'Kimi-K2.5', name: 'moonshotai/Kimi-K2.5' }
     ],
     lm_studio: [],
+    nvidia: [
+      { label: 'Qwen3.5-397B-A17B', name: 'qwen/qwen3.5-397b-a17b' },
+      { label: 'Qwen3.5-122B-A10B', name: 'qwen/qwen3.5-122b-a10b' },
+      { label: 'Kimi-K2.6', name: 'moonshotai/kimi-k2.6' },
+      { label: 'Kimi-K2.5', name: 'moonshotai/kimi-k2.5' },
+      { label: 'Gemma 4 31B IT', name: 'google/gemma-4-31b-it' }
+    ],
+    agnes: [
+      { label: 'Agnes 2.0 Flash', name: 'agnes-2.0-flash' }
+    ],
     other: []
   }
 

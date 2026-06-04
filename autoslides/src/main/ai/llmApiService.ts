@@ -45,7 +45,7 @@ export interface ChatCompletionResponse {
   };
 }
 
-export type LLMProviderId = 'builtin' | 'copilot' | 'modelscope' | 'lm_studio' | 'other';
+export type LLMProviderId = 'builtin' | 'copilot' | 'modelscope' | 'lm_studio' | 'nvidia' | 'agnes' | 'other';
 
 // Stable identity for session-exhaustion tracking. For hosted providers this is just
 // the provider id; for 'other' we also fold in the base URL so two different custom
