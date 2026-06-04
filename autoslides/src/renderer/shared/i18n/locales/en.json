@@ -359,7 +359,7 @@
       "copilotCancel": "Cancel",
       "copilotWaitingForAuth": "Waiting for authorization...",
       "copilotDisconnect": "Disconnect",
-      "copilotModelPlaceholder": "e.g. gpt-4.1",
+      "copilotModelPlaceholder": "e.g. gpt-5-mini",
       "copilotInvalidToken": "Invalid token. Please check and try again.",
       "copilotDeviceCodeExpired": "Device code expired. Please try again.",
       "copilotAccessDenied": "Access denied. Please try again.",

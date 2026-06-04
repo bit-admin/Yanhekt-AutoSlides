@@ -92,7 +92,7 @@ export interface ChatCompletionRequestInput {
 }
 
 const BUILTIN_API_BASE_URL = 'https://openai.ruc.edu.kg';
-const BUILTIN_FALLBACK_MODEL = 'gpt-4.1';
+const BUILTIN_FALLBACK_MODEL = 'agnes-2.0-flash';
 
 const QUOTA_EXCEEDED_SIGNATURE = /exceeded today'?s quota for model/i;
 // Built-in worker sentinel when MODEL env var is unset (returned at HTTP 503).

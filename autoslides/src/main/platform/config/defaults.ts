@@ -133,7 +133,7 @@ export const defaultAIFilteringConfig: AIFilteringConfig = {
   customModelChain: [],
   customProviderId: 'other',
   copilotGhoToken: '',
-  copilotModelName: 'gpt-4.1',
+  copilotModelName: 'gpt-5-mini',
   copilotUsername: '',
   copilotAvatarUrl: '',
   rateLimit: 10,

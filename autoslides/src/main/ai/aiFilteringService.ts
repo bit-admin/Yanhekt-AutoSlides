@@ -49,7 +49,7 @@ export interface AIFilteringResult {
 
 // Built-in service configuration
 const BUILTIN_API_BASE_URL = 'https://openai.ruc.edu.kg';
-const BUILTIN_FALLBACK_MODEL = 'gpt-4.1';
+const BUILTIN_FALLBACK_MODEL = 'agnes-2.0-flash';
 
 export class AIFilteringService {
   private configService: ConfigService;
@@ -100,7 +100,7 @@ export class AIFilteringService {
       return {
         providerId: 'copilot',
         baseUrl: 'https://api.githubcopilot.com',
-        models: [config.copilotModelName || 'gpt-4.1'],
+        models: [config.copilotModelName || 'gpt-5-mini'],
         serviceType: 'copilot'
       };
     }

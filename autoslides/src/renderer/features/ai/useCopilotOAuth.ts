@@ -10,8 +10,8 @@ export interface ModelPreset {
 export function useCopilotOAuth() {
   const copilotGhoToken = ref('')
   const tempCopilotGhoToken = ref('')
-  const copilotModelName = ref('gpt-4.1')
-  const tempCopilotModelName = ref('gpt-4.1')
+  const copilotModelName = ref('gpt-5-mini')
+  const tempCopilotModelName = ref('gpt-5-mini')
   const copilotUsername = ref('')
   const copilotAvatarUrl = ref('')
   const showCopilotToken = ref(false)
@@ -23,7 +23,6 @@ export function useCopilotOAuth() {
   let copilotOAuthCancelled = false
 
   const copilotModelPresets: ModelPreset[] = [
-    { label: 'GPT-4.1', name: 'gpt-4.1' },
     { label: 'GPT-5-mini', name: 'gpt-5-mini' }
   ]
   const selectedCopilotModelPreset = ref('')
@@ -37,8 +36,8 @@ export function useCopilotOAuth() {
   }) => {
     copilotGhoToken.value = cfg.copilotGhoToken || ''
     tempCopilotGhoToken.value = cfg.copilotGhoToken || ''
-    copilotModelName.value = cfg.copilotModelName || 'gpt-4.1'
-    tempCopilotModelName.value = cfg.copilotModelName || 'gpt-4.1'
+    copilotModelName.value = cfg.copilotModelName || 'gpt-5-mini'
+    tempCopilotModelName.value = cfg.copilotModelName || 'gpt-5-mini'
     copilotUsername.value = cfg.copilotUsername || ''
     copilotAvatarUrl.value = cfg.copilotAvatarUrl || ''
 

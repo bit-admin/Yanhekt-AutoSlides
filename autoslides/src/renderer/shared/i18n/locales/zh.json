@@ -359,7 +359,7 @@
       "copilotCancel": "取消",
       "copilotWaitingForAuth": "等待授权...",
       "copilotDisconnect": "断开连接",
-      "copilotModelPlaceholder": "例如 gpt-4.1",
+      "copilotModelPlaceholder": "例如 gpt-5-mini",
       "copilotInvalidToken": "令牌无效，请检查后重试。",
       "copilotDeviceCodeExpired": "设备代码已过期，请重试。",
       "copilotAccessDenied": "访问被拒绝，请重试。",
