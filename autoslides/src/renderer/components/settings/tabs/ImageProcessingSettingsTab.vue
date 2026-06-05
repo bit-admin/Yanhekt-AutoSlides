@@ -19,6 +19,51 @@
   <div class="advanced-setting-section">
     <h4>{{ $t('advanced.imageProcessing') }}</h4>
     <div class="setting-item">
+      <label class="setting-label">{{ $t('settings.slideDetectionInterval') }}</label>
+      <div class="setting-description">{{ $t('settings.slideDetectionDescription') }}</div>
+      <div class="slide-interval-group">
+        <div class="slide-interval-input-wrapper">
+          <input
+            v-model.number="slideCheckInterval"
+            type="number"
+            min="500"
+            max="10000"
+            step="500"
+            class="slide-interval-input"
+            @change="setSlideCheckInterval"
+            @blur="validateAndCorrectInterval"
+          />
+          <span class="interval-unit">{{ $t('settings.milliseconds') }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-item">
+      <label class="setting-label">{{ $t('settings.slideStabilityVerification') }}</label>
+      <div class="setting-description">{{ $t('settings.slideStabilityDescription') }}</div>
+      <div class="verification-unified-control">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            v-model="slideDoubleVerification"
+            @change="setSlideDoubleVerification"
+          />
+          {{ $t('settings.enableChecks') }}
+        </label>
+        <div class="verification-count-control" v-if="slideDoubleVerification">
+          <select
+            v-model="slideVerificationCount"
+            @change="setSlideDoubleVerification"
+            class="select-field verification-count-select"
+          >
+            <option v-for="i in 5" :key="i" :value="i">{{ i }}</option>
+          </select>
+          <span class="count-label">{{ $t('settings.counts') }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.ssimThreshold') }}</label>
       <div class="setting-description">{{ $t('advanced.ssimDescription') }}</div>
       <div class="ssim-input-group">
@@ -98,6 +143,29 @@
 
   <div class="advanced-setting-section">
     <h4>{{ $t('advanced.postProcessing') }}</h4>
+    <div class="setting-item">
+      <label class="setting-label">{{ $t('settings.autoPostProcessing') }}</label>
+      <div class="setting-description">{{ $t('settings.autoPostProcessingDescription') }}</div>
+      <div class="auto-post-processing-control">
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            v-model="autoPostProcessingLive"
+            @change="setAutoPostProcessingLive"
+          />
+          {{ $t('settings.enableAutoPostProcessingLive') }}
+        </label>
+        <label class="checkbox-label">
+          <input
+            type="checkbox"
+            v-model="autoPostProcessing"
+            @change="setAutoPostProcessing"
+          />
+          {{ $t('settings.enableAutoPostProcessingRecorded') }}
+        </label>
+      </div>
+    </div>
+
     <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.postProcessingPhases') }}</label>
       <div class="post-processing-phases-list">
@@ -427,7 +495,19 @@ import { useSettingsContext } from '@features/settings/settingsContext'
 
 const { settings, advanced, cache, phash } = useSettingsContext()
 
-const { tempEnableAIFiltering } = settings
+const {
+  tempEnableAIFiltering,
+  slideCheckInterval,
+  slideDoubleVerification,
+  slideVerificationCount,
+  setSlideCheckInterval,
+  validateAndCorrectInterval,
+  setSlideDoubleVerification,
+  autoPostProcessing,
+  autoPostProcessingLive,
+  setAutoPostProcessing,
+  setAutoPostProcessingLive,
+} = settings
 
 const {
   tempEnablePngColorReduction,
@@ -474,6 +554,68 @@ const {
 </script>
 
 <style scoped>
+/* Slide stability verification — unified checkbox + count control */
+.verification-unified-control {
+  display: flex;
+  align-items: stretch;
+  background-color: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  height: 35px;
+}
+
+.verification-unified-control:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--accent);
+}
+
+.verification-unified-control .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  transition: none;
+  user-select: none;
+  flex: 1;
+}
+
+.verification-unified-control .checkbox-label input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.verification-count-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: var(--bg-elevated);
+  border-left: 1px solid var(--border-input);
+}
+
+.count-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Compact inline count select — auto width instead of the shared full width */
+.verification-count-select {
+  width: auto;
+  min-width: 50px;
+}
+
 .post-processing-phases-list,
 .image-output-options {
   display: flex;

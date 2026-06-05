@@ -129,71 +129,6 @@
         </div>
 
         <div class="setting-item">
-          <div class="setting-label-with-reset">
-            <label class="setting-label">{{ $t('settings.slideDetectionInterval') }}</label>
-            <button @click="resetSlideDetectionInterval" class="reset-btn" :title="$t('settings.resetToDefault')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                <path d="M21 3v5h-5"/>
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                <path d="M3 21v-5h5"/>
-              </svg>
-            </button>
-          </div>
-          <div class="setting-description">{{ $t('settings.slideDetectionDescription') }}</div>
-          <div class="slide-interval-group">
-            <div class="slide-interval-input-wrapper">
-              <input
-                v-model.number="slideCheckInterval"
-                type="number"
-                min="500"
-                max="10000"
-                step="500"
-                class="slide-interval-input"
-                @change="setSlideCheckInterval"
-                @blur="validateAndCorrectInterval"
-              />
-              <span class="interval-unit">{{ $t('settings.milliseconds') }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="setting-item">
-          <div class="setting-label-with-reset">
-            <label class="setting-label">{{ $t('settings.slideStabilityVerification') }}</label>
-            <button @click="resetSlideStabilityVerification" class="reset-btn" :title="$t('settings.resetToDefault')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                <path d="M21 3v5h-5"/>
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                <path d="M3 21v-5h5"/>
-              </svg>
-            </button>
-          </div>
-          <div class="setting-description">{{ $t('settings.slideStabilityDescription') }}</div>
-          <div class="verification-unified-control">
-            <label class="checkbox-label">
-              <input
-                type="checkbox"
-                v-model="slideDoubleVerification"
-                @change="setSlideDoubleVerification"
-              />
-              {{ $t('settings.enableChecks') }}
-            </label>
-            <div class="verification-count-control" v-if="slideDoubleVerification">
-              <select
-                v-model="slideVerificationCount"
-                @change="setSlideDoubleVerification"
-                class="select-field verification-count-select"
-              >
-                <option v-for="i in 5" :key="i" :value="i">{{ i }}</option>
-              </select>
-              <span class="count-label">{{ $t('settings.counts') }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="setting-item">
           <label class="setting-label">{{ $t('settings.taskSpeed') }}</label>
           <div class="setting-description">{{ $t('settings.taskSpeedDescription') }}</div>
           <div class="task-speed-selector">
@@ -215,29 +150,6 @@
               <option :value="15">15x</option>
               <option :value="16">16x</option>
             </select>
-          </div>
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label">{{ $t('settings.autoPostProcessing') }}</label>
-          <div class="setting-description">{{ $t('settings.autoPostProcessingDescription') }}</div>
-          <div class="auto-post-processing-control">
-            <label class="checkbox-label">
-              <input
-                type="checkbox"
-                v-model="autoPostProcessingLive"
-                @change="setAutoPostProcessingLive"
-              />
-              {{ $t('settings.enableAutoPostProcessingLive') }}
-            </label>
-            <label class="checkbox-label">
-              <input
-                type="checkbox"
-                v-model="autoPostProcessing"
-                @change="setAutoPostProcessing"
-              />
-              {{ $t('settings.enableAutoPostProcessingRecorded') }}
-            </label>
           </div>
         </div>
       </div>
@@ -474,25 +386,13 @@ const {
   outputDirectory,
   connectionMode,
   muteMode,
-  slideCheckInterval,
-  slideDoubleVerification,
-  slideVerificationCount,
   taskSpeed,
-  autoPostProcessing,
-  autoPostProcessingLive,
   tempEnableAIFiltering,
   preventSystemSleep,
   selectOutputDirectory,
   setConnectionMode,
   setMuteMode,
-  setSlideCheckInterval,
-  validateAndCorrectInterval,
-  setSlideDoubleVerification,
-  resetSlideDetectionInterval,
-  resetSlideStabilityVerification,
-  setTaskSpeed,
-  setAutoPostProcessing,
-  setAutoPostProcessingLive
+  setTaskSpeed
 } = settings
 
 // Advanced Settings
@@ -926,75 +826,9 @@ defineExpose({
   margin-bottom: 6px;
 }
 
-/* Slide extraction settings styles */
-
-.verification-unified-control {
-  display: flex;
-  align-items: stretch;
-  background-color: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  overflow: hidden;
-  transition: all 0.2s ease;
-  height: 35px;
-}
-
-.verification-unified-control:hover {
-  background-color: var(--bg-hover);
-  border-color: var(--accent);
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-primary);
-  cursor: pointer;
-  padding: 8px 12px;
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  transition: none;
-  user-select: none;
-  flex: 1;
-}
-
-.checkbox-label input[type="checkbox"] {
-  margin: 0;
-  cursor: pointer;
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-}
-
-.verification-count-control {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background-color: var(--bg-elevated);
-  border-left: 1px solid var(--border-input);
-}
-
-.count-label {
-  font-size: 11px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-}
-
-/* Compact inline count select — auto width instead of the shared full width */
-.verification-count-select {
-  width: auto;
-  min-width: 50px;
-}
-
 .task-speed-selector {
   width: 100%;
 }
-
-/* Auto post-processing control styles */
-/* Post-processing phases list styles */
 
 .status-section {
   padding: 12px 16px 16px;

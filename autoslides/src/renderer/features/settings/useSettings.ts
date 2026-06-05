@@ -38,8 +38,6 @@ export interface UseSettingsReturn {
   setSlideCheckInterval: () => Promise<void>
   validateAndCorrectInterval: () => void
   setSlideDoubleVerification: () => Promise<void>
-  resetSlideDetectionInterval: () => Promise<void>
-  resetSlideStabilityVerification: () => Promise<void>
   setTaskSpeed: () => Promise<void>
   setShowMorePlaybackSpeed: () => Promise<void>
   setAutoPostProcessing: () => Promise<void>
@@ -205,26 +203,6 @@ export function useSettings(): UseSettingsReturn {
     }
   }
 
-  const resetSlideDetectionInterval = async () => {
-    try {
-      slideCheckInterval.value = 2000
-      validateAndCorrectInterval()
-      await setSlideCheckInterval()
-    } catch (error) {
-      console.error('Failed to reset slide detection interval:', error)
-    }
-  }
-
-  const resetSlideStabilityVerification = async () => {
-    try {
-      slideDoubleVerification.value = true
-      slideVerificationCount.value = 2
-      await setSlideDoubleVerification()
-    } catch (error) {
-      console.error('Failed to reset slide stability verification:', error)
-    }
-  }
-
   const setTaskSpeed = async () => {
     try {
       const result = await window.electronAPI.config.setTaskSpeed(taskSpeed.value)
@@ -331,8 +309,6 @@ export function useSettings(): UseSettingsReturn {
     setSlideCheckInterval,
     validateAndCorrectInterval,
     setSlideDoubleVerification,
-    resetSlideDetectionInterval,
-    resetSlideStabilityVerification,
     setTaskSpeed,
     setShowMorePlaybackSpeed,
     setAutoPostProcessing,

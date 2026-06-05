@@ -113,84 +113,12 @@
         </div>
 
         <div class="setting-item">
-          <div class="setting-label-with-reset">
-            <label class="setting-label">{{ $t('settings.slideDetectionInterval') }}</label>
-            <button class="reset-btn" disabled>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                <path d="M21 3v5h-5"/>
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                <path d="M3 21v-5h5"/>
-              </svg>
-            </button>
-          </div>
-          <div class="setting-description">{{ $t('settings.slideDetectionDescription') }}</div>
-          <div class="slide-interval-group">
-            <div class="slide-interval-input-wrapper">
-              <input
-                type="number"
-                class="slide-interval-input"
-                value="2000"
-                readonly
-              />
-              <span class="interval-unit">{{ $t('settings.milliseconds') }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="setting-item">
-          <div class="setting-label-with-reset">
-            <label class="setting-label">{{ $t('settings.slideStabilityVerification') }}</label>
-            <button class="reset-btn" disabled>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-                <path d="M21 3v5h-5"/>
-                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-                <path d="M3 21v-5h5"/>
-              </svg>
-            </button>
-          </div>
-          <div class="setting-description">{{ $t('settings.slideStabilityDescription') }}</div>
-          <div class="verification-unified-control">
-            <label class="checkbox-label">
-              <input
-                type="checkbox"
-                checked
-                disabled
-              />
-              {{ $t('settings.enableChecks') }}
-            </label>
-            <div class="verification-count-control">
-              <select class="verification-count-select" disabled>
-                <option value="2" selected>2</option>
-              </select>
-              <span class="count-label">{{ $t('settings.counts') }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="setting-item">
           <label class="setting-label">{{ $t('settings.taskSpeed') }}</label>
           <div class="setting-description">{{ $t('settings.taskSpeedDescription') }}</div>
           <div class="task-speed-selector">
             <select class="task-speed-select" disabled>
               <option value="10" selected>10x</option>
             </select>
-          </div>
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label">{{ $t('settings.autoPostProcessing') }}</label>
-          <div class="setting-description">{{ $t('settings.autoPostProcessingDescription') }}</div>
-          <div class="auto-post-processing-control">
-            <label class="checkbox-label">
-              <input type="checkbox" disabled />
-              {{ $t('settings.enableAutoPostProcessingLive') }}
-            </label>
-            <label class="checkbox-label">
-              <input type="checkbox" checked disabled />
-              {{ $t('settings.enableAutoPostProcessingRecorded') }}
-            </label>
           </div>
         </div>
       </div>
@@ -557,7 +485,7 @@ defineExpose({
   width: 100%;
 }
 
-.audio-mode-select, .task-speed-select, .verification-count-select {
+.audio-mode-select, .task-speed-select {
   width: 100%;
   padding: 6px 8px;
   border: 1px solid #ddd;
@@ -574,127 +502,6 @@ defineExpose({
   margin-bottom: 6px;
   line-height: 1.3;
   margin-top: 2px;
-}
-
-.slide-interval-group {
-  display: flex;
-  align-items: center;
-}
-
-.slide-interval-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-  width: 100%;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.slide-interval-input {
-  flex: 1;
-  padding: 6px 8px;
-  border: none;
-  background-color: transparent;
-  font-size: 12px;
-  outline: none;
-  color: #666;
-}
-
-.interval-unit {
-  padding: 6px 8px;
-  font-size: 11px;
-  color: #666;
-  background-color: #f8f9fa;
-  border-left: 1px solid #e0e0e0;
-  white-space: nowrap;
-}
-
-.verification-unified-control {
-  display: flex;
-  align-items: stretch;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  overflow: hidden;
-  height: 35px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: #333;
-  cursor: not-allowed;
-  padding: 8px 12px;
-  background-color: transparent;
-  border: none;
-  border-radius: 0;
-  user-select: none;
-  flex: 1;
-}
-
-.checkbox-label input[type="checkbox"] {
-  margin: 0;
-  cursor: not-allowed;
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-}
-
-.verification-count-control {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  background-color: rgba(255, 255, 255, 0.7);
-  border-left: 1px solid #ddd;
-}
-
-.count-label {
-  font-size: 11px;
-  color: #666;
-  white-space: nowrap;
-}
-
-.verification-count-select {
-  padding: 4px 6px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background-color: #f8f9fa;
-  font-size: 11px;
-  cursor: not-allowed;
-  min-width: 50px;
-  color: #666;
-}
-
-/* Auto post-processing control */
-.auto-post-processing-control {
-  display: flex;
-  flex-direction: column;
-  background-color: #f8f9fa;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.auto-post-processing-control .checkbox-label {
-  cursor: not-allowed;
-  padding: 8px 12px;
-  color: #333;
-}
-
-.auto-post-processing-control .checkbox-label:not(:last-child) {
-  border-bottom: 1px solid #ddd;
-}
-
-.auto-post-processing-control .checkbox-label input[type="checkbox"] {
-  margin: 0;
-  cursor: not-allowed;
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
 }
 
 .status-section {
