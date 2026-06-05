@@ -1,7 +1,6 @@
 import { registerAuthIpcHandlers } from './authIpc';
 import { registerConfigIpcHandlers } from './configIpc';
 import { registerModelIpcHandlers } from './modelIpc';
-import { registerThemeIpcHandlers } from './themeIpc';
 import { registerAiIpcHandlers } from './aiIpc';
 import { registerIntranetIpcHandlers } from './intranetIpc';
 import { registerApiIpcHandlers } from './apiIpc';
@@ -32,7 +31,6 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerAuthIpcHandlers(services);
   registerConfigIpcHandlers(services);
   registerModelIpcHandlers(services);
-  registerThemeIpcHandlers(services);
   registerAiIpcHandlers(services);
   registerIntranetIpcHandlers(services);
   registerApiIpcHandlers(services);

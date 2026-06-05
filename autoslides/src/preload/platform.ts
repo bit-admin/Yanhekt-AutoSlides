@@ -165,11 +165,6 @@ export const app = {
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
 };
 
-export const tour = {
-  forceLightTheme: () => ipcRenderer.invoke('tour:forceLightTheme'),
-  restoreTheme: (originalTheme: 'system' | 'light' | 'dark') => ipcRenderer.invoke('tour:restoreTheme', originalTheme),
-};
-
 export const dialog = {
   showMessageBox: (options: Electron.MessageBoxOptions) => ipcRenderer.invoke('dialog:showMessageBox', options),
   showErrorBox: (title: string, content: string) => ipcRenderer.invoke('dialog:showErrorBox', title, content),

@@ -126,11 +126,9 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useTour } from '@features/platform/useTour';
 import UpdateManager from './UpdateManager.vue';
 
 const { t: $t } = useI18n();
-const { restartTour } = useTour();
 
 const isMacOS = ref(false);
 
@@ -212,8 +210,7 @@ const toggleFeedbackActions = () => {
 
 // Search box click handler
 const handleSearchClick = () => {
-  // Restart the UI tour
-  restartTour();
+  // TODO: wire this up to its new function
 };
 
 // Window control functions for non-macOS platforms
@@ -579,12 +576,12 @@ const checkForUpdates = () => {
 }
 
 .search-box:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-color);
+  background: var(--bg-elevated);
+  border-color: var(--border-strong);
 }
 
 .search-box:active {
-  background: var(--bg-hover);
+  background: var(--bg-subtle);
 }
 
 .search-icon {

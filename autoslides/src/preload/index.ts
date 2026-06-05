@@ -1,5 +1,5 @@
 import { contextBridge } from 'electron';
-import { auth, config, windowNs, shell, menu, powerManagement, cache, app, tour, dialog } from './platform';
+import { auth, config, windowNs, shell, menu, powerManagement, cache, app, dialog } from './platform';
 import { video, ffmpeg, compressLecture, download } from './video';
 import { slideExtraction, offline, trash, crop, autoCrop, mlClassifier, qtExtractor } from './extraction';
 import { ai, copilot } from './ai';
@@ -26,7 +26,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   powerManagement,
   cache,
   app,
-  tour,
   ai,
   copilot,
   trash,

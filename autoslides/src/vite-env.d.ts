@@ -643,11 +643,6 @@ interface ElectronAPI {
     restart: () => Promise<void>;
   };
 
-  tour?: {
-    forceLightTheme: () => Promise<void>;
-    restoreTheme: (originalTheme: 'system' | 'light' | 'dark') => Promise<void>;
-  };
-
   ai: {
     classifySingleImage: (
       base64Image: string,

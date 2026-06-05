@@ -5,8 +5,7 @@
 
     <div class="layout">
       <div class="left-panel" :style="{ width: leftWidth + 'px' }">
-        <LeftPanelDemo v-if="isDemoMode" ref="leftPanelDemoRef" />
-        <LeftPanel v-else />
+        <LeftPanel />
       </div>
       <div class="divider left-divider" @mousedown="startResize('left', $event)"></div>
 
@@ -21,22 +20,15 @@
       <!-- Normal content when not in browser login mode -->
       <template v-else>
         <div class="main-content" :style="{ width: mainWidth + 'px' }">
-          <PlaybackPageDemo v-if="isDemoMode && showPlaybackDemo" ref="playbackPageDemoRef" @back="handleBackFromPlayback" />
-          <SessionPageDemo v-else-if="isDemoMode && showSessionDemo" ref="sessionPageDemoRef" @back-to-courses="handleBackToCourses" />
-          <MainContentDemo v-else-if="isDemoMode && showMainDemo" ref="mainContentDemoRef" @course-selected="handleCourseSelectedFromMain" />
-          <MainContent v-else @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
+          <MainContent @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
         </div>
         <div class="divider right-divider" @mousedown="startResize('right', $event)"></div>
 
         <div class="right-panel" :style="{ width: rightWidth + 'px' }">
-          <RightPanelDemo v-if="isDemoMode && showRightPanelDemo" ref="rightPanelDemoRef" />
-          <RightPanel v-else ref="rightPanelRef" />
+          <RightPanel ref="rightPanelRef" />
         </div>
       </template>
     </div>
-
-    <!-- Tools Window Demo Modal (tour overlay) -->
-    <ToolsWindowDemo v-if="isDemoMode && showToolsDemo" ref="toolsWindowDemoRef" />
   </div>
 </template>
 
@@ -44,16 +36,9 @@
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import TitleBar from '@renderer/components/titlebar/TitleBar.vue'
 import LeftPanel from '@renderer/components/settings/LeftPanel.vue'
-import LeftPanelDemo from '@renderer/components/demo/LeftPanelDemo.vue'
 import MainContent from '@renderer/components/MainContent.vue'
-import MainContentDemo from '@renderer/components/demo/MainContentDemo.vue'
-import SessionPageDemo from '@renderer/components/demo/SessionPageDemo.vue'
-import PlaybackPageDemo from '@renderer/components/demo/PlaybackPageDemo.vue'
 import RightPanel from '@renderer/components/download/RightPanel.vue'
-import RightPanelDemo from '@renderer/components/demo/RightPanelDemo.vue'
-import ToolsWindowDemo from '@renderer/components/demo/ToolsWindowDemo.vue'
 import BrowserLoginView from '@renderer/components/settings/BrowserLoginView.vue'
-import { useTour } from '@features/platform/useTour'
 import { useAuth } from '@features/platform/useAuth'
 
 const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken } = useAuth()
@@ -70,19 +55,6 @@ let startRightWidth = 0
 let containerWidth = 0
 
 const rightPanelRef = ref()
-const rightPanelDemoRef = ref()
-const leftPanelDemoRef = ref()
-const mainContentDemoRef = ref()
-const sessionPageDemoRef = ref()
-const playbackPageDemoRef = ref()
-const isDemoMode = ref(false)
-const showMainDemo = ref(false)
-const showSessionDemo = ref(false)
-const showPlaybackDemo = ref(false)
-const showRightPanelDemo = ref(false)
-const showToolsDemo = ref(false)
-const toolsWindowDemoRef = ref()
-const { checkFirstVisit, showWelcomePopup } = useTour()
 
 const handleSwitchToDownload = (downloadItemId?: string) => {
   if (rightPanelRef.value?.switchToDownload) {
@@ -166,166 +138,16 @@ const updateSizes = () => {
   }
 }
 
-// Demo mode event handlers
-const handleDemoModeToggle = (event: CustomEvent) => {
-  isDemoMode.value = event.detail.enabled
-  if (event.detail.enabled) {
-    // Reset demo states when enabling demo mode
-    showMainDemo.value = false
-    showSessionDemo.value = false
-    showPlaybackDemo.value = false
-    showRightPanelDemo.value = false
-    showToolsDemo.value = false
-    nextTick(() => {
-      if (leftPanelDemoRef.value) {
-        leftPanelDemoRef.value.resetDemo()
-      }
-    })
-  } else {
-    // Reset all demo states when exiting demo mode
-    showMainDemo.value = false
-    showSessionDemo.value = false
-    showPlaybackDemo.value = false
-    showRightPanelDemo.value = false
-    showToolsDemo.value = false
-    if (leftPanelDemoRef.value) {
-      leftPanelDemoRef.value.resetDemo()
-    }
-  }
-}
-
-const handleDemoLogin = () => {
-  if (leftPanelDemoRef.value) {
-    leftPanelDemoRef.value.loginDemo()
-  }
-}
-
-const handleSwitchToMainDemo = () => {
-  showMainDemo.value = true
-}
-
-const handleSwitchToRecorded = () => {
-  nextTick(() => {
-    if (mainContentDemoRef.value && mainContentDemoRef.value.switchMode) {
-      // Switch to recorded mode in the demo component
-      mainContentDemoRef.value.switchMode('recorded')
-    }
-  })
-}
-
-const handleDemoSearch = () => {
-  // Dispatch event to CoursePageDemo component to trigger search
-  window.dispatchEvent(new CustomEvent('demo-trigger-search'))
-}
-
-const handleSwitchToSessionDemo = () => {
-  showMainDemo.value = false
-  showSessionDemo.value = true
-}
-
-const handleBackToCourses = () => {
-  showSessionDemo.value = false
-  showMainDemo.value = true
-}
-
-const handleSwitchToRightPanelDemo = () => {
-  showRightPanelDemo.value = true
-}
-
-const handleSwitchToDownloadMode = () => {
-  nextTick(() => {
-    if (rightPanelDemoRef.value && rightPanelDemoRef.value.switchToDownload) {
-      rightPanelDemoRef.value.switchToDownload()
-    }
-  })
-}
-
-const handleSwitchToPlaybackDemo = () => {
-  showMainDemo.value = false
-  showSessionDemo.value = false
-  showRightPanelDemo.value = false
-  showPlaybackDemo.value = true
-}
-
-const handleShowToolsDemo = () => {
-  showToolsDemo.value = true
-}
-
-const handleShowResultsImages = () => {
-  nextTick(() => {
-    if (toolsWindowDemoRef.value) {
-      toolsWindowDemoRef.value.showResultsImages()
-    }
-  })
-}
-
-const handleSwitchToPdfMakerDemo = () => {
-  nextTick(() => {
-    if (toolsWindowDemoRef.value) {
-      toolsWindowDemoRef.value.switchToPdfMaker()
-    }
-  })
-}
-
-const handleHideToolsDemo = () => {
-  showToolsDemo.value = false
-}
-
-const handleBackFromPlayback = () => {
-  showPlaybackDemo.value = false
-  showRightPanelDemo.value = true
-}
-
-const handleCourseSelectedFromMain = (course: any) => {
-  // Navigate to PlaybackPage demo when a course is selected
-  showMainDemo.value = false
-  showPlaybackDemo.value = true
-}
-
 onMounted(() => {
   // Use nextTick to ensure the DOM has been rendered.
   nextTick(() => {
     updateSizes()
-
-    // Check if this is the first visit and show welcome popup
-    if (checkFirstVisit()) {
-      // Wait a bit for the UI to fully render
-      setTimeout(() => {
-        showWelcomePopup()
-      }, 500)
-    }
   })
 
   window.addEventListener('resize', updateSizes)
-  window.addEventListener('tour-demo-mode', handleDemoModeToggle as EventListener)
-  window.addEventListener('tour-demo-login', handleDemoLogin)
-  window.addEventListener('tour-switch-to-main-demo', handleSwitchToMainDemo)
-  window.addEventListener('tour-switch-to-recorded', handleSwitchToRecorded)
-  window.addEventListener('tour-demo-search', handleDemoSearch)
-  window.addEventListener('tour-switch-to-session-demo', handleSwitchToSessionDemo)
-  window.addEventListener('tour-switch-to-right-panel-demo', handleSwitchToRightPanelDemo)
-  window.addEventListener('tour-switch-to-download-mode', handleSwitchToDownloadMode)
-  window.addEventListener('tour-switch-to-playback-demo', handleSwitchToPlaybackDemo)
-  window.addEventListener('tour-show-tools-demo', handleShowToolsDemo)
-  window.addEventListener('tour-show-results-images', handleShowResultsImages)
-  window.addEventListener('tour-switch-to-pdfmaker-demo', handleSwitchToPdfMakerDemo)
-  window.addEventListener('tour-hide-tools-demo', handleHideToolsDemo)
 
   onUnmounted(() => {
     window.removeEventListener('resize', updateSizes)
-    window.removeEventListener('tour-demo-mode', handleDemoModeToggle as EventListener)
-    window.removeEventListener('tour-demo-login', handleDemoLogin)
-    window.removeEventListener('tour-switch-to-main-demo', handleSwitchToMainDemo)
-    window.removeEventListener('tour-switch-to-recorded', handleSwitchToRecorded)
-    window.removeEventListener('tour-demo-search', handleDemoSearch)
-    window.removeEventListener('tour-switch-to-session-demo', handleSwitchToSessionDemo)
-    window.removeEventListener('tour-switch-to-right-panel-demo', handleSwitchToRightPanelDemo)
-    window.removeEventListener('tour-switch-to-download-mode', handleSwitchToDownloadMode)
-    window.removeEventListener('tour-switch-to-playback-demo', handleSwitchToPlaybackDemo)
-    window.removeEventListener('tour-show-tools-demo', handleShowToolsDemo)
-    window.removeEventListener('tour-show-results-images', handleShowResultsImages)
-    window.removeEventListener('tour-switch-to-pdfmaker-demo', handleSwitchToPdfMakerDemo)
-    window.removeEventListener('tour-hide-tools-demo', handleHideToolsDemo)
   })
 })
 </script>
