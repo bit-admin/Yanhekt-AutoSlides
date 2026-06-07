@@ -6,6 +6,8 @@ import { execSync } from 'child_process';
 export class FFmpegService {
   private ffmpegPath: string | null = null;
   private resolved = false;
+  private ffprobePath: string | null = null;
+  private ffprobeResolved = false;
 
   /**
    * Resolve the FFmpeg path lazily on first access. The probing runs up to a
@@ -158,9 +160,141 @@ export class FFmpegService {
     }
   }
 
+  /**
+   * Resolve the ffprobe path lazily on first access, mirroring the ffmpeg
+   * resolution. ffprobe is shipped by the `ffprobe-static` package (it is NOT
+   * part of `ffmpeg-static`), bundled into the packaged app via extraResource.
+   */
+  private ensureFfprobeResolved(): void {
+    if (this.ffprobeResolved) return;
+    this.ffprobeResolved = true;
+    this.initializeFfprobePath();
+  }
+
+  /**
+   * Try to find system ffprobe (Linux/macOS) — used only as a fallback when the
+   * bundled binary is unavailable.
+   */
+  private findSystemFfprobe(): string | null {
+    if (process.platform === 'win32') return null;
+
+    try {
+      const result = execSync('which ffprobe', { stdio: 'pipe', timeout: 5000 });
+      const systemPath = result.toString().trim();
+      if (systemPath && fs.existsSync(systemPath)) {
+        console.log('Found system ffprobe:', systemPath);
+        return systemPath;
+      }
+    } catch {
+      // ffprobe not in PATH
+    }
+
+    const commonPaths = [
+      '/usr/bin/ffprobe',
+      '/usr/local/bin/ffprobe',
+      '/opt/homebrew/bin/ffprobe',
+      '/usr/local/opt/ffmpeg/bin/ffprobe'
+    ];
+
+    for (const p of commonPaths) {
+      if (fs.existsSync(p)) {
+        console.log('Found ffprobe at common path:', p);
+        return p;
+      }
+    }
+
+    return null;
+  }
+
+  private initializeFfprobePath(): void {
+    const ffprobeBinary = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe';
+    let staticFfprobePath: string | null = null;
+
+    try {
+      // In packaged app, check extraResource first.
+      // ffprobe-static ships per-platform/arch binaries: bin/<platform>/<arch>/ffprobe
+      if (process.resourcesPath) {
+        const extraResourcePath = path.join(
+          process.resourcesPath,
+          'ffprobe-static',
+          'bin',
+          process.platform,
+          process.arch,
+          ffprobeBinary
+        );
+        console.log('Checking ffprobe extraResource path:', extraResourcePath);
+
+        if (fs.existsSync(extraResourcePath)) {
+          this.ensureExecutePermission(extraResourcePath);
+          staticFfprobePath = extraResourcePath;
+        } else {
+          console.log('ffprobe extraResource path does not exist');
+        }
+      }
+
+      // Fallback to ffprobe-static npm package (development)
+      if (!staticFfprobePath) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-require-imports
+          const ffprobeStatic = require('ffprobe-static');
+          const pkgPath: string | undefined = ffprobeStatic?.path;
+          if (pkgPath && fs.existsSync(pkgPath)) {
+            this.ensureExecutePermission(pkgPath);
+            staticFfprobePath = pkgPath;
+          }
+        } catch (error) {
+          console.log('ffprobe-static npm package not available:', error);
+        }
+      }
+
+      // Prefer the bundled/static binary when it works.
+      if (staticFfprobePath && this.testFfmpegBinary(staticFfprobePath)) {
+        this.ffprobePath = staticFfprobePath;
+        console.log('ffprobe path (static binary works):', this.ffprobePath);
+        return;
+      }
+
+      // Fallback: ffprobe adjacent to the resolved ffmpeg binary (e.g. Homebrew).
+      const ffmpegPath = this.getFfmpegPath();
+      if (ffmpegPath) {
+        const adjacent = path.join(path.dirname(ffmpegPath), ffprobeBinary);
+        if (fs.existsSync(adjacent) && this.testFfmpegBinary(adjacent)) {
+          this.ffprobePath = adjacent;
+          console.log('ffprobe path (adjacent to ffmpeg):', this.ffprobePath);
+          return;
+        }
+      }
+
+      // Fallback: system ffprobe on PATH / common install paths.
+      const systemFfprobe = this.findSystemFfprobe();
+      if (systemFfprobe && this.testFfmpegBinary(systemFfprobe)) {
+        this.ffprobePath = systemFfprobe;
+        console.log('ffprobe path (system):', this.ffprobePath);
+        return;
+      }
+
+      // Last resort: use static path even if the test failed.
+      if (staticFfprobePath) {
+        this.ffprobePath = staticFfprobePath;
+        console.log('ffprobe path (static, untested):', this.ffprobePath);
+      } else {
+        console.error('No ffprobe binary found');
+        this.ffprobePath = null;
+      }
+    } catch (error) {
+      console.error('ffprobe initialization failed:', error);
+      this.ffprobePath = null;
+    }
+  }
+
   getFfmpegPath(): string | null {
     this.ensureResolved();
     return this.ffmpegPath;
+  }
+
+  getFfprobePath(): string | null {
+    this.ensureFfprobeResolved();
+    return this.ffprobePath;
   }
 
   isAvailable(): boolean {

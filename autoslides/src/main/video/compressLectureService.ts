@@ -535,6 +535,14 @@ export class CompressLectureService {
   }
 
   private async resolveFfprobePath(ffmpegPath: string): Promise<string> {
+    // Prefer the bundled/static ffprobe resolved by FFmpegService. This is the
+    // path that works in a packaged app, where there is no system ffprobe on
+    // the (minimal) PATH a Finder-launched app inherits.
+    const bundled = this.ffmpegService.getFfprobePath();
+    if (bundled) {
+      return bundled;
+    }
+
     const ffprobeBinary = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe';
     const adjacentPath = path.join(path.dirname(ffmpegPath), ffprobeBinary);
 

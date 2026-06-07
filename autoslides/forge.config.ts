@@ -3,6 +3,8 @@ import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
+import path from 'path';
+import { readdir, rm } from 'fs/promises';
 
 // Check if we're running in development mode (npm start)
 const isDev = process.argv.some(arg => arg.includes('electron-forge-start'));
@@ -29,6 +31,9 @@ const config: ForgeConfig = {
       'resources/models',
       // Include FFmpeg binary for all platforms
       'node_modules/ffmpeg-static',
+      // Include ffprobe binary (ffprobe-static; NOT part of ffmpeg-static).
+      // Required by the lecture-compress probe step in packaged builds.
+      'node_modules/ffprobe-static',
       // Include sharp and its dependencies
       'node_modules/sharp',
       'node_modules/@img',
@@ -37,6 +42,46 @@ const config: ForgeConfig = {
     ]
   },
   rebuildConfig: {},
+  hooks: {
+    // ffprobe-static ships binaries for every platform/arch in bin/<platform>/<arch>.
+    // We bundle the whole package via extraResource, then prune everything except
+    // the build target here so the packaged app only carries the one ffprobe it
+    // can actually run. Runs after extraResource is copied (unlike packageAfterCopy),
+    // and uses the resolved build platform/arch so cross-builds prune correctly.
+    postPackage: async (_forgeConfig, options) => {
+      const { platform, arch, outputPaths } = options;
+      for (const outputPath of outputPaths) {
+        const resourcesDir = platform === 'darwin'
+          ? path.join(outputPath, 'AutoSlides.app', 'Contents', 'Resources')
+          : path.join(outputPath, 'resources');
+        const binDir = path.join(resourcesDir, 'ffprobe-static', 'bin');
+
+        let platformDirs: string[];
+        try {
+          platformDirs = await readdir(binDir);
+        } catch {
+          // ffprobe-static not present in this output (nothing to prune)
+          continue;
+        }
+
+        for (const platformName of platformDirs) {
+          const platformPath = path.join(binDir, platformName);
+          if (platformName !== platform) {
+            await rm(platformPath, { recursive: true, force: true });
+            continue;
+          }
+          // Within the target platform, keep only the target arch.
+          const archDirs = await readdir(platformPath);
+          for (const archName of archDirs) {
+            if (archName !== arch) {
+              await rm(path.join(platformPath, archName), { recursive: true, force: true });
+            }
+          }
+        }
+        console.log(`[forge] Pruned ffprobe-static to ${platform}/${arch}`);
+      }
+    },
+  },
   makers: [
     // macOS: Use `npm run package` then DropDMG manually
     // Windows: Use `npm run make:win` (electron-builder with NSIS, see electron-builder.yml)
