@@ -392,6 +392,10 @@ export function useCompressLecture() {
     resetState()
     attachListeners()
 
+    // Warm up ffmpeg/ffprobe path resolution now (memoized in the main process)
+    // so the first preview/start doesn't block on the probe cost. Fire-and-forget.
+    void window.electronAPI.ffmpeg.warmUp()
+
     const active = await window.electronAPI.compressLecture.isActive()
     if (active) {
       isRunning.value = true

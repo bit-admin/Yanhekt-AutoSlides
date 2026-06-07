@@ -502,6 +502,7 @@ interface ElectronAPI {
     getPath: () => Promise<string | null>;
     isAvailable: () => Promise<boolean>;
     getPlatformInfo: () => Promise<FFmpegInfo>;
+    warmUp: () => Promise<void>;
   };
 
   compressLecture: {

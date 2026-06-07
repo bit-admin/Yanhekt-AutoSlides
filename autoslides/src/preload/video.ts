@@ -15,6 +15,7 @@ export const ffmpeg = {
   getPath: () => ipcRenderer.invoke('ffmpeg:getPath'),
   isAvailable: () => ipcRenderer.invoke('ffmpeg:isAvailable'),
   getPlatformInfo: () => ipcRenderer.invoke('ffmpeg:getPlatformInfo'),
+  warmUp: () => ipcRenderer.invoke('ffmpeg:warmUp'),
 };
 
 type CompressLectureOptions = {

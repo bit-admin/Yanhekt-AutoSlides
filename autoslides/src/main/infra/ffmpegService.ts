@@ -297,6 +297,17 @@ export class FFmpegService {
     return this.ffprobePath;
   }
 
+  /**
+   * Eagerly resolve both ffmpeg and ffprobe paths. Resolution runs blocking
+   * execSync probes (binary `-version`, `which`), so the first preview/start in
+   * the lecture-compress UI would otherwise pay that cost on the click. Callers
+   * can warm this up when that UI opens. Memoized — a no-op after first resolve.
+   */
+  warmUp(): void {
+    this.ensureResolved();
+    this.ensureFfprobeResolved();
+  }
+
   isAvailable(): boolean {
     this.ensureResolved();
     return this.ffmpegPath !== null;
