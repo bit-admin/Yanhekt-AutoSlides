@@ -66,16 +66,6 @@
     </div>
 
     <div class="control-section custom-scrollbar">
-      <div class="control-header">
-        <h3>{{ $t('settings.settings') }}</h3>
-        <button @click="openAdvancedSettings" class="btn advanced-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="12" cy="12" r="3"/>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-          </svg>
-          {{ $t('settings.advancedSettings') }}
-        </button>
-      </div>
       <div class="settings-content">
         <div class="setting-item">
           <div class="setting-label-with-reset">
@@ -152,37 +142,41 @@
             </select>
           </div>
         </div>
-      </div>
-    </div>
 
-    <div class="status-section">
-      <!-- Action Buttons Row -->
-      <!-- Tools Launcher -->
-      <div class="tools-dropdown">
-        <button class="tools-trigger" @click="openToolsWindow()">
-          <svg width="14" height="14" viewBox="0 0 16 16">
-            <path d="M1 3h4v4H1V3zm5 0h4v4H6V3zm5 0h4v4h-4V3zM1 9h4v4H1V9zm5 0h4v4H6V9zm5 0h4v4h-4V9z" fill="currentColor"/>
-          </svg>
-          <span>{{ $t('tools.openTools') }}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" class="tools-chevron">
-            <path d="M3 2l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-          </svg>
-        </button>
-      </div>
+        <div class="panel-actions">
+          <button type="button" class="panel-action-button" @click="openAdvancedSettings">
+            <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span>{{ $t('settings.advancedSettings') }}</span>
+          </button>
 
-      <!-- Add-ons Launcher -->
-      <div class="tools-dropdown addons-dropdown">
-        <button class="tools-trigger" @click="openAddonsWindow()">
-          <svg width="14" height="14" viewBox="0 0 16 16">
-            <path d="M8 1L1 5v6l7 4 7-4V5L8 1zm0 2l4.5 2.5L8 8 3.5 5.5 8 3zM2.5 6.3L7.5 9v4.2l-5-2.8V6.3zm11 0v4.1l-5 2.8V9l5-2.7z" fill="currentColor"/>
-          </svg>
-          <span>{{ $t('addons.openAddons') }}</span>
-          <svg width="10" height="10" viewBox="0 0 10 10" class="tools-chevron">
-            <path d="M3 2l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-          </svg>
-        </button>
-      </div>
+          <button type="button" class="panel-action-button" @click="openToolsWindow()">
+            <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M1 3h4v4H1V3zm5 0h4v4H6V3zm5 0h4v4h-4V3zM1 9h4v4H1V9zm5 0h4v4H6V9zm5 0h4v4h-4V9z" fill="currentColor"/>
+            </svg>
+            <span>{{ $t('tools.openTools') }}</span>
+            <svg class="panel-action-external-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15 3h6v6"/>
+              <path d="M10 14L21 3"/>
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            </svg>
+          </button>
 
+          <button type="button" class="panel-action-button" @click="openAddonsWindow()">
+            <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M8 1L1 5v6l7 4 7-4V5L8 1zm0 2l4.5 2.5L8 8 3.5 5.5 8 3zM2.5 6.3L7.5 9v4.2l-5-2.8V6.3zm11 0v4.1l-5 2.8V9l5-2.7z" fill="currentColor"/>
+            </svg>
+            <span>{{ $t('addons.openAddons') }}</span>
+            <svg class="panel-action-external-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15 3h6v6"/>
+              <path d="M10 14L21 3"/>
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
 
     <AdvancedSettingsModal
@@ -688,30 +682,12 @@ defineExpose({
   overflow-y: auto;
 }
 
-.control-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.control-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-}
-
 .settings-content {
   padding: 0;
 }
 
 .setting-item {
   margin-bottom: 16px;
-}
-
-.setting-item:last-child {
-  margin-bottom: 0;
-  margin-top: 6px;
 }
 
 .setting-label {
@@ -829,13 +805,6 @@ defineExpose({
 .task-speed-selector {
   width: 100%;
 }
-
-.status-section {
-  padding: 12px 16px 16px;
-  border-top: 1px solid var(--border-color);
-  background-color: var(--bg-elevated);
-}
-
 
 .modal-overlay {
   position: fixed;
@@ -995,20 +964,18 @@ defineExpose({
   border-color: var(--accent-hover);
 }
 
-/* Tools Flyout */
-.tools-dropdown {
-  margin-bottom: 8px;
+.panel-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.addons-dropdown {
-  margin-bottom: 0;
-}
-
-.tools-trigger {
+.panel-action-button {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   width: 100%;
+  min-height: var(--control-height);
   padding: 6px 8px;
   border: 1px solid var(--border-input);
   border-radius: 4px;
@@ -1020,18 +987,27 @@ defineExpose({
   transition: all 0.2s;
 }
 
-.tools-trigger:hover {
+.panel-action-button:hover {
   background-color: var(--bg-hover);
   border-color: var(--border-strong);
 }
 
-.tools-trigger svg:first-child {
+.panel-action-button span {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-action-icon {
   flex-shrink: 0;
   opacity: 0.7;
 }
 
-.tools-chevron {
-  margin-left: auto;
+.panel-action-external-icon {
+  flex-shrink: 0;
   opacity: 0.45;
 }
 
