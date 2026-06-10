@@ -100,7 +100,7 @@ export class AIFilteringService {
       return {
         providerId: 'copilot',
         baseUrl: 'https://api.githubcopilot.com',
-        models: [config.copilotModelName || 'gpt-5-mini'],
+        models: [config.copilotModelName || 'gpt-4.1'],
         serviceType: 'copilot'
       };
     }

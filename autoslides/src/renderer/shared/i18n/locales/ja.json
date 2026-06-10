@@ -359,7 +359,7 @@
       "copilotCancel": "キャンセル",
       "copilotWaitingForAuth": "認証を待っています...",
       "copilotDisconnect": "切断",
-      "copilotModelPlaceholder": "例: gpt-5-mini",
+      "copilotModelPlaceholder": "例: gpt-4.1",
       "copilotInvalidToken": "トークンが無効です。確認してから再試行してください。",
       "copilotDeviceCodeExpired": "デバイスコードの有効期限が切れました。再試行してください。",
       "copilotAccessDenied": "アクセスが拒否されました。再試行してください。",
@@ -1078,6 +1078,13 @@
     "audioTitle": "再生中は音声をミュートしますか？",
     "audioDescription": "ライブと録画それぞれについて、ミュートにするかを選べます。",
     "taskSpeedTitle": "タスクをどのくらいの速さで実行しますか？",
-    "taskSpeedDescription": "スライド抽出タスクはこの速度で動画を再生します。内部ネットワークでは、より高速（最大 16×）に設定することをおすすめします。"
+    "taskSpeedDescription": "スライド抽出タスクはこの速度で動画を再生します。内部ネットワークでは、より高速（最大 16×）に設定することをおすすめします。",
+    "aiTitle": "GitHub Copilot を使いますか？",
+    "aiDescription": "Copilot の無料 gpt-4.1 モデルがおすすめです。GitHub アカウントでサインインするだけです。",
+    "loginGithub": "GitHub でサインイン",
+    "copilotConnecting": "認証を待っています…",
+    "copilotError": "サインインに失敗しました。もう一度お試しください。",
+    "cancel": "キャンセル",
+    "configureLater": "後で設定する"
   }
 }

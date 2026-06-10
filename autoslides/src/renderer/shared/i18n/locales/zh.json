@@ -359,7 +359,7 @@
       "copilotCancel": "取消",
       "copilotWaitingForAuth": "等待授权...",
       "copilotDisconnect": "断开连接",
-      "copilotModelPlaceholder": "例如 gpt-5-mini",
+      "copilotModelPlaceholder": "例如 gpt-4.1",
       "copilotInvalidToken": "令牌无效，请检查后重试。",
       "copilotDeviceCodeExpired": "设备代码已过期，请重试。",
       "copilotAccessDenied": "访问被拒绝，请重试。",
@@ -1078,6 +1078,13 @@
     "audioTitle": "你希望在视频播放时静音吗？",
     "audioDescription": "你可以分别选择直播和录播是否保持静音。",
     "taskSpeedTitle": "你希望任务以多快速度运行？",
-    "taskSpeedDescription": "幻灯片提取任务会以此速度播放视频。建议在内网模式下调整至更高速度，最高 16×。"
+    "taskSpeedDescription": "幻灯片提取任务会以此速度播放视频。建议在内网模式下调整至更高速度，最高 16×。",
+    "aiTitle": "要使用 GitHub Copilot 运行 AI 过滤功能吗？",
+    "aiDescription": "AutoSlides 会借助 AI 过滤掉非幻灯片画面。推荐使用 Copilot 免费的 gpt-4.1 模型，你只需要使用 GitHub 账号登录即可。",
+    "loginGithub": "使用 GitHub 登录",
+    "copilotConnecting": "等待授权…",
+    "copilotError": "登录失败，请重试。",
+    "cancel": "取消",
+    "configureLater": "稍后再配置"
   }
 }

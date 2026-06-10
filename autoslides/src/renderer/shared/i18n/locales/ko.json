@@ -359,7 +359,7 @@
       "copilotCancel": "취소",
       "copilotWaitingForAuth": "인증 대기 중...",
       "copilotDisconnect": "연결 해제",
-      "copilotModelPlaceholder": "예: gpt-5-mini",
+      "copilotModelPlaceholder": "예: gpt-4.1",
       "copilotInvalidToken": "유효하지 않은 토큰입니다. 확인 후 다시 시도하세요.",
       "copilotDeviceCodeExpired": "디바이스 코드가 만료되었습니다. 다시 시도하세요.",
       "copilotAccessDenied": "액세스가 거부되었습니다. 다시 시도하세요.",
@@ -1078,6 +1078,13 @@
     "audioTitle": "재생 중에 음소거할까요?",
     "audioDescription": "라이브와 녹화 각각에 대해 음소거 여부를 선택할 수 있습니다.",
     "taskSpeedTitle": "작업을 얼마나 빠르게 실행할까요?",
-    "taskSpeedDescription": "슬라이드 추출 작업은 이 속도로 영상을 재생합니다. 내부 네트워크에서는 더 높은 속도(최대 16×)로 설정하는 것을 권장합니다."
+    "taskSpeedDescription": "슬라이드 추출 작업은 이 속도로 영상을 재생합니다. 내부 네트워크에서는 더 높은 속도(최대 16×)로 설정하는 것을 권장합니다.",
+    "aiTitle": "AI 필터링에 GitHub Copilot을 사용할까요?",
+    "aiDescription": "AutoSlides는 AI로 슬라이드가 아닌 화면을 걸러냅니다. Copilot의 무료 gpt-4.1 모델을 권장합니다. GitHub 계정으로 로그인하기만 하면 됩니다.",
+    "loginGithub": "GitHub로 로그인",
+    "copilotConnecting": "승인을 기다리는 중…",
+    "copilotError": "로그인에 실패했습니다. 다시 시도해 주세요.",
+    "cancel": "취소",
+    "configureLater": "나중에 설정하기"
   }
 }

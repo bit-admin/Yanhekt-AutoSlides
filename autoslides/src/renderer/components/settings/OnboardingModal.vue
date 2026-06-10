@@ -83,6 +83,50 @@
               <option v-for="n in 16" :key="n" :value="n">{{ n }}x</option>
             </select>
           </template>
+
+          <!-- 5. GitHub Copilot AI filtering -->
+          <template v-else-if="step === 5">
+            <h3 class="step-title">{{ $t('onboarding.aiTitle') }}</h3>
+            <p class="step-description">{{ $t('onboarding.aiDescription') }}</p>
+
+            <!-- Connected -->
+            <div v-if="copilotConnected" class="copilot-user-row">
+              <img v-if="copilotAvatarUrl" :src="copilotAvatarUrl" class="copilot-avatar" alt="" />
+              <span class="copilot-username">{{ copilotUsername }}</span>
+            </div>
+
+            <!-- Waiting for authorization -->
+            <div v-else-if="isCopilotLoading && copilotUserCode" class="copilot-waiting">
+              <button class="copilot-code" @click="copyUserCode" :title="$t('advanced.ai.copilotClickToCopy')">
+                <span>{{ copilotUserCode }}</span>
+                <span v-if="copilotCodeCopied" class="copilot-code-copied">{{ $t('advanced.ai.copilotCopied') }}</span>
+              </button>
+              <p class="copilot-hint">
+                {{ $t('advanced.ai.copilotEnterCode') }}
+                <a class="copilot-url" @click.prevent="openVerificationUrl" :title="copilotVerificationUri">{{ copilotVerificationUri }}</a>
+              </p>
+              <div class="copilot-status">
+                <span class="copilot-spinner"></span>
+                <span>{{ $t('advanced.ai.copilotWaitingForAuth') }}</span>
+                <button class="copilot-cancel-link" @click="cancelCopilotOAuth">{{ $t('onboarding.cancel') }}</button>
+              </div>
+            </div>
+
+            <!-- Idle -->
+            <template v-else>
+              <button class="copilot-oauth-btn" :disabled="isCopilotLoading" @click="loginGithub">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                {{ $t('onboarding.loginGithub') }}
+              </button>
+              <p v-if="copilotOAuthError" class="copilot-error-text">{{ $t('onboarding.copilotError') }}</p>
+            </template>
+
+            <button v-if="!copilotConnected && !isCopilotLoading" class="skip-link ai-configure-later" @click="proceed">
+              {{ $t('onboarding.configureLater') }}
+            </button>
+          </template>
         </div>
 
         <div class="onboarding-footer">
@@ -100,14 +144,15 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useSettings } from '@features/settings/useSettings'
+import { useCopilotOAuth } from '@features/ai/useCopilotOAuth'
 
 const emit = defineEmits<{
   (e: 'finish'): void
 }>()
 
-const totalSteps = 4
+const totalSteps = 5
 const step = ref(0)
 
 const settings = useSettings()
@@ -122,6 +167,61 @@ const {
   setTaskSpeed,
 } = settings
 
+// AI filtering step (GitHub Copilot)
+const {
+  copilotGhoToken,
+  copilotUsername,
+  copilotAvatarUrl,
+  copilotOAuthStep,
+  copilotUserCode,
+  copilotVerificationUri,
+  copilotOAuthError,
+  isCopilotLoading,
+  startCopilotOAuth,
+  cancelCopilotOAuth,
+} = useCopilotOAuth()
+
+const copilotConnected = computed(
+  () => copilotOAuthStep.value === 'success' && !!copilotGhoToken.value
+)
+
+const copilotCodeCopied = ref(false)
+const copyUserCode = async () => {
+  if (!copilotUserCode.value) return
+  try {
+    await navigator.clipboard.writeText(copilotUserCode.value)
+    copilotCodeCopied.value = true
+    setTimeout(() => { copilotCodeCopied.value = false }, 2000)
+  } catch {
+    // Clipboard API may not be available
+  }
+}
+
+const openVerificationUrl = () => {
+  if (copilotVerificationUri.value) {
+    window.electronAPI.shell.openExternal(copilotVerificationUri.value)
+  }
+}
+
+const loginGithub = async () => {
+  await startCopilotOAuth()
+}
+
+// If the user signed in with Copilot, switch the AI filtering service to it.
+// Otherwise leave the existing defaults untouched ("configure later").
+const persistAiChoice = async () => {
+  if (!copilotConnected.value) return
+  try {
+    await window.electronAPI.config.setAIClassifierMode('llm')
+    await window.electronAPI.config.setAIFilteringConfig({
+      serviceType: 'copilot',
+      copilotModelName: 'gpt-4.1',
+    })
+  } catch (error) {
+    console.error('[onboarding] Failed to persist Copilot choice:', error)
+  }
+}
+
 onMounted(() => {
   settings.loadConfig()
 })
@@ -132,8 +232,14 @@ const next = () => {
 const back = () => {
   if (step.value > 0) step.value -= 1
 }
-const finish = () => {
+const finish = async () => {
+  await persistAiChoice()
   emit('finish')
+}
+// Forward action for the "configure later" link: advance, or finish on the last step.
+const proceed = () => {
+  if (step.value < totalSteps) next()
+  else finish()
 }
 </script>
 
@@ -152,7 +258,7 @@ const finish = () => {
 .onboarding-card {
   width: 460px;
   max-width: calc(100vw - 48px);
-  min-height: 320px;
+  min-height: 344px;
   background-color: var(--bg-modal);
   border: 1px solid var(--border-color);
   border-radius: 16px;
@@ -270,6 +376,157 @@ const finish = () => {
 .mode-toggle {
   display: flex;
   gap: 8px;
+}
+
+/* ── AI filtering step (matches Settings copilot UI) ──── */
+.copilot-oauth-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 14px;
+  border: 1px solid var(--brand-github);
+  background-color: var(--brand-github);
+  color: var(--text-on-accent);
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.copilot-oauth-btn:hover:not(:disabled) {
+  background-color: #3b434b;
+}
+
+.copilot-oauth-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.copilot-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background-color: var(--success-bg);
+  border: 1px solid var(--success-border);
+  border-radius: 6px;
+}
+
+.copilot-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+}
+
+.copilot-username {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.copilot-waiting {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: -8px;
+  text-align: center;
+}
+
+.copilot-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--text-primary);
+  padding: 6px 16px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  background-color: var(--bg-card);
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.copilot-code:hover {
+  border-color: var(--accent);
+  background-color: var(--bg-hover);
+}
+
+.copilot-code-copied {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--success);
+}
+
+.copilot-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.copilot-url {
+  color: var(--link-color);
+  cursor: pointer;
+  text-decoration: underline;
+  word-break: break-all;
+}
+
+.copilot-url:hover {
+  color: var(--accent-hover);
+}
+
+.copilot-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.copilot-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: onboarding-spin 1s linear infinite;
+}
+
+@keyframes onboarding-spin {
+  to { transform: rotate(360deg); }
+}
+
+.copilot-cancel-link {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.copilot-cancel-link:hover {
+  color: var(--text-secondary);
+  text-decoration: underline;
+}
+
+.copilot-error-text {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--danger-bright);
+}
+
+.ai-configure-later {
+  align-self: center;
+  margin-top: 14px;
 }
 
 .onboarding-footer {
