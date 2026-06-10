@@ -395,6 +395,7 @@ interface ElectronAPI {
     getLanguageMode: () => Promise<'system' | 'en' | 'zh' | 'ja' | 'ko'>;
     setUserNames: (original: string, display: string) => Promise<void>;
     setLastGreetingId: (id: string) => Promise<void>;
+    setOnboardingCompleted: (completed: boolean) => Promise<void>;
     setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => Promise<void>;
 
     // Slide extraction configuration

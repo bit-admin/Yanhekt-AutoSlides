@@ -227,6 +227,11 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     broadcastConfig();
   });
 
+  ipcMain.handle('config:setOnboardingCompleted', async (_, completed: boolean) => {
+    configService.setOnboardingCompleted(completed);
+    broadcastConfig();
+  });
+
   ipcMain.handle('config:setSavedSearches', async (_, mode: 'live' | 'recorded', searches: string[]) => {
     configService.setSavedSearches(mode, searches);
     broadcastConfig();

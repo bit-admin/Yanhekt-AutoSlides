@@ -73,6 +73,17 @@ export class ConfigService {
     this.themeService = new ThemeService();
     this.ensureOutputDirectoryExists();
     this.initializeTheme();
+    this.migrateOnboardingFlag();
+  }
+
+  // One-time migration: existing installs (which have already shown a greeting)
+  // should not be interrupted by the first-run onboarding wizard. Brand-new
+  // installs have neither key set, so they keep onboardingCompleted = false.
+  private migrateOnboardingFlag(): void {
+    if (!this.store.has('onboardingCompleted')) {
+      const isExistingInstall = !!this.store.get('lastGreetingId');
+      this.store.set('onboardingCompleted', isExistingInstall);
+    }
   }
 
   getConfig(): AppConfig {
@@ -101,7 +112,8 @@ export class ConfigService {
       userDisplayName: this.store.get('userDisplayName') ?? '',
       lastGreetingId: this.store.get('lastGreetingId') ?? '',
       savedSearchesLive: this.store.get('savedSearchesLive') ?? [],
-      savedSearchesRecorded: this.store.get('savedSearchesRecorded') ?? []
+      savedSearchesRecorded: this.store.get('savedSearchesRecorded') ?? [],
+      onboardingCompleted: this.store.get('onboardingCompleted') ?? false
     };
   }
 
@@ -112,6 +124,10 @@ export class ConfigService {
 
   setLastGreetingId(id: string): void {
     this.store.set('lastGreetingId', id);
+  }
+
+  setOnboardingCompleted(completed: boolean): void {
+    this.store.set('onboardingCompleted', completed);
   }
 
   setSavedSearches(mode: 'live' | 'recorded', searches: string[]): void {

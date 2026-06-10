@@ -1061,5 +1061,23 @@
     "minimize": "최소화",
     "maximize": "최대화",
     "close": "닫기"
+  },
+  "onboarding": {
+    "welcomeTitle": "AutoSlides에 오신 것을 환영합니다",
+    "welcomeSubtitle": "시작하기 전에 필요에 맞게 몇 가지 기본 설정을 조정하는 것을 권장합니다. 이 항목들은 나중에 설정에서 언제든지 변경할 수 있어요.",
+    "getStarted": "설정 시작",
+    "stepLabel": "{total}단계 중 {current}단계",
+    "back": "이전",
+    "next": "다음",
+    "finish": "완료",
+    "skip": "나중에 하기",
+    "outputTitle": "슬라이드를 어디에 저장할까요?",
+    "outputDescription": "AutoSlides의 작업 폴더를 선택하세요. 슬라이드, 다운로드, 내보낸 파일을 저장하는 데 사용됩니다. 전용 폴더를 권장합니다.",
+    "connectionTitle": "AutoSlides를 주로 어디서 사용하나요?",
+    "connectionDescription": "캠퍼스 네트워크에 연결되어 있을 때는 내부 네트워크로 전환하면 연결 속도가 빨라집니다. 교외에서 사용하려면 외부 네트워크로 전환하세요.",
+    "audioTitle": "재생 중에 음소거할까요?",
+    "audioDescription": "라이브와 녹화 각각에 대해 음소거 여부를 선택할 수 있습니다.",
+    "taskSpeedTitle": "작업을 얼마나 빠르게 실행할까요?",
+    "taskSpeedDescription": "슬라이드 추출 작업은 이 속도로 영상을 재생합니다. 내부 네트워크에서는 더 높은 속도(최대 16×)로 설정하는 것을 권장합니다."
   }
 }

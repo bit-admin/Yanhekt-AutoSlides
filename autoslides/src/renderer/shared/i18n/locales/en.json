@@ -1061,5 +1061,23 @@
     "minimize": "Minimize",
     "maximize": "Maximize",
     "close": "Close"
+  },
+  "onboarding": {
+    "welcomeTitle": "Welcome to AutoSlides",
+    "welcomeSubtitle": "Before you get started, we recommend adjusting a few basic settings to suit your needs. You can change any of these later in Settings.",
+    "getStarted": "Get Started",
+    "stepLabel": "Step {current} of {total}",
+    "back": "Back",
+    "next": "Next",
+    "finish": "Finish",
+    "skip": "Skip for now",
+    "outputTitle": "Where would you like slides to be saved?",
+    "outputDescription": "Choose a working directory for AutoSlides — it's used to store slides, downloads, and exported files. A dedicated folder is recommended.",
+    "connectionTitle": "Where do you usually use AutoSlides?",
+    "connectionDescription": "When connected to the campus network, switch to Internal Network for faster connection speeds. To use it off campus, switch to External Network.",
+    "audioTitle": "Would you like videos muted during playback?",
+    "audioDescription": "You can choose separately whether live and recorded playback stay muted.",
+    "taskSpeedTitle": "How fast would you like tasks to run?",
+    "taskSpeedDescription": "Slide extraction tasks play videos at this speed. A higher speed — up to 16× — is recommended on Internal Network."
   }
 }

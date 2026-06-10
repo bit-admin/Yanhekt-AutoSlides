@@ -172,5 +172,6 @@ export const defaultConfig: AppConfig = {
   userDisplayName: '',
   lastGreetingId: '',
   savedSearchesLive: [],
-  savedSearchesRecorded: []
+  savedSearchesRecorded: [],
+  onboardingCompleted: false
 };

@@ -65,6 +65,7 @@ export const config = {
   setSkipUpdateCheckUntil: (timestamp: number) => ipcRenderer.invoke('config:setSkipUpdateCheckUntil', timestamp),
   setUserNames: (original: string, display: string) => ipcRenderer.invoke('config:setUserNames', original, display),
   setLastGreetingId: (id: string) => ipcRenderer.invoke('config:setLastGreetingId', id),
+  setOnboardingCompleted: (completed: boolean) => ipcRenderer.invoke('config:setOnboardingCompleted', completed),
   setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => ipcRenderer.invoke('config:setSavedSearches', mode, searches),
   getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),
   setSlideExtractionConfig: (cfg: { enableDuplicateRemoval?: boolean; enableExclusionList?: boolean }) =>

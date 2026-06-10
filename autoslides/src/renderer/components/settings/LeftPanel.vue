@@ -67,83 +67,19 @@
 
     <div class="control-section custom-scrollbar">
       <div class="settings-content">
-        <div class="setting-item">
-          <div class="setting-label-with-reset">
-            <label class="setting-label">{{ $t('settings.outputDirectory') }}</label>
-            <button @click="openOutputDirectory" class="reset-btn" :title="$t('settings.openFolder')">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-              </svg>
-            </button>
-          </div>
-          <div class="directory-input-group">
-            <input
-              v-model="outputDirectory"
-              type="text"
-              readonly
-              class="directory-input"
-              :title="outputDirectory"
-            />
-            <button @click="selectOutputDirectory" class="browse-btn">{{ $t('settings.browse') }}</button>
-          </div>
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label">{{ $t('settings.connectionMode') }}</label>
-          <div class="mode-toggle">
-            <button
-              @click="setConnectionMode('internal')"
-              :class="['mode-btn', { active: connectionMode === 'internal' }]"
-            >
-              {{ $t('settings.internalNetwork') }}
-            </button>
-            <button
-              @click="setConnectionMode('external')"
-              :class="['mode-btn', { active: connectionMode === 'external' }]"
-            >
-              {{ $t('settings.externalNetwork') }}
-            </button>
-          </div>
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label">{{ $t('settings.audioMode') }}</label>
-          <div class="audio-mode-selector">
-            <select v-model="muteMode" @change="setMuteMode" class="select-field">
-              <option value="normal">{{ $t('settings.normal') }}</option>
-              <option value="mute_all">{{ $t('settings.muteAll') }}</option>
-              <option value="mute_live">{{ $t('settings.muteLive') }}</option>
-              <option value="mute_recorded">{{ $t('settings.muteRecorded') }}</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="setting-item">
-          <label class="setting-label">{{ $t('settings.taskSpeed') }}</label>
-          <div class="setting-description">{{ $t('settings.taskSpeedDescription') }}</div>
-          <div class="task-speed-selector">
-            <select v-model="taskSpeed" @change="setTaskSpeed" class="select-field">
-              <option :value="1">1x</option>
-              <option :value="2">2x</option>
-              <option :value="3">3x</option>
-              <option :value="4">4x</option>
-              <option :value="5">5x</option>
-              <option :value="6">6x</option>
-              <option :value="7">7x</option>
-              <option :value="8">8x</option>
-              <option :value="9">9x</option>
-              <option :value="10">10x</option>
-              <option :value="11">11x</option>
-              <option :value="12">12x</option>
-              <option :value="13">13x</option>
-              <option :value="14">14x</option>
-              <option :value="15">15x</option>
-              <option :value="16">16x</option>
-            </select>
-          </div>
-        </div>
-
         <div class="panel-actions">
+          <button type="button" class="panel-action-button" @click="openOutputDirectory">
+            <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>{{ $t('settings.openFolder') }}</span>
+            <svg class="panel-action-external-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M15 3h6v6"/>
+              <path d="M10 14L21 3"/>
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+            </svg>
+          </button>
+
           <button type="button" class="panel-action-button" @click="openAdvancedSettings">
             <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="3"/>
@@ -376,18 +312,17 @@ const handleDocumentClick = (event: MouseEvent) => {
 }
 
 // Settings
-const {
-  outputDirectory,
-  connectionMode,
-  muteMode,
-  taskSpeed,
-  tempEnableAIFiltering,
-  preventSystemSleep,
-  selectOutputDirectory,
-  setConnectionMode,
-  setMuteMode,
-  setTaskSpeed
-} = settings
+const { outputDirectory } = settings
+
+const openOutputDirectory = async () => {
+  try {
+    if (outputDirectory.value) {
+      await window.electronAPI.shell.openPath(outputDirectory.value)
+    }
+  } catch (error) {
+    console.error('Failed to open output directory:', error)
+  }
+}
 
 // Advanced Settings
 const {
@@ -430,17 +365,6 @@ const openAddonsWindow = async (tab?: string) => {
     await window.electronAPI.addons.openWindow(tab)
   } catch (error) {
     console.error('Failed to open addons window:', error)
-  }
-}
-
-// Open Output Directory
-const openOutputDirectory = async () => {
-  try {
-    if (outputDirectory.value) {
-      await window.electronAPI.shell.openPath(outputDirectory.value)
-    }
-  } catch (error) {
-    console.error('Failed to open output directory:', error)
   }
 }
 
@@ -686,124 +610,12 @@ defineExpose({
   padding: 0;
 }
 
-.setting-item {
-  margin-bottom: 16px;
-}
-
 .setting-label {
   display: block;
   font-size: 12px;
   font-weight: 500;
   color: var(--text-primary);
   margin-bottom: 6px;
-}
-
-.setting-label-with-reset {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 6px;
-}
-
-.setting-label-with-reset .reset-btn {
-  margin-bottom: 6px;
-}
-
-.reset-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 3px;
-  color: var(--text-secondary);
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.7;
-}
-
-.reset-btn:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-  opacity: 1;
-}
-
-.reset-btn svg {
-  width: 12px;
-  height: 12px;
-}
-
-.directory-input-group {
-  display: flex;
-  gap: 8px;
-}
-
-.directory-input {
-  flex: 1;
-  padding: 6px 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: 12px;
-  background-color: var(--bg-elevated);
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.browse-btn {
-  padding: 6px 12px;
-  background-color: var(--accent-deep);
-  color: var(--text-on-accent);
-  border: none;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.browse-btn:hover {
-  background-color: var(--accent-deep-hover);
-}
-
-.mode-toggle {
-  display: flex;
-  gap: 4px;
-}
-
-.mode-btn {
-  flex: 1;
-  padding: 6px 8px;
-  border: 1px solid var(--border-color);
-  background-color: var(--bg-elevated);
-  color: var(--text-secondary);
-  font-size: 11px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.mode-btn:hover {
-  background-color: var(--bg-hover);
-}
-
-.mode-btn.active {
-  background-color: var(--accent-deep);
-  color: var(--text-on-accent);
-  border-color: var(--accent-deep);
-}
-
-.audio-mode-selector {
-  width: 100%;
-}
-
-.two-col-item .setting-label {
-  margin-bottom: 6px;
-}
-
-.task-speed-selector {
-  width: 100%;
 }
 
 .modal-overlay {

@@ -136,6 +136,7 @@ export interface AppConfig {
   lastGreetingId: string;
   savedSearchesLive: string[];
   savedSearchesRecorded: string[];
+  onboardingCompleted: boolean;
 }
 
 // Trash and crop manifest entries — written by main process, read by renderer.

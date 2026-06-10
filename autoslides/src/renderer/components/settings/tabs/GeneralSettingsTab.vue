@@ -1,5 +1,60 @@
 <template>
   <div class="advanced-setting-section">
+    <h4>{{ $t('advanced.tabs.general') }}</h4>
+    <div class="setting-item">
+      <label class="setting-label">{{ $t('settings.outputDirectory') }}</label>
+      <div class="input-group">
+        <input
+          :value="outputDirectory"
+          type="text"
+          readonly
+          class="text-input directory-input"
+          :title="outputDirectory"
+        />
+        <button @click="selectOutputDirectory" class="btn btn--primary">{{ $t('settings.browse') }}</button>
+      </div>
+    </div>
+
+    <div class="setting-item">
+      <label class="setting-label">{{ $t('settings.connectionMode') }}</label>
+      <div class="mode-toggle">
+        <button
+          @click="setConnectionMode('internal')"
+          :class="['mode-btn', { active: connectionMode === 'internal' }]"
+        >
+          {{ $t('settings.internalNetwork') }}
+        </button>
+        <button
+          @click="setConnectionMode('external')"
+          :class="['mode-btn', { active: connectionMode === 'external' }]"
+        >
+          {{ $t('settings.externalNetwork') }}
+        </button>
+      </div>
+    </div>
+
+    <div class="setting-item">
+      <div class="two-col-row">
+        <div class="two-col-item">
+          <label class="setting-label">{{ $t('settings.audioMode') }}</label>
+          <select v-model="muteMode" @change="setMuteMode" class="select-field">
+            <option value="normal">{{ $t('settings.normal') }}</option>
+            <option value="mute_all">{{ $t('settings.muteAll') }}</option>
+            <option value="mute_live">{{ $t('settings.muteLive') }}</option>
+            <option value="mute_recorded">{{ $t('settings.muteRecorded') }}</option>
+          </select>
+        </div>
+        <div class="two-col-item">
+          <label class="setting-label">{{ $t('settings.taskSpeed') }}</label>
+          <select v-model="taskSpeed" @change="setTaskSpeed" class="select-field">
+            <option v-for="n in 16" :key="n" :value="n">{{ n }}x</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="advanced-setting-section">
     <h4>{{ $t('advanced.authentication') }}</h4>
     <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.token') }}</label>
@@ -126,7 +181,18 @@
 <script setup lang="ts">
 import { useSettingsContext } from '@features/settings/settingsContext'
 
-const { auth, advanced, cache } = useSettingsContext()
+const { auth, settings, advanced, cache } = useSettingsContext()
+
+const {
+  outputDirectory,
+  connectionMode,
+  muteMode,
+  taskSpeed,
+  selectOutputDirectory,
+  setConnectionMode,
+  setMuteMode,
+  setTaskSpeed,
+} = settings
 
 const {
   manualToken,
@@ -157,6 +223,16 @@ const {
 </script>
 
 <style scoped>
+.directory-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.mode-toggle {
+  display: flex;
+  gap: 4px;
+}
+
 .two-col-row {
   display: flex;
   gap: 12px;

@@ -1061,5 +1061,23 @@
     "minimize": "最小化",
     "maximize": "最大化",
     "close": "关闭"
+  },
+  "onboarding": {
+    "welcomeTitle": "欢迎使用 AutoSlides",
+    "welcomeSubtitle": "在开始使用之前，建议先根据你的需要调整几项基础设置。你之后可随时在设置中更改这些选项。",
+    "getStarted": "开始设置",
+    "stepLabel": "第 {current} 步，共 {total} 步",
+    "back": "上一步",
+    "next": "下一步",
+    "finish": "完成",
+    "skip": "暂时跳过",
+    "outputTitle": "你希望幻灯片保存到哪里？",
+    "outputDescription": "选择 AutoSlides 的工作目录，这将用于存放幻灯片、下载和导出文件。建议选用单独的文件夹。",
+    "connectionTitle": "你通常在哪里使用 AutoSlides？",
+    "connectionDescription": "当连接到校园网时，可切换到内网模式以提升网络连接速率；如需在校外使用，请切换到外网模式。",
+    "audioTitle": "你希望在视频播放时静音吗？",
+    "audioDescription": "你可以分别选择直播和录播是否保持静音。",
+    "taskSpeedTitle": "你希望任务以多快速度运行？",
+    "taskSpeedDescription": "幻灯片提取任务会以此速度播放视频。建议在内网模式下调整至更高速度，最高 16×。"
   }
 }

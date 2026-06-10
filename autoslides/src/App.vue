@@ -29,6 +29,8 @@
         </div>
       </template>
     </div>
+
+    <OnboardingModal v-if="showOnboarding" @finish="completeOnboarding" />
   </div>
 </template>
 
@@ -39,9 +41,21 @@ import LeftPanel from '@renderer/components/settings/LeftPanel.vue'
 import MainContent from '@renderer/components/MainContent.vue'
 import RightPanel from '@renderer/components/download/RightPanel.vue'
 import BrowserLoginView from '@renderer/components/settings/BrowserLoginView.vue'
+import OnboardingModal from '@renderer/components/settings/OnboardingModal.vue'
 import { useAuth } from '@features/platform/useAuth'
+import { configStore } from '@shared/services/configStore'
 
 const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken } = useAuth()
+
+// First-run onboarding. configStore is loaded before app.mount, so the flag is
+// available synchronously here. Existing installs are migrated to "completed"
+// in the main-process ConfigService, so only genuine first runs see the wizard.
+const showOnboarding = ref(!configStore.onboardingCompleted)
+
+const completeOnboarding = () => {
+  showOnboarding.value = false
+  window.electronAPI.config.setOnboardingCompleted(true)
+}
 
 const leftWidth = ref(320)
 const rightWidth = ref(320)
