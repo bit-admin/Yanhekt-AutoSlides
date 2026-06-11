@@ -3,7 +3,9 @@
     "live": "라이브",
     "recorded": "녹화",
     "task": "작업",
-    "download": "다운로드"
+    "download": "다운로드",
+    "home": "홈",
+    "searchPlaceholder": "검색"
   },
   "auth": {
     "verifying": "확인 중...",
@@ -399,14 +401,6 @@
       "liveStreams": "라이브 스트림",
       "recordings": "녹화"
     },
-    "search": {
-      "placeholder": "강의 검색...",
-      "button": "검색"
-    },
-    "semester": {
-      "allSemesters": "모든 학기",
-      "selected": "선택됨"
-    },
     "savedSearches": {
       "save": "검색 저장",
       "remove": "삭제",
@@ -416,16 +410,9 @@
       "cancel": "취소",
       "confirm": "저장"
     },
-    "actions": {
-      "getPersonalCourseList": "개인 강의 목록 가져오기"
-    },
     "welcome": {
       "title": "AutoSlides에 오신 것을 환영합니다",
-      "subtitle": "AutoSlides는 BIT 학생을 위해 설계된 도구입니다.",
-      "liveTitle": "라이브 강의",
-      "recordedTitle": "녹화 강의",
-      "liveDescription": "캠퍼스 전체의 라이브 강의를 탐색하고 참여하며 실시간으로 슬라이드를 캡처합니다.",
-      "recordedDescription": "강의 녹화에 액세스하고, 오프라인 시청을 위해 비디오를 다운로드하며, 녹화에서 슬라이드를 추출합니다."
+      "subtitle": "AutoSlides는 BIT 학생을 위해 설계된 도구입니다."
     },
     "status": {
       "ended": "종료됨",
@@ -437,7 +424,8 @@
       "participants": "참가자"
     },
     "loading": "강의 로딩 중...",
-    "noResults": "강의를 찾을 수 없습니다"
+    "noResults": "강의를 찾을 수 없습니다",
+    "signInToLoad": "로그인하여 강의 목록 불러오기"
   },
   "tasks": {
     "taskList": "작업 목록",
@@ -1093,5 +1081,13 @@
     "allSetTitle": "모두 준비되었습니다!",
     "allSetDescription": "이미 로그인되어 있어 바로 시작할 수 있습니다.",
     "allSetCta": "시작하기"
+  },
+  "home": {
+    "myLiveStreams": "내 라이브",
+    "myRecordings": "내 녹화",
+    "signInHint": "로그인하면 라이브와 녹화를 볼 수 있습니다"
+  },
+  "searchPage": {
+    "title": "검색"
   }
 }

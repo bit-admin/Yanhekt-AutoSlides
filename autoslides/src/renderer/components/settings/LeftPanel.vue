@@ -2,6 +2,50 @@
   <div class="left-panel">
     <div class="control-section custom-scrollbar">
       <div class="settings-content">
+        <div class="navigator-section">
+          <div :class="['nav-search', { active: activeNav === 'search' }]">
+            <svg class="nav-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              v-model="searchKeyword"
+              type="text"
+              class="nav-search-input"
+              :placeholder="$t('navigation.searchPlaceholder')"
+              @focus="handleSidebarFocus"
+              @keyup.enter="handleSidebarEnter"
+            />
+          </div>
+          <nav class="nav-items">
+            <button :class="['nav-item', { active: activeNav === 'home' }]" @click="navigate('home')">
+              <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              <span>{{ $t('navigation.home') }}</span>
+            </button>
+            <button :class="['nav-item', { active: activeNav === 'live' }]" @click="navigate('live')">
+              <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
+              </svg>
+              <span>{{ $t('navigation.live') }}</span>
+              <span v-if="livePlaybackActive" class="nav-playback-indicator">●</span>
+            </button>
+            <button :class="['nav-item', { active: activeNav === 'recorded' }]" @click="navigate('recorded')">
+              <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                <line x1="8" y1="21" x2="16" y2="21"/>
+                <line x1="12" y1="17" x2="12" y2="21"/>
+              </svg>
+              <span>{{ $t('navigation.recorded') }}</span>
+              <span v-if="recordedPlaybackActive" class="nav-playback-indicator">●</span>
+            </button>
+          </nav>
+        </div>
+
+        <div class="nav-separator"></div>
+
         <div class="panel-actions">
           <button type="button" class="panel-action-button" @click="openOutputDirectory">
             <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -225,6 +269,8 @@ import { useCacheManagement } from '@features/platform/useCacheManagement'
 import { useAISettings } from '@features/ai/useAISettings'
 import { usePHashExclusion } from '@features/ai/usePHashExclusion'
 import { settingsContextKey } from '@features/settings/settingsContext'
+import { navigationStore } from '@features/course/navigationStore'
+import { useSearchPage } from '@features/course/useSearchPage'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
 import UserMenuLinks from './UserMenuLinks.vue'
 import SignInModal from './SignInModal.vue'
@@ -236,6 +282,10 @@ import PlaybackSettingsTab from './tabs/PlaybackSettingsTab.vue'
 import AISettingsTab from './tabs/AISettingsTab.vue'
 
 const { t } = useI18n()
+
+// Navigator (Home / Live / Recorded + search bar)
+const { activeNav, livePlaybackActive, recordedPlaybackActive, navigate } = navigationStore
+const { keyword: searchKeyword, handleSidebarFocus, handleSidebarEnter } = useSearchPage()
 
 // Initialize composables
 const auth = useAuth(() => {
@@ -852,6 +902,114 @@ defineExpose({
 .save-btn:hover {
   background-color: var(--accent-hover);
   border-color: var(--accent-hover);
+}
+
+/* Navigator (Apple Music style sidebar) */
+.navigator-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nav-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  background-color: var(--bg-input);
+  transition: border-color 0.2s;
+}
+
+.nav-search:focus-within,
+.nav-search.active {
+  border-color: var(--accent);
+}
+
+.nav-search-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.nav-search-input {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--control-height);
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.nav-search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.nav-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.nav-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.nav-item.active {
+  background-color: var(--badge-active-bg);
+  color: var(--accent);
+}
+
+.nav-item-icon {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.nav-item span:not(.nav-playback-indicator) {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-playback-indicator {
+  flex: none;
+  color: var(--success);
+  font-size: 10px;
+  font-weight: bold;
+  animation: nav-pulse 2s infinite;
+}
+
+@keyframes nav-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.nav-separator {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 14px 0;
+  flex-shrink: 0;
 }
 
 .panel-actions {

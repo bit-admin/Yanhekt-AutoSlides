@@ -3,7 +3,9 @@
     "live": "直播",
     "recorded": "录播",
     "task": "任务",
-    "download": "下载"
+    "download": "下载",
+    "home": "主页",
+    "searchPlaceholder": "搜索"
   },
   "auth": {
     "verifying": "验证中...",
@@ -399,14 +401,6 @@
       "liveStreams": "直播课程",
       "recordings": "录播课程"
     },
-    "search": {
-      "placeholder": "搜索课程...",
-      "button": "搜索"
-    },
-    "semester": {
-      "allSemesters": "全部学期",
-      "selected": "已选择"
-    },
     "savedSearches": {
       "save": "保存搜索",
       "remove": "删除",
@@ -416,16 +410,9 @@
       "cancel": "取消",
       "confirm": "保存"
     },
-    "actions": {
-      "getPersonalCourseList": "获取个人课程列表"
-    },
     "welcome": {
       "title": "欢迎使用 AutoSlides",
-      "subtitle": "AutoSlides 专为北京理工大学设计。",
-      "liveTitle": "直播课程",
-      "recordedTitle": "录播课程",
-      "liveDescription": "观看全校的直播课程，实时捕获幻灯片。",
-      "recordedDescription": "观看课程录像，下载视频，并从录像中提取幻灯片。"
+      "subtitle": "AutoSlides 专为北京理工大学设计。"
     },
     "status": {
       "ended": "已结束",
@@ -437,7 +424,8 @@
       "participants": "参与者"
     },
     "loading": "加载课程中...",
-    "noResults": "未找到课程"
+    "noResults": "未找到课程",
+    "signInToLoad": "登录后加载课程列表"
   },
   "tasks": {
     "taskList": "任务列表",
@@ -1093,5 +1081,13 @@
     "allSetTitle": "一切就绪！",
     "allSetDescription": "你已登录，可以开始使用了。",
     "allSetCta": "开始使用"
+  },
+  "home": {
+    "myLiveStreams": "我的直播",
+    "myRecordings": "我的录播",
+    "signInHint": "登录后可查看你的直播和录播"
+  },
+  "searchPage": {
+    "title": "搜索"
   }
 }

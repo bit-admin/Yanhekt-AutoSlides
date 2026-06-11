@@ -1,7 +1,41 @@
 <template>
-  <div class="course-page">
-    <div class="header">
-      <h2 class="page-title">{{ mode === 'live' ? $t('courses.title.liveStreams') : $t('courses.title.recordings') }}</h2>
+  <div class="search-page">
+    <div class="search-header">
+      <h2 class="search-title">{{ $t('searchPage.title') }}</h2>
+      <div class="search-controls">
+        <select
+          v-if="mode === 'recorded'"
+          class="semester-select"
+          :value="selectedSemesterId ?? ''"
+          @change="onSemesterChange"
+        >
+          <option v-for="semester in availableSemesters" :key="semester.id" :value="semester.id">
+            {{ semester.labelEn }}
+          </option>
+        </select>
+        <div class="mode-switch">
+          <button
+            :class="['mode-pill', { active: mode === 'live' }]"
+            @click="setMode('live')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
+            </svg>
+            {{ $t('navigation.live') }}
+          </button>
+          <button
+            :class="['mode-pill', { active: mode === 'recorded' }]"
+            @click="setMode('recorded')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+            {{ $t('navigation.recorded') }}
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="content">
@@ -14,24 +48,24 @@
         {{ errorMessage }}
       </div>
 
-      <div v-if="!isLoggedIn" class="signin-state">
-        <p>{{ $t('courses.signInToLoad') }}</p>
-      </div>
-
-      <div v-else-if="isLoading" class="loading-state">
+      <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
         <p>{{ $t('courses.loading') }}</p>
       </div>
 
+      <div v-else-if="!errorMessage && hasSearched && results.length === 0" class="empty-state">
+        <p>{{ $t('courses.noResults') }}</p>
+      </div>
+
       <div v-else-if="!errorMessage" class="courses-grid custom-scrollbar">
         <div
-          v-for="course in paginatedCourses"
+          v-for="course in results"
           :key="course.id"
           class="course-card"
-          @click="selectCourse(course)"
+          @click="selectResult(course)"
         >
-          <div v-if="mode === 'live'" class="course-status" :class="getStatusClass(course.status)">
-            {{ getStatusText(course.status) }}
+          <div v-if="mode === 'live'" class="course-status" :class="getCourseStatusClass(course.status)">
+            {{ getCourseStatusText(course.status, t) }}
           </div>
           <div v-if="mode === 'recorded'" class="course-id">
             #{{ course.id }}
@@ -53,7 +87,7 @@
         </div>
       </div>
 
-      <div v-if="isLoggedIn && !isLoading && courses.length > 0" class="pagination">
+      <div v-if="!isLoading && results.length > 0" class="pagination">
         <button
           :disabled="currentPage === 1"
           @click="goToPage(currentPage - 1)"
@@ -79,98 +113,124 @@
 </template>
 
 <script setup lang="ts">
-import { toRef, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useCourseList } from '@features/course/useCourseList'
-import { navigationStore } from '@features/course/navigationStore'
-import { useAuth } from '@features/platform/useAuth'
-
-const props = defineProps<{
-  mode: 'live' | 'recorded'
-}>()
+import { useSearchPage } from '@features/course/useSearchPage'
+import { getCourseStatusClass, getCourseStatusText } from '@features/course/useCourseList'
 
 const { t } = useI18n()
-const { activeNav } = navigationStore
-const { isLoggedIn } = useAuth()
 
 const {
-  isLoading,
-  courses,
+  mode,
+  availableSemesters,
+  selectedSemesterId,
+  results,
   currentPage,
   totalPages,
+  isLoading,
   errorMessage,
-  paginatedCourses,
-  fetchPersonalCourses,
+  hasSearched,
   goToPage,
-  selectCourse,
-  getStatusClass,
-  getStatusText
-} = useCourseList({
-  mode: toRef(props, 'mode'),
-  t
-})
+  setMode,
+  setSemester,
+  selectResult
+} = useSearchPage()
 
-const refresh = () => {
-  if (isLoggedIn.value && !isLoading.value) {
-    fetchPersonalCourses()
+const onSemesterChange = (event: Event) => {
+  const value = (event.target as HTMLSelectElement).value
+  if (value !== '') {
+    setSemester(Number(value))
   }
 }
-
-// Navigator clicks on Live/Recorded act like "Get Personal Course List":
-// fetch whenever this mode's course grid becomes the active page.
-onMounted(() => {
-  if (activeNav.value === props.mode) {
-    refresh()
-  }
-})
-
-watch(activeNav, (nav) => {
-  if (nav === props.mode) {
-    refresh()
-  }
-})
-
-// Login while this mode's grid is visible → load it.
-watch(isLoggedIn, (loggedIn) => {
-  if (loggedIn && activeNav.value === props.mode) {
-    refresh()
-  }
-})
 </script>
 
 <style scoped>
-.course-page {
+.search-page {
   display: flex;
   flex-direction: column;
   height: 100%;
+  padding: 24px 24px 16px;
   background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 
-/* Apple Music style title band: centered title on a full-width tinted bar */
-.header {
+.search-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  gap: 16px;
   flex-shrink: 0;
-  padding: 18px 16px;
-  background-color: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 36px;
 }
 
-.page-title {
+.search-title {
   margin: 0;
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.2px;
-  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
   color: var(--text-primary);
+}
+
+.search-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.semester-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 8px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s;
+  max-width: 200px;
+}
+
+.semester-select:hover,
+.semester-select:focus {
+  border-color: var(--accent);
+}
+
+.mode-switch {
+  display: flex;
+  gap: 4px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bg-elevated);
+}
+
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mode-pill:hover {
+  color: var(--text-primary);
+}
+
+.mode-pill.active {
+  background: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .content {
   flex: 1;
   display: flex;
   flex-direction: column;
-  min-height: 0; /* Important for flex child to shrink */
-  padding: 0 24px 16px;
+  min-height: 0;
 }
 
 .error-message {
@@ -185,15 +245,6 @@ watch(isLoggedIn, (loggedIn) => {
   color: var(--danger-bright);
   font-size: 14px;
   flex-shrink: 0;
-}
-
-.signin-state {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  font-size: 14px;
 }
 
 .loading-state {
@@ -219,6 +270,15 @@ watch(isLoggedIn, (loggedIn) => {
   to { transform: rotate(360deg); }
 }
 
+.empty-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
 /* A page is always 16 items: 4 columns × 4 rows stretched to fill the
    available height; rows shrink to 140px minimum before scrolling kicks in. */
 .courses-grid {
@@ -228,8 +288,8 @@ watch(isLoggedIn, (loggedIn) => {
   gap: 12px;
   flex: 1;
   overflow-y: auto;
-  padding-right: 8px; /* Space for scrollbar */
-  min-height: 0; /* Important for scrolling */
+  padding-right: 8px;
+  min-height: 0;
 }
 
 .course-card {
@@ -374,7 +434,7 @@ watch(isLoggedIn, (loggedIn) => {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid var(--border-color);
-  flex-shrink: 0; /* Prevent pagination from shrinking */
+  flex-shrink: 0;
 }
 
 /* Square 32×32 icon button — padding:0 so the chevron is not crushed by

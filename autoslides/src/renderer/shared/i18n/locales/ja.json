@@ -3,7 +3,9 @@
     "live": "ライブ",
     "recorded": "録画",
     "task": "タスク",
-    "download": "ダウンロード"
+    "download": "ダウンロード",
+    "home": "ホーム",
+    "searchPlaceholder": "検索"
   },
   "auth": {
     "verifying": "確認中...",
@@ -399,14 +401,6 @@
       "liveStreams": "ライブストリーム",
       "recordings": "録画"
     },
-    "search": {
-      "placeholder": "コースを検索...",
-      "button": "検索"
-    },
-    "semester": {
-      "allSemesters": "すべての学期",
-      "selected": "選択済み"
-    },
     "savedSearches": {
       "save": "検索を保存",
       "remove": "削除",
@@ -416,16 +410,9 @@
       "cancel": "キャンセル",
       "confirm": "保存"
     },
-    "actions": {
-      "getPersonalCourseList": "個人コースリストを取得"
-    },
     "welcome": {
       "title": "AutoSlidesへようこそ",
-      "subtitle": "AutoSlidesはBIT学生のために設計されたツールです。",
-      "liveTitle": "ライブコース",
-      "recordedTitle": "録画コース",
-      "liveDescription": "キャンパス全体のライブ講義を閲覧・参加し、リアルタイムでスライドをキャプチャします",
-      "recordedDescription": "コース録画にアクセスし、オフライン視聴用にビデオをダウンロードし、録画からスライドを抽出します"
+      "subtitle": "AutoSlidesはBIT学生のために設計されたツールです。"
     },
     "status": {
       "ended": "終了",
@@ -437,7 +424,8 @@
       "participants": "参加者"
     },
     "loading": "コースを読み込み中...",
-    "noResults": "コースが見つかりません"
+    "noResults": "コースが見つかりません",
+    "signInToLoad": "サインインしてコースリストを読み込む"
   },
   "tasks": {
     "taskList": "タスクリスト",
@@ -1093,5 +1081,13 @@
     "allSetTitle": "準備完了です！",
     "allSetDescription": "すでにサインインしており、すぐに使い始められます。",
     "allSetCta": "始める"
+  },
+  "home": {
+    "myLiveStreams": "マイライブ配信",
+    "myRecordings": "マイ録画",
+    "signInHint": "サインインするとライブ配信と録画が表示されます"
+  },
+  "searchPage": {
+    "title": "検索"
   }
 }

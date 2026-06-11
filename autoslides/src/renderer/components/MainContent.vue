@@ -1,40 +1,30 @@
 <template>
   <div class="main-content">
-    <div class="navigation-bar">
-      <button
-        :class="['nav-btn', { active: currentMode === 'live' }]"
-        @click="switchMode('live')"
-      >
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
-        </svg>
-        {{ $t('navigation.live') }}
-        <span v-if="liveState.page === 'playback'" class="playback-indicator">●</span>
-      </button>
-      <button
-        :class="['nav-btn', { active: currentMode === 'recorded' }]"
-        @click="switchMode('recorded')"
-      >
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-          <line x1="8" y1="21" x2="16" y2="21"/>
-          <line x1="12" y1="17" x2="12" y2="21"/>
-        </svg>
-        {{ $t('navigation.recorded') }}
-        <span v-if="recordedState.page === 'playback'" class="playback-indicator">●</span>
-      </button>
-    </div>
-
     <div class="content-area">
+      <!-- Home Page -->
+      <div
+        :class="['mode-container', { 'mode-hidden': activeNav !== 'home' }]"
+        data-mode="home"
+      >
+        <HomePage />
+      </div>
+
+      <!-- Search Page -->
+      <div
+        :class="['mode-container', { 'mode-hidden': activeNav !== 'search' }]"
+        data-mode="search"
+      >
+        <SearchPage />
+      </div>
+
       <!-- Live Mode Components -->
       <div
-        :class="['mode-container', { 'mode-hidden': currentMode !== 'live' }]"
+        :class="['mode-container', { 'mode-hidden': activeNav !== 'live' }]"
         data-mode="live"
       >
         <CoursePage
           v-if="liveState.page === 'courses'"
           :mode="'live'"
-          @course-selected="handleCourseSelected"
         />
         <PlaybackPage
           v-else-if="liveState.page === 'playback'"
@@ -43,21 +33,20 @@
           :mode="'live'"
           :streamId="String(liveState.selectedCourse?.id || '')"
           :sessionId="liveState.selectedSession?.session_id?.toString()"
-          @back="handleBackFromPlayback"
+          @back="handleBackFromPlayback('live')"
           :key="`live-playback-${liveState.selectedCourse?.id || 'none'}`"
-          :isVisible="currentMode === 'live'"
+          :isVisible="activeNav === 'live'"
         />
       </div>
 
       <!-- Recorded Mode Components -->
       <div
-        :class="['mode-container', { 'mode-hidden': currentMode !== 'recorded' }]"
+        :class="['mode-container', { 'mode-hidden': activeNav !== 'recorded' }]"
         data-mode="recorded"
       >
         <CoursePage
           v-if="recordedState.page === 'courses'"
           :mode="'recorded'"
-          @course-selected="handleCourseSelected"
         />
         <SessionPage
           v-else-if="recordedState.page === 'sessions'"
@@ -74,9 +63,9 @@
           :mode="'recorded'"
           :streamId="String(recordedState.selectedCourse?.id || '')"
           :sessionId="recordedState.selectedSession?.session_id?.toString()"
-          @back="handleBackFromPlayback"
+          @back="handleBackFromPlayback('recorded')"
           :key="`recorded-playback-${recordedState.selectedSession?.session_id || 'none'}`"
-          :isVisible="currentMode === 'recorded'"
+          :isVisible="activeNav === 'recorded'"
         />
       </div>
 
@@ -85,12 +74,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import CoursePage from '@renderer/components/course/CoursePage.vue'
 import SessionPage from '@renderer/components/course/SessionPage.vue'
 import PlaybackPage from '@renderer/components/video/PlaybackPage.vue'
+import HomePage from '@renderer/components/course/HomePage.vue'
+import SearchPage from '@renderer/components/course/SearchPage.vue'
 import { DataStore } from '@shared/services/dataStore'
 import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
+import { navigationStore } from '@features/course/navigationStore'
 
 type Mode = 'live' | 'recorded'
 type Page = 'courses' | 'sessions' | 'playback'
@@ -101,7 +93,7 @@ interface ModeState {
   selectedSession: any;
 }
 
-const currentMode = ref<Mode>('live')
+const { activeNav, courseOpenRequest } = navigationStore
 
 // 为每个模式维护独立的状态
 const liveState = ref<ModeState>({
@@ -116,43 +108,49 @@ const recordedState = ref<ModeState>({
   selectedSession: null
 })
 
+// Course opens come from any surface (course grid, Home rows, Search results)
+// via the navigation store; the store already switched activeNav to the mode.
+watch(courseOpenRequest, (request) => {
+  if (!request) return
 
-const switchMode = (mode: Mode) => {
-  currentMode.value = mode
-}
-
-const handleCourseSelected = (course: any) => {
-  const state = currentMode.value === 'live' ? liveState.value : recordedState.value
-  state.selectedCourse = course
-
-  if (currentMode.value === 'live') {
-    state.page = 'playback'
+  if (request.mode === 'live') {
+    liveState.value.selectedCourse = request.course
+    liveState.value.selectedSession = null
+    liveState.value.page = 'playback'
   } else {
-    state.page = 'sessions'
+    recordedState.value.selectedCourse = request.course
+    recordedState.value.selectedSession = null
+    recordedState.value.page = 'sessions'
   }
-}
+})
+
+// Sidebar playback indicator dots
+watch(() => liveState.value.page, (page) => {
+  navigationStore.livePlaybackActive.value = page === 'playback'
+})
+watch(() => recordedState.value.page, (page) => {
+  navigationStore.recordedPlaybackActive.value = page === 'playback'
+})
 
 const handleSessionSelected = (session: any) => {
-  const state = currentMode.value === 'live' ? liveState.value : recordedState.value
-  state.selectedSession = session
-  state.page = 'playback'
+  recordedState.value.selectedSession = session
+  recordedState.value.page = 'playback'
 }
 
 const backToCourses = () => {
-  const state = currentMode.value === 'live' ? liveState.value : recordedState.value
-  state.page = 'courses'
-  state.selectedCourse = null
-  state.selectedSession = null
+  recordedState.value.page = 'courses'
+  recordedState.value.selectedCourse = null
+  recordedState.value.selectedSession = null
 }
 
-const handleBackFromPlayback = () => {
-  const state = currentMode.value === 'live' ? liveState.value : recordedState.value
-
-  if (currentMode.value === 'live') {
-    backToCourses()
+const handleBackFromPlayback = (mode: Mode) => {
+  if (mode === 'live') {
+    liveState.value.page = 'courses'
+    liveState.value.selectedCourse = null
+    liveState.value.selectedSession = null
   } else {
-    state.page = 'sessions'
-    state.selectedSession = null
+    recordedState.value.page = 'sessions'
+    recordedState.value.selectedSession = null
   }
 }
 
@@ -175,7 +173,7 @@ const handleTaskNavigation = (task: TaskContext) => {
   const { taskId, sessionId, courseId, courseTitle, sessionTitle } = task
 
   // Switch to recorded mode
-  currentMode.value = 'recorded'
+  navigationStore.navigate('recorded')
 
   // Find the session data from DataStore (should have been stored when task was added)
   const sessionData = DataStore.getSessionData(sessionId)
@@ -244,43 +242,6 @@ onUnmounted(() => {
   color: var(--text-primary);
 }
 
-.navigation-bar {
-  display: flex;
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--bg-surface);
-}
-
-.nav-btn {
-  flex: 1;
-  padding: 12px 24px;
-  border: none;
-  background-color: transparent;
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  border-bottom: 3px solid transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.nav-icon {
-  flex-shrink: 0;
-}
-
-.nav-btn:hover {
-  background-color: var(--bg-hover);
-}
-
-.nav-btn.active {
-  background-color: var(--bg-page);
-  border-bottom-color: var(--accent);
-  color: var(--accent);
-}
-
 .content-area {
   flex: 1;
   overflow: hidden;
@@ -300,13 +261,5 @@ onUnmounted(() => {
   opacity: 0;
   pointer-events: none;
   z-index: -1;
-}
-
-.playback-indicator {
-  margin-left: 6px;
-  color: var(--success);
-  font-size: 12px;
-  font-weight: bold;
-  animation: pulse 2s infinite;
 }
 </style>

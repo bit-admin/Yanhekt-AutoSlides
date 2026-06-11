@@ -3,7 +3,9 @@
     "live": "Live",
     "recorded": "Recorded",
     "task": "Task",
-    "download": "Download"
+    "download": "Download",
+    "home": "Home",
+    "searchPlaceholder": "Search"
   },
   "auth": {
     "verifying": "Verifying...",
@@ -399,14 +401,6 @@
       "liveStreams": "Live Streams",
       "recordings": "Recordings"
     },
-    "search": {
-      "placeholder": "Search courses...",
-      "button": "Search"
-    },
-    "semester": {
-      "allSemesters": "All Semesters",
-      "selected": "Selected"
-    },
     "savedSearches": {
       "save": "Save Search",
       "remove": "Remove",
@@ -416,16 +410,9 @@
       "cancel": "Cancel",
       "confirm": "Save"
     },
-    "actions": {
-      "getPersonalCourseList": "Get Personal Course List"
-    },
     "welcome": {
       "title": "Welcome to AutoSlides",
-      "subtitle": "AutoSlides is a tool designed for BIT students.",
-      "liveTitle": "Live Courses",
-      "recordedTitle": "Recorded Courses",
-      "liveDescription": "Browse and join live lectures across the entire campus, while also capturing real-time slides.",
-      "recordedDescription": "Access courses recordings, download videos for offline viewing, and extract slides from recordings."
+      "subtitle": "AutoSlides is a tool designed for BIT students."
     },
     "status": {
       "ended": "Ended",
@@ -437,7 +424,8 @@
       "participants": "Participants"
     },
     "loading": "Loading courses...",
-    "noResults": "No courses found"
+    "noResults": "No courses found",
+    "signInToLoad": "Sign in to load your course list"
   },
   "tasks": {
     "taskList": "Task List",
@@ -1093,5 +1081,13 @@
     "allSetTitle": "You're all set!",
     "allSetDescription": "You're already signed in and ready to go.",
     "allSetCta": "Get Started"
+  },
+  "home": {
+    "myLiveStreams": "My Live Streams",
+    "myRecordings": "My Recordings",
+    "signInHint": "Sign in to see your live streams and recordings"
+  },
+  "searchPage": {
+    "title": "Search"
   }
 }
