@@ -76,6 +76,7 @@
         </button>
 
         <div v-if="showSigninMenu" class="user-menu signin-menu">
+          <UserMenuLinks />
           <button type="button" class="signin-option" @click="startBrowserLogin">
             <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10"/>
@@ -99,7 +100,7 @@
             showUserMenu && isChineseName
               ? userNickname
               : displayNickname
-          }}</span>
+          }}<span v-if="showUserMenu" class="user-banner-userid">{{ userId }}</span></span>
           <svg
             class="user-banner-chevron"
             :class="{ open: showUserMenu }"
@@ -117,9 +118,9 @@
           </svg>
         </button>
 
-        <div v-if="showUserMenu" class="user-menu">
+        <div v-if="showUserMenu" class="user-menu user-menu-expanded">
+          <UserMenuLinks />
           <button class="btn btn--danger-outline logout-btn user-menu-signout" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
-          <p class="user-menu-username">{{ $t('auth.signInAs', { userId }) }}</p>
         </div>
       </div>
 
@@ -225,6 +226,7 @@ import { useAISettings } from '@features/ai/useAISettings'
 import { usePHashExclusion } from '@features/ai/usePHashExclusion'
 import { settingsContextKey } from '@features/settings/settingsContext'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
+import UserMenuLinks from './UserMenuLinks.vue'
 import SignInModal from './SignInModal.vue'
 import AdvancedSettingsModal from './AdvancedSettingsModal.vue'
 import NetworkSettingsTab from './tabs/NetworkSettingsTab.vue'
@@ -595,11 +597,11 @@ defineExpose({
   padding: 8px;
 }
 
-.user-menu-username {
-  margin: 8px 0 0 0;
-  font-size: 12px;
+.user-banner-userid {
+  margin-left: 6px;
+  font-size: 11px;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 .user-menu-message {
@@ -662,6 +664,12 @@ defineExpose({
 
 .signin-option:hover {
   background-color: var(--bg-hover);
+}
+
+.user-menu-expanded {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .user-menu-signout {

@@ -1089,7 +1089,7 @@
     "cancel": "Cancel",
     "configureLater": "I'll configure this later",
     "signInTitle": "Sign in to access your courses",
-    "signInDescription": "Sign in with your Yanhekt SSO account to browse and download lectures. You can also do this anytime later.",
+    "signInDescription": "Sign in with your BIT SSO account to browse and download lectures from Yanhekt.",
     "allSetTitle": "You're all set!",
     "allSetDescription": "You're already signed in and ready to go.",
     "allSetCta": "Get Started"
