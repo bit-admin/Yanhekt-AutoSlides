@@ -18,7 +18,7 @@
     "accessMessage": "You can now access all resources from Yanhekt.",
     "signOut": "Sign Out",
     "signInWithBrowser": "Sign in with Browser",
-    "signInWithSSO": "Sign in with SSO Account"
+    "signInWithSSO": "Sign in with SSO"
   },
   "browserLogin": {
     "close": "Close",
@@ -1088,8 +1088,8 @@
     "copilotError": "Sign-in failed. Please try again.",
     "cancel": "Cancel",
     "configureLater": "I'll configure this later",
-    "signInTitle": "Sign in to access your courses",
-    "signInDescription": "Sign in with your BIT SSO account to browse and download lectures from Yanhekt.",
+    "signInTitle": "Sign in to access Yanhekt",
+    "signInDescription": "Sign in to Yanhekt with your BIT SSO account or sign in with browser if you encounter two-factor verification.",
     "allSetTitle": "You're all set!",
     "allSetDescription": "You're already signed in and ready to go.",
     "allSetCta": "Get Started"
