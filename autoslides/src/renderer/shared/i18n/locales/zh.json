@@ -17,7 +17,8 @@
     "signInAs": "登录身份：{userId}",
     "accessMessage": "您现可访问延河课堂的所有资源。",
     "signOut": "退出登录",
-    "signInWithBrowser": "浏览器登录"
+    "signInWithBrowser": "浏览器登录",
+    "signInWithSSO": "SSO 账号登录"
   },
   "browserLogin": {
     "close": "关闭",
@@ -1085,6 +1086,11 @@
     "copilotConnecting": "等待授权…",
     "copilotError": "登录失败，请重试。",
     "cancel": "取消",
-    "configureLater": "稍后再配置"
+    "configureLater": "稍后再配置",
+    "signInTitle": "登录以访问你的课程",
+    "signInDescription": "使用你的延河课堂 SSO 账号登录，即可浏览和下载课程。你之后也可随时登录。",
+    "allSetTitle": "一切就绪！",
+    "allSetDescription": "你已登录，可以开始使用了。",
+    "allSetCta": "开始使用"
   }
 }

@@ -17,7 +17,8 @@
     "signInAs": "Sign in as {userId}",
     "accessMessage": "You can now access all resources from Yanhekt.",
     "signOut": "Sign Out",
-    "signInWithBrowser": "Sign in with Browser"
+    "signInWithBrowser": "Sign in with Browser",
+    "signInWithSSO": "Sign in with SSO Account"
   },
   "browserLogin": {
     "close": "Close",
@@ -1085,6 +1086,11 @@
     "copilotConnecting": "Waiting for authorization…",
     "copilotError": "Sign-in failed. Please try again.",
     "cancel": "Cancel",
-    "configureLater": "I'll configure this later"
+    "configureLater": "I'll configure this later",
+    "signInTitle": "Sign in to access your courses",
+    "signInDescription": "Sign in with your Yanhekt SSO account to browse and download lectures. You can also do this anytime later.",
+    "allSetTitle": "You're all set!",
+    "allSetDescription": "You're already signed in and ready to go.",
+    "allSetCta": "Get Started"
   }
 }

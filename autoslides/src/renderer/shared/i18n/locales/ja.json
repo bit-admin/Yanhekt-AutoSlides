@@ -17,7 +17,8 @@
     "signInAs": "{userId}としてサインイン",
     "accessMessage": "Yanhektのすべてのリソースにアクセスできるようになりました",
     "signOut": "サインアウト",
-    "signInWithBrowser": "ブラウザでサインイン"
+    "signInWithBrowser": "ブラウザでサインイン",
+    "signInWithSSO": "SSOアカウントでサインイン"
   },
   "browserLogin": {
     "close": "閉じる",
@@ -1085,6 +1086,11 @@
     "copilotConnecting": "認証を待っています…",
     "copilotError": "サインインに失敗しました。もう一度お試しください。",
     "cancel": "キャンセル",
-    "configureLater": "後で設定する"
+    "configureLater": "後で設定する",
+    "signInTitle": "サインインして講義にアクセス",
+    "signInDescription": "Yanhekt の SSO アカウントでサインインすると、講義の閲覧とダウンロードができます。後からいつでもサインインできます。",
+    "allSetTitle": "準備完了です！",
+    "allSetDescription": "すでにサインインしており、すぐに使い始められます。",
+    "allSetCta": "始める"
   }
 }

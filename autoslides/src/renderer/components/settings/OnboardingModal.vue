@@ -1,5 +1,16 @@
 <template>
-  <div class="onboarding-overlay">
+  <!-- Final sign-in page: the shared SignInModal (same component the left-panel
+       "Sign in with SSO Account" button opens), so the two are identical. -->
+  <SignInModal
+    v-if="step === signInStep && !isLoggedIn"
+    :show-close="false"
+    :skip-label="$t('onboarding.skip')"
+    @skip="finish"
+    @success="onSignInSuccess"
+    @browser-login="onSignInBrowserLogin"
+  />
+
+  <div v-else class="onboarding-overlay">
     <div class="onboarding-card">
       <!-- Welcome intro -->
       <template v-if="step === 0">
@@ -14,10 +25,10 @@
       </template>
 
       <!-- Configuration steps -->
-      <template v-else>
+      <template v-else-if="step <= configSteps">
         <div class="onboarding-progress">
           <span
-            v-for="n in totalSteps"
+            v-for="n in configSteps"
             :key="n"
             class="progress-dot"
             :class="{ active: n === step, done: n < step }"
@@ -25,7 +36,7 @@
         </div>
 
         <div class="onboarding-body">
-          <span class="step-label">{{ $t('onboarding.stepLabel', { current: step, total: totalSteps }) }}</span>
+          <span class="step-label">{{ $t('onboarding.stepLabel', { current: step, total: configSteps }) }}</span>
 
           <!-- 1. Output directory -->
           <template v-if="step === 1">
@@ -131,11 +142,20 @@
 
         <div class="onboarding-footer">
           <button class="btn" @click="back">{{ $t('onboarding.back') }}</button>
-          <button v-if="step < totalSteps" class="btn btn--primary" @click="next">
+          <button class="btn btn--primary" @click="next">
             {{ $t('onboarding.next') }}
           </button>
-          <button v-else class="btn btn--primary" @click="finish">
-            {{ $t('onboarding.finish') }}
+        </div>
+      </template>
+
+      <!-- Final step, already signed in (rare — e.g. a persisted token).
+           The not-signed-in path is the SignInModal rendered above. -->
+      <template v-else>
+        <div class="onboarding-hero">
+          <h2 class="hero-title">{{ $t('onboarding.allSetTitle') }}</h2>
+          <p class="hero-subtitle">{{ $t('onboarding.allSetDescription') }}</p>
+          <button class="btn btn--primary btn--lg hero-cta" @click="finish">
+            {{ $t('onboarding.allSetCta') }}
           </button>
         </div>
       </template>
@@ -147,12 +167,17 @@
 import { computed, onMounted, ref } from 'vue'
 import { useSettings } from '@features/settings/useSettings'
 import { useCopilotOAuth } from '@features/ai/useCopilotOAuth'
+import { useAuth } from '@features/platform/useAuth'
+import SignInModal from './SignInModal.vue'
 
 const emit = defineEmits<{
   (e: 'finish'): void
 }>()
 
-const totalSteps = 5
+// Dotted configuration steps (1..configSteps). The SSO sign-in is a dedicated
+// terminal page that always comes last — even if more config steps are added.
+const configSteps = 5
+const signInStep = configSteps + 1
 const step = ref(0)
 
 const settings = useSettings()
@@ -180,6 +205,9 @@ const {
   startCopilotOAuth,
   cancelCopilotOAuth,
 } = useCopilotOAuth()
+
+// Sign-in step (final, dedicated page)
+const { isLoggedIn, openBrowserLogin } = useAuth()
 
 const copilotConnected = computed(
   () => copilotOAuthStep.value === 'success' && !!copilotGhoToken.value
@@ -227,7 +255,7 @@ onMounted(() => {
 })
 
 const next = () => {
-  if (step.value < totalSteps) step.value += 1
+  if (step.value < signInStep) step.value += 1
 }
 const back = () => {
   if (step.value > 0) step.value -= 1
@@ -236,10 +264,22 @@ const finish = async () => {
   await persistAiChoice()
   emit('finish')
 }
-// Forward action for the "configure later" link: advance, or finish on the last step.
+// Forward action for the AI "configure later" link: advance to the next step
+// (the sign-in page), or finish if this somehow is the last one.
 const proceed = () => {
-  if (step.value < totalSteps) next()
+  if (step.value < signInStep) next()
   else finish()
+}
+
+// Sign-in page handlers.
+const onSignInSuccess = () => {
+  finish()
+}
+const onSignInBrowserLogin = async () => {
+  // Browser login takes over the main window, which sits behind this overlay —
+  // so close onboarding first, then open it.
+  await finish()
+  openBrowserLogin()
 }
 </script>
 
@@ -298,6 +338,7 @@ const proceed = () => {
   min-width: 200px;
 }
 
+/* ── Sign-in dedicated page ───────────────────────────── */
 .skip-link {
   margin-top: 14px;
   background: none;

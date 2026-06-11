@@ -1,70 +1,5 @@
 <template>
   <div class="left-panel">
-    <div class="login-section">
-      <div v-if="isVerifyingToken" class="verifying-state">
-        <h3>{{ $t('auth.verifying') }}</h3>
-        <p>{{ $t('auth.verifyingMessage') }}</p>
-        <div class="loading-spinner"></div>
-      </div>
-      <div v-else-if="!isLoggedIn" class="login-form">
-        <h3>{{ $t('auth.signIn') }}</h3>
-        <p>{{ $t('auth.signInMessage') }}</p>
-        <div class="field-group">
-          <input
-            v-model="username"
-            type="text"
-            :placeholder="$t('auth.username')"
-            class="input-field"
-          />
-          <input
-            v-model="password"
-            type="password"
-            :placeholder="$t('auth.password')"
-            class="input-field"
-          />
-        </div>
-        <div class="login-buttons">
-          <button @click="login" :disabled="isLoading" class="btn btn--primary login-btn">
-            {{ isLoading ? $t('auth.signingIn') : $t('auth.signIn') }}
-          </button>
-          <button @click="openBrowserLogin" class="btn browser-login-btn">
-            {{ $t('auth.signInWithBrowser') }}
-          </button>
-        </div>
-      </div>
-      <div v-else ref="userInfoRef" class="user-info">
-        <button type="button" class="user-banner" :class="{ open: showUserMenu }" @click="toggleUserMenu">
-          <span class="user-avatar">{{ userInitial }}</span>
-          <span class="user-banner-name">{{
-            showUserMenu && isChineseName
-              ? `${displayNickname} (${userNickname})`
-              : displayNickname
-          }}</span>
-          <svg
-            class="user-banner-chevron"
-            :class="{ open: showUserMenu }"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
-        </button>
-
-        <div v-if="showUserMenu" class="user-menu">
-          <p class="user-menu-username">{{ $t('auth.signInAs', { userId }) }}</p>
-          <p class="user-menu-message">{{ $t('auth.accessMessage') }}</p>
-          <button class="btn btn--danger-outline logout-btn user-menu-signout" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
-        </div>
-      </div>
-    </div>
-
     <div class="control-section custom-scrollbar">
       <div class="settings-content">
         <div class="panel-actions">
@@ -115,6 +50,76 @@
       </div>
     </div>
 
+    <div class="login-section">
+      <div v-if="isVerifyingToken" class="verifying-state">
+        <h3>{{ $t('auth.verifying') }}</h3>
+        <p>{{ $t('auth.verifyingMessage') }}</p>
+        <div class="loading-spinner"></div>
+      </div>
+      <div v-else-if="!isLoggedIn" ref="signinMenuRef" class="signin-control">
+        <button type="button" class="user-banner signin-banner" :class="{ open: showSigninMenu }" @click="toggleSigninMenu">
+          <span class="user-avatar signin-avatar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </span>
+          <span class="user-banner-name">{{ $t('auth.signIn') }}</span>
+          <svg
+            class="user-banner-chevron"
+            :class="{ open: showSigninMenu }"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="6 15 12 9 18 15" />
+          </svg>
+        </button>
+
+        <div v-if="showSigninMenu" class="user-menu signin-menu">
+          <button type="button" class="signin-option" @click="startBrowserLogin">{{ $t('auth.signInWithBrowser') }}</button>
+          <button type="button" class="signin-option" @click="openSsoModal">{{ $t('auth.signInWithSSO') }}</button>
+        </div>
+      </div>
+      <div v-else ref="userInfoRef" class="user-info">
+        <button type="button" class="user-banner" :class="{ open: showUserMenu }" @click="toggleUserMenu">
+          <span class="user-avatar">{{ userInitial }}</span>
+          <span class="user-banner-name">{{
+            showUserMenu && isChineseName
+              ? `${displayNickname} (${userNickname})`
+              : displayNickname
+          }}</span>
+          <svg
+            class="user-banner-chevron"
+            :class="{ open: showUserMenu }"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="6 15 12 9 18 15" />
+          </svg>
+        </button>
+
+        <div v-if="showUserMenu" class="user-menu">
+          <p class="user-menu-username">{{ $t('auth.signInAs', { userId }) }}</p>
+          <p class="user-menu-message">{{ $t('auth.accessMessage') }}</p>
+          <button class="btn btn--danger-outline logout-btn user-menu-signout" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
+        </div>
+      </div>
+    </div>
+
     <AdvancedSettingsModal
       :visible="showAdvancedModal"
       :active-tab="activeAdvancedTab"
@@ -143,6 +148,15 @@
         <AISettingsTab />
       </template>
     </AdvancedSettingsModal>
+
+    <!-- SSO Sign-In Dialog: the same shared SignInModal used by onboarding. -->
+    <SignInModal
+      v-if="showSsoModal"
+      :on-login-success="() => aiSettings.refreshBuiltinModel()"
+      @success="closeSsoModal"
+      @browser-login="onModalBrowserLogin"
+      @close="closeSsoModal"
+    />
 
     <!-- Custom Name Input Dialog -->
     <div v-if="showNameInputModal" class="modal-overlay" @click="cancelNameInput">
@@ -198,6 +212,7 @@ import { useAISettings } from '@features/ai/useAISettings'
 import { usePHashExclusion } from '@features/ai/usePHashExclusion'
 import { settingsContextKey } from '@features/settings/settingsContext'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
+import SignInModal from './SignInModal.vue'
 import AdvancedSettingsModal from './AdvancedSettingsModal.vue'
 import NetworkSettingsTab from './tabs/NetworkSettingsTab.vue'
 import GeneralSettingsTab from './tabs/GeneralSettingsTab.vue'
@@ -271,19 +286,20 @@ provide(settingsContextKey, {
 // Auth
 const {
   isLoggedIn,
-  username,
-  password,
   userNickname,
   userId,
-  isLoading,
   isVerifyingToken,
-  login,
   logout,
   openBrowserLogin
 } = auth
 
 const showUserMenu = ref(false)
 const userInfoRef = ref<HTMLElement | null>(null)
+
+// Signed-out "Sign In" dropup menu + SSO modal state
+const showSigninMenu = ref(false)
+const signinMenuRef = ref<HTMLElement | null>(null)
+const showSsoModal = ref(false)
 
 const { isChineseName, displayNickname, nameInitial: userInitial } = usePinyinName(userNickname)
 
@@ -300,14 +316,42 @@ const handleSignOut = () => {
   logout()
 }
 
+const toggleSigninMenu = () => {
+  showSigninMenu.value = !showSigninMenu.value
+}
+
+const closeSigninMenu = () => {
+  showSigninMenu.value = false
+}
+
+const openSsoModal = () => {
+  closeSigninMenu()
+  showSsoModal.value = true
+}
+
+const closeSsoModal = () => {
+  showSsoModal.value = false
+}
+
+const startBrowserLogin = () => {
+  closeSigninMenu()
+  openBrowserLogin()
+}
+
+const onModalBrowserLogin = () => {
+  closeSsoModal()
+  openBrowserLogin()
+}
+
 const handleDocumentClick = (event: MouseEvent) => {
-  if (!showUserMenu.value || !userInfoRef.value) {
-    return
+  const target = event.target as Node | null
+
+  if (showUserMenu.value && userInfoRef.value && target && !userInfoRef.value.contains(target)) {
+    closeUserMenu()
   }
 
-  const target = event.target as Node | null
-  if (target && !userInfoRef.value.contains(target)) {
-    closeUserMenu()
+  if (showSigninMenu.value && signinMenuRef.value && target && !signinMenuRef.value.contains(target)) {
+    closeSigninMenu()
   }
 }
 
@@ -408,30 +452,25 @@ defineExpose({
 
 .login-section {
   padding: 16px;
-  border-bottom: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-color);
   background-color: var(--bg-elevated);
+  flex-shrink: 0;
 }
 
-.login-form {
-  min-height: 140px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.user-info {
+.user-info,
+.signin-control {
   position: relative;
   min-height: 36px;
 }
 
-.login-form h3, .verifying-state h3 {
+.verifying-state h3 {
   margin: 0 0 8px 0;
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
-.login-form p, .verifying-state p {
+.verifying-state p {
   margin: 0 0 12px 0;
   font-size: 12px;
   color: var(--text-secondary);
@@ -458,8 +497,8 @@ defineExpose({
   gap: 10px;
   padding: 5px 8px;
   border: 1px solid var(--border-input);
-  border-bottom: none;
-  border-radius: 8px 8px 0 0;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
   background-color: var(--bg-card);
 }
 
@@ -506,15 +545,15 @@ defineExpose({
 
 .user-menu {
   position: absolute;
-  top: calc(100% - 1px);
+  bottom: calc(100% - 1px);
   left: 0;
   right: 0;
   z-index: 20;
   border: 1px solid var(--border-input);
-  border-top: none;
-  border-radius: 0 0 8px 8px;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
   background-color: var(--bg-card);
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 -6px 14px rgba(15, 23, 42, 0.08);
   padding: 8px;
 }
 
@@ -551,49 +590,32 @@ defineExpose({
   margin: 0 auto;
 }
 
-.field-group {
+.signin-avatar {
+  background-color: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.signin-menu {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 4px;
 }
 
-.input-field {
-  padding: 8px 12px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  font-size: 14px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-}
-
-.input-field::placeholder {
-  color: var(--text-muted);
-}
-
-.login-buttons {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
+.signin-option {
   width: 100%;
-}
-
-.login-btn {
-  flex: 1;
-}
-
-.browser-login-btn {
-  flex: 1;
+  text-align: left;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
   background-color: transparent;
-  border-color: var(--accent);
-  color: var(--accent);
-  white-space: nowrap;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
 }
 
-.browser-login-btn:hover {
-  background-color: var(--accent);
-  border-color: var(--accent);
-  color: var(--text-on-accent);
+.signin-option:hover {
+  background-color: var(--bg-hover);
 }
 
 .user-menu-signout {
