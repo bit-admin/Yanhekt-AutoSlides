@@ -29,7 +29,7 @@
   },
   "settings": {
     "settings": "설정",
-    "advancedSettings": "고급 설정",
+    "advancedSettings": "설정",
     "outputDirectory": "출력 디렉토리",
     "openFolder": "폴더 열기",
     "browse": "찾아보기",

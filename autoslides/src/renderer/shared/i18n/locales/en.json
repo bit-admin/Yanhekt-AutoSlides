@@ -29,7 +29,7 @@
   },
   "settings": {
     "settings": "Settings",
-    "advancedSettings": "Advanced Settings",
+    "advancedSettings": "Settings",
     "outputDirectory": "Output Directory",
     "openFolder": "View Output",
     "browse": "Browse",

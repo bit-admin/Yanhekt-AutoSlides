@@ -29,7 +29,7 @@
   },
   "settings": {
     "settings": "設定",
-    "advancedSettings": "詳細設定",
+    "advancedSettings": "設定",
     "outputDirectory": "出力ディレクトリ",
     "openFolder": "フォルダを開く",
     "browse": "参照",

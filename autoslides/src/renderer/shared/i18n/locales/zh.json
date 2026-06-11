@@ -29,7 +29,7 @@
   },
   "settings": {
     "settings": "设置",
-    "advancedSettings": "高级设置",
+    "advancedSettings": "设置",
     "outputDirectory": "输出目录",
     "openFolder": "打开输出目录",
     "browse": "选择",

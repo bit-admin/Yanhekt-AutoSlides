@@ -15,14 +15,6 @@
             </svg>
           </button>
 
-          <button type="button" class="panel-action-button" @click="openAdvancedSettings">
-            <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-            <span>{{ $t('settings.advancedSettings') }}</span>
-          </button>
-
           <button type="button" class="panel-action-button" @click="openToolsWindow()">
             <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
               <path d="M1 3h4v4H1V3zm5 0h4v4H6V3zm5 0h4v4h-4V3zM1 9h4v4H1V9zm5 0h4v4H6V9zm5 0h4v4h-4V9z" fill="currentColor"/>
@@ -56,7 +48,8 @@
         <p>{{ $t('auth.verifyingMessage') }}</p>
         <div class="loading-spinner"></div>
       </div>
-      <div v-else-if="!isLoggedIn" ref="signinMenuRef" class="signin-control">
+      <div v-else class="login-row">
+      <div v-if="!isLoggedIn" ref="signinMenuRef" class="signin-control">
         <button type="button" class="user-banner signin-banner" :class="{ open: showSigninMenu }" @click="toggleSigninMenu">
           <span class="user-avatar signin-avatar">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -83,8 +76,20 @@
         </button>
 
         <div v-if="showSigninMenu" class="user-menu signin-menu">
-          <button type="button" class="signin-option" @click="startBrowserLogin">{{ $t('auth.signInWithBrowser') }}</button>
-          <button type="button" class="signin-option" @click="openSsoModal">{{ $t('auth.signInWithSSO') }}</button>
+          <button type="button" class="signin-option" @click="startBrowserLogin">
+            <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            <span>{{ $t('auth.signInWithBrowser') }}</span>
+          </button>
+          <button type="button" class="signin-option" @click="openSsoModal">
+            <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+            </svg>
+            <span>{{ $t('auth.signInWithSSO') }}</span>
+          </button>
         </div>
       </div>
       <div v-else ref="userInfoRef" class="user-info">
@@ -92,7 +97,7 @@
           <span class="user-avatar">{{ userInitial }}</span>
           <span class="user-banner-name">{{
             showUserMenu && isChineseName
-              ? `${displayNickname} (${userNickname})`
+              ? userNickname
               : displayNickname
           }}</span>
           <svg
@@ -113,10 +118,18 @@
         </button>
 
         <div v-if="showUserMenu" class="user-menu">
-          <p class="user-menu-username">{{ $t('auth.signInAs', { userId }) }}</p>
-          <p class="user-menu-message">{{ $t('auth.accessMessage') }}</p>
           <button class="btn btn--danger-outline logout-btn user-menu-signout" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
+          <p class="user-menu-username">{{ $t('auth.signInAs', { userId }) }}</p>
         </div>
+      </div>
+
+      <button type="button" class="btn--icon login-action-icon" :title="$t('settings.advancedSettings')" @click="openAdvancedSettings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+
       </div>
     </div>
 
@@ -457,10 +470,25 @@ defineExpose({
   flex-shrink: 0;
 }
 
+.login-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .user-info,
 .signin-control {
   position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
   min-height: 36px;
+}
+
+.login-action-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
 }
 
 .verifying-state h3 {
@@ -558,10 +586,10 @@ defineExpose({
 }
 
 .user-menu-username {
-  margin: 0;
+  margin: 8px 0 0 0;
   font-size: 12px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-weight: 500;
+  color: var(--text-muted);
 }
 
 .user-menu-message {
@@ -602,6 +630,9 @@ defineExpose({
 }
 
 .signin-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   width: 100%;
   text-align: left;
   padding: 8px 10px;
@@ -614,12 +645,19 @@ defineExpose({
   transition: background-color 0.15s ease;
 }
 
+.signin-option-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
 .signin-option:hover {
   background-color: var(--bg-hover);
 }
 
 .user-menu-signout {
   width: 100%;
+  min-height: 0;
+  padding: 4px 8px;
 }
 
 .control-section {
