@@ -15,6 +15,20 @@ export function registerMenuIpcHandlers(): void {
     }
   });
 
+  ipcMain.handle('menu:requestOpenSettings', async () => {
+    try {
+      const focusedWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+      if (focusedWindow) {
+        focusedWindow.webContents.send('menu:openSettings');
+        return { success: true };
+      }
+      return { success: false, error: 'No window available' };
+    } catch (error) {
+      console.error('Failed to open settings:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
   ipcMain.handle('menu:reload', async () => {
     try {
       const focusedWindow = BrowserWindow.getFocusedWindow();

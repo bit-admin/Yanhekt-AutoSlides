@@ -65,6 +65,13 @@ export class WindowManager {
       { label: app.name, submenu: [
         { role: 'about', label: t('titlebar.about') },
         { type: 'separator' },
+        { label: t('titlebar.settings'), accelerator: 'CmdOrCtrl+,', click: () => {
+          const mainWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+          if (mainWindow) {
+            mainWindow.webContents.send('menu:openSettings');
+          }
+        } },
+        { type: 'separator' },
         { label: t('titlebar.checkForUpdates'), click: async () => {
           const mainWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
           if (mainWindow) {

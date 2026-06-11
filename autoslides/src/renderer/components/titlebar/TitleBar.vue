@@ -10,6 +10,8 @@
         <div v-if="showFileMenu" class="dropdown-menu" @click.stop>
           <div class="menu-option" @click="showAbout">{{ $t('titlebar.aboutAutoSlides') }}</div>
           <div class="menu-separator"></div>
+          <div class="menu-option" @click="openSettings">{{ $t('titlebar.settings') }} <span class="shortcut">Ctrl+,</span></div>
+          <div class="menu-separator"></div>
           <div class="menu-option disabled">{{ $t('titlebar.new') }} <span class="shortcut">Ctrl+N</span></div>
           <div class="menu-option disabled">{{ $t('titlebar.open') }} <span class="shortcut">Ctrl+O</span></div>
           <div class="menu-separator"></div>
@@ -414,6 +416,12 @@ const showAbout = async () => {
 const checkForUpdates = () => {
   closeAllMenus();
   updateManager.value?.checkForUpdates();
+};
+
+// Open Settings — routed through main so LeftPanel's listener opens the modal
+const openSettings = () => {
+  closeAllMenus();
+  (window as any).electronAPI.menu.openSettings();
 };
 </script>
 

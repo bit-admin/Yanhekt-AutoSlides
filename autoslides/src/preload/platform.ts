@@ -139,6 +139,12 @@ export const shell = {
 };
 
 export const menu = {
+  openSettings: () => ipcRenderer.invoke('menu:requestOpenSettings'),
+  onOpenSettings: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('menu:openSettings', handler);
+    return () => ipcRenderer.removeListener('menu:openSettings', handler);
+  },
   openTermsAndConditions: () => ipcRenderer.invoke('menu:openTermsAndConditions'),
   reload: () => ipcRenderer.invoke('menu:reload'),
   forceReload: () => ipcRenderer.invoke('menu:forceReload'),

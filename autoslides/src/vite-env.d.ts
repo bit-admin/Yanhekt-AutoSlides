@@ -616,6 +616,8 @@ interface ElectronAPI {
   };
 
   menu: {
+    openSettings: () => Promise<{ success: boolean; error?: string }>;
+    onOpenSettings: (callback: () => void) => () => void;
     openTermsAndConditions: () => Promise<void>;
     reload: () => Promise<void>;
     forceReload: () => Promise<void>;

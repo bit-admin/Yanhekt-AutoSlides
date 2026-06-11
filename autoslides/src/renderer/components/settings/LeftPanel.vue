@@ -425,6 +425,10 @@ const openAddonsWindow = async (tab?: string) => {
   }
 }
 
+// Settings opened from the native menu bar (macOS AutoSlides > Settings…,
+// Windows/Linux File > Settings). Cleanup returned by the preload subscription.
+let cleanupOpenSettings: (() => void) | undefined
+
 // Lifecycle hooks
 onMounted(async () => {
   auth.verifyExistingToken()
@@ -439,12 +443,18 @@ onMounted(async () => {
   // Add event listener for adaptive threshold changes
   window.addEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as unknown as EventListener)
   document.addEventListener('click', handleDocumentClick)
+
+  // Open Settings when triggered from the native menu bar
+  cleanupOpenSettings = window.electronAPI.menu.onOpenSettings(() => {
+    openAdvancedSettings()
+  })
 })
 
 onUnmounted(() => {
   // Remove event listener for adaptive threshold changes
   window.removeEventListener('adaptiveThresholdChanged', onAdaptiveThresholdChanged as unknown as EventListener)
   document.removeEventListener('click', handleDocumentClick)
+  cleanupOpenSettings?.()
 })
 
 // Export for potential future use by other components
