@@ -1,5 +1,11 @@
 <template>
-  <div class="app">
+  <!-- --left-panel-width lets the title bar split its background at the
+       sidebar boundary (transparent glass left, opaque right) on macOS -->
+  <div class="app" :style="{ '--left-panel-width': leftWidth + 'px' }">
+    <!-- macOS only (display gated in CSS): one continuous glass tint behind
+         both the title bar's sidebar segment and the left panel, so the two
+         regions cannot mismatch. -->
+    <div class="sidebar-glass-underlay"></div>
     <!-- Custom Title Bar -->
     <TitleBar />
 
@@ -57,7 +63,7 @@ const completeOnboarding = () => {
   window.electronAPI.config.setOnboardingCompleted(true)
 }
 
-const leftWidth = ref(250)
+const leftWidth = ref(240)
 const rightWidth = ref(320)
 const mainWidth = ref(760)
 
@@ -190,10 +196,39 @@ onMounted(() => {
   }
 }
 
+/* Gray sidebar on opaque platforms; macOS overrides with the glass tint */
 .left-panel {
-  background-color: var(--bg-modal);
+  background-color: var(--bg-page-alt);
   border-right: 1px solid var(--border-color);
   flex-shrink: 0;
+}
+
+/* macOS frosted sidebar: the window's vibrancy shows through the transparent
+   app/layout layers; the full-height underlay paints the only glass tint. */
+.platform-darwin .app,
+.platform-darwin .layout {
+  background-color: transparent;
+}
+
+.platform-darwin .left-panel {
+  background-color: transparent;
+}
+
+.sidebar-glass-underlay {
+  display: none;
+}
+
+/* z-index -1 keeps it behind all in-flow content (opaque panels cover it);
+   it shows only through the transparent sidebar column and title bar segment */
+.platform-darwin .sidebar-glass-underlay {
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--left-panel-width);
+  z-index: -1;
+  background-color: var(--bg-sidebar-glass);
 }
 
 .main-content {

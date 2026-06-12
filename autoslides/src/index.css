@@ -15,6 +15,13 @@ html, body {
   background-color: var(--bg-page);
 }
 
+/* macOS: let the window's sidebar vibrancy show through; the panels that
+   should stay opaque paint their own backgrounds. */
+html.platform-darwin,
+html.platform-darwin body {
+  background-color: transparent;
+}
+
 #app {
   height: 100vh;
   overflow: hidden;

@@ -539,19 +539,22 @@ defineExpose({
 </script>
 
 <style scoped>
+/* Transparent so the App.vue wrapper's sidebar background shows through:
+   macOS vibrancy glass tint, solid gray elsewhere. The user bar keeps only
+   its hairline. */
 .left-panel {
   display: flex;
   flex-direction: column;
   height: 100%;
   padding: 0;
-  background-color: var(--bg-surface);
+  background-color: transparent;
   color: var(--text-primary);
 }
 
 .login-section {
   padding: 16px;
   border-top: 1px solid var(--border-color);
-  background-color: var(--bg-elevated);
+  background-color: transparent;
   flex-shrink: 0;
 }
 
@@ -968,15 +971,16 @@ defineExpose({
   gap: 4px;
 }
 
+/* Recessed gray field slightly darker than the sidebar (Apple Music style) */
 .nav-search {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 10px;
   padding: 0 8px;
-  border: 1px solid var(--border-input);
+  border: 1px solid transparent;
   border-radius: 6px;
-  background-color: var(--bg-input);
+  background-color: var(--hover-tint);
   transition: border-color 0.2s;
 }
 

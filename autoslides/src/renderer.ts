@@ -39,6 +39,12 @@ import {
 
 PostProcessingService.setClassifier({ classifyMultipleImages, classifySingleImage });
 
+// Platform class for CSS gating (e.g. the macOS vibrancy sidebar needs
+// transparent backgrounds that would render white on Windows).
+if (navigator.userAgent.toLowerCase().includes('mac')) {
+  document.documentElement.classList.add('platform-darwin');
+}
+
 const app = createApp(App);
 app.use(i18n);
 loadConfig().then(() => app.mount('#app'));

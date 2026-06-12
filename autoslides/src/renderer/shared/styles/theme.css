@@ -131,6 +131,10 @@
   --hover-tint: rgba(0, 0, 0, 0.05);
   --hover-tint-strong: rgba(0, 0, 0, 0.1);
 
+  /* Sidebar glass tint painted over macOS window vibrancy (main window left
+     panel only; opaque platforms never see it) */
+  --bg-sidebar-glass: rgba(246, 246, 246, 0.15);
+
   /* GitHub brand (intentionally theme-independent: dark button, white text) */
   --brand-github: #24292e;
   --brand-github-hover: #1a1e22;
@@ -262,6 +266,9 @@
     /* Hover tint */
     --hover-tint: rgba(255, 255, 255, 0.08);
     --hover-tint-strong: rgba(255, 255, 255, 0.15);
+
+    /* Sidebar glass tint */
+    --bg-sidebar-glass: rgba(30, 30, 30, 0.25);
 
     /* Form controls */
     --focus-ring: rgba(74, 158, 255, 0.15);

@@ -39,7 +39,14 @@ const createWindow = () => {
     minHeight: 700,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     frame: false,
-    backgroundColor: getWindowBackgroundColor(),
+    // macOS: native sidebar vibrancy shows through transparent renderer areas
+    // (the left panel paints a translucent tint over it). The fully
+    // transparent backgroundColor is required — without it the web contents
+    // paint an opaque base layer that hides the vibrancy. Other platforms
+    // keep an opaque background.
+    ...(process.platform === 'darwin'
+      ? { vibrancy: 'sidebar' as const, backgroundColor: '#00000000' }
+      : { backgroundColor: getWindowBackgroundColor() }),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,

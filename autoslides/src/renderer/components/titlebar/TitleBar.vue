@@ -334,6 +334,24 @@ const openSettings = () => {
   border-bottom: 1px solid var(--border-color);
 }
 
+/* macOS frosted sidebar: the segment above the left panel stays transparent
+   so the window vibrancy continues to the top of the window (Apple Music
+   style). The background splits at --left-panel-width (set reactively by
+   App.vue): glass | 1px vertical hairline | opaque bar. The bottom hairline
+   is drawn only over the opaque segment. */
+html.platform-darwin .titlebar.is-macos {
+  border-bottom: none;
+  background:
+    linear-gradient(var(--border-color), var(--border-color))
+      right bottom / calc(100% - var(--left-panel-width)) 1px no-repeat,
+    linear-gradient(to right,
+      transparent calc(var(--left-panel-width) - 1px),
+      var(--border-color) calc(var(--left-panel-width) - 1px),
+      var(--border-color) var(--left-panel-width),
+      var(--bg-elevated) var(--left-panel-width))
+      left top / 100% 100% no-repeat;
+}
+
 /* macOS traffic lights space - reserve space for red/yellow/green buttons */
 .traffic-lights-space {
   width: 78px; /* Standard macOS traffic lights width */
