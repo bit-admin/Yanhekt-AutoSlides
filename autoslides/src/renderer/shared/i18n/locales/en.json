@@ -1088,6 +1088,9 @@
     "signInHint": "Sign in to see your live streams and recordings"
   },
   "searchPage": {
-    "title": "Search"
+    "semesterFall": "Fall {year}",
+    "semesterSpring": "Spring {year}",
+    "academicYear": "{start}–{end} Academic Year",
+    "semesterPlaceholder": "Semester"
   }
 }

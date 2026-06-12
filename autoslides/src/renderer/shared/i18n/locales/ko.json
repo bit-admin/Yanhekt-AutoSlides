@@ -1088,6 +1088,9 @@
     "signInHint": "로그인하면 라이브와 녹화를 볼 수 있습니다"
   },
   "searchPage": {
-    "title": "검색"
+    "semesterFall": "{year}년 가을학기",
+    "semesterSpring": "{year}년 봄학기",
+    "academicYear": "{start}–{end} 학년도",
+    "semesterPlaceholder": "학기"
   }
 }

@@ -60,16 +60,8 @@
       </div>
     </div>
 
-    <!-- App title and drag area -->
-    <div class="titlebar-drag-region">
-      <!-- VS Code style search box -->
-      <button class="search-box" @click="handleSearchClick">
-        <svg class="search-icon" width="14" height="14" viewBox="0 0 14 14">
-          <path d="M6.5 1a5.5 5.5 0 0 1 4.383 8.823l2.647 2.647a.75.75 0 1 1-1.06 1.06l-2.647-2.647A5.5 5.5 0 1 1 6.5 1zm0 1.5a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" fill="currentColor"/>
-        </svg>
-        <span class="search-text">AutoSlides</span>
-      </button>
-    </div>
+    <!-- Drag area -->
+    <div class="titlebar-drag-region"></div>
 
     <!-- Window controls for non-macOS -->
     <div v-if="!isMacOS" class="window-controls">
@@ -164,11 +156,6 @@ const toggleViewMenu = () => {
 const toggleHelpMenu = () => {
   closeAllMenus();
   showHelpMenu.value = !showHelpMenu.value;
-};
-
-// Search box click handler
-const handleSearchClick = () => {
-  // TODO: wire this up to its new function
 };
 
 // Window control functions for non-macOS platforms
@@ -443,74 +430,12 @@ const openSettings = () => {
 .titlebar-drag-region {
   flex: 1;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   -webkit-app-region: drag; /* Enable dragging */
   cursor: grab;
-  padding: 0 20px; /* Add some padding for better centering */
-  position: relative;
-  gap: 16px; /* Space between link buttons and search box */
-}
-
-/* For macOS, offset the search box to account for traffic lights */
-.titlebar.is-macos .titlebar-drag-region {
-  margin-left: -85px; /* Half of traffic lights width to center properly */
-}
-
-/* For non-macOS, offset the search box to account for window controls on the right */
-.titlebar:not(.is-macos) .titlebar-drag-region {
-  margin-right: 75px; /* Half of window controls width (138px / 2) to center properly */
 }
 
 .titlebar-drag-region:active {
   cursor: grabbing;
-}
-
-/* VS Code style search box */
-.search-box {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 6px 16px;
-  background: var(--bg-hover);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-  font-size: 13px;
-  color: var(--text-secondary);
-  min-width: 280px;
-  max-width: 400px;
-  -webkit-app-region: no-drag; /* Prevent dragging on search box */
-}
-
-.search-box:hover {
-  background: var(--bg-elevated);
-  border-color: var(--border-strong);
-}
-
-.search-box:active {
-  background: var(--bg-subtle);
-}
-
-.search-icon {
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-
-.search-text {
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.titlebar.is-macos .search-box {
-  font-size: 12px;
-  padding: 4px 14px;
-  min-width: 280px;
-  max-width: 400px;
 }
 
 /* Window controls for non-macOS */

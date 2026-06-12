@@ -1088,6 +1088,9 @@
     "signInHint": "登录后可查看你的直播和录播"
   },
   "searchPage": {
-    "title": "搜索"
+    "semesterFall": "{year}年秋季学期",
+    "semesterSpring": "{year}年春季学期",
+    "academicYear": "{start}–{end} 学年",
+    "semesterPlaceholder": "学期"
   }
 }

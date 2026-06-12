@@ -1088,6 +1088,9 @@
     "signInHint": "サインインするとライブ配信と録画が表示されます"
   },
   "searchPage": {
-    "title": "検索"
+    "semesterFall": "{year}年秋学期",
+    "semesterSpring": "{year}年春学期",
+    "academicYear": "{start}–{end} 年度",
+    "semesterPlaceholder": "学期"
   }
 }

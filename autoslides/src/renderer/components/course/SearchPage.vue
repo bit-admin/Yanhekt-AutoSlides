@@ -1,40 +1,25 @@
 <template>
   <div class="search-page">
     <div class="search-header">
-      <h2 class="search-title">{{ $t('searchPage.title') }}</h2>
-      <div class="search-controls">
-        <select
-          v-if="mode === 'recorded'"
-          class="semester-select"
-          :value="selectedSemesterId ?? ''"
-          @change="onSemesterChange"
+      <SemesterSelect
+        v-if="mode === 'recorded'"
+        :semesters="availableSemesters"
+        :model-value="selectedSemesterId"
+        @update:model-value="setSemester"
+      />
+      <div class="mode-switch">
+        <button
+          :class="['mode-pill', { active: mode === 'live' }]"
+          @click="setMode('live')"
         >
-          <option v-for="semester in availableSemesters" :key="semester.id" :value="semester.id">
-            {{ semester.labelEn }}
-          </option>
-        </select>
-        <div class="mode-switch">
-          <button
-            :class="['mode-pill', { active: mode === 'live' }]"
-            @click="setMode('live')"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
-            </svg>
-            {{ $t('navigation.live') }}
-          </button>
-          <button
-            :class="['mode-pill', { active: mode === 'recorded' }]"
-            @click="setMode('recorded')"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-              <line x1="8" y1="21" x2="16" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
-            {{ $t('navigation.recorded') }}
-          </button>
-        </div>
+          {{ $t('navigation.live') }}
+        </button>
+        <button
+          :class="['mode-pill', { active: mode === 'recorded' }]"
+          @click="setMode('recorded')"
+        >
+          {{ $t('navigation.recorded') }}
+        </button>
       </div>
     </div>
 
@@ -116,6 +101,7 @@
 import { useI18n } from 'vue-i18n'
 import { useSearchPage } from '@features/course/useSearchPage'
 import { getCourseStatusClass, getCourseStatusText } from '@features/course/useCourseList'
+import SemesterSelect from './SemesterSelect.vue'
 
 const { t } = useI18n()
 
@@ -134,13 +120,6 @@ const {
   setSemester,
   selectResult
 } = useSearchPage()
-
-const onSemesterChange = (event: Event) => {
-  const value = (event.target as HTMLSelectElement).value
-  if (value !== '') {
-    setSemester(Number(value))
-  }
-}
 </script>
 
 <style scoped>
@@ -148,66 +127,41 @@ const onSemesterChange = (event: Event) => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 24px 24px 16px;
   background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 
+/* Apple Music style title band: right-aligned controls on a full-width tinted
+   bar (same band as CoursePage, with the semester selector + mode switch
+   instead of a title). */
 .search-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-  gap: 16px;
   flex-shrink: 0;
-}
-
-.search-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.3px;
-  color: var(--text-primary);
-}
-
-.search-controls {
   display: flex;
+  justify-content: flex-end;
   align-items: center;
   gap: 10px;
+  padding: 14px 16px;
+  background-color: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 36px;
 }
 
-.semester-select {
-  padding: 6px 10px;
-  border: 1px solid var(--border-input);
-  border-radius: 8px;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-  font-size: 13px;
-  cursor: pointer;
-  outline: none;
-  transition: border-color 0.2s;
-  max-width: 200px;
-}
-
-.semester-select:hover,
-.semester-select:focus {
-  border-color: var(--accent);
-}
-
+/* macOS-style segmented control: gray grouped track, the active segment is a
+   white outlined pill (Apple Music "Apple Music | Your Library" switcher). */
 .mode-switch {
   display: flex;
-  gap: 4px;
+  align-items: center;
   padding: 2px;
   border-radius: 8px;
-  background: var(--bg-elevated);
+  background: var(--bg-page-alt);
+  border: 1px solid var(--border-color);
 }
 
 .mode-pill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  border: none;
+  padding: 4px 12px;
+  border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
   color: var(--text-secondary);
@@ -222,8 +176,10 @@ const onSemesterChange = (event: Event) => {
 }
 
 .mode-pill.active {
-  background: var(--accent);
-  color: var(--text-on-accent);
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 .content {
@@ -231,6 +187,7 @@ const onSemesterChange = (event: Event) => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding: 0 24px 16px;
 }
 
 .error-message {

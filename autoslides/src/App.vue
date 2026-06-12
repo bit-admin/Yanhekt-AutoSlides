@@ -10,7 +10,7 @@
       <div class="divider left-divider" @mousedown="startResize('left', $event)"></div>
 
       <!-- Browser Login View (replaces MainContent and RightPanel) -->
-      <div v-if="isBrowserLoginActive" class="browser-login-container" :style="{ width: (mainWidth + rightWidth + 5) + 'px' }">
+      <div v-if="isBrowserLoginActive" class="browser-login-container" :style="{ width: (mainWidth + rightWidth) + 'px' }">
         <BrowserLoginView
           @close="closeBrowserLogin"
           @token-received="handleBrowserToken"
@@ -57,7 +57,7 @@ const completeOnboarding = () => {
   window.electronAPI.config.setOnboardingCompleted(true)
 }
 
-const leftWidth = ref(320)
+const leftWidth = ref(250)
 const rightWidth = ref(320)
 const mainWidth = ref(760)
 
@@ -88,7 +88,7 @@ const startResize = (type: string, event: MouseEvent) => {
   startX = event.clientX
   startLeftWidth = leftWidth.value
   startRightWidth = rightWidth.value
-  containerWidth = window.innerWidth - 10
+  containerWidth = window.innerWidth
 
   document.addEventListener('mousemove', handleResize)
   document.addEventListener('mouseup', stopResize)
@@ -99,10 +99,10 @@ const handleResize = (event: MouseEvent) => {
   if (!isResizing) return
 
   const deltaX = event.clientX - startX
-  const minLeft = 250
+  const minLeft = 200
   const minRight = 250
   const minMain = 500
-  const dividerWidth = 10
+  const dividerWidth = 0 // dividers overlap panel edges, zero layout width
 
   if (resizeType === 'left') {
     const newLeftWidth = Math.max(minLeft, Math.min(600, startLeftWidth + deltaX))
@@ -128,10 +128,10 @@ const stopResize = () => {
 
 const updateSizes = () => {
   const totalWidth = window.innerWidth
-  const minLeft = 250
+  const minLeft = 200
   const minRight = 250
   const minMain = 500
-  const dividerWidth = 10
+  const dividerWidth = 0 // dividers overlap panel edges, zero layout width
 
   const availableWidth = totalWidth - dividerWidth
   const totalMinWidth = minLeft + minRight + minMain
@@ -215,19 +215,17 @@ onMounted(() => {
   overflow: hidden;
 }
 
+/* Zero-width grab strip: negative margins make the 10px handle straddle the
+   panel boundary without occupying layout space, so the panels sit flush and
+   only their 1px hairline borders are visible. Positioned so it stays on top
+   of the adjacent panel edges for hit-testing. */
 .divider {
-  width: 5px;
-  background-color: var(--border-color);
+  width: 10px;
+  margin: 0 -5px;
+  position: relative;
+  z-index: var(--z-dropdown);
+  background-color: transparent;
   cursor: col-resize;
   flex-shrink: 0;
-  transition: background-color 0.2s;
-}
-
-.divider:hover {
-  background-color: var(--accent-strong);
-}
-
-.divider:active {
-  background-color: var(--accent-hover);
 }
 </style>

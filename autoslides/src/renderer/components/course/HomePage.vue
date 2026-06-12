@@ -11,7 +11,7 @@
         <div
           v-for="entry in mergedSavedSearches"
           :key="entry.mode + ':' + entry.keyword"
-          class="saved-card"
+          :class="['saved-card', `saved-card--${entry.mode}`]"
           @click="openSavedSearch(entry.keyword, entry.mode)"
         >
           <span class="saved-icon">
@@ -223,6 +223,7 @@ onMounted(() => {
 }
 
 .home-hero {
+  margin-top: 24px;
   margin-bottom: 36px;
 }
 
@@ -298,6 +299,29 @@ onMounted(() => {
   background: var(--badge-active-bg);
   color: var(--accent);
   flex-shrink: 0;
+}
+
+/* Mode color coding: live = yellow, recorded = blue */
+.saved-card--live .saved-icon {
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+
+.saved-card--live .saved-mode {
+  color: var(--warning);
+}
+
+.saved-card--live:hover {
+  border-color: var(--warning);
+}
+
+.saved-card--recorded .saved-icon {
+  background: var(--blue-badge-bg);
+  color: var(--blue-badge-text);
+}
+
+.saved-card--recorded .saved-mode {
+  color: var(--blue-badge-text);
 }
 
 .saved-text {
