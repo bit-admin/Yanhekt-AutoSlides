@@ -17,6 +17,7 @@
               @keyup.enter="handleSidebarEnter"
             />
           </div>
+          <div class="nav-group-title">AutoSlides</div>
           <nav class="nav-items">
             <button :class="['nav-item', { active: activeNav === 'home' }]" @click="navigate('home')">
               <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -44,8 +45,7 @@
           </nav>
         </div>
 
-        <div class="nav-separator"></div>
-
+        <div class="nav-group-title panel-actions-title">{{ $t('navigation.workspace') }}</div>
         <div class="panel-actions">
           <button type="button" class="panel-action-button" @click="openOutputDirectory">
             <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -94,30 +94,42 @@
       </div>
       <div v-else class="login-row">
       <div v-if="!isLoggedIn" ref="signinMenuRef" class="signin-control">
-        <button type="button" class="user-banner signin-banner" :class="{ open: showSigninMenu }" @click="toggleSigninMenu">
-          <span class="user-avatar signin-avatar">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-              <circle cx="12" cy="7" r="4"/>
-            </svg>
-          </span>
-          <span class="user-banner-name">{{ $t('auth.signIn') }}</span>
-          <svg
-            class="user-banner-chevron"
-            :class="{ open: showSigninMenu }"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="6 15 12 9 18 15" />
-          </svg>
-        </button>
+        <div class="user-banner signin-banner" :class="{ open: showSigninMenu }">
+          <button type="button" class="user-banner-main" @click="toggleSigninMenu">
+            <span class="user-avatar signin-avatar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </span>
+            <span class="user-banner-name">{{ $t('auth.signIn') }}</span>
+          </button>
+          <div class="user-banner-actions">
+            <button type="button" class="user-banner-action" :title="$t('settings.advancedSettings')" @click="openSettingsFromBar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </button>
+            <button type="button" class="user-banner-action" @click="toggleSigninMenu">
+              <svg
+                class="user-banner-chevron"
+                :class="{ open: showSigninMenu }"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="6 15 12 9 18 15" />
+              </svg>
+            </button>
+          </div>
+        </div>
 
         <div v-if="showSigninMenu" class="user-menu signin-menu">
           <UserMenuLinks />
@@ -138,42 +150,47 @@
         </div>
       </div>
       <div v-else ref="userInfoRef" class="user-info">
-        <button type="button" class="user-banner" :class="{ open: showUserMenu }" @click="toggleUserMenu">
-          <span class="user-avatar">{{ userInitial }}</span>
-          <span class="user-banner-name">{{
-            showUserMenu && isChineseName
-              ? userNickname
-              : displayNickname
-          }}<span v-if="showUserMenu" class="user-banner-userid">{{ userId }}</span></span>
-          <svg
-            class="user-banner-chevron"
-            :class="{ open: showUserMenu }"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <polyline points="6 15 12 9 18 15" />
-          </svg>
-        </button>
+        <div class="user-banner" :class="{ open: showUserMenu }">
+          <button type="button" class="user-banner-main" @click="toggleUserMenu">
+            <span class="user-avatar">{{ userInitial }}</span>
+            <span class="user-banner-name">{{
+              showUserMenu && isChineseName
+                ? userNickname
+                : displayNickname
+            }}<span v-if="showUserMenu" class="user-banner-userid">{{ userId }}</span></span>
+          </button>
+          <div class="user-banner-actions">
+            <button type="button" class="user-banner-action" :title="$t('settings.advancedSettings')" @click="openSettingsFromBar">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </button>
+            <button type="button" class="user-banner-action" @click="toggleUserMenu">
+              <svg
+                class="user-banner-chevron"
+                :class="{ open: showUserMenu }"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <polyline points="6 15 12 9 18 15" />
+              </svg>
+            </button>
+          </div>
+        </div>
 
         <div v-if="showUserMenu" class="user-menu user-menu-expanded">
           <UserMenuLinks />
           <button class="btn btn--danger-outline logout-btn user-menu-signout" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
         </div>
       </div>
-
-      <button type="button" class="btn--icon login-action-icon" :title="$t('settings.advancedSettings')" @click="openAdvancedSettings">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-      </button>
 
       </div>
     </div>
@@ -408,6 +425,12 @@ const onModalBrowserLogin = () => {
   openBrowserLogin()
 }
 
+const openSettingsFromBar = () => {
+  closeUserMenu()
+  closeSigninMenu()
+  openAdvancedSettings()
+}
+
 const handleDocumentClick = (event: MouseEvent) => {
   const target = event.target as Node | null
 
@@ -548,11 +571,6 @@ defineExpose({
   min-height: 36px;
 }
 
-.login-action-icon {
-  flex-shrink: 0;
-  color: var(--text-muted);
-}
-
 .verifying-state h3 {
   margin: 0 0 8px 0;
   font-size: 16px;
@@ -571,29 +589,68 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 8px;
-  border: none;
   border-radius: 6px;
   padding: 3px 2px;
   background-color: transparent;
-  cursor: pointer;
-  transition: background-color 0.18s ease;
 }
 
-.user-banner:hover {
-  background-color: var(--bg-hover);
-}
-
+/* When open, the banner and menu both bleed 8px past the section padding so
+   the drop-up is wider than the collapsed row instead of narrower. */
 .user-banner.open {
   gap: 10px;
   padding: 5px 8px;
+  width: calc(100% + 16px);
+  margin: 0 -8px;
   border: 1px solid var(--border-input);
   border-top: none;
   border-radius: 0 0 8px 8px;
   background-color: var(--bg-card);
 }
 
-.user-banner.open:hover {
-  background-color: var(--bg-card);
+/* Avatar + name: the menu toggle surface */
+.user-banner-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 5px;
+  padding: 2px 4px;
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.user-banner-main:hover {
+  background-color: var(--bg-hover);
+}
+
+/* Settings gear + menu chevron: plain flat icon buttons */
+.user-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.user-banner-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.user-banner-action:hover {
+  background-color: var(--bg-hover);
 }
 
 .user-avatar {
@@ -636,8 +693,8 @@ defineExpose({
 .user-menu {
   position: absolute;
   bottom: calc(100% - 1px);
-  left: 0;
-  right: 0;
+  left: -8px;
+  right: -8px;
   z-index: 20;
   border: 1px solid var(--border-input);
   border-bottom: none;
@@ -908,18 +965,28 @@ defineExpose({
 .navigator-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 4px;
 }
 
 .nav-search {
   display: flex;
   align-items: center;
   gap: 6px;
+  margin-bottom: 10px;
   padding: 0 8px;
   border: 1px solid var(--border-input);
   border-radius: 6px;
   background-color: var(--bg-input);
   transition: border-color 0.2s;
+}
+
+/* Apple Music style group label above a nav group */
+.nav-group-title {
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  color: var(--text-muted);
 }
 
 .nav-search:focus-within,
@@ -958,7 +1025,8 @@ defineExpose({
   align-items: center;
   gap: 9px;
   width: 100%;
-  padding: 8px 10px;
+  /* Items indent clearly past the group label, Apple Music style */
+  padding: 8px 10px 8px 20px;
   border: none;
   border-radius: 6px;
   background: transparent;
@@ -1005,31 +1073,28 @@ defineExpose({
   50% { opacity: 0.4; }
 }
 
-.nav-separator {
-  height: 1px;
-  background-color: var(--border-color);
-  margin: 14px 0;
-  flex-shrink: 0;
+.panel-actions-title {
+  margin: 18px 0 4px;
 }
 
+/* Window launchers: same flat style as the navigator items */
 .panel-actions {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 }
 
 .panel-action-button {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 9px;
   width: 100%;
-  min-height: var(--control-height);
-  padding: 6px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-card);
+  padding: 8px 10px 8px 20px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
   color: var(--text-primary);
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -1037,7 +1102,6 @@ defineExpose({
 
 .panel-action-button:hover {
   background-color: var(--bg-hover);
-  border-color: var(--border-strong);
 }
 
 .panel-action-button span {

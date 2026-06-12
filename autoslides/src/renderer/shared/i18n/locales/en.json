@@ -5,7 +5,8 @@
     "task": "Task",
     "download": "Download",
     "home": "Home",
-    "searchPlaceholder": "Search"
+    "searchPlaceholder": "Search",
+    "workspace": "Workspace"
   },
   "auth": {
     "verifying": "Verifying...",

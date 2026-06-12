@@ -5,7 +5,8 @@
     "task": "작업",
     "download": "다운로드",
     "home": "홈",
-    "searchPlaceholder": "검색"
+    "searchPlaceholder": "검색",
+    "workspace": "작업 공간"
   },
   "auth": {
     "verifying": "확인 중...",

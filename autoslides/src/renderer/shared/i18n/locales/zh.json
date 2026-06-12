@@ -5,7 +5,8 @@
     "task": "任务",
     "download": "下载",
     "home": "主页",
-    "searchPlaceholder": "搜索"
+    "searchPlaceholder": "搜索",
+    "workspace": "工作区"
   },
   "auth": {
     "verifying": "验证中...",
