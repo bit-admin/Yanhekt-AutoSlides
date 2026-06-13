@@ -1,9 +1,10 @@
 import { ipcMain } from 'electron';
 import type { IpcServices } from './types';
 import type { LiveStreamInput, RecordedSessionInput } from '@main/video/videoProxyService';
+import type { ScreenThumbnailRequest } from '@main/video/thumbnailService';
 
 export function registerVideoIpcHandlers(services: IpcServices): void {
-  const { videoProxyService } = services;
+  const { videoProxyService, thumbnailService } = services;
 
   ipcMain.handle('video:getLiveStreamUrls', async (_event, stream: LiveStreamInput, token: string) => {
     try {
@@ -20,6 +21,16 @@ export function registerVideoIpcHandlers(services: IpcServices): void {
     } catch (error) {
       console.error('Failed to get video playback URLs:', error);
       throw error;
+    }
+  });
+
+  ipcMain.handle('video:getScreenThumbnail', async (_event, req: ScreenThumbnailRequest) => {
+    // A missing preview must never break the home rows — swallow errors to null.
+    try {
+      return await thumbnailService.getScreenThumbnail(req);
+    } catch (error) {
+      console.error('Failed to get screen thumbnail:', error);
+      return null;
     }
   });
 

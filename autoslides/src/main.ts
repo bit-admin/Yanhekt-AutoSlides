@@ -5,6 +5,7 @@ import { MainApiClient } from '@main/platform/apiClient';
 import { ConfigService } from '@main/platform/configService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { VideoProxyService } from '@main/video/videoProxyService';
+import { ThumbnailService } from '@main/video/thumbnailService';
 import { FFmpegService } from '@main/infra/ffmpegService';
 import { M3u8DownloadService } from '@main/video/m3u8DownloadService';
 import { PowerManagementService } from '@main/platform/powerManagementService';
@@ -102,6 +103,7 @@ const mlClassifierModelService = new MlClassifierModelService(configService);
 const intranetMappingService = new IntranetMappingService(configService);
 const videoProxyService = new VideoProxyService(apiClient, intranetMappingService);
 const ffmpegService = new FFmpegService();
+const thumbnailService = new ThumbnailService(videoProxyService, ffmpegService);
 const compressLectureService = new CompressLectureService(ffmpegService);
 const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService, apiClient);
 const powerManagementService = new PowerManagementService();
@@ -138,6 +140,7 @@ registerAllIpcHandlers({
   configService,
   intranetMappingService,
   videoProxyService,
+  thumbnailService,
   ffmpegService,
   m3u8DownloadService,
   powerManagementService,

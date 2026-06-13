@@ -493,6 +493,13 @@ interface ElectronAPI {
   video: {
     getLiveStreamUrls: (stream: LiveStreamInput, token: string) => Promise<VideoStreamResponse>;
     getVideoPlaybackUrls: (session: RecordedSessionInput, token: string) => Promise<VideoStreamResponse>;
+    getScreenThumbnail: (req: {
+      kind: 'live' | 'recorded';
+      screenUrl: string;
+      seekSeconds: number;
+      cacheKey: string;
+      token: string;
+    }) => Promise<string | null>;
     registerClient: () => Promise<string>;
     unregisterClient: (clientId: string) => Promise<void>;
     stopProxy: () => Promise<void>;

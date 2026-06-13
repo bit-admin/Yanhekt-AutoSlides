@@ -750,6 +750,19 @@ export class VideoProxyService {
   }
 
   /**
+   * Stop the signature loop only when no playback client is active. One-shot
+   * consumers (e.g. thumbnail generation) start the loop via getVideoPlaybackUrls
+   * but must not leave it refreshing forever, nor kill it out from under an
+   * in-progress playback. Per-request signing still refreshes the token on
+   * demand, so an idle stop is safe.
+   */
+  stopSignatureLoopIfIdle(): void {
+    if (this.activeClients.size === 0) {
+      this.auth.stopUpdateSignatureLoop();
+    }
+  }
+
+  /**
    * Force stop the proxy server (internal method)
    */
   private forceStopVideoProxy(): void {

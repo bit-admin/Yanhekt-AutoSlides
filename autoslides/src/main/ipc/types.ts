@@ -3,6 +3,7 @@ import type { ApiClient } from '@main/platform/apiClient';
 import type { ConfigService } from '@main/platform/configService';
 import type { IntranetMappingService } from '@main/platform/intranetMappingService';
 import type { VideoProxyService } from '@main/video/videoProxyService';
+import type { ThumbnailService } from '@main/video/thumbnailService';
 import type { FFmpegService } from '@main/infra/ffmpegService';
 import type { M3u8DownloadService } from '@main/video/m3u8DownloadService';
 import type { PowerManagementService } from '@main/platform/powerManagementService';
@@ -27,6 +28,7 @@ export interface IpcServices {
   configService: ConfigService;
   intranetMappingService: IntranetMappingService;
   videoProxyService: VideoProxyService;
+  thumbnailService: ThumbnailService;
   ffmpegService: FFmpegService;
   m3u8DownloadService: M3u8DownloadService;
   powerManagementService: PowerManagementService;

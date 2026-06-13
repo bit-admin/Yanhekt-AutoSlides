@@ -63,17 +63,38 @@
           <div
             v-for="course in liveStreams"
             :key="course.id"
-            class="course-card"
+            class="preview-card"
+            v-intersect="() => loadThumbnail('live', course)"
             @click="openCourse('live', course)"
           >
-            <div class="course-status" :class="getCourseStatusClass(course.status)">
-              {{ getCourseStatusText(course.status, t) }}
+            <div class="preview-thumb">
+              <img v-if="thumbnails[course.id]" :src="thumbnails[course.id]" class="preview-img" alt="" />
+              <img
+                v-else-if="!coverFailed.has(course.id)"
+                :src="fallbackCover(course.id)"
+                class="preview-img preview-img--cover"
+                alt=""
+                @error="markCoverFailed(course.id)"
+              />
+              <div v-else class="preview-placeholder">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+              </div>
+              <span class="preview-badge" :class="getCourseStatusClass(course.status)">
+                {{ getCourseStatusText(course.status, t) }}
+              </span>
+              <div class="preview-play">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
             </div>
-            <div class="course-info">
-              <h3 class="course-title">{{ course.title }}</h3>
-              <p class="course-instructor">{{ course.instructor }}</p>
-              <p class="course-location" v-if="course.subtitle">{{ course.subtitle }}</p>
-              <p class="course-time">{{ course.time }}</p>
+            <div class="preview-meta">
+              <h3 class="preview-title">{{ course.title }}</h3>
+              <p class="preview-subtitle">{{ liveSubtitle(course) }}</p>
             </div>
           </div>
         </div>
@@ -88,17 +109,31 @@
           <div
             v-for="course in recordings"
             :key="course.id"
-            class="course-card"
+            class="preview-card"
+            v-intersect="() => loadThumbnail('recorded', course)"
             @click="openCourse('recorded', course)"
           >
-            <div class="course-id">#{{ course.id }}</div>
-            <div class="course-info">
-              <h3 class="course-title">{{ course.title }}</h3>
-              <p class="course-instructor">{{ course.instructor }}</p>
-              <p class="course-location" v-if="course.classrooms">
-                {{ course.classrooms.map(c => c.name).join(', ') }}
-              </p>
-              <p class="course-time">{{ course.time }}</p>
+            <div class="preview-thumb">
+              <img v-if="thumbnails[course.id]" :src="thumbnails[course.id]" class="preview-img" alt="" />
+              <img
+                v-else-if="!coverFailed.has(course.id)"
+                :src="fallbackCover(course.id)"
+                class="preview-img preview-img--cover"
+                alt=""
+                @error="markCoverFailed(course.id)"
+              />
+              <div v-else class="preview-placeholder">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+              </div>
+              <span class="preview-badge preview-badge--id">#{{ course.id }}</span>
+            </div>
+            <div class="preview-meta">
+              <h3 class="preview-title">{{ course.title }}</h3>
+              <p class="preview-subtitle">{{ recordedSubtitle(course) }}</p>
             </div>
           </div>
         </div>
@@ -150,14 +185,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch } from 'vue'
+import { ref, reactive, onMounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useGreeting } from '@features/platform/useGreeting'
 import { useAuth } from '@features/platform/useAuth'
 import { useHomePage } from '@features/course/useHomePage'
+import { useHomeThumbnails } from '@features/course/useHomeThumbnails'
 import { useSearchPage } from '@features/course/useSearchPage'
 import { openCourse } from '@features/course/courseSelection'
-import { getCourseStatusClass, getCourseStatusText } from '@features/course/useCourseList'
+import { getCourseStatusClass, getCourseStatusText, type Course } from '@features/course/useCourseList'
 import { mergedSavedSearches, addSavedSearch, removeSavedSearch } from '@features/course/savedSearches'
 
 const { t } = useI18n()
@@ -174,6 +210,57 @@ const {
   loadPersonalRows,
   clearPersonalRows
 } = useHomePage()
+const { thumbnails, loadThumbnail, clearThumbnails } = useHomeThumbnails()
+
+// Before the monitor-icon fallback, show a course cover image (yanhekt CDN),
+// picked deterministically per course id so it's stable across re-renders.
+const coverImages = [
+  'https://coss.yanhekt.cn/images/front_cover.png',
+  'https://coss.yanhekt.cn/images/colleges/makesi.png',
+  'https://coss.yanhekt.cn/images/colleges/qianyanjiaocha.png',
+  'https://coss.yanhekt.cn/images/colleges/jisuanji.png',
+  'https://coss.yanhekt.cn/images/colleges/fa.png'
+]
+const coverFailed = reactive(new Set<string>())
+// Pick a random cover once per card and remember it, so it stays stable across
+// re-renders instead of reshuffling every render.
+const coverChoice = new Map<string, string>()
+const fallbackCover = (id: string): string => {
+  let choice = coverChoice.get(id)
+  if (!choice) {
+    choice = coverImages[Math.floor(Math.random() * coverImages.length)]
+    coverChoice.set(id, choice)
+  }
+  return choice
+}
+const markCoverFailed = (id: string): void => { coverFailed.add(id) }
+
+// One compact meta line under each preview (instructor · location).
+const liveSubtitle = (course: Course): string =>
+  [course.instructor, course.subtitle].filter(Boolean).join(' · ')
+const recordedSubtitle = (course: Course): string =>
+  [course.instructor, course.classrooms?.map(c => c.name).join(', ')].filter(Boolean).join(' · ')
+
+// Lazily generate a card's preview the first time it scrolls near the viewport.
+const intersectObservers = new WeakMap<Element, IntersectionObserver>()
+const vIntersect = {
+  mounted(el: Element, binding: { value: () => void }) {
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          binding.value()
+          observer.unobserve(el)
+        }
+      }
+    }, { rootMargin: '200px' })
+    observer.observe(el)
+    intersectObservers.set(el, observer)
+  },
+  unmounted(el: Element) {
+    intersectObservers.get(el)?.disconnect()
+    intersectObservers.delete(el)
+  }
+}
 
 // Add Saved Search modal
 const showAddModal = ref(false)
@@ -202,6 +289,7 @@ watch(isLoggedIn, (loggedIn) => {
     loadPersonalRows()
   } else {
     clearPersonalRows()
+    clearThumbnails()
   }
 })
 
@@ -217,14 +305,14 @@ onMounted(() => {
 .home-page {
   height: 100%;
   overflow-y: auto;
-  padding: 36px 32px 32px;
+  padding: 24px 32px 28px;
   background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 
 .home-hero {
-  margin-top: 24px;
-  margin-bottom: 36px;
+  margin-top: 12px;
+  margin-bottom: 22px;
 }
 
 .home-greeting {
@@ -236,23 +324,24 @@ onMounted(() => {
 }
 
 .home-tagline {
-  margin: 10px 0 0;
-  font-size: 14px;
-  color: var(--text-secondary);
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  opacity: 0.75;
 }
 
 .home-section {
-  margin-bottom: 36px;
+  margin-bottom: 20px;
 }
 
 /* Apple Music style: hairline divider between consecutive sections */
 .home-section + .home-section {
   border-top: 1px solid var(--border-color);
-  padding-top: 28px;
+  padding-top: 18px;
 }
 
 .home-section-title {
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   font-size: 19px;
   font-weight: 600;
   letter-spacing: -0.2px;
@@ -402,36 +491,87 @@ onMounted(() => {
   padding-bottom: 8px;
 }
 
-.course-card {
-  display: flex;
-  flex-direction: column;
+/* Infuse-style preview card: 16:9 thumbnail on top, text below */
+.preview-card {
   flex-shrink: 0;
-  width: 210px;
-  height: 120px;
-  padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background-color: var(--bg-card);
+  width: 248px;
   cursor: pointer;
-  transition: all 0.2s;
+}
+
+.preview-thumb {
   position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
   overflow: hidden;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.course-card:hover {
+.preview-card:hover .preview-thumb {
   border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--focus-ring);
+  box-shadow: 0 4px 14px var(--focus-ring);
 }
 
-.course-status {
+.preview-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* CDN cover art has varied aspect ratios — center-crop to fill the 16:9 frame */
+.preview-img--cover {
+  object-position: center;
+}
+
+.preview-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-muted);
+}
+
+.preview-play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-left: 2px;
+  background: var(--overlay-dark);
+  color: var(--text-on-accent);
+  pointer-events: none;
+  transition: transform 0.2s;
+}
+
+.preview-card:hover .preview-play {
+  transform: scale(1.08);
+}
+
+.preview-badge {
   position: absolute;
   top: 8px;
   right: 8px;
-  padding: 2px 6px;
-  border-radius: 3px;
+  padding: 2px 7px;
+  border-radius: 4px;
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.preview-badge--id {
+  background: var(--overlay-dark);
+  color: var(--text-on-accent);
+  text-transform: none;
 }
 
 .status-ended {
@@ -454,65 +594,27 @@ onMounted(() => {
   color: var(--text-muted);
 }
 
-.course-id {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 600;
-  background-color: var(--border-color);
-  color: var(--text-secondary);
+.preview-meta {
+  padding: 9px 2px 0;
 }
 
-.course-info {
-  text-align: left;
-  padding-top: 18px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.course-title {
-  margin: 0 0 10px 0;
-  font-size: 12px;
+.preview-title {
+  margin: 0;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.2;
+  line-height: 1.3;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  /* Always reserve two lines so the info block starts at the same height
-     on every card, whether the name wraps or not. */
-  min-height: 2.4em;
 }
 
-.course-instructor {
-  margin: 0 0 4px 0;
-  font-size: 10px;
+.preview-subtitle {
+  margin: 4px 0 0;
+  font-size: 11px;
   color: var(--text-secondary);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.course-location {
-  margin: 0 0 3px 0;
-  font-size: 10px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.course-time {
-  margin: 0;
-  font-size: 10px;
-  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

@@ -5,6 +5,13 @@ export const video = {
     ipcRenderer.invoke('video:getLiveStreamUrls', stream, token),
   getVideoPlaybackUrls: (session: Record<string, unknown>, token: string) =>
     ipcRenderer.invoke('video:getVideoPlaybackUrls', session, token),
+  getScreenThumbnail: (req: {
+    kind: 'live' | 'recorded';
+    screenUrl: string;
+    seekSeconds: number;
+    cacheKey: string;
+    token: string;
+  }) => ipcRenderer.invoke('video:getScreenThumbnail', req) as Promise<string | null>,
   registerClient: () => ipcRenderer.invoke('video:registerClient'),
   unregisterClient: (clientId: string) => ipcRenderer.invoke('video:unregisterClient', clientId),
   stopProxy: () => ipcRenderer.invoke('video:stopProxy'),

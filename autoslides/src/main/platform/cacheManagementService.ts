@@ -45,7 +45,7 @@ export class CacheManagementService {
       }
 
       // Calculate other cache directories in userData
-      const cacheDirectories = ['cache', 'tmp', 'temp', 'Cache'];
+      const cacheDirectories = ['cache', 'tmp', 'temp', 'Cache', 'thumbnails'];
       for (const dir of cacheDirectories) {
         const cachePath = path.join(this.userDataPath, dir);
         if (await this.pathExists(cachePath)) {
@@ -80,7 +80,7 @@ export class CacheManagementService {
 
 
       // Clear cache directories in userData
-      const cacheDirectories = ['cache', 'tmp', 'temp', 'Cache'];
+      const cacheDirectories = ['cache', 'tmp', 'temp', 'Cache', 'thumbnails'];
       for (const dir of cacheDirectories) {
         const cachePath = path.join(this.userDataPath, dir);
         if (await this.pathExists(cachePath)) {
