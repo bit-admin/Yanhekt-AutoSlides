@@ -553,7 +553,6 @@ defineExpose({
 
 .login-section {
   padding: 16px;
-  border-top: 1px solid var(--border-color);
   background-color: transparent;
   flex-shrink: 0;
 }

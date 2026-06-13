@@ -141,8 +141,8 @@
           </button>
         </div>
         <div class="modal-actions">
-          <button class="btn btn--lg modal-action-btn" @click="closeAddModal">{{ $t('courses.savedSearches.cancel') }}</button>
-          <button class="btn btn--primary btn--lg modal-action-btn" @click="confirmAddSearch" :disabled="!newKeyword.trim()">{{ $t('courses.savedSearches.confirm') }}</button>
+          <button class="btn modal-action-btn" @click="closeAddModal">{{ $t('courses.savedSearches.cancel') }}</button>
+          <button class="btn btn--primary modal-action-btn" @click="confirmAddSearch" :disabled="!newKeyword.trim()">{{ $t('courses.savedSearches.confirm') }}</button>
         </div>
       </div>
     </div>
@@ -568,28 +568,28 @@ onMounted(() => {
 
 .modal-box {
   background: var(--bg-modal);
-  border-radius: 14px;
-  padding: 24px;
-  width: 360px;
+  border-radius: 12px;
+  padding: 20px;
+  width: 320px;
   box-shadow: 0 8px 32px var(--shadow-lg);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .modal-title {
-  margin: 0 0 2px;
-  font-size: 17px;
+  margin: 0;
+  font-size: 15px;
   font-weight: 600;
   text-align: center;
   color: var(--text-primary);
 }
 
 .modal-input {
-  padding: 10px 12px;
+  padding: 8px 11px;
   border: 1px solid var(--border-input);
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 7px;
+  font-size: 13px;
   outline: none;
   transition: border-color 0.2s;
   background-color: var(--bg-input);
@@ -604,13 +604,15 @@ onMounted(() => {
   border-color: var(--accent);
 }
 
-/* Full-width segmented Live/Recorded control */
+/* Full-width macOS segmented Live/Recorded control: gray track, white active
+   pill (matches the Search page mode switch) */
 .mode-segments {
   display: flex;
-  gap: 4px;
-  padding: 3px;
-  border-radius: 9px;
-  background: var(--bg-elevated);
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bg-page-alt);
+  border: 1px solid var(--border-color);
 }
 
 .mode-segment {
@@ -619,12 +621,12 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 7px 0;
-  border: none;
-  border-radius: 7px;
+  padding: 6px 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
@@ -635,17 +637,22 @@ onMounted(() => {
 }
 
 .mode-segment.active {
-  background: var(--accent);
-  color: var(--text-on-accent);
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 .modal-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 4px;
+  gap: 8px;
+  margin-top: 2px;
 }
 
 .modal-action-btn {
   flex: 1;
+  min-height: 32px;
+  border-radius: 7px;
+  font-size: 13px;
 }
 </style>
