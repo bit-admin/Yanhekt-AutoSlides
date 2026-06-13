@@ -27,6 +27,8 @@ export interface UseSettingsReturn {
   downloadMaxWorkers: Ref<number>
   downloadNumRetries: Ref<number>
   videoRetryCount: Ref<number>
+  previewFromVideo: Ref<boolean>
+  previewSeekSeconds: Ref<number>
   themeMode: Ref<'system' | 'light' | 'dark'>
   languageMode: Ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>
 
@@ -73,6 +75,8 @@ export function useSettings(): UseSettingsReturn {
   const downloadMaxWorkers = ref(32)
   const downloadNumRetries = ref(15)
   const videoRetryCount = ref(5)
+  const previewFromVideo = ref(true)
+  const previewSeekSeconds = ref(150)
   const themeMode = ref<'system' | 'light' | 'dark'>('system')
   const languageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
 
@@ -122,6 +126,8 @@ export function useSettings(): UseSettingsReturn {
       downloadMaxWorkers.value = config.downloadMaxWorkers || 32
       downloadNumRetries.value = config.downloadNumRetries || 15
       videoRetryCount.value = config.videoRetryCount || 5
+      previewFromVideo.value = config.previewFromVideo !== undefined ? config.previewFromVideo : true
+      previewSeekSeconds.value = config.previewSeekSeconds ?? 150
 
       // Load slide extraction configuration
       const slideConfig = await window.electronAPI.config.getSlideExtractionConfig()
@@ -298,6 +304,8 @@ export function useSettings(): UseSettingsReturn {
     downloadMaxWorkers,
     downloadNumRetries,
     videoRetryCount,
+    previewFromVideo,
+    previewSeekSeconds,
     themeMode,
     languageMode,
 

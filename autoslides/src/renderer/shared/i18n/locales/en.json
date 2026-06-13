@@ -227,6 +227,12 @@
     "preventSystemSleep": "Prevent System Sleep",
     "preventSystemSleepDescription": "Prevent the system from going to sleep during video playback to avoid interruptions.",
     "enablePreventSleep": "Enable Sleep Prevention",
+    "homePreviewTitle": "Home Previews",
+    "homePreviewFromVideo": "Generate Previews from Video",
+    "homePreviewFromVideoDescription": "Capture a frame from the screen recording to use as the Home page preview. When disabled, cards show a cover image instead.",
+    "homePreviewEnableFromVideo": "Capture Preview from Video",
+    "homePreviewSeek": "Recording Preview Frame",
+    "homePreviewSeekDescription": "How many seconds into the latest recording to capture the preview frame.",
     "download": "Download",
     "qtExtractor": {
       "title": "Auto Extraction After Download",

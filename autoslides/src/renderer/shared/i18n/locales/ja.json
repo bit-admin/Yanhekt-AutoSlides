@@ -227,6 +227,12 @@
     "preventSystemSleep": "システムスリープを防止",
     "preventSystemSleepDescription": "ビデオ再生中にシステムがスリープ状態に入ることを防ぎ、中断を回避します。",
     "enablePreventSleep": "スリープ防止を有効にする",
+    "homePreviewTitle": "ホームプレビュー",
+    "homePreviewFromVideo": "動画からプレビューを生成",
+    "homePreviewFromVideoDescription": "画面録画から1フレームを取得してホームのプレビューに使用します。無効にするとカバー画像が表示されます。",
+    "homePreviewEnableFromVideo": "動画からプレビューを取得",
+    "homePreviewSeek": "録画プレビューのフレーム",
+    "homePreviewSeekDescription": "最新の録画の何秒目をプレビューフレームとして取得するか。",
     "download": "ダウンロード",
     "qtExtractor": {
       "title": "ダウンロード後の自動抽出",

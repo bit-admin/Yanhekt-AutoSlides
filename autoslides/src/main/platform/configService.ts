@@ -95,6 +95,8 @@ export class ConfigService {
       downloadNumRetries: this.store.get('downloadNumRetries'),
       muteMode: this.store.get('muteMode'),
       videoRetryCount: this.store.get('videoRetryCount'),
+      previewFromVideo: this.store.get('previewFromVideo') ?? true,
+      previewSeekSeconds: this.store.get('previewSeekSeconds') ?? 150,
       taskSpeed: this.store.get('taskSpeed'),
       showMorePlaybackSpeed: this.store.get('showMorePlaybackSpeed') ?? false,
       autoPostProcessing: this.store.get('autoPostProcessing'),
@@ -170,6 +172,15 @@ export class ConfigService {
   setTaskSpeed(speed: number): void {
     const validSpeed = Math.max(1, Math.min(16, speed));
     this.store.set('taskSpeed', validSpeed);
+  }
+
+  setPreviewFromVideo(enabled: boolean): void {
+    this.store.set('previewFromVideo', enabled);
+  }
+
+  setPreviewSeekSeconds(seconds: number): void {
+    const validSeconds = Math.max(0, Math.min(3600, Math.round(seconds)));
+    this.store.set('previewSeekSeconds', validSeconds);
   }
 
   setShowMorePlaybackSpeed(enabled: boolean): void {

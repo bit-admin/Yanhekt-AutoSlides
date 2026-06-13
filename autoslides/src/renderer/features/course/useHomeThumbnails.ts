@@ -1,6 +1,7 @@
 import { reactive } from 'vue'
 import { ApiClient } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
+import { configStore } from '@shared/services/configStore'
 import type { Course } from './useCourseList'
 
 // Lazy screen-recording previews for the Home page rows. Keyed by course id and
@@ -14,6 +15,9 @@ const inFlight = new Set<string>()
 async function loadThumbnail(mode: 'live' | 'recorded', course: Course): Promise<void> {
   const id = course.id
   if (!id || thumbnails[id] || inFlight.has(id)) return
+
+  // When video previews are disabled, cards fall back to the cover images only.
+  if (!configStore.previewFromVideo) return
 
   const token = tokenManager.getToken()
   if (!token) return
@@ -39,7 +43,7 @@ async function loadThumbnail(mode: 'live' | 'recorded', course: Course): Promise
       const last = sessions[sessions.length - 1]
       if (!last?.vga_url) return
       screenUrl = last.vga_url
-      seekSeconds = 60
+      seekSeconds = configStore.previewSeekSeconds ?? 150
       cacheKey = last.video_id || id
     }
 

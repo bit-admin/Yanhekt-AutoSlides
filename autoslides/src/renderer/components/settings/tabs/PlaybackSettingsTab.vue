@@ -199,6 +199,31 @@
       </div>
     </div>
   </div>
+
+  <div class="advanced-setting-section">
+    <h4>{{ $t('advanced.homePreviewTitle') }}</h4>
+    <div class="setting-item">
+      <label class="setting-label">{{ $t('advanced.homePreviewFromVideo') }}</label>
+      <div class="setting-description">{{ $t('advanced.homePreviewFromVideoDescription') }}</div>
+      <div class="prevent-sleep-control">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="tempPreviewFromVideo" />
+          {{ $t('advanced.homePreviewEnableFromVideo') }}
+        </label>
+      </div>
+    </div>
+    <div class="setting-item">
+      <label class="setting-label">{{ $t('advanced.homePreviewSeek') }}</label>
+      <div class="setting-description">{{ $t('advanced.homePreviewSeekDescription') }}</div>
+      <select
+        v-model="tempPreviewSeekSeconds"
+        class="select-field"
+        :disabled="!tempPreviewFromVideo"
+      >
+        <option v-for="v in [30, 60, 90, 120, 150, 180, 240, 300]" :key="v" :value="v">{{ v }}s</option>
+      </select>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -229,6 +254,8 @@ const {
   tempDownloadMaxWorkers,
   tempDownloadNumRetries,
   tempVideoRetryCount,
+  tempPreviewFromVideo,
+  tempPreviewSeekSeconds,
   updateMaxConcurrentDownloads,
   updateDownloadMaxWorkers,
   updateDownloadNumRetries,

@@ -118,6 +118,8 @@ export interface AppConfig {
   downloadNumRetries: number;
   muteMode: MuteMode;
   videoRetryCount: number;
+  previewFromVideo: boolean;
+  previewSeekSeconds: number;
   taskSpeed: number;
   showMorePlaybackSpeed: boolean;
   autoPostProcessing: boolean;

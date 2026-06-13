@@ -227,6 +227,12 @@
     "preventSystemSleep": "시스템 절전 모드 방지",
     "preventSystemSleepDescription": "비디오 재생 중 시스템이 절전 모드로 전환되는 것을 방지하여 중단을 피합니다.",
     "enablePreventSleep": "절전 모드 방지 활성화",
+    "homePreviewTitle": "홈 미리보기",
+    "homePreviewFromVideo": "동영상에서 미리보기 생성",
+    "homePreviewFromVideoDescription": "화면 녹화에서 한 프레임을 캡처하여 홈 미리보기로 사용합니다. 비활성화하면 카드에 커버 이미지가 표시됩니다.",
+    "homePreviewEnableFromVideo": "동영상에서 미리보기 캡처",
+    "homePreviewSeek": "녹화 미리보기 프레임",
+    "homePreviewSeekDescription": "최신 녹화에서 몇 초 지점을 미리보기 프레임으로 캡처할지 설정합니다.",
     "download": "다운로드",
     "qtExtractor": {
       "title": "다운로드 후 자동 추출",

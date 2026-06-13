@@ -227,6 +227,12 @@
     "preventSystemSleep": "阻止系统休眠",
     "preventSystemSleepDescription": "在视频播放期间阻止系统进入休眠状态，避免播放中断。",
     "enablePreventSleep": "启用系统休眠阻止",
+    "homePreviewTitle": "主页预览",
+    "homePreviewFromVideo": "从视频生成预览",
+    "homePreviewFromVideoDescription": "从屏幕录制中截取一帧作为主页预览图。关闭后，卡片将改为显示封面图。",
+    "homePreviewEnableFromVideo": "从视频截取预览",
+    "homePreviewSeek": "录播预览帧",
+    "homePreviewSeekDescription": "从最新一节录播的第几秒截取预览帧。",
     "download": "下载",
     "qtExtractor": {
       "title": "下载完成后自动提取",

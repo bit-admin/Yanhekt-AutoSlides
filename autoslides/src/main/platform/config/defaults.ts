@@ -155,6 +155,8 @@ export const defaultConfig: AppConfig = {
   downloadNumRetries: 15,
   muteMode: 'normal',
   videoRetryCount: 5,
+  previewFromVideo: true,
+  previewSeekSeconds: 150,
   taskSpeed: 10,
   showMorePlaybackSpeed: false,
   autoPostProcessing: true,

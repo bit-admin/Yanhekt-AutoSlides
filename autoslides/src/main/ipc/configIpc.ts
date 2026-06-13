@@ -87,6 +87,18 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setPreviewFromVideo', async (_event, enabled: boolean) => {
+    configService.setPreviewFromVideo(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  ipcMain.handle('config:setPreviewSeekSeconds', async (_event, seconds: number) => {
+    configService.setPreviewSeekSeconds(seconds);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setShowMorePlaybackSpeed', async (_event, enabled: boolean) => {
     configService.setShowMorePlaybackSpeed(enabled);
     broadcastConfig();
