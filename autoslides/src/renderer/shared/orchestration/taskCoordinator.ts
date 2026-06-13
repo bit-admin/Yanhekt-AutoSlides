@@ -40,9 +40,12 @@ class TaskCoordinatorClass {
   /** Register a playback driver (PlaybackPage on mount). Returns an unregister fn. */
   registerDriver(driver: TaskDriver): () => void {
     this.drivers.add(driver)
-    // Wake anything waiting for a matching driver to appear.
+    // Wake anything waiting for a matching driver to appear. Iterate a snapshot;
+    // each waiter self-removes from driverWaiters on match (via its cleanup) and
+    // a non-matching waiter stays registered so a later driver can still wake it.
+    // (Critical under parallel tasks: multiple waiters coexist, and one driver
+    // registering must not orphan the others.)
     const waiters = [...this.driverWaiters]
-    this.driverWaiters.clear()
     waiters.forEach((w) => w())
     return () => {
       this.drivers.delete(driver)

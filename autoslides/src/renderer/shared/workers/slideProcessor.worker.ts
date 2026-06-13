@@ -122,8 +122,16 @@ function calculateSSIM(img1Data: ImageData, img2Data: ImageData): number {
 
 /**
  * Compare two images for significant changes (using SSIM-only comparison)
+ *
+ * The per-call `config` makes the worker stateless across messages so that
+ * multiple concurrent extractions (one per playback tab) never clobber each
+ * other via the shared module-level CONFIG. Falls back to CONFIG when omitted.
  */
-function compareImages(img1Data: ImageData, img2Data: ImageData): boolean {
+function compareImages(
+  img1Data: ImageData,
+  img2Data: ImageData,
+  config: ImageProcessingConfig = CONFIG,
+): boolean {
   try {
     // Check if input parameters are valid
     if (!img1Data || !img2Data) {
@@ -135,14 +143,14 @@ function compareImages(img1Data: ImageData, img2Data: ImageData): boolean {
     let processedImg1 = img1Data;
     let processedImg2 = img2Data;
 
-    if (CONFIG.enableDownsampling) {
-      processedImg1 = resizeImageData(img1Data, CONFIG.downsampleWidth, CONFIG.downsampleHeight);
-      processedImg2 = resizeImageData(img2Data, CONFIG.downsampleWidth, CONFIG.downsampleHeight);
+    if (config.enableDownsampling) {
+      processedImg1 = resizeImageData(img1Data, config.downsampleWidth, config.downsampleHeight);
+      processedImg2 = resizeImageData(img2Data, config.downsampleWidth, config.downsampleHeight);
     }
 
     // Use SSIM for precise comparison
     const ssim = calculateSSIM(processedImg1, processedImg2);
-    return ssim < CONFIG.ssimThreshold;
+    return ssim < config.ssimThreshold;
 
   } catch (error) {
     console.error('Error in compareImages:', error);
@@ -159,8 +167,8 @@ self.onmessage = function(e: MessageEvent<WorkerMessage>) {
 
     switch (type) {
       case 'compareImages': {
-        const { img1Data, img2Data } = data;
-        result = compareImages(img1Data, img2Data);
+        const { img1Data, img2Data, config } = data;
+        result = compareImages(img1Data, img2Data, config ?? CONFIG);
         break;
       }
 

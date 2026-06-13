@@ -69,7 +69,11 @@
     "autoPostProcessingLive": "直播自动后处理",
     "autoPostProcessingLiveDescription": "直播模式下每保存一张幻灯片时自动执行后处理。",
     "enableAutoPostProcessingLive": "直播模式（每保存一张幻灯片时）",
-    "resetToDefault": "恢复默认"
+    "resetToDefault": "恢复默认",
+    "parallelTasks": "并行任务",
+    "parallelTasksDescription": "同时运行的队列任务数量。后处理仍逐个进行。",
+    "maxManualTabs": "最大播放标签页",
+    "maxManualTabsDescription": "可手动同时打开的播放标签页数量上限。"
   },
   "status": {
     "connection": "连接状态",
@@ -1099,5 +1103,11 @@
     "semesterSpring": "{year}年春季学期",
     "academicYear": "{start}–{end} 学年",
     "semesterPlaceholder": "学期"
+  },
+  "tabs": {
+    "info": "信息",
+    "close": "关闭标签页",
+    "limitTitle": "已达标签页上限",
+    "limitMessage": "已达到可同时打开的播放标签页上限。请关闭一个标签页，或在“设置 > 通用”中提高上限。"
   }
 }

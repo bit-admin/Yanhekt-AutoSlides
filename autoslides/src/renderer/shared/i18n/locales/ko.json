@@ -69,7 +69,11 @@
     "autoPostProcessingLive": "라이브 자동 후처리",
     "autoPostProcessingLiveDescription": "라이브 모드에서 새 슬라이드가 저장될 때마다 자동으로 후처리를 실행합니다.",
     "enableAutoPostProcessingLive": "라이브 모드 (슬라이드 저장 시)",
-    "resetToDefault": "기본값으로 재설정"
+    "resetToDefault": "기본값으로 재설정",
+    "parallelTasks": "병렬 작업",
+    "parallelTasksDescription": "동시에 실행되는 대기열 작업 수입니다. 후처리는 계속 하나씩 실행됩니다.",
+    "maxManualTabs": "최대 재생 탭",
+    "maxManualTabsDescription": "수동으로 동시에 열 수 있는 재생 탭 최대 개수입니다."
   },
   "status": {
     "connection": "연결",
@@ -1099,5 +1103,11 @@
     "semesterSpring": "{year}년 봄학기",
     "academicYear": "{start}–{end} 학년도",
     "semesterPlaceholder": "학기"
+  },
+  "tabs": {
+    "info": "정보",
+    "close": "탭 닫기",
+    "limitTitle": "탭 한도 도달",
+    "limitMessage": "열 수 있는 재생 탭의 최대 개수에 도달했습니다. 탭을 닫거나 설정 > 일반에서 한도를 늘리세요."
   }
 }

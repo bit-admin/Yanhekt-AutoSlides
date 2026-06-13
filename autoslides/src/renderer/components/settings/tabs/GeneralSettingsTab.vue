@@ -52,6 +52,25 @@
         </div>
       </div>
     </div>
+
+    <div class="setting-item">
+      <div class="two-col-row">
+        <div class="two-col-item">
+          <label class="setting-label">{{ $t('settings.parallelTasks') }}</label>
+          <select v-model.number="parallelTasks" @change="setParallelTasks" class="select-field">
+            <option v-for="n in 5" :key="n" :value="n">{{ n }}</option>
+          </select>
+          <div class="setting-description">{{ $t('settings.parallelTasksDescription') }}</div>
+        </div>
+        <div class="two-col-item">
+          <label class="setting-label">{{ $t('settings.maxManualTabs') }}</label>
+          <select v-model.number="maxManualTabs" @change="setMaxManualTabs" class="select-field">
+            <option v-for="n in 5" :key="n" :value="n">{{ n }}</option>
+          </select>
+          <div class="setting-description">{{ $t('settings.maxManualTabsDescription') }}</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="advanced-setting-section">
@@ -188,10 +207,14 @@ const {
   connectionMode,
   muteMode,
   taskSpeed,
+  parallelTasks,
+  maxManualTabs,
   selectOutputDirectory,
   setConnectionMode,
   setMuteMode,
   setTaskSpeed,
+  setParallelTasks,
+  setMaxManualTabs,
 } = settings
 
 const {

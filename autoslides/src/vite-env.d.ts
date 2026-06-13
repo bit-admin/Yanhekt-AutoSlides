@@ -373,6 +373,8 @@ interface ElectronAPI {
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<AppConfig>;
     setVideoRetryCount: (count: number) => Promise<AppConfig>;
     setTaskSpeed: (speed: number) => Promise<AppConfig>;
+    setParallelTasks: (count: number) => Promise<AppConfig>;
+    setMaxManualTabs: (count: number) => Promise<AppConfig>;
     setPreviewFromVideo: (enabled: boolean) => Promise<AppConfig>;
     setPreviewSeekSeconds: (seconds: number) => Promise<AppConfig>;
     setShowMorePlaybackSpeed: (enabled: boolean) => Promise<AppConfig>;

@@ -1,7 +1,15 @@
 import { reactive, computed } from 'vue'
 import { PostProcessingService, type PostProcessJob } from './postProcessingService'
+import { configStore } from './configStore'
 import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
 import { reduceTask, type TaskEvent } from '@shared/orchestration/taskMachine'
+
+// How many tasks may run concurrently. Mirrors the main-process clamp (1–10) so
+// a hand-edited config.json above the UI cap of 5 still works for power users.
+const getParallelTasks = (): number => {
+  const raw = configStore.parallelTasks ?? 2
+  return Math.max(1, Math.min(10, raw))
+}
 
 export type TaskStatus = 'queued' | 'in_progress' | 'error' | 'completed'
 
@@ -27,7 +35,10 @@ export interface TaskItem {
 export interface TaskQueueState {
   tasks: TaskItem[]
   isProcessing: boolean
-  currentTaskId: string | null
+  // Tasks currently playing + extracting. Up to `parallelTasks` at once; each
+  // runs in its own playback tab. Post-processing still funnels into the single
+  // serial PostProcessingService queue.
+  activeTaskIds: string[]
 }
 
 export type TaskQueueAddResult =
@@ -38,7 +49,7 @@ class TaskQueueService {
   private state: TaskQueueState = reactive({
     tasks: [],
     isProcessing: false,
-    currentTaskId: null
+    activeTaskIds: []
   })
 
   // Computed properties for easy access
@@ -50,10 +61,14 @@ class TaskQueueService {
     return this.state.isProcessing
   }
 
+  // First active task — kept for backward compatibility with single-task UI.
   get currentTask() {
-    return this.state.currentTaskId
-      ? this.state.tasks.find(task => task.id === this.state.currentTaskId)
-      : null
+    const id = this.state.activeTaskIds[0]
+    return id ? this.state.tasks.find(task => task.id === id) ?? null : null
+  }
+
+  get activeTaskCount() {
+    return this.state.activeTaskIds.length
   }
 
   get queuedCount() {
@@ -138,23 +153,23 @@ class TaskQueueService {
     }
 
     this.state.isProcessing = true
-    this.processNextTask()
+    this.fillSlots()
   }
 
   // Pause processing queue
   pauseQueue(): void {
     this.state.isProcessing = false
 
-    // Tell the current task's playback driver to stop, then revert the task to
-    // queued so it can be picked up again on the next startQueue.
-    if (this.state.currentTaskId) {
-      const currentTask = this.state.tasks.find(task => task.id === this.state.currentTaskId)
-      if (currentTask && currentTask.status === 'in_progress') {
-        TaskCoordinator.pauseTask(this.toContext(currentTask))
-        this.applyTask(currentTask, { type: 'PAUSE' })
+    // Tell every active task's playback driver to stop, then revert each to
+    // queued so they can be picked up again on the next startQueue.
+    for (const taskId of [...this.state.activeTaskIds]) {
+      const task = this.state.tasks.find(t => t.id === taskId)
+      if (task && task.status === 'in_progress') {
+        TaskCoordinator.pauseTask(this.toContext(task))
+        this.applyTask(task, { type: 'PAUSE' })
       }
-      this.state.currentTaskId = null
     }
+    this.state.activeTaskIds = []
   }
 
   // Clear completed and error tasks
@@ -171,18 +186,18 @@ class TaskQueueService {
 
     const task = this.state.tasks[taskIndex]
 
-    // If removing current task, stop processing and move to next
-    if (task.id === this.state.currentTaskId) {
+    // If removing an active task, stop its driver and free its slot.
+    if (this.state.activeTaskIds.includes(task.id)) {
       // Tell the playback driver to stop video + slide extraction.
       if (task.status === 'in_progress') {
         TaskCoordinator.pauseTask(this.toContext(task))
       }
 
-      this.state.currentTaskId = null
+      this.removeActive(task.id)
       this.state.tasks.splice(taskIndex, 1)
 
       if (this.state.isProcessing) {
-        this.processNextTask()
+        this.fillSlots()
       }
     } else {
       this.state.tasks.splice(taskIndex, 1)
@@ -202,11 +217,11 @@ class TaskQueueService {
     this.applyTask(task, event)
 
     if (status === 'completed' || status === 'error') {
-      // If this was the current task, move to next
-      if (task.id === this.state.currentTaskId) {
-        this.state.currentTaskId = null
+      // Free this task's slot and pull in the next queued task (if any).
+      if (this.state.activeTaskIds.includes(task.id)) {
+        this.removeActive(task.id)
         if (this.state.isProcessing) {
-          this.processNextTask()
+          this.fillSlots()
         }
       }
     }
@@ -220,40 +235,50 @@ class TaskQueueService {
     }
   }
 
-  // Get next queued task
+  // Get next queued task (skipping any already running).
   private getNextQueuedTask(): TaskItem | null {
-    return this.state.tasks.find(task => task.status === 'queued') || null
+    return this.state.tasks.find(
+      task => task.status === 'queued' && !this.state.activeTaskIds.includes(task.id)
+    ) || null
   }
 
-  // Process next task in queue
-  private processNextTask(): void {
-    if (!this.state.isProcessing) {
-      return
+  private removeActive(taskId: string): void {
+    const idx = this.state.activeTaskIds.indexOf(taskId)
+    if (idx !== -1) this.state.activeTaskIds.splice(idx, 1)
+  }
+
+  // Launch queued tasks until `parallelTasks` are running concurrently. Called
+  // on startQueue and whenever a slot frees up (task complete/error/remove).
+  private fillSlots(): void {
+    if (!this.state.isProcessing) return
+
+    const limit = getParallelTasks()
+    while (this.state.activeTaskIds.length < limit) {
+      const next = this.getNextQueuedTask()
+      if (!next) break
+      this.startTask(next)
     }
 
-    const nextTask = this.getNextQueuedTask()
-    if (!nextTask) {
-      // No more tasks to process
+    // Nothing running and nothing queued — the queue has drained.
+    if (this.state.activeTaskIds.length === 0 && !this.hasQueuedTasks) {
       this.state.isProcessing = false
-      this.state.currentTaskId = null
-      return
     }
+  }
 
-    // Start processing the next task
-    this.state.currentTaskId = nextTask.id
-    this.applyTask(nextTask, { type: 'START' })
+  // Start one task: claim a slot, then drive it through the coordinator
+  // (navigate → open its playback tab → wait for the driver → start it).
+  // Resolves once running; rejects if the page never becomes ready, in which
+  // case we fail the task so the slot frees and the queue advances.
+  private startTask(task: TaskItem): void {
+    this.state.activeTaskIds.push(task.id)
+    this.applyTask(task, { type: 'START' })
 
-    // Drive the task through the coordinator: navigate → wait for the playback
-    // driver → start it. Resolves once running; rejects if the page never
-    // becomes ready or initialization fails, in which case we fail the task so
-    // the queue advances instead of stalling forever.
-    void TaskCoordinator.runTask(this.toContext(nextTask)).catch((err) => {
-      console.warn('[TaskQueue] Failed to start task:', nextTask.id, err)
+    void TaskCoordinator.runTask(this.toContext(task)).catch((err) => {
+      console.warn('[TaskQueue] Failed to start task:', task.id, err)
       const message = err instanceof Error ? err.message : String(err)
-      // Only fail if the task is still the current in-flight one (a pause/remove
-      // may have moved on in the meantime).
-      if (this.state.currentTaskId === nextTask.id) {
-        this.updateTaskStatus(nextTask.id, 'error', message)
+      // Only fail if the task is still active (a pause/remove may have moved on).
+      if (this.state.activeTaskIds.includes(task.id)) {
+        this.updateTaskStatus(task.id, 'error', message)
       }
     })
   }

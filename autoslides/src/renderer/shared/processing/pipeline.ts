@@ -10,7 +10,7 @@
  * from `./manager.ts`.
  */
 
-import { ssimThresholdService } from '@shared/services/ssimThresholdService';
+import { ssimThresholdService, type SsimPresetType } from '@shared/services/ssimThresholdService';
 import { ChangeDetector } from './changeDetection';
 import { buildVideoSelector, captureFrame, getVideoElement, validateImageData } from './frameSource';
 import { IntervalTable } from './intervalTable';
@@ -54,6 +54,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
   private isPausedDueToBuffering = false;
 
   private config: SlideExtractionConfig = { ...DEFAULT_CONFIG };
+  private ssimPresetMode: SsimPresetType | undefined;
   private currentPlaybackRate = 1;
   private intervalTable = new IntervalTable(DEFAULT_CONFIG.checkInterval);
 
@@ -95,14 +96,20 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     this.courseInfo = { ...(input.courseInfo ?? {}), mode: input.courseInfo?.mode ?? this.mode };
     this.sourceMode = input.sourceMode ?? 'video';
 
-    if (input.classrooms !== undefined) {
-      ssimThresholdService.setCurrentClassrooms(input.classrooms);
-    }
-
     await this.loadConfigFromService();
 
     if (input.configOverrides) {
       this.config = { ...this.config, ...input.configOverrides };
+    }
+
+    // Resolve the classroom-adaptive threshold for THIS run, purely from the
+    // run's own classrooms — no shared singleton state, so concurrent
+    // extractions can't corrupt each other's threshold. Only applies when the
+    // user picked the adaptive preset and no explicit override was supplied.
+    // Passing an array (never null) keeps the resolution off the singleton's
+    // `currentClassrooms` fallback.
+    if (this.ssimPresetMode === 'adaptive' && input.configOverrides?.ssimThreshold === undefined) {
+      this.config.ssimThreshold = ssimThresholdService.getThresholdValue('adaptive', input.classrooms ?? []);
     }
 
     if (input.initialPlaybackRate !== undefined) {
@@ -111,6 +118,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     }
 
     await this.syncWorkerConfig();
+    this.detector.setWorkerConfig(this.currentWorkerConfig());
     this.detector.updateConfig({
       enableDoubleVerification: this.config.enableDoubleVerification,
       verificationCount: this.config.verificationCount,
@@ -256,6 +264,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
   async reloadConfig(): Promise<void> {
     await this.loadConfigFromService();
     await this.syncWorkerConfig();
+    this.detector.setWorkerConfig(this.currentWorkerConfig());
     this.detector.updateConfig({
       enableDoubleVerification: this.config.enableDoubleVerification,
       verificationCount: this.config.verificationCount,
@@ -369,9 +378,11 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
 
   private async loadConfigFromService(): Promise<void> {
     try {
-      const slideConfig = await (window as { electronAPI?: { config?: { getSlideExtractionConfig?: () => Promise<Partial<SlideExtractionConfig>> } } })
+      const slideConfig = await (window as { electronAPI?: { config?: { getSlideExtractionConfig?: () => Promise<Partial<SlideExtractionConfig> & { ssimPresetMode?: SsimPresetType }> } } })
         .electronAPI?.config?.getSlideExtractionConfig?.();
       if (!slideConfig) return;
+
+      this.ssimPresetMode = slideConfig.ssimPresetMode;
 
       const newBaseInterval = slideConfig.checkInterval ?? DEFAULT_CONFIG.checkInterval;
       this.intervalTable.setBaseInterval(newBaseInterval);
@@ -395,14 +406,21 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     }
   }
 
+  /** The SSIM/downsample slice of this run's config, forwarded per-message. */
+  private currentWorkerConfig() {
+    return {
+      ssimThreshold: this.config.ssimThreshold,
+      enableDownsampling: this.config.enableDownsampling,
+      downsampleWidth: this.config.downsampleWidth,
+      downsampleHeight: this.config.downsampleHeight,
+    };
+  }
+
   private async syncWorkerConfig(): Promise<void> {
     try {
-      await slideProcessorService.updateConfig({
-        ssimThreshold: this.config.ssimThreshold,
-        enableDownsampling: this.config.enableDownsampling,
-        downsampleWidth: this.config.downsampleWidth,
-        downsampleHeight: this.config.downsampleHeight,
-      });
+      // Sets the worker's default CONFIG as a fallback only; the authoritative
+      // per-comparison config is forwarded by the detector on each message.
+      await slideProcessorService.updateConfig(this.currentWorkerConfig());
     } catch (error) {
       console.error('Failed to update worker config:', error);
     }

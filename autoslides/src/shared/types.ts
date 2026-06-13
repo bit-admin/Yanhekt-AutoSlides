@@ -121,6 +121,11 @@ export interface AppConfig {
   previewFromVideo: boolean;
   previewSeekSeconds: number;
   taskSpeed: number;
+  // How many task-queue tasks may play + extract concurrently (default 2).
+  // UI selector caps at 5; validation clamps to 1–10.
+  parallelTasks: number;
+  // How many playback tabs the user may open manually (default 3). Same caps.
+  maxManualTabs: number;
   showMorePlaybackSpeed: boolean;
   autoPostProcessing: boolean;
   autoPostProcessingLive: boolean;

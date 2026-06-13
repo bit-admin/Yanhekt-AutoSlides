@@ -43,12 +43,17 @@ export class SsimThresholdService {
   }
 
   /**
-   * Get threshold value for a specific preset
+   * Get threshold value for a specific preset.
+   *
+   * Pass `classrooms` to resolve `adaptive` purely from that argument (the
+   * per-extraction path — no shared mutable state, safe under concurrency).
+   * When omitted, falls back to the singleton's `currentClassrooms` (the
+   * settings-preview path driven by the currently-browsed course).
    */
-  public getThresholdValue(preset: SsimPresetType): number {
+  public getThresholdValue(preset: SsimPresetType, classrooms?: { name: string }[] | null): number {
     switch (preset) {
       case 'adaptive':
-        return this.calculateAdaptiveThreshold()
+        return this.calculateAdaptiveThreshold(classrooms ?? this.currentClassrooms ?? undefined)
       case 'strict':
         return SSIM_PRESET_VALUES.strict
       case 'normal':
@@ -107,9 +112,10 @@ export class SsimThresholdService {
    * - Historical performance
    * - User preferences
    */
-  private calculateAdaptiveThreshold(): number {
-    // Apply classroom-based rules first (highest priority)
-    const classroomThreshold = this.getClassroomBasedThreshold(this.currentClassrooms || undefined)
+  private calculateAdaptiveThreshold(classrooms?: { name: string }[]): number {
+    // Apply classroom-based rules first (highest priority). Caller may pass the
+    // classrooms explicitly (per-extraction); otherwise use the stored context.
+    const classroomThreshold = this.getClassroomBasedThreshold(classrooms ?? this.currentClassrooms ?? undefined)
     if (classroomThreshold !== null) {
       return classroomThreshold
     }

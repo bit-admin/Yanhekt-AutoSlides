@@ -158,6 +158,8 @@ export const defaultConfig: AppConfig = {
   previewFromVideo: true,
   previewSeekSeconds: 150,
   taskSpeed: 10,
+  parallelTasks: 2,
+  maxManualTabs: 3,
   showMorePlaybackSpeed: false,
   autoPostProcessing: true,
   autoPostProcessingLive: true,

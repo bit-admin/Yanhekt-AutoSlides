@@ -1,8 +1,6 @@
 import { ref, computed, type Ref, type ShallowRef, type ComputedRef } from 'vue'
-import { DataStore } from '@shared/services/dataStore'
 import { TaskQueue } from '@shared/services/taskQueueService'
 import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
-import { ssimThresholdService } from '@shared/services/ssimThresholdService'
 import type { SlideExtractionHandle } from '@shared/processing'
 import type { PlaybackData } from '@features/video/useVideoPlayer'
 import type Hls from 'hls.js'
@@ -174,14 +172,10 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     try {
       console.log(`Initializing task after video load (attempt ${retryCount + 1}/${maxRetries + 1}):`, taskId)
 
-      // Update SSIM threshold based on classroom information from stored session data
-      if (sessionId) {
-        const sessionData = DataStore.getSessionData(sessionId)
-        if (sessionData?.courseInfo?.classrooms) {
-          console.log('Setting classroom context for task SSIM threshold:', sessionData.courseInfo.classrooms.map((c: { name: string }) => c.name).join(', '))
-          ssimThresholdService.setCurrentClassrooms(sessionData.courseInfo.classrooms)
-        }
-      }
+      // Classroom-adaptive SSIM threshold is now resolved per-extraction inside
+      // the pipeline from the run's own classrooms (carried via course.classrooms
+      // → buildExtractionInput → input.classrooms), so concurrent tasks no longer
+      // race on shared threshold state. No global mutation needed here.
 
       // Ensure we're on screen recording stream for task mode
       const screenStreamKey = Object.keys(playbackData.value?.streams || {}).find(
@@ -299,13 +293,8 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     try {
       console.log('Resuming task:', taskId)
 
-      if (sessionId) {
-        const sessionData = DataStore.getSessionData(sessionId)
-        if (sessionData?.courseInfo?.classrooms) {
-          console.log('Setting classroom context for resumed task SSIM threshold:', sessionData.courseInfo.classrooms.map((c: { name: string }) => c.name).join(', '))
-          ssimThresholdService.setCurrentClassrooms(sessionData.courseInfo.classrooms)
-        }
-      }
+      // Classroom-adaptive threshold is resolved per-extraction in the pipeline
+      // (see initializeTaskAfterVideoLoad); no global threshold mutation here.
 
       const isScreenRecordingSelected = playbackData.value?.streams[selectedStream.value]?.type === 'screen'
       if (!isScreenRecordingSelected) {

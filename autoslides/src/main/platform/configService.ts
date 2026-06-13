@@ -98,6 +98,8 @@ export class ConfigService {
       previewFromVideo: this.store.get('previewFromVideo') ?? true,
       previewSeekSeconds: this.store.get('previewSeekSeconds') ?? 150,
       taskSpeed: this.store.get('taskSpeed'),
+      parallelTasks: this.store.get('parallelTasks') ?? 2,
+      maxManualTabs: this.store.get('maxManualTabs') ?? 3,
       showMorePlaybackSpeed: this.store.get('showMorePlaybackSpeed') ?? false,
       autoPostProcessing: this.store.get('autoPostProcessing'),
       autoPostProcessingLive: this.store.get('autoPostProcessingLive') ?? true,
@@ -148,6 +150,17 @@ export class ConfigService {
   setMaxConcurrentDownloads(count: number): void {
     const validCount = Math.max(1, Math.min(10, count));
     this.store.set('maxConcurrentDownloads', validCount);
+  }
+
+  setParallelTasks(count: number): void {
+    // UI exposes 1–5; clamp to 1–10 so a hand-edited config.json works for devs.
+    const validCount = Math.max(1, Math.min(10, count));
+    this.store.set('parallelTasks', validCount);
+  }
+
+  setMaxManualTabs(count: number): void {
+    const validCount = Math.max(1, Math.min(10, count));
+    this.store.set('maxManualTabs', validCount);
   }
 
   setDownloadMaxWorkers(count: number): void {

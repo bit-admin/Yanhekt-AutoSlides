@@ -11,7 +11,7 @@
  * value rather than reaching into IPC / file I/O itself.
  */
 
-import type { SlideProcessorService } from './workerHelpers';
+import type { SlideProcessorService, SlideWorkerConfig } from './workerHelpers';
 import type { VerificationState } from './types';
 
 export interface ChangeDetectorConfig {
@@ -31,6 +31,11 @@ export class ChangeDetector {
   private config: ChangeDetectorConfig;
   private worker: SlideProcessorService;
 
+  // Per-run SSIM/downsample config forwarded on every compare so the shared
+  // worker stays stateless across concurrent extractions. undefined = let the
+  // worker fall back to its default CONFIG.
+  private workerConfig: SlideWorkerConfig | undefined;
+
   private lastImageData: ImageData | null = null;
   private verificationState: VerificationState = 'none';
   private currentVerification = 0;
@@ -43,6 +48,11 @@ export class ChangeDetector {
 
   updateConfig(config: Partial<ChangeDetectorConfig>): void {
     this.config = { ...this.config, ...config };
+  }
+
+  /** Set the SSIM/downsample config used for this run's comparisons. */
+  setWorkerConfig(config: SlideWorkerConfig): void {
+    this.workerConfig = { ...config };
   }
 
   getState(): { verificationState: VerificationState; currentVerification: number } {
@@ -89,7 +99,7 @@ export class ChangeDetector {
       return this.decision(null);
     }
 
-    const isStable = await this.worker.compareImages(this.potentialNewImageData, imageData);
+    const isStable = await this.worker.compareImages(this.potentialNewImageData, imageData, this.workerConfig);
 
     if (isStable) {
       // Frame still matches the candidate — but our worker returns `true` when
@@ -114,7 +124,7 @@ export class ChangeDetector {
   }
 
   private async handleNewImage(imageData: ImageData): Promise<ChangeDecision> {
-    const hasChanged = await this.worker.compareImages(this.lastImageData!, imageData);
+    const hasChanged = await this.worker.compareImages(this.lastImageData!, imageData, this.workerConfig);
     if (!hasChanged) return this.decision(null);
 
     if (this.config.enableDoubleVerification) {

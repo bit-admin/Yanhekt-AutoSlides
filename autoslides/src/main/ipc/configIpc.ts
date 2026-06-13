@@ -87,6 +87,18 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setParallelTasks', async (_event, count: number) => {
+    configService.setParallelTasks(count);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  ipcMain.handle('config:setMaxManualTabs', async (_event, count: number) => {
+    configService.setMaxManualTabs(count);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setPreviewFromVideo', async (_event, enabled: boolean) => {
     configService.setPreviewFromVideo(enabled);
     broadcastConfig();

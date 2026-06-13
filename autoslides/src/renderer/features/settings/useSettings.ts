@@ -15,6 +15,8 @@ export interface UseSettingsReturn {
 
   // Task settings
   taskSpeed: Ref<number>
+  parallelTasks: Ref<number>
+  maxManualTabs: Ref<number>
   showMorePlaybackSpeed: Ref<boolean>
   autoPostProcessing: Ref<boolean>
   autoPostProcessingLive: Ref<boolean>
@@ -41,6 +43,8 @@ export interface UseSettingsReturn {
   validateAndCorrectInterval: () => void
   setSlideDoubleVerification: () => Promise<void>
   setTaskSpeed: () => Promise<void>
+  setParallelTasks: () => Promise<void>
+  setMaxManualTabs: () => Promise<void>
   setShowMorePlaybackSpeed: () => Promise<void>
   setAutoPostProcessing: () => Promise<void>
   setAutoPostProcessingLive: () => Promise<void>
@@ -63,6 +67,8 @@ export function useSettings(): UseSettingsReturn {
 
   // Task settings
   const taskSpeed = ref(10)
+  const parallelTasks = ref(2)
+  const maxManualTabs = ref(3)
   const showMorePlaybackSpeed = ref(false)
   const autoPostProcessing = ref(true)
   const autoPostProcessingLive = ref(true)
@@ -138,6 +144,8 @@ export function useSettings(): UseSettingsReturn {
 
       // Load task configuration
       taskSpeed.value = config.taskSpeed || 10
+      parallelTasks.value = config.parallelTasks || 2
+      maxManualTabs.value = config.maxManualTabs || 3
       showMorePlaybackSpeed.value = config.showMorePlaybackSpeed ?? false
       autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
       autoPostProcessingLive.value = config.autoPostProcessingLive !== undefined ? config.autoPostProcessingLive : true
@@ -218,6 +226,24 @@ export function useSettings(): UseSettingsReturn {
     }
   }
 
+  const setParallelTasks = async () => {
+    try {
+      const result = await window.electronAPI.config.setParallelTasks(parallelTasks.value)
+      parallelTasks.value = result.parallelTasks
+    } catch (error) {
+      console.error('Failed to set parallel tasks:', error)
+    }
+  }
+
+  const setMaxManualTabs = async () => {
+    try {
+      const result = await window.electronAPI.config.setMaxManualTabs(maxManualTabs.value)
+      maxManualTabs.value = result.maxManualTabs
+    } catch (error) {
+      console.error('Failed to set max manual tabs:', error)
+    }
+  }
+
   const setShowMorePlaybackSpeed = async () => {
     try {
       const result = await window.electronAPI.config.setShowMorePlaybackSpeed(showMorePlaybackSpeed.value)
@@ -292,6 +318,8 @@ export function useSettings(): UseSettingsReturn {
 
     // Task settings
     taskSpeed,
+    parallelTasks,
+    maxManualTabs,
     showMorePlaybackSpeed,
     autoPostProcessing,
     autoPostProcessingLive,
@@ -318,6 +346,8 @@ export function useSettings(): UseSettingsReturn {
     validateAndCorrectInterval,
     setSlideDoubleVerification,
     setTaskSpeed,
+    setParallelTasks,
+    setMaxManualTabs,
     setShowMorePlaybackSpeed,
     setAutoPostProcessing,
     setAutoPostProcessingLive,

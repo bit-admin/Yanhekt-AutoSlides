@@ -69,7 +69,11 @@
     "autoPostProcessingLive": "ライブ自動後処理",
     "autoPostProcessingLiveDescription": "ライブモードで新しいスライドが保存される度に自動的に後処理を実行",
     "enableAutoPostProcessingLive": "ライブモード（スライド保存時）",
-    "resetToDefault": "デフォルトにリセット"
+    "resetToDefault": "デフォルトにリセット",
+    "parallelTasks": "並列タスク",
+    "parallelTasksDescription": "同時に実行するキュータスク数。後処理は引き続き1件ずつ実行されます。",
+    "maxManualTabs": "最大再生タブ数",
+    "maxManualTabsDescription": "手動で同時に開ける再生タブの最大数。"
   },
   "status": {
     "connection": "接続",
@@ -1099,5 +1103,11 @@
     "semesterSpring": "{year}年春学期",
     "academicYear": "{start}–{end} 年度",
     "semesterPlaceholder": "学期"
+  },
+  "tabs": {
+    "info": "情報",
+    "close": "タブを閉じる",
+    "limitTitle": "タブの上限に達しました",
+    "limitMessage": "開ける再生タブの上限に達しました。タブを閉じるか、「設定 > 一般」で上限を増やしてください。"
   }
 }

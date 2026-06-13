@@ -69,7 +69,11 @@
     "autoPostProcessingLive": "Auto Post-Processing for Live",
     "autoPostProcessingLiveDescription": "Automatically execute post-processing when each new slide is saved in live mode.",
     "enableAutoPostProcessingLive": "Live Mode (When Each Slide Is Saved)",
-    "resetToDefault": "Reset to Default"
+    "resetToDefault": "Reset to Default",
+    "parallelTasks": "Parallel Tasks",
+    "parallelTasksDescription": "How many queued tasks run at once. Post-processing still runs one at a time.",
+    "maxManualTabs": "Max Playback Tabs",
+    "maxManualTabsDescription": "Most playback tabs you can open manually at once."
   },
   "status": {
     "connection": "Connection",
@@ -1099,5 +1103,11 @@
     "semesterSpring": "Spring {year}",
     "academicYear": "{start}–{end} Academic Year",
     "semesterPlaceholder": "Semester"
+  },
+  "tabs": {
+    "info": "Info",
+    "close": "Close tab",
+    "limitTitle": "Tab limit reached",
+    "limitMessage": "You have reached the maximum number of open playback tabs. Close a tab or raise the limit in Settings > General."
   }
 }

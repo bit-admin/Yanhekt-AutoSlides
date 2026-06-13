@@ -63,6 +63,35 @@
     <!-- Drag area -->
     <div class="titlebar-drag-region"></div>
 
+    <!-- Tab strip — Info tab + one chip per open playback tab. Sits over the
+         main-content segment (left panel edge → right panel edge). The strip
+         background stays draggable; chips opt out. Hidden during browser login. -->
+    <div v-if="!isBrowserLoginActive" class="tab-strip custom-scrollbar">
+      <button
+        :class="['tab-chip', 'tab-chip--info', { active: tabStore.state.activeTabId === null }]"
+        @click="tabStore.activateTab(null)"
+        :title="$t('tabs.info')"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="11" x2="12" y2="16"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span class="tab-chip-label">{{ $t('tabs.info') }}</span>
+      </button>
+      <button
+        v-for="tab in tabStore.state.tabs"
+        :key="tab.id"
+        :class="['tab-chip', { active: tabStore.state.activeTabId === tab.id }]"
+        @click="tabStore.activateTab(tab.id)"
+        :title="tab.title"
+      >
+        <span :class="['tab-chip-dot', `mode-${tab.mode}`]"></span>
+        <span class="tab-chip-label">{{ tab.title }}</span>
+        <span class="tab-chip-close" @click.stop="tabStore.closeTab(tab.id)" :title="$t('tabs.close')">×</span>
+      </button>
+    </div>
+
     <!-- Right-panel view switcher (Task / Download), hosted in the title bar
          above the right panel. Hidden during full-screen browser login. -->
     <div v-if="!isBrowserLoginActive" class="view-switcher">
@@ -117,6 +146,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import UpdateManager from './UpdateManager.vue';
 import { rightPanelStore, setRightPanelTab } from '@shared/services/rightPanelStore';
+import { tabStore } from '@features/course/tabStore';
 import { useAuth } from '@features/platform/useAuth';
 
 const { t: $t } = useI18n();
@@ -505,6 +535,101 @@ html.platform-darwin .titlebar.is-macos {
 
 .titlebar-drag-region:active {
   cursor: grabbing;
+}
+
+/* Tab strip — spans the main-content segment (left panel edge → right panel
+   edge), positioned with the reactive panel-width vars from App.vue. The strip
+   background stays draggable; individual chips are no-drag so they remain
+   clickable (Chrome/Arc pattern). Horizontal overflow scrolls. */
+.tab-strip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--left-panel-width);
+  right: var(--right-panel-width);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-app-region: drag;
+}
+
+.tab-chip {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  max-width: 180px;
+  padding: 0 6px 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.tab-chip--info {
+  padding: 0 10px;
+}
+
+.tab-chip:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.tab-chip.active {
+  background-color: var(--focus-ring);
+  color: var(--accent);
+}
+
+.tab-chip svg {
+  flex-shrink: 0;
+}
+
+.tab-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tab-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tab-chip-dot.mode-live {
+  background-color: var(--danger);
+}
+
+.tab-chip-dot.mode-recorded {
+  background-color: var(--accent);
+}
+
+.tab-chip-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.tab-chip-close:hover {
+  background-color: var(--bg-subtle);
+  color: var(--text-primary);
 }
 
 /* Right-panel view switcher — compact icon+text tabs left-aligned at the right

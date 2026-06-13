@@ -98,9 +98,17 @@ export class SlideProcessorService {
     });
   }
 
-  async compareImages(img1Data: ImageData, img2Data: ImageData): Promise<boolean> {
+  /**
+   * Compare two frames. Pass `config` to make the comparison self-contained so
+   * concurrent extractions don't race on the worker's shared default CONFIG.
+   */
+  async compareImages(
+    img1Data: ImageData,
+    img2Data: ImageData,
+    config?: SlideWorkerConfig,
+  ): Promise<boolean> {
     try {
-      return await this.sendMessage<boolean>('compareImages', { img1Data, img2Data });
+      return await this.sendMessage<boolean>('compareImages', { img1Data, img2Data, config });
     } catch (error) {
       console.error('Error comparing images:', error);
       return false;
