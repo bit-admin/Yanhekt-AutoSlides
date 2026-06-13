@@ -352,6 +352,26 @@ html.platform-darwin .titlebar.is-macos {
       left top / 100% 100% no-repeat;
 }
 
+/* Non-macOS (Windows/Linux): the sidebar's gray surface continues up into the
+   left segment of the title bar so the sidebar appears to reach the top of the
+   window (the menu bar sits on this gray). Same split mechanism as macOS — the
+   only difference is the left segment is opaque --bg-page-alt instead of the
+   transparent vibrancy. Split at --left-panel-width (reactive var from App.vue):
+   gray | 1px vertical hairline | opaque bar. Bottom hairline spans only the
+   opaque right segment so the gray flows seamlessly into the panel below. */
+.titlebar:not(.is-macos) {
+  border-bottom: none;
+  background:
+    linear-gradient(var(--border-color), var(--border-color))
+      right bottom / calc(100% - var(--left-panel-width)) 1px no-repeat,
+    linear-gradient(to right,
+      var(--bg-page-alt) calc(var(--left-panel-width) - 1px),
+      var(--border-color) calc(var(--left-panel-width) - 1px),
+      var(--border-color) var(--left-panel-width),
+      var(--bg-elevated) var(--left-panel-width))
+      left top / 100% 100% no-repeat;
+}
+
 /* macOS traffic lights space - reserve space for red/yellow/green buttons */
 .traffic-lights-space {
   width: 78px; /* Standard macOS traffic lights width */
