@@ -222,6 +222,16 @@ const extractionBarWidth = (item: DownloadItem): number => {
 .download-content {
   padding: 16px;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Center the empty state in the space below the header, biased slightly up
+   for better optical balance */
+.empty-queue {
+  flex: 1;
+  justify-content: center;
+  padding-bottom: 30%;
 }
 
 .queue-controls {

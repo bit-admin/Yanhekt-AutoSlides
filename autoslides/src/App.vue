@@ -1,7 +1,9 @@
 <template>
   <!-- --left-panel-width lets the title bar split its background at the
-       sidebar boundary (transparent glass left, opaque right) on macOS -->
-  <div class="app" :style="{ '--left-panel-width': leftWidth + 'px' }">
+       sidebar boundary (transparent glass left, opaque right) on macOS;
+       --right-panel-width pins the title bar's view switcher to the right
+       panel's left edge so it left-aligns over that panel. -->
+  <div class="app" :style="{ '--left-panel-width': leftWidth + 'px', '--right-panel-width': rightWidth + 'px' }">
     <!-- macOS only (display gated in CSS): one continuous glass tint behind
          both the title bar's sidebar segment and the left panel, so the two
          regions cannot mismatch. -->

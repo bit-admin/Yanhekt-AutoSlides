@@ -63,6 +63,32 @@
     <!-- Drag area -->
     <div class="titlebar-drag-region"></div>
 
+    <!-- Right-panel view switcher (Task / Download), hosted in the title bar
+         above the right panel. Hidden during full-screen browser login. -->
+    <div v-if="!isBrowserLoginActive" class="view-switcher">
+      <button
+        :class="['view-tab', { active: rightPanelStore.currentTab === 'task' }]"
+        @click="setRightPanelTab('task')"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 11l3 3 8-8"/>
+          <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c1.66 0 3.22.45 4.56 1.24"/>
+        </svg>
+        {{ $t('navigation.task') }}
+      </button>
+      <button
+        :class="['view-tab', { active: rightPanelStore.currentTab === 'download' }]"
+        @click="setRightPanelTab('download')"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7,10 12,15 17,10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        {{ $t('navigation.download') }}
+      </button>
+    </div>
+
     <!-- Window controls for non-macOS -->
     <div v-if="!isMacOS" class="window-controls">
       <button class="control-button minimize" @click="minimizeWindow" :title="$t('titlebar.minimize')">
@@ -90,8 +116,13 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import UpdateManager from './UpdateManager.vue';
+import { rightPanelStore, setRightPanelTab } from '@shared/services/rightPanelStore';
+import { useAuth } from '@features/platform/useAuth';
 
 const { t: $t } = useI18n();
+
+// Module-singleton ref: stays in sync with the App-level browser-login state.
+const { isBrowserLoginActive } = useAuth();
 
 const isMacOS = ref(false);
 
@@ -474,6 +505,62 @@ html.platform-darwin .titlebar.is-macos {
 
 .titlebar-drag-region:active {
   cursor: grabbing;
+}
+
+/* Right-panel view switcher — compact icon+text tabs left-aligned at the right
+   panel's left edge (mirrors how the menu/title sits in the left segment). The
+   left edge is pinned via the reactive --right-panel-width var from App.vue;
+   absolute positioning keeps it out of the flex flow so the drag region and
+   window controls keep their layout. On Windows the right edge is inset by the
+   window-controls width so the tabs never overlap min/max/close. */
+.view-switcher {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(100% - var(--right-panel-width));
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  padding: 0 8px;
+  overflow: hidden;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar:not(.is-macos) .view-switcher {
+  right: 138px; /* 3 window-control buttons × 46px */
+}
+
+.view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.view-tab:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Active state matches the Tools window tabs (.toolwin-tab.active) */
+.view-tab.active {
+  background-color: var(--focus-ring);
+  color: var(--accent);
+}
+
+.view-tab svg {
+  flex-shrink: 0;
 }
 
 /* Window controls for non-macOS */
