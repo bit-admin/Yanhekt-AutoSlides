@@ -1080,6 +1080,8 @@
     "audioDescription": "You can choose separately whether live and recorded playback stay muted.",
     "taskSpeedTitle": "How fast would you like tasks to run?",
     "taskSpeedDescription": "Slide extraction tasks play videos at this speed. A higher speed — up to 16× — is recommended on Internal Network.",
+    "parallelTasksTitle": "How many tasks should run at once?",
+    "parallelTasksDescription": "Run several task videos and slide extractions in parallel. Post-processing still runs one task at a time.",
     "aiTitle": "Use GitHub Copilot for AI filtering?",
     "aiDescription": "AutoSlides uses AI to filter out non-slide frames. We recommend Copilot's free gpt-4.1 model — just sign in with a GitHub account.",
     "loginGithub": "Sign in with GitHub",

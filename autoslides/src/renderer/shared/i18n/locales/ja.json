@@ -1080,6 +1080,8 @@
     "audioDescription": "ライブと録画それぞれについて、ミュートにするかを選べます。",
     "taskSpeedTitle": "タスクをどのくらいの速さで実行しますか？",
     "taskSpeedDescription": "スライド抽出タスクはこの速度で動画を再生します。内部ネットワークでは、より高速（最大 16×）に設定することをおすすめします。",
+    "parallelTasksTitle": "同時に実行するタスク数は？",
+    "parallelTasksDescription": "複数のタスク動画とスライド抽出を並列で実行します。後処理は引き続き1件ずつ実行されます。",
     "aiTitle": "GitHub Copilot を使いますか？",
     "aiDescription": "Copilot の無料 gpt-4.1 モデルがおすすめです。GitHub アカウントでサインインするだけです。",
     "loginGithub": "GitHub でサインイン",

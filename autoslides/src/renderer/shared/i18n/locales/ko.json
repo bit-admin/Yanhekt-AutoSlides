@@ -1080,6 +1080,8 @@
     "audioDescription": "라이브와 녹화 각각에 대해 음소거 여부를 선택할 수 있습니다.",
     "taskSpeedTitle": "작업을 얼마나 빠르게 실행할까요?",
     "taskSpeedDescription": "슬라이드 추출 작업은 이 속도로 영상을 재생합니다. 내부 네트워크에서는 더 높은 속도(최대 16×)로 설정하는 것을 권장합니다.",
+    "parallelTasksTitle": "한 번에 몇 개의 작업을 실행할까요?",
+    "parallelTasksDescription": "여러 작업 영상과 슬라이드 추출을 동시에 실행합니다. 후처리는 계속 한 작업씩 실행됩니다.",
     "aiTitle": "AI 필터링에 GitHub Copilot을 사용할까요?",
     "aiDescription": "AutoSlides는 AI로 슬라이드가 아닌 화면을 걸러냅니다. Copilot의 무료 gpt-4.1 모델을 권장합니다. GitHub 계정으로 로그인하기만 하면 됩니다.",
     "loginGithub": "GitHub로 로그인",

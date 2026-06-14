@@ -1080,6 +1080,8 @@
     "audioDescription": "你可以分别选择直播和录播是否保持静音。",
     "taskSpeedTitle": "你希望任务以多快速度运行？",
     "taskSpeedDescription": "幻灯片提取任务会以此速度播放视频。建议在内网模式下调整至更高速度，最高 16×。",
+    "parallelTasksTitle": "你希望同时运行多少个任务？",
+    "parallelTasksDescription": "并行播放多个任务视频并提取幻灯片。后处理仍逐个任务进行。",
     "aiTitle": "要使用 GitHub Copilot 运行 AI 过滤功能吗？",
     "aiDescription": "AutoSlides 会借助 AI 过滤掉非幻灯片画面。推荐使用 Copilot 免费的 gpt-4.1 模型，你只需要使用 GitHub 账号登录即可。",
     "loginGithub": "使用 GitHub 登录",

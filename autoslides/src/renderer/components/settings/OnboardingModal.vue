@@ -95,8 +95,17 @@
             </select>
           </template>
 
-          <!-- 5. GitHub Copilot AI filtering -->
+          <!-- 5. Parallel tasks -->
           <template v-else-if="step === 5">
+            <h3 class="step-title">{{ $t('onboarding.parallelTasksTitle') }}</h3>
+            <p class="step-description">{{ $t('onboarding.parallelTasksDescription') }}</p>
+            <select v-model.number="parallelTasks" @change="setParallelTasks" class="select-field">
+              <option v-for="n in 5" :key="n" :value="n">{{ n }}</option>
+            </select>
+          </template>
+
+          <!-- 6. GitHub Copilot AI filtering -->
+          <template v-else-if="step === 6">
             <h3 class="step-title">{{ $t('onboarding.aiTitle') }}</h3>
             <p class="step-description">{{ $t('onboarding.aiDescription') }}</p>
 
@@ -176,7 +185,7 @@ const emit = defineEmits<{
 
 // Dotted configuration steps (1..configSteps). The SSO sign-in is a dedicated
 // terminal page that always comes last — even if more config steps are added.
-const configSteps = 5
+const configSteps = 6
 const signInStep = configSteps + 1
 const step = ref(0)
 
@@ -186,10 +195,12 @@ const {
   connectionMode,
   muteMode,
   taskSpeed,
+  parallelTasks,
   selectOutputDirectory,
   setConnectionMode,
   setMuteMode,
   setTaskSpeed,
+  setParallelTasks,
 } = settings
 
 // AI filtering step (GitHub Copilot)
