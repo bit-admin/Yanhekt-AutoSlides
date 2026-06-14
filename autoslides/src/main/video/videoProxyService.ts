@@ -65,6 +65,11 @@ export class VideoProxyService {
 
   private proxyServer: http.Server | null = null;
   private proxyPort = 0;
+  // In-flight start promise. Dedupes concurrent startVideoProxy() calls so that
+  // parallel tasks/playback tabs don't race: the server is created synchronously
+  // (making proxyServer truthy) while listen() resolves the port asynchronously,
+  // so a second caller arriving in that window would otherwise read proxyPort=0.
+  private proxyStartPromise: Promise<number> | null = null;
   private httpAgent: http.Agent = new http.Agent({ keepAlive: true });
   private httpsAgent: https.Agent = new https.Agent({ keepAlive: true });
   private httpsAgentNoVerify: https.Agent = new https.Agent({ keepAlive: true, rejectUnauthorized: false });
@@ -324,11 +329,18 @@ export class VideoProxyService {
    * Start local proxy server for video streaming
    */
   private async startVideoProxy(): Promise<number> {
-    if (this.proxyServer) {
+    // Already listening with a real port — reuse it.
+    if (this.proxyServer && this.proxyPort) {
       return this.proxyPort;
     }
 
-    return new Promise((resolve, reject) => {
+    // A start is already in flight (server created, listen() not yet resolved).
+    // Await the same promise instead of returning a half-initialized port of 0.
+    if (this.proxyStartPromise) {
+      return this.proxyStartPromise;
+    }
+
+    this.proxyStartPromise = new Promise<number>((resolve, reject) => {
       this.proxyServer = http.createServer(async (req, res) => {
         // Set CORS headers for all requests
         res.setHeader('Access-Control-Allow-Origin', '*');
@@ -384,6 +396,17 @@ export class VideoProxyService {
         reject(error);
       });
     });
+
+    try {
+      return await this.proxyStartPromise;
+    } catch (error) {
+      // Let a future call retry from scratch on a failed start.
+      this.proxyServer = null;
+      this.proxyPort = 0;
+      throw error;
+    } finally {
+      this.proxyStartPromise = null;
+    }
   }
 
   /**
@@ -773,6 +796,7 @@ export class VideoProxyService {
       this.proxyServer.close();
       this.proxyServer = null;
       this.proxyPort = 0;
+      this.proxyStartPromise = null;
       console.log('Video proxy server stopped');
     }
 
