@@ -208,7 +208,7 @@ const visibleCount = ref<number>(Number.POSITIVE_INFINITY);
 const showOverflow = ref(false);
 const overflowMenuStyle = ref<Record<string, string>>({});
 
-const TAB_SLOT = 150;      // matches .tab-chip max-width
+const TAB_SLOT = 220;      // matches .tab-chip max-width
 const OVERFLOW_SLOT = 56;  // the "···" button
 const GAP = 4;             // .tab-strip gap
 
@@ -716,7 +716,7 @@ html.platform-darwin .titlebar.is-macos {
   align-items: center;
   gap: 6px;
   height: 26px;
-  max-width: 150px;
+  max-width: 220px;
   padding: 0 6px 0 10px;
   border: none;
   border-radius: 6px;
