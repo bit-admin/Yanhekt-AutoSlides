@@ -1107,6 +1107,7 @@
   "tabs": {
     "info": "Info",
     "close": "Close tab",
+    "moreTabs": "More tabs",
     "limitTitle": "Tab limit reached",
     "limitMessage": "You have reached the maximum number of open playback tabs. Close a tab or raise the limit in Settings > General."
   }

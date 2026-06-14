@@ -1105,8 +1105,9 @@
     "semesterPlaceholder": "学期"
   },
   "tabs": {
-    "info": "信息",
+    "info": "课程信息",
     "close": "关闭标签页",
+    "moreTabs": "更多标签页",
     "limitTitle": "已达标签页上限",
     "limitMessage": "已达到可同时打开的播放标签页上限。请关闭一个标签页，或在“设置 > 通用”中提高上限。"
   }

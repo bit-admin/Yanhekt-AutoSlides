@@ -65,9 +65,12 @@
 
     <!-- Tab strip — Info tab + one chip per open playback tab. Sits over the
          main-content segment (left panel edge → right panel edge). The strip
-         background stays draggable; chips opt out. Hidden during browser login. -->
-    <div v-if="!isBrowserLoginActive" class="tab-strip custom-scrollbar">
+         background stays draggable; chips opt out. Hidden during browser login.
+         Tabs that don't fit collapse into a "···" overflow dropdown rather than
+         scrolling horizontally. -->
+    <div v-if="!isBrowserLoginActive" ref="stripRef" class="tab-strip">
       <button
+        ref="infoRef"
         :class="['tab-chip', 'tab-chip--info', { active: tabStore.state.activeTabId === null }]"
         @click="tabStore.activateTab(null)"
         :title="$t('tabs.info')"
@@ -80,7 +83,7 @@
         <span class="tab-chip-label">{{ $t('tabs.info') }}</span>
       </button>
       <button
-        v-for="tab in tabStore.state.tabs"
+        v-for="tab in visibleTabs"
         :key="tab.id"
         :class="['tab-chip', { active: tabStore.state.activeTabId === tab.id }]"
         @click="tabStore.activateTab(tab.id)"
@@ -90,7 +93,47 @@
         <span class="tab-chip-label">{{ tab.title }}</span>
         <span class="tab-chip-close" @click.stop="tabStore.closeTab(tab.id)" :title="$t('tabs.close')">×</span>
       </button>
+
+      <!-- Overflow: tabs that don't fit live in a dropdown opened by this chip.
+           The menu is teleported to <body> so it escapes the strip's
+           overflow:hidden clip; positioned with fixed coords from the button. -->
+      <div v-if="overflowTabs.length" class="tab-overflow">
+        <button
+          ref="overflowBtnRef"
+          :class="['tab-chip', 'tab-overflow-btn', { active: overflowHasActive }]"
+          @click.stop="toggleOverflow"
+          :title="$t('tabs.moreTabs')"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="2"/>
+            <circle cx="12" cy="12" r="2"/>
+            <circle cx="19" cy="12" r="2"/>
+          </svg>
+          <span class="tab-overflow-count">{{ overflowTabs.length }}</span>
+        </button>
+      </div>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="showOverflow && overflowTabs.length"
+        class="tab-overflow-menu custom-scrollbar"
+        :style="overflowMenuStyle"
+        @click.stop
+      >
+        <button
+          v-for="tab in overflowTabs"
+          :key="tab.id"
+          :class="['tab-overflow-item', { active: tabStore.state.activeTabId === tab.id }]"
+          @click="selectOverflowTab(tab.id)"
+          :title="tab.title"
+        >
+          <span :class="['tab-chip-dot', `mode-${tab.mode}`]"></span>
+          <span class="tab-overflow-item-label">{{ tab.title }}</span>
+          <span class="tab-chip-close" @click.stop="tabStore.closeTab(tab.id)" :title="$t('tabs.close')">×</span>
+        </button>
+      </div>
+    </Teleport>
 
     <!-- Right-panel view switcher (Task / Download), hosted in the title bar
          above the right panel. Hidden during full-screen browser login. -->
@@ -142,7 +185,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import UpdateManager from './UpdateManager.vue';
 import { rightPanelStore, setRightPanelTab } from '@shared/services/rightPanelStore';
@@ -153,6 +196,108 @@ const { t: $t } = useI18n();
 
 // Module-singleton ref: stays in sync with the App-level browser-login state.
 const { isBrowserLoginActive } = useAuth();
+
+// --- Tab overflow ("···" dropdown) ---------------------------------------
+// Rather than scrolling the strip horizontally, tabs that don't fit collapse
+// into a dropdown. We size the visible run from the strip's measured width
+// using a fixed per-tab slot (deterministic — no per-chip measurement pass).
+const stripRef = ref<HTMLElement | null>(null);
+const infoRef = ref<HTMLElement | null>(null);
+const overflowBtnRef = ref<HTMLElement | null>(null);
+const visibleCount = ref<number>(Number.POSITIVE_INFINITY);
+const showOverflow = ref(false);
+const overflowMenuStyle = ref<Record<string, string>>({});
+
+const TAB_SLOT = 150;      // matches .tab-chip max-width
+const OVERFLOW_SLOT = 56;  // the "···" button
+const GAP = 4;             // .tab-strip gap
+
+const visibleTabs = computed(() => tabStore.state.tabs.slice(0, visibleCount.value));
+const overflowTabs = computed(() => tabStore.state.tabs.slice(visibleCount.value));
+const overflowHasActive = computed(() =>
+  overflowTabs.value.some(tab => tab.id === tabStore.state.activeTabId)
+);
+
+const recomputeTabs = () => {
+  const strip = stripRef.value;
+  const total = tabStore.state.tabs.length;
+  if (!strip || total === 0) {
+    visibleCount.value = total;
+    return;
+  }
+  const styles = getComputedStyle(strip);
+  const padding = parseFloat(styles.paddingLeft || '0') + parseFloat(styles.paddingRight || '0');
+  const infoW = infoRef.value?.offsetWidth ?? 0;
+  const available = strip.clientWidth - padding - infoW - GAP;
+  const perTab = TAB_SLOT + GAP;
+
+  let fit = Math.floor(available / perTab);
+  if (fit >= total) {
+    visibleCount.value = total;
+    return;
+  }
+  // Need the overflow chip — reserve its slot, then refit the remainder.
+  const availForTabs = available - OVERFLOW_SLOT - GAP;
+  visibleCount.value = Math.max(0, Math.floor(availForTabs / perTab));
+
+  // Keep an open menu pinned to the (possibly moved) button.
+  if (showOverflow.value) nextTick(positionOverflowMenu);
+};
+
+// The menu lives in a Teleport to <body>; anchor it under the "···" button
+// using fixed coordinates (right-aligned to the button's right edge).
+const positionOverflowMenu = () => {
+  const btn = overflowBtnRef.value;
+  if (!btn) return;
+  const rect = btn.getBoundingClientRect();
+  overflowMenuStyle.value = {
+    top: `${rect.bottom + 4}px`,
+    right: `${Math.max(8, window.innerWidth - rect.right)}px`
+  };
+};
+
+const toggleOverflow = () => {
+  showOverflow.value = !showOverflow.value;
+  if (showOverflow.value) nextTick(positionOverflowMenu);
+};
+
+const selectOverflowTab = (id: string) => {
+  tabStore.activateTab(id);
+  showOverflow.value = false;
+};
+
+let stripObserver: ResizeObserver | null = null;
+
+// Recompute whenever the tab set changes (after the DOM settles).
+watch(
+  () => tabStore.state.tabs.length,
+  () => nextTick(recomputeTabs)
+);
+
+// Close the dropdown if it empties out.
+watch(overflowTabs, (tabs) => {
+  if (tabs.length === 0) showOverflow.value = false;
+});
+
+const attachStripObserver = () => {
+  stripObserver?.disconnect();
+  stripObserver = null;
+  if (!stripRef.value) return;
+  stripObserver = new ResizeObserver(() => recomputeTabs());
+  stripObserver.observe(stripRef.value);
+  recomputeTabs();
+};
+
+// The strip only exists while not in full-screen browser login; (re)bind the
+// observer to the fresh element whenever it mounts.
+watch(isBrowserLoginActive, (active) => {
+  if (active) {
+    stripObserver?.disconnect();
+    stripObserver = null;
+  } else {
+    nextTick(attachStripObserver);
+  }
+});
 
 const isMacOS = ref(false);
 
@@ -177,10 +322,16 @@ onMounted(() => {
 
   // Add click listener to close menus when clicking outside
   document.addEventListener('click', handleOutsideClick);
+
+  // Re-fit the visible tab run whenever the strip's width changes (panel
+  // resize, window resize, traffic-light reserve, etc.).
+  nextTick(attachStripObserver);
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick);
+  stripObserver?.disconnect();
+  stripObserver = null;
 });
 
 // Close all menus when clicking outside
@@ -188,6 +339,9 @@ const handleOutsideClick = (event: Event) => {
   const target = event.target as HTMLElement;
   if (!target.closest('.menu-item')) {
     closeAllMenus();
+  }
+  if (!target.closest('.tab-overflow')) {
+    showOverflow.value = false;
   }
 };
 
@@ -540,7 +694,8 @@ html.platform-darwin .titlebar.is-macos {
 /* Tab strip — spans the main-content segment (left panel edge → right panel
    edge), positioned with the reactive panel-width vars from App.vue. The strip
    background stays draggable; individual chips are no-drag so they remain
-   clickable (Chrome/Arc pattern). Horizontal overflow scrolls. */
+   clickable (Chrome/Arc pattern). Tabs that don't fit collapse into the "···"
+   overflow dropdown (see .tab-overflow) — the strip itself never scrolls. */
 .tab-strip {
   position: absolute;
   top: 0;
@@ -551,8 +706,7 @@ html.platform-darwin .titlebar.is-macos {
   align-items: center;
   gap: 4px;
   padding: 0 8px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
   -webkit-app-region: drag;
 }
 
@@ -562,7 +716,7 @@ html.platform-darwin .titlebar.is-macos {
   align-items: center;
   gap: 6px;
   height: 26px;
-  max-width: 180px;
+  max-width: 150px;
   padding: 0 6px 0 10px;
   border: none;
   border-radius: 6px;
@@ -630,6 +784,77 @@ html.platform-darwin .titlebar.is-macos {
 .tab-chip-close:hover {
   background-color: var(--bg-subtle);
   color: var(--text-primary);
+}
+
+/* Overflow ("···") — collapses tabs that don't fit into a dropdown. */
+.tab-overflow {
+  position: relative;
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+}
+
+.tab-overflow-btn {
+  max-width: none;
+  padding: 0 8px;
+  gap: 4px;
+}
+
+.tab-overflow-count {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* Teleported to <body>: fixed-positioned via inline top/right from the button.
+   z-index sits above the title bar (z-index:1000) so it's never clipped. */
+.tab-overflow-menu {
+  position: fixed;
+  min-width: 200px;
+  max-width: 280px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  padding: 4px;
+  z-index: var(--z-super-modal);
+  -webkit-app-region: no-drag;
+}
+
+.tab-overflow-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 30px;
+  padding: 0 6px 0 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.tab-overflow-item:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.tab-overflow-item.active {
+  background-color: var(--focus-ring);
+  color: var(--accent);
+}
+
+.tab-overflow-item-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Right-panel view switcher — compact icon+text tabs left-aligned at the right
