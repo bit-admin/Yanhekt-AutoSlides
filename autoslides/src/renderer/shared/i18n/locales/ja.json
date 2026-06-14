@@ -1104,7 +1104,9 @@
     "semesterFall": "{year}年秋学期",
     "semesterSpring": "{year}年春学期",
     "academicYear": "{start}–{end} 年度",
-    "semesterPlaceholder": "学期"
+    "semesterPlaceholder": "学期",
+    "allSemesters": "すべての学期",
+    "semestersSelected": "{count} 学期を選択"
   },
   "tabs": {
     "info": "情報",

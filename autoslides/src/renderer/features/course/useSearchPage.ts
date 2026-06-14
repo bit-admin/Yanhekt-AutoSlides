@@ -15,7 +15,12 @@ const apiClient = new ApiClient()
 const keyword = ref('')
 const mode = ref<'live' | 'recorded'>('recorded')
 const availableSemesters = ref<SemesterOption[]>([])
-const selectedSemesterId = ref<number | null>(null)
+// Selected semester ids; an empty array means "all semesters" (no filter — the
+// backend's `semesters[]` param is simply omitted). `semesterInitialized`
+// distinguishes the not-yet-defaulted startup state from a deliberate
+// empty/"all" selection so we only auto-pick the latest semester once.
+const selectedSemesterIds = ref<number[]>([])
+const semesterInitialized = ref(false)
 const results = ref<Course[]>([])
 const currentPage = ref(1)
 const totalPages = ref(1)
@@ -46,8 +51,9 @@ const ensureSemesters = async () => {
 const selectLatestSemester = async () => {
   await ensureSemesters()
   if (availableSemesters.value.length > 0) {
-    selectedSemesterId.value = availableSemesters.value[0].id
+    selectedSemesterIds.value = [availableSemesters.value[0].id]
   }
+  semesterInitialized.value = true
 }
 
 const executeSearch = async (resetPage = true) => {
@@ -80,7 +86,7 @@ const executeSearch = async (resetPage = true) => {
     } else {
       const response: CourseListResponse = await apiClient.getCourseList(token, {
         keyword: keyword.value.trim(),
-        semesters: selectedSemesterId.value !== null ? [selectedSemesterId.value] : [],
+        semesters: [...selectedSemesterIds.value],
         page: currentPage.value,
         pageSize: RESULTS_PER_PAGE
       })
@@ -121,15 +127,15 @@ const goToPage = async (page: number) => {
 const setMode = async (m: 'live' | 'recorded') => {
   if (mode.value === m) return
   mode.value = m
-  if (m === 'recorded' && selectedSemesterId.value === null) {
+  if (m === 'recorded' && !semesterInitialized.value) {
     await selectLatestSemester()
   }
   await executeSearch()
 }
 
-const setSemester = async (id: number) => {
-  if (selectedSemesterId.value === id) return
-  selectedSemesterId.value = id
+const setSemesters = async (ids: number[]) => {
+  selectedSemesterIds.value = ids
+  semesterInitialized.value = true
   await executeSearch()
 }
 
@@ -138,7 +144,7 @@ const setSemester = async (id: number) => {
 const handleSidebarFocus = async () => {
   navigationStore.navigate('search')
   if (!hasSearched.value && !isLoading.value) {
-    if (mode.value === 'recorded' && selectedSemesterId.value === null) {
+    if (mode.value === 'recorded' && !semesterInitialized.value) {
       await selectLatestSemester()
     }
     await executeSearch()
@@ -171,7 +177,7 @@ export function useSearchPage() {
     keyword,
     mode,
     availableSemesters,
-    selectedSemesterId,
+    selectedSemesterIds,
     results,
     currentPage,
     totalPages,
@@ -181,7 +187,7 @@ export function useSearchPage() {
     executeSearch,
     goToPage,
     setMode,
-    setSemester,
+    setSemesters,
     handleSidebarFocus,
     handleSidebarEnter,
     openSavedSearch,

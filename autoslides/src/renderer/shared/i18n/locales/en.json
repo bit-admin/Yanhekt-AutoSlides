@@ -1104,7 +1104,9 @@
     "semesterFall": "Fall {year}",
     "semesterSpring": "Spring {year}",
     "academicYear": "{start}–{end} Academic Year",
-    "semesterPlaceholder": "Semester"
+    "semesterPlaceholder": "Semester",
+    "allSemesters": "All semesters",
+    "semestersSelected": "{count} semesters"
   },
   "tabs": {
     "info": "Info",

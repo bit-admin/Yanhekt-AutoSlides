@@ -1104,7 +1104,9 @@
     "semesterFall": "{year}年秋季学期",
     "semesterSpring": "{year}年春季学期",
     "academicYear": "{start}–{end} 学年",
-    "semesterPlaceholder": "学期"
+    "semesterPlaceholder": "学期",
+    "allSemesters": "全部学期",
+    "semestersSelected": "已选 {count} 个学期"
   },
   "tabs": {
     "info": "课程信息",

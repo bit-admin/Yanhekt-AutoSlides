@@ -4,8 +4,8 @@
       <SemesterSelect
         v-if="mode === 'recorded'"
         :semesters="availableSemesters"
-        :model-value="selectedSemesterId"
-        @update:model-value="setSemester"
+        :model-value="selectedSemesterIds"
+        @update:model-value="setSemesters"
       />
       <div class="mode-switch">
         <button
@@ -108,7 +108,7 @@ const { t } = useI18n()
 const {
   mode,
   availableSemesters,
-  selectedSemesterId,
+  selectedSemesterIds,
   results,
   currentPage,
   totalPages,
@@ -117,7 +117,7 @@ const {
   hasSearched,
   goToPage,
   setMode,
-  setSemester,
+  setSemesters,
   selectResult
 } = useSearchPage()
 </script>
