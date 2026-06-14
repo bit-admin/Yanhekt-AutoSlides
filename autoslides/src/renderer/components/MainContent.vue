@@ -66,7 +66,7 @@
           :streamId="tab.streamId"
           :sessionId="tab.sessionId"
           :isVisible="tabStore.state.activeTabId === tab.id"
-          @back="tabStore.closeTab(tab.id)"
+          @back="handleTabBack(tab.id)"
         />
       </div>
     </div>
@@ -164,6 +164,14 @@ const handleSessionSelected = (session: any) => {
 const backToCourses = () => {
   recordedState.value.page = 'courses'
   recordedState.value.selectedCourse = null
+}
+
+// The playback page's "Back" button closes its tab and returns to the Info tab
+// (the old pre-tabs behavior: back went to the sessions/browse page). The tab
+// chip's "×" keeps the browser-like neighbor fallback in tabStore.closeTab.
+const handleTabBack = (tabId: string) => {
+  tabStore.closeTab(tabId)
+  tabStore.activateTab(null)
 }
 
 const emit = defineEmits<{
