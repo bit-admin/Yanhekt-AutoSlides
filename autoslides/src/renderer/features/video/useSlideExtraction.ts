@@ -74,7 +74,14 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     currentVerification: 0
   })
   const slideExtractorInstance = shallowRef<SlideExtractionHandle | null>(null)
-  const extractorInstanceId = ref<string | null>(null)
+  // Stable, unique id for THIS composable instance (one per PlaybackPage),
+  // generated eagerly so it can be stamped on the DOM (data-extractor-instance)
+  // before extraction starts. The random suffix is essential: parallel tasks of
+  // the SAME course share mode + courseId, so a `${mode}_${courseId}_${Date.now()}`
+  // id could collide (same ms) and make both tabs reuse one shared pipeline.
+  const extractorInstanceId = ref<string | null>(
+    `${mode}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
+  )
   const extractedSlides = ref<ExtractedSlide[]>([])
 
   // Event handlers stored for cleanup
@@ -118,8 +125,10 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     const slideOutputPath = `${outputDir}/${folderName}`
     await window.electronAPI.slideExtraction.ensureDirectory(slideOutputPath)
 
-    const instanceId = `${mode}_${course.value?.id || 'unknown'}_${Date.now()}`
-    extractorInstanceId.value = instanceId
+    // Reuse the stable per-composable id (set eagerly above). Keeping it stable
+    // across start/stop means the manager reuses this PlaybackPage's own pipeline
+    // and the DOM's data-extractor-instance keeps matching it.
+    const instanceId = extractorInstanceId.value as string
 
     return {
       mode,

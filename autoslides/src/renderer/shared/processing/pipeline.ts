@@ -70,7 +70,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
   constructor(mode: SlideExtractionMode, instanceId?: string) {
     this.mode = mode;
     this.instanceId = instanceId ?? `${mode}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-    this.videoSelector = buildVideoSelector(mode);
+    this.videoSelector = buildVideoSelector(mode, this.instanceId);
     console.log(`SlideExtractionPipeline created: ${this.instanceId} (mode: ${mode})`);
   }
 

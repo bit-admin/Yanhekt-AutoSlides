@@ -104,7 +104,7 @@
         <button @click="retryLoad" class="btn btn--primary btn--lg">{{ $t('playback.retry') }}</button>
       </div>
 
-      <div v-else-if="playbackData" class="video-content" :data-playback-mode="props.mode">
+      <div v-else-if="playbackData" class="video-content" :data-playback-mode="props.mode" :data-extractor-instance="slideExtraction.extractorInstanceId.value">
 
         <!-- Combined Warning Messages -->
         <div v-if="isTaskRunning || (props.mode === 'recorded' && showSpeedWarning) || aiFilteringError.type !== 'none'" class="combined-warning">

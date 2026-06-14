@@ -15,19 +15,38 @@ const FALLBACK_SELECTORS = [
   '[data-video] video',
 ];
 
-export function buildVideoSelector(mode: SlideExtractionMode): string {
+export function buildVideoSelector(mode: SlideExtractionMode, instanceId?: string): string {
+  // Prefer an instance-scoped container so concurrent same-mode playback tabs
+  // each bind to their OWN <video>. Multiple recorded tabs all carry
+  // data-playback-mode="recorded", so a mode-only selector + querySelector
+  // (first match) would make every pipeline capture the same first video —
+  // i.e. only one extraction effectively runs. Fall back to mode scope for
+  // single-instance callers that don't stamp an instance id.
+  if (instanceId) return `[data-extractor-instance="${instanceId}"] video`;
   return `[data-playback-mode="${mode}"] video`;
 }
 
 export function getVideoElement(primarySelector: string, instanceId: string): HTMLVideoElement | null {
-  let video = document.querySelector(primarySelector) as HTMLVideoElement | null;
+  const video = document.querySelector(primarySelector) as HTMLVideoElement | null;
   if (video && isVideoAccessible(video)) return video;
 
+  // When an instance-scoped container exists, keep the whole search inside it:
+  // the generic fallback selectors below match `video` document-wide and would
+  // otherwise bind this pipeline to ANOTHER tab's video under concurrent
+  // extraction. A not-yet-ready video in our own container must resolve to null,
+  // not to a sibling tab's video.
+  const scope = document.querySelector(`[data-extractor-instance="${instanceId}"]`);
+  if (scope) {
+    const scoped = scope.querySelector('video') as HTMLVideoElement | null;
+    return scoped && isVideoAccessible(scoped) ? scoped : null;
+  }
+
+  // Legacy single-instance path (no instance container stamped in the DOM).
   for (const selector of FALLBACK_SELECTORS) {
-    video = document.querySelector(selector) as HTMLVideoElement | null;
-    if (video && isVideoAccessible(video)) {
+    const fallback = document.querySelector(selector) as HTMLVideoElement | null;
+    if (fallback && isVideoAccessible(fallback)) {
       console.warn(`SlideExtractor ${instanceId}: Using fallback selector ${selector}`);
-      return video;
+      return fallback;
     }
   }
 
