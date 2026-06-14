@@ -1107,6 +1107,7 @@
   "tabs": {
     "info": "정보",
     "close": "탭 닫기",
+    "closeDisabledTask": "작업 실행 중에는 닫을 수 없습니다",
     "moreTabs": "더 많은 탭",
     "limitTitle": "탭 한도 도달",
     "limitMessage": "열 수 있는 재생 탭의 최대 개수에 도달했습니다. 탭을 닫거나 설정 > 일반에서 한도를 늘리세요."

@@ -91,7 +91,11 @@
       >
         <span :class="['tab-chip-dot', `mode-${tab.mode}`]"></span>
         <span class="tab-chip-label">{{ tab.title }}</span>
-        <span class="tab-chip-close" @click.stop="tabStore.closeTab(tab.id)" :title="$t('tabs.close')">×</span>
+        <span
+          :class="['tab-chip-close', { disabled: !isTabClosable(tab) }]"
+          @click.stop="isTabClosable(tab) && tabStore.closeTab(tab.id)"
+          :title="isTabClosable(tab) ? $t('tabs.close') : $t('tabs.closeDisabledTask')"
+        >×</span>
       </button>
 
       <!-- Overflow: tabs that don't fit live in a dropdown opened by this chip.
@@ -130,7 +134,11 @@
         >
           <span :class="['tab-chip-dot', `mode-${tab.mode}`]"></span>
           <span class="tab-overflow-item-label">{{ tab.title }}</span>
-          <span class="tab-chip-close" @click.stop="tabStore.closeTab(tab.id)" :title="$t('tabs.close')">×</span>
+          <span
+            :class="['tab-chip-close', { disabled: !isTabClosable(tab) }]"
+            @click.stop="isTabClosable(tab) && tabStore.closeTab(tab.id)"
+            :title="isTabClosable(tab) ? $t('tabs.close') : $t('tabs.closeDisabledTask')"
+          >×</span>
         </button>
       </div>
     </Teleport>
@@ -189,10 +197,19 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import UpdateManager from './UpdateManager.vue';
 import { rightPanelStore, setRightPanelTab } from '@shared/services/rightPanelStore';
-import { tabStore } from '@features/course/tabStore';
+import { tabStore, type PlaybackTab } from '@features/course/tabStore';
 import { useAuth } from '@features/platform/useAuth';
+import { taskQueueState } from '@shared/services/taskQueueService';
 
 const { t: $t } = useI18n();
+
+// A task tab can't be closed while its task is in progress — mirrors the
+// disabled Back button inside the PlaybackPage. Manual tabs are always closable.
+const isTabClosable = (tab: PlaybackTab): boolean => {
+  if (tab.origin !== 'task' || !tab.taskId) return true;
+  const task = taskQueueState.value.tasks.find(t => t.id === tab.taskId);
+  return !task || task.status !== 'in_progress';
+};
 
 // Module-singleton ref: stays in sync with the App-level browser-login state.
 const { isBrowserLoginActive } = useAuth();
@@ -784,6 +801,14 @@ html.platform-darwin .titlebar.is-macos {
 .tab-chip-close:hover {
   background-color: var(--bg-subtle);
   color: var(--text-primary);
+}
+
+/* Task tabs can't be closed while the task is running (mirrors the disabled
+   Back button in the PlaybackPage). */
+.tab-chip-close.disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
 }
 
 /* Overflow ("···") — collapses tabs that don't fit into a dropdown. */
