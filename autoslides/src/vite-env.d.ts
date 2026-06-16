@@ -355,6 +355,7 @@ interface SlideOperationResponse {
 // ============================================================================
 
 interface ElectronAPI {
+  isDemoMode: boolean;
   auth: {
     login: (username: string, password: string) => Promise<AuthResponse>;
     verifyToken: (token: string) => Promise<TokenVerificationResponse>;

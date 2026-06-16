@@ -3,6 +3,7 @@ import { AuthService, TokenManager, tokenManager } from '@shared/services/authSe
 import { ApiClient } from '@shared/services/apiClient'
 import { toDisplayName } from './usePinyinName'
 import { configStore } from '@shared/services/configStore'
+import { isDemoMode } from '@shared/services/demoData'
 
 // Shared state (singleton pattern for cross-component access)
 const isBrowserLoginActive = ref(false)
@@ -16,6 +17,8 @@ const authService = new AuthService(tokenManager)
 const apiClient = new ApiClient()
 
 function persistUserNames(nickname: string): void {
+  // Demo mode persists nothing — keep the real account's stored names intact.
+  if (isDemoMode()) return
   const display = toDisplayName(nickname)
   window.electronAPI.config.setUserNames(nickname, display)
 }

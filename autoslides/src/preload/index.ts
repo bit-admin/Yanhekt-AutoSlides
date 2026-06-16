@@ -10,6 +10,10 @@ import { tools, addons, webCapture } from './tools';
 import { intranet } from './intranet';
 
 contextBridge.exposeInMainWorld('electronAPI', {
+  // Demo mode flag: set by `npm run demo` (DEMO_MODE=1). The main process
+  // forwards it as an `--demo-mode` argv entry (process.env is not reliable in
+  // the Vite-built preload), and we read it here synchronously before mount.
+  isDemoMode: process.argv.includes('--demo-mode'),
   auth,
   config,
   api,

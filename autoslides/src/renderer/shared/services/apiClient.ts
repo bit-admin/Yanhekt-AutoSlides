@@ -1,5 +1,14 @@
 // Type definitions are available globally
 
+import {
+  isDemoMode,
+  demoUser,
+  demoSemesters,
+  demoRecordedCourses,
+  demoLiveCourses,
+  demoCourseInfo,
+} from './demoData'
+
 export interface UserData {
   badge: string;
   nickname: string;
@@ -90,6 +99,7 @@ export interface SemesterOption {
 
 export class ApiClient {
   async verifyToken(token: string): Promise<TokenVerificationResult> {
+    if (isDemoMode()) return { valid: true, userData: demoUser() };
     try {
       return await window.electronAPI.auth.verifyToken(token);
     } catch (error) {
@@ -99,6 +109,7 @@ export class ApiClient {
   }
 
   async getPersonalLiveList(token: string, page = 1, pageSize = 16): Promise<LiveListResponse> {
+    if (isDemoMode()) return demoLiveCourses();
     try {
       return await window.electronAPI.api.getPersonalLiveList(token, page, pageSize);
     } catch (error) {
@@ -108,6 +119,7 @@ export class ApiClient {
   }
 
   async searchLiveList(token: string, keyword: string, page = 1, pageSize = 16): Promise<LiveListResponse> {
+    if (isDemoMode()) return demoLiveCourses();
     try {
       return await window.electronAPI.api.searchLiveList(token, keyword, page, pageSize);
     } catch (error) {
@@ -123,6 +135,7 @@ export class ApiClient {
     pageSize?: number;
     keyword?: string;
   } = {}): Promise<CourseListResponse> {
+    if (isDemoMode()) return demoRecordedCourses();
     try {
       return await window.electronAPI.api.getCourseList(token, options);
     } catch (error) {
@@ -135,6 +148,7 @@ export class ApiClient {
     page?: number;
     pageSize?: number;
   } = {}): Promise<CourseListResponse> {
+    if (isDemoMode()) return demoRecordedCourses();
     try {
       return await window.electronAPI.api.getPersonalCourseList(token, options);
     } catch (error) {
@@ -144,6 +158,7 @@ export class ApiClient {
   }
 
   async getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
+    if (isDemoMode()) return demoCourseInfo(courseId);
     try {
       return await window.electronAPI.api.getCourseInfo(courseId, token);
     } catch (error) {
@@ -153,6 +168,7 @@ export class ApiClient {
   }
 
   async getAvailableSemesters(): Promise<SemesterOption[]> {
+    if (isDemoMode()) return demoSemesters();
     try {
       return await window.electronAPI.api.getAvailableSemesters();
     } catch (error) {

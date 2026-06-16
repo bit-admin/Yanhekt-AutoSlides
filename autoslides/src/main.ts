@@ -53,7 +53,11 @@ const createWindow = () => {
       nodeIntegration: false,
       contextIsolation: true,
       backgroundThrottling: false,
-      webviewTag: true
+      webviewTag: true,
+      // Demo mode flag (npm run demo → DEMO_MODE=1). Passed via argv so the
+      // preload can read it reliably; process.env is not dependable in the
+      // Vite-built preload bundle.
+      ...(process.env.DEMO_MODE === '1' ? { additionalArguments: ['--demo-mode'] } : {})
     }
   });
 
