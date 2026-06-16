@@ -139,6 +139,22 @@ async function main() {
     await shot('home')
   })
 
+  await step('tasklist', async () => {
+    await clickNav(0)
+    await win.locator('.view-switcher .view-tab').nth(0).click() // Task tab
+    await win.waitForSelector('[data-task-id]', { timeout: 6000 })
+    await win.waitForTimeout(500)
+    await shot('tasklist')
+  })
+
+  await step('downloads', async () => {
+    await win.locator('.view-switcher .view-tab').nth(1).click() // Download tab
+    await win.waitForSelector('[data-download-id]', { timeout: 6000 })
+    await win.waitForTimeout(500)
+    await shot('downloads')
+    await win.locator('.view-switcher .view-tab').nth(0).click() // back to Task
+  })
+
   await step('live', async () => {
     await clickNav(1)
     // Scope to the visible mode container — live/recorded are both mounted.
@@ -282,6 +298,8 @@ ${list}
 | File | README step(s) | View |
 |------|----------------|------|
 | home.png | step4 | Home (greeting, saved searches, personal rows) |
+| tasklist.png | step5/F | Task list with fake queued/running/completed items + post-processing |
+| downloads.png | step6.1 | Download queue with fake downloading/completed items + extraction |
 | live.png | step4 | Live course grid (demo live/upcoming/ended) |
 | recorded.png | step5 | Recorded course grid (math courses) |
 | session.png | step5 | Session/lecture list for a course |

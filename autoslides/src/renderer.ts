@@ -47,4 +47,12 @@ if (navigator.userAgent.toLowerCase().includes('mac')) {
 
 const app = createApp(App);
 app.use(i18n);
-loadConfig().then(() => app.mount('#app'));
+loadConfig().then(async () => {
+  // Demo mode: populate the task/download lists with fake items for screenshots.
+  const { isDemoMode } = await import('./renderer/shared/services/demoData');
+  if (isDemoMode()) {
+    const { seedDemoQueues } = await import('./renderer/shared/services/demoSeed');
+    seedDemoQueues();
+  }
+  app.mount('#app');
+});

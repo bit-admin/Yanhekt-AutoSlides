@@ -3,6 +3,7 @@ import { PostProcessingService, type PostProcessJob } from './postProcessingServ
 import { configStore } from './configStore'
 import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
 import { reduceTask, type TaskEvent } from '@shared/orchestration/taskMachine'
+import { isDemoMode } from './demoData'
 
 // How many tasks may run concurrently. Mirrors the main-process clamp (1–10) so
 // a hand-edited config.json above the UI cap of 5 still works for power users.
@@ -148,6 +149,7 @@ class TaskQueueService {
 
   // Start processing queue
   startQueue(): void {
+    if (isDemoMode()) return // demo mode never runs real extraction
     if (this.state.isProcessing) {
       return // Already processing
     }

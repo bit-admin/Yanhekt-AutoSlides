@@ -1,6 +1,7 @@
 import { reactive, ref } from 'vue'
 import { sanitizeDownloadName } from './downloadNaming'
 import { ExtractionQueue } from './extractionQueueService'
+import { isDemoMode } from './demoData'
 
 export type DownloadStatus = 'queued' | 'downloading' | 'processing' | 'completed' | 'error'
 
@@ -186,6 +187,7 @@ class DownloadServiceClass {
   }
 
   private processQueue(): void {
+    if (isDemoMode()) return // demo mode never runs real downloads
     const queuedItems = this.items.filter(item => item.status === 'queued')
     const canStart = this.maxConcurrent.value - this.activeDownloads.size
 
