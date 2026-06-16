@@ -205,6 +205,31 @@ async function main() {
   })
 
   // --- advanced settings modal --------------------------------------------
+  // Settings are always captured as WEB element screenshots cropped to the modal
+  // (no window chrome), and as a "long screenshot": we lift the modal's height /
+  // overflow caps so the full scrollable tab renders, then screenshot the
+  // .modal-content element. The overlay backdrop is made transparent so
+  // omitBackground gives clean rounded corners.
+  const expandModal = () => win.evaluate(() => {
+    const set = (sel, styles) => {
+      const el = document.querySelector(sel)
+      if (el) Object.assign(el.style, styles)
+    }
+    set('.modal-overlay', { background: 'transparent', alignItems: 'flex-start', padding: '0', overflow: 'visible' })
+    set('.modal-content', { maxHeight: 'none', overflow: 'visible', margin: '0' })
+    set('.modal-body', { overflow: 'visible' })
+    set('.advanced-settings-content', { overflow: 'visible', maxHeight: 'none', height: 'auto' })
+  })
+
+  const shotModal = async (name) => {
+    const file = path.join(outDir, `${name}.png`)
+    // captureBeyondViewport (Playwright default for element shots) grabs the full
+    // expanded modal even when it's taller than the window.
+    await win.locator('.modal-content').screenshot({ path: file, omitBackground: true })
+    captured.push(name)
+    console.log(`  ✓ ${name}.png (modal, web)`)
+  }
+
   await step('advanced-settings', async () => {
     // Open via the gear icon in the user banner.
     await clickNav(0)
@@ -222,8 +247,10 @@ async function main() {
     for (const [name, idx] of tabs) {
       try {
         await win.locator('.advanced-tabs .tab-btn').nth(idx).click()
-        await win.waitForTimeout(600)
-        await shot(name)
+        await win.waitForTimeout(400)
+        await expandModal()
+        await win.waitForTimeout(350)
+        await shotModal(name)
       } catch (e) {
         skipped.push(`${name} — ${e.message}`)
         console.warn(`  ⚠ skipped ${name}: ${e.message}`)
@@ -335,8 +362,17 @@ These require **real content** or **manual** capture:
 - **step8.1 / step9 / step10 / step11** — Results View *with extracted slides*. The
   UI shell exists but thumbnails and removed-reason examples need a real extraction.
 - **step0** — extractor install modal (shows a real GitHub release).
-- **Language/theme**: demo mode uses the existing config's language and theme. Set them
-  in Advanced ▸ General before capturing if README shots need a specific locale.
+
+## Notes on specific captures
+
+- **Advanced settings** (\`advanced-*.png\`) are captured as **web element screenshots
+  cropped to the modal** (no window chrome), and as **long screenshots**: the modal's
+  height/overflow caps are temporarily lifted so the whole scrollable tab is in one
+  image, with transparent rounded corners. Crop/trim further as needed.
+- **Defaults**: demo mode boots from an isolated \`AutoSlides-Demo\` userData dir, so all
+  settings show factory **defaults** (and the demo never touches your real profile).
+  Language/theme also follow the demo defaults — change them in Advanced ▸ General first
+  if a README shot needs a specific locale.
 `
   writeFileSync(path.join(outDir, 'NOTES.md'), notes)
   console.log(`  ✓ NOTES.md`)

@@ -25,6 +25,17 @@ import { offlineProcessingService } from '@main/extraction/offlineProcessingServ
 import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
 
+// Demo mode (npm run demo / screenshots): isolate persistence to a separate
+// `AutoSlides-Demo` userData dir so the app boots with fresh defaults and never
+// reads or writes the real profile. Must run BEFORE `new ConfigService()` below,
+// since electron-store resolves its path from userData at construction. We pin
+// the app name first so both `electron-forge start` and the raw `electron`
+// launch used by the screenshot script resolve the same demo dir.
+if (process.env.DEMO_MODE === '1') {
+  app.setName('AutoSlides');
+  app.setPath('userData', app.getPath('userData') + '-Demo');
+}
+
 const configService = new ConfigService();
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
