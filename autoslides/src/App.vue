@@ -52,13 +52,15 @@ import BrowserLoginView from '@renderer/components/settings/BrowserLoginView.vue
 import OnboardingModal from '@renderer/components/settings/OnboardingModal.vue'
 import { useAuth } from '@features/platform/useAuth'
 import { configStore } from '@shared/services/configStore'
+import { isDemoMode } from '@shared/services/demoData'
 
 const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken } = useAuth()
 
 // First-run onboarding. configStore is loaded before app.mount, so the flag is
 // available synchronously here. Existing installs are migrated to "completed"
 // in the main-process ConfigService, so only genuine first runs see the wizard.
-const showOnboarding = ref(!configStore.onboardingCompleted)
+// Demo mode (screenshots) always skips it.
+const showOnboarding = ref(!configStore.onboardingCompleted && !isDemoMode())
 
 const completeOnboarding = () => {
   showOnboarding.value = false

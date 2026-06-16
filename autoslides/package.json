@@ -7,6 +7,8 @@
   "scripts": {
     "start": "electron-forge start",
     "demo": "DEMO_MODE=1 electron-forge start",
+    "screenshots": "node scripts/screenshots.mjs",
+    "screenshots:build": "npm run package && node scripts/screenshots.mjs",
     "package": "electron-forge package",
     "make:mac": "electron-forge package && rm out/AutoSlides-darwin-arm64/LICENSE out/AutoSlides-darwin-arm64/LICENSES.chromium.html out/AutoSlides-darwin-arm64/version && echo \"sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app\" > out/AutoSlides-darwin-arm64/install.command && chmod +x out/AutoSlides-darwin-arm64/install.command && dropdmg --config-name 'AutoSlides 2' out/AutoSlides-darwin-arm64",
     "make:win": "electron-forge package --platform=win32 --arch=x64 && electron-builder --win --config electron-builder.yml --prepackaged out/AutoSlides-win32-x64",
@@ -38,6 +40,7 @@
     "electron-builder": "^26.0.0",
     "eslint": "^9.39.1",
     "eslint-plugin-import": "^2.32.0",
+    "playwright": "^1.61.0",
     "terser": "^5.44.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.1",

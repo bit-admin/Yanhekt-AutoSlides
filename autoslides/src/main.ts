@@ -45,7 +45,10 @@ const createWindow = () => {
     // transparent backgroundColor is required — without it the web contents
     // paint an opaque base layer that hides the vibrancy. Other platforms
     // keep an opaque background.
-    ...(process.platform === 'darwin'
+    // Demo mode (screenshots): force an opaque background. macOS vibrancy is
+    // composited by the OS and is NOT captured by Playwright/capturePage, so a
+    // transparent window would screenshot with a black/transparent sidebar.
+    ...(process.platform === 'darwin' && process.env.DEMO_MODE !== '1'
       ? { vibrancy: 'sidebar' as const, backgroundColor: '#00000000' }
       : { backgroundColor: getWindowBackgroundColor() }),
     webPreferences: {

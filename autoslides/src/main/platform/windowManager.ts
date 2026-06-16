@@ -147,7 +147,9 @@ export class WindowManager {
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: false,
-        contextIsolation: true
+        contextIsolation: true,
+        // Mirror the main window's demo flag so this renderer reports isDemoMode too.
+        ...(process.env.DEMO_MODE === '1' ? { additionalArguments: ['--demo-mode'] } : {})
       }
     });
 
@@ -188,7 +190,9 @@ export class WindowManager {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: false,
         contextIsolation: true,
-        webviewTag: true
+        webviewTag: true,
+        // Mirror the main window's demo flag so this renderer reports isDemoMode too.
+        ...(process.env.DEMO_MODE === '1' ? { additionalArguments: ['--demo-mode'] } : {})
       }
     });
 
