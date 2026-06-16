@@ -11,7 +11,8 @@
 import { _electron as electron } from 'playwright'
 import electronPath from 'electron'
 import { fileURLToPath } from 'node:url'
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, writeFileSync, statSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import path from 'node:path'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -22,6 +23,13 @@ const outDir = path.join(projectRoot, 'out', 'screenshots')  // autoslides/out (
 // Capture tool/add-on windows that read the real filesystem (Results View, PDF
 // Maker) only when explicitly requested — they'd otherwise show real folders.
 const includeFs = process.argv.includes('--include-fs')
+
+// macOS: capture the real native window (traffic lights, rounded corners,
+// drop shadow) via `screencapture -l<windowID>` instead of Playwright's
+// web-contents-only page.screenshot. Needs Screen Recording permission for the
+// terminal running this; falls back to page.screenshot on failure. Disable with
+// --no-chrome.
+const macChrome = process.platform === 'darwin' && !process.argv.includes('--no-chrome')
 
 if (!existsSync(mainEntry)) {
   console.error(`\n✗ Build not found: ${mainEntry}\n  Run "npm run package" first (it produces .vite/), then "npm run screenshots".\n`)
@@ -66,8 +74,36 @@ async function main() {
   }
 
   // --- helpers -------------------------------------------------------------
+  let chromeFailed = false
+
+  // Capture the real native window (incl. traffic lights + shadow) via macOS
+  // screencapture; returns true on success.
+  const captureNativeWindow = async (page, file) => {
+    const bw = await app.browserWindow(page)
+    await bw.evaluate((w) => { if (!w.isVisible()) w.show(); w.focus() })
+    await page.waitForTimeout(300)
+    const sourceId = await bw.evaluate((w) => w.getMediaSourceId()) // "window:<id>:0"
+    const winId = sourceId.split(':')[1]
+    // No -o → include the drop shadow (transparent margins) for a polished look.
+    execFileSync('screencapture', ['-x', `-l${winId}`, file], { stdio: 'ignore' })
+    if (!existsSync(file) || statSync(file).size < 4000) throw new Error('blank/empty capture')
+    return true
+  }
+
   const shot = async (name, page = win) => {
     const file = path.join(outDir, `${name}.png`)
+    if (macChrome && !chromeFailed) {
+      try {
+        await captureNativeWindow(page, file)
+        captured.push(name)
+        console.log(`  ✓ ${name}.png (native)`)
+        return
+      } catch (e) {
+        chromeFailed = true
+        console.warn(`  ⚠ native capture failed (${e.message}); falling back to page screenshots.`)
+        console.warn('    Grant Screen Recording permission to your terminal to capture window chrome.')
+      }
+    }
     await page.screenshot({ path: file })
     captured.push(name)
     console.log(`  ✓ ${name}.png`)
