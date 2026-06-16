@@ -31,6 +31,22 @@ export function demoUser(): UserData {
   }
 }
 
+// Greeting name. The real greeting reads config.userDisplayName /
+// userOriginalNickname (persisted from the real account) — in demo mode that
+// would leak the real student's name, so useGreeting substitutes this instead.
+export const DEMO_DISPLAY_NAME = 'Kate'
+
+// Home page "Saved Courses" cards. The real values live in
+// config.savedSearchesLive / savedSearchesRecorded, but demo mode loads the
+// real (possibly empty) config, so savedSearches.ts short-circuits to these.
+export function demoSavedSearchesLive(): string[] {
+  return ['Functional Analysis', 'Complex Analysis']
+}
+
+export function demoSavedSearchesRecorded(): string[] {
+  return ['Real Analysis', 'Abstract Algebra', 'Topology']
+}
+
 export function demoSemesters(): SemesterOption[] {
   return [
     { id: 1, label: '2024-2025 Fall', labelEn: '2024-2025 Fall', schoolYear: 2024, semester: 1 },

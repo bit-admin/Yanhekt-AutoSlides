@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { configStore } from '@shared/services/configStore'
+import { isDemoMode, DEMO_DISPLAY_NAME } from '@shared/services/demoData'
 
 type GreetingCategory =
   | 'general'
@@ -313,6 +314,13 @@ export function useGreeting() {
         const config = configStore
         const systemLocale = (navigator.language || locale.value || 'en').toLowerCase()
         const preferredLanguage = resolveGreetingLanguage(config.languageMode, systemLocale)
+
+        // Demo mode: don't roll a random greeting (and never leak the real name
+        // from config or persist anything back). Return one fixed, deterministic
+        // greeting with the fabricated demo name so screenshots are stable.
+        if (isDemoMode()) {
+          return `What's on your mind, ${DEMO_DISPLAY_NAME}?`
+        }
 
         if (!config.lastGreetingId) {
           window.electronAPI.config.setLastGreetingId('welcome_auto')
