@@ -191,6 +191,19 @@ async function main() {
     await shot('playback')
   })
 
+  // Single-stream "Screen recording" view with the populated slide gallery.
+  await step('playback-screen', async () => {
+    // Continue from the playback step (dual view is up). Switch the stream
+    // selector to the screen recording → single-stream view reveals the gallery.
+    await win.locator('.stream-selector select').selectOption('screen')
+    await win.waitForSelector('.slide-gallery .gallery-grid .slide-thumbnail', { timeout: 8000 })
+    await win.waitForTimeout(800)
+    // Bring the gallery into view (it sits below the video in the window).
+    await win.locator('.slide-gallery').scrollIntoViewIfNeeded().catch(() => {})
+    await win.waitForTimeout(500)
+    await shot('playback-screen')
+  })
+
   await step('search', async () => {
     const input = win.locator('.nav-search-input')
     await input.click()
@@ -386,6 +399,7 @@ ${list}
 | recorded.png | step5 | Recorded course grid (math courses) |
 | session.png | step5 | Session/lecture list for a course |
 | playback.png | step5.1 | Dual-stream playback — fake math screen + illustrated camera |
+| playback-screen.png | step6 | Screen-recording (single stream) view with the populated slide gallery |
 | search.png | — | Search results |
 | advanced-general.png | step14 | Advanced ▸ General |
 | advanced-image.png | step15–17 | Advanced ▸ Image Processing (SSIM, pHash, autocrop) |
@@ -411,8 +425,10 @@ These require **real content** or **manual** capture:
   login page cannot be faked.
 - **step5.1** — dual-stream playback. \`playback.png\` shows a demo version (fake math
   screen + illustrated camera via video posters). The video does not actually play.
-- **step6** — live slide extraction in the player + the slide preview gallery. Needs a
-  real video + a real extraction run (the gallery is also hidden in dual-stream view).
+- **step6** — the slide gallery itself is now shown in \`playback-screen.png\` (the
+  screen-recording view, seeded with fabricated slides). What still needs a real video
+  is live extraction *running during playback* (progress/SSIM indicators while the video
+  actually plays).
 - **step6.1** — auto-extract on download (C++ extractor). Needs a real download +
   installed AutoSlides Extractor.
 - **step0** — extractor install modal (shows a real GitHub release).

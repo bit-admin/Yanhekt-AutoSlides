@@ -500,7 +500,7 @@ import SlideGallery from './SlideGallery.vue'
 import PreviewModal from './PreviewModal.vue'
 import DualStreamControls from './DualStreamControls.vue'
 import { fromPlaybackStatus } from '@shared/postProcessing/displayAdapter'
-import { isDemoMode, demoPosterDataUri } from '@shared/services/demoData'
+import { isDemoMode, demoPosterDataUri, demoGallerySlides } from '@shared/services/demoData'
 
 // Props
 const props = defineProps<{
@@ -1017,6 +1017,17 @@ watch(isScreenRecordingSelected, (isScreenRecording) => {
       slideExtraction.slideExtractorInstance.value.stop()
     }
     slideExtraction.slideExtractionStatus.value.isRunning = false
+  }
+
+  // Demo mode: entering the screen-recording view enables extraction and seeds
+  // the gallery with fabricated slides (seeded once). Done here rather than on
+  // mount so the isDualStreamSelected watcher doesn't disable it (demo starts in
+  // dual view). No real extraction runs — the demo video never plays.
+  if (isScreenRecording && isDemoMode()) {
+    slideExtraction.isSlideExtractionEnabled.value = true
+    if (extractedSlides.value.length === 0) {
+      extractedSlides.value = demoGallerySlides()
+    }
   }
 })
 

@@ -370,6 +370,30 @@ export function demoResultImageDataUri(item: { reason?: string; name?: string })
   return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
 
+// Fake extracted slides for the playback-page slide gallery (the screen-recording
+// view). Reuses the slide SVGs. `timestamp` is an ISO string (the gallery renders
+// it via formatSlideTime → toLocaleTimeString). `imageData` is a throwaway
+// placeholder — the gallery shows `dataUrl`; imageData only matters to real
+// extraction/post-processing, which never runs in demo mode.
+export function demoGallerySlides(): Array<{
+  id: string
+  title: string
+  timestamp: string
+  imageData: ImageData
+  dataUrl: string
+  aiDecision: 'slide'
+}> {
+  const placeholder = new ImageData(2, 2)
+  return SLIDE_TITLES.map(([title, page], i) => ({
+    id: `demo-slide-${i + 1}`,
+    title,
+    timestamp: isoAt(0, 10, 6 + i * 7),
+    imageData: placeholder,
+    dataUrl: `data:image/svg+xml,${encodeURIComponent(slideSvg(title, page))}`,
+    aiDecision: 'slide' as const,
+  }))
+}
+
 // Folder list. Clean English names grouped by course via the "<course> - Lecture N"
 // form that parseSessionInfo()/getCourseName() understand (no underscores / Chinese
 // session suffix — cleaner for screenshots). The first folder is the "rich" one
