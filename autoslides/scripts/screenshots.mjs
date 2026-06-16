@@ -256,6 +256,23 @@ async function main() {
         console.warn(`  ⚠ skipped ${name}: ${e.message}`)
       }
     }
+
+    // The AI tab has two classifier modes — advanced-ai.png above is LLM (the
+    // default); also capture the ML variant. The classifier-mode toggle is the
+    // first .ai-service-type-selector; its 2nd .mode-btn is "ML".
+    try {
+      await win.locator('.advanced-tabs .tab-btn').nth(4).click() // AI tab
+      await win.waitForTimeout(300)
+      await win.locator('.ai-service-type-selector').first().locator('.mode-btn').nth(1).click()
+      await win.waitForTimeout(400)
+      await expandModal()
+      await win.waitForTimeout(350)
+      await shotModal('advanced-ai-ml')
+    } catch (e) {
+      skipped.push(`advanced-ai-ml — ${e.message}`)
+      console.warn(`  ⚠ skipped advanced-ai-ml: ${e.message}`)
+    }
+
     // Close the modal so it doesn't overlay later windows.
     await win.keyboard.press('Escape').catch(() => {})
   })
@@ -336,7 +353,8 @@ ${list}
 | advanced-image.png | step15–17 | Advanced ▸ Image Processing (SSIM, pHash, autocrop) |
 | advanced-playback.png | step18 | Advanced ▸ Playback & Download |
 | advanced-network.png | step18.1 | Advanced ▸ Network |
-| advanced-ai.png | step3, step19 | Advanced ▸ AI |
+| advanced-ai.png | step3, step19 | Advanced ▸ AI (LLM classifier mode) |
+| advanced-ai-ml.png | step3, step19 | Advanced ▸ AI (ML classifier mode) |
 | tools-offline.png | step20 | Tools ▸ Offline Processing |
 | tools-compress.png | step21 | Tools ▸ Compress Lecture |
 | addons-yuketang.png | step22 | Add-ons ▸ Yuketang |
