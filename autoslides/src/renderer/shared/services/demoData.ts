@@ -188,3 +188,51 @@ export function demoCourseInfo(courseId: string): CourseInfoResponse {
     videos,
   }
 }
+
+// --- Fake playback surfaces ------------------------------------------------
+// The demo player has no real video. We paint these SVGs onto the <video>
+// poster so the playback page looks like a live screen-share (math solution)
+// next to a camera feed (an illustrated lecturer).
+
+const SCREEN_POSTER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#fbfbf9"/>
+  <rect width="1280" height="92" fill="#1f2937"/>
+  <text x="56" y="59" font-family="Georgia, serif" font-size="34" fill="#ffffff">Functional Analysis · Lecture 12</text>
+  <text x="1224" y="59" text-anchor="end" font-family="Georgia, serif" font-size="22" fill="#9ca3af">Spectral Theory</text>
+  <text x="56" y="178" font-family="Georgia, serif" font-size="40" fill="#111827">Spectral Theorem (compact, self-adjoint)</text>
+  <line x1="56" y1="198" x2="742" y2="198" stroke="#2563eb" stroke-width="4"/>
+  <text x="56" y="278" font-family="Georgia, serif" font-size="30" fill="#374151">Let  T : H → H  be compact and self-adjoint.</text>
+  <text x="56" y="346" font-family="Georgia, serif" font-size="30" fill="#374151">∃ orthonormal basis  {eₙ}  with   T eₙ = λₙ eₙ ,   λₙ ∈ ℝ</text>
+  <text x="56" y="414" font-family="Georgia, serif" font-size="30" fill="#374151">Eigenvalues accumulate only at 0:    λₙ → 0</text>
+  <text x="56" y="500" font-family="Georgia, serif" font-size="30" fill="#374151">Spectral decomposition, for every  x ∈ H :</text>
+  <text x="120" y="572" font-family="Georgia, serif" font-size="38" fill="#1d4ed8">T x  =  Σₙ λₙ ⟨x, eₙ⟩ eₙ</text>
+  <text x="56" y="654" font-family="Georgia, serif" font-size="30" fill="#374151">Operator norm:    ‖T‖ = supₙ |λₙ| = max |λₙ|</text>
+</svg>`
+
+const CAMERA_POSTER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#eef2ff"/><stop offset="1" stop-color="#dbe2ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="720" fill="url(#bg)"/>
+  <rect x="150" y="64" width="980" height="356" rx="14" fill="#13524a"/>
+  <rect x="150" y="64" width="980" height="356" rx="14" fill="none" stroke="#0e3f39" stroke-width="10"/>
+  <text x="196" y="150" font-family="Georgia, serif" font-size="40" fill="#a7d3c9" opacity="0.75">‖Tx‖ ≤ ‖T‖·‖x‖</text>
+  <text x="196" y="232" font-family="Georgia, serif" font-size="40" fill="#a7d3c9" opacity="0.6">⟨x, eₙ⟩</text>
+  <line x1="196" y1="300" x2="540" y2="300" stroke="#a7d3c9" stroke-width="4" opacity="0.5"/>
+  <rect x="0" y="600" width="1280" height="120" fill="#c4ccf5"/>
+  <ellipse cx="640" cy="780" rx="240" ry="190" fill="#3b5bdb"/>
+  <path d="M600 628 h80 l-12 70 h-56 z" fill="#dbe2ff" opacity="0.5"/>
+  <rect x="612" y="468" width="56" height="80" rx="20" fill="#f1c6a7"/>
+  <circle cx="640" cy="414" r="86" fill="#2f2620"/>
+  <circle cx="640" cy="424" r="78" fill="#f3c9a9"/>
+  <circle cx="616" cy="416" r="7" fill="#2b2b2b"/>
+  <circle cx="664" cy="416" r="7" fill="#2b2b2b"/>
+  <path d="M614 452 q26 22 52 0" stroke="#c08457" stroke-width="5" fill="none" stroke-linecap="round"/>
+</svg>`
+
+export function demoPosterDataUri(kind: 'screen' | 'camera'): string {
+  const svg = kind === 'screen' ? SCREEN_POSTER_SVG : CAMERA_POSTER_SVG
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}

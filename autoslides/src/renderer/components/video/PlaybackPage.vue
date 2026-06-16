@@ -173,6 +173,7 @@
             controls
             controlslist="noplaybackrate"
             preload="metadata"
+            :poster="isDemoMode() ? demoPosterDataUri(isScreenRecordingSelected ? 'screen' : 'camera') : undefined"
             @error="onVideoError"
             @canplay="onCanPlay"
             @ended="onEnded"
@@ -212,6 +213,7 @@
                   class="dual-video-player"
                   preload="metadata"
                   playsinline
+                  :poster="isDemoMode() ? demoPosterDataUri('camera') : undefined"
                   @timeupdate="onDualTimeUpdate"
                   @play="handleDualPlayStateChanged"
                   @pause="handleDualPlayStateChanged"
@@ -228,6 +230,7 @@
                   class="dual-video-player"
                   preload="metadata"
                   playsinline
+                  :poster="isDemoMode() ? demoPosterDataUri('screen') : undefined"
                   @timeupdate="onDualTimeUpdate"
                   @play="handleDualPlayStateChanged"
                   @pause="handleDualPlayStateChanged"
@@ -497,6 +500,7 @@ import SlideGallery from './SlideGallery.vue'
 import PreviewModal from './PreviewModal.vue'
 import DualStreamControls from './DualStreamControls.vue'
 import { fromPlaybackStatus } from '@shared/postProcessing/displayAdapter'
+import { isDemoMode, demoPosterDataUri } from '@shared/services/demoData'
 
 // Props
 const props = defineProps<{

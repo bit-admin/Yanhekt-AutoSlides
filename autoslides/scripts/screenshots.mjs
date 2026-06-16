@@ -164,6 +164,21 @@ async function main() {
     await shot('session')
   })
 
+  await step('playback', async () => {
+    // Recorded → (open a course if on the grid) → play first session → dual demo.
+    await clickNav(2)
+    await win.waitForTimeout(600)
+    const card = win.locator('[data-mode="recorded"] .course-card').first()
+    if (await card.isVisible().catch(() => false)) {
+      await card.click()
+    }
+    await win.waitForSelector('.session-item', { timeout: 8000 })
+    await win.locator('.session-item').first().click()
+    await win.waitForSelector('.video-content', { timeout: 12000 })
+    await win.waitForTimeout(1500)
+    await shot('playback')
+  })
+
   await step('search', async () => {
     const input = win.locator('.nav-search-input')
     await input.click()
@@ -270,6 +285,7 @@ ${list}
 | live.png | step4 | Live course grid (demo live/upcoming/ended) |
 | recorded.png | step5 | Recorded course grid (math courses) |
 | session.png | step5 | Session/lecture list for a course |
+| playback.png | step5.1 | Dual-stream playback — fake math screen + illustrated camera |
 | search.png | — | Search results |
 | advanced-general.png | step14 | Advanced ▸ General |
 | advanced-image.png | step15–17 | Advanced ▸ Image Processing (SSIM, pHash, autocrop) |
@@ -292,10 +308,10 @@ These require **real content** or **manual** capture:
   (README: step7, step8, step8.1, step9, step10, step11, step13.)
 - **step1** — login / browser SSO. Demo mode auto-logs-in and skips it; the real BIT
   login page cannot be faked.
-- **step5.1** — dual-stream playback (camera + screen). Needs a **real playable video**;
-  demo session URLs are placeholders and will not play.
-- **step6** — live slide extraction in the player. Needs a real video + a real
-  extraction run.
+- **step5.1** — dual-stream playback. \`playback.png\` shows a demo version (fake math
+  screen + illustrated camera via video posters). The video does not actually play.
+- **step6** — live slide extraction in the player + the slide preview gallery. Needs a
+  real video + a real extraction run (the gallery is also hidden in dual-stream view).
 - **step6.1** — auto-extract on download (C++ extractor). Needs a real download +
   installed AutoSlides Extractor.
 - **step8.1 / step9 / step10 / step11** — Results View *with extracted slides*. The

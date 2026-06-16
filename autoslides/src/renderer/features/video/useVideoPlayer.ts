@@ -7,6 +7,7 @@ import { createFatalErrorReporter, createSingleStreamHlsErrorHandler } from './u
 import { useDualStreamPlayer } from './useDualStreamPlayer'
 import { applyPlaybackRate, applyMute } from './singleStreamPlayback'
 import { configStore } from '@shared/services/configStore'
+import { isDemoMode } from '@shared/services/demoData'
 
 export const DUAL_STREAM_KEY = '__dual__'
 export type DualAudioSource = 'screen' | 'camera'
@@ -347,6 +348,23 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       loading.value = true
       error.value = null
 
+      // Demo mode: fabricate a dual-stream playback (camera + screen) with no
+      // real URLs. The <video> elements stay sourceless and show demo posters;
+      // loadVideoSource is skipped so no HLS load is attempted.
+      if (isDemoMode()) {
+        playbackData.value = {
+          title: session.value?.title || 'Demo Lecture',
+          duration: '5400',
+          streams: {
+            camera: { type: 'camera', name: 'Camera', url: '', original_url: '' },
+            screen: { type: 'screen', name: 'Screen', url: '', original_url: '' },
+          },
+        }
+        selectedStream.value = DUAL_STREAM_KEY
+        loading.value = false
+        return
+      }
+
       const token = tokenManager.getToken()
       if (!token) {
         throw new Error('Authentication token not found')
@@ -393,6 +411,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   }
 
   const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?: boolean) => {
+    if (isDemoMode()) return // demo posters only — never load a real source
     if (!videoPlayer.value || !currentStreamData.value) {
       return
     }
@@ -482,6 +501,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   }
 
   const loadVideoSource = async () => {
+    if (isDemoMode()) return // demo posters only — never load a real source
     if (!videoPlayer.value || !currentStreamData.value) {
       return
     }
