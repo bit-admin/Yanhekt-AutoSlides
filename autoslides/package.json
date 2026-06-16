@@ -8,6 +8,7 @@
     "start": "electron-forge start",
     "demo": "DEMO_MODE=1 electron-forge start",
     "screenshots": "node scripts/screenshots.mjs",
+    "screenshots:web": "node scripts/screenshots.mjs --no-native",
     "screenshots:build": "npm run package && node scripts/screenshots.mjs",
     "package": "electron-forge package",
     "make:mac": "electron-forge package && rm out/AutoSlides-darwin-arm64/LICENSE out/AutoSlides-darwin-arm64/LICENSES.chromium.html out/AutoSlides-darwin-arm64/version && echo \"sudo xattr -d com.apple.quarantine /Applications/AutoSlides.app\" > out/AutoSlides-darwin-arm64/install.command && chmod +x out/AutoSlides-darwin-arm64/install.command && dropdmg --config-name 'AutoSlides 2' out/AutoSlides-darwin-arm64",

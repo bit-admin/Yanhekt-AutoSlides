@@ -24,12 +24,20 @@ const outDir = path.join(projectRoot, 'out', 'screenshots')  // autoslides/out (
 // Maker) only when explicitly requested — they'd otherwise show real folders.
 const includeFs = process.argv.includes('--include-fs')
 
-// macOS: capture the real native window (traffic lights, rounded corners,
-// drop shadow) via `screencapture -l<windowID>` instead of Playwright's
-// web-contents-only page.screenshot. Needs Screen Recording permission for the
-// terminal running this; falls back to page.screenshot on failure. Disable with
-// --no-chrome.
-const macChrome = process.platform === 'darwin' && !process.argv.includes('--no-chrome')
+// Capture mode:
+//   native  — macOS only. Captures the real window (traffic lights, rounded
+//             corners, drop shadow) via `screencapture -l<windowID>`. Needs
+//             Screen Recording permission; falls back to web mode on failure.
+//   web     — Playwright page.screenshot (web contents only, no window chrome).
+// Default: native on macOS, web elsewhere. Override with --native / --no-native
+// (--no-chrome is kept as an alias for --no-native).
+const forceNative = process.argv.includes('--native')
+const forceWeb = process.argv.includes('--no-native') || process.argv.includes('--no-chrome')
+if (forceNative && process.platform !== 'darwin') {
+  console.warn('  ⚠ --native is macOS-only; using web capture on this platform.')
+}
+const macChrome = process.platform === 'darwin' && !forceWeb // native unless explicitly disabled
+console.log(`  capture mode: ${macChrome ? 'native (macOS window chrome)' : 'web (page contents)'}`)
 
 if (!existsSync(mainEntry)) {
   console.error(`\n✗ Build not found: ${mainEntry}\n  Run "npm run package" first (it produces .vite/), then "npm run screenshots".\n`)
