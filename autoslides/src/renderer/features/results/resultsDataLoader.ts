@@ -4,6 +4,13 @@
 // are read or written here — the caller owns reactive state.
 
 import { compareToolFolders, compareToolImages } from '@shared/utils/toolWindowFolders';
+import {
+  isDemoMode,
+  demoResultFolders,
+  demoResultImages,
+  demoTrashEntries,
+  demoCropEntries,
+} from '@shared/services/demoData';
 import type {
   CropEntry,
   RemovedEntry,
@@ -19,6 +26,16 @@ export interface ResultsDataIO {
 }
 
 export function createResultsDataIO(): ResultsDataIO {
+  if (isDemoMode()) {
+    // Demo mode: serve fabricated folders/images/trash/crop instead of reading
+    // the real output directory. Shapes match structurally; cast the typed ones.
+    return {
+      getFolders: async () => demoResultFolders(),
+      getImages: async (folderPath) => demoResultImages(folderPath),
+      getTrashEntries: async () => demoTrashEntries() as RemovedEntry[],
+      getCropEntries: async () => demoCropEntries() as CropEntry[],
+    };
+  }
   return {
     getFolders: () => window.electronAPI.pdfmaker.getFolders(),
     getImages: (folderPath) => window.electronAPI.pdfmaker.getImages(folderPath),

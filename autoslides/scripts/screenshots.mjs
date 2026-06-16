@@ -20,10 +20,6 @@ const projectRoot = path.resolve(__dirname, '..')        // autoslides/
 const mainEntry = path.join(projectRoot, '.vite', 'build', 'main.js')
 const outDir = path.join(projectRoot, 'out', 'screenshots')  // autoslides/out (gitignored)
 
-// Capture tool/add-on windows that read the real filesystem (Results View, PDF
-// Maker) only when explicitly requested — they'd otherwise show real folders.
-const includeFs = process.argv.includes('--include-fs')
-
 // Capture mode:
 //   native  — macOS only. Captures the real window (traffic lights, rounded
 //             corners, drop shadow) via `screencapture -l<windowID>`. Needs
@@ -309,12 +305,54 @@ async function main() {
   await step('addons-webcapture', () =>
     captureChildWindow(() => window.electronAPI.addons.openWindow('webcapture'), 'addons-webcapture', '.toolwin-tabs'))
 
-  if (includeFs) {
-    await step('tools-results', () =>
-      captureChildWindow(() => window.electronAPI.tools.openWindow('trash'), 'tools-results', '.toolwin-tabs'))
-    await step('tools-pdfmaker', () =>
-      captureChildWindow(() => window.electronAPI.tools.openWindow('pdfmaker'), 'tools-pdfmaker', '.toolwin-tabs'))
+  // Open a child window and return its handle (without capturing/closing it),
+  // so multi-step flows (Results View) can drive it across several screenshots.
+  const openChildWindow = async (openExpr, readySelector) => {
+    const child = await Promise.all([
+      app.waitForEvent('window'),
+      win.evaluate(openExpr),
+    ]).then(([w]) => w)
+    await child.waitForLoadState('domcontentloaded')
+    try {
+      const bw = await app.browserWindow(child)
+      await bw.evaluate((w) => { w.setContentSize(1280, 860); w.center() })
+    } catch { /* best effort */ }
+    if (readySelector) await child.waitForSelector(readySelector, { timeout: 8000 }).catch(() => {})
+    await child.waitForTimeout(800)
+    return child
   }
+
+  // Results View (trash tab): folder list → image grid → may_be_slide_edit
+  // preview → crop mode (demo data; reads no real files).
+  await step('results', async () => {
+    const child = await openChildWindow(() => window.electronAPI.tools.openWindow('trash'), '.folder-list')
+    await shot('results-folders', child)
+
+    // Open the "rich" folder (Functional Analysis week 9 sorts before week 10).
+    await child.locator('.folder-item', { hasText: 'Functional Analysis' }).first().click()
+    await child.waitForSelector('.results-grid', { timeout: 8000 })
+    await child.waitForTimeout(700)
+    await shot('results-grid', child)
+
+    // Open the may_be_slide_edit item's preview, then enter crop mode.
+    const editItem = child.locator('.result-item:has(.reason-ai_filtered_edit)').first()
+    await editItem.locator('.item-preview-btn').click()
+    await child.waitForSelector('.preview-modal', { timeout: 8000 })
+    await child.waitForTimeout(500)
+    await shot('results-preview', child)
+
+    await child.locator('.preview-actions .preview-action-btn').first().click() // Crop
+    await child.waitForSelector('.crop-selection', { timeout: 8000 })
+    await child.waitForTimeout(500)
+    await shot('results-crop', child)
+
+    await child.close().catch(() => {})
+    await win.waitForTimeout(400)
+  })
+
+  // PDF Maker (slides export): grouped folder list with image counts.
+  await step('pdfmaker', () =>
+    captureChildWindow(() => window.electronAPI.tools.openWindow('pdfmaker'), 'pdfmaker', '.folder-list'))
 
   await app.close()
   writeNotes()
@@ -355,6 +393,11 @@ ${list}
 | advanced-network.png | step18.1 | Advanced ▸ Network |
 | advanced-ai.png | step3, step19 | Advanced ▸ AI (LLM classifier mode) |
 | advanced-ai-ml.png | step3, step19 | Advanced ▸ AI (ML classifier mode) |
+| results-folders.png | step7 | Results View — folder list grouped by course |
+| results-grid.png | step8, step8.1 | Results View — image grid (slides + NO SIGNAL not_slide + ppt-edit + a Cropped badge) |
+| results-preview.png | step9 | Results View — may_be_slide_edit detail (PowerPoint edit view) |
+| results-crop.png | step10, step11 | Results View — crop mode, box framing the slide inside the edit view |
+| pdfmaker.png | step13 | PDF Maker (slides export) — grouped folders with counts |
 | tools-offline.png | step20 | Tools ▸ Offline Processing |
 | tools-compress.png | step21 | Tools ▸ Compress Lecture |
 | addons-yuketang.png | step22 | Add-ons ▸ Yuketang |
@@ -364,11 +407,6 @@ ${list}
 
 These require **real content** or **manual** capture:
 
-- **Results View & PDF Maker** (\`tools-results\`, \`tools-pdfmaker\`) read the **real
-  output directory** on disk — demo mode does not fake the filesystem, so they show
-  your real folder names. They are captured only with \`node scripts/screenshots.mjs --include-fs\`.
-  Point the output directory at an empty/staged folder first, or capture manually.
-  (README: step7, step8, step8.1, step9, step10, step11, step13.)
 - **step1** — login / browser SSO. Demo mode auto-logs-in and skips it; the real BIT
   login page cannot be faked.
 - **step5.1** — dual-stream playback. \`playback.png\` shows a demo version (fake math
@@ -377,8 +415,6 @@ These require **real content** or **manual** capture:
   real video + a real extraction run (the gallery is also hidden in dual-stream view).
 - **step6.1** — auto-extract on download (C++ extractor). Needs a real download +
   installed AutoSlides Extractor.
-- **step8.1 / step9 / step10 / step11** — Results View *with extracted slides*. The
-  UI shell exists but thumbnails and removed-reason examples need a real extraction.
 - **step0** — extractor install modal (shows a real GitHub release).
 
 ## Notes on specific captures
@@ -391,6 +427,10 @@ These require **real content** or **manual** capture:
   settings show factory **defaults** (and the demo never touches your real profile).
   Language/theme also follow the demo defaults — change them in Advanced ▸ General first
   if a README shot needs a specific locale.
+- **Results View & PDF Maker** (\`results-*.png\`, \`pdfmaker.png\`) use **fabricated**
+  folders/slides drawn as SVGs — they read **no real files**. The slides, the NO SIGNAL
+  not_slide, the PowerPoint-edit may_be_slide_edit frame, and the seeded crop box are all
+  synthetic demo content.
 `
   writeFileSync(path.join(outDir, 'NOTES.md'), notes)
   console.log(`  ✓ NOTES.md`)

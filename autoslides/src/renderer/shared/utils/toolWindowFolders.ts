@@ -20,22 +20,33 @@ interface ParsedSessionInfo {
 
 /**
  * Parse session info from folder name.
- * Pattern: slides_<courseName>_第N周_星期X_第N大节
+ * Primary pattern (BIT downloads): slides_<courseName>_第N周_星期X_第N大节
+ * English fallback (English-named courses, incl. demo mode): "<courseName> - Lecture N"
  * Note: courseName may contain underscores.
  */
 export function parseSessionInfo(folderName: string): ParsedSessionInfo | null {
   const name = folderName.startsWith('slides_') ? folderName.slice(7) : folderName
+
   const sessionPattern = /^(.+)_第(\d+)周_星期([一二三四五六日])_第(\d+)大节$/
   const match = name.match(sessionPattern)
-
-  if (!match) return null
-
-  return {
-    courseName: match[1],
-    week: parseInt(match[2], 10),
-    weekday: WEEKDAY_ORDER[match[3]] || 0,
-    session: parseInt(match[4], 10),
+  if (match) {
+    return {
+      courseName: match[1],
+      week: parseInt(match[2], 10),
+      weekday: WEEKDAY_ORDER[match[3]] || 0,
+      session: parseInt(match[4], 10),
+    }
   }
+
+  // English session form: groups by course and orders by lecture number.
+  const englishPattern = /^(.+) - Lecture (\d+)$/
+  const englishMatch = name.match(englishPattern)
+  if (englishMatch) {
+    const lecture = parseInt(englishMatch[2], 10)
+    return { courseName: englishMatch[1], week: lecture, weekday: 0, session: lecture }
+  }
+
+  return null
 }
 
 /**

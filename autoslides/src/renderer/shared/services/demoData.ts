@@ -252,3 +252,210 @@ export function demoPosterDataUri(kind: 'screen' | 'camera'): string {
   const svg = kind === 'screen' ? SCREEN_POSTER_SVG : CAMERA_POSTER_SVG
   return `data:image/svg+xml,${encodeURIComponent(svg)}`
 }
+
+// --- Fake Results View / PDF Maker content ---------------------------------
+// Demo mode also fakes the tools-window Results View (trash tab) and PDF Maker
+// so screenshots show believable extracted slides without reading the real
+// output directory. The renderer read sites (resultsDataLoader, useResultsView,
+// useCropEditor, usePdfMaker) short-circuit to the factories below.
+//
+// Slides are drawn as SVGs (like the playback posters). Each SVG declares an
+// explicit width/height so an <img> loading it reports a reliable
+// naturalWidth/Height (1280×720) — the crop editor needs that for its math.
+
+// Inner slide-canvas rect inside powerpointEditSvg(), in the 1280×720 space.
+// Seeds the crop box so it frames the actual slide inside the PowerPoint chrome.
+export const DEMO_EDIT_SLIDE_RECT = { x: 320, y: 150, width: 760, height: 470 }
+
+const DEMO_OUTPUT_ROOT = '~/Downloads/AutoSlides'
+
+function slideSvg(title: string, page: string): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#fbfbf9"/>
+  <rect width="1280" height="92" fill="#1f2937"/>
+  <text x="56" y="59" font-family="Georgia, serif" font-size="32" fill="#ffffff">Functional Analysis · Lecture 9</text>
+  <text x="1224" y="59" text-anchor="end" font-family="Georgia, serif" font-size="22" fill="#9ca3af">${page}</text>
+  <text x="56" y="184" font-family="Georgia, serif" font-size="44" fill="#111827">${title}</text>
+  <line x1="56" y1="206" x2="720" y2="206" stroke="#2563eb" stroke-width="4"/>
+  <text x="56" y="296" font-family="Georgia, serif" font-size="30" fill="#374151">Let  T : H → H  be a bounded linear operator.</text>
+  <text x="56" y="364" font-family="Georgia, serif" font-size="30" fill="#374151">For all  x, y ∈ H :   ⟨T x, y⟩ = ⟨x, T* y⟩</text>
+  <text x="56" y="432" font-family="Georgia, serif" font-size="30" fill="#374151">If  T = T*,  then  T  is self-adjoint.</text>
+  <text x="120" y="540" font-family="Georgia, serif" font-size="38" fill="#1d4ed8">‖T‖ = sup₍‖x‖=1₎ ‖T x‖</text>
+  <text x="56" y="628" font-family="Georgia, serif" font-size="26" fill="#6b7280">Spectrum  σ(T) ⊂ { λ : |λ| ≤ ‖T‖ }</text>
+</svg>`
+}
+
+const SLIDE_TITLES: Array<[string, string]> = [
+  ['Bounded Linear Operators', '3 / 14'],
+  ['The Adjoint Operator', '5 / 14'],
+  ['Self-Adjoint Operators', '7 / 14'],
+  ['The Spectrum σ(T)', '9 / 14'],
+  ['Compact Operators', '11 / 14'],
+  ['Orthonormal Bases', '13 / 14'],
+]
+
+function slideByName(name: string): string {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
+  const [title, page] = SLIDE_TITLES[h % SLIDE_TITLES.length]
+  return slideSvg(title, page)
+}
+
+// A non-slide frame: a projector/HDMI "NO SIGNAL" screen (faint colour bars).
+function noSignalSvg(): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#0b0f17"/>
+  <g opacity="0.16">
+    <rect x="0" y="0" width="160" height="720" fill="#c0392b"/>
+    <rect x="160" y="0" width="160" height="720" fill="#e67e22"/>
+    <rect x="320" y="0" width="160" height="720" fill="#f1c40f"/>
+    <rect x="480" y="0" width="160" height="720" fill="#2ecc71"/>
+    <rect x="640" y="0" width="160" height="720" fill="#1ab9c4"/>
+    <rect x="800" y="0" width="160" height="720" fill="#3498db"/>
+    <rect x="960" y="0" width="160" height="720" fill="#9b59b6"/>
+    <rect x="1120" y="0" width="160" height="720" fill="#7f8c8d"/>
+  </g>
+  <text x="640" y="372" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="88" font-weight="bold" fill="#e5e7eb" letter-spacing="8">NO SIGNAL</text>
+  <text x="640" y="430" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="28" fill="#9ca3af">Check input source · HDMI 1</text>
+</svg>`
+}
+
+// A slide shown inside PowerPoint's edit view (ribbon + thumbnail rail + the
+// white slide canvas at DEMO_EDIT_SLIDE_RECT) — the may_be_slide_edit case.
+function powerpointEditSvg(): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#f3f3f3"/>
+  <rect x="0" y="0" width="1280" height="34" fill="#b7472a"/>
+  <text x="640" y="23" text-anchor="middle" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="15" fill="#ffffff">Lecture 09 — Functional Analysis.pptx  ·  PowerPoint</text>
+  <rect x="0" y="34" width="1280" height="28" fill="#c75b3f"/>
+  <text x="20" y="53" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#ffe9e2">File   Home   Insert   Draw   Design   Transitions   Animations   Slide Show   Review   View</text>
+  <rect x="0" y="62" width="1280" height="74" fill="#efefef"/>
+  <g fill="#cfcfcf">
+    <rect x="20" y="78" width="44" height="44" rx="4"/>
+    <rect x="80" y="78" width="44" height="44" rx="4"/>
+    <rect x="140" y="78" width="30" height="44" rx="4"/>
+    <rect x="186" y="78" width="30" height="44" rx="4"/>
+    <rect x="232" y="78" width="30" height="44" rx="4"/>
+  </g>
+  <line x1="0" y1="136" x2="1280" y2="136" stroke="#d6d6d6" stroke-width="1"/>
+  <rect x="0" y="136" width="150" height="584" fill="#e8e8e8"/>
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="11" fill="#8a8a8a">
+    <text x="14" y="170">1</text><rect x="30" y="156" width="104" height="58" fill="#ffffff" stroke="#cccccc"/>
+    <text x="14" y="246">2</text><rect x="30" y="232" width="104" height="58" fill="#ffffff" stroke="#2563eb" stroke-width="2"/>
+    <text x="14" y="322">3</text><rect x="30" y="308" width="104" height="58" fill="#ffffff" stroke="#cccccc"/>
+    <text x="14" y="398">4</text><rect x="30" y="384" width="104" height="58" fill="#ffffff" stroke="#cccccc"/>
+  </g>
+  <rect x="150" y="136" width="1130" height="560" fill="#d9d9d9"/>
+  <rect x="320" y="150" width="760" height="470" fill="#ffffff" stroke="#bdbdbd"/>
+  <text x="360" y="232" font-family="Georgia, serif" font-size="40" fill="#111827">The Spectral Theorem</text>
+  <line x1="360" y1="252" x2="800" y2="252" stroke="#2563eb" stroke-width="4"/>
+  <text x="360" y="330" font-family="Georgia, serif" font-size="26" fill="#374151">• Compact self-adjoint  T  on a Hilbert space  H</text>
+  <text x="360" y="382" font-family="Georgia, serif" font-size="26" fill="#374151">• Orthonormal eigenbasis {eₙ},  eigenvalues λₙ ∈ ℝ</text>
+  <text x="360" y="434" font-family="Georgia, serif" font-size="26" fill="#374151">• λₙ → 0  as  n → ∞</text>
+  <text x="400" y="524" font-family="Georgia, serif" font-size="34" fill="#1d4ed8">T x = Σₙ λₙ ⟨x, eₙ⟩ eₙ</text>
+  <rect x="0" y="696" width="1280" height="24" fill="#b7472a"/>
+  <text x="20" y="712" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#ffffff">Slide 2 of 4    English (United States)</text>
+</svg>`
+}
+
+// Pick an SVG for a Results View item based on its removal reason / name.
+// Accepts a minimal structural shape so this stays in `shared` without importing
+// the `ResultsItem` type from `features/`.
+export function demoResultImageDataUri(item: { reason?: string; name?: string }): string {
+  let svg: string
+  if (item.reason === 'ai_filtered_edit') svg = powerpointEditSvg()
+  else if (item.reason === 'ai_filtered') svg = noSignalSvg()
+  else if (item.reason === 'duplicate') svg = slideSvg('Compact Operators', '11 / 14')
+  else svg = slideByName(item.name ?? '')
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+
+// Folder list. Clean English names grouped by course via the "<course> - Lecture N"
+// form that parseSessionInfo()/getCourseName() understand (no underscores / Chinese
+// session suffix — cleaner for screenshots). The first folder is the "rich" one
+// carrying the removed + cropped demo items.
+const DEMO_RESULT_FOLDERS: Array<{ name: string; activeCount: number }> = [
+  { name: 'slides_Functional Analysis - Lecture 9', activeCount: 5 },
+  { name: 'slides_Functional Analysis - Lecture 10', activeCount: 4 },
+  { name: 'slides_Real Analysis - Lecture 11', activeCount: 6 },
+  { name: 'slides_Complex Analysis - Lecture 9', activeCount: 4 },
+]
+
+const DEMO_RICH_FOLDER = DEMO_RESULT_FOLDERS[0].name
+const richFolderPath = `${DEMO_OUTPUT_ROOT}/${DEMO_RICH_FOLDER}`
+const pad3 = (n: number) => String(n).padStart(3, '0')
+
+export function demoResultFolders(): Array<{ name: string; path: string; imageCount: number }> {
+  return DEMO_RESULT_FOLDERS.map((f) => ({
+    name: f.name,
+    path: `${DEMO_OUTPUT_ROOT}/${f.name}`,
+    imageCount: f.activeCount,
+  }))
+}
+
+export function demoResultImages(folderPath: string): Array<{ name: string; path: string }> {
+  const folder = DEMO_RESULT_FOLDERS.find((f) => `${DEMO_OUTPUT_ROOT}/${f.name}` === folderPath)
+  const count = folder?.activeCount ?? 0
+  return Array.from({ length: count }, (_, i) => {
+    const name = `Slide_${pad3(i + 1)}.png`
+    return { name, path: `${folderPath}/${name}` }
+  })
+}
+
+// Removed (trashed) items — all in the rich folder: a duplicate, two "NO SIGNAL"
+// not_slide frames, and one may_be_slide_edit (PowerPoint edit view). The
+// ai_filtered_edit entry carries originalPath + trashPath (both required to
+// enter crop mode on a removed item).
+export function demoTrashEntries(): Array<{
+  id: string
+  filename: string
+  originalPath: string
+  originalParentFolder: string
+  trashPath: string
+  reason: string
+  reasonDetails?: string
+  trashedAt: string
+}> {
+  const mk = (n: number, reason: string) => {
+    const filename = `Slide_${pad3(n)}.png`
+    return {
+      id: `demo-trash-${n}`,
+      filename,
+      originalPath: `${richFolderPath}/${filename}`,
+      originalParentFolder: DEMO_RICH_FOLDER,
+      trashPath: `${richFolderPath}/.autoslidesTrash/${filename}`,
+      reason,
+      trashedAt: isoAt(-1, 10, n),
+    }
+  }
+  return [
+    mk(6, 'duplicate'),
+    mk(7, 'ai_filtered'),
+    mk(8, 'ai_filtered_edit'),
+    mk(9, 'ai_filtered'),
+  ]
+}
+
+// One crop entry so an active slide in the rich folder shows the Cropped badge.
+export function demoCropEntries(): Array<{
+  filename: string
+  originalPath: string
+  originalParentFolder: string
+  cropPath: string
+  rect: { x: number; y: number; width: number; height: number }
+  croppedAt: string
+  autoCropped?: boolean
+}> {
+  const filename = 'Slide_002.png'
+  return [
+    {
+      filename,
+      originalPath: `${richFolderPath}/${filename}`,
+      originalParentFolder: DEMO_RICH_FOLDER,
+      cropPath: `${richFolderPath}/.autoslidesCrop/${filename}`,
+      rect: { ...DEMO_EDIT_SLIDE_RECT },
+      croppedAt: isoAt(-1, 11, 0),
+      autoCropped: false,
+    },
+  ]
+}

@@ -6,6 +6,7 @@
 import { ref, computed, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { compareToolFolders, compareToolImages, formatToolFolderName } from '@shared/utils/toolWindowFolders'
+import { isDemoMode, demoResultFolders, demoResultImages } from '@shared/services/demoData'
 
 export interface Folder {
   name: string
@@ -133,7 +134,9 @@ export function usePdfMaker() {
     isLoading.value = true
 
     try {
-      folders.value = await window.electronAPI.pdfmaker.getFolders()
+      folders.value = isDemoMode()
+        ? demoResultFolders()
+        : await window.electronAPI.pdfmaker.getFolders()
       customOrder.value = []
       useCustomOrder.value = false
       selectedItems.value = []
@@ -188,7 +191,9 @@ export function usePdfMaker() {
     const selectedFolders = sortedFolders.value.filter((folder) => selectedItems.value.includes(folder.name))
 
     for (const folder of selectedFolders) {
-      const folderImages = await window.electronAPI.pdfmaker.getImages(folder.path)
+      const folderImages = isDemoMode()
+        ? demoResultImages(folder.path)
+        : await window.electronAPI.pdfmaker.getImages(folder.path)
       const sortedImagePaths = folderImages
         .sort((a, b) => compareToolImages(a.name, b.name))
         .map((image) => image.path)
