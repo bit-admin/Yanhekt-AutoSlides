@@ -446,7 +446,6 @@
 .empty-queue p {
   margin: 0 0 20px 0;
   font-size: 14px;
-  font-style: italic;
 }
 
 /* Circular per-item status indicator shared by the queue panels. The
