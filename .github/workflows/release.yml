@@ -1,0 +1,113 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: autoslides/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd autoslides
+        npm ci
+
+    - name: Lint code
+      run: |
+        cd autoslides
+        npm run lint
+
+    - name: Build NSIS installer
+      run: |
+        cd autoslides
+        npm run make:win
+      env:
+        # Disable code signing for CI builds
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+
+    - name: Upload Windows artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-windows
+        path: autoslides/out/make/*.exe
+        retention-days: 7
+
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+        cache-dependency-path: autoslides/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd autoslides
+        npm ci
+
+    - name: Fix FFmpeg permissions
+      run: |
+        chmod +x autoslides/node_modules/ffmpeg-static/ffmpeg
+
+    - name: Lint code
+      run: |
+        cd autoslides
+        npm run lint
+
+    - name: Build Linux packages
+      run: |
+        cd autoslides
+        npm run make:linux
+
+    - name: Upload Linux artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-linux
+        path: |
+          autoslides/out/make/*.AppImage
+          autoslides/out/make/*.deb
+        retention-days: 7
+
+  release:
+    needs: [ build-windows, build-linux ]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Create draft release
+      uses: softprops/action-gh-release@v2
+      with:
+        draft: true
+        name: AutoSlides ${{ github.ref_name }}
+        tag_name: ${{ github.ref_name }}
+        generate_release_notes: true
+        fail_on_unmatched_files: true
+        files: |
+          artifacts/release-windows/*.exe
+          artifacts/release-linux/*.AppImage
+          artifacts/release-linux/*.deb

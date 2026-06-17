@@ -24,7 +24,7 @@ win:
       arch:
         - x64
   icon: resources/img/icon.ico
-  artifactName: ${productName}-Setup-${version}.${ext}
+  artifactName: ${productName}-Setup-${version}-Windows-x64.${ext}
 
 # NSIS installer configuration
 nsis:
@@ -91,14 +91,14 @@ linux:
   executableName: autoslides
   icon: resources/img/icon.png
   category: Education
-  artifactName: ${productName}-${version}-${arch}.${ext}
+  artifactName: ${productName}-${version}-Linux-${arch}.${ext}
   synopsis: Automated slide extraction from video streams
   description: AutoSlides is a desktop application for automated slide extraction from educational video content.
   maintainer: BIT-admin <info@ruc.edu.kg>
 
 # AppImage configuration
 appImage:
-  artifactName: ${productName}-${version}-${arch}.${ext}
+  artifactName: ${productName}-${version}-Linux-${arch}.${ext}
 
 # Deb package configuration
 deb:
@@ -114,7 +114,7 @@ deb:
     - libsecret-1-0
   recommends:
     - ffmpeg
-  artifactName: ${productName}-${version}-${arch}.${ext}
+  artifactName: autoslides_${version}_${arch}.${ext}
 
 # Compression settings
 compression: maximum
