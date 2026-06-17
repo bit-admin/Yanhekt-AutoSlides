@@ -77,6 +77,7 @@ export const download = {
     ipcRenderer.invoke('download:start', downloadId, m3u8Url, outputName),
   cancel: (downloadId: string) => ipcRenderer.invoke('download:cancel', downloadId),
   isActive: (downloadId: string) => ipcRenderer.invoke('download:isActive', downloadId),
+  cleanupTempFiles: (outputName: string) => ipcRenderer.invoke('download:cleanupTempFiles', outputName),
   onProgress: (callback: (downloadId: string, progress: { current: number; total: number; phase: number }) => void) => {
     const handler = (_e: Electron.IpcRendererEvent, downloadId: string, progress: { current: number; total: number; phase: number }) => callback(downloadId, progress);
     ipcRenderer.on('download:progress', handler);

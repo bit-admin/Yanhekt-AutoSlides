@@ -154,6 +154,13 @@ class DownloadServiceClass {
       item.status === 'completed' || item.status === 'error'
     )
     toRemove.forEach(item => {
+      // Errored/cancelled downloads (cancel maps to 'error') leave orphaned temp
+      // files behind, since cleanup only runs on success. Remove them on Clear.
+      // Completed items already had their temp files cleaned by the success path.
+      if (item.status === 'error') {
+        window.electronAPI.download.cleanupTempFiles(sanitizeDownloadName(item.name))
+          .catch(console.error)
+      }
       const index = this.items.indexOf(item)
       if (index !== -1) {
         this.items.splice(index, 1)

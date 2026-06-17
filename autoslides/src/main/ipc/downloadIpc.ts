@@ -36,4 +36,8 @@ export function registerDownloadIpcHandlers(services: IpcServices): void {
   ipcMain.handle('download:isActive', async (_event, downloadId: string) => {
     return m3u8DownloadService.isDownloadActive(downloadId);
   });
+
+  ipcMain.handle('download:cleanupTempFiles', async (_event, outputName: string) => {
+    m3u8DownloadService.cleanupTempFiles(outputName);
+  });
 }

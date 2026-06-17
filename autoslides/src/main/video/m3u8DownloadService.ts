@@ -18,6 +18,38 @@ export interface DownloadProgress {
   phase: number; // 0: downloading, 1: processing, 2: completed
 }
 
+/**
+ * Remove the temporary artifacts produced by an M3U8 download: the TS segment
+ * directory (`<outputDir>/<name>/`), the rewritten playlist (`.m3u8`) and the
+ * FFmpeg concat list (`.concat`). The final `.mp4` is intentionally left alone.
+ * Safe no-op when files don't exist.
+ */
+function removeDownloadTempFiles(outputDir: string, name: string): void {
+  try {
+    const workDir = path.join(outputDir, name);
+    const filePath = path.join(outputDir, name);
+
+    // Delete all TS files and the segment directory
+    if (fs.existsSync(workDir)) {
+      const files = fs.readdirSync(workDir);
+      for (const file of files) {
+        fs.unlinkSync(path.join(workDir, file));
+      }
+      fs.rmdirSync(workDir);
+    }
+
+    // Delete the m3u8 and concat files
+    if (fs.existsSync(`${filePath}.m3u8`)) {
+      fs.unlinkSync(`${filePath}.m3u8`);
+    }
+    if (fs.existsSync(`${filePath}.concat`)) {
+      fs.unlinkSync(`${filePath}.concat`);
+    }
+  } catch (error) {
+    console.error("Error deleting temporary files:", error);
+  }
+}
+
 export class M3u8DownloadService {
   private ffmpegService: FFmpegService;
   private configService: ConfigService;
@@ -79,6 +111,16 @@ export class M3u8DownloadService {
 
   isDownloadActive(downloadId: string): boolean {
     return this.activeDownloads.has(downloadId);
+  }
+
+  /**
+   * Delete leftover temp files for an errored/cancelled download. `outputName`
+   * is the sanitized name the download was started with. Safe no-op when no
+   * temp files exist. The final `.mp4` (if any) is left untouched.
+   */
+  cleanupTempFiles(outputName: string): void {
+    const outputDir = this.configService.getConfig().outputDirectory;
+    removeDownloadTempFiles(outputDir, outputName);
   }
 }
 
@@ -827,26 +869,7 @@ class M3u8Downloader {
   }
 
   private async deleteFiles(): Promise<void> {
-    try {
-      // Delete all TS files
-      if (fs.existsSync(this.workDir)) {
-        const files = fs.readdirSync(this.workDir);
-        for (const file of files) {
-          fs.unlinkSync(path.join(this.workDir, file));
-        }
-        fs.rmdirSync(this.workDir);
-      }
-
-      // Delete the m3u8 and concat files
-      if (fs.existsSync(`${this.filePath}.m3u8`)) {
-        fs.unlinkSync(`${this.filePath}.m3u8`);
-      }
-      if (fs.existsSync(`${this.filePath}.concat`)) {
-        fs.unlinkSync(`${this.filePath}.concat`);
-      }
-    } catch (error) {
-      console.error("Error deleting temporary files:", error);
-    }
+    removeDownloadTempFiles(this.outputDir, this.name);
   }
 
 }
