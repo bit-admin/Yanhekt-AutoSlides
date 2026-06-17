@@ -19,6 +19,34 @@
             {{ $t('playback.playingInBackground') }}
           </div>
         </div>
+        <button
+          v-if="props.mode === 'live'"
+          @click="copyStreamUrl"
+          class="btn copy-url-btn"
+          :disabled="!canCopyStreamUrl"
+          :title="isDualStreamSelected ? $t('playback.selectOneStreamToCopy') : streamUrlCopied ? $t('playback.urlCopied') : $t('playback.copyStreamUrl')"
+        >
+          <svg v-if="streamUrlCopied" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20,6 9,17 4,12"/>
+          </svg>
+          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+        </button>
+        <button
+          v-if="props.mode === 'recorded'"
+          @click="downloadCurrentStream"
+          class="btn download-btn"
+          :disabled="shouldDisableControls"
+          :title="isDualStreamSelected ? $t('playback.downloadBoth') : isScreenRecordingSelected ? $t('sessions.downloadScreen') : $t('sessions.downloadCamera')"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7,10 12,15 17,10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </button>
         <button @click="refreshPage" class="btn refresh-btn" :disabled="shouldDisableControls" :title="$t('playback.refresh')">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -491,8 +519,10 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'v
 import { configStore } from '@shared/services/configStore'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '@features/video/useVideoPlayer'
 import { useSlideExtraction, type Course, type Session } from '@features/video/useSlideExtraction'
+import { usePlaybackStreamUrl } from '@features/video/usePlaybackStreamUrl'
 import { usePostProcessing } from '@features/download/usePostProcessing'
 import { useTaskQueue } from '@features/download/useTaskQueue'
+import { usePlaybackDownload } from '@features/download/usePlaybackDownload'
 import { usePerformanceOptimization } from '@features/video/usePerformanceOptimization'
 import { useSlideGallery } from '@features/video/useSlideGallery'
 import PostProcessingProgressBar from './PostProcessingProgressBar.vue'
@@ -610,6 +640,23 @@ const taskQueue = useTaskQueue({
   switchStream: videoPlayerComposable.switchStream,
   toggleSlideExtraction: slideExtraction.toggleSlideExtraction,
   resetErrorCounters: videoPlayerComposable.resetErrorCounters
+})
+
+// Initialize live stream URL copy composable
+const { canCopyStreamUrl, streamUrlCopied, copyStreamUrl } = usePlaybackStreamUrl({
+  mode: props.mode,
+  currentStreamData: videoPlayerComposable.currentStreamData,
+  isDualStreamSelected: videoPlayerComposable.isDualStreamSelected
+})
+
+// Initialize playback download composable (download current/both streams)
+const { downloadCurrentStream } = usePlaybackDownload({
+  mode: props.mode,
+  course: courseRef,
+  session: sessionRef,
+  sessionId: props.sessionId,
+  isDualStreamSelected: videoPlayerComposable.isDualStreamSelected,
+  isScreenRecordingSelected: videoPlayerComposable.isScreenRecordingSelected
 })
 
 // Initialize performance optimization composable
@@ -1236,6 +1283,8 @@ onUnmounted(async () => {
 }
 
 /* Square 32×32 icon buttons */
+.copy-url-btn,
+.download-btn,
 .refresh-btn,
 .expand-btn {
   width: 32px;
@@ -1243,12 +1292,16 @@ onUnmounted(async () => {
   padding: 0;
 }
 
+.copy-url-btn:hover:not(:disabled),
+.download-btn:hover:not(:disabled),
 .refresh-btn:hover:not(:disabled),
 .expand-btn:hover {
   border-color: var(--accent);
   background-color: var(--bg-hover);
 }
 
+.copy-url-btn:disabled,
+.download-btn:disabled,
 .refresh-btn:disabled {
   background-color: var(--bg-elevated);
 }

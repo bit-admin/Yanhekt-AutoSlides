@@ -576,6 +576,10 @@
     "dismiss": "닫기",
     "videoPlayingInPiP": "화면 속 화면 모드에서 비디오 재생 중",
     "refresh": "새로고침",
+    "downloadBoth": "두 스트림 모두 다운로드",
+    "copyStreamUrl": "스트림 URL 복사",
+    "selectOneStreamToCopy": "URL을 복사하려면 스트림 하나를 선택하세요",
+    "urlCopied": "복사됨!",
     "dual": {
       "play": "재생",
       "pause": "일시정지",

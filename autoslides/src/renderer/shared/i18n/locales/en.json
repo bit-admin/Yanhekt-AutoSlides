@@ -576,6 +576,10 @@
     "dismiss": "Dismiss",
     "videoPlayingInPiP": "Video playing in Picture in Picture mode",
     "refresh": "Refresh",
+    "downloadBoth": "Download Both Streams",
+    "copyStreamUrl": "Copy Stream URL",
+    "selectOneStreamToCopy": "Select one stream to copy its URL",
+    "urlCopied": "Copied!",
     "dual": {
       "play": "Play",
       "pause": "Pause",

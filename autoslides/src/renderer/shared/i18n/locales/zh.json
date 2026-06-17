@@ -576,6 +576,10 @@
     "dismiss": "关闭",
     "videoPlayingInPiP": "视频正在画中画模式下播放。",
     "refresh": "刷新",
+    "downloadBoth": "下载两个视频流",
+    "copyStreamUrl": "复制视频流地址",
+    "selectOneStreamToCopy": "请先选择单一视频流再复制地址",
+    "urlCopied": "已复制！",
     "dual": {
       "play": "播放",
       "pause": "暂停",
