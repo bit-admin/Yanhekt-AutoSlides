@@ -584,6 +584,21 @@ html.platform-darwin .titlebar.is-macos {
       left top / 100% 100% no-repeat;
 }
 
+/* Demo mode (macOS vibrancy disabled for clean captures): the transparent left
+   segment would read as white, so paint it the opaque sidebar gray — same split
+   as the non-macOS rule below. */
+html.platform-darwin.demo-mode .titlebar.is-macos {
+  background:
+    linear-gradient(var(--border-color), var(--border-color))
+      right bottom / calc(100% - var(--left-panel-width)) 1px no-repeat,
+    linear-gradient(to right,
+      var(--bg-page-alt) calc(var(--left-panel-width) - 1px),
+      var(--border-color) calc(var(--left-panel-width) - 1px),
+      var(--border-color) var(--left-panel-width),
+      var(--bg-elevated) var(--left-panel-width))
+      left top / 100% 100% no-repeat;
+}
+
 /* Non-macOS (Windows/Linux): the sidebar's gray surface continues up into the
    left segment of the title bar so the sidebar appears to reach the top of the
    window (the menu bar sits on this gray). Same split mechanism as macOS — the

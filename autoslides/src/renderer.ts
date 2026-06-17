@@ -51,6 +51,10 @@ loadConfig().then(async () => {
   // Demo mode: populate the task/download lists with fake items for screenshots.
   const { isDemoMode } = await import('./renderer/shared/services/demoData');
   if (isDemoMode()) {
+    // Demo mode disables macOS vibrancy (opaque window for clean captures), so
+    // the faint glass sidebar tint would render white over the opaque window.
+    // This class lets CSS paint the sidebar a solid gray instead.
+    document.documentElement.classList.add('demo-mode');
     const { seedDemoQueues } = await import('./renderer/shared/services/demoSeed');
     seedDemoQueues();
   }

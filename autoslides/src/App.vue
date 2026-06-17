@@ -67,6 +67,14 @@ const completeOnboarding = () => {
   window.electronAPI.config.setOnboardingCompleted(true)
 }
 
+// Demo-only hook so the screenshot script can render the onboarding wizard (it's
+// otherwise first-run-only and suppressed in demo mode). Never exposed in prod.
+if (isDemoMode()) {
+  ;(window as unknown as { __demoSetOnboarding?: (v: boolean) => void }).__demoSetOnboarding = (v) => {
+    showOnboarding.value = v
+  }
+}
+
 const leftWidth = ref(240)
 const rightWidth = ref(320)
 const mainWidth = ref(760)
@@ -233,6 +241,13 @@ onMounted(() => {
   width: var(--left-panel-width);
   z-index: -1;
   background-color: var(--bg-sidebar-glass);
+}
+
+/* Demo mode runs with macOS vibrancy disabled (opaque window for clean
+   screenshots), so the faint glass tint would read as white. Paint the
+   solid sidebar gray instead — matching the opaque-platform appearance. */
+.platform-darwin.demo-mode .sidebar-glass-underlay {
+  background-color: var(--bg-page-alt);
 }
 
 .main-content {

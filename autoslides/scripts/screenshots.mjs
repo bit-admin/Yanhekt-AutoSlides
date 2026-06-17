@@ -44,6 +44,10 @@ mkdirSync(outDir, { recursive: true })
 
 const captured = []
 const skipped = []
+// Per-settings-tab section geometry (CSS px, relative to .modal-content top),
+// written to sections.json so process-docs.mjs can split the long settings
+// screenshots at live-DOM section boundaries instead of hardcoded pixel rows.
+const sectionsManifest = {}
 
 async function main() {
   const app = await electron.launch({
@@ -230,8 +234,27 @@ async function main() {
     set('.advanced-settings-content', { overflow: 'visible', maxHeight: 'none', height: 'auto' })
   })
 
+  // Record each .advanced-setting-section's geometry within .modal-content, so
+  // the docs pipeline can crop the long tabs into per-README-step sub-images.
+  const recordSections = (name) => win.evaluate((tabName) => {
+    const content = document.querySelector('.modal-content')
+    if (!content) return null
+    const cRect = content.getBoundingClientRect()
+    const sections = [...content.querySelectorAll('.advanced-setting-section')].map((s) => {
+      const r = s.getBoundingClientRect()
+      return {
+        title: (s.querySelector('h4')?.textContent || '').trim(),
+        top: Math.round(r.top - cRect.top),
+        bottom: Math.round(r.bottom - cRect.top),
+      }
+    })
+    return { tabName, width: Math.round(cRect.width), height: Math.round(cRect.height), dpr: window.devicePixelRatio, sections }
+  }, name)
+
   const shotModal = async (name) => {
     const file = path.join(outDir, `${name}.png`)
+    const geom = await recordSections(name)
+    if (geom) sectionsManifest[name] = geom
     // captureBeyondViewport (Playwright default for element shots) grabs the full
     // expanded modal even when it's taller than the window.
     await win.locator('.modal-content').screenshot({ path: file, omitBackground: true })
@@ -282,8 +305,46 @@ async function main() {
       console.warn(`  ⚠ skipped advanced-ai-ml: ${e.message}`)
     }
 
-    // Close the modal so it doesn't overlay later windows.
-    await win.keyboard.press('Escape').catch(() => {})
+    // Close the modal so it doesn't overlay later windows. The overlay has no
+    // Escape handler — clicking Cancel emits the close.
+    await win.locator('.modal-content .cancel-btn').first().click().catch(() => {})
+    await win.waitForTimeout(300)
+    await win.waitForSelector('.modal-overlay', { state: 'detached', timeout: 4000 }).catch(() => {})
+  })
+
+  // --- first-run onboarding wizard (web element shots, like settings) ------
+  // Onboarding is first-run-only and suppressed in demo mode, so App.vue exposes
+  // a demo-only window.__demoSetOnboarding(bool) toggle. Each step is captured as
+  // a transparent-background element shot of the 460px card.
+  await step('onboarding', async () => {
+    await clickNav(0)
+    await win.evaluate(() => window.__demoSetOnboarding?.(true))
+    await win.waitForSelector('.onboarding-card', { timeout: 6000 })
+    // Transparent backdrop (drop the dark overlay + blur) so omitBackground
+    // gives clean rounded-corner cards, matching the settings-modal treatment.
+    await win.evaluate(() => {
+      const ov = document.querySelector('.onboarding-overlay')
+      if (ov) { ov.style.background = 'transparent'; ov.style.backdropFilter = 'none' }
+    })
+    const shotCard = async (name) => {
+      await win.waitForTimeout(300)
+      await win.locator('.onboarding-card').screenshot({ path: path.join(outDir, `${name}.png`), omitBackground: true })
+      captured.push(name)
+      console.log(`  ✓ ${name}.png (onboarding, web)`)
+    }
+    // step 0 = welcome hero; steps 1..6 = the dotted config steps.
+    await shotCard('onboarding-welcome')
+    await win.locator('.hero-cta').click() // Get Started → step 1
+    const steps = ['onboarding-output', 'onboarding-connection', 'onboarding-audio',
+      'onboarding-taskspeed', 'onboarding-parallel', 'onboarding-ai']
+    for (let i = 0; i < steps.length; i++) {
+      await win.waitForSelector('.onboarding-body', { timeout: 4000 })
+      await shotCard(steps[i])
+      if (i < steps.length - 1) await win.locator('.onboarding-footer .btn--primary').click()
+    }
+    // Dismiss (don't advance into the sign-in step) so later steps are clean.
+    await win.evaluate(() => window.__demoSetOnboarding?.(false))
+    await win.waitForSelector('.onboarding-card', { state: 'detached', timeout: 4000 }).catch(() => {})
   })
 
   // --- separate windows: Tools & Add-ons ----------------------------------
@@ -367,7 +428,44 @@ async function main() {
   await step('pdfmaker', () =>
     captureChildWindow(() => window.electronAPI.tools.openWindow('pdfmaker'), 'pdfmaker', '.folder-list'))
 
+  // --- browser SSO login (real network) -----------------------------------
+  // The browser-login view embeds a <webview> pointed at the LIVE BIT SSO page,
+  // so this capture needs network — but it's fully reproducible, not manual.
+  // Done LAST: it signs out first (to reveal the "Sign In" banner), which wipes
+  // the demo session the other views depend on.
+  await step('login', async () => {
+    await clickNav(0)
+    // Clear the leftover search text from the earlier search step.
+    await win.locator('.nav-search-input').fill('').catch(() => {})
+    // Sign out → logged-out state shows the "Sign In" banner.
+    await win.locator('.user-info .user-banner-main').click()
+    await win.waitForSelector('.user-menu-signout', { timeout: 6000 })
+    await win.locator('.user-menu-signout').click()
+    await win.waitForSelector('.signin-banner', { timeout: 6000 })
+    await win.waitForTimeout(400)
+    // Open the sign-in menu → "Sign in with browser".
+    await win.locator('.signin-banner .user-banner-main').click()
+    await win.waitForSelector('.signin-menu', { timeout: 6000 })
+    // `.signin-option` also covers the UserMenuLinks rows — match by text.
+    await win.locator('.signin-menu .signin-option', { hasText: /browser|浏览器/i }).click()
+    // BrowserLoginView mounts a <webview> pointed at the live SSO page. The
+    // webview tag isn't a "visible" DOM node to Playwright, so wait for its
+    // container, then give the page generous time to load over the network.
+    await win.waitForSelector('.browser-login-view', { timeout: 10000 })
+    await win.waitForTimeout(9000)
+    await shot('login')
+  })
+
+  // Record the run's device pixel ratio: native + element captures come out at
+  // physical pixels (logical × dpr), so process-docs.mjs downscales by 1/dpr to
+  // emit consistent 1× docs images regardless of the capture display's scaling.
+  const runDpr = await win.evaluate(() => window.devicePixelRatio).catch(() => 1)
+
   await app.close()
+  writeFileSync(path.join(outDir, 'sections.json'), JSON.stringify(sectionsManifest, null, 2))
+  console.log(`  ✓ sections.json`)
+  writeFileSync(path.join(outDir, 'meta.json'), JSON.stringify({ dpr: runDpr }, null, 2))
+  console.log(`  ✓ meta.json (dpr ${runDpr})`)
   writeNotes()
 
   console.log(`\nDone. ${captured.length} screenshot(s) → ${outDir}`)
@@ -382,71 +480,76 @@ function writeNotes() {
   const notes = `# Demo-mode screenshots — notes
 
 Generated by \`npm run screenshots\` (launches the app with \`DEMO_MODE=1\`, fabricated
-student "Kate" with a made-up Math course list). These are **not** copied into the
-README — \`docs/step*.png\` are left untouched. Copy/rename manually if you want to
-update the README walkthrough.
+student "Kate" with a made-up Math course list). The English-UI captures here feed the
+README via \`npm run docs:images\` (\`scripts/process-docs.mjs\`), which renames/splits
+them into \`docs/*.png\`. The full refresh flow is:
+
+    npm run screenshots:build   # re-capture (re-package + screenshots)
+    npm run docs:images         # process + copy into ../docs
+
+The \`## Image processing applied\` section below is appended by \`process-docs.mjs\`.
 
 ## Captured this run
 ${list}
 
-## Mapping to README steps (current UI; README images are from older versions)
-| File | README step(s) | View |
-|------|----------------|------|
-| home.png | step4 | Home (greeting, saved searches, personal rows) |
-| tasklist.png | step5/F | Task list with fake queued/running/completed items + post-processing |
-| downloads.png | step6.1 | Download queue with fake downloading/completed items + extraction |
-| live.png | step4 | Live course grid (demo live/upcoming/ended) |
-| recorded.png | step5 | Recorded course grid (math courses) |
-| session.png | step5 | Session/lecture list for a course |
-| playback.png | step5.1 | Dual-stream playback — fake math screen + illustrated camera |
-| playback-screen.png | step6 | Screen-recording (single stream) view with the populated slide gallery |
-| search.png | — | Search results |
-| advanced-general.png | step14 | Advanced ▸ General |
-| advanced-image.png | step15–17 | Advanced ▸ Image Processing (SSIM, pHash, autocrop) |
-| advanced-playback.png | step18 | Advanced ▸ Playback & Download |
-| advanced-network.png | step18.1 | Advanced ▸ Network |
-| advanced-ai.png | step3, step19 | Advanced ▸ AI (LLM classifier mode) |
-| advanced-ai-ml.png | step3, step19 | Advanced ▸ AI (ML classifier mode) |
-| results-folders.png | step7 | Results View — folder list grouped by course |
-| results-grid.png | step8, step8.1 | Results View — image grid (slides + NO SIGNAL not_slide + ppt-edit + a Cropped badge) |
-| results-preview.png | step9 | Results View — may_be_slide_edit detail (PowerPoint edit view) |
-| results-crop.png | step10, step11 | Results View — crop mode, box framing the slide inside the edit view |
-| pdfmaker.png | step13 | PDF Maker (slides export) — grouped folders with counts |
-| tools-offline.png | step20 | Tools ▸ Offline Processing |
-| tools-compress.png | step21 | Tools ▸ Compress Lecture |
-| addons-yuketang.png | step22 | Add-ons ▸ Yuketang |
-| addons-webcapture.png | step23 | Add-ons ▸ Web Capture |
+## Mapping: capture → docs/ target → README walkthrough
+| Capture | docs/ target(s) | README section |
+|---------|-----------------|----------------|
+| login.png | login.png | A. 登录（浏览器 SSO，实时加载真实登录页） |
+| onboarding-*.png (×7) | onboarding-*.png | 首次启动向导（欢迎 + 6 个配置步骤，置于「4. 使用与设置」前） |
+| home.png | home.png | D. 基础页面（Home / 课程收藏夹） |
+| live.png | live.png | D. 直播课程网格 |
+| recorded.png | recorded.png | E. 录播课程网格 |
+| session.png | session.png | E. 节次列表（加入任务 / 下载） |
+| playback.png | playback.png | E. 双流播放 |
+| playback-screen.png | playback-screen.png | F. 单流（屏幕录制）+ 幻灯片预览画廊 |
+| tasklist.png | tasklist.png | F. 任务列表（进度 + 后处理） |
+| downloads.png | downloads.png | F. 下载队列（下载后自动提取 + 后处理） |
+| search.png | search.png | D. 搜索结果 |
+| results-folders.png | results-folders.png | G. 审查幻灯片 — 文件夹（按课程分组） |
+| results-grid.png | results-grid.png | G. 图像网格（视图 / 原因筛选 / 徽章 / NO SIGNAL / 编辑模式帧） |
+| results-preview.png | results-preview.png | G. 放大预览（编辑模式帧） |
+| results-crop.png | results-crop.png | G. 裁剪模式（裁剪框） |
+| pdfmaker.png | pdfmaker.png | H. 导出（PDF / PPTX，按课程分组） |
+| advanced-general.png | settings-general.png | B & I. 一般设置 |
+| advanced-image.png | settings-image-output.png + settings-postprocess.png + settings-autocrop.png | I. 图像处理（**拆分为 3 张**） |
+| advanced-playback.png | settings-playback.png | I. 下载与播放 |
+| advanced-network.png | settings-network.png | I. 网络 |
+| advanced-ai.png | settings-ai-service.png + settings-ai-behaviour.png | C & I. AI（**拆分为 2 张**） |
+| advanced-ai-ml.png | settings-ai-ml.png | I. AI（ML 模式 / 严格度滑块） |
+| tools-offline.png | tools-offline.png | J. 离线处理 |
+| tools-compress.png | tools-compress.png | J. 讲座压缩 |
+| addons-yuketang.png | addons-yuketang.png | K. 雨课堂 |
+| addons-webcapture.png | addons-webcapture.png | K. 网页捕获 |
 
-## ⚠ Needs attention / cannot be auto-captured in demo mode
+## Fully automated — no manual captures
 
-These require **real content** or **manual** capture:
+Every \`docs/*.png\` is produced by this script + \`process-docs.mjs\`. Two captures that
+*look* like they'd need real data but don't:
 
-- **step1** — login / browser SSO. Demo mode auto-logs-in and skips it; the real BIT
-  login page cannot be faked.
-- **step5.1** — dual-stream playback. \`playback.png\` shows a demo version (fake math
-  screen + illustrated camera via video posters). The video does not actually play.
-- **step6** — the slide gallery itself is now shown in \`playback-screen.png\` (the
-  screen-recording view, seeded with fabricated slides). What still needs a real video
-  is live extraction *running during playback* (progress/SSIM indicators while the video
-  actually plays).
-- **step6.1** — auto-extract on download (C++ extractor). Needs a real download +
-  installed AutoSlides Extractor.
-- **step0** — extractor install modal (shows a real GitHub release).
+- **docs/login.png** — the script signs out, opens the browser-login view, and lets the
+  **live** BIT SSO page load in the embedded webview before capturing. Needs network, but
+  it's reproducible (not a hand-taken screenshot).
+- **docs/extractor-install.png** — \`process-docs.mjs\` crops it from the top "Auto
+  Extraction After Download" section of the \`advanced-playback\` capture (the Install
+  Extractor button + executable path).
+
+Not in the README walkthrough but worth noting: live slide extraction *running during
+playback* (progress/SSIM while a real video plays) still needs a real video — the demo
+gallery in \`playback-screen.png\` is seeded with fabricated slides.
 
 ## Notes on specific captures
 
-- **Advanced settings** (\`advanced-*.png\`) are captured as **web element screenshots
-  cropped to the modal** (no window chrome), and as **long screenshots**: the modal's
-  height/overflow caps are temporarily lifted so the whole scrollable tab is in one
-  image, with transparent rounded corners. Crop/trim further as needed.
-- **Defaults**: demo mode boots from an isolated \`AutoSlides-Demo\` userData dir, so all
-  settings show factory **defaults** (and the demo never touches your real profile).
-  Language/theme also follow the demo defaults — change them in Advanced ▸ General first
-  if a README shot needs a specific locale.
+- **Settings tabs** (\`advanced-*.png\`) are **web element screenshots cropped to the
+  modal** (600px wide, no window chrome) and **long screenshots**: the modal's
+  height/overflow caps are lifted so the whole scrollable tab renders in one image with
+  transparent rounded corners. \`sections.json\` records each \`.advanced-setting-section\`'s
+  geometry so \`process-docs.mjs\` can split the long tabs at real section boundaries.
+- **Defaults**: demo boots from an isolated \`AutoSlides-Demo\` userData dir, so all
+  settings show factory **defaults** (the demo never touches your real profile).
 - **Results View & PDF Maker** (\`results-*.png\`, \`pdfmaker.png\`) use **fabricated**
-  folders/slides drawn as SVGs — they read **no real files**. The slides, the NO SIGNAL
-  not_slide, the PowerPoint-edit may_be_slide_edit frame, and the seeded crop box are all
-  synthetic demo content.
+  folders/slides drawn as SVGs — they read **no real files** (slides, the NO SIGNAL
+  not_slide, the PowerPoint-edit frame, and the seeded crop box are all synthetic).
 `
   writeFileSync(path.join(outDir, 'NOTES.md'), notes)
   console.log(`  ✓ NOTES.md`)
