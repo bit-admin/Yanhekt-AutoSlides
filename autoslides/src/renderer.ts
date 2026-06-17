@@ -48,15 +48,11 @@ if (navigator.userAgent.toLowerCase().includes('mac')) {
 const app = createApp(App);
 app.use(i18n);
 loadConfig().then(async () => {
-  // Demo mode: populate the task/download lists with fake items for screenshots.
-  const { isDemoMode } = await import('./renderer/shared/services/demoData');
+  // Demo mode: install the override registry (fake account/courses/queues) before
+  // mount. Deleting src/renderer/demo/ + this guarded import drops demo mode.
+  const { isDemoMode } = await import('./renderer/shared/services/runtimeEnv');
   if (isDemoMode()) {
-    // Demo mode disables macOS vibrancy (opaque window for clean captures), so
-    // the faint glass sidebar tint would render white over the opaque window.
-    // This class lets CSS paint the sidebar a solid gray instead.
-    document.documentElement.classList.add('demo-mode');
-    const { seedDemoQueues } = await import('./renderer/shared/services/demoSeed');
-    seedDemoQueues();
+    await import('./renderer/demo/bootstrap').then((m) => m.installDemo());
   }
   app.mount('#app');
 });

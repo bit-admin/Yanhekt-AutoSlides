@@ -2,19 +2,32 @@ import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import importPlugin from 'eslint-plugin-import';
 
+// Demo mode is a deletable add-on: all demo data/behavior lives in
+// src/renderer/demo/, and production code must never statically import it (the
+// dependency points inward — demo → shared/production). The single guarded
+// dynamic import() in the renderer entry points is not a static import and is
+// not flagged. Appended to every renderer boundary rule below.
+const DEMO_IMPORT_BAN = {
+  group: ['@renderer/demo', '@renderer/demo/*'],
+  message: 'Production code must not import src/renderer/demo/. Demo wires itself via the override registry (@shared/overrideRegistry); deleting demo/ must leave the app working.',
+};
+
 // Domain-boundary helper: a feature domain may not import from sibling feature
 // domains. Returns a no-restricted-imports rule that forbids every domain other
-// than `self` and explicitly-allowed cross-domain edges.
+// than `self` and explicitly-allowed cross-domain edges (plus the demo ban).
 const FEATURE_DOMAINS = ['video', 'results', 'offline', 'download', 'ai', 'export', 'course', 'settings', 'platform', 'webCapture', 'tools'];
 function featureBoundaryRule(self, allowed = []) {
   const allow = new Set([self, ...allowed]);
   const forbidden = FEATURE_DOMAINS.filter(d => !allow.has(d));
   return {
     'no-restricted-imports': ['error', {
-      patterns: forbidden.map(d => ({
-        group: [`@features/${d}/*`, `@features/${d}`],
-        message: `Feature domain '${self}' may not import from sibling domain '${d}'. Move shared code into @shared/* or whitelist the edge in eslint.config.mjs.`,
-      })),
+      patterns: [
+        ...forbidden.map(d => ({
+          group: [`@features/${d}/*`, `@features/${d}`],
+          message: `Feature domain '${self}' may not import from sibling domain '${d}'. Move shared code into @shared/* or whitelist the edge in eslint.config.mjs.`,
+        })),
+        DEMO_IMPORT_BAN,
+      ],
     }],
   };
 }
@@ -122,12 +135,16 @@ export default tseslint.config(
   { files: ['src/renderer/features/webCapture/**/*.{ts,vue}'],rules: featureBoundaryRule('webCapture') },
   { files: ['src/renderer/features/tools/**/*.{ts,vue}'],     rules: featureBoundaryRule('tools') },
 
-  // shared/ is foundational — it must not depend on features/ (one-way layering).
+  // shared/ is foundational — it must not depend on features/ (one-way layering)
+  // and must never import the deletable demo/ folder.
   {
     files: ['src/renderer/shared/**/*.{ts,vue}'],
     rules: {
       'no-restricted-imports': ['error', {
-        patterns: [{ group: ['@features/*', '@features'], message: 'shared/ is foundational; do not import from features/.' }],
+        patterns: [
+          { group: ['@features/*', '@features'], message: 'shared/ is foundational; do not import from features/.' },
+          DEMO_IMPORT_BAN,
+        ],
       }],
     },
   },

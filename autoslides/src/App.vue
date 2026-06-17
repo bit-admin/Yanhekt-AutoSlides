@@ -52,7 +52,7 @@ import BrowserLoginView from '@renderer/components/settings/BrowserLoginView.vue
 import OnboardingModal from '@renderer/components/settings/OnboardingModal.vue'
 import { useAuth } from '@features/platform/useAuth'
 import { configStore } from '@shared/services/configStore'
-import { isDemoMode } from '@shared/services/demoData'
+import { isDemoMode } from '@shared/services/runtimeEnv'
 
 const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken } = useAuth()
 

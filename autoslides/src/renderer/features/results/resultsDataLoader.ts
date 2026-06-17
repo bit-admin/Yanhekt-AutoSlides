@@ -4,13 +4,7 @@
 // are read or written here — the caller owns reactive state.
 
 import { compareToolFolders, compareToolImages } from '@shared/utils/toolWindowFolders';
-import {
-  isDemoMode,
-  demoResultFolders,
-  demoResultImages,
-  demoTrashEntries,
-  demoCropEntries,
-} from '@shared/services/demoData';
+import { overrides } from '@shared/overrideRegistry';
 import type {
   CropEntry,
   RemovedEntry,
@@ -26,15 +20,10 @@ export interface ResultsDataIO {
 }
 
 export function createResultsDataIO(): ResultsDataIO {
-  if (isDemoMode()) {
-    // Demo mode: serve fabricated folders/images/trash/crop instead of reading
-    // the real output directory. Shapes match structurally; cast the typed ones.
-    return {
-      getFolders: async () => demoResultFolders(),
-      getImages: async (folderPath) => demoResultImages(folderPath),
-      getTrashEntries: async () => demoTrashEntries() as RemovedEntry[],
-      getCropEntries: async () => demoCropEntries() as CropEntry[],
-    };
+  // A registered override (demo mode) serves fabricated folders/images/trash/crop
+  // instead of reading the real output directory. Shapes match structurally.
+  if (overrides.resultsProvider) {
+    return overrides.resultsProvider as ResultsDataIO;
   }
   return {
     getFolders: () => window.electronAPI.pdfmaker.getFolders(),

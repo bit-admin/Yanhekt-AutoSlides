@@ -2,7 +2,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { createAutoCropWorkerClient } from '@shared/autoCrop'
 import { configStore } from '@shared/services/configStore'
-import { isDemoMode, demoResultImageDataUri } from '@shared/services/demoData'
+import { overrides } from '@shared/overrideRegistry'
 import {
   createResultsDataIO,
   loadFolderSummaries as loadFolderSummariesCore,
@@ -252,9 +252,10 @@ export function useResultsView() {
       if (version !== thumbnailLoadVersion) return
       if (thumbnails.value[item.id]) continue
 
-      // Demo mode: draw a fabricated SVG slide instead of reading a real file.
-      if (isDemoMode()) {
-        thumbnails.value[item.id] = demoResultImageDataUri(item)
+      // A registered override (demo mode) draws a fabricated SVG slide instead
+      // of reading a real file.
+      if (overrides.resultImageSource) {
+        thumbnails.value[item.id] = overrides.resultImageSource(item)
         continue
       }
 

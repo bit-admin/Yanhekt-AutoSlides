@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, nativeTheme, session, shell } from 'electron';
 import path from 'node:path';
 import type { ConfigService } from '@main/platform/configService';
+import { demoWebPreferences } from '@main/demo/demoEnv';
 import enTranslations from '../../renderer/shared/i18n/locales/en.json';
 import zhTranslations from '../../renderer/shared/i18n/locales/zh.json';
 
@@ -149,7 +150,7 @@ export class WindowManager {
         nodeIntegration: false,
         contextIsolation: true,
         // Mirror the main window's demo flag so this renderer reports isDemoMode too.
-        ...(process.env.DEMO_MODE === '1' ? { additionalArguments: ['--demo-mode'] } : {})
+        ...demoWebPreferences()
       }
     });
 
@@ -192,7 +193,7 @@ export class WindowManager {
         contextIsolation: true,
         webviewTag: true,
         // Mirror the main window's demo flag so this renderer reports isDemoMode too.
-        ...(process.env.DEMO_MODE === '1' ? { additionalArguments: ['--demo-mode'] } : {})
+        ...demoWebPreferences()
       }
     });
 

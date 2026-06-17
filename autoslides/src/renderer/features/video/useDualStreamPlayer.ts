@@ -2,7 +2,7 @@ import { ref, shallowRef, computed, type Ref, type ShallowRef, type ComputedRef 
 import Hls, { Events } from 'hls.js'
 import { setupDualHlsErrorHandler } from './useVideoErrorRecovery'
 import type { VideoStream, DualAudioSource } from './useVideoPlayer'
-import { isDemoMode } from '@shared/services/demoData'
+import { overrides } from '@shared/overrideRegistry'
 
 /**
  * Dual-stream (camera + screen) playback subsystem extracted verbatim from
@@ -269,7 +269,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
   }
 
   const loadDualVideoSources = async (seekToTime?: number, shouldAutoPlay?: boolean) => {
-    if (isDemoMode()) return // demo posters only — never load real dual sources
+    if (overrides.playbackDemo) return // demo posters only — never load real dual sources
     const cameraVideo = cameraVideoPlayer.value
     const screenVideo = screenVideoPlayer.value
     const cameraStream = cameraStreamData.value

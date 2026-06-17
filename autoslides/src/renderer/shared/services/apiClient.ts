@@ -1,13 +1,6 @@
 // Type definitions are available globally
 
-import {
-  isDemoMode,
-  demoUser,
-  demoSemesters,
-  demoRecordedCourses,
-  demoLiveCourses,
-  demoCourseInfo,
-} from './demoData'
+import { overrides } from '../overrideRegistry'
 
 export interface UserData {
   badge: string;
@@ -97,11 +90,39 @@ export interface SemesterOption {
   semester: number;
 }
 
+// The data source ApiClient delegates to. Default = the real preload bridge;
+// a registered `overrides.apiTransport` (demo mode) returns fabricated data of
+// the same shape. ApiClient keeps the error handling around these calls.
+export interface ApiTransport {
+  verifyToken(token: string): Promise<TokenVerificationResult>;
+  getPersonalLiveList(token: string, page?: number, pageSize?: number): Promise<LiveListResponse>;
+  searchLiveList(token: string, keyword: string, page?: number, pageSize?: number): Promise<LiveListResponse>;
+  getCourseList(token: string, options?: { semesters?: number[]; page?: number; pageSize?: number; keyword?: string }): Promise<CourseListResponse>;
+  getPersonalCourseList(token: string, options?: { page?: number; pageSize?: number }): Promise<CourseListResponse>;
+  getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse>;
+  getAvailableSemesters(): Promise<SemesterOption[]>;
+}
+
+const realApiTransport: ApiTransport = {
+  verifyToken: (token) => window.electronAPI.auth.verifyToken(token),
+  getPersonalLiveList: (token, page = 1, pageSize = 16) => window.electronAPI.api.getPersonalLiveList(token, page, pageSize),
+  searchLiveList: (token, keyword, page = 1, pageSize = 16) => window.electronAPI.api.searchLiveList(token, keyword, page, pageSize),
+  getCourseList: (token, options = {}) => window.electronAPI.api.getCourseList(token, options),
+  getPersonalCourseList: (token, options = {}) => window.electronAPI.api.getPersonalCourseList(token, options),
+  getCourseInfo: (courseId, token) => window.electronAPI.api.getCourseInfo(courseId, token),
+  getAvailableSemesters: () => window.electronAPI.api.getAvailableSemesters(),
+};
+
 export class ApiClient {
+  // Resolved lazily per call so an override registered after construction (and
+  // after this module is first imported) is still honored.
+  private get transport(): ApiTransport {
+    return overrides.apiTransport ?? realApiTransport;
+  }
+
   async verifyToken(token: string): Promise<TokenVerificationResult> {
-    if (isDemoMode()) return { valid: true, userData: demoUser() };
     try {
-      return await window.electronAPI.auth.verifyToken(token);
+      return await this.transport.verifyToken(token);
     } catch (error) {
       console.error('Token verification error:', error);
       return { valid: false, userData: null, networkError: false };
@@ -109,9 +130,8 @@ export class ApiClient {
   }
 
   async getPersonalLiveList(token: string, page = 1, pageSize = 16): Promise<LiveListResponse> {
-    if (isDemoMode()) return demoLiveCourses();
     try {
-      return await window.electronAPI.api.getPersonalLiveList(token, page, pageSize);
+      return await this.transport.getPersonalLiveList(token, page, pageSize);
     } catch (error) {
       console.error('Failed to get personal live list:', error);
       throw error;
@@ -119,9 +139,8 @@ export class ApiClient {
   }
 
   async searchLiveList(token: string, keyword: string, page = 1, pageSize = 16): Promise<LiveListResponse> {
-    if (isDemoMode()) return demoLiveCourses();
     try {
-      return await window.electronAPI.api.searchLiveList(token, keyword, page, pageSize);
+      return await this.transport.searchLiveList(token, keyword, page, pageSize);
     } catch (error) {
       console.error('Failed to search live list:', error);
       throw error;
@@ -135,9 +154,8 @@ export class ApiClient {
     pageSize?: number;
     keyword?: string;
   } = {}): Promise<CourseListResponse> {
-    if (isDemoMode()) return demoRecordedCourses();
     try {
-      return await window.electronAPI.api.getCourseList(token, options);
+      return await this.transport.getCourseList(token, options);
     } catch (error) {
       console.error('Failed to get course list:', error);
       throw error;
@@ -148,9 +166,8 @@ export class ApiClient {
     page?: number;
     pageSize?: number;
   } = {}): Promise<CourseListResponse> {
-    if (isDemoMode()) return demoRecordedCourses();
     try {
-      return await window.electronAPI.api.getPersonalCourseList(token, options);
+      return await this.transport.getPersonalCourseList(token, options);
     } catch (error) {
       console.error('Failed to get personal course list:', error);
       throw error;
@@ -158,9 +175,8 @@ export class ApiClient {
   }
 
   async getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
-    if (isDemoMode()) return demoCourseInfo(courseId);
     try {
-      return await window.electronAPI.api.getCourseInfo(courseId, token);
+      return await this.transport.getCourseInfo(courseId, token);
     } catch (error) {
       console.error('Failed to get course info:', error);
       throw error;
@@ -168,9 +184,8 @@ export class ApiClient {
   }
 
   async getAvailableSemesters(): Promise<SemesterOption[]> {
-    if (isDemoMode()) return demoSemesters();
     try {
-      return await window.electronAPI.api.getAvailableSemesters();
+      return await this.transport.getAvailableSemesters();
     } catch (error) {
       console.error('Failed to get available semesters:', error);
       throw error;

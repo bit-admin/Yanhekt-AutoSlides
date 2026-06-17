@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { configStore } from '@shared/services/configStore'
-import { isDemoMode, DEMO_DISPLAY_NAME } from '@shared/services/demoData'
+import { overrides } from '@shared/overrideRegistry'
 
 type GreetingCategory =
   | 'general'
@@ -315,11 +315,10 @@ export function useGreeting() {
         const systemLocale = (navigator.language || locale.value || 'en').toLowerCase()
         const preferredLanguage = resolveGreetingLanguage(config.languageMode, systemLocale)
 
-        // Demo mode: don't roll a random greeting (and never leak the real name
-        // from config or persist anything back). Return one fixed, deterministic
-        // greeting with the fabricated demo name so screenshots are stable.
-        if (isDemoMode()) {
-          return `What's on your mind, ${DEMO_DISPLAY_NAME}?`
+        // A registered override (demo mode) returns one fixed, deterministic
+        // greeting instead of rolling a random one — so screenshots are stable.
+        if (overrides.greeting) {
+          return overrides.greeting()
         }
 
         if (!config.lastGreetingId) {

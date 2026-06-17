@@ -1,7 +1,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch, type Ref } from 'vue'
 import type { AutoCropWorkerClient } from '@shared/autoCrop'
 import { configStore } from '@shared/services/configStore'
-import { isDemoMode, demoResultImageDataUri, DEMO_EDIT_SLIDE_RECT } from '@shared/services/demoData'
+import { overrides } from '@shared/overrideRegistry'
 import type { CropRect, ResultsItem } from './useResultsView'
 
 export type CropHandle = 'nw' | 'ne' | 'sw' | 'se'
@@ -314,10 +314,11 @@ export function useCropEditor(deps: CropEditorDeps) {
     showPreviewMetadata.value = false
 
     try {
-      // Demo mode: use a fabricated SVG slide and skip the IPC base64 read.
+      // A registered override (demo mode) uses a fabricated SVG slide and skips
+      // the IPC base64 read.
       let cropSource: string
-      if (isDemoMode()) {
-        cropSource = demoResultImageDataUri(activeItem)
+      if (overrides.resultImageSource) {
+        cropSource = overrides.resultImageSource(activeItem)
       } else {
         const sourceBase64 = await loadPreviewImageBase64(activeItem)
         if (!sourceBase64) return
@@ -333,10 +334,10 @@ export function useCropEditor(deps: CropEditorDeps) {
       cropImageNaturalSize.value = size
       cropRectPx.value = activeItem.isCropped && activeItem.cropRect
         ? sanitizeCropRect({ ...activeItem.cropRect })
-        : isDemoMode()
+        : overrides.cropDefaultRect
           // Seed a box framing the slide inside the PowerPoint edit chrome so
           // the crop UI is visible without a drag (deterministic screenshots).
-          ? sanitizeCropRect({ ...DEMO_EDIT_SLIDE_RECT })
+          ? sanitizeCropRect(overrides.cropDefaultRect())
           : null
 
       cropInteraction.value = null

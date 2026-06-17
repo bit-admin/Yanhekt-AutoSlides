@@ -24,17 +24,12 @@ import { slideExtractionService } from '@main/extraction/slideExtractionService'
 import { offlineProcessingService } from '@main/extraction/offlineProcessingService';
 import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
+import { applyDemoUserData, isDemoLaunch, demoWebPreferences } from '@main/demo/demoEnv';
 
 // Demo mode (npm run demo / screenshots): isolate persistence to a separate
-// `AutoSlides-Demo` userData dir so the app boots with fresh defaults and never
-// reads or writes the real profile. Must run BEFORE `new ConfigService()` below,
-// since electron-store resolves its path from userData at construction. We pin
-// the app name first so both `electron-forge start` and the raw `electron`
-// launch used by the screenshot script resolve the same demo dir.
-if (process.env.DEMO_MODE === '1') {
-  app.setName('AutoSlides');
-  app.setPath('userData', app.getPath('userData') + '-Demo');
-}
+// `AutoSlides-Demo` userData dir. Must run BEFORE `new ConfigService()` below,
+// since electron-store resolves its path from userData at construction.
+applyDemoUserData(app);
 
 const configService = new ConfigService();
 
@@ -59,7 +54,7 @@ const createWindow = () => {
     // Demo mode (screenshots): force an opaque background. macOS vibrancy is
     // composited by the OS and is NOT captured by Playwright/capturePage, so a
     // transparent window would screenshot with a black/transparent sidebar.
-    ...(process.platform === 'darwin' && process.env.DEMO_MODE !== '1'
+    ...(process.platform === 'darwin' && !isDemoLaunch()
       ? { vibrancy: 'sidebar' as const, backgroundColor: '#00000000' }
       : { backgroundColor: getWindowBackgroundColor() }),
     webPreferences: {
@@ -68,10 +63,9 @@ const createWindow = () => {
       contextIsolation: true,
       backgroundThrottling: false,
       webviewTag: true,
-      // Demo mode flag (npm run demo → DEMO_MODE=1). Passed via argv so the
-      // preload can read it reliably; process.env is not dependable in the
-      // Vite-built preload bundle.
-      ...(process.env.DEMO_MODE === '1' ? { additionalArguments: ['--demo-mode'] } : {})
+      // Demo mode flag (npm run demo → DEMO_MODE=1), forwarded as an argv entry
+      // the preload reads reliably (process.env is not dependable there).
+      ...demoWebPreferences()
     }
   });
 

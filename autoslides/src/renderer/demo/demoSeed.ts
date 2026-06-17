@@ -1,12 +1,12 @@
 // Demo mode: seed the Task List and Download list with believable fake items so
 // the right panel looks alive in screenshots. Nothing runs — we push directly
 // into the services' reactive arrays (bypassing the queue processors), so no
-// extraction or download is ever started. Called once from renderer.ts when
-// `isDemoMode()` is true, after config load and before mount.
+// extraction or download is ever started. Called once from the demo bootstrap
+// (./bootstrap.ts) when `isDemoMode()` is true, after config load and before mount.
 
-import { TaskQueue, type TaskItem } from './taskQueueService'
-import { DownloadService, type DownloadItem } from './downloadService'
-import { PostProcessingService, type PostProcessJob } from './postProcessingService'
+import { TaskQueue, type TaskItem } from '@shared/services/taskQueueService'
+import { DownloadService, type DownloadItem } from '@shared/services/downloadService'
+import { PostProcessingService, type PostProcessJob } from '@shared/services/postProcessingService'
 
 let seeded = false
 

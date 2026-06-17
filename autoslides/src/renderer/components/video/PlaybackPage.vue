@@ -173,7 +173,7 @@
             controls
             controlslist="noplaybackrate"
             preload="metadata"
-            :poster="isDemoMode() ? demoPosterDataUri(isScreenRecordingSelected ? 'screen' : 'camera') : undefined"
+            :poster="overrides.playbackDemo?.poster(isScreenRecordingSelected ? 'screen' : 'camera')"
             @error="onVideoError"
             @canplay="onCanPlay"
             @ended="onEnded"
@@ -213,7 +213,7 @@
                   class="dual-video-player"
                   preload="metadata"
                   playsinline
-                  :poster="isDemoMode() ? demoPosterDataUri('camera') : undefined"
+                  :poster="overrides.playbackDemo?.poster('camera')"
                   @timeupdate="onDualTimeUpdate"
                   @play="handleDualPlayStateChanged"
                   @pause="handleDualPlayStateChanged"
@@ -230,7 +230,7 @@
                   class="dual-video-player"
                   preload="metadata"
                   playsinline
-                  :poster="isDemoMode() ? demoPosterDataUri('screen') : undefined"
+                  :poster="overrides.playbackDemo?.poster('screen')"
                   @timeupdate="onDualTimeUpdate"
                   @play="handleDualPlayStateChanged"
                   @pause="handleDualPlayStateChanged"
@@ -500,7 +500,7 @@ import SlideGallery from './SlideGallery.vue'
 import PreviewModal from './PreviewModal.vue'
 import DualStreamControls from './DualStreamControls.vue'
 import { fromPlaybackStatus } from '@shared/postProcessing/displayAdapter'
-import { isDemoMode, demoPosterDataUri, demoGallerySlides } from '@shared/services/demoData'
+import { overrides } from '@shared/overrideRegistry'
 
 // Props
 const props = defineProps<{
@@ -1019,14 +1019,14 @@ watch(isScreenRecordingSelected, (isScreenRecording) => {
     slideExtraction.slideExtractionStatus.value.isRunning = false
   }
 
-  // Demo mode: entering the screen-recording view enables extraction and seeds
-  // the gallery with fabricated slides (seeded once). Done here rather than on
-  // mount so the isDualStreamSelected watcher doesn't disable it (demo starts in
-  // dual view). No real extraction runs — the demo video never plays.
-  if (isScreenRecording && isDemoMode()) {
+  // Demo mode (override registered): entering the screen-recording view enables
+  // extraction and seeds the gallery with fabricated slides (seeded once). Done
+  // here rather than on mount so the isDualStreamSelected watcher doesn't disable
+  // it (demo starts in dual view). No real extraction runs — the demo video never plays.
+  if (isScreenRecording && overrides.playbackDemo) {
     slideExtraction.isSlideExtractionEnabled.value = true
     if (extractedSlides.value.length === 0) {
-      extractedSlides.value = demoGallerySlides()
+      extractedSlides.value = overrides.playbackDemo.gallerySlides() as typeof extractedSlides.value
     }
   }
 })

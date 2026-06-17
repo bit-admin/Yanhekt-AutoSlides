@@ -18,4 +18,12 @@ PostProcessingService.setClassifier({ classifyMultipleImages, classifySingleImag
 
 const app = createApp(ToolsApp);
 app.use(i18n);
-loadConfig().then(() => app.mount('#app'));
+loadConfig().then(async () => {
+  // Demo mode: install fake Results View / PDF Maker data before mount.
+  // Deleting src/renderer/demo/ + this guarded import drops demo mode.
+  const { isDemoMode } = await import('./renderer/shared/services/runtimeEnv');
+  if (isDemoMode()) {
+    await import('./renderer/demo/bootstrap').then((m) => m.installDemo());
+  }
+  app.mount('#app');
+});

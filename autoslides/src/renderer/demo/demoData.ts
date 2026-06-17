@@ -1,10 +1,11 @@
 // Demo mode: fabricated account + course data for clean screenshots.
 //
 // Enabled by launching with `npm run demo` (sets DEMO_MODE=1, read in the
-// preload as `window.electronAPI.isDemoMode`). When active, the renderer-side
-// `ApiClient` and `TokenManager` short-circuit to the factories below instead
-// of hitting the network — so the whole UI renders as a made-up Math student
-// ("Kate") with a believable course list. Nothing here is persisted.
+// preload as `window.electronAPI.isDemoMode`). The demo bootstrap
+// (./bootstrap.ts) registers these factories into the generic override registry
+// (@shared/overrideRegistry), so the renderer renders as a made-up Math student
+// ("Kate") with a believable course list. Nothing here is persisted, and no
+// production code imports this file — the dependency points the other way.
 
 import type {
   UserData,
@@ -15,13 +16,9 @@ import type {
   LiveListResponse,
   SessionData,
   CourseInfoResponse,
-} from './apiClient'
+} from '@shared/services/apiClient'
 
 export const DEMO_TOKEN = 'DEMO_MODE_TOKEN'
-
-export function isDemoMode(): boolean {
-  return window.electronAPI?.isDemoMode === true
-}
 
 export function demoUser(): UserData {
   return {

@@ -1,6 +1,6 @@
 // Type definitions are available globally
 
-import { isDemoMode, DEMO_TOKEN } from './demoData'
+import { overrides } from '../overrideRegistry'
 
 export interface LoginResult {
   success: boolean;
@@ -44,17 +44,16 @@ export class TokenManager {
   }
 
   getToken(): string | null {
-    // Demo mode: report a sentinel token so the app appears logged in without
-    // touching localStorage/electron-store (nothing is persisted).
-    if (isDemoMode()) return DEMO_TOKEN;
+    // A registered override (demo mode) returns a sentinel token so the app
+    // appears logged in without a real one in localStorage/electron-store.
+    const sentinel = overrides.authToken?.();
+    if (sentinel) return sentinel;
     return localStorage.getItem(this.TOKEN_KEY);
   }
 
   // Ensure electron-store mirror is up to date with localStorage.
   // Called once on main renderer init so add-ons windows see the token via IPC.
   syncToConfig(): void {
-    // Demo mode persists nothing — don't mirror the sentinel token to config.
-    if (isDemoMode()) return;
     const token = this.getToken();
     window.electronAPI?.config?.setAuthToken?.(token ?? null);
   }
