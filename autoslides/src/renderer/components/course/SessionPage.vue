@@ -2,7 +2,7 @@
   <div class="session-page">
     <div class="header">
       <div class="header-main">
-        <button @click="goBack" class="btn btn--lg">
+        <button @click="goBack" class="btn btn--ghost back-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
@@ -122,29 +122,26 @@
               </div>
               <div class="session-actions">
                 <button @click.stop="addToQueue(session)" class="action-btn add-btn" :title="$t('sessions.addToTask')">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14,2 14,8 20,8"/>
                     <line x1="16" y1="13" x2="8" y2="13"/>
                     <line x1="16" y1="17" x2="8" y2="17"/>
                     <line x1="10" y1="9" x2="8" y2="9"/>
                   </svg>
-                  <span class="action-text">{{ $t('sessions.task') }}</span>
                 </button>
                 <button @click.stop="downloadCamera(session)" class="action-btn camera-btn" :title="$t('sessions.downloadCamera')">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
                     <circle cx="12" cy="13" r="4"/>
                   </svg>
-                  <span class="action-text">{{ $t('sessions.camera') }}</span>
                 </button>
                 <button @click.stop="downloadScreen(session)" class="action-btn screen-btn" :title="$t('sessions.downloadScreen')">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                     <line x1="8" y1="21" x2="16" y2="21"/>
                     <line x1="12" y1="17" x2="12" y2="21"/>
                   </svg>
-                  <span class="action-text">{{ $t('sessions.screen') }}</span>
                 </button>
               </div>
             </div>
@@ -210,31 +207,34 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 16px;
   background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 
+/* Apple Music style title band: full-width tinted bar, hairline underline */
 .header {
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  flex-shrink: 0;
   background-color: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 24px;
-  overflow: hidden;
 }
 
 .header-main {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px;
-  background-color: var(--bg-card);
+  padding: 16px 24px;
+}
+
+.back-btn {
+  flex-shrink: 0;
 }
 
 .header h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 600;
+  letter-spacing: -0.2px;
   color: var(--text-primary);
   flex: 1;
 }
@@ -256,9 +256,8 @@ onMounted(() => {
 }
 
 .course-details {
-  padding: 16px;
+  padding: 16px 24px;
   border-top: 1px solid var(--border-color);
-  background-color: var(--bg-card);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
@@ -289,6 +288,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding: 0 24px 16px;
 }
 
 .placeholder {
@@ -323,27 +323,28 @@ onMounted(() => {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  background-color: var(--bg-elevated);
-  border-radius: 8px;
-  padding: 4px;
+  gap: 8px;
+  padding: 2px;
+  padding-right: 10px;
 }
 
+/* Bordered cards that highlight their border + lift on hover (matches CoursePage) */
 .session-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 10px 14px;
   background-color: var(--bg-card);
-  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
   min-height: 48px;
 }
 
 .session-item:hover {
-  background-color: var(--badge-active-bg);
-  box-shadow: 0 1px 3px var(--focus-ring);
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px var(--focus-ring);
 }
 
 .session-main {
@@ -407,112 +408,91 @@ onMounted(() => {
 
 .batch-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   margin-bottom: 16px;
-  padding: 16px;
-  background-color: var(--bg-elevated);
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
 }
 
+/* Soft tonal chips: tinted fill, neutral hairline border (color carried by the
+   fill), solid colored fill on hover */
 .batch-btn {
   flex: 1;
-  min-height: 36px;
+  min-height: 38px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-weight: 500;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .add-all-btn {
   color: var(--success);
-  border-color: var(--success);
+  background-color: var(--success-bg);
 }
 
 .add-all-btn:hover {
-  background-color: var(--success-bg);
-  border-color: var(--success-border);
+  background-color: var(--success);
+  border-color: var(--success);
+  color: var(--text-on-accent);
 }
 
 .download-camera-btn {
   color: var(--accent);
-  border-color: var(--accent);
+  background-color: var(--badge-active-bg);
 }
 
 .download-camera-btn:hover {
-  background-color: var(--badge-active-bg);
-  border-color: var(--accent-hover);
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .download-screen-btn {
   color: var(--purple);
-  border-color: var(--purple);
+  background-color: var(--purple-badge-bg);
 }
 
 .download-screen-btn:hover {
-  background-color: var(--purple-hover-bg);
-  border-color: var(--purple-hover-border);
+  background-color: var(--purple);
+  border-color: var(--purple);
+  color: var(--text-on-accent);
 }
 
 .session-actions {
-  width: 200px;
+  width: 108px;
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   flex-shrink: 0;
 }
 
+/* Quiet monochrome icon buttons: grey at rest, tint to their color on hover */
 .action-btn {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 60px;
-  height: 40px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-card);
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--text-muted);
   cursor: pointer;
-  transition: all 0.2s;
-  gap: 2px;
-}
-
-.action-text {
-  font-size: 10px;
-  font-weight: 500;
-  line-height: 1;
-}
-
-.action-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px var(--shadow-sm);
-}
-
-.add-btn {
-  color: var(--success);
-  border-color: var(--success);
+  transition: background-color 0.15s, color 0.15s;
 }
 
 .add-btn:hover {
   background-color: var(--success-bg);
-  border-color: var(--success-border);
-}
-
-.camera-btn {
-  color: var(--accent);
-  border-color: var(--accent);
+  color: var(--success);
 }
 
 .camera-btn:hover {
   background-color: var(--badge-active-bg);
-  border-color: var(--accent-hover);
-}
-
-.screen-btn {
-  color: var(--purple);
-  border-color: var(--purple);
+  color: var(--accent);
 }
 
 .screen-btn:hover {
   background-color: var(--purple-hover-bg);
-  border-color: var(--purple-hover-border);
+  color: var(--purple);
 }
 
 .error-message {
