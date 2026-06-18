@@ -3,6 +3,8 @@
 // features/results/pHashWorker.ts, features/ai/usePHashExclusion.ts, and
 // shared/postProcessing/workerHelpers.ts.
 
+import PostProcessorWorker from './postProcessor.worker?worker';
+
 export interface PHashWorkerClient {
   calculatePHash: (imageData: ImageData) => Promise<string>;
   calculateHammingDistance: (hash1: string, hash2: string) => Promise<number>;
@@ -11,10 +13,7 @@ export interface PHashWorkerClient {
 }
 
 export function createPHashWorkerClient(): PHashWorkerClient {
-  const worker = new Worker(
-    new URL('./postProcessor.worker.ts', import.meta.url),
-    { type: 'module' },
-  );
+  const worker = new PostProcessorWorker();
 
   const request = <T>(type: string, data: Record<string, unknown>): Promise<T> => {
     return new Promise((resolve, reject) => {

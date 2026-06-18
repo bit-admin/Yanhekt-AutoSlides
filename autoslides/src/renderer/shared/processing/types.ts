@@ -57,6 +57,16 @@ export interface SlideExtractionInput {
   initialPlaybackRate?: number;
   classrooms?: { name: string }[] | null;
   configOverrides?: Partial<SlideExtractionConfig>;
+  /**
+   * Direct accessor for the `<video>` element to capture from (sourceMode
+   * `video` only). Preferred over the global-DOM selector lookup so that
+   * concurrent playback tabs each bind to their OWN element and never fall back
+   * to another tab's `<video>`. When omitted (e.g. pushed-frame/web-capture, or
+   * dual-stream playback where there is no single element), the pipeline falls
+   * back to the instance-scoped selector lookup. The provider is read live on
+   * every capture tick, so it tolerates same-element stream switches.
+   */
+  videoElementProvider?: () => HTMLVideoElement | null;
 }
 
 export interface SlideExtractionAdapter {

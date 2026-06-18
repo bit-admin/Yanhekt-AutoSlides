@@ -48,6 +48,7 @@ export interface UseSlideExtractionReturn {
   slideExtractorInstance: ShallowRef<SlideExtractionHandle | null>
   extractorInstanceId: Ref<string | null>
   extractedSlides: Ref<ExtractedSlide[]>
+  videoElementProvider: ShallowRef<(() => HTMLVideoElement | null) | null>
 
   // Methods
   toggleSlideExtraction: () => Promise<void>
@@ -83,6 +84,12 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     `${mode}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
   )
   const extractedSlides = ref<ExtractedSlide[]>([])
+  // Direct accessor to THIS PlaybackPage's own <video> element, attached by the
+  // component after useVideoPlayer is created (see PlaybackPage wiring order).
+  // Passed into the pipeline so concurrent tabs each capture their own element
+  // instead of falling back to a global-DOM querySelector that can match another
+  // tab's <video>.
+  const videoElementProvider = shallowRef<(() => HTMLVideoElement | null) | null>(null)
 
   // Event handlers stored for cleanup
   let slideExtractedHandler: ((event: CustomEvent) => Promise<void>) | null = null
@@ -134,6 +141,7 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
       mode,
       instanceId,
       sourceMode: 'video',
+      videoElementProvider: videoElementProvider.value ?? undefined,
       outputPath: slideOutputPath,
       courseInfo: {
         courseName: course.value?.title,
@@ -268,6 +276,7 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     slideExtractorInstance,
     extractorInstanceId,
     extractedSlides,
+    videoElementProvider,
 
     // Methods
     toggleSlideExtraction,

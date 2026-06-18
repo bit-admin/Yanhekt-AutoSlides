@@ -606,6 +606,14 @@ watch(videoPlayerComposable.currentPlaybackRate, (newRate) => {
   sharedPlaybackRate.value = newRate
 }, { immediate: true })
 
+// Give the slide-extraction pipeline a direct handle to THIS page's <video>
+// element (attached here, after useVideoPlayer is created, because
+// useVideoPlayer depends on slideExtraction.slideExtractorInstance and so must
+// be constructed second). The closure reads the live ref each capture tick so
+// the pipeline never falls back to a global-DOM querySelector that could match
+// another playback tab's <video>.
+slideExtraction.videoElementProvider.value = () => videoPlayerComposable.videoPlayer.value
+
 // Expose videoPlayer ref for template binding
 const videoPlayer = videoPlayerComposable.videoPlayer
 const cameraVideoPlayer = videoPlayerComposable.cameraVideoPlayer

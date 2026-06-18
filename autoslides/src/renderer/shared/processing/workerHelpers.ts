@@ -8,6 +8,8 @@
  * Moved here from services/slideProcessorService.ts.
  */
 
+import SlideProcessorWorker from '../workers/slideProcessor.worker?worker';
+
 interface WorkerMessage {
   id: string;
   type: 'compareImages' | 'calculateSSIM' | 'updateConfig';
@@ -39,10 +41,7 @@ export class SlideProcessorService {
 
   private initializeWorker(): void {
     try {
-      this.worker = new Worker(
-        new URL('../workers/slideProcessor.worker.ts', import.meta.url),
-        { type: 'module' },
-      );
+      this.worker = new SlideProcessorWorker();
 
       this.worker.onmessage = this.handleWorkerMessage.bind(this);
       this.worker.onerror = this.handleWorkerError.bind(this);

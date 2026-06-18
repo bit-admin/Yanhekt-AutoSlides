@@ -2,10 +2,11 @@ import type {
   ClassifyResult,
   WorkerResponse,
 } from '@shared/workers/slideClassifier.worker'
+import SlideClassifierWorker from '@shared/workers/slideClassifier.worker?worker'
 import { createWorkerClient } from '@shared/workers/workerClientFactory'
 
 const client = createWorkerClient<WorkerResponse>({
-  workerUrl: new URL('../../shared/workers/slideClassifier.worker.ts', import.meta.url),
+  createWorker: () => new SlideClassifierWorker(),
   workerName: 'slideClassifier',
 })
 

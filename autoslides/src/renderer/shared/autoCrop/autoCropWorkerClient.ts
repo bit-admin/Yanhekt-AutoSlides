@@ -3,6 +3,7 @@ import type {
   DetectorMode,
   WorkerResponse,
 } from '../workers/autoCrop.worker';
+import AutoCropWorker from '../workers/autoCrop.worker?worker';
 import { createWorkerClient } from '../workers/workerClientFactory';
 
 export interface AutoCropWorkerClient {
@@ -21,7 +22,7 @@ const modeNeedsYolo = (mode: DetectorMode | undefined): boolean =>
 
 export function createAutoCropWorkerClient(): AutoCropWorkerClient {
   const client = createWorkerClient<WorkerResponse>({
-    workerUrl: new URL('../workers/autoCrop.worker.ts', import.meta.url),
+    createWorker: () => new AutoCropWorker(),
     workerName: 'autoCrop',
   });
 

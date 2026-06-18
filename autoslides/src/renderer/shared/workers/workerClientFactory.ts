@@ -30,8 +30,14 @@ export interface WorkerClient<TResponse extends WorkerResponseBase = WorkerRespo
 }
 
 export interface CreateWorkerClientOptions<TResponse extends WorkerResponseBase = WorkerResponseBase> {
-  /** Resolved URL of the worker module (use `new URL('./worker.ts', import.meta.url)`). */
-  workerUrl: URL;
+  /**
+   * Factory that constructs the worker. Use Vite's `?worker` import so the
+   * worker is statically detected and compiled, e.g.
+   * `import MyWorker from './my.worker?worker'` → `createWorker: () => new MyWorker()`.
+   * (A bare `new Worker(new URL(...))` passed through a variable is NOT detected
+   * by Vite and gets copied as a raw `.ts` asset in the packaged build.)
+   */
+  createWorker: () => Worker;
   /** Short name used in error logs (e.g. `'autoCrop'`, `'slideClassifier'`). */
   workerName: string;
   /**
@@ -56,7 +62,7 @@ const defaultIsResponse = <T extends WorkerResponseBase>(data: unknown): data is
 export function createWorkerClient<TResponse extends WorkerResponseBase = WorkerResponseBase>(
   options: CreateWorkerClientOptions<TResponse>,
 ): WorkerClient<TResponse> {
-  const { workerUrl, workerName, isResponse = defaultIsResponse } = options;
+  const { createWorker, workerName, isResponse = defaultIsResponse } = options;
 
   let worker: Worker | null = null;
   let nextId = 0;
@@ -64,7 +70,7 @@ export function createWorkerClient<TResponse extends WorkerResponseBase = Worker
 
   const ensureWorker = (): Worker => {
     if (worker) return worker;
-    worker = new Worker(workerUrl, { type: 'module' });
+    worker = createWorker();
     worker.addEventListener('message', (event: MessageEvent<unknown>) => {
       const data = event.data;
       if (!isResponse(data)) return;

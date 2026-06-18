@@ -12,7 +12,7 @@
 
 import { ssimThresholdService, type SsimPresetType } from '@shared/services/ssimThresholdService';
 import { ChangeDetector } from './changeDetection';
-import { buildVideoSelector, captureFrame, getVideoElement, validateImageData } from './frameSource';
+import { buildVideoSelector, captureFrame, getVideoElement, isVideoAccessible, validateImageData } from './frameSource';
 import { IntervalTable } from './intervalTable';
 import { saveSlide } from './slideWriter';
 import { slideProcessorService } from './workerHelpers';
@@ -49,6 +49,8 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
   private captureInterval: ReturnType<typeof setInterval> | null = null;
   private sourceMode: SlideSourceMode = 'video';
   private videoSelector: string;
+  private videoElementProvider: (() => HTMLVideoElement | null) | null = null;
+  private warnedVideoUnavailable = false;
 
   private isBuffering = false;
   private isPausedDueToBuffering = false;
@@ -95,6 +97,8 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     this.outputPath = input.outputPath;
     this.courseInfo = { ...(input.courseInfo ?? {}), mode: input.courseInfo?.mode ?? this.mode };
     this.sourceMode = input.sourceMode ?? 'video';
+    this.videoElementProvider = input.videoElementProvider ?? null;
+    this.warnedVideoUnavailable = false;
 
     await this.loadConfigFromService();
 
@@ -126,7 +130,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     this.detector.clear();
 
     if (this.sourceMode === 'video') {
-      const video = getVideoElement(this.videoSelector, this.instanceId);
+      const video = this.resolveVideoElement();
       if (!video) {
         console.error(`SlideExtractionPipeline ${this.instanceId}: video element not found`);
         this.adapter.onError?.(new Error('Video element not found'));
@@ -283,6 +287,21 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
 
   // ─── Internal ─────────────────────────────────────────────────────────────
 
+  /**
+   * Resolve the `<video>` element to capture from. Prefers the caller-supplied
+   * provider (a direct handle to THIS page's own element) over the global-DOM
+   * selector lookup, which can bind to another tab's `<video>` when this tab's
+   * instance-scoped container is transiently absent. Falls back to the selector
+   * path when no provider is set (pushed-frame/web-capture, dual-stream).
+   */
+  private resolveVideoElement(): HTMLVideoElement | null {
+    if (this.videoElementProvider) {
+      const provided = this.videoElementProvider();
+      return provided && isVideoAccessible(provided) ? provided : null;
+    }
+    return getVideoElement(this.videoSelector, this.instanceId);
+  }
+
   private attachSignal(): void {
     const signal = this.adapter.signal;
     if (!signal) return;
@@ -320,11 +339,18 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
         console.log('Skipping capture due to buffering');
         return;
       }
-      const video = getVideoElement(this.videoSelector, this.instanceId);
+      const video = this.resolveVideoElement();
       if (!video) {
-        console.warn('Video element not available during capture');
+        // A transient null is normal while a stream switches or the page tears
+        // down at task end; only warn once per run so a stopping task doesn't
+        // spam the console.
+        if (!this.warnedVideoUnavailable) {
+          console.warn(`SlideExtractionPipeline ${this.instanceId}: video element not available during capture`);
+          this.warnedVideoUnavailable = true;
+        }
         return;
       }
+      this.warnedVideoUnavailable = false;
       const imageData = captureFrame(video);
       if (!imageData) {
         console.warn('Failed to capture frame');
