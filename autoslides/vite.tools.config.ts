@@ -80,6 +80,26 @@ function ortWasmBuildCopy(): Plugin {
   };
 }
 
+// The slideClassifier/autoCrop workers import onnxruntime-web, whose loader
+// references the wasm via `new URL(..., import.meta.url)`, so Rollup emits a
+// ~24 MB copy of ort-wasm-simd-threaded.jsep.wasm into assets/. That copy is dead
+// weight: at runtime the workers set `ort.env.wasm.wasmPaths` to the ort-wasm/
+// directory populated by ortWasmBuildCopy, so the assets/ copy is never fetched.
+// Drop it so the blob ships once per renderer instead of twice.
+function dropBundledOrtWasm(): Plugin {
+  return {
+    name: 'drop-bundled-ort-wasm',
+    apply: 'build',
+    generateBundle(_options, bundle) {
+      for (const fileName of Object.keys(bundle)) {
+        if (/ort-wasm.*\.wasm$/.test(fileName)) {
+          delete bundle[fileName];
+        }
+      }
+    }
+  };
+}
+
 // Vite config for unified Tools window
 export default defineConfig(({ mode }) => ({
   // Give this window its own deps cache so it doesn't collide with the main
@@ -89,7 +109,8 @@ export default defineConfig(({ mode }) => ({
   plugins: [
     vue(),
     ortWasmDevServer(),
-    ortWasmBuildCopy()
+    ortWasmBuildCopy(),
+    dropBundledOrtWasm()
   ],
   resolve: {
     alias: {
