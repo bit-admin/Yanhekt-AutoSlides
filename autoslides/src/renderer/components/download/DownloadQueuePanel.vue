@@ -293,38 +293,18 @@ const extractionBarWidth = (item: DownloadItem): number => {
   padding: 12px;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: 8px;
   transition: all 0.2s;
 }
 
 .download-item.row-highlight {
   border-color: var(--accent);
-  box-shadow: 0 2px 4px var(--focus-ring);
+  box-shadow: 0 2px 8px var(--focus-ring);
 }
 
 .download-item:hover {
   border-color: var(--accent);
-  box-shadow: 0 2px 4px var(--focus-ring);
-}
-
-.download-item.status-queued {
-  border-left: 3px solid var(--status-queued);
-}
-
-.download-item.status-downloading {
-  border-left: 3px solid var(--accent);
-}
-
-.download-item.status-processing {
-  border-left: 3px solid var(--warning);
-}
-
-.download-item.status-completed {
-  border-left: 3px solid var(--success);
-}
-
-.download-item.status-error {
-  border-left: 3px solid var(--danger-pink);
+  box-shadow: 0 2px 8px var(--focus-ring);
 }
 
 .item-status {
@@ -379,22 +359,8 @@ const extractionBarWidth = (item: DownloadItem): number => {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-top: none;
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 8px 8px;
   padding: 3px 8px;
-}
-
-.download-item + .extraction-affiliated-panel,
-.download-item + .post-process-affiliated-panel {
-  border-left: 3px solid var(--status-active);
-}
-
-.extraction-affiliated-panel + .post-process-affiliated-panel {
-  border-left: 3px solid var(--status-active);
-}
-
-.download-item.status-error + .extraction-affiliated-panel,
-.download-item.status-error + .post-process-affiliated-panel {
-  border-left: 3px solid var(--status-error);
 }
 
 .ext-row {

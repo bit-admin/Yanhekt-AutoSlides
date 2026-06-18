@@ -486,7 +486,7 @@
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-top: none;
-  border-radius: 0 0 6px 6px;
+  border-radius: 0 0 8px 8px;
   padding: 4px 6px;
   margin-top: 0;
 }

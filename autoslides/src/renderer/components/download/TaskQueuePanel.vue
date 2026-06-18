@@ -239,18 +239,18 @@ const removeTask = (taskId: string) => {
   padding: 12px;
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: 8px;
   transition: all 0.2s;
 }
 
 .task-item-wrapper:hover .task-item {
   border-color: var(--accent);
-  box-shadow: 0 2px 4px var(--focus-ring);
+  box-shadow: 0 2px 8px var(--focus-ring);
 }
 
 .task-item-wrapper.row-highlight .task-item {
   border-color: var(--accent);
-  box-shadow: 0 2px 4px var(--focus-ring);
+  box-shadow: 0 2px 8px var(--focus-ring);
 }
 
 .task-item-wrapper:hover .post-process-affiliated-panel {
@@ -263,23 +263,7 @@ const removeTask = (taskId: string) => {
 
 .task-item:hover {
   border-color: var(--accent);
-  box-shadow: 0 2px 4px var(--focus-ring);
-}
-
-.task-item.status-queued {
-  border-left: 3px solid var(--status-queued);
-}
-
-.task-item.status-in_progress {
-  border-left: 3px solid var(--success);
-}
-
-.task-item.status-completed {
-  border-left: 3px solid var(--success);
-}
-
-.task-item.status-error {
-  border-left: 3px solid var(--danger-pink);
+  box-shadow: 0 2px 8px var(--focus-ring);
 }
 
 .item-status {
@@ -315,22 +299,6 @@ const removeTask = (taskId: string) => {
 }
 
 /* .post-process-affiliated-panel + .pp-panel-content are shared (components.css). */
-
-.task-item.status-queued + .post-process-affiliated-panel {
-  border-left: 3px solid var(--status-queued);
-}
-
-.task-item.status-in_progress + .post-process-affiliated-panel {
-  border-left: 3px solid var(--status-active);
-}
-
-.task-item.status-completed + .post-process-affiliated-panel {
-  border-left: 3px solid var(--status-active);
-}
-
-.task-item.status-error + .post-process-affiliated-panel {
-  border-left: 3px solid var(--status-error);
-}
 
 .item-actions {
   flex-shrink: 0;
