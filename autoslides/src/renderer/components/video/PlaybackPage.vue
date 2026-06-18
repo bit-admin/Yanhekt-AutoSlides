@@ -2,7 +2,7 @@
   <div class="playback-page">
     <div class="header">
       <div class="header-main">
-        <button @click="goBack" class="btn btn--lg back-btn" :disabled="shouldDisableControls">
+        <button @click="goBack" class="btn btn--ghost back-btn" :disabled="shouldDisableControls">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
@@ -171,6 +171,7 @@
           </div>
         </div>
 
+        <div class="player-panel">
         <DualStreamControls
           v-model:selected-stream="selectedStream"
           v-model:current-playback-rate="currentPlaybackRate"
@@ -493,6 +494,7 @@
             @preview="openSlideModal"
             @delete="deleteSlide"
           />
+        </div>
         </div>
 
       </div>
@@ -1226,34 +1228,27 @@ onUnmounted(async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 16px;
   background-color: var(--bg-surface);
   color: var(--text-primary);
 }
 
+/* Apple Music style title band: full-width tinted bar, hairline underline */
 .header {
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
+  flex-shrink: 0;
   background-color: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 24px;
-  overflow: hidden;
 }
 
 .header-main {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px;
-  background-color: var(--bg-card);
+  padding: 16px 24px;
 }
 
-.back-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.back-btn:disabled {
-  background-color: var(--bg-elevated);
+.back-btn {
+  flex-shrink: 0;
 }
 
 .title-info {
@@ -1262,8 +1257,9 @@ onUnmounted(async () => {
 
 .title-info h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 600;
+  letter-spacing: -0.2px;
   color: var(--text-primary);
 }
 
@@ -1323,9 +1319,8 @@ onUnmounted(async () => {
 }
 
 .course-details {
-  padding: 16px;
+  padding: 16px 24px;
   border-top: 1px solid var(--border-color);
-  background-color: var(--bg-card);
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
@@ -1357,6 +1352,7 @@ onUnmounted(async () => {
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
+  padding: 0 24px 16px;
 }
 
 /* Loading and Error States */
@@ -1414,41 +1410,22 @@ onUnmounted(async () => {
 .video-content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
 }
 
-/* Video content group - controls, video, and gallery header form a visual unit */
-.video-content .controls-row {
-  margin-bottom: 0;
-}
-
-.video-content .video-container {
-  margin-bottom: 0;
-}
-
-.video-content .slide-gallery {
-  margin-top: 0;
-}
-
-.video-content .slide-gallery .gallery-header {
-  margin-bottom: 8px;
-  border-top: none;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-}
-
-/* Compact spacing for warning when it appears before the main content group */
-.video-content .combined-warning + .controls-row {
-  margin-top: 0;
+/* Seamless player panel: control bar + video + slide-extraction/gallery fused
+   into one bordered, rounded card; inner sections divided by hairlines. */
+.player-panel {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--bg-elevated);
 }
 
 .video-container {
   position: relative;
   width: 100%;
   background-color: #000;
-  border: 1px solid var(--border-color);
-  border-top: none;
-  border-radius: 0;
   overflow: hidden;
   transition: all 0.3s ease;
 }
@@ -1884,20 +1861,14 @@ onUnmounted(async () => {
   align-items: center;
   padding: 16px;
   background-color: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: 0 0 8px 8px;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .slide-actions {
   display: flex;
   gap: 8px;
   align-items: center;
-}
-
-/* When gallery is part of the video content group, adjust the control styling */
-.video-content .slide-gallery .slide-extraction-control {
-  border-radius: 0 0 8px 8px;
-  border-top: 1px solid var(--border-color);
 }
 
 .extraction-main {
@@ -2003,32 +1974,25 @@ onUnmounted(async () => {
   opacity: 0.8;
 }
 
-/* Slide Gallery */
+/* Slide Gallery — bottom section of the seamless player panel */
 .slide-gallery {
-  margin-top: 24px;
   background-color: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-}
-
-/* When gallery is part of the video content group */
-.video-content .slide-gallery {
-  margin-top: 0;
-  border-top: none;
-  border-radius: 0 0 8px 8px;
 }
 
 .gallery-header {
-  margin-bottom: 8px;
+  margin-bottom: 0;
 }
 
-/* Post-processing status bar styles */
+/* Thumbnail grid (child SlideGallery component) inset from the panel edges */
+.slide-gallery :deep(.gallery-grid) {
+  padding: 16px;
+}
+
+/* Post-processing status bar: flush panel section, not a nested box */
 .post-process-status-bar {
   background-color: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+  padding: 12px 16px;
 }
 
 .status-bar-content {

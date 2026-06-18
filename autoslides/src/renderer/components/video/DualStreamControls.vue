@@ -86,14 +86,14 @@ function onRateChange(event: Event) {
 </script>
 
 <style scoped>
+/* Top section of the seamless player panel: hairline divider to the video below */
 .controls-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px;
+  padding: 12px 16px;
   background-color: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid var(--border-color);
   gap: 16px;
 }
 
@@ -111,10 +111,18 @@ function onRateChange(event: Event) {
 .stream-selector select {
   padding: 6px 12px;
   border: 1px solid var(--border-input);
-  border-radius: 4px;
+  border-radius: 6px;
   background-color: var(--bg-input);
   color: var(--text-primary);
   font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.stream-selector select:hover:not(:disabled),
+.stream-selector select:focus {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .stream-selector select:disabled {
@@ -138,13 +146,15 @@ function onRateChange(event: Event) {
 .playback-rate-control select {
   padding: 6px 12px;
   border: 1px solid var(--border-input);
-  border-radius: 4px;
+  border-radius: 6px;
   background-color: var(--bg-input);
   color: var(--text-primary);
   font-size: 14px;
   cursor: pointer;
+  transition: border-color 0.15s;
 }
 
+.playback-rate-control select:hover:not(:disabled),
 .playback-rate-control select:focus {
   outline: none;
   border-color: var(--accent);
@@ -167,7 +177,7 @@ function onRateChange(event: Event) {
   gap: 6px;
   padding: 8px 12px;
   border: 1px solid var(--border-input);
-  border-radius: 4px;
+  border-radius: 6px;
   background-color: var(--bg-input);
   color: var(--text-primary);
   font-size: 14px;
