@@ -3,7 +3,7 @@
        sidebar boundary (transparent glass left, opaque right) on macOS;
        --right-panel-width pins the title bar's view switcher to the right
        panel's left edge so it left-aligns over that panel. -->
-  <div class="app" :style="{ '--left-panel-width': leftWidth + 'px', '--right-panel-width': rightWidth + 'px' }">
+  <div class="app" :style="{ '--left-panel-width': renderedLeft + 'px', '--right-panel-width': renderedRight + 'px' }">
     <!-- macOS only (display gated in CSS): one continuous glass tint behind
          both the title bar's sidebar segment and the left panel, so the two
          regions cannot mismatch. -->
@@ -12,13 +12,15 @@
     <TitleBar />
 
     <div class="layout">
-      <div class="left-panel" :style="{ width: leftWidth + 'px' }">
+      <div class="left-panel" :style="{ width: renderedLeft + 'px' }">
         <LeftPanel />
       </div>
-      <div class="divider left-divider" @mousedown="startResize('left', $event)"></div>
+      <!-- Divider hidden while the panel is collapsed so a 0-width panel can't
+           be drag-resized. -->
+      <div v-if="!layoutStore.leftCollapsed" class="divider left-divider" @mousedown="startResize('left', $event)"></div>
 
       <!-- Browser Login View (replaces MainContent and RightPanel) -->
-      <div v-if="isBrowserLoginActive" class="browser-login-container" :style="{ width: (mainWidth + rightWidth) + 'px' }">
+      <div v-if="isBrowserLoginActive" class="browser-login-container" :style="{ width: (renderedMain + renderedRight) + 'px' }">
         <BrowserLoginView
           @close="closeBrowserLogin"
           @token-received="handleBrowserToken"
@@ -27,12 +29,12 @@
 
       <!-- Normal content when not in browser login mode -->
       <template v-else>
-        <div class="main-content" :style="{ width: mainWidth + 'px' }">
+        <div class="main-content" :style="{ width: renderedMain + 'px' }">
           <MainContent @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
         </div>
-        <div class="divider right-divider" @mousedown="startResize('right', $event)"></div>
+        <div v-if="!layoutStore.rightCollapsed" class="divider right-divider" @mousedown="startResize('right', $event)"></div>
 
-        <div class="right-panel" :style="{ width: rightWidth + 'px' }">
+        <div class="right-panel" :style="{ width: renderedRight + 'px' }">
           <RightPanel ref="rightPanelRef" />
         </div>
       </template>
@@ -43,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import TitleBar from '@renderer/components/titlebar/TitleBar.vue'
 import LeftPanel from '@renderer/components/settings/LeftPanel.vue'
 import MainContent from '@renderer/components/MainContent.vue'
@@ -53,6 +55,7 @@ import OnboardingModal from '@renderer/components/settings/OnboardingModal.vue'
 import { useAuth } from '@features/platform/useAuth'
 import { configStore } from '@shared/services/configStore'
 import { isDemoMode } from '@shared/services/runtimeEnv'
+import { layoutStore } from '@shared/services/layoutStore'
 
 const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken } = useAuth()
 
@@ -78,6 +81,18 @@ if (isDemoMode()) {
 const leftWidth = ref(240)
 const rightWidth = ref(320)
 const mainWidth = ref(760)
+
+// leftWidth/rightWidth/mainWidth stay the expanded baseline that the resize
+// logic operates on (preserving the invariant innerWidth === left+main+right).
+// Collapsing is purely presentational: a collapsed panel renders at 0 and its
+// width is handed to the main content, so toggling never disturbs the baseline.
+const renderedLeft = computed(() => (layoutStore.leftCollapsed ? 0 : leftWidth.value))
+const renderedRight = computed(() => (layoutStore.rightCollapsed ? 0 : rightWidth.value))
+const renderedMain = computed(() =>
+  mainWidth.value +
+  (layoutStore.leftCollapsed ? leftWidth.value : 0) +
+  (layoutStore.rightCollapsed ? rightWidth.value : 0)
+)
 
 let isResizing = false
 let resizeType = ''
@@ -108,6 +123,12 @@ const startResize = (type: string, event: MouseEvent) => {
   startRightWidth = rightWidth.value
   containerWidth = window.innerWidth
 
+  // Lock the resize cursor globally: the divider unmounts the moment a drag
+  // snaps the panel collapsed, so without this the cursor would flip back to
+  // default mid-drag.
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+
   document.addEventListener('mousemove', handleResize)
   document.addEventListener('mouseup', stopResize)
   event.preventDefault()
@@ -121,18 +142,37 @@ const handleResize = (event: MouseEvent) => {
   const minRight = 250
   const minMain = 500
   const dividerWidth = 0 // dividers overlap panel edges, zero layout width
+  // Drag a divider past its min by this margin to snap the panel collapsed
+  // (Finder-style). Dragging back out past the margin re-expands it — the
+  // mousemove listener lives on document, so the drag survives the divider
+  // unmounting while collapsed.
+  const collapseGap = 60
 
   if (resizeType === 'left') {
-    const newLeftWidth = Math.max(minLeft, Math.min(600, startLeftWidth + deltaX))
+    const rawLeftWidth = startLeftWidth + deltaX
+    if (rawLeftWidth < minLeft - collapseGap) {
+      // Keep the baseline at min so re-expanding (drag-out or toggle) restores
+      // a sensible width rather than a sliver.
+      layoutStore.leftCollapsed = true
+      leftWidth.value = minLeft
+      mainWidth.value = containerWidth - leftWidth.value - rightWidth.value - dividerWidth
+      return
+    }
+    layoutStore.leftCollapsed = false
     const maxLeftWidth = containerWidth - rightWidth.value - minMain - dividerWidth
-
-    leftWidth.value = Math.min(newLeftWidth, maxLeftWidth)
+    leftWidth.value = Math.min(Math.max(minLeft, rawLeftWidth), maxLeftWidth)
     mainWidth.value = containerWidth - leftWidth.value - rightWidth.value - dividerWidth
   } else if (resizeType === 'right') {
-    const newRightWidth = Math.max(minRight, Math.min(600, startRightWidth - deltaX))
+    const rawRightWidth = startRightWidth - deltaX
+    if (rawRightWidth < minRight - collapseGap) {
+      layoutStore.rightCollapsed = true
+      rightWidth.value = minRight
+      mainWidth.value = containerWidth - leftWidth.value - rightWidth.value - dividerWidth
+      return
+    }
+    layoutStore.rightCollapsed = false
     const maxRightWidth = containerWidth - leftWidth.value - minMain - dividerWidth
-
-    rightWidth.value = Math.min(newRightWidth, maxRightWidth)
+    rightWidth.value = Math.min(Math.max(minRight, rawRightWidth), maxRightWidth)
     mainWidth.value = containerWidth - leftWidth.value - rightWidth.value - dividerWidth
   }
 }
@@ -140,6 +180,8 @@ const handleResize = (event: MouseEvent) => {
 const stopResize = () => {
   isResizing = false
   resizeType = ''
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
   document.removeEventListener('mousemove', handleResize)
   document.removeEventListener('mouseup', stopResize)
 }
@@ -213,6 +255,9 @@ onMounted(() => {
   background-color: var(--bg-page-alt);
   border-right: 1px solid var(--border-color);
   flex-shrink: 0;
+  /* When collapsed the panel renders at width 0; clip its (still-mounted)
+     contents so nothing bleeds across the boundary. */
+  overflow: hidden;
 }
 
 /* macOS frosted sidebar: the window's vibrancy shows through the transparent
@@ -259,6 +304,7 @@ onMounted(() => {
   background-color: var(--bg-modal);
   border-left: 1px solid var(--border-color);
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .browser-login-container {

@@ -678,6 +678,8 @@
     "settings": "設定...",
     "minimize": "最小化",
     "maximize": "最大化",
+    "toggleLeftPanel": "サイドバーの表示/非表示",
+    "toggleRightPanel": "タスクパネルの表示/非表示",
     "aboutTitle": "AutoSlidesについて",
     "aboutMessage": "AutoSlides",
     "aboutDetail": "Version 4.4.0 (4.4.0)\n\n© 2025 bit-admin. All rights reserved.\n\nNeed help? Open an issue on GitHub or send us an email at info@ruc.edu.kg.",

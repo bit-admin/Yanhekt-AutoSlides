@@ -1,10 +1,15 @@
 <template>
-  <div class="titlebar" :class="{ 'is-macos': isMacOS }">
-    <!-- macOS traffic lights space -->
-    <div v-if="isMacOS" class="traffic-lights-space"></div>
+  <div class="titlebar" :class="{ 'is-macos': isMacOS }" :style="reserveStyle">
+    <!-- Leading cluster: traffic lights (macOS) / menu bar (Win-Linux) + the
+         left-panel collapse toggle. Measured (leadRef) to publish --lead-reserve
+         so the absolutely-positioned tab strip never slides under it when the
+         sidebar collapses. -->
+    <div ref="leadRef" class="titlebar-lead">
+      <!-- macOS traffic lights space -->
+      <div v-if="isMacOS" class="traffic-lights-space"></div>
 
-    <!-- Menu bar for non-macOS platforms -->
-    <div v-if="!isMacOS" class="menu-bar">
+      <!-- Menu bar for non-macOS platforms -->
+      <div v-if="!isMacOS" class="menu-bar">
       <div class="menu-item" @click="toggleFileMenu" ref="fileMenuTrigger">
         {{ $t('titlebar.file') }}
         <div v-if="showFileMenu" class="dropdown-menu" @click.stop>
@@ -58,6 +63,21 @@
           <div class="menu-option" @click="openTermsAndConditions">{{ $t('titlebar.termsAndConditions') }}</div>
         </div>
       </div>
+      </div>
+
+      <!-- Left-panel collapse toggle (sits right after the traffic lights /
+           menu bar on both platforms). -->
+      <button
+        class="panel-toggle panel-toggle--lead"
+        :class="{ active: layoutStore.leftCollapsed }"
+        @click="toggleLeftPanel"
+        :title="$t('titlebar.toggleLeftPanel')"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <line x1="9" y1="4" x2="9" y2="20"/>
+        </svg>
+      </button>
     </div>
 
     <!-- Drag area -->
@@ -169,23 +189,43 @@
       </button>
     </div>
 
-    <!-- Window controls for non-macOS -->
-    <div v-if="!isMacOS" class="window-controls">
-      <button class="control-button minimize" @click="minimizeWindow" :title="$t('titlebar.minimize')">
-        <svg width="12" height="12" viewBox="0 0 12 12">
-          <rect x="2" y="5" width="8" height="2" fill="currentColor"/>
+    <!-- Trailing cluster: right-panel collapse toggle + (non-macOS) window
+         controls. Measured (trailRef) to publish --trail-reserve so the tab
+         strip and view switcher stay clear of it. On macOS this is just the
+         toggle at the far right; on Win-Linux the toggle sits left of min/max/
+         close. -->
+    <div ref="trailRef" class="titlebar-trail">
+      <!-- Right-panel collapse toggle -->
+      <button
+        class="panel-toggle panel-toggle--trail"
+        :class="{ active: layoutStore.rightCollapsed }"
+        @click="toggleRightPanel"
+        :title="$t('titlebar.toggleRightPanel')"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <line x1="15" y1="4" x2="15" y2="20"/>
         </svg>
       </button>
-      <button class="control-button maximize" @click="maximizeWindow" :title="$t('titlebar.maximize')">
-        <svg width="12" height="12" viewBox="0 0 12 12">
-          <rect x="2" y="2" width="8" height="8" stroke="currentColor" stroke-width="1" fill="none"/>
-        </svg>
-      </button>
-      <button class="control-button close" @click="closeWindow" :title="$t('titlebar.close')">
-        <svg width="12" height="12" viewBox="0 0 12 12">
-          <path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5"/>
-        </svg>
-      </button>
+
+      <!-- Window controls for non-macOS -->
+      <div v-if="!isMacOS" class="window-controls">
+        <button class="control-button minimize" @click="minimizeWindow" :title="$t('titlebar.minimize')">
+          <svg width="12" height="12" viewBox="0 0 12 12">
+            <rect x="2" y="5" width="8" height="2" fill="currentColor"/>
+          </svg>
+        </button>
+        <button class="control-button maximize" @click="maximizeWindow" :title="$t('titlebar.maximize')">
+          <svg width="12" height="12" viewBox="0 0 12 12">
+            <rect x="2" y="2" width="8" height="8" stroke="currentColor" stroke-width="1" fill="none"/>
+          </svg>
+        </button>
+        <button class="control-button close" @click="closeWindow" :title="$t('titlebar.close')">
+          <svg width="12" height="12" viewBox="0 0 12 12">
+            <path d="M2 2 L10 10 M10 2 L2 10" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
     <UpdateManager ref="updateManager" />
@@ -199,6 +239,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import UpdateManager from './UpdateManager.vue';
 import { rightPanelStore, setRightPanelTab } from '@shared/services/rightPanelStore';
+import { layoutStore, toggleLeftPanel, toggleRightPanel } from '@shared/services/layoutStore';
 import { tabStore, type PlaybackTab } from '@features/course/tabStore';
 import { useAuth } from '@features/platform/useAuth';
 import { taskQueueState } from '@shared/services/taskQueueService';
@@ -223,6 +264,26 @@ const { isBrowserLoginActive } = useAuth();
 const stripRef = ref<HTMLElement | null>(null);
 const infoRef = ref<HTMLElement | null>(null);
 const overflowBtnRef = ref<HTMLElement | null>(null);
+
+// --- Leading/trailing reserve (collapse-toggle clearance) -----------------
+// The tab strip and view switcher are absolutely positioned off
+// --left/right-panel-width. When a panel collapses those vars go to 0 and the
+// strips would slide under the traffic lights / menu bar / toggles / window
+// controls. We measure the actual leading & trailing control clusters and
+// publish their widths as --lead-reserve / --trail-reserve; the strip anchors
+// clamp to them via max(). Measured (not hard-coded) so locale-width menu bars
+// and the macOS-vs-Windows trailing difference are handled automatically.
+const leadRef = ref<HTMLElement | null>(null);
+const trailRef = ref<HTMLElement | null>(null);
+const reserveStyle = ref<Record<string, string>>({});
+let reserveObserver: ResizeObserver | null = null;
+
+const measureReserves = () => {
+  reserveStyle.value = {
+    '--lead-reserve': `${leadRef.value?.offsetWidth ?? 0}px`,
+    '--trail-reserve': `${trailRef.value?.offsetWidth ?? 0}px`,
+  };
+};
 const visibleCount = ref<number>(Number.POSITIVE_INFINITY);
 const showOverflow = ref(false);
 const overflowMenuStyle = ref<Record<string, string>>({});
@@ -345,12 +406,23 @@ onMounted(() => {
   // Re-fit the visible tab run whenever the strip's width changes (panel
   // resize, window resize, traffic-light reserve, etc.).
   nextTick(attachStripObserver);
+
+  // Measure the leading/trailing control clusters so the strip anchors can
+  // clamp to them. Re-measures on locale change (menu-bar width shifts) etc.
+  nextTick(() => {
+    measureReserves();
+    reserveObserver = new ResizeObserver(() => measureReserves());
+    if (leadRef.value) reserveObserver.observe(leadRef.value);
+    if (trailRef.value) reserveObserver.observe(trailRef.value);
+  });
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick);
   stripObserver?.disconnect();
   stripObserver = null;
+  reserveObserver?.disconnect();
+  reserveObserver = null;
 });
 
 // Close all menus when clicking outside
@@ -628,6 +700,60 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   flex-shrink: 0;
 }
 
+/* Leading / trailing flex clusters that wrap the platform controls plus the
+   collapse toggles. Measured via ResizeObserver to publish the reserve vars. */
+.titlebar-lead,
+.titlebar-trail {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  flex-shrink: 0;
+}
+
+/* macOS: nudge the trailing toggle off the right window edge (no window
+   controls there to provide spacing). */
+.titlebar.is-macos .titlebar-trail {
+  padding-right: 6px;
+}
+
+/* Panel collapse toggles (sidebar + task panel). */
+.panel-toggle {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 26px;
+  margin: 0 2px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.panel-toggle:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+/* macOS: the traffic lights sit a touch below the title-bar centerline, so nudge
+   the toggles down to line up with them (Safari/Finder alignment). */
+.titlebar.is-macos .panel-toggle {
+  transform: translateY(1px);
+}
+
+/* Highlight when the matching panel is collapsed. */
+.panel-toggle.active {
+  color: var(--accent);
+}
+
+.panel-toggle svg {
+  pointer-events: none;
+}
+
 /* Menu bar for non-macOS platforms */
 .menu-bar {
   display: flex;
@@ -734,8 +860,12 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: var(--left-panel-width);
-  right: var(--right-panel-width);
+  /* Clamp to the leading/trailing control clusters so the strip never slides
+     under the traffic lights / menu bar / toggles / window controls when a
+     panel collapses (panel-width → 0). When expanded the panel width exceeds
+     the reserve, so max() is a no-op and layout is unchanged. */
+  left: max(var(--left-panel-width), var(--lead-reserve, 0px));
+  right: max(var(--right-panel-width), var(--trail-reserve, 0px));
   display: flex;
   align-items: center;
   gap: 4px;
@@ -910,7 +1040,9 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   top: 0;
   bottom: 0;
   left: calc(100% - var(--right-panel-width));
-  right: 0;
+  /* Inset by the trailing cluster (right toggle on macOS; right toggle + the
+     three window controls on Win-Linux) so the switcher never overlaps them. */
+  right: var(--trail-reserve, 0px);
   display: flex;
   align-items: center;
   justify-content: flex-start;
@@ -918,10 +1050,6 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
   padding: 0 8px;
   overflow: hidden;
   -webkit-app-region: no-drag;
-}
-
-.titlebar:not(.is-macos) .view-switcher {
-  right: 138px; /* 3 window-control buttons × 46px */
 }
 
 .view-tab {

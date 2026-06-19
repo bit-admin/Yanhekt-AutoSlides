@@ -678,6 +678,8 @@
     "settings": "설정...",
     "minimize": "최소화",
     "maximize": "최대화",
+    "toggleLeftPanel": "사이드바 표시/숨기기",
+    "toggleRightPanel": "작업 패널 표시/숨기기",
     "aboutTitle": "AutoSlides 정보",
     "aboutMessage": "AutoSlides",
     "aboutDetail": "Version 4.4.0 (4.4.0)\n\n© 2025 bit-admin. All rights reserved.\n\nNeed help? Open an issue on GitHub or send us an email at info@ruc.edu.kg.",

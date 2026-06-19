@@ -678,6 +678,8 @@
     "settings": "设置...",
     "minimize": "最小化",
     "maximize": "最大化",
+    "toggleLeftPanel": "隐藏/显示侧边栏",
+    "toggleRightPanel": "隐藏/显示任务面板",
     "aboutTitle": "关于 AutoSlides",
     "aboutMessage": "AutoSlides",
     "aboutDetail": "版本 4.4.0 (4.4.0)\n\n© 2025 bit-admin. 保留所有权利。\n\n需要帮助吗？请在 GitHub 上提交 issue 或发送电子邮件至 info@ruc.edu.kg。",
