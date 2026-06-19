@@ -530,6 +530,8 @@
     "enterPictureInPicture": "进入画中画",
     "exitPiP": "退出画中画",
     "picInPic": "画中画",
+    "cinemaMode": "影院模式",
+    "exitCinemaMode": "退出影院模式",
     "browserNotSupported": "您的浏览器不支持视频标签。",
     "mutedByApp": "应用静音",
     "liveMuted": "直播静音",

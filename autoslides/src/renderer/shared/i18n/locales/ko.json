@@ -530,6 +530,8 @@
     "enterPictureInPicture": "화면 속 화면 진입",
     "exitPiP": "PiP 종료",
     "picInPic": "화면 속 화면",
+    "cinemaMode": "시네마 모드",
+    "exitCinemaMode": "시네마 모드 종료",
     "browserNotSupported": "브라우저가 비디오 태그를 지원하지 않습니다.",
     "mutedByApp": "앱에 의해 음소거됨",
     "liveMuted": "라이브 음소거됨",

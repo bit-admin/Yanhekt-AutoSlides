@@ -530,6 +530,8 @@
     "enterPictureInPicture": "Enter Picture in Picture",
     "exitPiP": "Exit PiP",
     "picInPic": "Pic-in-Pic",
+    "cinemaMode": "Cinema Mode",
+    "exitCinemaMode": "Exit Cinema Mode",
     "browserNotSupported": "Your browser does not support the video tag.",
     "mutedByApp": "Muted by App",
     "liveMuted": "Live Muted",

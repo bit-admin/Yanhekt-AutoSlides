@@ -27,18 +27,33 @@
       </select>
     </div>
 
-    <div v-if="!isDualStreamSelected" class="pip-control">
+    <!-- Cinema Mode is available in every stream mode; PiP is single-stream only
+         (you can't picture-in-picture two videos). -->
+    <div class="pip-control">
       <button
-        class="pip-button"
+        class="icon-control-button"
+        :class="{ active: isCinemaMode }"
+        @click="$emit('toggleCinemaMode')"
+        :disabled="shouldDisableControls"
+        :title="isCinemaMode ? $t('playback.exitCinemaMode') : $t('playback.cinemaMode')"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="5" width="20" height="14" rx="2"/>
+          <path d="M2 9h20" />
+          <path d="M2 15h20" />
+        </svg>
+      </button>
+      <button
+        v-if="!isDualStreamSelected"
+        class="icon-control-button"
         @click="$emit('togglePictureInPicture')"
         :disabled="shouldDisableControls || !videoPlayerReady"
         :title="isPictureInPicture ? $t('playback.exitPictureInPicture') : $t('playback.enterPictureInPicture')"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-top: 1px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="2" y="3" width="20" height="14" rx="2"/>
           <rect x="14" y="12" width="6" height="4" rx="1" fill="currentColor"/>
         </svg>
-        <span>{{ isPictureInPicture ? $t('playback.exitPiP') : $t('playback.picInPic') }}</span>
       </button>
     </div>
   </div>
@@ -56,6 +71,7 @@ const props = defineProps<{
   mode: 'live' | 'recorded'
   isDualStreamSelected: boolean
   isPictureInPicture: boolean
+  isCinemaMode: boolean
   shouldDisableControls: boolean
   videoPlayerReady: boolean
   hasDualStreams: boolean
@@ -68,6 +84,7 @@ const emit = defineEmits<{
   (e: 'switchStream'): void
   (e: 'changePlaybackRate'): void
   (e: 'togglePictureInPicture'): void
+  (e: 'toggleCinemaMode'): void
 }>()
 
 const streamCount = computed(() => Object.keys(props.streams).length)
@@ -169,34 +186,43 @@ function onRateChange(event: Event) {
 .pip-control {
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
-.pip-button {
+/* Icon-only square controls (Cinema Mode + Picture-in-Picture). */
+.icon-control-button {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border: 1px solid var(--border-input);
   border-radius: 6px;
   background-color: var(--bg-input);
   color: var(--text-primary);
-  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.pip-button:hover:not(:disabled) {
+.icon-control-button:hover:not(:disabled) {
   background-color: var(--bg-hover);
   border-color: var(--accent);
 }
 
-.pip-button:disabled {
+.icon-control-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   background-color: var(--bg-input-disabled);
 }
 
-.pip-button svg {
+/* Highlight while cinema mode is active. */
+.icon-control-button.active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.icon-control-button svg {
   flex-shrink: 0;
 }
 </style>

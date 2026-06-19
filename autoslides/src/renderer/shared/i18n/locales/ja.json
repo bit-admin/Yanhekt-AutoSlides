@@ -530,6 +530,8 @@
     "enterPictureInPicture": "ピクチャーインピクチャーに入る",
     "exitPiP": "PiPを終了",
     "picInPic": "ピクチャーインピクチャー",
+    "cinemaMode": "シアターモード",
+    "exitCinemaMode": "シアターモードを終了",
     "browserNotSupported": "お使いのブラウザはビデオタグをサポートしていません",
     "mutedByApp": "アプリによってミュート",
     "liveMuted": "ライブミュート",

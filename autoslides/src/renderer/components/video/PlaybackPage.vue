@@ -1,5 +1,5 @@
 <template>
-  <div class="playback-page">
+  <div class="playback-page" :class="{ 'cinema-mode': isCinemaMode }">
     <div class="header">
       <div class="header-main">
         <button @click="goBack" class="btn btn--ghost back-btn" :disabled="shouldDisableControls">
@@ -180,6 +180,7 @@
           :mode="props.mode"
           :is-dual-stream-selected="isDualStreamSelected"
           :is-picture-in-picture="isPictureInPicture"
+          :is-cinema-mode="isCinemaMode"
           :should-disable-controls="shouldDisableControls"
           :video-player-ready="!!videoPlayer"
           :has-dual-streams="hasDualStreams"
@@ -187,6 +188,7 @@
           @switch-stream="switchStream"
           @change-playback-rate="changePlaybackRate"
           @toggle-picture-in-picture="togglePictureInPicture"
+          @toggle-cinema-mode="toggleCinemaMode"
         />
 
         <!-- Video Player -->
@@ -521,6 +523,7 @@ import { createLogger } from '@shared/utils/logger';
 const log = createLogger('PlaybackPage');
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'vue'
 import { configStore } from '@shared/services/configStore'
+import { layoutStore } from '@shared/services/layoutStore'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '@features/video/useVideoPlayer'
 import { useSlideExtraction, type Course, type Session } from '@features/video/useSlideExtraction'
 import { usePlaybackStreamUrl } from '@features/video/usePlaybackStreamUrl'
@@ -557,6 +560,12 @@ const isVisible = computed(() => props.isVisible ?? true)
 // Local UI state
 const showDetails = ref(false)
 const isPictureInPicture = ref(false)
+// Cinema mode: collapse both side panels and hide the page chrome (header,
+// warnings, slide gallery) so only the player fills the main content. The
+// panels' pre-cinema collapse state is captured so exiting restores it exactly.
+const isCinemaMode = ref(false)
+let preCinemaLeftCollapsed = false
+let preCinemaRightCollapsed = false
 const isVideoContainerCollapsed = ref(false)
 const showMorePlaybackSpeed = ref(false)
 const dualVideoContainer = ref<HTMLElement | null>(null)
@@ -753,6 +762,23 @@ const onEnterPictureInPicture = () => {
 const onLeavePictureInPicture = () => {
   isPictureInPicture.value = false
   isVideoContainerCollapsed.value = false
+}
+
+// Cinema mode toggle
+const toggleCinemaMode = () => {
+  if (isCinemaMode.value) {
+    // Exit: restore the panels to whatever they were before cinema.
+    layoutStore.leftCollapsed = preCinemaLeftCollapsed
+    layoutStore.rightCollapsed = preCinemaRightCollapsed
+    isCinemaMode.value = false
+  } else {
+    // Enter: remember the current collapse state, then collapse both panels.
+    preCinemaLeftCollapsed = layoutStore.leftCollapsed
+    preCinemaRightCollapsed = layoutStore.rightCollapsed
+    layoutStore.leftCollapsed = true
+    layoutStore.rightCollapsed = true
+    isCinemaMode.value = true
+  }
 }
 
 // Delegate methods to composables
@@ -1232,6 +1258,68 @@ onUnmounted(async () => {
   height: 100%;
   background-color: var(--bg-surface);
   color: var(--text-primary);
+}
+
+/* Cinema mode: hide the page chrome and let the player fill the whole main
+   content. Side panels are collapsed via layoutStore (see toggleCinemaMode).
+   The DualStreamControls bar stays visible so the Cinema toggle remains
+   reachable to exit. */
+.playback-page.cinema-mode .header,
+.playback-page.cinema-mode .combined-warning,
+.playback-page.cinema-mode .slide-gallery {
+  display: none;
+}
+
+.playback-page.cinema-mode .content {
+  padding: 0;
+}
+
+.playback-page.cinema-mode .video-content {
+  flex: 1;
+  min-height: 0;
+}
+
+.playback-page.cinema-mode .player-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: none;
+  border-radius: 0;
+}
+
+.playback-page.cinema-mode .video-container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Letterbox the video to fit the available height instead of overflowing. */
+.playback-page.cinema-mode .video-player {
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Dual ("both streams") cinema: fill height the same way (mirrors the dual
+   :fullscreen rules). The dual controls overlay the video, so nothing else
+   needs hiding. */
+.playback-page.cinema-mode .dual-playback-shell,
+.playback-page.cinema-mode .dual-video-container {
+  flex: 1;
+  min-height: 0;
+}
+
+.playback-page.cinema-mode .dual-video-grid {
+  height: 100%;
+  min-height: 0;
+}
+
+.playback-page.cinema-mode .dual-video-player {
+  min-height: 0;
 }
 
 /* Apple Music style title band: full-width tinted bar, hairline underline */
