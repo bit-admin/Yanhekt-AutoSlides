@@ -744,7 +744,14 @@ const togglePictureInPicture = async () => {
   if (!video) return
 
   try {
-    if (document.pictureInPictureElement) {
+    // Compare against THIS tab's video, not just any PiP element. The PiP API
+    // is document-global (only one PiP window exists at a time), so with
+    // multiple playback tabs a bare `document.pictureInPictureElement` check
+    // would exit another tab's PiP instead of opening this one's. Requesting
+    // PiP here while another tab holds it hands the single PiP window over to
+    // this video — Chromium fires `leavepictureinpicture` on the old one, which
+    // resets that tab's state via its own onLeavePictureInPicture.
+    if (document.pictureInPictureElement === video) {
       await document.exitPictureInPicture()
     } else {
       await video.requestPictureInPicture()
@@ -1230,8 +1237,9 @@ onUnmounted(async () => {
   // Clean up performance optimization
   await performanceOptimization.cleanupAll()
 
-  // Clean up Picture in Picture if active
-  if (isPictureInPicture.value && document.pictureInPictureElement) {
+  // Clean up Picture in Picture if active — only if THIS tab's video owns the
+  // single PiP window (another tab may have taken it over since).
+  if (document.pictureInPictureElement && document.pictureInPictureElement === videoPlayer.value) {
     try {
       await document.exitPictureInPicture()
     } catch (error) {
@@ -1529,8 +1537,19 @@ onUnmounted(async () => {
   justify-content: center;
 }
 
+/* While collapsed for PiP, keep the source <video> rendered (just shrunk to an
+   invisible 1px and lifted out of layout) instead of display:none. drawImage
+   reads the decoded frame buffer regardless of paint size, so slide extraction
+   keeps capturing from this element while it plays in the PiP window — the same
+   opacity-based technique that keeps background tabs decoding. display:none
+   would risk the media pipeline being throttled. */
 .video-container.collapsed .video-player {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .video-container.collapsed .mute-indicator,
