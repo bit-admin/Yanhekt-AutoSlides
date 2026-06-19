@@ -12,7 +12,7 @@
     <TitleBar />
 
     <div class="layout">
-      <div class="left-panel" :style="{ width: renderedLeft + 'px' }">
+      <div class="left-panel" :class="{ collapsed: layoutStore.leftCollapsed }" :style="{ width: renderedLeft + 'px' }">
         <LeftPanel />
       </div>
       <!-- Divider hidden while the panel is collapsed so a 0-width panel can't
@@ -34,7 +34,7 @@
         </div>
         <div v-if="!layoutStore.rightCollapsed" class="divider right-divider" @mousedown="startResize('right', $event)"></div>
 
-        <div class="right-panel" :style="{ width: renderedRight + 'px' }">
+        <div class="right-panel" :class="{ collapsed: layoutStore.rightCollapsed }" :style="{ width: renderedRight + 'px' }">
           <RightPanel ref="rightPanelRef" />
         </div>
       </template>
@@ -255,8 +255,13 @@ onMounted(() => {
   background-color: var(--bg-page-alt);
   border-right: 1px solid var(--border-color);
   flex-shrink: 0;
-  /* When collapsed the panel renders at width 0; clip its (still-mounted)
-     contents so nothing bleeds across the boundary. */
+}
+
+/* Only clip while collapsed (width 0) so the still-mounted contents don't bleed
+   across the boundary. When expanded we must NOT clip, or panel popovers/flyouts
+   (e.g. the user menu) that overflow the panel edge get cut off. */
+.left-panel.collapsed,
+.right-panel.collapsed {
   overflow: hidden;
 }
 
@@ -304,7 +309,6 @@ onMounted(() => {
   background-color: var(--bg-modal);
   border-left: 1px solid var(--border-color);
   flex-shrink: 0;
-  overflow: hidden;
 }
 
 .browser-login-container {

@@ -65,9 +65,12 @@
       </div>
       </div>
 
-      <!-- Left-panel collapse toggle (sits right after the traffic lights /
-           menu bar on both platforms). -->
+      <!-- Left-panel collapse toggle. On macOS it sits right after the traffic
+           lights (Safari idiom). On Win-Linux it moves into the center drag band
+           instead (see the tab strip below), so it's not crammed against the
+           menu bar. -->
       <button
+        v-if="isMacOS"
         class="panel-toggle panel-toggle--lead"
         :class="{ active: layoutStore.leftCollapsed }"
         @click="toggleLeftPanel"
@@ -89,6 +92,20 @@
          Tabs that don't fit collapse into a "···" overflow dropdown rather than
          scrolling horizontally. -->
     <div v-if="!isBrowserLoginActive" ref="stripRef" class="tab-strip">
+      <!-- Non-macOS: left-panel toggle at the leading edge of the center drag
+           band (the macOS variant lives next to the traffic lights instead). -->
+      <button
+        v-if="!isMacOS"
+        class="panel-toggle panel-toggle--center"
+        :class="{ active: layoutStore.leftCollapsed }"
+        @click="toggleLeftPanel"
+        :title="$t('titlebar.toggleLeftPanel')"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <line x1="9" y1="4" x2="9" y2="20"/>
+        </svg>
+      </button>
       <button
         ref="infoRef"
         :class="['tab-chip', 'tab-chip--info', { active: tabStore.state.activeTabId === null }]"
@@ -136,6 +153,21 @@
           <span class="tab-overflow-count">{{ overflowTabs.length }}</span>
         </button>
       </div>
+
+      <!-- Non-macOS: right-panel toggle pushed to the trailing edge of the
+           center drag band (margin-left:auto). macOS keeps it at the far right. -->
+      <button
+        v-if="!isMacOS"
+        class="panel-toggle panel-toggle--center panel-toggle--center-trail"
+        :class="{ active: layoutStore.rightCollapsed }"
+        @click="toggleRightPanel"
+        :title="$t('titlebar.toggleRightPanel')"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="16" rx="2"/>
+          <line x1="15" y1="4" x2="15" y2="20"/>
+        </svg>
+      </button>
     </div>
 
     <Teleport to="body">
@@ -195,8 +227,11 @@
          toggle at the far right; on Win-Linux the toggle sits left of min/max/
          close. -->
     <div ref="trailRef" class="titlebar-trail">
-      <!-- Right-panel collapse toggle -->
+      <!-- Right-panel collapse toggle. macOS only here (far right); on Win-Linux
+           it lives at the right edge of the center drag band (see the tab
+           strip). -->
       <button
+        v-if="isMacOS"
         class="panel-toggle panel-toggle--trail"
         :class="{ active: layoutStore.rightCollapsed }"
         @click="toggleRightPanel"
@@ -291,6 +326,7 @@ const overflowMenuStyle = ref<Record<string, string>>({});
 const TAB_SLOT = 220;      // matches .tab-chip max-width
 const OVERFLOW_SLOT = 56;  // the "···" button
 const GAP = 4;             // .tab-strip gap
+const CENTER_TOGGLE_SLOT = 36; // .panel-toggle width + margins (non-macOS in-strip toggles)
 
 const visibleTabs = computed(() => tabStore.state.tabs.slice(0, visibleCount.value));
 const overflowTabs = computed(() => tabStore.state.tabs.slice(visibleCount.value));
@@ -308,7 +344,10 @@ const recomputeTabs = () => {
   const styles = getComputedStyle(strip);
   const padding = parseFloat(styles.paddingLeft || '0') + parseFloat(styles.paddingRight || '0');
   const infoW = infoRef.value?.offsetWidth ?? 0;
-  const available = strip.clientWidth - padding - infoW - GAP;
+  // On non-macOS the strip also hosts the two collapse toggles (left edge +
+  // right edge); reserve their slots so tabs never overlap them.
+  const centerToggles = isMacOS.value ? 0 : 2 * (CENTER_TOGGLE_SLOT + GAP);
+  const available = strip.clientWidth - padding - infoW - GAP - centerToggles;
   const perTab = TAB_SLOT + GAP;
 
   let fit = Math.floor(available / perTab);
@@ -743,6 +782,17 @@ html.platform-darwin.demo-mode .titlebar.is-macos {
    the toggles down to line up with them (Safari/Finder alignment). */
 .titlebar.is-macos .panel-toggle {
   transform: translateY(1px);
+}
+
+/* Non-macOS: collapse toggles live inside the center drag band (the tab strip).
+   They opt out of dragging and align with the tab chips. */
+.panel-toggle--center {
+  flex-shrink: 0;
+}
+
+/* Push the right-panel toggle to the trailing edge of the strip. */
+.panel-toggle--center-trail {
+  margin-left: auto;
 }
 
 /* Highlight when the matching panel is collapsed. */
