@@ -1,5 +1,7 @@
 import { ref } from 'vue'
 import type { IntranetMapping, NetworkInterfaceInfo } from './settingsTypes'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('NetworkSettings');
 
 export interface UseNetworkSettingsOptions {
   t?: (key: string) => string
@@ -21,7 +23,7 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
       const mappings = await window.electronAPI.intranet.getMappings()
       intranetMappings.value = mappings
     } catch (error) {
-      console.error('Failed to load intranet mappings:', error)
+      log.error('Failed to load intranet mappings:', error)
     }
   }
 
@@ -30,7 +32,7 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
       const list = await window.electronAPI.intranet.getNetworkInterfaces()
       availableNetworkInterfaces.value = list ?? []
     } catch (error) {
-      console.error('Failed to load network interfaces:', error)
+      log.error('Failed to load network interfaces:', error)
       availableNetworkInterfaces.value = []
     }
   }
@@ -45,7 +47,7 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
       intranetInterfaceIp.value = ip ?? ''
       tempIntranetInterfaceIp.value = intranetInterfaceIp.value
     } catch (error) {
-      console.error('Failed to load intranet interface IP:', error)
+      log.error('Failed to load intranet interface IP:', error)
     }
   }
 

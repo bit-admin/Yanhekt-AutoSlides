@@ -227,6 +227,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('PlaybackSettingsTab');
 import { useSettingsContext } from '@features/settings/settingsContext'
 
 const { settings, advanced } = useSettingsContext()
@@ -266,7 +268,7 @@ const openExtractorRepository = async () => {
   try {
     await window.electronAPI.shell.openExternal('https://github.com/bit-admin/AutoSlides-Extractor')
   } catch (error) {
-    console.error('Failed to open AutoSlides Extractor repository:', error)
+    log.error('Failed to open AutoSlides Extractor repository:', error)
   }
 }
 </script>

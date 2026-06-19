@@ -8,6 +8,8 @@
  */
 
 import type { CourseInfo, ExtractedSlide } from './types';
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('SlideWriter');
 
 export interface SaveSlideOptions {
   outputPath: string | null;
@@ -44,10 +46,10 @@ export async function saveSlide(imageData: ImageData, options: SaveSlideOptions)
       fileWritten = await writeToDisk(canvas, options.outputPath, filename);
     }
 
-    console.log(`Slide saved: ${filename}`);
+    log.debug(`Slide saved: ${filename}`);
     return { slide, fileWritten };
   } catch (error) {
-    console.error('Error saving slide:', error);
+    log.error('Error saving slide:', error);
     return null;
   }
 }
@@ -75,15 +77,15 @@ function writeToDisk(canvas: HTMLCanvasElement, outputPath: string, filename: st
           const buffer = new Uint8Array(arrayBuffer);
           await (window as { electronAPI?: { slideExtraction?: { saveSlide?: (p: string, n: string, b: Uint8Array) => Promise<unknown> } } })
             .electronAPI?.slideExtraction?.saveSlide?.(outputPath, `${filename}.png`, buffer);
-          console.log(`Slide saved to file: ${outputPath}/${filename}.png`);
+          log.debug(`Slide saved to file: ${outputPath}/${filename}.png`);
           resolve(true);
         } catch (fileError) {
-          console.error('Failed to save slide to file:', fileError);
+          log.error('Failed to save slide to file:', fileError);
           resolve(false);
         }
       }, 'image/png');
     } catch (error) {
-      console.error('Error converting canvas to blob:', error);
+      log.error('Error converting canvas to blob:', error);
       resolve(false);
     }
   });

@@ -15,6 +15,8 @@ import {
   translateSessionToEnglish,
   type SystemCjkFont,
 } from './coverFontService';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('Pdf');
 
 export type AspectRatio = '16:9' | '4:3';
 
@@ -247,7 +249,7 @@ export class PdfService {
       }
       return 'cjk';
     } catch (error) {
-      console.warn(
+      log.warn(
         `[pdfService] Failed to register CJK font ${font.path}:`,
         error instanceof Error ? error.message : error
       );
@@ -544,7 +546,7 @@ export class PdfService {
 
       return { success: true, path: outputPath };
     } catch (error) {
-      console.error('PDF generation failed:', error);
+      log.error('PDF generation failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -630,7 +632,7 @@ export class PdfService {
 
       return { success: true, path: outputPath };
     } catch (error) {
-      console.error('PPTX generation failed:', error);
+      log.error('PPTX generation failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

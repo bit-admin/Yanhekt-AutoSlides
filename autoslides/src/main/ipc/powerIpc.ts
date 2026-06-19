@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron';
 import type { IpcServices } from './types';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('PowerIpc');
 
 export function registerPowerIpcHandlers(services: IpcServices): void {
   const { powerManagementService } = services;
@@ -9,7 +11,7 @@ export function registerPowerIpcHandlers(services: IpcServices): void {
       const success = await powerManagementService.preventSleep();
       return { success };
     } catch (error) {
-      console.error('Failed to prevent system sleep:', error);
+      log.error('Failed to prevent system sleep:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
@@ -19,7 +21,7 @@ export function registerPowerIpcHandlers(services: IpcServices): void {
       const success = await powerManagementService.allowSleep();
       return { success };
     } catch (error) {
-      console.error('Failed to allow system sleep:', error);
+      log.error('Failed to allow system sleep:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
@@ -29,7 +31,7 @@ export function registerPowerIpcHandlers(services: IpcServices): void {
       const isPreventing = powerManagementService.isPreventingSleep();
       return { isPreventing };
     } catch (error) {
-      console.error('Failed to check sleep prevention status:', error);
+      log.error('Failed to check sleep prevention status:', error);
       return { isPreventing: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });

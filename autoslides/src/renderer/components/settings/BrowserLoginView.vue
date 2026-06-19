@@ -69,6 +69,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('BrowserLoginView');
 import { ref, onUnmounted } from 'vue';
 
 const emit = defineEmits<{
@@ -136,7 +138,7 @@ const extractToken = async (): Promise<string | null> => {
     `);
     return result;
   } catch (error) {
-    console.error('Failed to extract token:', error);
+    log.error('Failed to extract token:', error);
     return null;
   }
 };
@@ -166,7 +168,7 @@ const clearBrowserData = async () => {
           localStorage.clear();
           sessionStorage.clear();
         } catch (e) {
-          console.error('Failed to clear storage:', e);
+          log.error('Failed to clear storage:', e);
         }
       })()
     `);
@@ -182,7 +184,7 @@ const clearBrowserData = async () => {
       loadLoginPage();
     }, 500);
   } catch (error) {
-    console.error('Failed to clear browser data:', error);
+    log.error('Failed to clear browser data:', error);
     showStatus('Failed to clear browser data', 'error');
   }
 };

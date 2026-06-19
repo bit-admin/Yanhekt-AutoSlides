@@ -142,6 +142,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('UpdateManager');
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import '../../assets/github-markdown.css'
@@ -212,7 +214,7 @@ onMounted(() => {
 
   cleanupDownloadError = (window as any).electronAPI.update.onDownloadError((error: string) => {
     isDownloading.value = false
-    console.error('Download error:', error)
+    log.error('Download error:', error)
     ;(window as any).electronAPI.dialog.showMessageBox({
       type: 'error',
       title: $t('titlebar.updateModal.downloadFailed'),
@@ -298,7 +300,7 @@ const startDownload = async (url: string, filename: string) => {
   try {
     await (window as any).electronAPI.update.downloadUpdate(url, filename)
   } catch (error) {
-    console.error('Failed to start download:', error)
+    log.error('Failed to start download:', error)
     isDownloading.value = false
   }
 }
@@ -309,7 +311,7 @@ const cancelDownload = async () => {
     isDownloading.value = false
     downloadProgress.value = { downloaded: 0, total: 0, percent: 0 }
   } catch (error) {
-    console.error('Failed to cancel download:', error)
+    log.error('Failed to cancel download:', error)
   }
 }
 
@@ -317,7 +319,7 @@ const openDownloadFolder = async () => {
   try {
     await (window as any).electronAPI.update.openDownloadFolder()
   } catch (error) {
-    console.error('Failed to open download folder:', error)
+    log.error('Failed to open download folder:', error)
   }
 }
 
@@ -327,7 +329,7 @@ const installUpdate = async () => {
   try {
     await (window as any).electronAPI.update.installUpdate(downloadedFile.value)
   } catch (error) {
-    console.error('Failed to install update:', error)
+    log.error('Failed to install update:', error)
   }
 }
 
@@ -381,7 +383,7 @@ const checkForUpdates = async () => {
       })
     }
   } catch (error) {
-    console.error('Failed to check for updates:', error)
+    log.error('Failed to check for updates:', error)
   }
 }
 

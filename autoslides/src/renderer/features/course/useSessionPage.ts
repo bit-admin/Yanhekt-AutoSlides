@@ -4,6 +4,8 @@ import { tokenManager } from '@shared/services/authService'
 import { DataStore } from '@shared/services/dataStore'
 import { DownloadService, type DownloadQueueAddResult } from '@shared/services/downloadService'
 import { TaskQueue, type TaskQueueAddResult } from '@shared/services/taskQueueService'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('SessionPage');
 
 export interface SessionCourse {
   id: string
@@ -153,7 +155,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       courseInfo.value = response
       sessions.value = response.videos
     } catch (error: unknown) {
-      console.error('Failed to load course sessions:', error)
+      log.error('Failed to load course sessions:', error)
       const errorMsg = error instanceof Error ? error.message : t('sessions.failedToLoadSessions')
       errorMessage.value = errorMsg
       sessions.value = []

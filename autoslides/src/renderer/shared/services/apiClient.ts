@@ -1,6 +1,8 @@
 // Type definitions are available globally
 
 import { overrides } from '../overrideRegistry'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ServicesApiClient');
 
 export interface UserData {
   badge: string;
@@ -124,7 +126,7 @@ export class ApiClient {
     try {
       return await this.transport.verifyToken(token);
     } catch (error) {
-      console.error('Token verification error:', error);
+      log.error('Token verification error:', error);
       return { valid: false, userData: null, networkError: false };
     }
   }
@@ -133,7 +135,7 @@ export class ApiClient {
     try {
       return await this.transport.getPersonalLiveList(token, page, pageSize);
     } catch (error) {
-      console.error('Failed to get personal live list:', error);
+      log.error('Failed to get personal live list:', error);
       throw error;
     }
   }
@@ -142,7 +144,7 @@ export class ApiClient {
     try {
       return await this.transport.searchLiveList(token, keyword, page, pageSize);
     } catch (error) {
-      console.error('Failed to search live list:', error);
+      log.error('Failed to search live list:', error);
       throw error;
     }
   }
@@ -157,7 +159,7 @@ export class ApiClient {
     try {
       return await this.transport.getCourseList(token, options);
     } catch (error) {
-      console.error('Failed to get course list:', error);
+      log.error('Failed to get course list:', error);
       throw error;
     }
   }
@@ -169,7 +171,7 @@ export class ApiClient {
     try {
       return await this.transport.getPersonalCourseList(token, options);
     } catch (error) {
-      console.error('Failed to get personal course list:', error);
+      log.error('Failed to get personal course list:', error);
       throw error;
     }
   }
@@ -178,7 +180,7 @@ export class ApiClient {
     try {
       return await this.transport.getCourseInfo(courseId, token);
     } catch (error) {
-      console.error('Failed to get course info:', error);
+      log.error('Failed to get course info:', error);
       throw error;
     }
   }
@@ -187,7 +189,7 @@ export class ApiClient {
     try {
       return await this.transport.getAvailableSemesters();
     } catch (error) {
-      console.error('Failed to get available semesters:', error);
+      log.error('Failed to get available semesters:', error);
       throw error;
     }
   }

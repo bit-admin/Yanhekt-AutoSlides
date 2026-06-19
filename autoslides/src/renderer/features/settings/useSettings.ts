@@ -1,6 +1,8 @@
 import { ref, type Ref } from 'vue'
 import { DownloadService } from '@shared/services/downloadService'
 import { languageService } from '@features/settings/languageService'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('Settings');
 
 export interface UseSettingsReturn {
   // Basic settings state
@@ -116,7 +118,7 @@ export function useSettings(): UseSettingsReturn {
 
     if (value !== slideCheckInterval.value) {
       slideCheckInterval.value = value
-      console.log(`Slide check interval corrected to: ${value}ms`)
+      log.debug(`Slide check interval corrected to: ${value}ms`)
     }
   }
 
@@ -160,7 +162,7 @@ export function useSettings(): UseSettingsReturn {
       // Load prevent system sleep
       preventSystemSleep.value = config.preventSystemSleep !== undefined ? config.preventSystemSleep : true
     } catch (error) {
-      console.error('Failed to load config:', error)
+      log.error('Failed to load config:', error)
     }
   }
 
@@ -172,7 +174,7 @@ export function useSettings(): UseSettingsReturn {
         outputDirectory.value = result.outputDirectory
       }
     } catch (error) {
-      console.error('Failed to select output directory:', error)
+      log.error('Failed to select output directory:', error)
     }
   }
 
@@ -181,7 +183,7 @@ export function useSettings(): UseSettingsReturn {
       const result = await window.electronAPI.config.setConnectionMode(mode)
       connectionMode.value = result.connectionMode
     } catch (error) {
-      console.error('Failed to set connection mode:', error)
+      log.error('Failed to set connection mode:', error)
     }
   }
 
@@ -190,7 +192,7 @@ export function useSettings(): UseSettingsReturn {
       const result = await window.electronAPI.config.setMuteMode(muteMode.value)
       muteMode.value = result.muteMode
     } catch (error) {
-      console.error('Failed to set mute mode:', error)
+      log.error('Failed to set mute mode:', error)
     }
   }
 
@@ -200,7 +202,7 @@ export function useSettings(): UseSettingsReturn {
       const result = await window.electronAPI.config.setSlideCheckInterval(slideCheckInterval.value)
       slideCheckInterval.value = result.checkInterval
     } catch (error) {
-      console.error('Failed to set slide check interval:', error)
+      log.error('Failed to set slide check interval:', error)
     }
   }
 
@@ -213,7 +215,7 @@ export function useSettings(): UseSettingsReturn {
       slideDoubleVerification.value = result.enableDoubleVerification
       slideVerificationCount.value = result.verificationCount
     } catch (error) {
-      console.error('Failed to set slide double verification:', error)
+      log.error('Failed to set slide double verification:', error)
     }
   }
 
@@ -222,7 +224,7 @@ export function useSettings(): UseSettingsReturn {
       const result = await window.electronAPI.config.setTaskSpeed(taskSpeed.value)
       taskSpeed.value = result.taskSpeed
     } catch (error) {
-      console.error('Failed to set task speed:', error)
+      log.error('Failed to set task speed:', error)
     }
   }
 
@@ -231,7 +233,7 @@ export function useSettings(): UseSettingsReturn {
       const result = await window.electronAPI.config.setParallelTasks(parallelTasks.value)
       parallelTasks.value = result.parallelTasks
     } catch (error) {
-      console.error('Failed to set parallel tasks:', error)
+      log.error('Failed to set parallel tasks:', error)
     }
   }
 
@@ -240,7 +242,7 @@ export function useSettings(): UseSettingsReturn {
       const result = await window.electronAPI.config.setMaxManualTabs(maxManualTabs.value)
       maxManualTabs.value = result.maxManualTabs
     } catch (error) {
-      console.error('Failed to set max manual tabs:', error)
+      log.error('Failed to set max manual tabs:', error)
     }
   }
 
@@ -250,7 +252,7 @@ export function useSettings(): UseSettingsReturn {
       showMorePlaybackSpeed.value = result.showMorePlaybackSpeed ?? false
       window.dispatchEvent(new CustomEvent('showMorePlaybackSpeedChanged', { detail: showMorePlaybackSpeed.value }))
     } catch (error) {
-      console.error('Failed to set show-more playback speed:', error)
+      log.error('Failed to set show-more playback speed:', error)
     }
   }
 
@@ -259,7 +261,7 @@ export function useSettings(): UseSettingsReturn {
       const result = await window.electronAPI.config.setAutoPostProcessing(autoPostProcessing.value)
       autoPostProcessing.value = result.autoPostProcessing
     } catch (error) {
-      console.error('Failed to set auto post-processing:', error)
+      log.error('Failed to set auto post-processing:', error)
     }
   }
 
@@ -268,7 +270,7 @@ export function useSettings(): UseSettingsReturn {
       const result = await window.electronAPI.config.setAutoPostProcessingLive(autoPostProcessingLive.value)
       autoPostProcessingLive.value = result.autoPostProcessingLive
     } catch (error) {
-      console.error('Failed to set auto post-processing for live:', error)
+      log.error('Failed to set auto post-processing for live:', error)
     }
   }
 
@@ -286,7 +288,7 @@ export function useSettings(): UseSettingsReturn {
       enableAIFiltering.value = result.enableAIFiltering
       tempEnableAIFiltering.value = enableAIFiltering.value
     } catch (error) {
-      console.error('Failed to set enable AI filtering:', error)
+      log.error('Failed to set enable AI filtering:', error)
     }
   }
 
@@ -301,7 +303,7 @@ export function useSettings(): UseSettingsReturn {
         await window.electronAPI.powerManagement.allowSleep()
       }
     } catch (error) {
-      console.error('Failed to set prevent system sleep:', error)
+      log.error('Failed to set prevent system sleep:', error)
     }
   }
 

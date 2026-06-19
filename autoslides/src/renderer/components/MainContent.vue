@@ -74,6 +74,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('MainContent');
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import CoursePage from '@renderer/components/course/CoursePage.vue'
@@ -197,8 +199,8 @@ const handleTaskNavigation = (task: TaskContext) => {
 
   const sessionData = DataStore.getSessionData(sessionId)
   if (!sessionData) {
-    console.error('Session data not found for task navigation:', sessionId)
-    console.error('Make sure the session was properly stored when the task was added to the queue')
+    log.error('Session data not found for task navigation:', sessionId)
+    log.error('Make sure the session was properly stored when the task was added to the queue')
     return
   }
 
@@ -234,7 +236,7 @@ const handleTaskNavigation = (task: TaskContext) => {
     { activate: tabStore.state.activeTabId === null }
   )
 
-  console.log('Task navigation completed:', { taskId, courseId, sessionId, courseTitle, sessionTitle })
+  log.debug('Task navigation completed:', { taskId, courseId, sessionId, courseTitle, sessionTitle })
 }
 
 let unregisterNavigator: (() => void) | null = null

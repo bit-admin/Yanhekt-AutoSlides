@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron';
 import type { IpcServices } from './types';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('CacheIpc');
 
 export function registerCacheIpcHandlers(services: IpcServices): void {
   const { cacheManagementService } = services;
@@ -8,7 +10,7 @@ export function registerCacheIpcHandlers(services: IpcServices): void {
     try {
       return await cacheManagementService.getStats();
     } catch (error) {
-      console.error('Failed to get cache stats:', error);
+      log.error('Failed to get cache stats:', error);
       return { totalSize: 0, tempFiles: 0 };
     }
   });
@@ -17,7 +19,7 @@ export function registerCacheIpcHandlers(services: IpcServices): void {
     try {
       return await cacheManagementService.clearCache();
     } catch (error) {
-      console.error('Failed to clear cache:', error);
+      log.error('Failed to clear cache:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -29,7 +31,7 @@ export function registerCacheIpcHandlers(services: IpcServices): void {
     try {
       return await cacheManagementService.resetAllData();
     } catch (error) {
-      console.error('Failed to reset all data:', error);
+      log.error('Failed to reset all data:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'

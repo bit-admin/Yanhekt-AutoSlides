@@ -5,6 +5,8 @@
 
 import path from 'path';
 import fs from 'fs';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('Sharp');
 
 // Sharp module type
 type SharpStatic = typeof import('sharp');
@@ -30,7 +32,7 @@ export class SharpService {
       // In packaged app, check extraResource first
       if (process.resourcesPath) {
         const sharpPath = path.join(process.resourcesPath, 'sharp');
-        console.log('Checking sharp extraResource path:', sharpPath);
+        log.debug('Checking sharp extraResource path:', sharpPath);
 
         if (fs.existsSync(sharpPath)) {
           // Set up module resolution for sharp's dependencies in extraResource
@@ -70,17 +72,17 @@ export class SharpService {
                       const exportKey = './' + subPath;
                       if (pkgJson.exports && pkgJson.exports[exportKey]) {
                         const resolvedPath = path.join(packageDir, pkgJson.exports[exportKey]);
-                        console.log('Resolved @img subpath via exports:', request, '->', resolvedPath);
+                        log.debug('Resolved @img subpath via exports:', request, '->', resolvedPath);
                         return resolvedPath;
                       }
                     } catch (e) {
-                      console.error('Error reading @img package.json for subpath:', e);
+                      log.error('Error reading @img package.json for subpath:', e);
                     }
                   }
                   // Direct subpath resolution fallback
                   const directPath = path.join(packageDir, subPath);
                   if (fs.existsSync(directPath)) {
-                    console.log('Resolved @img subpath directly:', request, '->', directPath);
+                    log.debug('Resolved @img subpath directly:', request, '->', directPath);
                     return directPath;
                   }
                 }
@@ -93,17 +95,17 @@ export class SharpService {
                     // Check exports field for ./sharp.node (used by @img/sharp-*)
                     if (pkgJson.exports && pkgJson.exports['./sharp.node']) {
                       const nodeFile = path.join(packageDir, pkgJson.exports['./sharp.node']);
-                      console.log('Resolved @img module via exports:', request, '->', nodeFile);
+                      log.debug('Resolved @img module via exports:', request, '->', nodeFile);
                       return nodeFile;
                     }
                     // Fallback to main field
                     if (pkgJson.main) {
                       const mainPath = path.join(packageDir, pkgJson.main);
-                      console.log('Resolved @img module via main:', request, '->', mainPath);
+                      log.debug('Resolved @img module via main:', request, '->', mainPath);
                       return mainPath;
                     }
                   } catch (e) {
-                    console.error('Error reading @img package.json:', e);
+                    log.error('Error reading @img package.json:', e);
                   }
                 }
                 // Last fallback: look for .node file directly in lib
@@ -113,12 +115,12 @@ export class SharpService {
                   const nodeFile = files.find((f: string) => f.endsWith('.node'));
                   if (nodeFile) {
                     const nodePath = path.join(libDir, nodeFile);
-                    console.log('Resolved @img module via lib scan:', request, '->', nodePath);
+                    log.debug('Resolved @img module via lib scan:', request, '->', nodePath);
                     return nodePath;
                   }
                 }
                 // Return package directory for packages without .node files (like libvips)
-                console.log('Resolved @img module as package:', request, '->', packageDir);
+                log.debug('Resolved @img module as package:', request, '->', packageDir);
                 return packageDir;
               }
             }
@@ -127,7 +129,7 @@ export class SharpService {
             if (request === 'detect-libc') {
               const detectLibcPath = path.join(resourcesPath, 'detect-libc', 'lib', 'detect-libc.js');
               if (fs.existsSync(detectLibcPath)) {
-                console.log('Resolved detect-libc:', detectLibcPath);
+                log.debug('Resolved detect-libc:', detectLibcPath);
                 return detectLibcPath;
               }
             }
@@ -143,7 +145,7 @@ export class SharpService {
                 semverPath = path.join(resourcesPath, 'semver', subpath + '.js');
               }
               if (fs.existsSync(semverPath)) {
-                console.log('Resolved semver:', request, '->', semverPath);
+                log.debug('Resolved semver:', request, '->', semverPath);
                 return semverPath;
               }
             }
@@ -159,7 +161,7 @@ export class SharpService {
             // eslint-disable-next-line @typescript-eslint/no-require-imports
             this.sharp = require(sharpPath);
             this.initialized = true;
-            console.log('Sharp loaded from extraResource:', sharpPath);
+            log.debug('Sharp loaded from extraResource:', sharpPath);
             return;
           } finally {
             Module._resolveFilename = originalResolveFilename;
@@ -171,9 +173,9 @@ export class SharpService {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       this.sharp = require('sharp');
       this.initialized = true;
-      console.log('Sharp loaded from npm package');
+      log.debug('Sharp loaded from npm package');
     } catch (error) {
-      console.error('Sharp not available:', error);
+      log.error('Sharp not available:', error);
       this.sharp = null;
       this.initialized = false;
     }
@@ -226,14 +228,14 @@ export class SharpService {
   ): Promise<string> {
     // Check if indexed PNG - if so, return directly without resize
     if (this.isPngIndexed(imageBuffer)) {
-      console.log('[SharpService] PNG is indexed, skipping resize');
+      log.debug('[SharpService] PNG is indexed, skipping resize');
       return imageBuffer.toString('base64');
     }
 
     // Not indexed - resize with Sharp
     this.ensureInitialized();
     if (!this.sharp) {
-      console.warn('[SharpService] Sharp not available, returning original');
+      log.warn('[SharpService] Sharp not available, returning original');
       return imageBuffer.toString('base64');
     }
 
@@ -243,10 +245,10 @@ export class SharpService {
         .png()
         .toBuffer();
 
-      console.log(`[SharpService] Resized non-indexed PNG: ${imageBuffer.length} -> ${resizedBuffer.length} bytes`);
+      log.debug(`[SharpService] Resized non-indexed PNG: ${imageBuffer.length} -> ${resizedBuffer.length} bytes`);
       return resizedBuffer.toString('base64');
     } catch (error) {
-      console.error('[SharpService] Resize for AI failed:', error);
+      log.error('[SharpService] Resize for AI failed:', error);
       return imageBuffer.toString('base64');
     }
   }
@@ -259,7 +261,7 @@ export class SharpService {
   async reducePngColors(imageBuffer: Uint8Array): Promise<Uint8Array | null> {
     this.ensureInitialized();
     if (!this.sharp) {
-      console.warn('Sharp not available, skipping color reduction');
+      log.warn('Sharp not available, skipping color reduction');
       return null;
     }
 
@@ -275,7 +277,7 @@ export class SharpService {
 
       return new Uint8Array(optimizedBuffer);
     } catch (error) {
-      console.error('Sharp color reduction failed:', error);
+      log.error('Sharp color reduction failed:', error);
       return null;
     }
   }
@@ -290,7 +292,7 @@ export class SharpService {
   async resize(imageBuffer: Uint8Array, width: number, height: number): Promise<Uint8Array | null> {
     this.ensureInitialized();
     if (!this.sharp) {
-      console.warn('Sharp not available, skipping resize');
+      log.warn('Sharp not available, skipping resize');
       return null;
     }
 
@@ -301,7 +303,7 @@ export class SharpService {
 
       return new Uint8Array(resizedBuffer);
     } catch (error) {
-      console.error('Sharp resize failed:', error);
+      log.error('Sharp resize failed:', error);
       return null;
     }
   }
@@ -320,7 +322,7 @@ export class SharpService {
   }): Promise<Uint8Array | null> {
     this.ensureInitialized();
     if (!this.sharp) {
-      console.warn('Sharp not available, skipping crop');
+      log.warn('Sharp not available, skipping crop');
       return null;
     }
 
@@ -329,7 +331,7 @@ export class SharpService {
       const metadata = await image.metadata();
 
       if (!metadata.width || !metadata.height) {
-        console.warn('Sharp crop failed: could not read image dimensions');
+        log.warn('Sharp crop failed: could not read image dimensions');
         return null;
       }
 
@@ -346,7 +348,7 @@ export class SharpService {
         left + width > metadata.width ||
         top + height > metadata.height
       ) {
-        console.warn('Sharp crop failed: invalid crop rectangle', {
+        log.warn('Sharp crop failed: invalid crop rectangle', {
           rect: { left, top, width, height },
           image: { width: metadata.width, height: metadata.height },
         });
@@ -360,7 +362,7 @@ export class SharpService {
 
       return new Uint8Array(croppedBuffer);
     } catch (error) {
-      console.error('Sharp crop failed:', error);
+      log.error('Sharp crop failed:', error);
       return null;
     }
   }
@@ -379,7 +381,7 @@ export class SharpService {
   }): Promise<Uint8Array> {
     this.ensureInitialized();
     if (!this.sharp) {
-      console.warn('Sharp not available, returning original image');
+      log.warn('Sharp not available, returning original image');
       return imageBuffer;
     }
 
@@ -417,7 +419,7 @@ export class SharpService {
       const processedBuffer = await pipeline.toBuffer();
       return new Uint8Array(processedBuffer);
     } catch (error) {
-      console.error('Sharp processImageForPdf failed:', error);
+      log.error('Sharp processImageForPdf failed:', error);
       return imageBuffer;
     }
   }
@@ -431,7 +433,7 @@ export class SharpService {
       if (!metadata.width || !metadata.height) return null;
       return { width: metadata.width, height: metadata.height };
     } catch (error) {
-      console.error('Sharp image metadata failed:', error);
+      log.error('Sharp image metadata failed:', error);
       return null;
     }
   }

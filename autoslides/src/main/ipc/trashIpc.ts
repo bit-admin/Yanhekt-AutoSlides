@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron';
 import type { IpcServices } from './types';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('TrashIpc');
 
 export function registerTrashIpcHandlers(services: IpcServices): void {
   const { configService, slideExtractionService } = services;
@@ -9,7 +11,7 @@ export function registerTrashIpcHandlers(services: IpcServices): void {
       const outputDir = configService.getConfig().outputDirectory;
       return await slideExtractionService.getTrashEntries(outputDir);
     } catch (error) {
-      console.error('Failed to get trash entries:', error);
+      log.error('Failed to get trash entries:', error);
       throw error;
     }
   });
@@ -19,7 +21,7 @@ export function registerTrashIpcHandlers(services: IpcServices): void {
       const outputDir = configService.getConfig().outputDirectory;
       return await slideExtractionService.restoreFromTrash(ids, outputDir);
     } catch (error) {
-      console.error('Failed to restore from trash:', error);
+      log.error('Failed to restore from trash:', error);
       throw error;
     }
   });
@@ -29,7 +31,7 @@ export function registerTrashIpcHandlers(services: IpcServices): void {
       const outputDir = configService.getConfig().outputDirectory;
       return await slideExtractionService.clearTrash(outputDir);
     } catch (error) {
-      console.error('Failed to clear trash:', error);
+      log.error('Failed to clear trash:', error);
       throw error;
     }
   });
@@ -39,7 +41,7 @@ export function registerTrashIpcHandlers(services: IpcServices): void {
       const outputDir = configService.getConfig().outputDirectory;
       return await slideExtractionService.clearTrashEntries(ids, outputDir);
     } catch (error) {
-      console.error('Failed to clear selected trash entries:', error);
+      log.error('Failed to clear selected trash entries:', error);
       throw error;
     }
   });
@@ -49,7 +51,7 @@ export function registerTrashIpcHandlers(services: IpcServices): void {
       const outputDir = configService.getConfig().outputDirectory;
       return await slideExtractionService.removeFolders(folderNames, outputDir);
     } catch (error) {
-      console.error('Failed to remove result folders:', error);
+      log.error('Failed to remove result folders:', error);
       throw error;
     }
   });
@@ -58,7 +60,7 @@ export function registerTrashIpcHandlers(services: IpcServices): void {
     try {
       return await slideExtractionService.getTrashImageAsBase64(trashPath);
     } catch (error) {
-      console.error('Failed to get trash image:', error);
+      log.error('Failed to get trash image:', error);
       throw error;
     }
   });

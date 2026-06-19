@@ -1,3 +1,5 @@
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('SlideProcessorWorker');
 /**
  * Slide Processing Web Worker
  * Handles image processing algorithms for slide extraction
@@ -135,7 +137,7 @@ function compareImages(
   try {
     // Check if input parameters are valid
     if (!img1Data || !img2Data) {
-      console.warn('compareImages: One or both images are null/undefined');
+      log.warn('compareImages: One or both images are null/undefined');
       return false; // If there are null values, consider no change
     }
 
@@ -153,7 +155,7 @@ function compareImages(
     return ssim < config.ssimThreshold;
 
   } catch (error) {
-    console.error('Error in compareImages:', error);
+    log.error('Error in compareImages:', error);
     return false;
   }
 }

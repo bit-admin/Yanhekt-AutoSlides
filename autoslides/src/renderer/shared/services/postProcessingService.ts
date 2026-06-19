@@ -8,6 +8,8 @@ import type {
   PostProcessingConfig,
   PostProcessingProgress
 } from '@shared/postProcessing/types'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ServicesPostProcessing');
 
 // Task-queue post-processing jobs. Adapter around the unified pipeline at
 // renderer/postProcessing — owns the job-state map that RightPanel.vue and
@@ -92,7 +94,7 @@ class PostProcessingServiceClass {
       try {
         handler(job)
       } catch (err) {
-        console.error('[PostProcessing] subscriber error:', err)
+        log.error('[PostProcessing] subscriber error:', err)
       }
     }
   }
@@ -133,7 +135,7 @@ class PostProcessingServiceClass {
       job => job.taskId === taskId && (job.status === 'queued' || job.status === 'processing')
     )
     if (existing) {
-      console.log(`[PostProcessing] Job already exists for task ${taskId}, skipping`)
+      log.debug(`[PostProcessing] Job already exists for task ${taskId}, skipping`)
       return existing.id
     }
 
@@ -158,7 +160,7 @@ class PostProcessingServiceClass {
       createdAt: Date.now()
     }
     this.state.jobs.push(job)
-    console.log(`[PostProcessing] Added job ${jobId} for task ${taskId} with ${imageFiles.length} images`)
+    log.debug(`[PostProcessing] Added job ${jobId} for task ${taskId} with ${imageFiles.length} images`)
     this.startProcessing()
     return jobId
   }
@@ -196,7 +198,7 @@ class PostProcessingServiceClass {
   }
 
   private async processJob(job: PostProcessJob): Promise<void> {
-    console.log(`[PostProcessing] Starting job ${job.id}`)
+    log.debug(`[PostProcessing] Starting job ${job.id}`)
     job.status = 'processing'
     job.startedAt = Date.now()
     const controller = new AbortController()
@@ -252,7 +254,7 @@ class PostProcessingServiceClass {
       // item finish as 'completed' (POSTPROCESS_DONE) rather than 'error'.
       job.status = result.status === 'failed' ? 'failed' : 'completed'
 
-      console.log(`[PostProcessing] Job ${job.id} ${job.status}:`, {
+      log.debug(`[PostProcessing] Job ${job.id} ${job.status}:`, {
         duplicatesRemoved: job.progress.duplicatesRemoved,
         excludedRemoved: job.progress.excludedRemoved,
         aiFiltered: job.progress.aiFiltered,
@@ -260,7 +262,7 @@ class PostProcessingServiceClass {
       })
       this.notify(job)
     } catch (error) {
-      console.error(`[PostProcessing] Job ${job.id} failed:`, error)
+      log.error(`[PostProcessing] Job ${job.id} failed:`, error)
       job.status = 'failed'
       job.completedAt = Date.now()
       job.errors.push({

@@ -13,6 +13,8 @@ import {
 } from './videoProxy/urlHelpers';
 import { ProxyAuth } from './videoProxy/proxyAuth';
 import { signRecordedUrl, buildAxiosConfig } from './videoProxy/proxyRequest';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('VideoProxy');
 
 export interface VideoStream {
   type: 'camera' | 'screen';
@@ -108,7 +110,7 @@ export class VideoProxyService {
       if (selected && this.isInterfaceIpAvailable(selected)) {
         desiredIp = selected;
       } else if (selected) {
-        console.warn(`[videoProxy] Selected intranet interface IP ${selected} is not currently available; falling back to system default.`);
+        log.warn(`[videoProxy] Selected intranet interface IP ${selected} is not currently available; falling back to system default.`);
       }
     }
 
@@ -165,7 +167,7 @@ export class VideoProxyService {
   registerClient(): string {
     const clientId = `client_${++this.clientIdCounter}_${Date.now()}`;
     this.activeClients.add(clientId);
-    console.log(`Video proxy client registered: ${clientId} (total: ${this.activeClients.size})`);
+    log.debug(`Video proxy client registered: ${clientId} (total: ${this.activeClients.size})`);
     return clientId;
   }
 
@@ -175,11 +177,11 @@ export class VideoProxyService {
   unregisterClient(clientId: string): void {
     if (this.activeClients.has(clientId)) {
       this.activeClients.delete(clientId);
-      console.log(`Video proxy client unregistered: ${clientId} (remaining: ${this.activeClients.size})`);
+      log.debug(`Video proxy client unregistered: ${clientId} (remaining: ${this.activeClients.size})`);
 
       // Only stop proxy if no clients remain
       if (this.activeClients.size === 0) {
-        console.log('No active clients remaining, stopping video proxy');
+        log.debug('No active clients remaining, stopping video proxy');
         this.forceStopVideoProxy();
       }
     }
@@ -235,7 +237,7 @@ export class VideoProxyService {
 
       return result;
     } catch (error) {
-      console.error('Failed to get video playback URLs:', error);
+      log.error('Failed to get video playback URLs:', error);
       throw error;
     }
   }
@@ -320,7 +322,7 @@ export class VideoProxyService {
 
       return result;
     } catch (error) {
-      console.error('Failed to get live stream URLs:', error);
+      log.error('Failed to get live stream URLs:', error);
       throw error;
     }
   }
@@ -372,7 +374,7 @@ export class VideoProxyService {
           }
 
         } catch (error: any) {
-          console.error('Proxy error details:', {
+          log.error('Proxy error details:', {
             message: error.message,
             code: error.code,
             response: error.response ? {
@@ -392,7 +394,7 @@ export class VideoProxyService {
       });
 
       this.proxyServer.on('error', (error) => {
-        console.error('Proxy server error:', error);
+        log.error('Proxy server error:', error);
         reject(error);
       });
     });
@@ -478,12 +480,12 @@ export class VideoProxyService {
       this.destroyStreamBody(response, opts.responseType);
       if (attempt < maxRetries) {
         attempt++;
-        console.log(`Recorded request got 403, re-signing and retrying (${attempt}/${maxRetries}) for: ${rawUrl}`);
+        log.debug(`Recorded request got 403, re-signing and retrying (${attempt}/${maxRetries}) for: ${rawUrl}`);
         await this.delay(1000 * attempt);
         continue;
       }
 
-      console.log('Clearing token cache due to persistent recorded 403 errors');
+      log.debug('Clearing token cache due to persistent recorded 403 errors');
       this.auth.invalidateToken();
       return response; // exhausted — caller surfaces the 403
     }
@@ -520,7 +522,7 @@ export class VideoProxyService {
           this.markIpFailedForUrl(requestUrl, rawUrl);
           this.destroyStreamBody(response, opts.responseType);
           attempt++;
-          console.log(`Live request got status ${response.status}, trying next IP (${attempt}/${maxRetries})`);
+          log.debug(`Live request got status ${response.status}, trying next IP (${attempt}/${maxRetries})`);
           continue;
         }
         return response;
@@ -530,7 +532,7 @@ export class VideoProxyService {
         }
         if (attempt < maxRetries) {
           attempt++;
-          console.log(`Live request failed, trying next IP (${attempt}/${maxRetries}):`, error.message);
+          log.debug(`Live request failed, trying next IP (${attempt}/${maxRetries}):`, error.message);
           await this.delay(500);
           continue;
         }
@@ -568,7 +570,7 @@ export class VideoProxyService {
     const { originalUrl, loginToken } = parsedUrl.query;
 
     if (!originalUrl || !loginToken) {
-      console.error('Missing required parameters for live m3u8:', { originalUrl: !!originalUrl, loginToken: !!loginToken });
+      log.error('Missing required parameters for live m3u8:', { originalUrl: !!originalUrl, loginToken: !!loginToken });
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end('Missing required parameters');
       return;
@@ -593,7 +595,7 @@ export class VideoProxyService {
         timeout: this.intranetMapping.isEnabled() ? 8000 : 30000 // 8s for intranet, 30s for external
       });
     } catch (error: any) {
-      console.error('Live M3U8 request failed after retries:', {
+      log.error('Live M3U8 request failed after retries:', {
         message: error.message,
         code: error.code,
         originalUrl
@@ -623,7 +625,7 @@ export class VideoProxyService {
     const { originalUrl, loginToken } = parsedUrl.query;
 
     if (!originalUrl || !loginToken) {
-      console.error('Missing required parameters for m3u8:', { originalUrl: !!originalUrl, loginToken: !!loginToken });
+      log.error('Missing required parameters for m3u8:', { originalUrl: !!originalUrl, loginToken: !!loginToken });
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end('Missing required parameters');
       return;
@@ -636,7 +638,7 @@ export class VideoProxyService {
     try {
       response = await this.getRecordedWithResign(originalUrl as string, { timeout: 30000 });
     } catch (error: any) {
-      console.error('M3U8 request failed:', {
+      log.error('M3U8 request failed:', {
         status: error.response?.status,
         message: error.message,
         url: originalUrl
@@ -667,7 +669,7 @@ export class VideoProxyService {
     const { baseUrl } = parsedUrl.query;
 
     if (!baseUrl) {
-      console.error('Missing baseUrl for TS request');
+      log.error('Missing baseUrl for TS request');
       res.writeHead(400, { 'Content-Type': 'text/plain' });
       res.end('Missing baseUrl parameter for TS file');
       return;
@@ -708,7 +710,7 @@ export class VideoProxyService {
       try {
         response = await this.getLiveWithFailover(tsUrl, headers, { timeout: 30000, responseType: 'stream' });
       } catch (error: any) {
-        console.error('Live TS request failed after retries:', {
+        log.error('Live TS request failed after retries:', {
           message: error.message,
           code: error.code,
           url: tsUrl
@@ -724,7 +726,7 @@ export class VideoProxyService {
     try {
       response = await this.getRecordedWithResign(tsUrl, { timeout: 30000, responseType: 'stream' });
     } catch (error: any) {
-      console.error('Recorded TS request failed:', {
+      log.error('Recorded TS request failed:', {
         status: error.response?.status,
         message: error.message,
         url: tsUrl
@@ -755,8 +757,8 @@ export class VideoProxyService {
    * This method is kept for backward compatibility but now logs a warning
    */
   stopVideoProxy(): void {
-    console.warn('stopVideoProxy() called - this method is deprecated for independent mode support');
-    console.warn('Use unregisterClient() instead to properly manage proxy lifecycle');
+    log.warn('stopVideoProxy() called - this method is deprecated for independent mode support');
+    log.warn('Use unregisterClient() instead to properly manage proxy lifecycle');
 
     // For backward compatibility, we'll force stop if called directly
     // But this breaks independence, so it should be avoided
@@ -768,7 +770,7 @@ export class VideoProxyService {
    * This stops token refresh without stopping the proxy server
    */
   stopSignatureLoop(): void {
-    console.log('Stopping signature update loop (playback ended)');
+    log.debug('Stopping signature update loop (playback ended)');
     this.auth.stopUpdateSignatureLoop();
   }
 
@@ -797,7 +799,7 @@ export class VideoProxyService {
       this.proxyServer = null;
       this.proxyPort = 0;
       this.proxyStartPromise = null;
-      console.log('Video proxy server stopped');
+      log.debug('Video proxy server stopped');
     }
 
     // Destroy keep-alive agents to close idle sockets

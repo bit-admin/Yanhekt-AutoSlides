@@ -2,6 +2,8 @@ import { ipcMain } from 'electron';
 import type { IpcServices } from './types';
 import type { LiveStreamInput, RecordedSessionInput } from '@main/video/videoProxyService';
 import type { ScreenThumbnailRequest } from '@main/video/thumbnailService';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('VideoIpc');
 
 export function registerVideoIpcHandlers(services: IpcServices): void {
   const { videoProxyService, thumbnailService } = services;
@@ -10,7 +12,7 @@ export function registerVideoIpcHandlers(services: IpcServices): void {
     try {
       return await videoProxyService.getLiveStreamUrls(stream, token);
     } catch (error) {
-      console.error('Failed to get live stream URLs:', error);
+      log.error('Failed to get live stream URLs:', error);
       throw error;
     }
   });
@@ -19,7 +21,7 @@ export function registerVideoIpcHandlers(services: IpcServices): void {
     try {
       return await videoProxyService.getVideoPlaybackUrls(session, token);
     } catch (error) {
-      console.error('Failed to get video playback URLs:', error);
+      log.error('Failed to get video playback URLs:', error);
       throw error;
     }
   });
@@ -29,7 +31,7 @@ export function registerVideoIpcHandlers(services: IpcServices): void {
     try {
       return await thumbnailService.getScreenThumbnail(req);
     } catch (error) {
-      console.error('Failed to get screen thumbnail:', error);
+      log.error('Failed to get screen thumbnail:', error);
       return null;
     }
   });
@@ -37,10 +39,10 @@ export function registerVideoIpcHandlers(services: IpcServices): void {
   ipcMain.handle('video:registerClient', async () => {
     try {
       const clientId = videoProxyService.registerClient();
-      console.log('Video proxy client registered:', clientId);
+      log.debug('Video proxy client registered:', clientId);
       return clientId;
     } catch (error) {
-      console.error('Failed to register video proxy client:', error);
+      log.error('Failed to register video proxy client:', error);
       throw error;
     }
   });
@@ -48,9 +50,9 @@ export function registerVideoIpcHandlers(services: IpcServices): void {
   ipcMain.handle('video:unregisterClient', async (_event, clientId: string) => {
     try {
       videoProxyService.unregisterClient(clientId);
-      console.log('Video proxy client unregistered:', clientId);
+      log.debug('Video proxy client unregistered:', clientId);
     } catch (error) {
-      console.error('Failed to unregister video proxy client:', error);
+      log.error('Failed to unregister video proxy client:', error);
       throw error;
     }
   });
@@ -58,9 +60,9 @@ export function registerVideoIpcHandlers(services: IpcServices): void {
   ipcMain.handle('video:stopProxy', async () => {
     try {
       videoProxyService.stopVideoProxy();
-      console.log('Video proxy stopped');
+      log.debug('Video proxy stopped');
     } catch (error) {
-      console.error('Failed to stop video proxy:', error);
+      log.error('Failed to stop video proxy:', error);
       throw error;
     }
   });
@@ -68,9 +70,9 @@ export function registerVideoIpcHandlers(services: IpcServices): void {
   ipcMain.handle('video:stopSignatureLoop', async () => {
     try {
       videoProxyService.stopSignatureLoop();
-      console.log('Video signature loop stopped');
+      log.debug('Video signature loop stopped');
     } catch (error) {
-      console.error('Failed to stop signature loop:', error);
+      log.error('Failed to stop signature loop:', error);
       throw error;
     }
   });

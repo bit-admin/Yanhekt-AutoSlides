@@ -10,6 +10,8 @@ import {
 } from '@main/export/coverFontService';
 import enTranslations from '../../renderer/shared/i18n/locales/en.json';
 import type { IpcServices } from './types';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('PdfMakerIpc');
 
 type PdfMakerOutputMode = 'single' | 'batch';
 type SlidesExportFormat = 'pdf' | 'pptx';
@@ -128,7 +130,7 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
 
       return folders;
     } catch (error) {
-      console.error('Failed to get folders:', error);
+      log.error('Failed to get folders:', error);
       throw error;
     }
   });
@@ -144,7 +146,7 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
         }));
       return images;
     } catch (error) {
-      console.error('Failed to get images:', error);
+      log.error('Failed to get images:', error);
       throw error;
     }
   });
@@ -154,7 +156,7 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
       const buffer = await fs.promises.readFile(imagePath);
       return buffer.toString('base64');
     } catch (error) {
-      console.error('Failed to read image:', error);
+      log.error('Failed to read image:', error);
       throw error;
     }
   });
@@ -169,7 +171,7 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
       });
       return { success: true };
     } catch (error) {
-      console.error('Failed to delete image:', error);
+      log.error('Failed to delete image:', error);
       throw error;
     }
   });
@@ -314,7 +316,7 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
         path: exportResult.path
       };
     } catch (error) {
-      console.error('Failed to export slides:', error);
+      log.error('Failed to export slides:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'

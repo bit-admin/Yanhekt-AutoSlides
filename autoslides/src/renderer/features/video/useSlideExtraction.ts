@@ -7,6 +7,8 @@ import {
 } from '@shared/processing'
 import { ssimThresholdService } from '@shared/services/ssimThresholdService'
 import { sanitizeFileName } from '@common/sanitizeFileName'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('VideoSlideExtraction');
 
 // Types for slide extraction
 export interface SlideExtractionStatus {
@@ -103,14 +105,14 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
       const classrooms = course.value?.classrooms
 
       if (classrooms && classrooms.length > 0) {
-        console.log('Setting classroom context for SSIM threshold:', classrooms.map(c => c.name).join(', '))
+        log.debug('Setting classroom context for SSIM threshold:', classrooms.map(c => c.name).join(', '))
         ssimThresholdService.setCurrentClassrooms(classrooms)
       } else {
-        console.log('No classroom information available, clearing SSIM classroom context')
+        log.debug('No classroom information available, clearing SSIM classroom context')
         ssimThresholdService.setCurrentClassrooms(null)
       }
     } catch (error) {
-      console.error('Failed to update SSIM threshold for classrooms:', error)
+      log.error('Failed to update SSIM threshold for classrooms:', error)
     }
   }
 
@@ -163,7 +165,7 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
       // Rebuild the input as a side effect (validates directory + sets instanceId).
       await buildExtractionInput()
     } catch (error) {
-      console.error('Failed to initialize slide extraction:', error)
+      log.error('Failed to initialize slide extraction:', error)
       throw error
     }
   }
@@ -190,7 +192,7 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
         slideExtractorInstance.value = handle
         updateSlideExtractionStatus()
       } catch (error) {
-        console.error('Failed to start slide extraction:', error)
+        log.error('Failed to start slide extraction:', error)
         isSlideExtractionEnabled.value = false
       }
     } else {

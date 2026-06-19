@@ -1,5 +1,7 @@
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('PlatformAuth');
 
 export interface LoginResult {
   success: boolean;
@@ -35,10 +37,10 @@ export class MainAuthService {
     let sessionCookies = '';
 
     try {
-      console.log('Starting complete manual redirect token acquisition process...');
+      log.debug('Starting complete manual redirect token acquisition process...');
 
       const API_LOGIN_PAGE = "https://sso.bit.edu.cn/cas/login";
-      console.log('Step 1: Getting login page and initial cookies...');
+      log.debug('Step 1: Getting login page and initial cookies...');
 
       const axiosInstance = axios.create();
       const initResponse = await axiosInstance.get(`${API_LOGIN_PAGE}?service=${encodeURIComponent(serviceUrl)}`);
@@ -52,9 +54,9 @@ export class MainAuthService {
       const executionKey = this.getHtmlParam(html, `id="login-page-flowkey"`);
 
       if (!cryptoKey || !executionKey) throw new Error("Failed to parse login page. If this persists, please sign in with browser.");
-      console.log('Step 1 completed: Got encryption key and execution token');
+      log.debug('Step 1 completed: Got encryption key and execution token');
 
-      console.log('Step 2: Encrypting password and submitting login...');
+      log.debug('Step 2: Encrypting password and submitting login...');
 
       const encryptedPassword = this.encryptPassword(cryptoKey, password);
       const API_LOGIN_ACTION = "https://sso.bit.edu.cn/cas/login";
@@ -92,9 +94,9 @@ export class MainAuthService {
         throw new Error(errorData);
       }
 
-      console.log('Step 2 completed: SSO login successful, starting redirect handling');
+      log.debug('Step 2 completed: SSO login successful, starting redirect handling');
 
-      console.log('Step 3: Handling redirect process...');
+      log.debug('Step 3: Handling redirect process...');
 
       const ssoSuccessCookiesHeader = loginResponse.headers['set-cookie'];
       if (ssoSuccessCookiesHeader) {
@@ -105,7 +107,7 @@ export class MainAuthService {
       const firstRedirectLocation = loginResponse.headers['location'];
       if (!firstRedirectLocation) throw new Error("Login succeeded but redirect failed. Please sign in with browser.");
 
-      console.log('Step 3: Accessing first redirect URL...', firstRedirectLocation);
+      log.debug('Step 3: Accessing first redirect URL...', firstRedirectLocation);
 
       const secondResponse = await axiosInstance.get(firstRedirectLocation, {
         headers: {
@@ -122,7 +124,7 @@ export class MainAuthService {
       const finalRedirectLocation = secondResponse.headers['location'];
       if (!finalRedirectLocation) throw new Error("Ticket verification succeeded but redirect failed. Please sign in with browser.");
 
-      console.log('Step 4: Extracting token from final redirect URL...', finalRedirectLocation);
+      log.debug('Step 4: Extracting token from final redirect URL...', finalRedirectLocation);
 
       const getTokenFromUrl = (urlString: string): string | null => {
         try {
@@ -139,7 +141,7 @@ export class MainAuthService {
         throw new Error("Failed to extract token. Please sign in with browser.");
       }
 
-      console.log('Successfully obtained token through manual redirect process!');
+      log.debug('Successfully obtained token through manual redirect process!');
 
       return {
         success: true,
@@ -147,7 +149,7 @@ export class MainAuthService {
       };
 
     } catch (error) {
-      console.error('Login error:', error);
+      log.error('Login error:', error);
 
       // Check for 401 Unauthorized (incorrect username or password)
       if (axios.isAxiosError(error) && error.response?.status === 401) {

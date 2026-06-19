@@ -8,6 +8,8 @@ import { useDualStreamPlayer } from './useDualStreamPlayer'
 import { applyPlaybackRate, applyMute } from './singleStreamPlayback'
 import { configStore } from '@shared/services/configStore'
 import { overrides } from '@shared/overrideRegistry'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('VideoPlayer');
 
 export const DUAL_STREAM_KEY = '__dual__'
 export type DualAudioSource = 'screen' | 'camera'
@@ -401,7 +403,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       }
 
     } catch (err: any) {
-      console.error('Failed to load video streams:', err)
+      log.error('Failed to load video streams:', err)
       error.value = err.message || 'Failed to load video streams'
       handleTaskError(err.message || 'Failed to load video streams')
       isRetrying.value = false
@@ -492,7 +494,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         throw new Error('HLS is not supported in this browser')
       }
     } catch (err: any) {
-      console.error('Failed to load video source with position:', err)
+      log.error('Failed to load video source with position:', err)
       const errorMessage = 'Failed to load video source: ' + err.message
       error.value = errorMessage
       handleTaskError(errorMessage)
@@ -538,7 +540,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
           logLabel: 'HLS error:',
           defaultErrorLabel: 'Other fatal error:',
           onFatalStart: () => { isHlsRecovering = true },
-          onNonFatal: (data) => { console.warn('Non-fatal HLS error:', data.details, data) },
+          onNonFatal: (data) => { log.warn('Non-fatal HLS error:', data.details, data) },
           recoverMediaError: (data, attempt) => {
             const currentPosition = videoPlayer.value?.currentTime || 0
             const wasPlaying = videoPlayer.value ? !videoPlayer.value.paused : false
@@ -570,7 +572,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
                       isHlsRecovering = false
                     }, 500)
                   } catch (e) {
-                    console.error('Error during buffer append recovery:', e)
+                    log.error('Error during buffer append recovery:', e)
                     isHlsRecovering = false
                   }
                 }
@@ -598,7 +600,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         throw new Error('HLS is not supported in this browser')
       }
     } catch (err: any) {
-      console.error('Failed to load video source:', err)
+      log.error('Failed to load video source:', err)
       const errorMessage = 'Failed to load video source: ' + err.message
       error.value = errorMessage
       handleTaskError(errorMessage)
@@ -634,7 +636,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
           try {
             await videoPlayer.value.play()
           } catch (err) {
-            console.warn('Could not resume playback:', err)
+            log.warn('Could not resume playback:', err)
           }
         } else {
           try {
@@ -691,10 +693,10 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     const errorMessage = target.error?.message
 
     if (isHlsRecovering) {
-      console.log('HLS is recovering, deferring video error handling...')
+      log.debug('HLS is recovering, deferring video error handling...')
       setTimeout(() => {
         if (isHlsRecovering) {
-          console.log('HLS recovery timeout, proceeding with video error handling')
+          log.debug('HLS recovery timeout, proceeding with video error handling')
           isHlsRecovering = false
           onVideoError(event)
         }
@@ -715,7 +717,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       lastErrorPosition = lastPlaybackPosition
     }
 
-    console.error('Video error:', {
+    log.error('Video error:', {
       errorCode,
       errorMessage,
       retryCount: videoErrorRetryCount,
@@ -760,14 +762,14 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       }
 
       const targetPosition = lastPlaybackPosition + skipAmount
-      console.log(`Attempting video error recovery (attempt ${videoErrorRetryCount}/${maxVideoErrorRetries.value}) - skipping from ${lastPlaybackPosition} to ${targetPosition} (skip: ${skipAmount}s, consecutive errors: ${consecutiveErrorsAtSamePosition})`)
+      log.debug(`Attempting video error recovery (attempt ${videoErrorRetryCount}/${maxVideoErrorRetries.value}) - skipping from ${lastPlaybackPosition} to ${targetPosition} (skip: ${skipAmount}s, consecutive errors: ${consecutiveErrorsAtSamePosition})`)
 
       isRetrying.value = true
       retryMessage.value = `Recovering from playback error... (${videoErrorRetryCount}/${maxVideoErrorRetries.value})`
 
       setTimeout(() => {
         if (videoPlayer.value && currentStreamData.value) {
-          console.log('Retrying video load after error...')
+          log.debug('Retrying video load after error...')
           loadVideoSourceWithPosition(targetPosition, true)
         }
       }, 1000 + (500 * videoErrorRetryCount))
@@ -809,11 +811,11 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   }
 
   const onEnded = async () => {
-    console.log('Video playback ended, stopping signature loop')
+    log.debug('Video playback ended, stopping signature loop')
     try {
       await window.electronAPI.video.stopSignatureLoop()
     } catch (err) {
-      console.error('Failed to stop signature loop on video end:', err)
+      log.error('Failed to stop signature loop on video end:', err)
     }
   }
 
@@ -841,7 +843,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       muteMode.value = config.muteMode || 'normal'
       maxVideoErrorRetries.value = config.videoRetryCount || 5
     } catch (err) {
-      console.error('Failed to load video player config:', err)
+      log.error('Failed to load video player config:', err)
     }
   }
 
@@ -849,7 +851,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     try {
       videoProxyClientId.value = await window.electronAPI.video.registerClient()
     } catch (err) {
-      console.error('Failed to register video proxy client:', err)
+      log.error('Failed to register video proxy client:', err)
     }
   }
 
@@ -858,7 +860,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       try {
         await window.electronAPI.video.unregisterClient(videoProxyClientId.value)
       } catch (err) {
-        console.error('Failed to unregister video proxy client on unmount:', err)
+        log.error('Failed to unregister video proxy client on unmount:', err)
       }
     }
   }

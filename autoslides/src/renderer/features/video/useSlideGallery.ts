@@ -1,5 +1,7 @@
 import { ref, type Ref, type ShallowRef } from 'vue'
 import type { ExtractedSlide, SlideExtractionHandle } from '@shared/processing'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('SlideGallery');
 
 export interface UseSlideGalleryOptions {
   extractedSlides: Ref<ExtractedSlide[]>
@@ -87,9 +89,9 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
         selectedSlide.value = null
       }
 
-      console.log(`Slide moved to in-app trash: ${slide.title}`)
+      log.debug(`Slide moved to in-app trash: ${slide.title}`)
     } catch (error) {
-      console.error('Failed to move slide to trash:', error)
+      log.error('Failed to move slide to trash:', error)
       // Show error dialog
       const errorMessage = error instanceof Error ? error.message : String(error)
       await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slide to trash: ${errorMessage}`)
@@ -144,9 +146,9 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
         slideExtractorInstance.value.clearSlides()
       }
 
-      console.log('All slides moved to in-app trash')
+      log.debug('All slides moved to in-app trash')
     } catch (error) {
-      console.error('Failed to move all slides to trash:', error)
+      log.error('Failed to move all slides to trash:', error)
       // Show error dialog
       const errorMessage = error instanceof Error ? error.message : String(error)
       await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slides to trash: ${errorMessage}`)

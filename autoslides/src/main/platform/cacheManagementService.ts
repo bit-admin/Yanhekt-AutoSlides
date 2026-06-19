@@ -6,6 +6,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { app } from 'electron';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('PlatformCacheManagement');
 
 export interface CacheStats {
   totalSize: number;
@@ -57,7 +59,7 @@ export class CacheManagementService {
 
       return stats;
     } catch (error) {
-      console.error('Failed to get cache stats:', error);
+      log.error('Failed to get cache stats:', error);
       return {
         totalSize: 0,
         tempFiles: 0
@@ -88,10 +90,10 @@ export class CacheManagementService {
         }
       }
 
-      console.log(`Cache cleared: ${clearedFiles} files removed`);
+      log.debug(`Cache cleared: ${clearedFiles} files removed`);
       return { success: true };
     } catch (error) {
-      console.error('Failed to clear cache:', error);
+      log.error('Failed to clear cache:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -123,7 +125,7 @@ export class CacheManagementService {
               removedItems++;
             }
           } catch (error) {
-            console.warn(`Failed to remove ${itemPath}:`, error);
+            log.warn(`Failed to remove ${itemPath}:`, error);
           }
         }
       }
@@ -134,10 +136,10 @@ export class CacheManagementService {
         removedItems += await this.removeDirectory(appTempPath);
       }
 
-      console.log(`Factory reset completed: ${removedItems} items removed`);
+      log.debug(`Factory reset completed: ${removedItems} items removed`);
       return { success: true };
     } catch (error) {
-      console.error('Failed to reset all data:', error);
+      log.error('Failed to reset all data:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
@@ -182,11 +184,11 @@ export class CacheManagementService {
           }
         } catch (error) {
           // Skip files that can't be accessed
-          console.warn(`Cannot access ${itemPath}:`, error);
+          log.warn(`Cannot access ${itemPath}:`, error);
         }
       }
     } catch (error) {
-      console.warn(`Cannot read directory ${dirPath}:`, error);
+      log.warn(`Cannot read directory ${dirPath}:`, error);
     }
 
     return { size: totalSize, files: fileCount };
@@ -213,14 +215,14 @@ export class CacheManagementService {
             removedCount++;
           }
         } catch (error) {
-          console.warn(`Failed to remove ${itemPath}:`, error);
+          log.warn(`Failed to remove ${itemPath}:`, error);
         }
       }
 
       // Remove the directory itself
       await fs.promises.rmdir(dirPath);
     } catch (error) {
-      console.warn(`Failed to remove directory ${dirPath}:`, error);
+      log.warn(`Failed to remove directory ${dirPath}:`, error);
     }
 
     return removedCount;

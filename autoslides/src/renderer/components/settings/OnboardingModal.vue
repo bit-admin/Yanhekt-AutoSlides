@@ -173,6 +173,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('OnboardingModal');
 import { computed, onMounted, ref } from 'vue'
 import { useSettings } from '@features/settings/useSettings'
 import { useCopilotOAuth } from '@features/ai/useCopilotOAuth'
@@ -257,7 +259,7 @@ const persistAiChoice = async () => {
       copilotModelName: 'gpt-4.1',
     })
   } catch (error) {
-    console.error('[onboarding] Failed to persist Copilot choice:', error)
+    log.error('[onboarding] Failed to persist Copilot choice:', error)
   }
 }
 

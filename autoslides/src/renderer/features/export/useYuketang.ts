@@ -1,4 +1,6 @@
 import { ref, computed, onMounted, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('Yuketang');
 
 export interface UseYuketangReturn {
   currentPageMode: Ref<'none' | 'lesson' | 'class'>
@@ -155,7 +157,7 @@ export function useYuketang(): UseYuketangReturn {
     try {
       await window.electronAPI.yuketang.openFolder(target)
     } catch (error) {
-      console.error('Failed to open export result:', error)
+      log.error('Failed to open export result:', error)
     }
   }
 

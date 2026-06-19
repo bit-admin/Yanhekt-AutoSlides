@@ -1,6 +1,8 @@
 import { ref } from 'vue'
 import { ssimThresholdService, type SsimPresetType } from '@shared/services/ssimThresholdService'
 import type { AutoCropDetectorMode, AutoCropModelInfoView, DownsamplingPreset } from './settingsTypes'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ImageProcessingSettings');
 
 const AUTO_CROP_DEFAULTS = {
   aspectTolerance: 0.05,
@@ -88,7 +90,7 @@ export function useImageProcessingSettings() {
       const info = await window.electronAPI.autoCrop.getModelInfo()
       autoCropModelInfo.value = info as AutoCropModelInfoView
     } catch (error) {
-      console.error('Failed to load auto-crop model info:', error)
+      log.error('Failed to load auto-crop model info:', error)
     }
   }
 
@@ -99,7 +101,7 @@ export function useImageProcessingSettings() {
         autoCropModelInfo.value = info as AutoCropModelInfoView
       }
     } catch (error) {
-      console.error('Failed to import custom auto-crop model:', error)
+      log.error('Failed to import custom auto-crop model:', error)
     }
   }
 
@@ -108,7 +110,7 @@ export function useImageProcessingSettings() {
       const info = await window.electronAPI.autoCrop.deleteCustomModel()
       autoCropModelInfo.value = info as AutoCropModelInfoView
     } catch (error) {
-      console.error('Failed to delete custom auto-crop model:', error)
+      log.error('Failed to delete custom auto-crop model:', error)
     }
   }
 
@@ -172,7 +174,7 @@ export function useImageProcessingSettings() {
       selectedDownsamplingPreset.value = currentPreset ? currentPreset.key : '480x270'
       tempSelectedDownsamplingPreset.value = selectedDownsamplingPreset.value
     } catch (error) {
-      console.error('Failed to load image processing config:', error)
+      log.error('Failed to load image processing config:', error)
     }
   }
 
@@ -285,7 +287,7 @@ export function useImageProcessingSettings() {
     const { newThreshold, classrooms } = event.detail
 
     if (ssimPreset.value === 'adaptive') {
-      console.log('Adaptive SSIM threshold updated due to classroom rules:', {
+      log.debug('Adaptive SSIM threshold updated due to classroom rules:', {
         newThreshold,
         classrooms: classrooms?.map((c: { name: string }) => c.name).join(', ') || 'none'
       })
@@ -298,9 +300,9 @@ export function useImageProcessingSettings() {
           ssimThreshold: newThreshold,
           ssimPresetMode: ssimPreset.value
         })
-        console.log('Classroom-based SSIM threshold saved to config:', imageProcessingResult.ssimThreshold)
+        log.debug('Classroom-based SSIM threshold saved to config:', imageProcessingResult.ssimThreshold)
       } catch (error) {
-        console.error('Failed to save classroom-based SSIM threshold to config:', error)
+        log.error('Failed to save classroom-based SSIM threshold to config:', error)
       }
     }
   }

@@ -3,6 +3,8 @@
 // log line per failure rather than three near-identical ones.
 
 import type { TrashReason } from './types'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('TrashWriter');
 
 export interface MoveToTrashOptions {
   outputPath: string
@@ -19,7 +21,7 @@ export async function moveToTrash(opts: MoveToTrashOptions): Promise<boolean> {
     })
     return true
   } catch (error) {
-    console.error(
+    log.error(
       `[PostProcessing] Failed to move ${opts.filename} to trash (reason=${opts.reason}):`,
       error
     )

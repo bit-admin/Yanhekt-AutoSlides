@@ -1,3 +1,5 @@
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('SsimThreshold');
 /**
  * SSIM Threshold Management Service
  *
@@ -176,7 +178,7 @@ export class SsimThresholdService {
   }): void {
     // TODO: Implement adaptive context updates
     // This will be used to improve adaptive threshold calculation
-    console.log('Adaptive context update:', context)
+    log.debug('Adaptive context update:', context)
   }
 
   /**
@@ -194,9 +196,9 @@ export class SsimThresholdService {
   public updateAdaptiveThreshold(newValue: number): void {
     if (this.isValidThreshold(newValue)) {
       SSIM_PRESET_VALUES.adaptive = newValue
-      console.log(`Adaptive threshold updated to: ${newValue}`)
+      log.debug(`Adaptive threshold updated to: ${newValue}`)
     } else {
-      console.warn(`Invalid adaptive threshold value: ${newValue}`)
+      log.warn(`Invalid adaptive threshold value: ${newValue}`)
     }
   }
 
@@ -207,7 +209,7 @@ export class SsimThresholdService {
    */
   public setCurrentClassrooms(classrooms: { name: string }[] | null): void {
     this.currentClassrooms = classrooms
-    console.log('Updated classroom context for SSIM threshold:', classrooms?.map(c => c.name).join(', ') || 'none')
+    log.debug('Updated classroom context for SSIM threshold:', classrooms?.map(c => c.name).join(', ') || 'none')
 
     // If adaptive mode is being used, notify UI components about the threshold change
     this.notifyAdaptiveThresholdChange()

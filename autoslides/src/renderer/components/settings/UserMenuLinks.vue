@@ -84,6 +84,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('UserMenuLinks');
 import { useI18n } from 'vue-i18n'
 
 const { t: $t } = useI18n()
@@ -92,7 +94,7 @@ const openGitHub = async () => {
   try {
     await (window as any).electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides')
   } catch (error) {
-    console.error('Failed to open GitHub repository:', error)
+    log.error('Failed to open GitHub repository:', error)
   }
 }
 
@@ -100,7 +102,7 @@ const openITCenter = async () => {
   try {
     await (window as any).electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/software')
   } catch (error) {
-    console.error('Failed to open User Manual:', error)
+    log.error('Failed to open User Manual:', error)
   }
 }
 
@@ -108,7 +110,7 @@ const openFeedbackIssue = async () => {
   try {
     await (window as any).electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides/issues/new')
   } catch (error) {
-    console.error('Failed to open issue page:', error)
+    log.error('Failed to open issue page:', error)
   }
 }
 
@@ -120,7 +122,7 @@ const openFeedbackEmail = async () => {
   try {
     appVersion = await (window as any).electronAPI.app.getVersion()
   } catch (error) {
-    console.error('Failed to get app version:', error)
+    log.error('Failed to get app version:', error)
   }
   appVersion = appVersion || 'Unknown'
   const electronVersion = navigator.userAgent.match(/Electron\/([\d.]+)/)?.[1] || 'Unknown'
@@ -147,7 +149,7 @@ const openFeedbackEmail = async () => {
   try {
     await (window as any).electronAPI.shell.openExternal(`mailto:info@ruc.edu.kg?subject=${subject}&body=${body}`)
   } catch (error) {
-    console.error('Failed to open email client:', error)
+    log.error('Failed to open email client:', error)
   }
 }
 </script>

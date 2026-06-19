@@ -8,6 +8,8 @@
 
 import type { PipelineDataSource, TrashReason } from './types'
 import { moveToTrash } from './trashWriter'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ImageSources');
 
 async function decodeBase64ToImageData(base64: string): Promise<ImageData | null> {
   return new Promise((resolve) => {
@@ -67,7 +69,7 @@ export function createSlideExtractionDataSource(outputPath: string): PipelineDat
         const base64 = await window.electronAPI.slideExtraction.readSlideAsBase64(outputPath, filename)
         return decodeBase64ToImageData(base64)
       } catch (error) {
-        console.error(`[PostProcessing] readForPHash failed for ${filename}:`, error)
+        log.error(`[PostProcessing] readForPHash failed for ${filename}:`, error)
         return null
       }
     },
@@ -80,7 +82,7 @@ export function createSlideExtractionDataSource(outputPath: string): PipelineDat
           targetHeight
         )
       } catch (error) {
-        console.error(`[PostProcessing] readForAI failed for ${filename}:`, error)
+        log.error(`[PostProcessing] readForAI failed for ${filename}:`, error)
         return null
       }
     },
@@ -99,7 +101,7 @@ export function createOfflineDataSource(outputDir: string): PipelineDataSource {
         const buffer = await window.electronAPI.offline.readImageBuffer(`${outputDir}/${filename}`)
         return decodeBufferToImageData(buffer)
       } catch (error) {
-        console.error(`[PostProcessing] readForPHash failed for ${filename}:`, error)
+        log.error(`[PostProcessing] readForPHash failed for ${filename}:`, error)
         return null
       }
     },
@@ -111,7 +113,7 @@ export function createOfflineDataSource(outputDir: string): PipelineDataSource {
           targetHeight
         )
       } catch (error) {
-        console.error(`[PostProcessing] readForAI failed for ${filename}:`, error)
+        log.error(`[PostProcessing] readForAI failed for ${filename}:`, error)
         return null
       }
     },

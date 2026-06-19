@@ -1,5 +1,7 @@
 import { ipcMain, BrowserWindow, app, shell } from 'electron';
 import path from 'node:path';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('MenuIpc');
 
 export function registerMenuIpcHandlers(): void {
   ipcMain.handle('menu:openTermsAndConditions', async () => {
@@ -10,7 +12,7 @@ export function registerMenuIpcHandlers(): void {
       await shell.openPath(termsPath);
       return { success: true };
     } catch (error) {
-      console.error('Failed to open Terms and Conditions:', error);
+      log.error('Failed to open Terms and Conditions:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
@@ -24,7 +26,7 @@ export function registerMenuIpcHandlers(): void {
       }
       return { success: false, error: 'No window available' };
     } catch (error) {
-      console.error('Failed to open settings:', error);
+      log.error('Failed to open settings:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
@@ -38,7 +40,7 @@ export function registerMenuIpcHandlers(): void {
       }
       return { success: false, error: 'No focused window' };
     } catch (error) {
-      console.error('Failed to reload window:', error);
+      log.error('Failed to reload window:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
@@ -52,7 +54,7 @@ export function registerMenuIpcHandlers(): void {
       }
       return { success: false, error: 'No focused window' };
     } catch (error) {
-      console.error('Failed to force reload window:', error);
+      log.error('Failed to force reload window:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
@@ -66,7 +68,7 @@ export function registerMenuIpcHandlers(): void {
       }
       return { success: false, error: 'No focused window' };
     } catch (error) {
-      console.error('Failed to toggle dev tools:', error);
+      log.error('Failed to toggle dev tools:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
@@ -80,7 +82,7 @@ export function registerMenuIpcHandlers(): void {
       }
       return { success: false, error: 'No focused window' };
     } catch (error) {
-      console.error('Failed to reset zoom:', error);
+      log.error('Failed to reset zoom:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
@@ -95,7 +97,7 @@ export function registerMenuIpcHandlers(): void {
       }
       return { success: false, error: 'No focused window' };
     } catch (error) {
-      console.error('Failed to zoom in:', error);
+      log.error('Failed to zoom in:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
@@ -110,7 +112,7 @@ export function registerMenuIpcHandlers(): void {
       }
       return { success: false, error: 'No focused window' };
     } catch (error) {
-      console.error('Failed to zoom out:', error);
+      log.error('Failed to zoom out:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });
@@ -124,7 +126,7 @@ export function registerMenuIpcHandlers(): void {
       }
       return { success: false, error: 'No focused window' };
     } catch (error) {
-      console.error('Failed to toggle fullscreen:', error);
+      log.error('Failed to toggle fullscreen:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   });

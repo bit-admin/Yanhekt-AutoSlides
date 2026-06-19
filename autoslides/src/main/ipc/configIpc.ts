@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { IpcServices } from './types';
 import type { AIServiceType } from '@main/platform/configService';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('ConfigIpc');
 
 export function registerConfigIpcHandlers(services: IpcServices): void {
   const {
@@ -351,7 +353,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
       return { success: false, canceled: true };
     } catch (error) {
-      console.error('Failed to select image for exclusion:', error);
+      log.error('Failed to select image for exclusion:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'

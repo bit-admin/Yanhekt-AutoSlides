@@ -15,6 +15,8 @@ import {
   isPathInside as isPathInsideHelper,
   pathExists as pathExistsHelper
 } from './slideExtraction/pathHelpers';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('SlideExtraction');
 
 export type { TrashEntry, TrashMetadata, CropEntry, CropRect };
 
@@ -28,12 +30,12 @@ export class SlideExtractionService {
     try {
       const optimizedBuffer = await sharpService.reducePngColors(imageBuffer);
       if (optimizedBuffer) {
-        console.log(`PNG color reduction: ${imageBuffer.length} -> ${optimizedBuffer.length} bytes (${Math.round((1 - optimizedBuffer.length / imageBuffer.length) * 100)}% reduction)`);
+        log.debug(`PNG color reduction: ${imageBuffer.length} -> ${optimizedBuffer.length} bytes (${Math.round((1 - optimizedBuffer.length / imageBuffer.length) * 100)}% reduction)`);
         return optimizedBuffer;
       }
       return imageBuffer;
     } catch (error) {
-      console.warn('PNG color reduction failed, using original:', error);
+      log.warn('PNG color reduction failed, using original:', error);
       return imageBuffer;
     }
   }
@@ -66,9 +68,9 @@ export class SlideExtractionService {
       // Write image buffer to file
       await fs.writeFile(filePath, finalBuffer);
 
-      console.log(`Slide saved successfully: ${filePath}`);
+      log.debug(`Slide saved successfully: ${filePath}`);
     } catch (error) {
-      console.error('Failed to save slide:', error);
+      log.error('Failed to save slide:', error);
       throw error;
     }
   }
@@ -84,9 +86,9 @@ export class SlideExtractionService {
         : dirPath;
 
       await fs.mkdir(expandedPath, { recursive: true });
-      console.log(`Directory ensured: ${expandedPath}`);
+      log.debug(`Directory ensured: ${expandedPath}`);
     } catch (error) {
-      console.error('Failed to ensure directory:', error);
+      log.error('Failed to ensure directory:', error);
       throw error;
     }
   }
@@ -187,9 +189,9 @@ export class SlideExtractionService {
 
       // Move the file to trash using Electron's shell API
       await shell.trashItem(resolvedFilePath);
-      console.log(`Slide moved to trash successfully: ${resolvedFilePath}`);
+      log.debug(`Slide moved to trash successfully: ${resolvedFilePath}`);
     } catch (error) {
-      console.error('Failed to move slide to trash:', error);
+      log.error('Failed to move slide to trash:', error);
       throw error;
     }
   }
@@ -290,9 +292,9 @@ export class SlideExtractionService {
       // Append to trash manifest
       await this.appendTrashMetadata(trashDir, trashEntry);
 
-      console.log(`Slide moved to in-app trash: ${trashFilePath}`);
+      log.debug(`Slide moved to in-app trash: ${trashFilePath}`);
     } catch (error) {
-      console.error('Failed to move slide to in-app trash:', error);
+      log.error('Failed to move slide to in-app trash:', error);
       throw error;
     }
   }
@@ -305,9 +307,9 @@ export class SlideExtractionService {
       const manifestPath = path.join(trashDir, 'trash-manifest.jsonl');
       const jsonLine = JSON.stringify(entry) + '\n';
       await fs.appendFile(manifestPath, jsonLine, 'utf8');
-      console.log(`Trash metadata appended to manifest: ${entry.filename}`);
+      log.debug(`Trash metadata appended to manifest: ${entry.filename}`);
     } catch (error) {
-      console.error('Failed to append trash metadata:', error);
+      log.error('Failed to append trash metadata:', error);
       throw error;
     }
   }
@@ -333,11 +335,11 @@ export class SlideExtractionService {
 
       // Read the file as buffer
       const buffer = await fs.readFile(resolvedFilePath);
-      console.log(`Slide image loaded successfully: ${resolvedFilePath}`);
+      log.debug(`Slide image loaded successfully: ${resolvedFilePath}`);
 
       return new Uint8Array(buffer);
     } catch (error) {
-      console.error('Failed to load slide image:', error);
+      log.error('Failed to load slide image:', error);
       throw error;
     }
   }
@@ -361,9 +363,9 @@ export class SlideExtractionService {
 
       // Write JSON data to file
       await fs.writeFile(expandedPath, jsonData, 'utf8');
-      console.log(`Post-processing results saved successfully: ${expandedPath}`);
+      log.debug(`Post-processing results saved successfully: ${expandedPath}`);
     } catch (error) {
-      console.error('Failed to save post-processing results:', error);
+      log.error('Failed to save post-processing results:', error);
       throw error;
     }
   }
@@ -409,10 +411,10 @@ export class SlideExtractionService {
       const buffer = await fs.readFile(resolvedFilePath);
       const base64 = buffer.toString('base64');
 
-      console.log(`Slide read as base64 successfully: ${resolvedFilePath}`);
+      log.debug(`Slide read as base64 successfully: ${resolvedFilePath}`);
       return base64;
     } catch (error) {
-      console.error('Failed to read slide as base64:', error);
+      log.error('Failed to read slide as base64:', error);
       throw error;
     }
   }
@@ -472,10 +474,10 @@ export class SlideExtractionService {
       // Use SharpService to prepare for AI (handles indexed PNG detection and resize)
       const base64 = await sharpService.prepareImageForAI(buffer, targetWidth, targetHeight);
 
-      console.log(`Slide prepared for AI: ${filename} (${buffer.length} bytes)`);
+      log.debug(`Slide prepared for AI: ${filename} (${buffer.length} bytes)`);
       return base64;
     } catch (error) {
-      console.error('Failed to read slide for AI:', error);
+      log.error('Failed to read slide for AI:', error);
       throw error;
     }
   }
@@ -505,10 +507,10 @@ export class SlideExtractionService {
       // Sort by filename (which includes timestamp)
       slideFiles.sort();
 
-      console.log(`Found ${slideFiles.length} slides in ${expandedPath}`);
+      log.debug(`Found ${slideFiles.length} slides in ${expandedPath}`);
       return slideFiles;
     } catch (error) {
-      console.error('Failed to list slides:', error);
+      log.error('Failed to list slides:', error);
       return [];
     }
   }
@@ -535,7 +537,7 @@ export class SlideExtractionService {
             if (now - stats.mtime.getTime() > maxAgeMs) {
               await fs.unlink(filePath);
               deletedCount++;
-              console.log(`Deleted old slide: ${filePath}`);
+              log.debug(`Deleted old slide: ${filePath}`);
             }
           } catch {
             // Skip files that can't be accessed
@@ -545,7 +547,7 @@ export class SlideExtractionService {
 
       return deletedCount;
     } catch (error) {
-      console.error('Failed to cleanup old slides:', error);
+      log.error('Failed to cleanup old slides:', error);
       return 0;
     }
   }
@@ -586,16 +588,16 @@ export class SlideExtractionService {
           if (await this.pathExists(entry.cropPath)) {
             entries.push(entry);
           } else {
-            console.log(`Crop backup no longer exists: ${entry.cropPath}`);
+            log.debug(`Crop backup no longer exists: ${entry.cropPath}`);
           }
         } catch (parseError) {
-          console.warn('Failed to parse crop entry:', parseError);
+          log.warn('Failed to parse crop entry:', parseError);
         }
       }
 
       return entries;
     } catch (error) {
-      console.error('Failed to get crop entries:', error);
+      log.error('Failed to get crop entries:', error);
       return [];
     }
   }
@@ -668,7 +670,7 @@ export class SlideExtractionService {
       entriesToKeep.push(updatedEntry);
       await this.rewriteCropManifest(cropDir, entriesToKeep);
     } catch (error) {
-      console.error('Failed to apply crop:', error);
+      log.error('Failed to apply crop:', error);
       throw error;
     }
   }
@@ -702,7 +704,7 @@ export class SlideExtractionService {
       await this.removeCropEntriesByOriginalPaths([resolvedImagePath], resolvedOutputDir);
       await this.cleanupEmptyCropDirs(cropDir);
     } catch (error) {
-      console.error('Failed to restore crop:', error);
+      log.error('Failed to restore crop:', error);
       throw error;
     }
   }
@@ -725,7 +727,7 @@ export class SlideExtractionService {
       const buffer = await fs.readFile(resolvedPath);
       return buffer.toString('base64');
     } catch (error) {
-      console.error('Failed to read crop image:', error);
+      log.error('Failed to read crop image:', error);
       throw error;
     }
   }
@@ -774,17 +776,17 @@ export class SlideExtractionService {
             entries.push(entry);
           } catch {
             // File no longer exists, skip this entry
-            console.log(`Trash file no longer exists: ${entry.trashPath}`);
+            log.debug(`Trash file no longer exists: ${entry.trashPath}`);
           }
         } catch (parseError) {
-          console.warn('Failed to parse trash entry:', parseError);
+          log.warn('Failed to parse trash entry:', parseError);
         }
       }
 
-      console.log(`Found ${entries.length} trash entries`);
+      log.debug(`Found ${entries.length} trash entries`);
       return entries;
     } catch (error) {
-      console.error('Failed to get trash entries:', error);
+      log.error('Failed to get trash entries:', error);
       return [];
     }
   }
@@ -814,9 +816,9 @@ export class SlideExtractionService {
           await fs.rename(entry.trashPath, entry.originalPath);
           result.restored++;
           restoredIds.add(entry.id);
-          console.log(`Restored: ${entry.filename} to ${entry.originalPath}`);
+          log.debug(`Restored: ${entry.filename} to ${entry.originalPath}`);
         } catch (restoreError) {
-          console.error(`Failed to restore ${entry.filename}:`, restoreError);
+          log.error(`Failed to restore ${entry.filename}:`, restoreError);
           result.failed++;
         }
       }
@@ -829,7 +831,7 @@ export class SlideExtractionService {
 
       return result;
     } catch (error) {
-      console.error('Failed to restore from trash:', error);
+      log.error('Failed to restore from trash:', error);
       throw error;
     }
   }
@@ -864,9 +866,9 @@ export class SlideExtractionService {
         try {
           await shell.trashItem(itemPath);
           result.cleared++;
-          console.log(`Moved to system trash: ${itemPath}`);
+          log.debug(`Moved to system trash: ${itemPath}`);
         } catch (trashError) {
-          console.error(`Failed to move to system trash: ${itemPath}`, trashError);
+          log.error(`Failed to move to system trash: ${itemPath}`, trashError);
           result.failed++;
         }
       }
@@ -890,10 +892,10 @@ export class SlideExtractionService {
         await this.removeCropEntriesByOriginalPaths(clearedOriginalPaths, outputDir);
       }
 
-      console.log(`Trash cleared: ${result.cleared} items`);
+      log.debug(`Trash cleared: ${result.cleared} items`);
       return result;
     } catch (error) {
-      console.error('Failed to clear trash:', error);
+      log.error('Failed to clear trash:', error);
       throw error;
     }
   }
@@ -919,9 +921,9 @@ export class SlideExtractionService {
           await shell.trashItem(entry.trashPath);
           result.cleared++;
           clearedIds.add(entry.id);
-          console.log(`Moved selected trash item to system trash: ${entry.trashPath}`);
+          log.debug(`Moved selected trash item to system trash: ${entry.trashPath}`);
         } catch (trashError) {
-          console.error(`Failed to move selected trash item to system trash: ${entry.trashPath}`, trashError);
+          log.error(`Failed to move selected trash item to system trash: ${entry.trashPath}`, trashError);
           result.failed++;
         }
       }
@@ -940,7 +942,7 @@ export class SlideExtractionService {
 
       return result;
     } catch (error) {
-      console.error('Failed to clear selected trash entries:', error);
+      log.error('Failed to clear selected trash entries:', error);
       throw error;
     }
   }
@@ -977,7 +979,7 @@ export class SlideExtractionService {
 
       for (const rawName of folderNames) {
         if (!rawName || rawName.includes('..') || rawName.includes('/') || rawName.includes('\\')) {
-          console.warn(`Skipping invalid folder name: ${rawName}`);
+          log.warn(`Skipping invalid folder name: ${rawName}`);
           result.failed++;
           continue;
         }
@@ -995,9 +997,9 @@ export class SlideExtractionService {
           if (!(await this.pathExists(target))) continue;
           try {
             await shell.trashItem(target);
-            console.log(`Moved folder to system trash: ${target}`);
+            log.debug(`Moved folder to system trash: ${target}`);
           } catch (trashError) {
-            console.error(`Failed to move folder to system trash: ${target}`, trashError);
+            log.error(`Failed to move folder to system trash: ${target}`, trashError);
             folderFailed = true;
           }
         }
@@ -1028,7 +1030,7 @@ export class SlideExtractionService {
 
       return result;
     } catch (error) {
-      console.error('Failed to remove folders:', error);
+      log.error('Failed to remove folders:', error);
       throw error;
     }
   }
@@ -1056,7 +1058,7 @@ export class SlideExtractionService {
       const buffer = await fs.readFile(resolvedPath);
       return buffer.toString('base64');
     } catch (error) {
-      console.error('Failed to read trash image:', error);
+      log.error('Failed to read trash image:', error);
       throw error;
     }
   }
@@ -1079,7 +1081,7 @@ export class SlideExtractionService {
         }
       }
     } catch (error) {
-      console.warn('Failed to cleanup empty trash dirs:', error);
+      log.warn('Failed to cleanup empty trash dirs:', error);
     }
   }
 
@@ -1120,7 +1122,7 @@ export class SlideExtractionService {
         }
       }
     } catch (error) {
-      console.warn('Failed to cleanup empty crop dirs:', error);
+      log.warn('Failed to cleanup empty crop dirs:', error);
     }
   }
 
@@ -1161,7 +1163,7 @@ export class SlideExtractionService {
         await fs.unlink(entry.cropPath);
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-          console.warn(`Failed to remove crop backup: ${entry.cropPath}`, error);
+          log.warn(`Failed to remove crop backup: ${entry.cropPath}`, error);
         }
       }
     }

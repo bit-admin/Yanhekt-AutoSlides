@@ -7,6 +7,8 @@
  */
 
 import type { SlideExtractionMode } from './types';
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('FrameSource');
 
 const FALLBACK_SELECTORS = [
   'video',
@@ -45,7 +47,7 @@ export function getVideoElement(primarySelector: string, instanceId: string): HT
   for (const selector of FALLBACK_SELECTORS) {
     const fallback = document.querySelector(selector) as HTMLVideoElement | null;
     if (fallback && isVideoAccessible(fallback)) {
-      console.warn(`SlideExtractor ${instanceId}: Using fallback selector ${selector}`);
+      log.warn(`SlideExtractor ${instanceId}: Using fallback selector ${selector}`);
       return fallback;
     }
   }
@@ -83,7 +85,7 @@ export function captureFrame(video: HTMLVideoElement): ImageData | null {
     if (!validateImageData(imageData)) return null;
     return imageData;
   } catch (error) {
-    console.error('Error capturing frame:', error);
+    log.error('Error capturing frame:', error);
     return null;
   }
 }

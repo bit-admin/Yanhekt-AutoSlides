@@ -3,6 +3,8 @@ import type { AutoCropWorkerClient } from '@shared/autoCrop'
 import { configStore } from '@shared/services/configStore'
 import { overrides } from '@shared/overrideRegistry'
 import type { CropRect, ResultsItem } from './useResultsView'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('CropEditor');
 
 export type CropHandle = 'nw' | 'ne' | 'sw' | 'se'
 
@@ -344,7 +346,7 @@ export function useCropEditor(deps: CropEditorDeps) {
       isCropMode.value = true
       await observePreviewStageShell()
     } catch (error) {
-      console.error('Failed to load crop editor source:', error)
+      log.error('Failed to load crop editor source:', error)
     }
   }
 
@@ -408,7 +410,7 @@ export function useCropEditor(deps: CropEditorDeps) {
       isCropMode.value = true
       await observePreviewStageShell()
     } catch (error) {
-      console.error('Failed to run auto-crop detection:', error)
+      log.error('Failed to run auto-crop detection:', error)
     } finally {
       isAutoCropDetecting.value = false
     }
@@ -506,7 +508,7 @@ export function useCropEditor(deps: CropEditorDeps) {
         await window.electronAPI.trash.restore([item.id])
         targetPath = item.originalPath
       } catch (error) {
-        console.error('Failed to restore item before crop:', error)
+        log.error('Failed to restore item before crop:', error)
         return
       }
     }

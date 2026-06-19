@@ -1,3 +1,5 @@
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('UrlHelpers');
 export function fixUrlEscaping(url: string): string {
   return url.replace(/\\\//g, '/');
 }
@@ -7,7 +9,7 @@ export function extractHostFromUrl(url: string): string {
     const urlObj = new URL(url);
     return urlObj.hostname;
   } catch (error) {
-    console.error('Error extracting host from URL:', url, error);
+    log.error('Error extracting host from URL:', url, error);
     return 'localhost';
   }
 }

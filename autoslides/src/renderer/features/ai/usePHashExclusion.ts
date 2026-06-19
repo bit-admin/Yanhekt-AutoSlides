@@ -1,6 +1,8 @@
 import { ref, nextTick, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { createPHashWorkerClient } from '@shared/workers/pHashWorkerClient'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('PHashExclusion');
 
 export interface PHashExclusionItem {
   id: string
@@ -49,7 +51,7 @@ export function usePHashExclusion(): UsePHashExclusionReturn {
       const exclusionList = await window.electronAPI.config.getPHashExclusionList()
       pHashExclusionList.value = exclusionList || []
     } catch (error) {
-      console.error('Failed to load pHash exclusion list:', error)
+      log.error('Failed to load pHash exclusion list:', error)
       pHashExclusionList.value = []
     }
   }
@@ -126,14 +128,14 @@ export function usePHashExclusion(): UsePHashExclusionReturn {
 
       if (!result.success) {
         if (!result.canceled) {
-          console.error('Failed to select image:', result.error)
+          log.error('Failed to select image:', result.error)
           alert('Failed to select image: ' + (result.error || 'Unknown error'))
         }
         return
       }
 
       if (!result.imageBuffer || !result.fileName) {
-        console.error('Missing image data or filename')
+        log.error('Missing image data or filename')
         alert('Failed to process selected image: Missing data')
         return
       }
@@ -179,12 +181,12 @@ export function usePHashExclusion(): UsePHashExclusionReturn {
         // Reload the list
         await loadPHashExclusionList()
 
-        console.log('Added exclusion item:', { name: name.trim(), pHash })
+        log.debug('Added exclusion item:', { name: name.trim(), pHash })
       } finally {
         URL.revokeObjectURL(imageUrl)
       }
     } catch (error) {
-      console.error('Failed to add exclusion item:', error)
+      log.error('Failed to add exclusion item:', error)
       alert('Failed to add exclusion item: ' + (error instanceof Error ? error.message : 'Unknown error'))
     } finally {
       isAddingExclusion.value = false
@@ -198,10 +200,10 @@ export function usePHashExclusion(): UsePHashExclusionReturn {
       if (success) {
         await loadPHashExclusionList()
       } else {
-        console.error('Failed to remove exclusion item')
+        log.error('Failed to remove exclusion item')
       }
     } catch (error) {
-      console.error('Failed to remove exclusion item:', error)
+      log.error('Failed to remove exclusion item:', error)
     }
   }
 
@@ -214,10 +216,10 @@ export function usePHashExclusion(): UsePHashExclusionReturn {
         if (success) {
           await loadPHashExclusionList()
         } else {
-          console.error('Failed to update exclusion item name')
+          log.error('Failed to update exclusion item name')
         }
       } catch (error) {
-        console.error('Failed to update exclusion item name:', error)
+        log.error('Failed to update exclusion item name:', error)
       }
     }
   }
@@ -240,7 +242,7 @@ export function usePHashExclusion(): UsePHashExclusionReturn {
         await loadPHashExclusionList()
       }
     } catch (error) {
-      console.error('Failed to clear exclusion list:', error)
+      log.error('Failed to clear exclusion list:', error)
     }
   }
 

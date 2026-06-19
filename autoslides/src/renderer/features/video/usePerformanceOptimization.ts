@@ -1,6 +1,8 @@
 import { ref, type Ref, type ShallowRef, type ComputedRef } from 'vue'
 import type Hls from 'hls.js'
 import { configStore } from '@shared/services/configStore'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('PerformanceOptimization');
 
 export interface UsePerformanceOptimizationOptions {
   mode: 'live' | 'recorded'
@@ -58,10 +60,10 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
     isDocumentVisible.value = !document.hidden
 
     if (document.hidden) {
-      console.log('Page hidden - maintaining video performance with enhanced monitoring')
+      log.debug('Page hidden - maintaining video performance with enhanced monitoring')
       startPerformanceMonitoring()
     } else {
-      console.log('Page visible - normal operation')
+      log.debug('Page visible - normal operation')
       stopPerformanceMonitoring()
     }
   }
@@ -69,13 +71,13 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
   // Keep-alive mechanism to prevent browser throttling
   const startKeepAlive = () => {
     if (!preventSystemSleep.value) {
-      console.log('Keep-alive mechanism disabled (preventSystemSleep is off)')
+      log.debug('Keep-alive mechanism disabled (preventSystemSleep is off)')
       return
     }
 
     if (keepAliveInterval.value) return
 
-    console.log('Starting keep-alive mechanism for background playback')
+    log.debug('Starting keep-alive mechanism for background playback')
     keepAliveInterval.value = setInterval(() => {
       if (videoPlayer.value && !videoPlayer.value.paused) {
         const currentTime = videoPlayer.value.currentTime
@@ -86,7 +88,7 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
 
         // Check if playback rate has been throttled
         if (Math.abs(videoPlayer.value.playbackRate - expectedActualRate) > 0.01) {
-          console.log(`Playback rate drift detected: ${videoPlayer.value.playbackRate} vs expected ${expectedActualRate}, correcting...`)
+          log.debug(`Playback rate drift detected: ${videoPlayer.value.playbackRate} vs expected ${expectedActualRate}, correcting...`)
           videoPlayer.value.playbackRate = expectedActualRate
         }
 
@@ -102,20 +104,20 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
     if (keepAliveInterval.value) {
       clearInterval(keepAliveInterval.value)
       keepAliveInterval.value = null
-      console.log('Keep-alive mechanism stopped')
+      log.debug('Keep-alive mechanism stopped')
     }
   }
 
   // Enhanced performance monitoring for background playback
   const startPerformanceMonitoring = () => {
     if (!preventSystemSleep.value) {
-      console.log('Enhanced performance monitoring disabled (preventSystemSleep is off)')
+      log.debug('Enhanced performance monitoring disabled (preventSystemSleep is off)')
       return
     }
 
     if (performanceMonitorInterval.value) return
 
-    console.log('Starting enhanced performance monitoring')
+    log.debug('Starting enhanced performance monitoring')
     performanceMonitorInterval.value = setInterval(() => {
       if (videoPlayer.value && !videoPlayer.value.paused) {
         const video = videoPlayer.value
@@ -131,13 +133,10 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
           }
         }
 
-        // Log performance metrics when in background
+        // If buffer is getting low in background, this might indicate throttling
         if (document.hidden) {
-          console.log(`Background playback status: time=${currentTime.toFixed(1)}s, rate=${video.playbackRate}x, buffered=${bufferedAhead.toFixed(1)}s ahead`)
-
-          // If buffer is getting low in background, this might indicate throttling
           if (bufferedAhead < 10 && hls.value) {
-            console.log('Low buffer detected in background, requesting more data')
+            log.debug('Low buffer detected in background, requesting more data')
             try {
               hls.value.startLoad()
             } catch (_e) {
@@ -153,29 +152,29 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
     if (performanceMonitorInterval.value) {
       clearInterval(performanceMonitorInterval.value)
       performanceMonitorInterval.value = null
-      console.log('Enhanced performance monitoring stopped')
+      log.debug('Enhanced performance monitoring stopped')
     }
   }
 
   // Wake Lock API support for preventing screen sleep
   const requestWakeLock = async () => {
     if (!preventSystemSleep.value) {
-      console.log('Wake lock disabled (preventSystemSleep is off)')
+      log.debug('Wake lock disabled (preventSystemSleep is off)')
       return
     }
 
     try {
       if ('wakeLock' in navigator && !wakeLock.value) {
         wakeLock.value = await (navigator as any).wakeLock.request('screen')
-        console.log('Wake lock acquired to prevent screen sleep')
+        log.debug('Wake lock acquired to prevent screen sleep')
 
         wakeLock.value?.addEventListener('release', () => {
-          console.log('Wake lock released')
+          log.debug('Wake lock released')
           wakeLock.value = null
         })
       }
     } catch (err) {
-      console.log('Wake lock request failed (not supported or denied):', err)
+      log.debug('Wake lock request failed (not supported or denied):', err)
     }
   }
 
@@ -183,31 +182,31 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
     if (wakeLock.value) {
       wakeLock.value.release()
       wakeLock.value = null
-      console.log('Wake lock manually released')
+      log.debug('Wake lock manually released')
     }
   }
 
   // Power management integration
   const requestPowerManagement = async () => {
     if (!preventSystemSleep.value) {
-      console.log('System sleep prevention disabled (preventSystemSleep is off)')
+      log.debug('System sleep prevention disabled (preventSystemSleep is off)')
       return
     }
 
     try {
       await window.electronAPI.powerManagement?.preventSleep?.()
-      console.log('System sleep prevention requested')
+      log.debug('System sleep prevention requested')
     } catch (err) {
-      console.log('Power management request failed:', err)
+      log.debug('Power management request failed:', err)
     }
   }
 
   const releasePowerManagement = async () => {
     try {
       await window.electronAPI.powerManagement?.allowSleep?.()
-      console.log('System sleep prevention released')
+      log.debug('System sleep prevention released')
     } catch (err) {
-      console.log('Power management release failed:', err)
+      log.debug('Power management release failed:', err)
     }
   }
 
@@ -231,7 +230,7 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
 
       return { audioContext, source, gainNode }
     } catch (error) {
-      console.error('Failed to create silent audio:', error)
+      log.error('Failed to create silent audio:', error)
       return null
     }
   }
@@ -259,9 +258,9 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
 
       source.start()
 
-      console.log(`Started silent audio stream to prevent Chrome throttling in ${mode} mode`)
+      log.debug(`Started silent audio stream to prevent Chrome throttling in ${mode} mode`)
     } catch (error) {
-      console.error('Failed to start silent audio:', error)
+      log.error('Failed to start silent audio:', error)
     }
   }
 
@@ -279,9 +278,9 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
 
       silentAudioGain.value = null
 
-      console.log('Stopped silent audio stream')
+      log.debug('Stopped silent audio stream')
     } catch (error) {
-      console.error('Failed to stop silent audio:', error)
+      log.error('Failed to stop silent audio:', error)
     }
   }
 
@@ -306,9 +305,9 @@ export function usePerformanceOptimization(options: UsePerformanceOptimizationOp
     try {
       const config = configStore
       preventSystemSleep.value = config.preventSystemSleep !== undefined ? config.preventSystemSleep : true
-      console.log('Performance optimization setting (preventSystemSleep):', preventSystemSleep.value)
+      log.debug('Performance optimization setting (preventSystemSleep):', preventSystemSleep.value)
     } catch (error) {
-      console.error('Failed to load performance optimization config:', error)
+      log.error('Failed to load performance optimization config:', error)
     }
   }
 

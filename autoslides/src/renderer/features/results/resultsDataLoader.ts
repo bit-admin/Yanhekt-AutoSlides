@@ -11,6 +11,8 @@ import type {
   ResultsFolder,
   ResultsItem,
 } from './resultsTypes';
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ResultsDataLoader');
 
 export interface ResultsDataIO {
   getFolders(): Promise<Array<{ name: string; path: string; imageCount: number }>>;
@@ -53,7 +55,7 @@ export async function loadFolderSummaries(io: ResultsDataIO): Promise<FolderSumm
         const images = await io.getImages(folder.path);
         return { folder, count: images.length };
       } catch (error) {
-        console.warn(`Failed to count images for ${folder.name}:`, error);
+        log.warn(`Failed to count images for ${folder.name}:`, error);
         return { folder, count: 0 };
       }
     }),
@@ -127,7 +129,7 @@ export async function buildFolderItems(
         };
       });
     } catch (error) {
-      console.warn(`Failed to load images for ${folder.name}:`, error);
+      log.warn(`Failed to load images for ${folder.name}:`, error);
     }
   }
 

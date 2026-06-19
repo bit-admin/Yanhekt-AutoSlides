@@ -1,5 +1,7 @@
 import { ref, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('PlatformCacheManagement');
 
 export interface CacheStats {
   totalSize: number
@@ -63,7 +65,7 @@ export function useCacheManagement(): UseCacheManagementReturn {
         }
       }
     } catch (error) {
-      console.error('Failed to refresh cache stats:', error)
+      log.error('Failed to refresh cache stats:', error)
       cacheOperationStatus.value = {
         type: 'error',
         message: t('advanced.cacheStatsError')
@@ -104,7 +106,7 @@ export function useCacheManagement(): UseCacheManagementReturn {
         throw new Error(result?.error || 'Unknown error')
       }
     } catch (error) {
-      console.error('Failed to clear cache:', error)
+      log.error('Failed to clear cache:', error)
       cacheOperationStatus.value = {
         type: 'error',
         message: t('advanced.cacheClearError')
@@ -174,7 +176,7 @@ export function useCacheManagement(): UseCacheManagementReturn {
         throw new Error(result?.error || 'Unknown error')
       }
     } catch (error) {
-      console.error('Failed to reset all data:', error)
+      log.error('Failed to reset all data:', error)
       cacheOperationStatus.value = {
         type: 'error',
         message: t('advanced.resetError')

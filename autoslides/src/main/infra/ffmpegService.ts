@@ -2,6 +2,8 @@
 import path from 'path';
 import fs from 'fs';
 import { execSync } from 'child_process';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('Ffmpeg');
 
 export class FFmpegService {
   private ffmpegPath: string | null = null;
@@ -33,10 +35,10 @@ export class FFmpegService {
       if ((mode & 0o100) === 0) {
         // Add execute permission for owner, group, and others
         fs.chmodSync(filePath, mode | 0o111);
-        console.log('Added execute permission to FFmpeg binary:', filePath);
+        log.debug('Added execute permission to FFmpeg binary:', filePath);
       }
     } catch (error) {
-      console.error('Failed to set execute permission on FFmpeg:', error);
+      log.error('Failed to set execute permission on FFmpeg:', error);
     }
   }
 
@@ -63,7 +65,7 @@ export class FFmpegService {
       const result = execSync('which ffmpeg', { stdio: 'pipe', timeout: 5000 });
       const systemPath = result.toString().trim();
       if (systemPath && fs.existsSync(systemPath)) {
-        console.log('Found system FFmpeg:', systemPath);
+        log.debug('Found system FFmpeg:', systemPath);
         return systemPath;
       }
     } catch {
@@ -80,7 +82,7 @@ export class FFmpegService {
 
     for (const p of commonPaths) {
       if (fs.existsSync(p)) {
-        console.log('Found FFmpeg at common path:', p);
+        log.debug('Found FFmpeg at common path:', p);
         return p;
       }
     }
@@ -97,15 +99,15 @@ export class FFmpegService {
         // Try extraResource path first (packaged app)
         const ffmpegBinary = process.platform === 'win32' ? 'ffmpeg.exe' : 'ffmpeg';
         const extraResourcePath = path.join(process.resourcesPath, 'ffmpeg-static', ffmpegBinary);
-        console.log('Checking extraResource path:', extraResourcePath);
-        console.log('Platform:', process.platform);
-        console.log('Resources path:', process.resourcesPath);
+        log.debug('Checking extraResource path:', extraResourcePath);
+        log.debug('Platform:', process.platform);
+        log.debug('Resources path:', process.resourcesPath);
 
         if (fs.existsSync(extraResourcePath)) {
           this.ensureExecutePermission(extraResourcePath);
           staticFfmpegPath = extraResourcePath;
         } else {
-          console.log('extraResource path does not exist');
+          log.debug('extraResource path does not exist');
         }
       }
 
@@ -120,19 +122,19 @@ export class FFmpegService {
             staticFfmpegPath = ffmpegStatic;
           }
         } catch (error) {
-          console.log('ffmpeg-static npm package not available:', error);
+          log.debug('ffmpeg-static npm package not available:', error);
         }
       }
 
       // Test the static binary - on Linux it may crash (SIGSEGV) due to compatibility issues
       if (staticFfmpegPath) {
-        console.log('Testing static FFmpeg binary:', staticFfmpegPath);
+        log.debug('Testing static FFmpeg binary:', staticFfmpegPath);
         if (this.testFfmpegBinary(staticFfmpegPath)) {
           this.ffmpegPath = staticFfmpegPath;
-          console.log('FFmpeg path (static binary works):', this.ffmpegPath);
+          log.debug('FFmpeg path (static binary works):', this.ffmpegPath);
           return;
         } else {
-          console.log('Static FFmpeg binary failed test, will try system FFmpeg');
+          log.debug('Static FFmpeg binary failed test, will try system FFmpeg');
         }
       }
 
@@ -141,7 +143,7 @@ export class FFmpegService {
         const systemFfmpeg = this.findSystemFfmpeg();
         if (systemFfmpeg && this.testFfmpegBinary(systemFfmpeg)) {
           this.ffmpegPath = systemFfmpeg;
-          console.log('FFmpeg path (system):', this.ffmpegPath);
+          log.debug('FFmpeg path (system):', this.ffmpegPath);
           return;
         }
       }
@@ -149,13 +151,13 @@ export class FFmpegService {
       // Last resort: use static path even if test failed (might work for some operations)
       if (staticFfmpegPath) {
         this.ffmpegPath = staticFfmpegPath;
-        console.log('FFmpeg path (static, untested):', this.ffmpegPath);
+        log.debug('FFmpeg path (static, untested):', this.ffmpegPath);
       } else {
-        console.error('No FFmpeg binary found');
+        log.error('No FFmpeg binary found');
         this.ffmpegPath = null;
       }
     } catch (error) {
-      console.error('FFmpeg initialization failed:', error);
+      log.error('FFmpeg initialization failed:', error);
       this.ffmpegPath = null;
     }
   }
@@ -182,7 +184,7 @@ export class FFmpegService {
       const result = execSync('which ffprobe', { stdio: 'pipe', timeout: 5000 });
       const systemPath = result.toString().trim();
       if (systemPath && fs.existsSync(systemPath)) {
-        console.log('Found system ffprobe:', systemPath);
+        log.debug('Found system ffprobe:', systemPath);
         return systemPath;
       }
     } catch {
@@ -198,7 +200,7 @@ export class FFmpegService {
 
     for (const p of commonPaths) {
       if (fs.existsSync(p)) {
-        console.log('Found ffprobe at common path:', p);
+        log.debug('Found ffprobe at common path:', p);
         return p;
       }
     }
@@ -222,13 +224,13 @@ export class FFmpegService {
           process.arch,
           ffprobeBinary
         );
-        console.log('Checking ffprobe extraResource path:', extraResourcePath);
+        log.debug('Checking ffprobe extraResource path:', extraResourcePath);
 
         if (fs.existsSync(extraResourcePath)) {
           this.ensureExecutePermission(extraResourcePath);
           staticFfprobePath = extraResourcePath;
         } else {
-          console.log('ffprobe extraResource path does not exist');
+          log.debug('ffprobe extraResource path does not exist');
         }
       }
 
@@ -243,14 +245,14 @@ export class FFmpegService {
             staticFfprobePath = pkgPath;
           }
         } catch (error) {
-          console.log('ffprobe-static npm package not available:', error);
+          log.debug('ffprobe-static npm package not available:', error);
         }
       }
 
       // Prefer the bundled/static binary when it works.
       if (staticFfprobePath && this.testFfmpegBinary(staticFfprobePath)) {
         this.ffprobePath = staticFfprobePath;
-        console.log('ffprobe path (static binary works):', this.ffprobePath);
+        log.debug('ffprobe path (static binary works):', this.ffprobePath);
         return;
       }
 
@@ -260,7 +262,7 @@ export class FFmpegService {
         const adjacent = path.join(path.dirname(ffmpegPath), ffprobeBinary);
         if (fs.existsSync(adjacent) && this.testFfmpegBinary(adjacent)) {
           this.ffprobePath = adjacent;
-          console.log('ffprobe path (adjacent to ffmpeg):', this.ffprobePath);
+          log.debug('ffprobe path (adjacent to ffmpeg):', this.ffprobePath);
           return;
         }
       }
@@ -269,20 +271,20 @@ export class FFmpegService {
       const systemFfprobe = this.findSystemFfprobe();
       if (systemFfprobe && this.testFfmpegBinary(systemFfprobe)) {
         this.ffprobePath = systemFfprobe;
-        console.log('ffprobe path (system):', this.ffprobePath);
+        log.debug('ffprobe path (system):', this.ffprobePath);
         return;
       }
 
       // Last resort: use static path even if the test failed.
       if (staticFfprobePath) {
         this.ffprobePath = staticFfprobePath;
-        console.log('ffprobe path (static, untested):', this.ffprobePath);
+        log.debug('ffprobe path (static, untested):', this.ffprobePath);
       } else {
-        console.error('No ffprobe binary found');
+        log.error('No ffprobe binary found');
         this.ffprobePath = null;
       }
     } catch (error) {
-      console.error('ffprobe initialization failed:', error);
+      log.error('ffprobe initialization failed:', error);
       this.ffprobePath = null;
     }
   }

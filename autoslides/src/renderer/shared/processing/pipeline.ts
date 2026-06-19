@@ -27,6 +27,8 @@ import type {
   SlideExtractionStatus,
   SlideSourceMode,
 } from './types';
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ProcessingPipeline');
 
 const DEFAULT_CONFIG: SlideExtractionConfig = {
   checkInterval: 2000,
@@ -73,7 +75,6 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     this.mode = mode;
     this.instanceId = instanceId ?? `${mode}_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
     this.videoSelector = buildVideoSelector(mode, this.instanceId);
-    console.log(`SlideExtractionPipeline created: ${this.instanceId} (mode: ${mode})`);
   }
 
   /**
@@ -86,7 +87,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
    */
   async run(input: SlideExtractionInput, adapter: SlideExtractionAdapter = {}): Promise<boolean> {
     if (this.isRunning) {
-      console.warn(`SlideExtractionPipeline ${this.instanceId}: already running`);
+      log.warn(`SlideExtractionPipeline ${this.instanceId}: already running`);
       return false;
     }
 
@@ -132,14 +133,14 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     if (this.sourceMode === 'video') {
       const video = this.resolveVideoElement();
       if (!video) {
-        console.error(`SlideExtractionPipeline ${this.instanceId}: video element not found`);
+        log.error(`SlideExtractionPipeline ${this.instanceId}: video element not found`);
         this.adapter.onError?.(new Error('Video element not found'));
         return false;
       }
     }
 
     this.isRunning = true;
-    console.log(`SlideExtractionPipeline ${this.instanceId}: starting (source=${this.sourceMode})`, this.config);
+    log.debug(`SlideExtractionPipeline ${this.instanceId}: starting (source=${this.sourceMode})`, this.config);
 
     if (this.sourceMode === 'video') {
       this.scheduleCaptureLoop();
@@ -165,12 +166,12 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     const onStopped = this.adapter.onStopped;
     this.detachSignal();
 
-    console.log(`SlideExtractionPipeline ${this.instanceId}: stopped`);
+    log.debug(`SlideExtractionPipeline ${this.instanceId}: stopped`);
     this.emitStatus();
 
     if (onStopped) {
       Promise.resolve(onStopped(finalSlides)).catch(err => {
-        console.error(`onStopped callback failed for ${this.instanceId}:`, err);
+        log.error(`onStopped callback failed for ${this.instanceId}:`, err);
       });
     }
   }
@@ -182,7 +183,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
       if (!validateImageData(imageData)) return;
       await this.handleFrame(imageData);
     } catch (err) {
-      console.error('Error processing pushed frame:', err);
+      log.error('Error processing pushed frame:', err);
       this.adapter.onError?.(err);
       if (this.detector.getState().verificationState === 'verifying') {
         this.detector.reset();
@@ -201,8 +202,6 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
 
     if (oldRate === playbackRate && oldInterval === newInterval) return;
 
-    console.log(`Playback rate changed: ${oldRate}x -> ${playbackRate}x, interval: ${oldInterval}ms -> ${newInterval}ms`);
-
     if (this.isRunning && this.sourceMode === 'video' && oldInterval !== newInterval) {
       this.scheduleCaptureLoop();
     }
@@ -213,7 +212,6 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     if (this.isRunning && !this.isPausedDueToBuffering) {
       this.isPausedDueToBuffering = true;
       this.isBuffering = true;
-      console.log(`SlideExtractionPipeline ${this.instanceId}: Paused verification due to buffering`);
       this.emitStatus();
     }
   }
@@ -222,7 +220,6 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     if (this.isRunning && this.isPausedDueToBuffering) {
       this.isPausedDueToBuffering = false;
       this.isBuffering = false;
-      console.log(`SlideExtractionPipeline ${this.instanceId}: Resumed verification after buffering`);
       this.emitStatus();
     }
   }
@@ -252,7 +249,6 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
 
   clearSlides(): void {
     this.extractedSlides = [];
-    console.log(`All slides cleared for instance ${this.instanceId}`);
 
     const event = new CustomEvent('slidesCleared', {
       detail: { instanceId: this.instanceId, mode: this.mode },
@@ -330,13 +326,11 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     this.captureInterval = setInterval(() => {
       this.captureAndCompare();
     }, this.config.checkInterval);
-    console.log(`SlideExtractionPipeline ${this.instanceId}: interval scheduled at ${this.config.checkInterval}ms`);
   }
 
   private async captureAndCompare(): Promise<void> {
     try {
       if (this.isPausedDueToBuffering) {
-        console.log('Skipping capture due to buffering');
         return;
       }
       const video = this.resolveVideoElement();
@@ -345,7 +339,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
         // down at task end; only warn once per run so a stopping task doesn't
         // spam the console.
         if (!this.warnedVideoUnavailable) {
-          console.warn(`SlideExtractionPipeline ${this.instanceId}: video element not available during capture`);
+          log.warn(`SlideExtractionPipeline ${this.instanceId}: video element not available during capture`);
           this.warnedVideoUnavailable = true;
         }
         return;
@@ -353,12 +347,12 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
       this.warnedVideoUnavailable = false;
       const imageData = captureFrame(video);
       if (!imageData) {
-        console.warn('Failed to capture frame');
+        log.warn('Failed to capture frame');
         return;
       }
       await this.handleFrame(imageData);
     } catch (error) {
-      console.error('Error in captureAndCompare:', error);
+      log.error('Error in captureAndCompare:', error);
       this.adapter.onError?.(error);
       if (this.detector.getState().verificationState === 'verifying') {
         this.detector.reset();
@@ -386,8 +380,6 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     if (!result) return;
 
     this.extractedSlides.push(result.slide);
-
-    console.log(`Slide #${this.extractedSlides.length} recorded for ${this.instanceId}`);
 
     const event = new CustomEvent('slideExtracted', {
       detail: {
@@ -425,10 +417,8 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
         downsampleWidth: slideConfig.downsampleWidth ?? DEFAULT_CONFIG.downsampleWidth,
         downsampleHeight: slideConfig.downsampleHeight ?? DEFAULT_CONFIG.downsampleHeight,
       };
-
-      console.log(`Pipeline ${this.instanceId} config loaded (playbackRate=${this.currentPlaybackRate}x):`, this.config);
     } catch (error) {
-      console.error('Failed to load slide extraction config:', error);
+      log.error('Failed to load slide extraction config:', error);
     }
   }
 
@@ -448,7 +438,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
       // per-comparison config is forwarded by the detector on each message.
       await slideProcessorService.updateConfig(this.currentWorkerConfig());
     } catch (error) {
-      console.error('Failed to update worker config:', error);
+      log.error('Failed to update worker config:', error);
     }
   }
 
@@ -457,7 +447,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     try {
       this.adapter.onStatusChanged(this.getStatus());
     } catch (err) {
-      console.error('onStatusChanged callback threw:', err);
+      log.error('onStatusChanged callback threw:', err);
     }
   }
 
@@ -471,12 +461,9 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     if (typeof window !== 'undefined' && (window as { gc?: () => void }).gc) {
       try {
         (window as { gc?: () => void }).gc?.();
-        console.log('Manual garbage collection triggered');
       } catch {
         // ignore — gc only available in some debug builds
       }
     }
-
-    console.log(`Memory cleanup completed for instance ${this.instanceId}`);
   }
 }

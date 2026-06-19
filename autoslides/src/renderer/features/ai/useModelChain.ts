@@ -1,4 +1,6 @@
 import { ref, type Ref } from 'vue'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ModelChain');
 
 export interface ModelPreset {
   label: string
@@ -27,7 +29,7 @@ export function useModelChain(options: UseModelChainOptions) {
     try {
       exhaustedModels.value = await window.electronAPI.ai.getExhaustedModels()
     } catch (error) {
-      console.error('Failed to refresh exhausted models:', error)
+      log.error('Failed to refresh exhausted models:', error)
       exhaustedModels.value = []
     }
   }

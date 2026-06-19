@@ -3,6 +3,8 @@ import Hls, { Events } from 'hls.js'
 import { setupDualHlsErrorHandler } from './useVideoErrorRecovery'
 import type { VideoStream, DualAudioSource } from './useVideoPlayer'
 import { overrides } from '@shared/overrideRegistry'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('DualStreamPlayer');
 
 /**
  * Dual-stream (camera + screen) playback subsystem extracted verbatim from
@@ -252,7 +254,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
           try {
             video.currentTime = seekToTime
           } catch (seekError) {
-            console.warn(`Could not seek ${label} stream during dual load:`, seekError)
+            log.warn(`Could not seek ${label} stream during dual load:`, seekError)
           }
         }
 
@@ -291,7 +293,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
       attachDualHls(screenVideo, screenStream, screenHls, 'screen', seekToTime, shouldAutoPlay)
       startDualSync()
     } catch (err: any) {
-      console.error('Failed to load dual video sources:', err)
+      log.error('Failed to load dual video sources:', err)
       const errorMessage = 'Failed to load dual video sources: ' + err.message
       error.value = errorMessage
       handleTaskError(errorMessage)
@@ -311,7 +313,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
       isPlaying.value = true
       startDualSync()
     } catch (playError) {
-      console.warn('Could not start dual playback:', playError)
+      log.warn('Could not start dual playback:', playError)
     }
   }
 

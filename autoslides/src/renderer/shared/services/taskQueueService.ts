@@ -4,6 +4,8 @@ import { configStore } from './configStore'
 import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
 import { reduceTask, type TaskEvent } from '@shared/orchestration/taskMachine'
 import { overrides } from '../overrideRegistry'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ServicesTaskQueue');
 
 // How many tasks may run concurrently. Mirrors the main-process clamp (1–10) so
 // a hand-edited config.json above the UI cap of 5 still works for power users.
@@ -276,7 +278,7 @@ class TaskQueueService {
     this.applyTask(task, { type: 'START' })
 
     void TaskCoordinator.runTask(this.toContext(task)).catch((err) => {
-      console.warn('[TaskQueue] Failed to start task:', task.id, err)
+      log.warn('[TaskQueue] Failed to start task:', task.id, err)
       const message = err instanceof Error ? err.message : String(err)
       // Only fail if the task is still active (a pause/remove may have moved on).
       if (this.state.activeTaskIds.includes(task.id)) {
@@ -309,12 +311,12 @@ class TaskQueueService {
   startPostProcessing(taskId: string, outputPath: string, imageFiles: string[]): string | null {
     const task = this.state.tasks.find(t => t.id === taskId)
     if (!task) {
-      console.warn(`[TaskQueue] Cannot start post-processing: task ${taskId} not found`)
+      log.warn(`[TaskQueue] Cannot start post-processing: task ${taskId} not found`)
       return null
     }
 
     if (imageFiles.length === 0) {
-      console.log(`[TaskQueue] No images to post-process for task ${taskId}`)
+      log.debug(`[TaskQueue] No images to post-process for task ${taskId}`)
       return null
     }
 
@@ -326,7 +328,7 @@ class TaskQueueService {
     const jobId = PostProcessingService.addJob(taskId, outputPath, imageFiles)
     task.postProcessJobId = jobId
 
-    console.log(`[TaskQueue] Started post-processing job ${jobId} for task ${taskId}`)
+    log.debug(`[TaskQueue] Started post-processing job ${jobId} for task ${taskId}`)
     return jobId
   }
 

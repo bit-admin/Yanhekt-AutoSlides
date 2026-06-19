@@ -22,6 +22,8 @@ import type {
   PostProcessingFailure,
   UnifiedClassificationResult
 } from './types'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('Phase3AI');
 
 const MAX_RETRIES = 2
 const RETRY_DELAY_BASE_MS = 1000
@@ -210,7 +212,7 @@ async function processBatchWithRetry(
   }
   if (err.retryable && retryCount < MAX_RETRIES) {
     const delay = RETRY_DELAY_BASE_MS * (retryCount + 1)
-    console.log(
+    log.debug(
       `[PostProcessing] AI batch ${err.type} (attempt ${retryCount + 1}/${MAX_RETRIES}, delay ${delay}ms)`
     )
     stats.retrying = validFilenames.length
@@ -235,7 +237,7 @@ async function processBatchWithRetry(
     return outcome
   }
 
-  console.warn(`[PostProcessing] AI batch failed with ${err.type}: ${err.message}`)
+  log.warn(`[PostProcessing] AI batch failed with ${err.type}: ${err.message}`)
   for (const filename of validFilenames) {
     outcome.failed.push({
       filename,
@@ -289,7 +291,7 @@ async function processPending413(
     for (let i = 0; i < batch.length; i += newSize) {
       splitBatches.push(batch.slice(i, i + newSize))
     }
-    console.log(
+    log.debug(
       `[PostProcessing] Splitting 413 batch of ${batch.length} into ${splitBatches.length} batches`
     )
     for (const sub of splitBatches) {
@@ -363,7 +365,7 @@ export async function runAIPhase(
   }
 
   if (pending413.length > 0 && !ctx.signal?.aborted) {
-    console.log(`[PostProcessing] Processing ${pending413.length} pending 413 batches`)
+    log.debug(`[PostProcessing] Processing ${pending413.length} pending 413 batches`)
     const pending413Outcome = await processPending413(
       pending413,
       input,

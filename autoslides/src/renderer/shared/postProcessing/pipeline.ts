@@ -18,6 +18,8 @@ import type {
   PostProcessingResult,
   SlideHashInfo
 } from './types'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('PostProcessingPipeline');
 
 function freshProgress(totalImages: number): PostProcessingProgress {
   return {
@@ -57,7 +59,7 @@ async function computeAllHashes(
       hashes.push({ filename, pHash })
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      console.warn(`[PostProcessing] pHash failed for ${filename}: ${message}`)
+      log.warn(`[PostProcessing] pHash failed for ${filename}: ${message}`)
       hashes.push({ filename, pHash: '', error: message })
     }
   }
@@ -189,7 +191,7 @@ export class PostProcessingPipeline {
 
       return finalize(ctx.signal?.aborted ? 'cancelled' : 'completed')
     } catch (error) {
-      console.error('[PostProcessing] Pipeline error:', error)
+      log.error('[PostProcessing] Pipeline error:', error)
       const message = error instanceof Error ? error.message : String(error)
       failed.push({
         filename: '*',

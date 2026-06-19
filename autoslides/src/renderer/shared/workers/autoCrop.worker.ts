@@ -13,11 +13,13 @@
 
 import cvRaw from '@techstark/opencv-js'
 import * as ort from 'onnxruntime-web'
+import { createLogger } from '@shared/utils/logger';
+const logger = createLogger('AutoCropWorker');
 
-console.log('[autoCrop worker] module body executing')
+logger.debug('module body executing')
 
 const log = (msg: string) => {
-  console.log('[autoCrop worker]', msg)
+  logger.debug(msg)
   ;(self as unknown as Worker).postMessage({ type: 'log', message: msg })
 }
 

@@ -2,6 +2,8 @@ import { ipcMain, dialog, app } from 'electron';
 import path from 'node:path';
 import type { IpcServices } from './types';
 import type { CompressLectureOptions } from '@main/video/compressLectureService';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('CompressIpc');
 
 export function registerCompressIpcHandlers(services: IpcServices): void {
   const { compressLectureService } = services;
@@ -21,7 +23,7 @@ export function registerCompressIpcHandlers(services: IpcServices): void {
       }
       return result.filePaths[0];
     } catch (error) {
-      console.error('Failed to select compression input file:', error);
+      log.error('Failed to select compression input file:', error);
       throw error;
     }
   });
@@ -44,7 +46,7 @@ export function registerCompressIpcHandlers(services: IpcServices): void {
       }
       return result.filePath;
     } catch (error) {
-      console.error('Failed to select compression output file:', error);
+      log.error('Failed to select compression output file:', error);
       throw error;
     }
   });

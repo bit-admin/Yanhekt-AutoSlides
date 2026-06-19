@@ -2,6 +2,8 @@ import type { Ref, ShallowRef } from 'vue'
 import type Hls from 'hls.js'
 import type { ErrorData } from 'hls.js'
 import { Events, ErrorTypes } from 'hls.js'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('VideoErrorRecovery');
 
 export interface FatalErrorContext {
   error: Ref<string | null>
@@ -67,10 +69,10 @@ export function setupDualHlsErrorHandler(
   const counters = createRecoveryCounters()
 
   hlsInstance.on(Events.ERROR, (_event, data) => {
-    console.error(`Dual HLS error (${label}):`, _event, data)
+    log.error(`Dual HLS error (${label}):`, _event, data)
 
     if (!data.fatal) {
-      console.warn(`Non-fatal dual HLS error (${label}):`, data.details, data)
+      log.warn(`Non-fatal dual HLS error (${label}):`, data.details, data)
       return
     }
 
@@ -97,7 +99,7 @@ export function setupDualHlsErrorHandler(
                 video.currentTime = currentPosition + 0.5
               }
             } catch (recoveryError) {
-              console.error(`Dual media recovery failed (${label}):`, recoveryError)
+              log.error(`Dual media recovery failed (${label}):`, recoveryError)
             }
           }, 500 * counters.mediaErrorRecoveryCount)
         } else {
@@ -117,9 +119,9 @@ export interface SingleStreamHlsErrorOptions {
   hls: ShallowRef<Hls | null>
   /** Report a terminal error (typically createFatalErrorReporter's result). */
   reportFatal: (message: string) => void
-  /** Prefix for the top-level console.error log. */
+  /** Prefix for the top-level log.error log. */
   logLabel: string
-  /** Prefix for the default (other-fatal) console.error log. */
+  /** Prefix for the default (other-fatal) log.error log. */
   defaultErrorLabel: string
   /** Called at the start of every fatal error, before the type switch. */
   onFatalStart?: () => void
@@ -149,7 +151,7 @@ export function createSingleStreamHlsErrorHandler(
   const counters = createRecoveryCounters()
 
   return (_event: Events.ERROR, data: ErrorData): void => {
-    console.error(opts.logLabel, _event, data)
+    log.error(opts.logLabel, _event, data)
 
     if (!data.fatal) {
       opts.onNonFatal?.(data)
@@ -182,7 +184,7 @@ export function createSingleStreamHlsErrorHandler(
         break
 
       default:
-        console.error(opts.defaultErrorLabel, data.details)
+        log.error(opts.defaultErrorLabel, data.details)
         opts.reportFatal('Video playback error: ' + data.details)
         break
     }

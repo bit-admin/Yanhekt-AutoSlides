@@ -13,6 +13,8 @@
 
 import type { SlideProcessorService, SlideWorkerConfig } from './workerHelpers';
 import type { VerificationState } from './types';
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ChangeDetection');
 
 export interface ChangeDetectorConfig {
   enableDoubleVerification: boolean;
@@ -94,7 +96,7 @@ export class ChangeDetector {
 
   private async handleVerification(imageData: ImageData): Promise<ChangeDecision> {
     if (!this.potentialNewImageData) {
-      console.error('potentialNewImageData is null during verification');
+      log.error('potentialNewImageData is null during verification');
       this.reset();
       return this.decision(null);
     }
@@ -105,21 +107,18 @@ export class ChangeDetector {
       // Frame still matches the candidate — but our worker returns `true` when
       // similarity is BELOW threshold (i.e. changed). Preserve original semantics:
       // here `isStable === true` means the verification image differs again, so abort.
-      console.log('Verification failed, slide not stable');
       this.reset();
       return this.decision(null);
     }
 
     this.currentVerification++;
     if (this.currentVerification < this.config.verificationCount) {
-      console.log(`Verification ${this.currentVerification}/${this.config.verificationCount} passed`);
       return this.decision(null);
     }
 
     const accepted = this.potentialNewImageData;
     this.lastImageData = accepted;
     this.reset();
-    console.log('All verifications passed, slide saved');
     return this.decision(accepted);
   }
 
@@ -131,12 +130,10 @@ export class ChangeDetector {
       this.verificationState = 'verifying';
       this.currentVerification = 0;
       this.potentialNewImageData = imageData;
-      console.log('Change detected, starting verification...');
       return this.decision(null);
     }
 
     this.lastImageData = imageData;
-    console.log('Change detected, slide saved directly');
     return this.decision(imageData);
   }
 

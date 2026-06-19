@@ -4,6 +4,8 @@ import * as path from 'path';
 import { app } from 'electron';
 import type { VideoProxyService } from './videoProxyService';
 import type { FFmpegService } from '@main/infra/ffmpegService';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('Thumbnail');
 
 export interface ScreenThumbnailRequest {
   kind: 'live' | 'recorded';
@@ -70,7 +72,7 @@ export class ThumbnailService {
       }
       return dataUrl;
     } catch (error) {
-      console.error('[thumbnail] Failed to generate preview:', error);
+      log.error('[thumbnail] Failed to generate preview:', error);
       return null;
     } finally {
       // getVideoPlaybackUrls (recorded path) starts the proxy's token-refresh
@@ -169,7 +171,7 @@ export class ThumbnailService {
       fs.mkdirSync(path.dirname(file), { recursive: true });
       fs.writeFileSync(file, buffer);
     } catch (error) {
-      console.error('[thumbnail] Failed to write disk cache:', error);
+      log.error('[thumbnail] Failed to write disk cache:', error);
     }
   }
 }

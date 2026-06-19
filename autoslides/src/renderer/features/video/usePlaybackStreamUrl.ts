@@ -1,5 +1,7 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue'
 import type { VideoStream } from './useVideoPlayer'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('PlaybackStreamUrl');
 
 export interface UsePlaybackStreamUrlOptions {
   mode: 'live' | 'recorded'
@@ -37,7 +39,7 @@ export function usePlaybackStreamUrl(options: UsePlaybackStreamUrlOptions): UseP
       if (resetTimer) clearTimeout(resetTimer)
       resetTimer = setTimeout(() => { streamUrlCopied.value = false }, 2000)
     } catch (error) {
-      console.error('Failed to copy stream URL:', error)
+      log.error('Failed to copy stream URL:', error)
     }
   }
 

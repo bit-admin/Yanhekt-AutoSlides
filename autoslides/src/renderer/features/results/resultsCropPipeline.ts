@@ -12,6 +12,8 @@
 import type { DetectConfig } from '@shared/workers/autoCrop.worker';
 import type { AutoCropWorkerClient } from '@shared/autoCrop';
 import type { AutoCropTarget, CropRect } from './resultsTypes';
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ResultsCropPipeline');
 
 export interface ResultsCropIO {
   restoreFromTrash(ids: string[]): Promise<unknown>;
@@ -106,7 +108,7 @@ export async function runResultsAutoCropPipeline(
       result.cropped++;
       result.croppedItems.push({ originalPath: target.originalPath, filename: target.filename });
     } catch (err) {
-      console.error(`Failed to autocrop ${target.originalPath}:`, err);
+      log.error(`Failed to autocrop ${target.originalPath}:`, err);
       result.failed++;
     }
   }
@@ -169,7 +171,7 @@ export async function runBaselineCropPipeline(
       result.cropped++;
       result.croppedItems.push({ originalPath: target.originalPath, filename: target.filename });
     } catch (err) {
-      console.error(`Failed to apply baseline crop to ${target.originalPath}:`, err);
+      log.error(`Failed to apply baseline crop to ${target.originalPath}:`, err);
       result.failed++;
     }
   }

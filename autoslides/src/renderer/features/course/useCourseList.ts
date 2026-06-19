@@ -2,6 +2,8 @@ import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import { ApiClient, type LiveStream, type LiveListResponse, type CourseData, type CourseListResponse } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
 import { openCourse } from './courseSelection'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('CourseList');
 
 export interface Course {
   id: string
@@ -166,7 +168,7 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
         currentPage.value = response.current_page
       }
     } catch (error: any) {
-      console.error('Failed to fetch personal courses:', error)
+      log.error('Failed to fetch personal courses:', error)
       errorMessage.value = error.message || 'Failed to fetch personal courses'
       courses.value = []
     } finally {

@@ -1,4 +1,6 @@
 import type { LiveStream, SessionData } from './apiClient'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('DataStore');
 
 export interface StreamData extends LiveStream {
   // Additional metadata for playback
@@ -54,7 +56,7 @@ export class DataStore {
 
       // Verify checksum for basic integrity
       if (data.checksum !== this.generateChecksum(streamId)) {
-        console.warn('Stream data checksum mismatch, removing corrupted data');
+        log.warn('Stream data checksum mismatch, removing corrupted data');
         this.removeStreamData(streamId);
         return null;
       }
@@ -62,14 +64,14 @@ export class DataStore {
       // Check if data is not too old (24 hours)
       const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
       if (data.timestamp && (Date.now() - data.timestamp) > maxAge) {
-        console.warn('Stream data expired, removing old data');
+        log.warn('Stream data expired, removing old data');
         this.removeStreamData(streamId);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Failed to parse stream data:', error);
+      log.error('Failed to parse stream data:', error);
       this.removeStreamData(streamId);
       return null;
     }
@@ -129,7 +131,7 @@ export class DataStore {
 
       // Verify checksum for basic integrity
       if (data.checksum !== this.generateChecksum(sessionId)) {
-        console.warn('Session data checksum mismatch, removing corrupted data');
+        log.warn('Session data checksum mismatch, removing corrupted data');
         this.removeSessionData(sessionId);
         return null;
       }
@@ -137,14 +139,14 @@ export class DataStore {
       // Check if data is not too old (24 hours)
       const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
       if (data.timestamp && (Date.now() - data.timestamp) > maxAge) {
-        console.warn('Session data expired, removing old data');
+        log.warn('Session data expired, removing old data');
         this.removeSessionData(sessionId);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Failed to parse session data:', error);
+      log.error('Failed to parse session data:', error);
       this.removeSessionData(sessionId);
       return null;
     }

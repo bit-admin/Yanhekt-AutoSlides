@@ -20,6 +20,8 @@ import {
 } from '@shared/services/extractionQueueLogic'
 import { configStore } from '@shared/services/configStore'
 import { reduceExtraction, type ExtractionEvent } from './extractionMachine'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ExtractionOrchestrator');
 
 export interface ExtractorStatusSnapshot {
   ok: boolean
@@ -131,7 +133,7 @@ export class ExtractionOrchestrator {
       this.apply(item, { type: 'MARK_PENDING' })
       this.notifyChange()
     } catch (err) {
-      console.error('[ExtractionQueue] Failed to mark item pending:', err)
+      log.error('[ExtractionQueue] Failed to mark item pending:', err)
     }
   }
 
@@ -281,7 +283,7 @@ export class ExtractionOrchestrator {
       try {
         await window.electronAPI.qtExtractor.applyColorReduction(slidesDir)
       } catch (err) {
-        console.error('[ExtractionQueue] Color reduction step failed:', err)
+        log.error('[ExtractionQueue] Color reduction step failed:', err)
         this.apply(item, {
           type: 'NORMALIZE_FAILED',
           error: err instanceof Error ? err.message : String(err)
@@ -308,7 +310,7 @@ export class ExtractionOrchestrator {
     try {
       imageFiles = await window.electronAPI.slideExtraction.listSlides(slidesDir)
     } catch (err) {
-      console.error('[ExtractionQueue] listSlides failed:', err)
+      log.error('[ExtractionQueue] listSlides failed:', err)
       this.apply(item, {
         type: 'EXTRACT_FAILED',
         error: err instanceof Error ? err.message : String(err)
@@ -388,7 +390,7 @@ export class ExtractionOrchestrator {
       try {
         await window.electronAPI.qtExtractor.cancelExtraction(itemId)
       } catch (err) {
-        console.warn('[ExtractionQueue] cancelExtraction failed (process may already be gone):', err)
+        log.warn('[ExtractionQueue] cancelExtraction failed (process may already be gone):', err)
       }
       this.notifyChange()
       return true

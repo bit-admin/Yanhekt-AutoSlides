@@ -10,6 +10,8 @@ import type {
   SlideHashInfo
 } from './types'
 import type { WorkerHelpers } from './workerHelpers'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('Phase1Duplicates');
 
 export interface DuplicatePhaseResult {
   duplicatesRemoved: string[]
@@ -41,13 +43,13 @@ export async function runDuplicatePhase(
         const distance = await worker.calculateHammingDistance(item.pHash, seenHash)
         if (distance <= pHashThreshold) {
           duplicateOf = seenFilename
-          console.log(
+          log.debug(
             `[PostProcessing] Duplicate: ${item.filename} similar to ${seenFilename} (distance: ${distance})`
           )
           break
         }
       } catch (error) {
-        console.warn('[PostProcessing] Hamming distance calculation failed:', error)
+        log.warn('[PostProcessing] Hamming distance calculation failed:', error)
       }
     }
 

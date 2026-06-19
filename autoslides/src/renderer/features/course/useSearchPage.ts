@@ -4,6 +4,8 @@ import { tokenManager } from '@shared/services/authService'
 import { navigationStore } from './navigationStore'
 import { openCourse } from './courseSelection'
 import { transformLiveStreamToCourse, transformCourseDataToCourse, type Course } from './useCourseList'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('SearchPage');
 
 const SEARCH_DEBOUNCE_MS = 400
 const RESULTS_PER_PAGE = 16
@@ -44,7 +46,7 @@ const ensureSemesters = async () => {
   try {
     availableSemesters.value = await apiClient.getAvailableSemesters()
   } catch (error) {
-    console.error('Failed to load available semesters:', error)
+    log.error('Failed to load available semesters:', error)
   }
 }
 
@@ -97,7 +99,7 @@ const executeSearch = async (resetPage = true) => {
     }
   } catch (error: any) {
     if (seq !== requestSeq) return
-    console.error('Search failed:', error)
+    log.error('Search failed:', error)
     errorMessage.value = error.message || 'Failed to search courses'
     results.value = []
   } finally {

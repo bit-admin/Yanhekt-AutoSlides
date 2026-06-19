@@ -1,4 +1,6 @@
 import { ipcMain, dialog } from 'electron';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('DialogIpc');
 
 export function registerDialogIpcHandlers(): void {
   ipcMain.handle('dialog:openImageFile', async () => {
@@ -15,7 +17,7 @@ export function registerDialogIpcHandlers(): void {
       }
       return result.filePaths[0];
     } catch (error) {
-      console.error('Failed to open image file:', error);
+      log.error('Failed to open image file:', error);
       throw error;
     }
   });
@@ -34,7 +36,7 @@ export function registerDialogIpcHandlers(): void {
       }
       return result.filePaths;
     } catch (error) {
-      console.error('Failed to open image files:', error);
+      log.error('Failed to open image files:', error);
       throw error;
     }
   });
@@ -43,7 +45,7 @@ export function registerDialogIpcHandlers(): void {
     try {
       return await dialog.showMessageBox(options);
     } catch (error) {
-      console.error('Failed to show message box:', error);
+      log.error('Failed to show message box:', error);
       throw error;
     }
   });
@@ -53,7 +55,7 @@ export function registerDialogIpcHandlers(): void {
       dialog.showErrorBox(title, content);
       return { success: true };
     } catch (error) {
-      console.error('Failed to show error box:', error);
+      log.error('Failed to show error box:', error);
       throw error;
     }
   });

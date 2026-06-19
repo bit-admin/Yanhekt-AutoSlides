@@ -1,5 +1,7 @@
 import { EventEmitter } from 'events';
 import { ConfigService } from './configService';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('IntranetMapping');
 
 export interface IntranetMapping {
   type: 'single' | 'loadbalance';
@@ -175,14 +177,14 @@ export class IntranetMappingService extends EventEmitter {
     const { ips = [], strategy = 'round_robin' } = mapping;
 
     if (ips.length === 0) {
-      console.warn(`No IPs available for load balancing domain: ${domain}`);
+      log.warn(`No IPs available for load balancing domain: ${domain}`);
       return null;
     }
 
     // Filter out failed IPs
     const availableIPs = ips.filter(ip => !this.isIPFailed(ip));
     if (availableIPs.length === 0) {
-      console.warn(`All IPs failed for domain: ${domain}, using original list`);
+      log.warn(`All IPs failed for domain: ${domain}, using original list`);
       // Reset failed IPs and use original list
       this.clearFailedIPs(domain);
       return this.selectIPByStrategy(ips, strategy, mapping);
@@ -210,7 +212,7 @@ export class IntranetMappingService extends EventEmitter {
         return ips[0];
 
       default:
-        console.warn(`Unknown load balancing strategy: ${strategy}, using round_robin`);
+        log.warn(`Unknown load balancing strategy: ${strategy}, using round_robin`);
         return this.selectIPByStrategy(ips, 'round_robin', mapping);
     }
   }
@@ -232,7 +234,7 @@ export class IntranetMappingService extends EventEmitter {
         return urlObj.toString();
       }
     } catch (error) {
-      console.error('Error rewriting URL:', error);
+      log.error('Error rewriting URL:', error);
     }
 
     return url;
@@ -246,7 +248,7 @@ export class IntranetMappingService extends EventEmitter {
       const urlObj = new URL(originalUrl);
       return urlObj.hostname;
     } catch (error) {
-      console.error('Error parsing original URL:', error);
+      log.error('Error parsing original URL:', error);
       return null;
     }
   }
@@ -261,7 +263,7 @@ export class IntranetMappingService extends EventEmitter {
       domain: domain,
       ip: ip
     });
-    console.warn(`Marked IP as failed: ${ip} for domain: ${domain}`);
+    log.warn(`Marked IP as failed: ${ip} for domain: ${domain}`);
   }
 
   /**
@@ -273,7 +275,7 @@ export class IntranetMappingService extends EventEmitter {
         // Auto-recover after 5 minutes
         if (Date.now() - failInfo.failedAt > 5 * 60 * 1000) {
           this.failedIPs.delete(key);
-          console.log(`Auto-recovered failed IP: ${ip}`);
+          log.debug(`Auto-recovered failed IP: ${ip}`);
           return false;
         }
         return true;
@@ -291,7 +293,7 @@ export class IntranetMappingService extends EventEmitter {
         this.failedIPs.delete(key);
       }
     }
-    console.log(`Cleared failed IPs for domain: ${domain}`);
+    log.debug(`Cleared failed IPs for domain: ${domain}`);
   }
 
   /**

@@ -11,6 +11,8 @@ import type {
   IntranetMapping,
   NetworkInterfaceInfo
 } from './settingsTypes'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('AdvancedSettings');
 
 export type {
   AdvancedTabId,
@@ -85,7 +87,7 @@ export function useAdvancedSettings(
       }).catch((err) => {
         // Isolate extractor load/verify failure so it does not reject the
         // whole Promise.all and abort the other settings loads.
-        console.error('Failed to load extractor settings:', err)
+        log.error('Failed to load extractor settings:', err)
       }),
       onOpenModal ? onOpenModal() : Promise.resolve()
     ])
@@ -116,7 +118,7 @@ export function useAdvancedSettings(
 
       showAdvancedModal.value = false
     } catch (error) {
-      console.error('Failed to save advanced settings:', error)
+      log.error('Failed to save advanced settings:', error)
       alert('Failed to save settings')
     }
   }

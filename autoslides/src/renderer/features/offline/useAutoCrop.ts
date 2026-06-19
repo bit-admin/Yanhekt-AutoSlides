@@ -8,6 +8,8 @@ import {
   type AutoCropBatchProgress,
   type AutoCropImageSource,
 } from '@shared/autoCrop';
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('AutoCrop');
 
 export interface AutoCropProgress extends AutoCropBatchProgress {
   phase: 'idle' | 'processing' | 'completed' | 'error' | 'cancelled';
@@ -57,7 +59,7 @@ export function useAutoCrop() {
     const config = configStore;
     const configuredOutputDir = config.outputDirectory || '';
     if (!configuredOutputDir) {
-      console.error('No output directory configured');
+      log.error('No output directory configured');
       progress.value.phase = 'error';
       return;
     }

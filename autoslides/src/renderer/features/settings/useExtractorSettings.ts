@@ -1,4 +1,6 @@
 import { ref } from 'vue'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ExtractorSettings');
 
 export function useExtractorSettings() {
   const qtExtractorAutoRun = ref(false)
@@ -40,7 +42,7 @@ export function useExtractorSettings() {
       tempQtExtractorAutoRun.value = qtExtractorAutoRun.value
       tempQtExtractorAutoPostProcess.value = qtExtractorAutoPostProcess.value
     } catch (error) {
-      console.error('Failed to load Qt extractor config:', error)
+      log.error('Failed to load Qt extractor config:', error)
     }
   }
 
@@ -56,7 +58,7 @@ export function useExtractorSettings() {
       const { ExtractionQueue } = await import('@shared/services/extractionQueueService')
       ExtractionQueue.applyExtractorStatus(status)
     } catch (error) {
-      console.error('Failed to verify extractor binary:', error)
+      log.error('Failed to verify extractor binary:', error)
       qtExtractorStatusOk.value = false
       qtExtractorStatusError.value = error instanceof Error ? error.message : String(error)
     } finally {
@@ -72,7 +74,7 @@ export function useExtractorSettings() {
       qtExtractorBinaryPath.value = picked
       await qtExtractorVerify()
     } catch (error) {
-      console.error('Failed to browse for extractor binary:', error)
+      log.error('Failed to browse for extractor binary:', error)
     }
   }
 

@@ -1,4 +1,6 @@
 import { powerSaveBlocker } from 'electron';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('PowerManagement');
 
 export class PowerManagementService {
   private blockerId: number | null = null;
@@ -12,7 +14,7 @@ export class PowerManagementService {
     try {
       // If already blocking, don't create another blocker
       if (this.isBlocking && this.blockerId !== null) {
-        console.log('System sleep is already being prevented');
+        log.debug('System sleep is already being prevented');
         return true;
       }
 
@@ -21,10 +23,10 @@ export class PowerManagementService {
       this.blockerId = powerSaveBlocker.start('prevent-display-sleep');
       this.isBlocking = true;
 
-      console.log(`Power save blocker started with ID: ${this.blockerId}`);
+      log.debug(`Power save blocker started with ID: ${this.blockerId}`);
       return true;
     } catch (error) {
-      console.error('Failed to prevent system sleep:', error);
+      log.error('Failed to prevent system sleep:', error);
       this.blockerId = null;
       this.isBlocking = false;
       return false;
@@ -40,17 +42,17 @@ export class PowerManagementService {
       if (this.blockerId !== null && this.isBlocking) {
         // Stop the power save blocker
         powerSaveBlocker.stop(this.blockerId);
-        console.log(`Power save blocker stopped with ID: ${this.blockerId}`);
+        log.debug(`Power save blocker stopped with ID: ${this.blockerId}`);
 
         this.blockerId = null;
         this.isBlocking = false;
         return true;
       } else {
-        console.log('No active power save blocker to stop');
+        log.debug('No active power save blocker to stop');
         return true;
       }
     } catch (error) {
-      console.error('Failed to allow system sleep:', error);
+      log.error('Failed to allow system sleep:', error);
       return false;
     }
   }
@@ -88,9 +90,9 @@ export class PowerManagementService {
     if (this.blockerId !== null && this.isBlocking) {
       try {
         powerSaveBlocker.stop(this.blockerId);
-        console.log('Power save blocker cleaned up on service destruction');
+        log.debug('Power save blocker cleaned up on service destruction');
       } catch (error) {
-        console.error('Error during power management service cleanup:', error);
+        log.error('Error during power management service cleanup:', error);
       }
       this.blockerId = null;
       this.isBlocking = false;

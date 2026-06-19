@@ -15,6 +15,8 @@ import type {
   SlideExtractionInput,
   SlideExtractionMode,
 } from './types';
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('Manager');
 
 export class SlideExtractionManager {
   private static instance: SlideExtractionManager | null = null;
@@ -41,7 +43,7 @@ export class SlideExtractionManager {
     if (!pipeline) {
       pipeline = new SlideExtractionPipeline(mode, instanceId);
       this.pipelines.set(key, pipeline);
-      console.log(`Created new SlideExtractionPipeline instance: ${key}`);
+      log.debug(`Created new SlideExtractionPipeline instance: ${key}`);
     }
     return pipeline;
   }
@@ -61,7 +63,7 @@ export class SlideExtractionManager {
     if (pipeline) {
       pipeline.destroy();
       this.pipelines.delete(instanceId);
-      console.log(`Removed SlideExtractionPipeline instance: ${instanceId}`);
+      log.debug(`Removed SlideExtractionPipeline instance: ${instanceId}`);
     }
   }
 

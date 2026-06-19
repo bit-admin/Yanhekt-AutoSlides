@@ -11,6 +11,8 @@ import { ConfigService } from '@main/platform/configService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { ApiClient } from '@main/platform/apiClient';
 import { encryptVideoUrl, getVideoSignature, addSignatureToUrl } from '@common/crypto';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('M3u8Download');
 
 export interface DownloadProgress {
   current: number;
@@ -46,7 +48,7 @@ function removeDownloadTempFiles(outputDir: string, name: string): void {
       fs.unlinkSync(`${filePath}.concat`);
     }
   } catch (error) {
-    console.error("Error deleting temporary files:", error);
+    log.error("Error deleting temporary files:", error);
   }
 }
 
@@ -220,8 +222,8 @@ class M3u8Downloader {
       // Start the signature update loop
       this.startUpdateSignatureLoop();
 
-      console.log(`Downloading: ${this.name}`);
-      console.log(`Save path: ${this.filePath}`);
+      log.debug(`Downloading: ${this.name}`);
+      log.debug(`Save path: ${this.filePath}`);
 
       // Create directory for TS files
       if (!fs.existsSync(this.workDir)) {
@@ -235,14 +237,14 @@ class M3u8Downloader {
         this.progressCallback({ current: this.successSum, total: this.tsSum, phase: 1 });
         await this.outputMp4();
         await this.deleteFiles();
-        console.log(`Download successfully --> ${this.name}`);
+        log.info(`Download successfully --> ${this.name}`);
         this.progressCallback({ current: this.successSum, total: this.tsSum, phase: 2 });
       } else if (this.shouldStop) {
-        console.log(`Download cancelled --> ${this.name}`);
+        log.debug(`Download cancelled --> ${this.name}`);
         throw new Error('Download cancelled by user');
       }
     } catch (error) {
-      console.error("Download failed:", error);
+      log.error("Download failed:", error);
       throw error;
     } finally {
       this.cleanup();
@@ -265,12 +267,12 @@ class M3u8Downloader {
 
     // Force kill FFmpeg process if it's running
     if (this.ffmpegProcess) {
-      console.log(`Force killing FFmpeg process for: ${this.name}`);
+      log.debug(`Force killing FFmpeg process for: ${this.name}`);
       try {
         this.ffmpegProcess.kill('SIGKILL');
         this.ffmpegProcess = null;
       } catch (error) {
-        console.error('Error killing FFmpeg process:', error);
+        log.error('Error killing FFmpeg process:', error);
       }
     }
   }
@@ -290,7 +292,7 @@ class M3u8Downloader {
         this.token = await this.apiClient.getVideoToken(this.loginToken);
         this.headers["Authorization"] = "Bearer " + this.loginToken;
       } catch (error) {
-        console.error("Error getting token:", error);
+        log.error("Error getting token:", error);
         throw new Error("获取 Token 失败");
       }
     }
@@ -353,7 +355,7 @@ class M3u8Downloader {
         httpOpts.localAddress = selected;
         httpsOpts.localAddress = selected;
       } else if (selected) {
-        console.warn(`[m3u8Download] Selected intranet interface IP ${selected} is not currently available; falling back to system default.`);
+        log.warn(`[m3u8Download] Selected intranet interface IP ${selected} is not currently available; falling back to system default.`);
       }
     }
 
@@ -473,7 +475,7 @@ class M3u8Downloader {
         await this.getTsUrls(responseText);
       }
     } catch (error) {
-      console.error("Error getting M3U8 info:", error);
+      log.error("Error getting M3U8 info:", error);
       if (numRetries > 0 && !this.shouldStop) {
         await this.getM3u8Info(m3u8Url, numRetries - 1);
       } else {
@@ -524,8 +526,8 @@ class M3u8Downloader {
 
     this.tsSum = tsCount;
 
-    console.log(`Generated m3u8 file: ${this.filePath}.m3u8`);
-    console.log(`Total ${tsCount} TS file segments`);
+    log.debug(`Generated m3u8 file: ${this.filePath}.m3u8`);
+    log.debug(`Total ${tsCount} TS file segments`);
 
     // Save m3u8 file
     fs.writeFileSync(`${this.filePath}.m3u8`, newM3u8Str);
@@ -551,16 +553,16 @@ class M3u8Downloader {
 
       try {
         if (this.shouldStop) {
-          console.log(`Download cancelled during TS file ${currentIndex}`);
+          log.debug(`Download cancelled during TS file ${currentIndex}`);
           return;
         }
         await this.downloadTs(tsUrl, outputPath, this.numRetries);
       } catch (error) {
         if (this.shouldStop) {
-          console.log(`Download cancelled, stopping TS file ${currentIndex}`);
+          log.debug(`Download cancelled, stopping TS file ${currentIndex}`);
           return;
         }
-        console.error(`Failed to download TS file ${currentIndex}:`, error);
+        log.error(`Failed to download TS file ${currentIndex}:`, error);
       }
 
       await downloadNext();
@@ -681,7 +683,7 @@ class M3u8Downloader {
 
       return `${keyLine.split(midPart)[0]}URI="./${this.name}/key"${keyLine.split(midPart)[1] || ''}`;
     } catch (error) {
-      console.error("Error downloading key:", error);
+      log.error("Error downloading key:", error);
 
       const keyPath = path.join(this.workDir, 'key');
       if (fs.existsSync(keyPath)) {
@@ -698,7 +700,7 @@ class M3u8Downloader {
 
   private async outputMp4(): Promise<void> {
     return new Promise((resolve, reject) => {
-      console.log("Starting MP4 conversion...");
+      log.debug("Starting MP4 conversion...");
 
       const ffmpegPath = this.ffmpegService.getFfmpegPath();
       if (!ffmpegPath) {
@@ -709,8 +711,8 @@ class M3u8Downloader {
       const mp4FilePath = path.resolve(`${this.filePath}.mp4`);
       const concatFilePath = path.resolve(`${this.filePath}.concat`);
 
-      console.log("Concat file path:", concatFilePath);
-      console.log("Output MP4 path:", mp4FilePath);
+      log.debug("Concat file path:", concatFilePath);
+      log.debug("Output MP4 path:", mp4FilePath);
 
       // Use spawn to execute ffmpeg
       this.ffmpegProcess = spawn(ffmpegPath, [
@@ -726,10 +728,6 @@ class M3u8Downloader {
 
       let progressPercent = 0;
       let stderrOutput = '';
-
-      this.ffmpegProcess.stdout?.on('data', (data: Buffer) => {
-        console.log(`FFmpeg stdout: ${data}`);
-      });
 
       this.ffmpegProcess.stderr?.on('data', (data: Buffer) => {
         const output = data.toString();
@@ -761,18 +759,18 @@ class M3u8Downloader {
         }
 
         if (code === 0) {
-          console.log("MP4 conversion completed successfully");
+          log.info("MP4 conversion completed successfully");
           this.progressCallback({ current: 100, total: 100, phase: 1 });
           resolve();
         } else {
-          console.error(`FFmpeg process exited with code ${code}, signal ${signal}`);
+          log.error(`FFmpeg process exited with code ${code}, signal ${signal}`);
           if (stderrOutput) {
-            console.error('FFmpeg stderr:', stderrOutput.slice(-2000)); // Last 2000 chars
+            log.error('FFmpeg stderr:', stderrOutput.slice(-2000)); // Last 2000 chars
           }
 
           // Check if output file exists despite error
           if (fs.existsSync(mp4FilePath)) {
-            console.log("MP4 file generated despite FFmpeg error");
+            log.debug("MP4 file generated despite FFmpeg error");
             this.progressCallback({ current: 100, total: 100, phase: 1 });
             resolve();
           } else {
@@ -784,7 +782,7 @@ class M3u8Downloader {
 
       this.ffmpegProcess.on('error', (error: Error) => {
         this.ffmpegProcess = null; // Clear the process reference
-        console.error(`FFmpeg error: ${error.message}`);
+        log.error(`FFmpeg error: ${error.message}`);
         if (!this.shouldStop) {
           this.fallbackOutputMp4(resolve, reject);
         } else {
@@ -795,7 +793,7 @@ class M3u8Downloader {
   }
 
   private fallbackOutputMp4(resolve: () => void, reject: (error: Error) => void): void {
-    console.log("Using fallback conversion method...");
+    log.debug("Using fallback conversion method...");
 
     const ffmpegPath = this.ffmpegService.getFfmpegPath();
     if (!ffmpegPath) {
@@ -846,13 +844,13 @@ class M3u8Downloader {
       }
 
       if (code === 0 || fs.existsSync(mp4FilePath)) {
-        console.log("Fallback MP4 conversion completed");
+        log.debug("Fallback MP4 conversion completed");
         this.progressCallback({ current: 100, total: 100, phase: 1 });
         resolve();
       } else {
-        console.error(`Fallback FFmpeg exited with code ${code}, signal ${signal}`);
+        log.error(`Fallback FFmpeg exited with code ${code}, signal ${signal}`);
         if (stderrOutput) {
-          console.error('Fallback FFmpeg stderr:', stderrOutput.slice(-2000));
+          log.error('Fallback FFmpeg stderr:', stderrOutput.slice(-2000));
         }
         reject(new Error(`FFmpeg conversion failed with code ${code}, signal ${signal}`));
       }

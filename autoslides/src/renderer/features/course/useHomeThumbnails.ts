@@ -3,6 +3,8 @@ import { ApiClient } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
 import { configStore } from '@shared/services/configStore'
 import type { Course } from './useCourseList'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('HomeThumbnails');
 
 // Lazy screen-recording previews for the Home page rows. Keyed by course id and
 // shared across the module so a card only generates its preview once per session
@@ -61,7 +63,7 @@ async function loadThumbnail(mode: 'live' | 'recorded', course: Course): Promise
       thumbnails[id] = dataUrl
     }
   } catch (error) {
-    console.warn('Failed to load home thumbnail:', error)
+    log.warn('Failed to load home thumbnail:', error)
   } finally {
     inFlight.delete(id)
   }

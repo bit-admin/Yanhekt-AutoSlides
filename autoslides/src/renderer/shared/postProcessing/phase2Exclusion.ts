@@ -10,6 +10,8 @@ import type {
   SlideHashInfo
 } from './types'
 import type { WorkerHelpers } from './workerHelpers'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('Phase2Exclusion');
 
 export interface ExclusionPhaseResult {
   excludedRemoved: string[]
@@ -42,11 +44,11 @@ export async function runExclusionPhase(
         const distance = await worker.calculateHammingDistance(item.pHash, exclusionItem.pHash)
         if (distance <= pHashThreshold) {
           excludedReason = `Similar to "${exclusionItem.name}" (distance: ${distance})`
-          console.log(`[PostProcessing] Excluded: ${item.filename} - ${excludedReason}`)
+          log.debug(`[PostProcessing] Excluded: ${item.filename} - ${excludedReason}`)
           break
         }
       } catch (error) {
-        console.warn(
+        log.warn(
           `[PostProcessing] Exclusion check failed for ${item.filename} vs "${exclusionItem.name}":`,
           error
         )

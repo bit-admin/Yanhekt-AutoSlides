@@ -4,6 +4,8 @@ import type { ConfigService } from '@main/platform/configService';
 import { demoWebPreferences } from '@main/demo/demoEnv';
 import enTranslations from '../../renderer/shared/i18n/locales/en.json';
 import zhTranslations from '../../renderer/shared/i18n/locales/zh.json';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('WindowManager');
 
 export interface YuketangClassCapture {
   presentationId: string;
@@ -198,9 +200,9 @@ export class WindowManager {
     });
 
     this.addonsWindow.webContents.on('did-attach-webview', (_event, webContents) => {
-      console.log('[Addons] Webview attached, setting up window open handler');
+      log.debug('[Addons] Webview attached, setting up window open handler');
       webContents.setWindowOpenHandler(({ url }) => {
-        console.log('[Addons] Intercepted window.open:', url);
+        log.debug('[Addons] Intercepted window.open:', url);
         webContents.loadURL(url);
         return { action: 'deny' };
       });

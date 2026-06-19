@@ -11,9 +11,11 @@
 
 import cvRaw from '@techstark/opencv-js'
 import * as ort from 'onnxruntime-web'
+import { createLogger } from '@shared/utils/logger';
+const logger = createLogger('SlideClassifierWorker');
 
 const log = (msg: string) => {
-  console.log('[slideClassifier worker]', msg)
+  logger.debug(msg)
   ;(self as unknown as Worker).postMessage({ type: 'log', message: msg })
 }
 

@@ -31,6 +31,8 @@ import type {
   QtExtractorConfig,
   SlideExtractionConfig
 } from './config/types';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('Config');
 
 export type {
   AIClassifierMode,
@@ -791,7 +793,7 @@ export class ConfigService {
         fs.mkdirSync(outputDir, { recursive: true });
       }
     } catch (error) {
-      console.error('Failed to create output directory:', error);
+      log.error('Failed to create output directory:', error);
     }
   }
 

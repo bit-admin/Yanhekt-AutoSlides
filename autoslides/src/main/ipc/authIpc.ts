@@ -1,5 +1,7 @@
 import { ipcMain, session } from 'electron';
 import type { IpcServices } from './types';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('AuthIpc');
 
 export function registerAuthIpcHandlers(services: IpcServices): void {
   const { authService, apiClient } = services;
@@ -29,7 +31,7 @@ export function registerAuthIpcHandlers(services: IpcServices): void {
       });
       return { success: true };
     } catch (error) {
-      console.error('Failed to clear browser data:', error);
+      log.error('Failed to clear browser data:', error);
       return { success: false, error: String(error) };
     }
   });

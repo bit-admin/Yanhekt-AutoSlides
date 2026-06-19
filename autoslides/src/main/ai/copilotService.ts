@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('Copilot');
 
 const GITHUB_CLIENT_ID = 'Iv1.b507a08c87ecfe98';
 
@@ -112,7 +114,7 @@ export class CopilotService {
           throw error;
         }
         // Network errors — continue polling
-        console.error('[Copilot] Poll error:', error);
+        log.error('[Copilot] Poll error:', error);
       }
     }
 
@@ -147,7 +149,7 @@ export class CopilotService {
     );
 
     this.cachedToken = response.data;
-    console.log('[Copilot] Token exchanged, expires_at:', response.data.expires_at);
+    log.debug('[Copilot] Token exchanged, expires_at:', response.data.expires_at);
     return response.data;
   }
 

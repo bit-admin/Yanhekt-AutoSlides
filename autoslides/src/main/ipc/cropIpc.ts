@@ -1,6 +1,8 @@
 import { ipcMain } from 'electron';
 import type { CropRect } from '@main/extraction/slideExtractionService';
 import type { IpcServices } from './types';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('CropIpc');
 
 export function registerCropIpcHandlers(services: IpcServices): void {
   const { configService, slideExtractionService } = services;
@@ -10,7 +12,7 @@ export function registerCropIpcHandlers(services: IpcServices): void {
       const outputDir = configService.getConfig().outputDirectory;
       return await slideExtractionService.getCropEntries(outputDir);
     } catch (error) {
-      console.error('Failed to get crop entries:', error);
+      log.error('Failed to get crop entries:', error);
       throw error;
     }
   });
@@ -19,7 +21,7 @@ export function registerCropIpcHandlers(services: IpcServices): void {
     try {
       return await slideExtractionService.getCropImageAsBase64(cropPath);
     } catch (error) {
-      console.error('Failed to get crop image:', error);
+      log.error('Failed to get crop image:', error);
       throw error;
     }
   });
@@ -30,7 +32,7 @@ export function registerCropIpcHandlers(services: IpcServices): void {
       await slideExtractionService.applyCrop(imagePath, outputDir, rect, autoCropped);
       return { success: true };
     } catch (error) {
-      console.error('Failed to apply crop:', error);
+      log.error('Failed to apply crop:', error);
       throw error;
     }
   });
@@ -41,7 +43,7 @@ export function registerCropIpcHandlers(services: IpcServices): void {
       await slideExtractionService.restoreCrop(imagePath, outputDir);
       return { success: true };
     } catch (error) {
-      console.error('Failed to restore crop:', error);
+      log.error('Failed to restore crop:', error);
       throw error;
     }
   });

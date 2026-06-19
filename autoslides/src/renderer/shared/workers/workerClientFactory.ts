@@ -1,3 +1,5 @@
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('WorkerClientFactory');
 /**
  * Generic Web Worker request/response client. Replaces the duplicated
  * lazy-init/pending-map/ID-counter scaffolding shared by mlClassifierClient
@@ -80,7 +82,7 @@ export function createWorkerClient<TResponse extends WorkerResponseBase = Worker
       resolver(data);
     });
     worker.addEventListener('error', (event) => {
-      console.error(`[${workerName} worker error]`, event);
+      log.error(`[${workerName} worker error]`, event);
     });
     return worker;
   };

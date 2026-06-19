@@ -1,6 +1,8 @@
 import axios, { AxiosResponse } from 'axios';
 import { app } from 'electron';
 import { getClientSignature } from '@common/crypto';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('PlatformApiClient');
 
 export interface UserData {
   badge: string;
@@ -211,7 +213,7 @@ export class ApiClient {
         return { valid: false, userData: null };
       }
     } catch (error: unknown) {
-      console.error('Token verification error:', error);
+      log.error('Token verification error:', error);
 
       const errorObj = error as { code?: string; message?: string };
       if (errorObj.code === 'ENOTFOUND' || errorObj.code === 'ECONNREFUSED' ||
@@ -274,7 +276,7 @@ export class ApiClient {
 
       return data.data;
     } catch (error: unknown) {
-      console.error('Failed to get live list:', error);
+      log.error('Failed to get live list:', error);
       throw error;
     }
   }
@@ -307,7 +309,7 @@ export class ApiClient {
 
       return data.data;
     } catch (error: unknown) {
-      console.error('Failed to search live list:', error);
+      log.error('Failed to search live list:', error);
       throw error;
     }
   }
@@ -361,7 +363,7 @@ export class ApiClient {
 
       return data.data;
     } catch (error: unknown) {
-      console.error('Failed to get course list:', error);
+      log.error('Failed to get course list:', error);
       throw error;
     }
   }
@@ -403,7 +405,7 @@ export class ApiClient {
 
       return data.data;
     } catch (error: unknown) {
-      console.error('Failed to get personal course list:', error);
+      log.error('Failed to get personal course list:', error);
       throw error;
     }
   }
@@ -481,7 +483,7 @@ export class ApiClient {
         videos: formattedVideos
       };
     } catch (error: unknown) {
-      console.error('Failed to get course info:', error);
+      log.error('Failed to get course info:', error);
       throw error;
     }
   }
@@ -549,10 +551,10 @@ export class ApiClient {
 
       return semesters;
     } catch (error: unknown) {
-      console.error('Failed to get available semesters:', error);
+      log.error('Failed to get available semesters:', error);
 
       // Fallback to hardcoded list if API fails
-      console.warn('Falling back to hardcoded semester list');
+      log.warn('Falling back to hardcoded semester list');
       return this.getFallbackSemesters();
     }
   }
@@ -623,7 +625,7 @@ export class ApiClient {
 
       return response.data;
     } catch (error: unknown) {
-      console.error('Failed to get tag list:', error);
+      log.error('Failed to get tag list:', error);
       throw error;
     }
   }
@@ -651,7 +653,7 @@ export class ApiClient {
 
       return data.data.token;
     } catch (error: unknown) {
-      console.error('Failed to get video token:', error);
+      log.error('Failed to get video token:', error);
       throw error;
     }
   }

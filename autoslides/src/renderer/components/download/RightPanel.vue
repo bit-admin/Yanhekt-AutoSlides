@@ -25,6 +25,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('RightPanel');
 import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { configStore } from '@shared/services/configStore'
 import { rightPanelStore } from '@shared/services/rightPanelStore'
@@ -124,7 +126,7 @@ onMounted(() => {
   try {
     autoPostProcessing.value = configStore.autoPostProcessing !== undefined ? configStore.autoPostProcessing : true
   } catch (error) {
-    console.error('Failed to load autoPostProcessing config:', error)
+    log.error('Failed to load autoPostProcessing config:', error)
   }
 })
 

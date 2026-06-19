@@ -1,4 +1,6 @@
 import { ipcMain, app } from 'electron';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('AppIpc');
 
 export function registerAppIpcHandlers(): void {
   ipcMain.handle('app:restart', async () => {
@@ -6,7 +8,7 @@ export function registerAppIpcHandlers(): void {
       app.relaunch();
       app.exit(0);
     } catch (error) {
-      console.error('Failed to restart app:', error);
+      log.error('Failed to restart app:', error);
       throw error;
     }
   });

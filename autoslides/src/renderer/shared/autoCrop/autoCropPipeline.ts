@@ -1,5 +1,7 @@
 import type { DetectConfig, DetectorMode, DetectResult } from '../workers/autoCrop.worker';
 import type { AutoCropWorkerClient } from './autoCropWorkerClient';
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('AutoCropPipeline');
 
 export interface AutoCropImageSource {
   readImageBuffer(imagePath: string): Promise<Uint8Array>;
@@ -77,7 +79,7 @@ export async function processBatch(
       const response = await client.detectBbox(imageData, useDebug, options.detectConfig);
 
       if (!response.success || !response.result) {
-        console.warn(`Auto-crop failed for ${basename(imagePath)}:`, response.error);
+        log.warn(`Auto-crop failed for ${basename(imagePath)}:`, response.error);
         progress.failed++;
         bitmap.close();
         callbacks.onProgress?.(progress);
@@ -146,7 +148,7 @@ export async function processBatch(
       progress.processed++;
       callbacks.onProgress?.(progress);
     } catch (err) {
-      console.error(`Failed to auto-crop ${imagePath}:`, err);
+      log.error(`Failed to auto-crop ${imagePath}:`, err);
       progress.failed++;
       callbacks.onProgress?.(progress);
     }

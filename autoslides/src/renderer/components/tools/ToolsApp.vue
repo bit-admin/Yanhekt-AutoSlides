@@ -5,6 +5,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ToolsApp');
 import { onMounted } from 'vue'
 import { configStore } from '@shared/services/configStore'
 import ToolsWindow from './ToolsWindow.vue'
@@ -20,7 +22,7 @@ onMounted(async () => {
       setI18nLanguage(config.languageMode as 'en' | 'zh' | 'ja' | 'ko')
     }
   } catch (error) {
-    console.error('Failed to load language config:', error)
+    log.error('Failed to load language config:', error)
   }
 })
 </script>

@@ -3,6 +3,8 @@ import { AuthService, TokenManager, tokenManager } from '@shared/services/authSe
 import { ApiClient } from '@shared/services/apiClient'
 import { toDisplayName } from './usePinyinName'
 import { configStore } from '@shared/services/configStore'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('PlatformAuth');
 
 // Shared state (singleton pattern for cross-component access)
 const isBrowserLoginActive = ref(false)
@@ -88,18 +90,18 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
           userId.value = verificationResult.userData.badge || 'unknown'
           persistUserNames(userNickname.value)
           tokenManager.syncToConfig()
-          console.log('Login successful')
+          log.debug('Login successful')
           onLoginSuccess?.()
         } else {
-          console.error('Token verification failed after login')
+          log.error('Token verification failed after login')
           alert('Login failed: Token verification failed')
         }
       } else {
-        console.error('Login failed:', result.error)
+        log.error('Login failed:', result.error)
         alert(`Login failed: ${result.error}`)
       }
     } catch (error) {
-      console.error('Login error:', error)
+      log.error('Login error:', error)
       alert('Login failed: Network error or server exception')
     } finally {
       isLoading.value = false
@@ -136,17 +138,17 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         userId.value = result.userData.badge || 'unknown'
         persistUserNames(userNickname.value)
         tokenManager.syncToConfig()
-        console.log('Existing token verified successfully')
+        log.debug('Existing token verified successfully')
       } else {
         if (!result.networkError) {
           tokenManager.clearToken()
-          console.log('Existing token is invalid, cleared')
+          log.debug('Existing token is invalid, cleared')
         } else {
-          console.log('Network error during token verification, keeping token')
+          log.debug('Network error during token verification, keeping token')
         }
       }
     } catch (error) {
-      console.error('Token verification error:', error)
+      log.error('Token verification error:', error)
       tokenManager.clearToken()
     } finally {
       isVerifyingToken.value = false
@@ -193,7 +195,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
 
         tokenManager.saveToken(manualToken.value.trim())
 
-        console.log('Manual token verification successful')
+        log.debug('Manual token verification successful')
       } else {
         tokenVerificationStatus.value = {
           type: 'error',
@@ -206,7 +208,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         }
       }
     } catch (error) {
-      console.error('Token verification error:', error)
+      log.error('Token verification error:', error)
       tokenVerificationStatus.value = {
         type: 'error',
         message: 'Verification failed: Network error or server exception'
@@ -246,16 +248,16 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         userId.value = result.userData.badge || 'unknown'
         persistUserNames(userNickname.value)
         tokenManager.syncToConfig()
-        console.log('Browser login successful')
+        log.debug('Browser login successful')
         onLoginSuccess?.()
         // Close browser login view after successful login
         closeBrowserLogin()
       } else {
-        console.error('Browser token verification failed')
+        log.error('Browser token verification failed')
         alert('Token verification failed. Please try again.')
       }
     } catch (error) {
-      console.error('Browser token verification error:', error)
+      log.error('Browser token verification error:', error)
       alert('Token verification failed: Network error or server exception')
     } finally {
       isVerifyingToken.value = false

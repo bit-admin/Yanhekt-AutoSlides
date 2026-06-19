@@ -5,6 +5,8 @@ import type { SlideExtractionHandle } from '@shared/processing'
 import type { PlaybackData } from '@features/video/useVideoPlayer'
 import type Hls from 'hls.js'
 import { configStore } from '@shared/services/configStore'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('DownloadTaskQueue');
 
 export interface UseTaskQueueOptions {
   mode: 'live' | 'recorded'
@@ -153,7 +155,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
         consecutiveReadyChecks++
 
         if (consecutiveReadyChecks >= requiredConsecutiveChecks) {
-          console.log(`Video is fully ready for task processing (${consecutiveReadyChecks} consecutive checks)`)
+          log.debug(`Video is fully ready for task processing (${consecutiveReadyChecks} consecutive checks)`)
           resolve()
         } else {
           setTimeout(checkVideoReady, 200)
@@ -170,7 +172,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     const retryDelay = 2000
 
     try {
-      console.log(`Initializing task after video load (attempt ${retryCount + 1}/${maxRetries + 1}):`, taskId)
+      log.debug(`Initializing task after video load (attempt ${retryCount + 1}/${maxRetries + 1}):`, taskId)
 
       // Classroom-adaptive SSIM threshold is now resolved per-extraction inside
       // the pipeline from the run's own classrooms (carried via course.classrooms
@@ -187,7 +189,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
       }
 
       if (selectedStream.value !== screenStreamKey) {
-        console.log('Switching to screen recording for task:', taskId)
+        log.debug('Switching to screen recording for task:', taskId)
         selectedStream.value = screenStreamKey
         await switchStream()
         await new Promise(resolve => setTimeout(resolve, 1000))
@@ -197,12 +199,12 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
       if (videoPlayer.value && mode === 'recorded') {
         currentPlaybackRate.value = taskSpeed.value
         videoPlayer.value.playbackRate = taskSpeed.value
-        console.log('Set task playback rate to:', taskSpeed.value)
+        log.debug('Set task playback rate to:', taskSpeed.value)
       }
 
       // Initialize slide extraction if not already enabled
       if (!isSlideExtractionEnabled.value) {
-        console.log('Auto-starting slide extraction for task:', taskId)
+        log.debug('Auto-starting slide extraction for task:', taskId)
         isSlideExtractionEnabled.value = true
         await toggleSlideExtraction()
 
@@ -222,7 +224,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
       if (videoPlayer.value && videoPlayer.value.paused) {
         try {
           await videoPlayer.value.play()
-          console.log('Video playback started for task:', taskId)
+          log.debug('Video playback started for task:', taskId)
         } catch (playError) {
           throw new Error('Failed to start video playback: ' + playError)
         }
@@ -231,9 +233,9 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
       // Reset progress tracking for new task
       lastReportedProgress = -1
 
-      console.log('Task initialized successfully after video load:', taskId)
+      log.debug('Task initialized successfully after video load:', taskId)
     } catch (initError) {
-      console.error(`Task initialization failed after video load (attempt ${retryCount + 1}):`, taskId, initError)
+      log.error(`Task initialization failed after video load (attempt ${retryCount + 1}):`, taskId, initError)
 
       if (retryCount < maxRetries) {
         const errorMessage = initError instanceof Error ? initError.message : String(initError)
@@ -243,7 +245,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
                                   errorMessage.includes('No screen recording stream available')
 
         if (isRecoverableError) {
-          console.log(`Retrying task initialization in ${retryDelay}ms (attempt ${retryCount + 2}/${maxRetries + 1})`)
+          log.debug(`Retrying task initialization in ${retryDelay}ms (attempt ${retryCount + 2}/${maxRetries + 1})`)
           await new Promise(resolve => setTimeout(resolve, retryDelay))
           return initializeTaskAfterVideoLoad(taskId, retryCount + 1)
         }
@@ -260,16 +262,16 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     const retryDelay = 3000
 
     try {
-      console.log(`Starting task initialization (attempt ${retryCount + 1}/${maxRetries + 1}):`, taskId)
+      log.debug(`Starting task initialization (attempt ${retryCount + 1}/${maxRetries + 1}):`, taskId)
 
       if (!playbackData.value || loading.value) {
-        console.log('Video data not ready, waiting for video to load...')
+        log.debug('Video data not ready, waiting for video to load...')
         await waitForVideoReady()
       }
 
       await initializeTaskAfterVideoLoad(taskId)
     } catch (initError) {
-      console.error(`Task initialization failed (attempt ${retryCount + 1}):`, taskId, initError)
+      log.error(`Task initialization failed (attempt ${retryCount + 1}):`, taskId, initError)
       const errorMessage = initError instanceof Error ? initError.message : String(initError)
 
       if (retryCount < maxRetries) {
@@ -278,7 +280,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
                                   errorMessage.includes('Failed to start video playback')
 
         if (isRecoverableError) {
-          console.log(`Retrying task initialization in ${retryDelay}ms (attempt ${retryCount + 2}/${maxRetries + 1})`)
+          log.debug(`Retrying task initialization in ${retryDelay}ms (attempt ${retryCount + 2}/${maxRetries + 1})`)
           await new Promise(resolve => setTimeout(resolve, retryDelay))
           return initializeTask(taskId, retryCount + 1)
         }
@@ -291,7 +293,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
   // Initialize task resume with current video state
   const initializeTaskResume = async (taskId: string) => {
     try {
-      console.log('Resuming task:', taskId)
+      log.debug('Resuming task:', taskId)
 
       // Classroom-adaptive threshold is resolved per-extraction in the pipeline
       // (see initializeTaskAfterVideoLoad); no global threshold mutation here.
@@ -335,14 +337,14 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
 
       if (videoPlayer.value && videoPlayer.value.paused) {
         await videoPlayer.value.play()
-        console.log('Video playback resumed for task:', taskId)
+        log.debug('Video playback resumed for task:', taskId)
       }
 
       lastReportedProgress = -1
 
-      console.log('Task resumed successfully:', taskId)
+      log.debug('Task resumed successfully:', taskId)
     } catch (resumeError) {
-      console.error('Failed to resume task:', taskId, resumeError)
+      log.error('Failed to resume task:', taskId, resumeError)
       const errorMessage = resumeError instanceof Error ? resumeError.message : String(resumeError)
       TaskQueue.updateTaskStatus(taskId, 'error', 'Task resume failed: ' + errorMessage)
       currentTaskId.value = null
@@ -376,14 +378,14 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     const currentTime = video.currentTime
 
     if (duration > 0 && (currentTime >= duration - 5 || currentTime / duration >= 0.99)) {
-      console.log('Video completion detected via timeupdate for task:', currentTaskId.value)
+      log.debug('Video completion detected via timeupdate for task:', currentTaskId.value)
       completeCurrentTask()
     }
   }
 
   const onVideoEnded = () => {
     if (isTaskMode.value && currentTaskId.value) {
-      console.log('Video completion detected via ended event for task:', currentTaskId.value)
+      log.debug('Video completion detected via ended event for task:', currentTaskId.value)
       completeCurrentTask()
     }
   }
@@ -394,19 +396,19 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
     const taskId = currentTaskId.value
 
     if (taskCompletionInProgress.value === taskId) {
-      console.log('Task completion already in progress for:', taskId)
+      log.debug('Task completion already in progress for:', taskId)
       return
     }
 
     taskCompletionInProgress.value = taskId
-    console.log('Completing task:', taskId)
+    log.debug('Completing task:', taskId)
 
     // Get slide extraction info for post-processing (non-blocking)
     // Check config directly to ensure we respect the latest setting value
     const config = configStore
     const autoPostProcessingEnabled = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
     if (autoPostProcessingEnabled && isSlideExtractionEnabled.value && extractedSlides.value.length > 0) {
-      console.log('Auto post-processing enabled, queuing post-processing for task:', taskId)
+      log.debug('Auto post-processing enabled, queuing post-processing for task:', taskId)
       try {
         // Get output path from slide extractor
         const outputPath = slideExtractorInstance.value?.getOutputPath()
@@ -417,12 +419,12 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
           // Start post-processing asynchronously (non-blocking)
           // This will run in parallel with the next task
           TaskQueue.startPostProcessing(taskId, outputPath, imageFiles)
-          console.log('Post-processing job queued for task:', taskId)
+          log.debug('Post-processing job queued for task:', taskId)
         } else {
-          console.warn('No output path available for post-processing')
+          log.warn('No output path available for post-processing')
         }
       } catch (ppError) {
-        console.error('Failed to queue post-processing for task:', taskId, ppError)
+        log.error('Failed to queue post-processing for task:', taskId, ppError)
       }
     }
 
@@ -435,7 +437,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
 
   const handleTaskError = (errorMessage: string) => {
     if (isTaskMode.value && currentTaskId.value) {
-      console.log('Task error occurred:', currentTaskId.value, errorMessage)
+      log.debug('Task error occurred:', currentTaskId.value, errorMessage)
       TaskQueue.updateTaskStatus(currentTaskId.value, 'error', errorMessage)
       cleanupTaskState()
     }
@@ -460,7 +462,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
 
     resetErrorCounters()
 
-    console.log('Task state cleaned up')
+    log.debug('Task state cleaned up')
   }
 
   // Task driver methods — the coordinator routes a task here by mode + sessionId,
@@ -474,7 +476,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
       return
     }
 
-    console.log('Task start received for:', task.taskId)
+    log.debug('Task start received for:', task.taskId)
 
     currentTaskId.value = task.taskId
     isTaskMode.value = true
@@ -485,17 +487,17 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
   }
 
   const pause = (task: TaskContext): void => {
-    console.log('Task pause received for:', task.taskId)
+    log.debug('Task pause received for:', task.taskId)
 
     if (videoPlayer.value && !videoPlayer.value.paused) {
-      console.log('Pausing video playback for task:', task.taskId)
+      log.debug('Pausing video playback for task:', task.taskId)
       videoPlayer.value.pause()
     }
 
     isTaskMode.value = false
 
     if (isSlideExtractionEnabled.value) {
-      console.log('Stopping slide extraction for task:', task.taskId)
+      log.debug('Stopping slide extraction for task:', task.taskId)
       isSlideExtractionEnabled.value = false
       toggleSlideExtraction()
     }
@@ -523,7 +525,7 @@ export function useTaskQueue(options: UseTaskQueueOptions): UseTaskQueueReturn {
       const config = configStore
       taskSpeed.value = config.taskSpeed || 10
     } catch (configError) {
-      console.error('Failed to load task queue config:', configError)
+      log.error('Failed to load task queue config:', configError)
     }
   }
 

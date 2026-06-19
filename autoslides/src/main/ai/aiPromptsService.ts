@@ -1,6 +1,8 @@
 import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('AiPrompts');
 
 export type AIPromptType = 'live' | 'recorded';
 export type AIPromptVariant = 'simple' | 'distinguish';
@@ -242,7 +244,7 @@ export class AIPromptsService {
 
         // Legacy format (no version field). Prompts stored flat as {live, recorded}.
         if (parsed.version === undefined) {
-          console.log('Migrating AI prompts from legacy format...');
+          log.debug('Migrating AI prompts from legacy format...');
           const legacy = parsed as Partial<AIPrompts>;
           const migrated: AIPromptsFile = {
             version: CURRENT_VERSION,
@@ -266,7 +268,7 @@ export class AIPromptsService {
         // v1 → v2 migration: flat prompts become the `simple` variant,
         // `distinguish` starts from fresh defaults.
         if (parsed.version === 1) {
-          console.log('Upgrading AI prompts from version 1 to 2...');
+          log.debug('Upgrading AI prompts from version 1 to 2...');
           const v1 = parsed as {
             version: number;
             customized: { live: boolean; recorded: boolean };
@@ -297,14 +299,14 @@ export class AIPromptsService {
         const fileData = parsed as AIPromptsFile;
         const refreshed = this.hydrateV2(fileData);
         if (fileData.version < CURRENT_VERSION) {
-          console.log(`Upgrading AI prompts from version ${fileData.version} to ${CURRENT_VERSION}...`);
+          log.debug(`Upgrading AI prompts from version ${fileData.version} to ${CURRENT_VERSION}...`);
         }
         refreshed.version = CURRENT_VERSION;
         this.saveFileData(refreshed);
         return refreshed;
       }
     } catch (error) {
-      console.error('Failed to load AI prompts:', error);
+      log.error('Failed to load AI prompts:', error);
     }
 
     const defaults = createDefaultFileData();
@@ -358,7 +360,7 @@ export class AIPromptsService {
       }
       fs.writeFileSync(this.promptsFilePath, JSON.stringify(data, null, 2), 'utf-8');
     } catch (error) {
-      console.error('Failed to save AI prompts:', error);
+      log.error('Failed to save AI prompts:', error);
     }
   }
 

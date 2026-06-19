@@ -20,6 +20,8 @@ import type {
   PostProcessingProgress,
   TrashReason
 } from '@shared/postProcessing/types'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('DownloadPostProcessing');
 
 // Playback-page manual post-processing. Adapter over the unified pipeline at
 // renderer/postProcessing — owns the in-memory `extractedSlides` array mirror,
@@ -260,7 +262,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       if (!showResultDialog && mode === 'live') {
         const liveAutoEnabled = await window.electronAPI.config.getAutoPostProcessingLive()
         if (!liveAutoEnabled) {
-          console.log('Auto post-processing for live is disabled, skipping')
+          log.debug('Auto post-processing for live is disabled, skipping')
           return
         }
       }
@@ -269,10 +271,10 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       // call while running queues a pendingAIPhase re-run.
       if (isPostProcessing.value) {
         if (showResultDialog) {
-          console.log('Post-processing already in progress, ignoring manual trigger')
+          log.debug('Post-processing already in progress, ignoring manual trigger')
           return
         }
-        console.log('Post-processing already in progress, queuing AI phase')
+        log.debug('Post-processing already in progress, queuing AI phase')
         pendingAIPhase.value = true
         return
       }
@@ -282,7 +284,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       postProcessStatus.value = freshStatus(extractedSlides.value.length)
       postProcessStatus.value.isProcessing = true
 
-      console.log(`Starting post-processing for ${extractedSlides.value.length} slides...`)
+      log.debug(`Starting post-processing for ${extractedSlides.value.length} slides...`)
 
       // First pass: full 3-phase pipeline.
       await runOnePass(false)
@@ -291,7 +293,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       // mid-flight. Each re-run picks up slides extracted since the last pass.
       while (pendingAIPhase.value) {
         pendingAIPhase.value = false
-        console.log('Processing pending AI phase request...')
+        log.debug('Processing pending AI phase request...')
         await runOnePass(true)
       }
 
@@ -304,7 +306,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
         excluded: postProcessStatus.value.excludedRemoved,
         aiFiltered: postProcessStatus.value.aiFiltered
       }
-      console.log('Post-processing completed:', stats)
+      log.info('Post-processing completed:', stats)
 
       if (showResultDialog) {
         await window.electronAPI.dialog?.showMessageBox?.({
@@ -315,7 +317,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
         })
       }
     } catch (error) {
-      console.error('Failed to execute post-processing:', error)
+      log.error('Failed to execute post-processing:', error)
       postProcessStatus.value.isProcessing = false
       postProcessStatus.value.currentPhase = 'idle'
       const errorMessage = error instanceof Error ? error.message : String(error)
@@ -349,7 +351,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
         aiImageResizeHeight.value = aiConfig.imageResizeHeight || 432
       }
     } catch (error) {
-      console.error('Failed to load post-processing config:', error)
+      log.error('Failed to load post-processing config:', error)
     }
   }
 

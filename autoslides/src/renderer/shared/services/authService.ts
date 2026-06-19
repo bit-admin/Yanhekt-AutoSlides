@@ -1,6 +1,8 @@
 // Type definitions are available globally
 
 import { overrides } from '../overrideRegistry'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ServicesAuth');
 
 export interface LoginResult {
   success: boolean;
@@ -25,7 +27,7 @@ export class AuthService {
 
       return result;
     } catch (error) {
-      console.error('Login error:', error);
+      log.error('Login error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred'

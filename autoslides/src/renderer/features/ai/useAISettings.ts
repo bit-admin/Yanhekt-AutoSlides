@@ -4,6 +4,8 @@ import { useCopilotOAuth, type CopilotOAuthStep } from './useCopilotOAuth'
 import { useMlClassifierSettings, type AIClassifierMode, type MlThresholdValues, type MlModelInfo } from './useMlClassifierSettings'
 import { useModelChain, type ModelPreset } from './useModelChain'
 import { detectCustomProvider, MODELSCOPE_API_BASE_URL, type CustomProviderId } from './providerDetect'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('AISettings');
 
 export type AIServiceType = 'builtin' | 'custom' | 'copilot'
 export type { AIClassifierMode, CustomProviderId, CopilotOAuthStep, MlThresholdValues, MlModelInfo, ModelPreset }
@@ -202,7 +204,7 @@ export function useAISettings(options: UseAISettingsOptions) {
         tempAiPromptRecordedDistinguish.value = distinguishPrompts.recorded || ''
       }
     } catch (error) {
-      console.error('Failed to load AI settings:', error)
+      log.error('Failed to load AI settings:', error)
     }
   }
 
@@ -281,7 +283,7 @@ export function useAISettings(options: UseAISettingsOptions) {
         aiPromptRecordedDistinguish.value = tempAiPromptRecordedDistinguish.value
       }
     } catch (error) {
-      console.error('Failed to save AI settings:', error)
+      log.error('Failed to save AI settings:', error)
       throw error
     }
   }
@@ -289,21 +291,21 @@ export function useAISettings(options: UseAISettingsOptions) {
   const refreshBuiltinModel = async () => {
     const token = tokenManager.getToken()
     if (!token) {
-      console.log('[AI] refreshBuiltinModel: No token available')
+      log.debug('[AI] refreshBuiltinModel: No token available')
       builtinModelError.value = 'notLoggedIn'
       return
     }
 
-    console.log('[AI] refreshBuiltinModel: Fetching model name...')
+    log.debug('[AI] refreshBuiltinModel: Fetching model name...')
     isLoadingBuiltinModel.value = true
     builtinModelError.value = ''
 
     try {
       const modelName = await window.electronAPI.ai.getBuiltinModelName(token)
-      console.log('[AI] refreshBuiltinModel: API response:', modelName)
+      log.debug('[AI] refreshBuiltinModel: API response:', modelName)
       builtinModelName.value = modelName
     } catch (error) {
-      console.error('[AI] refreshBuiltinModel: Failed to fetch built-in model name:', error)
+      log.error('[AI] refreshBuiltinModel: Failed to fetch built-in model name:', error)
       const errorMessage = error instanceof Error ? error.message : String(error)
       if (errorMessage.includes('cloudflareBlocked')) {
         builtinModelError.value = 'cloudflareBlocked'
@@ -360,7 +362,7 @@ export function useAISettings(options: UseAISettingsOptions) {
         }
       }
     } catch (error) {
-      console.error(`Failed to reset AI prompt for ${type} (${variant}):`, error)
+      log.error(`Failed to reset AI prompt for ${type} (${variant}):`, error)
     }
   }
 
@@ -372,7 +374,7 @@ export function useAISettings(options: UseAISettingsOptions) {
     try {
       await window.electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/docs')
     } catch (error) {
-      console.error('Failed to open custom service docs:', error)
+      log.error('Failed to open custom service docs:', error)
     }
   }
 

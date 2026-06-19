@@ -1,5 +1,7 @@
 import { ref } from 'vue'
 import { resetMlClassifier } from './mlClassifierClient'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('MlClassifierSettings');
 
 export type AIClassifierMode = 'llm' | 'ml'
 
@@ -68,7 +70,7 @@ export function useMlClassifierSettings() {
     try {
       mlModelInfo.value = await window.electronAPI.mlClassifier.getModelInfo()
     } catch (error) {
-      console.error('Failed to refresh ML model info:', error)
+      log.error('Failed to refresh ML model info:', error)
     }
   }
 
@@ -80,7 +82,7 @@ export function useMlClassifierSettings() {
         await refreshMlModelInfo()
       }
     } catch (error) {
-      console.error('Failed to import custom ML model:', error)
+      log.error('Failed to import custom ML model:', error)
     }
   }
 
@@ -90,7 +92,7 @@ export function useMlClassifierSettings() {
       resetMlClassifier()
       await refreshMlModelInfo()
     } catch (error) {
-      console.error('Failed to delete custom ML model:', error)
+      log.error('Failed to delete custom ML model:', error)
     }
   }
 

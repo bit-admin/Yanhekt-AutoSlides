@@ -4,6 +4,8 @@
 
 import { createPHashWorkerClient } from '@shared/workers/pHashWorkerClient';
 import type { DedupCandidate, ResultsFolder } from './resultsTypes';
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ResultsDedupPipeline');
 
 export interface ResultsDedupIO {
   getImages(folderPath: string): Promise<Array<{ name: string; path: string }>>;
@@ -66,11 +68,11 @@ export async function runPHashDedup(
             const pHash = await calculatePHash(imageData);
             seen.push({ filename: img.name, pHash });
           } catch (err) {
-            console.warn(`Failed to compute pHash for existing ${img.path}:`, err);
+            log.warn(`Failed to compute pHash for existing ${img.path}:`, err);
           }
         }
       } catch (err) {
-        console.warn('Failed to list existing images for dedup:', err);
+        log.warn('Failed to list existing images for dedup:', err);
       }
     }
 
@@ -103,7 +105,7 @@ export async function runPHashDedup(
           seen.push({ filename: item.filename, pHash });
         }
       } catch (err) {
-        console.warn(`Failed to dedup ${item.filename}:`, err);
+        log.warn(`Failed to dedup ${item.filename}:`, err);
         result.failed++;
       }
     }

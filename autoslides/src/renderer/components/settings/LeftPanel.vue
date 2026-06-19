@@ -276,6 +276,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('LeftPanel');
 import { onMounted, onUnmounted, provide, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePinyinName } from '@features/platform/usePinyinName'
@@ -454,7 +456,7 @@ const openOutputDirectory = async () => {
       await window.electronAPI.shell.openPath(outputDirectory.value)
     }
   } catch (error) {
-    console.error('Failed to open output directory:', error)
+    log.error('Failed to open output directory:', error)
   }
 }
 
@@ -489,7 +491,7 @@ const openToolsWindow = async (tab?: string) => {
   try {
     await window.electronAPI.tools.openWindow(tab)
   } catch (error) {
-    console.error('Failed to open tools window:', error)
+    log.error('Failed to open tools window:', error)
   }
 }
 
@@ -498,7 +500,7 @@ const openAddonsWindow = async (tab?: string) => {
   try {
     await window.electronAPI.addons.openWindow(tab)
   } catch (error) {
-    console.error('Failed to open addons window:', error)
+    log.error('Failed to open addons window:', error)
   }
 }
 

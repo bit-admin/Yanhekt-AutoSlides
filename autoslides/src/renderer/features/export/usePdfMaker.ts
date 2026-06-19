@@ -7,6 +7,8 @@ import { ref, computed, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { compareToolFolders, compareToolImages, formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { overrides } from '@shared/overrideRegistry'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('PdfMaker');
 
 export interface Folder {
   name: string
@@ -141,7 +143,7 @@ export function usePdfMaker() {
       useCustomOrder.value = false
       selectedItems.value = []
     } catch (error) {
-      console.error('Failed to load folders:', error)
+      log.error('Failed to load folders:', error)
     } finally {
       isLoading.value = false
     }
@@ -247,7 +249,7 @@ export function usePdfMaker() {
         copyrightText: includeCover.value ? t('pdfmaker.coverCopyright') : undefined,
       })
     } catch (error) {
-      console.error('Failed to make PDF:', error)
+      log.error('Failed to make PDF:', error)
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',

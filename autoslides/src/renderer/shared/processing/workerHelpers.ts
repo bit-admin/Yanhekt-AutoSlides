@@ -9,6 +9,8 @@
  */
 
 import SlideProcessorWorker from '../workers/slideProcessor.worker?worker';
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('WorkerHelpers');
 
 interface WorkerMessage {
   id: string;
@@ -46,9 +48,9 @@ export class SlideProcessorService {
       this.worker.onmessage = this.handleWorkerMessage.bind(this);
       this.worker.onerror = this.handleWorkerError.bind(this);
 
-      console.log('Slide processor worker initialized successfully');
+      log.debug('Slide processor worker initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize slide processor worker:', error);
+      log.error('Failed to initialize slide processor worker:', error);
     }
   }
 
@@ -67,7 +69,7 @@ export class SlideProcessorService {
   }
 
   private handleWorkerError(error: ErrorEvent): void {
-    console.error('Slide processor worker error:', error);
+    log.error('Slide processor worker error:', error);
 
     this.pendingRequests.forEach(request => request.reject(new Error('Worker error occurred')));
     this.pendingRequests.clear();
@@ -109,7 +111,7 @@ export class SlideProcessorService {
     try {
       return await this.sendMessage<boolean>('compareImages', { img1Data, img2Data, config });
     } catch (error) {
-      console.error('Error comparing images:', error);
+      log.error('Error comparing images:', error);
       return false;
     }
   }
@@ -118,7 +120,7 @@ export class SlideProcessorService {
     try {
       return await this.sendMessage<number>('calculateSSIM', { img1: img1Data, img2: img2Data });
     } catch (error) {
-      console.error('Error calculating SSIM:', error);
+      log.error('Error calculating SSIM:', error);
       return 0;
     }
   }
@@ -127,7 +129,7 @@ export class SlideProcessorService {
     try {
       return await this.sendMessage<boolean>('updateConfig', { config });
     } catch (error) {
-      console.error('Error updating worker config:', error);
+      log.error('Error updating worker config:', error);
       throw error;
     }
   }

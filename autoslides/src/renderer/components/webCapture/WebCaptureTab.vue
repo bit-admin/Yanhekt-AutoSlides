@@ -183,6 +183,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('WebCaptureTab');
 import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useWebCapture, type WebCapturePreset } from '@features/webCapture/useWebCapture'
@@ -284,7 +286,7 @@ watch(preloadPath, async (val) => {
     }
     await new Promise((r) => setTimeout(r, 50))
   }
-  console.warn('WebCaptureTab: webview element never appeared')
+  log.warn('WebCaptureTab: webview element never appeared')
 }, { immediate: true })
 
 watch(captureState, (val) => {

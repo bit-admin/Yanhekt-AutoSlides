@@ -193,6 +193,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('TitleBar');
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import UpdateManager from './UpdateManager.vue';
@@ -395,7 +397,7 @@ const minimizeWindow = async () => {
   try {
     await (window as any).electronAPI.window.minimize();
   } catch (error) {
-    console.error('Failed to minimize window:', error);
+    log.error('Failed to minimize window:', error);
   }
 };
 
@@ -407,7 +409,7 @@ const maximizeWindow = async () => {
       updateMaximizeIcon(result.isMaximized);
     }
   } catch (error) {
-    console.error('Failed to maximize/restore window:', error);
+    log.error('Failed to maximize/restore window:', error);
   }
 };
 
@@ -415,14 +417,14 @@ const closeWindow = async () => {
   try {
     await (window as any).electronAPI.window.close();
   } catch (error) {
-    console.error('Failed to close window:', error);
+    log.error('Failed to close window:', error);
   }
 };
 
 // Update maximize button icon based on window state
 const updateMaximizeIcon = (isMaximized: boolean) => {
   // This could be used to change the icon between maximize and restore
-  console.log('Window maximized state:', isMaximized);
+  log.debug('Window maximized state:', isMaximized);
 };
 
 // Link button handlers
@@ -430,7 +432,7 @@ const openGitHub = async () => {
   try {
     await (window as any).electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides');
   } catch (error) {
-    console.error('Failed to open GitHub repository:', error);
+    log.error('Failed to open GitHub repository:', error);
   }
 };
 
@@ -438,7 +440,7 @@ const openITCenter = async () => {
   try {
     await (window as any).electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/software');
   } catch (error) {
-    console.error('Failed to open User Manual:', error);
+    log.error('Failed to open User Manual:', error);
   }
 };
 
@@ -453,7 +455,7 @@ const menuReload = async () => {
   try {
     await (window as any).electronAPI.menu.reload();
   } catch (error) {
-    console.error('Failed to reload:', error);
+    log.error('Failed to reload:', error);
   }
 };
 
@@ -462,7 +464,7 @@ const menuForceReload = async () => {
   try {
     await (window as any).electronAPI.menu.forceReload();
   } catch (error) {
-    console.error('Failed to force reload:', error);
+    log.error('Failed to force reload:', error);
   }
 };
 
@@ -471,7 +473,7 @@ const menuToggleDevTools = async () => {
   try {
     await (window as any).electronAPI.menu.toggleDevTools();
   } catch (error) {
-    console.error('Failed to toggle dev tools:', error);
+    log.error('Failed to toggle dev tools:', error);
   }
 };
 
@@ -480,7 +482,7 @@ const menuResetZoom = async () => {
   try {
     await (window as any).electronAPI.menu.resetZoom();
   } catch (error) {
-    console.error('Failed to reset zoom:', error);
+    log.error('Failed to reset zoom:', error);
   }
 };
 
@@ -489,7 +491,7 @@ const menuZoomIn = async () => {
   try {
     await (window as any).electronAPI.menu.zoomIn();
   } catch (error) {
-    console.error('Failed to zoom in:', error);
+    log.error('Failed to zoom in:', error);
   }
 };
 
@@ -498,7 +500,7 @@ const menuZoomOut = async () => {
   try {
     await (window as any).electronAPI.menu.zoomOut();
   } catch (error) {
-    console.error('Failed to zoom out:', error);
+    log.error('Failed to zoom out:', error);
   }
 };
 
@@ -507,7 +509,7 @@ const menuToggleFullscreen = async () => {
   try {
     await (window as any).electronAPI.menu.toggleFullscreen();
   } catch (error) {
-    console.error('Failed to toggle fullscreen:', error);
+    log.error('Failed to toggle fullscreen:', error);
   }
 };
 
@@ -516,7 +518,7 @@ const openTermsAndConditions = async () => {
   try {
     await (window as any).electronAPI.menu.openTermsAndConditions();
   } catch (error) {
-    console.error('Failed to open Terms and Conditions:', error);
+    log.error('Failed to open Terms and Conditions:', error);
   }
 };
 
@@ -531,7 +533,7 @@ const showAbout = async () => {
       buttons: [$t('titlebar.ok')]
     });
   } catch (error) {
-    console.error('Failed to show about dialog:', error);
+    log.error('Failed to show about dialog:', error);
   }
 };
 

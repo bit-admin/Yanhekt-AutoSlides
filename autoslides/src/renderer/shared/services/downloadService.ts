@@ -2,6 +2,8 @@ import { reactive, ref } from 'vue'
 import { sanitizeDownloadName } from './downloadNaming'
 import { ExtractionQueue } from './extractionQueueService'
 import { overrides } from '../overrideRegistry'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('Download');
 
 export type DownloadStatus = 'queued' | 'downloading' | 'processing' | 'completed' | 'error'
 
@@ -107,14 +109,14 @@ class DownloadServiceClass {
     if (item) {
       if (item.status === 'downloading' || item.status === 'processing') {
         // Cancel the actual download in main process
-        window.electronAPI.download.cancel(id).catch(console.error)
+        window.electronAPI.download.cancel(id).catch(log.error)
 
         // Mark as error
         item.status = 'error'
         item.error = 'Cancelled by user'
         item.progress = 0
         this.activeDownloads.delete(id)
-        console.log(`Force cancelling active download: ${item.name}`)
+        log.debug(`Force cancelling active download: ${item.name}`)
 
       } else {
         // Only remove if not actively processing
@@ -133,7 +135,7 @@ class DownloadServiceClass {
       if (item.status === 'queued' || item.status === 'downloading' || item.status === 'processing') {
         // Cancel the actual download in main process (for active downloads)
         if (item.status === 'downloading' || item.status === 'processing') {
-          window.electronAPI.download.cancel(item.id).catch(console.error)
+          window.electronAPI.download.cancel(item.id).catch(log.error)
           this.activeDownloads.delete(item.id)
         }
 
@@ -141,7 +143,7 @@ class DownloadServiceClass {
         item.status = 'error'
         item.error = 'Cancelled by user'
         item.progress = 0
-        console.log(`Force cancelling: ${item.name} (was ${item.status})`)
+        log.debug(`Force cancelling: ${item.name} (was ${item.status})`)
       }
     })
 
@@ -159,7 +161,7 @@ class DownloadServiceClass {
       // Completed items already had their temp files cleaned by the success path.
       if (item.status === 'error') {
         window.electronAPI.download.cleanupTempFiles(sanitizeDownloadName(item.name))
-          .catch(console.error)
+          .catch(log.error)
       }
       const index = this.items.indexOf(item)
       if (index !== -1) {
@@ -210,7 +212,7 @@ class DownloadServiceClass {
     this.activeDownloads.add(item.id)
 
     try {
-      console.log(`Starting download: ${item.name}`)
+      log.debug(`Starting download: ${item.name}`)
 
       // Get video stream URL from session data
       const sessionData = await this.getSessionVideoUrl(item.sessionId, item.videoType)
@@ -224,7 +226,7 @@ class DownloadServiceClass {
     } catch (error) {
       item.status = 'error'
       item.error = error instanceof Error ? error.message : 'Unknown error'
-      console.error(`Download failed: ${item.name}`, error)
+      log.error(`Download failed: ${item.name}`, error)
       this.activeDownloads.delete(item.id)
       this.processQueue()
     }
@@ -237,7 +239,7 @@ class DownloadServiceClass {
       const sessionData = DataStore.getSessionData(sessionId)
 
       if (!sessionData) {
-        console.error('Session data not found for:', sessionId)
+        log.error('Session data not found for:', sessionId)
         return null
       }
 
@@ -245,13 +247,13 @@ class DownloadServiceClass {
       // For downloads, we need the original URLs from the session data
       const videoUrl = videoType === 'camera' ? sessionData.main_url : sessionData.vga_url
       if (!videoUrl) {
-        console.error(`${videoType} URL not found in session data`)
+        log.error(`${videoType} URL not found in session data`)
         return null
       }
 
       return { url: videoUrl }
     } catch (error) {
-      console.error('Error getting session video URL:', error)
+      log.error('Error getting session video URL:', error)
       return null
     }
   }
@@ -292,7 +294,7 @@ class DownloadServiceClass {
 
           // Check if the item was already cancelled
           if (item.status === 'error' && item.error === 'Cancelled by user') {
-            console.log(`Ignoring completion signal for cancelled download: ${item.name}`)
+            log.debug(`Ignoring completion signal for cancelled download: ${item.name}`)
             this.activeDownloads.delete(item.id)
             this.processQueue()
             resolve()
@@ -302,7 +304,7 @@ class DownloadServiceClass {
           item.status = 'completed'
           item.progress = 100
           item.completedAt = Date.now()
-          console.log(`Completed: ${item.name}`)
+          log.debug(`Completed: ${item.name}`)
 
 
           // Clean up by removing this specific item from active downloads
@@ -321,7 +323,7 @@ class DownloadServiceClass {
           cleanupListeners()
           item.status = 'error'
           item.error = error
-          console.error(`Download failed: ${item.name}`, error)
+          log.error(`Download failed: ${item.name}`, error)
 
 
           // Clean up by removing this specific item from active downloads
@@ -351,7 +353,7 @@ class DownloadServiceClass {
           if (!completed) {
             completed = true
             cleanupListeners()
-            console.error('Failed to start download:', error)
+            log.error('Failed to start download:', error)
             this.activeDownloads.delete(item.id)
             this.processQueue()
             reject(error)

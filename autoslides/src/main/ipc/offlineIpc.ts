@@ -1,5 +1,7 @@
 import { ipcMain, dialog } from 'electron';
 import type { IpcServices } from './types';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('OfflineIpc');
 
 export function registerOfflineIpcHandlers(services: IpcServices): void {
   const { offlineProcessingService } = services;
@@ -15,7 +17,7 @@ export function registerOfflineIpcHandlers(services: IpcServices): void {
       }
       return result.filePaths[0];
     } catch (error) {
-      console.error('Failed to select input folder:', error);
+      log.error('Failed to select input folder:', error);
       throw error;
     }
   });
@@ -24,7 +26,7 @@ export function registerOfflineIpcHandlers(services: IpcServices): void {
     try {
       return await offlineProcessingService.listImages(folderPath);
     } catch (error) {
-      console.error('Failed to list images:', error);
+      log.error('Failed to list images:', error);
       throw error;
     }
   });
@@ -34,7 +36,7 @@ export function registerOfflineIpcHandlers(services: IpcServices): void {
       await offlineProcessingService.copyAndConvertImage(inputPath, outputDir, outputFilename, enableColorReduction);
       return { success: true };
     } catch (error) {
-      console.error('Failed to copy and convert image:', error);
+      log.error('Failed to copy and convert image:', error);
       throw error;
     }
   });
@@ -43,7 +45,7 @@ export function registerOfflineIpcHandlers(services: IpcServices): void {
     try {
       return await offlineProcessingService.readImageForAI(filePath, targetWidth, targetHeight);
     } catch (error) {
-      console.error('Failed to read image for AI:', error);
+      log.error('Failed to read image for AI:', error);
       throw error;
     }
   });
@@ -52,7 +54,7 @@ export function registerOfflineIpcHandlers(services: IpcServices): void {
     try {
       return await offlineProcessingService.readImageBuffer(filePath);
     } catch (error) {
-      console.error('Failed to read image buffer:', error);
+      log.error('Failed to read image buffer:', error);
       throw error;
     }
   });
@@ -61,7 +63,7 @@ export function registerOfflineIpcHandlers(services: IpcServices): void {
     try {
       await offlineProcessingService.savePngBuffer(outputDir, filename, buffer, enableColorReduction);
     } catch (error) {
-      console.error('Failed to save PNG buffer:', error);
+      log.error('Failed to save PNG buffer:', error);
       throw error;
     }
   });

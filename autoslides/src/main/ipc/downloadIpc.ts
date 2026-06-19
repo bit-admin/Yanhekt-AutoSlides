@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron';
 import type { IpcServices } from './types';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('DownloadIpc');
 
 export function registerDownloadIpcHandlers(services: IpcServices): void {
   const { m3u8DownloadService, configService } = services;
@@ -22,7 +24,7 @@ export function registerDownloadIpcHandlers(services: IpcServices): void {
         event.sender.send('download:completed', downloadId);
       }
     } catch (error) {
-      console.error(`Download failed for ${downloadId}:`, error);
+      log.error(`Download failed for ${downloadId}:`, error);
       if (!event.sender.isDestroyed()) {
         event.sender.send('download:error', downloadId, error instanceof Error ? error.message : 'Unknown error');
       }

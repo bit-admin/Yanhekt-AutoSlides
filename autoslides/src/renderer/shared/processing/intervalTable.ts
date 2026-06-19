@@ -1,3 +1,5 @@
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('IntervalTable');
 /**
  * Playback-rate → check-interval mapping.
  *
@@ -59,7 +61,7 @@ export class IntervalTable {
   getIntervalForRate(playbackRate: number): number {
     const interval = this.table.get(playbackRate);
     if (interval !== undefined) return interval;
-    console.warn(`Unsupported playback rate: ${playbackRate}x, using base interval`);
+    log.warn(`Unsupported playback rate: ${playbackRate}x, using base interval`);
     return this.baseInterval;
   }
 
@@ -78,7 +80,7 @@ export class IntervalTable {
       const adjusted = Math.round(this.baseInterval / scalingFactor);
       this.table.set(rate, Math.max(MIN_INTERVAL_MS, adjusted));
     });
-    console.log(
+    log.debug(
       `Interval table built for base=${this.baseInterval}ms:`,
       Array.from(this.table.entries()).map(([rate, interval]) => `${rate}x=${interval}ms`).join(', '),
     );

@@ -11,6 +11,8 @@ import type {
   PostProcessingConfig,
   PostProcessingProgress
 } from '@shared/postProcessing/types'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('OfflineProcessing');
 
 export interface OfflineProgress {
   phase: 'idle' | 'copying' | 'phase1' | 'phase2' | 'phase3' | 'completed' | 'error' | 'cancelled'
@@ -238,7 +240,7 @@ export function useOfflineProcessing() {
         progress.value.phase = 'completed'
       }
     } catch (error) {
-      console.error('Offline processing error:', error)
+      log.error('Offline processing error:', error)
       progress.value.phase = 'error'
       progress.value.errorMessage = error instanceof Error ? error.message : String(error)
     } finally {

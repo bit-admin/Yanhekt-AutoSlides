@@ -5,6 +5,8 @@ import * as readline from 'readline';
 import { dialog } from 'electron';
 import { ConfigService } from '@main/platform/configService';
 import { sharpService } from '@main/infra/sharpService';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('QtExtractor');
 
 export interface QtExtractorStatus {
   ok: boolean;
@@ -66,47 +68,47 @@ export class QtExtractorService {
 
   resolveBinaryPath(): string {
     const userPath = (this.configService.getQtExtractorConfig().binaryPath || '').trim();
-    console.log('Checking AutoSlides Extractor executable');
-    console.log('Platform:', process.platform);
-    console.log('Resources path:', process.resourcesPath);
-    console.log('Configured AutoSlides Extractor path:', userPath || '(auto-detect)');
+    log.debug('Checking AutoSlides Extractor executable');
+    log.debug('Platform:', process.platform);
+    log.debug('Resources path:', process.resourcesPath);
+    log.debug('Configured AutoSlides Extractor path:', userPath || '(auto-detect)');
 
     if (userPath) {
-      console.log('Checking configured AutoSlides Extractor path:', userPath);
+      log.debug('Checking configured AutoSlides Extractor path:', userPath);
       if (fs.existsSync(userPath)) {
-        console.log('AutoSlides Extractor path (configured):', userPath);
+        log.debug('AutoSlides Extractor path (configured):', userPath);
         return userPath;
       }
-      console.log('Configured AutoSlides Extractor path does not exist');
+      log.debug('Configured AutoSlides Extractor path does not exist');
     }
 
     const candidates = DEFAULT_BINARY_PATHS[process.platform] ?? [];
     if (candidates.length === 0) {
-      console.log('No default AutoSlides Extractor paths for platform:', process.platform);
+      log.debug('No default AutoSlides Extractor paths for platform:', process.platform);
     }
     for (const candidate of candidates) {
-      console.log('Checking default AutoSlides Extractor path:', candidate);
+      log.debug('Checking default AutoSlides Extractor path:', candidate);
       if (fs.existsSync(candidate)) {
-        console.log('AutoSlides Extractor path (default):', candidate);
+        log.debug('AutoSlides Extractor path (default):', candidate);
         return candidate;
       }
-      console.log('Default AutoSlides Extractor path does not exist:', candidate);
+      log.debug('Default AutoSlides Extractor path does not exist:', candidate);
     }
-    console.log('No AutoSlides Extractor executable found');
+    log.debug('No AutoSlides Extractor executable found');
     return userPath; // may be '' or a missing path; caller treats as "not found"
   }
 
   async verifyBinary(explicitPath?: string): Promise<QtExtractorStatus> {
     const explicit = explicitPath?.trim();
     if (explicit) {
-      console.log('Checking explicit AutoSlides Extractor path:', explicit);
+      log.debug('Checking explicit AutoSlides Extractor path:', explicit);
     }
     const resolved = explicit || this.resolveBinaryPath();
     const userConfigured = (this.configService.getQtExtractorConfig().binaryPath || '').trim();
-    console.log('Verifying AutoSlides Extractor executable:', resolved || '(none)');
+    log.debug('Verifying AutoSlides Extractor executable:', resolved || '(none)');
 
     if (!resolved) {
-      console.log('AutoSlides Extractor verification failed: executable path is not configured or detected');
+      log.debug('AutoSlides Extractor verification failed: executable path is not configured or detected');
       return {
         ok: false,
         path: userConfigured,
@@ -116,7 +118,7 @@ export class QtExtractorService {
     }
 
     if (!fs.existsSync(resolved)) {
-      console.log('AutoSlides Extractor verification failed: path does not exist:', resolved);
+      log.debug('AutoSlides Extractor verification failed: path does not exist:', resolved);
       return {
         ok: false,
         path: userConfigured,
@@ -130,8 +132,8 @@ export class QtExtractorService {
       let stderrBuf = '';
       let settled = false;
 
-      console.log('Testing AutoSlides Extractor executable:', resolved);
-      console.log('AutoSlides Extractor verify command: --help --json');
+      log.debug('Testing AutoSlides Extractor executable:', resolved);
+      log.debug('AutoSlides Extractor verify command: --help --json');
       const child = spawn(resolved, ['--help', '--json'], {
         stdio: ['ignore', 'pipe', 'pipe']
       });
@@ -148,7 +150,7 @@ export class QtExtractorService {
       };
 
       const timeout = setTimeout(() => {
-        console.log('AutoSlides Extractor verification timed out:', resolved);
+        log.debug('AutoSlides Extractor verification timed out:', resolved);
         finish({
           ok: false,
           path: userConfigured,
@@ -159,7 +161,7 @@ export class QtExtractorService {
 
       child.on('error', (err) => {
         clearTimeout(timeout);
-        console.log('AutoSlides Extractor verification spawn failed:', err.message);
+        log.debug('AutoSlides Extractor verification spawn failed:', err.message);
         finish({
           ok: false,
           path: userConfigured,
@@ -182,23 +184,23 @@ export class QtExtractorService {
           // Try to also probe --version for an explicit version
           const versionFromHelp = this.extractVersionFromHelpText(typeof evt.text === 'string' ? evt.text : '');
           if (versionFromHelp) {
-            console.log('AutoSlides Extractor path (executable works):', resolved);
-            console.log('AutoSlides Extractor version:', versionFromHelp);
+            log.debug('AutoSlides Extractor path (executable works):', resolved);
+            log.debug('AutoSlides Extractor version:', versionFromHelp);
             finish({ ok: true, path: userConfigured, resolvedPath: resolved, version: versionFromHelp });
             return;
           }
           this.queryVersion(resolved).then((version) => {
-            console.log('AutoSlides Extractor path (executable works):', resolved);
+            log.debug('AutoSlides Extractor path (executable works):', resolved);
             if (version) {
-              console.log('AutoSlides Extractor version:', version);
+              log.debug('AutoSlides Extractor version:', version);
             } else {
-              console.log('AutoSlides Extractor version: unknown');
+              log.debug('AutoSlides Extractor version: unknown');
             }
             finish({ ok: true, path: userConfigured, resolvedPath: resolved, version });
           });
           return;
         }
-        console.log('AutoSlides Extractor verification failed:', stderrBuf.trim() || stdoutBuf.trim().split('\n').slice(0, 3).join('\n') || `Unexpected exit code ${code}`);
+        log.debug('AutoSlides Extractor verification failed:', stderrBuf.trim() || stdoutBuf.trim().split('\n').slice(0, 3).join('\n') || `Unexpected exit code ${code}`);
         finish({
           ok: false,
           path: userConfigured,
@@ -219,7 +221,7 @@ export class QtExtractorService {
   private async queryVersion(binaryPath: string): Promise<string | undefined> {
     return await new Promise<string | undefined>((resolve) => {
       let buf = '';
-      console.log('AutoSlides Extractor version command: --version --json');
+      log.debug('AutoSlides Extractor version command: --version --json');
       const child = spawn(binaryPath, ['--version', '--json'], {
         stdio: ['ignore', 'pipe', 'pipe']
       });
@@ -280,7 +282,7 @@ export class QtExtractorService {
     try {
       child.kill('SIGTERM');
     } catch (err) {
-      console.error('[QtExtractor] Failed to send SIGTERM:', err);
+      log.error('[QtExtractor] Failed to send SIGTERM:', err);
     }
     return true;
   }
@@ -303,9 +305,9 @@ export class QtExtractorService {
     if (!binary) throw new Error('AutoSlides Extractor binary is not configured.');
     if (!fs.existsSync(binary)) throw new Error(`AutoSlides Extractor binary not found at ${binary}`);
     if (!fs.existsSync(videoPath)) throw new Error(`Video file not found: ${videoPath}`);
-    console.log('Running AutoSlides Extractor executable:', binary);
-    console.log('AutoSlides Extractor input video:', videoPath);
-    console.log('AutoSlides Extractor output directory:', outputDir);
+    log.debug('Running AutoSlides Extractor executable:', binary);
+    log.debug('AutoSlides Extractor input video:', videoPath);
+    log.debug('AutoSlides Extractor output directory:', outputDir);
 
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
@@ -344,7 +346,7 @@ export class QtExtractorService {
         try {
           evt = JSON.parse(trimmed) as NDJsonEvent;
         } catch {
-          console.warn('[QtExtractor] Non-JSON line:', trimmed);
+          log.warn('[QtExtractor] Non-JSON line:', trimmed);
           return;
         }
         switch (evt.event) {
@@ -439,7 +441,7 @@ export class QtExtractorService {
           processed++;
         }
       } catch (err) {
-        console.error(`[QtExtractor] Failed to reduce colors for ${file}:`, err);
+        log.error(`[QtExtractor] Failed to reduce colors for ${file}:`, err);
       }
       options.onProgress?.(i + 1, total);
     }

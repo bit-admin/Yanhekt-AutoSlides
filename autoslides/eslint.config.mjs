@@ -106,7 +106,29 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-expressions': 'off',
+      // Route all logging through createLogger (@shared/utils/logger or
+      // @main/infra/logger), which gates debug/info to dev and tags namespaces.
+      // The two logger modules and the always-on AI debug wrappers are exempted
+      // below.
+      'no-console': 'error',
     },
+  },
+
+  // Logging exemptions: the logger modules ARE the console boundary, and the AI
+  // services keep intentional always-on DEBUG wrappers (prod has no other AI
+  // diagnostics — see CLAUDE.md / memory project_debug_flags_intentional).
+  {
+    files: [
+      'src/renderer/shared/utils/logger.ts',
+      'src/main/infra/logger.ts',
+      'src/main/ai/llmApiService.ts',
+      'src/main/ai/aiFilteringService.ts',
+      // Build/tooling scripts — console output is their intended UX.
+      'scripts/**',
+      'forge.config.ts',
+      '*.config.{ts,mjs}',
+    ],
+    rules: { 'no-console': 'off' },
   },
 
   // ----------------------------------------------------------------------

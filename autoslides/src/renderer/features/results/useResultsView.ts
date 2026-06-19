@@ -34,6 +34,8 @@ import type {
   AutoCropTarget,
   DedupCandidate,
 } from './resultsTypes'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ResultsView');
 
 export type {
   ResultsReason,
@@ -270,7 +272,7 @@ export function useResultsView() {
           thumbnails.value[item.id] = `data:image/png;base64,${base64}`
         }
       } catch (error) {
-        console.warn(`Failed to load thumbnail for ${item.name}:`, error)
+        log.warn(`Failed to load thumbnail for ${item.name}:`, error)
       }
     }
   }
@@ -294,7 +296,7 @@ export function useResultsView() {
         await loadCurrentFolderItems(refreshedFolder)
       }
     } catch (error) {
-      console.error('Failed to refresh results view:', error)
+      log.error('Failed to refresh results view:', error)
     } finally {
       isLoading.value = false
     }
@@ -312,7 +314,7 @@ export function useResultsView() {
     try {
       await loadCurrentFolderItems(folder)
     } catch (error) {
-      console.error('Failed to open results folder:', error)
+      log.error('Failed to open results folder:', error)
     } finally {
       isLoading.value = false
     }
@@ -360,7 +362,7 @@ export function useResultsView() {
 
       await refresh()
     } catch (error) {
-      console.error('Failed to delete selected images:', error)
+      log.error('Failed to delete selected images:', error)
     } finally {
       isLoading.value = false
     }
@@ -375,7 +377,7 @@ export function useResultsView() {
       await window.electronAPI.trash.restore(ids)
       await refresh()
     } catch (error) {
-      console.error('Failed to restore selected images:', error)
+      log.error('Failed to restore selected images:', error)
     } finally {
       isLoading.value = false
     }
@@ -458,7 +460,7 @@ export function useResultsView() {
 
       await refresh()
     } catch (error) {
-      console.error('Failed to auto-crop selected items:', error)
+      log.error('Failed to auto-crop selected items:', error)
     } finally {
       isLoading.value = false
     }
@@ -485,7 +487,7 @@ export function useResultsView() {
       summary.failed = cropResult.failed
       await refresh()
     } catch (error) {
-      console.error('Failed to auto-crop selected active items:', error)
+      log.error('Failed to auto-crop selected active items:', error)
     } finally {
       isLoading.value = false
     }
@@ -513,7 +515,7 @@ export function useResultsView() {
       summary.failed = cropResult.failed
       await refresh()
     } catch (error) {
-      console.error('Failed to restore and auto-crop selected:', error)
+      log.error('Failed to restore and auto-crop selected:', error)
     } finally {
       isLoading.value = false
     }
@@ -557,7 +559,7 @@ export function useResultsView() {
 
       await refresh()
     } catch (error) {
-      console.error('Failed to restore, auto-crop and dedup selected:', error)
+      log.error('Failed to restore, auto-crop and dedup selected:', error)
     } finally {
       isLoading.value = false
     }
@@ -620,7 +622,7 @@ export function useResultsView() {
 
       await refresh()
     } catch (error) {
-      console.error('Failed to apply baseline crop to selected:', error)
+      log.error('Failed to apply baseline crop to selected:', error)
     } finally {
       isLoading.value = false
     }
@@ -651,7 +653,7 @@ export function useResultsView() {
       summary.failed = cropResult.failed
       await refresh()
     } catch (error) {
-      console.error('Failed to restore and apply baseline crop:', error)
+      log.error('Failed to restore and apply baseline crop:', error)
     } finally {
       isLoading.value = false
     }
@@ -695,7 +697,7 @@ export function useResultsView() {
 
       await refresh()
     } catch (error) {
-      console.error('Failed to apply baseline crop and dedup:', error)
+      log.error('Failed to apply baseline crop and dedup:', error)
     } finally {
       isLoading.value = false
     }
@@ -723,7 +725,7 @@ export function useResultsView() {
       summary.failed = dedup.failed
       await refresh()
     } catch (error) {
-      console.error('Failed to remove duplicates in current folder:', error)
+      log.error('Failed to remove duplicates in current folder:', error)
       summary.failed++
     } finally {
       isLoading.value = false
@@ -751,13 +753,13 @@ export function useResultsView() {
           await window.electronAPI.crop.restore(path)
           summary.restored++
         } catch (err) {
-          console.error(`Failed to restore crop for ${path}:`, err)
+          log.error(`Failed to restore crop for ${path}:`, err)
           summary.failed++
         }
       }
       await refresh()
     } catch (error) {
-      console.error('Failed to restore crops in folder:', error)
+      log.error('Failed to restore crops in folder:', error)
     } finally {
       isLoading.value = false
     }
@@ -785,7 +787,7 @@ export function useResultsView() {
       }
       await refresh()
     } catch (error) {
-      console.error('Failed to clear trash:', error)
+      log.error('Failed to clear trash:', error)
     } finally {
       isLoading.value = false
     }
@@ -802,7 +804,7 @@ export function useResultsView() {
       summary.failed = result.failed
       await refresh()
     } catch (error) {
-      console.error('Failed to remove folders:', error)
+      log.error('Failed to remove folders:', error)
     } finally {
       isLoading.value = false
     }
@@ -829,7 +831,7 @@ export function useResultsView() {
       })
       return !!previewItem.value
     } catch (error) {
-      console.error('Failed to refresh preview item:', error)
+      log.error('Failed to refresh preview item:', error)
       return false
     }
   }
@@ -841,7 +843,7 @@ export function useResultsView() {
       await window.electronAPI.crop.apply(imagePath, rect, autoCropped)
       return await refreshPreviewByImagePath(imagePath)
     } catch (error) {
-      console.error('Failed to apply crop:', error)
+      log.error('Failed to apply crop:', error)
       return false
     } finally {
       isLoading.value = false
@@ -855,7 +857,7 @@ export function useResultsView() {
       await window.electronAPI.crop.restore(imagePath)
       return await refreshPreviewByImagePath(imagePath)
     } catch (error) {
-      console.error('Failed to restore crop:', error)
+      log.error('Failed to restore crop:', error)
       return false
     } finally {
       isLoading.value = false

@@ -13,6 +13,8 @@
 // composables, prefer the setter's awaited return value.
 
 import { reactive } from 'vue';
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ConfigStore');
 
 // AppConfig is declared in src/vite-env.d.ts as a module-local interface, so
 // we extract its shape from the IPC return type. The reactive store mirrors
@@ -32,14 +34,14 @@ export function loadConfig(): Promise<void> {
       const full = await window.electronAPI.config.get();
       Object.assign(configStore, full);
     } catch (err) {
-      console.error('[configStore] initial load failed', err);
+      log.error('[configStore] initial load failed', err);
     }
     try {
       window.electronAPI.config.onUpdate((cfg) => {
         Object.assign(configStore, cfg);
       });
     } catch (err) {
-      console.warn('[configStore] onUpdate subscription failed', err);
+      log.warn('[configStore] onUpdate subscription failed', err);
     }
   })();
   return loadPromise;
@@ -52,6 +54,6 @@ export async function refreshConfig(): Promise<void> {
     const full = await window.electronAPI.config.get();
     Object.assign(configStore, full);
   } catch (err) {
-    console.error('[configStore] refresh failed', err);
+    log.error('[configStore] refresh failed', err);
   }
 }

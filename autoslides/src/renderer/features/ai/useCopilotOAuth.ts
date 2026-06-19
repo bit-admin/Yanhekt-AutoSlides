@@ -1,4 +1,6 @@
 import { ref } from 'vue'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('CopilotOAuth');
 
 export type CopilotOAuthStep = 'idle' | 'waiting' | 'polling' | 'success' | 'error'
 
@@ -50,7 +52,7 @@ export function useCopilotOAuth() {
           copilotUsername.value = userInfo.login
           copilotAvatarUrl.value = userInfo.avatar_url
         } catch {
-          console.warn('[Copilot] Failed to fetch user info on load')
+          log.warn('[Copilot] Failed to fetch user info on load')
         }
       }
     }

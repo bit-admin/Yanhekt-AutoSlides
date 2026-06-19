@@ -6,6 +6,8 @@ import {
 } from '@shared/processing'
 import { sanitizeFileName } from '@common/sanitizeFileName'
 import { configStore } from '@shared/services/configStore'
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('WebCapture');
 
 export type WebCaptureMode = 'inject' | 'capturePage'
 export type WebCaptureState = 'idle' | 'confirming' | 'running'
@@ -115,7 +117,7 @@ export function useWebCapture() {
     try {
       preloadPath.value = await window.electronAPI.webCapture.getGuestPreloadPath()
     } catch (err) {
-      console.error('Failed to resolve guest preload path:', err)
+      log.error('Failed to resolve guest preload path:', err)
     }
   })
 
@@ -422,7 +424,7 @@ export function useWebCapture() {
       statusMessage.value = 'webCapture.capturingStatus'
       statusParams.value = { mode: captureMode.value }
     } catch (err) {
-      console.error('Failed to start web capture:', err)
+      log.error('Failed to start web capture:', err)
       statusMessage.value = `Failed to start: ${(err as Error).message}`
       statusParams.value = {}
       captureState.value = 'idle'
@@ -446,7 +448,7 @@ export function useWebCapture() {
       await slideExtractorInstance.value.pushFrame(imageData)
       tickCount.value += 1
     } catch (err) {
-      console.error('capturePage tick failed:', err)
+      log.error('capturePage tick failed:', err)
     }
   }
 

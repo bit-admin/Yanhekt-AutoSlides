@@ -517,6 +517,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('PlaybackPage');
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'vue'
 import { configStore } from '@shared/services/configStore'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '@features/video/useVideoPlayer'
@@ -739,7 +741,7 @@ const togglePictureInPicture = async () => {
       await video.requestPictureInPicture()
     }
   } catch (error) {
-    console.error('Error toggling Picture in Picture:', error)
+    log.error('Error toggling Picture in Picture:', error)
   }
 }
 
@@ -878,7 +880,7 @@ const toggleDualFullscreen = async () => {
       await container.requestFullscreen()
     }
   } catch (error) {
-    console.error('Error toggling dual fullscreen:', error)
+    log.error('Error toggling dual fullscreen:', error)
   }
 }
 
@@ -935,7 +937,7 @@ const loadShowMorePlaybackSpeedConfig = async () => {
     const config = configStore
     showMorePlaybackSpeed.value = config.showMorePlaybackSpeed ?? false
   } catch (error) {
-    console.error('Failed to load show-more playback speed config:', error)
+    log.error('Failed to load show-more playback speed config:', error)
   }
 }
 
@@ -1207,7 +1209,7 @@ onUnmounted(async () => {
     try {
       await document.exitPictureInPicture()
     } catch (error) {
-      console.error('Error exiting Picture in Picture on unmount:', error)
+      log.error('Error exiting Picture in Picture on unmount:', error)
     }
   }
 

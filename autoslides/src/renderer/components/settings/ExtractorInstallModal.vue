@@ -149,6 +149,8 @@
 </template>
 
 <script setup lang="ts">
+import { createLogger } from '@shared/utils/logger';
+const log = createLogger('ExtractorInstallModal');
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import '../../assets/github-markdown.css'
 
@@ -252,7 +254,7 @@ async function cancelDownload() {
   try {
     await window.electronAPI.extractorInstaller.cancel()
   } catch (err) {
-    console.warn('[ExtractorInstall] cancelDownload failed:', err)
+    log.warn('[ExtractorInstall] cancelDownload failed:', err)
   }
 }
 
@@ -261,7 +263,7 @@ async function installInstaller() {
   try {
     await window.electronAPI.extractorInstaller.install(downloadedFile.value)
   } catch (err) {
-    console.error('[ExtractorInstall] install failed:', err)
+    log.error('[ExtractorInstall] install failed:', err)
   }
 }
 
@@ -269,7 +271,7 @@ async function openDownloadFolder() {
   try {
     await window.electronAPI.extractorInstaller.openDownloadFolder()
   } catch (err) {
-    console.error('[ExtractorInstall] openDownloadFolder failed:', err)
+    log.error('[ExtractorInstall] openDownloadFolder failed:', err)
   }
 }
 
@@ -277,7 +279,7 @@ async function openRepo() {
   try {
     await window.electronAPI.extractorInstaller.openRepo()
   } catch (err) {
-    console.error('[ExtractorInstall] openRepo failed:', err)
+    log.error('[ExtractorInstall] openRepo failed:', err)
   }
 }
 

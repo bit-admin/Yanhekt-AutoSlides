@@ -5,6 +5,8 @@ import {
   addSignatureToUrl
 } from '@common/crypto';
 import type { TokenCache } from '../videoProxyService';
+import { createLogger } from '@main/infra/logger';
+const log = createLogger('ProxyAuth');
 
 /**
  * Owns the video-token / signature lifecycle for the proxy: the cached video
@@ -68,12 +70,12 @@ export class ProxyAuth {
     this.tokenFetchInFlight = (async () => {
       try {
         // ALWAYS get fresh token (like m3u8DownloadService does)
-        console.log('Getting fresh video token...');
+        log.debug('Getting fresh video token...');
         const token = await this.apiClient.getVideoToken(this.loginToken!);
         this.tokenCache.videoToken = token;
         return token;
       } catch (error) {
-        console.error("Error getting fresh token:", error);
+        log.error("Error getting fresh token:", error);
         throw new Error("Failed to get video token");
       } finally {
         this.tokenFetchInFlight = null;
@@ -114,7 +116,7 @@ export class ProxyAuth {
 
       return this.tokenCache;
     } catch (error) {
-      console.error('Failed to refresh token:', error);
+      log.error('Failed to refresh token:', error);
       throw error;
     }
   }
@@ -132,7 +134,7 @@ export class ProxyAuth {
       try {
         await this.refreshTokenAndSignature();
       } catch (error) {
-        console.error('Error updating signature in loop:', error);
+        log.error('Error updating signature in loop:', error);
       }
     }, 10000); // Update every 10 seconds
   }
