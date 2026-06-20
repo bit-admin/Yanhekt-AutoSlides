@@ -220,11 +220,14 @@ watch(isLoggedIn, (loggedIn) => {
 }
 
 /* A page is always 16 items: 4 columns × 4 rows stretched to fill the
-   available height; rows shrink to 140px minimum before scrolling kicks in. */
+   available height. Rows grow to share extra space (1fr) but never shrink
+   below the card's own content height (min-content) — once 4 rows of content
+   no longer fit (short laptop windows), the grid scrolls instead of clipping
+   the card text. */
 .courses-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(4, minmax(140px, 1fr));
+  grid-template-rows: repeat(4, minmax(min-content, 1fr));
   gap: 12px;
   flex: 1;
   overflow-y: auto;
