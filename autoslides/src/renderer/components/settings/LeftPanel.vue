@@ -33,7 +33,7 @@
               <span>{{ $t('navigation.live') }}</span>
               <span v-if="livePlaybackActive" class="nav-playback-indicator">●</span>
             </button>
-            <button :class="['nav-item', { active: activeNav === 'recorded' }]" @click="navigate('recorded')">
+            <button :class="['nav-item', { active: activeNav === 'recorded' && !activePinnedId }]" @click="navigate('recorded')">
               <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                 <line x1="8" y1="21" x2="16" y2="21"/>
@@ -82,6 +82,27 @@
               <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
             </svg>
           </button>
+        </div>
+
+        <div class="nav-group-title panel-actions-title">{{ $t('navigation.pinned') }}</div>
+        <div class="nav-items">
+          <div v-for="c in pinnedRecordedCourses" :key="c.id" class="pinned-row">
+            <button :class="['nav-item', 'pinned-item', { active: activePinnedId === c.id }]" @click="openPinnedCourse(c)" :title="c.title">
+              <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+              <span class="pinned-label">{{ c.title }}</span>
+            </button>
+            <button class="pinned-unpin" @click.stop="removePinnedCourse(c.id)" :title="$t('sessions.unpin')" :aria-label="$t('sessions.unpin')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="2" y1="2" x2="22" y2="22"/>
+                <path d="M12 17v5"/>
+                <path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11"/>
+                <path d="M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89"/>
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -290,6 +311,7 @@ import { usePHashExclusion } from '@features/ai/usePHashExclusion'
 import { settingsContextKey } from '@features/settings/settingsContext'
 import { navigationStore } from '@features/course/navigationStore'
 import { useSearchPage } from '@features/course/useSearchPage'
+import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@features/course/pinnedCourses'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
 import UserMenuLinks from './UserMenuLinks.vue'
 import SignInModal from './SignInModal.vue'
@@ -303,8 +325,9 @@ import AISettingsTab from './tabs/AISettingsTab.vue'
 const { t } = useI18n()
 
 // Navigator (Home / Live / Recorded + search bar)
-const { activeNav, livePlaybackActive, recordedPlaybackActive, navigate } = navigationStore
+const { activeNav, livePlaybackActive, recordedPlaybackActive, activePinnedId, navigate } = navigationStore
 const { keyword: searchKeyword, handleSidebarFocus, handleSidebarEnter } = useSearchPage()
+
 
 // Initialize composables
 const auth = useAuth(() => {
@@ -1065,6 +1088,47 @@ defineExpose({
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Pinned recorded courses — a nav-item with a hover-revealed unpin button. */
+.pinned-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pinned-item {
+  /* Reserve room on the right so the label never sits under the unpin button. */
+  padding-right: 30px;
+}
+
+.pinned-unpin {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.pinned-row:hover .pinned-unpin {
+  opacity: 1;
+}
+
+.pinned-unpin:hover {
+  color: var(--danger);
+  background-color: var(--bg-hover);
 }
 
 .nav-playback-indicator {

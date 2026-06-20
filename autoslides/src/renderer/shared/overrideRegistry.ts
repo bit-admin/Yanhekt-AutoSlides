@@ -56,6 +56,8 @@ export interface RuntimeOverrides {
   greeting?: () => string
   /** Home page "Saved Courses" card lists. */
   savedSearches?: { live: () => string[]; recorded: () => string[] }
+  /** Pinned recorded courses (sidebar Pinned list + Home pinned cards). */
+  pinnedRecordedCourses?: () => Array<{ id: string; title: string }>
   /** Fake playback surfaces; presence disables real video loading. */
   playbackDemo?: PlaybackDemo
   /** When true, the download + task queues never start real network/extraction. */

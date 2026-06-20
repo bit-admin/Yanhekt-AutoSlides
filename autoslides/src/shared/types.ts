@@ -143,7 +143,15 @@ export interface AppConfig {
   lastGreetingId: string;
   savedSearchesLive: string[];
   savedSearchesRecorded: string[];
+  pinnedRecordedCourses: PinnedCourse[];
   onboardingCompleted: boolean;
+}
+
+// A recorded course pinned to the sidebar. `id` drives navigation/session loading;
+// `title` is the sidebar label.
+export interface PinnedCourse {
+  id: string;
+  title: string;
 }
 
 // Trash and crop manifest entries — written by main process, read by renderer.

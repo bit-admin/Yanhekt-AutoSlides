@@ -15,6 +15,7 @@ export type {
   MlClassifierThresholds,
   AIFilteringConfig,
   AppConfig,
+  PinnedCourse,
   ThemeMode,
   SSIMPresetMode,
   MuteMode,

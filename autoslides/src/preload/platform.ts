@@ -71,6 +71,7 @@ export const config = {
   setLastGreetingId: (id: string) => ipcRenderer.invoke('config:setLastGreetingId', id),
   setOnboardingCompleted: (completed: boolean) => ipcRenderer.invoke('config:setOnboardingCompleted', completed),
   setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => ipcRenderer.invoke('config:setSavedSearches', mode, searches),
+  setPinnedRecordedCourses: (courses: { id: string; title: string }[]) => ipcRenderer.invoke('config:setPinnedRecordedCourses', courses),
   getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),
   setSlideExtractionConfig: (cfg: { enableDuplicateRemoval?: boolean; enableExclusionList?: boolean }) =>
     ipcRenderer.invoke('config:setSlideExtractionConfig', cfg),

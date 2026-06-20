@@ -28,6 +28,7 @@ import type {
   LanguageMode,
   MlClassifierThresholds,
   PHashExclusionItem,
+  PinnedCourse,
   QtExtractorConfig,
   SlideExtractionConfig
 } from './config/types';
@@ -119,6 +120,7 @@ export class ConfigService {
       lastGreetingId: this.store.get('lastGreetingId') ?? '',
       savedSearchesLive: this.store.get('savedSearchesLive') ?? [],
       savedSearchesRecorded: this.store.get('savedSearchesRecorded') ?? [],
+      pinnedRecordedCourses: this.store.get('pinnedRecordedCourses') ?? [],
       onboardingCompleted: this.store.get('onboardingCompleted') ?? false
     };
   }
@@ -138,6 +140,10 @@ export class ConfigService {
 
   setSavedSearches(mode: 'live' | 'recorded', searches: string[]): void {
     this.store.set(mode === 'live' ? 'savedSearchesLive' : 'savedSearchesRecorded', searches);
+  }
+
+  setPinnedRecordedCourses(courses: PinnedCourse[]): void {
+    this.store.set('pinnedRecordedCourses', courses);
   }
 
   setOutputDirectory(directory: string): void {

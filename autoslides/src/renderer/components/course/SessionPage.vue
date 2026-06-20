@@ -9,6 +9,17 @@
           {{ $t('sessions.backToCourses') }}
         </button>
         <h2>{{ course?.title }}</h2>
+        <button
+          @click="togglePin"
+          class="btn pin-btn"
+          :class="{ active: pinned }"
+          :title="pinned ? $t('sessions.unpin') : $t('sessions.pin')"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" :fill="pinned ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 17v5"/>
+            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>
+          </svg>
+        </button>
         <button @click="toggleCourseDetails" class="btn expand-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showCourseDetails }">
             <polyline points="6,9 12,15 18,9"/>
@@ -153,9 +164,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, toRef } from 'vue'
+import { computed, onMounted, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '@features/course/useSessionPage'
+import { isPinned, togglePinnedCourse } from '@features/course/pinnedCourses'
 
 const props = defineProps<{
   course: SessionCourse | null
@@ -196,6 +208,13 @@ const {
   onSwitchToDownload: (downloadItemId?: string) => emit('switchToDownload', downloadItemId),
   onSwitchToTask: (taskId?: string) => emit('switchToTask', taskId)
 })
+
+const pinned = computed(() => !!props.course?.id && isPinned(props.course.id))
+
+const togglePin = () => {
+  if (!props.course?.id) return
+  togglePinnedCourse({ id: props.course.id, title: props.course.title })
+}
 
 onMounted(() => {
   loadCourseSessions()
@@ -253,6 +272,18 @@ onMounted(() => {
 
 .expand-btn svg.rotated {
   transform: rotate(180deg);
+}
+
+/* Square 32×32 icon button, matching .expand-btn. Accent when pinned. */
+.pin-btn {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.pin-btn.active {
+  color: var(--accent);
 }
 
 .course-details {

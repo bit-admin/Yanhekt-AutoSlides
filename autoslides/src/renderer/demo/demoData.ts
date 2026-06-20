@@ -44,6 +44,15 @@ export function demoSavedSearchesRecorded(): string[] {
   return ['Real Analysis', 'Abstract Algebra', 'Topology']
 }
 
+// Pinned recorded courses (sidebar Pinned list + Home pinned cards). ids match
+// DEMO_COURSES so opening a pinned card lands on a real demo sessions page.
+export function demoPinnedCourses(): Array<{ id: string; title: string }> {
+  return [
+    { id: 'math-501', title: 'Functional Analysis' },
+    { id: 'math-505', title: 'Point-Set Topology' },
+  ]
+}
+
 export function demoSemesters(): SemesterOption[] {
   return [
     { id: 1, label: '2024-2025 Fall', labelEn: '2024-2025 Fall', schoolYear: 2024, semester: 1 },

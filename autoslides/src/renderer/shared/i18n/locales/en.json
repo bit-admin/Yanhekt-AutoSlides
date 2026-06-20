@@ -6,7 +6,8 @@
     "download": "Download",
     "home": "Home",
     "searchPlaceholder": "Search",
-    "workspace": "Workspace"
+    "workspace": "Workspace",
+    "pinned": "Pinned"
   },
   "auth": {
     "verifying": "Verifying...",
@@ -597,6 +598,8 @@
     }
   },
   "sessions": {
+    "pin": "Pin course",
+    "unpin": "Unpin",
     "backToCourses": "Back to Courses",
     "classrooms": "Classrooms",
     "time": "Time",

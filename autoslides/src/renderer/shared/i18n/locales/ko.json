@@ -6,7 +6,8 @@
     "download": "다운로드",
     "home": "홈",
     "searchPlaceholder": "검색",
-    "workspace": "작업 공간"
+    "workspace": "작업 공간",
+    "pinned": "고정됨"
   },
   "auth": {
     "verifying": "확인 중...",
@@ -597,6 +598,8 @@
     }
   },
   "sessions": {
+    "pin": "강의 고정",
+    "unpin": "고정 해제",
     "backToCourses": "강의로 돌아가기",
     "classrooms": "강의실",
     "time": "시간",

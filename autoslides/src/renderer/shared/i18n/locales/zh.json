@@ -6,7 +6,8 @@
     "download": "下载",
     "home": "主页",
     "searchPlaceholder": "搜索",
-    "workspace": "工作区"
+    "workspace": "工作区",
+    "pinned": "置顶"
   },
   "auth": {
     "verifying": "验证中...",
@@ -597,6 +598,8 @@
     }
   },
   "sessions": {
+    "pin": "置顶课程",
+    "unpin": "取消置顶",
     "backToCourses": "返回课程",
     "classrooms": "教室",
     "time": "时间",

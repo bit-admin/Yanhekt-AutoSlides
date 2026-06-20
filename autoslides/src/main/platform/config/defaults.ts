@@ -177,5 +177,6 @@ export const defaultConfig: AppConfig = {
   lastGreetingId: '',
   savedSearchesLive: [],
   savedSearchesRecorded: [],
+  pinnedRecordedCourses: [],
   onboardingCompleted: false
 };

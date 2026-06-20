@@ -42,6 +42,7 @@
           />
           <SessionPage
             v-else
+            :key="recordedState.selectedCourse?.id"
             :course="recordedState.selectedCourse"
             @session-selected="handleSessionSelected"
             @back-to-courses="backToCourses"
@@ -98,7 +99,7 @@ interface RecordedState {
 }
 
 const { t } = useI18n()
-const { activeNav, courseOpenRequest } = navigationStore
+const { activeNav, courseOpenRequest, recordedGridResetTick } = navigationStore
 
 // Recorded mode keeps its own browse state (course grid → sessions list).
 // Live mode has no intermediate page; playback is a tab.
@@ -119,6 +120,15 @@ const notifyManualTabLimit = () => {
 // Course opens come from any surface (course grid, Home rows, Search results)
 // via the navigation store. Live opens are handled directly by courseSelection
 // (a tab); here we only route recorded courses to their sessions list.
+// Clicking "Recorded" right after opening a pinned course returns to the course
+// grid (otherwise the content, already in recorded mode, would look unchanged).
+// Only fires for that pinned→recorded transition — a normal "Recorded" click
+// leaves the current sessions/grid state alone.
+watch(recordedGridResetTick, () => {
+  recordedState.value.page = 'courses'
+  recordedState.value.selectedCourse = null
+})
+
 watch(courseOpenRequest, (request) => {
   if (!request || request.mode !== 'recorded') return
   recordedState.value.selectedCourse = request.course
@@ -166,6 +176,9 @@ const handleSessionSelected = (session: any) => {
 const backToCourses = () => {
   recordedState.value.page = 'courses'
   recordedState.value.selectedCourse = null
+  // Returning to the course grid is recorded browsing again — drop any pinned
+  // highlight so the "Recorded" navigator entry lights up instead.
+  navigationStore.setActivePinned(null)
 }
 
 // The playback page's "Back" button closes its tab and returns to the Info tab

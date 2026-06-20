@@ -402,6 +402,7 @@ interface ElectronAPI {
     setLastGreetingId: (id: string) => Promise<void>;
     setOnboardingCompleted: (completed: boolean) => Promise<void>;
     setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => Promise<void>;
+    setPinnedRecordedCourses: (courses: { id: string; title: string }[]) => Promise<void>;
 
     // Slide extraction configuration
     getSlideExtractionConfig: () => Promise<SlideExtractionConfig>;

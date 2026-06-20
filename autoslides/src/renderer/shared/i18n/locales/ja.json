@@ -6,7 +6,8 @@
     "download": "ダウンロード",
     "home": "ホーム",
     "searchPlaceholder": "検索",
-    "workspace": "ワークスペース"
+    "workspace": "ワークスペース",
+    "pinned": "ピン留め"
   },
   "auth": {
     "verifying": "確認中...",
@@ -597,6 +598,8 @@
     }
   },
   "sessions": {
+    "pin": "コースをピン留め",
+    "unpin": "ピン留めを解除",
     "backToCourses": "コースに戻る",
     "classrooms": "教室",
     "time": "時間",

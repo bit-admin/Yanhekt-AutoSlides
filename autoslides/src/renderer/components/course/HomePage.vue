@@ -9,19 +9,42 @@
       <h2 class="home-section-title">{{ $t('courses.savedSearches.sectionTitle') }}</h2>
       <div class="saved-grid custom-scrollbar">
         <div
+          v-for="c in pinnedRecordedCourses"
+          :key="'pin:' + c.id"
+          class="saved-card saved-card--recorded"
+          @click="openPinnedCourse(c)"
+        >
+          <span class="saved-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 17v5"/>
+              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>
+            </svg>
+          </span>
+          <div class="saved-text">
+            <span class="saved-label">{{ c.title }}</span>
+            <span class="saved-mode">{{ $t('navigation.recorded') }}</span>
+          </div>
+          <button
+            class="saved-remove"
+            :title="$t('sessions.unpin')"
+            @click.stop="removePinnedCourse(c.id)"
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div
           v-for="entry in mergedSavedSearches"
           :key="entry.mode + ':' + entry.keyword"
           :class="['saved-card', `saved-card--${entry.mode}`]"
           @click="openSavedSearch(entry.keyword, entry.mode)"
         >
           <span class="saved-icon">
-            <svg v-if="entry.mode === 'live'" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
-            </svg>
-            <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-              <line x1="8" y1="21" x2="16" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="m21 21-4.35-4.35"/>
             </svg>
           </span>
           <div class="saved-text">
@@ -195,6 +218,7 @@ import { useSearchPage } from '@features/course/useSearchPage'
 import { openCourse } from '@features/course/courseSelection'
 import { getCourseStatusClass, getCourseStatusText, type Course } from '@features/course/useCourseList'
 import { mergedSavedSearches, addSavedSearch, removeSavedSearch } from '@features/course/savedSearches'
+import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@features/course/pinnedCourses'
 
 const { t } = useI18n()
 const { greetingText, loadGreeting } = useGreeting()
@@ -353,7 +377,7 @@ onMounted(() => {
   display: grid;
   grid-auto-flow: column;
   grid-template-rows: repeat(2, auto);
-  grid-auto-columns: 210px;
+  grid-auto-columns: 260px;
   gap: 12px;
   overflow-x: auto;
   padding-bottom: 8px;

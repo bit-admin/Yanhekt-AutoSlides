@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { IpcServices } from './types';
 import type { AIServiceType } from '@main/platform/configService';
+import type { PinnedCourse } from '@common/types';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('ConfigIpc');
 
@@ -260,6 +261,11 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setSavedSearches', async (_, mode: 'live' | 'recorded', searches: string[]) => {
     configService.setSavedSearches(mode, searches);
+    broadcastConfig();
+  });
+
+  ipcMain.handle('config:setPinnedRecordedCourses', async (_, courses: PinnedCourse[]) => {
+    configService.setPinnedRecordedCourses(courses);
     broadcastConfig();
   });
 

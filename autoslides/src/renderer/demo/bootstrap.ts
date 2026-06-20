@@ -21,6 +21,7 @@ import {
   demoCourseInfo,
   demoSavedSearchesLive,
   demoSavedSearchesRecorded,
+  demoPinnedCourses,
   demoPosterDataUri,
   demoGallerySlides,
   demoResultImageDataUri,
@@ -54,6 +55,7 @@ export function installDemo(): void {
     live: demoSavedSearchesLive,
     recorded: demoSavedSearchesRecorded,
   }
+  overrides.pinnedRecordedCourses = demoPinnedCourses
   overrides.resultsProvider = {
     getFolders: async () => demoResultFolders(),
     getImages: async (folderPath: string) => demoResultImages(folderPath),
