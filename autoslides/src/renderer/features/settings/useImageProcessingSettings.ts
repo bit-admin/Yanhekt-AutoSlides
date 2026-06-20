@@ -31,6 +31,20 @@ export function useImageProcessingSettings() {
   const pHashThreshold = ref(10)
   const tempPHashThreshold = ref(10)
 
+  // Slide detection (lives in slideExtraction config)
+  const slideCheckInterval = ref(2000)
+  const tempSlideCheckInterval = ref(2000)
+  const slideDoubleVerification = ref(true)
+  const tempSlideDoubleVerification = ref(true)
+  const slideVerificationCount = ref(2)
+  const tempSlideVerificationCount = ref(2)
+
+  // Auto post-processing
+  const autoPostProcessing = ref(true)
+  const tempAutoPostProcessing = ref(true)
+  const autoPostProcessingLive = ref(true)
+  const tempAutoPostProcessingLive = ref(true)
+
   // Post-processing phases
   const enableDuplicateRemoval = ref(true)
   const tempEnableDuplicateRemoval = ref(true)
@@ -114,9 +128,39 @@ export function useImageProcessingSettings() {
     }
   }
 
+  // Clamp the edited interval to [500, 10000] on the nearest 500ms step.
+  const validateAndCorrectInterval = () => {
+    if (isNaN(tempSlideCheckInterval.value) || tempSlideCheckInterval.value === null || tempSlideCheckInterval.value === undefined) {
+      tempSlideCheckInterval.value = 2000
+      return
+    }
+    let value = Math.round(tempSlideCheckInterval.value)
+    if (value < 500) value = 500
+    else if (value > 10000) value = 10000
+    const remainder = value % 500
+    if (remainder !== 0) {
+      value = remainder <= 250 ? value - remainder : value + (500 - remainder)
+    }
+    if (value < 500) value = 500
+    tempSlideCheckInterval.value = value
+  }
+
   const load = async () => {
     try {
       const slideConfig = await window.electronAPI.config.getSlideExtractionConfig()
+      const appConfig = await window.electronAPI.config.get()
+
+      slideCheckInterval.value = slideConfig.checkInterval || 2000
+      tempSlideCheckInterval.value = slideCheckInterval.value
+      slideDoubleVerification.value = slideConfig.enableDoubleVerification !== false
+      tempSlideDoubleVerification.value = slideDoubleVerification.value
+      slideVerificationCount.value = slideConfig.verificationCount || 2
+      tempSlideVerificationCount.value = slideVerificationCount.value
+
+      autoPostProcessing.value = appConfig.autoPostProcessing !== undefined ? appConfig.autoPostProcessing : true
+      tempAutoPostProcessing.value = autoPostProcessing.value
+      autoPostProcessingLive.value = appConfig.autoPostProcessingLive !== undefined ? appConfig.autoPostProcessingLive : true
+      tempAutoPostProcessingLive.value = autoPostProcessingLive.value
 
       isUpdatingProgrammatically = true
       ssimThreshold.value = slideConfig.ssimThreshold || ssimThresholdService.getThresholdValue('adaptive')
@@ -224,6 +268,22 @@ export function useImageProcessingSettings() {
 
     await window.electronAPI.config.setDistinguishMaybeSlide(tempDistinguishMaybeSlide.value)
     distinguishMaybeSlide.value = tempDistinguishMaybeSlide.value
+
+    validateAndCorrectInterval()
+    const intervalResult = await window.electronAPI.config.setSlideCheckInterval(tempSlideCheckInterval.value)
+    slideCheckInterval.value = intervalResult.checkInterval
+
+    const verificationResult = await window.electronAPI.config.setSlideDoubleVerification(
+      tempSlideDoubleVerification.value,
+      tempSlideVerificationCount.value
+    )
+    slideDoubleVerification.value = verificationResult.enableDoubleVerification
+    slideVerificationCount.value = verificationResult.verificationCount
+
+    const autoPostResult = await window.electronAPI.config.setAutoPostProcessing(tempAutoPostProcessing.value)
+    autoPostProcessing.value = autoPostResult.autoPostProcessing
+    const autoPostLiveResult = await window.electronAPI.config.setAutoPostProcessingLive(tempAutoPostProcessingLive.value)
+    autoPostProcessingLive.value = autoPostLiveResult.autoPostProcessingLive
   }
 
   const resetTemp = () => {
@@ -238,6 +298,11 @@ export function useImageProcessingSettings() {
     tempSelectedDownsamplingPreset.value = selectedDownsamplingPreset.value
     tempEnablePngColorReduction.value = enablePngColorReduction.value
     tempDistinguishMaybeSlide.value = distinguishMaybeSlide.value
+    tempSlideCheckInterval.value = slideCheckInterval.value
+    tempSlideDoubleVerification.value = slideDoubleVerification.value
+    tempSlideVerificationCount.value = slideVerificationCount.value
+    tempAutoPostProcessing.value = autoPostProcessing.value
+    tempAutoPostProcessingLive.value = autoPostProcessingLive.value
     isUpdatingProgrammatically = false
   }
 
@@ -363,6 +428,21 @@ export function useImageProcessingSettings() {
     // AI behaviour
     distinguishMaybeSlide,
     tempDistinguishMaybeSlide,
+
+    // Slide detection
+    slideCheckInterval,
+    tempSlideCheckInterval,
+    slideDoubleVerification,
+    tempSlideDoubleVerification,
+    slideVerificationCount,
+    tempSlideVerificationCount,
+    validateAndCorrectInterval,
+
+    // Auto post-processing
+    autoPostProcessing,
+    tempAutoPostProcessing,
+    autoPostProcessingLive,
+    tempAutoPostProcessingLive,
 
     // Lifecycle
     load,

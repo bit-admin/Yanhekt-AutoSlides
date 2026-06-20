@@ -357,6 +357,12 @@ const advancedSettings = useAdvancedSettings(
     themeMode: settings.themeMode,
     languageMode: settings.languageMode,
     preventSystemSleep: settings.preventSystemSleep,
+    connectionMode: settings.connectionMode,
+    muteMode: settings.muteMode,
+    taskSpeed: settings.taskSpeed,
+    parallelTasks: settings.parallelTasks,
+    maxManualTabs: settings.maxManualTabs,
+    showMorePlaybackSpeed: settings.showMorePlaybackSpeed,
     enableAIFiltering: settings.enableAIFiltering,
     tempEnableAIFiltering: settings.tempEnableAIFiltering
   },

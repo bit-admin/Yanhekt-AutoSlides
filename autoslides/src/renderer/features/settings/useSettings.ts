@@ -11,18 +11,11 @@ export interface UseSettingsReturn {
   connectionMode: Ref<'internal' | 'external'>
   muteMode: Ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>
 
-  // Slide extraction settings
-  slideCheckInterval: Ref<number>
-  slideDoubleVerification: Ref<boolean>
-  slideVerificationCount: Ref<number>
-
   // Task settings
   taskSpeed: Ref<number>
   parallelTasks: Ref<number>
   maxManualTabs: Ref<number>
   showMorePlaybackSpeed: Ref<boolean>
-  autoPostProcessing: Ref<boolean>
-  autoPostProcessingLive: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>
 
@@ -42,19 +35,11 @@ export interface UseSettingsReturn {
   selectOutputDirectory: () => Promise<void>
   setConnectionMode: (mode: 'internal' | 'external') => Promise<void>
   setMuteMode: () => Promise<void>
-  setSlideCheckInterval: () => Promise<void>
-  validateAndCorrectInterval: () => void
-  setSlideDoubleVerification: () => Promise<void>
   setTaskSpeed: () => Promise<void>
   setParallelTasks: () => Promise<void>
-  setMaxManualTabs: () => Promise<void>
-  setShowMorePlaybackSpeed: () => Promise<void>
-  setAutoPostProcessing: () => Promise<void>
-  setAutoPostProcessingLive: () => Promise<void>
   setEnableAIFiltering: () => Promise<void>
   resetTempEnableAIFiltering: () => void
   saveEnableAIFiltering: () => Promise<void>
-  setPreventSystemSleep: () => Promise<void>
 }
 
 export function useSettings(): UseSettingsReturn {
@@ -70,18 +55,11 @@ export function useSettings(): UseSettingsReturn {
   }, { immediate: true })
   const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
 
-  // Slide extraction settings
-  const slideCheckInterval = ref(2000)
-  const slideDoubleVerification = ref(true)
-  const slideVerificationCount = ref(2)
-
   // Task settings
   const taskSpeed = ref(10)
   const parallelTasks = ref(2)
   const maxManualTabs = ref(3)
   const showMorePlaybackSpeed = ref(false)
-  const autoPostProcessing = ref(true)
-  const autoPostProcessingLive = ref(true)
   const enableAIFiltering = ref(true)
   const tempEnableAIFiltering = ref(true)
 
@@ -95,40 +73,6 @@ export function useSettings(): UseSettingsReturn {
   const previewSeekSeconds = ref(150)
   const themeMode = ref<'system' | 'light' | 'dark'>('system')
   const languageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
-
-  // Validation function
-  const validateAndCorrectInterval = () => {
-    if (isNaN(slideCheckInterval.value) || slideCheckInterval.value === null || slideCheckInterval.value === undefined) {
-      slideCheckInterval.value = 2000
-      return
-    }
-
-    let value = Math.round(slideCheckInterval.value)
-
-    if (value < 500) {
-      value = 500
-    } else if (value > 10000) {
-      value = 10000
-    }
-
-    const remainder = value % 500
-    if (remainder !== 0) {
-      if (remainder <= 250) {
-        value = value - remainder
-      } else {
-        value = value + (500 - remainder)
-      }
-    }
-
-    if (value < 500) {
-      value = 500
-    }
-
-    if (value !== slideCheckInterval.value) {
-      slideCheckInterval.value = value
-      log.debug(`Slide check interval corrected to: ${value}ms`)
-    }
-  }
 
   // Config loading
   const loadConfig = async () => {
@@ -145,20 +89,11 @@ export function useSettings(): UseSettingsReturn {
       previewFromVideo.value = config.previewFromVideo !== undefined ? config.previewFromVideo : true
       previewSeekSeconds.value = config.previewSeekSeconds ?? 150
 
-      // Load slide extraction configuration
-      const slideConfig = await window.electronAPI.config.getSlideExtractionConfig()
-      slideCheckInterval.value = slideConfig.checkInterval || 2000
-      validateAndCorrectInterval()
-      slideDoubleVerification.value = slideConfig.enableDoubleVerification !== false
-      slideVerificationCount.value = slideConfig.verificationCount || 2
-
       // Load task configuration
       taskSpeed.value = config.taskSpeed || 10
       parallelTasks.value = config.parallelTasks || 2
       maxManualTabs.value = config.maxManualTabs || 3
       showMorePlaybackSpeed.value = config.showMorePlaybackSpeed ?? false
-      autoPostProcessing.value = config.autoPostProcessing !== undefined ? config.autoPostProcessing : true
-      autoPostProcessingLive.value = config.autoPostProcessingLive !== undefined ? config.autoPostProcessingLive : true
       enableAIFiltering.value = config.enableAIFiltering !== undefined ? config.enableAIFiltering : true
       tempEnableAIFiltering.value = enableAIFiltering.value
 
@@ -204,29 +139,6 @@ export function useSettings(): UseSettingsReturn {
     }
   }
 
-  const setSlideCheckInterval = async () => {
-    try {
-      validateAndCorrectInterval()
-      const result = await window.electronAPI.config.setSlideCheckInterval(slideCheckInterval.value)
-      slideCheckInterval.value = result.checkInterval
-    } catch (error) {
-      log.error('Failed to set slide check interval:', error)
-    }
-  }
-
-  const setSlideDoubleVerification = async () => {
-    try {
-      const result = await window.electronAPI.config.setSlideDoubleVerification(
-        slideDoubleVerification.value,
-        slideVerificationCount.value
-      )
-      slideDoubleVerification.value = result.enableDoubleVerification
-      slideVerificationCount.value = result.verificationCount
-    } catch (error) {
-      log.error('Failed to set slide double verification:', error)
-    }
-  }
-
   const setTaskSpeed = async () => {
     try {
       const result = await window.electronAPI.config.setTaskSpeed(taskSpeed.value)
@@ -242,43 +154,6 @@ export function useSettings(): UseSettingsReturn {
       parallelTasks.value = result.parallelTasks
     } catch (error) {
       log.error('Failed to set parallel tasks:', error)
-    }
-  }
-
-  const setMaxManualTabs = async () => {
-    try {
-      const result = await window.electronAPI.config.setMaxManualTabs(maxManualTabs.value)
-      maxManualTabs.value = result.maxManualTabs
-    } catch (error) {
-      log.error('Failed to set max manual tabs:', error)
-    }
-  }
-
-  const setShowMorePlaybackSpeed = async () => {
-    try {
-      const result = await window.electronAPI.config.setShowMorePlaybackSpeed(showMorePlaybackSpeed.value)
-      showMorePlaybackSpeed.value = result.showMorePlaybackSpeed ?? false
-      window.dispatchEvent(new CustomEvent('showMorePlaybackSpeedChanged', { detail: showMorePlaybackSpeed.value }))
-    } catch (error) {
-      log.error('Failed to set show-more playback speed:', error)
-    }
-  }
-
-  const setAutoPostProcessing = async () => {
-    try {
-      const result = await window.electronAPI.config.setAutoPostProcessing(autoPostProcessing.value)
-      autoPostProcessing.value = result.autoPostProcessing
-    } catch (error) {
-      log.error('Failed to set auto post-processing:', error)
-    }
-  }
-
-  const setAutoPostProcessingLive = async () => {
-    try {
-      const result = await window.electronAPI.config.setAutoPostProcessingLive(autoPostProcessingLive.value)
-      autoPostProcessingLive.value = result.autoPostProcessingLive
-    } catch (error) {
-      log.error('Failed to set auto post-processing for live:', error)
     }
   }
 
@@ -300,39 +175,17 @@ export function useSettings(): UseSettingsReturn {
     }
   }
 
-  const setPreventSystemSleep = async () => {
-    try {
-      const result = await window.electronAPI.config.setPreventSystemSleep(preventSystemSleep.value)
-      preventSystemSleep.value = result.preventSystemSleep
-
-      if (preventSystemSleep.value) {
-        await window.electronAPI.powerManagement.preventSleep()
-      } else {
-        await window.electronAPI.powerManagement.allowSleep()
-      }
-    } catch (error) {
-      log.error('Failed to set prevent system sleep:', error)
-    }
-  }
-
   return {
     // Basic settings state
     outputDirectory,
     connectionMode,
     muteMode,
 
-    // Slide extraction settings
-    slideCheckInterval,
-    slideDoubleVerification,
-    slideVerificationCount,
-
     // Task settings
     taskSpeed,
     parallelTasks,
     maxManualTabs,
     showMorePlaybackSpeed,
-    autoPostProcessing,
-    autoPostProcessingLive,
     enableAIFiltering,
     tempEnableAIFiltering,
 
@@ -352,18 +205,10 @@ export function useSettings(): UseSettingsReturn {
     selectOutputDirectory,
     setConnectionMode,
     setMuteMode,
-    setSlideCheckInterval,
-    validateAndCorrectInterval,
-    setSlideDoubleVerification,
     setTaskSpeed,
     setParallelTasks,
-    setMaxManualTabs,
-    setShowMorePlaybackSpeed,
-    setAutoPostProcessing,
-    setAutoPostProcessingLive,
     setEnableAIFiltering,
     resetTempEnableAIFiltering,
-    saveEnableAIFiltering,
-    setPreventSystemSleep
+    saveEnableAIFiltering
   }
 }

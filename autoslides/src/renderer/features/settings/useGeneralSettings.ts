@@ -2,6 +2,8 @@ import { ref, type Ref } from 'vue'
 import { languageService } from '@features/settings/languageService'
 import { DownloadService } from '@shared/services/downloadService'
 
+type MuteMode = 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'
+
 export interface UseGeneralSettingsOptions {
   maxConcurrentDownloads: Ref<number>
   downloadMaxWorkers: Ref<number>
@@ -11,6 +13,13 @@ export interface UseGeneralSettingsOptions {
   previewSeekSeconds: Ref<number>
   themeMode: Ref<'system' | 'light' | 'dark'>
   languageMode: Ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>
+  connectionMode: Ref<'internal' | 'external'>
+  muteMode: Ref<MuteMode>
+  taskSpeed: Ref<number>
+  parallelTasks: Ref<number>
+  maxManualTabs: Ref<number>
+  showMorePlaybackSpeed: Ref<boolean>
+  preventSystemSleep: Ref<boolean>
 }
 
 export function useGeneralSettings(options: UseGeneralSettingsOptions) {
@@ -22,7 +31,14 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     previewFromVideo,
     previewSeekSeconds,
     themeMode,
-    languageMode
+    languageMode,
+    connectionMode,
+    muteMode,
+    taskSpeed,
+    parallelTasks,
+    maxManualTabs,
+    showMorePlaybackSpeed,
+    preventSystemSleep
   } = options
 
   const tempMaxConcurrentDownloads = ref(5)
@@ -33,6 +49,13 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempPreviewSeekSeconds = ref(150)
   const tempThemeMode = ref<'system' | 'light' | 'dark'>('system')
   const tempLanguageMode = ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>('system')
+  const tempConnectionMode = ref<'internal' | 'external'>('external')
+  const tempMuteMode = ref<MuteMode>('normal')
+  const tempTaskSpeed = ref(10)
+  const tempParallelTasks = ref(2)
+  const tempMaxManualTabs = ref(3)
+  const tempShowMorePlaybackSpeed = ref(false)
+  const tempPreventSystemSleep = ref(true)
 
   const resetTemp = () => {
     tempMaxConcurrentDownloads.value = maxConcurrentDownloads.value
@@ -43,6 +66,13 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempPreviewSeekSeconds.value = previewSeekSeconds.value
     tempThemeMode.value = themeMode.value
     tempLanguageMode.value = languageMode.value
+    tempConnectionMode.value = connectionMode.value
+    tempMuteMode.value = muteMode.value
+    tempTaskSpeed.value = taskSpeed.value
+    tempParallelTasks.value = parallelTasks.value
+    tempMaxManualTabs.value = maxManualTabs.value
+    tempShowMorePlaybackSpeed.value = showMorePlaybackSpeed.value
+    tempPreventSystemSleep.value = preventSystemSleep.value
   }
 
   const save = async () => {
@@ -76,6 +106,38 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     }
 
     DownloadService.setMaxConcurrent(maxConcurrentDownloads.value)
+
+    const connectionResult = await window.electronAPI.config.setConnectionMode(tempConnectionMode.value)
+    connectionMode.value = connectionResult.connectionMode
+
+    const muteResult = await window.electronAPI.config.setMuteMode(tempMuteMode.value)
+    muteMode.value = muteResult.muteMode
+
+    const taskSpeedResult = await window.electronAPI.config.setTaskSpeed(tempTaskSpeed.value)
+    taskSpeed.value = taskSpeedResult.taskSpeed
+
+    const parallelResult = await window.electronAPI.config.setParallelTasks(tempParallelTasks.value)
+    parallelTasks.value = parallelResult.parallelTasks
+
+    const maxTabsResult = await window.electronAPI.config.setMaxManualTabs(tempMaxManualTabs.value)
+    maxManualTabs.value = maxTabsResult.maxManualTabs
+
+    if (tempShowMorePlaybackSpeed.value !== showMorePlaybackSpeed.value) {
+      const showMoreResult = await window.electronAPI.config.setShowMorePlaybackSpeed(tempShowMorePlaybackSpeed.value)
+      showMorePlaybackSpeed.value = showMoreResult.showMorePlaybackSpeed ?? false
+      // Notify open playback pages so the speed menu updates live.
+      window.dispatchEvent(new CustomEvent('showMorePlaybackSpeedChanged', { detail: showMorePlaybackSpeed.value }))
+    }
+
+    if (tempPreventSystemSleep.value !== preventSystemSleep.value) {
+      const sleepResult = await window.electronAPI.config.setPreventSystemSleep(tempPreventSystemSleep.value)
+      preventSystemSleep.value = sleepResult.preventSystemSleep
+      if (preventSystemSleep.value) {
+        await window.electronAPI.powerManagement.preventSleep()
+      } else {
+        await window.electronAPI.powerManagement.allowSleep()
+      }
+    }
   }
 
   // Placeholders — actual save happens in save()
@@ -93,6 +155,13 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempPreviewSeekSeconds,
     tempThemeMode,
     tempLanguageMode,
+    tempConnectionMode,
+    tempMuteMode,
+    tempTaskSpeed,
+    tempParallelTasks,
+    tempMaxManualTabs,
+    tempShowMorePlaybackSpeed,
+    tempPreventSystemSleep,
 
     resetTemp,
     save,

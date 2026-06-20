@@ -33,6 +33,12 @@ export interface UseAdvancedSettingsOptions {
   themeMode: Ref<'system' | 'light' | 'dark'>
   languageMode: Ref<'system' | 'en' | 'zh' | 'ja' | 'ko'>
   preventSystemSleep: Ref<boolean>
+  connectionMode: Ref<'internal' | 'external'>
+  muteMode: Ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>
+  taskSpeed: Ref<number>
+  parallelTasks: Ref<number>
+  maxManualTabs: Ref<number>
+  showMorePlaybackSpeed: Ref<boolean>
   enableAIFiltering: Ref<boolean>
   tempEnableAIFiltering: Ref<boolean>
 }
@@ -138,6 +144,13 @@ export function useAdvancedSettings(
     tempPreviewSeekSeconds: general.tempPreviewSeekSeconds,
     tempThemeMode: general.tempThemeMode,
     tempLanguageMode: general.tempLanguageMode,
+    tempConnectionMode: general.tempConnectionMode,
+    tempMuteMode: general.tempMuteMode,
+    tempTaskSpeed: general.tempTaskSpeed,
+    tempParallelTasks: general.tempParallelTasks,
+    tempMaxManualTabs: general.tempMaxManualTabs,
+    tempShowMorePlaybackSpeed: general.tempShowMorePlaybackSpeed,
+    tempPreventSystemSleep: general.tempPreventSystemSleep,
     updateMaxConcurrentDownloads: general.updateMaxConcurrentDownloads,
     updateDownloadMaxWorkers: general.updateDownloadMaxWorkers,
     updateDownloadNumRetries: general.updateDownloadNumRetries,
@@ -184,6 +197,12 @@ export function useAdvancedSettings(
     deleteAutoCropCustomModel: imageProcessing.deleteAutoCropCustomModel,
     distinguishMaybeSlide: imageProcessing.distinguishMaybeSlide,
     tempDistinguishMaybeSlide: imageProcessing.tempDistinguishMaybeSlide,
+    tempSlideCheckInterval: imageProcessing.tempSlideCheckInterval,
+    tempSlideDoubleVerification: imageProcessing.tempSlideDoubleVerification,
+    tempSlideVerificationCount: imageProcessing.tempSlideVerificationCount,
+    validateAndCorrectInterval: imageProcessing.validateAndCorrectInterval,
+    tempAutoPostProcessing: imageProcessing.tempAutoPostProcessing,
+    tempAutoPostProcessingLive: imageProcessing.tempAutoPostProcessingLive,
     loadImageProcessingConfig: imageProcessing.load,
     selectDownsamplingPreset: imageProcessing.selectDownsamplingPreset,
     updateImageProcessingParams: imageProcessing.updateImageProcessingParams,

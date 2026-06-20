@@ -24,13 +24,12 @@
       <div class="slide-interval-group">
         <div class="slide-interval-input-wrapper">
           <input
-            v-model.number="slideCheckInterval"
+            v-model.number="tempSlideCheckInterval"
             type="number"
             min="500"
             max="10000"
             step="500"
             class="slide-interval-input"
-            @change="setSlideCheckInterval"
             @blur="validateAndCorrectInterval"
           />
           <span class="interval-unit">{{ $t('settings.milliseconds') }}</span>
@@ -45,15 +44,13 @@
         <label class="checkbox-label">
           <input
             type="checkbox"
-            v-model="slideDoubleVerification"
-            @change="setSlideDoubleVerification"
+            v-model="tempSlideDoubleVerification"
           />
           {{ $t('settings.enableChecks') }}
         </label>
-        <div class="verification-count-control" v-if="slideDoubleVerification">
+        <div class="verification-count-control" v-if="tempSlideDoubleVerification">
           <select
-            v-model="slideVerificationCount"
-            @change="setSlideDoubleVerification"
+            v-model="tempSlideVerificationCount"
             class="select-field verification-count-select"
           >
             <option v-for="i in 5" :key="i" :value="i">{{ i }}</option>
@@ -150,16 +147,14 @@
         <label class="checkbox-label">
           <input
             type="checkbox"
-            v-model="autoPostProcessingLive"
-            @change="setAutoPostProcessingLive"
+            v-model="tempAutoPostProcessingLive"
           />
           {{ $t('settings.enableAutoPostProcessingLive') }}
         </label>
         <label class="checkbox-label">
           <input
             type="checkbox"
-            v-model="autoPostProcessing"
-            @change="setAutoPostProcessing"
+            v-model="tempAutoPostProcessing"
           />
           {{ $t('settings.enableAutoPostProcessingRecorded') }}
         </label>
@@ -497,19 +492,15 @@ const { settings, advanced, cache, phash } = useSettingsContext()
 
 const {
   tempEnableAIFiltering,
-  slideCheckInterval,
-  slideDoubleVerification,
-  slideVerificationCount,
-  setSlideCheckInterval,
-  validateAndCorrectInterval,
-  setSlideDoubleVerification,
-  autoPostProcessing,
-  autoPostProcessingLive,
-  setAutoPostProcessing,
-  setAutoPostProcessingLive,
 } = settings
 
 const {
+  tempSlideCheckInterval,
+  tempSlideDoubleVerification,
+  tempSlideVerificationCount,
+  validateAndCorrectInterval,
+  tempAutoPostProcessing,
+  tempAutoPostProcessingLive,
   tempEnablePngColorReduction,
   tempSsimThreshold,
   ssimPreset,

@@ -19,14 +19,14 @@
       <label class="setting-label">{{ $t('settings.connectionMode') }}</label>
       <div class="mode-toggle">
         <button
-          @click="setConnectionMode('internal')"
-          :class="['mode-btn', { active: connectionMode === 'internal' }]"
+          @click="tempConnectionMode = 'internal'"
+          :class="['mode-btn', { active: tempConnectionMode === 'internal' }]"
         >
           {{ $t('settings.internalNetwork') }}
         </button>
         <button
-          @click="setConnectionMode('external')"
-          :class="['mode-btn', { active: connectionMode === 'external' }]"
+          @click="tempConnectionMode = 'external'"
+          :class="['mode-btn', { active: tempConnectionMode === 'external' }]"
         >
           {{ $t('settings.externalNetwork') }}
         </button>
@@ -37,7 +37,7 @@
       <div class="two-col-row">
         <div class="two-col-item">
           <label class="setting-label">{{ $t('settings.audioMode') }}</label>
-          <select v-model="muteMode" @change="setMuteMode" class="select-field">
+          <select v-model="tempMuteMode" class="select-field">
             <option value="normal">{{ $t('settings.normal') }}</option>
             <option value="mute_all">{{ $t('settings.muteAll') }}</option>
             <option value="mute_live">{{ $t('settings.muteLive') }}</option>
@@ -46,7 +46,7 @@
         </div>
         <div class="two-col-item">
           <label class="setting-label">{{ $t('settings.taskSpeed') }}</label>
-          <select v-model="taskSpeed" @change="setTaskSpeed" class="select-field">
+          <select v-model="tempTaskSpeed" class="select-field">
             <option v-for="n in 16" :key="n" :value="n">{{ n }}x</option>
           </select>
         </div>
@@ -57,14 +57,14 @@
       <div class="two-col-row">
         <div class="two-col-item">
           <label class="setting-label">{{ $t('settings.parallelTasks') }}</label>
-          <select v-model.number="parallelTasks" @change="setParallelTasks" class="select-field">
+          <select v-model.number="tempParallelTasks" class="select-field">
             <option v-for="n in 5" :key="n" :value="n">{{ n }}</option>
           </select>
           <div class="setting-description">{{ $t('settings.parallelTasksDescription') }}</div>
         </div>
         <div class="two-col-item">
           <label class="setting-label">{{ $t('settings.maxManualTabs') }}</label>
-          <select v-model.number="maxManualTabs" @change="setMaxManualTabs" class="select-field">
+          <select v-model.number="tempMaxManualTabs" class="select-field">
             <option v-for="n in 5" :key="n" :value="n">{{ n }}</option>
           </select>
           <div class="setting-description">{{ $t('settings.maxManualTabsDescription') }}</div>
@@ -204,17 +204,7 @@ const { auth, settings, advanced, cache } = useSettingsContext()
 
 const {
   outputDirectory,
-  connectionMode,
-  muteMode,
-  taskSpeed,
-  parallelTasks,
-  maxManualTabs,
   selectOutputDirectory,
-  setConnectionMode,
-  setMuteMode,
-  setTaskSpeed,
-  setParallelTasks,
-  setMaxManualTabs,
 } = settings
 
 const {
@@ -230,6 +220,11 @@ const {
 const {
   tempThemeMode,
   tempLanguageMode,
+  tempConnectionMode,
+  tempMuteMode,
+  tempTaskSpeed,
+  tempParallelTasks,
+  tempMaxManualTabs,
 } = advanced
 
 const {

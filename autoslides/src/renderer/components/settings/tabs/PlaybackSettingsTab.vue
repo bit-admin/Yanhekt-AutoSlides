@@ -177,8 +177,7 @@
         <label class="checkbox-label">
           <input
             type="checkbox"
-            v-model="showMorePlaybackSpeed"
-            @change="setShowMorePlaybackSpeed"
+            v-model="tempShowMorePlaybackSpeed"
           />
           {{ $t('advanced.enableShowMorePlaybackSpeed') }}
         </label>
@@ -191,8 +190,7 @@
         <label class="checkbox-label">
           <input
             type="checkbox"
-            v-model="preventSystemSleep"
-            @change="setPreventSystemSleep"
+            v-model="tempPreventSystemSleep"
           />
           {{ $t('advanced.enablePreventSleep') }}
         </label>
@@ -231,16 +229,11 @@ import { createLogger } from '@shared/utils/logger';
 const log = createLogger('PlaybackSettingsTab');
 import { useSettingsContext } from '@features/settings/settingsContext'
 
-const { settings, advanced } = useSettingsContext()
+const { advanced } = useSettingsContext()
 
 const {
-  showMorePlaybackSpeed,
-  setShowMorePlaybackSpeed,
-  preventSystemSleep,
-  setPreventSystemSleep,
-} = settings
-
-const {
+  tempShowMorePlaybackSpeed,
+  tempPreventSystemSleep,
   tempQtExtractorAutoRun,
   tempQtExtractorAutoPostProcess,
   qtExtractorStatusOk,
