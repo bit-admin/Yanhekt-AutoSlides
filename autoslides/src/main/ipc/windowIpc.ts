@@ -1,6 +1,16 @@
 import { ipcMain, BrowserWindow } from 'electron';
+import type { IpcServices } from './types';
 
-export function registerWindowIpcHandlers(): void {
+export function registerWindowIpcHandlers(services: IpcServices): void {
+  const { windowManager } = services;
+
+  // The renderer pushes whether tasks/downloads/post-processing are active so
+  // the main process can warn before the window is closed or the app quits.
+  ipcMain.handle('window:setBusyState', async (_event, busy: boolean) => {
+    windowManager.setAppBusy(Boolean(busy));
+    return { success: true };
+  });
+
   ipcMain.handle('window:minimize', async () => {
     const focusedWindow = BrowserWindow.getFocusedWindow();
     if (focusedWindow) {

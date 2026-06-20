@@ -1069,7 +1069,14 @@
   "window": {
     "minimize": "最小化",
     "maximize": "最大化",
-    "close": "閉じる"
+    "close": "閉じる",
+    "closeGuard": {
+      "title": "処理が進行中です",
+      "message": "タスクまたはダウンロードがまだ実行中です。",
+      "detail": "今すぐ終了すると、進行中のタスクとダウンロードが停止され、未完了の作業は失われます。終了してもよろしいですか？",
+      "confirm": "終了する",
+      "cancel": "キャンセル"
+    }
   },
   "onboarding": {
     "welcomeTitle": "AutoSlides へようこそ",

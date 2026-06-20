@@ -1,9 +1,11 @@
-import { app, BrowserWindow, Menu, nativeTheme, session, shell } from 'electron';
+import { app, BrowserWindow, Menu, dialog, nativeTheme, session, shell } from 'electron';
 import path from 'node:path';
 import type { ConfigService } from '@main/platform/configService';
 import { demoWebPreferences } from '@main/demo/demoEnv';
 import enTranslations from '../../renderer/shared/i18n/locales/en.json';
 import zhTranslations from '../../renderer/shared/i18n/locales/zh.json';
+import jaTranslations from '../../renderer/shared/i18n/locales/ja.json';
+import koTranslations from '../../renderer/shared/i18n/locales/ko.json';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('WindowManager');
 
@@ -36,22 +38,67 @@ export class WindowManager {
   private onToolsWindowClosed?: () => void;
   private configService?: ConfigService;
 
+  // Whether the renderer reports active work (running/queued tasks, downloads,
+  // or post-processing). Pushed from the renderer via `window:setBusyState` and
+  // read by the main window's close handler to warn before quitting.
+  private appBusy = false;
+
   setConfigService(configService: ConfigService): void {
     this.configService = configService;
   }
 
+  setAppBusy(busy: boolean): void {
+    this.appBusy = busy;
+  }
+
+  isAppBusy(): boolean {
+    return this.appBusy;
+  }
+
+  /**
+   * Native confirmation shown when the user tries to close/quit while work is
+   * still running. Synchronous by design — it runs inside a window `close`
+   * handler that has called `event.preventDefault()`. Returns true if the user
+   * chose to proceed (close/quit anyway).
+   */
+  confirmCloseWhileBusy(window: BrowserWindow): boolean {
+    const t = (key: string) => this.getTranslation(key);
+    const choice = dialog.showMessageBoxSync(window, {
+      type: 'warning',
+      buttons: [t('window.closeGuard.cancel'), t('window.closeGuard.confirm')],
+      defaultId: 0,
+      cancelId: 0,
+      noLink: true,
+      title: t('window.closeGuard.title'),
+      message: t('window.closeGuard.message'),
+      detail: t('window.closeGuard.detail')
+    });
+    return choice === 1;
+  }
+
   private getTranslation(key: string): string {
     const languageMode = this.configService?.getLanguageMode() ?? 'system';
-    let locale: 'en' | 'zh' = 'en';
+    let locale: 'en' | 'zh' | 'ja' | 'ko' = 'en';
 
     if (languageMode === 'zh') {
       locale = 'zh';
-    } else if (languageMode === 'system') {
+    } else if (languageMode === 'en') {
+      locale = 'en';
+    } else {
+      // system: follow the OS locale (the menu/native dialogs are the only
+      // main-process strings, so they track the system language directly).
       const systemLang = app.getLocale();
-      locale = systemLang.startsWith('zh') ? 'zh' : 'en';
+      if (systemLang.startsWith('zh')) locale = 'zh';
+      else if (systemLang.startsWith('ja')) locale = 'ja';
+      else if (systemLang.startsWith('ko')) locale = 'ko';
+      else locale = 'en';
     }
 
-    const translations = locale === 'zh' ? zhTranslations : enTranslations;
+    const translations =
+      locale === 'zh' ? zhTranslations
+        : locale === 'ja' ? jaTranslations
+          : locale === 'ko' ? koTranslations
+            : enTranslations;
     const keys = key.split('.');
     let result: unknown = translations;
 

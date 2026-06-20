@@ -1069,7 +1069,14 @@
   "window": {
     "minimize": "최소화",
     "maximize": "최대화",
-    "close": "닫기"
+    "close": "닫기",
+    "closeGuard": {
+      "title": "작업이 진행 중입니다",
+      "message": "작업 또는 다운로드가 아직 실행 중입니다.",
+      "detail": "지금 종료하면 진행 중인 작업과 다운로드가 중지되고 완료되지 않은 작업이 모두 손실됩니다. 종료하시겠습니까?",
+      "confirm": "종료",
+      "cancel": "취소"
+    }
   },
   "onboarding": {
     "welcomeTitle": "AutoSlides에 오신 것을 환영합니다",

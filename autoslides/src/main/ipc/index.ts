@@ -41,7 +41,7 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerSlideExtractionIpcHandlers(services);
   registerOfflineIpcHandlers(services);
   registerDialogIpcHandlers();
-  registerWindowIpcHandlers();
+  registerWindowIpcHandlers(services);
   registerShellIpcHandlers();
   registerMenuIpcHandlers();
   registerPowerIpcHandlers(services);

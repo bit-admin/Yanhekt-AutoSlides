@@ -135,6 +135,9 @@ export const windowNs = {
   maximize: () => ipcRenderer.invoke('window:maximize'),
   close: () => ipcRenderer.invoke('window:close'),
   isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+  // Report whether tasks/downloads are running so the main process can warn
+  // before the window is closed or the app quits.
+  setBusyState: (busy: boolean) => ipcRenderer.invoke('window:setBusyState', busy),
 };
 
 export const shell = {

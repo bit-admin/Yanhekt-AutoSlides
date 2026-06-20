@@ -1069,7 +1069,14 @@
   "window": {
     "minimize": "最小化",
     "maximize": "最大化",
-    "close": "关闭"
+    "close": "关闭",
+    "closeGuard": {
+      "title": "仍有任务进行中",
+      "message": "任务或下载仍在进行中。",
+      "detail": "如果现在退出，正在进行的任务和下载将被中止，所有未完成的工作都会丢失。确定要退出吗？",
+      "confirm": "仍然退出",
+      "cancel": "取消"
+    }
   },
   "onboarding": {
     "welcomeTitle": "欢迎使用 AutoSlides",

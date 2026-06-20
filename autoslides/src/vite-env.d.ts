@@ -621,6 +621,7 @@ interface ElectronAPI {
     maximize: () => Promise<void>;
     close: () => Promise<void>;
     isMaximized: () => Promise<boolean>;
+    setBusyState: (busy: boolean) => Promise<{ success: boolean }>;
   };
 
   shell: {

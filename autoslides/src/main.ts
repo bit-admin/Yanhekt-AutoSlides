@@ -38,6 +38,11 @@ declare const MAIN_WINDOW_VITE_NAME: string;
 
 app.setName('AutoSlides');
 
+// Set when a quit is requested (Cmd+Q / app.quit) so the main window's close
+// handler knows to quit the whole app — not just close the window — once the
+// user confirms past the "work still running" warning.
+let quitRequested = false;
+
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1400,
@@ -83,6 +88,37 @@ const createWindow = () => {
         mainWindow.webContents.send('update:autoCheck');
       }
     }, 3000);
+  });
+
+  // Warn before closing/quitting while tasks or downloads are still running.
+  // Covers every platform and every close path: the macOS traffic-light button
+  // and Cmd+Q (which closes windows), and the custom close button on
+  // Windows/Linux (which calls window:close → window.close()). The renderer
+  // pushes its busy state via `window:setBusyState`.
+  let allowClose = false;
+  mainWindow.on('close', (event) => {
+    if (allowClose || !windowManager.isAppBusy()) return;
+
+    event.preventDefault();
+    // `quitRequested` is set in before-quit; capture it before the (blocking)
+    // dialog and reset so a later red-X close isn't mistaken for a quit.
+    const wasQuitting = quitRequested;
+    quitRequested = false;
+
+    if (windowManager.confirmCloseWhileBusy(mainWindow)) {
+      allowClose = true;
+      // Defer to the next tick: calling app.quit()/close() synchronously from
+      // inside a close handler that just preventDefault()'d gets swallowed by
+      // Electron (the quit it was cancelling is still settling). Letting the
+      // prevented close unwind first makes the re-issued quit/close take effect.
+      setImmediate(() => {
+        if (wasQuitting) {
+          app.quit();
+        } else {
+          mainWindow.close();
+        }
+      });
+    }
   });
 };
 
@@ -142,6 +178,13 @@ app.whenReady().then(() => {
 });
 
 app.on('before-quit', () => {
+  quitRequested = true;
+});
+
+// Cleanup only when the app is actually terminating. Using will-quit (instead
+// of before-quit) means a quit cancelled by the close-guard dialog doesn't tear
+// down power management while the app keeps running.
+app.on('will-quit', () => {
   powerManagementService.cleanup();
 });
 

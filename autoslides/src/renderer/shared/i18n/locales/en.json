@@ -1069,7 +1069,14 @@
   "window": {
     "minimize": "Minimize",
     "maximize": "Maximize",
-    "close": "Close"
+    "close": "Close",
+    "closeGuard": {
+      "title": "Work still in progress",
+      "message": "Tasks or downloads are still running.",
+      "detail": "If you quit now, in-progress tasks and downloads will be stopped and any unfinished work will be lost. Are you sure you want to quit?",
+      "confirm": "Quit anyway",
+      "cancel": "Cancel"
+    }
   },
   "onboarding": {
     "welcomeTitle": "Welcome to AutoSlides",

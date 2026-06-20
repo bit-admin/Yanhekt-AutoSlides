@@ -45,7 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import TitleBar from '@renderer/components/titlebar/TitleBar.vue'
 import LeftPanel from '@renderer/components/settings/LeftPanel.vue'
 import MainContent from '@renderer/components/MainContent.vue'
@@ -56,6 +56,29 @@ import { useAuth } from '@features/platform/useAuth'
 import { configStore } from '@shared/services/configStore'
 import { isDemoMode } from '@shared/services/runtimeEnv'
 import { layoutStore } from '@shared/services/layoutStore'
+import { TaskQueue } from '@shared/services/taskQueueService'
+import { DownloadService } from '@shared/services/downloadService'
+import { PostProcessingService } from '@shared/services/postProcessingService'
+
+// Whether any long-running work is active. Drives the main-process warning shown
+// when the user tries to close the window or quit while work is in flight.
+// Extraction statuses that count as "still working" on a download row.
+const ACTIVE_EXTRACTION = new Set(['pending', 'extracting', 'normalizing', 'post_processing'])
+const isBusy = computed(() => {
+  const tasksBusy = TaskQueue.isProcessing || TaskQueue.inProgressCount > 0
+  const downloadsBusy = DownloadService.downloadItems.some(item =>
+    item.status === 'queued' ||
+    item.status === 'downloading' ||
+    item.status === 'processing' ||
+    (item.extractionStatus !== undefined && ACTIVE_EXTRACTION.has(item.extractionStatus))
+  )
+  const postProcessingBusy = PostProcessingService.isProcessing || PostProcessingService.activeJobCount > 0
+  return tasksBusy || downloadsBusy || postProcessingBusy
+})
+
+watch(isBusy, (busy) => {
+  window.electronAPI.window.setBusyState(busy)
+}, { immediate: true })
 
 const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken } = useAuth()
 
