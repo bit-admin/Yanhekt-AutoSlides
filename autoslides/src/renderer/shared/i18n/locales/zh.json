@@ -1,7 +1,7 @@
 {
   "navigation": {
-    "live": "直播",
-    "recorded": "录播",
+    "live": "直播课程",
+    "recorded": "录播课程",
     "task": "任务",
     "download": "下载",
     "home": "主页",

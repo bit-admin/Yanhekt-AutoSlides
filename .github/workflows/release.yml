@@ -101,6 +101,8 @@ jobs:
 
     - name: Create draft release
       uses: softprops/action-gh-release@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.RELEASE_PAT }}
       with:
         draft: true
         name: AutoSlides ${{ github.ref_name }}
