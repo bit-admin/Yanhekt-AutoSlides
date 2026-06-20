@@ -79,6 +79,19 @@
       </svg>
     </button>
 
+    <!-- Open Yanhekt website with the current auth token -->
+    <button type="button" class="signin-option" @click="openYanhekt">
+      <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+        <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.5 7.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1zM8 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-1 0v-9A.5.5 0 0 1 8 3z"/>
+      </svg>
+      <span>{{ $t('titlebar.openYanhekt') }}</span>
+      <svg class="menu-link-external" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 3h6v6"/>
+        <path d="M10 14L21 3"/>
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+      </svg>
+    </button>
+
     <div class="menu-links-separator"></div>
   </div>
 </template>
@@ -87,6 +100,7 @@
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('UserMenuLinks');
 import { useI18n } from 'vue-i18n'
+import { tokenManager } from '@shared/services/authService'
 
 const { t: $t } = useI18n()
 
@@ -103,6 +117,21 @@ const openITCenter = async () => {
     await (window as any).electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/software')
   } catch (error) {
     log.error('Failed to open User Manual:', error)
+  }
+}
+
+const openYanhekt = async () => {
+  try {
+    const token = tokenManager.getToken()
+    // Expiry timestamp 7 days from now (Unix seconds, matching Yanhekt's expired_at)
+    const expiredAt = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60
+    const base = 'https://www.yanhekt.cn/login'
+    const url = token
+      ? `${base}?token=${encodeURIComponent(token)}&type=Bearer&expired_at=${expiredAt}`
+      : base
+    await (window as any).electronAPI.shell.openExternal(url)
+  } catch (error) {
+    log.error('Failed to open Yanhekt website:', error)
   }
 }
 
