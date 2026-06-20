@@ -2,7 +2,13 @@
   <div class="home-page custom-scrollbar">
     <div class="home-hero">
       <h1 class="home-greeting">{{ greetingText }}</h1>
-      <p class="home-tagline">{{ $t('courses.welcome.subtitle') }}</p>
+      <p v-if="campusCheckStatus === 'warning'" class="home-warning">
+        {{ $t('home.campusWarning.message') }}
+        <button type="button" class="home-warning-link" @click="switchToExternal">{{ $t('home.campusWarning.switchExternal') }}</button>
+        {{ $t('home.campusWarning.or') }}
+        <button type="button" class="home-warning-link" @click="openIntranetSettings">{{ $t('home.campusWarning.openSettings') }}</button>.
+      </p>
+      <p v-else class="home-tagline">{{ $t('courses.welcome.subtitle') }}</p>
     </div>
 
     <section class="home-section">
@@ -219,6 +225,9 @@ import { openCourse } from '@features/course/courseSelection'
 import { getCourseStatusClass, getCourseStatusText, type Course } from '@features/course/useCourseList'
 import { mergedSavedSearches, addSavedSearch, removeSavedSearch } from '@features/course/savedSearches'
 import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@features/course/pinnedCourses'
+import { useCampusNetworkCheck } from '@features/platform/useCampusNetworkCheck'
+import { settingsLauncher } from '@features/settings/settingsLauncher'
+import { configStore } from '@shared/services/configStore'
 
 const { t } = useI18n()
 const { greetingText, loadGreeting } = useGreeting()
@@ -235,6 +244,19 @@ const {
   clearPersonalRows
 } = useHomePage()
 const { thumbnails, loadThumbnail, clearThumbnails } = useHomeThumbnails()
+
+// Campus-network connectivity warning (only meaningful in internal mode).
+const { campusCheckStatus, runCampusCheck } = useCampusNetworkCheck()
+
+const switchToExternal = async () => {
+  await window.electronAPI.config.setConnectionMode('external')
+  // configStore updates via the config:onUpdate broadcast; the connectionMode
+  // watcher below then re-runs the check and clears the warning.
+}
+
+const openIntranetSettings = () => {
+  settingsLauncher.openSettingsTab('network')
+}
 
 // Before the monitor-icon fallback, show a course cover image (yanhekt CDN),
 // picked deterministically per course id so it's stable across re-renders.
@@ -317,11 +339,19 @@ watch(isLoggedIn, (loggedIn) => {
   }
 })
 
+// Re-probe whenever the connection mode flips (e.g. user switches to external
+// from the warning, or enables internal mode in settings).
+watch(() => configStore.connectionMode, () => {
+  runCampusCheck()
+})
+
 onMounted(() => {
   loadGreeting()
   if (isLoggedIn.value) {
     loadPersonalRows()
   }
+  // Fire-and-forget; never blocks the page.
+  runCampusCheck()
 })
 </script>
 
@@ -352,6 +382,27 @@ onMounted(() => {
   font-size: 13px;
   color: var(--text-muted);
   opacity: 0.75;
+}
+
+.home-warning {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--danger);
+}
+
+.home-warning-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--danger);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.home-warning-link:hover {
+  color: var(--danger-hover);
 }
 
 .home-section {

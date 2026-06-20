@@ -93,6 +93,8 @@ export class ConfigService {
     return {
       outputDirectory: this.store.get('outputDirectory'),
       connectionMode: this.store.get('connectionMode'),
+      campusPortalHost: this.store.get('campusPortalHost') ?? '10.0.0.55',
+      campusPortalUseHttps: this.store.get('campusPortalUseHttps') ?? false,
       maxConcurrentDownloads: this.store.get('maxConcurrentDownloads'),
       downloadMaxWorkers: this.store.get('downloadMaxWorkers'),
       downloadNumRetries: this.store.get('downloadNumRetries'),

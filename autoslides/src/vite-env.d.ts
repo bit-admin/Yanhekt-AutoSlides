@@ -3,6 +3,7 @@
 
 import type {
   AppConfig,
+  CampusProbeResult,
   AIFilteringConfig,
   MlClassifierThresholds,
   PHashExclusionItem,
@@ -494,6 +495,7 @@ interface ElectronAPI {
     getNetworkInterfaces: () => Promise<NetworkInterfaceInfo[]>;
     getInterfaceIp: () => Promise<string | null>;
     setInterfaceIp: (ip: string | null) => Promise<SetInterfaceIpResponse>;
+    checkCampusConnection: () => Promise<CampusProbeResult>;
   };
 
   video: {

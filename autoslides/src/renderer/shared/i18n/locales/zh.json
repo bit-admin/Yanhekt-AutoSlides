@@ -1117,7 +1117,13 @@
   "home": {
     "myLiveStreams": "我的直播",
     "myRecordings": "我的录播",
-    "signInHint": "登录后可查看你的直播和录播"
+    "signInHint": "登录后可查看你的直播和录播",
+    "campusWarning": {
+      "message": "当前处于内网模式，但未检测到校园网连接。你可以",
+      "switchExternal": "切换到外网模式",
+      "or": "或",
+      "openSettings": "检查内网网络接口"
+    }
   },
   "searchPage": {
     "semesterFall": "{year}年秋季学期",

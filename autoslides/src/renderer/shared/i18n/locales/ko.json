@@ -1117,7 +1117,13 @@
   "home": {
     "myLiveStreams": "내 라이브",
     "myRecordings": "내 녹화",
-    "signInHint": "로그인하면 라이브와 녹화를 볼 수 있습니다"
+    "signInHint": "로그인하면 라이브와 녹화를 볼 수 있습니다",
+    "campusWarning": {
+      "message": "내부 네트워크 모드가 켜져 있지만 캠퍼스 네트워크에 연결할 수 없습니다.",
+      "switchExternal": "외부 네트워크로 전환",
+      "or": "또는",
+      "openSettings": "내부 네트워크 인터페이스 설정"
+    }
   },
   "searchPage": {
     "semesterFall": "{year}년 가을학기",

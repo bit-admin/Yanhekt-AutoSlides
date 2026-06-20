@@ -299,7 +299,7 @@
 <script setup lang="ts">
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('LeftPanel');
-import { onMounted, onUnmounted, provide, ref } from 'vue'
+import { onMounted, onUnmounted, provide, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { usePinyinName } from '@features/platform/usePinyinName'
 import { useAuth } from '@features/platform/useAuth'
@@ -310,6 +310,7 @@ import { useAISettings } from '@features/ai/useAISettings'
 import { usePHashExclusion } from '@features/ai/usePHashExclusion'
 import { settingsContextKey } from '@features/settings/settingsContext'
 import { navigationStore } from '@features/course/navigationStore'
+import { settingsLauncher } from '@features/settings/settingsLauncher'
 import { useSearchPage } from '@features/course/useSearchPage'
 import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@features/course/pinnedCourses'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
@@ -496,6 +497,15 @@ const {
   updateThresholdProgrammatically,
   onAdaptiveThresholdChanged
 } = advancedSettings
+
+// Open the settings modal at a requested tab when another surface asks (e.g. the
+// Home-page campus-network warning's "open intranet interface settings" link).
+watch(() => settingsLauncher.requestId.value, async () => {
+  const tab = settingsLauncher.requestedTab.value
+  if (!tab) return
+  await openAdvancedSettings()
+  activeAdvancedTab.value = tab
+})
 
 // Cache Management
 

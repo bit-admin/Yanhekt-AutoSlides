@@ -1,9 +1,10 @@
 import { ipcMain } from 'electron';
 import os from 'node:os';
 import type { IpcServices } from './types';
+import { probeCampusConnection } from '@main/platform/campusNetworkProbe';
 
 export function registerIntranetIpcHandlers(services: IpcServices): void {
-  const { intranetMappingService } = services;
+  const { intranetMappingService, configService } = services;
 
   ipcMain.handle('intranet:setEnabled', async (_event, enabled: boolean) => {
     intranetMappingService.setEnabled(enabled);
@@ -67,5 +68,12 @@ export function registerIntranetIpcHandlers(services: IpcServices): void {
 
     intranetMappingService.setInterfaceIp(normalized);
     return { status: intranetMappingService.getNetworkStatus(), warning };
+  });
+
+  ipcMain.handle('intranet:checkCampusConnection', async () => {
+    const host = configService.get('campusPortalHost', '10.0.0.55') || '10.0.0.55';
+    const useHttps = configService.get('campusPortalUseHttps', false) || false;
+    const interfaceIp = intranetMappingService.getInterfaceIp();
+    return probeCampusConnection({ host, useHttps, interfaceIp });
   });
 }

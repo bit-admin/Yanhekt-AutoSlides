@@ -1,4 +1,5 @@
-import { ref, type Ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
+import { configStore } from '@shared/services/configStore'
 import { DownloadService } from '@shared/services/downloadService'
 import { languageService } from '@features/settings/languageService'
 import { createLogger } from '@shared/utils/logger';
@@ -60,6 +61,13 @@ export function useSettings(): UseSettingsReturn {
   // Basic settings state
   const outputDirectory = ref('')
   const connectionMode = ref<'internal' | 'external'>('external')
+  // Connection mode can be changed outside the settings modal (e.g. the Home-page
+  // campus-network warning writes it directly). Mirror the broadcast-synced
+  // configStore so the General tab never shows a stale value. This is an
+  // immediate-write toggle (no temp buffer), so a live mirror is safe.
+  watch(() => configStore.connectionMode, (mode) => {
+    connectionMode.value = mode
+  }, { immediate: true })
   const muteMode = ref<'normal' | 'mute_all' | 'mute_live' | 'mute_recorded'>('normal')
 
   // Slide extraction settings

@@ -2,6 +2,14 @@
 //  - AppConfig and its sub-types (consumed by main, renderer, preload)
 //  - Trash and Crop manifest entries (consumed by main, renderer)
 
+// Result of probing the campus authentication portal's online-status endpoint.
+export interface CampusProbeResult {
+  reachable: boolean;
+  online: boolean | null;
+  ip: string | null;
+  error?: string;
+}
+
 export type ThemeMode = 'system' | 'light' | 'dark';
 export type LanguageMode = 'system' | 'en' | 'zh' | 'ja' | 'ko';
 
@@ -113,6 +121,8 @@ export interface AppConfig {
   intranetMode?: boolean;
   intranetMappings?: Record<string, string>;
   intranetInterfaceIp?: string;
+  campusPortalHost: string;
+  campusPortalUseHttps: boolean;
   maxConcurrentDownloads: number;
   downloadMaxWorkers: number;
   downloadNumRetries: number;

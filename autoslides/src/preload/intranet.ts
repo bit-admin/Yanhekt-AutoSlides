@@ -7,4 +7,5 @@ export const intranet = {
   getNetworkInterfaces: () => ipcRenderer.invoke('intranet:getNetworkInterfaces'),
   getInterfaceIp: () => ipcRenderer.invoke('intranet:getInterfaceIp'),
   setInterfaceIp: (ip: string | null) => ipcRenderer.invoke('intranet:setInterfaceIp', ip),
+  checkCampusConnection: () => ipcRenderer.invoke('intranet:checkCampusConnection'),
 };

@@ -1117,7 +1117,13 @@
   "home": {
     "myLiveStreams": "マイライブ配信",
     "myRecordings": "マイ録画",
-    "signInHint": "サインインするとライブ配信と録画が表示されます"
+    "signInHint": "サインインするとライブ配信と録画が表示されます",
+    "campusWarning": {
+      "message": "内部ネットワークモードが有効ですが、学内ネットワークに接続できません。",
+      "switchExternal": "外部ネットワークに切り替える",
+      "or": "または",
+      "openSettings": "内部ネットワークインターフェースを設定する"
+    }
   },
   "searchPage": {
     "semesterFall": "{year}年秋学期",
