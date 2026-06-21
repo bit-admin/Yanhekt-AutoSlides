@@ -25,6 +25,7 @@ export interface UseSettingsReturn {
   downloadMaxWorkers: Ref<number>
   downloadNumRetries: Ref<number>
   videoRetryCount: Ref<number>
+  videoTokenRefreshSeconds: Ref<number>
   previewFromVideo: Ref<boolean>
   previewSeekSeconds: Ref<number>
   themeMode: Ref<'system' | 'light' | 'dark'>
@@ -69,6 +70,7 @@ export function useSettings(): UseSettingsReturn {
   const downloadMaxWorkers = ref(32)
   const downloadNumRetries = ref(15)
   const videoRetryCount = ref(5)
+  const videoTokenRefreshSeconds = ref(300)
   const previewFromVideo = ref(true)
   const previewSeekSeconds = ref(150)
   const themeMode = ref<'system' | 'light' | 'dark'>('system')
@@ -86,6 +88,7 @@ export function useSettings(): UseSettingsReturn {
       downloadMaxWorkers.value = config.downloadMaxWorkers || 32
       downloadNumRetries.value = config.downloadNumRetries || 15
       videoRetryCount.value = config.videoRetryCount || 5
+      videoTokenRefreshSeconds.value = config.videoTokenRefreshSeconds ?? 300
       previewFromVideo.value = config.previewFromVideo !== undefined ? config.previewFromVideo : true
       previewSeekSeconds.value = config.previewSeekSeconds ?? 150
 
@@ -195,6 +198,7 @@ export function useSettings(): UseSettingsReturn {
     downloadMaxWorkers,
     downloadNumRetries,
     videoRetryCount,
+    videoTokenRefreshSeconds,
     previewFromVideo,
     previewSeekSeconds,
     themeMode,

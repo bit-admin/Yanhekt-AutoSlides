@@ -84,6 +84,12 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setVideoTokenRefreshSeconds', async (_event, seconds: number) => {
+    configService.setVideoTokenRefreshSeconds(seconds);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:setTaskSpeed', async (_event, speed: number) => {
     configService.setTaskSpeed(speed);
     broadcastConfig();

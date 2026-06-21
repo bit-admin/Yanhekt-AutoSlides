@@ -352,6 +352,7 @@ const advancedSettings = useAdvancedSettings(
     downloadMaxWorkers: settings.downloadMaxWorkers,
     downloadNumRetries: settings.downloadNumRetries,
     videoRetryCount: settings.videoRetryCount,
+    videoTokenRefreshSeconds: settings.videoTokenRefreshSeconds,
     previewFromVideo: settings.previewFromVideo,
     previewSeekSeconds: settings.previewSeekSeconds,
     themeMode: settings.themeMode,

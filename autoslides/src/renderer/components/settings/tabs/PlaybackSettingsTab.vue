@@ -171,6 +171,16 @@
       </select>
     </div>
     <div class="setting-item">
+      <label class="setting-label">{{ $t('advanced.videoTokenRefresh') }}</label>
+      <div class="setting-description">{{ $t('advanced.videoTokenRefreshDescription') }}</div>
+      <select
+        v-model="tempVideoTokenRefreshSeconds"
+        class="select-field"
+      >
+        <option v-for="opt in videoTokenRefreshOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+      </select>
+    </div>
+    <div class="setting-item">
       <label class="setting-label">{{ $t('advanced.showMorePlaybackSpeed') }}</label>
       <div class="setting-description">{{ $t('advanced.showMorePlaybackSpeedDescription') }}</div>
       <div class="prevent-sleep-control">
@@ -225,11 +235,26 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('PlaybackSettingsTab');
 import { useSettingsContext } from '@features/settings/settingsContext'
 
+const { t } = useI18n()
 const { advanced } = useSettingsContext()
+
+// Video-token refresh interval choices (seconds), spanning 10s–10min.
+const videoTokenRefreshOptions = computed(() => [
+  { value: 10, label: t('advanced.durationSeconds', { n: 10 }) },
+  { value: 30, label: t('advanced.durationSeconds', { n: 30 }) },
+  { value: 60, label: t('advanced.durationMinutes', { n: 1 }) },
+  { value: 120, label: t('advanced.durationMinutes', { n: 2 }) },
+  { value: 180, label: t('advanced.durationMinutes', { n: 3 }) },
+  { value: 300, label: t('advanced.durationMinutes', { n: 5 }) },
+  { value: 420, label: t('advanced.durationMinutes', { n: 7 }) },
+  { value: 600, label: t('advanced.durationMinutes', { n: 10 }) },
+])
 
 const {
   tempShowMorePlaybackSpeed,
@@ -249,6 +274,7 @@ const {
   tempDownloadMaxWorkers,
   tempDownloadNumRetries,
   tempVideoRetryCount,
+  tempVideoTokenRefreshSeconds,
   tempPreviewFromVideo,
   tempPreviewSeekSeconds,
   updateMaxConcurrentDownloads,

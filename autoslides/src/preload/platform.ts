@@ -23,6 +23,7 @@ export const config = {
   setDownloadNumRetries: (count: number) => ipcRenderer.invoke('config:setDownloadNumRetries', count),
   setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => ipcRenderer.invoke('config:setMuteMode', mode),
   setVideoRetryCount: (count: number) => ipcRenderer.invoke('config:setVideoRetryCount', count),
+  setVideoTokenRefreshSeconds: (seconds: number) => ipcRenderer.invoke('config:setVideoTokenRefreshSeconds', seconds),
   setTaskSpeed: (speed: number) => ipcRenderer.invoke('config:setTaskSpeed', speed),
   setParallelTasks: (count: number) => ipcRenderer.invoke('config:setParallelTasks', count),
   setMaxManualTabs: (count: number) => ipcRenderer.invoke('config:setMaxManualTabs', count),

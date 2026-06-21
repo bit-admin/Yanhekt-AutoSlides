@@ -4,6 +4,7 @@ import axios, { AxiosResponse } from 'axios';
 import * as https from 'https';
 import * as os from 'os';
 import { ApiClient } from '@main/platform/apiClient';
+import { ConfigService } from '@main/platform/configService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import {
   fixUrlEscaping,
@@ -85,9 +86,9 @@ export class VideoProxyService {
   private intranetMapping: IntranetMappingService;
   private auth: ProxyAuth;
 
-  constructor(apiClient: ApiClient, intranetMapping: IntranetMappingService) {
+  constructor(apiClient: ApiClient, intranetMapping: IntranetMappingService, configService: ConfigService) {
     this.intranetMapping = intranetMapping;
-    this.auth = new ProxyAuth(apiClient);
+    this.auth = new ProxyAuth(apiClient, configService);
 
     // Proactively invalidate bound agents when the user changes the selected
     // intranet interface IP in Advanced Settings.

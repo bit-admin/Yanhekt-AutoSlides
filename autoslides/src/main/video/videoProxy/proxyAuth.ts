@@ -1,4 +1,5 @@
 import { ApiClient } from '@main/platform/apiClient';
+import type { ConfigService } from '@main/platform/configService';
 import {
   encryptVideoUrl,
   getVideoSignature,
@@ -22,7 +23,7 @@ export class ProxyAuth {
     timestamp: null,
     signature: null,
     lastRefresh: 0,
-    refreshInterval: 10000 // 10 seconds
+    refreshInterval: 300000 // overwritten live from config (videoTokenRefreshSeconds)
   };
 
   private signatureInterval: NodeJS.Timeout | null = null;
@@ -34,7 +35,16 @@ export class ProxyAuth {
    */
   private tokenFetchInFlight: Promise<string> | null = null;
 
-  constructor(private apiClient: ApiClient) {}
+  constructor(private apiClient: ApiClient, private configService: ConfigService) {}
+
+  /**
+   * Token refresh interval in ms, read live from config so a settings change
+   * takes effect on the next cache-validity check (and the next loop restart).
+   * The token is valid ~10 min server-side; default 300s, clamped 10–600s.
+   */
+  private getRefreshIntervalMs(): number {
+    return this.configService.getVideoTokenRefreshSeconds() * 1000;
+  }
 
   setLoginToken(token: string): void {
     this.loginToken = token;
@@ -92,9 +102,11 @@ export class ProxyAuth {
     try {
       const now = Date.now();
       const timeSinceLastRefresh = now - this.tokenCache.lastRefresh;
+      const refreshInterval = this.getRefreshIntervalMs();
+      this.tokenCache.refreshInterval = refreshInterval;
 
       // Return cached token if still valid (within refresh interval)
-      if (this.tokenCache.videoToken && timeSinceLastRefresh < this.tokenCache.refreshInterval) {
+      if (this.tokenCache.videoToken && timeSinceLastRefresh < refreshInterval) {
         // Still update signature for each request (signature is local, no API call)
         const { timestamp, signature } = this.getSignature();
         this.tokenCache.timestamp = timestamp;
@@ -136,7 +148,7 @@ export class ProxyAuth {
       } catch (error) {
         log.error('Error updating signature in loop:', error);
       }
-    }, 10000); // Update every 10 seconds
+    }, this.getRefreshIntervalMs()); // Period from config (videoTokenRefreshSeconds)
   }
 
   /**

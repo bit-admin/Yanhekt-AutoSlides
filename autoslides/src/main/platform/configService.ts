@@ -100,6 +100,7 @@ export class ConfigService {
       downloadNumRetries: this.store.get('downloadNumRetries'),
       muteMode: this.store.get('muteMode'),
       videoRetryCount: this.store.get('videoRetryCount'),
+      videoTokenRefreshSeconds: this.store.get('videoTokenRefreshSeconds') ?? 300,
       previewFromVideo: this.store.get('previewFromVideo') ?? true,
       previewSeekSeconds: this.store.get('previewSeekSeconds') ?? 150,
       taskSpeed: this.store.get('taskSpeed'),
@@ -171,6 +172,16 @@ export class ConfigService {
   setMaxManualTabs(count: number): void {
     const validCount = Math.max(1, Math.min(10, count));
     this.store.set('maxManualTabs', validCount);
+  }
+
+  getVideoTokenRefreshSeconds(): number {
+    return this.store.get('videoTokenRefreshSeconds') ?? 300;
+  }
+
+  setVideoTokenRefreshSeconds(seconds: number): void {
+    // UI exposes 10s–10min; clamp so a hand-edited config.json stays sane.
+    const valid = Math.max(10, Math.min(600, Math.round(seconds)));
+    this.store.set('videoTokenRefreshSeconds', valid);
   }
 
   setDownloadMaxWorkers(count: number): void {

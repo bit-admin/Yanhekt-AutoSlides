@@ -374,6 +374,7 @@ interface ElectronAPI {
     setDownloadNumRetries: (count: number) => Promise<AppConfig>;
     setMuteMode: (mode: 'normal' | 'mute_all' | 'mute_live' | 'mute_recorded') => Promise<AppConfig>;
     setVideoRetryCount: (count: number) => Promise<AppConfig>;
+    setVideoTokenRefreshSeconds: (seconds: number) => Promise<AppConfig>;
     setTaskSpeed: (speed: number) => Promise<AppConfig>;
     setParallelTasks: (count: number) => Promise<AppConfig>;
     setMaxManualTabs: (count: number) => Promise<AppConfig>;

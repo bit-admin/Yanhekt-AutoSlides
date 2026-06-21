@@ -9,6 +9,7 @@ export interface UseGeneralSettingsOptions {
   downloadMaxWorkers: Ref<number>
   downloadNumRetries: Ref<number>
   videoRetryCount: Ref<number>
+  videoTokenRefreshSeconds: Ref<number>
   previewFromVideo: Ref<boolean>
   previewSeekSeconds: Ref<number>
   themeMode: Ref<'system' | 'light' | 'dark'>
@@ -28,6 +29,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     downloadMaxWorkers,
     downloadNumRetries,
     videoRetryCount,
+    videoTokenRefreshSeconds,
     previewFromVideo,
     previewSeekSeconds,
     themeMode,
@@ -45,6 +47,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
   const tempDownloadMaxWorkers = ref(32)
   const tempDownloadNumRetries = ref(15)
   const tempVideoRetryCount = ref(5)
+  const tempVideoTokenRefreshSeconds = ref(300)
   const tempPreviewFromVideo = ref(true)
   const tempPreviewSeekSeconds = ref(150)
   const tempThemeMode = ref<'system' | 'light' | 'dark'>('system')
@@ -62,6 +65,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempDownloadMaxWorkers.value = downloadMaxWorkers.value
     tempDownloadNumRetries.value = downloadNumRetries.value
     tempVideoRetryCount.value = videoRetryCount.value
+    tempVideoTokenRefreshSeconds.value = videoTokenRefreshSeconds.value
     tempPreviewFromVideo.value = previewFromVideo.value
     tempPreviewSeekSeconds.value = previewSeekSeconds.value
     tempThemeMode.value = themeMode.value
@@ -87,6 +91,9 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
 
     const retryResult = await window.electronAPI.config.setVideoRetryCount(tempVideoRetryCount.value)
     videoRetryCount.value = retryResult.videoRetryCount
+
+    const tokenRefreshResult = await window.electronAPI.config.setVideoTokenRefreshSeconds(tempVideoTokenRefreshSeconds.value)
+    videoTokenRefreshSeconds.value = tokenRefreshResult.videoTokenRefreshSeconds
 
     const previewFromVideoResult = await window.electronAPI.config.setPreviewFromVideo(tempPreviewFromVideo.value)
     previewFromVideo.value = previewFromVideoResult.previewFromVideo
@@ -151,6 +158,7 @@ export function useGeneralSettings(options: UseGeneralSettingsOptions) {
     tempDownloadMaxWorkers,
     tempDownloadNumRetries,
     tempVideoRetryCount,
+    tempVideoTokenRefreshSeconds,
     tempPreviewFromVideo,
     tempPreviewSeekSeconds,
     tempThemeMode,

@@ -128,6 +128,9 @@ export interface AppConfig {
   downloadNumRetries: number;
   muteMode: MuteMode;
   videoRetryCount: number;
+  // How often (seconds) the video proxy re-fetches the anti-hotlink video token.
+  // The token is valid ~10 min server-side. Default 300; UI exposes 10–600.
+  videoTokenRefreshSeconds: number;
   previewFromVideo: boolean;
   previewSeekSeconds: number;
   taskSpeed: number;

@@ -28,6 +28,7 @@ export interface UseAdvancedSettingsOptions {
   downloadMaxWorkers: Ref<number>
   downloadNumRetries: Ref<number>
   videoRetryCount: Ref<number>
+  videoTokenRefreshSeconds: Ref<number>
   previewFromVideo: Ref<boolean>
   previewSeekSeconds: Ref<number>
   themeMode: Ref<'system' | 'light' | 'dark'>
@@ -140,6 +141,7 @@ export function useAdvancedSettings(
     tempDownloadMaxWorkers: general.tempDownloadMaxWorkers,
     tempDownloadNumRetries: general.tempDownloadNumRetries,
     tempVideoRetryCount: general.tempVideoRetryCount,
+    tempVideoTokenRefreshSeconds: general.tempVideoTokenRefreshSeconds,
     tempPreviewFromVideo: general.tempPreviewFromVideo,
     tempPreviewSeekSeconds: general.tempPreviewSeekSeconds,
     tempThemeMode: general.tempThemeMode,
