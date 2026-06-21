@@ -412,6 +412,7 @@
       "liveStreams": "直播课程",
       "recordings": "录播课程"
     },
+    "findOtherRecordings": "查找其他老师",
     "savedSearches": {
       "save": "保存搜索",
       "remove": "删除",

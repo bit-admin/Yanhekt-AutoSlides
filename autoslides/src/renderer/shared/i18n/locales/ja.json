@@ -412,6 +412,7 @@
       "liveStreams": "ライブストリーム",
       "recordings": "録画"
     },
+    "findOtherRecordings": "他の先生を検索",
     "savedSearches": {
       "save": "検索を保存",
       "remove": "削除",

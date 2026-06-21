@@ -2,6 +2,19 @@
   <div class="course-page">
     <div class="header">
       <h2 class="page-title">{{ mode === 'live' ? $t('courses.title.liveStreams') : $t('courses.title.recordings') }}</h2>
+      <button
+        v-if="mode === 'recorded' && isLoggedIn"
+        type="button"
+        class="header-action"
+        :title="$t('courses.findOtherRecordings')"
+        @click="openAllRecordingsSearch"
+      >
+        <svg class="header-action-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/>
+          <path d="m21 21-4.35-4.35"/>
+        </svg>
+        <span>{{ $t('courses.findOtherRecordings') }}</span>
+      </button>
     </div>
 
     <div class="content">
@@ -83,6 +96,7 @@ import { toRef, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCourseList } from '@features/course/useCourseList'
 import { navigationStore } from '@features/course/navigationStore'
+import { useSearchPage } from '@features/course/useSearchPage'
 import { useAuth } from '@features/platform/useAuth'
 
 const props = defineProps<{
@@ -92,6 +106,7 @@ const props = defineProps<{
 const { t } = useI18n()
 const { activeNav } = navigationStore
 const { isLoggedIn } = useAuth()
+const { openAllRecordingsSearch } = useSearchPage()
 
 const {
   isLoading,
@@ -150,6 +165,10 @@ watch(isLoggedIn, (loggedIn) => {
 /* Apple Music style title band: centered title on a full-width tinted bar */
 .header {
   flex-shrink: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 18px 16px;
   background-color: var(--bg-elevated);
   border-bottom: 1px solid var(--border-color);
@@ -163,6 +182,44 @@ watch(isLoggedIn, (loggedIn) => {
   letter-spacing: -0.2px;
   text-align: center;
   color: var(--text-primary);
+}
+
+.header-action {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 180px;
+  min-height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, color 0.15s;
+}
+
+.header-action:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 1px 4px var(--focus-ring);
+}
+
+.header-action-icon {
+  flex-shrink: 0;
+}
+
+.header-action span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .content {

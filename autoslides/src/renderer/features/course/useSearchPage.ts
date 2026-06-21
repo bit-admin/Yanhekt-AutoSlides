@@ -170,6 +170,17 @@ const openSavedSearch = async (kw: string, m: 'live' | 'recorded') => {
   await executeSearch()
 }
 
+const openAllRecordingsSearch = async () => {
+  cancelPendingSearch()
+  keyword.value = ''
+  mode.value = 'recorded'
+  navigationStore.navigate('search')
+  if (!semesterInitialized.value) {
+    await selectLatestSemester()
+  }
+  await executeSearch()
+}
+
 const selectResult = (course: Course) => {
   openCourse(mode.value, course)
 }
@@ -193,6 +204,7 @@ export function useSearchPage() {
     handleSidebarFocus,
     handleSidebarEnter,
     openSavedSearch,
+    openAllRecordingsSearch,
     selectResult
   }
 }
