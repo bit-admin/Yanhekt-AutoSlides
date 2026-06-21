@@ -7,17 +7,27 @@ import type {
 } from '@common/notesTypes'
 
 const PAGE_SIZE = 20
-/** When filtering by group, fetch up to this many notes and filter client-side. */
-const GROUP_FETCH_CAP = 200
+/** Page size used when fetching the full note set (server honours large sizes). */
+const FETCH_PAGE_SIZE = 500
+/** Safety cap on full-set paging (FETCH_PAGE_SIZE * this = max notes loaded). */
+const MAX_FETCH_PAGES = 20
 
 /**
  * Reactive state + actions for the Cloud Notes tab. All data flows through the
  * main process (window.electronAPI.cloudNotes), which holds the auth token.
- * The Editor.js wiring itself lives in the component; this composable owns the
- * note/group lists, selection, and the network actions.
+ *
+ * Grouping model: the server's note/list endpoint ignores any groupId filter,
+ * so we load the complete note set once (paging note/list, which paginates
+ * correctly and honours a large page_size) and do group filtering, keyword
+ * filtering, and pagination entirely client-side over that in-memory set. List
+ * rows carry no content, so the full set stays light even for many notes. The
+ * Editor.js wiring lives in the component; this composable owns the data.
  */
 export function useCloudNotes() {
   const groups = ref<NoteGroup[]>([])
+  /** Complete note set (all groups), loaded via loadAll(). */
+  const allNotes = ref<NoteSummary[]>([])
+  /** The current visible page after group + keyword filtering. */
   const notes = ref<NoteSummary[]>([])
   const selectedNote = ref<NoteDetail | null>(null)
 
@@ -26,6 +36,8 @@ export function useCloudNotes() {
 
   const page = ref(1)
   const totalPages = ref(1)
+  /** Number of notes matching the current group + keyword filter. */
+  const filteredCount = ref(0)
 
   const loading = ref(false)
   const saving = ref(false)
@@ -49,50 +61,65 @@ export function useCloudNotes() {
     return null
   }
 
+  /** Recompute the visible page from allNotes given the active group + keyword. */
+  function applyView(): void {
+    const gid = activeGroupId.value
+    const kw = keyword.value.trim().toLowerCase()
+    let rows = allNotes.value
+    if (gid !== '') rows = rows.filter((n) => n.note_group_id === gid)
+    if (kw) rows = rows.filter((n) => (n.title || '').toLowerCase().includes(kw))
+
+    filteredCount.value = rows.length
+    totalPages.value = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+    if (page.value > totalPages.value) page.value = totalPages.value
+    const start = (page.value - 1) * PAGE_SIZE
+    notes.value = rows.slice(start, start + PAGE_SIZE)
+  }
+
   async function refreshGroups(): Promise<void> {
     const res = await window.electronAPI.cloudNotes.groupList()
     const data = unwrap(res)
     if (data) groups.value = data
   }
 
-  async function searchNotes(resetPage = true): Promise<void> {
-    if (resetPage) page.value = 1
+  /** Load the complete note set by paging note/list, then recompute the view. */
+  async function loadAll(): Promise<void> {
     loading.value = true
     error.value = ''
     try {
-      // The server's note/list endpoint ignores group filtering, so when a
-      // specific group is selected we pull a large page and filter by
-      // note_group_id client-side (and hide the pager). "All notes" uses the
-      // server's real pagination. Keyword search is honoured server-side in both.
-      const filteringGroup = activeGroupId.value !== ''
-      const res = await window.electronAPI.cloudNotes.list({
-        page: filteringGroup ? 1 : page.value,
-        pageSize: filteringGroup ? GROUP_FETCH_CAP : PAGE_SIZE,
-        keyword: keyword.value.trim(),
-      })
-      const data = unwrap(res)
-      if (data) {
-        if (filteringGroup) {
-          notes.value = data.data.filter((n) => n.note_group_id === activeGroupId.value)
-          totalPages.value = 1
-        } else {
-          notes.value = data.data
-          totalPages.value = Math.max(1, data.last_page)
-        }
-      }
+      const collected: NoteSummary[] = []
+      let p = 1
+      let lastPage = 1
+      do {
+        const res = await window.electronAPI.cloudNotes.list({ page: p, pageSize: FETCH_PAGE_SIZE })
+        const data = unwrap(res)
+        if (!data) break
+        collected.push(...data.data)
+        lastPage = Math.max(1, data.last_page)
+        p += 1
+      } while (p <= lastPage && p <= MAX_FETCH_PAGES)
+      allNotes.value = collected
+      applyView()
     } finally {
       loading.value = false
     }
   }
 
-  async function setGroup(groupId: number | ''): Promise<void> {
-    activeGroupId.value = groupId
-    await searchNotes(true)
+  /** Re-apply the group + keyword filter (client-side; no network). */
+  function searchNotes(resetPage = true): void {
+    if (resetPage) page.value = 1
+    applyView()
   }
 
-  async function goToPage(next: number): Promise<void> {
+  function setGroup(groupId: number | ''): void {
+    activeGroupId.value = groupId
+    page.value = 1
+    applyView()
+  }
+
+  function goToPage(next: number): void {
     page.value = Math.min(Math.max(1, next), totalPages.value)
-    await searchNotes(false)
+    applyView()
   }
 
   /** Load full note detail into the editor pane. */
@@ -113,7 +140,8 @@ export function useCloudNotes() {
     const res = await window.electronAPI.cloudNotes.create()
     const id = unwrap(res)
     if (id != null) {
-      await searchNotes(true)
+      // Refetch so the new (blank) note appears with proper metadata.
+      await loadAll()
     }
     return id
   }
@@ -123,7 +151,8 @@ export function useCloudNotes() {
     error.value = ''
     try {
       const res = await window.electronAPI.cloudNotes.updateContent(id, content)
-      return unwrap(res) !== null || res.ok
+      if (!res.ok) unwrap(res)
+      return res.ok
     } finally {
       saving.value = false
     }
@@ -132,70 +161,78 @@ export function useCloudNotes() {
   async function renameNote(id: number, title: string): Promise<boolean> {
     error.value = ''
     const res = await window.electronAPI.cloudNotes.updateTitle(id, title)
-    const ok = res.ok
-    if (ok) {
+    if (res.ok) {
       if (selectedNote.value?.id === id) selectedNote.value.title = title
-      const summary = notes.value.find((n) => n.id === id)
-      if (summary) summary.title = title
+      const row = allNotes.value.find((n) => n.id === id)
+      if (row) row.title = title
+      applyView()
     } else {
       unwrap(res)
     }
-    return ok
+    return res.ok
   }
 
   async function deleteNote(id: number): Promise<boolean> {
     error.value = ''
     const res = await window.electronAPI.cloudNotes.delete(id)
-    const ok = res.ok
-    if (ok) {
+    if (res.ok) {
       if (selectedNote.value?.id === id) selectedNote.value = null
-      await searchNotes(false)
+      allNotes.value = allNotes.value.filter((n) => n.id !== id)
+      applyView()
     } else {
       unwrap(res)
     }
-    return ok
+    return res.ok
   }
 
   async function moveNoteToGroup(id: number, groupId: number): Promise<boolean> {
     error.value = ''
     const res = await window.electronAPI.cloudNotes.moveToGroup(id, groupId)
-    const ok = res.ok
-    if (ok) {
-      await Promise.all([refreshGroups(), searchNotes(false)])
+    if (res.ok) {
+      const row = allNotes.value.find((n) => n.id === id)
+      if (row) row.note_group_id = groupId
+      await refreshGroups()
+      applyView()
     } else {
       unwrap(res)
     }
-    return ok
+    return res.ok
   }
 
   async function createGroup(name: string): Promise<boolean> {
     error.value = ''
     const res = await window.electronAPI.cloudNotes.groupCreate(name)
-    const ok = res.ok
-    if (ok) {
+    if (res.ok) {
       await refreshGroups()
     } else {
       unwrap(res)
     }
-    return ok
+    return res.ok
   }
 
   async function deleteGroup(id: number): Promise<boolean> {
     error.value = ''
     const res = await window.electronAPI.cloudNotes.groupDelete(id)
-    const ok = res.ok
-    if (ok) {
-      if (activeGroupId.value === id) activeGroupId.value = ''
-      await Promise.all([refreshGroups(), searchNotes(true)])
+    if (res.ok) {
+      // Server reassigns the group's notes to the default group (0).
+      for (const n of allNotes.value) {
+        if (n.note_group_id === id) n.note_group_id = 0
+      }
+      if (activeGroupId.value === id) {
+        activeGroupId.value = ''
+        page.value = 1
+      }
+      await refreshGroups()
+      applyView()
     } else {
       unwrap(res)
     }
-    return ok
+    return res.ok
   }
 
-  /** Initial load — groups + first page of notes. */
+  /** Initial load — groups + the complete note set. */
   async function init(): Promise<void> {
-    await Promise.all([refreshGroups(), searchNotes(true)])
+    await Promise.all([refreshGroups(), loadAll()])
   }
 
   return {
@@ -208,6 +245,7 @@ export function useCloudNotes() {
     activeGroupId,
     page,
     totalPages,
+    filteredCount,
     loading,
     saving,
     error,
@@ -215,6 +253,7 @@ export function useCloudNotes() {
     // actions
     init,
     refreshGroups,
+    loadAll,
     searchNotes,
     setGroup,
     goToPage,
