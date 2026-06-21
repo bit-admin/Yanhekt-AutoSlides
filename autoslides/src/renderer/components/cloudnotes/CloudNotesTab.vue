@@ -49,7 +49,7 @@
             :placeholder="$t('cloudNotes.newGroupPlaceholder', { max: NOTE_GROUP_NAME_MAX })"
             @keyup.enter="onCreateGroup"
           />
-          <button class="btn btn--sm btn--primary" :disabled="!newGroupName.trim()" @click="onCreateGroup">
+          <button class="btn btn--primary" :disabled="!newGroupName.trim()" @click="onCreateGroup">
             {{ $t('cloudNotes.add') }}
           </button>
         </div>
@@ -62,10 +62,8 @@
             v-model="cn.keyword.value"
             class="text-input cn-search"
             :placeholder="$t('cloudNotes.searchPlaceholder')"
-            @keyup.enter="cn.searchNotes(true)"
           />
-          <button class="btn btn--sm btn--ghost" @click="cn.searchNotes(true)">{{ $t('cloudNotes.search') }}</button>
-          <button class="btn btn--sm btn--primary" @click="onCreateNote">{{ $t('cloudNotes.newNote') }}</button>
+          <button class="btn btn--primary" @click="onCreateNote">{{ $t('cloudNotes.newNote') }}</button>
         </div>
 
         <div class="cn-list-items custom-scrollbar">
@@ -106,12 +104,15 @@
               <option value="0">{{ $t('cloudNotes.defaultGroup') }}</option>
               <option v-for="g in cn.groups.value.filter(x => x.id !== 0)" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
             </select>
-            <button class="btn btn--sm btn--primary" :disabled="cn.saving.value" @click="onSaveContent">
-              {{ cn.saving.value ? $t('cloudNotes.saving') : $t('cloudNotes.save') }}
-            </button>
-            <button class="btn btn--sm btn--danger-outline" @click="onDeleteNote">{{ $t('cloudNotes.delete') }}</button>
+            <span class="cn-save-status" :class="{ 'is-active': saveStatus !== 'idle' }">
+              <template v-if="saveStatus === 'saving'">{{ $t('cloudNotes.saving') }}</template>
+              <template v-else-if="saveStatus === 'saved'">{{ $t('cloudNotes.saved') }}</template>
+            </span>
+            <button class="btn btn--danger-outline" @click="onDeleteNote">{{ $t('cloudNotes.delete') }}</button>
           </div>
-          <div ref="editorHolder" class="cn-editor-holder custom-scrollbar"></div>
+          <div class="cn-editor-holder custom-scrollbar">
+            <div ref="editorHolder" class="cn-editor-doc"></div>
+          </div>
         </template>
       </section>
     </template>
@@ -137,7 +138,19 @@ const cn = useCloudNotes()
 const newGroupName = ref('')
 const editableTitle = ref('')
 const editorHolder = ref<HTMLElement | null>(null)
+const saveStatus = ref<'idle' | 'saving' | 'saved'>('idle')
 let editor: EditorJS | null = null
+/** True once the editor has loaded a note and is ready to accept user edits. */
+let editorReady = false
+/**
+ * Serialized *blocks* of the currently-loaded content, used to detect genuine
+ * edits. We compare blocks only — never the whole OutputData — because
+ * editor.save() stamps a fresh `time` on every call, which would otherwise make
+ * every save look like a change. The initial-render onChange also diffs equal.
+ */
+let lastSavedBlocks = ''
+let saveTimer: ReturnType<typeof setTimeout> | undefined
+let savedFlashTimer: ReturnType<typeof setTimeout> | undefined
 
 function parseContent(raw: string): OutputData | undefined {
   if (!raw) return undefined
@@ -150,7 +163,47 @@ function parseContent(raw: string): OutputData | undefined {
   return undefined
 }
 
+/** Persist the current editor content for the given note id, if it changed. */
+async function flushSave(noteId: number): Promise<void> {
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = undefined
+  }
+  if (!editor || !editorReady) return
+  const data = await editor.save()
+  const blocks = JSON.stringify(data.blocks)
+  // No genuine change vs. what's loaded/last-saved → don't hit the network.
+  if (blocks === lastSavedBlocks) return
+  saveStatus.value = 'saving'
+  const ok = await cn.saveContent(noteId, JSON.stringify(data))
+  if (ok) lastSavedBlocks = blocks
+  // Don't clobber the status if the user already switched to another note.
+  if (cn.selectedNoteId.value !== noteId) return
+  saveStatus.value = ok ? 'saved' : 'idle'
+  if (ok) {
+    if (savedFlashTimer) clearTimeout(savedFlashTimer)
+    savedFlashTimer = setTimeout(() => {
+      if (saveStatus.value === 'saved') saveStatus.value = 'idle'
+    }, 1500)
+  }
+}
+
+/** Debounced auto-save triggered by Editor.js onChange. */
+function scheduleSave(): void {
+  if (!editorReady) return
+  const noteId = cn.selectedNoteId.value
+  if (noteId == null) return
+  if (saveTimer) clearTimeout(saveTimer)
+  saveTimer = setTimeout(() => { flushSave(noteId) }, 1000)
+}
+
 async function destroyEditor(): Promise<void> {
+  editorReady = false
+  lastSavedBlocks = ''
+  if (saveTimer) {
+    clearTimeout(saveTimer)
+    saveTimer = undefined
+  }
   if (editor) {
     try {
       await editor.isReady
@@ -165,10 +218,12 @@ async function destroyEditor(): Promise<void> {
 async function mountEditor(content: string): Promise<void> {
   await destroyEditor()
   if (!editorHolder.value) return
-  editor = new EditorJS({
+  saveStatus.value = 'idle'
+  const instance = new EditorJS({
     holder: editorHolder.value,
     data: parseContent(content),
     placeholder: t('cloudNotes.editorPlaceholder'),
+    onChange: scheduleSave,
     tools: {
       header: Header,
       list: List,
@@ -188,9 +243,24 @@ async function mountEditor(content: string): Promise<void> {
       },
     },
   })
+  editor = instance
+  await instance.isReady
+  if (editor !== instance) return
+  // Capture the editor's own block serialization of the just-loaded content as
+  // the baseline, so the initial render's onChange (and block normalization)
+  // don't count as an edit. Only block diffs against this trigger a real save.
+  try {
+    lastSavedBlocks = JSON.stringify((await instance.save()).blocks)
+  } catch {
+    lastSavedBlocks = ''
+  }
+  editorReady = true
 }
 
 async function openNote(id: number): Promise<void> {
+  // Persist any pending edits to the note we're leaving before switching.
+  const prevId = cn.selectedNoteId.value
+  if (prevId != null && prevId !== id) await flushSave(prevId)
   const detail = await cn.openNote(id)
   if (detail) {
     editableTitle.value = detail.title
@@ -201,13 +271,6 @@ async function openNote(id: number): Promise<void> {
 async function onCreateNote(): Promise<void> {
   const id = await cn.createNote()
   if (id != null) await openNote(id)
-}
-
-async function onSaveContent(): Promise<void> {
-  if (!editor || !cn.selectedNote.value) return
-  const output = await editor.save()
-  const content = JSON.stringify(output)
-  await cn.saveContent(cn.selectedNote.value.id, content)
 }
 
 async function onSaveTitle(): Promise<void> {
@@ -251,8 +314,12 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  if (savedFlashTimer) clearTimeout(savedFlashTimer)
   destroyEditor()
 })
+
+// Live search — filter the list as the user types (client-side, instant).
+watch(() => cn.keyword.value, () => cn.searchNotes(true))
 
 // If the selected note is cleared externally, tear the editor down.
 watch(() => cn.selectedNoteId.value, (id) => {
@@ -366,6 +433,7 @@ watch(() => cn.selectedNoteId.value, (id) => {
 
 .cn-list-toolbar {
   display: flex;
+  align-items: center;
   gap: 6px;
   padding: 10px;
   border-bottom: 1px solid var(--border-color);
@@ -401,6 +469,7 @@ watch(() => cn.selectedNoteId.value, (id) => {
 
 .cn-note-item.active {
   background-color: var(--bg-subtle);
+  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .cn-note-title {
@@ -454,11 +523,34 @@ watch(() => cn.selectedNoteId.value, (id) => {
   flex-shrink: 0;
 }
 
+.cn-save-status {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.cn-save-status.is-active {
+  opacity: 1;
+}
+
 .cn-editor-holder {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 24px;
+  padding: 28px 24px 96px;
   color: var(--text-primary);
+}
+
+.cn-editor-doc {
+  max-width: 760px;
+  margin: 0 auto;
+  /* Left gutter houses Editor.js's block toolbar (＋ / drag handle), which sits
+     at right:100% of the content column. Without this the toolbar overshoots
+     into the panel divider. */
+  padding: 0 16px 0 56px;
+  box-sizing: border-box;
 }
 
 .cn-empty {
@@ -496,5 +588,76 @@ watch(() => cn.selectedNoteId.value, (id) => {
   max-width: 70%;
   cursor: pointer;
   z-index: var(--z-dropdown);
+}
+
+/* ── Editor.js theming (maps its hardcoded light chrome to design tokens so
+      light + dark both look right) ───────────────────────────────────────── */
+
+/* Left-align content (don't use Editor.js's own 650px centering); the doc's
+   left padding provides the toolbar gutter instead, so it never overshoots. */
+.cn-editor-doc :deep(.ce-block__content),
+.cn-editor-doc :deep(.ce-toolbar__content) {
+  max-width: 100%;
+  margin: 0;
+}
+
+.cn-editor-doc :deep(.ce-paragraph),
+.cn-editor-doc :deep(.ce-header),
+.cn-editor-doc :deep(.cdx-block) {
+  color: var(--text-primary);
+}
+
+.cn-editor-doc :deep(a) {
+  color: var(--link-color);
+}
+
+/* Placeholders */
+.cn-editor-doc :deep([data-placeholder]:empty::before),
+.cn-editor-doc :deep(.cdx-block[data-placeholder]:empty::before) {
+  color: var(--text-muted);
+}
+
+/* Left-gutter controls: + button and drag/settings handle */
+.cn-editor-doc :deep(.ce-toolbar__plus),
+.cn-editor-doc :deep(.ce-toolbar__settings-btn) {
+  color: var(--text-secondary);
+}
+
+.cn-editor-doc :deep(.ce-toolbar__plus:hover),
+.cn-editor-doc :deep(.ce-toolbar__settings-btn:hover) {
+  background-color: var(--bg-hover);
+}
+
+/* Floating surfaces: toolbox popover, inline toolbar, conversion toolbar,
+   block-settings popover */
+.cn-editor-doc :deep(.ce-popover),
+.cn-editor-doc :deep(.ce-inline-toolbar),
+.cn-editor-doc :deep(.ce-conversion-toolbar),
+.cn-editor-doc :deep(.ce-settings) {
+  background-color: var(--bg-elevated);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-md);
+}
+
+.cn-editor-doc :deep(.ce-popover__item:hover),
+.cn-editor-doc :deep(.ce-inline-tool:hover),
+.cn-editor-doc :deep(.ce-inline-toolbar__dropdown:hover),
+.cn-editor-doc :deep(.ce-conversion-tool:hover) {
+  background-color: var(--bg-hover);
+}
+
+.cn-editor-doc :deep(.ce-popover__item-icon),
+.cn-editor-doc :deep(.ce-conversion-tool__icon) {
+  background-color: var(--bg-surface);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+/* Inputs inside Editor.js (e.g. image caption) */
+.cn-editor-doc :deep(.cdx-input) {
+  background-color: var(--bg-input);
+  border-color: var(--border-input);
+  color: var(--text-primary);
 }
 </style>

@@ -1033,6 +1033,7 @@
     "selectNote": "表示または編集するノートを選択",
     "save": "保存",
     "saving": "保存中…",
+    "saved": "保存しました ✓",
     "delete": "削除",
     "editorPlaceholder": "入力を開始…",
     "confirmDeleteNote": "このノートを削除しますか？元に戻せません。",

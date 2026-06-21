@@ -1033,6 +1033,7 @@
     "selectNote": "Select a note to view or edit",
     "save": "Save",
     "saving": "Saving…",
+    "saved": "Saved ✓",
     "delete": "Delete",
     "editorPlaceholder": "Start writing…",
     "confirmDeleteNote": "Delete this note? This cannot be undone.",

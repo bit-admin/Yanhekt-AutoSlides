@@ -1033,6 +1033,7 @@
     "selectNote": "보거나 편집할 노트를 선택하세요",
     "save": "저장",
     "saving": "저장 중…",
+    "saved": "저장됨 ✓",
     "delete": "삭제",
     "editorPlaceholder": "입력 시작…",
     "confirmDeleteNote": "이 노트를 삭제할까요? 되돌릴 수 없습니다.",

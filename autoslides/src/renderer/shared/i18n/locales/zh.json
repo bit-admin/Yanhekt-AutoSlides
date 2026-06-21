@@ -1033,6 +1033,7 @@
     "selectNote": "选择一条笔记进行查看或编辑",
     "save": "保存",
     "saving": "保存中…",
+    "saved": "已保存 ✓",
     "delete": "删除",
     "editorPlaceholder": "开始输入…",
     "confirmDeleteNote": "删除这条笔记？此操作无法撤销。",
