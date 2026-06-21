@@ -1013,7 +1013,30 @@
     "tabPdfMaker": "スライド書き出し",
     "tabTrash": "結果ビュー",
     "tabCompressLecture": "講義圧縮",
-    "tabOffline": "オフライン処理"
+    "tabOffline": "オフライン処理",
+    "tabCloudNotes": "クラウドノート"
+  },
+  "cloudNotes": {
+    "notSignedIn": "クラウドノートを使うにはメインウィンドウでサインインしてください。",
+    "groups": "グループ",
+    "allNotes": "すべてのノート",
+    "defaultGroup": "未分類",
+    "deleteGroup": "グループを削除",
+    "newGroupPlaceholder": "新規グループ（≤{max}）",
+    "add": "追加",
+    "searchPlaceholder": "タイトルで検索…",
+    "search": "検索",
+    "newNote": "新規",
+    "loading": "読み込み中…",
+    "noNotes": "ノートがありません",
+    "untitled": "無題",
+    "selectNote": "表示または編集するノートを選択",
+    "save": "保存",
+    "saving": "保存中…",
+    "delete": "削除",
+    "editorPlaceholder": "入力を開始…",
+    "confirmDeleteNote": "このノートを削除しますか？元に戻せません。",
+    "confirmDeleteGroup": "グループ「{name}」を削除しますか？中のノートは未分類へ移動します。"
   },
   "addons": {
     "openAddons": "アドオン",

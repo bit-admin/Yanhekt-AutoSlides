@@ -1013,7 +1013,30 @@
     "tabPdfMaker": "슬라이드 내보내기",
     "tabTrash": "결과 보기",
     "tabCompressLecture": "강의 압축",
-    "tabOffline": "오프라인 처리"
+    "tabOffline": "오프라인 처리",
+    "tabCloudNotes": "클라우드 노트"
+  },
+  "cloudNotes": {
+    "notSignedIn": "클라우드 노트를 사용하려면 메인 창에서 로그인하세요.",
+    "groups": "그룹",
+    "allNotes": "모든 노트",
+    "defaultGroup": "그룹 없음",
+    "deleteGroup": "그룹 삭제",
+    "newGroupPlaceholder": "새 그룹 (≤{max})",
+    "add": "추가",
+    "searchPlaceholder": "제목으로 검색…",
+    "search": "검색",
+    "newNote": "새로 만들기",
+    "loading": "불러오는 중…",
+    "noNotes": "노트 없음",
+    "untitled": "제목 없음",
+    "selectNote": "보거나 편집할 노트를 선택하세요",
+    "save": "저장",
+    "saving": "저장 중…",
+    "delete": "삭제",
+    "editorPlaceholder": "입력 시작…",
+    "confirmDeleteNote": "이 노트를 삭제할까요? 되돌릴 수 없습니다.",
+    "confirmDeleteGroup": "그룹 \"{name}\"을(를) 삭제할까요? 안의 노트는 그룹 없음으로 이동합니다."
   },
   "addons": {
     "openAddons": "애드온",

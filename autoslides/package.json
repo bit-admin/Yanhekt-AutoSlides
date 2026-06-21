@@ -58,6 +58,10 @@
     "esbuild": "0.28.1"
   },
   "dependencies": {
+    "@editorjs/editorjs": "^2.26.5",
+    "@editorjs/header": "^2.7.0",
+    "@editorjs/image": "^2.8.2",
+    "@editorjs/list": "^1.8.0",
     "@techstark/opencv-js": "^4.12.0-release.1",
     "@types/pdfkit": "^0.17.4",
     "axios": "^1.13.2",

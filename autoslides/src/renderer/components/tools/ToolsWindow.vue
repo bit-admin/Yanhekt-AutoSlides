@@ -46,6 +46,16 @@
             </svg>
             {{ $t('tools.tabCompressLecture') }}
           </button>
+          <button
+            class="toolwin-tab"
+            :class="{ active: activeTab === 'cloudnotes' }"
+            @click="switchTab('cloudnotes')"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M4 1h6l4 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V2a1 1 0 011-1zm5.5 1.5V5H12L9.5 2.5zM5 7h6v1.2H5V7zm0 2.5h6v1.2H5V9.5zM5 12h4v1.2H5V12z" fill="currentColor"/>
+            </svg>
+            {{ $t('tools.tabCloudNotes') }}
+          </button>
         </div>
       </div>
       <div v-if="!isMacOS" class="win-controls">
@@ -81,6 +91,9 @@
       <div v-show="activeTab === 'compress'" class="tab-panel">
         <CompressLectureTab />
       </div>
+      <div v-show="activeTab === 'cloudnotes'" class="tab-panel">
+        <CloudNotesTab />
+      </div>
     </div>
   </div>
 </template>
@@ -91,8 +104,9 @@ import PdfMakerWindow from '@renderer/components/export/PdfMakerWindow.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
 import OfflineProcessingTab from '@renderer/components/offline/OfflineProcessingTab.vue'
 import CompressLectureTab from './CompressLectureTab.vue'
+import CloudNotesTab from '@renderer/components/cloudnotes/CloudNotesTab.vue'
 
-type TabId = 'pdfmaker' | 'trash' | 'compress' | 'offline'
+type TabId = 'pdfmaker' | 'trash' | 'compress' | 'offline' | 'cloudnotes'
 
 const isMacOS = navigator.userAgent.includes('Mac')
 
@@ -100,7 +114,7 @@ const isMacOS = navigator.userAgent.includes('Mac')
 const getInitialTab = (): TabId => {
   const params = new URLSearchParams(window.location.search)
   const tab = params.get('tab')
-  if (tab === 'pdfmaker' || tab === 'trash' || tab === 'compress' || tab === 'offline') return tab
+  if (tab === 'pdfmaker' || tab === 'trash' || tab === 'compress' || tab === 'offline' || tab === 'cloudnotes') return tab
   return 'trash'
 }
 
@@ -114,7 +128,7 @@ const switchTab = (tab: TabId) => {
 let cleanupSwitchTab: (() => void) | undefined
 onMounted(() => {
   cleanupSwitchTab = window.electronAPI.tools?.onSwitchTab?.((tab: string) => {
-    if (tab === 'pdfmaker' || tab === 'trash' || tab === 'compress' || tab === 'offline') {
+    if (tab === 'pdfmaker' || tab === 'trash' || tab === 'compress' || tab === 'offline' || tab === 'cloudnotes') {
       activeTab.value = tab
     }
   })

@@ -1,0 +1,40 @@
+import { ipcRenderer } from 'electron';
+import type {
+  NotesResult,
+  NoteListParams,
+  NoteListResult,
+  NoteDetail,
+  NoteGroup,
+  UploadedImage,
+} from '@common/notesTypes';
+
+/**
+ * Yanhekt cloud-notes bridge. All calls round-trip to the main process, which
+ * holds the auth token (mirrored from the main window's localStorage into
+ * electron-store) and performs the actual API requests — the Tools window has
+ * no token of its own.
+ */
+export const cloudNotes = {
+  list: (params: NoteListParams = {}): Promise<NotesResult<NoteListResult>> =>
+    ipcRenderer.invoke('cloudNotes:list', params),
+  get: (id: number): Promise<NotesResult<NoteDetail>> =>
+    ipcRenderer.invoke('cloudNotes:get', id),
+  create: (): Promise<NotesResult<number>> =>
+    ipcRenderer.invoke('cloudNotes:create'),
+  updateTitle: (id: number, title: string, groupId?: number): Promise<NotesResult<void>> =>
+    ipcRenderer.invoke('cloudNotes:updateTitle', id, title, groupId),
+  updateContent: (id: number, content: string): Promise<NotesResult<void>> =>
+    ipcRenderer.invoke('cloudNotes:updateContent', id, content),
+  moveToGroup: (id: number, groupId: number): Promise<NotesResult<void>> =>
+    ipcRenderer.invoke('cloudNotes:moveToGroup', id, groupId),
+  delete: (id: number): Promise<NotesResult<void>> =>
+    ipcRenderer.invoke('cloudNotes:delete', id),
+  groupList: (): Promise<NotesResult<NoteGroup[]>> =>
+    ipcRenderer.invoke('cloudNotes:groupList'),
+  groupCreate: (name: string): Promise<NotesResult<void>> =>
+    ipcRenderer.invoke('cloudNotes:groupCreate', name),
+  groupDelete: (id: number): Promise<NotesResult<void>> =>
+    ipcRenderer.invoke('cloudNotes:groupDelete', id),
+  uploadImage: (bytes: ArrayBuffer, filename: string, mime: string): Promise<NotesResult<UploadedImage>> =>
+    ipcRenderer.invoke('cloudNotes:uploadImage', bytes, filename, mime),
+};

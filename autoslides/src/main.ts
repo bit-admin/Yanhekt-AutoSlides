@@ -3,6 +3,7 @@ import path from 'node:path';
 import { MainAuthService } from '@main/platform/authService';
 import { MainApiClient } from '@main/platform/apiClient';
 import { ConfigService } from '@main/platform/configService';
+import { NotesService } from '@main/platform/notesService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { VideoProxyService } from '@main/video/videoProxyService';
 import { ThumbnailService } from '@main/video/thumbnailService';
@@ -159,6 +160,7 @@ const aiPromptsService = new AIPromptsService();
 const llmApiService = new LLMApiService(configService);
 const aiFilteringService = new AIFilteringService(configService, aiPromptsService, llmApiService);
 const qtExtractorService = new QtExtractorService(configService);
+const notesService = new NotesService(configService);
 
 const windowManager = new WindowManager();
 windowManager.setConfigService(configService);
@@ -212,5 +214,6 @@ registerAllIpcHandlers({
   pdfService,
   slideExtractionService,
   offlineProcessingService,
-  cacheManagementService
+  cacheManagementService,
+  notesService
 });

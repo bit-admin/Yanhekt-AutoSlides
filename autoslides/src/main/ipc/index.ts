@@ -19,6 +19,7 @@ import { registerCacheIpcHandlers } from './cacheIpc';
 import { registerAppIpcHandlers } from './appIpc';
 import { registerToolsWindowIpcHandlers } from './toolsWindowIpc';
 import { registerYuketangIpcHandlers } from './yuketangIpc';
+import { registerNotesIpcHandlers } from './notesIpc';
 import { registerTrashIpcHandlers } from './trashIpc';
 import { registerCropIpcHandlers } from './cropIpc';
 import { registerPdfMakerIpcHandlers } from './pdfMakerIpc';
@@ -49,6 +50,7 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerAppIpcHandlers();
   registerToolsWindowIpcHandlers(services);
   registerYuketangIpcHandlers(services);
+  registerNotesIpcHandlers(services);
   registerTrashIpcHandlers(services);
   registerCropIpcHandlers(services);
   registerPdfMakerIpcHandlers(services);

@@ -1013,7 +1013,30 @@
     "tabPdfMaker": "Slides Export",
     "tabTrash": "Results View",
     "tabCompressLecture": "Lecture Compress",
-    "tabOffline": "Offline Processing"
+    "tabOffline": "Offline Processing",
+    "tabCloudNotes": "Cloud Notes"
+  },
+  "cloudNotes": {
+    "notSignedIn": "Sign in from the main window to use Cloud Notes.",
+    "groups": "Groups",
+    "allNotes": "All notes",
+    "defaultGroup": "Ungrouped",
+    "deleteGroup": "Delete group",
+    "newGroupPlaceholder": "New group (≤{max})",
+    "add": "Add",
+    "searchPlaceholder": "Search by title…",
+    "search": "Search",
+    "newNote": "New",
+    "loading": "Loading…",
+    "noNotes": "No notes",
+    "untitled": "Untitled",
+    "selectNote": "Select a note to view or edit",
+    "save": "Save",
+    "saving": "Saving…",
+    "delete": "Delete",
+    "editorPlaceholder": "Start writing…",
+    "confirmDeleteNote": "Delete this note? This cannot be undone.",
+    "confirmDeleteGroup": "Delete group \"{name}\"? Notes inside move to Ungrouped."
   },
   "addons": {
     "openAddons": "Add-ons",

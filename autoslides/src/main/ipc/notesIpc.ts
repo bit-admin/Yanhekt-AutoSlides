@@ -1,0 +1,62 @@
+import { ipcMain } from 'electron';
+import { NotesAuthError } from '@main/platform/notesService';
+import type { IpcServices } from './types';
+import type { NotesResult, NoteListParams } from '@common/notesTypes';
+import { createLogger } from '@main/infra/logger';
+
+const log = createLogger('NotesIpc');
+
+/**
+ * Wrap a service call in the uniform `{ ok, data } | { ok:false, error }` envelope
+ * so the renderer can cleanly surface auth/network failures (the Tools window has
+ * no token of its own — it relies on the main-window-mirrored electron-store token).
+ */
+async function run<T>(fn: () => Promise<T>): Promise<NotesResult<T>> {
+  try {
+    return { ok: true, data: await fn() };
+  } catch (err) {
+    if (err instanceof NotesAuthError) {
+      return { ok: false, error: 'not-signed-in' };
+    }
+    const message = err instanceof Error ? err.message : String(err);
+    log.error('note operation failed:', message);
+    return { ok: false, error: message };
+  }
+}
+
+export function registerNotesIpcHandlers(services: IpcServices): void {
+  const { notesService } = services;
+
+  ipcMain.handle('cloudNotes:list', (_e, params: NoteListParams) =>
+    run(() => notesService.list(params)));
+
+  ipcMain.handle('cloudNotes:get', (_e, id: number) =>
+    run(() => notesService.get(id)));
+
+  ipcMain.handle('cloudNotes:create', () =>
+    run(() => notesService.create()));
+
+  ipcMain.handle('cloudNotes:updateTitle', (_e, id: number, title: string, groupId?: number) =>
+    run(() => notesService.updateTitle(id, title, groupId)));
+
+  ipcMain.handle('cloudNotes:updateContent', (_e, id: number, content: string) =>
+    run(() => notesService.updateContent(id, content)));
+
+  ipcMain.handle('cloudNotes:moveToGroup', (_e, id: number, groupId: number) =>
+    run(() => notesService.moveToGroup(id, groupId)));
+
+  ipcMain.handle('cloudNotes:delete', (_e, id: number) =>
+    run(() => notesService.remove(id)));
+
+  ipcMain.handle('cloudNotes:groupList', () =>
+    run(() => notesService.groupList()));
+
+  ipcMain.handle('cloudNotes:groupCreate', (_e, name: string) =>
+    run(() => notesService.groupCreate(name)));
+
+  ipcMain.handle('cloudNotes:groupDelete', (_e, id: number) =>
+    run(() => notesService.groupRemove(id)));
+
+  ipcMain.handle('cloudNotes:uploadImage', (_e, bytes: ArrayBuffer, filename: string, mime: string) =>
+    run(() => notesService.uploadImage(bytes, filename, mime)));
+}

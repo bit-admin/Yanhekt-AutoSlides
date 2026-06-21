@@ -803,6 +803,20 @@ interface ElectronAPI {
     readImageBuffer: (filePath: string) => Promise<Uint8Array>;
     savePngBuffer: (outputDir: string, filename: string, buffer: Uint8Array, enableColorReduction: boolean) => Promise<void>;
   };
+
+  cloudNotes: {
+    list: (params?: import('@common/notesTypes').NoteListParams) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').NoteListResult>>;
+    get: (id: number) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').NoteDetail>>;
+    create: () => Promise<import('@common/notesTypes').NotesResult<number>>;
+    updateTitle: (id: number, title: string, groupId?: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    updateContent: (id: number, content: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    moveToGroup: (id: number, groupId: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    delete: (id: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    groupList: () => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').NoteGroup[]>>;
+    groupCreate: (name: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    groupDelete: (id: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    uploadImage: (bytes: ArrayBuffer, filename: string, mime: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
+  };
 }
 
 declare global {
