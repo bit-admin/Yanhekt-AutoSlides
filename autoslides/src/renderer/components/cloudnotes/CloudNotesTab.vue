@@ -129,6 +129,10 @@ import type { OutputData } from '@editorjs/editorjs'
 import Header from '@editorjs/header'
 import List from '@editorjs/list'
 import ImageTool from '@editorjs/image'
+import Delimiter from '@editorjs/delimiter'
+import Quote from '@editorjs/quote'
+import CodeTool from '@editorjs/code'
+import Table from '@editorjs/table'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import { NOTE_GROUP_NAME_MAX } from '@common/notesTypes'
 
@@ -227,6 +231,10 @@ async function mountEditor(content: string): Promise<void> {
     tools: {
       header: Header,
       list: List,
+      quote: Quote,
+      code: CodeTool,
+      table: Table,
+      delimiter: Delimiter,
       image: {
         class: ImageTool,
         config: {
@@ -654,10 +662,29 @@ watch(() => cn.selectedNoteId.value, (id) => {
   color: var(--text-primary);
 }
 
-/* Inputs inside Editor.js (e.g. image caption) */
+/* Inputs inside Editor.js (e.g. image caption, quote text/caption) */
 .cn-editor-doc :deep(.cdx-input) {
   background-color: var(--bg-input);
   border-color: var(--border-input);
   color: var(--text-primary);
+}
+
+/* Code block */
+.cn-editor-doc :deep(.ce-code__textarea) {
+  background-color: var(--bg-input);
+  border-color: var(--border-input);
+  color: var(--text-primary);
+}
+
+/* Table — themes itself through these three CSS variables */
+.cn-editor-doc :deep(.tc-wrap) {
+  --color-background: var(--bg-subtle);
+  --color-text-secondary: var(--text-muted);
+  --color-border: var(--border-color);
+}
+
+/* Delimiter dots */
+.cn-editor-doc :deep(.ce-delimiter) {
+  color: var(--text-muted);
 }
 </style>
