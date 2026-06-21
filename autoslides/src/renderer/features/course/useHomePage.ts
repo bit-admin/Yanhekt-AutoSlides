@@ -22,7 +22,7 @@ export function useHomePage() {
     liveError.value = ''
     try {
       const response: LiveListResponse = await apiClient.getPersonalLiveList(token, 1, ROW_PAGE_SIZE)
-      liveStreams.value = response.data.map(transformLiveStreamToCourse)
+      liveStreams.value = (response?.data ?? []).map(transformLiveStreamToCourse)
     } catch (error: any) {
       log.error('Failed to load personal live streams:', error)
       liveError.value = error.message || 'Failed to load live streams'
@@ -37,7 +37,7 @@ export function useHomePage() {
     recordedError.value = ''
     try {
       const response: CourseListResponse = await apiClient.getPersonalCourseList(token, { page: 1, pageSize: ROW_PAGE_SIZE })
-      recordings.value = response.data.map(transformCourseDataToCourse)
+      recordings.value = (response?.data ?? []).map(transformCourseDataToCourse)
     } catch (error: any) {
       log.error('Failed to load personal recordings:', error)
       recordedError.value = error.message || 'Failed to load recordings'

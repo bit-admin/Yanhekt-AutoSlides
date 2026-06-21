@@ -122,11 +122,14 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     const token = tokenManager.getToken()
     if (!token) return
 
-    // Pre-populate from stored names while waiting for API
+    // Pre-populate the display name from stored names while waiting for the
+    // API. Do NOT flip isLoggedIn here: the server is the authority, and the
+    // LeftPanel shows the isVerifyingToken spinner during this window. Setting
+    // it true optimistically would race HomePage's data load against a token
+    // that may already be revoked.
     const stored = configStore
     if (stored.userOriginalNickname) {
       userNickname.value = stored.userOriginalNickname
-      isLoggedIn.value = true
     }
 
     isVerifyingToken.value = true
@@ -141,15 +144,17 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         log.debug('Existing token verified successfully')
       } else {
         if (!result.networkError) {
-          tokenManager.clearToken()
-          log.debug('Existing token is invalid, cleared')
+          // Token revoked/invalid: fully reset auth state (token + UI) so the
+          // user menu doesn't keep showing the logged-in banner.
+          logout()
+          log.debug('Existing token is invalid, signed out')
         } else {
           log.debug('Network error during token verification, keeping token')
         }
       }
     } catch (error) {
       log.error('Token verification error:', error)
-      tokenManager.clearToken()
+      logout()
     } finally {
       isVerifyingToken.value = false
     }
