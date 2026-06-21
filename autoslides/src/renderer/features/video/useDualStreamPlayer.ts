@@ -38,6 +38,7 @@ export interface UseDualStreamPlayerReturn {
   cameraHls: ShallowRef<Hls | null>
   screenHls: ShallowRef<Hls | null>
   dualAudioSource: Ref<DualAudioSource>
+  dualVolume: Ref<number>
   dualCurrentTime: Ref<number>
   dualDuration: Ref<number>
   dualCanSeek: ComputedRef<boolean>
@@ -51,6 +52,7 @@ export interface UseDualStreamPlayerReturn {
   toggleDualPlayback: () => Promise<void>
   seekDualStreams: (time: number) => void
   setDualAudioSource: (source: DualAudioSource) => void
+  setDualVolume: (value: number) => void
   applyDualAudioState: () => void
   startDualSync: () => void
 
@@ -83,6 +85,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
   const cameraHls = shallowRef<Hls | null>(null)
   const screenHls = shallowRef<Hls | null>(null)
   const dualAudioSource = ref<DualAudioSource>('screen')
+  const dualVolume = ref(1)
   const dualCurrentTime = ref(0)
   const dualDuration = ref(0)
 
@@ -142,13 +145,13 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
       }
 
       if (cameraVideo) {
-        cameraVideo.volume = dualAudioSource.value === 'camera' ? 1 : 0
+        cameraVideo.volume = dualAudioSource.value === 'camera' ? dualVolume.value : 0
         cameraVideo.muted = false
         cameraVideo.removeAttribute('data-muted-by-app')
       }
 
       if (screenVideo) {
-        screenVideo.volume = dualAudioSource.value === 'screen' ? 1 : 0
+        screenVideo.volume = dualAudioSource.value === 'screen' ? dualVolume.value : 0
         screenVideo.muted = false
         screenVideo.removeAttribute('data-muted-by-app')
       }
@@ -161,6 +164,11 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
 
   const setDualAudioSource = (source: DualAudioSource) => {
     dualAudioSource.value = source
+    applyDualAudioState()
+  }
+
+  const setDualVolume = (value: number) => {
+    dualVolume.value = Math.min(1, Math.max(0, value))
     applyDualAudioState()
   }
 
@@ -383,6 +391,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     cameraHls,
     screenHls,
     dualAudioSource,
+    dualVolume,
     dualCurrentTime,
     dualDuration,
     dualCanSeek,
@@ -394,6 +403,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
     toggleDualPlayback,
     seekDualStreams,
     setDualAudioSource,
+    setDualVolume,
     applyDualAudioState,
     startDualSync,
     onDualTimeUpdate,

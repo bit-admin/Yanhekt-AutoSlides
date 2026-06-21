@@ -69,6 +69,7 @@ export interface UseVideoPlayerReturn {
   maxVideoErrorRetries: Ref<number>
   videoProxyClientId: Ref<string | null>
   dualAudioSource: Ref<DualAudioSource>
+  dualVolume: Ref<number>
   dualCurrentTime: Ref<number>
   dualDuration: Ref<number>
 
@@ -105,6 +106,7 @@ export interface UseVideoPlayerReturn {
   pauseDualStreams: () => void
   seekDualStreams: (time: number) => void
   setDualAudioSource: (source: DualAudioSource) => void
+  setDualVolume: (value: number) => void
   applyDualAudioState: () => void
   cleanup: () => void
   getHlsConfig: (mode: 'live' | 'recorded') => object
@@ -885,6 +887,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     maxVideoErrorRetries,
     videoProxyClientId,
     dualAudioSource: dual.dualAudioSource,
+    dualVolume: dual.dualVolume,
     dualCurrentTime: dual.dualCurrentTime,
     dualDuration: dual.dualDuration,
 
@@ -928,6 +931,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     pauseDualStreams: dual.pauseDualStreams,
     seekDualStreams: dual.seekDualStreams,
     setDualAudioSource: dual.setDualAudioSource,
+    setDualVolume: dual.setDualVolume,
     applyDualAudioState: dual.applyDualAudioState,
     cleanup,
     getHlsConfig,

@@ -194,15 +194,16 @@
         <!-- Video Player -->
         <div
           v-if="!isDualStreamSelected"
+          ref="singleVideoContainer"
           class="video-container"
-          :class="{ 'collapsed': isVideoContainerCollapsed }"
+          :class="{ 'collapsed': isVideoContainerCollapsed, 'is-fullscreen': isSingleFullscreen, 'controls-hidden': !controlsVisible }"
           :data-pip-message="$t('playback.videoPlayingInPiP')"
+          @mousemove="showControls"
+          @mouseleave="onPlayerPointerLeave"
         >
           <video
             ref="videoPlayer"
             class="video-player"
-            controls
-            controlslist="noplaybackrate"
             preload="metadata"
             :poster="overrides.playbackDemo?.poster(isScreenRecordingSelected ? 'screen' : 'camera')"
             @error="onVideoError"
@@ -227,13 +228,174 @@
             <div class="retry-spinner"></div>
             <span>{{ retryMessage }}</span>
           </div>
+
+          <!-- Custom single-stream control bar (replaces native <video controls>) -->
+          <div
+            v-if="!isVideoContainerCollapsed"
+            class="dual-controls-section single-controls-section"
+            :class="{ 'controls-hidden': !controlsVisible }"
+            @mouseenter="pointerOverControls = true"
+            @mouseleave="pointerOverControls = false"
+          >
+            <div class="dual-controls-main-row">
+              <div class="dual-controls-left">
+                <button
+                  class="dual-icon-button"
+                  @click="toggleSinglePlayback"
+                  :disabled="shouldDisableControls"
+                  :title="isPlaying ? $t('playback.dual.pause') : $t('playback.dual.play')"
+                >
+                  <svg v-if="!isPlaying" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <polygon points="8,5 19,12 8,19"/>
+                  </svg>
+                  <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <rect x="6" y="5" width="4" height="14"/>
+                    <rect x="14" y="5" width="4" height="14"/>
+                  </svg>
+                </button>
+
+                <span class="dual-time">{{ formatPlaybackTime(singleCurrentTime) }} / {{ singleCanSeek ? formatPlaybackTime(singleDuration) : $t('playback.dual.live') }}</span>
+              </div>
+
+              <div class="dual-controls-right">
+                <div class="single-volume">
+                  <button
+                    class="dual-icon-button"
+                    @click="toggleSingleMute"
+                    :disabled="shouldDisableControls || shouldVideoMute"
+                    :title="singleIsMuted ? $t('playback.unmute') : $t('playback.mute')"
+                  >
+                    <svg v-if="!singleIsMuted" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                    </svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
+                      <line x1="23" y1="9" x2="17" y2="15"/>
+                      <line x1="17" y1="9" x2="23" y2="15"/>
+                    </svg>
+                  </button>
+                  <input
+                    class="dual-seek single-volume-slider"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    :value="singleEffectiveVolume"
+                    :style="{ '--dual-progress': singleVolumeProgress }"
+                    :disabled="shouldDisableControls || shouldVideoMute"
+                    :aria-label="$t('playback.volume')"
+                    @input="onSingleVolumeInput"
+                  />
+                </div>
+
+                <div v-if="props.mode === 'recorded'" class="dual-popover-anchor">
+                  <button
+                    class="dual-speed-button"
+                    @click="toggleSpeedPanel"
+                    :disabled="shouldDisableControls"
+                    :title="$t('playback.playbackSpeed')"
+                  >
+                    {{ currentPlaybackRate }}x
+                  </button>
+                  <div v-if="showSpeedPanel" class="dual-popover dual-speed-popover custom-scrollbar">
+                    <button
+                      v-for="rate in playbackRateOptions"
+                      :key="rate"
+                      class="dual-popover-option"
+                      :class="{ active: Number(currentPlaybackRate) === rate }"
+                      @click="setPlaybackRateFromPanel(rate)"
+                    >
+                      <span>{{ rate }}x</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  class="dual-icon-button"
+                  @click="toggleSingleFullscreen"
+                  :disabled="shouldDisableControls"
+                  :title="isSingleFullscreen ? $t('playback.dual.exitFullscreen') : $t('playback.dual.fullscreen')"
+                >
+                  <svg v-if="!isSingleFullscreen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+                    <path d="M16 3h3a2 2 0 0 1 2 2v3"/>
+                    <path d="M8 21H5a2 2 0 0 1-2-2v-3"/>
+                    <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                  </svg>
+                  <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M8 3v3a2 2 0 0 1-2 2H3"/>
+                    <path d="M16 3v3a2 2 0 0 0 2 2h3"/>
+                    <path d="M8 21v-3a2 2 0 0 0-2-2H3"/>
+                    <path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
+                  </svg>
+                </button>
+
+                <div class="dual-popover-anchor">
+                  <button
+                    class="dual-icon-button"
+                    @click="toggleDualMorePanel"
+                    :disabled="shouldDisableControls"
+                    :title="$t('playback.dual.moreOptions')"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <circle cx="12" cy="5" r="2"/>
+                      <circle cx="12" cy="12" r="2"/>
+                      <circle cx="12" cy="19" r="2"/>
+                    </svg>
+                  </button>
+                  <div v-if="showDualMorePanel" class="dual-popover dual-more-popover">
+                    <button
+                      class="dual-popover-option"
+                      :class="{ active: isCinemaMode }"
+                      @click="toggleCinemaFromMenu"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                        <path d="M2 9h20"/>
+                        <path d="M2 15h20"/>
+                      </svg>
+                      <span>{{ isCinemaMode ? $t('playback.exitCinemaMode') : $t('playback.cinemaMode') }}</span>
+                    </button>
+                    <button
+                      class="dual-popover-option"
+                      :class="{ active: isPictureInPicture }"
+                      :disabled="!videoPlayer"
+                      @click="togglePipFromMenu"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <rect x="14" y="12" width="6" height="4" rx="1" fill="currentColor"/>
+                      </svg>
+                      <span>{{ isPictureInPicture ? $t('playback.exitPictureInPicture') : $t('playback.enterPictureInPicture') }}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <input
+              class="dual-seek"
+              type="range"
+              min="0"
+              :max="singleDuration || 0"
+              step="0.1"
+              :value="singleCurrentTime"
+              :style="{ '--dual-progress': singleSeekProgress }"
+              :disabled="shouldDisableControls || !singleCanSeek"
+              @input="onSingleSeekInput"
+            />
+          </div>
         </div>
 
         <div
           v-else
           ref="dualVideoContainer"
           class="dual-playback-shell"
-          :class="{ 'is-fullscreen': isDualFullscreen }"
+          :class="{ 'is-fullscreen': isDualFullscreen, 'controls-hidden': !controlsVisible }"
+          @mousemove="showControls"
+          @mouseleave="onPlayerPointerLeave"
         >
           <div class="video-container dual-video-container">
             <div class="dual-video-grid">
@@ -288,7 +450,12 @@
             </div>
           </div>
 
-          <div class="dual-controls-section">
+          <div
+            class="dual-controls-section"
+            :class="{ 'controls-hidden': !controlsVisible }"
+            @mouseenter="pointerOverControls = true"
+            @mouseleave="pointerOverControls = false"
+          >
             <div class="dual-controls-main-row">
               <div class="dual-controls-left">
                 <button
@@ -310,6 +477,38 @@
               </div>
 
               <div class="dual-controls-right">
+                <div class="single-volume">
+                  <button
+                    class="dual-icon-button"
+                    @click="toggleDualMute"
+                    :disabled="shouldDisableControls || shouldVideoMute"
+                    :title="dualIsMuted ? $t('playback.unmute') : $t('playback.mute')"
+                  >
+                    <svg v-if="!dualIsMuted" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
+                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                    </svg>
+                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
+                      <line x1="23" y1="9" x2="17" y2="15"/>
+                      <line x1="17" y1="9" x2="23" y2="15"/>
+                    </svg>
+                  </button>
+                  <input
+                    class="dual-seek single-volume-slider"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    :value="dualEffectiveVolume"
+                    :style="{ '--dual-progress': dualVolumeProgress }"
+                    :disabled="shouldDisableControls || shouldVideoMute"
+                    :aria-label="$t('playback.volume')"
+                    @input="onDualVolumeInput"
+                  />
+                </div>
+
                 <div class="dual-popover-anchor">
                   <button
                     class="dual-icon-button"
@@ -318,9 +517,9 @@
                     :title="$t('playback.dual.audioSource')"
                   >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
-                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                      <path d="M4 14v-2a8 8 0 0 1 16 0v2"/>
+                      <rect x="3" y="14" width="4" height="6" rx="1.5"/>
+                      <rect x="17" y="14" width="4" height="6" rx="1.5"/>
                     </svg>
                   </button>
                   <div v-if="showDualAudioPanel" class="dual-popover dual-audio-popover">
@@ -348,6 +547,28 @@
                         <rect v-if="dualAudioSource !== 'camera'" x="1" y="5" width="15" height="14" rx="2"/>
                       </svg>
                       <span>{{ $t('playback.dual.cameraAudio') }}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="props.mode === 'recorded'" class="dual-popover-anchor">
+                  <button
+                    class="dual-speed-button"
+                    @click="toggleSpeedPanel"
+                    :disabled="shouldDisableControls"
+                    :title="$t('playback.playbackSpeed')"
+                  >
+                    {{ currentPlaybackRate }}x
+                  </button>
+                  <div v-if="showSpeedPanel" class="dual-popover dual-speed-popover custom-scrollbar">
+                    <button
+                      v-for="rate in playbackRateOptions"
+                      :key="rate"
+                      class="dual-popover-option"
+                      :class="{ active: Number(currentPlaybackRate) === rate }"
+                      @click="setPlaybackRateFromPanel(rate)"
+                    >
+                      <span>{{ rate }}x</span>
                     </button>
                   </div>
                 </div>
@@ -392,6 +613,18 @@
                         <path d="M17 17H6l4 4"/>
                       </svg>
                       <span>{{ $t('playback.dual.swapOrder') }}</span>
+                    </button>
+                    <button
+                      class="dual-popover-option"
+                      :class="{ active: isCinemaMode }"
+                      @click="toggleCinemaFromMenu"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                        <path d="M2 9h20"/>
+                        <path d="M2 15h20"/>
+                      </svg>
+                      <span>{{ isCinemaMode ? $t('playback.exitCinemaMode') : $t('playback.cinemaMode') }}</span>
                     </button>
                   </div>
                 </div>
@@ -571,6 +804,16 @@ const showMorePlaybackSpeed = ref(false)
 const dualVideoContainer = ref<HTMLElement | null>(null)
 const isDualOrderSwapped = ref(false)
 const isDualFullscreen = ref(false)
+// Single-stream custom control bar state (native <video controls> removed)
+const singleVideoContainer = ref<HTMLElement | null>(null)
+const isSingleFullscreen = ref(false)
+const singleCurrentTime = ref(0)
+const singleDuration = ref(0)
+const singleVolume = ref(1)
+const lastNonZeroVolume = ref(1)
+// Playback-speed drop-up panel shared by the single and dual control bars
+// (only one bar is mounted at a time, so a single flag is sufficient).
+const showSpeedPanel = ref(false)
 const showDualAudioPanel = ref(false)
 const showDualMorePanel = ref(false)
 
@@ -706,6 +949,7 @@ const {
   hasDualStreams,
   currentStreamData,
   dualAudioSource,
+  dualVolume,
   dualCurrentTime,
   dualDuration,
   dualCanSeek,
@@ -728,6 +972,21 @@ const dualSeekProgress = computed(() => {
   const progress = (dualCurrentTime.value / dualDuration.value) * 100
   return `${Math.min(100, Math.max(0, progress))}%`
 })
+const singleCanSeek = computed(() => Number.isFinite(singleDuration.value) && singleDuration.value > 0)
+const singleSeekProgress = computed(() => {
+  if (!singleCanSeek.value) return '0%'
+  const progress = (singleCurrentTime.value / singleDuration.value) * 100
+  return `${Math.min(100, Math.max(0, progress))}%`
+})
+// Effective volume shown by the slider: forced to 0 while the app mute policy
+// is active (volume is policy-locked), otherwise the user-set level.
+const singleEffectiveVolume = computed(() => (shouldVideoMute.value ? 0 : singleVolume.value))
+const singleVolumeProgress = computed(() => `${Math.min(100, Math.max(0, singleEffectiveVolume.value * 100))}%`)
+const singleIsMuted = computed(() => singleEffectiveVolume.value <= 0)
+// Dual-stream volume mirrors the single-stream control (speaker button + slider).
+const dualEffectiveVolume = computed(() => (shouldVideoMute.value ? 0 : dualVolume.value))
+const dualVolumeProgress = computed(() => `${Math.min(100, Math.max(0, dualEffectiveVolume.value * 100))}%`)
+const dualIsMuted = computed(() => dualEffectiveVolume.value <= 0)
 
 // Methods exposed to template
 const goBack = () => emit('back')
@@ -800,6 +1059,7 @@ const {
   toggleDualPlayback,
   seekDualStreams,
   setDualAudioSource,
+  setDualVolume,
   applyDualAudioState,
   onDualTimeUpdate,
   onDualPlayStateChanged,
@@ -847,10 +1107,79 @@ const onDualSeekInput = (event: Event) => {
   seekDualStreams(Number(target.value))
 }
 
-const handleKeyboardSeek = (event: KeyboardEvent) => {
-  if (props.mode !== 'recorded') return
-  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
-  if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+// Step the playback rate to the next/previous entry of the visible options,
+// then apply it through the same path the rate selector uses.
+const stepPlaybackRate = (dir: 1 | -1) => {
+  const options = playbackRateOptions.value
+  if (!options.length) return
+  const current = Number(currentPlaybackRate.value)
+  let idx = options.indexOf(current)
+  if (idx === -1) {
+    idx = options.reduce(
+      (best, val, i) => (Math.abs(val - current) < Math.abs(options[best] - current) ? i : best),
+      0
+    )
+  }
+  const nextIdx = Math.min(options.length - 1, Math.max(0, idx + dir))
+  if (nextIdx === idx) return
+  currentPlaybackRate.value = options[nextIdx]
+  changePlaybackRate()
+}
+
+const seekActive = (delta: number) => {
+  if (isDualStreamSelected.value) {
+    if (!dualCanSeek.value) return
+    seekDualStreams(dualCurrentTime.value + delta)
+  } else {
+    seekSingle(singleCurrentTime.value + delta)
+  }
+}
+
+const togglePlaybackActive = () => {
+  if (isDualStreamSelected.value) {
+    void toggleDualPlaybackControl()
+  } else {
+    toggleSinglePlayback()
+  }
+}
+
+const VOLUME_STEP = 0.05
+
+const toggleMuteActive = () => {
+  if (shouldVideoMute.value) return
+  if (isDualStreamSelected.value) {
+    toggleDualMute()
+  } else {
+    toggleSingleMute()
+  }
+}
+
+const toggleFullscreenActive = () => {
+  if (isDualStreamSelected.value) {
+    void toggleDualFullscreen()
+  } else {
+    void toggleSingleFullscreen()
+  }
+}
+
+const adjustVolumeActive = (delta: number) => {
+  if (shouldVideoMute.value) return
+  if (isDualStreamSelected.value) {
+    const next = Math.min(1, Math.max(0, dualVolume.value + delta))
+    if (next > 0) lastNonZeroDualVolume.value = next
+    setDualVolume(next)
+  } else {
+    applySingleVolume(singleVolume.value + delta)
+  }
+}
+
+// Capture-phase keymap for the player. Attached in capture phase so it owns
+// these keys regardless of focus; the single-stream native controls are gone,
+// so there is no longer a double-seek. Seek / play-pause / speed are
+// recorded-only (live can't seek and has no speed control); mute, fullscreen,
+// and volume work in both live and recorded modes.
+const handleVideoKeydown = (event: KeyboardEvent) => {
+  if (event.ctrlKey || event.metaKey || event.altKey) return
 
   const target = event.target as HTMLElement | null
   if (target) {
@@ -861,20 +1190,65 @@ const handleKeyboardSeek = (event: KeyboardEvent) => {
   if (selectedSlide.value) return
   if (shouldDisableControls.value) return
 
-  const delta = event.key === 'ArrowRight' ? SEEK_SECONDS : -SEEK_SECONDS
+  const recordedOnly = props.mode === 'recorded'
 
-  if (isDualStreamSelected.value) {
-    if (!dualCanSeek.value) return
-    event.preventDefault()
-    seekDualStreams(dualCurrentTime.value + delta)
-    return
+  switch (event.key) {
+    case 'ArrowLeft':
+      if (!recordedOnly || event.shiftKey) return
+      event.preventDefault()
+      seekActive(-SEEK_SECONDS)
+      break
+    case 'ArrowRight':
+      if (!recordedOnly || event.shiftKey) return
+      event.preventDefault()
+      seekActive(SEEK_SECONDS)
+      break
+    case ' ':
+    case 'k':
+    case 'K':
+      if (!recordedOnly) return
+      event.preventDefault()
+      togglePlaybackActive()
+      break
+    case '.':
+    case '>':
+      if (!recordedOnly) return
+      event.preventDefault()
+      stepPlaybackRate(1)
+      break
+    case ',':
+    case '<':
+      if (!recordedOnly) return
+      event.preventDefault()
+      stepPlaybackRate(-1)
+      break
+    case 'm':
+    case 'M':
+      event.preventDefault()
+      toggleMuteActive()
+      break
+    case 'f':
+    case 'F':
+      event.preventDefault()
+      toggleFullscreenActive()
+      break
+    case 'Escape':
+      if (isSingleFullscreen.value || isDualFullscreen.value) {
+        event.preventDefault()
+        void document.exitFullscreen()
+      }
+      break
+    case 'ArrowUp':
+      event.preventDefault()
+      adjustVolumeActive(VOLUME_STEP)
+      break
+    case 'ArrowDown':
+      event.preventDefault()
+      adjustVolumeActive(-VOLUME_STEP)
+      break
+    default:
+      break
   }
-
-  const video = videoPlayer.value
-  if (!video || !Number.isFinite(video.duration)) return
-  event.preventDefault()
-  const next = Math.min(Math.max(video.currentTime + delta, 0), video.duration)
-  video.currentTime = next
 }
 
 const setDualAudio = (source: DualAudioSource) => {
@@ -882,8 +1256,34 @@ const setDualAudio = (source: DualAudioSource) => {
   showDualAudioPanel.value = false
 }
 
+const lastNonZeroDualVolume = ref(1)
+const onDualVolumeInput = (event: Event) => {
+  const value = Number((event.target as HTMLInputElement).value)
+  if (value > 0) lastNonZeroDualVolume.value = value
+  setDualVolume(value)
+}
+const toggleDualMute = () => {
+  if (shouldVideoMute.value) return
+  if (dualVolume.value > 0) {
+    setDualVolume(0)
+  } else {
+    setDualVolume(lastNonZeroDualVolume.value || 1)
+  }
+}
+
 const toggleDualStreamOrder = () => {
   isDualOrderSwapped.value = !isDualOrderSwapped.value
+  showDualMorePanel.value = false
+}
+
+// More-menu actions (shared three-dots menu in both bars).
+const toggleCinemaFromMenu = () => {
+  toggleCinemaMode()
+  showDualMorePanel.value = false
+}
+
+const togglePipFromMenu = () => {
+  void togglePictureInPicture()
   showDualMorePanel.value = false
 }
 
@@ -892,6 +1292,7 @@ const toggleDualAudioPanel = () => {
   showDualAudioPanel.value = !showDualAudioPanel.value
   if (showDualAudioPanel.value) {
     showDualMorePanel.value = false
+    showSpeedPanel.value = false
   }
 }
 
@@ -899,6 +1300,7 @@ const toggleDualMorePanel = () => {
   showDualMorePanel.value = !showDualMorePanel.value
   if (showDualMorePanel.value) {
     showDualAudioPanel.value = false
+    showSpeedPanel.value = false
   }
 }
 
@@ -916,6 +1318,138 @@ const toggleDualFullscreen = async () => {
     log.error('Error toggling dual fullscreen:', error)
   }
 }
+
+// Single-stream control-bar actions (replace native <video controls>).
+// Play/pause side-effects (wake lock, power, silent audio, isPlaying) are
+// handled by the play/pause listeners attached in the videoPlayer watcher.
+const toggleSinglePlayback = () => {
+  const video = videoPlayer.value
+  if (!video) return
+  if (video.paused) {
+    video.play().catch(() => { /* Ignore play rejection (autoplay/buffer) */ })
+  } else {
+    video.pause()
+  }
+}
+
+const seekSingle = (time: number) => {
+  const video = videoPlayer.value
+  if (!video || !Number.isFinite(video.duration)) return
+  video.currentTime = Math.min(Math.max(time, 0), video.duration)
+}
+
+const onSingleSeekInput = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const next = Number(target.value)
+  singleCurrentTime.value = next
+  seekSingle(next)
+}
+
+const toggleSingleFullscreen = async () => {
+  const container = singleVideoContainer.value
+  if (!container) return
+
+  try {
+    if (document.fullscreenElement === container) {
+      await document.exitFullscreen()
+    } else {
+      await container.requestFullscreen()
+    }
+  } catch (error) {
+    log.error('Error toggling single fullscreen:', error)
+  }
+}
+
+// Volume control for the single-stream bar. No-op while the app mute policy is
+// active (the control is disabled in that state). Uses volume (not muted) to
+// match the rest of the player's policy-based muting.
+const applySingleVolume = (value: number) => {
+  const clamped = Math.min(1, Math.max(0, value))
+  singleVolume.value = clamped
+  if (clamped > 0) lastNonZeroVolume.value = clamped
+  const video = videoPlayer.value
+  if (video && !shouldVideoMute.value) {
+    video.volume = clamped
+  }
+}
+
+const onSingleVolumeInput = (event: Event) => {
+  applySingleVolume(Number((event.target as HTMLInputElement).value))
+}
+
+const toggleSingleMute = () => {
+  if (shouldVideoMute.value) return
+  if (singleVolume.value > 0) {
+    applySingleVolume(0)
+  } else {
+    applySingleVolume(lastNonZeroVolume.value || 1)
+  }
+}
+
+// Playback-speed drop-up (shared by both bars). Mirrors the dual popover toggles.
+const toggleSpeedPanel = () => {
+  showSpeedPanel.value = !showSpeedPanel.value
+  if (showSpeedPanel.value) {
+    showDualAudioPanel.value = false
+    showDualMorePanel.value = false
+  }
+}
+
+const setPlaybackRateFromPanel = (rate: number) => {
+  currentPlaybackRate.value = rate
+  changePlaybackRate()
+  showSpeedPanel.value = false
+}
+
+// Auto-hide the control overlay (single + dual). Visible on pointer movement,
+// hidden after a short idle while playing. Stays up when paused, while the
+// pointer is over the controls, or while a popover is open.
+const CONTROLS_IDLE_MS = 2500
+const controlsVisible = ref(true)
+const pointerOverControls = ref(false)
+let controlsHideTimer: ReturnType<typeof setTimeout> | null = null
+
+const controlsShouldPersist = () =>
+  !isPlaying.value ||
+  pointerOverControls.value ||
+  showSpeedPanel.value ||
+  showDualAudioPanel.value ||
+  showDualMorePanel.value
+
+const clearControlsTimer = () => {
+  if (controlsHideTimer) {
+    clearTimeout(controlsHideTimer)
+    controlsHideTimer = null
+  }
+}
+
+const scheduleControlsHide = () => {
+  clearControlsTimer()
+  if (controlsShouldPersist()) return
+  controlsHideTimer = setTimeout(() => {
+    controlsVisible.value = false
+  }, CONTROLS_IDLE_MS)
+}
+
+const showControls = () => {
+  controlsVisible.value = true
+  scheduleControlsHide()
+}
+
+const onPlayerPointerLeave = () => {
+  if (controlsShouldPersist()) return
+  clearControlsTimer()
+  controlsVisible.value = false
+}
+
+watch([isPlaying, pointerOverControls, showSpeedPanel, showDualAudioPanel, showDualMorePanel], () => {
+  if (controlsShouldPersist()) {
+    clearControlsTimer()
+    controlsVisible.value = true
+  } else {
+    scheduleControlsHide()
+  }
+})
 
 // Utility functions
 const formatDate = (dateString: string): string => {
@@ -1003,8 +1537,15 @@ watch(() => videoPlayer.value, (newPlayer) => {
     }
 
     const onTimeUpdate = () => {
+      singleCurrentTime.value = newPlayer.currentTime
       taskQueue.updateTaskProgress()
       taskQueue.checkVideoCompletion()
+    }
+
+    // Keep the custom control bar's duration in sync (native controls removed).
+    const onLoadedMeta = () => {
+      singleDuration.value = Number.isFinite(newPlayer.duration) ? newPlayer.duration : 0
+      singleCurrentTime.value = newPlayer.currentTime
     }
 
     const onWaiting = () => {
@@ -1029,11 +1570,21 @@ watch(() => videoPlayer.value, (newPlayer) => {
       performanceOptimization.stopSilentAudio()
     }
 
+    // Seed control-bar state from the freshly attached element.
+    singleDuration.value = Number.isFinite(newPlayer.duration) ? newPlayer.duration : 0
+    singleCurrentTime.value = newPlayer.currentTime || 0
+    if (!shouldVideoMute.value) {
+      singleVolume.value = newPlayer.volume
+      if (newPlayer.volume > 0) lastNonZeroVolume.value = newPlayer.volume
+    }
+
     newPlayer.addEventListener('play', onPlayStart)
     newPlayer.addEventListener('pause', onPauseOrEnd)
     newPlayer.addEventListener('ended', onPauseOrEnd)
     newPlayer.addEventListener('ended', taskQueue.onVideoEnded)
     newPlayer.addEventListener('timeupdate', onTimeUpdate)
+    newPlayer.addEventListener('durationchange', onLoadedMeta)
+    newPlayer.addEventListener('loadedmetadata', onLoadedMeta)
     newPlayer.addEventListener('waiting', onWaiting)
     newPlayer.addEventListener('canplay', onCanPlayHandler)
     newPlayer.addEventListener('canplaythrough', onCanPlayHandler)
@@ -1044,6 +1595,8 @@ watch(() => videoPlayer.value, (newPlayer) => {
       newPlayer.removeEventListener('ended', onPauseOrEnd)
       newPlayer.removeEventListener('ended', taskQueue.onVideoEnded)
       newPlayer.removeEventListener('timeupdate', onTimeUpdate)
+      newPlayer.removeEventListener('durationchange', onLoadedMeta)
+      newPlayer.removeEventListener('loadedmetadata', onLoadedMeta)
       newPlayer.removeEventListener('waiting', onWaiting)
       newPlayer.removeEventListener('canplay', onCanPlayHandler)
       newPlayer.removeEventListener('canplaythrough', onCanPlayHandler)
@@ -1090,7 +1643,9 @@ watch(shouldVideoMute, (shouldMute) => {
   }
 
   if (videoPlayer.value) {
-    videoPlayer.value.volume = shouldMute ? 0 : 1
+    // When leaving policy mute, restore the user's chosen volume (not a hard 1)
+    // so the custom volume control stays authoritative.
+    videoPlayer.value.volume = shouldMute ? 0 : singleVolume.value
     if (shouldMute) {
       videoPlayer.value.setAttribute('data-muted-by-app', 'true')
       performanceOptimization.startSilentAudio()
@@ -1138,6 +1693,7 @@ watch(isDualStreamSelected, async (isDual) => {
   } else {
     showDualAudioPanel.value = false
     showDualMorePanel.value = false
+    showSpeedPanel.value = false
   }
 })
 
@@ -1185,6 +1741,7 @@ const onSlidesCleared = (event: CustomEvent) => {
 
 const onFullscreenChange = () => {
   isDualFullscreen.value = document.fullscreenElement === dualVideoContainer.value
+  isSingleFullscreen.value = document.fullscreenElement === singleVideoContainer.value
 }
 
 // Lifecycle
@@ -1207,7 +1764,7 @@ onMounted(async () => {
   window.addEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.addEventListener('slidesCleared', onSlidesCleared as EventListener)
   window.addEventListener('showMorePlaybackSpeedChanged', onShowMorePlaybackSpeedChanged as EventListener)
-  window.addEventListener('keydown', handleKeyboardSeek)
+  window.addEventListener('keydown', handleVideoKeydown, { capture: true })
   document.addEventListener('fullscreenchange', onFullscreenChange)
   taskQueue.setupEventListeners()
   performanceOptimization.setupEventListeners()
@@ -1230,8 +1787,9 @@ onUnmounted(async () => {
   window.removeEventListener('slideExtracted', onSlideExtracted as unknown as EventListener)
   window.removeEventListener('slidesCleared', onSlidesCleared as EventListener)
   window.removeEventListener('showMorePlaybackSpeedChanged', onShowMorePlaybackSpeedChanged as EventListener)
-  window.removeEventListener('keydown', handleKeyboardSeek)
+  window.removeEventListener('keydown', handleVideoKeydown, { capture: true })
   document.removeEventListener('fullscreenchange', onFullscreenChange)
+  clearControlsTimer()
   taskQueue.removeEventListeners()
 
   // Clean up performance optimization
@@ -1618,6 +2176,80 @@ onUnmounted(async () => {
   display: block;
 }
 
+/* Single-stream custom control bar reuses the .dual-controls-* styling and
+   overlays the bottom of the (position: relative) .video-container. */
+.single-controls-section {
+  padding-bottom: 8px;
+}
+
+/* Inline volume control (single-stream bar). */
+.single-volume {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Two-class selector to outrank `.dual-seek { width: 100% }`, which is declared
+   later in this stylesheet and would otherwise stretch the volume slider. */
+.single-volume .single-volume-slider {
+  width: 72px;
+  flex-shrink: 0;
+}
+
+/* Playback-speed drop-up trigger (both bars). Pill variant of the icon button. */
+.dual-speed-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 14px;
+  background-color: transparent;
+  color: #f5f5f5;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.dual-speed-button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.dual-speed-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dual-speed-popover {
+  min-width: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.dual-speed-popover .dual-popover-option {
+  justify-content: center;
+}
+
+.video-container:fullscreen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+}
+
+.video-container:fullscreen .video-player {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+
 .dual-playback-shell {
   display: flex;
   flex-direction: column;
@@ -1714,6 +2346,18 @@ onUnmounted(async () => {
   border: none;
   border-radius: 0;
   color: #f5f5f5;
+  transition: opacity 0.2s ease;
+}
+
+/* Auto-hide: fade the overlay out and hide the cursor while idle during playback. */
+.dual-controls-section.controls-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.video-container.controls-hidden,
+.dual-playback-shell.controls-hidden {
+  cursor: none;
 }
 
 .dual-controls-main-row {
@@ -1807,9 +2451,14 @@ onUnmounted(async () => {
   flex-shrink: 0;
 }
 
-.dual-popover-option:hover,
+.dual-popover-option:hover:not(:disabled),
 .dual-popover-option.active {
   background-color: rgba(255, 255, 255, 0.14);
+}
+
+.dual-popover-option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .dual-audio-popover {
