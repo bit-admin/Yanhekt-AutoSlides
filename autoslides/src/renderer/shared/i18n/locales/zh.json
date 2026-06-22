@@ -1017,6 +1017,10 @@
     "tabCloudNotes": "云笔记"
   },
   "cloudNotes": {
+    "bannerNotice": "注意：延河课堂不当地将笔记图片存放于任何人均可访问的公开存储。不要上传包含隐私或敏感信息的笔记。",
+    "bannerWhy": "了解原因",
+    "bannerMyNotes": "在延河课堂查看我的笔记",
+    "bannerDismiss": "关闭",
     "notSignedIn": "请在主窗口登录后使用云笔记。",
     "groups": "分组",
     "allNotes": "全部笔记",

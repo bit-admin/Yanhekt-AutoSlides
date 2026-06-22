@@ -1017,6 +1017,10 @@
     "tabCloudNotes": "クラウドノート"
   },
   "cloudNotes": {
+    "bannerNotice": "注意：延河課堂はノート画像を公開ストレージに保存するため、誰でもアクセスできます。",
+    "bannerWhy": "理由を見る",
+    "bannerMyNotes": "延河課堂でノートを開く",
+    "bannerDismiss": "閉じる",
     "notSignedIn": "クラウドノートを使うにはメインウィンドウでサインインしてください。",
     "groups": "グループ",
     "allNotes": "すべてのノート",

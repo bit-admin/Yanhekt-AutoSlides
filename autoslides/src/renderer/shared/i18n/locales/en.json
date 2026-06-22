@@ -1017,6 +1017,10 @@
     "tabCloudNotes": "Cloud Notes"
   },
   "cloudNotes": {
+    "bannerNotice": "Note: Yanhekt stores note images in public storage and anyone can access them. Do not include private or sensitive images.",
+    "bannerWhy": "Learn why",
+    "bannerMyNotes": "Open My Notes on Yanhekt",
+    "bannerDismiss": "Dismiss",
     "notSignedIn": "Sign in from the main window to use Cloud Notes.",
     "groups": "Groups",
     "allNotes": "All notes",

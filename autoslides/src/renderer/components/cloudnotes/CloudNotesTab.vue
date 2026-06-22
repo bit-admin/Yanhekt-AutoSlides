@@ -1,5 +1,27 @@
 <template>
   <div class="cloud-notes-tab">
+    <!-- Public-images notice banner -->
+    <div v-if="bannerVisible" class="cn-banner">
+      <span class="cn-banner-msg">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3l9 16H3L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M12 10v4M12 17h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <span>{{ $t('cloudNotes.bannerNotice') }}
+          <a class="cn-banner-a" :href="WHY_URL" @click.prevent="openExt(WHY_URL)">{{ $t('cloudNotes.bannerWhy') }} ↗</a>
+        </span>
+      </span>
+      <span class="cn-banner-actions">
+        <a class="cn-banner-link" :href="MYNOTES_URL" @click.prevent="openExt(MYNOTES_URL)">{{ $t('cloudNotes.bannerMyNotes') }} ↗</a>
+        <button class="cn-banner-close" :title="$t('cloudNotes.bannerDismiss')" :aria-label="$t('cloudNotes.bannerDismiss')" @click="bannerVisible = false">
+          <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
+            <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </span>
+    </div>
+
+    <div class="cn-body">
     <!-- Not signed in -->
     <div v-if="cn.notSignedIn.value" class="cn-signin">
       <svg width="40" height="40" viewBox="0 0 24 24" fill="none">
@@ -116,6 +138,7 @@
         </template>
       </section>
     </template>
+    </div>
 
     <div v-if="cn.error.value" class="cn-error" @click="cn.error.value = ''">{{ cn.error.value }}</div>
   </div>
@@ -138,6 +161,13 @@ import { NOTE_GROUP_NAME_MAX } from '@common/notesTypes'
 
 const { t } = useI18n()
 const cn = useCloudNotes()
+
+const MYNOTES_URL = 'https://www.yanhekt.cn/profile/myNotes'
+const WHY_URL = 'https://github.com/bit-admin/yanhekt-coss-browser'
+function openExt(url: string): void { window.electronAPI.shell.openExternal(url) }
+
+// Dismissible per session — resets to visible when the Tools window reopens.
+const bannerVisible = ref(true)
 
 const newGroupName = ref('')
 const editableTitle = ref('')
@@ -340,8 +370,88 @@ watch(() => cn.selectedNoteId.value, (id) => {
   position: relative;
   height: 100%;
   display: flex;
+  flex-direction: column;
   overflow: hidden;
   background-color: var(--bg-surface);
+}
+
+/* Public-notes banner */
+.cn-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  padding: 7px 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  background-color: var(--warning-bg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cn-banner-msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.cn-banner-msg svg {
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
+.cn-banner-a,
+.cn-banner-link {
+  color: var(--link-color);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.cn-banner-a:hover,
+.cn-banner-link:hover {
+  text-decoration: underline;
+}
+
+.cn-banner-link {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.cn-banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cn-banner-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.cn-banner-close:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+/* Three-pane body below the banner */
+.cn-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
 }
 
 /* Left: groups */

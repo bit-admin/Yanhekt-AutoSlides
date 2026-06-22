@@ -1017,6 +1017,10 @@
     "tabCloudNotes": "클라우드 노트"
   },
   "cloudNotes": {
+    "bannerNotice": "참고: Yanhekt는 노트 이미지를 공개 저장소에 보관하므로 누구나 접근할 수 있습니다.",
+    "bannerWhy": "이유 보기",
+    "bannerMyNotes": "Yanhekt에서 내 노트 열기",
+    "bannerDismiss": "닫기",
     "notSignedIn": "클라우드 노트를 사용하려면 메인 창에서 로그인하세요.",
     "groups": "그룹",
     "allNotes": "모든 노트",
