@@ -816,6 +816,7 @@ interface ElectronAPI {
     groupCreate: (name: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
     groupDelete: (id: number) => Promise<import('@common/notesTypes').NotesResult<void>>;
     uploadImage: (bytes: ArrayBuffer, filename: string, mime: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
+    uploadImageFromPath: (filePath: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').UploadedImage>>;
   };
 }
 

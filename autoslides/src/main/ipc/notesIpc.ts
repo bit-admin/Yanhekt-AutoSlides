@@ -59,4 +59,7 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('cloudNotes:uploadImage', (_e, bytes: ArrayBuffer, filename: string, mime: string) =>
     run(() => notesService.uploadImage(bytes, filename, mime)));
+
+  ipcMain.handle('cloudNotes:uploadImageFromPath', (_e, filePath: string) =>
+    run(() => notesService.uploadImageFromPath(filePath)));
 }

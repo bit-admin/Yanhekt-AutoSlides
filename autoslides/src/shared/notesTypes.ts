@@ -107,3 +107,21 @@ export const EDITORJS_DOC_VERSION = '2.26.5';
 export function isManagedGroupName(name: string): boolean {
   return name === MANAGED_GROUP_NAME;
 }
+
+/**
+ * Prefix marking a note as AutoSlides-managed. We can't persist course/session
+ * IDs for extracted folders, so managed slide-notes are keyed off the folder's
+ * display name; this prefix makes them identifiable and title-searchable. The
+ * full built title (prefix + display name) doubles as the dedup key.
+ */
+export const MANAGED_NOTE_PREFIX = 'AS ·';
+
+/** Build a managed note title from a folder's human-readable display name. */
+export function buildManagedNoteTitle(displayName: string): string {
+  return `${MANAGED_NOTE_PREFIX} ${displayName}`;
+}
+
+/** Whether a note title was produced by AutoSlides (carries the managed prefix). */
+export function isManagedNoteTitle(title: string): boolean {
+  return title.startsWith(MANAGED_NOTE_PREFIX);
+}

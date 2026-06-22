@@ -113,12 +113,14 @@
           </div>
         </div>
 
-        <button class="cn-newgroup-btn" @click="showNewGroupModal = true">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          {{ $t('cloudNotes.newGroupTitle') }}
-        </button>
+        <div class="cn-groups-footer">
+          <button class="cn-newgroup-btn" @click="showNewGroupModal = true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            {{ $t('cloudNotes.newGroupTitle') }}
+          </button>
+        </div>
       </aside>
 
       <!-- New Group modal (matches HomePage "Add Saved Search" modal) -->
@@ -196,7 +198,80 @@
           <span>{{ cn.page.value }} / {{ cn.totalPages.value }}</span>
           <button class="btn btn--sm btn--ghost" :disabled="cn.page.value >= cn.totalPages.value" @click="cn.goToPage(cn.page.value + 1)">›</button>
         </div>
+
+        <div v-if="cn.hasManagedStorage.value" class="cn-list-footer">
+          <button class="cn-import-btn" :title="$t('cloudNotes.importTip')" @click="openImportModal">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
+            </svg>
+            <span v-if="imp.importing.value">{{ $t('cloudNotes.importProgress', { done: imp.overall.value.done, total: imp.overall.value.total }) }}</span>
+            <span v-else>{{ $t('cloudNotes.importButton') }}</span>
+          </button>
+        </div>
       </section>
+
+      <!-- Import slides to notes modal -->
+      <div v-if="showImportModal" class="modal-overlay" @click.self="closeImportModal">
+        <div class="cn-import-box">
+          <h3 class="cn-modal-title">{{ $t('cloudNotes.importTitle') }}</h3>
+
+          <!-- Phase: select folders -->
+          <template v-if="importPhase === 'select'">
+            <div class="cn-import-list custom-scrollbar">
+              <div v-if="loadingFolders" class="cn-empty">{{ $t('cloudNotes.loading') }}</div>
+              <div v-else-if="importFolders.length === 0" class="cn-empty">{{ $t('cloudNotes.importNoFolders') }}</div>
+              <button
+                v-for="f in importFolders"
+                :key="f.name"
+                class="cn-import-folder"
+                :class="{ selected: importSelected.includes(f.name) }"
+                @click="toggleImportFolder(f.name)"
+              >
+                <input type="checkbox" class="cn-import-check" :checked="importSelected.includes(f.name)" tabindex="-1" />
+                <svg class="cn-import-folder-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span class="cn-import-folder-name">{{ fmtFolder(f.name) }}</span>
+                <span class="cn-import-folder-count">{{ $t('cloudNotes.importImagesCount', { n: f.imageCount }) }}</span>
+              </button>
+            </div>
+            <div class="cn-modal-actions">
+              <button class="btn cn-modal-btn" @click="closeImportModal">{{ $t('cloudNotes.cancel') }}</button>
+              <button class="btn btn--primary cn-modal-btn" :disabled="importSelected.length === 0" @click="onStartImport">
+                {{ $t('cloudNotes.importStart', { n: importSelected.length }) }}
+              </button>
+            </div>
+          </template>
+
+          <!-- Phase: progress -->
+          <template v-else>
+            <div class="cn-import-overall">{{ $t('cloudNotes.importOverall', { done: imp.overall.value.done, total: imp.overall.value.total }) }}</div>
+            <div class="cn-import-list custom-scrollbar">
+              <div v-for="item in imp.queue.value" :key="item.folderName" class="cn-imp-row">
+                <div class="cn-imp-row-top">
+                  <span class="cn-imp-name" :title="item.displayName">{{ item.displayName }}</span>
+                  <span class="cn-imp-status" :class="`s-${item.status}`">{{ importStatusText(item) }}</span>
+                </div>
+                <div class="cn-imp-bar">
+                  <div class="cn-imp-fill" :class="`s-${item.status}`" :style="{ width: importBarWidth(item) + '%' }"></div>
+                </div>
+                <button
+                  v-if="item.status === 'conflict' && item.conflictNoteId"
+                  class="btn btn--sm cn-imp-open"
+                  @click="onOpenConflictNote(item.conflictNoteId)"
+                >
+                  {{ $t('cloudNotes.importOpenNote') }}
+                </button>
+              </div>
+            </div>
+            <p v-if="imp.queue.value.some(i => i.status === 'conflict')" class="cn-import-hint">{{ $t('cloudNotes.importDeleteHint') }}</p>
+            <div class="cn-modal-actions">
+              <button v-if="imp.importing.value" class="btn cn-modal-btn" @click="imp.cancel()">{{ $t('cloudNotes.importCancel') }}</button>
+              <button class="btn btn--primary cn-modal-btn" @click="closeImportModal">{{ $t('cloudNotes.importClose') }}</button>
+            </div>
+          </template>
+        </div>
+      </div>
 
       <!-- Right: editor -->
       <section class="cn-editor">
@@ -245,10 +320,27 @@ import Quote from '@editorjs/quote'
 import CodeTool from '@editorjs/code'
 import Table from '@editorjs/table'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
+import { useNoteImport, type ImportItem } from '@features/cloudNotes/useNoteImport'
+import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { NOTE_GROUP_NAME_MAX, EDITORJS_DOC_VERSION } from '@common/notesTypes'
 
 const { t } = useI18n()
 const cn = useCloudNotes()
+
+// Short, English-only copyright notice embedded in every imported note (a
+// condensed form of the PDF Maker cover copyright). Kept English regardless of
+// UI language since the note travels with the user's Yanhekt account.
+const NOTE_COPYRIGHT =
+  'This file may contain copyrighted material, extracted from a recorded lecture solely for ' +
+  'personal study and non-commercial educational use. All rights remain with their respective ' +
+  'holders; redistribution or commercial use is prohibited. AutoSlides is an automated tool and ' +
+  'claims no ownership of the content.'
+
+const imp = useNoteImport(cn, {
+  meta: (count, date) => t('cloudNotes.noteMeta', { count, date }),
+  warning: NOTE_COPYRIGHT,
+  slideCaption: (n) => t('cloudNotes.noteSlideCaption', { n }),
+})
 
 const MYNOTES_URL = 'https://www.yanhekt.cn/profile/myNotes'
 const WHY_URL = 'https://github.com/bit-admin/yanhekt-coss-browser'
@@ -442,6 +534,80 @@ function buildReadmeContent(): string {
 
 async function onInitStorage(): Promise<void> {
   await cn.initCloudStorage(buildReadmeContent())
+}
+
+// ── Import slides to notes ─────────────────────────────────────────────────
+interface ImportFolder { name: string; path: string; imageCount: number }
+
+const showImportModal = ref(false)
+const importPhase = ref<'select' | 'progress'>('select')
+const importFolders = ref<ImportFolder[]>([])
+const importSelected = ref<string[]>([])
+const loadingFolders = ref(false)
+
+const fmtFolder = formatToolFolderName
+
+async function loadImportFolders(): Promise<void> {
+  loadingFolders.value = true
+  try {
+    importFolders.value = (await window.electronAPI.pdfmaker.getFolders()) as ImportFolder[]
+    importSelected.value = []
+  } finally {
+    loadingFolders.value = false
+  }
+}
+
+async function openImportModal(): Promise<void> {
+  showImportModal.value = true
+  // Reopen straight into progress if a run is active or its results are unread.
+  if (imp.queue.value.length > 0) {
+    importPhase.value = 'progress'
+  } else {
+    importPhase.value = 'select'
+    await loadImportFolders()
+  }
+}
+
+function closeImportModal(): void {
+  showImportModal.value = false
+  // Keep a running queue alive (background); clear finished results so the next
+  // open starts fresh at the folder picker.
+  if (!imp.importing.value) imp.reset()
+}
+
+function toggleImportFolder(name: string): void {
+  const i = importSelected.value.indexOf(name)
+  if (i === -1) importSelected.value.push(name)
+  else importSelected.value.splice(i, 1)
+}
+
+function onStartImport(): void {
+  if (importSelected.value.length === 0) return
+  importPhase.value = 'progress'
+  // Fire-and-forget: the queue runs in the background and survives modal close.
+  void imp.startImport([...importSelected.value])
+}
+
+async function onOpenConflictNote(id: number): Promise<void> {
+  closeImportModal()
+  await openNote(id)
+}
+
+function importStatusText(item: ImportItem): string {
+  switch (item.status) {
+    case 'uploading': return t('cloudNotes.importUploading', { done: item.uploaded, total: item.total })
+    case 'building': return t('cloudNotes.importBuilding')
+    case 'done': return t('cloudNotes.importDone')
+    case 'conflict': return t('cloudNotes.importConflict')
+    case 'error': return item.error || t('cloudNotes.importError')
+    default: return t('cloudNotes.importPending')
+  }
+}
+
+function importBarWidth(item: ImportItem): number {
+  if (item.status === 'done' || item.status === 'building') return 100
+  if (item.status === 'uploading' && item.total > 0) return Math.round((item.uploaded / item.total) * 100)
+  return 0
 }
 
 async function onCreateGroup(): Promise<void> {
@@ -734,27 +900,35 @@ watch(() => cn.selectedNoteId.value, (id) => {
   background-color: var(--bg-hover);
 }
 
-/* New Group button — pinned to sidebar bottom with spacing */
-.cn-newgroup-btn {
+/* New Group — pinned footer, set off from the list by a top separator.
+   The button itself is inset so its rounded hover state aligns with the
+   group items above instead of bleeding to the sidebar edges. */
+.cn-groups-footer {
   flex-shrink: 0;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.cn-newgroup-btn {
   display: flex;
   align-items: center;
   gap: 9px;
   width: 100%;
-  padding: 12px 12px;
+  padding: 8px 10px;
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   box-sizing: border-box;
-  transition: all 0.15s;
+  transition: background-color 0.15s, color 0.15s;
 }
 
 .cn-newgroup-btn:hover {
   background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 /* Init cloud storage — flat row matching the group items, accent text. */
@@ -788,6 +962,193 @@ watch(() => cn.selectedNoteId.value, (id) => {
 
 .cn-init-btn svg {
   flex-shrink: 0;
+}
+
+/* ── Notes-list footer: "Import slides to notes" (mirrors .cn-groups-footer) ── */
+.cn-list-footer {
+  flex-shrink: 0;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.cn-import-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.cn-import-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.cn-import-btn svg {
+  flex-shrink: 0;
+}
+
+/* ── Import modal ──────────────────────────────────────────────────────── */
+.cn-import-box {
+  background: var(--bg-modal);
+  border-radius: 12px;
+  padding: 20px;
+  width: 460px;
+  max-width: 92vw;
+  max-height: 80vh;
+  box-shadow: 0 8px 32px var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cn-import-list {
+  flex: 1 1 auto;
+  min-height: 120px;
+  max-height: 46vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Folder picker rows */
+.cn-import-folder {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.cn-import-folder:hover {
+  background-color: var(--bg-hover);
+}
+
+.cn-import-folder.selected {
+  background-color: var(--badge-active-bg);
+  border-color: var(--accent);
+}
+
+.cn-import-check {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  pointer-events: none;
+}
+
+.cn-import-folder-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.cn-import-folder-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cn-import-folder-count {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Progress phase */
+.cn-import-overall {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.cn-imp-row {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-surface);
+}
+
+.cn-imp-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cn-imp-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.cn-imp-status {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.cn-imp-status.s-done { color: var(--success); }
+.cn-imp-status.s-error { color: var(--danger); }
+.cn-imp-status.s-conflict { color: var(--warning); }
+.cn-imp-status.s-uploading,
+.cn-imp-status.s-building { color: var(--accent); }
+
+.cn-imp-bar {
+  height: 4px;
+  background-color: var(--bg-hover);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.cn-imp-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 2px;
+  background-color: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.cn-imp-fill.s-done { background-color: var(--success); }
+.cn-imp-fill.s-error,
+.cn-imp-fill.s-conflict { background-color: transparent; }
+
+.cn-imp-open {
+  align-self: flex-start;
+  margin-top: 2px;
+}
+
+.cn-import-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 /* ── New Group modal (matches HomePage "Add Saved Search" modal) ──────── */

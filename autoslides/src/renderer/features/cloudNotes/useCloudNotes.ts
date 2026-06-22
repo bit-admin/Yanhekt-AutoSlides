@@ -310,6 +310,7 @@ export function useCloudNotes() {
     managedGroups,
     otherGroups,
     hasManagedStorage,
+    allNotes,
     notes,
     selectedNote,
     selectedNoteId,

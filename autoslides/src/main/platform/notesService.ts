@@ -11,6 +11,8 @@
  * REFERENCE/yanhekt-note-api-report.md for the verified endpoint surface.
  */
 
+import { promises as fs } from 'fs';
+import path from 'path';
 import type { ConfigService } from './configService';
 import type {
   NoteSummary,
@@ -179,8 +181,30 @@ export class NotesService {
    * public URL ({host}{path}). Same file hashes deterministically to the same URL.
    */
   async uploadImage(bytes: ArrayBuffer, filename: string, mime: string): Promise<UploadedImage> {
+    return this.uploadBytes(bytes, filename, mime);
+  }
+
+  /**
+   * Upload an image straight from a local file path. Used by the slide-import
+   * queue: the file is read and uploaded entirely in the main process, avoiding a
+   * base64 round-trip through the renderer for each of (potentially) hundreds of
+   * slides.
+   */
+  async uploadImageFromPath(filePath: string): Promise<UploadedImage> {
+    const bytes = await fs.readFile(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    const mime = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
+    return this.uploadBytes(bytes, path.basename(filePath), mime);
+  }
+
+  /** Shared multipart upload to the public MinIO `notes` bucket. */
+  private async uploadBytes(
+    data: ArrayBuffer | Uint8Array,
+    filename: string,
+    mime: string,
+  ): Promise<UploadedImage> {
     const form = new FormData();
-    form.append('file', new Blob([bytes], { type: mime || 'application/octet-stream' }), filename || 'image.png');
+    form.append('file', new Blob([data as BlobPart], { type: mime || 'application/octet-stream' }), filename || 'image.png');
     form.append('bucket', 'notes');
 
     const res = await fetch(`${BASE}/v1/minio/upload`, {

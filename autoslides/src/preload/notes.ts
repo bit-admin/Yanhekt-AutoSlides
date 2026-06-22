@@ -37,4 +37,6 @@ export const cloudNotes = {
     ipcRenderer.invoke('cloudNotes:groupDelete', id),
   uploadImage: (bytes: ArrayBuffer, filename: string, mime: string): Promise<NotesResult<UploadedImage>> =>
     ipcRenderer.invoke('cloudNotes:uploadImage', bytes, filename, mime),
+  uploadImageFromPath: (filePath: string): Promise<NotesResult<UploadedImage>> =>
+    ipcRenderer.invoke('cloudNotes:uploadImageFromPath', filePath),
 };
