@@ -283,19 +283,31 @@ export function useCloudNotes() {
   }
 
   /**
-   * Re-save the README's content so its modified time bumps to "now", keeping it
-   * at the top of the note list (the server, and our app, sort by modified time).
-   * No-op when no README exists. `content` is a freshly-timestamped Editor.js
-   * document built by the caller. Reloads so the new ordering is reflected.
+   * Keep the README pinned to the top of the note list. The server orders notes
+   * by *created* time, so re-saving content doesn't move it — we instead recreate
+   * it: create the replacement first (so a README always exists), then delete the
+   * old one. The fresh note gets the newest created time and lands on top. No-op
+   * when no README exists (initCloudStorage creates the first). `content` is a
+   * freshly-built Editor.js document from the caller. Reloads to reflect the new order.
    */
-  async function touchReadme(content: string): Promise<void> {
-    const readme = allNotes.value.find((n) => n.title === README_NOTE_TITLE)
-    if (!readme) return
-    const res = await window.electronAPI.cloudNotes.updateContent(readme.id, content)
-    if (!res.ok) {
-      unwrap(res)
+  async function recreateReadme(content: string): Promise<void> {
+    const existing = allNotes.value.find((n) => n.title === README_NOTE_TITLE)
+    if (!existing) return
+    const createRes = await window.electronAPI.cloudNotes.create()
+    const id = unwrap(createRes)
+    if (id == null) return
+    const titleRes = await window.electronAPI.cloudNotes.updateTitle(id, README_NOTE_TITLE)
+    if (!titleRes.ok) {
+      unwrap(titleRes)
       return
     }
+    const contentRes = await window.electronAPI.cloudNotes.updateContent(id, content)
+    if (!contentRes.ok) {
+      unwrap(contentRes)
+      return
+    }
+    const delRes = await window.electronAPI.cloudNotes.delete(existing.id)
+    if (!delRes.ok) unwrap(delRes)
     await loadAll()
   }
 
@@ -327,7 +339,7 @@ export function useCloudNotes() {
     // actions
     init,
     initCloudStorage,
-    touchReadme,
+    recreateReadme,
     refreshGroups,
     loadAll,
     searchNotes,

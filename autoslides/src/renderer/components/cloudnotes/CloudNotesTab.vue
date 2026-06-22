@@ -255,16 +255,15 @@
                 <div class="cn-imp-bar">
                   <div class="cn-imp-fill" :class="`s-${item.status}`" :style="{ width: importBarWidth(item) + '%' }"></div>
                 </div>
-                <button
-                  v-if="item.status === 'conflict' && item.conflictNoteId"
-                  class="btn btn--sm cn-imp-open"
-                  @click="onOpenConflictNote(item.conflictNoteId)"
-                >
-                  {{ $t('cloudNotes.importOpenNote') }}
-                </button>
+                <div v-if="item.status === 'conflict'" class="cn-imp-actions">
+                  <button class="btn btn--sm btn--ghost" :disabled="imp.importing.value" @click="onOpenConflictNote(item.conflictNoteIds?.[0])">{{ $t('cloudNotes.importOpenNote') }}</button>
+                  <button class="btn btn--sm" :disabled="imp.importing.value" @click="imp.resolveConflict(item, 'create')">{{ $t('cloudNotes.importCreateAnyway') }}</button>
+                  <button class="btn btn--sm btn--danger-outline" :disabled="imp.importing.value" @click="imp.resolveConflict(item, 'replace')">{{ $t('cloudNotes.importReplace') }}</button>
+                  <button class="btn btn--sm btn--ghost" :disabled="imp.importing.value" @click="imp.skipConflict(item)">{{ $t('cloudNotes.importSkip') }}</button>
+                </div>
               </div>
             </div>
-            <p v-if="imp.queue.value.some(i => i.status === 'conflict')" class="cn-import-hint">{{ $t('cloudNotes.importDeleteHint') }}</p>
+            <p v-if="imp.queue.value.some(i => i.status === 'conflict')" class="cn-import-hint">{{ $t('cloudNotes.importConflictHint') }}</p>
             <div class="cn-modal-actions">
               <button v-if="imp.importing.value" class="btn cn-modal-btn" @click="imp.cancel()">{{ $t('cloudNotes.importCancel') }}</button>
               <button class="btn btn--primary cn-modal-btn" @click="closeImportModal">{{ $t('cloudNotes.importClose') }}</button>
@@ -588,7 +587,8 @@ function onStartImport(): void {
   void imp.startImport([...importSelected.value])
 }
 
-async function onOpenConflictNote(id: number): Promise<void> {
+async function onOpenConflictNote(id?: number): Promise<void> {
+  if (id == null) return
   closeImportModal()
   await openNote(id)
 }
@@ -635,8 +635,9 @@ async function onDeleteGroup(id: number, name: string): Promise<void> {
 
 onMounted(async () => {
   await cn.init()
-  // Bump the README to the top of the list on every open (no-op if absent).
-  await cn.touchReadme(buildReadmeContent())
+  // Recreate the README on every open so it stays at the top (the server sorts
+  // by created time, so re-saving wouldn't move it). No-op if absent.
+  await cn.recreateReadme(buildReadmeContent())
 })
 
 onUnmounted(() => {
@@ -1140,8 +1141,10 @@ watch(() => cn.selectedNoteId.value, (id) => {
 .cn-imp-fill.s-error,
 .cn-imp-fill.s-conflict { background-color: transparent; }
 
-.cn-imp-open {
-  align-self: flex-start;
+.cn-imp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: 2px;
 }
 

@@ -20,8 +20,8 @@ export interface ImportItem {
   total: number
   /** Note created for this folder (on success). */
   noteId?: number
-  /** Existing managed note that blocks this import (on conflict). */
-  conflictNoteId?: number
+  /** Existing managed note(s) with the same title (on conflict). */
+  conflictNoteIds?: number[]
   error?: string
 }
 
@@ -55,9 +55,8 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
   const importing = computed(() => running.value)
   const overall = computed(() => {
     const total = queue.value.length
-    const done = queue.value.filter(
-      (i) => i.status === 'done' || i.status === 'conflict' || i.status === 'error',
-    ).length
+    // Conflicts are not counted as resolved — they await a user decision.
+    const done = queue.value.filter((i) => i.status === 'done' || i.status === 'error').length
     return { done, total }
   })
 
@@ -157,13 +156,13 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
         }
       })
 
-      // Pre-flag folders that already have a managed note (conflict, not overwrite).
+      // Pre-flag folders that already have a managed note. These are not
+      // auto-processed — the user decides per row (replace / create / skip).
       for (const item of queue.value) {
-        const title = buildManagedNoteTitle(item.displayName)
-        const existing = cn.allNotes.value.find((n) => n.title === title)
-        if (existing) {
+        const ids = sameTitleNoteIds(item.displayName)
+        if (ids.length > 0) {
           item.status = 'conflict'
-          item.conflictNoteId = existing.id
+          item.conflictNoteIds = ids
         }
       }
 
@@ -179,5 +178,45 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     }
   }
 
-  return { queue, importing, overall, cancelRequested, startImport, cancel, reset }
+  /** Current ids of all managed notes whose title matches this folder. */
+  function sameTitleNoteIds(displayName: string): number[] {
+    const title = buildManagedNoteTitle(displayName)
+    return cn.allNotes.value.filter((n) => n.title === title).map((n) => n.id)
+  }
+
+  /**
+   * Resolve a conflicting row. `replace` deletes *all* same-titled managed notes
+   * first (the user may have more than one), then imports fresh; `create` imports
+   * a new note alongside the existing one(s) — harmless, since identical images
+   * dedup to the same server URL. Runs the same single-folder pipeline.
+   */
+  async function resolveConflict(item: ImportItem, mode: 'replace' | 'create'): Promise<void> {
+    if (running.value) return
+    running.value = true
+    try {
+      if (mode === 'replace') {
+        for (const id of sameTitleNoteIds(item.displayName)) {
+          const del = await window.electronAPI.cloudNotes.delete(id)
+          if (!del.ok) { item.status = 'error'; item.error = del.error; return }
+        }
+      }
+      item.status = 'pending'
+      item.uploaded = 0
+      item.conflictNoteIds = undefined
+      await processItem(item)
+      await Promise.all([cn.loadAll(), cn.refreshGroups()])
+    } finally {
+      running.value = false
+    }
+  }
+
+  /** Drop a conflicting row from the queue without importing it. */
+  function skipConflict(item: ImportItem): void {
+    queue.value = queue.value.filter((i) => i !== item)
+  }
+
+  return {
+    queue, importing, overall, cancelRequested,
+    startImport, cancel, reset, resolveConflict, skipConflict,
+  }
 }
