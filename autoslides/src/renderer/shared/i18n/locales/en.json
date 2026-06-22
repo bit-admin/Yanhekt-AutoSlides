@@ -1027,6 +1027,9 @@
     "defaultGroup": "Ungrouped",
     "deleteGroup": "Delete group",
     "newGroupPlaceholder": "New group (≤{max})",
+    "newGroupTitle": "New Group",
+    "newGroupLabel": "Group name",
+    "newGroupHelp": "Group name is limited to {max} characters.",
     "add": "Add",
     "searchPlaceholder": "Search by title…",
     "search": "Search",
@@ -1038,10 +1041,12 @@
     "save": "Save",
     "saving": "Saving…",
     "saved": "Saved ✓",
+    "idle": "Idle",
     "delete": "Delete",
     "editorPlaceholder": "Start writing…",
     "confirmDeleteNote": "Delete this note? This cannot be undone.",
-    "confirmDeleteGroup": "Delete group \"{name}\"? Notes inside move to Ungrouped."
+    "confirmDeleteGroup": "Delete group \"{name}\"? Notes inside move to Ungrouped.",
+    "cancel": "Cancel"
   },
   "addons": {
     "openAddons": "Add-ons",

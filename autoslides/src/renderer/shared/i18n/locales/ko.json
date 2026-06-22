@@ -1027,6 +1027,9 @@
     "defaultGroup": "그룹 없음",
     "deleteGroup": "그룹 삭제",
     "newGroupPlaceholder": "새 그룹 (≤{max})",
+    "newGroupTitle": "새 그룹",
+    "newGroupLabel": "그룹 이름",
+    "newGroupHelp": "그룹 이름은 {max}자 이내여야 합니다.",
     "add": "추가",
     "searchPlaceholder": "제목으로 검색…",
     "search": "검색",
@@ -1038,10 +1041,12 @@
     "save": "저장",
     "saving": "저장 중…",
     "saved": "저장됨 ✓",
+    "idle": "대기",
     "delete": "삭제",
     "editorPlaceholder": "입력 시작…",
     "confirmDeleteNote": "이 노트를 삭제할까요? 되돌릴 수 없습니다.",
-    "confirmDeleteGroup": "그룹 \"{name}\"을(를) 삭제할까요? 안의 노트는 그룹 없음으로 이동합니다."
+    "confirmDeleteGroup": "그룹 \"{name}\"을(를) 삭제할까요? 안의 노트는 그룹 없음으로 이동합니다.",
+    "cancel": "취소"
   },
   "addons": {
     "openAddons": "애드온",

@@ -1027,6 +1027,9 @@
     "defaultGroup": "未分類",
     "deleteGroup": "グループを削除",
     "newGroupPlaceholder": "新規グループ（≤{max}）",
+    "newGroupTitle": "新規グループ",
+    "newGroupLabel": "グループ名",
+    "newGroupHelp": "グループ名は{max}文字以内です。",
     "add": "追加",
     "searchPlaceholder": "タイトルで検索…",
     "search": "検索",
@@ -1038,10 +1041,12 @@
     "save": "保存",
     "saving": "保存中…",
     "saved": "保存しました ✓",
+    "idle": "アイドル",
     "delete": "削除",
     "editorPlaceholder": "入力を開始…",
     "confirmDeleteNote": "このノートを削除しますか？元に戻せません。",
-    "confirmDeleteGroup": "グループ「{name}」を削除しますか？中のノートは未分類へ移動します。"
+    "confirmDeleteGroup": "グループ「{name}」を削除しますか？中のノートは未分類へ移動します。",
+    "cancel": "キャンセル"
   },
   "addons": {
     "openAddons": "アドオン",

@@ -32,75 +32,121 @@
 
     <template v-else>
       <!-- Left: groups -->
-      <aside class="cn-groups custom-scrollbar">
-        <div class="cn-groups-header">{{ $t('cloudNotes.groups') }}</div>
-        <button
-          class="cn-group-item"
-          :class="{ active: cn.activeGroupId.value === '' }"
-          @click="cn.setGroup('')"
-        >
-          {{ $t('cloudNotes.allNotes') }}
-        </button>
-        <div
-          v-for="g in cn.groups.value"
-          :key="g.id"
-          class="cn-group-item-row"
-        >
+      <aside class="cn-groups">
+        <div class="cn-groups-scroll custom-scrollbar">
+          <div class="cn-groups-header">{{ $t('cloudNotes.groups') }}</div>
           <button
             class="cn-group-item"
-            :class="{ active: cn.activeGroupId.value === g.id }"
-            @click="cn.setGroup(g.id)"
+            :class="{ active: cn.activeGroupId.value === '' }"
+            @click="cn.setGroup('')"
           >
-            {{ g.id === 0 ? $t('cloudNotes.defaultGroup') : (g.name || $t('cloudNotes.defaultGroup')) }}
+            <svg class="cn-group-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+            {{ $t('cloudNotes.allNotes') }}
           </button>
-          <button
-            v-if="g.id !== 0"
-            class="cn-icon-btn"
-            :title="$t('cloudNotes.deleteGroup')"
-            @click.stop="onDeleteGroup(g.id, g.name)"
+          <div
+            v-for="g in cn.groups.value"
+            :key="g.id"
+            class="cn-group-item-row"
           >
-            <svg width="13" height="13" viewBox="0 0 16 16"><path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2z" fill="currentColor"/></svg>
-          </button>
+            <button
+              class="cn-group-item"
+              :class="{ active: cn.activeGroupId.value === g.id }"
+              @click="cn.setGroup(g.id)"
+            >
+              <svg class="cn-group-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              {{ g.id === 0 ? $t('cloudNotes.defaultGroup') : (g.name || $t('cloudNotes.defaultGroup')) }}
+            </button>
+            <button
+              v-if="g.id !== 0"
+              class="cn-icon-btn cn-group-delete"
+              :title="$t('cloudNotes.deleteGroup')"
+              @click.stop="onDeleteGroup(g.id, g.name)"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></svg>
+            </button>
+          </div>
         </div>
 
-        <div class="cn-newgroup">
+        <button class="cn-newgroup-btn" @click="showNewGroupModal = true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          {{ $t('cloudNotes.newGroupTitle') }}
+        </button>
+      </aside>
+
+      <!-- New Group modal (matches HomePage "Add Saved Search" modal) -->
+      <div v-if="showNewGroupModal" class="modal-overlay" @click.self="showNewGroupModal = false">
+        <div class="cn-modal-box">
+          <h3 class="cn-modal-title">{{ $t('cloudNotes.newGroupTitle') }}</h3>
           <input
+            ref="newGroupInput"
             v-model="newGroupName"
-            class="text-input"
+            class="cn-modal-input"
             :maxlength="NOTE_GROUP_NAME_MAX"
             :placeholder="$t('cloudNotes.newGroupPlaceholder', { max: NOTE_GROUP_NAME_MAX })"
             @keyup.enter="onCreateGroup"
+            @keyup.esc="showNewGroupModal = false"
           />
-          <button class="btn btn--primary" :disabled="!newGroupName.trim()" @click="onCreateGroup">
-            {{ $t('cloudNotes.add') }}
-          </button>
+          <p class="cn-modal-help">{{ $t('cloudNotes.newGroupHelp', { max: NOTE_GROUP_NAME_MAX }) }}</p>
+          <div class="cn-modal-actions">
+            <button class="btn cn-modal-btn" @click="showNewGroupModal = false">{{ $t('cloudNotes.cancel') }}</button>
+            <button class="btn btn--primary cn-modal-btn" :disabled="!newGroupName.trim()" @click="onCreateGroup">
+              {{ $t('cloudNotes.add') }}
+            </button>
+          </div>
         </div>
-      </aside>
+      </div>
 
       <!-- Middle: note list -->
       <section class="cn-list">
         <div class="cn-list-toolbar">
-          <input
-            v-model="cn.keyword.value"
-            class="text-input cn-search"
-            :placeholder="$t('cloudNotes.searchPlaceholder')"
-          />
-          <button class="btn btn--primary" @click="onCreateNote">{{ $t('cloudNotes.newNote') }}</button>
+          <div class="cn-search-wrap">
+            <svg class="cn-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              v-model="cn.keyword.value"
+              class="cn-search"
+              :placeholder="$t('cloudNotes.searchPlaceholder')"
+            />
+          </div>
+          <button class="cn-newnote-btn" :title="$t('cloudNotes.newNote')" @click="onCreateNote">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
+            </svg>
+          </button>
         </div>
 
         <div class="cn-list-items custom-scrollbar">
           <div v-if="cn.loading.value" class="cn-empty">{{ $t('cloudNotes.loading') }}</div>
           <div v-else-if="cn.notes.value.length === 0" class="cn-empty">{{ $t('cloudNotes.noNotes') }}</div>
-          <button
+          <div
             v-for="note in cn.notes.value"
             :key="note.id"
-            class="cn-note-item"
-            :class="{ active: cn.selectedNoteId.value === note.id }"
-            @click="openNote(note.id)"
+            class="cn-note-item-row"
           >
-            <span class="cn-note-title">{{ note.title || $t('cloudNotes.untitled') }}</span>
-            <span class="cn-note-meta">{{ note.updated_at }}</span>
-          </button>
+            <button
+              class="cn-note-item"
+              :class="{ active: cn.selectedNoteId.value === note.id }"
+              @click="openNote(note.id)"
+            >
+              <span class="cn-note-title">{{ note.title || $t('cloudNotes.untitled') }}</span>
+              <span class="cn-note-meta">{{ note.updated_at }}</span>
+            </button>
+            <button
+              class="cn-icon-btn cn-note-delete"
+              :title="$t('cloudNotes.delete')"
+              @click.stop="onDeleteNote(note.id)"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></svg>
+            </button>
+          </div>
         </div>
 
         <div v-if="cn.totalPages.value > 1" class="cn-pager">
@@ -126,11 +172,11 @@
               <option value="0">{{ $t('cloudNotes.defaultGroup') }}</option>
               <option v-for="g in cn.groups.value.filter(x => x.id !== 0)" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
             </select>
-            <span class="cn-save-status" :class="{ 'is-active': saveStatus !== 'idle' }">
+            <span class="cn-save-status" :class="saveStatus">
               <template v-if="saveStatus === 'saving'">{{ $t('cloudNotes.saving') }}</template>
               <template v-else-if="saveStatus === 'saved'">{{ $t('cloudNotes.saved') }}</template>
+              <template v-else>{{ $t('cloudNotes.idle') }}</template>
             </span>
-            <button class="btn btn--danger-outline" @click="onDeleteNote">{{ $t('cloudNotes.delete') }}</button>
           </div>
           <div class="cn-editor-holder custom-scrollbar">
             <div ref="editorHolder" class="cn-editor-doc"></div>
@@ -145,7 +191,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import EditorJS from '@editorjs/editorjs'
 import type { OutputData } from '@editorjs/editorjs'
@@ -170,6 +216,8 @@ function openExt(url: string): void { window.electronAPI.shell.openExternal(url)
 const bannerVisible = ref(true)
 
 const newGroupName = ref('')
+const showNewGroupModal = ref(false)
+const newGroupInput = ref<HTMLInputElement | null>(null)
 const editableTitle = ref('')
 const editorHolder = ref<HTMLElement | null>(null)
 const saveStatus = ref<'idle' | 'saving' | 'saved'>('idle')
@@ -327,20 +375,29 @@ async function onMoveGroup(e: Event): Promise<void> {
   note.note_group_id = groupId
 }
 
-async function onDeleteNote(): Promise<void> {
-  const note = cn.selectedNote.value
-  if (!note) return
+async function onDeleteNote(noteId: number): Promise<void> {
   if (!confirm(t('cloudNotes.confirmDeleteNote'))) return
-  await destroyEditor()
-  await cn.deleteNote(note.id)
+  if (cn.selectedNoteId.value === noteId) await destroyEditor()
+  await cn.deleteNote(noteId)
 }
 
 async function onCreateGroup(): Promise<void> {
   const name = newGroupName.value.trim()
   if (!name) return
   const ok = await cn.createGroup(name)
-  if (ok) newGroupName.value = ''
+  if (ok) {
+    newGroupName.value = ''
+    showNewGroupModal.value = false
+  }
 }
+
+watch(showNewGroupModal, (open) => {
+  if (open) {
+    nextTick(() => newGroupInput.value?.focus())
+  } else {
+    newGroupName.value = ''
+  }
+})
 
 async function onDeleteGroup(id: number, name: string): Promise<void> {
   if (!confirm(t('cloudNotes.confirmDeleteGroup', { name }))) return
@@ -375,7 +432,7 @@ watch(() => cn.selectedNoteId.value, (id) => {
   background-color: var(--bg-surface);
 }
 
-/* Public-notes banner */
+/* ── Public-notes banner ─────────────────────────────────────────────── */
 .cn-banner {
   display: flex;
   align-items: center;
@@ -446,7 +503,7 @@ watch(() => cn.selectedNoteId.value, (id) => {
   background-color: var(--bg-hover);
 }
 
-/* Three-pane body below the banner */
+/* ── Three-pane body ─────────────────────────────────────────────────── */
 .cn-body {
   flex: 1;
   display: flex;
@@ -454,72 +511,102 @@ watch(() => cn.selectedNoteId.value, (id) => {
   overflow: hidden;
 }
 
-/* Left: groups */
+/* ── Left: groups sidebar (matches LeftPanel navigator design) ───────── */
 .cn-groups {
   width: 180px;
   flex-shrink: 0;
   border-right: 1px solid var(--border-color);
-  padding: 12px 10px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  min-height: 0;
+}
+
+.cn-groups-scroll {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
-}
-
-.cn-groups-header {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  padding: 4px 6px;
-}
-
-.cn-group-item-row {
+  padding: 16px 10px 8px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 2px;
 }
 
+.cn-groups-header {
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+/* Standalone "All notes" button — full width, no flex-grow */
 .cn-group-item {
   flex: 0 0 auto;
   width: 100%;
   text-align: left;
-  background: none;
   border: none;
   border-radius: 6px;
-  padding: 7px 8px;
-  font-size: 13px;
+  padding: 8px 10px;
+  background: transparent;
   color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  box-sizing: border-box;
+  transition: all 0.15s;
 }
 
-/* Inside a row, the group button shares space with its delete icon. */
+/* Inside a row, the button fills remaining space next to the delete icon */
+.cn-group-item-row {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
 .cn-group-item-row .cn-group-item {
-  flex: 1;
+  flex: 1 1 0%;
   width: auto;
   min-width: 0;
+  /* Reserve room so text never sits under the delete button */
+  padding-right: 28px;
+}
+
+.cn-group-icon {
+  flex-shrink: 0;
+  opacity: 0.8;
 }
 
 .cn-group-item:hover {
   background-color: var(--bg-hover);
 }
 
+/* Active = subtle tinted bg + accent text (matches LeftPanel .nav-item.active) */
 .cn-group-item.active {
-  background-color: var(--accent);
-  color: var(--text-on-accent);
+  background-color: var(--badge-active-bg);
+  color: var(--accent);
 }
 
+.cn-group-item.active .cn-group-icon {
+  color: var(--accent);
+}
+
+/* Delete icon — hidden by default, visible on row hover (matches .pinned-unpin) */
 .cn-icon-btn {
-  background: none;
+  background: transparent;
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  display: inline-flex;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .cn-icon-btn:hover {
@@ -527,20 +614,113 @@ watch(() => cn.selectedNoteId.value, (id) => {
   background-color: var(--bg-hover);
 }
 
-.cn-newgroup {
-  margin-top: auto;
+.cn-group-delete {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.cn-group-item-row:hover .cn-group-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cn-group-delete:hover {
+  color: var(--danger);
+  background-color: var(--bg-hover);
+}
+
+/* New Group button — pinned to sidebar bottom with spacing */
+.cn-newgroup-btn {
+  flex-shrink: 0;
   display: flex;
-  gap: 4px;
-  padding-top: 8px;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 12px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.15s;
 }
 
-.cn-newgroup .text-input {
-  width: 0;
+.cn-newgroup-btn:hover {
+  background-color: var(--bg-hover);
+}
+
+/* ── New Group modal (matches HomePage "Add Saved Search" modal) ──────── */
+.cn-modal-box {
+  background: var(--bg-modal);
+  border-radius: 12px;
+  padding: 20px;
+  width: 320px;
+  box-shadow: 0 8px 32px var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cn-modal-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.cn-modal-input {
+  padding: 8px 11px;
+  border: 1px solid var(--border-input);
+  border-radius: 7px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.cn-modal-input::placeholder {
+  color: var(--text-muted);
+}
+
+.cn-modal-input:focus {
+  border-color: var(--accent);
+}
+
+.cn-modal-help {
+  margin: -6px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.cn-modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.cn-modal-btn {
   flex: 1;
-  min-width: 0;
+  min-height: 32px;
+  border-radius: 7px;
+  font-size: 13px;
 }
 
-/* Middle: note list */
+/* ── Middle: note list ───────────────────────────────────────────────── */
 .cn-list {
   width: 280px;
   flex-shrink: 0;
@@ -553,41 +733,116 @@ watch(() => cn.selectedNoteId.value, (id) => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--border-color);
+}
+
+/* Search input — recessed field matching LeftPanel .nav-search.
+   Uses box-shadow for focus ring so the border doesn't add height. */
+.cn-search-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background-color: var(--hover-tint);
+  transition: box-shadow 0.2s;
+}
+
+.cn-search-wrap:focus-within {
+  box-shadow: 0 0 0 2px var(--focus-ring), 0 0 0 1px var(--accent);
+}
+
+.cn-search-icon {
+  flex-shrink: 0;
+  color: var(--text-muted);
 }
 
 .cn-search {
   flex: 1;
   min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  height: var(--control-height);
+}
+
+/* New note icon button — matches LeftPanel .user-banner-action */
+.cn-newnote-btn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.cn-newnote-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
 }
 
 .cn-list-items {
   flex: 1;
   overflow-y: auto;
   padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Note row — wraps the item button + hover-reveal delete (matches .cn-group-item-row) */
+.cn-note-item-row {
+  display: flex;
+  align-items: center;
+  position: relative;
 }
 
 .cn-note-item {
+  flex: 1 1 0%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 3px;
-  width: 100%;
   text-align: left;
-  background: none;
+  background: transparent;
   border: none;
   border-radius: 6px;
-  padding: 9px 10px;
+  padding: 8px 10px;
+  padding-right: 28px;
   cursor: pointer;
+  box-sizing: border-box;
+  transition: all 0.15s;
 }
 
 .cn-note-item:hover {
   background-color: var(--bg-hover);
 }
 
+/* Active = subtle tinted bg + accent text (matches LeftPanel .nav-item.active) */
 .cn-note-item.active {
-  background-color: var(--bg-subtle);
-  box-shadow: inset 2px 0 0 var(--accent);
+  background-color: var(--badge-active-bg);
+  color: var(--accent);
+}
+
+.cn-note-item.active .cn-note-title {
+  color: var(--accent);
+}
+
+.cn-note-item.active .cn-note-meta {
+  color: var(--accent);
+  opacity: 0.7;
 }
 
 .cn-note-title {
@@ -603,6 +858,31 @@ watch(() => cn.selectedNoteId.value, (id) => {
   color: var(--text-muted);
 }
 
+/* Note delete — hidden by default, visible on row hover (matches .cn-group-delete) */
+.cn-note-delete {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s, color 0.15s, background-color 0.15s;
+}
+
+.cn-note-item-row:hover .cn-note-delete {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.cn-note-delete:hover {
+  color: var(--danger);
+  background-color: var(--bg-hover);
+}
+
 .cn-pager {
   display: flex;
   align-items: center;
@@ -614,7 +894,7 @@ watch(() => cn.selectedNoteId.value, (id) => {
   color: var(--text-secondary);
 }
 
-/* Right: editor */
+/* ── Right: editor ───────────────────────────────────────────────────── */
 .cn-editor {
   flex: 1;
   min-width: 0;
@@ -644,14 +924,19 @@ watch(() => cn.selectedNoteId.value, (id) => {
 .cn-save-status {
   flex-shrink: 0;
   font-size: 12px;
-  color: var(--text-muted);
   white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.2s ease;
+  min-width: 50px;
+  text-align: center;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
 }
 
-.cn-save-status.is-active {
-  opacity: 1;
+.cn-save-status.saving {
+  color: var(--text-secondary);
+}
+
+.cn-save-status.saved {
+  color: var(--success);
 }
 
 .cn-editor-holder {
@@ -709,7 +994,7 @@ watch(() => cn.selectedNoteId.value, (id) => {
 }
 
 /* ── Editor.js theming (maps its hardcoded light chrome to design tokens so
-      light + dark both look right) ───────────────────────────────────────── */
+      light + dark both look right) ──────────────────────────────────────── */
 
 /* Left-align content (don't use Editor.js's own 650px centering); the doc's
    left padding provides the toolbar gutter instead, so it never overshoots. */

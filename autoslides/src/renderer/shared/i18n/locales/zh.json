@@ -1027,6 +1027,9 @@
     "defaultGroup": "未分组",
     "deleteGroup": "删除分组",
     "newGroupPlaceholder": "新建分组（≤{max}）",
+    "newGroupTitle": "新建分组",
+    "newGroupLabel": "分组名称",
+    "newGroupHelp": "分组名称最多 {max} 个字符。",
     "add": "添加",
     "searchPlaceholder": "按标题搜索…",
     "search": "搜索",
@@ -1038,10 +1041,12 @@
     "save": "保存",
     "saving": "保存中…",
     "saved": "已保存 ✓",
+    "idle": "空闲",
     "delete": "删除",
     "editorPlaceholder": "开始输入…",
     "confirmDeleteNote": "删除这条笔记？此操作无法撤销。",
-    "confirmDeleteGroup": "删除分组“{name}”？组内笔记将移至未分组。"
+    "confirmDeleteGroup": "删除分组“{name}”？组内笔记将移至未分组。",
+    "cancel": "取消"
   },
   "addons": {
     "openAddons": "扩展",
