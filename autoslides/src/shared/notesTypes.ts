@@ -85,3 +85,25 @@ export type NotesResult<T> = { ok: true; data: T } | { ok: false; error: string 
 
 /** Max length of a note group name enforced by the server. */
 export const NOTE_GROUP_NAME_MAX = 6;
+
+/**
+ * Name of the Yanhekt note group AutoSlides manages. Exactly 6 chars (the server
+ * limit). Identification is name-based (groups carry no metadata field), so this
+ * marker is the only thing that survives reinstalls / other machines.
+ */
+export const MANAGED_GROUP_NAME = 'ASnote';
+
+/**
+ * Title of the bootstrap README note. Kept language-independent and used both as
+ * the display title and as the dedup key, so re-initializing under a different UI
+ * language can't create a duplicate README.
+ */
+export const README_NOTE_TITLE = 'AutoSlides Cloud Storage README';
+
+/** Editor.js library version stamped into documents we generate (matches the installed build). */
+export const EDITORJS_DOC_VERSION = '2.26.5';
+
+/** Whether a group is the AutoSlides-managed group (by reserved name). */
+export function isManagedGroupName(name: string): boolean {
+  return name === MANAGED_GROUP_NAME;
+}

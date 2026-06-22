@@ -5,6 +5,7 @@ import type {
   NoteGroup,
   NotesResult,
 } from '@common/notesTypes'
+import { isManagedGroupName, MANAGED_GROUP_NAME, README_NOTE_TITLE } from '@common/notesTypes'
 
 const PAGE_SIZE = 20
 /** Page size used when fetching the full note set (server honours large sizes). */
@@ -42,10 +43,19 @@ export function useCloudNotes() {
   const loading = ref(false)
   const saving = ref(false)
   const error = ref('')
+  /** True while initCloudStorage() is provisioning the managed group + README. */
+  const initializing = ref(false)
   /** Set when the main process reports no token — the user must sign in first. */
   const notSignedIn = ref(false)
 
   const selectedNoteId = computed(() => selectedNote.value?.id ?? null)
+
+  /** The AutoSlides-managed group(s), identified by reserved name. */
+  const managedGroups = computed(() => groups.value.filter((g) => isManagedGroupName(g.name)))
+  /** Everything else: the default (Ungrouped) group + user-created groups. */
+  const otherGroups = computed(() => groups.value.filter((g) => !isManagedGroupName(g.name)))
+  /** Whether the managed group has been provisioned on the server. */
+  const hasManagedStorage = computed(() => managedGroups.value.length > 0)
 
   /** Unwrap an IPC envelope; routes auth/errors into reactive state. */
   function unwrap<T>(res: NotesResult<T>): T | null {
@@ -230,6 +240,65 @@ export function useCloudNotes() {
     return res.ok
   }
 
+  /**
+   * Provision AutoSlides cloud storage: ensure the managed group exists and a
+   * README note (in the Ungrouped group) explains what AutoSlides manages.
+   * Idempotent — safe to call if either piece already exists. `readmeContent` is
+   * a stringified Editor.js document built by the caller (it owns localization).
+   */
+  async function initCloudStorage(readmeContent: string): Promise<boolean> {
+    initializing.value = true
+    error.value = ''
+    try {
+      // 1. Ensure the managed group exists.
+      if (!groups.value.some((g) => isManagedGroupName(g.name))) {
+        const res = await window.electronAPI.cloudNotes.groupCreate(MANAGED_GROUP_NAME)
+        if (!res.ok) {
+          unwrap(res)
+          return false
+        }
+      }
+      // 2. Ensure the README note exists (in the default/Ungrouped group).
+      if (!allNotes.value.some((n) => n.title === README_NOTE_TITLE)) {
+        const createRes = await window.electronAPI.cloudNotes.create()
+        const id = unwrap(createRes)
+        if (id == null) return false
+        const titleRes = await window.electronAPI.cloudNotes.updateTitle(id, README_NOTE_TITLE)
+        if (!titleRes.ok) {
+          unwrap(titleRes)
+          return false
+        }
+        const contentRes = await window.electronAPI.cloudNotes.updateContent(id, readmeContent)
+        if (!contentRes.ok) {
+          unwrap(contentRes)
+          return false
+        }
+      }
+      // 3. Reconcile local state once.
+      await Promise.all([refreshGroups(), loadAll()])
+      return true
+    } finally {
+      initializing.value = false
+    }
+  }
+
+  /**
+   * Re-save the README's content so its modified time bumps to "now", keeping it
+   * at the top of the note list (the server, and our app, sort by modified time).
+   * No-op when no README exists. `content` is a freshly-timestamped Editor.js
+   * document built by the caller. Reloads so the new ordering is reflected.
+   */
+  async function touchReadme(content: string): Promise<void> {
+    const readme = allNotes.value.find((n) => n.title === README_NOTE_TITLE)
+    if (!readme) return
+    const res = await window.electronAPI.cloudNotes.updateContent(readme.id, content)
+    if (!res.ok) {
+      unwrap(res)
+      return
+    }
+    await loadAll()
+  }
+
   /** Initial load — groups + the complete note set. */
   async function init(): Promise<void> {
     await Promise.all([refreshGroups(), loadAll()])
@@ -238,6 +307,9 @@ export function useCloudNotes() {
   return {
     // state
     groups,
+    managedGroups,
+    otherGroups,
+    hasManagedStorage,
     notes,
     selectedNote,
     selectedNoteId,
@@ -248,10 +320,13 @@ export function useCloudNotes() {
     filteredCount,
     loading,
     saving,
+    initializing,
     error,
     notSignedIn,
     // actions
     init,
+    initCloudStorage,
+    touchReadme,
     refreshGroups,
     loadAll,
     searchNotes,

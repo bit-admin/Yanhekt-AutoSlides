@@ -34,7 +34,6 @@
       <!-- Left: groups -->
       <aside class="cn-groups">
         <div class="cn-groups-scroll custom-scrollbar">
-          <div class="cn-groups-header">{{ $t('cloudNotes.groups') }}</div>
           <button
             class="cn-group-item"
             :class="{ active: cn.activeGroupId.value === '' }"
@@ -45,8 +44,51 @@
             </svg>
             {{ $t('cloudNotes.allNotes') }}
           </button>
+
+          <!-- Section: AutoSlides-managed groups — distinct tinted card -->
+          <div class="cn-managed-section">
+            <div class="cn-managed-header">{{ $t('cloudNotes.managedSection') }}</div>
+            <div
+              v-for="g in cn.managedGroups.value"
+              :key="g.id"
+              class="cn-group-item-row"
+            >
+              <button
+                class="cn-group-item cn-group-item--managed"
+                :class="{ active: cn.activeGroupId.value === g.id }"
+                @click="cn.setGroup(g.id)"
+              >
+                <svg class="cn-group-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+                </svg>
+                {{ g.name }}
+              </button>
+              <button
+                class="cn-icon-btn cn-group-delete"
+                :title="$t('cloudNotes.deleteGroup')"
+                @click.stop="onDeleteGroup(g.id, g.name)"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></svg>
+              </button>
+            </div>
+            <button
+              v-if="!cn.hasManagedStorage.value"
+              class="cn-init-btn"
+              :disabled="cn.initializing.value"
+              :title="$t('cloudNotes.initStorageTip')"
+              @click="onInitStorage"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><path d="M12 12v4M10 14h4"/>
+              </svg>
+              {{ cn.initializing.value ? $t('cloudNotes.initializing') : $t('cloudNotes.initStorage') }}
+            </button>
+          </div>
+
+          <!-- Section: other groups (Ungrouped + user-created) -->
+          <div class="cn-groups-header">{{ $t('cloudNotes.otherGroupsSection') }}</div>
           <div
-            v-for="g in cn.groups.value"
+            v-for="g in cn.otherGroups.value"
             :key="g.id"
             class="cn-group-item-row"
           >
@@ -203,7 +245,7 @@ import Quote from '@editorjs/quote'
 import CodeTool from '@editorjs/code'
 import Table from '@editorjs/table'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
-import { NOTE_GROUP_NAME_MAX } from '@common/notesTypes'
+import { NOTE_GROUP_NAME_MAX, EDITORJS_DOC_VERSION } from '@common/notesTypes'
 
 const { t } = useI18n()
 const cn = useCloudNotes()
@@ -381,6 +423,27 @@ async function onDeleteNote(noteId: number): Promise<void> {
   await cn.deleteNote(noteId)
 }
 
+/**
+ * Build the README's Editor.js document (localized) as a JSON string. Includes a
+ * fresh timestamp so re-saving it on each tab open bumps its modified time and
+ * keeps it pinned to the top of the note list.
+ */
+function buildReadmeContent(): string {
+  const stamp = t('cloudNotes.readmeUpdatedAt', { time: new Date().toLocaleString() })
+  const blocks = [
+    { type: 'header', data: { text: t('cloudNotes.readmeHeading'), level: 2 } },
+    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody1') } },
+    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody2') } },
+    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody3') } },
+    { type: 'paragraph', data: { text: stamp } },
+  ]
+  return JSON.stringify({ time: Date.now(), blocks, version: EDITORJS_DOC_VERSION })
+}
+
+async function onInitStorage(): Promise<void> {
+  await cn.initCloudStorage(buildReadmeContent())
+}
+
 async function onCreateGroup(): Promise<void> {
   const name = newGroupName.value.trim()
   if (!name) return
@@ -404,8 +467,10 @@ async function onDeleteGroup(id: number, name: string): Promise<void> {
   await cn.deleteGroup(id)
 }
 
-onMounted(() => {
-  cn.init()
+onMounted(async () => {
+  await cn.init()
+  // Bump the README to the top of the list on every open (no-op if absent).
+  await cn.touchReadme(buildReadmeContent())
 })
 
 onUnmounted(() => {
@@ -537,7 +602,38 @@ watch(() => cn.selectedNoteId.value, (id) => {
   font-weight: 600;
   letter-spacing: 0.1px;
   color: var(--text-muted);
+  margin-top: 2px;
   margin-bottom: 4px;
+}
+
+/* ── Managed Groups — flat like the rest, set off by separators above/below
+      and an accent header (no card). ───────────────────────────────────────── */
+.cn-managed-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Bleed to the sidebar edges (cancel the scroll's 10px padding) so the
+     separators span full width, then re-pad so items stay aligned. */
+  margin: 14px -10px;
+  padding: 12px 10px;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Same shape as .cn-groups-header, tinted accent. */
+.cn-managed-header {
+  padding: 0 10px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  color: var(--accent);
+}
+
+/* Accent the managed group's icon so the row reads as app-owned. */
+.cn-group-item--managed .cn-group-icon {
+  color: var(--accent);
+  opacity: 1;
 }
 
 /* Standalone "All notes" button — full width, no flex-grow */
@@ -659,6 +755,39 @@ watch(() => cn.selectedNoteId.value, (id) => {
 
 .cn-newgroup-btn:hover {
   background-color: var(--bg-hover);
+}
+
+/* Init cloud storage — flat row matching the group items, accent text. */
+.cn-init-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background-color: var(--bg-subtle);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.cn-init-btn:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+.cn-init-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cn-init-btn svg {
+  flex-shrink: 0;
 }
 
 /* ── New Group modal (matches HomePage "Add Saved Search" modal) ──────── */
