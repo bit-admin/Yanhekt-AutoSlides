@@ -1,14 +1,22 @@
 <template>
   <div class="home-page custom-scrollbar">
+    <!-- Campus-network warning banner -->
+    <div v-if="campusCheckStatus === 'warning'" class="home-banner">
+      <span class="home-banner-msg">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3l9 16H3L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+          <path d="M12 10v4M12 17h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <span>{{ $t('home.campusWarning.message') }}
+          <button type="button" class="home-banner-link" @click="switchToExternal">{{ $t('home.campusWarning.switchExternal') }}</button>
+          {{ $t('home.campusWarning.or') }}
+          <button type="button" class="home-banner-link" @click="openIntranetSettings">{{ $t('home.campusWarning.openSettings') }}</button>.
+        </span>
+      </span>
+    </div>
     <div class="home-hero">
       <h1 class="home-greeting">{{ greetingText }}</h1>
-      <p v-if="campusCheckStatus === 'warning'" class="home-warning">
-        {{ $t('home.campusWarning.message') }}
-        <button type="button" class="home-warning-link" @click="switchToExternal">{{ $t('home.campusWarning.switchExternal') }}</button>
-        {{ $t('home.campusWarning.or') }}
-        <button type="button" class="home-warning-link" @click="openIntranetSettings">{{ $t('home.campusWarning.openSettings') }}</button>.
-      </p>
-      <p v-else class="home-tagline">{{ $t('courses.welcome.subtitle') }}</p>
+      <p class="home-tagline">{{ $t('courses.welcome.subtitle') }}</p>
     </div>
 
     <section class="home-section">
@@ -384,25 +392,47 @@ onMounted(() => {
   opacity: 0.75;
 }
 
-.home-warning {
-  margin: 8px 0 0;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--danger);
+.home-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: -24px -32px 20px;
+  padding: 7px 14px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-primary);
+  background-color: var(--warning-bg);
+  border-bottom: 1px solid var(--border-color);
 }
 
-.home-warning-link {
+.home-banner-msg {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.home-banner-msg svg {
+  color: var(--warning);
+  flex-shrink: 0;
+}
+
+.home-banner-link {
   padding: 0;
   border: none;
   background: none;
   font: inherit;
-  color: var(--danger);
-  text-decoration: underline;
+  font-size: inherit;
+  line-height: inherit;
+  color: var(--link-color);
   cursor: pointer;
+  white-space: nowrap;
 }
 
-.home-warning-link:hover {
-  color: var(--danger-hover);
+.home-banner-link:hover {
+  text-decoration: underline;
 }
 
 .home-section {
