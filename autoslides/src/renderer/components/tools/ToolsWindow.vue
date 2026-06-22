@@ -27,6 +27,16 @@
           </button>
           <button
             class="toolwin-tab"
+            :class="{ active: activeTab === 'cloudnotes' }"
+            @click="switchTab('cloudnotes')"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M4 1h6l4 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V2a1 1 0 011-1zm5.5 1.5V5H12L9.5 2.5zM5 7h6v1.2H5V7zm0 2.5h6v1.2H5V9.5zM5 12h4v1.2H5V12z" fill="currentColor"/>
+            </svg>
+            {{ $t('tools.tabCloudNotes') }}
+          </button>
+          <button
+            class="toolwin-tab"
             :class="{ active: activeTab === 'offline' }"
             @click="switchTab('offline')"
           >
@@ -45,16 +55,6 @@
               <path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1zm3 2H4v8h8V6h-2V4H6zm1 0v1h2V4H7zm-2 5h6v1H5V9z" fill="currentColor"/>
             </svg>
             {{ $t('tools.tabCompressLecture') }}
-          </button>
-          <button
-            class="toolwin-tab"
-            :class="{ active: activeTab === 'cloudnotes' }"
-            @click="switchTab('cloudnotes')"
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16">
-              <path d="M4 1h6l4 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V2a1 1 0 011-1zm5.5 1.5V5H12L9.5 2.5zM5 7h6v1.2H5V7zm0 2.5h6v1.2H5V9.5zM5 12h4v1.2H5V12z" fill="currentColor"/>
-            </svg>
-            {{ $t('tools.tabCloudNotes') }}
           </button>
         </div>
       </div>
@@ -85,14 +85,14 @@
       <div v-show="activeTab === 'pdfmaker'" class="tab-panel">
         <PdfMakerWindow />
       </div>
+      <div v-show="activeTab === 'cloudnotes'" class="tab-panel">
+        <CloudNotesTab />
+      </div>
       <div v-show="activeTab === 'offline'" class="tab-panel">
         <OfflineProcessingTab />
       </div>
       <div v-show="activeTab === 'compress'" class="tab-panel">
         <CompressLectureTab />
-      </div>
-      <div v-show="activeTab === 'cloudnotes'" class="tab-panel">
-        <CloudNotesTab />
       </div>
     </div>
   </div>
