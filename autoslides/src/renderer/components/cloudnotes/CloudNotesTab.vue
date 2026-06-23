@@ -200,12 +200,19 @@
         </div>
 
         <div v-if="cn.hasManagedStorage.value" class="cn-list-footer">
-          <button class="cn-import-btn" :title="$t('cloudNotes.importTip')" @click="openImportModal">
+          <button class="cn-tool-btn" :title="$t('cloudNotes.importTip')" @click="openImportModal">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
             </svg>
-            <span v-if="imp.importing.value">{{ $t('cloudNotes.importProgress', { done: imp.overall.value.done, total: imp.overall.value.total }) }}</span>
+            <span v-if="imp.importing.value">{{ imp.overall.value.done }}/{{ imp.overall.value.total }}</span>
             <span v-else>{{ $t('cloudNotes.importButton') }}</span>
+          </button>
+          <button class="cn-tool-btn" :title="$t('cloudNotes.exportTip')" @click="openExportModal">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
+            </svg>
+            <span v-if="exp.exporting.value">{{ exp.overall.value.done }}/{{ exp.overall.value.total }}</span>
+            <span v-else>{{ $t('cloudNotes.exportButton') }}</span>
           </button>
         </div>
       </section>
@@ -275,6 +282,70 @@
         </div>
       </div>
 
+      <!-- Export notes to slides modal -->
+      <div v-if="showExportModal" class="modal-overlay" @click.self="closeExportModal">
+        <div class="cn-import-box">
+          <h3 class="cn-modal-title">{{ $t('cloudNotes.exportTitle') }}</h3>
+
+          <!-- Phase: select notes -->
+          <template v-if="exportPhase === 'select'">
+            <div class="cn-import-list custom-scrollbar">
+              <div v-if="cn.loading.value" class="cn-empty">{{ $t('cloudNotes.loading') }}</div>
+              <div v-else-if="exportNotes.length === 0" class="cn-empty">{{ $t('cloudNotes.exportNoNotes') }}</div>
+              <button
+                v-for="n in exportNotes"
+                :key="n.id"
+                class="cn-import-folder"
+                :class="{ selected: exportSelected.includes(n.id) }"
+                @click="toggleExportNote(n.id)"
+              >
+                <input type="checkbox" class="cn-import-check" :checked="exportSelected.includes(n.id)" tabindex="-1" />
+                <svg class="cn-import-folder-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>
+                </svg>
+                <span class="cn-import-folder-name">{{ n.displayName }}</span>
+              </button>
+            </div>
+            <div class="cn-modal-actions">
+              <button class="btn cn-modal-btn" @click="closeExportModal">{{ $t('cloudNotes.cancel') }}</button>
+              <button class="btn btn--primary cn-modal-btn" :disabled="exportSelected.length === 0" @click="onStartExport">
+                {{ $t('cloudNotes.exportStart', { n: exportSelected.length }) }}
+              </button>
+            </div>
+          </template>
+
+          <!-- Phase: progress -->
+          <template v-else>
+            <div class="cn-import-overall">{{ $t('cloudNotes.exportOverall', { done: exp.overall.value.done, total: exp.overall.value.total }) }}</div>
+            <div class="cn-import-list custom-scrollbar">
+              <div v-for="item in exp.queue.value" :key="item.noteId" class="cn-imp-row">
+                <div class="cn-imp-row-top">
+                  <span class="cn-imp-name" :title="item.displayName">{{ item.displayName }}</span>
+                  <span class="cn-imp-status" :class="`s-${item.status}`">{{ exportStatusText(item) }}</span>
+                </div>
+                <div class="cn-imp-bar">
+                  <div class="cn-imp-fill" :class="`s-${item.status}`" :style="{ width: exportBarWidth(item) + '%' }"></div>
+                </div>
+                <div v-if="item.status === 'conflict'" class="cn-imp-actions">
+                  <button class="btn btn--sm btn--ghost" :disabled="exp.exporting.value" @click="exp.openFolder(item)">{{ $t('cloudNotes.exportOpenFolder') }}</button>
+                  <button class="btn btn--sm" :disabled="exp.exporting.value" @click="exp.resolveConflict(item, 'create')">{{ $t('cloudNotes.exportCreateNew') }}</button>
+                  <button class="btn btn--sm cn-imp-replace" :disabled="exp.exporting.value" @click="exp.resolveConflict(item, 'replace')">{{ $t('cloudNotes.exportReplace') }}</button>
+                  <button class="btn btn--sm btn--ghost" :disabled="exp.exporting.value" @click="exp.skipConflict(item)">{{ $t('cloudNotes.exportSkip') }}</button>
+                </div>
+              </div>
+            </div>
+            <p v-if="exp.queue.value.some(i => i.status === 'conflict')" class="cn-import-hint">{{ $t('cloudNotes.exportConflictHint') }}</p>
+            <div class="cn-modal-actions">
+              <template v-if="exp.exporting.value">
+                <button class="btn cn-modal-btn" @click="exp.cancel()">{{ $t('cloudNotes.exportCancel') }}</button>
+                <button class="btn btn--primary cn-modal-btn" @click="closeExportModal">{{ $t('cloudNotes.exportClose') }}</button>
+              </template>
+              <button v-else class="btn btn--primary cn-modal-btn" @click="doneExport">{{ $t('cloudNotes.exportDone') }}</button>
+            </div>
+          </template>
+        </div>
+      </div>
+
       <!-- Right: editor -->
       <section class="cn-editor">
         <div v-if="!cn.selectedNote.value" class="cn-empty cn-editor-empty">{{ $t('cloudNotes.selectNote') }}</div>
@@ -310,7 +381,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import EditorJS from '@editorjs/editorjs'
 import type { OutputData } from '@editorjs/editorjs'
@@ -323,8 +394,9 @@ import CodeTool from '@editorjs/code'
 import Table from '@editorjs/table'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import { useNoteImport, type ImportItem } from '@features/cloudNotes/useNoteImport'
+import { useNoteExport, type ExportItem } from '@features/cloudNotes/useNoteExport'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
-import { NOTE_GROUP_NAME_MAX, EDITORJS_DOC_VERSION } from '@common/notesTypes'
+import { NOTE_GROUP_NAME_MAX, EDITORJS_DOC_VERSION, isManagedNoteTitle, managedNoteDisplayName } from '@common/notesTypes'
 
 const { t } = useI18n()
 const cn = useCloudNotes()
@@ -617,6 +689,74 @@ function importStatusText(item: ImportItem): string {
 function importBarWidth(item: ImportItem): number {
   if (item.status === 'done' || item.status === 'building') return 100
   if (item.status === 'uploading' && item.total > 0) return Math.round((item.uploaded / item.total) * 100)
+  return 0
+}
+
+// ── Export notes to slides ─────────────────────────────────────────────────
+const exp = useNoteExport(cn)
+
+const showExportModal = ref(false)
+const exportPhase = ref<'select' | 'progress'>('select')
+const exportSelected = ref<number[]>([])
+
+// Managed notes recognised for export (the README has no managed prefix, so it
+// is naturally excluded).
+const exportNotes = computed(() =>
+  cn.allNotes.value
+    .filter((n) => isManagedNoteTitle(n.title))
+    .map((n) => ({ id: n.id, displayName: managedNoteDisplayName(n.title) })),
+)
+
+async function openExportModal(): Promise<void> {
+  showExportModal.value = true
+  // Reopen straight into progress if a run is active or its results are unread.
+  if (exp.queue.value.length > 0) {
+    exportPhase.value = 'progress'
+  } else {
+    exportPhase.value = 'select'
+    exportSelected.value = []
+    await cn.loadAll()
+  }
+}
+
+function closeExportModal(): void {
+  // Only hide — the queue (running or finished) survives until "Done".
+  showExportModal.value = false
+}
+
+function doneExport(): void {
+  exp.reset()
+  exportSelected.value = []
+  exportPhase.value = 'select'
+  showExportModal.value = false
+}
+
+function toggleExportNote(id: number): void {
+  const i = exportSelected.value.indexOf(id)
+  if (i === -1) exportSelected.value.push(id)
+  else exportSelected.value.splice(i, 1)
+}
+
+function onStartExport(): void {
+  if (exportSelected.value.length === 0) return
+  exportPhase.value = 'progress'
+  void exp.startExport([...exportSelected.value])
+}
+
+function exportStatusText(item: ExportItem): string {
+  switch (item.status) {
+    case 'fetching': return t('cloudNotes.exportFetching')
+    case 'downloading': return t('cloudNotes.exportDownloading', { done: item.downloaded, total: item.total })
+    case 'done': return t('cloudNotes.exportDone')
+    case 'conflict': return t('cloudNotes.exportConflict')
+    case 'error': return item.error || t('cloudNotes.exportError')
+    default: return t('cloudNotes.exportPending')
+  }
+}
+
+function exportBarWidth(item: ExportItem): number {
+  if (item.status === 'done') return 100
+  if (item.status === 'downloading' && item.total > 0) return Math.round((item.downloaded / item.total) * 100)
   return 0
 }
 
@@ -975,18 +1115,22 @@ watch(() => cn.selectedNoteId.value, (id) => {
   flex-shrink: 0;
 }
 
-/* ── Notes-list footer: "Import slides to notes" (mirrors .cn-groups-footer) ── */
+/* ── Notes-list footer: Import / Export (mirrors .cn-groups-footer) ── */
 .cn-list-footer {
   flex-shrink: 0;
+  display: flex;
+  gap: 6px;
   padding: 8px 10px;
   border-top: 1px solid var(--border-color);
 }
 
-.cn-import-btn {
+.cn-tool-btn {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   align-items: center;
-  gap: 9px;
-  width: 100%;
+  justify-content: center;
+  gap: 7px;
   padding: 8px 10px;
   border: none;
   border-radius: 6px;
@@ -999,12 +1143,12 @@ watch(() => cn.selectedNoteId.value, (id) => {
   transition: background-color 0.15s, color 0.15s;
 }
 
-.cn-import-btn:hover {
+.cn-tool-btn:hover {
   background-color: var(--bg-hover);
   color: var(--text-primary);
 }
 
-.cn-import-btn svg {
+.cn-tool-btn svg {
   flex-shrink: 0;
 }
 

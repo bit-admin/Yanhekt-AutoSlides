@@ -12,8 +12,10 @@
  */
 
 import { promises as fs } from 'fs';
+import os from 'os';
 import path from 'path';
 import type { ConfigService } from './configService';
+import { sharpService } from '@main/infra/sharpService';
 import type {
   NoteSummary,
   NoteDetail,
@@ -21,6 +23,7 @@ import type {
   NoteListParams,
   NoteGroup,
   UploadedImage,
+  ExportFolderInfo,
 } from '@common/notesTypes';
 import { NOTE_GROUP_NAME_MAX } from '@common/notesTypes';
 import { createLogger } from '@main/infra/logger';
@@ -222,6 +225,83 @@ export class NotesService {
     const url = `${payload.data.host}${payload.data.path}`;
     log.info('uploaded image', url);
     return { url };
+  }
+
+  // ── Export to local slide folders ──────────────────────────────────────
+
+  /** Configured slides output directory, with leading `~` expanded. */
+  private exportBaseDir(): string {
+    const dir = this.configService.getConfig().outputDirectory;
+    return dir.startsWith('~') ? path.join(os.homedir(), dir.slice(1)) : dir;
+  }
+
+  /** Local `slides_<displayName>` folder path for a managed note's display name. */
+  private slidesFolderPath(displayName: string): string {
+    const safe = displayName.replace(/[/\\]/g, '_');
+    return path.join(this.exportBaseDir(), `slides_${safe}`);
+  }
+
+  /** Whether the base export folder for this display name already exists on disk. */
+  async exportFolderStatus(displayName: string): Promise<ExportFolderInfo> {
+    const dir = this.slidesFolderPath(displayName);
+    let exists = false;
+    try {
+      exists = (await fs.stat(dir)).isDirectory();
+    } catch {
+      exists = false;
+    }
+    return { exists, dir, folderName: path.basename(dir) };
+  }
+
+  /**
+   * Create the destination folder and return its path. `fresh` uses the base
+   * `slides_<name>` path (caller is responsible for clearing a prior folder via
+   * trash.removeFolders); `create` resolves a unique ` (N)` suffix so an existing
+   * folder is preserved alongside the new export.
+   */
+  async prepareExportFolder(
+    displayName: string,
+    mode: 'fresh' | 'create',
+  ): Promise<ExportFolderInfo> {
+    let dir = this.slidesFolderPath(displayName);
+    if (mode === 'create') {
+      let n = 2;
+      while (await this.pathExists(dir)) {
+        dir = `${this.slidesFolderPath(displayName)} (${n})`;
+        n += 1;
+      }
+    }
+    await fs.mkdir(dir, { recursive: true });
+    return { exists: true, dir, folderName: path.basename(dir) };
+  }
+
+  /**
+   * Download a single note image from its public CDN URL and write it into the
+   * export folder. The server stores hashed URLs and may change the extension, so
+   * the bytes are re-encoded to real PNG via sharp when available (otherwise the
+   * raw bytes are written, best-effort).
+   */
+  async downloadImageToFolder(url: string, dir: string, filename: string): Promise<void> {
+    const res = await fetch(url);
+    if (!res.ok) {
+      throw new Error(`Image download failed (${res.status})`);
+    }
+    const raw = Buffer.from(await res.arrayBuffer());
+    let out: Buffer = raw;
+    if (sharpService.isAvailable()) {
+      const sharp = sharpService.getSharp();
+      if (sharp) out = await sharp(raw).png().toBuffer();
+    }
+    await fs.writeFile(path.join(dir, filename), out);
+  }
+
+  private async pathExists(p: string): Promise<boolean> {
+    try {
+      await fs.access(p);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 

@@ -6,6 +6,7 @@ import type {
   NoteDetail,
   NoteGroup,
   UploadedImage,
+  ExportFolderInfo,
 } from '@common/notesTypes';
 
 /**
@@ -39,4 +40,10 @@ export const cloudNotes = {
     ipcRenderer.invoke('cloudNotes:uploadImage', bytes, filename, mime),
   uploadImageFromPath: (filePath: string): Promise<NotesResult<UploadedImage>> =>
     ipcRenderer.invoke('cloudNotes:uploadImageFromPath', filePath),
+  exportFolderStatus: (displayName: string): Promise<NotesResult<ExportFolderInfo>> =>
+    ipcRenderer.invoke('cloudNotes:exportFolderStatus', displayName),
+  prepareExportFolder: (displayName: string, mode: 'fresh' | 'create'): Promise<NotesResult<ExportFolderInfo>> =>
+    ipcRenderer.invoke('cloudNotes:prepareExportFolder', displayName, mode),
+  downloadImageToFolder: (url: string, dir: string, filename: string): Promise<NotesResult<void>> =>
+    ipcRenderer.invoke('cloudNotes:downloadImageToFolder', url, dir, filename),
 };

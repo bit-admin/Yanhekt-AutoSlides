@@ -70,6 +70,16 @@ export interface UploadedImage {
   url: string;
 }
 
+/** Result of resolving a managed note's local `slides_<name>` export folder. */
+export interface ExportFolderInfo {
+  /** Whether the folder exists on disk (status check) / was created (prepare). */
+  exists: boolean;
+  /** Absolute path to the export folder. */
+  dir: string;
+  /** Basename of `dir`, e.g. `slides_<name>` or `slides_<name> (2)`. */
+  folderName: string;
+}
+
 export interface NoteListParams {
   page?: number;
   pageSize?: number;
@@ -124,4 +134,13 @@ export function buildManagedNoteTitle(displayName: string): string {
 /** Whether a note title was produced by AutoSlides (carries the managed prefix). */
 export function isManagedNoteTitle(title: string): boolean {
   return title.startsWith(MANAGED_NOTE_PREFIX);
+}
+
+/**
+ * Recover the folder display name from a managed note title — the inverse of
+ * buildManagedNoteTitle. Non-managed titles are returned unchanged. Used by the
+ * export flow to reconstruct the `slides_<displayName>` output folder.
+ */
+export function managedNoteDisplayName(title: string): string {
+  return isManagedNoteTitle(title) ? title.slice(MANAGED_NOTE_PREFIX.length).trim() : title;
 }
