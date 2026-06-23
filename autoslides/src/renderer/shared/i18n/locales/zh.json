@@ -1077,6 +1077,7 @@
     "importConflictHint": "这些文件夹已存在笔记。“替换”会删除旧笔记，“创建”会另外新增一条。",
     "importCancel": "取消",
     "importClose": "关闭",
+    "importDone": "完成",
     "noteMeta": "由 AutoSlides 导入 · {count} 张幻灯片 · {date}",
     "noteSlideCaption": "幻灯片 {n}",
     "cancel": "取消"

@@ -258,15 +258,18 @@
                 <div v-if="item.status === 'conflict'" class="cn-imp-actions">
                   <button class="btn btn--sm btn--ghost" :disabled="imp.importing.value" @click="onOpenConflictNote(item.conflictNoteIds?.[0])">{{ $t('cloudNotes.importOpenNote') }}</button>
                   <button class="btn btn--sm" :disabled="imp.importing.value" @click="imp.resolveConflict(item, 'create')">{{ $t('cloudNotes.importCreateAnyway') }}</button>
-                  <button class="btn btn--sm btn--danger-outline" :disabled="imp.importing.value" @click="imp.resolveConflict(item, 'replace')">{{ $t('cloudNotes.importReplace') }}</button>
+                  <button class="btn btn--sm cn-imp-replace" :disabled="imp.importing.value" @click="imp.resolveConflict(item, 'replace')">{{ $t('cloudNotes.importReplace') }}</button>
                   <button class="btn btn--sm btn--ghost" :disabled="imp.importing.value" @click="imp.skipConflict(item)">{{ $t('cloudNotes.importSkip') }}</button>
                 </div>
               </div>
             </div>
             <p v-if="imp.queue.value.some(i => i.status === 'conflict')" class="cn-import-hint">{{ $t('cloudNotes.importConflictHint') }}</p>
             <div class="cn-modal-actions">
-              <button v-if="imp.importing.value" class="btn cn-modal-btn" @click="imp.cancel()">{{ $t('cloudNotes.importCancel') }}</button>
-              <button class="btn btn--primary cn-modal-btn" @click="closeImportModal">{{ $t('cloudNotes.importClose') }}</button>
+              <template v-if="imp.importing.value">
+                <button class="btn cn-modal-btn" @click="imp.cancel()">{{ $t('cloudNotes.importCancel') }}</button>
+                <button class="btn btn--primary cn-modal-btn" @click="closeImportModal">{{ $t('cloudNotes.importClose') }}</button>
+              </template>
+              <button v-else class="btn btn--primary cn-modal-btn" @click="doneImport">{{ $t('cloudNotes.importDone') }}</button>
             </div>
           </template>
         </div>
@@ -568,10 +571,17 @@ async function openImportModal(): Promise<void> {
 }
 
 function closeImportModal(): void {
+  // Only hide the modal — the queue (running or finished) stays alive so
+  // reopening returns to the progress view. It is cleared only by "Done".
   showImportModal.value = false
-  // Keep a running queue alive (background); clear finished results so the next
-  // open starts fresh at the folder picker.
-  if (!imp.importing.value) imp.reset()
+}
+
+function doneImport(): void {
+  // Explicit dismissal of a finished queue: clear it and return to the picker.
+  imp.reset()
+  importSelected.value = []
+  importPhase.value = 'select'
+  showImportModal.value = false
 }
 
 function toggleImportFolder(name: string): void {
@@ -1020,6 +1030,7 @@ watch(() => cn.selectedNoteId.value, (id) => {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  padding-right: 12px;
 }
 
 /* Folder picker rows */
@@ -1146,6 +1157,17 @@ watch(() => cn.selectedNoteId.value, (id) => {
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 2px;
+}
+
+/* Destructive "Replace" — matches the Download panel's "Cancel All" outline. */
+.cn-imp-replace {
+  color: var(--danger-pink);
+  border-color: var(--danger-pink);
+}
+
+.cn-imp-replace:hover:not(:disabled) {
+  background-color: var(--danger-bg);
+  border-color: var(--danger-hover);
 }
 
 .cn-import-hint {

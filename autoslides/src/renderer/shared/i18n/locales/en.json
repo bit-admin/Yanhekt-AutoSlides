@@ -1074,9 +1074,10 @@
     "importReplace": "Replace",
     "importCreateAnyway": "Create anyway",
     "importSkip": "Skip",
-    "importConflictHint": "A note already exists for these folders. Replace deletes the old note(s); Create adds a new one alongside.",
+    "importConflictHint": "A note already exists for these folders. Replace deletes the old notes; Create adds a new one alongside.",
     "importCancel": "Cancel",
     "importClose": "Close",
+    "importDone": "Done",
     "noteMeta": "Imported by AutoSlides · {count} slides · {date}",
     "noteSlideCaption": "Slide {n}",
     "cancel": "Cancel"

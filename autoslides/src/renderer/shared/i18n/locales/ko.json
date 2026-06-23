@@ -1077,6 +1077,7 @@
     "importConflictHint": "이 폴더에는 이미 노트가 있습니다. '교체'는 기존 노트를 삭제하고, '생성'은 별도로 새로 추가합니다.",
     "importCancel": "취소",
     "importClose": "닫기",
+    "importDone": "완료",
     "noteMeta": "AutoSlides에서 가져옴 · 슬라이드 {count}장 · {date}",
     "noteSlideCaption": "슬라이드 {n}",
     "cancel": "취소"

@@ -1077,6 +1077,7 @@
     "importConflictHint": "これらのフォルダーには既にノートがあります。「置き換え」は古いノートを削除し、「作成」は別に新規追加します。",
     "importCancel": "キャンセル",
     "importClose": "閉じる",
+    "importDone": "完了",
     "noteMeta": "AutoSlides によりインポート · {count} 枚 · {date}",
     "noteSlideCaption": "スライド {n}",
     "cancel": "キャンセル"
