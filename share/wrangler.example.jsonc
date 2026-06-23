@@ -1,0 +1,28 @@
+{
+  // Copy this file to `wrangler.jsonc` and fill in your own KV namespace id and
+  // custom domain before deploying. The real `wrangler.jsonc` is gitignored so
+  // deploy-specific ids stay out of the public repo. See README.md.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "autoslides-share",
+  "main": "src/worker.ts",
+  "compatibility_date": "2025-06-01",
+
+  // Static viewer (Vite build output, dist/index.html landing + dist/v1 app).
+  // The Worker only handles the KV shorten/resolve API and the short-link route.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS"
+  },
+
+  // KV for short links. Create with:  wrangler kv namespace create SHARE_KV
+  // then paste the returned id here.
+  "kv_namespaces": [
+    { "binding": "SHARE_KV", "id": "<YOUR_KV_NAMESPACE_ID>" }
+  ],
+
+  // Custom domain — Cloudflare creates/manages the DNS record and attaches this
+  // Worker to the whole hostname. Adjust to your own zone.
+  "routes": [
+    { "pattern": "example.com", "custom_domain": true }
+  ]
+}

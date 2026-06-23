@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.wrangler/
+*.log
+.dev.vars
+
+# Real deploy config (KV id, custom domain) — copy from wrangler.example.jsonc.
+wrangler.jsonc
