@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
-import type { EditorJsContent } from '@common/notesTypes'
 import { managedNoteDisplayName } from '@common/notesTypes'
+import { noteImageUrls } from '@common/notesContent'
 import type { useCloudNotes } from './useCloudNotes'
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
@@ -59,31 +59,13 @@ export function useNoteExport(cn: CloudNotesApi) {
     cancelRequested.value = true
   }
 
-  /** Image URLs of a note's image blocks, in document (slide) order. */
-  function extractImageUrls(content: string): string[] {
-    if (!content) return []
-    let doc: EditorJsContent
-    try {
-      doc = JSON.parse(content) as EditorJsContent
-    } catch {
-      return []
-    }
-    const urls: string[] = []
-    for (const block of doc.blocks ?? []) {
-      if (block.type !== 'image') continue
-      const file = (block.data as { file?: { url?: unknown } }).file
-      if (file && typeof file.url === 'string') urls.push(file.url)
-    }
-    return urls
-  }
-
   /** Fetch the note, resolve its folder, then download every image in order. */
   async function processItem(item: ExportItem, mode: 'fresh' | 'create' = 'fresh'): Promise<void> {
     item.status = 'fetching'
     const detailRes = await window.electronAPI.cloudNotes.get(item.noteId)
     if (!detailRes.ok) { item.status = 'error'; item.error = detailRes.error; return }
 
-    const urls = extractImageUrls(detailRes.data.content)
+    const urls = noteImageUrls(detailRes.data.content)
     item.total = urls.length
     if (urls.length === 0) { item.status = 'error'; item.error = 'empty'; return }
 

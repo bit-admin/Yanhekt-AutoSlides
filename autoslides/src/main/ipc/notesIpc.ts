@@ -71,4 +71,7 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('cloudNotes:downloadImageToFolder', (_e, url: string, dir: string, filename: string) =>
     run(() => notesService.downloadImageToFolder(url, dir, filename)));
+
+  ipcMain.handle('cloudNotes:shortenShareUrl', (_e, fragment: string) =>
+    run(() => notesService.shortenShareUrl(fragment)));
 }

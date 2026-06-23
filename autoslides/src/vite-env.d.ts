@@ -820,6 +820,7 @@ interface ElectronAPI {
     exportFolderStatus: (displayName: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
     prepareExportFolder: (displayName: string, mode: 'fresh' | 'create') => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
     downloadImageToFolder: (url: string, dir: string, filename: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
+    shortenShareUrl: (fragment: string) => Promise<import('@common/notesTypes').NotesResult<{ url: string }>>;
   };
 }
 

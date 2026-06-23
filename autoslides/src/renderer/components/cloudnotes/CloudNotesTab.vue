@@ -346,6 +346,60 @@
         </div>
       </div>
 
+      <!-- Share note modal -->
+      <div v-if="showShareModal" class="modal-overlay" @click.self="closeShareModal">
+        <div class="cn-import-box cn-share-box">
+          <button class="modal-close cn-share-close" :aria-label="$t('cloudNotes.shareClose')" :title="$t('cloudNotes.shareClose')" @click="closeShareModal">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <h3 class="cn-modal-title">{{ $t('cloudNotes.shareTitle') }}</h3>
+          <p class="cn-share-meta">
+            <template v-if="shareImageCount > 0">{{ $t('cloudNotes.shareImagesCount', { n: shareImageCount }) }}</template>
+            <template v-else>{{ $t('cloudNotes.shareNoImages') }}</template>
+          </p>
+
+          <div class="cn-share-field">
+            <span class="cn-share-label">{{ $t('cloudNotes.shareLongLabel') }}</span>
+            <div class="cn-share-row">
+              <input class="text-input cn-share-url" readonly :value="shareLongUrl" @focus="($event.target as HTMLInputElement).select()" />
+              <button class="btn cn-share-action" :disabled="shareImageCount === 0" @click="onCopyShare('long')">
+                {{ shareCopied === 'long' ? $t('cloudNotes.shareCopied') : $t('cloudNotes.shareCopy') }}
+              </button>
+              <button class="btn cn-share-action" :disabled="shareImageCount === 0" @click="onOpenShare('long')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                <span>{{ $t('cloudNotes.shareOpen') }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="cn-share-field">
+            <span class="cn-share-label">{{ $t('cloudNotes.shareShortLabel') }}</span>
+            <div v-if="shareShortUrl" class="cn-share-row">
+              <input class="text-input cn-share-url" readonly :value="shareShortUrl" @focus="($event.target as HTMLInputElement).select()" />
+              <button class="btn cn-share-action" @click="onCopyShare('short')">
+                {{ shareCopied === 'short' ? $t('cloudNotes.shareCopied') : $t('cloudNotes.shareCopy') }}
+              </button>
+              <button class="btn cn-share-action" @click="onOpenShare('short')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                <span>{{ $t('cloudNotes.shareOpen') }}</span>
+              </button>
+            </div>
+            <div v-else class="cn-share-row">
+              <button class="btn cn-share-action cn-share-getshort" :disabled="shareShortening || shareImageCount === 0" @click="onGetShortLink">
+                {{ shareShortening ? $t('cloudNotes.shareShortening') : $t('cloudNotes.shareGetShort') }}
+              </button>
+              <span v-if="shareShortError" class="cn-share-error">{{ shareShortError }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Right: editor -->
       <section class="cn-editor">
         <div v-if="!cn.selectedNote.value" class="cn-empty cn-editor-empty">{{ $t('cloudNotes.selectNote') }}</div>
@@ -362,6 +416,18 @@
               <option value="0">{{ $t('cloudNotes.defaultGroup') }}</option>
               <option v-for="g in cn.groups.value.filter(x => x.id !== 0)" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
             </select>
+            <button
+              v-if="isManagedNoteTitle(cn.selectedNote.value.title)"
+              class="btn btn--ghost cn-share-btn"
+              :title="$t('cloudNotes.shareTip')"
+              @click="openShareModal"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+              <span>{{ $t('cloudNotes.shareButton') }}</span>
+            </button>
             <span class="cn-save-status" :class="saveStatus">
               <template v-if="saveStatus === 'saving'">{{ $t('cloudNotes.saving') }}</template>
               <template v-else-if="saveStatus === 'saved'">{{ $t('cloudNotes.saved') }}</template>
@@ -397,6 +463,8 @@ import { useNoteImport, type ImportItem } from '@features/cloudNotes/useNoteImpo
 import { useNoteExport, type ExportItem } from '@features/cloudNotes/useNoteExport'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { NOTE_GROUP_NAME_MAX, EDITORJS_DOC_VERSION, isManagedNoteTitle, managedNoteDisplayName } from '@common/notesTypes'
+import { buildSharePayload, buildShareUrl, encodeSharePayload } from '@common/shareLink'
+import { noteImageUrls, findRecordedShareUrl, SHARE_MARKER } from '@common/notesContent'
 
 const { t } = useI18n()
 const cn = useCloudNotes()
@@ -758,6 +826,85 @@ function exportBarWidth(item: ExportItem): number {
   if (item.status === 'done') return 100
   if (item.status === 'downloading' && item.total > 0) return Math.round((item.downloaded / item.total) * 100)
   return 0
+}
+
+// ── Share note ─────────────────────────────────────────────────────────────
+const showShareModal = ref(false)
+const shareLongUrl = ref('')
+const shareShortUrl = ref<string | null>(null)
+const shareFragment = ref('')
+const shareImageCount = ref(0)
+const shareShortening = ref(false)
+const shareShortError = ref('')
+const shareCopied = ref<'long' | 'short' | null>(null)
+
+/** Freshest stringified content for the open note (live editor, else saved). */
+async function currentNoteContent(): Promise<string> {
+  const saved = cn.selectedNote.value?.content ?? ''
+  if (editor && editorReady) {
+    try { return JSON.stringify(await editor.save()) } catch { return saved }
+  }
+  return saved
+}
+
+async function openShareModal(): Promise<void> {
+  const note = cn.selectedNote.value
+  if (!note) return
+  const content = await currentNoteContent()
+  const urls = noteImageUrls(content)
+  const payload = buildSharePayload(managedNoteDisplayName(note.title), urls)
+  shareFragment.value = encodeSharePayload(payload)
+  shareLongUrl.value = buildShareUrl(payload)
+  shareImageCount.value = urls.length
+  shareShortUrl.value = findRecordedShareUrl(content)
+  shareShortError.value = ''
+  shareCopied.value = null
+  showShareModal.value = true
+}
+
+function closeShareModal(): void {
+  showShareModal.value = false
+}
+
+async function onCopyShare(which: 'long' | 'short'): Promise<void> {
+  const url = which === 'short' ? shareShortUrl.value : shareLongUrl.value
+  if (!url) return
+  try {
+    await navigator.clipboard.writeText(url)
+    shareCopied.value = which
+    setTimeout(() => { if (shareCopied.value === which) shareCopied.value = null }, 1500)
+  } catch { /* clipboard denied — ignore */ }
+}
+
+function onOpenShare(which: 'long' | 'short'): void {
+  const url = which === 'short' ? shareShortUrl.value : shareLongUrl.value
+  if (url) window.electronAPI.shell.openExternal(url)
+}
+
+async function onGetShortLink(): Promise<void> {
+  if (shareShortening.value || shareShortUrl.value || shareImageCount.value === 0) return
+  shareShortening.value = true
+  shareShortError.value = ''
+  try {
+    const res = await window.electronAPI.cloudNotes.shortenShareUrl(shareFragment.value)
+    if (!res.ok) { shareShortError.value = t('cloudNotes.shareShortError'); return }
+    const url = res.data.url
+    shareShortUrl.value = url
+    // Record the short link at the end of the live editor so it persists and a
+    // future Share reuses it instead of minting a new one.
+    if (editor && editorReady) {
+      try {
+        const count = editor.blocks.getBlocksCount()
+        editor.blocks.insert('paragraph', { text: `${SHARE_MARKER} ${url}` }, undefined, count)
+        const noteId = cn.selectedNoteId.value
+        if (noteId != null) await flushSave(noteId)
+      } catch { /* marker is best-effort */ }
+    }
+  } catch {
+    shareShortError.value = t('cloudNotes.shareShortError')
+  } finally {
+    shareShortening.value = false
+  }
 }
 
 async function onCreateGroup(): Promise<void> {
@@ -1596,6 +1743,73 @@ watch(() => cn.selectedNoteId.value, (id) => {
 
 .cn-save-status.saved {
   color: var(--success);
+}
+
+.cn-share-btn {
+  flex-shrink: 0;
+  gap: 5px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+/* ── Share modal ── */
+.cn-share-box {
+  position: relative;
+  width: 480px;
+}
+
+.cn-share-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.cn-share-meta {
+  margin: -4px 0 4px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.cn-share-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cn-share-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.cn-share-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.cn-share-url {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* Row actions share the input's control height for a consistent line. */
+.cn-share-action {
+  flex-shrink: 0;
+  font-size: 12px;
+  padding: 4px 12px;
+}
+
+.cn-share-getshort {
+  align-self: flex-start;
+}
+
+.cn-share-error {
+  color: var(--danger);
+  font-size: 12px;
+  align-self: center;
 }
 
 .cn-editor-holder {

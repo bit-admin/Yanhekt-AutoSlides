@@ -26,6 +26,7 @@ import type {
   ExportFolderInfo,
 } from '@common/notesTypes';
 import { NOTE_GROUP_NAME_MAX } from '@common/notesTypes';
+import { SHARE_ORIGIN, SHARE_PATH } from '@common/shareLink';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('NotesService');
@@ -302,6 +303,29 @@ export class NotesService {
     } catch {
       return false;
     }
+  }
+
+  // ── Share short links ──────────────────────────────────────────────────
+
+  /**
+   * Exchange a share-link fragment for a KV-backed short URL via the public
+   * share Worker. Runs in the main process so it doesn't hit renderer CORS; the
+   * endpoint needs no auth.
+   */
+  async shortenShareUrl(fragment: string): Promise<{ url: string }> {
+    const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/shorten`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fragment }),
+    });
+    if (!res.ok) {
+      throw new Error(`Short-link request failed (${res.status})`);
+    }
+    const data = (await res.json()) as { url?: string };
+    if (!data.url) {
+      throw new Error('Short-link response missing url');
+    }
+    return { url: data.url };
   }
 }
 

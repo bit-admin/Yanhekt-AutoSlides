@@ -46,4 +46,6 @@ export const cloudNotes = {
     ipcRenderer.invoke('cloudNotes:prepareExportFolder', displayName, mode),
   downloadImageToFolder: (url: string, dir: string, filename: string): Promise<NotesResult<void>> =>
     ipcRenderer.invoke('cloudNotes:downloadImageToFolder', url, dir, filename),
+  shortenShareUrl: (fragment: string): Promise<NotesResult<{ url: string }>> =>
+    ipcRenderer.invoke('cloudNotes:shortenShareUrl', fragment),
 };
