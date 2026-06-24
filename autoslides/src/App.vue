@@ -103,9 +103,13 @@ if (isDemoMode()) {
   }
 }
 
-const leftWidth = ref(240)
-const rightWidth = ref(320)
-const mainWidth = ref(760)
+// Baselines match the panel widths the old proportional layout produced at the
+// previous 1400-wide default window (240/320 scaled by 1400/1320 ≈ 254/339,
+// rounded to 255/340). updateSizes now holds these fixed and lets the main
+// content absorb any window-width slack (845 fills the 1440-wide default).
+const leftWidth = ref(255)
+const rightWidth = ref(340)
+const mainWidth = ref(845)
 
 // leftWidth/rightWidth/mainWidth stay the expanded baseline that the resize
 // logic operates on (preserving the invariant innerWidth === left+main+right).
@@ -231,11 +235,12 @@ const updateSizes = () => {
     rightWidth.value = Math.floor(minRight * ratio)
     mainWidth.value = availableWidth - leftWidth.value - rightWidth.value
   } else {
+    // Keep the left/right panel widths fixed at their baseline; the main content
+    // absorbs the difference between the panel total and the window width. This
+    // keeps the default sidebar widths stable regardless of window size (e.g. a
+    // wider default window doesn't inflate the panels — only the content grows).
     const currentTotal = leftWidth.value + rightWidth.value + mainWidth.value
     if (Math.abs(currentTotal - availableWidth) > 5) {
-      const ratio = availableWidth / currentTotal
-      leftWidth.value = Math.max(minLeft, Math.floor(leftWidth.value * ratio))
-      rightWidth.value = Math.max(minRight, Math.floor(rightWidth.value * ratio))
       mainWidth.value = availableWidth - leftWidth.value - rightWidth.value
     }
   }

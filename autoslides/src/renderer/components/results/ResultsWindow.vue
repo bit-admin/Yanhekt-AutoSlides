@@ -36,6 +36,13 @@
           </svg>
           {{ $t('trash.refresh') }}
         </button>
+
+        <button v-if="currentView === 'folders'" class="btn" @click="openOutputDirectory">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          {{ $t('settings.openFolder') }}
+        </button>
       </div>
 
       <div class="actions">
@@ -556,9 +563,17 @@ import { createAutoCropWorkerClient } from '@shared/autoCrop'
 import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '@features/results/useResultsView'
 import { useCropEditor, type CropHandle } from '@features/results/useCropEditor'
 import { getCourseName } from '@shared/utils/toolWindowFolders'
+import { configStore } from '@shared/services/configStore'
 import ResultsImageGrid from './ResultsImageGrid.vue'
 
 const { t } = useI18n()
+
+// Open the configured output directory (where the slide folders live) in the OS
+// file manager. Folder-list view only.
+const openOutputDirectory = async () => {
+  const dir = configStore.outputDirectory
+  if (dir) await window.electronAPI.shell.openPath(dir)
+}
 
 const {
   folders,
