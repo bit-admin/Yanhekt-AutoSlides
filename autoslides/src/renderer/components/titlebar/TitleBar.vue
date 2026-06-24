@@ -303,6 +303,8 @@ const infoTabLabel = computed(() => {
         : $t('tabs.recorded');
     case 'slides-review':
       return $t('tabs.slidesReview');
+    case 'slides-export':
+      return $t('tabs.slidesExport');
     default:
       return $t('tabs.info');
   }

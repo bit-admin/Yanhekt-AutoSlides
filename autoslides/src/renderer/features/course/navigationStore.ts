@@ -4,10 +4,10 @@ import type { Course } from './useCourseList'
 
 // Yanhekt browsing pages keep the three-panel layout; Workspace pages (the
 // migrated Tools tabs) take the whole window beside the left panel.
-export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'slides-review'
+export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'slides-review' | 'slides-export'
 
 // Nav targets that render as full-width Workspace pages (right panel hidden).
-const WORKSPACE_TARGETS = new Set<NavTarget>(['slides-review'])
+const WORKSPACE_TARGETS = new Set<NavTarget>(['slides-review', 'slides-export'])
 
 export interface CourseOpenRequest {
   mode: 'live' | 'recorded'

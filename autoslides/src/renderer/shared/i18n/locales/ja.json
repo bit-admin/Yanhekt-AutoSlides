@@ -9,7 +9,8 @@
     "searchPlaceholder": "検索",
     "workspace": "ワークスペース",
     "pinned": "ピン留め",
-    "slidesReview": "スライド確認"
+    "slidesReview": "スライド確認",
+    "slidesExport": "スライド書き出し"
   },
   "auth": {
     "verifying": "確認中...",
@@ -1257,6 +1258,7 @@
     "recorded": "録画",
     "sessions": "セッション",
     "slidesReview": "スライド確認",
+    "slidesExport": "スライド書き出し",
     "close": "タブを閉じる",
     "closeDisabledTask": "タスク実行中は閉じられません",
     "moreTabs": "他のタブ",

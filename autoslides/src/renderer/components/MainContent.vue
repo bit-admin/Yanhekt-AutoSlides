@@ -31,6 +31,14 @@
           <ResultsWindow />
         </div>
 
+        <!-- Slides Export (Workspace page — full-width, right panel hidden) -->
+        <div
+          :class="['mode-container', { 'mode-hidden': activeNav !== 'slides-export' }]"
+          data-mode="slides-export"
+        >
+          <PdfMakerWindow />
+        </div>
+
         <!-- Live Mode (browsing only — playback opens in a tab) -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'live' }]"
@@ -93,6 +101,7 @@ import PlaybackPage from '@renderer/components/video/PlaybackPage.vue'
 import HomePage from '@renderer/components/course/HomePage.vue'
 import SearchPage from '@renderer/components/course/SearchPage.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
+import PdfMakerWindow from '@renderer/components/export/PdfMakerWindow.vue'
 import type { Course, Session } from '@features/video/useSlideExtraction'
 import { DataStore } from '@shared/services/dataStore'
 import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'

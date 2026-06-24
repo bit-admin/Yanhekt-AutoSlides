@@ -9,7 +9,8 @@
     "searchPlaceholder": "搜索",
     "workspace": "工作区",
     "pinned": "置顶",
-    "slidesReview": "幻灯片审阅"
+    "slidesReview": "幻灯片审阅",
+    "slidesExport": "幻灯片导出"
   },
   "auth": {
     "verifying": "验证中...",
@@ -1257,6 +1258,7 @@
     "recorded": "录播课程",
     "sessions": "课时列表",
     "slidesReview": "幻灯片审阅",
+    "slidesExport": "幻灯片导出",
     "close": "关闭标签页",
     "closeDisabledTask": "任务运行中，无法关闭",
     "moreTabs": "更多标签页",

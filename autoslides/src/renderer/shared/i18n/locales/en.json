@@ -9,7 +9,8 @@
     "searchPlaceholder": "Search",
     "workspace": "Workspace",
     "pinned": "Pinned",
-    "slidesReview": "Slides Review"
+    "slidesReview": "Slides Review",
+    "slidesExport": "Slides Export"
   },
   "auth": {
     "verifying": "Verifying...",
@@ -1257,6 +1258,7 @@
     "recorded": "Recorded",
     "sessions": "Sessions",
     "slidesReview": "Slides Review",
+    "slidesExport": "Slides Export",
     "close": "Close tab",
     "closeDisabledTask": "Can't close while the task is running",
     "moreTabs": "More tabs",

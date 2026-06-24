@@ -104,7 +104,7 @@ function makeSlidesExport(
 }
 
 export function registerPdfMakerIpcHandlers(services: IpcServices): void {
-  const { configService, windowManager, slideExtractionService, pdfService } = services;
+  const { configService, slideExtractionService, pdfService } = services;
 
   ipcMain.handle('pdfmaker:getFolders', async () => {
     try {
@@ -176,7 +176,7 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
     }
   });
 
-  ipcMain.handle('pdfmaker:makePdf', async (_event, folders: FolderEntry[], requestOptions: PdfMakerRequestOptions) => {
+  ipcMain.handle('pdfmaker:makePdf', async (event, folders: FolderEntry[], requestOptions: PdfMakerRequestOptions) => {
     try {
       const {
         outputMode = 'single',
@@ -187,8 +187,10 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
       } = requestOptions;
       const extension = getExportExtension(outputFormat);
       const formatLabel = getExportLabel(outputFormat);
-      const toolsWindow = windowManager.getToolsWindow();
-      const parentWindow = toolsWindow || BrowserWindow.getFocusedWindow();
+      // Route the save dialog + progress events to whichever window invoked the
+      // export — the Tools window or the main window's Slides Export page.
+      const senderWindow = BrowserWindow.fromWebContents(event.sender);
+      const parentWindow = senderWindow || BrowserWindow.getFocusedWindow();
       const effectiveCopyright = copyrightText && copyrightText.trim().length > 0
         ? copyrightText
         : enTranslations.pdfmaker.coverCopyright;
@@ -242,7 +244,7 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
             perFolderOptions,
             outputPath,
             (current) => {
-              windowManager.getToolsWindow()?.webContents.send('pdfmaker:progress', {
+              event.sender.send('pdfmaker:progress', {
                 current: processedBefore + current,
                 total: totalImages
               });
@@ -301,7 +303,7 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
         singleOptions,
         outputPath,
         (current, total) => {
-          windowManager.getToolsWindow()?.webContents.send('pdfmaker:progress', { current, total });
+          event.sender.send('pdfmaker:progress', { current, total });
         }
       );
 

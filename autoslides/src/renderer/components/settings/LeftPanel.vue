@@ -55,6 +55,15 @@
             </svg>
             <span>{{ $t('navigation.slidesReview') }}</span>
           </button>
+          <button :class="['nav-item', { active: activeNav === 'slides-export' }]" @click="navigate('slides-export')">
+            <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <path d="M12 18v-6"/>
+              <polyline points="9 15 12 18 15 15"/>
+            </svg>
+            <span>{{ $t('navigation.slidesExport') }}</span>
+          </button>
         </nav>
         <div class="panel-actions">
           <button type="button" class="panel-action-button" @click="openOutputDirectory">
