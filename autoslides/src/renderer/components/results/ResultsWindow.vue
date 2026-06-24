@@ -1134,10 +1134,14 @@ const confirmClearTrash = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 16px;
+  padding: 10px 12px;
   background-color: var(--bg-elevated);
   border-bottom: 1px solid var(--border-color);
-  gap: 12px;
+  gap: 10px;
+  /* Embedded in the main window (narrower than the old Tools window), the action
+     row wraps onto a second line rather than overflowing. */
+  flex-wrap: wrap;
+  row-gap: 8px;
 }
 
 .toolbar-left,
@@ -1145,6 +1149,8 @@ const confirmClearTrash = async () => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  row-gap: 6px;
 }
 
 /* Inline filter select — auto width instead of the shared full width */
@@ -1173,7 +1179,7 @@ const confirmClearTrash = async () => {
 .clear-btn {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   padding: 6px 10px;
   border: none;
   border-radius: 4px;

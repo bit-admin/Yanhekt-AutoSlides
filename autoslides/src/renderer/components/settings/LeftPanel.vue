@@ -46,6 +46,16 @@
         </div>
 
         <div class="nav-group-title panel-actions-title">{{ $t('navigation.workspace') }}</div>
+        <nav class="nav-items">
+          <button :class="['nav-item', { active: activeNav === 'slides-review' }]" @click="navigate('slides-review')">
+            <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+            <span>{{ $t('navigation.slidesReview') }}</span>
+          </button>
+        </nav>
         <div class="panel-actions">
           <button type="button" class="panel-action-button" @click="openOutputDirectory">
             <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

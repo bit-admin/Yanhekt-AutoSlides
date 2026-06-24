@@ -8,7 +8,8 @@
     "home": "Home",
     "searchPlaceholder": "Search",
     "workspace": "Workspace",
-    "pinned": "Pinned"
+    "pinned": "Pinned",
+    "slidesReview": "Slides Review"
   },
   "auth": {
     "verifying": "Verifying...",
@@ -1255,6 +1256,7 @@
     "live": "Live",
     "recorded": "Recorded",
     "sessions": "Sessions",
+    "slidesReview": "Slides Review",
     "close": "Close tab",
     "closeDisabledTask": "Can't close while the task is running",
     "moreTabs": "More tabs",

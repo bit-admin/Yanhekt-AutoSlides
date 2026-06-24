@@ -8,7 +8,8 @@
     "home": "ホーム",
     "searchPlaceholder": "検索",
     "workspace": "ワークスペース",
-    "pinned": "ピン留め"
+    "pinned": "ピン留め",
+    "slidesReview": "スライド確認"
   },
   "auth": {
     "verifying": "確認中...",
@@ -1255,6 +1256,7 @@
     "live": "ライブ",
     "recorded": "録画",
     "sessions": "セッション",
+    "slidesReview": "スライド確認",
     "close": "タブを閉じる",
     "closeDisabledTask": "タスク実行中は閉じられません",
     "moreTabs": "他のタブ",

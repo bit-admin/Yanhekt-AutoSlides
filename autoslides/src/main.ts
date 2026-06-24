@@ -46,10 +46,10 @@ let quitRequested = false;
 
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
-    width: 1400,
+    width: 1440,
     height: 900,
-    minWidth: 1200,
-    minHeight: 700,
+    minWidth: 1280,
+    minHeight: 768,
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
     frame: false,
     // macOS: native sidebar vibrancy shows through transparent renderer areas

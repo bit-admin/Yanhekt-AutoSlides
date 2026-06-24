@@ -8,7 +8,8 @@
     "home": "홈",
     "searchPlaceholder": "검색",
     "workspace": "작업 공간",
-    "pinned": "고정됨"
+    "pinned": "고정됨",
+    "slidesReview": "슬라이드 검토"
   },
   "auth": {
     "verifying": "확인 중...",
@@ -1255,6 +1256,7 @@
     "live": "라이브",
     "recorded": "녹화",
     "sessions": "세션",
+    "slidesReview": "슬라이드 검토",
     "close": "탭 닫기",
     "closeDisabledTask": "작업 실행 중에는 닫을 수 없습니다",
     "moreTabs": "더 많은 탭",

@@ -1,8 +1,13 @@
-import { ref } from 'vue'
-import { activateTab } from './tabStore'
+import { ref, computed } from 'vue'
+import { activateTab, tabStore } from './tabStore'
 import type { Course } from './useCourseList'
 
-export type NavTarget = 'home' | 'live' | 'recorded' | 'search'
+// Yanhekt browsing pages keep the three-panel layout; Workspace pages (the
+// migrated Tools tabs) take the whole window beside the left panel.
+export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'slides-review'
+
+// Nav targets that render as full-width Workspace pages (right panel hidden).
+const WORKSPACE_TARGETS = new Set<NavTarget>(['slides-review'])
 
 export interface CourseOpenRequest {
   mode: 'live' | 'recorded'
@@ -29,6 +34,14 @@ const activePinnedId = ref<string | null>(null)
 // content (already in recorded mode) would look unchanged. A normal "Recorded"
 // click does NOT bump this, so it preserves the current sessions/grid state.
 const recordedGridResetTick = ref(0)
+
+// True when a Workspace page owns the content area: the Info tab is active (no
+// playback tab) AND the current nav target is a workspace page. Read by App.vue
+// and the title bar to collapse the right panel into a full-width main content.
+// Clicking a playback tab flips activeTabId, which turns this off automatically.
+const isWorkspacePage = computed(
+  () => tabStore.state.activeTabId === null && WORKSPACE_TARGETS.has(activeNav.value)
+)
 
 let nextRequestId = 1
 
@@ -63,6 +76,7 @@ export const navigationStore = {
   livePlaybackActive,
   recordedPlaybackActive,
   recordedOnSessions,
+  isWorkspacePage,
   courseOpenRequest,
   activePinnedId,
   recordedGridResetTick,

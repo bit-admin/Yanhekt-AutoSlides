@@ -32,9 +32,9 @@
         <div class="main-content" :style="{ width: renderedMain + 'px' }">
           <MainContent @switch-to-download="handleSwitchToDownload" @switch-to-task="handleSwitchToTask" />
         </div>
-        <div v-if="!layoutStore.rightCollapsed" class="divider right-divider" @mousedown="startResize('right', $event)"></div>
+        <div v-if="!layoutStore.rightCollapsed && !isWorkspacePage" class="divider right-divider" @mousedown="startResize('right', $event)"></div>
 
-        <div class="right-panel" :class="{ collapsed: layoutStore.rightCollapsed }" :style="{ width: renderedRight + 'px' }">
+        <div class="right-panel" :class="{ collapsed: rightHidden }" :style="{ width: renderedRight + 'px' }">
           <RightPanel ref="rightPanelRef" />
         </div>
       </template>
@@ -53,6 +53,7 @@ import RightPanel from '@renderer/components/download/RightPanel.vue'
 import BrowserLoginView from '@renderer/components/settings/BrowserLoginView.vue'
 import OnboardingModal from '@renderer/components/settings/OnboardingModal.vue'
 import { useAuth } from '@features/platform/useAuth'
+import { navigationStore } from '@features/course/navigationStore'
 import { configStore } from '@shared/services/configStore'
 import { isDemoMode } from '@shared/services/runtimeEnv'
 import { layoutStore } from '@shared/services/layoutStore'
@@ -81,6 +82,7 @@ watch(isBusy, (busy) => {
 }, { immediate: true })
 
 const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken } = useAuth()
+const { isWorkspacePage } = navigationStore
 
 // First-run onboarding. configStore is loaded before app.mount, so the flag is
 // available synchronously here. Existing installs are migrated to "completed"
@@ -109,12 +111,16 @@ const mainWidth = ref(760)
 // logic operates on (preserving the invariant innerWidth === left+main+right).
 // Collapsing is purely presentational: a collapsed panel renders at 0 and its
 // width is handed to the main content, so toggling never disturbs the baseline.
+// A Workspace page hides the right panel just like collapsing it, but without
+// touching the user's rightCollapsed preference — so toggling back to a Yanhekt
+// page (or a playback tab) restores the panel exactly as the user left it.
+const rightHidden = computed(() => isWorkspacePage.value || layoutStore.rightCollapsed)
 const renderedLeft = computed(() => (layoutStore.leftCollapsed ? 0 : leftWidth.value))
-const renderedRight = computed(() => (layoutStore.rightCollapsed ? 0 : rightWidth.value))
+const renderedRight = computed(() => (rightHidden.value ? 0 : rightWidth.value))
 const renderedMain = computed(() =>
   mainWidth.value +
   (layoutStore.leftCollapsed ? leftWidth.value : 0) +
-  (layoutStore.rightCollapsed ? rightWidth.value : 0)
+  (rightHidden.value ? rightWidth.value : 0)
 )
 
 let isResizing = false

@@ -157,7 +157,7 @@
       <!-- Non-macOS: right-panel toggle pushed to the trailing edge of the
            center drag band (margin-left:auto). macOS keeps it at the far right. -->
       <button
-        v-if="!isMacOS"
+        v-if="!isMacOS && !isWorkspacePage"
         class="panel-toggle panel-toggle--center panel-toggle--center-trail"
         :class="{ active: layoutStore.rightCollapsed }"
         @click="toggleRightPanel"
@@ -196,8 +196,9 @@
     </Teleport>
 
     <!-- Right-panel view switcher (Task / Download), hosted in the title bar
-         above the right panel. Hidden during full-screen browser login. -->
-    <div v-if="!isBrowserLoginActive" class="view-switcher">
+         above the right panel. Hidden during full-screen browser login and on
+         full-width Workspace pages (no right panel to switch). -->
+    <div v-if="!isBrowserLoginActive && !isWorkspacePage" class="view-switcher">
       <button
         :class="['view-tab', { active: rightPanelStore.currentTab === 'task' }]"
         @click="setRightPanelTab('task')"
@@ -231,7 +232,7 @@
            it lives at the right edge of the center drag band (see the tab
            strip). -->
       <button
-        v-if="isMacOS"
+        v-if="isMacOS && !isWorkspacePage"
         class="panel-toggle panel-toggle--trail"
         :class="{ active: layoutStore.rightCollapsed }"
         @click="toggleRightPanel"
@@ -282,8 +283,12 @@ import { taskQueueState } from '@shared/services/taskQueueService';
 
 const { t: $t } = useI18n();
 
+// True when a full-width Workspace page (e.g. Slides Review) owns the content
+// area: the right-panel view switcher + collapse toggles are hidden.
+const { isWorkspacePage } = navigationStore;
+
 // The Info tab chip is renamed to match the page it shows: Home / Search / Live,
-// and Recorded → Sessions once a course's sessions list is open.
+// Recorded → Sessions once a course's sessions list is open, plus Workspace pages.
 const infoTabLabel = computed(() => {
   switch (navigationStore.activeNav.value) {
     case 'home':
@@ -296,6 +301,8 @@ const infoTabLabel = computed(() => {
       return navigationStore.recordedOnSessions.value
         ? $t('tabs.sessions')
         : $t('tabs.recorded');
+    case 'slides-review':
+      return $t('tabs.slidesReview');
     default:
       return $t('tabs.info');
   }

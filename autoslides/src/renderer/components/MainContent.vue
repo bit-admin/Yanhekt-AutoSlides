@@ -23,6 +23,14 @@
           <SearchPage />
         </div>
 
+        <!-- Slides Review (Workspace page — full-width, right panel hidden) -->
+        <div
+          :class="['mode-container', { 'mode-hidden': activeNav !== 'slides-review' }]"
+          data-mode="slides-review"
+        >
+          <ResultsWindow />
+        </div>
+
         <!-- Live Mode (browsing only — playback opens in a tab) -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'live' }]"
@@ -84,6 +92,7 @@ import SessionPage from '@renderer/components/course/SessionPage.vue'
 import PlaybackPage from '@renderer/components/video/PlaybackPage.vue'
 import HomePage from '@renderer/components/course/HomePage.vue'
 import SearchPage from '@renderer/components/course/SearchPage.vue'
+import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
 import type { Course, Session } from '@features/video/useSlideExtraction'
 import { DataStore } from '@shared/services/dataStore'
 import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
