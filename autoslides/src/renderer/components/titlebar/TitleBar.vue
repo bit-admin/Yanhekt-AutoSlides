@@ -110,14 +110,14 @@
         ref="infoRef"
         :class="['tab-chip', 'tab-chip--info', { active: tabStore.state.activeTabId === null }]"
         @click="tabStore.activateTab(null)"
-        :title="$t('tabs.info')"
+        :title="infoTabLabel"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
           <circle cx="12" cy="12" r="10"/>
           <line x1="12" y1="11" x2="12" y2="16"/>
           <line x1="12" y1="8" x2="12.01" y2="8"/>
         </svg>
-        <span class="tab-chip-label">{{ $t('tabs.info') }}</span>
+        <span class="tab-chip-label">{{ infoTabLabel }}</span>
       </button>
       <button
         v-for="tab in visibleTabs"
@@ -276,10 +276,30 @@ import UpdateManager from './UpdateManager.vue';
 import { rightPanelStore, setRightPanelTab } from '@shared/services/rightPanelStore';
 import { layoutStore, toggleLeftPanel, toggleRightPanel } from '@shared/services/layoutStore';
 import { tabStore, type PlaybackTab } from '@features/course/tabStore';
+import { navigationStore } from '@features/course/navigationStore';
 import { useAuth } from '@features/platform/useAuth';
 import { taskQueueState } from '@shared/services/taskQueueService';
 
 const { t: $t } = useI18n();
+
+// The Info tab chip is renamed to match the page it shows: Home / Search / Live,
+// and Recorded → Sessions once a course's sessions list is open.
+const infoTabLabel = computed(() => {
+  switch (navigationStore.activeNav.value) {
+    case 'home':
+      return $t('tabs.home');
+    case 'search':
+      return $t('tabs.search');
+    case 'live':
+      return $t('tabs.live');
+    case 'recorded':
+      return navigationStore.recordedOnSessions.value
+        ? $t('tabs.sessions')
+        : $t('tabs.recorded');
+    default:
+      return $t('tabs.info');
+  }
+});
 
 // A task tab can't be closed while its task is in progress — mirrors the
 // disabled Back button inside the PlaybackPage. Manual tabs are always closable.

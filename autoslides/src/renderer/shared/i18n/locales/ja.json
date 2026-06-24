@@ -1,5 +1,6 @@
 {
   "navigation": {
+    "appName": "延河課堂",
     "live": "ライブ",
     "recorded": "録画",
     "task": "タスク",
@@ -13,13 +14,13 @@
     "verifying": "確認中...",
     "verifyingMessage": "ログイン状態を確認しています。お待ちください...",
     "signIn": "サインイン",
-    "signInMessage": "すべてのリソースにアクセスするには、Yanhektにサインインしてください",
+    "signInMessage": "すべてのリソースにアクセスするには、延河課堂にサインインしてください",
     "username": "ユーザー名",
     "password": "パスワード",
     "signingIn": "サインイン中...",
     "hiThere": "こんにちは、{nickname}さん",
     "signInAs": "{userId}としてサインイン",
-    "accessMessage": "Yanhektのすべてのリソースにアクセスできるようになりました",
+    "accessMessage": "延河課堂のすべてのリソースにアクセスできるようになりました",
     "signOut": "サインアウト",
     "signInWithBrowser": "ブラウザでサインイン",
     "signInWithSSO": "SSOでサインイン"
@@ -1163,7 +1164,7 @@
     "noVideoFallback": "<video> 要素が見つかりません。capturePage モードに切り替えます",
     "capturingStatus": "キャプチャ中 ({mode})",
     "stoppedStatus": "停止しました。{n} 枚保存済み。",
-    "presetYanhekt": "Yanhekt",
+    "presetYanhekt": "延河課堂",
     "regionOverride": "リージョンがセレクターを上書き"
   },
   "yuketang": {
@@ -1222,8 +1223,8 @@
     "copilotError": "サインインに失敗しました。もう一度お試しください。",
     "cancel": "キャンセル",
     "configureLater": "後で設定する",
-    "signInTitle": "Yanhekt にアクセスする",
-    "signInDescription": "BIT の SSO で Yanhekt にサインインしてください。二段階認証が必要な場合はブラウザでサインインできます。",
+    "signInTitle": "延河課堂 にアクセスする",
+    "signInDescription": "BIT の SSO で 延河課堂 にサインインしてください。二段階認証が必要な場合はブラウザでサインインできます。",
     "allSetTitle": "準備完了です！",
     "allSetDescription": "すでにサインインしており、すぐに使い始められます。",
     "allSetCta": "始める"
@@ -1249,6 +1250,11 @@
   },
   "tabs": {
     "info": "情報",
+    "home": "ホーム",
+    "search": "検索",
+    "live": "ライブ",
+    "recorded": "録画",
+    "sessions": "セッション",
     "close": "タブを閉じる",
     "closeDisabledTask": "タスク実行中は閉じられません",
     "moreTabs": "他のタブ",

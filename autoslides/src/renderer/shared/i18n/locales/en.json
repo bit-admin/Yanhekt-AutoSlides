@@ -1,5 +1,6 @@
 {
   "navigation": {
+    "appName": "Yanhekt",
     "live": "Live",
     "recorded": "Recorded",
     "task": "Task",
@@ -1249,6 +1250,11 @@
   },
   "tabs": {
     "info": "Info",
+    "home": "Home",
+    "search": "Search",
+    "live": "Live",
+    "recorded": "Recorded",
+    "sessions": "Sessions",
     "close": "Close tab",
     "closeDisabledTask": "Can't close while the task is running",
     "moreTabs": "More tabs",

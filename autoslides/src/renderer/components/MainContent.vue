@@ -108,6 +108,16 @@ const recordedState = ref<RecordedState>({
   selectedCourse: null
 })
 
+// Mirror the recorded sub-page into the navigation store so the title bar's
+// Info tab chip can label itself "Sessions" while the sessions list is shown.
+watch(
+  () => recordedState.value.page,
+  (page) => {
+    navigationStore.recordedOnSessions.value = page === 'sessions'
+  },
+  { immediate: true }
+)
+
 const notifyManualTabLimit = () => {
   void window.electronAPI?.dialog?.showMessageBox?.({
     type: 'info',

@@ -17,7 +17,7 @@
               @keyup.enter="handleSidebarEnter"
             />
           </div>
-          <div class="nav-group-title">AutoSlides</div>
+          <div class="nav-group-title">{{ $t('navigation.appName') }}</div>
           <nav class="nav-items">
             <button :class="['nav-item', { active: activeNav === 'home' }]" @click="navigate('home')">
               <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">

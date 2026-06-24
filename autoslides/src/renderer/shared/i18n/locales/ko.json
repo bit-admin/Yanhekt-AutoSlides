@@ -1,5 +1,6 @@
 {
   "navigation": {
+    "appName": "Yanhekt",
     "live": "라이브",
     "recorded": "녹화",
     "task": "작업",
@@ -1249,6 +1250,11 @@
   },
   "tabs": {
     "info": "정보",
+    "home": "홈",
+    "search": "검색",
+    "live": "라이브",
+    "recorded": "녹화",
+    "sessions": "세션",
     "close": "탭 닫기",
     "closeDisabledTask": "작업 실행 중에는 닫을 수 없습니다",
     "moreTabs": "더 많은 탭",

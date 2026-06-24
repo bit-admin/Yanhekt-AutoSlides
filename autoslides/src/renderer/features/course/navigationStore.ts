@@ -15,6 +15,10 @@ export interface CourseOpenRequest {
 const activeNav = ref<NavTarget>('home')
 const livePlaybackActive = ref(false)
 const recordedPlaybackActive = ref(false)
+// True when the recorded-mode browse state is on the sessions list (vs. the
+// course grid). Set by MainContent; read by the title bar so the Info tab chip
+// can label itself "Sessions" instead of "Recorded".
+const recordedOnSessions = ref(false)
 const courseOpenRequest = ref<CourseOpenRequest | null>(null)
 // When a course is opened directly from a sidebar pinned item, that item takes
 // the active highlight instead of the "Recorded" navigator entry. Cleared the
@@ -58,6 +62,7 @@ export const navigationStore = {
   activeNav,
   livePlaybackActive,
   recordedPlaybackActive,
+  recordedOnSessions,
   courseOpenRequest,
   activePinnedId,
   recordedGridResetTick,
