@@ -1,7 +1,6 @@
 import { ipcRenderer } from 'electron';
 
 export const pdfmaker = {
-  openWindow: () => ipcRenderer.invoke('pdfmaker:openWindow'),
   getFolders: () => ipcRenderer.invoke('pdfmaker:getFolders'),
   getImages: (folderPath: string) => ipcRenderer.invoke('pdfmaker:getImages', folderPath),
   getImageAsBase64: (imagePath: string) => ipcRenderer.invoke('pdfmaker:getImageAsBase64', imagePath),

@@ -75,35 +75,11 @@
           </button>
         </nav>
         <div class="panel-actions">
-          <button type="button" class="panel-action-button" @click="openOutputDirectory">
-            <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-            </svg>
-            <span>{{ $t('settings.openFolder') }}</span>
-            <svg class="panel-action-external-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M15 3h6v6"/>
-              <path d="M10 14L21 3"/>
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            </svg>
-          </button>
-
           <button type="button" class="panel-action-button" @click="openToolsWindow()">
             <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
               <path d="M1 3h4v4H1V3zm5 0h4v4H6V3zm5 0h4v4h-4V3zM1 9h4v4H1V9zm5 0h4v4H6V9zm5 0h4v4h-4V9z" fill="currentColor"/>
             </svg>
             <span>{{ $t('tools.openTools') }}</span>
-            <svg class="panel-action-external-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M15 3h6v6"/>
-              <path d="M10 14L21 3"/>
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            </svg>
-          </button>
-
-          <button type="button" class="panel-action-button" @click="openAddonsWindow()">
-            <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M8 1L1 5v6l7 4 7-4V5L8 1zm0 2l4.5 2.5L8 8 3.5 5.5 8 3zM2.5 6.3L7.5 9v4.2l-5-2.8V6.3zm11 0v4.1l-5 2.8V9l5-2.7z" fill="currentColor"/>
-            </svg>
-            <span>{{ $t('addons.openAddons') }}</span>
             <svg class="panel-action-external-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M15 3h6v6"/>
               <path d="M10 14L21 3"/>
@@ -506,18 +482,6 @@ const handleDocumentClick = (event: MouseEvent) => {
   }
 }
 
-// Settings
-const { outputDirectory } = settings
-
-const openOutputDirectory = async () => {
-  try {
-    if (outputDirectory.value) {
-      await window.electronAPI.shell.openPath(outputDirectory.value)
-    }
-  } catch (error) {
-    log.error('Failed to open output directory:', error)
-  }
-}
 
 // Advanced Settings
 const {
@@ -560,15 +524,6 @@ const openToolsWindow = async (tab?: string) => {
     await window.electronAPI.tools.openWindow(tab)
   } catch (error) {
     log.error('Failed to open tools window:', error)
-  }
-}
-
-// Add-ons Window
-const openAddonsWindow = async (tab?: string) => {
-  try {
-    await window.electronAPI.addons.openWindow(tab)
-  } catch (error) {
-    log.error('Failed to open addons window:', error)
   }
 }
 

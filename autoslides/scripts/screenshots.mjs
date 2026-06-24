@@ -373,11 +373,11 @@ async function main() {
   await step('tools-compress', () =>
     captureChildWindow(() => window.electronAPI.tools.openWindow('compress'), 'tools-compress', '.toolwin-tabs'))
 
-  await step('addons-yuketang', () =>
-    captureChildWindow(() => window.electronAPI.addons.openWindow('yuketang'), 'addons-yuketang', '.toolwin-tabs'))
+  await step('tools-webcapture', () =>
+    captureChildWindow(() => window.electronAPI.tools.openWindow('webcapture'), 'tools-webcapture', '.toolwin-tabs'))
 
-  await step('addons-webcapture', () =>
-    captureChildWindow(() => window.electronAPI.addons.openWindow('webcapture'), 'addons-webcapture', '.toolwin-tabs'))
+  await step('tools-yuketang', () =>
+    captureChildWindow(() => window.electronAPI.tools.openWindow('yuketang'), 'tools-yuketang', '.toolwin-tabs'))
 
   // Open a child window and return its handle (without capturing/closing it),
   // so multi-step flows (Results View) can drive it across several screenshots.
@@ -519,8 +519,8 @@ ${list}
 | advanced-ai-ml.png | settings-ai-ml.png | I. AI（ML 模式 / 严格度滑块） |
 | tools-offline.png | tools-offline.png | J. 离线处理 |
 | tools-compress.png | tools-compress.png | J. 讲座压缩 |
-| addons-yuketang.png | addons-yuketang.png | K. 雨课堂 |
-| addons-webcapture.png | addons-webcapture.png | K. 网页捕获 |
+| tools-webcapture.png | tools-webcapture.png | K. 网页捕获 |
+| tools-yuketang.png | tools-yuketang.png | K. 雨课堂 |
 
 ## Fully automated — no manual captures
 

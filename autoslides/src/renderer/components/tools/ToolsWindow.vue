@@ -7,36 +7,6 @@
         <div class="toolwin-tabs">
           <button
             class="toolwin-tab"
-            :class="{ active: activeTab === 'trash' }"
-            @click="switchTab('trash')"
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16">
-              <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
-            </svg>
-            {{ $t('tools.tabTrash') }}
-          </button>
-          <button
-            class="toolwin-tab"
-            :class="{ active: activeTab === 'pdfmaker' }"
-            @click="switchTab('pdfmaker')"
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16">
-              <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1.5H4V8zm0 2.5h8V12H4v-1.5zm0 2.5h5v1.5H4V13z" fill="currentColor"/>
-            </svg>
-            {{ $t('tools.tabPdfMaker') }}
-          </button>
-          <button
-            class="toolwin-tab"
-            :class="{ active: activeTab === 'cloudnotes' }"
-            @click="switchTab('cloudnotes')"
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16">
-              <path d="M4 1h6l4 4v9a1 1 0 01-1 1H4a1 1 0 01-1-1V2a1 1 0 011-1zm5.5 1.5V5H12L9.5 2.5zM5 7h6v1.2H5V7zm0 2.5h6v1.2H5V9.5zM5 12h4v1.2H5V12z" fill="currentColor"/>
-            </svg>
-            {{ $t('tools.tabCloudNotes') }}
-          </button>
-          <button
-            class="toolwin-tab"
             :class="{ active: activeTab === 'offline' }"
             @click="switchTab('offline')"
           >
@@ -55,6 +25,27 @@
               <path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1zm3 2H4v8h8V6h-2V4H6zm1 0v1h2V4H7zm-2 5h6v1H5V9z" fill="currentColor"/>
             </svg>
             {{ $t('tools.tabCompressLecture') }}
+          </button>
+          <button
+            class="toolwin-tab"
+            :class="{ active: activeTab === 'webcapture' }"
+            @click="switchTab('webcapture')"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M2 3h12v8H2V3zm1 1v6h10V4H3zm1 8h8v1H4v-1z" fill="currentColor"/>
+              <path d="M6 6h4v3H6z" fill="currentColor"/>
+            </svg>
+            {{ $t('tools.tabWebCapture') }}
+          </button>
+          <button
+            class="toolwin-tab"
+            :class="{ active: activeTab === 'yuketang' }"
+            @click="switchTab('yuketang')"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16">
+              <path d="M8 1L1 5v6l7 4 7-4V5L8 1zm0 2l4.5 2.5L8 8 3.5 5.5 8 3zM2.5 6.3L7.5 9v4.2l-5-2.8V6.3zm11 0v4.1l-5 2.8V9l5-2.7z" fill="currentColor"/>
+            </svg>
+            {{ $t('tools.tabYuketang') }}
           </button>
         </div>
       </div>
@@ -79,20 +70,17 @@
 
     <!-- Tab Content -->
     <div class="tab-content">
-      <div v-show="activeTab === 'trash'" class="tab-panel">
-        <ResultsWindow />
-      </div>
-      <div v-show="activeTab === 'pdfmaker'" class="tab-panel">
-        <PdfMakerWindow />
-      </div>
-      <div v-show="activeTab === 'cloudnotes'" class="tab-panel">
-        <CloudNotesTab />
-      </div>
       <div v-show="activeTab === 'offline'" class="tab-panel">
         <OfflineProcessingTab />
       </div>
       <div v-show="activeTab === 'compress'" class="tab-panel">
         <CompressLectureTab />
+      </div>
+      <div v-show="activeTab === 'webcapture'" class="tab-panel">
+        <WebCaptureTab />
+      </div>
+      <div v-show="activeTab === 'yuketang'" class="tab-panel">
+        <YuketangTab />
       </div>
     </div>
   </div>
@@ -100,22 +88,22 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import PdfMakerWindow from '@renderer/components/export/PdfMakerWindow.vue'
-import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
 import OfflineProcessingTab from '@renderer/components/offline/OfflineProcessingTab.vue'
 import CompressLectureTab from './CompressLectureTab.vue'
-import CloudNotesTab from '@renderer/components/cloudnotes/CloudNotesTab.vue'
+import WebCaptureTab from '@renderer/components/webCapture/WebCaptureTab.vue'
+import YuketangTab from '@renderer/components/export/YuketangTab.vue'
 
-type TabId = 'pdfmaker' | 'trash' | 'compress' | 'offline' | 'cloudnotes'
+type TabId = 'offline' | 'compress' | 'webcapture' | 'yuketang'
+
+const isValidTab = (tab: string | null): tab is TabId =>
+  tab === 'offline' || tab === 'compress' || tab === 'webcapture' || tab === 'yuketang'
 
 const isMacOS = navigator.userAgent.includes('Mac')
 
 // Read initial tab from URL query param
 const getInitialTab = (): TabId => {
-  const params = new URLSearchParams(window.location.search)
-  const tab = params.get('tab')
-  if (tab === 'pdfmaker' || tab === 'trash' || tab === 'compress' || tab === 'offline' || tab === 'cloudnotes') return tab
-  return 'trash'
+  const tab = new URLSearchParams(window.location.search).get('tab')
+  return isValidTab(tab) ? tab : 'offline'
 }
 
 const activeTab = ref<TabId>(getInitialTab())
@@ -128,7 +116,7 @@ const switchTab = (tab: TabId) => {
 let cleanupSwitchTab: (() => void) | undefined
 onMounted(() => {
   cleanupSwitchTab = window.electronAPI.tools?.onSwitchTab?.((tab: string) => {
-    if (tab === 'pdfmaker' || tab === 'trash' || tab === 'compress' || tab === 'offline' || tab === 'cloudnotes') {
+    if (isValidTab(tab)) {
       activeTab.value = tab
     }
   })

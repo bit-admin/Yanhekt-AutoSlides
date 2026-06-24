@@ -1014,11 +1014,10 @@
   },
   "tools": {
     "openTools": "ツール",
-    "tabPdfMaker": "スライド書き出し",
-    "tabTrash": "結果ビュー",
     "tabCompressLecture": "講義圧縮",
     "tabOffline": "オフライン処理",
-    "tabCloudNotes": "クラウドノート"
+    "tabWebCapture": "ウェブキャプチャ",
+    "tabYuketang": "雨課堂"
   },
   "cloudNotes": {
     "bannerNotice": "注意：延河課堂はノート画像を公開ストレージに保存するため、誰でもアクセスできます。",
@@ -1126,11 +1125,6 @@
     "noteMeta": "AutoSlides によりインポート · {count} 枚 · {date}",
     "noteSlideCaption": "スライド {n}",
     "cancel": "キャンセル"
-  },
-  "addons": {
-    "openAddons": "アドオン",
-    "tabYuketang": "雨課堂",
-    "tabWebCapture": "ウェブキャプチャ"
   },
   "webCapture": {
     "back": "戻る",

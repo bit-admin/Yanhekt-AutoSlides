@@ -107,7 +107,15 @@ export default defineConfig(({ mode }) => ({
   // differing optimizeDeps config causes re-optimize loops).
   cacheDir: 'node_modules/.vite-tools',
   plugins: [
-    vue(),
+    // The Web Capture + Yuketang tabs embed a <webview>; tell the Vue compiler
+    // it's a native element, not a component.
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag === 'webview',
+        },
+      },
+    }),
     ortWasmDevServer(),
     ortWasmBuildCopy(),
     dropBundledOrtWasm()

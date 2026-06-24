@@ -1014,11 +1014,10 @@
   },
   "tools": {
     "openTools": "Tools",
-    "tabPdfMaker": "Slides Export",
-    "tabTrash": "Results View",
     "tabCompressLecture": "Lecture Compress",
     "tabOffline": "Offline Processing",
-    "tabCloudNotes": "Cloud Notes"
+    "tabWebCapture": "Web Capture",
+    "tabYuketang": "Yuketang"
   },
   "cloudNotes": {
     "bannerNotice": "Note: Yanhekt stores note images in public storage and anyone can access them. Do not include private or sensitive images.",
@@ -1126,11 +1125,6 @@
     "noteMeta": "Imported by AutoSlides · {count} slides · {date}",
     "noteSlideCaption": "Slide {n}",
     "cancel": "Cancel"
-  },
-  "addons": {
-    "openAddons": "Add-ons",
-    "tabYuketang": "Yuketang",
-    "tabWebCapture": "Web Capture"
   },
   "webCapture": {
     "back": "Back",

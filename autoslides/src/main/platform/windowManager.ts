@@ -18,8 +18,6 @@ export interface YuketangClassCapture {
 
 declare const TOOLS_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const TOOLS_WINDOW_VITE_NAME: string;
-declare const ADDONS_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
-declare const ADDONS_WINDOW_VITE_NAME: string;
 
 export function getWindowBackgroundColor(): string {
   return nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#ffffff';
@@ -27,7 +25,6 @@ export function getWindowBackgroundColor(): string {
 
 export class WindowManager {
   private toolsWindow: BrowserWindow | null = null;
-  private addonsWindow: BrowserWindow | null = null;
   readonly yuketangClassCapture: YuketangClassCapture = {
     presentationId: '',
     authorization: '',
@@ -172,12 +169,8 @@ export class WindowManager {
     return this.toolsWindow;
   }
 
-  getAddonsWindow(): BrowserWindow | null {
-    return this.addonsWindow;
-  }
-
   createToolsWindow(tab?: string): void {
-    const targetTab = tab || 'trash';
+    const targetTab = tab || 'offline';
 
     if (this.toolsWindow && !this.toolsWindow.isDestroyed()) {
       this.toolsWindow.webContents.send('tools:switchTab', targetTab);
@@ -198,9 +191,22 @@ export class WindowManager {
         preload: path.join(__dirname, 'preload.js'),
         nodeIntegration: false,
         contextIsolation: true,
+        // Web Capture + Yuketang tabs embed a <webview>.
+        webviewTag: true,
         // Mirror the main window's demo flag so this renderer reports isDemoMode too.
         ...demoWebPreferences()
       }
+    });
+
+    // Keep webview navigations (e.g. Yuketang window.open) inside the webview
+    // rather than spawning OS windows.
+    this.toolsWindow.webContents.on('did-attach-webview', (_event, webContents) => {
+      log.debug('[Tools] Webview attached, setting up window open handler');
+      webContents.setWindowOpenHandler(({ url }) => {
+        log.debug('[Tools] Intercepted window.open:', url);
+        webContents.loadURL(url);
+        return { action: 'deny' };
+      });
     });
 
     if (TOOLS_WINDOW_VITE_DEV_SERVER_URL) {
@@ -215,57 +221,6 @@ export class WindowManager {
     this.toolsWindow.on('closed', () => {
       this.onToolsWindowClosed?.();
       this.toolsWindow = null;
-    });
-  }
-
-  createAddonsWindow(tab?: string): void {
-    const targetTab = tab || 'yuketang';
-
-    if (this.addonsWindow && !this.addonsWindow.isDestroyed()) {
-      this.addonsWindow.webContents.send('addons:switchTab', targetTab);
-      this.addonsWindow.focus();
-      return;
-    }
-
-    this.addonsWindow = new BrowserWindow({
-      width: 1200,
-      height: 800,
-      minWidth: 900,
-      minHeight: 600,
-      title: 'Add-ons',
-      titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
-      frame: false,
-      backgroundColor: getWindowBackgroundColor(),
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        nodeIntegration: false,
-        contextIsolation: true,
-        webviewTag: true,
-        // Mirror the main window's demo flag so this renderer reports isDemoMode too.
-        ...demoWebPreferences()
-      }
-    });
-
-    this.addonsWindow.webContents.on('did-attach-webview', (_event, webContents) => {
-      log.debug('[Addons] Webview attached, setting up window open handler');
-      webContents.setWindowOpenHandler(({ url }) => {
-        log.debug('[Addons] Intercepted window.open:', url);
-        webContents.loadURL(url);
-        return { action: 'deny' };
-      });
-    });
-
-    if (ADDONS_WINDOW_VITE_DEV_SERVER_URL) {
-      this.addonsWindow.loadURL(`${ADDONS_WINDOW_VITE_DEV_SERVER_URL}/addons.html?tab=${targetTab}`);
-    } else {
-      this.addonsWindow.loadFile(
-        path.join(__dirname, `../renderer/${ADDONS_WINDOW_VITE_NAME}/addons.html`),
-        { query: { tab: targetTab } }
-      );
-    }
-
-    this.addonsWindow.on('closed', () => {
-      this.addonsWindow = null;
     });
   }
 
@@ -292,7 +247,7 @@ export class WindowManager {
           if (presentationId || authorization) {
             this.yuketangClassCapture.sourceUrl = details.url;
             this.yuketangClassCapture.updatedAt = new Date().toISOString();
-            this.addonsWindow?.webContents.send('yuketang:classCaptureUpdated', {
+            this.toolsWindow?.webContents.send('yuketang:classCaptureUpdated', {
               presentationId: this.yuketangClassCapture.presentationId,
               hasAuthorization: Boolean(this.yuketangClassCapture.authorization)
             });

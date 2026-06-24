@@ -1014,11 +1014,10 @@
   },
   "tools": {
     "openTools": "도구",
-    "tabPdfMaker": "슬라이드 내보내기",
-    "tabTrash": "결과 보기",
     "tabCompressLecture": "강의 압축",
     "tabOffline": "오프라인 처리",
-    "tabCloudNotes": "클라우드 노트"
+    "tabWebCapture": "웹 캡처",
+    "tabYuketang": "雨课堂"
   },
   "cloudNotes": {
     "bannerNotice": "참고: Yanhekt는 노트 이미지를 공개 저장소에 보관하므로 누구나 접근할 수 있습니다.",
@@ -1126,11 +1125,6 @@
     "noteMeta": "AutoSlides에서 가져옴 · 슬라이드 {count}장 · {date}",
     "noteSlideCaption": "슬라이드 {n}",
     "cancel": "취소"
-  },
-  "addons": {
-    "openAddons": "애드온",
-    "tabYuketang": "雨课堂",
-    "tabWebCapture": "웹 캡처"
   },
   "webCapture": {
     "back": "뒤로",

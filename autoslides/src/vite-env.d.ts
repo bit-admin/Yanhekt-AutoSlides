@@ -707,7 +707,6 @@ interface ElectronAPI {
   };
 
   trash: {
-    openWindow: () => Promise<{ success: boolean }>;
     getEntries: () => Promise<TrashEntry[]>;
     restore: (ids: string[]) => Promise<{ restored: number; failed: number }>;
     clear: () => Promise<{ cleared: number; failed: number }>;
@@ -724,7 +723,6 @@ interface ElectronAPI {
   };
 
   pdfmaker: {
-    openWindow: () => Promise<{ success: boolean }>;
     getFolders: () => Promise<{ name: string; path: string; imageCount: number }[]>;
     getImages: (folderPath: string) => Promise<{ name: string; path: string }[]>;
     getImageAsBase64: (imagePath: string) => Promise<string>;
@@ -752,11 +750,6 @@ interface ElectronAPI {
   };
 
   tools: {
-    openWindow: (tab?: string) => Promise<{ success: boolean }>;
-    onSwitchTab: (callback: (tab: string) => void) => () => void;
-  };
-
-  addons: {
     openWindow: (tab?: string) => Promise<{ success: boolean }>;
     onSwitchTab: (callback: (tab: string) => void) => () => void;
   };

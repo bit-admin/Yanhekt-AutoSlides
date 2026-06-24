@@ -311,7 +311,7 @@
   opacity: 0.6;
 }
 
-/* === Tool-window tab bar (ToolsWindow / AddonsWindow pill tabs) === */
+/* === Tool-window tab bar (ToolsWindow pill tabs) === */
 
 .toolwin-tabs {
   display: flex;

@@ -12,16 +12,18 @@ import type { IpcServices } from './types';
 export function registerYuketangIpcHandlers(services: IpcServices): void {
   const { configService, windowManager } = services;
 
-  ipcMain.handle('yuketang:export', async (_event, payload: { lessonId?: string; format: 'pdf' | 'images' }) => {
+  ipcMain.handle('yuketang:export', async (event, payload: { lessonId?: string; format: 'pdf' | 'images' }) => {
     const lessonId = String(payload?.lessonId ?? '').trim();
     const format = payload?.format || 'pdf';
     const outputDir = configService.getConfig().outputDirectory;
     const cookieHeader = await buildYuketangCookieHeader();
     const { yuketangClassCapture } = windowManager;
-    const addonsWindow = windowManager.getAddonsWindow();
+    // Route progress + the save dialog to whichever window invoked the export
+    // (the Yuketang tab now lives in the Tools window).
+    const senderWindow = BrowserWindow.fromWebContents(event.sender);
 
     const onProgress = (message: string) => {
-      addonsWindow?.webContents.send('yuketang:exportProgress', message);
+      event.sender.send('yuketang:exportProgress', message);
     };
 
     let pdfOutputPath: string | undefined;
@@ -42,7 +44,7 @@ export function registerYuketangIpcHandlers(services: IpcServices): void {
         // Fall back to generic name
       }
 
-      const parentWindow = addonsWindow || BrowserWindow.getFocusedWindow();
+      const parentWindow = senderWindow || BrowserWindow.getFocusedWindow();
       const result = await dialog.showSaveDialog(parentWindow!, {
         title: 'Save PDF',
         defaultPath: path.join(outputDir, `slides_${title}.pdf`),

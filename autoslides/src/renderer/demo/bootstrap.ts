@@ -1,7 +1,7 @@
 // Demo bootstrap: the single place that turns demo mode on for a renderer.
 //
 // `installDemo()` is dynamically imported once per renderer entry
-// (renderer.ts / tools.ts / addons.ts) behind `isDemoMode()`. It populates the
+// (renderer.ts / tools.ts) behind `isDemoMode()`. It populates the
 // generic override registry (@shared/overrideRegistry) from the demo data
 // factories, paints the demo sidebar, and seeds the fake queues. Production code
 // never imports this file — the dependency points inward (demo → shared), so

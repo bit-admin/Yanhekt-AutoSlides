@@ -6,7 +6,7 @@ import { ai, copilot } from './ai';
 import { pdfmaker, yuketang } from './export';
 import { api } from './course';
 import { update, extractorInstaller } from './update';
-import { tools, addons, webCapture } from './tools';
+import { tools, webCapture } from './tools';
 import { intranet } from './intranet';
 import { cloudNotes } from './notes';
 
@@ -37,7 +37,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   crop,
   pdfmaker,
   tools,
-  addons,
   webCapture,
   yuketang,
   autoCrop,

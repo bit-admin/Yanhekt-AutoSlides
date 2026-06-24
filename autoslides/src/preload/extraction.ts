@@ -28,7 +28,6 @@ export const offline = {
 };
 
 export const trash = {
-  openWindow: () => ipcRenderer.invoke('trash:openWindow'),
   getEntries: () => ipcRenderer.invoke('trash:getEntries'),
   restore: (ids: string[]) => ipcRenderer.invoke('trash:restore', ids),
   clear: () => ipcRenderer.invoke('trash:clear'),

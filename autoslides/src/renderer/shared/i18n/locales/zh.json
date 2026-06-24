@@ -1014,11 +1014,10 @@
   },
   "tools": {
     "openTools": "工具",
-    "tabPdfMaker": "幻灯片导出",
-    "tabTrash": "幻灯片审查",
     "tabCompressLecture": "讲座压缩",
     "tabOffline": "离线处理",
-    "tabCloudNotes": "云笔记"
+    "tabWebCapture": "网页捕获",
+    "tabYuketang": "雨课堂"
   },
   "cloudNotes": {
     "bannerNotice": "注意：延河课堂将笔记图片存放于任何人均可访问的公开存储空间。不要上传包含隐私或敏感信息的笔记。",
@@ -1126,11 +1125,6 @@
     "noteMeta": "由 AutoSlides 导入 · {count} 张幻灯片 · {date}",
     "noteSlideCaption": "幻灯片 {n}",
     "cancel": "取消"
-  },
-  "addons": {
-    "openAddons": "扩展",
-    "tabYuketang": "雨课堂",
-    "tabWebCapture": "网页捕获"
   },
   "webCapture": {
     "back": "后退",

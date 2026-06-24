@@ -9,15 +9,6 @@ export const tools = {
   },
 };
 
-export const addons = {
-  openWindow: (tab?: string) => ipcRenderer.invoke('addons:openWindow', tab),
-  onSwitchTab: (callback: (tab: string) => void) => {
-    const handler = (_event: unknown, tab: string) => callback(tab);
-    ipcRenderer.on('addons:switchTab', handler);
-    return () => ipcRenderer.removeListener('addons:switchTab', handler);
-  },
-};
-
 export const webCapture = {
   getGuestPreloadPath: (): Promise<string> => ipcRenderer.invoke('webCapture:getGuestPreloadPath'),
 };

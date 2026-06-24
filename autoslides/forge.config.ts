@@ -117,10 +117,6 @@ const config: ForgeConfig = {
           name: 'tools_window',
           config: 'vite.tools.config.ts',
         },
-        {
-          name: 'addons_window',
-          config: 'vite.addons.config.ts',
-        },
       ],
     }),
     // Auto-unpack native modules from asar (packaging only — during dev
