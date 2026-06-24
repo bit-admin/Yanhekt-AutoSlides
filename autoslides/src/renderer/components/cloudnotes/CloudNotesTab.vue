@@ -224,6 +224,22 @@
 
           <!-- Phase: select folders -->
           <template v-if="importPhase === 'select'">
+            <!-- Import from a pasted share link -->
+            <div class="cn-paste-row">
+              <input
+                v-model="pasteLink"
+                class="text-input cn-paste-input"
+                :placeholder="$t('cloudNotes.importPastePlaceholder')"
+                @keyup.enter="onPasteShareLink"
+              />
+              <button class="btn btn--primary cn-paste-btn" :disabled="!pasteLink.trim() || imp.importing.value" @click="onPasteShareLink">
+                {{ $t('cloudNotes.importPasteBtn') }}
+              </button>
+            </div>
+
+            <div class="cn-share-or"><span>{{ $t('cloudNotes.importOr') }}</span></div>
+
+            <!-- Or: pick local slide folders -->
             <div class="cn-import-list custom-scrollbar">
               <div v-if="loadingFolders" class="cn-empty">{{ $t('cloudNotes.loading') }}</div>
               <div v-else-if="importFolders.length === 0" class="cn-empty">{{ $t('cloudNotes.importNoFolders') }}</div>
@@ -686,6 +702,7 @@ const importPhase = ref<'select' | 'progress'>('select')
 const importFolders = ref<ImportFolder[]>([])
 const importSelected = ref<string[]>([])
 const loadingFolders = ref(false)
+const pasteLink = ref('')
 
 const fmtFolder = formatToolFolderName
 
@@ -737,6 +754,15 @@ function onStartImport(): void {
   void imp.startImport([...importSelected.value])
 }
 
+function onPasteShareLink(): void {
+  const link = pasteLink.value.trim()
+  if (!link || imp.importing.value) return
+  pasteLink.value = ''
+  importPhase.value = 'progress'
+  // Fire-and-forget, like folder import — the row resolves and imports itself.
+  void imp.importShareLink(link, t('cloudNotes.importResolving'))
+}
+
 async function onOpenConflictNote(id?: number): Promise<void> {
   if (id == null) return
   closeImportModal()
@@ -745,12 +771,23 @@ async function onOpenConflictNote(id?: number): Promise<void> {
 
 function importStatusText(item: ImportItem): string {
   switch (item.status) {
+    case 'resolving': return t('cloudNotes.importResolving')
     case 'uploading': return t('cloudNotes.importUploading', { done: item.uploaded, total: item.total })
     case 'building': return t('cloudNotes.importBuilding')
-    case 'done': return t('cloudNotes.importDone')
+    case 'done': return item.missing ? t('cloudNotes.importDoneMissing', { n: item.missing }) : t('cloudNotes.importDone')
     case 'conflict': return t('cloudNotes.importConflict')
-    case 'error': return item.error || t('cloudNotes.importError')
+    case 'error': return importErrorText(item.error)
     default: return t('cloudNotes.importPending')
+  }
+}
+
+/** Map known machine error codes to friendly text; fall through to raw/server message. */
+function importErrorText(error?: string): string {
+  switch (error) {
+    case 'invalid-share-link': return t('cloudNotes.importInvalidLink')
+    case 'empty': return t('cloudNotes.importEmpty')
+    case 'not-signed-in': return t('cloudNotes.importNotSignedIn')
+    default: return error || t('cloudNotes.importError')
   }
 }
 
@@ -1524,6 +1561,36 @@ watch(() => cn.selectedNoteId.value, (id) => {
   min-height: 32px;
   border-radius: 7px;
   font-size: 13px;
+}
+
+/* "OR" divider between folder import and paste-a-link import. */
+.cn-share-or {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -6px 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cn-share-or::before,
+.cn-share-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.cn-paste-row {
+  display: flex;
+  gap: 8px;
+}
+.cn-paste-input {
+  flex: 1;
+}
+.cn-paste-btn {
+  flex: 0 0 auto;
 }
 
 /* ── Middle: note list ───────────────────────────────────────────────── */

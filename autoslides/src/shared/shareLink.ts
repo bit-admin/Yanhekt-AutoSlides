@@ -104,6 +104,42 @@ export function buildShareUrl(payload: SharePayload): string {
   return `${SHARE_ORIGIN}${SHARE_PATH}#${encodeSharePayload(payload)}`;
 }
 
+/** A pasted share link, parsed into exactly one of its two forms. */
+export interface ParsedShareLink {
+  /** Long-link payload fragment (base64url, no leading `#`). */
+  fragment?: string;
+  /** Short-link id (the `<id>` in `/v1/s/<id>`). */
+  shortId?: string;
+}
+
+const SHORT_LINK_RE = /\/v1\/s\/([A-Za-z0-9]+)\/?$/;
+
+/**
+ * Parse a pasted share link into its fragment (long form) or short id. Accepts a
+ * full URL (`…/v1#<frag>` or `…/v1/s/<id>`) or a bare base64url payload pasted on
+ * its own. Returns null if it doesn't look like a share link.
+ */
+export function parseShareLink(input: string): ParsedShareLink | null {
+  const raw = input.trim();
+  if (!raw) return null;
+
+  // Any URL (or bare string) carrying a `#payload` is a long link.
+  const hashIdx = raw.indexOf('#');
+  if (hashIdx >= 0) {
+    const frag = raw.slice(hashIdx + 1).trim();
+    if (frag) return { fragment: frag };
+  }
+
+  // Short link: …/v1/s/<id>
+  const m = raw.match(SHORT_LINK_RE);
+  if (m) return { shortId: m[1] };
+
+  // A bare base64url payload pasted on its own (no scheme, slash, query, or hash).
+  if (/^[A-Za-z0-9_-]+$/.test(raw)) return { fragment: raw };
+
+  return null;
+}
+
 // ── helpers ────────────────────────────────────────────────────────────────
 
 /** Parse a coss image URL into prefix/hash/ext, or null if it isn't one. */

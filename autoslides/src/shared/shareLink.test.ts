@@ -5,6 +5,7 @@ import {
   buildSharePayload,
   buildShareUrl,
   parseCossImageUrl,
+  parseShareLink,
   shareImageRefs,
   type SharePayload,
 } from './shareLink';
@@ -63,6 +64,18 @@ describe('shareLink codec', () => {
       { index: 1, prefix: '2025/12', short: b.slice(0, 7) },
       { index: 2, prefix: '2026/6', short: c.slice(0, 7) },
     ]);
+  });
+
+  it('parseShareLink reads long, short, bare, and invalid links', () => {
+    const url = buildShareUrl(buildSharePayload('t', [hash('e'.repeat(32))]));
+    const frag = url.split('#')[1];
+    expect(parseShareLink(url)).toEqual({ fragment: frag });
+    expect(parseShareLink(`  ${url}\n`)).toEqual({ fragment: frag });
+    expect(parseShareLink('https://share.ruc.edu.kg/v1/s/k1erPIw4WM')).toEqual({ shortId: 'k1erPIw4WM' });
+    expect(parseShareLink('https://share.ruc.edu.kg/v1/s/k1erPIw4WM/')).toEqual({ shortId: 'k1erPIw4WM' });
+    expect(parseShareLink(frag)).toEqual({ fragment: frag });
+    expect(parseShareLink('')).toBeNull();
+    expect(parseShareLink('https://example.com/v1')).toBeNull();
   });
 
   it('buildShareUrl produces a fragment link on the share origin', () => {

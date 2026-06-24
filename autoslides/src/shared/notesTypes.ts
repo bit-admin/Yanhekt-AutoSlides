@@ -80,6 +80,16 @@ export interface ExportFolderInfo {
   folderName: string;
 }
 
+/** Result of resolving a pasted share link into importable image URLs. */
+export interface ShareImportResult {
+  /** Note display title (course + session) carried in the share payload. */
+  title: string;
+  /** Resolved public image URLs, in slide order (unresolvable ones dropped). */
+  urls: string[];
+  /** How many referenced images couldn't be resolved on the server. */
+  missing: number;
+}
+
 export interface NoteListParams {
   page?: number;
   pageSize?: number;
