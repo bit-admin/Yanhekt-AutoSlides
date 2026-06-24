@@ -64,6 +64,15 @@
             </svg>
             <span>{{ $t('navigation.slidesExport') }}</span>
           </button>
+          <button :class="['nav-item', { active: activeNav === 'cloud-notes' }]" @click="navigate('cloud-notes')">
+            <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              <line x1="9" y1="7" x2="15" y2="7"/>
+              <line x1="9" y1="11" x2="15" y2="11"/>
+            </svg>
+            <span>{{ $t('navigation.cloudNotes') }}</span>
+          </button>
         </nav>
         <div class="panel-actions">
           <button type="button" class="panel-action-button" @click="openOutputDirectory">

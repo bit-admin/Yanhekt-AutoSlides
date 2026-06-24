@@ -10,7 +10,8 @@
     "workspace": "工作区",
     "pinned": "置顶",
     "slidesReview": "幻灯片审阅",
-    "slidesExport": "幻灯片导出"
+    "slidesExport": "幻灯片导出",
+    "cloudNotes": "云笔记"
   },
   "auth": {
     "verifying": "验证中...",
@@ -1047,6 +1048,7 @@
     "searchPlaceholder": "按标题搜索…",
     "search": "搜索",
     "newNote": "新建",
+    "toggleGroups": "切换分组栏",
     "loading": "加载中…",
     "noNotes": "暂无笔记",
     "untitled": "无标题",
@@ -1259,6 +1261,7 @@
     "sessions": "课时列表",
     "slidesReview": "幻灯片审阅",
     "slidesExport": "幻灯片导出",
+    "cloudNotes": "云笔记",
     "close": "关闭标签页",
     "closeDisabledTask": "任务运行中，无法关闭",
     "moreTabs": "更多标签页",

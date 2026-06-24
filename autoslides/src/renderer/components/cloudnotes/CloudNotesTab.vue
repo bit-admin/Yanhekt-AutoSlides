@@ -31,8 +31,47 @@
     </div>
 
     <template v-else>
+      <!-- Left region: groups + list, sharing one search toolbar that spans
+           both. The editor sits to the right with its own header. -->
+      <div class="cn-sidebar">
+        <div class="cn-toolbar">
+          <button
+            class="cn-collapse-btn"
+            :class="{ active: groupCollapsed }"
+            :title="$t('cloudNotes.toggleGroups')"
+            :aria-label="$t('cloudNotes.toggleGroups')"
+            @click="toggleGroups"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
+          <div class="cn-search-wrap">
+            <svg class="cn-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              v-model="cn.keyword.value"
+              class="cn-search"
+              :placeholder="$t('cloudNotes.searchPlaceholder')"
+            />
+          </div>
+          <button class="cn-newnote-btn" :title="$t('cloudNotes.newNote')" @click="onCreateNote">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
+            </svg>
+          </button>
+        </div>
+        <div class="cn-sidebar-panes">
       <!-- Left: groups -->
-      <aside class="cn-groups">
+      <aside
+        class="cn-groups"
+        :class="{ collapsed: groupCollapsed }"
+        :style="{ width: groupColPx }"
+      >
         <div class="cn-groups-scroll custom-scrollbar">
           <button
             class="cn-group-item"
@@ -56,6 +95,7 @@
               <button
                 class="cn-group-item cn-group-item--managed"
                 :class="{ active: cn.activeGroupId.value === g.id }"
+                :title="g.name"
                 @click="cn.setGroup(g.id)"
               >
                 <svg class="cn-group-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -95,6 +135,7 @@
             <button
               class="cn-group-item"
               :class="{ active: cn.activeGroupId.value === g.id }"
+              :title="g.id === 0 ? $t('cloudNotes.defaultGroup') : (g.name || $t('cloudNotes.defaultGroup'))"
               @click="cn.setGroup(g.id)"
             >
               <svg class="cn-group-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -146,27 +187,11 @@
         </div>
       </div>
 
-      <!-- Middle: note list -->
-      <section class="cn-list">
-        <div class="cn-list-toolbar">
-          <div class="cn-search-wrap">
-            <svg class="cn-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input
-              v-model="cn.keyword.value"
-              class="cn-search"
-              :placeholder="$t('cloudNotes.searchPlaceholder')"
-            />
-          </div>
-          <button class="cn-newnote-btn" :title="$t('cloudNotes.newNote')" @click="onCreateNote">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
-            </svg>
-          </button>
-        </div>
+      <!-- groups | list resize divider (drag left past the threshold collapses groups) -->
+      <div class="cn-divider" @mousedown="startResize('group', $event)"></div>
 
+      <!-- Middle: note list -->
+      <section class="cn-list" :style="{ width: listWidth + 'px' }">
         <div class="cn-list-items custom-scrollbar">
           <div v-if="cn.loading.value" class="cn-empty">{{ $t('cloudNotes.loading') }}</div>
           <div v-else-if="cn.notes.value.length === 0" class="cn-empty">{{ $t('cloudNotes.noNotes') }}</div>
@@ -178,6 +203,7 @@
             <button
               class="cn-note-item"
               :class="{ active: cn.selectedNoteId.value === note.id }"
+              :title="note.title || $t('cloudNotes.untitled')"
               @click="openNote(note.id)"
             >
               <span class="cn-note-title">{{ note.title || $t('cloudNotes.untitled') }}</span>
@@ -216,6 +242,11 @@
           </button>
         </div>
       </section>
+        </div><!-- /.cn-sidebar-panes -->
+      </div><!-- /.cn-sidebar -->
+
+      <!-- list | editor resize divider -->
+      <div class="cn-divider cn-divider--editor" @mousedown="startResize('list', $event)"></div>
 
       <!-- Import slides to notes modal -->
       <div v-if="showImportModal" class="modal-overlay" @click.self="closeImportModal">
@@ -506,6 +537,69 @@ function openExt(url: string): void { window.electronAPI.shell.openExternal(url)
 
 // Dismissible per session — resets to visible when the Tools window reopens.
 const bannerVisible = ref(true)
+
+// ── Resizable panes (groups | list | editor) ──────────────────────────────
+// Session-only widths, same drag-to-resize / drag-to-collapse model as the
+// window's left panel (App.vue). Mins keep the groups column wide enough for
+// "Init cloud storage" on one line and the list wide enough for the long
+// README note title.
+const GROUP_MIN = 200
+const GROUP_MAX = 340
+const LIST_MIN = 250
+const LIST_MAX = 560
+const COLLAPSE_GAP = 60
+const groupWidth = ref(210)
+const listWidth = ref(300)
+const groupCollapsed = ref(false)
+// Shared by the groups column and the toolbar spacer above it, so the toolbar's
+// middle border lines up with the groups | list pane divider.
+const groupColPx = computed(() => (groupCollapsed.value ? '0px' : groupWidth.value + 'px'))
+
+const toggleGroups = (): void => { groupCollapsed.value = !groupCollapsed.value }
+
+let resizing: 'group' | 'list' | null = null
+let resizeStartX = 0
+let resizeStartGroup = 0
+let resizeStartList = 0
+
+function onResizeMove(e: MouseEvent): void {
+  if (!resizing) return
+  const dx = e.clientX - resizeStartX
+  if (resizing === 'group') {
+    const raw = resizeStartGroup + dx
+    if (raw < GROUP_MIN - COLLAPSE_GAP) {
+      groupCollapsed.value = true
+      return
+    }
+    groupCollapsed.value = false
+    groupWidth.value = Math.min(Math.max(GROUP_MIN, raw), GROUP_MAX)
+  } else {
+    const raw = resizeStartList + dx
+    listWidth.value = Math.min(Math.max(LIST_MIN, raw), LIST_MAX)
+  }
+}
+
+function stopResize(): void {
+  resizing = null
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+  document.removeEventListener('mousemove', onResizeMove)
+  document.removeEventListener('mouseup', stopResize)
+}
+
+function startResize(type: 'group' | 'list', e: MouseEvent): void {
+  resizing = type
+  resizeStartX = e.clientX
+  // While collapsed the groups column reads as 0 wide, so dragging the divider
+  // out from the edge re-expands it (like the window's left panel).
+  resizeStartGroup = groupCollapsed.value ? 0 : groupWidth.value
+  resizeStartList = listWidth.value
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+  document.addEventListener('mousemove', onResizeMove)
+  document.addEventListener('mouseup', stopResize)
+  e.preventDefault()
+}
 
 const newGroupName = ref('')
 const showNewGroupModal = ref(false)
@@ -976,6 +1070,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   if (savedFlashTimer) clearTimeout(savedFlashTimer)
+  if (resizing) stopResize()
   destroyEditor()
 })
 
@@ -1077,14 +1172,85 @@ watch(() => cn.selectedNoteId.value, (id) => {
   overflow: hidden;
 }
 
+/* Left region: search toolbar on top, groups + list panes below. Sized by its
+   children (groups + divider + list); the editor takes the rest. The right
+   border runs full-height (toolbar + panes) so the sidebar | editor seam is
+   continuous through the top bar. */
+.cn-sidebar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--border-color);
+}
+
+.cn-sidebar-panes {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* Shared search toolbar spanning groups + list (aligns with the editor header). */
+.cn-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+/* Collapse-groups button (left of the search), matches the title bar panel toggle. */
+.cn-collapse-btn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.cn-collapse-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.cn-collapse-btn.active {
+  color: var(--accent);
+  background-color: var(--badge-active-bg);
+}
+
+/* Pane resize handles — zero-width grab strip straddling the boundary
+   (same idiom as App.vue's .divider). */
+.cn-divider {
+  width: 8px;
+  margin: 0 -4px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: var(--z-dropdown);
+  background: transparent;
+  cursor: col-resize;
+}
+
 /* ── Left: groups sidebar (matches LeftPanel navigator design) ───────── */
 .cn-groups {
-  width: 180px;
   flex-shrink: 0;
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   min-height: 0;
+}
+
+.cn-groups.collapsed {
+  overflow: hidden;
+  border-right: none;
 }
 
 .cn-groups-scroll {
@@ -1282,6 +1448,7 @@ watch(() => cn.selectedNoteId.value, (id) => {
   font-weight: 500;
   cursor: pointer;
   box-sizing: border-box;
+  white-space: nowrap;
   transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
 }
 
@@ -1595,19 +1762,10 @@ watch(() => cn.selectedNoteId.value, (id) => {
 
 /* ── Middle: note list ───────────────────────────────────────────────── */
 .cn-list {
-  width: 280px;
   flex-shrink: 0;
-  border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-}
-
-.cn-list-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border-color);
+  min-width: 0;
 }
 
 /* Search input — recessed field matching LeftPanel .nav-search.

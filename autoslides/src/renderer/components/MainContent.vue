@@ -39,6 +39,17 @@
           <PdfMakerWindow />
         </div>
 
+        <!-- Cloud Notes (Workspace page — full-width, right panel hidden).
+             Lazily mounted on first visit: its onMounted loads notes over the
+             network AND recreates a README note (a network write), so we don't
+             want that firing on every app start. Kept mounted once opened. -->
+        <div
+          :class="['mode-container', { 'mode-hidden': activeNav !== 'cloud-notes' }]"
+          data-mode="cloud-notes"
+        >
+          <CloudNotesTab v-if="cloudNotesMounted" />
+        </div>
+
         <!-- Live Mode (browsing only — playback opens in a tab) -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'live' }]"
@@ -102,6 +113,7 @@ import HomePage from '@renderer/components/course/HomePage.vue'
 import SearchPage from '@renderer/components/course/SearchPage.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
 import PdfMakerWindow from '@renderer/components/export/PdfMakerWindow.vue'
+import CloudNotesTab from '@renderer/components/cloudnotes/CloudNotesTab.vue'
 import type { Course, Session } from '@features/video/useSlideExtraction'
 import { DataStore } from '@shared/services/dataStore'
 import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
@@ -118,6 +130,17 @@ interface RecordedState {
 
 const { t } = useI18n()
 const { activeNav, courseOpenRequest, recordedGridResetTick } = navigationStore
+
+// Cloud Notes mounts lazily on first visit (its onMounted hits the network and
+// recreates a README note), then stays mounted to preserve editor/queue state.
+const cloudNotesMounted = ref(false)
+watch(
+  activeNav,
+  (nav) => {
+    if (nav === 'cloud-notes') cloudNotesMounted.value = true
+  },
+  { immediate: true }
+)
 
 // Recorded mode keeps its own browse state (course grid → sessions list).
 // Live mode has no intermediate page; playback is a tab.

@@ -10,7 +10,8 @@
     "workspace": "ワークスペース",
     "pinned": "ピン留め",
     "slidesReview": "スライド確認",
-    "slidesExport": "スライド書き出し"
+    "slidesExport": "スライド書き出し",
+    "cloudNotes": "クラウドノート"
   },
   "auth": {
     "verifying": "確認中...",
@@ -1047,6 +1048,7 @@
     "searchPlaceholder": "タイトルで検索…",
     "search": "検索",
     "newNote": "新規",
+    "toggleGroups": "グループを表示切り替え",
     "loading": "読み込み中…",
     "noNotes": "ノートがありません",
     "untitled": "無題",
@@ -1259,6 +1261,7 @@
     "sessions": "セッション",
     "slidesReview": "スライド確認",
     "slidesExport": "スライド書き出し",
+    "cloudNotes": "クラウドノート",
     "close": "タブを閉じる",
     "closeDisabledTask": "タスク実行中は閉じられません",
     "moreTabs": "他のタブ",

@@ -10,7 +10,8 @@
     "workspace": "Workspace",
     "pinned": "Pinned",
     "slidesReview": "Slides Review",
-    "slidesExport": "Slides Export"
+    "slidesExport": "Slides Export",
+    "cloudNotes": "Cloud Notes"
   },
   "auth": {
     "verifying": "Verifying...",
@@ -1047,6 +1048,7 @@
     "searchPlaceholder": "Search by title…",
     "search": "Search",
     "newNote": "New",
+    "toggleGroups": "Toggle groups",
     "loading": "Loading…",
     "noNotes": "No notes",
     "untitled": "Untitled",
@@ -1259,6 +1261,7 @@
     "sessions": "Sessions",
     "slidesReview": "Slides Review",
     "slidesExport": "Slides Export",
+    "cloudNotes": "Cloud Notes",
     "close": "Close tab",
     "closeDisabledTask": "Can't close while the task is running",
     "moreTabs": "More tabs",
