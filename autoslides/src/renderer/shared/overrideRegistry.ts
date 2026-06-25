@@ -11,6 +11,14 @@
 // domain cast to their concrete types at the seam (as they did before).
 
 import type { ApiTransport } from './services/apiClient'
+import type {
+  NotesResult,
+  NoteListParams,
+  NoteListResult,
+  NoteDetail,
+  NoteGroup,
+  UploadedImage,
+} from '@common/notesTypes'
 
 export interface ResultImageItem {
   reason?: string
@@ -31,6 +39,23 @@ export interface ResultsDataProvider {
   getImages(folderPath: string): Promise<Array<{ name: string; path: string }>>
   getTrashEntries(): Promise<unknown[]>
   getCropEntries(): Promise<unknown[]>
+}
+
+// Drop-in for the subset of window.electronAPI.cloudNotes that useCloudNotes
+// calls. In demo mode this returns fabricated notes/groups so the Cloud Notes
+// page renders offline; production reads `overrides.cloudNotesProvider ?? real`.
+export interface CloudNotesProvider {
+  list(params?: NoteListParams): Promise<NotesResult<NoteListResult>>
+  get(id: number): Promise<NotesResult<NoteDetail>>
+  create(): Promise<NotesResult<number>>
+  updateTitle(id: number, title: string, groupId?: number): Promise<NotesResult<void>>
+  updateContent(id: number, content: string): Promise<NotesResult<void>>
+  moveToGroup(id: number, groupId: number): Promise<NotesResult<void>>
+  delete(id: number): Promise<NotesResult<void>>
+  groupList(): Promise<NotesResult<NoteGroup[]>>
+  groupCreate(name: string): Promise<NotesResult<void>>
+  groupDelete(id: number): Promise<NotesResult<void>>
+  uploadImage(bytes: ArrayBuffer, filename: string, mime: string): Promise<NotesResult<UploadedImage>>
 }
 
 export interface PlaybackDemo {
@@ -60,6 +85,8 @@ export interface RuntimeOverrides {
   pinnedRecordedCourses?: () => Array<{ id: string; title: string }>
   /** Fake playback surfaces; presence disables real video loading. */
   playbackDemo?: PlaybackDemo
+  /** Backing data source for the Cloud Notes page (groups + notes + content). */
+  cloudNotesProvider?: CloudNotesProvider
   /** When true, the download + task queues never start real network/extraction. */
   suppressRealWork?: boolean
 }

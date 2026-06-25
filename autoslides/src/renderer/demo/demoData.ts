@@ -17,6 +17,20 @@ import type {
   SessionData,
   CourseInfoResponse,
 } from '@shared/services/apiClient'
+import type {
+  EditorJsBlock,
+  NoteGroup,
+  NoteSummary,
+  NoteDetail,
+  NoteListResult,
+} from '@common/notesTypes'
+import {
+  MANAGED_GROUP_NAME,
+  README_NOTE_TITLE,
+  EDITORJS_DOC_VERSION,
+  buildManagedNoteTitle,
+  managedNoteDisplayName,
+} from '@common/notesTypes'
 
 export const DEMO_TOKEN = 'DEMO_MODE_TOKEN'
 
@@ -488,4 +502,152 @@ export function demoCropEntries(): Array<{
       autoCropped: false,
     },
   ]
+}
+
+// ── Cloud Notes ────────────────────────────────────────────────────────────
+// Fabricated Yanhekt notes so the Cloud Notes page renders offline. The managed
+// (AutoSlides-exported) notes embed the SAME slide images as Slides Export —
+// their Editor.js content is built exactly like a real imported-slides note
+// (useNoteImport.buildContent): a header + intro paragraphs + slide image blocks
+// whose file.url is a slide SVG data URI.
+
+const DEMO_NOTE_GROUPS: NoteGroup[] = [
+  { id: 1, name: MANAGED_GROUP_NAME }, // AutoSlides-managed
+  { id: 2, name: 'Math' }, // a user group (≤ 6 chars)
+  { id: 0, name: '' }, // implicit default (Ungrouped)
+]
+
+interface DemoNoteSpec {
+  id: number
+  title: string
+  groupId: number
+  kind: 'readme' | 'managed' | 'plain'
+  /** managed: number of slide image blocks. */
+  slides?: number
+  /** readme/plain: body paragraphs. */
+  body?: string[]
+}
+
+// Order = display order (server sorts by created time; README pinned on top).
+const DEMO_NOTES: DemoNoteSpec[] = [
+  { id: 101, title: README_NOTE_TITLE, groupId: 0, kind: 'readme' },
+  { id: 102, title: buildManagedNoteTitle('Functional Analysis - Lecture 9'), groupId: 1, kind: 'managed', slides: 4 },
+  { id: 103, title: buildManagedNoteTitle('Real Analysis - Lecture 11'), groupId: 1, kind: 'managed', slides: 3 },
+  { id: 104, title: buildManagedNoteTitle('Complex Analysis - Lecture 9'), groupId: 1, kind: 'managed', slides: 3 },
+  {
+    id: 105,
+    title: 'Spectral theory — reading list',
+    groupId: 2,
+    kind: 'plain',
+    body: [
+      'Reed & Simon, Vol. I — Ch. VII (spectral theorem for bounded self-adjoint operators).',
+      'Compare the multiplication-operator form with the projection-valued measure form before the midterm.',
+    ],
+  },
+  {
+    id: 106,
+    title: 'Office hours & exam dates',
+    groupId: 0,
+    kind: 'plain',
+    body: [
+      'Office hours: Tue 13:00–14:30, Science Hall 508E.',
+      'Final exam: closed book; bring the one-page formula sheet.',
+    ],
+  },
+  {
+    id: 107,
+    title: 'Problem set 4 — scratch work',
+    groupId: 2,
+    kind: 'plain',
+    body: ['Show every compact self-adjoint operator has an orthonormal eigenbasis (use the spectral theorem).'],
+  },
+]
+
+function slideDataUri(title: string, page: string): string {
+  return `data:image/svg+xml,${encodeURIComponent(slideSvg(title, page))}`
+}
+
+function demoNoteBlocks(spec: DemoNoteSpec): EditorJsBlock[] {
+  if (spec.kind === 'managed') {
+    const count = spec.slides ?? 3
+    const picks = SLIDE_TITLES.slice(0, count)
+    return [
+      { type: 'header', data: { text: managedNoteDisplayName(spec.title), level: 2 } },
+      { type: 'paragraph', data: { text: `${count} slides · imported from AutoSlides` } },
+      { type: 'paragraph', data: { text: 'Note: Yanhekt stores note images in public storage.' } },
+      ...picks.map(([title, page], i): EditorJsBlock => ({
+        type: 'image',
+        data: {
+          file: { url: slideDataUri(title, page) },
+          caption: `Slide ${i + 1}`,
+          withBorder: false,
+          stretched: false,
+          withBackground: false,
+        },
+      })),
+    ]
+  }
+  if (spec.kind === 'readme') {
+    return [
+      { type: 'header', data: { text: 'AutoSlides Cloud Storage', level: 2 } },
+      { type: 'paragraph', data: { text: 'This “ASnote” group holds slide decks AutoSlides exported to your Yanhekt notes. Each note keeps the slides from one lecture.' } },
+      { type: 'paragraph', data: { text: 'Please don’t rename or delete the ASnote group — AutoSlides looks it up by name.' } },
+    ]
+  }
+  return [
+    { type: 'header', data: { text: spec.title, level: 2 } },
+    ...(spec.body ?? []).map((text): EditorJsBlock => ({ type: 'paragraph', data: { text } })),
+  ]
+}
+
+function demoNoteSummary(spec: DemoNoteSpec, index: number): NoteSummary {
+  const created = isoAt(-2, 9, index * 3)
+  return {
+    id: spec.id,
+    uuid: `demo-note-${spec.id}`,
+    type: 0,
+    relevant_id: 0,
+    root_id: 0,
+    title: spec.title,
+    note_group_id: spec.groupId,
+    deleted: 0,
+    version: 1,
+    created_at: created,
+    updated_at: isoAt(0, 10, index * 3),
+  }
+}
+
+export function demoNoteGroups(): NoteGroup[] {
+  return DEMO_NOTE_GROUPS.map((g) => ({ ...g }))
+}
+
+export function demoNotesList(): NoteListResult {
+  const data = DEMO_NOTES.map((spec, i) => demoNoteSummary(spec, i))
+  return {
+    current_page: 1,
+    data,
+    total: data.length,
+    per_page: '500',
+    last_page: 1,
+  }
+}
+
+export function demoNoteDetail(id: number): NoteDetail {
+  const index = DEMO_NOTES.findIndex((s) => s.id === id)
+  const spec = index >= 0 ? DEMO_NOTES[index] : DEMO_NOTES[0]
+  const summary = demoNoteSummary(spec, Math.max(0, index))
+  const group = DEMO_NOTE_GROUPS.find((g) => g.id === spec.groupId)
+  return {
+    ...summary,
+    content: JSON.stringify({ time: Date.now(), blocks: demoNoteBlocks(spec), version: EDITORJS_DOC_VERSION }),
+    client_time: Date.now(),
+    content_updated_time: summary.updated_at,
+    note_group_name: group?.name || undefined,
+  }
+}
+
+/** Next id handed out by the demo create() (so new notes don't collide). */
+let demoNextNoteId = 1000
+export function demoNextNoteIdValue(): number {
+  return ++demoNextNoteId
 }

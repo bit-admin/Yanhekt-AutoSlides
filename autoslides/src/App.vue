@@ -53,7 +53,7 @@ import RightPanel from '@renderer/components/download/RightPanel.vue'
 import BrowserLoginView from '@renderer/components/settings/BrowserLoginView.vue'
 import OnboardingModal from '@renderer/components/settings/OnboardingModal.vue'
 import { useAuth } from '@features/platform/useAuth'
-import { navigationStore } from '@features/course/navigationStore'
+import { navigationStore, type NavTarget } from '@features/course/navigationStore'
 import { configStore } from '@shared/services/configStore'
 import { isDemoMode } from '@shared/services/runtimeEnv'
 import { layoutStore } from '@shared/services/layoutStore'
@@ -95,12 +95,17 @@ const completeOnboarding = () => {
   window.electronAPI.config.setOnboardingCompleted(true)
 }
 
-// Demo-only hook so the screenshot script can render the onboarding wizard (it's
-// otherwise first-run-only and suppressed in demo mode). Never exposed in prod.
+// Demo-only hooks for the screenshot script. Never exposed in prod.
+// - __demoSetOnboarding: render the onboarding wizard (otherwise first-run-only).
+// - __demoNavigate: drive the left-panel navigator (incl. Workspace pages) so the
+//   script doesn't depend on localized nav-item text.
 if (isDemoMode()) {
-  ;(window as unknown as { __demoSetOnboarding?: (v: boolean) => void }).__demoSetOnboarding = (v) => {
-    showOnboarding.value = v
+  const w = window as unknown as {
+    __demoSetOnboarding?: (v: boolean) => void
+    __demoNavigate?: (target: string) => void
   }
+  w.__demoSetOnboarding = (v) => { showOnboarding.value = v }
+  w.__demoNavigate = (target) => navigationStore.navigate(target as NavTarget)
 }
 
 // Baselines match the panel widths the old proportional layout produced at the

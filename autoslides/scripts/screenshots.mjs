@@ -132,6 +132,15 @@ async function main() {
     await win.waitForTimeout(1200)
   }
 
+  // Navigate the main window to a left-panel Workspace page (slides-review /
+  // slides-export / cloud-notes) via the demo-only hook, then wait for it to
+  // render. These pages take over the main window (right panel hidden).
+  const gotoWorkspace = async (target, readySelector) => {
+    await win.evaluate((t) => window.__demoNavigate?.(t), target)
+    if (readySelector) await win.waitForSelector(readySelector, { timeout: 8000 })
+    await win.waitForTimeout(900)
+  }
+
   // --- main window views ---------------------------------------------------
   await step('home', async () => {
     await clickNav(0)
@@ -379,54 +388,60 @@ async function main() {
   await step('tools-yuketang', () =>
     captureChildWindow(() => window.electronAPI.tools.openWindow('yuketang'), 'tools-yuketang', '.toolwin-tabs'))
 
-  // Open a child window and return its handle (without capturing/closing it),
-  // so multi-step flows (Results View) can drive it across several screenshots.
-  const openChildWindow = async (openExpr, readySelector) => {
-    const child = await Promise.all([
-      app.waitForEvent('window'),
-      win.evaluate(openExpr),
-    ]).then(([w]) => w)
-    await child.waitForLoadState('domcontentloaded')
-    try {
-      const bw = await app.browserWindow(child)
-      await bw.evaluate((w) => { w.setContentSize(1280, 860); w.center() })
-    } catch { /* best effort */ }
-    if (readySelector) await child.waitForSelector(readySelector, { timeout: 8000 }).catch(() => {})
-    await child.waitForTimeout(800)
-    return child
-  }
+  // --- main-window Workspace pages ----------------------------------------
+  // Slides Review / Slides Export / Cloud Notes migrated from the Tools window
+  // into the main window (full-width, right panel hidden). Driven via the demo
+  // navigation hook; backed by the demo override data.
 
-  // Results View (trash tab): folder list → image grid → may_be_slide_edit
-  // preview → crop mode (demo data; reads no real files).
+  // Slides Review: folder list → image grid → may_be_slide_edit preview → crop
+  // mode (demo data; reads no real files).
   await step('results', async () => {
-    const child = await openChildWindow(() => window.electronAPI.tools.openWindow('trash'), '.folder-list')
-    await shot('results-folders', child)
+    await gotoWorkspace('slides-review', '.folder-list')
+    await shot('results-folders')
 
     // Open the "rich" folder (Functional Analysis week 9 sorts before week 10).
-    await child.locator('.folder-item', { hasText: 'Functional Analysis' }).first().click()
-    await child.waitForSelector('.results-grid', { timeout: 8000 })
-    await child.waitForTimeout(700)
-    await shot('results-grid', child)
+    await win.locator('.folder-item', { hasText: 'Functional Analysis' }).first().click()
+    await win.waitForSelector('.results-grid', { timeout: 8000 })
+    await win.waitForTimeout(700)
+    await shot('results-grid')
 
     // Open the may_be_slide_edit item's preview, then enter crop mode.
-    const editItem = child.locator('.result-item:has(.reason-ai_filtered_edit)').first()
+    const editItem = win.locator('.result-item:has(.reason-ai_filtered_edit)').first()
     await editItem.locator('.item-preview-btn').click()
-    await child.waitForSelector('.preview-modal', { timeout: 8000 })
-    await child.waitForTimeout(500)
-    await shot('results-preview', child)
+    await win.waitForSelector('.preview-modal', { timeout: 8000 })
+    await win.waitForTimeout(500)
+    await shot('results-preview')
 
-    await child.locator('.preview-actions .preview-action-btn').first().click() // Crop
-    await child.waitForSelector('.crop-selection', { timeout: 8000 })
-    await child.waitForTimeout(500)
-    await shot('results-crop', child)
+    await win.locator('.preview-actions .preview-action-btn').first().click() // Crop
+    await win.waitForSelector('.crop-selection', { timeout: 8000 })
+    await win.waitForTimeout(500)
+    await shot('results-crop')
 
-    await child.close().catch(() => {})
-    await win.waitForTimeout(400)
+    // Dismiss the preview/crop modal before the next page.
+    await win.keyboard.press('Escape').catch(() => {})
+    await win.waitForTimeout(300)
   })
 
-  // PDF Maker (slides export): grouped folder list with image counts.
-  await step('pdfmaker', () =>
-    captureChildWindow(() => window.electronAPI.tools.openWindow('pdfmaker'), 'pdfmaker', '.folder-list'))
+  // Slides Export: grouped folder list with image counts.
+  await step('pdfmaker', async () => {
+    await gotoWorkspace('slides-export', '.folder-list')
+    await shot('pdfmaker')
+  })
+
+  // Cloud Notes: three-pane view (groups + note list + editor). The managed
+  // "AS ·" notes embed real slide images; open one so the editor shows them.
+  await step('cloud-notes', async () => {
+    await gotoWorkspace('cloud-notes', '.cloud-notes-tab')
+    await win.waitForSelector('.cn-note-item', { timeout: 8000 })
+    await win.waitForTimeout(600)
+    await shot('cloud-notes')
+
+    // Open the first managed slide note → editor renders its slide images.
+    await win.locator('.cn-note-item', { hasText: /Functional Analysis|Lecture/ }).first().click()
+    await win.waitForSelector('.cn-editor img', { timeout: 8000 })
+    await win.waitForTimeout(900)
+    await shot('cloud-notes-editor')
+  })
 
   // --- browser SSO login (real network) -----------------------------------
   // The browser-login view embeds a <webview> pointed at the LIVE BIT SSO page,
@@ -511,6 +526,8 @@ ${list}
 | results-preview.png | results-preview.png | G. 放大预览（编辑模式帧） |
 | results-crop.png | results-crop.png | G. 裁剪模式（裁剪框） |
 | pdfmaker.png | pdfmaker.png | H. 导出（PDF / PPTX，按课程分组） |
+| cloud-notes.png | cloud-notes.png | 云笔记 — 三栏视图（分组 / 笔记列表 / 编辑器） |
+| cloud-notes-editor.png | cloud-notes-editor.png | 云笔记 — 打开托管笔记（嵌入幻灯片图片） |
 | advanced-general.png | settings-general.png | B & I. 一般设置 |
 | advanced-image.png | settings-image-output.png + settings-postprocess.png + settings-autocrop.png | I. 图像处理（**拆分为 3 张**） |
 | advanced-playback.png | settings-playback.png | I. 下载与播放 |
@@ -550,6 +567,8 @@ gallery in \`playback-screen.png\` is seeded with fabricated slides.
 - **Results View & PDF Maker** (\`results-*.png\`, \`pdfmaker.png\`) use **fabricated**
   folders/slides drawn as SVGs — they read **no real files** (slides, the NO SIGNAL
   not_slide, the PowerPoint-edit frame, and the seeded crop box are all synthetic).
+- **Cloud Notes** (\`cloud-notes*.png\`) use **fabricated** groups/notes — no network.
+  The managed "AS ·" notes embed the same synthetic slide SVGs as Slides Export.
 `
   writeFileSync(path.join(outDir, 'NOTES.md'), notes)
   console.log(`  ✓ NOTES.md`)

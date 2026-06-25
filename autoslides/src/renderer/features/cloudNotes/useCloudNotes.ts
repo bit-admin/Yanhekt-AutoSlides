@@ -6,6 +6,7 @@ import type {
   NotesResult,
 } from '@common/notesTypes'
 import { isManagedGroupName, MANAGED_GROUP_NAME, README_NOTE_TITLE } from '@common/notesTypes'
+import { overrides } from '@shared/overrideRegistry'
 
 const PAGE_SIZE = 20
 /** Page size used when fetching the full note set (server honours large sizes). */
@@ -25,6 +26,10 @@ const MAX_FETCH_PAGES = 20
  * Editor.js wiring lives in the component; this composable owns the data.
  */
 export function useCloudNotes() {
+  // Demo mode swaps the whole data source for fabricated notes (offline); in
+  // production this is the real IPC namespace.
+  const cloudNotesApi = overrides.cloudNotesProvider ?? window.electronAPI.cloudNotes
+
   const groups = ref<NoteGroup[]>([])
   /** Complete note set (all groups), loaded via loadAll(). */
   const allNotes = ref<NoteSummary[]>([])
@@ -87,7 +92,7 @@ export function useCloudNotes() {
   }
 
   async function refreshGroups(): Promise<void> {
-    const res = await window.electronAPI.cloudNotes.groupList()
+    const res = await cloudNotesApi.groupList()
     const data = unwrap(res)
     if (data) groups.value = data
   }
@@ -101,7 +106,7 @@ export function useCloudNotes() {
       let p = 1
       let lastPage = 1
       do {
-        const res = await window.electronAPI.cloudNotes.list({ page: p, pageSize: FETCH_PAGE_SIZE })
+        const res = await cloudNotesApi.list({ page: p, pageSize: FETCH_PAGE_SIZE })
         const data = unwrap(res)
         if (!data) break
         collected.push(...data.data)
@@ -135,7 +140,7 @@ export function useCloudNotes() {
   /** Load full note detail into the editor pane. */
   async function openNote(id: number): Promise<NoteDetail | null> {
     error.value = ''
-    const res = await window.electronAPI.cloudNotes.get(id)
+    const res = await cloudNotesApi.get(id)
     const data = unwrap(res)
     if (data) selectedNote.value = data
     return data
@@ -147,7 +152,7 @@ export function useCloudNotes() {
 
   async function createNote(): Promise<number | null> {
     error.value = ''
-    const res = await window.electronAPI.cloudNotes.create()
+    const res = await cloudNotesApi.create()
     const id = unwrap(res)
     if (id != null) {
       // Refetch so the new (blank) note appears with proper metadata.
@@ -160,7 +165,7 @@ export function useCloudNotes() {
     saving.value = true
     error.value = ''
     try {
-      const res = await window.electronAPI.cloudNotes.updateContent(id, content)
+      const res = await cloudNotesApi.updateContent(id, content)
       if (!res.ok) unwrap(res)
       return res.ok
     } finally {
@@ -170,7 +175,7 @@ export function useCloudNotes() {
 
   async function renameNote(id: number, title: string): Promise<boolean> {
     error.value = ''
-    const res = await window.electronAPI.cloudNotes.updateTitle(id, title)
+    const res = await cloudNotesApi.updateTitle(id, title)
     if (res.ok) {
       if (selectedNote.value?.id === id) selectedNote.value.title = title
       const row = allNotes.value.find((n) => n.id === id)
@@ -184,7 +189,7 @@ export function useCloudNotes() {
 
   async function deleteNote(id: number): Promise<boolean> {
     error.value = ''
-    const res = await window.electronAPI.cloudNotes.delete(id)
+    const res = await cloudNotesApi.delete(id)
     if (res.ok) {
       if (selectedNote.value?.id === id) selectedNote.value = null
       allNotes.value = allNotes.value.filter((n) => n.id !== id)
@@ -197,7 +202,7 @@ export function useCloudNotes() {
 
   async function moveNoteToGroup(id: number, groupId: number): Promise<boolean> {
     error.value = ''
-    const res = await window.electronAPI.cloudNotes.moveToGroup(id, groupId)
+    const res = await cloudNotesApi.moveToGroup(id, groupId)
     if (res.ok) {
       const row = allNotes.value.find((n) => n.id === id)
       if (row) row.note_group_id = groupId
@@ -211,7 +216,7 @@ export function useCloudNotes() {
 
   async function createGroup(name: string): Promise<boolean> {
     error.value = ''
-    const res = await window.electronAPI.cloudNotes.groupCreate(name)
+    const res = await cloudNotesApi.groupCreate(name)
     if (res.ok) {
       await refreshGroups()
     } else {
@@ -222,7 +227,7 @@ export function useCloudNotes() {
 
   async function deleteGroup(id: number): Promise<boolean> {
     error.value = ''
-    const res = await window.electronAPI.cloudNotes.groupDelete(id)
+    const res = await cloudNotesApi.groupDelete(id)
     if (res.ok) {
       // Server reassigns the group's notes to the default group (0).
       for (const n of allNotes.value) {
@@ -252,7 +257,7 @@ export function useCloudNotes() {
     try {
       // 1. Ensure the managed group exists.
       if (!groups.value.some((g) => isManagedGroupName(g.name))) {
-        const res = await window.electronAPI.cloudNotes.groupCreate(MANAGED_GROUP_NAME)
+        const res = await cloudNotesApi.groupCreate(MANAGED_GROUP_NAME)
         if (!res.ok) {
           unwrap(res)
           return false
@@ -260,15 +265,15 @@ export function useCloudNotes() {
       }
       // 2. Ensure the README note exists (in the default/Ungrouped group).
       if (!allNotes.value.some((n) => n.title === README_NOTE_TITLE)) {
-        const createRes = await window.electronAPI.cloudNotes.create()
+        const createRes = await cloudNotesApi.create()
         const id = unwrap(createRes)
         if (id == null) return false
-        const titleRes = await window.electronAPI.cloudNotes.updateTitle(id, README_NOTE_TITLE)
+        const titleRes = await cloudNotesApi.updateTitle(id, README_NOTE_TITLE)
         if (!titleRes.ok) {
           unwrap(titleRes)
           return false
         }
-        const contentRes = await window.electronAPI.cloudNotes.updateContent(id, readmeContent)
+        const contentRes = await cloudNotesApi.updateContent(id, readmeContent)
         if (!contentRes.ok) {
           unwrap(contentRes)
           return false
@@ -293,20 +298,20 @@ export function useCloudNotes() {
   async function recreateReadme(content: string): Promise<void> {
     const existing = allNotes.value.find((n) => n.title === README_NOTE_TITLE)
     if (!existing) return
-    const createRes = await window.electronAPI.cloudNotes.create()
+    const createRes = await cloudNotesApi.create()
     const id = unwrap(createRes)
     if (id == null) return
-    const titleRes = await window.electronAPI.cloudNotes.updateTitle(id, README_NOTE_TITLE)
+    const titleRes = await cloudNotesApi.updateTitle(id, README_NOTE_TITLE)
     if (!titleRes.ok) {
       unwrap(titleRes)
       return
     }
-    const contentRes = await window.electronAPI.cloudNotes.updateContent(id, content)
+    const contentRes = await cloudNotesApi.updateContent(id, content)
     if (!contentRes.ok) {
       unwrap(contentRes)
       return
     }
-    const delRes = await window.electronAPI.cloudNotes.delete(existing.id)
+    const delRes = await cloudNotesApi.delete(existing.id)
     if (!delRes.ok) unwrap(delRes)
     await loadAll()
   }

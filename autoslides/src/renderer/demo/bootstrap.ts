@@ -29,6 +29,10 @@ import {
   demoResultImages,
   demoTrashEntries,
   demoCropEntries,
+  demoNoteGroups,
+  demoNotesList,
+  demoNoteDetail,
+  demoNextNoteIdValue,
 } from './demoData'
 import { seedDemoQueues } from './demoSeed'
 
@@ -67,6 +71,22 @@ export function installDemo(): void {
   overrides.playbackDemo = {
     poster: (kind) => demoPosterDataUri(kind),
     gallerySlides: () => demoGallerySlides(),
+  }
+  // Fake Cloud Notes: reads serve fabricated groups/notes/content; writes are
+  // ok no-ops so init()/recreateReadme() complete offline and the list stays
+  // static. The managed notes embed real slide images (see demoNoteDetail).
+  overrides.cloudNotesProvider = {
+    groupList: async () => ({ ok: true, data: demoNoteGroups() }),
+    list: async () => ({ ok: true, data: demoNotesList() }),
+    get: async (id: number) => ({ ok: true, data: demoNoteDetail(id) }),
+    create: async () => ({ ok: true, data: demoNextNoteIdValue() }),
+    updateTitle: async () => ({ ok: true, data: undefined }),
+    updateContent: async () => ({ ok: true, data: undefined }),
+    moveToGroup: async () => ({ ok: true, data: undefined }),
+    delete: async () => ({ ok: true, data: undefined }),
+    groupCreate: async () => ({ ok: true, data: undefined }),
+    groupDelete: async () => ({ ok: true, data: undefined }),
+    uploadImage: async () => ({ ok: true, data: { url: demoResultImageDataUri({}) } }),
   }
   overrides.suppressRealWork = true
 

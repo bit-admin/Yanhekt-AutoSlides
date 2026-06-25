@@ -55,6 +55,8 @@ const COPY = {
   'results-preview': 'results-preview',
   'results-crop': 'results-crop',
   pdfmaker: 'pdfmaker',
+  'cloud-notes': 'cloud-notes',
+  'cloud-notes-editor': 'cloud-notes-editor',
   'tools-offline': 'tools-offline',
   'tools-compress': 'tools-compress',
   'tools-webcapture': 'tools-webcapture',
