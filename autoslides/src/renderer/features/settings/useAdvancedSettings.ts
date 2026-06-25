@@ -57,8 +57,8 @@ export function useAdvancedSettings(
   const network = useNetworkSettings({ t })
   const extractor = useExtractorSettings()
 
-  // Modal state
-  const showAdvancedModal = ref(false)
+  // The Settings page renders these underline tabs. activeAdvancedTab is shared
+  // state so settingsLauncher (and the page) can drive the active tab.
   const activeAdvancedTab = ref<AdvancedTabId>('general')
   const advancedSettingsTabs: { id: AdvancedTabId }[] = [
     { id: 'general' },
@@ -70,7 +70,10 @@ export function useAdvancedSettings(
 
   let advancedSettingsOpenRequestId = 0
 
-  const openAdvancedSettings = async () => {
+  // Entering the Settings page: copy config → temp buffers and kick off the
+  // async loads (network interfaces, extractor verify, AI/pHash, …). Called by
+  // SettingsPage each time the page becomes active.
+  const prepareSettings = async () => {
     const requestId = ++advancedSettingsOpenRequestId
 
     general.resetTemp()
@@ -78,11 +81,9 @@ export function useAdvancedSettings(
     network.resetTemp()
     extractor.resetTemp()
 
-    showAdvancedModal.value = true
-
     await nextTick()
 
-    const shouldContinue = () => requestId === advancedSettingsOpenRequestId && showAdvancedModal.value
+    const shouldContinue = () => requestId === advancedSettingsOpenRequestId
 
     await Promise.all([
       imageProcessing.load(),
@@ -100,7 +101,9 @@ export function useAdvancedSettings(
     ])
   }
 
-  const closeAdvancedSettings = () => {
+  // Discard buffered edits (Cancel, or navigating away from the page). Bumps the
+  // request id so any in-flight prepare loads are ignored. Idempotent.
+  const discardSettings = () => {
     advancedSettingsOpenRequestId++
 
     general.resetTemp()
@@ -108,11 +111,10 @@ export function useAdvancedSettings(
     network.resetTemp()
     extractor.resetTemp()
     tempEnableAIFiltering.value = enableAIFiltering.value
-
-    showAdvancedModal.value = false
   }
 
-  const saveAdvancedSettings = async () => {
+  // Persist buffered edits (Save). Throws are surfaced to the user as today.
+  const commitSettings = async () => {
     try {
       await general.save()
       await imageProcessing.save()
@@ -122,8 +124,6 @@ export function useAdvancedSettings(
       if (onSaveSettings) {
         await onSaveSettings()
       }
-
-      showAdvancedModal.value = false
     } catch (error) {
       log.error('Failed to save advanced settings:', error)
       alert('Failed to save settings')
@@ -131,8 +131,7 @@ export function useAdvancedSettings(
   }
 
   return {
-    // Modal state
-    showAdvancedModal,
+    // Settings-page tab state
     activeAdvancedTab,
     advancedSettingsTabs,
 
@@ -244,10 +243,10 @@ export function useAdvancedSettings(
     openExtractorInstallModal: extractor.openExtractorInstallModal,
     closeExtractorInstallModal: extractor.closeExtractorInstallModal,
 
-    // Top-level methods
-    openAdvancedSettings,
-    closeAdvancedSettings,
-    saveAdvancedSettings,
+    // Settings-page lifecycle
+    prepareSettings,
+    discardSettings,
+    commitSettings,
 
     // Programmatic update flag (forwarded from imageProcessing)
     get isUpdatingProgrammatically() { return imageProcessing.isUpdatingProgrammatically },

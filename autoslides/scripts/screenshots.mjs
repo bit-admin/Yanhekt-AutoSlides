@@ -44,8 +44,8 @@ mkdirSync(outDir, { recursive: true })
 
 const captured = []
 const skipped = []
-// Per-settings-tab section geometry (CSS px, relative to .modal-content top),
-// written to sections.json so process-docs.mjs can split the long settings
+// Per-settings-tab section geometry (CSS px, relative to the captured tab-content
+// top), written to sections.json so process-docs.mjs can split the long settings
 // screenshots at live-DOM section boundaries instead of hardcoded pixel rows.
 const sectionsManifest = {}
 
@@ -226,56 +226,70 @@ async function main() {
     await shot('search')
   })
 
-  // --- advanced settings modal --------------------------------------------
-  // Settings are always captured as WEB element screenshots cropped to the modal
-  // (no window chrome), and as a "long screenshot": we lift the modal's height /
-  // overflow caps so the full scrollable tab renders, then screenshot the
-  // .modal-content element. The overlay backdrop is made transparent so
-  // omitBackground gives clean rounded corners.
-  const expandModal = () => win.evaluate(() => {
-    const set = (sel, styles) => {
-      const el = document.querySelector(sel)
-      if (el) Object.assign(el.style, styles)
-    }
-    set('.modal-overlay', { background: 'transparent', alignItems: 'flex-start', padding: '0', overflow: 'visible' })
-    set('.modal-content', { maxHeight: 'none', overflow: 'visible', margin: '0' })
-    set('.modal-body', { overflow: 'visible' })
-    set('.advanced-settings-content', { overflow: 'visible', maxHeight: 'none', height: 'auto' })
-  })
+  // --- settings page -------------------------------------------------------
+  // Settings is now a full-width Workspace page (no longer a modal). We capture it
+  // exactly like the old modal: the WHOLE settings card (header + tab bar + content
+  // + Save/Cancel footer) as one "long screenshot". The full-width page is narrowed
+  // to a modal-like card width for the shot, its body scroll cap is lifted so the
+  // whole tab renders, and the page height is freed so the footer trails the
+  // content. Section geometry is recorded relative to the captured page top (so it
+  // accounts for the header+tabs offset), letting process-docs split the long tabs.
+  const SETTINGS_CARD_WIDTH = 680
+  const expandSettings = () => win.evaluate((cardW) => {
+    // position:fixed lifts the page out of the layout's overflow:hidden ancestors
+    // (.content-area/.layout/.app) so the full long card — including the footer
+    // below the fold — renders instead of being clipped to the dark window bg.
+    // This mirrors how the old modal escaped clipping via its fixed overlay.
+    const page = document.querySelector('.settings-page')
+    if (page) Object.assign(page.style, {
+      position: 'fixed', top: '0', left: '0', zIndex: '9999',
+      width: `${cardW}px`, height: 'auto', maxHeight: 'none',
+    })
+    const body = document.querySelector('.settings-page .settings-body')
+    if (body) Object.assign(body.style, { overflow: 'visible', maxHeight: 'none', height: 'auto', flex: 'none' })
+  }, SETTINGS_CARD_WIDTH)
 
-  // Record each .advanced-setting-section's geometry within .modal-content, so
-  // the docs pipeline can crop the long tabs into per-README-step sub-images.
+  // Record each .advanced-setting-section's geometry relative to the .settings-page
+  // top, so the docs pipeline can crop the long tabs into per-step sub-images.
   const recordSections = (name) => win.evaluate((tabName) => {
-    const content = document.querySelector('.modal-content')
-    if (!content) return null
-    const cRect = content.getBoundingClientRect()
-    const sections = [...content.querySelectorAll('.advanced-setting-section')].map((s) => {
+    const page = document.querySelector('.settings-page')
+    if (!page) return null
+    const pRect = page.getBoundingClientRect()
+    const visible = [...page.querySelectorAll('.settings-body .tab-content')]
+      .find((el) => el.offsetParent !== null) // the v-show-visible tab
+    const sections = [...(visible?.querySelectorAll('.advanced-setting-section') || [])].map((s) => {
       const r = s.getBoundingClientRect()
       return {
         title: (s.querySelector('h4')?.textContent || '').trim(),
-        top: Math.round(r.top - cRect.top),
-        bottom: Math.round(r.bottom - cRect.top),
+        top: Math.round(r.top - pRect.top),
+        bottom: Math.round(r.bottom - pRect.top),
       }
     })
-    return { tabName, width: Math.round(cRect.width), height: Math.round(cRect.height), dpr: window.devicePixelRatio, sections }
+    return { tabName, width: Math.round(pRect.width), height: Math.round(pRect.height), dpr: window.devicePixelRatio, sections }
   }, name)
 
-  const shotModal = async (name) => {
+  const shotSettings = async (name) => {
     const file = path.join(outDir, `${name}.png`)
     const geom = await recordSections(name)
     if (geom) sectionsManifest[name] = geom
     // captureBeyondViewport (Playwright default for element shots) grabs the full
-    // expanded modal even when it's taller than the window.
-    await win.locator('.modal-content').screenshot({ path: file, omitBackground: true })
+    // expanded card even when it's taller than the window.
+    await win.locator('.settings-page').screenshot({ path: file })
     captured.push(name)
-    console.log(`  ✓ ${name}.png (modal, web)`)
+    console.log(`  ✓ ${name}.png (settings page, web)`)
   }
 
-  await step('advanced-settings', async () => {
-    // Open via the gear icon in the user banner.
-    await clickNav(0)
-    await win.locator('.user-banner-action').first().click()
-    await win.waitForSelector('.advanced-tabs', { timeout: 6000 })
+  // Undo expandSettings' inline styles. Critical: the fixed/z-index:9999 card
+  // otherwise covers the whole window, so the sidebar nav can't be clicked to
+  // leave Settings.
+  const resetSettings = () => win.evaluate(() => {
+    document.querySelector('.settings-page')?.removeAttribute('style')
+    document.querySelector('.settings-page .settings-body')?.removeAttribute('style')
+  })
+
+  await step('settings', async () => {
+    // The Settings page takes over the main window (right panel hidden).
+    await gotoWorkspace('settings', '.settings-page .settings-segment')
     await win.waitForTimeout(500)
 
     const tabs = [
@@ -287,11 +301,11 @@ async function main() {
     ]
     for (const [name, idx] of tabs) {
       try {
-        await win.locator('.advanced-tabs .tab-btn').nth(idx).click()
+        await win.locator('.settings-segment-btn').nth(idx).click()
         await win.waitForTimeout(400)
-        await expandModal()
+        await expandSettings()
         await win.waitForTimeout(350)
-        await shotModal(name)
+        await shotSettings(name)
       } catch (e) {
         skipped.push(`${name} — ${e.message}`)
         console.warn(`  ⚠ skipped ${name}: ${e.message}`)
@@ -302,23 +316,25 @@ async function main() {
     // default); also capture the ML variant. The classifier-mode toggle is the
     // first .ai-service-type-selector; its 2nd .mode-btn is "ML".
     try {
-      await win.locator('.advanced-tabs .tab-btn').nth(4).click() // AI tab
+      await win.locator('.settings-segment-btn').nth(4).click() // AI tab
       await win.waitForTimeout(300)
       await win.locator('.ai-service-type-selector').first().locator('.mode-btn').nth(1).click()
       await win.waitForTimeout(400)
-      await expandModal()
+      await expandSettings()
       await win.waitForTimeout(350)
-      await shotModal('advanced-ai-ml')
+      await shotSettings('advanced-ai-ml')
     } catch (e) {
       skipped.push(`advanced-ai-ml — ${e.message}`)
       console.warn(`  ⚠ skipped advanced-ai-ml: ${e.message}`)
     }
 
-    // Close the modal so it doesn't overlay later windows. The overlay has no
-    // Escape handler — clicking Cancel emits the close.
-    await win.locator('.modal-content .cancel-btn').first().click().catch(() => {})
+    // Restore the page's normal layout (drop the fixed capture styles) before
+    // navigating away, else the full-window card blocks the sidebar nav.
+    await resetSettings()
+    // Leave Settings (discards the buffered demo edits) so it doesn't sit over
+    // later steps; the next step re-navigates anyway.
+    await clickNav(0)
     await win.waitForTimeout(300)
-    await win.waitForSelector('.modal-overlay', { state: 'detached', timeout: 4000 }).catch(() => {})
   })
 
   // --- first-run onboarding wizard (web element shots, like settings) ------
@@ -558,10 +574,10 @@ gallery in \`playback-screen.png\` is seeded with fabricated slides.
 ## Notes on specific captures
 
 - **Settings tabs** (\`advanced-*.png\`) are **web element screenshots cropped to the
-  modal** (600px wide, no window chrome) and **long screenshots**: the modal's
-  height/overflow caps are lifted so the whole scrollable tab renders in one image with
-  transparent rounded corners. \`sections.json\` records each \`.advanced-setting-section\`'s
-  geometry so \`process-docs.mjs\` can split the long tabs at real section boundaries.
+  Settings page's tab-content column** (no window chrome) and **long screenshots**: the
+  page body's scroll cap is lifted so the whole tab renders in one image. \`sections.json\`
+  records each \`.advanced-setting-section\`'s geometry so \`process-docs.mjs\` can split
+  the long tabs at real section boundaries.
 - **Defaults**: demo boots from an isolated \`AutoSlides-Demo\` userData dir, so all
   settings show factory **defaults** (the demo never touches your real profile).
 - **Results View & PDF Maker** (\`results-*.png\`, \`pdfmaker.png\`) use **fabricated**

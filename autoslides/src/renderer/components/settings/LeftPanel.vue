@@ -220,35 +220,6 @@
       </div>
     </div>
 
-    <AdvancedSettingsModal
-      :visible="showAdvancedModal"
-      :active-tab="activeAdvancedTab"
-      :tabs="advancedSettingsTabs"
-      @update:active-tab="activeAdvancedTab = $event"
-      @cancel="closeAdvancedSettings"
-      @save="saveAdvancedSettings"
-    >
-      <template #general>
-        <GeneralSettingsTab />
-      </template>
-
-      <template #imageProcessing>
-        <ImageProcessingSettingsTab />
-      </template>
-
-      <template #playback>
-        <PlaybackSettingsTab />
-      </template>
-
-      <template #network>
-        <NetworkSettingsTab />
-      </template>
-
-      <template #ai>
-        <AISettingsTab />
-      </template>
-    </AdvancedSettingsModal>
-
     <!-- SSO Sign-In Dialog: the same shared SignInModal used by onboarding. -->
     <SignInModal
       v-if="showSsoModal"
@@ -303,16 +274,9 @@
 <script setup lang="ts">
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('LeftPanel');
-import { onMounted, onUnmounted, provide, ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { usePinyinName } from '@features/platform/usePinyinName'
-import { useAuth } from '@features/platform/useAuth'
-import { useSettings } from '@features/settings/useSettings'
-import { useAdvancedSettings } from '@features/settings/useAdvancedSettings'
-import { useCacheManagement } from '@features/platform/useCacheManagement'
-import { useAISettings } from '@features/ai/useAISettings'
-import { usePHashExclusion } from '@features/ai/usePHashExclusion'
-import { settingsContextKey } from '@features/settings/settingsContext'
+import { useSettingsContext } from '@features/settings/settingsContext'
 import { navigationStore } from '@features/course/navigationStore'
 import { settingsLauncher } from '@features/settings/settingsLauncher'
 import { useSearchPage } from '@features/course/useSearchPage'
@@ -320,88 +284,22 @@ import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@fe
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
 import UserMenuLinks from './UserMenuLinks.vue'
 import SignInModal from './SignInModal.vue'
-import AdvancedSettingsModal from './AdvancedSettingsModal.vue'
-import NetworkSettingsTab from './tabs/NetworkSettingsTab.vue'
-import GeneralSettingsTab from './tabs/GeneralSettingsTab.vue'
-import ImageProcessingSettingsTab from './tabs/ImageProcessingSettingsTab.vue'
-import PlaybackSettingsTab from './tabs/PlaybackSettingsTab.vue'
-import AISettingsTab from './tabs/AISettingsTab.vue'
-
-const { t } = useI18n()
 
 // Navigator (Home / Live / Recorded + search bar)
 const { activeNav, livePlaybackActive, recordedPlaybackActive, activePinnedId, navigate } = navigationStore
 const { keyword: searchKeyword, handleSidebarFocus, handleSidebarEnter } = useSearchPage()
 
-
-// Initialize composables
-const auth = useAuth(() => {
-  // On login success, refresh the built-in model
-  aiSettings.refreshBuiltinModel()
-})
-
-const settings = useSettings()
-
-const cacheManagement = useCacheManagement()
-
-const pHashExclusion = usePHashExclusion()
-
-const aiSettings = useAISettings({
-  tokenManager: auth.tokenManager
-})
-
-const advancedSettings = useAdvancedSettings(
-  {
-    maxConcurrentDownloads: settings.maxConcurrentDownloads,
-    downloadMaxWorkers: settings.downloadMaxWorkers,
-    downloadNumRetries: settings.downloadNumRetries,
-    videoRetryCount: settings.videoRetryCount,
-    videoTokenRefreshSeconds: settings.videoTokenRefreshSeconds,
-    previewFromVideo: settings.previewFromVideo,
-    previewSeekSeconds: settings.previewSeekSeconds,
-    themeMode: settings.themeMode,
-    languageMode: settings.languageMode,
-    preventSystemSleep: settings.preventSystemSleep,
-    connectionMode: settings.connectionMode,
-    muteMode: settings.muteMode,
-    taskSpeed: settings.taskSpeed,
-    parallelTasks: settings.parallelTasks,
-    maxManualTabs: settings.maxManualTabs,
-    showMorePlaybackSpeed: settings.showMorePlaybackSpeed,
-    enableAIFiltering: settings.enableAIFiltering,
-    tempEnableAIFiltering: settings.tempEnableAIFiltering
-  },
-  // onOpenModal callback
-  async () => {
-    auth.loadManualToken()
-    auth.tokenVerificationStatus.value = null
-    auth.showToken.value = false
-    cacheManagement.refreshCacheStats()
-    cacheManagement.resetOperationStatus()
-    await pHashExclusion.loadPHashExclusionList()
-    await aiSettings.loadAISettings()
-    aiSettings.refreshMlModelInfo()
-    aiSettings.resetTempValues()
-    settings.resetTempEnableAIFiltering()
-  },
-  // onSaveSettings callback
-  async () => {
-    await aiSettings.saveAISettings()
-    await settings.saveEnableAIFiltering()
-  },
-  t
-)
-
-// Provide the six composables as one bundle for the extracted tab children.
-// See features/settings/settingsContext.ts for the contract.
-provide(settingsContextKey, {
+// The settings composables are constructed and provided by App.vue (the common
+// ancestor of LeftPanel and the Settings page in MainContent). LeftPanel consumes
+// the same bundle for the user bar, the gear button, and its hosted sub-modals.
+const {
   auth,
   settings,
   advanced: advancedSettings,
   cache: cacheManagement,
   ai: aiSettings,
   phash: pHashExclusion,
-})
+} = useSettingsContext()
 
 // Destructure for template usage
 // Auth
@@ -467,7 +365,7 @@ const onModalBrowserLogin = () => {
 const openSettingsFromBar = () => {
   closeUserMenu()
   closeSigninMenu()
-  openAdvancedSettings()
+  navigationStore.openSettings()
 }
 
 const handleDocumentClick = (event: MouseEvent) => {
@@ -483,27 +381,23 @@ const handleDocumentClick = (event: MouseEvent) => {
 }
 
 
-// Advanced Settings
+// Advanced Settings (the page lives in MainContent; LeftPanel only hosts the
+// extractor-install sub-modal and the gear-button entry point).
 const {
-  showAdvancedModal,
-  activeAdvancedTab,
-  advancedSettingsTabs,
   showExtractorInstallModal,
   closeExtractorInstallModal,
-  openAdvancedSettings,
-  closeAdvancedSettings,
-  saveAdvancedSettings,
   updateThresholdProgrammatically,
   onAdaptiveThresholdChanged
 } = advancedSettings
 
-// Open the settings modal at a requested tab when another surface asks (e.g. the
+// Open the Settings page at a requested tab when another surface asks (e.g. the
 // Home-page campus-network warning's "open intranet interface settings" link).
-watch(() => settingsLauncher.requestId.value, async () => {
+// The page runs its prepare loads on entry; we just navigate + set the tab.
+watch(() => settingsLauncher.requestId.value, () => {
   const tab = settingsLauncher.requestedTab.value
   if (!tab) return
-  await openAdvancedSettings()
-  activeAdvancedTab.value = tab
+  navigationStore.openSettings()
+  advancedSettings.activeAdvancedTab.value = tab
 })
 
 // Cache Management
@@ -548,7 +442,7 @@ onMounted(async () => {
 
   // Open Settings when triggered from the native menu bar
   cleanupOpenSettings = window.electronAPI.menu.onOpenSettings(() => {
-    openAdvancedSettings()
+    navigationStore.openSettings()
   })
 })
 

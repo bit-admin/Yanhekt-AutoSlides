@@ -50,6 +50,17 @@
           <CloudNotesTab v-if="cloudNotesMounted" />
         </div>
 
+        <!-- Settings (Workspace page — full-width, right panel hidden). Reached
+             from the user-bar gear button / menu bar, not the Workspace nav list.
+             Lazily mounted on first visit so its prepare loads (network
+             interfaces, extractor verify, …) don't fire on every app start. -->
+        <div
+          :class="['mode-container', { 'mode-hidden': activeNav !== 'settings' }]"
+          data-mode="settings"
+        >
+          <SettingsPage v-if="settingsMounted" />
+        </div>
+
         <!-- Live Mode (browsing only — playback opens in a tab) -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'live' }]"
@@ -114,6 +125,7 @@ import SearchPage from '@renderer/components/course/SearchPage.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
 import PdfMakerWindow from '@renderer/components/export/PdfMakerWindow.vue'
 import CloudNotesTab from '@renderer/components/cloudnotes/CloudNotesTab.vue'
+import SettingsPage from '@renderer/components/settings/SettingsPage.vue'
 import type { Course, Session } from '@features/video/useSlideExtraction'
 import { DataStore } from '@shared/services/dataStore'
 import { TaskCoordinator, type TaskContext } from '@shared/orchestration/taskCoordinator'
@@ -138,6 +150,17 @@ watch(
   activeNav,
   (nav) => {
     if (nav === 'cloud-notes') cloudNotesMounted.value = true
+  },
+  { immediate: true }
+)
+
+// Settings likewise mounts lazily on first visit (its prepare loads network
+// interfaces and verifies the extractor), then stays mounted.
+const settingsMounted = ref(false)
+watch(
+  activeNav,
+  (nav) => {
+    if (nav === 'settings') settingsMounted.value = true
   },
   { immediate: true }
 )

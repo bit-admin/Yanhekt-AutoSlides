@@ -161,7 +161,7 @@ export function useSettings(): UseSettingsReturn {
   }
 
   const setEnableAIFiltering = async () => {
-    // Placeholder - actual save happens via saveEnableAIFiltering in saveAdvancedSettings
+    // Placeholder - actual save happens via saveEnableAIFiltering in the Settings page's commitSettings
   }
 
   const resetTempEnableAIFiltering = () => {

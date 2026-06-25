@@ -45,7 +45,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, provide } from 'vue'
+import { useI18n } from 'vue-i18n'
 import TitleBar from '@renderer/components/titlebar/TitleBar.vue'
 import LeftPanel from '@renderer/components/settings/LeftPanel.vue'
 import MainContent from '@renderer/components/MainContent.vue'
@@ -53,6 +54,12 @@ import RightPanel from '@renderer/components/download/RightPanel.vue'
 import BrowserLoginView from '@renderer/components/settings/BrowserLoginView.vue'
 import OnboardingModal from '@renderer/components/settings/OnboardingModal.vue'
 import { useAuth } from '@features/platform/useAuth'
+import { useSettings } from '@features/settings/useSettings'
+import { useAdvancedSettings } from '@features/settings/useAdvancedSettings'
+import { useCacheManagement } from '@features/platform/useCacheManagement'
+import { useAISettings } from '@features/ai/useAISettings'
+import { usePHashExclusion } from '@features/ai/usePHashExclusion'
+import { settingsContextKey } from '@features/settings/settingsContext'
 import { navigationStore, type NavTarget } from '@features/course/navigationStore'
 import { configStore } from '@shared/services/configStore'
 import { isDemoMode } from '@shared/services/runtimeEnv'
@@ -78,10 +85,85 @@ const isBusy = computed(() => {
 })
 
 watch(isBusy, (busy) => {
-  window.electronAPI.window.setBusyState(busy)
+  // Demo mode (screenshot automation) seeds finished-but-busy-looking queue items;
+  // never report busy there, or the close guard's modal dialog would hang the
+  // Playwright run that drives app shutdown.
+  window.electronAPI.window.setBusyState(isDemoMode() ? false : busy)
 }, { immediate: true })
 
-const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken } = useAuth()
+const { t } = useI18n()
+
+// Settings composables are constructed here (the common ancestor of LeftPanel and
+// MainContent) and provided as one bundle, so both the user-bar gear button (in
+// LeftPanel) and the full-width Settings page (in MainContent) inject the same
+// state. See features/settings/settingsContext.ts for the contract.
+const auth = useAuth(() => {
+  // On login success, refresh the built-in model
+  aiSettings.refreshBuiltinModel()
+})
+
+const settings = useSettings()
+
+const cacheManagement = useCacheManagement()
+
+const pHashExclusion = usePHashExclusion()
+
+const aiSettings = useAISettings({
+  tokenManager: auth.tokenManager
+})
+
+const advancedSettings = useAdvancedSettings(
+  {
+    maxConcurrentDownloads: settings.maxConcurrentDownloads,
+    downloadMaxWorkers: settings.downloadMaxWorkers,
+    downloadNumRetries: settings.downloadNumRetries,
+    videoRetryCount: settings.videoRetryCount,
+    videoTokenRefreshSeconds: settings.videoTokenRefreshSeconds,
+    previewFromVideo: settings.previewFromVideo,
+    previewSeekSeconds: settings.previewSeekSeconds,
+    themeMode: settings.themeMode,
+    languageMode: settings.languageMode,
+    preventSystemSleep: settings.preventSystemSleep,
+    connectionMode: settings.connectionMode,
+    muteMode: settings.muteMode,
+    taskSpeed: settings.taskSpeed,
+    parallelTasks: settings.parallelTasks,
+    maxManualTabs: settings.maxManualTabs,
+    showMorePlaybackSpeed: settings.showMorePlaybackSpeed,
+    enableAIFiltering: settings.enableAIFiltering,
+    tempEnableAIFiltering: settings.tempEnableAIFiltering
+  },
+  // onOpenModal callback — runs each time the Settings page is entered.
+  async () => {
+    auth.loadManualToken()
+    auth.tokenVerificationStatus.value = null
+    auth.showToken.value = false
+    cacheManagement.refreshCacheStats()
+    cacheManagement.resetOperationStatus()
+    await pHashExclusion.loadPHashExclusionList()
+    await aiSettings.loadAISettings()
+    aiSettings.refreshMlModelInfo()
+    aiSettings.resetTempValues()
+    settings.resetTempEnableAIFiltering()
+  },
+  // onSaveSettings callback
+  async () => {
+    await aiSettings.saveAISettings()
+    await settings.saveEnableAIFiltering()
+  },
+  t
+)
+
+provide(settingsContextKey, {
+  auth,
+  settings,
+  advanced: advancedSettings,
+  cache: cacheManagement,
+  ai: aiSettings,
+  phash: pHashExclusion,
+})
+
+const { isBrowserLoginActive, closeBrowserLogin, handleBrowserToken } = auth
 const { isWorkspacePage } = navigationStore
 
 // First-run onboarding. configStore is loaded before app.mount, so the flag is

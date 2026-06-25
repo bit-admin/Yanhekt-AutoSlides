@@ -4,9 +4,12 @@ import type { Course } from './useCourseList'
 
 // Yanhekt browsing pages keep the three-panel layout; Workspace pages (the
 // migrated Tools tabs) take the whole window beside the left panel.
-export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'slides-review' | 'slides-export' | 'cloud-notes'
+export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'slides-review' | 'slides-export' | 'cloud-notes' | 'settings'
 
 // Nav targets that render as full-width Workspace pages (right panel hidden).
+// NOTE: 'settings' is deliberately NOT here — like the "AutoSlides" section pages
+// (home/live/recorded), it occupies only the main content area and keeps the
+// normal three-panel layout (right panel stays visible).
 const WORKSPACE_TARGETS = new Set<NavTarget>(['slides-review', 'slides-export', 'cloud-notes'])
 
 export interface CourseOpenRequest {
@@ -56,6 +59,12 @@ const navigate = (target: NavTarget) => {
   activateTab(null)
 }
 
+// Open the Settings page (from the user-bar gear button / menu bar). Save and
+// Cancel both stay on the page, so there's no return-target to remember.
+const openSettings = () => {
+  navigate('settings')
+}
+
 const requestCourseOpen = (mode: 'live' | 'recorded', course: Course) => {
   courseOpenRequest.value = { mode, course, requestId: nextRequestId++ }
   activeNav.value = mode
@@ -81,6 +90,7 @@ export const navigationStore = {
   activePinnedId,
   recordedGridResetTick,
   navigate,
+  openSettings,
   requestCourseOpen,
   setActivePinned
 }
