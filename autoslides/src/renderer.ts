@@ -31,6 +31,7 @@ import { createApp } from 'vue';
 import App from './App.vue';
 import { i18n } from './renderer/shared/i18n';
 import { loadConfig } from './renderer/shared/services/configStore';
+import { tokenManager } from './renderer/shared/services/authService';
 import { PostProcessingService } from './renderer/shared/services/postProcessingService';
 import {
   classifyMultipleImages,
@@ -54,5 +55,6 @@ loadConfig().then(async () => {
   if (isDemoMode()) {
     await import('./renderer/demo/bootstrap').then((m) => m.installDemo());
   }
+  await tokenManager.hydrate();
   app.mount('#app');
 });

@@ -37,31 +37,41 @@ export class AuthService {
 }
 
 export class TokenManager {
-  private readonly TOKEN_KEY = 'yanhekt_token';
+  // electron-store is the single source of truth for the auth token. This is a
+  // renderer-local read accelerator hydrated once at startup (see hydrate()) so
+  // getToken() can stay synchronous; writes update it and write through to the store.
+  private cachedToken: string | null = null;
 
   saveToken(token: string): void {
-    localStorage.setItem(this.TOKEN_KEY, token);
-    // Mirror to electron-store so add-ons windows can read it via IPC
+    this.cachedToken = token;
     window.electronAPI?.config?.setAuthToken?.(token);
   }
 
   getToken(): string | null {
     // A registered override (demo mode) returns a sentinel token so the app
-    // appears logged in without a real one in localStorage/electron-store.
+    // appears logged in without a real one in electron-store.
     const sentinel = overrides.authToken?.();
     if (sentinel) return sentinel;
-    return localStorage.getItem(this.TOKEN_KEY);
+    return this.cachedToken;
   }
 
-  // Ensure electron-store mirror is up to date with localStorage.
-  // Called once on main renderer init so add-ons windows see the token via IPC.
-  syncToConfig(): void {
-    const token = this.getToken();
-    window.electronAPI?.config?.setAuthToken?.(token ?? null);
+  // Load the token from electron-store into the in-memory cache once at startup,
+  // before app.mount. Performs a one-time migration off the legacy localStorage key.
+  async hydrate(): Promise<void> {
+    let token = await window.electronAPI.config.getAuthToken();
+    const legacy = localStorage.getItem('yanhekt_token');
+    if (legacy) {
+      if (!token) {
+        token = legacy;
+        window.electronAPI?.config?.setAuthToken?.(legacy);
+      }
+      localStorage.removeItem('yanhekt_token');
+    }
+    this.cachedToken = token;
   }
 
   clearToken(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
+    this.cachedToken = null;
     window.electronAPI?.config?.setAuthToken?.(null);
   }
 
