@@ -3,6 +3,7 @@ import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { createAutoCropWorkerClient } from '@shared/autoCrop'
 import { configStore } from '@shared/services/configStore'
 import { overrides } from '@shared/overrideRegistry'
+import { markFolderReviewed } from '@shared/services/slideMetadataClient'
 import {
   createResultsDataIO,
   loadFolderSummaries as loadFolderSummariesCore,
@@ -206,6 +207,36 @@ export function useResultsView() {
   const autoCropClient = createAutoCropWorkerClient()
   onUnmounted(() => autoCropClient.destroy())
 
+  // Reviewed-on-dwell: mark a folder reviewed once the user has had it open for
+  // REVIEW_DWELL_MS. Cancelled if they leave sooner. No-op for folders without
+  // metadata.json. The timer is reset whenever the open folder changes.
+  const REVIEW_DWELL_MS = 2000
+  let reviewDwellTimer: ReturnType<typeof setTimeout> | null = null
+
+  function cancelReviewDwell() {
+    if (reviewDwellTimer !== null) {
+      clearTimeout(reviewDwellTimer)
+      reviewDwellTimer = null
+    }
+  }
+
+  function startReviewDwell(folder: ResultsFolder) {
+    cancelReviewDwell()
+    const folderPath = folder.path
+    if (!folderPath) return
+    reviewDwellTimer = setTimeout(() => {
+      reviewDwellTimer = null
+      void markFolderReviewed(folderPath)
+      // Reflect locally so the badge updates without a full reload.
+      if (folder.metadata?.review && !folder.metadata.review.reviewed) {
+        folder.metadata.review.reviewed = true
+        folder.metadata.review.reviewedAt = new Date().toISOString()
+      }
+    }, REVIEW_DWELL_MS)
+  }
+
+  onUnmounted(cancelReviewDwell)
+
   watch([selectedReason, contextMode], () => {
     selectedIds.value = []
   })
@@ -306,6 +337,7 @@ export function useResultsView() {
     currentView.value = 'images'
     currentFolder.value = folder
     lastVisitedFolderName.value = folder.name
+    startReviewDwell(folder)
     selectedIds.value = []
     selectedReason.value = ''
     previewItem.value = null
@@ -321,6 +353,7 @@ export function useResultsView() {
   }
 
   function goBack() {
+    cancelReviewDwell()
     currentView.value = 'folders'
     currentFolder.value = null
     folderItems.value = []

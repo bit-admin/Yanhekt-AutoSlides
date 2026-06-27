@@ -19,6 +19,7 @@ import {
   hasRequiredExtractionParams
 } from '@shared/services/extractionQueueLogic'
 import { configStore } from '@shared/services/configStore'
+import { recordRecordedExtraction } from '@shared/services/slideMetadataClient'
 import { reduceExtraction, type ExtractionEvent } from './extractionMachine'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ExtractionOrchestrator');
@@ -273,6 +274,19 @@ export class ExtractionOrchestrator {
     // below no-ops once the status is 'cancelled', but bail early so we don't
     // kick off color-reduction / post-processing the user no longer wants.
     if (this.isCancelled(item)) return
+
+    // Record per-folder metadata for this recorded extraction (best-effort).
+    void recordRecordedExtraction({
+      folderPath: slidesDir,
+      extractor: 'qt',
+      ssimThreshold: item.ssimThreshold,
+      sessionId: item.sessionId,
+      source: {
+        sessionId: item.sessionId,
+        courseTitle: item.courseTitle,
+        sessionTitle: item.sessionTitle,
+      },
+    })
 
     // Optional PNG-8 palette quantization (only when the user enabled it).
     // Qt extractor `--compatible` mode produces lossless 8-bit RGB PNG; this

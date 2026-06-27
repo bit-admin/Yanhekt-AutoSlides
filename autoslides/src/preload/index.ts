@@ -1,7 +1,7 @@
 import { contextBridge } from 'electron';
 import { auth, config, windowNs, shell, menu, powerManagement, cache, app, dialog } from './platform';
 import { video, ffmpeg, compressLecture, download } from './video';
-import { slideExtraction, offline, trash, crop, autoCrop, mlClassifier, qtExtractor } from './extraction';
+import { slideExtraction, offline, trash, crop, slideMetadata, autoCrop, mlClassifier, qtExtractor } from './extraction';
 import { ai, copilot } from './ai';
 import { pdfmaker, yuketang } from './export';
 import { api } from './course';
@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   copilot,
   trash,
   crop,
+  slideMetadata,
   pdfmaker,
   tools,
   webCapture,

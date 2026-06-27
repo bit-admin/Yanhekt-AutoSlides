@@ -793,6 +793,7 @@
     "restoreCrop": "切り抜きを元に戻す",
     "applyCrop": "切り抜きを適用",
     "cropped": "切り抜き済み",
+    "edited": "編集済み",
     "autoCrop": "自動クロップ",
     "autoCropped": "自動クロップ済み",
     "autoCropNoDetectionTitle": "自動クロップ",

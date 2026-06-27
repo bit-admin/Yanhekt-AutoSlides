@@ -19,6 +19,7 @@ import type { CompressLectureService } from '@main/video/compressLectureService'
 import type { WindowManager } from '@main/platform/windowManager';
 import type { PdfService } from '@main/export/pdfService';
 import type { SlideExtractionService } from '@main/extraction/slideExtractionService';
+import type { SlideMetadataService } from '@main/extraction/slideMetadataService';
 import type { OfflineProcessingService } from '@main/extraction/offlineProcessingService';
 import type { CacheManagementService } from '@main/platform/cacheManagementService';
 import type { NotesService } from '@main/platform/notesService';
@@ -45,6 +46,7 @@ export interface IpcServices {
   windowManager: WindowManager;
   pdfService: PdfService;
   slideExtractionService: SlideExtractionService;
+  slideMetadataService: SlideMetadataService;
   offlineProcessingService: OfflineProcessingService;
   cacheManagementService: CacheManagementService;
   notesService: NotesService;

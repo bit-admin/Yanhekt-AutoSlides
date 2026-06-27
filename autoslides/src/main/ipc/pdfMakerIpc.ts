@@ -104,7 +104,7 @@ function makeSlidesExport(
 }
 
 export function registerPdfMakerIpcHandlers(services: IpcServices): void {
-  const { configService, slideExtractionService, pdfService } = services;
+  const { configService, slideExtractionService, slideMetadataService, pdfService } = services;
 
   ipcMain.handle('pdfmaker:getFolders', async () => {
     try {
@@ -169,6 +169,8 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
         reason: 'manual',
         reasonDetails: 'User deleted via Results View'
       });
+      // Manual delete during review: latch `edited` (no-op if no metadata).
+      await slideMetadataService.markEdited(outputPath);
       return { success: true };
     } catch (error) {
       log.error('Failed to delete image:', error);

@@ -1,4 +1,10 @@
 import { ipcRenderer } from 'electron';
+import type {
+  SlideMetadata,
+  SlideMetadataSource,
+  SlideExtractionMeta,
+  SlidePostProcessingMeta,
+} from '@common/slideMetadataTypes';
 
 export const slideExtraction = {
   saveSlide: (outputPath: string, filename: string, imageBuffer: Uint8Array) =>
@@ -42,6 +48,17 @@ export const crop = {
   apply: (imagePath: string, rect: { x: number; y: number; width: number; height: number }, autoCropped?: boolean) =>
     ipcRenderer.invoke('crop:apply', imagePath, rect, autoCropped),
   restore: (imagePath: string) => ipcRenderer.invoke('crop:restore', imagePath),
+};
+
+export const slideMetadata = {
+  get: (folderPath: string) =>
+    ipcRenderer.invoke('slideMetadata:get', folderPath) as Promise<SlideMetadata | null>,
+  writeExtraction: (folderPath: string, data: { source: SlideMetadataSource; extraction: SlideExtractionMeta }) =>
+    ipcRenderer.invoke('slideMetadata:writeExtraction', folderPath, data),
+  updatePostProcessing: (folderPath: string, pp: SlidePostProcessingMeta) =>
+    ipcRenderer.invoke('slideMetadata:updatePostProcessing', folderPath, pp),
+  markReviewed: (folderPath: string) =>
+    ipcRenderer.invoke('slideMetadata:markReviewed', folderPath),
 };
 
 export const autoCrop = {

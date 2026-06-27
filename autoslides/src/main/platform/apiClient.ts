@@ -81,6 +81,14 @@ export interface CourseInfoResponse {
   course_id: string;
   title: string;
   professor: string;
+  // Rich course context surfaced from /v1/course so callers (e.g. the sessions
+  // page) can hydrate a thin course — notably one opened from a pin, which
+  // carries only id + title. `classrooms` is intentionally absent (not returned
+  // by this endpoint).
+  professors?: string[];
+  college_name?: string;
+  school_year?: string;
+  semester?: number | string;
   videos: SessionData[];
 }
 
@@ -127,6 +135,12 @@ interface CourseInfoApiResponse extends BaseApiResponse {
   data: {
     name_zh: string;
     professors: Array<{ name: string }>;
+    // Present on the /v1/course single-course response (confirmed against the
+    // live API). Note: `classrooms` is NOT returned here — only on the course
+    // list response — so it cannot be hydrated from getCourseInfo.
+    school_year?: string;
+    semester?: number | string;
+    college_name?: string;
   };
 }
 
@@ -450,10 +464,10 @@ export class ApiClient {
 
       const name = courseData.data.name_zh.trim();
 
-      let professor = "Unknown Teacher";
-      if (courseData.data.professors && courseData.data.professors.length > 0) {
-        professor = courseData.data.professors[0].name.trim();
-      }
+      const professorNames = (courseData.data.professors || [])
+        .map(p => p.name?.trim())
+        .filter((n): n is string => !!n);
+      const professor = professorNames[0] || "Unknown Teacher";
 
       const formattedVideos = videoList.map((video) => {
         const realVideoId = video.videos && video.videos.length > 0 ? video.videos[0].id : '';
@@ -480,6 +494,10 @@ export class ApiClient {
         course_id: courseId,
         title: name,
         professor: professor,
+        professors: professorNames,
+        college_name: courseData.data.college_name,
+        school_year: courseData.data.school_year,
+        semester: courseData.data.semester,
         videos: formattedVideos
       };
     } catch (error: unknown) {

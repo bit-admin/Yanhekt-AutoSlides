@@ -2,6 +2,7 @@ import { reactive, computed } from 'vue'
 import { tokenManager } from './authService'
 import { PostProcessingPipeline } from '@shared/postProcessing/pipeline'
 import { createSlideExtractionDataSource } from '@shared/postProcessing/imageSources'
+import { recordPostProcessing } from './slideMetadataClient'
 import type {
   AIErrorKind,
   ClassifierCallbacks,
@@ -261,6 +262,19 @@ class PostProcessingServiceClass {
         failed: job.progress.failed
       })
       this.notify(job)
+
+      // Record which phases ran into the folder's metadata.json (no counts).
+      // No-op when the folder has no metadata (e.g. non-recorded extractions).
+      if (job.status === 'completed') {
+        void recordPostProcessing(job.outputPath, {
+          ran: true,
+          duplicateRemoval: config.enableDuplicateRemoval,
+          exclusionList: config.enableExclusionList,
+          aiFiltering: config.enableAIFiltering,
+          aiClassifierMode: config.enableAIFiltering ? classifierMode : null,
+          completedAt: new Date(job.completedAt ?? Date.now()).toISOString()
+        })
+      }
     } catch (error) {
       log.error(`[PostProcessing] Job ${job.id} failed:`, error)
       job.status = 'failed'

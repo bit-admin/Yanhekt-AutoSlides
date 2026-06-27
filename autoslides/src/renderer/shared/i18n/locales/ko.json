@@ -793,6 +793,7 @@
     "restoreCrop": "자르기 복원",
     "applyCrop": "자르기 적용",
     "cropped": "잘림",
+    "edited": "편집됨",
     "autoCrop": "자동 자르기",
     "autoCropped": "자동 자르기 완료",
     "autoCropNoDetectionTitle": "자동 자르기",

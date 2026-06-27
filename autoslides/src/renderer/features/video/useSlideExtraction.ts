@@ -6,6 +6,7 @@ import {
   type ExtractedSlide,
 } from '@shared/processing'
 import { ssimThresholdService } from '@shared/services/ssimThresholdService'
+import { recordRecordedExtraction } from '@shared/services/slideMetadataClient'
 import { sanitizeFileName } from '@common/sanitizeFileName'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('VideoSlideExtraction');
@@ -133,6 +134,32 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
 
     const slideOutputPath = `${outputDir}/${folderName}`
     await window.electronAPI.slideExtraction.ensureDirectory(slideOutputPath)
+
+    // Record per-folder metadata for recorded extractions only (best-effort).
+    // Live/offline/web-capture folders intentionally get no metadata.json.
+    if (mode === 'recorded') {
+      const sessionId = session.value?.session_id ? String(session.value.session_id) : undefined
+      void recordRecordedExtraction({
+        folderPath: slideOutputPath,
+        extractor: 'builtin',
+        ssimThreshold: configStore.slideExtraction?.ssimThreshold,
+        sessionId,
+        source: {
+          courseId: course.value?.id,
+          courseTitle: course.value?.title,
+          sessionId,
+          sessionTitle: session.value?.title,
+          instructor: course.value?.instructor,
+          professors: course.value?.professors,
+          semester: course.value?.semester,
+          schoolYear: course.value?.school_year,
+          college: course.value?.college_name,
+          classrooms: course.value?.classrooms?.map(c => c.name),
+          weekNumber: session.value?.week_number,
+          day: session.value?.day,
+        },
+      })
+    }
 
     // Reuse the stable per-composable id (set eagerly above). Keeping it stable
     // across start/stop means the manager reuses this PlaybackPage's own pipeline

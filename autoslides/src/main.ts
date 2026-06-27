@@ -22,6 +22,7 @@ import { CompressLectureService } from '@main/video/compressLectureService';
 import { WindowManager, getWindowBackgroundColor } from '@main/platform/windowManager';
 import { pdfService } from '@main/export/pdfService';
 import { slideExtractionService } from '@main/extraction/slideExtractionService';
+import { slideMetadataService } from '@main/extraction/slideMetadataService';
 import { offlineProcessingService } from '@main/extraction/offlineProcessingService';
 import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
@@ -213,6 +214,7 @@ registerAllIpcHandlers({
   windowManager,
   pdfService,
   slideExtractionService,
+  slideMetadataService,
   offlineProcessingService,
   cacheManagementService,
   notesService

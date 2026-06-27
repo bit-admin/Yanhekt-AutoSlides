@@ -12,7 +12,14 @@ import type {
   TrashMetadata,
   CropRect,
   CropEntry,
+  PinnedCourse,
 } from './shared/types';
+import type {
+  SlideMetadata,
+  SlideMetadataSource,
+  SlideExtractionMeta,
+  SlidePostProcessingMeta,
+} from './shared/slideMetadataTypes';
 
 declare const _MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const _MAIN_WINDOW_VITE_NAME: string;
@@ -212,6 +219,10 @@ interface CourseInfoResponse {
   course_id: string;
   title: string;
   professor: string;
+  professors?: string[];
+  college_name?: string;
+  school_year?: string;
+  semester?: number | string;
   videos: VideoInfo[];
 }
 
@@ -404,7 +415,7 @@ interface ElectronAPI {
     setLastGreetingId: (id: string) => Promise<void>;
     setOnboardingCompleted: (completed: boolean) => Promise<void>;
     setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => Promise<void>;
-    setPinnedRecordedCourses: (courses: { id: string; title: string }[]) => Promise<void>;
+    setPinnedRecordedCourses: (courses: PinnedCourse[]) => Promise<void>;
 
     // Slide extraction configuration
     getSlideExtractionConfig: () => Promise<SlideExtractionConfig>;
@@ -720,6 +731,19 @@ interface ElectronAPI {
     getImageAsBase64: (cropPath: string) => Promise<string>;
     apply: (imagePath: string, rect: CropRect, autoCropped?: boolean) => Promise<{ success: boolean }>;
     restore: (imagePath: string) => Promise<{ success: boolean }>;
+  };
+
+  slideMetadata: {
+    get: (folderPath: string) => Promise<SlideMetadata | null>;
+    writeExtraction: (
+      folderPath: string,
+      data: { source: SlideMetadataSource; extraction: SlideExtractionMeta }
+    ) => Promise<{ success: boolean }>;
+    updatePostProcessing: (
+      folderPath: string,
+      pp: SlidePostProcessingMeta
+    ) => Promise<{ success: boolean }>;
+    markReviewed: (folderPath: string) => Promise<{ success: boolean }>;
   };
 
   pdfmaker: {

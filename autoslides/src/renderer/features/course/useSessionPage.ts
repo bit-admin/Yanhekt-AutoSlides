@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { ref, computed, type Ref, type ComputedRef } from 'vue'
 import { ApiClient, type SessionData, type CourseInfoResponse } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
 import { DataStore } from '@shared/services/dataStore'
@@ -36,6 +36,10 @@ export interface UseSessionPageReturn {
   // State
   sessions: Ref<Session[]>
   courseInfo: Ref<CourseInfoResponse | null>
+  // The incoming course merged with the fields fetched via getCourseInfo. Use
+  // this (not the raw prop) for display + persistence so a thin/pinned course
+  // shows instructor/professors/term/college once sessions have loaded.
+  courseDetails: ComputedRef<SessionCourse | null>
   isLoading: Ref<boolean>
   errorMessage: Ref<string>
   showCourseDetails: Ref<boolean>
@@ -78,17 +82,44 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   const errorMessage = ref('')
   const showCourseDetails = ref(false)
 
+  // Rich course fields fetched via getCourseInfo (filled in loadCourseSessions).
+  // Lets a thin course opened from a pin (id + title only) gain instructor /
+  // professors / academic term / college. `classrooms` is not provided by that
+  // endpoint, so it stays as whatever the incoming course carried.
+  const fetchedCourseInfo = ref<Partial<SessionCourse>>({})
+
+  // The incoming course merged with fetched fields. Incoming values win (the
+  // course-grid path already has everything); fetched values fill the gaps.
+  const courseDetails = computed<SessionCourse | null>(() => {
+    const base = course.value
+    if (!base) return null
+    const extra = fetchedCourseInfo.value
+    return {
+      ...base,
+      instructor: base.instructor || extra.instructor || '',
+      professors: base.professors && base.professors.length > 0 ? base.professors : extra.professors,
+      college_name: base.college_name || extra.college_name,
+      school_year: base.school_year || extra.school_year,
+      semester: base.semester || extra.semester,
+      time: base.time || extra.time || '',
+    }
+  })
+
   // Helper: Store session data with course information
   const storeSessionData = (session: Session): void => {
-    if (course.value) {
+    const c = courseDetails.value
+    if (c) {
       DataStore.setSessionDataWithCourse(session.session_id.toString(), session, {
-        id: course.value.id,
-        title: course.value.title,
-        instructor: course.value.instructor,
-        time: course.value.time,
-        classrooms: course.value.classrooms,
-        college_name: course.value.college_name,
-        participant_count: course.value.participant_count
+        id: c.id,
+        title: c.title,
+        instructor: c.instructor,
+        time: c.time,
+        classrooms: c.classrooms,
+        college_name: c.college_name,
+        participant_count: c.participant_count,
+        professors: c.professors,
+        school_year: c.school_year,
+        semester: c.semester
       })
     } else {
       DataStore.setSessionData(session.session_id.toString(), session)
@@ -154,6 +185,21 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       const response = await apiClient.getCourseInfo(course.value.id, token)
       courseInfo.value = response
       sessions.value = response.videos
+
+      // Hydrate the rich fields a thin/pinned course lacks. semester is a number
+      // here (vs a string from the course list) — normalize to string. Derive a
+      // display term ("2025-2026 Fall") matching useCourseList's formatting.
+      const semesterStr = response.semester != null ? String(response.semester) : undefined
+      fetchedCourseInfo.value = {
+        instructor: response.professor,
+        professors: response.professors,
+        college_name: response.college_name,
+        school_year: response.school_year,
+        semester: semesterStr,
+        time: response.school_year
+          ? `${response.school_year} ${Number(response.semester) === 1 ? 'Fall' : 'Spring'}`
+          : undefined,
+      }
     } catch (error: unknown) {
       log.error('Failed to load course sessions:', error)
       const errorMsg = error instanceof Error ? error.message : t('sessions.failedToLoadSessions')
@@ -280,6 +326,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     // State
     sessions,
     courseInfo,
+    courseDetails,
     isLoading,
     errorMessage,
     showCourseDetails,

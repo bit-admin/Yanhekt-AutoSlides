@@ -8,8 +8,9 @@ import type { PinnedCourse } from '@common/types'
 
 // Pinned recorded courses persist in config (configStore mirrors AppConfig and
 // is re-broadcast after every config:setPinnedRecordedCourses, so this computed
-// never goes stale). We store { id, title }: id drives navigation/session
-// loading, title is the sidebar label.
+// never goes stale). We capture the full course context at pin time (see
+// PinnedCourse) so opening a pin restores classrooms/participants/term — fields
+// getCourseInfo can't supply.
 export const pinnedRecordedCourses = computed<PinnedCourse[]>(
   () => overrides.pinnedRecordedCourses
     ? overrides.pinnedRecordedCourses()
@@ -19,12 +20,23 @@ export const isPinned = (id: string): boolean =>
   pinnedRecordedCourses.value.some(c => c.id === id)
 
 // configStore entries are Vue reactive proxies, which structured-clone (and so
-// ipcRenderer.invoke) cannot serialize. Always rebuild plain objects before
-// sending across IPC.
+// ipcRenderer.invoke) cannot serialize. Always rebuild plain objects (deep for
+// nested arrays) before sending across IPC.
 const toPlain = (courses: PinnedCourse[]): PinnedCourse[] =>
-  courses.map(c => ({ id: c.id, title: c.title }))
+  courses.map(c => ({
+    id: c.id,
+    title: c.title,
+    instructor: c.instructor,
+    time: c.time,
+    classrooms: c.classrooms?.map(r => ({ name: r.name })),
+    participant_count: c.participant_count,
+    college_name: c.college_name,
+    professors: c.professors ? [...c.professors] : undefined,
+    school_year: c.school_year,
+    semester: c.semester,
+  }))
 
-export const togglePinnedCourse = (course: { id: string; title: string }): void => {
+export const togglePinnedCourse = (course: PinnedCourse): void => {
   if (!course.id) return
   const current = pinnedRecordedCourses.value
   const next = current.some(c => c.id === course.id)
@@ -43,6 +55,17 @@ export const removePinnedCourse = (id: string): void => {
 // sidebar pinned item instead of the "Recorded" navigator entry. Shared by the
 // sidebar pinned list and the Home page pinned cards.
 export const openPinnedCourse = (c: PinnedCourse): void => {
-  openCourse('recorded', { id: c.id, title: c.title, instructor: '', time: '' } as Course)
+  openCourse('recorded', {
+    id: c.id,
+    title: c.title,
+    instructor: c.instructor ?? '',
+    time: c.time ?? '',
+    classrooms: c.classrooms,
+    participant_count: c.participant_count,
+    college_name: c.college_name,
+    professors: c.professors,
+    school_year: c.school_year,
+    semester: c.semester,
+  } as Course)
   navigationStore.setActivePinned(c.id)
 }

@@ -793,6 +793,7 @@
     "restoreCrop": "Restore Crop",
     "applyCrop": "Apply Crop",
     "cropped": "Cropped",
+    "edited": "Edited",
     "autoCrop": "Auto Crop",
     "autoCropped": "Auto Cropped",
     "autoCropNoDetectionTitle": "Auto Crop",

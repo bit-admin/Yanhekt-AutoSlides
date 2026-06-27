@@ -27,29 +27,29 @@
         </button>
       </div>
       <div v-show="showCourseDetails" class="course-details">
-        <div class="course-detail-item" v-if="course?.instructor">
+        <div class="course-detail-item" v-if="courseDetails?.instructor">
           <span class="detail-label">{{ $t('playback.instructor') }}</span>
-          <span class="detail-value">{{ course.instructor }}</span>
+          <span class="detail-value">{{ courseDetails.instructor }}</span>
         </div>
-        <div class="course-detail-item" v-if="course?.professors && course.professors.length > 0">
+        <div class="course-detail-item" v-if="courseDetails?.professors && courseDetails.professors.length > 0">
           <span class="detail-label">{{ $t('playback.professors') }}</span>
-          <span class="detail-value">{{ course.professors.join(', ') }}</span>
+          <span class="detail-value">{{ courseDetails.professors.join(', ') }}</span>
         </div>
-        <div class="course-detail-item" v-if="course?.time">
+        <div class="course-detail-item" v-if="courseDetails?.time">
           <span class="detail-label">{{ $t('sessions.academicTerm') }}</span>
-          <span class="detail-value">{{ course.time }}</span>
+          <span class="detail-value">{{ courseDetails.time }}</span>
         </div>
-        <div class="course-detail-item" v-if="course?.classrooms && course.classrooms.length > 0">
+        <div class="course-detail-item" v-if="courseDetails?.classrooms && courseDetails.classrooms.length > 0">
           <span class="detail-label">{{ $t('sessions.classrooms') }}</span>
-          <span class="detail-value">{{ course.classrooms.map((c: { name: string }) => c.name).join(', ') }}</span>
+          <span class="detail-value">{{ courseDetails.classrooms.map((c: { name: string }) => c.name).join(', ') }}</span>
         </div>
-        <div class="course-detail-item" v-if="course?.college_name">
+        <div class="course-detail-item" v-if="courseDetails?.college_name">
           <span class="detail-label">{{ $t('sessions.college') }}</span>
-          <span class="detail-value">{{ course.college_name }}</span>
+          <span class="detail-value">{{ courseDetails.college_name }}</span>
         </div>
-        <div class="course-detail-item" v-if="course?.participant_count !== undefined">
+        <div class="course-detail-item" v-if="courseDetails?.participant_count !== undefined">
           <span class="detail-label">{{ $t('sessions.participants') }}</span>
-          <span class="detail-value">{{ course.participant_count }} {{ $t('sessions.participantsCount') }}</span>
+          <span class="detail-value">{{ courseDetails.participant_count }} {{ $t('sessions.participantsCount') }}</span>
         </div>
       </div>
     </div>
@@ -187,6 +187,7 @@ const {
   isLoading,
   errorMessage,
   showCourseDetails,
+  courseDetails,
   goBack,
   selectSession,
   toggleCourseDetails,
@@ -212,8 +213,11 @@ const {
 const pinned = computed(() => !!props.course?.id && isPinned(props.course.id))
 
 const togglePin = () => {
-  if (!props.course?.id) return
-  togglePinnedCourse({ id: props.course.id, title: props.course.title })
+  // Pin the merged course so classrooms/participants/term (present when opened
+  // from the grid/search) are captured for later restoration.
+  const c = courseDetails.value
+  if (!c?.id) return
+  togglePinnedCourse(c)
 }
 
 onMounted(() => {

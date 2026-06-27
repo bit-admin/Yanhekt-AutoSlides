@@ -161,10 +161,21 @@ export interface AppConfig {
 }
 
 // A recorded course pinned to the sidebar. `id` drives navigation/session loading;
-// `title` is the sidebar label.
+// `title` is the sidebar label. The remaining fields are captured at pin time so
+// opening a pinned course restores the full context — notably `classrooms` and
+// `participant_count`, which only appear in the course list/search and are NOT
+// returned by getCourseInfo. Optional: legacy pins (id+title only) stay valid.
 export interface PinnedCourse {
   id: string;
   title: string;
+  instructor?: string;
+  time?: string;
+  classrooms?: { name: string }[];
+  participant_count?: number;
+  college_name?: string;
+  professors?: string[];
+  school_year?: string;
+  semester?: string;
 }
 
 // Trash and crop manifest entries — written by main process, read by renderer.

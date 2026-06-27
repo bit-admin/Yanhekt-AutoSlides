@@ -294,6 +294,12 @@
                 <div class="folder-mainline">
                   <span class="folder-name">{{ formatToolFolderName(entry.folder.name) }}</span>
                   <div class="folder-counts">
+                    <template v-if="entry.folder.metadata?.review.edited">
+                      <span class="folder-count-text">
+                        <span class="count-label">{{ $t('trash.edited') }}</span>
+                      </span>
+                      <span class="folder-count-separator">/</span>
+                    </template>
                     <span class="folder-count-text">
                       <span class="count-value">{{ entry.folder.activeCount }}</span>
                       <span class="count-label">{{ $t('trash.active') }}</span>
@@ -1651,7 +1657,6 @@ const confirmClearTrash = async () => {
 
 .count-label {
   color: inherit;
-  text-transform: lowercase;
 }
 
 .folder-count-separator {

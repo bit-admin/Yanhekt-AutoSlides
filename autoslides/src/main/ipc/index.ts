@@ -22,6 +22,7 @@ import { registerYuketangIpcHandlers } from './yuketangIpc';
 import { registerNotesIpcHandlers } from './notesIpc';
 import { registerTrashIpcHandlers } from './trashIpc';
 import { registerCropIpcHandlers } from './cropIpc';
+import { registerSlideMetadataIpcHandlers } from './slideMetadataIpc';
 import { registerPdfMakerIpcHandlers } from './pdfMakerIpc';
 import { registerUpdateIpcHandlers } from './updateIpc';
 import { registerQtExtractorIpcHandlers } from './qtExtractorIpc';
@@ -53,6 +54,7 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerNotesIpcHandlers(services);
   registerTrashIpcHandlers(services);
   registerCropIpcHandlers(services);
+  registerSlideMetadataIpcHandlers(services);
   registerPdfMakerIpcHandlers(services);
   registerUpdateIpcHandlers(services);
   registerQtExtractorIpcHandlers(services);

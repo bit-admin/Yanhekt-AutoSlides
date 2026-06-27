@@ -10,6 +10,7 @@ import type {
   RemovedEntry,
   ResultsFolder,
   ResultsItem,
+  SlideMetadata,
 } from './resultsTypes';
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ResultsDataLoader');
@@ -19,6 +20,8 @@ export interface ResultsDataIO {
   getImages(folderPath: string): Promise<Array<{ name: string; path: string }>>;
   getTrashEntries(): Promise<RemovedEntry[]>;
   getCropEntries(): Promise<CropEntry[]>;
+  // Optional: demo/override providers may omit it (treated as "no metadata").
+  getMetadata?(folderPath: string): Promise<SlideMetadata | null>;
 }
 
 export function createResultsDataIO(): ResultsDataIO {
@@ -32,6 +35,7 @@ export function createResultsDataIO(): ResultsDataIO {
     getImages: (folderPath) => window.electronAPI.pdfmaker.getImages(folderPath),
     getTrashEntries: () => window.electronAPI.trash.getEntries() as Promise<RemovedEntry[]>,
     getCropEntries: () => window.electronAPI.crop.getEntries() as Promise<CropEntry[]>,
+    getMetadata: (folderPath) => window.electronAPI.slideMetadata.get(folderPath),
   };
 }
 
@@ -51,24 +55,32 @@ export async function loadFolderSummaries(io: ResultsDataIO): Promise<FolderSumm
 
   const activeCounts = await Promise.all(
     activeFolderList.map(async (folder) => {
+      let count = 0;
       try {
         const images = await io.getImages(folder.path);
-        return { folder, count: images.length };
+        count = images.length;
       } catch (error) {
         log.warn(`Failed to count images for ${folder.name}:`, error);
-        return { folder, count: 0 };
       }
+      let metadata = null;
+      try {
+        metadata = (await io.getMetadata?.(folder.path)) ?? null;
+      } catch (error) {
+        log.warn(`Failed to load metadata for ${folder.name}:`, error);
+      }
+      return { folder, count, metadata };
     }),
   );
 
   const folderMap = new Map<string, ResultsFolder>();
 
-  for (const { folder, count } of activeCounts) {
+  for (const { folder, count, metadata } of activeCounts) {
     folderMap.set(folder.name, {
       name: folder.name,
       path: folder.path,
       activeCount: count,
       removedCount: 0,
+      metadata,
     });
   }
 

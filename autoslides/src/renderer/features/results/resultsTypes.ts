@@ -2,8 +2,10 @@
 // @common/types; renderer-only types (ResultsFolder, ResultsItem, etc.) stay here.
 
 import type { CropRect, CropEntry, TrashReason } from '@common/types'
+import type { SlideMetadata } from '@common/slideMetadataTypes'
 
 export type { CropRect, CropEntry, TrashReason }
+export type { SlideMetadata }
 // Historic alias preserved for renderer call sites.
 export type ResultsReason = TrashReason
 
@@ -23,6 +25,8 @@ export interface ResultsFolder {
   path?: string
   activeCount: number
   removedCount: number
+  // Per-folder metadata (recorded extractions only); null/undefined = none.
+  metadata?: SlideMetadata | null
 }
 
 export interface BaselineCrop {

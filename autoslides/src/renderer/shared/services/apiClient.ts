@@ -81,6 +81,12 @@ export interface CourseInfoResponse {
   course_id: string;
   title: string;
   professor: string;
+  // Rich course context from /v1/course (used to hydrate thin/pinned courses).
+  // `classrooms` is not provided by this endpoint.
+  professors?: string[];
+  college_name?: string;
+  school_year?: string;
+  semester?: number | string;
   videos: SessionData[];
 }
 

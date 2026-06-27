@@ -1,10 +1,11 @@
 import { ipcMain } from 'electron';
+import path from 'path';
 import type { IpcServices } from './types';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('TrashIpc');
 
 export function registerTrashIpcHandlers(services: IpcServices): void {
-  const { configService, slideExtractionService } = services;
+  const { configService, slideExtractionService, slideMetadataService } = services;
 
   ipcMain.handle('trash:getEntries', async () => {
     try {
@@ -19,7 +20,17 @@ export function registerTrashIpcHandlers(services: IpcServices): void {
   ipcMain.handle('trash:restore', async (_event, ids: string[]) => {
     try {
       const outputDir = configService.getConfig().outputDirectory;
-      return await slideExtractionService.restoreFromTrash(ids, outputDir);
+      // Resolve the folders these entries restore into BEFORE the manifest is
+      // rewritten, so we can latch `edited` on each (no-op if no metadata).
+      const entries = await slideExtractionService.getTrashEntries(outputDir);
+      const affectedFolders = new Set(
+        entries.filter(e => ids.includes(e.id)).map(e => path.dirname(e.originalPath))
+      );
+      const result = await slideExtractionService.restoreFromTrash(ids, outputDir);
+      for (const folderPath of affectedFolders) {
+        await slideMetadataService.markEdited(folderPath);
+      }
+      return result;
     } catch (error) {
       log.error('Failed to restore from trash:', error);
       throw error;
