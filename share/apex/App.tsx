@@ -21,8 +21,6 @@ interface Version {
   imageCount?: number;
   reviewed: boolean;
   edited: boolean;
-  uploaderId: string;
-  uploaderName?: string;
   createdAt?: string;
 }
 
@@ -268,7 +266,7 @@ function LectureView({
                   {v.edited && <span className="badge badge-edited">Human Edited</span>}
                 </div>
                 <div className="version-foot">
-                  <span>by {v.uploaderName || v.uploaderId}</span>
+                  <span>Open in viewer →</span>
                   {v.createdAt && <span>{new Date(v.createdAt).toLocaleDateString()}</span>}
                 </div>
               </a>

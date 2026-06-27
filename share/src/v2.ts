@@ -298,13 +298,14 @@ async function handleLecture(req: Request, env: Env, url: URL, ctx: ExecutionCon
     if (!lecture) return json({ error: 'not-found' }, 404);
     const versions = await db
       .prepare(
-        `SELECT share_id, title, image_count, reviewed, edited, uploader_id,
-                uploader_name, created_at
+        `SELECT share_id, title, image_count, reviewed, edited, created_at
          FROM versions WHERE course_id = ? AND session_id = ?
          ORDER BY created_at ASC`,
       )
       .bind(courseId, sessionId)
       .all();
+    // Uploader id/name are stored for moderation but deliberately NOT exposed to
+    // the public frontend.
     return json({
       ok: true,
       lecture: rowToLecture(lecture),
@@ -314,8 +315,6 @@ async function handleLecture(req: Request, env: Env, url: URL, ctx: ExecutionCon
         imageCount: v.image_count,
         reviewed: !!v.reviewed,
         edited: !!v.edited,
-        uploaderId: v.uploader_id,
-        uploaderName: v.uploader_name,
         createdAt: v.created_at,
       })),
     });
