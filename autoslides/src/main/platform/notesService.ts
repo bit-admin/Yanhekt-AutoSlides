@@ -24,11 +24,9 @@ import type {
   NoteGroup,
   UploadedImage,
   ExportFolderInfo,
-  ShareImportResult,
 } from '@common/notesTypes';
 import { NOTE_GROUP_NAME_MAX } from '@common/notesTypes';
-import { SHARE_ORIGIN, SHARE_PATH, decodeSharePayload, parseShareLink } from '@common/shareLink';
-import { buildCossListUrl, resolveShareImages } from '@common/shareResolve';
+import { SHARE_ORIGIN, SHARE_PATH } from '@common/shareLink';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('NotesService');
@@ -330,70 +328,6 @@ export class NotesService {
     return { url: data.url };
   }
 
-  // ── Share-link import ("Paste from a share link") ────────────────────────
-
-  /**
-   * Resolve a pasted share link (long `#fragment` or short `/v1/s/<id>`) into the
-   * note title and ordered public image URLs, ready to import as a managed note.
-   * Lists the public coss `images` bucket to expand the short hashes — runs in
-   * the main process to avoid renderer CORS, like the other coss/yanhekt calls.
-   * Needs no auth (everything it touches is public).
-   */
-  async resolveShareLink(link: string): Promise<ShareImportResult> {
-    const parsed = parseShareLink(link);
-    if (!parsed) throw new Error('invalid-share-link');
-
-    let fragment = parsed.fragment;
-    if (!fragment && parsed.shortId) {
-      fragment = await this.fetchShortFragment(parsed.shortId);
-    }
-    if (!fragment) throw new Error('invalid-share-link');
-
-    const payload = decodeSharePayload(fragment);
-    if (!payload) throw new Error('invalid-share-link');
-
-    const resolved = await resolveShareImages(payload, (prefix) => this.listCossFolder(prefix));
-    const urls = resolved.filter((r) => r.url !== null).map((r) => r.url as string);
-    return { title: payload.t, urls, missing: resolved.length - urls.length };
-  }
-
-  /** Look up a short-link id's stored fragment via the public share Worker. */
-  private async fetchShortFragment(id: string): Promise<string> {
-    const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/get?id=${encodeURIComponent(id)}`);
-    if (!res.ok) throw new Error(`Short-link lookup failed (${res.status})`);
-    const data = (await res.json()) as { fragment?: string };
-    if (!data.fragment) throw new Error('Short link not found');
-    return data.fragment;
-  }
-
-  /**
-   * List one `YYYY/M` folder of the public `images` bucket → map of basename →
-   * bucket-relative key, paginating the S3 ListObjectsV2 response. Node has no
-   * DOMParser, so the keys are pulled out with a small regex (this is the Node
-   * twin of the Worker's DOMParser lister; both feed the shared resolver).
-   */
-  private async listCossFolder(prefix: string): Promise<Map<string, string>> {
-    const map = new Map<string, string>();
-    let token: string | null = null;
-
-    do {
-      const res: Response = await fetch(buildCossListUrl(prefix, token));
-      if (!res.ok) break;
-      const xml: string = await res.text();
-
-      for (const m of xml.matchAll(/<Key>([^<]+)<\/Key>/g)) {
-        const key = m[1];
-        const base = key.split('/').pop() ?? '';
-        if (base) map.set(base, key);
-      }
-
-      const truncated = /<IsTruncated>\s*true\s*<\/IsTruncated>/i.test(xml);
-      const next = xml.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/);
-      token = truncated ? (next?.[1] ?? null) : null;
-    } while (token);
-
-    return map;
-  }
 }
 
 export type { NoteSummary };

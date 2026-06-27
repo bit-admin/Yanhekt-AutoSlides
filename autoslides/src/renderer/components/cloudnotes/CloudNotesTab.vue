@@ -255,22 +255,7 @@
 
           <!-- Phase: select folders -->
           <template v-if="importPhase === 'select'">
-            <!-- Import from a pasted share link -->
-            <div class="cn-paste-row">
-              <input
-                v-model="pasteLink"
-                class="text-input cn-paste-input"
-                :placeholder="$t('cloudNotes.importPastePlaceholder')"
-                @keyup.enter="onPasteShareLink"
-              />
-              <button class="btn btn--primary cn-paste-btn" :disabled="!pasteLink.trim() || imp.importing.value" @click="onPasteShareLink">
-                {{ $t('cloudNotes.importPasteBtn') }}
-              </button>
-            </div>
-
-            <div class="cn-share-or"><span>{{ $t('cloudNotes.importOr') }}</span></div>
-
-            <!-- Or: pick local slide folders -->
+            <!-- Pick local slide folders -->
             <div class="cn-import-list custom-scrollbar">
               <div v-if="loadingFolders" class="cn-empty">{{ $t('cloudNotes.loading') }}</div>
               <div v-else-if="importFolders.length === 0" class="cn-empty">{{ $t('cloudNotes.importNoFolders') }}</div>
@@ -511,7 +496,7 @@ import { useNoteExport, type ExportItem } from '@features/cloudNotes/useNoteExpo
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { NOTE_GROUP_NAME_MAX, EDITORJS_DOC_VERSION, isManagedNoteTitle, managedNoteDisplayName } from '@common/notesTypes'
 import { buildSharePayload, buildShareUrl, encodeSharePayload } from '@common/shareLink'
-import { noteImageUrls, findRecordedShareUrl, SHARE_MARKER } from '@common/notesContent'
+import { noteImageUrls, findRecordedShareUrl, upsertNoteMetadata } from '@common/notesContent'
 
 const { t } = useI18n()
 const cn = useCloudNotes()
@@ -796,7 +781,6 @@ const importPhase = ref<'select' | 'progress'>('select')
 const importFolders = ref<ImportFolder[]>([])
 const importSelected = ref<string[]>([])
 const loadingFolders = ref(false)
-const pasteLink = ref('')
 
 const fmtFolder = formatToolFolderName
 
@@ -848,15 +832,6 @@ function onStartImport(): void {
   void imp.startImport([...importSelected.value])
 }
 
-function onPasteShareLink(): void {
-  const link = pasteLink.value.trim()
-  if (!link || imp.importing.value) return
-  pasteLink.value = ''
-  importPhase.value = 'progress'
-  // Fire-and-forget, like folder import — the row resolves and imports itself.
-  void imp.importShareLink(link, t('cloudNotes.importResolving'))
-}
-
 async function onOpenConflictNote(id?: number): Promise<void> {
   if (id == null) return
   closeImportModal()
@@ -865,10 +840,9 @@ async function onOpenConflictNote(id?: number): Promise<void> {
 
 function importStatusText(item: ImportItem): string {
   switch (item.status) {
-    case 'resolving': return t('cloudNotes.importResolving')
     case 'uploading': return t('cloudNotes.importUploading', { done: item.uploaded, total: item.total })
     case 'building': return t('cloudNotes.importBuilding')
-    case 'done': return item.missing ? t('cloudNotes.importDoneMissing', { n: item.missing }) : t('cloudNotes.importDone')
+    case 'done': return t('cloudNotes.importDone')
     case 'conflict': return t('cloudNotes.importConflict')
     case 'error': return importErrorText(item.error)
     default: return t('cloudNotes.importPending')
@@ -878,7 +852,6 @@ function importStatusText(item: ImportItem): string {
 /** Map known machine error codes to friendly text; fall through to raw/server message. */
 function importErrorText(error?: string): string {
   switch (error) {
-    case 'invalid-share-link': return t('cloudNotes.importInvalidLink')
     case 'empty': return t('cloudNotes.importEmpty')
     case 'not-signed-in': return t('cloudNotes.importNotSignedIn')
     default: return error || t('cloudNotes.importError')
@@ -1021,15 +994,15 @@ async function onGetShortLink(): Promise<void> {
     if (!res.ok) { shareShortError.value = t('cloudNotes.shareShortError'); return }
     const url = res.data.url
     shareShortUrl.value = url
-    // Record the short link at the end of the live editor so it persists and a
-    // future Share reuses it instead of minting a new one.
-    if (editor && editorReady) {
+    // Record the short link in the note's managed metadata block so it persists
+    // and a future Share reuses it instead of minting a new one.
+    const noteId = cn.selectedNoteId.value
+    if (noteId != null) {
       try {
-        const count = editor.blocks.getBlocksCount()
-        editor.blocks.insert('paragraph', { text: `${SHARE_MARKER} ${url}` }, undefined, count)
-        const noteId = cn.selectedNoteId.value
-        if (noteId != null) await flushSave(noteId)
-      } catch { /* marker is best-effort */ }
+        const content = await currentNoteContent()
+        const next = upsertNoteMetadata(content, { note: { shareUrl: url } })
+        if (await cn.saveContent(noteId, next)) await mountEditor(next)
+      } catch { /* metadata update is best-effort */ }
     }
   } catch {
     shareShortError.value = t('cloudNotes.shareShortError')

@@ -74,7 +74,4 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('cloudNotes:shortenShareUrl', (_e, fragment: string) =>
     run(() => notesService.shortenShareUrl(fragment)));
-
-  ipcMain.handle('cloudNotes:resolveShareLink', (_e, link: string) =>
-    run(() => notesService.resolveShareLink(link)));
 }

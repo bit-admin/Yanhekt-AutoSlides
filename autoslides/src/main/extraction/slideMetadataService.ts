@@ -110,6 +110,18 @@ export class SlideMetadataService {
     }));
   }
 
+  /**
+   * Write a full metadata object wholesale (used to restore `metadata.json` when
+   * a managed cloud note is exported back into a local `slides_*` folder).
+   * Preserves the snapshot's `createdAt`; `updatedAt` is refreshed by `mutate`.
+   */
+  async write(folderPath: string, metadata: SlideMetadata): Promise<void> {
+    await this.mutate(folderPath, () => ({
+      ...metadata,
+      createdAt: metadata.createdAt ?? new Date().toISOString(),
+    }));
+  }
+
   /** Merge the post-processing block. No-op if the folder has no metadata. */
   async updatePostProcessing(folderPath: string, pp: SlidePostProcessingMeta): Promise<void> {
     await this.mutate(folderPath, (current) => {

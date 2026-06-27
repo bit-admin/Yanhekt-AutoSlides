@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { managedNoteDisplayName } from '@common/notesTypes'
-import { noteImageUrls } from '@common/notesContent'
+import { noteImageUrls, readNoteMetadata } from '@common/notesContent'
 import type { useCloudNotes } from './useCloudNotes'
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
@@ -66,6 +66,9 @@ export function useNoteExport(cn: CloudNotesApi) {
     if (!detailRes.ok) { item.status = 'error'; item.error = detailRes.error; return }
 
     const urls = noteImageUrls(detailRes.data.content)
+    // Restore the folder's metadata.json from the note's managed metadata block
+    // (the `slides` group), if the note carried one.
+    const slidesMeta = readNoteMetadata(detailRes.data.content)?.slides ?? null
     item.total = urls.length
     if (urls.length === 0) { item.status = 'error'; item.error = 'empty'; return }
 
@@ -83,6 +86,11 @@ export function useNoteExport(cn: CloudNotesApi) {
       const dl = await window.electronAPI.cloudNotes.downloadImageToFolder(urls[i], prep.data.dir, name)
       if (!dl.ok) { item.status = 'error'; item.error = dl.error; return }
       item.downloaded += 1
+    }
+    // Best-effort: re-create metadata.json so the exported folder re-enters the
+    // pipeline with its original identity/provenance/review state.
+    if (slidesMeta) {
+      try { await window.electronAPI.slideMetadata.write(prep.data.dir, slidesMeta) } catch { /* best-effort */ }
     }
     item.status = 'done'
   }

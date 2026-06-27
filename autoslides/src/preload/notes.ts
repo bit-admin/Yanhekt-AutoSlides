@@ -7,7 +7,6 @@ import type {
   NoteGroup,
   UploadedImage,
   ExportFolderInfo,
-  ShareImportResult,
 } from '@common/notesTypes';
 
 /**
@@ -49,6 +48,4 @@ export const cloudNotes = {
     ipcRenderer.invoke('cloudNotes:downloadImageToFolder', url, dir, filename),
   shortenShareUrl: (fragment: string): Promise<NotesResult<{ url: string }>> =>
     ipcRenderer.invoke('cloudNotes:shortenShareUrl', fragment),
-  resolveShareLink: (link: string): Promise<NotesResult<ShareImportResult>> =>
-    ipcRenderer.invoke('cloudNotes:resolveShareLink', link),
 };

@@ -57,6 +57,8 @@ export const slideMetadata = {
     ipcRenderer.invoke('slideMetadata:writeExtraction', folderPath, data),
   updatePostProcessing: (folderPath: string, pp: SlidePostProcessingMeta) =>
     ipcRenderer.invoke('slideMetadata:updatePostProcessing', folderPath, pp),
+  write: (folderPath: string, metadata: SlideMetadata) =>
+    ipcRenderer.invoke('slideMetadata:write', folderPath, metadata),
   markReviewed: (folderPath: string) =>
     ipcRenderer.invoke('slideMetadata:markReviewed', folderPath),
 };

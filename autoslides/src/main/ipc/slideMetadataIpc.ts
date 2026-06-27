@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import type {
+  SlideMetadata,
   SlideMetadataSource,
   SlideExtractionMeta,
   SlidePostProcessingMeta,
@@ -45,6 +46,16 @@ export function registerSlideMetadataIpcHandlers(services: IpcServices): void {
       }
     }
   );
+
+  ipcMain.handle('slideMetadata:write', async (_event, folderPath: string, metadata: SlideMetadata) => {
+    try {
+      await slideMetadataService.write(folderPath, metadata);
+      return { success: true };
+    } catch (error) {
+      log.error('Failed to write slide metadata:', error);
+      return { success: false };
+    }
+  });
 
   ipcMain.handle('slideMetadata:markReviewed', async (_event, folderPath: string) => {
     try {

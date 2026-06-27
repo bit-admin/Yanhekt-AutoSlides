@@ -743,6 +743,7 @@ interface ElectronAPI {
       folderPath: string,
       pp: SlidePostProcessingMeta
     ) => Promise<{ success: boolean }>;
+    write: (folderPath: string, metadata: SlideMetadata) => Promise<{ success: boolean }>;
     markReviewed: (folderPath: string) => Promise<{ success: boolean }>;
   };
 
@@ -838,7 +839,6 @@ interface ElectronAPI {
     prepareExportFolder: (displayName: string, mode: 'fresh' | 'create') => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
     downloadImageToFolder: (url: string, dir: string, filename: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
     shortenShareUrl: (fragment: string) => Promise<import('@common/notesTypes').NotesResult<{ url: string }>>;
-    resolveShareLink: (link: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ShareImportResult>>;
   };
 }
 
