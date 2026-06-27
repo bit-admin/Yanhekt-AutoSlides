@@ -8,6 +8,7 @@ import type {
   UploadedImage,
   ExportFolderInfo,
 } from '@common/notesTypes';
+import type { SlideMetadataSource } from '@common/slideMetadataTypes';
 
 /**
  * Yanhekt cloud-notes bridge. All calls round-trip to the main process, which
@@ -48,4 +49,10 @@ export const cloudNotes = {
     ipcRenderer.invoke('cloudNotes:downloadImageToFolder', url, dir, filename),
   shortenShareUrl: (fragment: string): Promise<NotesResult<{ url: string }>> =>
     ipcRenderer.invoke('cloudNotes:shortenShareUrl', fragment),
+  publishToIndex: (
+    fragment: string,
+    source: SlideMetadataSource,
+    review: { reviewed: boolean; edited: boolean },
+  ): Promise<NotesResult<{ shareId: string; indexUrl: string; duplicate: boolean }>> =>
+    ipcRenderer.invoke('cloudNotes:publishToIndex', fragment, source, review),
 };

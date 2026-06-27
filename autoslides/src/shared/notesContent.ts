@@ -25,6 +25,8 @@ export interface NoteCloudMetadata {
   imageCount?: number;
   importedAt?: string;
   shareUrl?: string;
+  /** AutoSlides Index lecture URL, set once this note is published to the index. */
+  indexUrl?: string;
 }
 
 export interface NoteMetadata {

@@ -2,6 +2,7 @@ import { ipcMain } from 'electron';
 import { NotesAuthError } from '@main/platform/notesService';
 import type { IpcServices } from './types';
 import type { NotesResult, NoteListParams } from '@common/notesTypes';
+import type { SlideMetadataSource } from '@common/slideMetadataTypes';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('NotesIpc');
@@ -74,4 +75,10 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('cloudNotes:shortenShareUrl', (_e, fragment: string) =>
     run(() => notesService.shortenShareUrl(fragment)));
+
+  ipcMain.handle(
+    'cloudNotes:publishToIndex',
+    (_e, fragment: string, source: SlideMetadataSource, review: { reviewed: boolean; edited: boolean }) =>
+      run(() => notesService.publishToIndex(fragment, source, review)),
+  );
 }

@@ -26,6 +26,7 @@ import type {
   ExportFolderInfo,
 } from '@common/notesTypes';
 import { NOTE_GROUP_NAME_MAX } from '@common/notesTypes';
+import type { SlideMetadataSource } from '@common/slideMetadataTypes';
 import { SHARE_ORIGIN, SHARE_PATH } from '@common/shareLink';
 import { createLogger } from '@main/infra/logger';
 
@@ -326,6 +327,42 @@ export class NotesService {
       throw new Error('Short-link response missing url');
     }
     return { url: data.url };
+  }
+
+  /**
+   * Publish a lecture to AutoSlides Index (v2). Sends the v1 share fragment plus
+   * the folder metadata `source` and the derived review flags to the Worker,
+   * which verifies the auth token against Yanhekt before recording it. Returns
+   * the canonical index URL and whether this was a duplicate of an existing
+   * version (same images, same order).
+   */
+  async publishToIndex(
+    fragment: string,
+    source: SlideMetadataSource,
+    review: { reviewed: boolean; edited: boolean },
+  ): Promise<{ shareId: string; indexUrl: string; duplicate: boolean }> {
+    const token = this.configService.getAuthToken();
+    if (!token) throw new NotesAuthError();
+    const res = await fetch(`${SHARE_ORIGIN}/v2/api/publish`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ fragment, source, review }),
+    });
+    if (res.status === 401) throw new NotesAuthError('AutoSlides Index rejected the sign-in token');
+    if (!res.ok) throw new Error(`Publish failed (${res.status})`);
+    const data = (await res.json()) as {
+      ok?: boolean;
+      shareId?: string;
+      indexUrl?: string;
+      duplicate?: boolean;
+    };
+    if (!data.ok || !data.indexUrl || !data.shareId) {
+      throw new Error('Publish response malformed');
+    }
+    return { shareId: data.shareId, indexUrl: data.indexUrl, duplicate: !!data.duplicate };
   }
 
 }

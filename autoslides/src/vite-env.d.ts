@@ -839,6 +839,11 @@ interface ElectronAPI {
     prepareExportFolder: (displayName: string, mode: 'fresh' | 'create') => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ExportFolderInfo>>;
     downloadImageToFolder: (url: string, dir: string, filename: string) => Promise<import('@common/notesTypes').NotesResult<void>>;
     shortenShareUrl: (fragment: string) => Promise<import('@common/notesTypes').NotesResult<{ url: string }>>;
+    publishToIndex: (
+      fragment: string,
+      source: import('@common/slideMetadataTypes').SlideMetadataSource,
+      review: { reviewed: boolean; edited: boolean },
+    ) => Promise<import('@common/notesTypes').NotesResult<{ shareId: string; indexUrl: string; duplicate: boolean }>>;
   };
 }
 

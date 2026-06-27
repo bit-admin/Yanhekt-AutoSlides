@@ -429,6 +429,29 @@
               <span v-if="shareShortError" class="cn-share-error">{{ shareShortError }}</span>
             </div>
           </div>
+
+          <div class="cn-share-field">
+            <span class="cn-share-label">{{ $t('cloudNotes.shareIndexLabel') }}</span>
+            <div v-if="shareIndexUrl" class="cn-share-row">
+              <input class="text-input cn-share-url" readonly :value="shareIndexUrl" @focus="($event.target as HTMLInputElement).select()" />
+              <button class="btn cn-share-action" @click="onCopyShare('index')">
+                {{ shareCopied === 'index' ? $t('cloudNotes.shareCopied') : $t('cloudNotes.shareCopy') }}
+              </button>
+              <button class="btn cn-share-action" @click="onOpenShare('index')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                <span>{{ $t('cloudNotes.shareOpen') }}</span>
+              </button>
+            </div>
+            <div v-else class="cn-share-row">
+              <button class="btn cn-share-action cn-share-getshort" :disabled="shareIndexing || !shareCanIndex || shareImageCount === 0" @click="onPublishToIndex">
+                {{ shareIndexing ? $t('cloudNotes.shareIndexPublishing') : $t('cloudNotes.shareIndexPublish') }}
+              </button>
+              <span v-if="!shareCanIndex" class="cn-share-hint">{{ $t('cloudNotes.shareIndexUnavailable') }}</span>
+              <span v-else-if="shareIndexError" class="cn-share-error">{{ shareIndexError }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -496,7 +519,8 @@ import { useNoteExport, type ExportItem } from '@features/cloudNotes/useNoteExpo
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { NOTE_GROUP_NAME_MAX, EDITORJS_DOC_VERSION, isManagedNoteTitle, managedNoteDisplayName } from '@common/notesTypes'
 import { buildSharePayload, buildShareUrl, encodeSharePayload } from '@common/shareLink'
-import { noteImageUrls, findRecordedShareUrl, upsertNoteMetadata } from '@common/notesContent'
+import { noteImageUrls, findRecordedShareUrl, readNoteMetadata, upsertNoteMetadata } from '@common/notesContent'
+import type { SlideMetadataSource } from '@common/slideMetadataTypes'
 
 const { t } = useI18n()
 const cn = useCloudNotes()
@@ -940,7 +964,14 @@ const shareFragment = ref('')
 const shareImageCount = ref(0)
 const shareShortening = ref(false)
 const shareShortError = ref('')
-const shareCopied = ref<'long' | 'short' | null>(null)
+const shareCopied = ref<'long' | 'short' | 'index' | null>(null)
+const shareIndexUrl = ref<string | null>(null)
+const shareIndexing = ref(false)
+const shareIndexError = ref('')
+const shareIndexSource = ref<SlideMetadataSource | null>(null)
+const shareReview = ref<{ reviewed: boolean; edited: boolean }>({ reviewed: false, edited: false })
+// Only recorded-session notes carry the course/session identity the index needs.
+const shareCanIndex = computed(() => !!(shareIndexSource.value?.courseId && shareIndexSource.value?.sessionId))
 
 /** Freshest stringified content for the open note (live editor, else saved). */
 async function currentNoteContent(): Promise<string> {
@@ -963,6 +994,15 @@ async function openShareModal(): Promise<void> {
   shareShortUrl.value = findRecordedShareUrl(content)
   shareShortError.value = ''
   shareCopied.value = null
+  // Index publish state: identity + review come from the embedded slides metadata.
+  const meta = readNoteMetadata(content)
+  shareIndexUrl.value = meta?.note.indexUrl ?? null
+  shareIndexSource.value = meta?.slides?.source ?? null
+  const rev = meta?.slides?.review
+  const edited = !!(rev?.edited || rev?.cropped)
+  // Editing implies reviewing.
+  shareReview.value = { reviewed: !!rev?.reviewed || edited, edited }
+  shareIndexError.value = ''
   showShareModal.value = true
 }
 
@@ -970,8 +1010,14 @@ function closeShareModal(): void {
   showShareModal.value = false
 }
 
-async function onCopyShare(which: 'long' | 'short'): Promise<void> {
-  const url = which === 'short' ? shareShortUrl.value : shareLongUrl.value
+function shareUrlFor(which: 'long' | 'short' | 'index'): string | null {
+  if (which === 'short') return shareShortUrl.value
+  if (which === 'index') return shareIndexUrl.value
+  return shareLongUrl.value
+}
+
+async function onCopyShare(which: 'long' | 'short' | 'index'): Promise<void> {
+  const url = shareUrlFor(which)
   if (!url) return
   try {
     await navigator.clipboard.writeText(url)
@@ -980,9 +1026,47 @@ async function onCopyShare(which: 'long' | 'short'): Promise<void> {
   } catch { /* clipboard denied — ignore */ }
 }
 
-function onOpenShare(which: 'long' | 'short'): void {
-  const url = which === 'short' ? shareShortUrl.value : shareLongUrl.value
+function onOpenShare(which: 'long' | 'short' | 'index'): void {
+  const url = shareUrlFor(which)
   if (url) window.electronAPI.shell.openExternal(url)
+}
+
+async function onPublishToIndex(): Promise<void> {
+  if (shareIndexing.value || shareIndexUrl.value || !shareCanIndex.value || shareImageCount.value === 0) return
+  const source = shareIndexSource.value
+  if (!source) return
+  // Review nudge: editing implies reviewing, so warn only when neither holds.
+  if (!shareReview.value.reviewed && !shareReview.value.edited) {
+    const res = await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'question',
+      title: t('cloudNotes.shareIndexLabel'),
+      message: t('cloudNotes.shareIndexReviewWarn'),
+      buttons: [t('cloudNotes.shareIndexPublishAnyway'), t('cloudNotes.shareIndexReviewFirst')],
+      defaultId: 1,
+      cancelId: 1,
+    })
+    if (res && res.response !== 0) return
+  }
+  shareIndexing.value = true
+  shareIndexError.value = ''
+  try {
+    const r = await window.electronAPI.cloudNotes.publishToIndex(shareFragment.value, source, shareReview.value)
+    if (!r.ok) { shareIndexError.value = t('cloudNotes.shareIndexError'); return }
+    shareIndexUrl.value = r.data.indexUrl
+    // Record the index URL in the note's managed metadata so a future Share reuses it.
+    const noteId = cn.selectedNoteId.value
+    if (noteId != null) {
+      try {
+        const content = await currentNoteContent()
+        const next = upsertNoteMetadata(content, { note: { indexUrl: r.data.indexUrl } })
+        if (await cn.saveContent(noteId, next)) await mountEditor(next)
+      } catch { /* metadata update is best-effort */ }
+    }
+  } catch {
+    shareIndexError.value = t('cloudNotes.shareIndexError')
+  } finally {
+    shareIndexing.value = false
+  }
 }
 
 async function onGetShortLink(): Promise<void> {
@@ -2006,6 +2090,12 @@ watch(() => cn.selectedNoteId.value, (id) => {
 
 .cn-share-error {
   color: var(--danger);
+  font-size: 12px;
+  align-self: center;
+}
+
+.cn-share-hint {
+  color: var(--text-muted);
   font-size: 12px;
   align-self: center;
 }
