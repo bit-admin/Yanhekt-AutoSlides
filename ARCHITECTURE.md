@@ -145,14 +145,13 @@ AutoSlides 遵循 Electron 的多进程模型：
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
 │  Tools Window (tools.ts)  ←  独立渲染器窗口                   │
-│  Addons Window (addons.ts) ← 独立渲染器窗口                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **关键设计决策**：
 - `contextIsolation: true` + `nodeIntegration: false`：渲染器无法直接访问 Node.js API
 - 所有 IPC 通信通过 `contextBridge.exposeInMainWorld` 暴露的 `window.electronAPI` 对象
-- 三个独立的渲染器窗口（主窗口、工具窗口、附加组件窗口）共享同一套 preload 脚本
+- 两个独立的渲染器窗口（主窗口、工具窗口）共享同一套 preload 脚本
 
 ---
 
@@ -164,7 +163,6 @@ autoslides/
 │   ├── main.ts                               # 主进程入口
 │   ├── renderer.ts                           # 主窗口渲染器入口
 │   ├── tools.ts                              # 工具窗口渲染器入口
-│   ├── addons.ts                             # 附加组件窗口渲染器入口
 │   ├── index.css                             # 全局基础样式
 │   ├── App.vue                               # 主窗口根组件
 │   ├── shims-vue.d.ts                        # Vue SFC 类型声明
@@ -255,7 +253,7 @@ autoslides/
 │   │   ├── export.ts                         # pdfmaker, yuketang
 │   │   ├── course.ts                         # api
 │   │   ├── update.ts                         # update, extractorInstaller
-│   │   ├── tools.ts                          # tools, addons, webCapture
+│   │   ├── tools.ts                          # tools, webCapture
 │   │   ├── notes.ts                          # cloudNotes (Yanhekt 云笔记)
 │   │   └── intranet.ts                       # intranet
 │   │
@@ -363,8 +361,8 @@ autoslides/
 │       │   │   └── SemesterSelect.vue        # 学期选择下拉
 │       │   │
 │       │   ├── settings/
-│       │   │   ├── LeftPanel.vue             # 侧边栏导航 + 用户栏 + 设置宿主
-│       │   │   ├── AdvancedSettingsModal.vue # 5 标签设置模态框
+│       │   │   ├── LeftPanel.vue             # 侧边栏导航 + 用户栏 + Workspace 区域
+│       │   │   ├── SettingsPage.vue          # 窗内设置页面 (分段切换器)
 │       │   │   ├── OnboardingModal.vue       # 首次启动引导
 │       │   │   ├── SignInModal.vue            # SSO 登录模态框
 │       │   │   ├── UserMenuLinks.vue         # 用户菜单链接
@@ -398,10 +396,6 @@ autoslides/
 │       │   │
 │       │   ├── cloudnotes/
 │       │   │   └── CloudNotesTab.vue         # 云笔记三栏 UI (分组/列表/Editor.js 编辑器)
-│       │   │
-│       │   ├── addons/
-│       │   │   ├── AddonsWindow.vue
-│       │   │   └── AddonsApp.vue
 │       │   │
 │       │   ├── webCapture/
 │       │   │   ├── WebCaptureTab.vue
@@ -507,11 +501,9 @@ autoslides/
 ├── vite.renderer.config.ts                   # 渲染器 Vite 配置
 ├── vite.preload.config.ts                    # Preload Vite 配置
 ├── vite.tools.config.ts                      # 工具窗口 Vite 配置
-├── vite.addons.config.ts                     # 附加组件窗口 Vite 配置
 ├── vite.webviewPreload.config.ts             # Webview Preload Vite 配置
 ├── index.html                                # 主窗口 HTML
 ├── tools.html                                # 工具窗口 HTML
-├── addons.html                               # 附加组件窗口 HTML
 └── package.json
 ```
 
@@ -624,9 +616,8 @@ export interface IpcServices {
 ### 6.5 窗口管理
 
 `WindowManager` 管理应用窗口生命周期：
-- 主窗口（1400×900，最小 1200×700）
-- 工具窗口（结果视图、PDF 生成器、离线处理、云笔记）
-- 附加组件窗口（雨课堂等）
+- 主窗口（1440×900，最小 1280×768）
+- 工具窗口（离线处理、压缩、Web 捕获、雨课堂）
 - macOS 原生菜单栏
 - 应用菜单更新（`updateApplicationMenu()`）
 
@@ -663,7 +654,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   crop,           // 裁剪操作
   pdfmaker,       // PDF 生成
   tools,          // 工具窗口管理
-  addons,         // 附加组件窗口
   webCapture,     // Web 捕获
   yuketang,       // 雨课堂
   autoCrop,       // 自动裁剪
@@ -682,13 +672,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 ## 8. 渲染器架构
 
-### 8.1 三个渲染入口
+### 8.1 两个渲染入口
 
 | 入口 | 文件 | 根组件 | 用途 |
 |------|------|--------|------|
-| 主窗口 | `renderer.ts` | `App.vue` | 课程浏览、视频播放、设置 |
-| 工具窗口 | `tools.ts` | `ToolsApp.vue` | 结果视图、PDF 生成、离线处理、云笔记 |
-| 附加组件窗口 | `addons.ts` | `AddonsApp.vue` | 雨课堂等 |
+| 主窗口 | `renderer.ts` | `App.vue` | 课程浏览、视频播放、Workspace 页面 (结果视图、PDF 生成、云笔记)、设置 |
+| 工具窗口 | `tools.ts` | `ToolsApp.vue` | 离线处理、压缩、Web 捕获、雨课堂 |
 
 每个入口都：
 1. 导入 `index.css`
@@ -698,7 +687,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 5. 调用 `loadConfig()` 加载配置
 6. 挂载到 `#app`
 
-演示模式（`npm run demo` / `DEMO_MODE=1`）下，主进程将持久化隔离到 `AutoSlides-Demo` 用户数据目录，并通过 `--demo-mode` argv 传递到每个渲染器。渲染器的 `ApiClient`、`TokenManager`、`savedSearches`、`useGreeting` 短路到 `demoData.ts` 中的虚构工厂；`demoSeed.ts` 将假任务/下载项推入响应式队列（绕过处理器——什么都不实际运行）。
+演示模式（`npm run demo` / `DEMO_MODE=1`）下，主进程将持久化隔离到 `AutoSlides-Demo` 用户数据目录，并通过 `--demo-mode` argv 传递到每个渲染器。渲染器的 `ApiClient`、`TokenManager`、`savedSearches`、`useGreeting` 短路到 `demoData.ts` 中的虚构工厂；`demoSeed.ts` 将假任务/下载项推入响应式队列（绕过处理器——什么都不实际运行）。演示模式还提供 `cloudNotesProvider` override 和 `__demoNavigate(target)` 截图钩子。
 
 ### 8.2 Feature 领域层
 
@@ -712,8 +701,8 @@ Feature 层是渲染器的核心业务逻辑，每个领域是一个独立的功
 | **download** | `features/download/` | 任务队列、后处理 | `useTaskQueue`, `usePostProcessing` |
 | **ai** | `features/ai/` | AI 设置、Copilot OAuth、ML 分类 | `useAISettings`, `useCopilotOAuth`, `useMlClassifierSettings`, `useModelChain` |
 | **export** | `features/export/` | PDF 生成、雨课堂 | `usePdfMaker`, `useYuketang` |
-| **course** | `features/course/` | 课程列表、首页、搜索、导航、标签 | `useCourseList`, `useSessionPage`, `useHomePage`, `useSearchPage`, `savedSearches`, `navigationStore`, `tabStore`, `courseSelection` |
-| **settings** | `features/settings/` | 设置管理 | `useSettings`, `useAdvancedSettings`, `useGeneralSettings` 等，`settingsContext` |
+| **course** | `features/course/` | 课程列表、首页、搜索、导航、标签 | `useCourseList`, `useSessionPage`, `useHomePage`, `useSearchPage`, `savedSearches`, `navigationStore` (含 Workspace 目标 + `isWorkspacePage` + `openSettings`), `tabStore`, `courseSelection` |
+| **settings** | `features/settings/` | 设置管理 (窗内 SettingsPage，非模态框) | `useSettings`, `useAdvancedSettings` (prepare/discard/commit), `useGeneralSettings` 等，`settingsContext` |
 | **platform** | `features/platform/` | 认证、缓存、问候 | `useAuth`, `useCacheManagement`, `useGreeting`, `usePinyinName` |
 | **webCapture** | `features/webCapture/` | Web 捕获 | `useWebCapture` |
 | **tools** | `features/tools/` | 视频压缩 | `useCompressLecture` |
@@ -747,18 +736,17 @@ Shared 层是跨领域的基础模块，**不能**导入 Feature 层：
 ```
 components/
 ├── video/           # 播放页面、画廊、预览模态框
-├── results/         # 结果窗口、图像网格
+├── results/         # 结果窗口、图像网格 (主窗口 Workspace + 工具窗口复用)
 ├── offline/         # 离线处理标签页
 ├── course/          # 首页、搜索页、课程页面、课时页面、学期选择
-├── settings/        # 侧边栏导航、高级设置、引导、SSO 登录、标签页
+├── settings/        # 侧边栏导航、设置页面、引导、SSO 登录、标签页
 ├── titlebar/        # 标题栏、更新管理器
 ├── export/          # PDF 生成、雨课堂
 ├── download/        # 右侧面板、下载队列、任务队列
 ├── tools/           # 工具窗口、压缩标签页
-├── cloudnotes/      # 云笔记标签页 (CloudNotesTab.vue)
-├── addons/          # 附加组件窗口
+├── cloudnotes/      # 云笔记标签页 (主窗口 Workspace + 工具窗口复用)
 ├── webCapture/      # Web 捕获、区域覆盖
-├── MainContent.vue  # 主内容区（信息标签 + 播放标签）
+├── MainContent.vue  # 主内容区（信息标签 + 播放标签 + Workspace 页面 + 设置页面）
 └── App.vue          # 根组件
 ```
 
@@ -1169,13 +1157,13 @@ AI 分类支持两种模式：
 
 ## 15. 云笔记系统
 
-云笔记是集成 Yanhekt 云平台的富文本笔记功能，位于工具窗口的 `cloudnotes` 标签页。
+云笔记是集成 Yanhekt 云平台的富文本笔记功能，作为主窗口的 Workspace 页面渲染（同时在工具窗口保留访问入口）。
 
 ### 架构概览
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Tools Window                              │
+│                    Main Window (Workspace page)               │
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │               CloudNotesTab.vue                      │    │
 │  │  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │    │
@@ -1347,7 +1335,8 @@ function broadcastConfig(config: AppConfig): void {
 | 服务 | 职责 |
 |------|------|
 | `configStore` | 响应式配置镜像 |
-| `authService` | Token 管理器 |
+| `authService` | Token 管理器（electron-store 为唯一真相源，启动时 `hydrate()` 缓存到内存；一次性 localStorage 迁移） |
+| `layoutStore` | 左/右面板折叠状态 + 面板宽度（Workspace 页面时右面板自动隐藏，不改变用户偏好） |
 | `dataStore` | 会话/课程数据缓存 |
 | `apiClient` | 渲染器 API 客户端 |
 | `downloadService` | 下载队列 |
@@ -1358,6 +1347,7 @@ function broadcastConfig(config: AppConfig): void {
 | `extractionQueueLogic` | 提取决策纯函数 |
 | `ssimThresholdService` | SSIM 阈值自适应 |
 | `rightPanelStore` | 任务/下载标签切换状态（标题栏视图切换器） |
+| `runtimeEnv` | `isDemoMode()` 环境标志 |
 | `demoData` | 演示模式虚构账户/课程数据 |
 | `demoSeed` | 演示模式队列种子（假任务/下载项） |
 
@@ -1365,7 +1355,7 @@ function broadcastConfig(config: AppConfig): void {
 
 ## 18. UI 架构
 
-### 18.1 三面板布局
+### 18.1 三面板布局（Workspace 页面时为两面板）
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -1375,23 +1365,29 @@ function broadcastConfig(config: AppConfig): void {
 │   Left   │  ┌─────────────────────────┐     │    Right      │
 │  Panel   │  │ Info Tab:               │     │    Panel      │
 │          │  │   Home / Search /       │     │               │
-│ Sidebar  │  │   Live / Recorded       │     │ Task          │
-│ Navigator│  ├─────────────────────────┤     │ Queue         │
-│          │  │ Playback Tab 1:         │     │               │
-│ User Bar │  │   PlaybackPage          │     │ Download      │
-│          │  ├─────────────────────────┤     │ Queue         │
-│ Settings │  │ Playback Tab N:         │     │               │
-│ (modal)  │  │   PlaybackPage          │     │               │
+│ Sidebar  │  │   Live / Recorded /     │     │ Task          │
+│ Navigator│  │   Workspace pages /     │     │ Queue         │
+│          │  │   Settings page         │     │               │
+│ User Bar │  ├─────────────────────────┤     │ Download      │
+│          │  │ Playback Tab 1:         │     │ Queue         │
+│ Workspace│  │   PlaybackPage          │     │               │
+│  section │  ├─────────────────────────┤     │               │
+│          │  │ Playback Tab N:         │     │               │
+│          │  │   PlaybackPage          │     │               │
 │          │  └─────────────────────────┘     │               │
 ├──────────┴──────────────────────────────────┴───────────────┤
 │                     Resizable Dividers                       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-- **左侧面板**（`LeftPanel.vue`）：Apple Music 风格侧边栏 — 导航器（Home / Search / Live / Recorded，由 `navigationStore.activeNav` 驱动）、用户/账户栏、设置模态框（`AdvancedSettingsModal`）和 SSO 登录（`SignInModal`）的宿主。macOS 下侧边栏渲染在标题栏共享的毛玻璃底图后面。
-- **主内容区**（`MainContent.vue`）：持久 **信息标签**（Home / Search / Live / Recorded 浏览 + 录播课时列表）加上 **N 个播放标签**。`tabStore.state.activeTabId === null` 显示信息标签；否则显示对应的 `PlaybackPage`。每个播放标签的 `PlaybackPage` 保持挂载（CSS 隐藏而非卸载），后台播放 + 幻灯片提取继续运行。侧边栏导航始终返回信息标签。
-- **右侧面板**（`RightPanel.vue`）：任务队列（`TaskQueuePanel`）和下载队列（`DownloadQueuePanel`）；活动视图保存在 `rightPanelStore` 中，标题栏托管视图切换器。
-- **可调整分隔线**：拖动调整面板宽度
+- **左侧面板**（`LeftPanel.vue`）：Apple Music 风格侧边栏 — 导航器（Home / Search / Live / Recorded，由 `navigationStore.activeNav` 驱动）、**Workspace 区域**（Slides Review / Slides Export / Cloud Notes）、用户/账户栏（齿轮 → 设置页面）和 SSO 登录（`SignInModal`）的宿主。macOS 下侧边栏渲染在标题栏共享的毛玻璃底图后面。
+- **主内容区**（`MainContent.vue`）：持久 **信息标签**（Home / Search / Live / Recorded 浏览 + 录播课时列表 + **Workspace 页面** + **设置页面**）加上 **N 个播放标签**。`tabStore.state.activeTabId === null` 显示信息标签；否则显示对应的 `PlaybackPage`。Workspace 页面和设置页面在信息标签内渲染，由 `activeNav` 控制可见性。每个播放标签的 `PlaybackPage` 保持挂载（CSS 隐藏而非卸载），后台播放 + 幻灯片提取继续运行。侧边栏导航始终返回信息标签。
+- **右侧面板**（`RightPanel.vue`）：任务队列（`TaskQueuePanel`）和下载队列（`DownloadQueuePanel`）；活动视图保存在 `rightPanelStore` 中，标题栏托管视图切换器。Workspace 页面时自动隐藏（`isWorkspacePage` 计算属性），不改变用户的 `rightCollapsed` 偏好。
+- **可调整分隔线**：拖动调整面板宽度（Workspace 页面时右侧分隔线隐藏）
+
+**Workspace 页面**（从原 Tools 窗口迁移，17.01–17.03）：Slides Review（结果视图）、Slides Export（PDF 生成器）、Cloud Notes 在主窗口内全宽渲染（左侧仅保留左侧面板）。同一组件在两个窗口中复用。`navigationStore` 中的 `WORKSPACE_TARGETS` 集合驱动 `isWorkspacePage` 计算属性，`App.vue` 和 `TitleBar` 据此隐藏右侧面板。
+
+**设置页面**（17.07）：取代原来的 `AdvancedSettingsModal` 模态框，在主内容区内渲染（非 Workspace 页面，保持三面板布局）。分段式切换器替代标签栏。六个设置 composable 在 `App.vue` 中一次性构造并通过 `settingsContext` 提供。
 
 **导航与标签流**：`courseSelection` 是从任何表面（课程网格、Home 行、搜索结果）打开课程/流的唯一入口。直播流和录播课时打开 **播放标签**（手动打开上限 `maxManualTabs`；任务队列为每个并发任务打开一个标签，上限 `parallelTasks`）。录播模式在信息标签内保持本地 课程网格→课时列表 浏览状态；直播模式无中间页面。首次启动显示 `OnboardingModal`（由 `config.onboardingCompleted` 控制）。
 
@@ -1550,7 +1546,6 @@ const config: ForgeConfig = {
       renderer: [
         { name: 'main_window', config: 'vite.renderer.config.ts' },
         { name: 'tools_window', config: 'vite.tools.config.ts' },
-        { name: 'addons_window', config: 'vite.addons.config.ts' },
       ],
     }),
     new AutoUnpackNativesPlugin({}),  // 仅打包时
@@ -1566,7 +1561,6 @@ const config: ForgeConfig = {
 | `vite.main.config.ts` | Main | 主进程打包 |
 | `vite.renderer.config.ts` | Renderer | 主窗口渲染器 |
 | `vite.tools.config.ts` | Renderer | 工具窗口渲染器 |
-| `vite.addons.config.ts` | Renderer | 附加组件窗口渲染器 |
 | `vite.preload.config.ts` | Preload | Preload 脚本 |
 | `vite.webviewPreload.config.ts` | Preload | Webview 捕获 Preload |
 
@@ -1683,7 +1677,6 @@ function featureBoundaryRule(self, allowed = []) {
 | `update` | `update.ts` | 应用更新 |
 | `extractorInstaller` | `update.ts` | 提取器安装 |
 | `tools` | `tools.ts` | 工具窗口管理 |
-| `addons` | `tools.ts` | 附加组件窗口 |
 | `webCapture` | `tools.ts` | Web 捕获 |
 | `cloudNotes` | `notes.ts` | Yanhekt 云笔记 CRUD (list, get, create, updateTitle, updateContent, moveToGroup, delete, groupList, groupCreate, groupDelete, uploadImage) |
 | `dialog` | `platform.ts` | 消息/错误对话框 |
@@ -1741,7 +1734,7 @@ npm run test:watch     # 监视模式运行测试
 
 1. **类型检查**：`cd autoslides && npx tsc --noEmit`
 2. **Lint 检查**：`cd autoslides && npm run lint`（包含领域边界规则）
-3. **启动测试**：`cd autoslides && npm start`（应用启动 3 个窗口，无控制台错误）
+3. **启动测试**：`cd autoslides && npm start`（应用启动 2 个窗口，无控制台错误）
 4. **冒烟测试**：测试变更涉及的功能域
 
 ---
