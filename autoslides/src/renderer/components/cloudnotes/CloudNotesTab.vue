@@ -1050,8 +1050,12 @@ async function onPublishToIndex(): Promise<void> {
   shareIndexing.value = true
   shareIndexError.value = ''
   try {
-    const r = await window.electronAPI.cloudNotes.publishToIndex(shareFragment.value, source, shareReview.value)
-    if (!r.ok) { shareIndexError.value = t('cloudNotes.shareIndexError'); return }
+    // source/review are Vue reactive proxies; IPC structured-clone can't handle a
+    // Proxy ("An object could not be cloned"), so pass plain de-proxied copies.
+    const plainSource: SlideMetadataSource = JSON.parse(JSON.stringify(source))
+    const plainReview = { reviewed: shareReview.value.reviewed, edited: shareReview.value.edited }
+    const r = await window.electronAPI.cloudNotes.publishToIndex(shareFragment.value, plainSource, plainReview)
+    if (!r.ok) { shareIndexError.value = r.error || t('cloudNotes.shareIndexError'); return }
     shareIndexUrl.value = r.data.indexUrl
     // Record the index URL in the note's managed metadata so a future Share reuses it.
     const noteId = cn.selectedNoteId.value
@@ -1062,8 +1066,8 @@ async function onPublishToIndex(): Promise<void> {
         if (await cn.saveContent(noteId, next)) await mountEditor(next)
       } catch { /* metadata update is best-effort */ }
     }
-  } catch {
-    shareIndexError.value = t('cloudNotes.shareIndexError')
+  } catch (e) {
+    shareIndexError.value = e instanceof Error ? e.message : String(e)
   } finally {
     shareIndexing.value = false
   }
