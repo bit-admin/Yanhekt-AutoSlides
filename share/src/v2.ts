@@ -23,15 +23,21 @@ const USER_ENDPOINT = 'https://cbiz.yanhekt.cn/v1/user';
 const SEARCH_LIMIT = 30;
 const RECENT_LIMIT = 12;
 
+// Static client signature md5(VIDEO_MAGIC + '_v1_undefined') — mirrors the app's
+// getClientSignature() (@common/crypto). It's a constant, and Workers can't run
+// Node's md5 / Web Crypto has no MD5, so we hardcode the precomputed value.
+const XCLIENT_SIGNATURE = '72b77856f6df3f563ab6e658631cac3d';
+
 interface VerifiedUser {
   id: string;
   name: string;
 }
 
 /**
- * Verify a Yanhekt token by calling the real user endpoint. Returns the
- * uploader's id (the "badge" we record for later moderation) + display name, or
- * null when the token is missing/invalid.
+ * Verify a Yanhekt token by calling the real user endpoint with the same header
+ * set the app uses (`apiClient.verifyToken`) — the Xclient signature headers are
+ * required or the endpoint rejects the request. Returns the uploader's `badge`
+ * (the id we record for later moderation) + nickname, or null when invalid.
  */
 async function verifyUser(token: string): Promise<VerifiedUser | null> {
   try {
@@ -41,19 +47,34 @@ async function verifyUser(token: string): Promise<VerifiedUser | null> {
         Accept: 'application/json, text/plain, */*',
         Origin: 'https://www.yanhekt.cn',
         Referer: 'https://www.yanhekt.cn/',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.3',
         'Xdomain-Client': 'web_user',
+        'xdomain-client': 'web_user',
+        'Xclient-Version': 'v1',
+        'Xclient-Signature': XCLIENT_SIGNATURE,
+        'Xclient-Timestamp': Math.floor(Date.now() / 1000).toString(),
       },
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error('[publish] user endpoint HTTP', res.status);
+      return null;
+    }
     const body = (await res.json()) as { code?: unknown; data?: Record<string, unknown> };
     // Yanhekt wraps payloads as { code: 0, data: {...} }; tolerate string codes.
-    if (body.code !== undefined && String(body.code) !== '0') return null;
+    if (body.code !== 0 && String(body.code) !== '0') {
+      console.error('[publish] user endpoint code', body.code);
+      return null;
+    }
     const data = body.data ?? {};
-    const id = data.id ?? data.userId ?? data.userNo;
-    if (id === undefined || id === null || String(id).length === 0) return null;
-    const name = data.nickname ?? data.realName ?? data.userName ?? data.name ?? '';
-    return { id: String(id), name: String(name) };
-  } catch {
+    const id = data.badge;
+    if (id === undefined || id === null || String(id).length === 0) {
+      console.error('[publish] user payload missing badge');
+      return null;
+    }
+    return { id: String(id), name: String(data.nickname ?? '') };
+  } catch (err) {
+    console.error('[publish] user verify threw', err instanceof Error ? err.message : err);
     return null;
   }
 }
