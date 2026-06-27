@@ -14,11 +14,21 @@
     "binding": "ASSETS"
   },
 
-  // KV for short links. Create with:  wrangler kv namespace create SHARE_KV
-  // then paste the returned id here.
+  // KV for v1 short links AND the v2 homepage aggregate (key "stats:home").
+  // Create with:  wrangler kv namespace create SHARE_KV
   "kv_namespaces": [
     { "binding": "SHARE_KV", "id": "<YOUR_KV_NAMESPACE_ID>" }
   ],
+
+  // D1 for the AutoSlides Index (v2). Create with:
+  //   wrangler d1 create autoslides-index
+  // then apply migrations with:  wrangler d1 migrations apply autoslides-index
+  "d1_databases": [
+    { "binding": "INDEX_DB", "database_name": "autoslides-index", "database_id": "<YOUR_D1_DATABASE_ID>" }
+  ],
+
+  // Cron: recompute the v2 homepage aggregates into KV (one KV write/run).
+  "triggers": { "crons": ["0 * * * *"] },
 
   // Custom domain — Cloudflare creates/manages the DNS record and attaches this
   // Worker to the whole hostname. Adjust to your own zone.

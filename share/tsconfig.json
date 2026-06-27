@@ -16,5 +16,11 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "../autoslides/src/shared/shareLink.ts"]
+  "include": [
+    "src",
+    "apex",
+    "vite.apex.config.ts",
+    "../autoslides/src/shared/shareLink.ts",
+    "../autoslides/src/shared/slideMetadataTypes.ts"
+  ]
 }

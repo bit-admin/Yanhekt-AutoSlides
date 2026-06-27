@@ -3,13 +3,15 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "AutoSlides note share viewer — Cloudflare Worker (Static Assets) + KV short links.",
+  "description": "AutoSlides share viewer (v1) + AutoSlides Index (v2) — Cloudflare Worker, KV short links, D1 metadata.",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/postbuild.mjs",
+    "build": "vite build && vite build -c vite.apex.config.ts",
     "typecheck": "tsc --noEmit",
     "preview": "wrangler dev",
-    "deploy": "vite build && wrangler deploy"
+    "db:migrate": "wrangler d1 migrations apply autoslides-index",
+    "db:migrate:local": "wrangler d1 migrations apply autoslides-index --local",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "jspdf": "^2.5.2",
