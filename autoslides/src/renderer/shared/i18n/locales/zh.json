@@ -11,7 +11,16 @@
     "pinned": "置顶",
     "slidesReview": "幻灯片审阅",
     "slidesExport": "幻灯片导出",
-    "cloudNotes": "云笔记"
+    "cloudNotes": "云笔记",
+    "cloudIndex": "云索引"
+  },
+  "cloudIndex": {
+    "loading": "正在加载幻灯片…",
+    "loadError": "无法加载该讲座。",
+    "slideCount": "{n} 张幻灯片",
+    "importToNotes": "导入到云笔记",
+    "back": "返回",
+    "dismiss": "关闭"
   },
   "auth": {
     "verifying": "验证中...",
@@ -1266,6 +1275,7 @@
     "slidesReview": "幻灯片审阅",
     "slidesExport": "幻灯片导出",
     "cloudNotes": "云笔记",
+    "cloudIndex": "云索引",
     "settings": "设置",
     "close": "关闭标签页",
     "closeDisabledTask": "任务运行中，无法关闭",

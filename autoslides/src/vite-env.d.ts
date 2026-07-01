@@ -844,6 +844,11 @@ interface ElectronAPI {
       source: import('@common/slideMetadataTypes').SlideMetadataSource,
       review: { reviewed: boolean; edited: boolean },
     ) => Promise<import('@common/notesTypes').NotesResult<{ shareId: string; indexUrl: string; duplicate: boolean }>>;
+    resolveShareLink: (link: string) => Promise<import('@common/notesTypes').NotesResult<import('@common/notesTypes').ShareImportResult>>;
+  };
+
+  cloudIndex: {
+    onShareLinkIntercepted: (callback: (url: string) => void) => () => void;
   };
 }
 

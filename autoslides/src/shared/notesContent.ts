@@ -20,6 +20,19 @@ import type { SlideMetadata } from './slideMetadataTypes';
 export const NOTE_METADATA_KEY = 'autoslides';
 export const NOTE_METADATA_VERSION = 1;
 
+/**
+ * Short, English-only copyright notice embedded in every imported note (a
+ * condensed form of the PDF Maker cover copyright). Kept English regardless of
+ * UI language since the note travels with the user's Yanhekt account. Shared by
+ * every import call site (Cloud Notes folder import, Cloud Index share-link
+ * import) so the wording can't drift between them.
+ */
+export const NOTE_COPYRIGHT =
+  'This file may contain copyrighted material, extracted from a recorded lecture solely for ' +
+  'personal study and non-commercial educational use. All rights remain with their respective ' +
+  'holders; redistribution or commercial use is prohibited. AutoSlides is an automated tool and ' +
+  'claims no ownership of the content.';
+
 export interface NoteCloudMetadata {
   displayName?: string;
   imageCount?: number;

@@ -15,7 +15,7 @@ const DEMO_IMPORT_BAN = {
 // Domain-boundary helper: a feature domain may not import from sibling feature
 // domains. Returns a no-restricted-imports rule that forbids every domain other
 // than `self` and explicitly-allowed cross-domain edges (plus the demo ban).
-const FEATURE_DOMAINS = ['video', 'results', 'offline', 'download', 'ai', 'export', 'course', 'settings', 'platform', 'webCapture', 'tools'];
+const FEATURE_DOMAINS = ['video', 'results', 'offline', 'download', 'ai', 'export', 'course', 'settings', 'platform', 'webCapture', 'tools', 'cloudIndex'];
 function featureBoundaryRule(self, allowed = []) {
   const allow = new Set([self, ...allowed]);
   const forbidden = FEATURE_DOMAINS.filter(d => !allow.has(d));
@@ -143,6 +143,8 @@ export default tseslint.config(
   //   offline → ai        (same; offline post-processing path)
   //   settings → platform, ai (SettingsContext bundles useAuth/useCache/useAI*
   //                            composables for the LeftPanel tab children)
+  //   cloudIndex → cloudNotes (useCloudNotes/useNoteImport: managed group id,
+  //                            same-title conflict check, loadAll/refreshGroups)
   //   (results → offline edge removed once Phase 10 extracted shared/autoCrop)
   // ----------------------------------------------------------------------
   { files: ['src/renderer/features/video/**/*.{ts,vue}'],     rules: featureBoundaryRule('video',     ['course']) },
@@ -156,6 +158,7 @@ export default tseslint.config(
   { files: ['src/renderer/features/platform/**/*.{ts,vue}'],  rules: featureBoundaryRule('platform') },
   { files: ['src/renderer/features/webCapture/**/*.{ts,vue}'],rules: featureBoundaryRule('webCapture') },
   { files: ['src/renderer/features/tools/**/*.{ts,vue}'],     rules: featureBoundaryRule('tools') },
+  { files: ['src/renderer/features/cloudIndex/**/*.{ts,vue}'],rules: featureBoundaryRule('cloudIndex', ['cloudNotes']) },
 
   // shared/ is foundational — it must not depend on features/ (one-way layering)
   // and must never import the deletable demo/ folder.

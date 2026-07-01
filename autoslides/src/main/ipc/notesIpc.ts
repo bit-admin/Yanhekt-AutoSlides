@@ -81,4 +81,7 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
     (_e, fragment: string, source: SlideMetadataSource, review: { reviewed: boolean; edited: boolean }) =>
       run(() => notesService.publishToIndex(fragment, source, review)),
   );
+
+  ipcMain.handle('cloudNotes:resolveShareLink', (_e, link: string) =>
+    run(() => notesService.resolveShareLink(link)));
 }

@@ -11,7 +11,16 @@
     "pinned": "ピン留め",
     "slidesReview": "スライド確認",
     "slidesExport": "スライド書き出し",
-    "cloudNotes": "クラウドノート"
+    "cloudNotes": "クラウドノート",
+    "cloudIndex": "クラウドインデックス"
+  },
+  "cloudIndex": {
+    "loading": "スライドを読み込み中…",
+    "loadError": "この講義を読み込めませんでした。",
+    "slideCount": "{n} 枚のスライド",
+    "importToNotes": "クラウドノートにインポート",
+    "back": "戻る",
+    "dismiss": "閉じる"
   },
   "auth": {
     "verifying": "確認中...",
@@ -1266,6 +1275,7 @@
     "slidesReview": "スライド確認",
     "slidesExport": "スライド書き出し",
     "cloudNotes": "クラウドノート",
+    "cloudIndex": "クラウドインデックス",
     "settings": "設定",
     "close": "タブを閉じる",
     "closeDisabledTask": "タスク実行中は閉じられません",

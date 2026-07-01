@@ -11,7 +11,16 @@
     "pinned": "Pinned",
     "slidesReview": "Slides Review",
     "slidesExport": "Slides Export",
-    "cloudNotes": "Cloud Notes"
+    "cloudNotes": "Cloud Notes",
+    "cloudIndex": "Cloud Index"
+  },
+  "cloudIndex": {
+    "loading": "Loading slides…",
+    "loadError": "Couldn't load this lecture.",
+    "slideCount": "{n} slides",
+    "importToNotes": "Import to Cloud Notes",
+    "back": "Back",
+    "dismiss": "Dismiss"
   },
   "auth": {
     "verifying": "Verifying...",
@@ -1266,6 +1275,7 @@
     "slidesReview": "Slides Review",
     "slidesExport": "Slides Export",
     "cloudNotes": "Cloud Notes",
+    "cloudIndex": "Cloud Index",
     "settings": "Settings",
     "close": "Close tab",
     "closeDisabledTask": "Can't close while the task is running",

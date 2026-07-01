@@ -516,23 +516,15 @@ import Table from '@editorjs/table'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import { useNoteImport, type ImportItem } from '@features/cloudNotes/useNoteImport'
 import { useNoteExport, type ExportItem } from '@features/cloudNotes/useNoteExport'
+import { noteOpenRequestStore } from '@features/cloudNotes/noteOpenRequest'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { NOTE_GROUP_NAME_MAX, EDITORJS_DOC_VERSION, isManagedNoteTitle, managedNoteDisplayName } from '@common/notesTypes'
 import { buildSharePayload, buildShareUrl, encodeSharePayload } from '@common/shareLink'
-import { noteImageUrls, findRecordedShareUrl, readNoteMetadata, upsertNoteMetadata } from '@common/notesContent'
+import { noteImageUrls, findRecordedShareUrl, readNoteMetadata, upsertNoteMetadata, NOTE_COPYRIGHT } from '@common/notesContent'
 import type { SlideMetadataSource } from '@common/slideMetadataTypes'
 
 const { t } = useI18n()
 const cn = useCloudNotes()
-
-// Short, English-only copyright notice embedded in every imported note (a
-// condensed form of the PDF Maker cover copyright). Kept English regardless of
-// UI language since the note travels with the user's Yanhekt account.
-const NOTE_COPYRIGHT =
-  'This file may contain copyrighted material, extracted from a recorded lecture solely for ' +
-  'personal study and non-commercial educational use. All rights remain with their respective ' +
-  'holders; redistribution or commercial use is prohibited. AutoSlides is an automated tool and ' +
-  'claims no ownership of the content.'
 
 const imp = useNoteImport(cn, {
   meta: (count, date) => t('cloudNotes.noteMeta', { count, date }),
@@ -1128,6 +1120,17 @@ onMounted(async () => {
   // by created time, so re-saving wouldn't move it). No-op if absent.
   await cn.recreateReadme(buildReadmeContent())
 })
+
+// Cross-page "open this note" signal (e.g. Cloud Index's import-conflict row
+// linking back to an existing managed note). Runs on every request, including
+// the one already pending when this page first mounts.
+watch(
+  () => noteOpenRequestStore.pending.value,
+  (req) => {
+    if (req) void openNote(req.noteId)
+  },
+  { immediate: true },
+)
 
 onUnmounted(() => {
   if (savedFlashTimer) clearTimeout(savedFlashTimer)

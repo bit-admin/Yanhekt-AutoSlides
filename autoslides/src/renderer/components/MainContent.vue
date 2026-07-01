@@ -50,6 +50,17 @@
           <CloudNotesTab v-if="cloudNotesMounted" />
         </div>
 
+        <!-- Cloud Index (Workspace page — full-width, right panel hidden).
+             Embeds share.ruc.edu.kg in a webview. Lazily mounted on first visit:
+             mounting the webview triggers a real navigation, so it shouldn't load
+             before the user visits the page. -->
+        <div
+          :class="['mode-container', { 'mode-hidden': activeNav !== 'cloud-index' }]"
+          data-mode="cloud-index"
+        >
+          <CloudIndexTab v-if="cloudIndexMounted" />
+        </div>
+
         <!-- Settings (Workspace page — full-width, right panel hidden). Reached
              from the user-bar gear button / menu bar, not the Workspace nav list.
              Lazily mounted on first visit so its prepare loads (network
@@ -125,6 +136,7 @@ import SearchPage from '@renderer/components/course/SearchPage.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
 import PdfMakerWindow from '@renderer/components/export/PdfMakerWindow.vue'
 import CloudNotesTab from '@renderer/components/cloudnotes/CloudNotesTab.vue'
+import CloudIndexTab from '@renderer/components/cloudIndex/CloudIndexTab.vue'
 import SettingsPage from '@renderer/components/settings/SettingsPage.vue'
 import type { Course, Session } from '@features/video/useSlideExtraction'
 import { DataStore } from '@shared/services/dataStore'
@@ -150,6 +162,18 @@ watch(
   activeNav,
   (nav) => {
     if (nav === 'cloud-notes') cloudNotesMounted.value = true
+  },
+  { immediate: true }
+)
+
+// Cloud Index likewise mounts lazily on first visit — mounting its <webview>
+// triggers a real navigation to share.ruc.edu.kg, so it shouldn't load before
+// the user visits the page.
+const cloudIndexMounted = ref(false)
+watch(
+  activeNav,
+  (nav) => {
+    if (nav === 'cloud-index') cloudIndexMounted.value = true
   },
   { immediate: true }
 )

@@ -9,19 +9,25 @@ import type { useCloudNotes } from './useCloudNotes'
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
 
 export type ImportStatus =
-  | 'pending' | 'uploading' | 'building' | 'done' | 'conflict' | 'error'
+  | 'pending' | 'resolving' | 'uploading' | 'building' | 'done' | 'conflict' | 'error'
 
-/** One queued import row — a local slide folder uploaded as a managed note. */
+/** One queued import row — either a local slide folder or a resolved share link. */
 export interface ImportItem {
-  /** Unique row key: the slide folder name. */
+  /** 'folder' = local slides (uploaded); 'share' = share link (URLs already public). */
+  kind: 'folder' | 'share'
+  /** Unique row key: the slide folder name, or a synthetic key for share rows. */
   folderName: string
   displayName: string
   path: string
   status: ImportStatus
-  /** Images uploaded so far. */
+  /** Images uploaded so far (folder) / total carried (share). */
   uploaded: number
-  /** Total images in the folder. */
+  /** Total images in the folder / share. */
   total: number
+  /** Public image URLs to embed directly (share imports only — no upload). */
+  urls?: string[]
+  /** Referenced images the server couldn't resolve (share imports only). */
+  missing?: number
   /** Note created for this row (on success). */
   noteId?: number
   /** Existing managed note(s) with the same title (on conflict). */
@@ -150,6 +156,82 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
   }
 
   /**
+   * Import a single share row: the images are already public coss URLs (resolved
+   * from the share link), so there's no upload step — just create the note, set
+   * the managed title, and embed the URLs in slide order.
+   */
+  async function processShareItem(item: ImportItem): Promise<void> {
+    const urls = item.urls ?? []
+    if (urls.length === 0) { item.status = 'error'; item.error = 'empty'; return }
+
+    const createRes = await window.electronAPI.cloudNotes.create()
+    if (!createRes.ok) { item.status = 'error'; item.error = createRes.error; return }
+    const noteId = createRes.data
+    item.noteId = noteId
+
+    const title = buildManagedNoteTitle(item.displayName)
+    const groupId = cn.managedGroups.value[0]?.id
+    const titleRes = await window.electronAPI.cloudNotes.updateTitle(noteId, title, groupId)
+    if (!titleRes.ok) { item.status = 'error'; item.error = titleRes.error; return }
+
+    item.status = 'building'
+    item.uploaded = urls.length
+    // No local metadata.json for a bare share link — `slides` group is null.
+    const contentRes = await window.electronAPI.cloudNotes.updateContent(noteId, buildContent(item.displayName, urls, null))
+    if (!contentRes.ok) { item.status = 'error'; item.error = contentRes.error; return }
+    item.status = 'done'
+  }
+
+  /**
+   * Import a managed note from a share link (already resolved to a title/URLs by
+   * the caller — e.g. the Cloud Index webview interception). Runs the same
+   * conflict/create flow as folder imports — a same-titled managed note flags a
+   * conflict for the user to resolve. The row is pushed immediately (status
+   * `resolving`) for live feedback while the link is resolved server-side.
+   */
+  async function importShareLink(link: string, resolvingLabel: string): Promise<void> {
+    if (running.value) return
+    const trimmed = link.trim()
+    if (!trimmed) return
+    running.value = true
+
+    const item: ImportItem = {
+      kind: 'share',
+      folderName: `share:${Date.now()}`,
+      displayName: resolvingLabel,
+      path: '',
+      status: 'resolving',
+      uploaded: 0,
+      total: 0,
+    }
+    queue.value.push(item)
+
+    try {
+      await cn.loadAll()
+      const res = await window.electronAPI.cloudNotes.resolveShareLink(trimmed)
+      if (!res.ok) { item.status = 'error'; item.error = res.error; return }
+
+      const { title, urls, missing } = res.data
+      item.displayName = title
+      item.urls = urls
+      item.total = urls.length
+      item.missing = missing
+      if (urls.length === 0) { item.status = 'error'; item.error = 'empty'; return }
+
+      const ids = sameTitleNoteIds(title)
+      if (ids.length > 0) {
+        item.status = 'conflict'
+        item.conflictNoteIds = ids
+      } else {
+        await processShareItem(item)
+      }
+      await Promise.all([cn.loadAll(), cn.refreshGroups()])
+    } finally {
+      running.value = false
+    }
+  }
+
+  /**
    * Start importing the given folders. Refreshes the full note set for an
    * accurate conflict check, pre-flags conflicting folders, then processes the
    * rest sequentially. Reloads notes + groups afterwards so new notes appear.
@@ -166,6 +248,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       queue.value = folderNames.map((folderName) => {
         const f = byName.get(folderName)
         return {
+          kind: 'folder' as const,
           folderName,
           displayName: formatToolFolderName(folderName),
           path: f?.path ?? '',
@@ -222,7 +305,8 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       item.status = 'pending'
       item.uploaded = 0
       item.conflictNoteIds = undefined
-      await processItem(item)
+      if (item.kind === 'share') await processShareItem(item)
+      else await processItem(item)
       await Promise.all([cn.loadAll(), cn.refreshGroups()])
     } finally {
       running.value = false
@@ -236,6 +320,6 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
 
   return {
     queue, importing, overall, cancelRequested,
-    startImport, cancel, reset, resolveConflict, skipConflict,
+    startImport, importShareLink, cancel, reset, resolveConflict, skipConflict,
   }
 }

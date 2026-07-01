@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, dialog, nativeTheme, session, shell } from 'e
 import path from 'node:path';
 import type { ConfigService } from '@main/platform/configService';
 import { demoWebPreferences } from '@main/demo/demoEnv';
+import { parseShareLink } from '@common/shareLink';
 import enTranslations from '../../renderer/shared/i18n/locales/en.json';
 import zhTranslations from '../../renderer/shared/i18n/locales/zh.json';
 import jaTranslations from '../../renderer/shared/i18n/locales/ja.json';
@@ -159,6 +160,29 @@ export class WindowManager {
       const menu = Menu.buildFromTemplate(this.createMenuTemplate());
       Menu.setApplicationMenu(menu);
     }
+  }
+
+  /**
+   * Guard the main window's Cloud Index `<webview>` (embeds share.ruc.edu.kg):
+   * intercept navigations to a v1 share link before they load, so the remote
+   * viewer's own UI never paints — the renderer shows a native detail view
+   * instead (see `cloudIndex:shareLinkIntercepted`). `will-navigate` on a real
+   * `webContents` (unlike the `<webview>` tag's own DOM-level event) supports
+   * `preventDefault()`. Ordinary apex browsing (search/results) uses `pushState`
+   * client-side routing, not a top-level navigation, so it's unaffected.
+   */
+  guardCloudIndexWebview(mainWindow: BrowserWindow): void {
+    mainWindow.webContents.on('did-attach-webview', (_event, webContents) => {
+      webContents.setWindowOpenHandler(({ url }) => {
+        webContents.loadURL(url);
+        return { action: 'deny' };
+      });
+      webContents.on('will-navigate', (event, url) => {
+        if (!parseShareLink(url)) return;
+        event.preventDefault();
+        mainWindow.webContents.send('cloudIndex:shareLinkIntercepted', url);
+      });
+    });
   }
 
   setOnToolsWindowClosed(fn: () => void): void {

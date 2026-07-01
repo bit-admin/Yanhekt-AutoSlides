@@ -7,6 +7,7 @@ import type {
   NoteGroup,
   UploadedImage,
   ExportFolderInfo,
+  ShareImportResult,
 } from '@common/notesTypes';
 import type { SlideMetadataSource } from '@common/slideMetadataTypes';
 
@@ -55,4 +56,6 @@ export const cloudNotes = {
     review: { reviewed: boolean; edited: boolean },
   ): Promise<NotesResult<{ shareId: string; indexUrl: string; duplicate: boolean }>> =>
     ipcRenderer.invoke('cloudNotes:publishToIndex', fragment, source, review),
+  resolveShareLink: (link: string): Promise<NotesResult<ShareImportResult>> =>
+    ipcRenderer.invoke('cloudNotes:resolveShareLink', link),
 };
