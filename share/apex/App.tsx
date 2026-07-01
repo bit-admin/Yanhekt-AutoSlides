@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 
+declare global {
+  interface Window {
+    /** Injected by the Electron Cloud Index page so removal can auth silently. */
+    __autoslidesToken?: string;
+  }
+}
+
 /** A lecture summary as returned by /v2/api/{search,lecture,stats}. */
 interface Lecture {
   courseId: string;
@@ -241,21 +248,30 @@ function LectureView({
 }) {
   const [data, setData] = useState<{ lecture: Lecture; versions: Version[] } | null>(null);
   const [status, setStatus] = useState<'loading' | 'ok' | 'error'>('loading');
+  const [showRemoval, setShowRemoval] = useState(false);
+
+  const load = useCallback(
+    (bust = false) => {
+      setStatus('loading');
+      const cb = bust ? `&_=${Date.now()}` : '';
+      fetch(`${API}/lecture?courseId=${encodeURIComponent(courseId)}&sessionId=${encodeURIComponent(sessionId)}${cb}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.ok) {
+            setData({ lecture: d.lecture, versions: d.versions ?? [] });
+            setStatus('ok');
+          } else {
+            setStatus('error');
+          }
+        })
+        .catch(() => setStatus('error'));
+    },
+    [courseId, sessionId],
+  );
 
   useEffect(() => {
-    setStatus('loading');
-    fetch(`${API}/lecture?courseId=${encodeURIComponent(courseId)}&sessionId=${encodeURIComponent(sessionId)}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.ok) {
-          setData({ lecture: d.lecture, versions: d.versions ?? [] });
-          setStatus('ok');
-        } else {
-          setStatus('error');
-        }
-      })
-      .catch(() => setStatus('error'));
-  }, [courseId, sessionId]);
+    load();
+  }, [load]);
 
   return (
     <main className="lecture">
@@ -264,11 +280,22 @@ function LectureView({
       {status === 'error' && <p className="empty">This lecture isn’t in the index.</p>}
       {status === 'ok' && data && (
         <>
-          <h1 className="lecture-title">
-            {[data.lecture.courseTitle || 'Untitled course', data.lecture.sessionTitle]
-              .filter(Boolean)
-              .join(' ')}
-          </h1>
+          <div className="lecture-head">
+            <h1 className="lecture-title">
+              {[data.lecture.courseTitle || 'Untitled course', data.lecture.sessionTitle]
+                .filter(Boolean)
+                .join(' ')}
+            </h1>
+            <button
+              className="removal-btn"
+              type="button"
+              aria-label="Request removal"
+              title="Request removal"
+              onClick={() => setShowRemoval(true)}
+            >
+              <FlagIcon />
+            </button>
+          </div>
           <p className="lecture-meta">
             {[data.lecture.instructor || (data.lecture.professors ?? []).join(', '), termLabel(data.lecture)]
               .filter(Boolean)
@@ -289,7 +316,134 @@ function LectureView({
           </div>
         </>
       )}
+      {showRemoval && (
+        <RemovalModal
+          courseId={courseId}
+          sessionId={sessionId}
+          onClose={() => setShowRemoval(false)}
+          onRemoved={(lectureRemoved) => {
+            setShowRemoval(false);
+            if (lectureRemoved) onBack();
+            else load(true);
+          }}
+        />
+      )}
     </main>
+  );
+}
+
+function RemovalModal({
+  courseId,
+  sessionId,
+  onClose,
+  onRemoved,
+}: {
+  courseId: string;
+  sessionId: string;
+  onClose: () => void;
+  onRemoved: (lectureRemoved: boolean) => void;
+}) {
+  // In the Electron Cloud Index page the app injects the signed-in user's token,
+  // so we skip the manual paste field and just confirm. On the plain web the user
+  // pastes their auth token.
+  const injected = typeof window !== 'undefined' ? window.__autoslidesToken : undefined;
+  const [token, setToken] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  // `changed` distinguishes an actual removal (parent must refresh) from a no-op.
+  const [done, setDone] = useState<{ message: string; changed: boolean; lectureRemoved: boolean } | null>(null);
+
+  const submit = useCallback(async () => {
+    const t = (injected || token).trim();
+    if (!t) return;
+    setBusy(true);
+    setError('');
+    try {
+      const r = await fetch(`${API}/request-removal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${t}` },
+        body: JSON.stringify({ courseId, sessionId }),
+      });
+      if (r.status === 401) {
+        setError('Invalid or expired token.');
+        return;
+      }
+      const d = await r.json();
+      if (!d.ok) {
+        setError('Removal failed. Please try again.');
+        return;
+      }
+      if (d.removed === 0) {
+        setDone({ message: 'You haven’t uploaded any versions of this lecture.', changed: false, lectureRemoved: false });
+        return;
+      }
+      const lectureRemoved = !!d.lectureRemoved;
+      setDone({
+        message: `Removed ${d.removed} version${d.removed === 1 ? '' : 's'} you uploaded.`,
+        changed: true,
+        lectureRemoved,
+      });
+      // Brief confirmation, then refresh the parent view.
+      setTimeout(() => onRemoved(lectureRemoved), 900);
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setBusy(false);
+    }
+  }, [injected, token, courseId, sessionId, onRemoved]);
+
+  return (
+    <div className="modal-scrim" onClick={onClose}>
+      <div className="removal-modal" onClick={(e) => e.stopPropagation()}>
+        <h3 className="removal-modal-title">Request removal</h3>
+        {done ? (
+          <p className="removal-modal-body">{done.message}</p>
+        ) : (
+          <>
+            <p className="removal-modal-body">
+              This removes only the version(s) you uploaded for this lecture. Other
+              contributors’ versions are unaffected.
+            </p>
+            {!injected && (
+              <input
+                className="removal-input"
+                type="password"
+                placeholder="Paste your auth token"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                autoFocus
+              />
+            )}
+            {error && <p className="removal-error">{error}</p>}
+          </>
+        )}
+        <div className="removal-actions">
+          {done ? (
+            <button
+              className="removal-cancel"
+              type="button"
+              onClick={() => (done.changed ? onRemoved(done.lectureRemoved) : onClose())}
+            >
+              Close
+            </button>
+          ) : (
+            <>
+              <button className="removal-cancel" type="button" onClick={onClose} disabled={busy}>
+                Cancel
+              </button>
+              <button
+                className="removal-confirm"
+                type="button"
+                onClick={() => void submit()}
+                disabled={busy || (!injected && !token.trim())}
+              >
+                {busy ? 'Removing…' : 'Remove'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -350,6 +504,27 @@ function ArrowIcon() {
       <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
       <polyline
         points="13 6 19 12 13 18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
+function FlagIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M5 3v18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M5 4h11l-2 3.5L16 11H5"
         stroke="currentColor"
         strokeWidth="2"
         strokeLinecap="round"

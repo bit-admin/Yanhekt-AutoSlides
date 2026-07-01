@@ -17,6 +17,8 @@
 
   /* Status — brand-consistent like Twitter's blue check, stays the same in both themes */
   --verified-color: #1d9bf0;
+  --danger: #d93025;
+  --danger-strong: #b3271d;
 
   /* Shadows */
   --shadow-sm: rgba(60, 64, 67, 0.16);
@@ -41,6 +43,8 @@
 
     --accent: #6ea8fe;
     --accent-strong: #4a8bfd;
+    --danger: #f28b82;
+    --danger-strong: #ee675c;
 
     --shadow-sm: rgba(0, 0, 0, 0.3);
     --shadow-md: rgba(0, 0, 0, 0.45);
@@ -209,8 +213,78 @@ a { color: inherit; text-decoration: none; }
 .lecture { flex: 1; padding-top: 8px; }
 .back { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; padding: 0 0 16px; }
 .back:hover { color: var(--text-primary); }
+.lecture-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .lecture-title { font-size: 28px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.02em; }
 .lecture-meta { color: var(--text-secondary); margin: 0 0 28px; }
+
+.removal-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-top: 2px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.removal-btn:hover { color: var(--danger); border-color: var(--danger); }
+
+/* Removal modal */
+.modal-scrim {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 100;
+}
+.removal-modal {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px var(--shadow-md);
+  padding: 22px;
+}
+.removal-modal-title { font-size: 18px; font-weight: 700; margin: 0 0 10px; }
+.removal-modal-body { color: var(--text-secondary); font-size: 14px; line-height: 1.5; margin: 0 0 14px; }
+.removal-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.removal-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--focus-ring); }
+.removal-error { color: var(--danger); font-size: 13px; margin: 0 0 12px; }
+.removal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+.removal-cancel,
+.removal-confirm {
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.removal-cancel { background: none; border-color: var(--border-color); color: var(--text-secondary); }
+.removal-cancel:hover { color: var(--text-primary); }
+.removal-confirm { background: var(--danger); color: #fff; }
+.removal-confirm:hover { background: var(--danger-strong); }
+.removal-confirm:disabled,
+.removal-cancel:disabled { opacity: 0.55; cursor: default; }
 .lecture h2 { font-size: 16px; color: var(--text-secondary); font-weight: 600; margin: 0 0 14px; }
 
 .version-list { display: flex; flex-direction: column; }

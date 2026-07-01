@@ -232,6 +232,78 @@ async function handlePublish(req: Request, env: Env, origin: string): Promise<Re
   return json({ ok: true, duplicate: false, shareId, indexUrl });
 }
 
+interface RemovalBody {
+  courseId?: unknown;
+  sessionId?: unknown;
+}
+
+/**
+ * Uploader-initiated removal. Authenticates the requester with the same Yanhekt
+ * token→badge logic as publish, then hard-deletes ONLY the versions of the given
+ * lecture whose `uploader_id` matches the requester's badge — never anyone else's
+ * versions. If that empties the lecture, the lecture row is deleted too so it
+ * drops out of search/home.
+ */
+async function handleRemovalRequest(req: Request, env: Env): Promise<Response> {
+  const auth = req.headers.get('Authorization') ?? '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+  if (!token) return json({ error: 'unauthorized' }, 401);
+
+  const user = await verifyUser(token);
+  if (!user) return json({ error: 'unauthorized' }, 401);
+
+  let body: RemovalBody;
+  try {
+    body = (await req.json()) as RemovalBody;
+  } catch {
+    return json({ error: 'bad-json' }, 400);
+  }
+  const courseId = body.courseId ? String(body.courseId) : '';
+  const sessionId = body.sessionId ? String(body.sessionId) : '';
+  if (!courseId || !sessionId) return json({ error: 'missing-ids' }, 400);
+
+  const db = env.INDEX_DB;
+  // Count the requester's own versions first so we can report how many were removed.
+  const owned = await db
+    .prepare(
+      'SELECT COUNT(*) AS n FROM versions WHERE course_id = ? AND session_id = ? AND uploader_id = ?',
+    )
+    .bind(courseId, sessionId, user.id)
+    .first<{ n: number }>();
+  const removed = owned?.n ?? 0;
+  if (removed === 0) {
+    // Nothing owned by this user here — no-op, but a clean 200 so the UI can say so.
+    return json({ ok: true, removed: 0, lectureRemoved: false });
+  }
+
+  await db
+    .prepare('DELETE FROM versions WHERE course_id = ? AND session_id = ? AND uploader_id = ?')
+    .bind(courseId, sessionId, user.id)
+    .run();
+
+  // Reconcile the lecture's version_count; drop the lecture if now empty.
+  const remaining = await db
+    .prepare('SELECT COUNT(*) AS n FROM versions WHERE course_id = ? AND session_id = ?')
+    .bind(courseId, sessionId)
+    .first<{ n: number }>();
+  const n = remaining?.n ?? 0;
+  let lectureRemoved = false;
+  if (n > 0) {
+    await db
+      .prepare('UPDATE lectures SET version_count = ?, updated_at = ? WHERE course_id = ? AND session_id = ?')
+      .bind(n, new Date().toISOString(), courseId, sessionId)
+      .run();
+  } else {
+    await db
+      .prepare('DELETE FROM lectures WHERE course_id = ? AND session_id = ?')
+      .bind(courseId, sessionId)
+      .run();
+    lectureRemoved = true;
+  }
+
+  return json({ ok: true, removed, lectureRemoved });
+}
+
 const LECTURE_COLS =
   'course_id, session_id, course_title, session_title, instructor, professors, ' +
   'semester, school_year, college, week_number, day, version_count, updated_at';
@@ -373,6 +445,9 @@ export async function routeV2(
   const { pathname } = url;
   if (pathname === '/v2/api/publish' && req.method === 'POST') {
     return handlePublish(req, env, origin);
+  }
+  if (pathname === '/v2/api/request-removal' && req.method === 'POST') {
+    return handleRemovalRequest(req, env);
   }
   if (pathname === '/v2/api/search' && req.method === 'GET') {
     return handleSearch(req, env, url, ctx);

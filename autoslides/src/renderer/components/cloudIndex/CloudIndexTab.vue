@@ -106,6 +106,7 @@ import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/no
 import { useShareIndexExport, type ShareExportItem } from '@features/cloudIndex/useShareIndexExport'
 import { buildIndexMetadata, type CapturedLectureData } from '@features/cloudIndex/indexMetadata'
 import { navigationStore } from '@features/course/navigationStore'
+import { tokenManager } from '@shared/services/authService'
 
 const { t } = useI18n()
 const cn = useCloudNotes()
@@ -154,6 +155,25 @@ const FETCH_CAPTURE_HOOK = `(() => {
 
 function installCaptureHook(): void {
   void webviewRef.value?.executeJavaScript(FETCH_CAPTURE_HOOK).catch(() => { /* best-effort */ })
+}
+
+/**
+ * Inject the signed-in user's auth token into the embedded apex page so its
+ * "Request Removal" flow can authenticate silently (the plain web build has no
+ * token and falls back to a paste field). Re-run on every full load — a fresh
+ * guest `window` clears the global. No-op when the user isn't signed in.
+ */
+function injectAuthToken(): void {
+  const token = tokenManager.getToken()
+  if (!token) return
+  void webviewRef.value
+    ?.executeJavaScript(`window.__autoslidesToken=${JSON.stringify(token)}`)
+    .catch(() => { /* best-effort */ })
+}
+
+function onWebviewDomReady(): void {
+  installCaptureHook()
+  injectAuthToken()
 }
 
 /**
@@ -276,7 +296,7 @@ onMounted(() => {
   // is still in flight, leaving the fetch hook uninstalled). Re-installs on every
   // full page load (a fresh guest `window` clears it); SPA route changes keep the
   // same window, so one install covers all subsequent lecture fetches.
-  webviewRef.value?.addEventListener('dom-ready', installCaptureHook)
+  webviewRef.value?.addEventListener('dom-ready', onWebviewDomReady)
   unsubscribe = window.electronAPI.cloudIndex.onShareLinkIntercepted((url) => {
     void resolve(url)
   })
@@ -286,7 +306,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   unsubscribe?.()
-  webviewRef.value?.removeEventListener('dom-ready', installCaptureHook)
+  webviewRef.value?.removeEventListener('dom-ready', onWebviewDomReady)
   window.removeEventListener('keydown', onKeydown)
 })
 </script>
