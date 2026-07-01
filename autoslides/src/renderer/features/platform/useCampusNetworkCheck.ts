@@ -12,6 +12,20 @@ export type CampusCheckStatus = 'idle' | 'checking' | 'ok' | 'warning'
 const status = ref<CampusCheckStatus>('idle')
 const result = ref<CampusProbeResult | null>(null)
 
+// Right after switching to a freshly-associated interface (e.g. flipping to a
+// campus Wi-Fi IP and restarting), the OS can report the interface as up
+// before routing to the portal actually works (802.1x/EAP handshake, DHCP,
+// and route-table settling all take a beat). A single 5s-timeout probe can
+// lose that race and get stuck on a false 'warning' with nothing to clear it.
+// Retry unreachable (transport error/timeout) results a couple of times
+// before concluding the network really is unreachable. A reachable-but-not-
+// authenticated result is a real state (needs portal login), not a race, so
+// it is not retried.
+const RETRY_ATTEMPTS = 3
+const RETRY_DELAY_MS = 2000
+
+const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
 /**
  * Probe the campus portal to confirm the device is actually on the campus
  * network — but only while internal network mode is active, since that's the
@@ -30,7 +44,11 @@ const runCampusCheck = async (): Promise<void> => {
 
   status.value = 'checking'
   try {
-    const res = await window.electronAPI.intranet.checkCampusConnection()
+    let res: CampusProbeResult = await window.electronAPI.intranet.checkCampusConnection()
+    for (let attempt = 1; attempt < RETRY_ATTEMPTS && !res.reachable; attempt++) {
+      await delay(RETRY_DELAY_MS)
+      res = await window.electronAPI.intranet.checkCampusConnection()
+    }
     result.value = res
     status.value = (!res.reachable || res.online === false) ? 'warning' : 'ok'
   } catch (err) {

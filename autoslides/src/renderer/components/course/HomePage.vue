@@ -1,7 +1,7 @@
 <template>
   <div class="home-page custom-scrollbar">
     <!-- Campus-network warning banner -->
-    <div v-if="campusCheckStatus === 'warning'" class="home-banner">
+    <div v-if="campusCheckStatus === 'warning' || rechecking" class="home-banner">
       <span class="home-banner-msg">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M12 3l9 16H3L12 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
@@ -12,6 +12,21 @@
           {{ $t('home.campusWarning.or') }}
           <button type="button" class="home-banner-link" @click="openIntranetSettings">{{ $t('home.campusWarning.openSettings') }}</button>.
         </span>
+      </span>
+      <span class="home-banner-actions">
+        <button
+          type="button"
+          class="home-banner-icon-btn"
+          :class="{ 'is-spinning': rechecking }"
+          :disabled="rechecking"
+          :title="$t('home.campusWarning.recheck')"
+          :aria-label="$t('home.campusWarning.recheck')"
+          @click="recheckCampusConnection"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M21 12a9 9 0 1 1-2.64-6.36M21 4v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </span>
     </div>
     <div class="home-hero">
@@ -255,6 +270,18 @@ const { thumbnails, loadThumbnail, clearThumbnails } = useHomeThumbnails()
 
 // Campus-network connectivity warning (only meaningful in internal mode).
 const { campusCheckStatus, runCampusCheck } = useCampusNetworkCheck()
+// Keeps the banner visible (with a spinning icon) through a manual recheck —
+// runCampusCheck briefly flips status to 'checking', which would otherwise
+// hide the v-if="=== 'warning'" banner mid-check.
+const rechecking = ref(false)
+const recheckCampusConnection = async () => {
+  rechecking.value = true
+  try {
+    await runCampusCheck()
+  } finally {
+    rechecking.value = false
+  }
+}
 
 const switchToExternal = async () => {
   await window.electronAPI.config.setConnectionMode('external')
@@ -394,10 +421,10 @@ onMounted(() => {
 
 .home-banner {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   margin: -24px -32px 20px;
   padding: 7px 14px;
   font-size: 12px;
@@ -409,7 +436,7 @@ onMounted(() => {
 
 .home-banner-msg {
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   min-width: 0;
 }
@@ -433,6 +460,40 @@ onMounted(() => {
 
 .home-banner-link:hover {
   text-decoration: underline;
+}
+
+.home-banner-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.home-banner-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.home-banner-icon-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.home-banner-icon-btn.is-spinning svg {
+  animation: home-banner-spin 0.8s linear infinite;
+}
+
+@keyframes home-banner-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .home-section {

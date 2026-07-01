@@ -1244,7 +1244,8 @@
       "message": "Internal network mode is on, but the campus network can't be reached. You may want to",
       "switchExternal": "switch to external network",
       "or": "or",
-      "openSettings": "set the intranet network interface"
+      "openSettings": "set the intranet network interface",
+      "recheck": "Recheck"
     }
   },
   "searchPage": {
