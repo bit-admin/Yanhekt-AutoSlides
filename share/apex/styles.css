@@ -15,11 +15,8 @@
   --accent: #3b6fe0;
   --accent-strong: #2f5bc7;
 
-  /* Badges */
-  --badge-reviewed-bg: #e6f6ea;
-  --badge-reviewed-text: #1e7d3c;
-  --badge-edited-bg: #fdf1dc;
-  --badge-edited-text: #92660a;
+  /* Status — brand-consistent like Twitter's blue check, stays the same in both themes */
+  --verified-color: #1d9bf0;
 
   /* Shadows */
   --shadow-sm: rgba(60, 64, 67, 0.16);
@@ -44,11 +41,6 @@
 
     --accent: #6ea8fe;
     --accent-strong: #4a8bfd;
-
-    --badge-reviewed-bg: #16341f;
-    --badge-reviewed-text: #6fe79a;
-    --badge-edited-bg: #3a2c12;
-    --badge-edited-text: #f0c267;
 
     --shadow-sm: rgba(0, 0, 0, 0.3);
     --shadow-md: rgba(0, 0, 0, 0.45);
@@ -100,7 +92,16 @@ a { color: inherit; text-decoration: none; }
   justify-content: center;
   text-align: center;
   padding: 24px 0;
+  transition: min-height 0.15s ease, padding 0.15s ease;
 }
+
+/* Once a search has run, collapse the hero like Google's results page —
+   search bar moves near the top instead of staying vertically centered. */
+.home--results .hero {
+  min-height: 0;
+  padding: 20px 0 4px;
+}
+.home--results .wordmark { font-size: 22px; margin-bottom: 16px; }
 
 .search-shell { width: 100%; max-width: 600px; }
 
@@ -162,88 +163,94 @@ a { color: inherit; text-decoration: none; }
 }
 .paste-toggle:hover { color: var(--accent); text-decoration: underline; }
 
-.feed { margin-top: 8px; padding-bottom: 32px; }
+.feed {
+  margin: 8px auto 0;
+  padding-bottom: 32px;
+  width: 100%;
+  max-width: 640px;
+}
 .feed-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 4px 16px;
-  margin: 0 0 12px;
+  margin: 0 0 8px;
 }
 .feed-header h2 { font-size: 16px; margin: 0; color: var(--text-secondary); font-weight: 600; }
 .feed-stats { color: var(--text-secondary); font-size: 12px; }
 .empty { color: var(--text-secondary); }
 
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 10px;
-}
-.card {
+.result-list { display: flex; flex-direction: column; }
+.result-item {
   text-align: left;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  padding: 12px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 0;
+  padding: 14px 2px;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
+  display: block;
+  width: 100%;
   color: inherit;
   font: inherit;
-  transition: border-color 0.12s, transform 0.12s;
 }
-.card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.card-title { font-size: 15px; font-weight: 650; }
-.card-sub { color: var(--text-primary); font-size: 13px; }
-.card-meta { color: var(--text-secondary); font-size: 12px; }
-.card-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; gap: 8px; }
-.card-term { color: var(--text-secondary); font-size: 11px; }
-
-.pill {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-color);
+.result-list .result-item:last-child { border-bottom: none; }
+.result-item:hover .result-title { text-decoration: underline; }
+.result-title { font-size: 17px; line-height: 1.4; }
+.result-course { color: var(--accent); font-weight: 600; }
+.result-session { color: var(--text-primary); font-weight: 400; }
+.result-meta {
   color: var(--text-secondary);
-  border-radius: 999px;
-  padding: 2px 9px;
-  font-size: 11px;
-  white-space: nowrap;
+  font-size: 13px;
+  margin-top: 3px;
 }
 
 .lecture { flex: 1; padding-top: 8px; }
 .back { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; padding: 0 0 16px; }
 .back:hover { color: var(--text-primary); }
-.lecture h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
-.lecture-sub { font-size: 17px; margin: 0 0 6px; }
+.lecture-title { font-size: 28px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.02em; }
 .lecture-meta { color: var(--text-secondary); margin: 0 0 28px; }
 .lecture h2 { font-size: 16px; color: var(--text-secondary); font-weight: 600; margin: 0 0 14px; }
 
-.version-list { display: flex; flex-direction: column; gap: 10px; }
+.version-list { display: flex; flex-direction: column; }
 .version {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius);
-  padding: 14px 16px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  transition: border-color 0.12s;
+  /* flex-end (not center): every child's bottom edge lands on the same line
+     regardless of its own height, so the per-child hover borders line up flat
+     instead of stair-stepping between the text rows and the taller icon. */
+  align-items: flex-end;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--border-color);
+  color: inherit;
+  font-size: 14px;
 }
-.version:hover { border-color: var(--accent); }
-.version-head { display: flex; align-items: center; gap: 10px; }
-.version-ord { font-weight: 700; }
-.version-count { color: var(--text-secondary); font-size: 14px; }
-.version-foot { display: flex; justify-content: space-between; color: var(--text-secondary); font-size: 13px; }
-
-.badge {
-  border-radius: 999px;
-  padding: 2px 10px;
-  font-size: 12px;
-  font-weight: 600;
+.version-list .version:last-child { border-bottom: none; }
+/* No flex `gap` here on purpose: gaps are empty space outside any element's box,
+   so a border-bottom can't span them. Each column instead carries its own
+   trailing padding, keeping every child flush against the next so their
+   individual borders line up into one continuous underline on hover. */
+.version-ord,
+.version-date,
+.version-count,
+.version-edited,
+.version-verified {
+  flex: none;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
 }
-.badge-reviewed { background: var(--badge-reviewed-bg); color: var(--badge-reviewed-text); }
-.badge-edited { background: var(--badge-edited-bg); color: var(--badge-edited-text); }
+.version:hover .version-ord,
+.version:hover .version-date,
+.version:hover .version-count,
+.version:hover .version-edited,
+.version:hover .version-verified {
+  border-bottom-color: var(--text-primary);
+}
+.version-ord { width: 90px; color: var(--text-primary); font-weight: 600; white-space: nowrap; }
+.version-date { width: 110px; color: var(--text-secondary); white-space: nowrap; }
+.version-count { padding-right: 20px; color: var(--text-secondary); white-space: nowrap; }
+.version-edited { padding-right: 8px; color: var(--text-secondary); font-size: 13px; }
+.version-verified { color: var(--verified-color); }
 
 @media (max-width: 560px) {
   .hero { min-height: clamp(280px, 48vh, 480px); padding: 32px 0 4px; }

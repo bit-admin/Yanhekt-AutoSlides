@@ -38,8 +38,18 @@ function lectureUrl(l: Pick<Lecture, 'courseId' | 'sessionId'>): string {
   return `/?l=${encodeURIComponent(l.courseId)}.${encodeURIComponent(l.sessionId)}`;
 }
 
+function semesterLabel(semester?: string): string {
+  if (semester === '1') return 'Fall';
+  if (semester === '2') return 'Spring';
+  return semester ? `Term ${semester}` : '';
+}
+
+function fileCountLabel(n?: number): string {
+  return n ? `${n} file${n > 1 ? 's' : ''}` : '';
+}
+
 function termLabel(l: Lecture): string {
-  return [l.schoolYear, l.semester ? `Term ${l.semester}` : '', l.college]
+  return [l.schoolYear, semesterLabel(l.semester), l.college]
     .filter(Boolean)
     .join(' · ');
 }
@@ -117,9 +127,10 @@ function Home({ go }: { go: (url: string) => void }) {
   }, [pasteLink]);
 
   const lectures = results ?? stats?.recent ?? [];
+  const hasResults = results !== null;
 
   return (
-    <main className="home">
+    <main className={hasResults ? 'home home--results' : 'home'}>
       <section className="hero">
         <div className="wordmark">
           <span className="wordmark-mark">▦</span> AutoSlides <span className="wordmark-dim">Index</span>
@@ -181,7 +192,7 @@ function Home({ go }: { go: (url: string) => void }) {
           {!results && stats && (
             <span className="feed-stats">
               {stats.courseCount.toLocaleString()} courses · {stats.lectureCount.toLocaleString()} lectures ·{' '}
-              {stats.versionCount.toLocaleString()} versions
+              {stats.versionCount.toLocaleString()} files
             </span>
           )}
         </div>
@@ -190,21 +201,25 @@ function Home({ go }: { go: (url: string) => void }) {
             {results ? 'No lectures matched your search.' : 'Nothing here yet.'}
           </p>
         ) : (
-          <div className="card-grid">
+          <div className="result-list">
             {lectures.map((l) => (
               <button
                 key={`${l.courseId}.${l.sessionId}`}
-                className="card"
+                className="result-item"
                 onClick={() => go(lectureUrl(l))}
               >
-                <div className="card-title">{l.courseTitle || 'Untitled course'}</div>
-                <div className="card-sub">{l.sessionTitle || ''}</div>
-                <div className="card-meta">{l.instructor || (l.professors ?? []).join(', ')}</div>
-                <div className="card-foot">
-                  <span className="card-term">{termLabel(l)}</span>
-                  {l.versionCount ? (
-                    <span className="pill">{l.versionCount} version{l.versionCount > 1 ? 's' : ''}</span>
-                  ) : null}
+                <div className="result-title">
+                  <span className="result-course">{l.courseTitle || 'Untitled course'}</span>
+                  {l.sessionTitle && <span className="result-session"> {l.sessionTitle}</span>}
+                </div>
+                <div className="result-meta">
+                  {[
+                    l.instructor || (l.professors ?? []).join(', '),
+                    termLabel(l),
+                    fileCountLabel(l.versionCount),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </div>
               </button>
             ))}
@@ -249,28 +264,26 @@ function LectureView({
       {status === 'error' && <p className="empty">This lecture isn’t in the index.</p>}
       {status === 'ok' && data && (
         <>
-          <h1>{data.lecture.courseTitle || 'Untitled course'}</h1>
-          <p className="lecture-sub">{data.lecture.sessionTitle}</p>
+          <h1 className="lecture-title">
+            {[data.lecture.courseTitle || 'Untitled course', data.lecture.sessionTitle]
+              .filter(Boolean)
+              .join(' ')}
+          </h1>
           <p className="lecture-meta">
             {[data.lecture.instructor || (data.lecture.professors ?? []).join(', '), termLabel(data.lecture)]
               .filter(Boolean)
               .join(' · ')}
           </p>
 
-          <h2>{data.versions.length} version{data.versions.length === 1 ? '' : 's'}</h2>
+          <h2>{data.versions.length} file{data.versions.length === 1 ? '' : 's'} indexed</h2>
           <div className="version-list">
             {data.versions.map((v, i) => (
               <a key={v.shareId} className="version" href={`/v1/s/${v.shareId}`}>
-                <div className="version-head">
-                  <span className="version-ord">#{i + 1}</span>
-                  <span className="version-count">{v.imageCount ?? '?'} slides</span>
-                  {v.reviewed && <span className="badge badge-reviewed">Human Reviewed</span>}
-                  {v.edited && <span className="badge badge-edited">Human Edited</span>}
-                </div>
-                <div className="version-foot">
-                  <span>Open in viewer →</span>
-                  {v.createdAt && <span>{new Date(v.createdAt).toLocaleDateString()}</span>}
-                </div>
+                <span className="version-ord">Slides #{i + 1}</span>
+                {v.createdAt && <span className="version-date">{new Date(v.createdAt).toLocaleDateString()}</span>}
+                <span className="version-count">{v.imageCount ?? '?'} slides</span>
+                {v.edited && <span className="version-edited">Edited</span>}
+                {v.reviewed && <VerifiedIcon />}
               </a>
             ))}
           </div>
@@ -339,6 +352,33 @@ function ArrowIcon() {
         points="13 6 19 12 13 18"
         stroke="currentColor"
         strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
+function VerifiedIcon() {
+  return (
+    <svg className="version-verified" width="16" height="16" viewBox="0 0 24 24" aria-label="Human reviewed">
+      {/* Scalloped badge (a ring of overlapping circles), not a plain circle. */}
+      <g fill="currentColor">
+        <circle cx="20.2" cy="12" r="3.3" />
+        <circle cx="17.8" cy="17.8" r="3.3" />
+        <circle cx="12" cy="20.2" r="3.3" />
+        <circle cx="6.2" cy="17.8" r="3.3" />
+        <circle cx="3.8" cy="12" r="3.3" />
+        <circle cx="6.2" cy="6.2" r="3.3" />
+        <circle cx="12" cy="3.8" r="3.3" />
+        <circle cx="17.8" cy="6.2" r="3.3" />
+        <circle cx="12" cy="12" r="7.2" />
+      </g>
+      <path
+        d="M7.9 12.4 10.5 15 16.3 9"
+        stroke="#fff"
+        strokeWidth="2.3"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
