@@ -70,19 +70,11 @@ export function App() {
 
   return (
     <div className="page">
-      <header className="topbar">
-        <a className="brand" href="/" onClick={(e) => { e.preventDefault(); go('/'); }}>
-          <span className="brand-mark">▦</span> AutoSlides <span className="brand-dim">Index</span>
-        </a>
-      </header>
       {route ? (
         <LectureView courseId={route.courseId} sessionId={route.sessionId} onBack={() => go('/')} />
       ) : (
         <Home go={go} />
       )}
-      <footer className="footer">
-        Shared lecture slides · viewer links open the v1 share viewer.
-      </footer>
     </div>
   );
 }
@@ -93,6 +85,7 @@ function Home({ go }: { go: (url: string) => void }) {
   const [searching, setSearching] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
   const [pasteLink, setPasteLink] = useState('');
+  const [showPaste, setShowPaste] = useState(false);
 
   useEffect(() => {
     fetch(`${API}/stats`)
@@ -128,52 +121,70 @@ function Home({ go }: { go: (url: string) => void }) {
   return (
     <main className="home">
       <section className="hero">
-        <h1>Find shared lecture slides</h1>
-        <p className="hero-sub">
-          Search the AutoSlides Index, or open any slide share link.
-        </p>
-        <form
-          className="search"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void runSearch(q);
-          }}
-        >
-          <input
-            className="search-input"
-            placeholder="Search by course, session, instructor, or college…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            autoFocus
-          />
-          <button className="btn btn-primary" type="submit" disabled={searching}>
-            {searching ? 'Searching…' : 'Search'}
-          </button>
-        </form>
-
-        {stats && (
-          <div className="stat-strip">
-            <Stat n={stats.courseCount} label="courses" />
-            <Stat n={stats.lectureCount} label="lectures" />
-            <Stat n={stats.versionCount} label="versions" />
-          </div>
+        <div className="wordmark">
+          <span className="wordmark-mark">▦</span> AutoSlides <span className="wordmark-dim">Index</span>
+        </div>
+        {showPaste ? (
+          <form
+            className="search-shell"
+            onSubmit={(e) => {
+              e.preventDefault();
+              onOpenV1();
+            }}
+          >
+            <div className="search">
+              <LinkIcon className="search-icon" />
+              <input
+                className="search-input"
+                placeholder="Paste a share link (…/v1/s/… or #fragment)"
+                value={pasteLink}
+                onChange={(e) => setPasteLink(e.target.value)}
+                autoFocus
+              />
+              <button className="search-submit" type="submit" aria-label="Open" disabled={!pasteLink.trim()}>
+                <ArrowIcon />
+              </button>
+            </div>
+          </form>
+        ) : (
+          <form
+            className="search-shell"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void runSearch(q);
+            }}
+          >
+            <div className="search">
+              <SearchIcon className="search-icon" />
+              <input
+                className="search-input"
+                placeholder="Search by course, session, instructor, or college…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                autoFocus
+              />
+              <button className="search-submit" type="submit" aria-label="Search" disabled={searching}>
+                {searching ? <SpinnerIcon /> : <SearchIcon />}
+              </button>
+            </div>
+          </form>
         )}
 
-        <div className="paste-row">
-          <input
-            className="paste-input"
-            placeholder="Paste a share link (…/v1/s/… or #fragment)"
-            value={pasteLink}
-            onChange={(e) => setPasteLink(e.target.value)}
-          />
-          <button className="btn" type="button" onClick={onOpenV1} disabled={!pasteLink.trim()}>
-            Open
-          </button>
-        </div>
+        <button className="paste-toggle" type="button" onClick={() => setShowPaste((v) => !v)}>
+          {showPaste ? 'Search instead' : 'Have a share link?'}
+        </button>
       </section>
 
-      <section className="results">
-        <h2>{results ? `Results${q ? ` for “${q}”` : ''}` : 'Recently added'}</h2>
+      <section className="feed">
+        <div className="feed-header">
+          <h2>{results ? `Results${q ? ` for "${q}"` : ''}` : 'Recently added'}</h2>
+          {!results && stats && (
+            <span className="feed-stats">
+              {stats.courseCount.toLocaleString()} courses · {stats.lectureCount.toLocaleString()} lectures ·{' '}
+              {stats.versionCount.toLocaleString()} versions
+            </span>
+          )}
+        </div>
         {lectures.length === 0 ? (
           <p className="empty">
             {results ? 'No lectures matched your search.' : 'Nothing here yet.'}
@@ -201,15 +212,6 @@ function Home({ go }: { go: (url: string) => void }) {
         )}
       </section>
     </main>
-  );
-}
-
-function Stat({ n, label }: { n: number; label: string }) {
-  return (
-    <div className="stat">
-      <span className="stat-n">{n.toLocaleString()}</span>
-      <span className="stat-label">{label}</span>
-    </div>
   );
 }
 
@@ -277,3 +279,71 @@ function LectureView({
     </main>
   );
 }
+
+function SearchIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SpinnerIcon() {
+  return (
+    <svg className="spinner-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeDasharray="42"
+        strokeDashoffset="14"
+      />
+    </svg>
+  );
+}
+
+function LinkIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M9.5 14.5 14.5 9.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M11 7.5 12.4 6.1a3.5 3.5 0 0 1 5 5L16 12.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M13 16.5 11.6 17.9a3.5 3.5 0 0 1-5-5L8 11.5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <line x1="5" y1="12" x2="19" y2="12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <polyline
+        points="13 6 19 12 13 18"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    </svg>
+  );
+}
+
