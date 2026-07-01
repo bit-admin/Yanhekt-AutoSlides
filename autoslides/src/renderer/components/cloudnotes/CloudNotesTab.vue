@@ -516,7 +516,7 @@ import Table from '@editorjs/table'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import { useNoteImport, type ImportItem } from '@features/cloudNotes/useNoteImport'
 import { useNoteExport, type ExportItem } from '@features/cloudNotes/useNoteExport'
-import { noteOpenRequestStore } from '@features/cloudNotes/noteOpenRequest'
+import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { NOTE_GROUP_NAME_MAX, EDITORJS_DOC_VERSION, isManagedNoteTitle, managedNoteDisplayName } from '@common/notesTypes'
 import { buildSharePayload, buildShareUrl, encodeSharePayload } from '@common/shareLink'
@@ -1130,6 +1130,14 @@ watch(
     if (req) void openNote(req.noteId)
   },
   { immediate: true },
+)
+
+// Cross-page "reload notes" signal — Cloud Index imported a share link through
+// its own useCloudNotes() instance, so re-fetch here to surface the new note
+// (and any newly-created managed group).
+watch(
+  () => notesRefreshStore.refreshTick.value,
+  () => { void Promise.all([cn.loadAll(), cn.refreshGroups()]) },
 )
 
 onUnmounted(() => {

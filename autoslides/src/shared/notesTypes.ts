@@ -6,6 +6,8 @@
  * See REFERENCE/yanhekt-note-api-report.md for the verified API surface.
  */
 
+import type { SlideMetadata } from './slideMetadataTypes';
+
 /** A single Editor.js content block. */
 export interface EditorJsBlock {
   id?: string;
@@ -88,6 +90,14 @@ export interface ShareImportResult {
   urls: string[];
   /** How many referenced images couldn't be resolved on the server. */
   missing: number;
+  /**
+   * Best-effort slide metadata (identity + review flags) reconstructed from the
+   * AutoSlides Index lecture data the Cloud Index webview already fetched while
+   * browsing — captured client-side, no extra request. Null when the share isn't
+   * indexed (e.g. a long `#fragment` paste). Threaded into the imported note's
+   * `slides` group and the exported folder's metadata.json.
+   */
+  metadata?: SlideMetadata | null;
 }
 
 export interface NoteListParams {

@@ -2,6 +2,8 @@ import { computed, ref } from 'vue'
 import type { EditorJsBlock } from '@common/notesTypes'
 import { EDITORJS_DOC_VERSION, buildManagedNoteTitle } from '@common/notesTypes'
 import { buildNoteMetadataBlock, NOTE_METADATA_VERSION } from '@common/notesContent'
+import type { NoteCloudMetadata } from '@common/notesContent'
+import { SHARE_ORIGIN, SHARE_PATH, parseShareLink } from '@common/shareLink'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
 import { formatToolFolderName, compareToolImages } from '@shared/utils/toolWindowFolders'
 import type { useCloudNotes } from './useCloudNotes'
@@ -28,6 +30,12 @@ export interface ImportItem {
   urls?: string[]
   /** Referenced images the server couldn't resolve (share imports only). */
   missing?: number
+  /** Slide metadata from AutoSlides Index (share imports only; null if un-indexed). */
+  metadata?: SlideMetadata | null
+  /** The share (short) link imported (share imports only) — recorded on the note. */
+  shareUrl?: string
+  /** AutoSlides Index lecture URL, if the share was indexed (share imports only). */
+  indexUrl?: string
   /** Note created for this row (on success). */
   noteId?: number
   /** Existing managed note(s) with the same title (on conflict). */
@@ -86,7 +94,12 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
    * originating folder's metadata.json (`slides`, null for share imports) plus
    * cloud-note metadata (`note`).
    */
-  function buildContent(heading: string, urls: string[], slides: SlideMetadata | null): string {
+  function buildContent(
+    heading: string,
+    urls: string[],
+    slides: SlideMetadata | null,
+    noteExtra?: Partial<NoteCloudMetadata>,
+  ): string {
     // `heading` is the full display name (course + session, e.g.
     // "<course> 第N周 星期X 第N大节" or "<course> - Lecture N").
     const blocks: EditorJsBlock[] = [
@@ -110,6 +123,8 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
           displayName: heading,
           imageCount: urls.length,
           importedAt: new Date().toISOString(),
+          // `shareUrl` (the short link) + `indexUrl` for share-link imports.
+          ...noteExtra,
         },
       }),
     ]
@@ -176,8 +191,17 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
 
     item.status = 'building'
     item.uploaded = urls.length
-    // No local metadata.json for a bare share link — `slides` group is null.
-    const contentRes = await window.electronAPI.cloudNotes.updateContent(noteId, buildContent(item.displayName, urls, null))
+    // Embed the share's AutoSlides Index metadata as the `slides` group (null
+    // when the link isn't indexed), so the note carries its origin identity +
+    // review flags — same as a folder import carries its local metadata.json.
+    // Also record the share (short) link + index URL on the note's `note` group.
+    const contentRes = await window.electronAPI.cloudNotes.updateContent(
+      noteId,
+      buildContent(item.displayName, urls, item.metadata ?? null, {
+        shareUrl: item.shareUrl,
+        indexUrl: item.indexUrl,
+      }),
+    )
     if (!contentRes.ok) { item.status = 'error'; item.error = contentRes.error; return }
     item.status = 'done'
   }
@@ -188,12 +212,30 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
    * conflict/create flow as folder imports — a same-titled managed note flags a
    * conflict for the user to resolve. The row is pushed immediately (status
    * `resolving`) for live feedback while the link is resolved server-side.
+   * `metadata` (the index-sourced `slides` group the caller captured client-side)
+   * is embedded in the note; null when the share isn't indexed.
    */
-  async function importShareLink(link: string, resolvingLabel: string): Promise<void> {
+  async function importShareLink(
+    link: string,
+    resolvingLabel: string,
+    metadata: SlideMetadata | null = null,
+  ): Promise<void> {
     if (running.value) return
     const trimmed = link.trim()
     if (!trimmed) return
     running.value = true
+
+    // Record ONLY a canonical short link as the note's shareUrl — a long-form
+    // `/v1#<fragment>` link isn't a stable share URL and must not be recorded.
+    const shortId = parseShareLink(trimmed)?.shortId
+    const shareUrl = shortId ? `${SHARE_ORIGIN}${SHARE_PATH}/s/${shortId}` : undefined
+
+    // The index lecture URL is derivable from the captured metadata's course/
+    // session ids (omitted when the share isn't indexed).
+    const src = metadata?.source
+    const indexUrl = src?.courseId && src?.sessionId
+      ? `${SHARE_ORIGIN}/?l=${encodeURIComponent(src.courseId)}.${encodeURIComponent(src.sessionId)}`
+      : undefined
 
     const item: ImportItem = {
       kind: 'share',
@@ -203,6 +245,9 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       status: 'resolving',
       uploaded: 0,
       total: 0,
+      metadata,
+      shareUrl,
+      indexUrl,
     }
     queue.value.push(item)
 

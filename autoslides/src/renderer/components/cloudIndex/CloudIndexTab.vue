@@ -43,8 +43,8 @@
           <span :class="['ci-row-status', `s-${importRow.status}`]">{{ importStatusText(importRow) }}</span>
           <div v-if="importRow.status === 'conflict'" class="ci-row-actions">
             <button class="btn btn--sm btn--ghost" @click="onOpenConflictNote(importRow.conflictNoteIds?.[0])">{{ $t('cloudNotes.importOpenNote') }}</button>
-            <button class="btn btn--sm" @click="imp.resolveConflict(importRow, 'create')">{{ $t('cloudNotes.importCreateAnyway') }}</button>
-            <button class="btn btn--sm btn--danger-outline" @click="imp.resolveConflict(importRow, 'replace')">{{ $t('cloudNotes.importReplace') }}</button>
+            <button class="btn btn--sm" @click="resolveImportConflict(importRow, 'create')">{{ $t('cloudNotes.importCreateAnyway') }}</button>
+            <button class="btn btn--sm btn--danger-outline" @click="resolveImportConflict(importRow, 'replace')">{{ $t('cloudNotes.importReplace') }}</button>
             <button class="btn btn--sm btn--ghost" @click="imp.skipConflict(importRow)">{{ $t('cloudNotes.importSkip') }}</button>
           </div>
           <button class="ci-row-dismiss" :aria-label="$t('cloudIndex.dismiss')" @click="imp.skipConflict(importRow)">
@@ -98,10 +98,13 @@ import { useI18n } from 'vue-i18n'
 import type { ShareImportResult } from '@common/notesTypes'
 import { EDITORJS_DOC_VERSION } from '@common/notesTypes'
 import { NOTE_COPYRIGHT } from '@common/notesContent'
+import type { SlideMetadata } from '@common/slideMetadataTypes'
+import { parseShareLink } from '@common/shareLink'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import { useNoteImport, type ImportItem } from '@features/cloudNotes/useNoteImport'
-import { noteOpenRequestStore } from '@features/cloudNotes/noteOpenRequest'
+import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
 import { useShareIndexExport, type ShareExportItem } from '@features/cloudIndex/useShareIndexExport'
+import { buildIndexMetadata, type CapturedLectureData } from '@features/cloudIndex/indexMetadata'
 import { navigationStore } from '@features/course/navigationStore'
 
 const { t } = useI18n()
@@ -124,6 +127,36 @@ const webviewRef = ref<Electron.WebviewTag | null>(null)
 let unsubscribe: (() => void) | null = null
 
 /**
+ * Injected into the embedded apex page (once per load) to stash the lecture data
+ * it already fetches. The public site calls `/v2/api/lecture?courseId&sessionId`
+ * to render a lecture's version list; we wrap `fetch` so that response lands on
+ * `window.__ciLastLecture`. When the user then clicks a version's share link
+ * (intercepted before it navigates), we read this back — reusing data already on
+ * the page instead of making our own request.
+ */
+const FETCH_CAPTURE_HOOK = `(() => {
+  if (window.__ciHooked) return;
+  window.__ciHooked = true;
+  const orig = window.fetch;
+  window.fetch = function (...args) {
+    return orig.apply(this, args).then((res) => {
+      try {
+        const req = args[0];
+        const url = typeof req === 'string' ? req : (req && req.url) || '';
+        if (url.indexOf('/v2/api/lecture') >= 0) {
+          res.clone().json().then((d) => { if (d && d.ok) window.__ciLastLecture = d; }).catch(() => {});
+        }
+      } catch (e) { /* ignore */ }
+      return res;
+    });
+  };
+})();`
+
+function installCaptureHook(): void {
+  void webviewRef.value?.executeJavaScript(FETCH_CAPTURE_HOOK).catch(() => { /* best-effort */ })
+}
+
+/**
  * Split a share payload's display title into a course title and a
  * human-readable session line — mirrors the public viewer's `parseTitle`
  * (share/src/lib/title.ts) so the native detail view matches its header.
@@ -144,12 +177,23 @@ async function resolve(url: string): Promise<void> {
   exp.reset()
   sourceUrl.value = url
   mode.value = 'loading'
+
+  // Reuse the lecture metadata the embedded page already fetched (no extra
+  // request): read the captured payload, match this share id to its version.
+  let metadata: SlideMetadata | null = null
+  try {
+    const captured = (await webviewRef.value?.executeJavaScript(
+      'window.__ciLastLecture || null',
+    )) as CapturedLectureData | null
+    metadata = buildIndexMetadata(captured, parseShareLink(url)?.shortId ?? '')
+  } catch { /* best-effort: no metadata */ }
+
   const res = await window.electronAPI.cloudNotes.resolveShareLink(url)
   if (!res.ok || res.data.urls.length === 0) {
     mode.value = 'error'
     return
   }
-  detail.value = res.data
+  detail.value = { ...res.data, metadata }
   mode.value = 'detail'
 }
 
@@ -174,7 +218,17 @@ async function onImport(): Promise<void> {
   if (!cn.hasManagedStorage.value) {
     await cn.initCloudStorage(buildReadmeContent())
   }
-  await imp.importShareLink(sourceUrl.value, t('cloudNotes.importResolving'))
+  await imp.importShareLink(sourceUrl.value, t('cloudNotes.importResolving'), detail.value?.metadata ?? null)
+  // Tell the Cloud Notes page (a separate useCloudNotes instance) to reload so
+  // the new note surfaces. Emitted imperatively — a watch on the queue item's
+  // status is unreliable (useNoteImport mutates the raw object, not the proxy).
+  notesRefreshStore.requestNotesRefresh()
+}
+
+/** Resolve an import conflict, then refresh the Cloud Notes page. */
+async function resolveImportConflict(item: ImportItem, mode: 'create' | 'replace'): Promise<void> {
+  await imp.resolveConflict(item, mode)
+  notesRefreshStore.requestNotesRefresh()
 }
 
 async function onExport(): Promise<void> {
@@ -216,16 +270,23 @@ function onKeydown(e: KeyboardEvent): void {
   if (e.key === 'Escape' && zoomUrl.value) zoomUrl.value = null
 }
 
-onMounted(async () => {
-  await cn.init()
+onMounted(() => {
+  // Attach the capture hook synchronously — BEFORE any await — so we never miss
+  // the webview's initial dom-ready (which can fire while an awaited cn.init()
+  // is still in flight, leaving the fetch hook uninstalled). Re-installs on every
+  // full page load (a fresh guest `window` clears it); SPA route changes keep the
+  // same window, so one install covers all subsequent lecture fetches.
+  webviewRef.value?.addEventListener('dom-ready', installCaptureHook)
   unsubscribe = window.electronAPI.cloudIndex.onShareLinkIntercepted((url) => {
     void resolve(url)
   })
   window.addEventListener('keydown', onKeydown)
+  void cn.init()
 })
 
 onUnmounted(() => {
   unsubscribe?.()
+  webviewRef.value?.removeEventListener('dom-ready', installCaptureHook)
   window.removeEventListener('keydown', onKeydown)
 })
 </script>
