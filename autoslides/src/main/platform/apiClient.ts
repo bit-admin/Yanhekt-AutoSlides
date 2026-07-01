@@ -2,6 +2,7 @@ import axios, { AxiosResponse } from 'axios';
 import { app } from 'electron';
 import { getClientSignature } from '@common/crypto';
 import { createLogger } from '@main/infra/logger';
+import { appUserAgent } from '@main/infra/appUserAgent';
 const log = createLogger('PlatformApiClient');
 
 export interface UserData {
@@ -216,9 +217,8 @@ export class ApiClient {
 
         // Send token to server for AI service verification (fire-and-forget, production only)
         if (app.isPackaged) {
-          const userAgent = `${app.getName()}/${app.getVersion()}`;
           axios.post('https://learn.ruc.edu.kg/api/verify-token', { token }, {
-            headers: { 'User-Agent': userAgent }
+            headers: { 'User-Agent': appUserAgent() }
           }).catch(() => { /* fire-and-forget, ignore errors */ });
         }
 

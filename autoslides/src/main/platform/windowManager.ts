@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, dialog, nativeTheme, session, shell } from 'e
 import path from 'node:path';
 import type { ConfigService } from '@main/platform/configService';
 import { demoWebPreferences } from '@main/demo/demoEnv';
+import { appUserAgent } from '@main/infra/appUserAgent';
 import { parseShareLink } from '@common/shareLink';
 import enTranslations from '../../renderer/shared/i18n/locales/en.json';
 import zhTranslations from '../../renderer/shared/i18n/locales/zh.json';
@@ -173,6 +174,9 @@ export class WindowManager {
    */
   guardCloudIndexWebview(mainWindow: BrowserWindow): void {
     mainWindow.webContents.on('did-attach-webview', (_event, webContents) => {
+      // Identify the embedded share.ruc.edu.kg page (and its requests back to the
+      // Index Worker) as genuine app traffic — same UA as our native fetches.
+      webContents.setUserAgent(appUserAgent());
       webContents.setWindowOpenHandler(({ url }) => {
         webContents.loadURL(url);
         return { action: 'deny' };

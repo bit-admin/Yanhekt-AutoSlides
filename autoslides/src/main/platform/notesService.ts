@@ -31,6 +31,7 @@ import type { SlideMetadataSource } from '@common/slideMetadataTypes';
 import { SHARE_ORIGIN, SHARE_PATH, decodeSharePayload, parseShareLink } from '@common/shareLink';
 import { buildCossListUrl, resolveShareImages } from '@common/shareResolve';
 import { createLogger } from '@main/infra/logger';
+import { appUserAgent } from '@main/infra/appUserAgent';
 
 const log = createLogger('NotesService');
 
@@ -318,7 +319,7 @@ export class NotesService {
   async shortenShareUrl(fragment: string): Promise<{ url: string }> {
     const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/shorten`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'User-Agent': appUserAgent() },
       body: JSON.stringify({ fragment }),
     });
     if (!res.ok) {
@@ -350,6 +351,7 @@ export class NotesService {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
+        'User-Agent': appUserAgent(),
       },
       body: JSON.stringify({ fragment, source, review }),
     });
@@ -396,7 +398,9 @@ export class NotesService {
 
   /** Look up a short-link id's stored fragment via the public share Worker. */
   private async fetchShortFragment(id: string): Promise<string> {
-    const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/get?id=${encodeURIComponent(id)}`);
+    const res = await fetch(`${SHARE_ORIGIN}${SHARE_PATH}/api/get?id=${encodeURIComponent(id)}`, {
+      headers: { 'User-Agent': appUserAgent() },
+    });
     if (!res.ok) throw new Error(`Short-link lookup failed (${res.status})`);
     const data = (await res.json()) as { fragment?: string };
     if (!data.fragment) throw new Error('Short link not found');

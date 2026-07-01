@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import Bottleneck from 'bottleneck';
-import { app } from 'electron';
 import { ConfigService } from '@main/platform/configService';
+import { appUserAgent } from '@main/infra/appUserAgent';
 
 const DEBUG = true;
 
@@ -287,7 +287,7 @@ export class LLMApiService {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'User-Agent': `${app.getName()}/${app.getVersion()}`
+          'User-Agent': appUserAgent()
         },
         timeout: 10000
       });

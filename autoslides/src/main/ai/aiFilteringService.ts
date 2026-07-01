@@ -10,7 +10,7 @@ import {
   ChatCompletionResponse,
   LLMResult
 } from './llmApiService';
-import { app } from 'electron';
+import { appUserAgent } from '@main/infra/appUserAgent';
 
 const DEBUG = true;
 
@@ -143,7 +143,7 @@ export class AIFilteringService {
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
-          'User-Agent': `${app.getName()}/${app.getVersion()}`
+          'User-Agent': appUserAgent()
         },
         apiKey
       };
