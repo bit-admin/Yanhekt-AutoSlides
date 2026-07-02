@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { groupLectures, schoolYearRank, semesterRank } from './lectureSort';
 
 declare global {
   interface Window {
@@ -18,6 +19,8 @@ interface Lecture {
   semester?: string;
   schoolYear?: string;
   college?: string;
+  weekNumber?: number;
+  day?: number;
   versionCount?: number;
   updatedAt?: string;
 }
@@ -59,6 +62,15 @@ function termLabel(l: Lecture): string {
   return [l.schoolYear, semesterLabel(l.semester), l.college]
     .filter(Boolean)
     .join(' · ');
+}
+
+/** Encodes a lecture's term as a stable filter key, e.g. "2025-2026||1". */
+function termKey(l: Lecture): string {
+  return `${l.schoolYear ?? ''}||${l.semester ?? ''}`;
+}
+
+function termOptionLabel(l: Lecture): string {
+  return [l.schoolYear, semesterLabel(l.semester)].filter(Boolean).join(' · ');
 }
 
 /** Resolve the lecture id from the URL (?l=<courseId>.<sessionId>), if present. */
@@ -103,6 +115,10 @@ function Home({ go }: { go: (url: string) => void }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [pasteLink, setPasteLink] = useState('');
   const [showPaste, setShowPaste] = useState(false);
+  const [collegeFilter, setCollegeFilter] = useState<string | null>(null);
+  const [termFilter, setTermFilter] = useState<string | null>(null);
+  const [instructorFilter, setInstructorFilter] = useState<string | null>(null);
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`${API}/stats`)
@@ -113,6 +129,10 @@ function Home({ go }: { go: (url: string) => void }) {
 
   const runSearch = useCallback(async (term: string) => {
     setSearching(true);
+    setCollegeFilter(null);
+    setTermFilter(null);
+    setInstructorFilter(null);
+    setSelectedCourseId(null);
     try {
       const r = await fetch(`${API}/search?q=${encodeURIComponent(term)}`);
       const d = await r.json();
@@ -135,6 +155,100 @@ function Home({ go }: { go: (url: string) => void }) {
 
   const lectures = results ?? stats?.recent ?? [];
   const hasResults = results !== null;
+
+  const colleges = useMemo(() => {
+    if (!results) return [];
+    const set = new Set(results.map((l) => l.college).filter((v): v is string => !!v));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'zh'));
+  }, [results]);
+
+  const terms = useMemo(() => {
+    if (!results) return [];
+    const byKey = new Map<string, Lecture>();
+    for (const l of results) {
+      if (!l.schoolYear && !l.semester) continue;
+      const key = termKey(l);
+      if (!byKey.has(key)) byKey.set(key, l);
+    }
+    return Array.from(byKey.entries())
+      .map(([key, l]) => ({ key, label: termOptionLabel(l), l }))
+      .sort((a, b) => {
+        const yearDiff = schoolYearRank(b.l.schoolYear) - schoolYearRank(a.l.schoolYear);
+        if (yearDiff !== 0) return yearDiff;
+        return semesterRank(b.l.semester) - semesterRank(a.l.semester);
+      });
+  }, [results]);
+
+  const instructors = useMemo(() => {
+    if (!results) return [];
+    const set = new Set(
+      results.map((l) => l.instructor || (l.professors ?? []).join(', ')).filter((v): v is string => !!v),
+    );
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'zh'));
+  }, [results]);
+
+  const filtered = useMemo(() => {
+    if (!results) return lectures;
+    return results.filter((l) => {
+      if (collegeFilter && l.college !== collegeFilter) return false;
+      if (termFilter && termKey(l) !== termFilter) return false;
+      if (instructorFilter && (l.instructor || (l.professors ?? []).join(', ')) !== instructorFilter) return false;
+      return true;
+    });
+  }, [results, lectures, collegeFilter, termFilter, instructorFilter]);
+
+  const groups = useMemo(() => (hasResults ? groupLectures(filtered) : []), [hasResults, filtered]);
+  const showFilterBar = hasResults && (colleges.length > 1 || terms.length > 1 || instructors.length > 1);
+
+  // Unfiltered by college/term/instructor — clicking into a course should show all of
+  // its sessions from the current search, regardless of the active filter selection.
+  const courseGroups = useMemo(() => (hasResults ? groupLectures(results ?? []) : []), [hasResults, results]);
+  const selectedCourse = useMemo(
+    () => (selectedCourseId ? courseGroups.find((g) => g.courseId === selectedCourseId) ?? null : null),
+    [selectedCourseId, courseGroups],
+  );
+
+  if (selectedCourse) {
+    return (
+      <main className="lecture">
+        <button className="back" onClick={() => setSelectedCourseId(null)}>← Back</button>
+        <div className="lecture-head">
+          <h1 className="lecture-title">{selectedCourse.courseTitle}</h1>
+        </div>
+        <p className="lecture-meta">
+          {[
+            selectedCourse.items[0].instructor || (selectedCourse.items[0].professors ?? []).join(', '),
+            termLabel(selectedCourse.items[0]),
+            `${selectedCourse.items.length} session${selectedCourse.items.length > 1 ? 's' : ''}`,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        </p>
+        <div className="result-list result-list--flat">
+          {selectedCourse.items.map((l) => (
+            <button
+              key={`${l.courseId}.${l.sessionId}`}
+              className="result-item"
+              onClick={() => go(lectureUrl(l))}
+            >
+              <div className="result-title">
+                <span className="result-session">{l.sessionTitle || 'Untitled session'}</span>
+              </div>
+              <div className="result-meta">
+                {[
+                  l.instructor || (l.professors ?? []).join(', '),
+                  termLabel(l),
+                  fileCountLabel(l.versionCount),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </div>
+            </button>
+          ))}
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className={hasResults ? 'home home--results' : 'home'}>
@@ -203,10 +317,104 @@ function Home({ go }: { go: (url: string) => void }) {
             </span>
           )}
         </div>
-        {lectures.length === 0 ? (
-          <p className="empty">
-            {results ? 'No lectures matched your search.' : 'Nothing here yet.'}
-          </p>
+
+        {showFilterBar && (
+          <div className="filter-bar">
+            {colleges.length > 1 && (
+              <select
+                className="filter-select"
+                value={collegeFilter ?? ''}
+                onChange={(e) => setCollegeFilter(e.target.value || null)}
+              >
+                <option value="">All colleges</option>
+                {colleges.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            )}
+            {terms.length > 1 && (
+              <select
+                className="filter-select"
+                value={termFilter ?? ''}
+                onChange={(e) => setTermFilter(e.target.value || null)}
+              >
+                <option value="">All terms</option>
+                {terms.map((t) => (
+                  <option key={t.key} value={t.key}>{t.label}</option>
+                ))}
+              </select>
+            )}
+            {instructors.length > 1 && (
+              <select
+                className="filter-select"
+                value={instructorFilter ?? ''}
+                onChange={(e) => setInstructorFilter(e.target.value || null)}
+              >
+                <option value="">All instructors</option>
+                {instructors.map((i) => (
+                  <option key={i} value={i}>{i}</option>
+                ))}
+              </select>
+            )}
+          </div>
+        )}
+
+        {hasResults ? (
+          groups.length === 0 ? (
+            <p className="empty">
+              {results && results.length === 0
+                ? 'No lectures matched your search.'
+                : 'No lectures match the selected filters.'}
+            </p>
+          ) : (
+            <div className="result-groups">
+              {groups.map((group) => (
+                <div className="result-group" key={group.courseId}>
+                  <div className="result-group-header">
+                    <button
+                      className="result-group-title"
+                      onClick={() => setSelectedCourseId(group.courseId)}
+                    >
+                      {group.courseTitle}
+                    </button>
+                    <div className="result-group-meta">
+                      {[
+                        group.items[0].instructor || (group.items[0].professors ?? []).join(', '),
+                        termLabel(group.items[0]),
+                        `${group.items.length} session${group.items.length > 1 ? 's' : ''}`,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </div>
+                  </div>
+                  <div className="result-list">
+                    {group.items.map((l) => (
+                      <button
+                        key={`${l.courseId}.${l.sessionId}`}
+                        className="result-item"
+                        onClick={() => go(lectureUrl(l))}
+                      >
+                        <div className="result-title">
+                          <span className="result-session">{l.sessionTitle || 'Untitled session'}</span>
+                        </div>
+                        <div className="result-meta">
+                          {[
+                            l.instructor || (l.professors ?? []).join(', '),
+                            termLabel(l),
+                            fileCountLabel(l.versionCount),
+                          ]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        ) : lectures.length === 0 ? (
+          <p className="empty">Nothing here yet.</p>
         ) : (
           <div className="result-list">
             {lectures.map((l) => (
