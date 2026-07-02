@@ -43,6 +43,20 @@
           </svg>
           {{ $t('settings.openFolder') }}
         </button>
+
+        <button
+          v-if="currentView === 'folders'"
+          class="edit-btn"
+          :class="{ 'edit-btn-active': isFolderEditMode }"
+          :disabled="!canEditFolders || isLoading || isGenerating"
+          @click="toggleFolderEditMode"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <rect x="1.5" y="1.5" width="13" height="13" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M4.5 8.2l2.4 2.4 4.6-5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          {{ isFolderEditMode ? $t('trash.doneEditing') : $t('trash.editFolders') }}
+        </button>
       </div>
 
       <div class="actions">
@@ -182,20 +196,6 @@
           </svg>
           {{ $t('trash.clearFolder') }}
           <span v-if="selectedFolderNames.length > 0" class="edit-count">{{ selectedFolderNames.length }}</span>
-        </button>
-
-        <button
-          v-if="currentView === 'folders'"
-          class="edit-btn"
-          :class="{ 'edit-btn-active': isFolderEditMode }"
-          :disabled="!canEditFolders || isLoading || isGenerating"
-          @click="toggleFolderEditMode"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16">
-            <rect x="1.5" y="1.5" width="13" height="13" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
-            <path d="M4.5 8.2l2.4 2.4 4.6-5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          {{ isFolderEditMode ? $t('trash.doneEditing') : $t('trash.editFolders') }}
         </button>
 
         <button
