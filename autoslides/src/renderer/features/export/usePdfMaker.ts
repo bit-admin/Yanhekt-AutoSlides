@@ -1,19 +1,20 @@
 /**
- * PDF Maker composable.
- * Handles folder browsing, ordering, and PDF generation.
+ * PDF/PPTX export composable.
+ * Folder data and selection are owned by the caller (the Slides page);
+ * this composable owns custom ordering, export configuration, and generation.
  */
 
-import { ref, computed, onUnmounted, watch } from 'vue'
+import { ref, computed, onUnmounted, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { compareToolFolders, compareToolImages, formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('PdfMaker');
 
-export interface Folder {
+export interface PdfSourceFolder {
   name: string
-  path: string
-  imageCount: number
+  // Absent for trash-only folders (no on-disk folder to export).
+  path?: string
 }
 
 export interface FolderEntry {
@@ -56,14 +57,14 @@ const EFFORT_PRESETS: Record<AspectRatio, Record<string, { colors: number; size:
   },
 }
 
-export function usePdfMaker() {
+export function usePdfMaker<T extends PdfSourceFolder>(deps: {
+  folders: Ref<T[]>
+  selectedNames: Ref<string[]>
+}) {
   const { t } = useI18n()
 
-  const folders = ref<Folder[]>([])
-  const selectedItems = ref<string[]>([])
   const customOrder = ref<string[]>([])
   const useCustomOrder = ref(false)
-  const isLoading = ref(false)
 
   const reduceEnabled = ref(true)
   const aspectRatio = ref<AspectRatio>('16:9')
@@ -108,10 +109,10 @@ export function usePdfMaker() {
 
   let progressCleanup: (() => void) | null = null
 
-  const sortedFolders = computed(() => {
+  const sortedFolders = computed<T[]>(() => {
     if (useCustomOrder.value && customOrder.value.length > 0) {
-      const ordered: Folder[] = []
-      const remaining = [...folders.value]
+      const ordered: T[] = []
+      const remaining = [...deps.folders.value]
 
       for (const name of customOrder.value) {
         const index = remaining.findIndex((folder) => folder.name === name)
@@ -124,43 +125,13 @@ export function usePdfMaker() {
       return [...ordered, ...remaining]
     }
 
-    return [...folders.value].sort((a, b) => compareToolFolders(a.name, b.name))
+    return [...deps.folders.value].sort((a, b) => compareToolFolders(a.name, b.name))
   })
 
   const displaySize = computed(() => {
     const [w, h] = customSize.value.split('x')
     return w && h ? `${w}×${h}` : customSize.value
   })
-
-  async function loadFolders() {
-    isLoading.value = true
-
-    try {
-      folders.value = overrides.resultsProvider
-        ? await overrides.resultsProvider.getFolders()
-        : await window.electronAPI.pdfmaker.getFolders()
-      customOrder.value = []
-      useCustomOrder.value = false
-      selectedItems.value = []
-    } catch (error) {
-      log.error('Failed to load folders:', error)
-    } finally {
-      isLoading.value = false
-    }
-  }
-
-  async function refresh() {
-    await loadFolders()
-  }
-
-  function toggleSelection(name: string) {
-    const index = selectedItems.value.indexOf(name)
-    if (index === -1) {
-      selectedItems.value.push(name)
-    } else {
-      selectedItems.value.splice(index, 1)
-    }
-  }
 
   function handleFolderReorder(fromIndex: number, toIndex: number) {
     if (fromIndex === toIndex) return
@@ -190,19 +161,22 @@ export function usePdfMaker() {
 
   async function getSelectedFolderEntries(): Promise<FolderEntry[]> {
     const entries: FolderEntry[] = []
-    const selectedFolders = sortedFolders.value.filter((folder) => selectedItems.value.includes(folder.name))
+    const selectedFolders = sortedFolders.value.filter(
+      (folder) => folder.path && deps.selectedNames.value.includes(folder.name)
+    )
 
     for (const folder of selectedFolders) {
+      const folderPath = folder.path as string
       const folderImages = overrides.resultsProvider
-        ? await overrides.resultsProvider.getImages(folder.path)
-        : await window.electronAPI.pdfmaker.getImages(folder.path)
+        ? await overrides.resultsProvider.getImages(folderPath)
+        : await window.electronAPI.pdfmaker.getImages(folderPath)
       const sortedImagePaths = folderImages
         .sort((a, b) => compareToolImages(a.name, b.name))
         .map((image) => image.path)
 
       entries.push({
         name: formatToolFolderName(folder.name),
-        path: folder.path,
+        path: folderPath,
         images: sortedImagePaths,
       })
     }
@@ -228,7 +202,7 @@ export function usePdfMaker() {
   }
 
   async function makePdf(): Promise<PdfMakeResult> {
-    if (selectedItems.value.length === 0) {
+    if (deps.selectedNames.value.length === 0) {
       return { success: false, error: 'No folders selected' }
     }
 
@@ -273,9 +247,7 @@ export function usePdfMaker() {
   })
 
   return {
-    selectedItems,
     sortedFolders,
-    isLoading,
     useCustomOrder,
     reduceEnabled,
     aspectRatio,
@@ -289,9 +261,6 @@ export function usePdfMaker() {
     displaySize,
     isGenerating,
     generateProgress,
-    loadFolders,
-    refresh,
-    toggleSelection,
     handleFolderReorder,
     resetSortOrder,
     enableCustomOrder,

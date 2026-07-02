@@ -30,7 +30,7 @@
           </select>
         </div>
 
-        <button class="btn refresh-btn" @click="refresh" :disabled="isLoading">
+        <button class="btn refresh-btn" @click="handleRefresh" :disabled="isLoading || isGenerating">
           <svg width="16" height="16" viewBox="0 0 16 16" :class="{ spinning: isLoading }">
             <path d="M13.65 2.35A7.958 7.958 0 008 0a8 8 0 108 8h-2a6 6 0 11-1.76-4.24l-2.12 2.12H16V0l-2.35 2.35z" fill="currentColor"/>
           </svg>
@@ -174,7 +174,7 @@
         <button
           v-if="currentView === 'folders' && isFolderEditMode"
           class="delete-btn"
-          :disabled="!canClearSelectedFolders || isLoading"
+          :disabled="!canClearSelectedFolders || isLoading || isGenerating"
           @click="handleClearSelectedFolders"
         >
           <svg width="16" height="16" viewBox="0 0 16 16">
@@ -188,7 +188,7 @@
           v-if="currentView === 'folders'"
           class="edit-btn"
           :class="{ 'edit-btn-active': isFolderEditMode }"
-          :disabled="!canEditFolders || isLoading"
+          :disabled="!canEditFolders || isLoading || isGenerating"
           @click="toggleFolderEditMode"
         >
           <svg width="16" height="16" viewBox="0 0 16 16">
@@ -201,12 +201,157 @@
         <button
           class="clear-btn"
           @click="confirmClearTrash"
-          :disabled="!canClearTrash || isLoading"
+          :disabled="!canClearTrash || isLoading || isGenerating"
         >
           <svg width="16" height="16" viewBox="0 0 16 16">
             <path d="M5.5 0v1H1v2h14V1h-4.5V0h-5zM2 4l1 11h10l1-11H2zm4 2h1v7H6V6zm3 0h1v7H9V6z" fill="currentColor"/>
           </svg>
           {{ $t('trash.clearTrash') }}
+        </button>
+      </div>
+    </div>
+
+    <div
+      v-if="currentView === 'folders'"
+      class="export-bar"
+      :class="{ 'export-bar-disabled': !isFolderEditMode }"
+    >
+      <div class="export-bar-left">
+        <button class="btn" :disabled="exportControlsDisabled" @click="toggleSortOrder">
+          <svg width="16" height="16" viewBox="0 0 16 16">
+            <path d="M2 4h12M4 8h8M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          {{ useCustomOrder ? $t('pdfmaker.customOrder') : $t('pdfmaker.sortAZ') }}
+        </button>
+      </div>
+
+      <div class="export-bar-right">
+        <div class="config-item">
+          <label class="config-label">{{ $t('pdfmaker.aspectRatio') }}</label>
+          <select v-model="aspectRatio" class="select-field pdf-select" :disabled="exportControlsDisabled">
+            <option value="16:9">16:9</option>
+            <option value="4:3">4:3</option>
+          </select>
+        </div>
+
+        <label class="reduce-toggle">
+          <input type="checkbox" v-model="reduceEnabled" :disabled="exportControlsDisabled" />
+          <span>{{ $t('pdfmaker.reduceSize') }}</span>
+        </label>
+
+        <div class="reduce-config-group" :class="{ disabled: !reduceEnabled }">
+          <select
+            v-model="reduceEffort"
+            class="select-field pdf-select"
+            :disabled="exportControlsDisabled || !reduceEnabled"
+          >
+            <option value="standard">{{ $t('pdfmaker.effortStandard') }}</option>
+            <option value="compact">{{ $t('pdfmaker.effortCompact') }}</option>
+            <option value="minimal">{{ $t('pdfmaker.effortMinimal') }}</option>
+            <option value="custom">{{ $t('pdfmaker.effortCustom') }}</option>
+          </select>
+
+          <div class="config-item">
+            <label class="config-label">{{ $t('pdfmaker.colors') }}</label>
+            <span v-if="reduceEffort !== 'custom'" class="config-value">{{ customColors }}</span>
+            <select
+              v-else
+              v-model="customColors"
+              class="select-field pdf-select"
+              :disabled="exportControlsDisabled || !reduceEnabled"
+            >
+              <option :value="null">{{ $t('pdfmaker.colorsOriginal') }}</option>
+              <option :value="256">256</option>
+              <option :value="128">128</option>
+              <option :value="64">64</option>
+              <option :value="32">32</option>
+              <option :value="16">16</option>
+            </select>
+          </div>
+
+          <div class="config-item">
+            <label class="config-label">{{ $t('pdfmaker.size') }}</label>
+            <span v-if="reduceEffort !== 'custom'" class="config-value">{{ displaySize }}</span>
+            <select
+              v-else
+              v-model="customSize"
+              class="select-field pdf-select"
+              :disabled="exportControlsDisabled || !reduceEnabled"
+            >
+              <option v-for="opt in sizeOptions" :key="opt" :value="opt">{{ formatSizeOption(opt) }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="export-menu">
+          <button
+            type="button"
+            class="export-menu-toggle"
+            :disabled="exportControlsDisabled"
+            :aria-expanded="isExportMenuOpen"
+            aria-haspopup="menu"
+            @click="toggleExportMenu"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16">
+              <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1H4V8zm0 2h8v1H4v-1zm0 2h5v1H4v-1z" fill="currentColor"/>
+            </svg>
+            <span>{{ exportMenuLabel }}</span>
+            <svg class="export-menu-chevron" width="12" height="12" viewBox="0 0 12 12">
+              <path d="M3 4.5L6 7.5l3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </button>
+
+          <div v-if="isExportMenuOpen" class="export-menu-panel" role="menu">
+            <div class="export-menu-section" role="group" :aria-label="$t('pdfmaker.outputFormat')">
+              <span class="export-menu-section-label">{{ $t('pdfmaker.outputFormat') }}</span>
+              <div class="mode-segmented">
+                <label class="mode-option" :class="{ active: outputFormat === 'pdf' }">
+                  <input type="radio" v-model="outputFormat" value="pdf" />
+                  <span>{{ $t('pdfmaker.formatPdf') }}</span>
+                </label>
+                <label class="mode-option" :class="{ active: outputFormat === 'pptx' }">
+                  <input type="radio" v-model="outputFormat" value="pptx" />
+                  <span>{{ $t('pdfmaker.formatPptx') }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="export-menu-section" role="group" :aria-label="$t('pdfmaker.outputMode')">
+              <span class="export-menu-section-label">{{ $t('pdfmaker.outputMode') }}</span>
+              <div class="mode-segmented">
+                <label class="mode-option" :class="{ active: outputMode === 'single' }">
+                  <input type="radio" v-model="outputMode" value="single" />
+                  <span>{{ outputFormat === 'pptx' ? $t('pdfmaker.combineOnePptx') : $t('pdfmaker.combineOnePdf') }}</span>
+                </label>
+                <label class="mode-option" :class="{ active: outputMode === 'batch' }">
+                  <input type="radio" v-model="outputMode" value="batch" />
+                  <span>{{ outputFormat === 'pptx' ? $t('pdfmaker.separatePptxs') : $t('pdfmaker.separatePdfs') }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="export-menu-section" role="group" :aria-label="$t('pdfmaker.pages')">
+              <span class="export-menu-section-label">{{ $t('pdfmaker.pages') }}</span>
+              <label class="cover-toggle">
+                <input type="checkbox" v-model="includeCover" />
+                <span>{{ $t('pdfmaker.includeCover') }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <button
+          class="btn btn--primary"
+          @click="handleMakePdf"
+          :disabled="exportControlsDisabled || selectedFolderNames.length === 0"
+        >
+          <svg v-if="!isGenerating" width="16" height="16" viewBox="0 0 16 16">
+            <path d="M2 1h8l4 4v10H2V1zm8 1v3h3l-3-3zM4 8h8v1H4V8zm0 2h8v1H4v-1zm0 2h5v1H4v-1z" fill="currentColor"/>
+          </svg>
+          <span v-if="isGenerating" class="progress-text">
+            {{ generateProgress.current }}/{{ generateProgress.total }}
+          </span>
+          <span v-else>{{ $t('pdfmaker.makeOutput', { format: outputFormat.toUpperCase() }) }}</span>
         </button>
       </div>
     </div>
@@ -270,9 +415,17 @@
                 'folder-item-last-visited': !isFolderEditMode && entry.folder.name === lastVisitedFolderName,
                 'folder-item-selected': isFolderEditMode && selectedFolderNames.includes(entry.folder.name),
                 'folder-item-edit': isFolderEditMode,
+                'folder-item-drag-over': dragOverIndex === entry.index,
+                'folder-item-dragging': dragStartIndex === entry.index,
               }"
               :ref="(el) => setFolderItemRef(entry.folder.name, el as HTMLButtonElement | null)"
+              :draggable="isFolderEditMode && !isGenerating"
               @click="isFolderEditMode ? toggleFolderSelection(entry.folder.name) : handleOpenFolder(entry.folder)"
+              @dragstart="onFolderDragStart($event, entry.index)"
+              @dragover="onFolderDragOver($event, entry.index)"
+              @dragleave="onFolderDragLeave"
+              @drop="onFolderDrop($event, entry.index)"
+              @dragend="onFolderDragEnd"
             >
               <div v-if="isFolderEditMode" class="folder-checkbox">
                 <input
@@ -316,6 +469,12 @@
               <svg v-if="!isFolderEditMode" class="folder-chevron" width="16" height="16" viewBox="0 0 16 16">
                 <path d="M6 3l5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
+
+              <div v-else class="drag-handle" :title="$t('pdfmaker.customOrderHint')">
+                <svg width="20" height="20" viewBox="0 0 16 16">
+                  <path d="M4 4h2v2H4zM4 7h2v2H4zM4 10h2v2H4zM10 4h2v2h-2zM10 7h2v2h-2zM10 10h2v2h-2z" fill="currentColor"/>
+                </svg>
+              </div>
             </button>
             </template>
           </div>
@@ -344,9 +503,23 @@
       </template>
     </div>
 
+    <div v-if="isGenerating" class="progress-bar-container">
+      <div
+        class="progress-bar"
+        :style="{ width: `${generateProgress.total > 0 ? (generateProgress.current / generateProgress.total) * 100 : 0}%` }"
+      ></div>
+    </div>
+
     <div class="footer">
       <div class="footer-left">
-        <span v-if="currentView === 'folders'">{{ $t('trash.total') }}: {{ folders.length }}</span>
+        <template v-if="currentView === 'folders'">
+          <span v-if="!isFolderEditMode">{{ $t('trash.total') }}: {{ sortedFolders.length }}</span>
+          <template v-else>
+            <span>{{ $t('trash.selected') }}: {{ selectedFolderNames.length }} / {{ $t('trash.total') }}: {{ sortedFolders.length }}</span>
+            <span class="footer-separator">|</span>
+            <span>{{ $t('pdfmaker.totalImages') }}: {{ selectedImageCount }}</span>
+          </template>
+        </template>
         <template v-else>
           <button
             class="select-all-btn"
@@ -376,8 +549,13 @@
         </svg>
       </div>
 
-      <label v-if="currentView === 'folders'" class="group-toggle">
-        <input type="checkbox" v-model="groupByCourse" />
+      <label
+        v-if="currentView === 'folders'"
+        class="group-toggle"
+        :class="{ disabled: useCustomOrder }"
+        :title="useCustomOrder ? $t('pdfmaker.groupByCourseDisabledHint') : ''"
+      >
+        <input type="checkbox" v-model="groupByCourse" :disabled="useCustomOrder" />
         <span>{{ $t('trash.groupByCourse') }}</span>
       </label>
     </div>
@@ -568,6 +746,7 @@ import { useI18n } from 'vue-i18n'
 import { createAutoCropWorkerClient } from '@shared/autoCrop'
 import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '@features/results/useResultsView'
 import { useCropEditor, type CropHandle } from '@features/results/useCropEditor'
+import { usePdfMaker } from '@features/export/usePdfMaker'
 import { getCourseName } from '@shared/utils/toolWindowFolders'
 import { configStore } from '@shared/services/configStore'
 import ResultsImageGrid from './ResultsImageGrid.vue'
@@ -787,7 +966,37 @@ const isFolderEditMode = ref(false)
 const selectedFolderNames = ref<string[]>([])
 const groupByCourse = ref(true)
 
-const isGroupingActive = computed(() => groupByCourse.value)
+const {
+  sortedFolders,
+  useCustomOrder,
+  reduceEnabled,
+  aspectRatio,
+  reduceEffort,
+  customColors,
+  customSize,
+  outputMode,
+  outputFormat,
+  includeCover,
+  sizeOptions,
+  displaySize,
+  isGenerating,
+  generateProgress,
+  handleFolderReorder,
+  resetSortOrder,
+  enableCustomOrder,
+  makePdf,
+} = usePdfMaker({ folders, selectedNames: selectedFolderNames })
+
+// Custom ordering and course grouping are mutually exclusive: the grouped view
+// imposes its own course-first order, so dragging into a custom order turns
+// grouping off (the footer checkbox is disabled until order is reset).
+watch(useCustomOrder, (value) => {
+  if (value) {
+    groupByCourse.value = false
+  }
+})
+
+const isGroupingActive = computed(() => groupByCourse.value && !useCustomOrder.value)
 const collapsedCourses = ref<Set<string>>(new Set())
 
 const toggleCourseCollapse = (courseName: string) => {
@@ -803,20 +1012,20 @@ const isCourseCollapsed = (courseName: string) => collapsedCourses.value.has(cou
 interface CourseGroup {
   courseName: string
   folderNames: string[]
-  folders: Array<{ folder: (typeof folders.value)[number]; index: number }>
+  folders: Array<{ folder: (typeof sortedFolders.value)[number]; index: number }>
 }
 
 const courseGroups = computed<CourseGroup[]>(() => {
   if (!isGroupingActive.value) {
     return [{
       courseName: '',
-      folderNames: folders.value.map((f) => f.name),
-      folders: folders.value.map((folder, index) => ({ folder, index })),
+      folderNames: sortedFolders.value.map((f) => f.name),
+      folders: sortedFolders.value.map((folder, index) => ({ folder, index })),
     }]
   }
   const groups: CourseGroup[] = []
   let current: CourseGroup | null = null
-  folders.value.forEach((folder, index) => {
+  sortedFolders.value.forEach((folder, index) => {
     const courseName = getCourseName(folder.name)
     if (!current || current.courseName !== courseName) {
       current = { courseName, folderNames: [], folders: [] }
@@ -884,6 +1093,143 @@ function toggleFolderSelection(name: string) {
   } else {
     selectedFolderNames.value.splice(index, 1)
   }
+}
+
+// --- Export bar (PDF/PPTX generation over the folder selection) ---
+
+const exportControlsDisabled = computed(() => !isFolderEditMode.value || isGenerating.value)
+const isExportMenuOpen = ref(false)
+const dragStartIndex = ref<number | null>(null)
+const dragOverIndex = ref<number | null>(null)
+
+const formatSizeOption = (size: string) => {
+  const [w, h] = size.split('x')
+  return w && h ? `${w}×${h}` : size
+}
+
+const outputModeLabel = computed(() => {
+  if (outputMode.value === 'single') {
+    return outputFormat.value === 'pptx'
+      ? t('pdfmaker.combineOnePptx')
+      : t('pdfmaker.combineOnePdf')
+  }
+
+  return outputFormat.value === 'pptx'
+    ? t('pdfmaker.separatePptxs')
+    : t('pdfmaker.separatePdfs')
+})
+
+const exportMenuLabel = computed(() => `${outputFormat.value.toUpperCase()} · ${outputModeLabel.value}`)
+
+const selectedImageCount = computed(() =>
+  folders.value
+    .filter((f) => selectedFolderNames.value.includes(f.name))
+    .reduce((sum, f) => sum + f.activeCount, 0)
+)
+
+const toggleExportMenu = () => {
+  isExportMenuOpen.value = !isExportMenuOpen.value
+}
+
+watch(exportControlsDisabled, (disabled) => {
+  if (disabled) {
+    isExportMenuOpen.value = false
+  }
+})
+
+const toggleSortOrder = () => {
+  if (useCustomOrder.value) {
+    resetSortOrder()
+  } else {
+    enableCustomOrder()
+  }
+}
+
+const onFolderDragStart = (event: DragEvent, index: number) => {
+  dragStartIndex.value = index
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', String(index))
+  }
+}
+
+const onFolderDragOver = (event: DragEvent, index: number) => {
+  if (dragStartIndex.value === null) return
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+  dragOverIndex.value = index
+}
+
+const onFolderDragLeave = () => {
+  dragOverIndex.value = null
+}
+
+const onFolderDrop = (event: DragEvent, toIndex: number) => {
+  event.preventDefault()
+  if (dragStartIndex.value !== null && dragStartIndex.value !== toIndex) {
+    handleFolderReorder(dragStartIndex.value, toIndex)
+  }
+  dragStartIndex.value = null
+  dragOverIndex.value = null
+}
+
+const onFolderDragEnd = () => {
+  dragStartIndex.value = null
+  dragOverIndex.value = null
+}
+
+const handleMakePdf = async () => {
+  if (selectedFolderNames.value.length === 0) return
+
+  const result = await makePdf()
+
+  if (result.success && result.mode === 'batch') {
+    const isPptx = result.format === 'pptx'
+    const response = await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'info',
+      buttons: [t('pdfmaker.openOutputFolder'), 'OK'],
+      defaultId: 0,
+      title: t(isPptx ? 'pdfmaker.pptxsSavedTitle' : 'pdfmaker.pdfsSavedTitle'),
+      message: t(isPptx ? 'pdfmaker.pptxsSaved' : 'pdfmaker.pdfsSaved', { path: result.outputDir }),
+    })
+
+    if (response?.response === 0) {
+      await window.electronAPI.shell?.openPath?.(result.outputDir)
+    }
+  } else if (result.success && result.mode === 'single') {
+    const isPptx = result.format === 'pptx'
+    const response = await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'info',
+      buttons: [t(isPptx ? 'pdfmaker.openPptx' : 'pdfmaker.openPdf'), 'OK'],
+      defaultId: 0,
+      title: t(isPptx ? 'pdfmaker.pptxSavedTitle' : 'pdfmaker.pdfSavedTitle'),
+      message: t(isPptx ? 'pdfmaker.pptxSaved' : 'pdfmaker.pdfSaved', { path: result.path }),
+    })
+
+    if (response?.response === 0 && result.path) {
+      await window.electronAPI.shell?.openPath?.(result.path)
+    }
+  } else if (!result.success && result.error && result.error !== 'Cancelled') {
+    await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'error',
+      buttons: ['OK'],
+      title: t('pdfmaker.errorTitle'),
+      message: result.error,
+    })
+  }
+}
+
+// The toolbar Refresh is a full reset of the folder list: it also drops the
+// custom export order and folder selection (matching the old Slides Export
+// refresh). Internal refreshes after item actions keep both.
+async function handleRefresh() {
+  if (currentView.value === 'folders') {
+    resetSortOrder()
+    selectedFolderNames.value = []
+  }
+  await refresh()
 }
 
 async function handleClearSelectedFolders() {
@@ -1089,8 +1435,11 @@ const toggleRemoveDuplicatesMenu = () => {
 }
 
 const handleGlobalClickForActionMenus = (event: MouseEvent) => {
-  if (!showRestoreMenu.value && !showAutoCropMenu.value && !showRemoveDuplicatesMenu.value) return
   const target = event.target as HTMLElement | null
+  if (isExportMenuOpen.value && !target?.closest('.export-menu')) {
+    isExportMenuOpen.value = false
+  }
+  if (!showRestoreMenu.value && !showAutoCropMenu.value && !showRemoveDuplicatesMenu.value) return
   if (target?.closest('.action-split')) return
   showRestoreMenu.value = false
   showAutoCropMenu.value = false
@@ -1172,6 +1521,246 @@ const confirmClearTrash = async () => {
   gap: 8px;
   flex-wrap: wrap;
   row-gap: 6px;
+}
+
+/* Second toolbar row: PDF/PPTX export controls. Grayed out until the user
+   enters Select mode (folder selection doubles as the export selection). */
+.export-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: var(--bg-elevated);
+  border-bottom: 1px solid var(--border-color);
+  gap: 10px;
+  row-gap: 6px;
+  transition: opacity 0.2s;
+}
+
+.export-bar-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.export-bar-left,
+.export-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.export-bar-right {
+  justify-content: flex-end;
+}
+
+.reduce-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.reduce-toggle:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-input);
+}
+
+.reduce-toggle input {
+  margin: 0;
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+  accent-color: var(--accent);
+}
+
+.reduce-config-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.2s;
+}
+
+.reduce-config-group.disabled {
+  opacity: 0.5;
+}
+
+.config-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.config-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Inline config-row selects — auto width instead of the shared full width */
+.pdf-select {
+  width: auto;
+}
+
+.config-value {
+  font-size: 13px;
+  color: var(--text-primary);
+  padding: 4px 8px;
+  background-color: var(--bg-page);
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.export-menu {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.export-menu-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.export-menu-toggle:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+  border-color: var(--border-input);
+}
+
+.export-menu-toggle:disabled {
+  cursor: not-allowed;
+}
+
+.export-menu-chevron {
+  transition: transform 0.2s;
+}
+
+.export-menu-toggle[aria-expanded="true"] .export-menu-chevron {
+  transform: rotate(180deg);
+}
+
+.export-menu-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 260px;
+  padding: 10px;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  background-color: var(--bg-card);
+  box-shadow: 0 8px 24px var(--shadow-md);
+}
+
+.export-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.export-menu-section-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.export-menu-panel .mode-segmented {
+  width: 100%;
+}
+
+.export-menu-panel .mode-option {
+  flex: 1;
+  justify-content: center;
+}
+
+.mode-segmented {
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-input);
+  border-radius: 5px;
+}
+
+.mode-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.2;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.mode-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.mode-option.active {
+  background-color: var(--bg-surface);
+  color: var(--accent);
+  box-shadow: 0 1px 2px var(--shadow-sm);
+}
+
+.cover-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  font-size: 12px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.cover-toggle:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-input);
+}
+
+.cover-toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.progress-text {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Inline filter select — auto width instead of the shared full width */
@@ -1572,14 +2161,24 @@ const confirmClearTrash = async () => {
 }
 
 .folder-item-selected {
-  background-color: var(--danger-bg);
-  border-color: var(--danger);
-  box-shadow: 0 0 0 1px var(--danger) inset;
+  background-color: var(--badge-active-bg);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent) inset;
 }
 
 .folder-item-selected:hover {
-  background-color: var(--danger-bg);
-  border-color: var(--danger-strong-hover);
+  background-color: var(--badge-active-bg);
+  border-color: var(--accent-hover);
+}
+
+.folder-item-drag-over {
+  border-color: var(--accent);
+  border-style: dashed;
+  background-color: var(--badge-active-bg);
+}
+
+.folder-item-dragging {
+  opacity: 0.5;
 }
 
 .folder-item-grouped {
@@ -1682,6 +2281,25 @@ const confirmClearTrash = async () => {
   color: var(--text-muted);
 }
 
+.drag-handle {
+  flex-shrink: 0;
+  cursor: grab;
+  padding: 6px 8px;
+  opacity: 0.6;
+  transition: opacity 0.2s, background-color 0.2s;
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.folder-item:hover .drag-handle {
+  opacity: 1;
+  background-color: var(--bg-hover);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
 
 .reason-badge.reason-duplicate {
   background-color: var(--reason-duplicate-bg);
@@ -1708,6 +2326,19 @@ const confirmClearTrash = async () => {
   color: var(--badge-removed-text);
 }
 
+.progress-bar-container {
+  height: 3px;
+  background-color: var(--border-color);
+  width: 100%;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: var(--accent);
+  transition: width 0.15s ease-out;
+}
+
 .footer {
   display: flex;
   justify-content: space-between;
@@ -1723,6 +2354,10 @@ const confirmClearTrash = async () => {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.footer-separator {
+  color: var(--border-strong);
 }
 
 .select-all-btn {
@@ -1770,9 +2405,14 @@ const confirmClearTrash = async () => {
   transition: background-color 0.15s, border-color 0.15s;
 }
 
-.group-toggle:hover {
+.group-toggle:hover:not(.disabled) {
   background-color: var(--bg-hover);
   border-color: var(--border-strong);
+}
+
+.group-toggle.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .group-toggle input {
@@ -1781,6 +2421,10 @@ const confirmClearTrash = async () => {
   margin: 0;
   accent-color: var(--accent);
   cursor: pointer;
+}
+
+.group-toggle.disabled input {
+  cursor: not-allowed;
 }
 
 .size-icon {

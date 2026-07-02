@@ -60,11 +60,12 @@ async function main() {
   const win = await app.firstWindow()
   await win.waitForLoadState('domcontentloaded')
 
-  // Match the app's real default window size (1400x900) so grid rows get their
-  // full height — a shorter window clips the multi-line course cards.
+  // Match the app's real default window size (main.ts: width 1440, height 900)
+  // so captures reflect what users actually see — a narrower window clips
+  // multi-line course cards and wraps toolbars that fit at the real width.
   try {
     const bw = await app.browserWindow(win)
-    await bw.evaluate((w) => { w.setContentSize(1400, 900); w.center() })
+    await bw.evaluate((w) => { w.setContentSize(1440, 900); w.center() })
   } catch (e) {
     console.warn('  (could not resize window):', e.message)
   }
@@ -133,8 +134,8 @@ async function main() {
   }
 
   // Navigate the main window to a left-panel Workspace page (slides-review /
-  // slides-export / cloud-notes) via the demo-only hook, then wait for it to
-  // render. These pages take over the main window (right panel hidden).
+  // cloud-notes) via the demo-only hook, then wait for it to render. These
+  // pages take over the main window (right panel hidden).
   const gotoWorkspace = async (target, readySelector) => {
     await win.evaluate((t) => window.__demoNavigate?.(t), target)
     if (readySelector) await win.waitForSelector(readySelector, { timeout: 8000 })
@@ -433,15 +434,25 @@ async function main() {
     await win.waitForTimeout(500)
     await shot('results-crop')
 
-    // Dismiss the preview/crop modal before the next page.
-    await win.keyboard.press('Escape').catch(() => {})
+    // Dismiss the preview/crop modal before the next step (the Slides page has
+    // no Escape handler — use the modal's close button).
+    await win.locator('.preview-close-btn').click()
     await win.waitForTimeout(300)
   })
 
-  // Slides Export: grouped folder list with image counts.
+  // Slides Select mode: blue folder selection + the active export bar
+  // (PDF/PPTX). The results step above left the page inside a folder, so go
+  // back to the folder list first.
   await step('pdfmaker', async () => {
-    await gotoWorkspace('slides-export', '.folder-list')
+    await win.locator('.results-window .back-btn').click()
+    await win.waitForSelector('.folder-list', { timeout: 8000 })
+    await win.locator('.edit-btn').click() // "Select"
+    await win.locator('.folder-item').first().click()
+    await win.locator('.folder-item').nth(1).click()
+    await win.waitForTimeout(500)
     await shot('pdfmaker')
+    // Leave Select mode so later steps see the default page state.
+    await win.locator('.edit-btn').click()
   })
 
   // Cloud Notes: three-pane view (groups + note list + editor). The managed
@@ -541,7 +552,7 @@ ${list}
 | results-grid.png | results-grid.png | G. 图像网格（视图 / 原因筛选 / 徽章 / NO SIGNAL / 编辑模式帧） |
 | results-preview.png | results-preview.png | G. 放大预览（编辑模式帧） |
 | results-crop.png | results-crop.png | G. 裁剪模式（裁剪框） |
-| pdfmaker.png | pdfmaker.png | H. 导出（PDF / PPTX，按课程分组） |
+| pdfmaker.png | pdfmaker.png | H. 导出（幻灯片页面选择模式 + PDF / PPTX 导出栏） |
 | cloud-notes.png | cloud-notes.png | 云笔记 — 三栏视图（分组 / 笔记列表 / 编辑器） |
 | cloud-notes-editor.png | cloud-notes-editor.png | 云笔记 — 打开托管笔记（嵌入幻灯片图片） |
 | advanced-general.png | settings-general.png | B & I. 一般设置 |
@@ -580,11 +591,11 @@ gallery in \`playback-screen.png\` is seeded with fabricated slides.
   the long tabs at real section boundaries.
 - **Defaults**: demo boots from an isolated \`AutoSlides-Demo\` userData dir, so all
   settings show factory **defaults** (the demo never touches your real profile).
-- **Results View & PDF Maker** (\`results-*.png\`, \`pdfmaker.png\`) use **fabricated**
-  folders/slides drawn as SVGs — they read **no real files** (slides, the NO SIGNAL
+- **Slides page** (\`results-*.png\`, \`pdfmaker.png\`) uses **fabricated**
+  folders/slides drawn as SVGs — it reads **no real files** (slides, the NO SIGNAL
   not_slide, the PowerPoint-edit frame, and the seeded crop box are all synthetic).
 - **Cloud Notes** (\`cloud-notes*.png\`) use **fabricated** groups/notes — no network.
-  The managed "AS ·" notes embed the same synthetic slide SVGs as Slides Export.
+  The managed "AS ·" notes embed the same synthetic slide SVGs as the Slides page.
 `
   writeFileSync(path.join(outDir, 'NOTES.md'), notes)
   console.log(`  ✓ NOTES.md`)

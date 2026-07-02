@@ -23,20 +23,14 @@
           <SearchPage />
         </div>
 
-        <!-- Slides Review (Workspace page — full-width, right panel hidden) -->
+        <!-- Slides (Workspace page — full-width, right panel hidden).
+             Merged review + PDF/PPTX export: the folder Select mode doubles
+             as the export selection. -->
         <div
           :class="['mode-container', { 'mode-hidden': activeNav !== 'slides-review' }]"
           data-mode="slides-review"
         >
           <ResultsWindow />
-        </div>
-
-        <!-- Slides Export (Workspace page — full-width, right panel hidden) -->
-        <div
-          :class="['mode-container', { 'mode-hidden': activeNav !== 'slides-export' }]"
-          data-mode="slides-export"
-        >
-          <PdfMakerWindow />
         </div>
 
         <!-- Cloud Notes (Workspace page — full-width, right panel hidden).
@@ -134,7 +128,6 @@ import PlaybackPage from '@renderer/components/video/PlaybackPage.vue'
 import HomePage from '@renderer/components/course/HomePage.vue'
 import SearchPage from '@renderer/components/course/SearchPage.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
-import PdfMakerWindow from '@renderer/components/export/PdfMakerWindow.vue'
 import CloudNotesTab from '@renderer/components/cloudnotes/CloudNotesTab.vue'
 import CloudIndexTab from '@renderer/components/cloudIndex/CloudIndexTab.vue'
 import SettingsPage from '@renderer/components/settings/SettingsPage.vue'
