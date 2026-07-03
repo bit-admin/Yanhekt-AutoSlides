@@ -34,11 +34,27 @@ interface Version {
   createdAt?: string;
 }
 
+/** A recently-added FILE (version) — opens directly at /v1/s/<shareId>. */
+interface RecentFile {
+  shareId: string;
+  courseId: string;
+  sessionId: string;
+  courseTitle?: string;
+  sessionTitle?: string;
+  instructor?: string;
+  professors?: string[];
+  semester?: string;
+  schoolYear?: string;
+  college?: string;
+  imageCount?: number;
+  createdAt?: string;
+}
+
 interface Stats {
   courseCount: number;
   lectureCount: number;
   versionCount: number;
-  recent: Lecture[];
+  recent: RecentFile[];
   colleges: { college: string; count: number }[];
 }
 
@@ -84,9 +100,16 @@ function readRoute(): { courseId: string; sessionId: string } | null {
 
 export function App() {
   const [route, setRoute] = useState(readRoute());
+  // Ephemeral: the course's full session list, captured when a session is clicked
+  // within loaded results, so the /?l= route can render the whole course without a
+  // backend call. Null on a cold/direct visit (or after back/forward) → single-session.
+  const [courseCtx, setCourseCtx] = useState<{ courseId: string; sessions: Lecture[] } | null>(null);
 
   useEffect(() => {
-    const onPop = () => setRoute(readRoute());
+    const onPop = () => {
+      setRoute(readRoute());
+      setCourseCtx(null);
+    };
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
@@ -97,18 +120,40 @@ export function App() {
     window.scrollTo(0, 0);
   }, []);
 
+  // Clicking a session from loaded results: stash the course's sessions, then navigate
+  // to the lecture URL. The route render below reads courseCtx to show the whole course.
+  const openSession = useCallback(
+    (sessions: Lecture[], lecture: Lecture) => {
+      setCourseCtx({ courseId: lecture.courseId, sessions });
+      go(lectureUrl(lecture));
+    },
+    [go],
+  );
+
   return (
     <div className="page">
       {route ? (
-        <LectureView courseId={route.courseId} sessionId={route.sessionId} onBack={() => go('/')} />
+        courseCtx && courseCtx.courseId === route.courseId ? (
+          <CourseDetailView
+            sessions={courseCtx.sessions}
+            focusSessionId={route.sessionId}
+            onBack={() => go('/')}
+          />
+        ) : (
+          <LectureView courseId={route.courseId} sessionId={route.sessionId} onBack={() => go('/')} />
+        )
       ) : (
-        <Home go={go} />
+        <Home openSession={openSession} />
       )}
     </div>
   );
 }
 
-function Home({ go }: { go: (url: string) => void }) {
+function Home({
+  openSession,
+}: {
+  openSession: (sessions: Lecture[], lecture: Lecture) => void;
+}) {
   const [q, setQ] = useState('');
   const [results, setResults] = useState<Lecture[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -153,8 +198,8 @@ function Home({ go }: { go: (url: string) => void }) {
     else window.location.href = `/v1/${v.startsWith('#') ? v : `#${v.replace(/^#/, '')}`}`;
   }, [pasteLink]);
 
-  const lectures = results ?? stats?.recent ?? [];
   const hasResults = results !== null;
+  const recentFiles = (stats?.recent ?? []).filter((f) => f.shareId);
 
   const colleges = useMemo(() => {
     if (!results) return [];
@@ -188,14 +233,14 @@ function Home({ go }: { go: (url: string) => void }) {
   }, [results]);
 
   const filtered = useMemo(() => {
-    if (!results) return lectures;
+    if (!results) return [];
     return results.filter((l) => {
       if (collegeFilter && l.college !== collegeFilter) return false;
       if (termFilter && termKey(l) !== termFilter) return false;
       if (instructorFilter && (l.instructor || (l.professors ?? []).join(', ')) !== instructorFilter) return false;
       return true;
     });
-  }, [results, lectures, collegeFilter, termFilter, instructorFilter]);
+  }, [results, collegeFilter, termFilter, instructorFilter]);
 
   const groups = useMemo(() => (hasResults ? groupLectures(filtered) : []), [hasResults, filtered]);
   const showFilterBar = hasResults && (colleges.length > 1 || terms.length > 1 || instructors.length > 1);
@@ -229,7 +274,7 @@ function Home({ go }: { go: (url: string) => void }) {
             <button
               key={`${l.courseId}.${l.sessionId}`}
               className="result-item"
-              onClick={() => go(lectureUrl(l))}
+              onClick={() => openSession(selectedCourse.items, l)}
             >
               <div className="result-title">
                 <span className="result-session">{l.sessionTitle || 'Untitled session'}</span>
@@ -392,7 +437,7 @@ function Home({ go }: { go: (url: string) => void }) {
                       <button
                         key={`${l.courseId}.${l.sessionId}`}
                         className="result-item"
-                        onClick={() => go(lectureUrl(l))}
+                        onClick={() => openSession(group.items, l)}
                       >
                         <div className="result-title">
                           <span className="result-session">{l.sessionTitle || 'Untitled session'}</span>
@@ -413,34 +458,192 @@ function Home({ go }: { go: (url: string) => void }) {
               ))}
             </div>
           )
-        ) : lectures.length === 0 ? (
+        ) : recentFiles.length === 0 ? (
           <p className="empty">Nothing here yet.</p>
         ) : (
           <div className="result-list">
-            {lectures.map((l) => (
-              <button
-                key={`${l.courseId}.${l.sessionId}`}
-                className="result-item"
-                onClick={() => go(lectureUrl(l))}
-              >
+            {recentFiles.map((f) => (
+              <a key={f.shareId} className="result-item" href={`/v1/s/${f.shareId}`}>
                 <div className="result-title">
-                  <span className="result-course">{l.courseTitle || 'Untitled course'}</span>
-                  {l.sessionTitle && <span className="result-session"> {l.sessionTitle}</span>}
+                  <span className="result-course">{f.courseTitle || 'Untitled course'}</span>
+                  {f.sessionTitle && <span className="result-session"> {f.sessionTitle}</span>}
                 </div>
                 <div className="result-meta">
                   {[
-                    l.instructor || (l.professors ?? []).join(', '),
-                    termLabel(l),
-                    fileCountLabel(l.versionCount),
+                    f.instructor || (f.professors ?? []).join(', '),
+                    termLabel(f),
+                    f.imageCount ? `${f.imageCount} slides` : '',
+                    f.createdAt ? new Date(f.createdAt).toLocaleDateString() : '',
                   ]
                     .filter(Boolean)
                     .join(' · ')}
                 </div>
-              </button>
+              </a>
             ))}
           </div>
         )}
       </section>
+    </main>
+  );
+}
+
+/**
+ * The bordered file panel shared by the single-session page and the course view's detail
+ * pane: a head row ("N files indexed" + removal flag) over the version list. Keeps both
+ * surfaces visually consistent.
+ */
+function FilePanel({
+  loading,
+  versions,
+  onFlag,
+}: {
+  loading: boolean;
+  versions: Version[] | null;
+  onFlag: () => void;
+}) {
+  return (
+    <aside className="course-detail-pane">
+      <div className="course-detail-head">
+        <span className="course-detail-count">
+          {loading || !versions ? ' ' : `${versions.length} file${versions.length === 1 ? '' : 's'} indexed`}
+        </span>
+        <button
+          className="removal-btn"
+          type="button"
+          aria-label="Request removal"
+          title="Request removal"
+          onClick={onFlag}
+        >
+          <FlagIcon />
+        </button>
+      </div>
+      {loading || !versions ? (
+        <p className="empty">Loading…</p>
+      ) : versions.length === 0 ? (
+        <p className="empty">No files indexed.</p>
+      ) : (
+        <div className="version-list">
+          {versions.map((v, i) => (
+            <a key={v.shareId} className="version" href={`/v1/s/${v.shareId}`}>
+              <span className="version-ord">Slides #{i + 1}</span>
+              {v.createdAt && <span className="version-date">{new Date(v.createdAt).toLocaleDateString()}</span>}
+              <span className="version-count">{v.imageCount ?? '?'} slides</span>
+              {v.edited && <span className="version-edited">Edited</span>}
+              {v.reviewed && <VerifiedIcon />}
+            </a>
+          ))}
+        </div>
+      )}
+    </aside>
+  );
+}
+
+/**
+ * Course view shown when a session is opened from loaded results (App holds the course's
+ * session list in memory). Master–detail: the LEFT column lists every session of the
+ * course; the RIGHT pane shows ONLY the selected session's files (fetched on demand from
+ * the existing /v2/api/lecture — no backend change). The selected row carries a ›.
+ * A cold/direct /?l= visit renders LectureView instead.
+ */
+function CourseDetailView({
+  sessions,
+  focusSessionId,
+  onBack,
+}: {
+  sessions: Lecture[];
+  focusSessionId?: string;
+  onBack: () => void;
+}) {
+  const course = sessions[0];
+  const [selectedId, setSelectedId] = useState(focusSessionId ?? sessions[0]?.sessionId);
+  const [versions, setVersions] = useState<Version[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showRemoval, setShowRemoval] = useState(false);
+
+  const selected = sessions.find((s) => s.sessionId === selectedId) ?? sessions[0];
+
+  const load = useCallback((courseId: string, sessionId: string, bust = false) => {
+    setLoading(true);
+    setVersions(null);
+    const cb = bust ? `&_=${Date.now()}` : '';
+    fetch(
+      `${API}/lecture?courseId=${encodeURIComponent(courseId)}&sessionId=${encodeURIComponent(sessionId)}${cb}`,
+    )
+      .then((r) => r.json())
+      .then((d) => setVersions(d.ok ? (d.versions ?? []) : []))
+      .catch(() => setVersions([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    if (!selected) return;
+    load(selected.courseId, selected.sessionId);
+    // Keep the address bar on the selected session (a reload/share → single-session page).
+    window.history.replaceState(null, '', lectureUrl(selected));
+  }, [selected, load]);
+
+  if (!course || !selected) {
+    return (
+      <main className="lecture">
+        <button className="back" onClick={onBack}>← Back</button>
+        <p className="empty">This course isn’t in the index.</p>
+      </main>
+    );
+  }
+
+  return (
+    <main className="lecture">
+      <button className="back" onClick={onBack}>← Back</button>
+      <div className="lecture-head">
+        <h1 className="lecture-title">{course.courseTitle || 'Untitled course'}</h1>
+      </div>
+      <p className="lecture-meta">
+        {[
+          course.instructor || (course.professors ?? []).join(', '),
+          termLabel(course),
+          `${sessions.length} session${sessions.length > 1 ? 's' : ''}`,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+      </p>
+
+      <div className="course-split">
+        <div className="course-session-list">
+          {sessions.map((s) => (
+            <button
+              key={s.sessionId}
+              className={`result-item course-session-row${s.sessionId === selectedId ? ' is-selected' : ''}`}
+              onClick={() => setSelectedId(s.sessionId)}
+            >
+              <span className="course-session-row-main">
+                <span className="result-title">
+                  <span className="result-session">{s.sessionTitle || 'Untitled session'}</span>
+                </span>
+                <span className="result-meta">
+                  {[s.instructor || (s.professors ?? []).join(', '), termLabel(s)]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </span>
+              <span className="course-session-caret" aria-hidden="true">›</span>
+            </button>
+          ))}
+        </div>
+
+        <FilePanel loading={loading} versions={versions} onFlag={() => setShowRemoval(true)} />
+      </div>
+
+      {showRemoval && (
+        <RemovalModal
+          courseId={selected.courseId}
+          sessionId={selected.sessionId}
+          onClose={() => setShowRemoval(false)}
+          onRemoved={() => {
+            setShowRemoval(false);
+            load(selected.courseId, selected.sessionId, true);
+          }}
+        />
+      )}
     </main>
   );
 }
@@ -494,15 +697,6 @@ function LectureView({
                 .filter(Boolean)
                 .join(' ')}
             </h1>
-            <button
-              className="removal-btn"
-              type="button"
-              aria-label="Request removal"
-              title="Request removal"
-              onClick={() => setShowRemoval(true)}
-            >
-              <FlagIcon />
-            </button>
           </div>
           <p className="lecture-meta">
             {[data.lecture.instructor || (data.lecture.professors ?? []).join(', '), termLabel(data.lecture)]
@@ -510,18 +704,7 @@ function LectureView({
               .join(' · ')}
           </p>
 
-          <h2>{data.versions.length} file{data.versions.length === 1 ? '' : 's'} indexed</h2>
-          <div className="version-list">
-            {data.versions.map((v, i) => (
-              <a key={v.shareId} className="version" href={`/v1/s/${v.shareId}`}>
-                <span className="version-ord">Slides #{i + 1}</span>
-                {v.createdAt && <span className="version-date">{new Date(v.createdAt).toLocaleDateString()}</span>}
-                <span className="version-count">{v.imageCount ?? '?'} slides</span>
-                {v.edited && <span className="version-edited">Edited</span>}
-                {v.reviewed && <VerifiedIcon />}
-              </a>
-            ))}
-          </div>
+          <FilePanel loading={false} versions={data.versions} onFlag={() => setShowRemoval(true)} />
         </>
       )}
       {showRemoval && (

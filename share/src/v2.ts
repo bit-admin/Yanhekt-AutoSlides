@@ -326,6 +326,24 @@ function rowToLecture(r: Record<string, unknown>): Record<string, unknown> {
   };
 }
 
+/** Maps a recent-versions join row to a homepage recent-file object. */
+function rowToRecentFile(r: Record<string, unknown>): Record<string, unknown> {
+  return {
+    shareId: r.share_id,
+    imageCount: r.image_count,
+    createdAt: r.created_at,
+    courseId: r.course_id,
+    sessionId: r.session_id,
+    courseTitle: r.course_title,
+    sessionTitle: r.session_title,
+    instructor: r.instructor,
+    professors: r.professors ? safeParseArray(r.professors as string) : [],
+    semester: r.semester,
+    schoolYear: r.school_year,
+    college: r.college,
+  };
+}
+
 function safeParseArray(s: string): unknown[] {
   try {
     const v = JSON.parse(s);
@@ -402,8 +420,16 @@ export async function refreshStats(env: Env): Promise<Record<string, unknown>> {
   const vcount = await db
     .prepare('SELECT COUNT(*) AS versions FROM versions')
     .first<{ versions: number }>();
+  // Recent FILES (versions), not lectures — each row opens directly at /v1/s/<shareId>.
   const recent = await db
-    .prepare(`SELECT ${LECTURE_COLS} FROM lectures ORDER BY updated_at DESC LIMIT ?`)
+    .prepare(
+      `SELECT v.share_id, v.image_count, v.created_at,
+              l.course_id, l.session_id, l.course_title, l.session_title, l.instructor,
+              l.professors, l.semester, l.school_year, l.college
+       FROM versions v
+       JOIN lectures l ON l.course_id = v.course_id AND l.session_id = v.session_id
+       ORDER BY v.created_at DESC LIMIT ?`,
+    )
     .bind(RECENT_LIMIT)
     .all();
   const colleges = await db
@@ -417,7 +443,7 @@ export async function refreshStats(env: Env): Promise<Record<string, unknown>> {
     courseCount: counts?.courses ?? 0,
     lectureCount: counts?.lectures ?? 0,
     versionCount: vcount?.versions ?? 0,
-    recent: recent.results.map(rowToLecture),
+    recent: recent.results.map(rowToRecentFile),
     colleges: colleges.results.map((c) => ({ college: c.college, count: c.n })),
     updatedAt: new Date().toISOString(),
   };
