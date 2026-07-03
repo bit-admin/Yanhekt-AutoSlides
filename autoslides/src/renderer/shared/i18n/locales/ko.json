@@ -634,6 +634,7 @@
   "sessions": {
     "pin": "강의 고정",
     "unpin": "고정 해제",
+    "searchInIndex": "클라우드 인덱스에서 이 강의 검색",
     "backToCourses": "강의로 돌아가기",
     "classrooms": "강의실",
     "time": "시간",

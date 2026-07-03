@@ -634,6 +634,7 @@
   "sessions": {
     "pin": "Pin course",
     "unpin": "Unpin",
+    "searchInIndex": "Search this course in Cloud Index",
     "backToCourses": "Back to Courses",
     "classrooms": "Classrooms",
     "time": "Time",

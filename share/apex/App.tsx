@@ -154,7 +154,7 @@ function Home({
 }: {
   openSession: (sessions: Lecture[], lecture: Lecture) => void;
 }) {
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(() => new URLSearchParams(window.location.search).get('q') ?? '');
   const [results, setResults] = useState<Lecture[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -187,6 +187,14 @@ function Home({
     } finally {
       setSearching(false);
     }
+  }, []);
+
+  // Honor a ?q=<term> URL param on load (e.g. the desktop app deep-links here to
+  // pre-search a course name). runSearch is a stable useCallback.
+  useEffect(() => {
+    const initialQ = new URLSearchParams(window.location.search).get('q');
+    if (initialQ) void runSearch(initialQ);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onOpenV1 = useCallback(() => {

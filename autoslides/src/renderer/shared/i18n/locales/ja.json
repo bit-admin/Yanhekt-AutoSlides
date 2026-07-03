@@ -634,6 +634,7 @@
   "sessions": {
     "pin": "コースをピン留め",
     "unpin": "ピン留めを解除",
+    "searchInIndex": "このコースをクラウドインデックスで検索",
     "backToCourses": "コースに戻る",
     "classrooms": "教室",
     "time": "時間",

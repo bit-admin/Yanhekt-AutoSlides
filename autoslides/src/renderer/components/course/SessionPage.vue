@@ -10,6 +10,16 @@
         </button>
         <h2>{{ course?.title }}</h2>
         <button
+          @click="searchInIndex"
+          class="btn index-search-btn"
+          :title="$t('sessions.searchInIndex')"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+        </button>
+        <button
           @click="togglePin"
           class="btn pin-btn"
           :class="{ active: pinned }"
@@ -168,6 +178,7 @@ import { computed, onMounted, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '@features/course/useSessionPage'
 import { isPinned, togglePinnedCourse } from '@features/course/pinnedCourses'
+import { navigationStore } from '@features/course/navigationStore'
 
 const props = defineProps<{
   course: SessionCourse | null
@@ -218,6 +229,12 @@ const togglePin = () => {
   const c = courseDetails.value
   if (!c?.id) return
   togglePinnedCourse(c)
+}
+
+const searchInIndex = () => {
+  const title = courseDetails.value?.title || props.course?.title
+  if (!title) return
+  navigationStore.requestCloudIndexSearch(title)
 }
 
 onMounted(() => {
@@ -279,7 +296,8 @@ onMounted(() => {
 }
 
 /* Square 32×32 icon button, matching .expand-btn. Accent when pinned. */
-.pin-btn {
+.pin-btn,
+.index-search-btn {
   width: 32px;
   height: 32px;
   padding: 0;

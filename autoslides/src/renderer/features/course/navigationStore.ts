@@ -18,6 +18,11 @@ export interface CourseOpenRequest {
   requestId: number
 }
 
+export interface CloudIndexSearchRequest {
+  term: string
+  requestId: number
+}
+
 // Module-singleton navigation state shared by the left-panel navigator and
 // MainContent (same pattern as useAuth's shared refs).
 const activeNav = ref<NavTarget>('home')
@@ -28,6 +33,9 @@ const recordedPlaybackActive = ref(false)
 // can label itself "Sessions" instead of "Recorded".
 const recordedOnSessions = ref(false)
 const courseOpenRequest = ref<CourseOpenRequest | null>(null)
+// A course name to pre-search on the Cloud Index page. Consumed by CloudIndexTab
+// (immediate watch), which rebuilds the embedded webview URL with ?q=<term>.
+const cloudIndexSearchRequest = ref<CloudIndexSearchRequest | null>(null)
 // When a course is opened directly from a sidebar pinned item, that item takes
 // the active highlight instead of the "Recorded" navigator entry. Cleared the
 // moment the user navigates anywhere else or opens a course from another surface.
@@ -80,6 +88,13 @@ const setActivePinned = (id: string | null) => {
   activePinnedId.value = id
 }
 
+// Jump to the Cloud Index page with a course name pre-searched (from the sessions
+// header search button).
+const requestCloudIndexSearch = (term: string) => {
+  cloudIndexSearchRequest.value = { term, requestId: nextRequestId++ }
+  navigate('cloud-index')
+}
+
 export const navigationStore = {
   activeNav,
   livePlaybackActive,
@@ -87,10 +102,12 @@ export const navigationStore = {
   recordedOnSessions,
   isWorkspacePage,
   courseOpenRequest,
+  cloudIndexSearchRequest,
   activePinnedId,
   recordedGridResetTick,
   navigate,
   openSettings,
   requestCourseOpen,
+  requestCloudIndexSearch,
   setActivePinned
 }

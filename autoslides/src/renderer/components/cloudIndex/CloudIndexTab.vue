@@ -3,7 +3,7 @@
     <webview
       v-show="mode === 'browse'"
       ref="webviewRef"
-      src="https://share.ruc.edu.kg/"
+      :src="webviewSrc"
       partition="persist:cloudindex"
       class="cloud-index-webview"
     ></webview>
@@ -98,7 +98,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ShareImportResult } from '@common/notesTypes'
 import { NOTE_COPYRIGHT } from '@common/notesContent'
@@ -128,6 +128,24 @@ const mode = ref<Mode>('browse')
 const detail = ref<ShareImportResult | null>(null)
 const sourceUrl = ref('')
 const zoomUrl = ref<string | null>(null)
+
+const CLOUD_INDEX_ORIGIN = 'https://share.ruc.edu.kg/'
+const webviewSrc = ref(CLOUD_INDEX_ORIGIN)
+const searchUrl = (term: string) => `${CLOUD_INDEX_ORIGIN}?q=${encodeURIComponent(term)}`
+
+// A search request from the sessions header (navigationStore.requestCloudIndexSearch)
+// rebuilds the embedded webview URL with ?q=<course name> and reloads it. `immediate`
+// covers both the cold first-mount (request set right before this tab lazy-mounts)
+// and a later request while the tab stays mounted.
+watch(
+  () => navigationStore.cloudIndexSearchRequest.value,
+  (req) => {
+    if (!req) return
+    webviewSrc.value = searchUrl(req.term)
+    mode.value = 'browse'
+  },
+  { immediate: true }
+)
 
 const webviewRef = ref<Electron.WebviewTag | null>(null)
 let unsubscribe: (() => void) | null = null
