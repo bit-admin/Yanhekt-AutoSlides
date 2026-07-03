@@ -1244,6 +1244,7 @@
     "next": "下一步",
     "finish": "完成",
     "skip": "暂时跳过",
+    "initCloudStorageLabel": "设置 AutoSlides 云存储",
     "outputTitle": "你希望幻灯片保存到哪里？",
     "outputDescription": "选择 AutoSlides 的工作目录，这将用于存放幻灯片、下载和导出文件。建议选用单独的文件夹。",
     "connectionTitle": "你通常在哪里使用 AutoSlides？",

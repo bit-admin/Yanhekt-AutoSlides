@@ -1244,6 +1244,7 @@
     "next": "다음",
     "finish": "완료",
     "skip": "나중에 하기",
+    "initCloudStorageLabel": "AutoSlides 클라우드 저장소 설정",
     "outputTitle": "슬라이드를 어디에 저장할까요?",
     "outputDescription": "AutoSlides의 작업 폴더를 선택하세요. 슬라이드, 다운로드, 내보낸 파일을 저장하는 데 사용됩니다. 전용 폴더를 권장합니다.",
     "connectionTitle": "AutoSlides를 주로 어디서 사용하나요?",

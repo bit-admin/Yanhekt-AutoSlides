@@ -14,6 +14,17 @@
         </svg>
       </button>
 
+      <!-- Onboarding skip lives in the top-right corner (the slot a normal login
+           modal uses for its "×") — mutually exclusive with showClose. -->
+      <button
+        v-if="skipLabel"
+        type="button"
+        class="signin-skip-top"
+        @click="$emit('skip')"
+      >
+        {{ skipLabel }}
+      </button>
+
       <div class="signin-body">
         <h2 class="signin-title">{{ $t('onboarding.signInTitle') }}</h2>
         <p class="signin-description">{{ $t('onboarding.signInDescription') }}</p>
@@ -43,9 +54,8 @@
           </button>
         </div>
 
-        <button v-if="skipLabel" type="button" class="skip-link" @click="$emit('skip')">
-          {{ skipLabel }}
-        </button>
+        <!-- Onboarding-injected content (e.g. the cloud-storage setup checkbox). -->
+        <slot />
       </div>
     </div>
   </div>
@@ -203,8 +213,10 @@ watch(isLoggedIn, (loggedIn) => {
   text-decoration: underline;
 }
 
-.skip-link {
-  margin-top: 14px;
+.signin-skip-top {
+  position: absolute;
+  top: 14px;
+  right: 16px;
   background: none;
   border: none;
   color: var(--text-muted);
@@ -213,7 +225,7 @@ watch(isLoggedIn, (loggedIn) => {
   transition: color 0.2s;
 }
 
-.skip-link:hover {
+.signin-skip-top:hover {
   color: var(--text-secondary);
   text-decoration: underline;
 }

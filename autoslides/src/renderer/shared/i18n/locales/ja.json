@@ -1244,6 +1244,7 @@
     "next": "次へ",
     "finish": "完了",
     "skip": "今はスキップ",
+    "initCloudStorageLabel": "AutoSlides クラウドストレージを設定する",
     "outputTitle": "スライドの保存先はどこにしますか？",
     "outputDescription": "AutoSlides の作業フォルダーを選びます。スライド・ダウンロード・書き出したファイルの保存に使われます。専用のフォルダーをおすすめします。",
     "connectionTitle": "AutoSlides は普段どこで使いますか？",

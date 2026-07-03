@@ -8,7 +8,12 @@
     @skip="finish"
     @success="onSignInSuccess"
     @browser-login="onSignInBrowserLogin"
-  />
+  >
+    <label class="cloud-init-check">
+      <input v-model="initCloudStorage" type="checkbox" />
+      <span>{{ $t('onboarding.initCloudStorageLabel') }}</span>
+    </label>
+  </SignInModal>
 
   <div v-else class="onboarding-overlay">
     <div class="onboarding-card">
@@ -179,6 +184,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useSettings } from '@features/settings/useSettings'
 import { useCopilotOAuth } from '@features/ai/useCopilotOAuth'
 import { useAuth } from '@features/platform/useAuth'
+import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import SignInModal from './SignInModal.vue'
 
 const emit = defineEmits<{
@@ -220,7 +226,10 @@ const {
 } = useCopilotOAuth()
 
 // Sign-in step (final, dedicated page)
-const { isLoggedIn, openBrowserLogin } = useAuth()
+const { isLoggedIn, userId, openBrowserLogin } = useAuth()
+
+// Offer to provision the managed cloud-storage group on first sign-in (default on).
+const initCloudStorage = ref(true)
 
 const copilotConnected = computed(
   () => copilotOAuthStep.value === 'success' && !!copilotGhoToken.value
@@ -286,6 +295,13 @@ const proceed = () => {
 
 // Sign-in page handlers.
 const onSignInSuccess = () => {
+  if (initCloudStorage.value) {
+    // setUser first so initialize()'s flag-persist has the badge. Fire-and-forget:
+    // cloudStorageStore is a module singleton, so this survives the modal unmount,
+    // and its withLock serializes it against the LeftPanel launch watcher's refresh.
+    cloudStorageStore.setUser(userId.value)
+    void cloudStorageStore.initialize()
+  }
   finish()
 }
 const onSignInBrowserLogin = async () => {
@@ -365,6 +381,22 @@ const onSignInBrowserLogin = async () => {
 .skip-link:hover {
   color: var(--text-secondary);
   text-decoration: underline;
+}
+
+/* Cloud-storage setup checkbox on the sign-in step (injected into SignInModal). */
+.cloud-init-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.cloud-init-check input {
+  cursor: pointer;
 }
 
 /* ── Stepped configuration ────────────────────────────── */

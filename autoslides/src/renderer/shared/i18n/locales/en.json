@@ -1244,6 +1244,7 @@
     "next": "Next",
     "finish": "Finish",
     "skip": "Skip for now",
+    "initCloudStorageLabel": "Set up AutoSlides cloud storage",
     "outputTitle": "Where would you like slides to be saved?",
     "outputDescription": "Choose a working directory for AutoSlides — it's used to store slides, downloads, and exported files. A dedicated folder is recommended.",
     "connectionTitle": "Where do you usually use AutoSlides?",
