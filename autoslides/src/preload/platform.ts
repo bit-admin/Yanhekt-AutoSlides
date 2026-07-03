@@ -72,6 +72,7 @@ export const config = {
   setUserNames: (original: string, display: string) => ipcRenderer.invoke('config:setUserNames', original, display),
   setLastGreetingId: (id: string) => ipcRenderer.invoke('config:setLastGreetingId', id),
   setOnboardingCompleted: (completed: boolean) => ipcRenderer.invoke('config:setOnboardingCompleted', completed),
+  setCloudStorageInitialized: (badge: string, initialized: boolean) => ipcRenderer.invoke('config:setCloudStorageInitialized', badge, initialized),
   setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => ipcRenderer.invoke('config:setSavedSearches', mode, searches),
   setPinnedRecordedCourses: (courses: PinnedCourse[]) => ipcRenderer.invoke('config:setPinnedRecordedCourses', courses),
   getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),

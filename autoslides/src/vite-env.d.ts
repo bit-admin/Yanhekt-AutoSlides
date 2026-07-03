@@ -414,6 +414,7 @@ interface ElectronAPI {
     setUserNames: (original: string, display: string) => Promise<void>;
     setLastGreetingId: (id: string) => Promise<void>;
     setOnboardingCompleted: (completed: boolean) => Promise<void>;
+    setCloudStorageInitialized: (badge: string, initialized: boolean) => Promise<void>;
     setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => Promise<void>;
     setPinnedRecordedCourses: (courses: PinnedCourse[]) => Promise<void>;
 

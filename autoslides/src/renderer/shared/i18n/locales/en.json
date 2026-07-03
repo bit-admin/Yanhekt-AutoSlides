@@ -101,7 +101,22 @@
       "imageProcessing": "Image Processing",
       "playback": "Download & Playback",
       "network": "Network",
-      "ai": "AI"
+      "ai": "AI",
+      "cloud": "Cloud"
+    },
+    "cloudStorage": {
+      "title": "Cloud Storage",
+      "intro": "AutoSlides needs to set up cloud storage in your Yanhekt myNotes page before it can import or publish slides.",
+      "groupDescription": "AutoSlides stores your slides here as notes.",
+      "statusReady": "Initialized",
+      "statusUninitialized": "Not initialized",
+      "statusNotSignedIn": "Not signed in",
+      "statusChecking": "Checking…",
+      "statusRepairing": "Initializing…",
+      "statusError": "Check failed",
+      "lastChecked": "Last checked",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing…"
     },
     "authentication": "Authentication",
     "appearance": "Appearance",
@@ -1037,6 +1052,8 @@
     "bannerMyNotes": "Open My Notes on Yanhekt",
     "bannerDismiss": "Dismiss",
     "notSignedIn": "Sign in from the main window to use Cloud Notes.",
+    "storageNotInitialized": "Cloud storage isn't initialized. Initialize it in Settings → Cloud or on the Cloud Notes page first.",
+    "storageCheckFailed": "Couldn't verify cloud storage. Check your connection and try again.",
     "groups": "Groups",
     "allNotes": "All notes",
     "defaultGroup": "Ungrouped",

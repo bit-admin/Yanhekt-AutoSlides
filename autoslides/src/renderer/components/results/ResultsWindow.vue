@@ -188,7 +188,8 @@
         <button
           v-if="currentView === 'folders'"
           class="notes-btn"
-          :disabled="!isFolderEditMode || (selectedFolderNames.length === 0 && !hasNotesConflict) || isLoading || isGenerating || imp.importing.value"
+          :disabled="!isFolderEditMode || (selectedFolderNames.length === 0 && !hasNotesConflict) || isLoading || isGenerating || imp.importing.value || cloudStorage.blocked.value"
+          :title="cloudStorageBlockedTip"
           @click="onImportToNotes"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -201,7 +202,8 @@
         <button
           v-if="currentView === 'folders'"
           class="notes-btn"
-          :disabled="!isFolderEditMode || (selectedFolderNames.length === 0 && !hasNotesConflict) || isLoading || isGenerating || imp.importing.value"
+          :disabled="!isFolderEditMode || (selectedFolderNames.length === 0 && !hasNotesConflict) || isLoading || isGenerating || imp.importing.value || cloudStorage.blocked.value"
+          :title="cloudStorageBlockedTip"
           @click="onPublishToIndex"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -784,10 +786,10 @@ import { useCropEditor, type CropHandle } from '@features/results/useCropEditor'
 import { usePdfMaker } from '@features/export/usePdfMaker'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import { useNoteImport } from '@features/cloudNotes/useNoteImport'
+import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
 import { navigationStore } from '@features/course/navigationStore'
 import { NOTE_COPYRIGHT } from '@common/notesContent'
-import { EDITORJS_DOC_VERSION } from '@common/notesTypes'
 import { getCourseName } from '@shared/utils/toolWindowFolders'
 import { configStore } from '@shared/services/configStore'
 import ResultsImageGrid from './ResultsImageGrid.vue'
@@ -1058,32 +1060,39 @@ const busyProgressPercent = computed(() => {
     : 0
 })
 
-function buildReadmeContent(): string {
-  const stamp = t('cloudNotes.readmeUpdatedAt', { time: new Date().toLocaleString() })
-  const blocks = [
-    { type: 'header', data: { text: t('cloudNotes.readmeHeading'), level: 2 } },
-    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody1') } },
-    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody2') } },
-    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody3') } },
-    { type: 'paragraph', data: { text: stamp } },
-  ]
-  return JSON.stringify({ time: Date.now(), blocks, version: EDITORJS_DOC_VERSION })
-}
+// Shared cloud-storage state (launch-checked; see cloudStorageStore). Buttons
+// gate on known-bad states only; the action-time guard below re-checks fresh.
+const cloudStorage = cloudStorageStore
+const cloudStorageBlockedTip = computed(() => {
+  if (cloudStorage.status.value === 'not-signed-in') return t('cloudNotes.notSignedIn')
+  if (cloudStorage.status.value === 'uninitialized') return t('cloudNotes.storageNotInitialized')
+  return undefined
+})
 
-/** Ensure the user is signed in and the managed note storage exists. */
+/**
+ * Ensure the user is signed in and the managed note storage is ready. Never
+ * initializes storage for a never-initialized account — that is an explicit
+ * user action (Settings → Cloud or the Cloud Notes page); it only auto-repairs
+ * when the account initialized before and the group went missing server-side.
+ */
 async function ensureManagedStorage(): Promise<boolean> {
-  await cn.loadAll()
-  if (cn.notSignedIn.value) {
-    await window.electronAPI.dialog?.showMessageBox?.({
-      type: 'info',
-      title: t('trash.importToNotes'),
-      message: t('cloudNotes.notSignedIn'),
-      buttons: [t('cloudNotes.importClose')],
-    })
-    return false
+  const st = await cloudStorage.ensureReady()
+  if (st === 'ready') {
+    // Sync this page's local instance so the import queue sees fresh notes/groups.
+    await cn.init()
+    return true
   }
-  if (!cn.hasManagedStorage.value) await cn.initCloudStorage(buildReadmeContent())
-  return cn.hasManagedStorage.value
+  const message =
+    st === 'not-signed-in' ? t('cloudNotes.notSignedIn')
+    : st === 'uninitialized' ? t('cloudNotes.storageNotInitialized')
+    : cloudStorage.lastError.value || t('cloudNotes.storageCheckFailed')
+  await window.electronAPI.dialog?.showMessageBox?.({
+    type: 'info',
+    title: t('trash.importToNotes'),
+    message,
+    buttons: [t('cloudNotes.importClose')],
+  })
+  return false
 }
 
 async function startNotesRun(mode: 'import' | 'publish'): Promise<void> {

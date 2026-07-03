@@ -65,7 +65,8 @@ export function useAdvancedSettings(
     { id: 'imageProcessing' },
     { id: 'playback' },
     { id: 'network' },
-    { id: 'ai' }
+    { id: 'ai' },
+    { id: 'cloud' }
   ]
 
   let advancedSettingsOpenRequestId = 0

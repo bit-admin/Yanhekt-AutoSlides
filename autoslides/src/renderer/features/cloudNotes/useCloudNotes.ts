@@ -5,7 +5,7 @@ import type {
   NoteGroup,
   NotesResult,
 } from '@common/notesTypes'
-import { isManagedGroupName, MANAGED_GROUP_NAME, README_NOTE_TITLE } from '@common/notesTypes'
+import { isManagedGroupName, README_NOTE_TITLE } from '@common/notesTypes'
 import { overrides } from '@shared/overrideRegistry'
 
 const PAGE_SIZE = 20
@@ -48,8 +48,6 @@ export function useCloudNotes() {
   const loading = ref(false)
   const saving = ref(false)
   const error = ref('')
-  /** True while initCloudStorage() is provisioning the managed group + README. */
-  const initializing = ref(false)
   /** Set when the main process reports no token — the user must sign in first. */
   const notSignedIn = ref(false)
 
@@ -246,53 +244,11 @@ export function useCloudNotes() {
   }
 
   /**
-   * Provision AutoSlides cloud storage: ensure the managed group exists and a
-   * README note (in the Ungrouped group) explains what AutoSlides manages.
-   * Idempotent — safe to call if either piece already exists. `readmeContent` is
-   * a stringified Editor.js document built by the caller (it owns localization).
-   */
-  async function initCloudStorage(readmeContent: string): Promise<boolean> {
-    initializing.value = true
-    error.value = ''
-    try {
-      // 1. Ensure the managed group exists.
-      if (!groups.value.some((g) => isManagedGroupName(g.name))) {
-        const res = await cloudNotesApi.groupCreate(MANAGED_GROUP_NAME)
-        if (!res.ok) {
-          unwrap(res)
-          return false
-        }
-      }
-      // 2. Ensure the README note exists (in the default/Ungrouped group).
-      if (!allNotes.value.some((n) => n.title === README_NOTE_TITLE)) {
-        const createRes = await cloudNotesApi.create()
-        const id = unwrap(createRes)
-        if (id == null) return false
-        const titleRes = await cloudNotesApi.updateTitle(id, README_NOTE_TITLE)
-        if (!titleRes.ok) {
-          unwrap(titleRes)
-          return false
-        }
-        const contentRes = await cloudNotesApi.updateContent(id, readmeContent)
-        if (!contentRes.ok) {
-          unwrap(contentRes)
-          return false
-        }
-      }
-      // 3. Reconcile local state once.
-      await Promise.all([refreshGroups(), loadAll()])
-      return true
-    } finally {
-      initializing.value = false
-    }
-  }
-
-  /**
    * Keep the README pinned to the top of the note list. The server orders notes
    * by *created* time, so re-saving content doesn't move it — we instead recreate
    * it: create the replacement first (so a README always exists), then delete the
    * old one. The fresh note gets the newest created time and lands on top. No-op
-   * when no README exists (initCloudStorage creates the first). `content` is a
+   * when no README exists (cloudStorageStore provisions the first). `content` is a
    * freshly-built Editor.js document from the caller. Reloads to reflect the new order.
    */
   async function recreateReadme(content: string): Promise<void> {
@@ -338,12 +294,10 @@ export function useCloudNotes() {
     filteredCount,
     loading,
     saving,
-    initializing,
     error,
     notSignedIn,
     // actions
     init,
-    initCloudStorage,
     recreateReadme,
     refreshGroups,
     loadAll,

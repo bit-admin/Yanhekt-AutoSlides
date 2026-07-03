@@ -158,6 +158,11 @@ export interface AppConfig {
   savedSearchesRecorded: string[];
   pinnedRecordedCourses: PinnedCourse[];
   onboardingCompleted: boolean;
+  // Badges of accounts that have explicitly initialized AutoSlides cloud storage
+  // (the managed note group + README). The server is the authority on whether the
+  // group exists; this flag only distinguishes "never initialized" (features gated
+  // until the user inits) from "initialized but deleted server-side" (auto re-init).
+  cloudStorageInitializedUsers: string[];
 }
 
 // A recorded course pinned to the sidebar. `id` drives navigation/session loading;

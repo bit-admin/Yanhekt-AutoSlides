@@ -280,6 +280,7 @@ import { navigationStore } from '@features/course/navigationStore'
 import { settingsLauncher } from '@features/settings/settingsLauncher'
 import { useSearchPage } from '@features/course/useSearchPage'
 import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@features/course/pinnedCourses'
+import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
 import UserMenuLinks from './UserMenuLinks.vue'
 import SignInModal from './SignInModal.vue'
@@ -310,6 +311,19 @@ const {
   logout,
   openBrowserLogin
 } = auth
+
+// Cloud-storage launch check (mirrors the auth-token check): once sign-in is
+// verified, check whether the managed note storage is provisioned. Auto
+// re-provisions only for accounts that initialized before (persisted flag);
+// otherwise import/publish surfaces stay gated until an explicit init.
+watch(isLoggedIn, (v) => {
+  if (v) {
+    cloudStorageStore.setUser(userId.value)
+    void cloudStorageStore.refresh()
+  } else {
+    cloudStorageStore.setUser(null)
+  }
+}, { immediate: true })
 
 const showUserMenu = ref(false)
 const userInfoRef = ref<HTMLElement | null>(null)

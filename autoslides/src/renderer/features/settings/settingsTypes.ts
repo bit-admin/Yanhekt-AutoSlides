@@ -1,4 +1,4 @@
-export type AdvancedTabId = 'general' | 'imageProcessing' | 'playback' | 'network' | 'ai'
+export type AdvancedTabId = 'general' | 'imageProcessing' | 'playback' | 'network' | 'ai' | 'cloud'
 
 export type AutoCropDetectorMode = 'canny_then_yolo' | 'canny_only' | 'yolo_only'
 

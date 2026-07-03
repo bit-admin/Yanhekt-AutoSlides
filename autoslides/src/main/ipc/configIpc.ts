@@ -265,6 +265,11 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     broadcastConfig();
   });
 
+  ipcMain.handle('config:setCloudStorageInitialized', async (_, badge: string, initialized: boolean) => {
+    configService.setCloudStorageInitialized(badge, initialized);
+    broadcastConfig();
+  });
+
   ipcMain.handle('config:setSavedSearches', async (_, mode: 'live' | 'recorded', searches: string[]) => {
     configService.setSavedSearches(mode, searches);
     broadcastConfig();

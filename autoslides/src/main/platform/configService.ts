@@ -124,7 +124,8 @@ export class ConfigService {
       savedSearchesLive: this.store.get('savedSearchesLive') ?? [],
       savedSearchesRecorded: this.store.get('savedSearchesRecorded') ?? [],
       pinnedRecordedCourses: this.store.get('pinnedRecordedCourses') ?? [],
-      onboardingCompleted: this.store.get('onboardingCompleted') ?? false
+      onboardingCompleted: this.store.get('onboardingCompleted') ?? false,
+      cloudStorageInitializedUsers: this.store.get('cloudStorageInitializedUsers') ?? []
     };
   }
 
@@ -139,6 +140,13 @@ export class ConfigService {
 
   setOnboardingCompleted(completed: boolean): void {
     this.store.set('onboardingCompleted', completed);
+  }
+
+  setCloudStorageInitialized(badge: string, initialized: boolean): void {
+    const users = new Set(this.store.get('cloudStorageInitializedUsers') ?? []);
+    if (initialized) users.add(badge);
+    else users.delete(badge);
+    this.store.set('cloudStorageInitializedUsers', [...users]);
   }
 
   setSavedSearches(mode: 'live' | 'recorded', searches: string[]): void {

@@ -101,7 +101,22 @@
       "imageProcessing": "图像处理",
       "playback": "下载与播放",
       "network": "网络",
-      "ai": "AI"
+      "ai": "AI",
+      "cloud": "云端"
+    },
+    "cloudStorage": {
+      "title": "云存储",
+      "intro": "AutoSlides 需要先在你的延河课堂“我的笔记”页面中设置好云存储，才能导入或发布幻灯片。",
+      "groupDescription": "AutoSlides 会将幻灯片以笔记形式存放于此。",
+      "statusReady": "已初始化",
+      "statusUninitialized": "未初始化",
+      "statusNotSignedIn": "未登录",
+      "statusChecking": "检查中…",
+      "statusRepairing": "初始化中…",
+      "statusError": "检查失败",
+      "lastChecked": "上次检查",
+      "refresh": "刷新",
+      "refreshing": "刷新中…"
     },
     "authentication": "身份验证",
     "appearance": "外观",
@@ -1037,6 +1052,8 @@
     "bannerMyNotes": "在延河课堂查看我的笔记",
     "bannerDismiss": "关闭",
     "notSignedIn": "请在主窗口登录后使用云笔记。",
+    "storageNotInitialized": "云存储尚未初始化。请先在“设置 → 云端”或云笔记页面完成初始化。",
+    "storageCheckFailed": "无法确认云存储状态，请检查网络后重试。",
     "groups": "分组",
     "allNotes": "全部笔记",
     "defaultGroup": "未分组",

@@ -101,7 +101,22 @@
       "imageProcessing": "画像処理",
       "playback": "ダウンロードと再生",
       "network": "ネットワーク",
-      "ai": "AI"
+      "ai": "AI",
+      "cloud": "クラウド"
+    },
+    "cloudStorage": {
+      "title": "クラウドストレージ",
+      "intro": "スライドをインポート・公開するには、まず AutoSlides が延河課堂の「マイノート」ページでクラウドストレージを設定する必要があります。",
+      "groupDescription": "AutoSlides がスライドをノートとして保存します。",
+      "statusReady": "初期化済み",
+      "statusUninitialized": "未初期化",
+      "statusNotSignedIn": "未サインイン",
+      "statusChecking": "確認中…",
+      "statusRepairing": "初期化中…",
+      "statusError": "確認に失敗しました",
+      "lastChecked": "最終確認",
+      "refresh": "更新",
+      "refreshing": "更新中…"
     },
     "authentication": "認証",
     "appearance": "外観",
@@ -1037,6 +1052,8 @@
     "bannerMyNotes": "延河課堂でノートを開く",
     "bannerDismiss": "閉じる",
     "notSignedIn": "クラウドノートを使うにはメインウィンドウでサインインしてください。",
+    "storageNotInitialized": "クラウドストレージが初期化されていません。先に「設定 → クラウド」またはクラウドノートページで初期化してください。",
+    "storageCheckFailed": "クラウドストレージの状態を確認できませんでした。接続を確認して再試行してください。",
     "groups": "グループ",
     "allNotes": "すべてのノート",
     "defaultGroup": "未分類",

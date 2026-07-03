@@ -7,6 +7,7 @@ import { SHARE_ORIGIN, SHARE_PATH, parseShareLink } from '@common/shareLink'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
 import { formatToolFolderName, compareToolImages } from '@shared/utils/toolWindowFolders'
 import type { useCloudNotes } from './useCloudNotes'
+import { cloudStorageStore } from './cloudStorageStore'
 import { useNotesPublish } from './useNotesPublish'
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
@@ -184,7 +185,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     item.noteId = noteId
 
     const title = buildManagedNoteTitle(item.displayName)
-    const groupId = cn.managedGroups.value[0]?.id
+    const groupId = cloudStorageStore.managedGroupId.value ?? cn.managedGroups.value[0]?.id
     const titleRes = await window.electronAPI.cloudNotes.updateTitle(noteId, title, groupId)
     if (!titleRes.ok) { item.status = 'error'; item.error = titleRes.error; return }
 
@@ -221,7 +222,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     item.noteId = noteId
 
     const title = buildManagedNoteTitle(item.displayName)
-    const groupId = cn.managedGroups.value[0]?.id
+    const groupId = cloudStorageStore.managedGroupId.value ?? cn.managedGroups.value[0]?.id
     const titleRes = await window.electronAPI.cloudNotes.updateTitle(noteId, title, groupId)
     if (!titleRes.ok) { item.status = 'error'; item.error = titleRes.error; return }
 

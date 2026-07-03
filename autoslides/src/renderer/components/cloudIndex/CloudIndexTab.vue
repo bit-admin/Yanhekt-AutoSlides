@@ -28,7 +28,12 @@
         <div class="ci-header-row ci-header-row--session">
           <p class="ci-session">{{ parsedTitle.session }}</p>
           <div class="ci-actions">
-            <button class="btn btn--primary" :disabled="imp.importing.value" @click="onImport">
+            <button
+              class="btn btn--primary"
+              :disabled="imp.importing.value || cloudStorageStore.blocked.value"
+              :title="cloudStorageStore.status.value === 'uninitialized' ? $t('cloudNotes.storageNotInitialized') : undefined"
+              @click="onImport"
+            >
               {{ $t('cloudIndex.importToNotes') }}
             </button>
             <button class="btn" :disabled="exp.exporting.value" @click="onExport">
@@ -96,12 +101,12 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ShareImportResult } from '@common/notesTypes'
-import { EDITORJS_DOC_VERSION } from '@common/notesTypes'
 import { NOTE_COPYRIGHT } from '@common/notesContent'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
 import { parseShareLink } from '@common/shareLink'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import { useNoteImport, type ImportItem } from '@features/cloudNotes/useNoteImport'
+import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
 import { useShareIndexExport, type ShareExportItem } from '@features/cloudIndex/useShareIndexExport'
 import { buildIndexMetadata, type CapturedLectureData } from '@features/cloudIndex/indexMetadata'
@@ -221,23 +226,24 @@ function backToBrowse(): void {
   mode.value = 'browse'
 }
 
-function buildReadmeContent(): string {
-  const stamp = t('cloudNotes.readmeUpdatedAt', { time: new Date().toLocaleString() })
-  const blocks = [
-    { type: 'header', data: { text: t('cloudNotes.readmeHeading'), level: 2 } },
-    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody1') } },
-    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody2') } },
-    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody3') } },
-    { type: 'paragraph', data: { text: stamp } },
-  ]
-  return JSON.stringify({ time: Date.now(), blocks, version: EDITORJS_DOC_VERSION })
-}
-
 async function onImport(): Promise<void> {
   if (!sourceUrl.value) return
-  if (!cn.hasManagedStorage.value) {
-    await cn.initCloudStorage(buildReadmeContent())
+  // Centralized guard: auto-repairs only for an account that initialized before;
+  // a never-initialized account must init explicitly (Settings → Cloud / Cloud
+  // Notes page), so block with guidance instead of silently provisioning.
+  const st = await cloudStorageStore.ensureReady()
+  if (st !== 'ready') {
+    await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'info',
+      title: t('cloudIndex.importToNotes'),
+      message: st === 'not-signed-in' ? t('cloudNotes.notSignedIn')
+        : st === 'uninitialized' ? t('cloudNotes.storageNotInitialized')
+        : cloudStorageStore.lastError.value || t('cloudNotes.storageCheckFailed'),
+      buttons: [t('cloudNotes.importClose')],
+    })
+    return
   }
+  await cn.refreshGroups()
   await imp.importShareLink(sourceUrl.value, t('cloudNotes.importResolving'), detail.value?.metadata ?? null)
   // Tell the Cloud Notes page (a separate useCloudNotes instance) to reload so
   // the new note surfaces. Emitted imperatively — a watch on the queue item's

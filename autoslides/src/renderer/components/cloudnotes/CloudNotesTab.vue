@@ -112,16 +112,16 @@
               </button>
             </div>
             <button
-              v-if="!cn.hasManagedStorage.value"
+              v-if="cloudStorageStore.status.value === 'uninitialized' || cloudStorageStore.status.value === 'repairing'"
               class="cn-init-btn"
-              :disabled="cn.initializing.value"
+              :disabled="cloudStorageStore.status.value === 'repairing'"
               :title="$t('cloudNotes.initStorageTip')"
               @click="onInitStorage"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><path d="M12 12v4M10 14h4"/>
               </svg>
-              {{ cn.initializing.value ? $t('cloudNotes.initializing') : $t('cloudNotes.initStorage') }}
+              {{ cloudStorageStore.status.value === 'repairing' ? $t('cloudNotes.initializing') : $t('cloudNotes.initStorage') }}
             </button>
           </div>
 
@@ -226,7 +226,12 @@
         </div>
 
         <div v-if="cn.hasManagedStorage.value" class="cn-list-footer">
-          <button class="cn-tool-btn" :title="$t('cloudNotes.importTip')" @click="openImportModal">
+          <button
+            class="cn-tool-btn"
+            :disabled="cloudStorageStore.blocked.value"
+            :title="cloudStorageStore.blocked.value ? $t('cloudNotes.storageNotInitialized') : $t('cloudNotes.importTip')"
+            @click="openImportModal"
+          >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
             </svg>
@@ -494,13 +499,15 @@ import Quote from '@editorjs/quote'
 import CodeTool from '@editorjs/code'
 import Table from '@editorjs/table'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
+import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
+import { buildReadmeContent } from '@features/cloudNotes/readmeContent'
 import { useNoteImport } from '@features/cloudNotes/useNoteImport'
 import { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
 import ImportProgressModal from './ImportProgressModal.vue'
 import { useNoteExport, type ExportItem } from '@features/cloudNotes/useNoteExport'
 import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
-import { NOTE_GROUP_NAME_MAX, EDITORJS_DOC_VERSION, isManagedNoteTitle, managedNoteDisplayName } from '@common/notesTypes'
+import { NOTE_GROUP_NAME_MAX, isManagedNoteTitle, managedNoteDisplayName } from '@common/notesTypes'
 import { buildSharePayload, buildShareUrl, encodeSharePayload } from '@common/shareLink'
 import { noteImageUrls, findRecordedShareUrl, readNoteMetadata, upsertNoteMetadata, NOTE_COPYRIGHT } from '@common/notesContent'
 import type { SlideMetadataSource } from '@common/slideMetadataTypes'
@@ -751,25 +758,11 @@ async function onDeleteNote(noteId: number): Promise<void> {
   await cn.deleteNote(noteId)
 }
 
-/**
- * Build the README's Editor.js document (localized) as a JSON string. Includes a
- * fresh timestamp so re-saving it on each tab open bumps its modified time and
- * keeps it pinned to the top of the note list.
- */
-function buildReadmeContent(): string {
-  const stamp = t('cloudNotes.readmeUpdatedAt', { time: new Date().toLocaleString() })
-  const blocks = [
-    { type: 'header', data: { text: t('cloudNotes.readmeHeading'), level: 2 } },
-    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody1') } },
-    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody2') } },
-    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody3') } },
-    { type: 'paragraph', data: { text: stamp } },
-  ]
-  return JSON.stringify({ time: Date.now(), blocks, version: EDITORJS_DOC_VERSION })
-}
-
+/** Explicit init entry point — provisions via the shared store (sets the
+ * persisted per-account flag), then reconciles this page's local instance. */
 async function onInitStorage(): Promise<void> {
-  await cn.initCloudStorage(buildReadmeContent())
+  await cloudStorageStore.initialize()
+  await cn.init()
 }
 
 // ── Import slides to notes ─────────────────────────────────────────────────
@@ -1065,6 +1058,9 @@ async function onDeleteGroup(id: number, name: string): Promise<void> {
 }
 
 onMounted(async () => {
+  // Refresh the shared storage status too — covers the Tools-window instance,
+  // where the main window's launch check never ran (shared/serialized, cheap).
+  void cloudStorageStore.refresh()
   await cn.init()
   // Recreate the README on every open so it stays at the top (the server sorts
   // by created time, so re-saving wouldn't move it). No-op if absent.
