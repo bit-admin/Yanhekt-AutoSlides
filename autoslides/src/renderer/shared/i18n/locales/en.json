@@ -857,10 +857,13 @@
     "keepAiFilteredEdit": "Keep Items Marked AI Filtered – Edit",
     "editFolders": "Select",
     "doneEditing": "Done",
+    "importToNotes": "Import to Cloud Notes",
+    "publishToIndex": "Publish to Index",
     "clearFolder": "Clear Folder",
     "confirmClearFoldersTitle": "Remove Folders",
     "confirmClearFolders": "Move {count} folder(s) to system trash? This will also clear all related extracted images and trash entries.",
     "clearFoldersSummary": "Removed: {removed} · Failed: {failed}",
+    "notesRunSummary": "Done: {done} · Failed: {failed}",
     "groupByCourse": "Group by Course"
   },
   "pdfmaker": {
@@ -1080,6 +1083,9 @@
     "importPending": "Waiting…",
     "importUploading": "Uploading {done}/{total}",
     "importBuilding": "Building note…",
+    "importPublishing": "Publishing to index…",
+    "importPublished": "Published",
+    "importNotIndexable": "Not a recorded session",
     "importDone": "Done",
     "importConflict": "Note already exists",
     "importError": "Failed",

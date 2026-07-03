@@ -67,6 +67,7 @@
   --success-strong-hover: #236341;
   --warning-strong: #9a6a14;
   --warning-strong-hover: #81570f;
+  --neutral-strong: #6c757d;
   --neutral-strong-hover: #5b646b;
 
   /* Overlays */
@@ -207,6 +208,7 @@
     --success-strong-hover: #246b48;
     --warning-strong: #a87714;
     --warning-strong-hover: #8f6310;
+    --neutral-strong: #7d868d;
     --neutral-strong-hover: #6b747b;
 
     /* Overlays */

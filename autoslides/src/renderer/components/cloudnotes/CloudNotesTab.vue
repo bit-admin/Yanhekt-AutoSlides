@@ -248,8 +248,8 @@
       <!-- list | editor resize divider -->
       <div class="cn-divider cn-divider--editor" @mousedown="startResize('list', $event)"></div>
 
-      <!-- Import slides to notes modal -->
-      <div v-if="showImportModal" class="modal-overlay" @click.self="closeImportModal">
+      <!-- Import slides to notes modal (folder picker) -->
+      <div v-if="showImportModal && importPhase === 'select'" class="modal-overlay" @click.self="closeImportModal">
         <div class="cn-import-box">
           <h3 class="cn-modal-title">{{ $t('cloudNotes.importTitle') }}</h3>
 
@@ -281,38 +281,18 @@
               </button>
             </div>
           </template>
-
-          <!-- Phase: progress -->
-          <template v-else>
-            <div class="cn-import-overall">{{ $t('cloudNotes.importOverall', { done: imp.overall.value.done, total: imp.overall.value.total }) }}</div>
-            <div class="cn-import-list custom-scrollbar">
-              <div v-for="item in imp.queue.value" :key="item.folderName" class="cn-imp-row">
-                <div class="cn-imp-row-top">
-                  <span class="cn-imp-name" :title="item.displayName">{{ item.displayName }}</span>
-                  <span class="cn-imp-status" :class="`s-${item.status}`">{{ importStatusText(item) }}</span>
-                </div>
-                <div class="cn-imp-bar">
-                  <div class="cn-imp-fill" :class="`s-${item.status}`" :style="{ width: importBarWidth(item) + '%' }"></div>
-                </div>
-                <div v-if="item.status === 'conflict'" class="cn-imp-actions">
-                  <button class="btn btn--sm btn--ghost" :disabled="imp.importing.value" @click="onOpenConflictNote(item.conflictNoteIds?.[0])">{{ $t('cloudNotes.importOpenNote') }}</button>
-                  <button class="btn btn--sm" :disabled="imp.importing.value" @click="imp.resolveConflict(item, 'create')">{{ $t('cloudNotes.importCreateAnyway') }}</button>
-                  <button class="btn btn--sm cn-imp-replace" :disabled="imp.importing.value" @click="imp.resolveConflict(item, 'replace')">{{ $t('cloudNotes.importReplace') }}</button>
-                  <button class="btn btn--sm btn--ghost" :disabled="imp.importing.value" @click="imp.skipConflict(item)">{{ $t('cloudNotes.importSkip') }}</button>
-                </div>
-              </div>
-            </div>
-            <p v-if="imp.queue.value.some(i => i.status === 'conflict')" class="cn-import-hint">{{ $t('cloudNotes.importConflictHint') }}</p>
-            <div class="cn-modal-actions">
-              <template v-if="imp.importing.value">
-                <button class="btn cn-modal-btn" @click="imp.cancel()">{{ $t('cloudNotes.importCancel') }}</button>
-                <button class="btn btn--primary cn-modal-btn" @click="closeImportModal">{{ $t('cloudNotes.importClose') }}</button>
-              </template>
-              <button v-else class="btn btn--primary cn-modal-btn" @click="doneImport">{{ $t('cloudNotes.importDone') }}</button>
-            </div>
-          </template>
         </div>
       </div>
+
+      <!-- Import progress + conflict resolution (shared with the Slides page) -->
+      <ImportProgressModal
+        :open="showImportModal && importPhase === 'progress'"
+        :title="$t('cloudNotes.importTitle')"
+        :imp="imp"
+        @close="closeImportModal"
+        @done="doneImport"
+        @open-note="onOpenConflictNote"
+      />
 
       <!-- Export notes to slides modal -->
       <div v-if="showExportModal" class="modal-overlay" @click.self="closeExportModal">
@@ -514,7 +494,9 @@ import Quote from '@editorjs/quote'
 import CodeTool from '@editorjs/code'
 import Table from '@editorjs/table'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
-import { useNoteImport, type ImportItem } from '@features/cloudNotes/useNoteImport'
+import { useNoteImport } from '@features/cloudNotes/useNoteImport'
+import { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
+import ImportProgressModal from './ImportProgressModal.vue'
 import { useNoteExport, type ExportItem } from '@features/cloudNotes/useNoteExport'
 import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
@@ -531,6 +513,7 @@ const imp = useNoteImport(cn, {
   warning: NOTE_COPYRIGHT,
   slideCaption: (n) => t('cloudNotes.noteSlideCaption', { n }),
 })
+const publisher = useNotesPublish(cn)
 
 const MYNOTES_URL = 'https://www.yanhekt.cn/profile/myNotes'
 const WHY_URL = 'https://github.com/bit-admin/yanhekt-coss-browser'
@@ -854,32 +837,6 @@ async function onOpenConflictNote(id?: number): Promise<void> {
   await openNote(id)
 }
 
-function importStatusText(item: ImportItem): string {
-  switch (item.status) {
-    case 'uploading': return t('cloudNotes.importUploading', { done: item.uploaded, total: item.total })
-    case 'building': return t('cloudNotes.importBuilding')
-    case 'done': return t('cloudNotes.importDone')
-    case 'conflict': return t('cloudNotes.importConflict')
-    case 'error': return importErrorText(item.error)
-    default: return t('cloudNotes.importPending')
-  }
-}
-
-/** Map known machine error codes to friendly text; fall through to raw/server message. */
-function importErrorText(error?: string): string {
-  switch (error) {
-    case 'empty': return t('cloudNotes.importEmpty')
-    case 'not-signed-in': return t('cloudNotes.importNotSignedIn')
-    default: return error || t('cloudNotes.importError')
-  }
-}
-
-function importBarWidth(item: ImportItem): number {
-  if (item.status === 'done' || item.status === 'building') return 100
-  if (item.status === 'uploading' && item.total > 0) return Math.round((item.uploaded / item.total) * 100)
-  return 0
-}
-
 // ── Export notes to slides ─────────────────────────────────────────────────
 const exp = useNoteExport(cn)
 
@@ -1025,8 +982,6 @@ function onOpenShare(which: 'long' | 'short' | 'index'): void {
 
 async function onPublishToIndex(): Promise<void> {
   if (shareIndexing.value || shareIndexUrl.value || !shareCanIndex.value || shareImageCount.value === 0) return
-  const source = shareIndexSource.value
-  if (!source) return
   // Review nudge: editing implies reviewing, so warn only when neither holds.
   if (!shareReview.value.reviewed && !shareReview.value.edited) {
     const res = await window.electronAPI.dialog?.showMessageBox?.({
@@ -1039,25 +994,20 @@ async function onPublishToIndex(): Promise<void> {
     })
     if (res && res.response !== 0) return
   }
+  const noteId = cn.selectedNoteId.value
+  if (noteId == null) return
   shareIndexing.value = true
   shareIndexError.value = ''
   try {
-    // source/review are Vue reactive proxies; IPC structured-clone can't handle a
-    // Proxy ("An object could not be cloned"), so pass plain de-proxied copies.
-    const plainSource: SlideMetadataSource = JSON.parse(JSON.stringify(source))
-    const plainReview = { reviewed: shareReview.value.reviewed, edited: shareReview.value.edited }
-    const r = await window.electronAPI.cloudNotes.publishToIndex(shareFragment.value, plainSource, plainReview)
-    if (!r.ok) { shareIndexError.value = r.error || t('cloudNotes.shareIndexError'); return }
-    shareIndexUrl.value = r.data.indexUrl
-    // Record the index URL in the note's managed metadata so a future Share reuses it.
-    const noteId = cn.selectedNoteId.value
-    if (noteId != null) {
-      try {
-        const content = await currentNoteContent()
-        const next = upsertNoteMetadata(content, { note: { indexUrl: r.data.indexUrl } })
-        if (await cn.saveContent(noteId, next)) await mountEditor(next)
-      } catch { /* metadata update is best-effort */ }
+    // useNotesPublish owns the payload build, publish, and metadata write-back;
+    // it returns the updated content so we can refresh the live editor.
+    const res = await publisher.publishNote(noteId, await currentNoteContent())
+    if (!res.ok) {
+      shareIndexError.value = ('error' in res && res.error) || t('cloudNotes.shareIndexError')
+      return
     }
+    shareIndexUrl.value = res.indexUrl
+    if (res.content) { try { await mountEditor(res.content) } catch { /* best-effort */ } }
   } catch (e) {
     shareIndexError.value = e instanceof Error ? e.message : String(e)
   } finally {

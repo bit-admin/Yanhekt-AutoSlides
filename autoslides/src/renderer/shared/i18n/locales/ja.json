@@ -857,10 +857,13 @@
     "keepAiFilteredEdit": "AI 除外 – 編集モード の項目を保持する",
     "editFolders": "選択",
     "doneEditing": "完了",
+    "importToNotes": "クラウドノートに取り込む",
+    "publishToIndex": "インデックスに公開",
     "clearFolder": "フォルダを削除",
     "confirmClearFoldersTitle": "フォルダを削除",
     "confirmClearFolders": "{count} 個のフォルダをシステムのゴミ箱に移動しますか？関連する抽出画像とゴミ箱の記録もすべて削除されます。",
     "clearFoldersSummary": "削除済み: {removed} · 失敗: {failed}",
+    "notesRunSummary": "完了: {done} · 失敗: {failed}",
     "groupByCourse": "コースでグループ化"
   },
   "pdfmaker": {
@@ -1080,6 +1083,9 @@
     "importPending": "待機中…",
     "importUploading": "アップロード中 {done}/{total}",
     "importBuilding": "ノートを生成中…",
+    "importPublishing": "インデックスに公開中…",
+    "importPublished": "公開済み",
+    "importNotIndexable": "録画セッションではありません",
     "importDone": "完了",
     "importConflict": "ノートが既に存在します",
     "importError": "失敗",

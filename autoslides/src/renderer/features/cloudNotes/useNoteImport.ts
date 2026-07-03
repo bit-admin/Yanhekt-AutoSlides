@@ -7,11 +7,12 @@ import { SHARE_ORIGIN, SHARE_PATH, parseShareLink } from '@common/shareLink'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
 import { formatToolFolderName, compareToolImages } from '@shared/utils/toolWindowFolders'
 import type { useCloudNotes } from './useCloudNotes'
+import { useNotesPublish } from './useNotesPublish'
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
 
 export type ImportStatus =
-  | 'pending' | 'resolving' | 'uploading' | 'building' | 'done' | 'conflict' | 'error'
+  | 'pending' | 'resolving' | 'uploading' | 'building' | 'publishing' | 'done' | 'conflict' | 'error'
 
 /** One queued import row — either a local slide folder or a resolved share link. */
 export interface ImportItem {
@@ -40,6 +41,11 @@ export interface ImportItem {
   noteId?: number
   /** Existing managed note(s) with the same title (on conflict). */
   conflictNoteIds?: number[]
+  /**
+   * Publish-only row (publish mode + a managed note already exists): skip the
+   * upload/create and publish the existing note (`noteId`) to the index instead.
+   */
+  publishOnly?: boolean
   error?: string
 }
 
@@ -69,12 +75,42 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
   const queue = ref<ImportItem[]>([])
   const cancelRequested = ref(false)
   const running = ref(false)
+  const publisher = useNotesPublish(cn)
 
   const importing = computed(() => running.value)
   const overall = computed(() => {
     const total = queue.value.length
     // Conflicts are not counted as resolved — they await a user decision.
     const done = queue.value.filter((i) => i.status === 'done' || i.status === 'error').length
+    return { done, total }
+  })
+  /**
+   * Image-level progress across the whole queue (for a continuous progress bar,
+   * as opposed to `overall`'s per-folder done/total used for the modal's row
+   * count). Each item contributes its `uploaded` count while actively uploading,
+   * and its full `total` once past the upload phase (building/publishing/done/
+   * error) so the bar keeps advancing through those near-instant steps instead
+   * of stalling. Pending/resolving/conflict items contribute 0 until processed.
+   */
+  const imageProgress = computed(() => {
+    let done = 0
+    let total = 0
+    for (const item of queue.value) {
+      total += item.total
+      switch (item.status) {
+        case 'uploading':
+          done += item.uploaded
+          break
+        case 'building':
+        case 'publishing':
+        case 'done':
+        case 'error':
+          done += item.total
+          break
+        default:
+          break
+      }
+    }
     return { done, total }
   })
 
@@ -277,11 +313,35 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
   }
 
   /**
+   * Publish an item's note to the AutoSlides Index (delegates to useNotesPublish).
+   * Fetches the note's current content, publishes, and records the index URL on the
+   * row. `already` (the note carried an index URL) counts as success.
+   */
+  async function publishItem(item: ImportItem): Promise<void> {
+    if (item.noteId == null) { item.status = 'error'; item.error = 'publish-failed'; return }
+    item.status = 'publishing'
+    const got = await window.electronAPI.cloudNotes.get(item.noteId)
+    if (!got.ok) { item.status = 'error'; item.error = got.error; return }
+    const res = await publisher.publishNote(item.noteId, got.data.content)
+    if (res.ok) { item.indexUrl = res.indexUrl; item.status = 'done'; return }
+    if ('reason' in res) {
+      if (res.reason === 'already') { item.indexUrl = res.indexUrl; item.status = 'done'; return }
+      item.status = 'error'; item.error = res.reason // 'not-indexable' | 'no-images'
+      return
+    }
+    item.status = 'error'; item.error = res.error
+  }
+
+  /**
    * Start importing the given folders. Refreshes the full note set for an
    * accurate conflict check, pre-flags conflicting folders, then processes the
    * rest sequentially. Reloads notes + groups afterwards so new notes appear.
+   *
+   * With `{ publish: true }` each folder is also published to the AutoSlides Index
+   * after import ("Publish to Index does both"). A folder that's *already* imported
+   * is not a conflict in publish mode — its existing note is published directly.
    */
-  async function startImport(folderNames: string[]): Promise<void> {
+  async function startImport(folderNames: string[], opts?: { publish?: boolean }): Promise<void> {
     if (running.value) return
     cancelRequested.value = false
     running.value = true
@@ -303,11 +363,16 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
         }
       })
 
-      // Pre-flag folders that already have a managed note. These are not
-      // auto-processed — the user decides per row (replace / create / skip).
+      // Pre-flag folders that already have a managed note. In import mode these
+      // await a user decision (replace / create / skip). In publish mode there's
+      // no conflict — publish the existing note directly (publishOnly).
       for (const item of queue.value) {
         const ids = sameTitleNoteIds(item.displayName)
-        if (ids.length > 0) {
+        if (ids.length === 0) continue
+        if (opts?.publish) {
+          item.noteId = ids[0]
+          item.publishOnly = true
+        } else {
           item.status = 'conflict'
           item.conflictNoteIds = ids
         }
@@ -316,13 +381,25 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       for (const item of queue.value) {
         if (cancelRequested.value) break
         if (item.status !== 'pending') continue
-        await processItem(item)
+        if (item.publishOnly) {
+          await publishItem(item)
+        } else {
+          await processItem(item)
+          // processItem mutates item.status; the `!== 'pending'` guard above
+          // narrowed it, so read through a call to re-widen for the comparison.
+          if (opts?.publish && statusOf(item) === 'done') await publishItem(item)
+        }
       }
 
       await Promise.all([cn.loadAll(), cn.refreshGroups()])
     } finally {
       running.value = false
     }
+  }
+
+  /** Read an item's status widened to ImportStatus (defeats loop-guard narrowing). */
+  function statusOf(item: ImportItem): ImportStatus {
+    return item.status
   }
 
   /** Current ids of all managed notes whose title matches this folder. */
@@ -364,7 +441,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
   }
 
   return {
-    queue, importing, overall, cancelRequested,
+    queue, importing, overall, imageProgress, cancelRequested,
     startImport, importShareLink, cancel, reset, resolveConflict, skipConflict,
   }
 }

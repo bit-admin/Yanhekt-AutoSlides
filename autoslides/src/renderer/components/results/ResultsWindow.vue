@@ -186,7 +186,35 @@
         </div>
 
         <button
-          v-if="currentView === 'folders' && isFolderEditMode"
+          v-if="currentView === 'folders'"
+          class="notes-btn"
+          :disabled="!isFolderEditMode || (selectedFolderNames.length === 0 && !hasNotesConflict) || isLoading || isGenerating || imp.importing.value"
+          @click="onImportToNotes"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/>
+          </svg>
+          {{ $t('trash.importToNotes') }}
+          <span v-if="selectedFolderNames.length > 0" class="edit-count">{{ selectedFolderNames.length }}</span>
+        </button>
+
+        <button
+          v-if="currentView === 'folders'"
+          class="notes-btn"
+          :disabled="!isFolderEditMode || (selectedFolderNames.length === 0 && !hasNotesConflict) || isLoading || isGenerating || imp.importing.value"
+          @click="onPublishToIndex"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+          </svg>
+          {{ $t('trash.publishToIndex') }}
+          <span v-if="selectedFolderNames.length > 0" class="edit-count">{{ selectedFolderNames.length }}</span>
+        </button>
+
+        <div v-if="currentView === 'folders'" class="actions-divider"></div>
+
+        <button
+          v-if="currentView === 'folders'"
           class="delete-btn"
           :disabled="!canClearSelectedFolders || isLoading || isGenerating"
           @click="handleClearSelectedFolders"
@@ -503,12 +531,19 @@
       </template>
     </div>
 
-    <div v-if="isGenerating" class="progress-bar-container">
-      <div
-        class="progress-bar"
-        :style="{ width: `${generateProgress.total > 0 ? (generateProgress.current / generateProgress.total) * 100 : 0}%` }"
-      ></div>
+    <div v-if="isGenerating || imp.importing.value" class="progress-bar-container">
+      <div class="progress-bar" :style="{ width: `${busyProgressPercent}%` }"></div>
     </div>
+
+    <!-- Import / Publish progress + conflict resolution (shared with Cloud Notes) -->
+    <ImportProgressModal
+      :open="showNotesModal"
+      :title="$t(notesModalMode === 'publish' ? 'trash.publishToIndex' : 'trash.importToNotes')"
+      :imp="imp"
+      @close="showNotesModal = false"
+      @done="onDoneNotesModal"
+      @open-note="onOpenConflictNote"
+    />
 
     <div class="footer">
       <div class="footer-left">
@@ -747,9 +782,16 @@ import { createAutoCropWorkerClient } from '@shared/autoCrop'
 import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '@features/results/useResultsView'
 import { useCropEditor, type CropHandle } from '@features/results/useCropEditor'
 import { usePdfMaker } from '@features/export/usePdfMaker'
+import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
+import { useNoteImport } from '@features/cloudNotes/useNoteImport'
+import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
+import { navigationStore } from '@features/course/navigationStore'
+import { NOTE_COPYRIGHT } from '@common/notesContent'
+import { EDITORJS_DOC_VERSION } from '@common/notesTypes'
 import { getCourseName } from '@shared/utils/toolWindowFolders'
 import { configStore } from '@shared/services/configStore'
 import ResultsImageGrid from './ResultsImageGrid.vue'
+import ImportProgressModal from '../cloudnotes/ImportProgressModal.vue'
 
 const { t } = useI18n()
 
@@ -986,6 +1028,117 @@ const {
   enableCustomOrder,
   makePdf,
 } = usePdfMaker({ folders, selectedNames: selectedFolderNames })
+
+// ── Cloud Notes: import + publish-to-index (second entry point) ─────────────
+// Reuses the exact composables the Cloud Notes page uses. "Publish to Index"
+// imports any not-yet-imported folder first, then publishes ("does both").
+const cn = useCloudNotes()
+const imp = useNoteImport(cn, {
+  meta: (count, date) => t('cloudNotes.noteMeta', { count, date }),
+  warning: NOTE_COPYRIGHT,
+  slideCaption: (n) => t('cloudNotes.noteSlideCaption', { n }),
+})
+const showNotesModal = ref(false)
+const notesModalMode = ref<'import' | 'publish'>('import')
+// An unresolved conflict from the last run — reopening the button should show
+// the modal again instead of silently dropping it.
+const hasNotesConflict = computed(() => imp.queue.value.some((i) => i.status === 'conflict'))
+
+// The shared progress strip is driven by whichever run is active (PDF export or
+// the notes import/publish queue). The notes queue uses image-level progress
+// (imageProgress, matching generateProgress's granularity) so the bar advances
+// continuously as each slide uploads, not just once per folder.
+const busyProgressPercent = computed(() => {
+  if (imp.importing.value) {
+    const { done, total } = imp.imageProgress.value
+    return total > 0 ? (done / total) * 100 : 0
+  }
+  return generateProgress.value.total > 0
+    ? (generateProgress.value.current / generateProgress.value.total) * 100
+    : 0
+})
+
+function buildReadmeContent(): string {
+  const stamp = t('cloudNotes.readmeUpdatedAt', { time: new Date().toLocaleString() })
+  const blocks = [
+    { type: 'header', data: { text: t('cloudNotes.readmeHeading'), level: 2 } },
+    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody1') } },
+    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody2') } },
+    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody3') } },
+    { type: 'paragraph', data: { text: stamp } },
+  ]
+  return JSON.stringify({ time: Date.now(), blocks, version: EDITORJS_DOC_VERSION })
+}
+
+/** Ensure the user is signed in and the managed note storage exists. */
+async function ensureManagedStorage(): Promise<boolean> {
+  await cn.loadAll()
+  if (cn.notSignedIn.value) {
+    await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'info',
+      title: t('trash.importToNotes'),
+      message: t('cloudNotes.notSignedIn'),
+      buttons: [t('cloudNotes.importClose')],
+    })
+    return false
+  }
+  if (!cn.hasManagedStorage.value) await cn.initCloudStorage(buildReadmeContent())
+  return cn.hasManagedStorage.value
+}
+
+async function startNotesRun(mode: 'import' | 'publish'): Promise<void> {
+  if (imp.importing.value) return
+
+  // Resume: a previous run left unresolved conflicts — reopen the modal on them
+  // rather than dropping them by starting a fresh run.
+  if (hasNotesConflict.value) {
+    notesModalMode.value = mode
+    showNotesModal.value = true
+    return
+  }
+
+  if (selectedFolderNames.value.length === 0) return
+  if (!(await ensureManagedStorage())) return
+  notesModalMode.value = mode
+  imp.reset()
+  // The bottom progress bar (shared with PDF export) already conveys live
+  // progress, so await to completion here rather than opening a modal.
+  await imp.startImport([...selectedFolderNames.value], { publish: mode === 'publish' })
+
+  if (hasNotesConflict.value) {
+    showNotesModal.value = true
+    return
+  }
+
+  // No conflicts: summarize like the other batch actions (e.g. Clear Folder)
+  // and clear the queue immediately since nothing needs further resolution.
+  const failed = imp.queue.value.filter((i) => i.status === 'error').length
+  const done = imp.queue.value.length - failed
+  await window.electronAPI.dialog?.showMessageBox?.({
+    type: failed > 0 ? 'warning' : 'info',
+    buttons: ['OK'],
+    title: t(mode === 'publish' ? 'trash.publishToIndex' : 'trash.importToNotes'),
+    message: t('trash.notesRunSummary', { done, failed }),
+  })
+  imp.reset()
+  notesRefreshStore.requestNotesRefresh()
+}
+
+const onImportToNotes = () => startNotesRun('import')
+const onPublishToIndex = () => startNotesRun('publish')
+
+function onDoneNotesModal(): void {
+  imp.reset()
+  showNotesModal.value = false
+  notesRefreshStore.requestNotesRefresh()
+}
+
+async function onOpenConflictNote(id?: number): Promise<void> {
+  if (id == null) return
+  showNotesModal.value = false
+  noteOpenRequestStore.requestOpenNote(id)
+  navigationStore.navigate('cloud-notes')
+}
 
 // Custom ordering and course grouping are mutually exclusive: the grouped view
 // imposes its own course-first order, so dragging into a custom order turns
@@ -1786,6 +1939,7 @@ const confirmClearTrash = async () => {
 
 .delete-btn,
 .restore-btn,
+.notes-btn,
 .clear-btn {
   display: flex;
   align-items: center;
@@ -1799,6 +1953,21 @@ const confirmClearTrash = async () => {
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+}
+
+.notes-btn {
+  background-color: var(--accent);
+}
+
+.notes-btn:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+}
+
+.actions-divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border-color);
+  flex-shrink: 0;
 }
 
 .delete-btn {
@@ -1826,7 +1995,7 @@ const confirmClearTrash = async () => {
 }
 
 .clear-btn {
-  background-color: var(--border-strong);
+  background-color: var(--neutral-strong);
 }
 
 .clear-btn:hover:not(:disabled) {
@@ -1845,6 +2014,14 @@ const confirmClearTrash = async () => {
 .restore-btn:disabled,
 .clear-btn:disabled {
   color: rgba(255, 255, 255, 0.55);
+  cursor: not-allowed;
+}
+
+/* Matches the shared .btn:disabled / Make PDF look (full-button fade) rather
+   than the text-only fade above — these buttons sit right next to Make PDF in
+   Select mode and are disabled far more often (whenever it's off). */
+.notes-btn:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 

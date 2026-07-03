@@ -857,10 +857,13 @@
     "keepAiFilteredEdit": "AI 필터링 – 편집 모드로 표시된 항목 보존",
     "editFolders": "선택",
     "doneEditing": "완료",
+    "importToNotes": "클라우드 노트로 가져오기",
+    "publishToIndex": "인덱스에 게시",
     "clearFolder": "폴더 삭제",
     "confirmClearFoldersTitle": "폴더 삭제",
     "confirmClearFolders": "{count}개의 폴더를 시스템 휴지통으로 이동할까요? 관련된 추출 이미지와 휴지통 항목도 함께 삭제됩니다.",
     "clearFoldersSummary": "삭제됨: {removed} · 실패: {failed}",
+    "notesRunSummary": "완료: {done} · 실패: {failed}",
     "groupByCourse": "강좌별 그룹화"
   },
   "pdfmaker": {
@@ -1080,6 +1083,9 @@
     "importPending": "대기 중…",
     "importUploading": "업로드 중 {done}/{total}",
     "importBuilding": "노트 생성 중…",
+    "importPublishing": "인덱스에 게시 중…",
+    "importPublished": "게시됨",
+    "importNotIndexable": "녹화 세션이 아님",
     "importDone": "완료",
     "importConflict": "노트가 이미 있습니다",
     "importError": "실패",

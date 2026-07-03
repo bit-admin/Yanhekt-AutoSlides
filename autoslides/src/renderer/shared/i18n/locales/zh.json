@@ -857,10 +857,13 @@
     "keepAiFilteredEdit": "保留标记为 AI 过滤 – 编辑模式 的项目",
     "editFolders": "选择",
     "doneEditing": "完成",
+    "importToNotes": "导入到云笔记",
+    "publishToIndex": "发布到索引",
     "clearFolder": "清除文件夹",
     "confirmClearFoldersTitle": "移除文件夹",
     "confirmClearFolders": "是否将 {count} 个文件夹移至系统回收站？相关的提取图像与回收记录也会一并清除。",
     "clearFoldersSummary": "已移除：{removed} · 失败：{failed}",
+    "notesRunSummary": "完成：{done} · 失败：{failed}",
     "groupByCourse": "按课程分组"
   },
   "pdfmaker": {
@@ -1080,6 +1083,9 @@
     "importPending": "等待中…",
     "importUploading": "上传中 {done}/{total}",
     "importBuilding": "正在生成笔记…",
+    "importPublishing": "正在发布到索引…",
+    "importPublished": "已发布",
+    "importNotIndexable": "非录播课程",
     "importDone": "完成",
     "importConflict": "笔记已存在",
     "importError": "失败",
