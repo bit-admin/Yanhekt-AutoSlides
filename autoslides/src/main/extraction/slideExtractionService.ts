@@ -5,11 +5,12 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import os from 'os';
 import { shell } from 'electron';
 import { sharpService } from '@main/infra/sharpService';
 import type { TrashEntry, TrashMetadata, CropEntry, CropRect } from './slideExtraction/types';
 import {
+  expandTilde,
+  validateSlideFilename,
   getRootOutputDirectory as getRootOutputDirectoryHelper,
   getRelativePathFromRoot as getRelativePathFromRootHelper,
   isPathInside as isPathInsideHelper,
@@ -49,10 +50,7 @@ export class SlideExtractionService {
    */
   async saveSlide(outputPath: string, filename: string, imageBuffer: Uint8Array, enableColorReduction: boolean = false): Promise<void> {
     try {
-      // Expand tilde in path
-      const expandedPath = outputPath.startsWith('~')
-        ? path.join(os.homedir(), outputPath.slice(1))
-        : outputPath;
+      const expandedPath = expandTilde(outputPath);
 
       // Ensure directory exists
       await this.ensureDirectory(expandedPath);
@@ -80,10 +78,7 @@ export class SlideExtractionService {
    */
   async ensureDirectory(dirPath: string): Promise<void> {
     try {
-      // Expand tilde in path
-      const expandedPath = dirPath.startsWith('~')
-        ? path.join(os.homedir(), dirPath.slice(1))
-        : dirPath;
+      const expandedPath = expandTilde(dirPath);
 
       await fs.mkdir(expandedPath, { recursive: true });
       log.debug(`Directory ensured: ${expandedPath}`);
@@ -98,10 +93,7 @@ export class SlideExtractionService {
    */
   async directoryExists(dirPath: string): Promise<boolean> {
     try {
-      // Expand tilde in path
-      const expandedPath = dirPath.startsWith('~')
-        ? path.join(os.homedir(), dirPath.slice(1))
-        : dirPath;
+      const expandedPath = expandTilde(dirPath);
 
       const stats = await fs.stat(expandedPath);
       return stats.isDirectory();
@@ -115,10 +107,7 @@ export class SlideExtractionService {
    */
   async getDirectoryInfo(dirPath: string): Promise<{ fileCount: number; totalSize: number }> {
     try {
-      // Expand tilde in path
-      const expandedPath = dirPath.startsWith('~')
-        ? path.join(os.homedir(), dirPath.slice(1))
-        : dirPath;
+      const expandedPath = expandTilde(dirPath);
 
       const files = await fs.readdir(expandedPath);
       let fileCount = 0;
@@ -148,20 +137,9 @@ export class SlideExtractionService {
    */
   async deleteSlide(outputPath: string, filename: string): Promise<void> {
     try {
-      // Expand tilde in path
-      const expandedPath = outputPath.startsWith('~')
-        ? path.join(os.homedir(), outputPath.slice(1))
-        : outputPath;
+      const expandedPath = expandTilde(outputPath);
 
-      // Validate filename to prevent directory traversal attacks
-      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
-        throw new Error('Invalid filename: contains path traversal characters');
-      }
-
-      // Ensure filename has .png extension and starts with Slide_
-      if (!filename.endsWith('.png') || !filename.startsWith('Slide_')) {
-        throw new Error('Invalid filename: must be a slide PNG file (Slide_*.png)');
-      }
+      validateSlideFilename(filename);
 
       // Full file path
       const filePath = path.join(expandedPath, filename);
@@ -223,20 +201,9 @@ export class SlideExtractionService {
     metadata: TrashMetadata
   ): Promise<void> {
     try {
-      // Expand tilde in path
-      const expandedPath = outputPath.startsWith('~')
-        ? path.join(os.homedir(), outputPath.slice(1))
-        : outputPath;
+      const expandedPath = expandTilde(outputPath);
 
-      // Validate filename to prevent directory traversal attacks
-      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
-        throw new Error('Invalid filename: contains path traversal characters');
-      }
-
-      // Ensure filename has .png extension and starts with Slide_
-      if (!filename.endsWith('.png') || !filename.startsWith('Slide_')) {
-        throw new Error('Invalid filename: must be a slide PNG file (Slide_*.png)');
-      }
+      validateSlideFilename(filename);
 
       // Full file path
       const filePath = path.join(expandedPath, filename);
@@ -319,10 +286,7 @@ export class SlideExtractionService {
    */
   async loadSlideImage(filePath: string): Promise<Uint8Array> {
     try {
-      // Expand tilde in path
-      const expandedPath = filePath.startsWith('~')
-        ? path.join(os.homedir(), filePath.slice(1))
-        : filePath;
+      const expandedPath = expandTilde(filePath);
 
       // Validate file path to prevent directory traversal attacks
       const resolvedFilePath = path.resolve(expandedPath);
@@ -349,10 +313,7 @@ export class SlideExtractionService {
    */
   async savePostProcessingResults(filePath: string, data: any): Promise<void> {
     try {
-      // Expand tilde in path
-      const expandedPath = filePath.startsWith('~')
-        ? path.join(os.homedir(), filePath.slice(1))
-        : filePath;
+      const expandedPath = expandTilde(filePath);
 
       // Ensure directory exists
       const dirPath = path.dirname(expandedPath);
@@ -375,20 +336,9 @@ export class SlideExtractionService {
    */
   async readSlideAsBase64(outputPath: string, filename: string): Promise<string> {
     try {
-      // Expand tilde in path
-      const expandedPath = outputPath.startsWith('~')
-        ? path.join(os.homedir(), outputPath.slice(1))
-        : outputPath;
+      const expandedPath = expandTilde(outputPath);
 
-      // Validate filename to prevent directory traversal attacks
-      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
-        throw new Error('Invalid filename: contains path traversal characters');
-      }
-
-      // Ensure filename has .png extension and starts with Slide_
-      if (!filename.endsWith('.png') || !filename.startsWith('Slide_')) {
-        throw new Error('Invalid filename: must be a slide PNG file (Slide_*.png)');
-      }
+      validateSlideFilename(filename);
 
       // Full file path
       const filePath = path.join(expandedPath, filename);
@@ -436,20 +386,9 @@ export class SlideExtractionService {
     targetHeight: number
   ): Promise<string> {
     try {
-      // Expand tilde in path
-      const expandedPath = outputPath.startsWith('~')
-        ? path.join(os.homedir(), outputPath.slice(1))
-        : outputPath;
+      const expandedPath = expandTilde(outputPath);
 
-      // Validate filename to prevent directory traversal attacks
-      if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
-        throw new Error('Invalid filename: contains path traversal characters');
-      }
-
-      // Ensure filename has .png extension and starts with Slide_
-      if (!filename.endsWith('.png') || !filename.startsWith('Slide_')) {
-        throw new Error('Invalid filename: must be a slide PNG file (Slide_*.png)');
-      }
+      validateSlideFilename(filename);
 
       // Full file path
       const filePath = path.join(expandedPath, filename);
@@ -487,10 +426,7 @@ export class SlideExtractionService {
    */
   async listSlides(outputPath: string): Promise<string[]> {
     try {
-      // Expand tilde in path
-      const expandedPath = outputPath.startsWith('~')
-        ? path.join(os.homedir(), outputPath.slice(1))
-        : outputPath;
+      const expandedPath = expandTilde(outputPath);
 
       // Check if directory exists
       const dirExists = await this.directoryExists(expandedPath);
@@ -520,10 +456,7 @@ export class SlideExtractionService {
    */
   async cleanupOldSlides(dirPath: string, maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): Promise<number> {
     try {
-      // Expand tilde in path
-      const expandedPath = dirPath.startsWith('~')
-        ? path.join(os.homedir(), dirPath.slice(1))
-        : dirPath;
+      const expandedPath = expandTilde(dirPath);
 
       const files = await fs.readdir(expandedPath);
       const now = Date.now();
@@ -560,9 +493,7 @@ export class SlideExtractionService {
    * Get the crop directory path for a given output directory
    */
   getCropDirectory(outputDir: string): string {
-    const expandedPath = outputDir.startsWith('~')
-      ? path.join(os.homedir(), outputDir.slice(1))
-      : outputDir;
+    const expandedPath = expandTilde(outputDir);
     return path.join(expandedPath, '.autoslidesCrop');
   }
 
@@ -607,9 +538,7 @@ export class SlideExtractionService {
    */
   async applyCrop(imagePath: string, outputDir: string, rect: CropRect, autoCropped?: boolean): Promise<void> {
     try {
-      const expandedOutputDir = outputDir.startsWith('~')
-        ? path.join(os.homedir(), outputDir.slice(1))
-        : outputDir;
+      const expandedOutputDir = expandTilde(outputDir);
       const resolvedOutputDir = path.resolve(expandedOutputDir);
       const resolvedImagePath = path.resolve(imagePath);
 
@@ -680,9 +609,7 @@ export class SlideExtractionService {
    */
   async restoreCrop(imagePath: string, outputDir: string): Promise<void> {
     try {
-      const expandedOutputDir = outputDir.startsWith('~')
-        ? path.join(os.homedir(), outputDir.slice(1))
-        : outputDir;
+      const expandedOutputDir = expandTilde(outputDir);
       const resolvedOutputDir = path.resolve(expandedOutputDir);
       const resolvedImagePath = path.resolve(imagePath);
 
@@ -714,9 +641,7 @@ export class SlideExtractionService {
    */
   async getCropImageAsBase64(cropPath: string): Promise<string> {
     try {
-      const expandedPath = cropPath.startsWith('~')
-        ? path.join(os.homedir(), cropPath.slice(1))
-        : cropPath;
+      const expandedPath = expandTilde(cropPath);
       const resolvedPath = path.resolve(expandedPath);
 
       const stats = await fs.stat(resolvedPath);
@@ -740,9 +665,7 @@ export class SlideExtractionService {
    * Get the trash directory path for a given output directory
    */
   getTrashDirectory(outputDir: string): string {
-    const expandedPath = outputDir.startsWith('~')
-      ? path.join(os.homedir(), outputDir.slice(1))
-      : outputDir;
+    const expandedPath = expandTilde(outputDir);
     return path.join(expandedPath, '.autoslidesTrash');
   }
 
@@ -962,9 +885,7 @@ export class SlideExtractionService {
     }
 
     try {
-      const expandedOutputDir = outputDir.startsWith('~')
-        ? path.join(os.homedir(), outputDir.slice(1))
-        : outputDir;
+      const expandedOutputDir = expandTilde(outputDir);
       const resolvedOutputDir = path.resolve(expandedOutputDir);
       const trashDir = this.getTrashDirectory(resolvedOutputDir);
       const cropDir = this.getCropDirectory(resolvedOutputDir);
@@ -1040,10 +961,7 @@ export class SlideExtractionService {
    */
   async getTrashImageAsBase64(trashPath: string): Promise<string> {
     try {
-      // Expand tilde in path
-      const expandedPath = trashPath.startsWith('~')
-        ? path.join(os.homedir(), trashPath.slice(1))
-        : trashPath;
+      const expandedPath = expandTilde(trashPath);
 
       // Validate path to prevent directory traversal
       const resolvedPath = path.resolve(expandedPath);

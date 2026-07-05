@@ -12,8 +12,8 @@
  */
 
 import { promises as fs } from 'fs';
-import os from 'os';
 import path from 'path';
+import { expandTilde } from '@main/infra/pathUtils';
 import type { ConfigService } from './configService';
 import { sharpService } from '@main/infra/sharpService';
 import type {
@@ -242,7 +242,7 @@ export class NotesService {
   /** Configured slides output directory, with leading `~` expanded. */
   private exportBaseDir(): string {
     const dir = this.configService.getConfig().outputDirectory;
-    return dir.startsWith('~') ? path.join(os.homedir(), dir.slice(1)) : dir;
+    return expandTilde(dir);
   }
 
   /** Local `slides_<displayName>` folder path for a managed note's display name. */

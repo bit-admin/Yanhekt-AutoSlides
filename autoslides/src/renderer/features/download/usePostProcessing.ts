@@ -20,6 +20,7 @@ import type {
   PostProcessingProgress,
   TrashReason
 } from '@shared/postProcessing/types'
+import { filterEnabledExclusionItems } from '@shared/postProcessing/types'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('DownloadPostProcessing');
 
@@ -164,10 +165,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
     const enableAI = await window.electronAPI.config?.getEnableAIFiltering?.() ?? true
     const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
-    const exclusionList = (slideConfig.pHashExclusionList || []).filter(
-      (item: { isPreset?: boolean; isEnabled?: boolean }) =>
-        !item.isPreset || item.isEnabled !== false
-    )
+    const exclusionList = filterEnabledExclusionItems(slideConfig.pHashExclusionList || [])
 
     // Live mode uses single-image AI (batchSize=1) so each slide gets a snappy
     // verdict; the live prompt variant expects `{ classification: ... }` so we

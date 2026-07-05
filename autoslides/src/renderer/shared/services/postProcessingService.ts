@@ -9,6 +9,7 @@ import type {
   PostProcessingConfig,
   PostProcessingProgress
 } from '@shared/postProcessing/types'
+import { filterEnabledExclusionItems } from '@shared/postProcessing/types'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ServicesPostProcessing');
 
@@ -330,10 +331,7 @@ class PostProcessingServiceClass {
     const enableAIFiltering = await window.electronAPI.config?.getEnableAIFiltering?.() ?? true
     const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
 
-    const exclusionList = (slideConfig?.pHashExclusionList || []).filter(
-      (item: { isPreset?: boolean; isEnabled?: boolean }) =>
-        !item.isPreset || item.isEnabled !== false
-    )
+    const exclusionList = filterEnabledExclusionItems(slideConfig?.pHashExclusionList || [])
 
     return {
       config: {

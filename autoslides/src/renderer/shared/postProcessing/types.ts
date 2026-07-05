@@ -37,6 +37,16 @@ export interface ExclusionItem {
   pHash: string
 }
 
+/**
+ * The exclusion-list enablement rule: preset entries can be toggled off
+ * (`isEnabled === false`), user-added entries are always active.
+ */
+export function filterEnabledExclusionItems<T extends { isPreset?: boolean; isEnabled?: boolean }>(
+  list: T[],
+): T[] {
+  return list.filter((item) => !item.isPreset || item.isEnabled !== false)
+}
+
 export interface PostProcessingConfig {
   pHashThreshold: number
   enableDuplicateRemoval: boolean

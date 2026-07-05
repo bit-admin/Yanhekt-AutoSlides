@@ -4,21 +4,17 @@ import { tokenManager } from '@shared/services/authService'
 import { DataStore } from '@shared/services/dataStore'
 import { DownloadService, type DownloadQueueAddResult } from '@shared/services/downloadService'
 import { TaskQueue, type TaskQueueAddResult } from '@shared/services/taskQueueService'
+import type { Course } from './useCourseList'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('SessionPage');
 
-export interface SessionCourse {
-  id: string
-  title: string
-  instructor: string
-  time: string
-  classrooms?: { name: string }[]
-  college_name?: string
-  participant_count?: number
-  professors?: string[]
-  school_year?: string
-  semester?: string
-}
+/** The slice of `Course` the sessions page consumes (a thin/pinned course may carry only this). */
+export type SessionCourse = Pick<
+  Course,
+  | 'id' | 'title' | 'instructor' | 'time'
+  | 'classrooms' | 'college_name' | 'participant_count'
+  | 'professors' | 'school_year' | 'semester'
+>
 
 // Session type extends SessionData from API client
 export type Session = SessionData

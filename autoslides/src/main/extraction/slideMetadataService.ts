@@ -16,7 +16,7 @@
  */
 import { promises as fs } from 'fs';
 import path from 'path';
-import os from 'os';
+import { expandTilde } from '@main/infra/pathUtils';
 import {
   SLIDE_METADATA_VERSION,
   SLIDE_METADATA_FILENAME,
@@ -29,10 +29,6 @@ import {
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('SlideMetadata');
 
-function expandHome(targetPath: string): string {
-  return targetPath.startsWith('~') ? path.join(os.homedir(), targetPath.slice(1)) : targetPath;
-}
-
 function emptyReview(): SlideReviewMeta {
   return { reviewed: false, reviewedAt: null, edited: false, editedAt: null, cropped: false };
 }
@@ -42,7 +38,7 @@ export class SlideMetadataService {
   private writeChains = new Map<string, Promise<unknown>>();
 
   private metadataPath(folderPath: string): string {
-    return path.join(path.resolve(expandHome(folderPath)), SLIDE_METADATA_FILENAME);
+    return path.join(path.resolve(expandTilde(folderPath)), SLIDE_METADATA_FILENAME);
   }
 
   /** Read and parse a folder's metadata, or null if absent/unreadable. */

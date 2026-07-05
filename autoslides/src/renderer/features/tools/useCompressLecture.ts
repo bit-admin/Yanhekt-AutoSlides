@@ -1,4 +1,5 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { getPathParts, toSafeToken } from '@shared/utils/pathParsing'
 
 type Preset = 'tiny' | 'small' | 'readable'
 type AudioPreset = 'low' | 'mid' | 'high' | 'max'
@@ -59,33 +60,6 @@ const buildDefaultValues = () => ({
   keepAac: false,
   x265Params: 'aq-mode=1'
 })
-
-const isWindowsPath = (filePath: string): boolean => {
-  return /^[A-Za-z]:[\\/]/.test(filePath) || filePath.startsWith('\\\\')
-}
-
-const getPathParts = (filePath: string): { dir: string; stem: string; separator: '/' | '\\' } => {
-  const lastForwardSlash = filePath.lastIndexOf('/')
-  const lastBackwardSlash = filePath.lastIndexOf('\\')
-  const slashIndex = Math.max(lastForwardSlash, lastBackwardSlash)
-
-  const separator = slashIndex >= 0
-    ? (filePath[slashIndex] as '/' | '\\')
-    : (isWindowsPath(filePath) ? '\\' : '/')
-
-  const dir = slashIndex >= 0 ? filePath.slice(0, slashIndex) : ''
-  const fileName = slashIndex >= 0 ? filePath.slice(slashIndex + 1) : filePath
-  const dotIndex = fileName.lastIndexOf('.')
-  const stem = dotIndex > 0 ? fileName.slice(0, dotIndex) : fileName
-  return { dir, stem, separator }
-}
-
-const toSafeToken = (token: string, filePath: string): string => {
-  if (!isWindowsPath(filePath)) {
-    return token
-  }
-  return token.replace(/[<>:"/\\|?*]/g, '_')
-}
 
 export function useCompressLecture() {
   const inputPath = ref('')

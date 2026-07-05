@@ -1,5 +1,6 @@
 import type { ClassifierClass, ClassifyResult } from '@shared/workers/slideClassifier.worker'
 import { classifyImage as runMlClassify, ensureMlClassifierReady } from '@features/ai/mlClassifierClient'
+import { decodeBase64ToImageData } from '@shared/utils/imageDecode'
 import type {
   ClassificationValue,
   UnifiedClassificationResult,
@@ -50,24 +51,6 @@ export function applyMlDecision(
   const slideProb = probabilities.slide
   if (slideProb < thresholds.slideCheckLow) return mapRemoval()
   return 'slide'
-}
-
-async function decodeBase64ToImageData(base64: string): Promise<ImageData> {
-  const byteStr = atob(base64)
-  const len = byteStr.length
-  const bytes = new Uint8Array(len)
-  for (let i = 0; i < len; i++) bytes[i] = byteStr.charCodeAt(i)
-  const blob = new Blob([bytes])
-  const bitmap = await createImageBitmap(blob)
-  try {
-    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
-    const ctx = canvas.getContext('2d')
-    if (!ctx) throw new Error('OffscreenCanvas 2D context unavailable')
-    ctx.drawImage(bitmap, 0, 0)
-    return ctx.getImageData(0, 0, bitmap.width, bitmap.height)
-  } finally {
-    bitmap.close()
-  }
 }
 
 async function classifyOneWithMl(

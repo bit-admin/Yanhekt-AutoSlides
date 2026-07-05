@@ -11,6 +11,7 @@ import type {
   PostProcessingConfig,
   PostProcessingProgress
 } from '@shared/postProcessing/types'
+import { filterEnabledExclusionItems } from '@shared/postProcessing/types'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('OfflineProcessing');
 
@@ -138,10 +139,7 @@ export function useOfflineProcessing() {
     const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
     const exclusionListRaw =
       (await window.electronAPI.config.getPHashExclusionList()) || []
-    const exclusionList = exclusionListRaw
-      .filter((item: { isPreset?: boolean; isEnabled?: boolean }) =>
-        !item.isPreset || item.isEnabled !== false
-      )
+    const exclusionList = filterEnabledExclusionItems(exclusionListRaw)
       .map((item: { name: string; pHash: string }) => ({ name: item.name, pHash: item.pHash }))
 
     return {

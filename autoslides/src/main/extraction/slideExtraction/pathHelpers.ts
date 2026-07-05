@@ -1,6 +1,21 @@
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
+export { expandTilde } from '@main/infra/pathUtils';
+
+/**
+ * Reject filenames containing path traversal characters and enforce the
+ * `Slide_*.png` naming convention used throughout the extraction pipeline.
+ */
+export function validateSlideFilename(filename: string): void {
+  if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
+    throw new Error('Invalid filename: contains path traversal characters');
+  }
+  if (!filename.endsWith('.png') || !filename.startsWith('Slide_')) {
+    throw new Error('Invalid filename: must be a slide PNG file (Slide_*.png)');
+  }
+}
+
 export function getRootOutputDirectory(sessionOutputPath: string): string {
   return path.dirname(sessionOutputPath);
 }

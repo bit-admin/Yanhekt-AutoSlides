@@ -1,5 +1,6 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch, type Ref } from 'vue'
 import type { AutoCropWorkerClient } from '@shared/autoCrop'
+import { decodeBase64ToImageData } from '@shared/utils/imageDecode'
 import { configStore } from '@shared/services/configStore'
 import { overrides } from '@shared/overrideRegistry'
 import type { CropRect, ResultsItem } from './useResultsView'
@@ -369,17 +370,7 @@ export function useCropEditor(deps: CropEditorDeps) {
       if (!sourceBase64) return
       const cropSource = `data:image/png;base64,${sourceBase64}`
 
-      const base64Data = sourceBase64
-      const binaryStr = atob(base64Data)
-      const bytes = new Uint8Array(binaryStr.length)
-      for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i)
-      const blob = new Blob([bytes], { type: 'image/png' })
-      const bitmap = await createImageBitmap(blob)
-      const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
-      const ctx = canvas.getContext('2d')!
-      ctx.drawImage(bitmap, 0, 0)
-      const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
-      bitmap.close()
+      const imageData = await decodeBase64ToImageData(sourceBase64)
 
       const appConfig = configStore
       const slideCfg = appConfig.slideExtraction

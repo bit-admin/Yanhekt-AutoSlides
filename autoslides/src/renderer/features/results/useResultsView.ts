@@ -416,8 +416,14 @@ export function useResultsView() {
     }
   }
 
-  function buildSelectedCropTargets(): AutoCropTarget[] {
-    return selectedItems.value.map((item) => {
+  type CropScope = 'mixed' | 'active' | 'removed'
+
+  function buildCropTargets(scope: CropScope): AutoCropTarget[] {
+    const items =
+      scope === 'active' ? selectedActiveItems.value :
+      scope === 'removed' ? selectedRemovedItems.value :
+      selectedItems.value
+    return items.map((item) => {
       const isRemoved = item.status === 'removed'
       return {
         id: isRemoved ? item.id : undefined,
@@ -463,141 +469,122 @@ export function useResultsView() {
     return dedupResult
   }
 
+  interface CropActionResult {
+    cropped: number
+    noDetection: number
+    outOfBounds: number
+    deduped: number
+    failed: number
+  }
+
+  /**
+   * Shared skeleton for the seven crop actions: guard → build targets from the
+   * selection scope → run the auto/baseline pipeline → optionally pHash-dedup
+   * the fresh crops → refresh. The exported wrappers pick the summary fields
+   * their callers expect.
+   */
+  async function runCropAction(opts: {
+    canRun: boolean
+    scope: CropScope
+    pipeline: 'auto' | 'baseline'
+    dedup: boolean
+    requireFolder: boolean
+    errorLabel: string
+  }): Promise<CropActionResult> {
+    const summary: CropActionResult = { cropped: 0, noDetection: 0, outOfBounds: 0, deduped: 0, failed: 0 }
+    if (!opts.canRun) return summary
+    const baselineRect = opts.pipeline === 'baseline' ? baselineCrop.value?.rect : undefined
+    if (opts.pipeline === 'baseline' && !baselineRect) return summary
+
+    const folder = currentFolder.value
+    if (opts.requireFolder && !folder) return summary
+
+    isLoading.value = true
+    try {
+      const targets = buildCropTargets(opts.scope)
+      let pHashThreshold: number | null = null
+      let cropResult: { cropped: number; failed: number; croppedItems: CroppedItem[] }
+
+      if (opts.pipeline === 'auto') {
+        const cfg = await readDetectConfig()
+        pHashThreshold = cfg.pHashThreshold
+        const res = await runResultsAutoCropPipeline(targets, autoCropClient, cfg.detectConfig, cropIO)
+        summary.noDetection = res.noDetection
+        cropResult = res
+      } else {
+        const res = await runBaselineCropPipelineCore(targets, baselineRect!, cropIO)
+        summary.outOfBounds = res.outOfBounds
+        cropResult = res
+      }
+      summary.cropped = cropResult.cropped
+      summary.failed = cropResult.failed
+
+      if (opts.dedup && cropResult.croppedItems.length > 0) {
+        if (pHashThreshold === null) pHashThreshold = (await readDetectConfig()).pHashThreshold
+        const dedup = await dedupAfterCrop(folder, cropResult.croppedItems, pHashThreshold)
+        summary.cropped = Math.max(0, summary.cropped + dedup.croppedDelta)
+        summary.deduped = dedup.deduped
+        summary.failed += dedup.failed
+      }
+
+      await refresh()
+    } catch (error) {
+      log.error(`Failed to ${opts.errorLabel}:`, error)
+    } finally {
+      isLoading.value = false
+    }
+
+    return summary
+  }
+
   async function autoCropSelected(
     options: { removeDuplicates?: boolean } = {},
   ): Promise<AutoCropActionSummary> {
-    const summary = { cropped: 0, noDetection: 0, deduped: 0, failed: 0 }
-    if (!canAutoCropSelected.value) return summary
-
-    const folder = currentFolder.value
-
-    isLoading.value = true
-    try {
-      const { detectConfig, pHashThreshold } = await readDetectConfig()
-      const cropResult = await runResultsAutoCropPipeline(
-        buildSelectedCropTargets(),
-        autoCropClient,
-        detectConfig,
-        cropIO,
-      )
-      summary.cropped = cropResult.cropped
-      summary.noDetection = cropResult.noDetection
-      summary.failed = cropResult.failed
-
-      if (options.removeDuplicates && cropResult.croppedItems.length > 0) {
-        const dedup = await dedupAfterCrop(folder, cropResult.croppedItems, pHashThreshold)
-        summary.cropped = Math.max(0, summary.cropped + dedup.croppedDelta)
-        summary.deduped = dedup.deduped
-        summary.failed += dedup.failed
-      }
-
-      await refresh()
-    } catch (error) {
-      log.error('Failed to auto-crop selected items:', error)
-    } finally {
-      isLoading.value = false
-    }
-
-    return summary
+    const s = await runCropAction({
+      canRun: canAutoCropSelected.value,
+      scope: 'mixed',
+      pipeline: 'auto',
+      dedup: options.removeDuplicates === true,
+      requireFolder: false,
+      errorLabel: 'auto-crop selected items',
+    })
+    return { cropped: s.cropped, noDetection: s.noDetection, deduped: s.deduped, failed: s.failed }
   }
 
   async function autoCropSelectedActive(): Promise<{ cropped: number; noDetection: number; failed: number }> {
-    const summary = { cropped: 0, noDetection: 0, failed: 0 }
-    if (!canAutoCropActive.value) return summary
-
-    isLoading.value = true
-    try {
-      const targets: AutoCropTarget[] = selectedActiveItems.value.map((item) => ({
-        originalPath: item.imagePath || item.originalPath || '',
-        filename: item.name,
-        needsRestore: false,
-      }))
-
-      const { detectConfig } = await readDetectConfig()
-      const cropResult = await runResultsAutoCropPipeline(targets, autoCropClient, detectConfig, cropIO)
-      summary.cropped = cropResult.cropped
-      summary.noDetection = cropResult.noDetection
-      summary.failed = cropResult.failed
-      await refresh()
-    } catch (error) {
-      log.error('Failed to auto-crop selected active items:', error)
-    } finally {
-      isLoading.value = false
-    }
-
-    return summary
+    const s = await runCropAction({
+      canRun: canAutoCropActive.value,
+      scope: 'active',
+      pipeline: 'auto',
+      dedup: false,
+      requireFolder: false,
+      errorLabel: 'auto-crop selected active items',
+    })
+    return { cropped: s.cropped, noDetection: s.noDetection, failed: s.failed }
   }
 
   async function restoreAndAutoCropSelected(): Promise<{ cropped: number; noDetection: number; failed: number }> {
-    const summary = { cropped: 0, noDetection: 0, failed: 0 }
-    if (!canRestoreAndAutoCrop.value) return summary
-
-    isLoading.value = true
-    try {
-      const targets: AutoCropTarget[] = selectedRemovedItems.value.map((item) => ({
-        id: item.id,
-        originalPath: item.originalPath || '',
-        filename: item.name,
-        needsRestore: true,
-      }))
-
-      const { detectConfig } = await readDetectConfig()
-      const cropResult = await runResultsAutoCropPipeline(targets, autoCropClient, detectConfig, cropIO)
-      summary.cropped = cropResult.cropped
-      summary.noDetection = cropResult.noDetection
-      summary.failed = cropResult.failed
-      await refresh()
-    } catch (error) {
-      log.error('Failed to restore and auto-crop selected:', error)
-    } finally {
-      isLoading.value = false
-    }
-
-    return summary
+    const s = await runCropAction({
+      canRun: canRestoreAndAutoCrop.value,
+      scope: 'removed',
+      pipeline: 'auto',
+      dedup: false,
+      requireFolder: false,
+      errorLabel: 'restore and auto-crop selected',
+    })
+    return { cropped: s.cropped, noDetection: s.noDetection, failed: s.failed }
   }
 
   async function cropAndDedupSelected(): Promise<{ cropped: number; noDetection: number; deduped: number; failed: number }> {
-    const summary = { cropped: 0, noDetection: 0, deduped: 0, failed: 0 }
-    if (!canCropAndDedup.value) return summary
-
-    const folder = currentFolder.value
-    if (!folder) return summary
-
-    isLoading.value = true
-    try {
-      const targets: AutoCropTarget[] = selectedItems.value.map((item) => {
-        const isRemoved = item.status === 'removed'
-        return {
-          id: isRemoved ? item.id : undefined,
-          originalPath: isRemoved
-            ? item.originalPath || ''
-            : item.imagePath || item.originalPath || '',
-          filename: item.name,
-          needsRestore: isRemoved,
-        }
-      })
-
-      const { detectConfig, pHashThreshold } = await readDetectConfig()
-      const cropResult = await runResultsAutoCropPipeline(targets, autoCropClient, detectConfig, cropIO)
-      summary.cropped = cropResult.cropped
-      summary.noDetection = cropResult.noDetection
-      summary.failed = cropResult.failed
-
-      if (cropResult.croppedItems.length > 0) {
-        const dedup = await dedupAfterCrop(folder, cropResult.croppedItems, pHashThreshold)
-        summary.cropped = Math.max(0, summary.cropped + dedup.croppedDelta)
-        summary.deduped = dedup.deduped
-        summary.failed += dedup.failed
-      }
-
-      await refresh()
-    } catch (error) {
-      log.error('Failed to restore, auto-crop and dedup selected:', error)
-    } finally {
-      isLoading.value = false
-    }
-
-    return summary
+    const s = await runCropAction({
+      canRun: canCropAndDedup.value,
+      scope: 'mixed',
+      pipeline: 'auto',
+      dedup: true,
+      requireFolder: true,
+      errorLabel: 'restore, auto-crop and dedup selected',
+    })
+    return { cropped: s.cropped, noDetection: s.noDetection, deduped: s.deduped, failed: s.failed }
   }
 
   function setBaselineCrop(item: ResultsItem): boolean {
@@ -629,113 +616,39 @@ export function useResultsView() {
   async function applyBaselineToSelected(
     options: { removeDuplicates?: boolean } = {},
   ): Promise<BaselineCropActionSummary> {
-    const summary = { cropped: 0, outOfBounds: 0, deduped: 0, failed: 0 }
-    if (!canApplyBaselineSelected.value || !baselineCrop.value) return summary
-
-    const folder = currentFolder.value
-
-    isLoading.value = true
-    try {
-      const cropResult = await runBaselineCropPipelineCore(
-        buildSelectedCropTargets(),
-        baselineCrop.value.rect,
-        cropIO,
-      )
-      summary.cropped = cropResult.cropped
-      summary.outOfBounds = cropResult.outOfBounds
-      summary.failed = cropResult.failed
-
-      if (options.removeDuplicates && cropResult.croppedItems.length > 0) {
-        const { pHashThreshold } = await readDetectConfig()
-        const dedup = await dedupAfterCrop(folder, cropResult.croppedItems, pHashThreshold)
-        summary.cropped = Math.max(0, summary.cropped + dedup.croppedDelta)
-        summary.deduped = dedup.deduped
-        summary.failed += dedup.failed
-      }
-
-      await refresh()
-    } catch (error) {
-      log.error('Failed to apply baseline crop to selected:', error)
-    } finally {
-      isLoading.value = false
-    }
-
-    return summary
+    const s = await runCropAction({
+      canRun: canApplyBaselineSelected.value,
+      scope: 'mixed',
+      pipeline: 'baseline',
+      dedup: options.removeDuplicates === true,
+      requireFolder: false,
+      errorLabel: 'apply baseline crop to selected',
+    })
+    return { cropped: s.cropped, outOfBounds: s.outOfBounds, deduped: s.deduped, failed: s.failed }
   }
 
   async function restoreAndApplyBaselineSelected(): Promise<{ cropped: number; outOfBounds: number; failed: number }> {
-    const summary = { cropped: 0, outOfBounds: 0, failed: 0 }
-    if (!canApplyBaselineMixed.value || !baselineCrop.value) return summary
-
-    isLoading.value = true
-    try {
-      const targets: AutoCropTarget[] = selectedItems.value.map((item) => {
-        const isRemoved = item.status === 'removed'
-        return {
-          id: isRemoved ? item.id : undefined,
-          originalPath: isRemoved
-            ? item.originalPath || ''
-            : item.imagePath || item.originalPath || '',
-          filename: item.name,
-          needsRestore: isRemoved,
-        }
-      })
-      const cropResult = await runBaselineCropPipelineCore(targets, baselineCrop.value.rect, cropIO)
-      summary.cropped = cropResult.cropped
-      summary.outOfBounds = cropResult.outOfBounds
-      summary.failed = cropResult.failed
-      await refresh()
-    } catch (error) {
-      log.error('Failed to restore and apply baseline crop:', error)
-    } finally {
-      isLoading.value = false
-    }
-
-    return summary
+    const s = await runCropAction({
+      canRun: canApplyBaselineMixed.value,
+      scope: 'mixed',
+      pipeline: 'baseline',
+      dedup: false,
+      requireFolder: false,
+      errorLabel: 'restore and apply baseline crop',
+    })
+    return { cropped: s.cropped, outOfBounds: s.outOfBounds, failed: s.failed }
   }
 
   async function applyBaselineAndDedupSelected(): Promise<{ cropped: number; outOfBounds: number; deduped: number; failed: number }> {
-    const summary = { cropped: 0, outOfBounds: 0, deduped: 0, failed: 0 }
-    if (!canApplyBaselineDedup.value || !baselineCrop.value) return summary
-
-    const folder = currentFolder.value
-    if (!folder) return summary
-
-    isLoading.value = true
-    try {
-      const targets: AutoCropTarget[] = selectedItems.value.map((item) => {
-        const isRemoved = item.status === 'removed'
-        return {
-          id: isRemoved ? item.id : undefined,
-          originalPath: isRemoved
-            ? item.originalPath || ''
-            : item.imagePath || item.originalPath || '',
-          filename: item.name,
-          needsRestore: isRemoved,
-        }
-      })
-
-      const cropResult = await runBaselineCropPipelineCore(targets, baselineCrop.value.rect, cropIO)
-      summary.cropped = cropResult.cropped
-      summary.outOfBounds = cropResult.outOfBounds
-      summary.failed = cropResult.failed
-
-      if (cropResult.croppedItems.length > 0) {
-        const { pHashThreshold } = await readDetectConfig()
-        const dedup = await dedupAfterCrop(folder, cropResult.croppedItems, pHashThreshold)
-        summary.cropped = Math.max(0, summary.cropped + dedup.croppedDelta)
-        summary.deduped = dedup.deduped
-        summary.failed += dedup.failed
-      }
-
-      await refresh()
-    } catch (error) {
-      log.error('Failed to apply baseline crop and dedup:', error)
-    } finally {
-      isLoading.value = false
-    }
-
-    return summary
+    const s = await runCropAction({
+      canRun: canApplyBaselineDedup.value,
+      scope: 'mixed',
+      pipeline: 'baseline',
+      dedup: true,
+      requireFolder: true,
+      errorLabel: 'apply baseline crop and dedup',
+    })
+    return { cropped: s.cropped, outOfBounds: s.outOfBounds, deduped: s.deduped, failed: s.failed }
   }
 
   async function removeDuplicatesInCurrentFolder(): Promise<DedupActionSummary> {

@@ -11,6 +11,7 @@
 
 import type { DetectConfig } from '@shared/workers/autoCrop.worker';
 import type { AutoCropWorkerClient } from '@shared/autoCrop';
+import { bytesToImageBitmap, decodeBufferToImageData } from '@shared/utils/imageDecode';
 import type { AutoCropTarget, CropRect } from './resultsTypes';
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ResultsCropPipeline');
@@ -57,21 +58,7 @@ async function restorePending(io: ResultsCropIO, targets: AutoCropTarget[]): Pro
 
 async function readImageData(io: ResultsCropIO, path: string): Promise<ImageData> {
   const buffer = await io.readImageBuffer(path);
-  const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-  const blobArrayBuffer = new ArrayBuffer(bytes.byteLength);
-  new Uint8Array(blobArrayBuffer).set(bytes);
-  const blob = new Blob([blobArrayBuffer], { type: 'image/*' });
-  const bitmap = await createImageBitmap(blob);
-  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-  const ctx = canvas.getContext('2d');
-  if (!ctx) {
-    bitmap.close();
-    throw new Error('Failed to get 2d context');
-  }
-  ctx.drawImage(bitmap, 0, 0);
-  const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height);
-  bitmap.close();
-  return imageData;
+  return decodeBufferToImageData(buffer);
 }
 
 export async function runResultsAutoCropPipeline(
@@ -137,11 +124,7 @@ export async function runBaselineCropPipeline(
     }
     try {
       const buffer = await io.readImageBuffer(target.originalPath);
-      const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-      const blobArrayBuffer = new ArrayBuffer(bytes.byteLength);
-      new Uint8Array(blobArrayBuffer).set(bytes);
-      const blob = new Blob([blobArrayBuffer], { type: 'image/*' });
-      const bitmap = await createImageBitmap(blob);
+      const bitmap = await bytesToImageBitmap(buffer);
       const width = bitmap.width;
       const height = bitmap.height;
       bitmap.close();

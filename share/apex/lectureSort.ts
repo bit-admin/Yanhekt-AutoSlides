@@ -1,6 +1,11 @@
 /**
  * Natural ordering + course grouping for search results.
  *
+ * DUPLICATE BY DEPLOY BOUNDARY: the canonical in-app copy is
+ * `autoslides/src/renderer/features/cloudNotes/lectureSort.ts` — keep the two
+ * in sync when changing ordering semantics (the worker site can't import from
+ * the app tree).
+ *
  * Mirrors the ordering semantics of the Electron app's recorded-folder sort
  * (`autoslides/src/renderer/shared/utils/toolWindowFolders.ts`: week/weekday/period
  * as a numeric tuple, not lexicographic), extended with a school-year/semester tier

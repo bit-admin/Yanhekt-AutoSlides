@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import type { EditorJsBlock } from '@common/notesTypes'
 import { EDITORJS_DOC_VERSION, buildManagedNoteTitle } from '@common/notesTypes'
 import { buildNoteMetadataBlock, NOTE_METADATA_VERSION } from '@common/notesContent'
@@ -8,6 +8,7 @@ import type { SlideMetadata } from '@common/slideMetadataTypes'
 import { formatToolFolderName, compareToolImages } from '@shared/utils/toolWindowFolders'
 import type { useCloudNotes } from './useCloudNotes'
 import { cloudStorageStore } from './cloudStorageStore'
+import { useBackgroundQueue } from './useBackgroundQueue'
 import { useNotesPublish } from './useNotesPublish'
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
@@ -73,18 +74,11 @@ interface PdfImage { name: string; path: string }
  * mid-import keeps the queue running.
  */
 export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
-  const queue = ref<ImportItem[]>([])
-  const cancelRequested = ref(false)
-  const running = ref(false)
+  const { queue, cancelRequested, running, overall, reset, cancel, removeItem } =
+    useBackgroundQueue<ImportItem>()
   const publisher = useNotesPublish(cn)
 
   const importing = computed(() => running.value)
-  const overall = computed(() => {
-    const total = queue.value.length
-    // Conflicts are not counted as resolved — they await a user decision.
-    const done = queue.value.filter((i) => i.status === 'done' || i.status === 'error').length
-    return { done, total }
-  })
   /**
    * Image-level progress across the whole queue (for a continuous progress bar,
    * as opposed to `overall`'s per-folder done/total used for the modal's row
@@ -114,16 +108,6 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     }
     return { done, total }
   })
-
-  function reset(): void {
-    if (running.value) return
-    queue.value = []
-    cancelRequested.value = false
-  }
-
-  function cancel(): void {
-    cancelRequested.value = true
-  }
 
   /**
    * Build the stringified Editor.js document for a note's slides (uploaded or
@@ -437,9 +421,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
   }
 
   /** Drop a conflicting row from the queue without importing it. */
-  function skipConflict(item: ImportItem): void {
-    queue.value = queue.value.filter((i) => i !== item)
-  }
+  const skipConflict = removeItem
 
   return {
     queue, importing, overall, imageProgress, cancelRequested,

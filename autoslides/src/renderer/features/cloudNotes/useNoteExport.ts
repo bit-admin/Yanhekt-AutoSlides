@@ -1,6 +1,7 @@
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { managedNoteDisplayName } from '@common/notesTypes'
 import { noteImageUrls, readNoteMetadata } from '@common/notesContent'
+import { useBackgroundQueue } from './useBackgroundQueue'
 import type { useCloudNotes } from './useCloudNotes'
 
 type CloudNotesApi = ReturnType<typeof useCloudNotes>
@@ -37,27 +38,10 @@ export interface ExportItem {
  * State lives here (not in the modal) so closing the modal keeps the queue alive.
  */
 export function useNoteExport(cn: CloudNotesApi) {
-  const queue = ref<ExportItem[]>([])
-  const cancelRequested = ref(false)
-  const running = ref(false)
+  const { queue, cancelRequested, running, overall, reset, cancel, removeItem } =
+    useBackgroundQueue<ExportItem>()
 
   const exporting = computed(() => running.value)
-  const overall = computed(() => {
-    const total = queue.value.length
-    // Conflicts are not counted as resolved — they await a user decision.
-    const done = queue.value.filter((i) => i.status === 'done' || i.status === 'error').length
-    return { done, total }
-  })
-
-  function reset(): void {
-    if (running.value) return
-    queue.value = []
-    cancelRequested.value = false
-  }
-
-  function cancel(): void {
-    cancelRequested.value = true
-  }
 
   /** Fetch the note, resolve its folder, then download every image in order. */
   async function processItem(item: ExportItem, mode: 'fresh' | 'create' = 'fresh'): Promise<void> {
@@ -166,9 +150,7 @@ export function useNoteExport(cn: CloudNotesApi) {
   }
 
   /** Drop a conflicting row from the queue without exporting it. */
-  function skipConflict(item: ExportItem): void {
-    queue.value = queue.value.filter((i) => i !== item)
-  }
+  const skipConflict = removeItem
 
   /** Reveal a row's destination/existing folder in the OS file manager. */
   function openFolder(item: ExportItem): void {

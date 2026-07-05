@@ -1,5 +1,6 @@
 import type { DetectConfig, DetectorMode, DetectResult } from '../workers/autoCrop.worker';
 import type { AutoCropWorkerClient } from './autoCropWorkerClient';
+import { bytesToImageBitmap, imageBitmapToImageData } from '@shared/utils/imageDecode';
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('AutoCropPipeline');
 
@@ -64,16 +65,8 @@ export async function processBatch(
 
     try {
       const buffer = await source.readImageBuffer(imagePath);
-      const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer);
-      const blobArrayBuffer = new ArrayBuffer(bytes.byteLength);
-      new Uint8Array(blobArrayBuffer).set(bytes);
-      const blob = new Blob([blobArrayBuffer], { type: 'image/*' });
-      const bitmap = await createImageBitmap(blob);
-
-      const srcCanvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-      const srcCtx = srcCanvas.getContext('2d')!;
-      srcCtx.drawImage(bitmap, 0, 0);
-      const imageData = srcCtx.getImageData(0, 0, bitmap.width, bitmap.height);
+      const bitmap = await bytesToImageBitmap(buffer);
+      const imageData = imageBitmapToImageData(bitmap);
 
       const useDebug = options.redBoxMode && options.showEdges && canShowEdges;
       const response = await client.detectBbox(imageData, useDebug, options.detectConfig);
@@ -114,8 +107,7 @@ export async function processBatch(
           result.stripped &&
           result.innerSize
         ) {
-          const edgesBlob = new Blob([result.edgesPng], { type: 'image/png' });
-          const edgesBitmap = await createImageBitmap(edgesBlob);
+          const edgesBitmap = await bytesToImageBitmap(result.edgesPng, 'image/png');
           outCtx.globalAlpha = 0.5;
           outCtx.drawImage(
             edgesBitmap,
