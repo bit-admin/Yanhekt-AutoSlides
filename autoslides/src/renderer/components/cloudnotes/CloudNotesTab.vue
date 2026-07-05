@@ -257,28 +257,7 @@
         </div>
       </aside>
 
-      <!-- New Group modal (matches HomePage "Add Saved Search" modal) -->
-      <div v-if="showNewGroupModal" class="modal-overlay" @click.self="showNewGroupModal = false">
-        <div class="cn-modal-box">
-          <h3 class="cn-modal-title">{{ $t('cloudNotes.newGroupTitle') }}</h3>
-          <input
-            ref="newGroupInput"
-            v-model="newGroupName"
-            class="cn-modal-input"
-            :maxlength="NOTE_GROUP_NAME_MAX"
-            :placeholder="$t('cloudNotes.newGroupPlaceholder', { max: NOTE_GROUP_NAME_MAX })"
-            @keyup.enter="onCreateGroup"
-            @keyup.esc="showNewGroupModal = false"
-          />
-          <p class="cn-modal-help">{{ $t('cloudNotes.newGroupHelp', { max: NOTE_GROUP_NAME_MAX }) }}</p>
-          <div class="cn-modal-actions">
-            <button class="btn cn-modal-btn" @click="showNewGroupModal = false">{{ $t('cloudNotes.cancel') }}</button>
-            <button class="btn btn--primary cn-modal-btn" :disabled="!newGroupName.trim()" @click="onCreateGroup">
-              {{ $t('cloudNotes.add') }}
-            </button>
-          </div>
-        </div>
-      </div>
+      <NewGroupModal :open="showNewGroupModal" :cn="cn" @close="showNewGroupModal = false" />
 
       <!-- groups | list resize divider (drag left past the threshold collapses groups) -->
       <div class="cn-divider" @mousedown="startResize('group', $event)"></div>
@@ -412,7 +391,7 @@
               <span v-if="imp.importing.value">{{ imp.overall.value.done }}/{{ imp.overall.value.total }}</span>
               <span v-else>{{ $t('cloudNotes.importButton') }}</span>
             </button>
-            <button class="cn-tool-btn" :title="$t('cloudNotes.exportTip')" @click="openExportModal">
+            <button class="cn-tool-btn" :title="$t('cloudNotes.exportTip')" @click="exportModalRef?.openFromFooter()">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
               </svg>
@@ -456,41 +435,11 @@
       <!-- list | editor resize divider -->
       <div class="cn-divider cn-divider--editor" @mousedown="startResize('list', $event)"></div>
 
-      <!-- Import slides to notes modal (folder picker) -->
-      <div v-if="showImportModal && importPhase === 'select'" class="modal-overlay" @click.self="closeImportModal">
-        <div class="cn-import-box">
-          <h3 class="cn-modal-title">{{ $t('cloudNotes.importTitle') }}</h3>
-
-          <!-- Phase: select folders -->
-          <template v-if="importPhase === 'select'">
-            <!-- Pick local slide folders -->
-            <div class="cn-import-list custom-scrollbar">
-              <div v-if="loadingFolders" class="cn-empty">{{ $t('cloudNotes.loading') }}</div>
-              <div v-else-if="importFolders.length === 0" class="cn-empty">{{ $t('cloudNotes.importNoFolders') }}</div>
-              <button
-                v-for="f in importFolders"
-                :key="f.name"
-                class="cn-import-folder"
-                :class="{ selected: importSelected.includes(f.name) }"
-                @click="toggleImportFolder(f.name)"
-              >
-                <input type="checkbox" class="cn-import-check" :checked="importSelected.includes(f.name)" tabindex="-1" />
-                <svg class="cn-import-folder-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                </svg>
-                <span class="cn-import-folder-name">{{ fmtFolder(f.name) }}</span>
-                <span class="cn-import-folder-count">{{ $t('cloudNotes.importImagesCount', { n: f.imageCount }) }}</span>
-              </button>
-            </div>
-            <div class="cn-modal-actions">
-              <button class="btn cn-modal-btn" @click="closeImportModal">{{ $t('cloudNotes.cancel') }}</button>
-              <button class="btn btn--primary cn-modal-btn" :disabled="importSelected.length === 0" @click="onStartImport">
-                {{ $t('cloudNotes.importStart', { n: importSelected.length }) }}
-              </button>
-            </div>
-          </template>
-        </div>
-      </div>
+      <ImportSelectModal
+        :open="showImportModal && importPhase === 'select'"
+        @close="closeImportModal"
+        @start="onStartImport"
+      />
 
       <!-- Import progress + conflict resolution (shared with the Slides page) -->
       <ImportProgressModal
@@ -502,101 +451,15 @@
         @open-note="onOpenConflictNote"
       />
 
-      <!-- Export notes to slides modal -->
-      <div v-if="showExportModal" class="modal-overlay" @click.self="closeExportModal">
-        <div class="cn-import-box">
-          <h3 class="cn-modal-title">{{ $t('cloudNotes.exportTitle') }}</h3>
-
-          <!-- Phase: select notes -->
-          <template v-if="exportPhase === 'select'">
-            <div class="cn-import-list custom-scrollbar">
-              <div v-if="cn.loading.value" class="cn-empty">{{ $t('cloudNotes.loading') }}</div>
-              <div v-else-if="exportNotes.length === 0" class="cn-empty">{{ $t('cloudNotes.exportNoNotes') }}</div>
-              <button
-                v-for="n in exportNotes"
-                :key="n.id"
-                class="cn-import-folder"
-                :class="{ selected: exportSelected.includes(n.id) }"
-                @click="toggleExportNote(n.id)"
-              >
-                <input type="checkbox" class="cn-import-check" :checked="exportSelected.includes(n.id)" tabindex="-1" />
-                <svg class="cn-import-folder-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>
-                </svg>
-                <span class="cn-import-folder-name">{{ n.displayName }}</span>
-              </button>
-            </div>
-            <div class="cn-modal-actions">
-              <button class="btn cn-modal-btn" @click="closeExportModal">{{ $t('cloudNotes.cancel') }}</button>
-              <button class="btn btn--primary cn-modal-btn" :disabled="exportSelected.length === 0" @click="onStartExport">
-                {{ $t('cloudNotes.exportStart', { n: exportSelected.length }) }}
-              </button>
-            </div>
-          </template>
-
-          <!-- Phase: progress -->
-          <template v-else>
-            <div class="cn-import-overall">{{ $t('cloudNotes.exportOverall', { done: exp.overall.value.done, total: exp.overall.value.total }) }}</div>
-            <div class="cn-import-list custom-scrollbar">
-              <div v-for="item in exp.queue.value" :key="item.noteId" class="cn-imp-row">
-                <div class="cn-imp-row-top">
-                  <span class="cn-imp-name" :title="item.displayName">{{ item.displayName }}</span>
-                  <span class="cn-imp-status" :class="`s-${item.status}`">{{ exportStatusText(item) }}</span>
-                </div>
-                <div class="cn-imp-bar">
-                  <div class="cn-imp-fill" :class="`s-${item.status}`" :style="{ width: exportBarWidth(item) + '%' }"></div>
-                </div>
-                <div v-if="item.status === 'conflict'" class="cn-imp-actions">
-                  <button class="btn btn--sm btn--ghost" :disabled="exp.exporting.value" @click="exp.openFolder(item)">{{ $t('cloudNotes.exportOpenFolder') }}</button>
-                  <button class="btn btn--sm" :disabled="exp.exporting.value" @click="exp.resolveConflict(item, 'create')">{{ $t('cloudNotes.exportCreateNew') }}</button>
-                  <button class="btn btn--sm cn-imp-replace" :disabled="exp.exporting.value" @click="exp.resolveConflict(item, 'replace')">{{ $t('cloudNotes.exportReplace') }}</button>
-                  <button class="btn btn--sm btn--ghost" :disabled="exp.exporting.value" @click="exp.skipConflict(item)">{{ $t('cloudNotes.exportSkip') }}</button>
-                </div>
-              </div>
-            </div>
-            <p v-if="exp.queue.value.some(i => i.status === 'conflict')" class="cn-import-hint">{{ $t('cloudNotes.exportConflictHint') }}</p>
-            <div class="cn-modal-actions">
-              <template v-if="exp.exporting.value">
-                <button class="btn cn-modal-btn" @click="exp.cancel()">{{ $t('cloudNotes.exportCancel') }}</button>
-                <button class="btn btn--primary cn-modal-btn" @click="closeExportModal">{{ $t('cloudNotes.exportClose') }}</button>
-              </template>
-              <button v-else class="btn btn--primary cn-modal-btn" @click="doneExport">{{ $t('cloudNotes.exportDone') }}</button>
-            </div>
-          </template>
-        </div>
-      </div>
+      <NotesExportModal ref="exportModalRef" :cn="cn" :exp="exp" />
 
       <!-- Index export progress modal (single item, mirrors the notes export modal) -->
-      <div v-if="showIdxExportModal && idxExp.item.value" class="modal-overlay" @click.self="showIdxExportModal = false">
-        <div class="cn-import-box">
-          <h3 class="cn-modal-title">{{ $t('cloudNotes.exportTitle') }}</h3>
-          <div class="cn-import-list custom-scrollbar">
-            <div class="cn-imp-row">
-              <div class="cn-imp-row-top">
-                <span class="cn-imp-name" :title="idxExp.item.value.title">{{ idxExp.item.value.title }}</span>
-                <span class="cn-imp-status" :class="`s-${idxExp.item.value.status}`">{{ idxExportStatusText(idxExp.item.value) }}</span>
-              </div>
-              <div class="cn-imp-bar">
-                <div class="cn-imp-fill" :class="`s-${idxExp.item.value.status}`" :style="{ width: idxExportBarWidth(idxExp.item.value) + '%' }"></div>
-              </div>
-              <div v-if="idxExp.item.value.status === 'conflict'" class="cn-imp-actions">
-                <button class="btn btn--sm btn--ghost" :disabled="idxExp.exporting.value" @click="idxExp.openFolder()">{{ $t('cloudNotes.exportOpenFolder') }}</button>
-                <button class="btn btn--sm" :disabled="idxExp.exporting.value" @click="idxExp.resolveConflict('create')">{{ $t('cloudNotes.exportCreateNew') }}</button>
-                <button class="btn btn--sm cn-imp-replace" :disabled="idxExp.exporting.value" @click="idxExp.resolveConflict('replace')">{{ $t('cloudNotes.exportReplace') }}</button>
-                <button class="btn btn--sm btn--ghost" :disabled="idxExp.exporting.value" @click="doneIdxExport">{{ $t('cloudNotes.exportSkip') }}</button>
-              </div>
-            </div>
-          </div>
-          <p v-if="idxExp.item.value.status === 'conflict'" class="cn-import-hint">{{ $t('cloudNotes.exportConflictHint') }}</p>
-          <div class="cn-modal-actions">
-            <template v-if="idxExp.exporting.value">
-              <button class="btn cn-modal-btn" @click="idxExp.cancel()">{{ $t('cloudNotes.exportCancel') }}</button>
-              <button class="btn btn--primary cn-modal-btn" @click="showIdxExportModal = false">{{ $t('cloudNotes.exportClose') }}</button>
-            </template>
-            <button v-else class="btn btn--primary cn-modal-btn" @click="doneIdxExport">{{ $t('cloudNotes.exportDone') }}</button>
-          </div>
-        </div>
-      </div>
+      <IndexExportModal
+        :open="showIdxExportModal"
+        :idx-exp="idxExp"
+        @close="showIdxExportModal = false"
+        @done="doneIdxExport"
+      />
 
       <NoteShareModal
         ref="shareModalRef"
@@ -643,7 +506,7 @@ import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { buildReadmeContent } from '@features/cloudNotes/readmeContent'
 import { useNoteImport } from '@features/cloudNotes/useNoteImport'
-import { useShareIndexExport, type ShareExportItem } from '@features/cloudNotes/useShareIndexExport'
+import { useShareIndexExport } from '@features/cloudNotes/useShareIndexExport'
 import { useCloudIndexBrowse, type IndexTermOption } from '@features/cloudNotes/useCloudIndexBrowse'
 import { navigationStore } from '@features/course/navigationStore'
 import type { IndexLecture, IndexVersion } from '@common/notesTypes'
@@ -653,11 +516,13 @@ import { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
 import ImportProgressModal from './ImportProgressModal.vue'
 import NoteEditorPane from './NoteEditorPane.vue'
 import NoteShareModal from './NoteShareModal.vue'
+import NewGroupModal from './NewGroupModal.vue'
+import ImportSelectModal from './ImportSelectModal.vue'
+import NotesExportModal from './NotesExportModal.vue'
+import IndexExportModal from './IndexExportModal.vue'
 import { useNoteEditor } from '@features/cloudNotes/useNoteEditor'
-import { useNoteExport, type ExportItem } from '@features/cloudNotes/useNoteExport'
+import { useNoteExport } from '@features/cloudNotes/useNoteExport'
 import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
-import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
-import { NOTE_GROUP_NAME_MAX, isManagedNoteTitle, managedNoteDisplayName } from '@common/notesTypes'
 import { SHARE_ORIGIN } from '@common/shareLink'
 import { NOTE_COPYRIGHT } from '@common/notesContent'
 
@@ -791,22 +656,6 @@ function doneIdxExport(): void {
   showIdxExportModal.value = false
 }
 
-function idxExportStatusText(item: ShareExportItem): string {
-  switch (item.status) {
-    case 'downloading': return t('cloudNotes.exportDownloading', { done: item.downloaded, total: item.total })
-    case 'conflict': return t('cloudNotes.exportConflict')
-    case 'error': return t('cloudNotes.exportError')
-    case 'done': return t('cloudNotes.exportDone')
-    default: return t('cloudNotes.exportPending')
-  }
-}
-
-function idxExportBarWidth(item: ShareExportItem): number {
-  if (item.status === 'done') return 100
-  if (item.status === 'downloading' && item.total > 0) return Math.round((item.downloaded / item.total) * 100)
-  return 0
-}
-
 // ── Index display helpers (term / instructor / meta lines) ──────────────────
 function semesterLabel(s?: string): string {
   if (s === '1') return t('cloudIndex.fall')
@@ -930,9 +779,7 @@ function startResize(type: 'group' | 'list', e: MouseEvent): void {
   e.preventDefault()
 }
 
-const newGroupName = ref('')
 const showNewGroupModal = ref(false)
-const newGroupInput = ref<HTMLInputElement | null>(null)
 
 async function onCreateNote(): Promise<void> {
   const id = await cn.createNote()
@@ -953,35 +800,17 @@ async function onInitStorage(): Promise<void> {
 }
 
 // ── Import slides to notes ─────────────────────────────────────────────────
-interface ImportFolder { name: string; path: string; imageCount: number }
-
+// The folder-select phase lives in ImportSelectModal; the progress phase in the
+// shared ImportProgressModal. Both are gated by showImportModal + importPhase,
+// which must stay here (the index-mode import path drives them too).
 const showImportModal = ref(false)
 const importPhase = ref<'select' | 'progress'>('select')
-const importFolders = ref<ImportFolder[]>([])
-const importSelected = ref<string[]>([])
-const loadingFolders = ref(false)
 
-const fmtFolder = formatToolFolderName
-
-async function loadImportFolders(): Promise<void> {
-  loadingFolders.value = true
-  try {
-    importFolders.value = (await window.electronAPI.pdfmaker.getFolders()) as ImportFolder[]
-    importSelected.value = []
-  } finally {
-    loadingFolders.value = false
-  }
-}
-
-async function openImportModal(): Promise<void> {
+function openImportModal(): void {
   showImportModal.value = true
-  // Reopen straight into progress if a run is active or its results are unread.
-  if (imp.queue.value.length > 0) {
-    importPhase.value = 'progress'
-  } else {
-    importPhase.value = 'select'
-    await loadImportFolders()
-  }
+  // Reopen straight into progress if a run is active or its results are unread;
+  // the select phase reloads its folder list on open (ImportSelectModal watch).
+  importPhase.value = imp.queue.value.length > 0 ? 'progress' : 'select'
 }
 
 function closeImportModal(): void {
@@ -993,22 +822,14 @@ function closeImportModal(): void {
 function doneImport(): void {
   // Explicit dismissal of a finished queue: clear it and return to the picker.
   imp.reset()
-  importSelected.value = []
   importPhase.value = 'select'
   showImportModal.value = false
 }
 
-function toggleImportFolder(name: string): void {
-  const i = importSelected.value.indexOf(name)
-  if (i === -1) importSelected.value.push(name)
-  else importSelected.value.splice(i, 1)
-}
-
-function onStartImport(): void {
-  if (importSelected.value.length === 0) return
+function onStartImport(names: string[]): void {
   importPhase.value = 'progress'
   // Fire-and-forget: the queue runs in the background and survives modal close.
-  void imp.startImport([...importSelected.value])
+  void imp.startImport(names)
 }
 
 async function onOpenConflictNote(id?: number): Promise<void> {
@@ -1026,88 +847,7 @@ async function onOpenConflictNote(id?: number): Promise<void> {
 // ── Export notes to slides ─────────────────────────────────────────────────
 const exp = useNoteExport(cn)
 
-const showExportModal = ref(false)
-const exportPhase = ref<'select' | 'progress'>('select')
-const exportSelected = ref<number[]>([])
-
-// Managed notes recognised for export (the README has no managed prefix, so it
-// is naturally excluded).
-const exportNotes = computed(() =>
-  cn.allNotes.value
-    .filter((n) => isManagedNoteTitle(n.title))
-    .map((n) => ({ id: n.id, displayName: managedNoteDisplayName(n.title) })),
-)
-
-async function openExportModal(): Promise<void> {
-  showExportModal.value = true
-  // Reopen straight into progress if a run is active or its results are unread.
-  if (exp.queue.value.length > 0) {
-    exportPhase.value = 'progress'
-  } else {
-    exportPhase.value = 'select'
-    exportSelected.value = []
-    await cn.loadAll()
-  }
-}
-
-function closeExportModal(): void {
-  // Only hide — the queue (running or finished) survives until "Done".
-  showExportModal.value = false
-}
-
-function doneExport(): void {
-  exp.reset()
-  exportSelected.value = []
-  exportPhase.value = 'select'
-  showExportModal.value = false
-}
-
-function toggleExportNote(id: number): void {
-  const i = exportSelected.value.indexOf(id)
-  if (i === -1) exportSelected.value.push(id)
-  else exportSelected.value.splice(i, 1)
-}
-
-function onStartExport(): void {
-  if (exportSelected.value.length === 0) return
-  exportPhase.value = 'progress'
-  void exp.startExport([...exportSelected.value])
-}
-
-function exportStatusText(item: ExportItem): string {
-  switch (item.status) {
-    case 'fetching': return t('cloudNotes.exportFetching')
-    case 'downloading': return t('cloudNotes.exportDownloading', { done: item.downloaded, total: item.total })
-    case 'done': return t('cloudNotes.exportDone')
-    case 'conflict': return t('cloudNotes.exportConflict')
-    case 'error': return item.error || t('cloudNotes.exportError')
-    default: return t('cloudNotes.exportPending')
-  }
-}
-
-function exportBarWidth(item: ExportItem): number {
-  if (item.status === 'done') return 100
-  if (item.status === 'downloading' && item.total > 0) return Math.round((item.downloaded / item.total) * 100)
-  return 0
-}
-
-async function onCreateGroup(): Promise<void> {
-  const name = newGroupName.value.trim()
-  if (!name) return
-  const ok = await cn.createGroup(name)
-  if (ok) {
-    newGroupName.value = ''
-    showNewGroupModal.value = false
-  }
-}
-
-watch(showNewGroupModal, (open) => {
-  if (open) {
-    nextTick(() => newGroupInput.value?.focus())
-  } else {
-    newGroupName.value = ''
-  }
-})
+const exportModalRef = ref<InstanceType<typeof NotesExportModal> | null>(null)
 
 async function onDeleteGroup(id: number, name: string): Promise<void> {
   if (!confirm(t('cloudNotes.confirmDeleteGroup', { name }))) return
@@ -1573,262 +1313,6 @@ watch(() => cn.keyword.value, () => cn.searchNotes(true))
 }
 
 /* ── Import modal ──────────────────────────────────────────────────────── */
-.cn-import-box {
-  background: var(--bg-modal);
-  border-radius: 12px;
-  padding: 20px;
-  width: 460px;
-  max-width: 92vw;
-  max-height: 80vh;
-  box-shadow: 0 8px 32px var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.cn-import-list {
-  flex: 1 1 auto;
-  min-height: 120px;
-  max-height: 46vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding-right: 12px;
-}
-
-/* Folder picker rows */
-.cn-import-folder {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background-color: var(--bg-surface);
-  color: var(--text-primary);
-  font-size: 13px;
-  cursor: pointer;
-  text-align: left;
-  box-sizing: border-box;
-  transition: background-color 0.15s, border-color 0.15s;
-}
-
-.cn-import-folder:hover {
-  background-color: var(--bg-hover);
-}
-
-.cn-import-folder.selected {
-  background-color: var(--badge-active-bg);
-  border-color: var(--accent);
-}
-
-.cn-import-check {
-  flex-shrink: 0;
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-  pointer-events: none;
-}
-
-.cn-import-folder-icon {
-  flex-shrink: 0;
-  color: var(--text-secondary);
-}
-
-.cn-import-folder-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.cn-import-folder-count {
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-/* Progress phase */
-.cn-import-overall {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.cn-imp-row {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 8px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background-color: var(--bg-surface);
-}
-
-.cn-imp-row-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.cn-imp-name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13px;
-  color: var(--text-primary);
-}
-
-.cn-imp-status {
-  flex-shrink: 0;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.cn-imp-status.s-done { color: var(--success); }
-.cn-imp-status.s-error { color: var(--danger); }
-.cn-imp-status.s-conflict { color: var(--warning); }
-.cn-imp-status.s-uploading,
-.cn-imp-status.s-building { color: var(--accent); }
-
-.cn-imp-bar {
-  height: 4px;
-  background-color: var(--bg-hover);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.cn-imp-fill {
-  height: 100%;
-  width: 0;
-  border-radius: 2px;
-  background-color: var(--accent);
-  transition: width 0.3s ease;
-}
-
-.cn-imp-fill.s-done { background-color: var(--success); }
-.cn-imp-fill.s-error,
-.cn-imp-fill.s-conflict { background-color: transparent; }
-
-.cn-imp-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 2px;
-}
-
-/* Destructive "Replace" — matches the Download panel's "Cancel All" outline. */
-.cn-imp-replace {
-  color: var(--danger-pink);
-  border-color: var(--danger-pink);
-}
-
-.cn-imp-replace:hover:not(:disabled) {
-  background-color: var(--danger-bg);
-  border-color: var(--danger-hover);
-}
-
-.cn-import-hint {
-  margin: 0;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-/* ── New Group modal (matches HomePage "Add Saved Search" modal) ──────── */
-.cn-modal-box {
-  background: var(--bg-modal);
-  border-radius: 12px;
-  padding: 20px;
-  width: 320px;
-  box-shadow: 0 8px 32px var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.cn-modal-title {
-  margin: 0;
-  font-size: 15px;
-  font-weight: 600;
-  text-align: center;
-  color: var(--text-primary);
-}
-
-.cn-modal-input {
-  padding: 8px 11px;
-  border: 1px solid var(--border-input);
-  border-radius: 7px;
-  font-size: 13px;
-  outline: none;
-  transition: border-color 0.2s;
-  background-color: var(--bg-input);
-  color: var(--text-primary);
-}
-
-.cn-modal-input::placeholder {
-  color: var(--text-muted);
-}
-
-.cn-modal-input:focus {
-  border-color: var(--accent);
-}
-
-.cn-modal-help {
-  margin: -6px 0 0;
-  font-size: 12px;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-
-.cn-modal-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 2px;
-}
-
-.cn-modal-btn {
-  flex: 1;
-  min-height: 32px;
-  border-radius: 7px;
-  font-size: 13px;
-}
-
-/* "OR" divider between folder import and paste-a-link import. */
-.cn-share-or {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: -6px 0;
-  color: var(--text-muted);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.cn-share-or::before,
-.cn-share-or::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border-color);
-}
-
-.cn-paste-row {
-  display: flex;
-  gap: 8px;
-}
-.cn-paste-input {
-  flex: 1;
-}
-.cn-paste-btn {
-  flex: 0 0 auto;
-}
-
 /* ── Middle: note list ───────────────────────────────────────────────── */
 .cn-list {
   flex-shrink: 0;
@@ -2197,5 +1681,4 @@ watch(() => cn.keyword.value, () => cn.searchNotes(true))
 }
 
 /* Downloading progress colored like the modal's other in-flight statuses. */
-.cn-imp-status.s-downloading { color: var(--accent); }
 </style>
