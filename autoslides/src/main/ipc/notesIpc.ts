@@ -84,4 +84,16 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('cloudNotes:resolveShareLink', (_e, link: string) =>
     run(() => notesService.resolveShareLink(link)));
+
+  ipcMain.handle('cloudNotes:indexStats', () =>
+    run(() => notesService.indexStats()));
+
+  ipcMain.handle('cloudNotes:indexSearch', (_e, q: string) =>
+    run(() => notesService.indexSearch(q)));
+
+  ipcMain.handle('cloudNotes:indexLecture', (_e, courseId: string, sessionId: string) =>
+    run(() => notesService.indexLecture(courseId, sessionId)));
+
+  ipcMain.handle('cloudNotes:requestIndexRemoval', (_e, courseId: string, sessionId: string) =>
+    run(() => notesService.requestIndexRemoval(courseId, sessionId)));
 }

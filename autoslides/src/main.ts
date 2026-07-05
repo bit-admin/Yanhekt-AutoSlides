@@ -84,8 +84,6 @@ const createWindow = () => {
     );
   }
 
-  windowManager.guardCloudIndexWebview(mainWindow);
-
   mainWindow.webContents.once('did-finish-load', () => {
     setTimeout(() => {
       if (!mainWindow.isDestroyed()) {

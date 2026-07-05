@@ -9,7 +9,6 @@ import { update, extractorInstaller } from './update';
 import { tools, webCapture } from './tools';
 import { intranet } from './intranet';
 import { cloudNotes } from './notes';
-import { cloudIndex } from './cloudIndex';
 
 contextBridge.exposeInMainWorld('electronAPI', {
   // Demo mode flag: set by `npm run demo` (DEMO_MODE=1). The main process
@@ -48,5 +47,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
   extractorInstaller,
   update,
   cloudNotes,
-  cloudIndex,
 });

@@ -8,6 +8,10 @@ import type {
   UploadedImage,
   ExportFolderInfo,
   ShareImportResult,
+  IndexStats,
+  IndexLecture,
+  IndexLectureDetail,
+  IndexRemovalResult,
 } from '@common/notesTypes';
 import type { SlideMetadataSource } from '@common/slideMetadataTypes';
 
@@ -58,4 +62,12 @@ export const cloudNotes = {
     ipcRenderer.invoke('cloudNotes:publishToIndex', fragment, source, review),
   resolveShareLink: (link: string): Promise<NotesResult<ShareImportResult>> =>
     ipcRenderer.invoke('cloudNotes:resolveShareLink', link),
+  indexStats: (): Promise<NotesResult<IndexStats>> =>
+    ipcRenderer.invoke('cloudNotes:indexStats'),
+  indexSearch: (q: string): Promise<NotesResult<IndexLecture[]>> =>
+    ipcRenderer.invoke('cloudNotes:indexSearch', q),
+  indexLecture: (courseId: string, sessionId: string): Promise<NotesResult<IndexLectureDetail>> =>
+    ipcRenderer.invoke('cloudNotes:indexLecture', courseId, sessionId),
+  requestIndexRemoval: (courseId: string, sessionId: string): Promise<NotesResult<IndexRemovalResult>> =>
+    ipcRenderer.invoke('cloudNotes:requestIndexRemoval', courseId, sessionId),
 };

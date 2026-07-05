@@ -4,13 +4,13 @@ import type { Course } from './useCourseList'
 
 // Yanhekt browsing pages keep the three-panel layout; Workspace pages (the
 // migrated Tools tabs) take the whole window beside the left panel.
-export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'slides-review' | 'cloud-notes' | 'cloud-index' | 'settings'
+export type NavTarget = 'home' | 'live' | 'recorded' | 'search' | 'slides-review' | 'cloud-notes' | 'settings'
 
 // Nav targets that render as full-width Workspace pages (right panel hidden).
 // NOTE: 'settings' is deliberately NOT here — like the "AutoSlides" section pages
 // (home/live/recorded), it occupies only the main content area and keeps the
 // normal three-panel layout (right panel stays visible).
-const WORKSPACE_TARGETS = new Set<NavTarget>(['slides-review', 'cloud-notes', 'cloud-index'])
+const WORKSPACE_TARGETS = new Set<NavTarget>(['slides-review', 'cloud-notes'])
 
 export interface CourseOpenRequest {
   mode: 'live' | 'recorded'
@@ -33,8 +33,8 @@ const recordedPlaybackActive = ref(false)
 // can label itself "Sessions" instead of "Recorded".
 const recordedOnSessions = ref(false)
 const courseOpenRequest = ref<CourseOpenRequest | null>(null)
-// A course name to pre-search on the Cloud Index page. Consumed by CloudIndexTab
-// (immediate watch), which rebuilds the embedded webview URL with ?q=<term>.
+// A course name to pre-search in the Cloud Notes page's index mode. Consumed by
+// CloudNotesTab (immediate watch), which enters index mode and runs the search.
 const cloudIndexSearchRequest = ref<CloudIndexSearchRequest | null>(null)
 // When a course is opened directly from a sidebar pinned item, that item takes
 // the active highlight instead of the "Recorded" navigator entry. Cleared the
@@ -88,11 +88,11 @@ const setActivePinned = (id: string | null) => {
   activePinnedId.value = id
 }
 
-// Jump to the Cloud Index page with a course name pre-searched (from the sessions
-// header search button).
+// Jump to the Cloud Notes page's index mode with a course name pre-searched
+// (from the sessions header search button).
 const requestCloudIndexSearch = (term: string) => {
   cloudIndexSearchRequest.value = { term, requestId: nextRequestId++ }
-  navigate('cloud-index')
+  navigate('cloud-notes')
 }
 
 export const navigationStore = {

@@ -56,6 +56,7 @@ const { t } = useI18n()
 
 function statusText(item: ImportItem): string {
   switch (item.status) {
+    case 'resolving': return t('cloudNotes.importResolving')
     case 'uploading': return t('cloudNotes.importUploading', { done: item.uploaded, total: item.total })
     case 'building': return t('cloudNotes.importBuilding')
     case 'publishing': return t('cloudNotes.importPublishing')
@@ -162,6 +163,7 @@ function barWidth(item: ImportItem): number {
 .cn-imp-status.s-conflict { color: var(--warning); }
 .cn-imp-status.s-uploading,
 .cn-imp-status.s-publishing,
+.cn-imp-status.s-resolving,
 .cn-imp-status.s-building { color: var(--accent); }
 
 .cn-imp-bar {

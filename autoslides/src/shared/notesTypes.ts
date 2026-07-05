@@ -100,6 +100,77 @@ export interface ShareImportResult {
   metadata?: SlideMetadata | null;
 }
 
+// ── AutoSlides Index (v2 read + removal) ───────────────────────────────────
+// Shapes returned by the public Index Worker's /v2/api/{stats,search,lecture,
+// request-removal} endpoints. Ported from share/apex/App.tsx (the website UI
+// this native page replaces). Descriptive fields are optional — the index
+// records identity best-effort.
+
+/** A lecture summary from /v2/api/{search,lecture,stats}. */
+export interface IndexLecture {
+  courseId: string;
+  sessionId: string;
+  courseTitle?: string;
+  sessionTitle?: string;
+  instructor?: string;
+  professors?: string[];
+  semester?: string;
+  schoolYear?: string;
+  college?: string;
+  weekNumber?: number;
+  day?: number;
+  versionCount?: number;
+  updatedAt?: string;
+}
+
+/** One uploaded slide set of a lecture (from /v2/api/lecture). */
+export interface IndexVersion {
+  shareId: string;
+  title?: string;
+  imageCount?: number;
+  reviewed: boolean;
+  edited: boolean;
+  createdAt?: string;
+}
+
+/** A recently-added FILE (version) from /v2/api/stats — opens at /v1/s/<shareId>. */
+export interface IndexRecentFile {
+  shareId: string;
+  courseId: string;
+  sessionId: string;
+  courseTitle?: string;
+  sessionTitle?: string;
+  instructor?: string;
+  professors?: string[];
+  semester?: string;
+  schoolYear?: string;
+  college?: string;
+  imageCount?: number;
+  createdAt?: string;
+}
+
+/** Homepage aggregates from /v2/api/stats. */
+export interface IndexStats {
+  courseCount: number;
+  lectureCount: number;
+  versionCount: number;
+  recent: IndexRecentFile[];
+  colleges: { college: string; count: number }[];
+  updatedAt?: string;
+}
+
+/** /v2/api/lecture response body (lecture + its versions). */
+export interface IndexLectureDetail {
+  lecture: IndexLecture;
+  versions: IndexVersion[];
+}
+
+/** /v2/api/request-removal response body. */
+export interface IndexRemovalResult {
+  removed: number;
+  lectureRemoved: boolean;
+}
+
 export interface NoteListParams {
   page?: number;
   pageSize?: number;

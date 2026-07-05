@@ -25,6 +25,11 @@ import type {
   UploadedImage,
   ExportFolderInfo,
   ShareImportResult,
+  IndexStats,
+  IndexLecture,
+  IndexVersion,
+  IndexLectureDetail,
+  IndexRemovalResult,
 } from '@common/notesTypes';
 import { NOTE_GROUP_NAME_MAX } from '@common/notesTypes';
 import type { SlideMetadataSource } from '@common/slideMetadataTypes';
@@ -367,6 +372,72 @@ export class NotesService {
       throw new Error('Publish response malformed');
     }
     return { shareId: data.shareId, indexUrl: data.indexUrl, duplicate: !!data.duplicate };
+  }
+
+  // ── AutoSlides Index (v2 read + removal) ─────────────────────────────────
+  // Public JSON endpoints of the Index Worker. Routed through the main process
+  // (like the other share calls) for consistency and — for removal — token
+  // access. The read endpoints need no auth.
+
+  /** Fetch the Index homepage aggregates (course/lecture/file counts + recent files). */
+  async indexStats(): Promise<IndexStats> {
+    const res = await fetch(`${SHARE_ORIGIN}/v2/api/stats`, {
+      headers: { 'User-Agent': appUserAgent() },
+    });
+    if (!res.ok) throw new Error(`Index stats failed (${res.status})`);
+    const data = (await res.json()) as { ok?: boolean; stats?: IndexStats };
+    if (!data.ok || !data.stats) throw new Error('Index stats response malformed');
+    return data.stats;
+  }
+
+  /** Search the Index by course/session/instructor/college. Empty q → latest lectures. */
+  async indexSearch(q: string): Promise<IndexLecture[]> {
+    const res = await fetch(`${SHARE_ORIGIN}/v2/api/search?q=${encodeURIComponent(q)}`, {
+      headers: { 'User-Agent': appUserAgent() },
+    });
+    if (!res.ok) throw new Error(`Index search failed (${res.status})`);
+    const data = (await res.json()) as { ok?: boolean; results?: IndexLecture[] };
+    return Array.isArray(data.results) ? data.results : [];
+  }
+
+  /** Fetch one lecture's metadata + its uploaded versions. Throws 'not-found' if absent. */
+  async indexLecture(courseId: string, sessionId: string): Promise<IndexLectureDetail> {
+    const url =
+      `${SHARE_ORIGIN}/v2/api/lecture?courseId=${encodeURIComponent(courseId)}` +
+      `&sessionId=${encodeURIComponent(sessionId)}`;
+    const res = await fetch(url, { headers: { 'User-Agent': appUserAgent() } });
+    if (!res.ok) throw new Error(`Index lecture failed (${res.status})`);
+    const data = (await res.json()) as {
+      ok?: boolean;
+      lecture?: IndexLecture;
+      versions?: IndexVersion[];
+    };
+    if (!data.ok || !data.lecture) throw new Error('not-found');
+    return { lecture: data.lecture, versions: data.versions ?? [] };
+  }
+
+  /**
+   * Request removal of the signed-in user's own uploaded versions of a lecture.
+   * The Worker verifies the token against Yanhekt and deletes only the
+   * requester's versions. Requires a token (throws NotesAuthError otherwise).
+   */
+  async requestIndexRemoval(courseId: string, sessionId: string): Promise<IndexRemovalResult> {
+    const token = this.configService.getAuthToken();
+    if (!token) throw new NotesAuthError();
+    const res = await fetch(`${SHARE_ORIGIN}/v2/api/request-removal`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'User-Agent': appUserAgent(),
+      },
+      body: JSON.stringify({ courseId, sessionId }),
+    });
+    if (res.status === 401) throw new NotesAuthError('AutoSlides Index rejected the sign-in token');
+    if (!res.ok) throw new Error(`Removal failed (${res.status})`);
+    const data = (await res.json()) as { ok?: boolean; removed?: number; lectureRemoved?: boolean };
+    if (!data.ok) throw new Error('Removal response malformed');
+    return { removed: data.removed ?? 0, lectureRemoved: !!data.lectureRemoved };
   }
 
   // ── Share-link import ("Cloud Index" webview interception) ───────────────

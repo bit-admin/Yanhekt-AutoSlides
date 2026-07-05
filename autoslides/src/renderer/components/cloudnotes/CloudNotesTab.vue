@@ -12,7 +12,8 @@
         </span>
       </span>
       <span class="cn-banner-actions">
-        <a class="cn-banner-link" :href="MYNOTES_URL" @click.prevent="openExt(MYNOTES_URL)">{{ $t('cloudNotes.bannerMyNotes') }} ↗</a>
+        <a v-if="viewMode === 'index'" class="cn-banner-link" :href="SHARE_ORIGIN" @click.prevent="openExt(SHARE_ORIGIN)">{{ $t('cloudIndex.bannerOpenIndex') }} ↗</a>
+        <a v-else class="cn-banner-link" :href="MYNOTES_URL" @click.prevent="openExt(MYNOTES_URL)">{{ $t('cloudNotes.bannerMyNotes') }} ↗</a>
         <button class="cn-banner-close" :title="$t('cloudNotes.bannerDismiss')" :aria-label="$t('cloudNotes.bannerDismiss')" @click="bannerVisible = false">
           <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
             <path d="M3 3L9 9M9 3L3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
@@ -48,22 +49,62 @@
               <line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
           </button>
-          <div class="cn-search-wrap">
-            <svg class="cn-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-            </svg>
-            <input
-              v-model="cn.keyword.value"
-              class="cn-search"
-              :placeholder="$t('cloudNotes.searchPlaceholder')"
-            />
-          </div>
-          <button class="cn-newnote-btn" :title="$t('cloudNotes.newNote')" @click="onCreateNote">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
-            </svg>
-          </button>
+          <!-- Notes mode: filter notes + new note -->
+          <template v-if="viewMode === 'notes'">
+            <div class="cn-search-wrap">
+              <svg class="cn-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input
+                v-model="cn.keyword.value"
+                class="cn-search"
+                :placeholder="$t('cloudNotes.searchPlaceholder')"
+              />
+            </div>
+            <button class="cn-newnote-btn" :title="$t('cloudNotes.newNote')" @click="onCreateNote">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>
+              </svg>
+            </button>
+          </template>
+          <!-- Index mode: search the index / paste a share link -->
+          <template v-else>
+            <div class="cn-search-wrap">
+              <svg v-if="idx.searchMode.value === 'search'" class="cn-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <svg v-else class="cn-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9.5 14.5 14.5 9.5"/><path d="M11 7.5 12.4 6.1a3.5 3.5 0 0 1 5 5L16 12.5"/><path d="M13 16.5 11.6 17.9a3.5 3.5 0 0 1-5-5L8 11.5"/>
+              </svg>
+              <input
+                v-if="idx.searchMode.value === 'search'"
+                v-model="idx.query.value"
+                class="cn-search"
+                :placeholder="$t('cloudIndex.searchPlaceholder')"
+                @keyup.enter="onIndexSearch"
+              />
+              <input
+                v-else
+                v-model="idx.pasteLink.value"
+                class="cn-search"
+                :placeholder="$t('cloudIndex.pastePlaceholder')"
+                @keyup.enter="onIndexPaste"
+              />
+            </div>
+            <button
+              class="cn-newnote-btn"
+              :title="idx.searchMode.value === 'search' ? $t('cloudIndex.toggleToPaste') : $t('cloudIndex.toggleToSearch')"
+              @click="idx.togglePaste()"
+            >
+              <svg v-if="idx.searchMode.value === 'search'" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M9.5 14.5 14.5 9.5"/><path d="M11 7.5 12.4 6.1a3.5 3.5 0 0 1 5 5L16 12.5"/><path d="M13 16.5 11.6 17.9a3.5 3.5 0 0 1-5-5L8 11.5"/>
+              </svg>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+            </button>
+          </template>
         </div>
         <div class="cn-sidebar-panes">
       <!-- Left: groups -->
@@ -73,10 +114,22 @@
         :style="{ width: groupColPx }"
       >
         <div class="cn-groups-scroll custom-scrollbar">
+          <!-- AutoSlides Index — flips the whole page into index mode -->
+          <button
+            class="cn-group-item cn-index-nav"
+            :class="{ active: viewMode === 'index' }"
+            @click="enterIndexMode"
+          >
+            <svg class="cn-group-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            {{ $t('cloudIndex.navTitle') }}
+          </button>
+
           <button
             class="cn-group-item"
-            :class="{ active: cn.activeGroupId.value === '' }"
-            @click="cn.setGroup('')"
+            :class="{ active: viewMode === 'notes' && cn.activeGroupId.value === '' }"
+            @click="selectAllNotes"
           >
             <svg class="cn-group-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
@@ -84,6 +137,8 @@
             {{ $t('cloudNotes.allNotes') }}
           </button>
 
+          <!-- Notes mode: managed + user groups -->
+          <template v-if="viewMode === 'notes'">
           <!-- Section: AutoSlides-managed groups — distinct tinted card -->
           <div class="cn-managed-section">
             <div class="cn-managed-header">{{ $t('cloudNotes.managedSection') }}</div>
@@ -152,9 +207,47 @@
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6M10 11v6M14 11v6"/></svg>
             </button>
           </div>
+          </template>
+
+          <!-- Index mode: filters + course list (grouped from the last search) -->
+          <template v-else>
+            <div class="cn-groups-sep"></div>
+            <!-- Filter bar (mirrors the Index website): narrows the course list -->
+            <div v-if="idx.showFilterBar.value" class="cn-index-filters">
+              <select v-if="idx.colleges.value.length > 1" v-model="idx.collegeFilter.value" class="cn-index-filter">
+                <option value="">{{ $t('cloudIndex.allColleges') }}</option>
+                <option v-for="c in idx.colleges.value" :key="c" :value="c">{{ c }}</option>
+              </select>
+              <select v-if="idx.terms.value.length > 1" v-model="idx.termFilter.value" class="cn-index-filter">
+                <option value="">{{ $t('cloudIndex.allTerms') }}</option>
+                <option v-for="tm in idx.terms.value" :key="tm.key" :value="tm.key">{{ termOptionLabel(tm) }}</option>
+              </select>
+              <select v-if="idx.instructors.value.length > 1" v-model="idx.instructorFilter.value" class="cn-index-filter">
+                <option value="">{{ $t('cloudIndex.allInstructors') }}</option>
+                <option v-for="i in idx.instructors.value" :key="i" :value="i">{{ i }}</option>
+              </select>
+            </div>
+            <div v-if="!idx.hasResults.value" class="cn-index-groups-empty">
+              {{ idx.searching.value ? $t('cloudNotes.loading') : $t('cloudIndex.searchToBrowse') }}
+            </div>
+            <div v-else-if="idx.courseGroups.value.length === 0" class="cn-index-groups-empty">
+              {{ $t('cloudIndex.noMatches') }}
+            </div>
+            <button
+              v-for="g in idx.courseGroups.value"
+              :key="g.courseId"
+              class="cn-group-item cn-index-course"
+              :class="{ active: idx.selectedCourseId.value === g.courseId }"
+              :title="g.courseTitle"
+              @click="idx.selectCourse(g.courseId)"
+            >
+              <span class="cn-index-course-title">{{ g.courseTitle }}</span>
+              <span class="cn-index-course-meta">{{ g.courseId }}</span>
+            </button>
+          </template>
         </div>
 
-        <div class="cn-groups-footer">
+        <div v-if="viewMode === 'notes'" class="cn-groups-footer">
           <button class="cn-newgroup-btn" @click="showNewGroupModal = true">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -190,8 +283,10 @@
       <!-- groups | list resize divider (drag left past the threshold collapses groups) -->
       <div class="cn-divider" @mousedown="startResize('group', $event)"></div>
 
-      <!-- Middle: note list -->
-      <section class="cn-list" :style="{ width: listWidth + 'px' }">
+      <!-- Middle: note list (notes mode) / index browse (index mode) -->
+      <section class="cn-list" :style="{ width: (viewMode === 'index' ? indexListWidth : listWidth) + 'px' }">
+        <!-- NOTES MODE -->
+        <template v-if="viewMode === 'notes'">
         <div class="cn-list-items custom-scrollbar">
           <div v-if="cn.loading.value" class="cn-empty">{{ $t('cloudNotes.loading') }}</div>
           <div v-else-if="cn.notes.value.length === 0" class="cn-empty">{{ $t('cloudNotes.noNotes') }}</div>
@@ -224,27 +319,135 @@
           <span>{{ cn.page.value }} / {{ cn.totalPages.value }}</span>
           <button class="btn btn--sm btn--ghost" :disabled="cn.page.value >= cn.totalPages.value" @click="cn.goToPage(cn.page.value + 1)">›</button>
         </div>
+        </template>
 
-        <div v-if="cn.hasManagedStorage.value" class="cn-list-footer">
-          <button
-            class="cn-tool-btn"
-            :disabled="cloudStorageStore.blocked.value"
-            :title="cloudStorageStore.blocked.value ? $t('cloudNotes.storageNotInitialized') : $t('cloudNotes.importTip')"
-            @click="openImportModal"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
-            </svg>
-            <span v-if="imp.importing.value">{{ imp.overall.value.done }}/{{ imp.overall.value.total }}</span>
-            <span v-else>{{ $t('cloudNotes.importButton') }}</span>
-          </button>
-          <button class="cn-tool-btn" :title="$t('cloudNotes.exportTip')" @click="openExportModal">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
-            </svg>
-            <span v-if="exp.exporting.value">{{ exp.overall.value.done }}/{{ exp.overall.value.total }}</span>
-            <span v-else>{{ $t('cloudNotes.exportButton') }}</span>
-          </button>
+        <!-- INDEX MODE -->
+        <template v-else>
+        <div class="cn-list-items custom-scrollbar">
+          <!-- No search yet → recently-added feed -->
+          <template v-if="!idx.hasResults.value">
+            <div v-if="idx.recentFiles.value.length === 0" class="cn-empty">{{ $t('cloudIndex.nothingYet') }}</div>
+            <template v-else>
+              <div class="cn-index-feed-header">{{ $t('cloudIndex.recentlyAdded') }}</div>
+              <button
+                v-for="f in idx.recentFiles.value"
+                :key="f.shareId"
+                class="cn-note-item cn-index-file"
+                :class="{ active: idx.selectedShareId.value === f.shareId }"
+                @click="idx.openRecentFile(f)"
+              >
+                <span class="cn-note-title">{{ f.courseTitle || $t('cloudIndex.untitledCourse') }}<template v-if="f.sessionTitle"> · {{ f.sessionTitle }}</template></span>
+                <span class="cn-note-meta">{{ recentMeta(f) }}</span>
+              </button>
+            </template>
+          </template>
+
+          <!-- Search results → sessions of the selected course + inline versions -->
+          <template v-else>
+            <div v-if="idx.sessions.value.length === 0" class="cn-empty">
+              {{ idx.searching.value ? $t('cloudNotes.loading') : $t('cloudIndex.selectCourse') }}
+            </div>
+            <div
+              v-for="s in idx.sessions.value"
+              :key="s.courseId + '.' + s.sessionId"
+              class="cn-index-session-block"
+            >
+              <div class="cn-note-item-row">
+                <button
+                  class="cn-note-item cn-index-session"
+                  :class="{ expanded: idx.isExpanded(s.courseId, s.sessionId) }"
+                  @click="idx.toggleSession(s)"
+                >
+                  <span class="cn-note-title">
+                    <svg class="cn-index-caret" :class="{ open: idx.isExpanded(s.courseId, s.sessionId) }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                    {{ s.sessionTitle || $t('cloudIndex.untitledSession') }}
+                  </span>
+                  <span class="cn-note-meta">{{ sessionMeta(s) }}</span>
+                </button>
+                <button
+                  class="cn-icon-btn cn-note-delete"
+                  :title="$t('cloudIndex.requestRemoval')"
+                  @click.stop="onOpenRemoval(s.courseId, s.sessionId)"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3v18"/><path d="M5 4h11l-2 3.5L16 11H5"/></svg>
+                </button>
+              </div>
+
+              <!-- Indented, inline version list (one /v2/api/lecture call, cached) -->
+              <div v-if="idx.isExpanded(s.courseId, s.sessionId)" class="cn-index-versions">
+                <div v-if="sessionEntry(s)?.loading" class="cn-index-versions-status">{{ $t('cloudIndex.loadingFiles') }}</div>
+                <div v-else-if="sessionEntry(s)?.error" class="cn-index-versions-status cn-index-versions-status--error">{{ $t('cloudIndex.loadError') }}</div>
+                <div v-else-if="(sessionEntry(s)?.versions.length ?? 0) === 0" class="cn-index-versions-status">{{ $t('cloudIndex.noFilesIndexed') }}</div>
+                <button
+                  v-for="(v, i) in sessionEntry(s)?.versions ?? []"
+                  :key="v.shareId"
+                  class="cn-index-version"
+                  :class="{ active: idx.selectedShareId.value === v.shareId }"
+                  @click="onOpenVersion(v, s)"
+                >
+                  <span class="cn-index-version-ord">{{ $t('cloudIndex.slidesOrd', { n: i + 1 }) }}</span>
+                  <span class="cn-index-version-count">{{ $t('cloudIndex.slideCount', { n: v.imageCount ?? 0 }) }}</span>
+                  <span v-if="v.edited" class="cn-index-badge cn-index-badge--edited">{{ $t('cloudIndex.edited') }}</span>
+                  <svg v-if="v.reviewed" class="cn-index-verified" :title="$t('cloudIndex.reviewed')" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm-1.2 14.4l-4-4 1.4-1.4 2.6 2.6 5.4-5.4 1.4 1.4z"/></svg>
+                </button>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        </template>
+
+        <!-- Footer: Import / Export (mode-aware; keeps its position) -->
+        <div v-if="footerVisible" class="cn-list-footer">
+          <template v-if="viewMode === 'notes'">
+            <button
+              class="cn-tool-btn"
+              :disabled="cloudStorageStore.blocked.value"
+              :title="cloudStorageStore.blocked.value ? $t('cloudNotes.storageNotInitialized') : $t('cloudNotes.importTip')"
+              @click="openImportModal"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
+              </svg>
+              <span v-if="imp.importing.value">{{ imp.overall.value.done }}/{{ imp.overall.value.total }}</span>
+              <span v-else>{{ $t('cloudNotes.importButton') }}</span>
+            </button>
+            <button class="cn-tool-btn" :title="$t('cloudNotes.exportTip')" @click="openExportModal">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
+              </svg>
+              <span v-if="exp.exporting.value">{{ exp.overall.value.done }}/{{ exp.overall.value.total }}</span>
+              <span v-else>{{ $t('cloudNotes.exportButton') }}</span>
+            </button>
+          </template>
+          <template v-else>
+            <!-- Both buttons stay clickable while a run is active/unread so they
+                 can reopen the progress modal (mirrors the notes-mode buttons). -->
+            <button
+              class="cn-tool-btn"
+              :disabled="cloudStorageStore.blocked.value || (!idx.viewer.value && imp.queue.value.length === 0)"
+              :title="cloudStorageStore.blocked.value ? $t('cloudNotes.storageNotInitialized') : $t('cloudNotes.importTip')"
+              @click="onImportVersion"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>
+              </svg>
+              <span v-if="imp.importing.value">{{ imp.overall.value.done }}/{{ imp.overall.value.total }}</span>
+              <span v-else>{{ $t('cloudNotes.importButton') }}</span>
+            </button>
+            <button
+              class="cn-tool-btn"
+              :disabled="!idx.viewer.value && !idxExp.item.value"
+              :title="$t('cloudNotes.exportTip')"
+              @click="onExportVersion"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>
+              </svg>
+              <span v-if="idxExp.exporting.value && idxExp.item.value">{{ idxExp.item.value.downloaded }}/{{ idxExp.item.value.total }}</span>
+              <span v-else>{{ $t('cloudNotes.exportButton') }}</span>
+            </button>
+          </template>
         </div>
       </section>
         </div><!-- /.cn-sidebar-panes -->
@@ -363,6 +566,38 @@
         </div>
       </div>
 
+      <!-- Index export progress modal (single item, mirrors the notes export modal) -->
+      <div v-if="showIdxExportModal && idxExp.item.value" class="modal-overlay" @click.self="showIdxExportModal = false">
+        <div class="cn-import-box">
+          <h3 class="cn-modal-title">{{ $t('cloudNotes.exportTitle') }}</h3>
+          <div class="cn-import-list custom-scrollbar">
+            <div class="cn-imp-row">
+              <div class="cn-imp-row-top">
+                <span class="cn-imp-name" :title="idxExp.item.value.title">{{ idxExp.item.value.title }}</span>
+                <span class="cn-imp-status" :class="`s-${idxExp.item.value.status}`">{{ idxExportStatusText(idxExp.item.value) }}</span>
+              </div>
+              <div class="cn-imp-bar">
+                <div class="cn-imp-fill" :class="`s-${idxExp.item.value.status}`" :style="{ width: idxExportBarWidth(idxExp.item.value) + '%' }"></div>
+              </div>
+              <div v-if="idxExp.item.value.status === 'conflict'" class="cn-imp-actions">
+                <button class="btn btn--sm btn--ghost" :disabled="idxExp.exporting.value" @click="idxExp.openFolder()">{{ $t('cloudNotes.exportOpenFolder') }}</button>
+                <button class="btn btn--sm" :disabled="idxExp.exporting.value" @click="idxExp.resolveConflict('create')">{{ $t('cloudNotes.exportCreateNew') }}</button>
+                <button class="btn btn--sm cn-imp-replace" :disabled="idxExp.exporting.value" @click="idxExp.resolveConflict('replace')">{{ $t('cloudNotes.exportReplace') }}</button>
+                <button class="btn btn--sm btn--ghost" :disabled="idxExp.exporting.value" @click="doneIdxExport">{{ $t('cloudNotes.exportSkip') }}</button>
+              </div>
+            </div>
+          </div>
+          <p v-if="idxExp.item.value.status === 'conflict'" class="cn-import-hint">{{ $t('cloudNotes.exportConflictHint') }}</p>
+          <div class="cn-modal-actions">
+            <template v-if="idxExp.exporting.value">
+              <button class="btn cn-modal-btn" @click="idxExp.cancel()">{{ $t('cloudNotes.exportCancel') }}</button>
+              <button class="btn btn--primary cn-modal-btn" @click="showIdxExportModal = false">{{ $t('cloudNotes.exportClose') }}</button>
+            </template>
+            <button v-else class="btn btn--primary cn-modal-btn" @click="doneIdxExport">{{ $t('cloudNotes.exportDone') }}</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Share note modal -->
       <div v-if="showShareModal" class="modal-overlay" @click.self="closeShareModal">
         <div class="cn-import-box cn-share-box">
@@ -440,8 +675,8 @@
         </div>
       </div>
 
-      <!-- Right: editor -->
-      <section class="cn-editor">
+      <!-- Right: editor (notes mode) / slide viewer (index mode) -->
+      <section v-if="viewMode === 'notes'" class="cn-editor">
         <div v-if="!cn.selectedNote.value" class="cn-empty cn-editor-empty">{{ $t('cloudNotes.selectNote') }}</div>
         <template v-else>
           <div class="cn-editor-header">
@@ -479,6 +714,22 @@
           </div>
         </template>
       </section>
+      <CloudIndexViewer
+        v-else
+        :detail="idx.viewer.value"
+        :loading="idx.viewerLoading.value"
+        :error="idx.viewerError.value"
+      />
+
+      <!-- Request-removal modal (index mode) -->
+      <CloudIndexRemovalModal
+        v-if="removalTarget"
+        :course-id="removalTarget.courseId"
+        :session-id="removalTarget.sessionId"
+        :on-submit="idx.requestRemoval"
+        @close="removalTarget = null"
+        @removed="onRemovalDone"
+      />
     </template>
     </div>
 
@@ -502,13 +753,19 @@ import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { buildReadmeContent } from '@features/cloudNotes/readmeContent'
 import { useNoteImport } from '@features/cloudNotes/useNoteImport'
+import { useShareIndexExport, type ShareExportItem } from '@features/cloudNotes/useShareIndexExport'
+import { useCloudIndexBrowse, type IndexTermOption } from '@features/cloudNotes/useCloudIndexBrowse'
+import { navigationStore } from '@features/course/navigationStore'
+import type { IndexLecture, IndexVersion } from '@common/notesTypes'
+import CloudIndexViewer from './CloudIndexViewer.vue'
+import CloudIndexRemovalModal from './CloudIndexRemovalModal.vue'
 import { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
 import ImportProgressModal from './ImportProgressModal.vue'
 import { useNoteExport, type ExportItem } from '@features/cloudNotes/useNoteExport'
 import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { NOTE_GROUP_NAME_MAX, isManagedNoteTitle, managedNoteDisplayName } from '@common/notesTypes'
-import { buildSharePayload, buildShareUrl, encodeSharePayload } from '@common/shareLink'
+import { buildSharePayload, buildShareUrl, encodeSharePayload, SHARE_ORIGIN } from '@common/shareLink'
 import { noteImageUrls, findRecordedShareUrl, readNoteMetadata, upsertNoteMetadata, NOTE_COPYRIGHT } from '@common/notesContent'
 import type { SlideMetadataSource } from '@common/slideMetadataTypes'
 
@@ -521,6 +778,178 @@ const imp = useNoteImport(cn, {
   slideCaption: (n) => t('cloudNotes.noteSlideCaption', { n }),
 })
 const publisher = useNotesPublish(cn)
+
+// ── AutoSlides Index (merged-in "index mode") ──────────────────────────────
+// The page toggles between the notes editor (default) and a native browser over
+// the AutoSlides Index v2 APIs. `idx` owns index data/state; `imp` (notes
+// import) is reused for share-link import; `idxExp` exports a version's slides.
+const viewMode = ref<'notes' | 'index'>('notes')
+const idx = useCloudIndexBrowse()
+const idxExp = useShareIndexExport()
+const indexLoaded = ref(false)
+const removalTarget = ref<{ courseId: string; sessionId: string } | null>(null)
+// Index-mode pane widths: course names run long, so the LEFT column gets its
+// own wider range; the middle (sessions) list is narrower than in notes mode's
+// former default since session titles are short.
+const INDEX_GROUP_MIN = 230
+const INDEX_GROUP_MAX = 460
+const indexGroupWidth = ref(290)
+const INDEX_LIST_MIN = 280
+const INDEX_LIST_MAX = 720
+const indexListWidth = ref(360)
+
+const footerVisible = computed(() =>
+  viewMode.value === 'notes' ? cn.hasManagedStorage.value : true,
+)
+
+async function enterIndexMode(): Promise<void> {
+  viewMode.value = 'index'
+  if (!indexLoaded.value) {
+    indexLoaded.value = true
+    await idx.loadRecent()
+  }
+}
+
+/** Return to notes mode on the "All notes" group. */
+function selectAllNotes(): void {
+  viewMode.value = 'notes'
+  cn.setGroup('')
+}
+
+function onIndexSearch(): void {
+  const term = idx.query.value.trim()
+  if (!term) { idx.clearSearch(); return }
+  void idx.runSearch(term)
+}
+
+function onIndexPaste(): void {
+  void idx.resolvePaste()
+}
+
+const sessionEntry = (s: IndexLecture) => idx.sessionEntryFor(s.courseId, s.sessionId)
+
+/** Open a version, preferring the richer lecture data cached from /v2/api/lecture. */
+function onOpenVersion(v: IndexVersion, s: IndexLecture): void {
+  const lecture = idx.sessionEntryFor(s.courseId, s.sessionId)?.lecture ?? s
+  void idx.openVersion(v, lecture)
+}
+
+function onOpenRemoval(courseId: string, sessionId: string): void {
+  removalTarget.value = { courseId, sessionId }
+}
+
+async function onRemovalDone(): Promise<void> {
+  const target = removalTarget.value
+  removalTarget.value = null
+  if (target) await idx.reloadSession(target.courseId, target.sessionId)
+}
+
+/** Import the open version's slides as a managed Cloud Note — runs through the
+ *  shared ImportProgressModal, exactly like the notes-mode import. */
+async function onImportVersion(): Promise<void> {
+  // Reopen straight into the progress modal if a run is active or unread.
+  if (imp.queue.value.length > 0) {
+    importPhase.value = 'progress'
+    showImportModal.value = true
+    return
+  }
+  const v = idx.viewer.value
+  if (!v) return
+  const st = await cloudStorageStore.ensureReady()
+  if (st !== 'ready') {
+    await window.electronAPI.dialog?.showMessageBox?.({
+      type: 'info',
+      title: t('cloudIndex.importToNotes'),
+      message: st === 'not-signed-in' ? t('cloudNotes.notSignedIn')
+        : st === 'uninitialized' ? t('cloudNotes.storageNotInitialized')
+        : cloudStorageStore.lastError.value || t('cloudNotes.storageCheckFailed'),
+      buttons: [t('cloudNotes.importClose')],
+    })
+    return
+  }
+  await cn.refreshGroups()
+  importPhase.value = 'progress'
+  showImportModal.value = true
+  await imp.importShareLink(v.sourceUrl, t('cloudNotes.importResolving'), v.metadata)
+}
+
+// ── Index export — same modal UI as the notes-mode export progress phase. ──
+const showIdxExportModal = ref(false)
+
+/** Export the open version's slides to a local folder. */
+async function onExportVersion(): Promise<void> {
+  showIdxExportModal.value = true
+  // Reopen the in-flight/unresolved run instead of starting over.
+  if (idxExp.exporting.value || idxExp.item.value?.status === 'conflict') return
+  const v = idx.viewer.value
+  if (!v) { showIdxExportModal.value = false; return }
+  idxExp.reset()
+  await idxExp.startExport(v.resolved)
+}
+
+/** Explicit dismissal of a finished/skipped export: clear it and close. */
+function doneIdxExport(): void {
+  idxExp.skipConflict()
+  idxExp.reset()
+  showIdxExportModal.value = false
+}
+
+function idxExportStatusText(item: ShareExportItem): string {
+  switch (item.status) {
+    case 'downloading': return t('cloudNotes.exportDownloading', { done: item.downloaded, total: item.total })
+    case 'conflict': return t('cloudNotes.exportConflict')
+    case 'error': return t('cloudNotes.exportError')
+    case 'done': return t('cloudNotes.exportDone')
+    default: return t('cloudNotes.exportPending')
+  }
+}
+
+function idxExportBarWidth(item: ShareExportItem): number {
+  if (item.status === 'done') return 100
+  if (item.status === 'downloading' && item.total > 0) return Math.round((item.downloaded / item.total) * 100)
+  return 0
+}
+
+// ── Index display helpers (term / instructor / meta lines) ──────────────────
+function semesterLabel(s?: string): string {
+  if (s === '1') return t('cloudIndex.fall')
+  if (s === '2') return t('cloudIndex.spring')
+  return s ? t('cloudIndex.termN', { n: s }) : ''
+}
+function instructorOf(l: { instructor?: string; professors?: string[] }): string {
+  return l.instructor || (l.professors ?? []).join(', ')
+}
+function termLabel(l: IndexLecture): string {
+  return [l.schoolYear, semesterLabel(l.semester), l.college].filter(Boolean).join(' · ')
+}
+/** Label for a term-filter dropdown option, e.g. "2025-2026 · Fall". */
+function termOptionLabel(tm: IndexTermOption): string {
+  return [tm.schoolYear, semesterLabel(tm.semester)].filter(Boolean).join(' · ')
+}
+function sessionMeta(l: IndexLecture): string {
+  return [instructorOf(l), termLabel(l)].filter(Boolean).join(' · ')
+}
+function recentMeta(f: { instructor?: string; professors?: string[]; schoolYear?: string; semester?: string; college?: string; imageCount?: number; createdAt?: string }): string {
+  return [
+    instructorOf(f),
+    [f.schoolYear, semesterLabel(f.semester), f.college].filter(Boolean).join(' · '),
+    f.imageCount ? t('cloudIndex.slideCount', { n: f.imageCount }) : '',
+    f.createdAt ? new Date(f.createdAt).toLocaleDateString() : '',
+  ].filter(Boolean).join(' · ')
+}
+
+// A course-name pre-search from the sessions header (navigationStore) enters
+// index mode and runs the search. `immediate` covers a request set right before
+// this page lazily mounts.
+watch(
+  () => navigationStore.cloudIndexSearchRequest.value,
+  (req) => {
+    if (!req) return
+    void enterIndexMode()
+    void idx.runSearch(req.term)
+  },
+  { immediate: true },
+)
 
 const MYNOTES_URL = 'https://www.yanhekt.cn/profile/myNotes'
 const WHY_URL = 'https://github.com/bit-admin/yanhekt-coss-browser'
@@ -544,7 +973,10 @@ const listWidth = ref(300)
 const groupCollapsed = ref(false)
 // Shared by the groups column and the toolbar spacer above it, so the toolbar's
 // middle border lines up with the groups | list pane divider.
-const groupColPx = computed(() => (groupCollapsed.value ? '0px' : groupWidth.value + 'px'))
+const groupColPx = computed(() => {
+  if (groupCollapsed.value) return '0px'
+  return (viewMode.value === 'index' ? indexGroupWidth.value : groupWidth.value) + 'px'
+})
 
 const toggleGroups = (): void => { groupCollapsed.value = !groupCollapsed.value }
 
@@ -558,12 +990,19 @@ function onResizeMove(e: MouseEvent): void {
   const dx = e.clientX - resizeStartX
   if (resizing === 'group') {
     const raw = resizeStartGroup + dx
-    if (raw < GROUP_MIN - COLLAPSE_GAP) {
+    const min = viewMode.value === 'index' ? INDEX_GROUP_MIN : GROUP_MIN
+    const max = viewMode.value === 'index' ? INDEX_GROUP_MAX : GROUP_MAX
+    if (raw < min - COLLAPSE_GAP) {
       groupCollapsed.value = true
       return
     }
     groupCollapsed.value = false
-    groupWidth.value = Math.min(Math.max(GROUP_MIN, raw), GROUP_MAX)
+    const clamped = Math.min(Math.max(min, raw), max)
+    if (viewMode.value === 'index') indexGroupWidth.value = clamped
+    else groupWidth.value = clamped
+  } else if (viewMode.value === 'index') {
+    const raw = resizeStartList + dx
+    indexListWidth.value = Math.min(Math.max(INDEX_LIST_MIN, raw), INDEX_LIST_MAX)
   } else {
     const raw = resizeStartList + dx
     listWidth.value = Math.min(Math.max(LIST_MIN, raw), LIST_MAX)
@@ -583,8 +1022,10 @@ function startResize(type: 'group' | 'list', e: MouseEvent): void {
   resizeStartX = e.clientX
   // While collapsed the groups column reads as 0 wide, so dragging the divider
   // out from the edge re-expands it (like the window's left panel).
-  resizeStartGroup = groupCollapsed.value ? 0 : groupWidth.value
-  resizeStartList = listWidth.value
+  resizeStartGroup = groupCollapsed.value
+    ? 0
+    : viewMode.value === 'index' ? indexGroupWidth.value : groupWidth.value
+  resizeStartList = viewMode.value === 'index' ? indexListWidth.value : listWidth.value
   document.body.style.cursor = 'col-resize'
   document.body.style.userSelect = 'none'
   document.addEventListener('mousemove', onResizeMove)
@@ -827,6 +1268,12 @@ function onStartImport(): void {
 async function onOpenConflictNote(id?: number): Promise<void> {
   if (id == null) return
   closeImportModal()
+  // An index-mode import conflict links to an existing NOTE — switch back to
+  // notes mode (and let the editor pane mount) before opening it.
+  if (viewMode.value === 'index') {
+    viewMode.value = 'notes'
+    await nextTick()
+  }
   await openNote(id)
 }
 
@@ -2204,4 +2651,175 @@ watch(() => cn.selectedNoteId.value, (id) => {
 .cn-editor-doc :deep(.ce-delimiter) {
   color: var(--text-muted);
 }
+
+/* ── AutoSlides Index (index mode) ───────────────────────────────────── */
+/* Distinct accent for the mode toggle. */
+.cn-index-nav {
+  color: var(--accent);
+  font-weight: 600;
+}
+.cn-index-nav .cn-group-icon {
+  color: var(--accent);
+}
+.cn-index-nav.active {
+  background: var(--badge-active-bg);
+}
+
+/* Divider under the two nav entries (index mode) — full-bleed like the
+   managed-section separators in notes mode. */
+.cn-groups-sep {
+  flex-shrink: 0;
+  height: 1px;
+  margin: 10px -10px;
+  background: var(--border-color);
+}
+
+/* Filter bar (index mode) — the website's college/term/instructor selects,
+   stacked to fit the sidebar column. */
+.cn-index-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 0 10px;
+}
+
+.cn-index-filter {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.cn-index-filter:focus {
+  border-color: var(--accent);
+}
+
+.cn-index-groups-empty {
+  padding: 16px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+/* Course rows (left panel, index mode): two-line title + meta. */
+.cn-index-course {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  height: auto;
+  padding: 8px 10px;
+}
+.cn-index-course-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.cn-index-course-meta {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.cn-index-course.active .cn-index-course-title {
+  color: var(--accent);
+}
+
+/* Recently-added / session feed header. */
+.cn-index-feed-header {
+  padding: 10px 12px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.cn-index-file .cn-note-title {
+  white-space: normal;
+}
+
+/* Session rows + inline version accordion. */
+.cn-index-session-block {
+  border-bottom: 1px solid var(--border-color);
+}
+.cn-index-caret {
+  flex-shrink: 0;
+  margin-right: 4px;
+  transition: transform 0.15s ease;
+  color: var(--text-muted);
+}
+.cn-index-caret.open {
+  transform: rotate(90deg);
+}
+.cn-index-session .cn-note-title {
+  display: flex;
+  align-items: center;
+}
+
+.cn-index-versions {
+  padding: 2px 0 6px 22px;
+}
+.cn-index-versions-status {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.cn-index-versions-status--error {
+  color: var(--danger);
+}
+.cn-index-version {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+}
+.cn-index-version:hover {
+  background: var(--bg-hover);
+}
+.cn-index-version.active {
+  background: var(--badge-active-bg);
+  color: var(--accent);
+}
+.cn-index-version-ord {
+  font-size: 12px;
+  font-weight: 600;
+}
+.cn-index-version-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.cn-index-badge--edited {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--badge-cropped-bg);
+  color: var(--badge-cropped-text);
+}
+.cn-index-verified {
+  color: var(--accent);
+  margin-left: auto;
+}
+
+/* Downloading progress colored like the modal's other in-flight statuses. */
+.cn-imp-status.s-downloading { color: var(--accent); }
 </style>

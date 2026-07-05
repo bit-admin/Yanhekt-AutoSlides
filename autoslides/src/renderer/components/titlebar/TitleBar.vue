@@ -305,8 +305,6 @@ const infoTabLabel = computed(() => {
       return $t('tabs.slidesReview');
     case 'cloud-notes':
       return $t('tabs.cloudNotes');
-    case 'cloud-index':
-      return $t('tabs.cloudIndex');
     case 'settings':
       return $t('tabs.settings');
     default:
