@@ -1,9 +1,18 @@
 import { ipcMain } from 'electron';
 import path from 'path';
+import { hasTraversalSegment } from '@main/infra/pathUtils';
 import type { CropRect } from '@main/extraction/slideExtractionService';
 import type { IpcServices } from './types';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('CropIpc');
+
+// Image/crop paths arrive from our own listings/manifests — they never
+// contain `..` segments; reject any that do (defense in depth).
+function assertNoTraversal(targetPath: string): void {
+  if (hasTraversalSegment(targetPath)) {
+    throw new Error('Invalid path: contains traversal segments');
+  }
+}
 
 export function registerCropIpcHandlers(services: IpcServices): void {
   const { configService, slideExtractionService, slideMetadataService } = services;
@@ -28,6 +37,7 @@ export function registerCropIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('crop:getImageAsBase64', async (_event, cropPath: string) => {
     try {
+      assertNoTraversal(cropPath);
       return await slideExtractionService.getCropImageAsBase64(cropPath);
     } catch (error) {
       log.error('Failed to get crop image:', error);
@@ -37,6 +47,7 @@ export function registerCropIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('crop:apply', async (_event, imagePath: string, rect: CropRect, autoCropped?: boolean) => {
     try {
+      assertNoTraversal(imagePath);
       const outputDir = configService.getConfig().outputDirectory;
       await slideExtractionService.applyCrop(imagePath, outputDir, rect, autoCropped);
       // Human crop during review: latch `edited` and flag the folder cropped.
@@ -50,6 +61,7 @@ export function registerCropIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('crop:restore', async (_event, imagePath: string) => {
     try {
+      assertNoTraversal(imagePath);
       const outputDir = configService.getConfig().outputDirectory;
       await slideExtractionService.restoreCrop(imagePath, outputDir);
       const folderPath = path.dirname(imagePath);

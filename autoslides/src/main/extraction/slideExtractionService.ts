@@ -50,6 +50,8 @@ export class SlideExtractionService {
    */
   async saveSlide(outputPath: string, filename: string, imageBuffer: Uint8Array, enableColorReduction: boolean = false): Promise<void> {
     try {
+      validateSlideFilename(filename);
+
       const expandedPath = expandTilde(outputPath);
 
       // Ensure directory exists
