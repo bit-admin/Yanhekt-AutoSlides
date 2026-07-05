@@ -1,0 +1,268 @@
+/* Shared player control-bar styles, used by BOTH the single-stream bar
+   (SingleStreamControls.vue) and the dual-stream bar that stays inline in
+   PlaybackPage.vue. Included in each SFC via `<style scoped src>` so the
+   rules compile once per component with that component's scope id —
+   identical specificity to the pre-extraction inline copy.
+
+   Rule order is preserved from the original PlaybackPage stylesheet.
+   Ancestor-qualified rules (fullscreen/cinema variants, .dual-audio-popover,
+   cursor hiding on the containers) intentionally stay in PlaybackPage. */
+
+/* Single-stream custom control bar reuses the .dual-controls-* styling and
+   overlays the bottom of the (position: relative) .video-container. */
+.single-controls-section {
+  padding-bottom: 8px;
+}
+
+/* Inline volume control (single-stream bar). */
+.single-volume {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Two-class selector to outrank `.dual-seek { width: 100% }`, which is declared
+   later in this stylesheet and would otherwise stretch the volume slider. */
+.single-volume .single-volume-slider {
+  width: 72px;
+  flex-shrink: 0;
+}
+
+/* Playback-speed drop-up trigger (both bars). Pill variant of the icon button. */
+.dual-speed-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 28px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 14px;
+  background-color: transparent;
+  color: #f5f5f5;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.dual-speed-button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.dual-speed-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dual-speed-popover {
+  min-width: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.dual-speed-popover .dual-popover-option {
+  justify-content: center;
+}
+
+.dual-controls-section {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 18px 10px 7px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.58) 28%, rgba(0, 0, 0, 0.86) 100%);
+  border: none;
+  border-radius: 0;
+  color: #f5f5f5;
+  transition: opacity 0.2s ease;
+}
+
+/* Auto-hide: fade the overlay out and hide the cursor while idle during playback. */
+.dual-controls-section.controls-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dual-controls-main-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  height: 28px;
+}
+
+.dual-controls-left,
+.dual-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.dual-controls-left {
+  flex: 1;
+}
+
+.dual-controls-right {
+  flex-shrink: 0;
+}
+
+.dual-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background-color: transparent;
+  color: #f5f5f5;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.dual-icon-button:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.dual-icon-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dual-popover-anchor {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dual-popover {
+  position: absolute;
+  right: 0;
+  bottom: 34px;
+  z-index: 40;
+  min-width: 168px;
+  padding: 6px;
+  border-radius: 6px;
+  background-color: rgba(28, 28, 28, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(8px);
+}
+
+.dual-popover-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  border: none;
+  border-radius: 4px;
+  background-color: transparent;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.dual-popover-option svg {
+  flex-shrink: 0;
+}
+
+.dual-popover-option:hover:not(:disabled),
+.dual-popover-option.active {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.dual-popover-option:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dual-time {
+  min-width: 92px;
+  font-size: 12px;
+  color: #f5f5f5;
+  text-align: left;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.dual-seek {
+  width: 100%;
+  height: 12px;
+  margin: 0;
+  appearance: none;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.dual-seek::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    #f5f5f5 0%,
+    #f5f5f5 var(--dual-progress),
+    rgba(255, 255, 255, 0.34) var(--dual-progress),
+    rgba(255, 255, 255, 0.34) 100%
+  );
+}
+
+.dual-seek::-webkit-slider-thumb {
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  margin-top: -3px;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.dual-seek::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.dual-seek::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: #f5f5f5;
+}
+
+.dual-seek::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: none;
+  border-radius: 50%;
+  background-color: #f5f5f5;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+.dual-seek:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .dual-controls-main-row {
+    height: auto;
+  }
+
+  .dual-seek {
+    min-width: 0;
+  }
+}
