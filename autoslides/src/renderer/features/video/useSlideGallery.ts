@@ -6,6 +6,7 @@ const log = createLogger('SlideGallery');
 export interface UseSlideGalleryOptions {
   extractedSlides: Ref<ExtractedSlide[]>
   slideExtractorInstance: ShallowRef<SlideExtractionHandle | null>
+  t: (key: string, params?: Record<string, unknown>) => string
 }
 
 export interface UseSlideGalleryReturn {
@@ -21,7 +22,7 @@ export interface UseSlideGalleryReturn {
 }
 
 export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGalleryReturn {
-  const { extractedSlides, slideExtractorInstance } = options
+  const { extractedSlides, slideExtractorInstance, t } = options
 
   // State
   const selectedSlide = ref<ExtractedSlide | null>(null)
@@ -53,12 +54,12 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
       if (showConfirmation) {
         const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
           type: 'question',
-          buttons: ['Cancel', 'Move to Trash'],
+          buttons: [t('playback.gallery.cancel'), t('playback.gallery.moveToTrash')],
           defaultId: 1,
           cancelId: 0,
-          title: 'Delete Slide',
-          message: `Are you sure you want to delete "${slide.title}.png"?`,
-          detail: 'The file will be moved to the in-app trash and can be restored if needed.'
+          title: t('playback.gallery.deleteConfirmTitle'),
+          message: t('playback.gallery.deleteConfirmMessage', { name: `${slide.title}.png` }),
+          detail: t('playback.gallery.deleteConfirmDetail')
         })
 
         if (confirmed?.response !== 1) {
@@ -94,7 +95,10 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
       log.error('Failed to move slide to trash:', error)
       // Show error dialog
       const errorMessage = error instanceof Error ? error.message : String(error)
-      await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slide to trash: ${errorMessage}`)
+      await window.electronAPI.dialog?.showErrorBox?.(
+        t('playback.gallery.trashFailedTitle'),
+        t('playback.gallery.trashFailedSingle', { error: errorMessage })
+      )
     }
   }
 
@@ -108,12 +112,12 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
       // Show confirmation dialog
       const confirmed = await window.electronAPI.dialog?.showMessageBox?.({
         type: 'question',
-        buttons: ['Cancel', 'Move All to Trash'],
+        buttons: [t('playback.gallery.cancel'), t('playback.gallery.moveAllToTrash')],
         defaultId: 1,
         cancelId: 0,
-        title: 'Delete All Slides',
-        message: `Are you sure you want to delete all ${extractedSlides.value.length} slide(s)?`,
-        detail: 'All slide files will be moved to the in-app trash and can be restored if needed.'
+        title: t('playback.gallery.clearAllConfirmTitle'),
+        message: t('playback.gallery.clearAllConfirmMessage', { count: extractedSlides.value.length }),
+        detail: t('playback.gallery.clearAllConfirmDetail')
       })
 
       if (confirmed?.response !== 1) {
@@ -151,7 +155,10 @@ export function useSlideGallery(options: UseSlideGalleryOptions): UseSlideGaller
       log.error('Failed to move all slides to trash:', error)
       // Show error dialog
       const errorMessage = error instanceof Error ? error.message : String(error)
-      await window.electronAPI.dialog?.showErrorBox?.('Move to Trash Failed', `Failed to move slides to trash: ${errorMessage}`)
+      await window.electronAPI.dialog?.showErrorBox?.(
+        t('playback.gallery.trashFailedTitle'),
+        t('playback.gallery.trashFailedAll', { error: errorMessage })
+      )
     }
   }
 

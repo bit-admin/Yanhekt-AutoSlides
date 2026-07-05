@@ -572,6 +572,20 @@
     "close": "关闭"
   },
   "playback": {
+    "gallery": {
+      "deleteConfirmTitle": "删除幻灯片",
+      "deleteConfirmMessage": "确定要删除“{name}”吗？",
+      "deleteConfirmDetail": "文件将移入应用内回收站，需要时可恢复。",
+      "moveToTrash": "移入回收站",
+      "cancel": "取消",
+      "clearAllConfirmTitle": "删除全部幻灯片",
+      "clearAllConfirmMessage": "确定要删除全部 {count} 张幻灯片吗？",
+      "clearAllConfirmDetail": "所有幻灯片文件将移入应用内回收站，需要时可恢复。",
+      "moveAllToTrash": "全部移入回收站",
+      "trashFailedTitle": "移入回收站失败",
+      "trashFailedSingle": "无法将幻灯片移入回收站：{error}",
+      "trashFailedAll": "无法将幻灯片移入回收站：{error}"
+    },
     "back": "返回",
     "unknownCourse": "未知课程",
     "playingInBackground": "后台播放中",

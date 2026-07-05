@@ -206,11 +206,16 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     }
   }
 
+  // Queue notices — app dialog instead of the thread-blocking native alert().
+  const notify = (message: string): void => {
+    void window.electronAPI.dialog?.showMessageBox?.({ type: 'info', message })
+  }
+
   // Session actions
   const addToQueue = (session: Session): void => {
     const result = addSessionToTask(session)
     if (!result.added) {
-      alert(t('sessions.alreadyInTaskQueue'))
+      notify(t('sessions.alreadyInTaskQueue'))
     } else {
       onSwitchToTask(result.item.id)
     }
@@ -219,7 +224,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   const downloadCamera = (session: Session): void => {
     const result = addSessionToDownload(session, 'camera')
     if (!result.added) {
-      alert(t('sessions.alreadyInDownloadQueue'))
+      notify(t('sessions.alreadyInDownloadQueue'))
     } else {
       onSwitchToDownload(result.item.id)
     }
@@ -228,7 +233,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   const downloadScreen = (session: Session): void => {
     const result = addSessionToDownload(session, 'screen')
     if (!result.added) {
-      alert(t('sessions.alreadyInDownloadQueueScreen'))
+      notify(t('sessions.alreadyInDownloadQueueScreen'))
     } else {
       onSwitchToDownload(result.item.id)
     }
@@ -244,9 +249,9 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
 
     if (addedCount > 0) {
       onSwitchToTask()
-      alert(t('sessions.addedToTaskQueue', { count: addedCount }))
+      notify(t('sessions.addedToTaskQueue', { count: addedCount }))
     } else {
-      alert(t('sessions.allInTaskQueue'))
+      notify(t('sessions.allInTaskQueue'))
     }
   }
 
@@ -259,9 +264,9 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
 
     if (addedCount > 0) {
       onSwitchToDownload()
-      alert(t('sessions.addedToDownloadQueue', { count: addedCount }))
+      notify(t('sessions.addedToDownloadQueue', { count: addedCount }))
     } else {
-      alert(t('sessions.allInDownloadQueue'))
+      notify(t('sessions.allInDownloadQueue'))
     }
   }
 
@@ -274,9 +279,9 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
 
     if (addedCount > 0) {
       onSwitchToDownload()
-      alert(t('sessions.addedToDownloadQueueScreen', { count: addedCount }))
+      notify(t('sessions.addedToDownloadQueueScreen', { count: addedCount }))
     } else {
-      alert(t('sessions.allInDownloadQueueScreen'))
+      notify(t('sessions.allInDownloadQueueScreen'))
     }
   }
 

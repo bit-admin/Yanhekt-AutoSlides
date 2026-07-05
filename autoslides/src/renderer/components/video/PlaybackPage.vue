@@ -755,6 +755,7 @@
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('PlaybackPage');
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { configStore } from '@shared/services/configStore'
 import { layoutStore } from '@shared/services/layoutStore'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '@features/video/useVideoPlayer'
@@ -786,6 +787,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   back: []
 }>()
+
+const { t } = useI18n()
 
 // Default isVisible to true for backward compatibility
 const isVisible = computed(() => props.isVisible ?? true)
@@ -845,7 +848,8 @@ const slideExtraction = useSlideExtraction({
 // Initialize slide gallery composable
 const slideGallery = useSlideGallery({
   extractedSlides: slideExtraction.extractedSlides,
-  slideExtractorInstance: slideExtraction.slideExtractorInstance
+  slideExtractorInstance: slideExtraction.slideExtractorInstance,
+  t
 })
 
 // Initialize video player composable

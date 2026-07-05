@@ -572,6 +572,20 @@
     "close": "Close"
   },
   "playback": {
+    "gallery": {
+      "deleteConfirmTitle": "Delete Slide",
+      "deleteConfirmMessage": "Are you sure you want to delete \"{name}\"?",
+      "deleteConfirmDetail": "The file will be moved to the in-app trash and can be restored if needed.",
+      "moveToTrash": "Move to Trash",
+      "cancel": "Cancel",
+      "clearAllConfirmTitle": "Delete All Slides",
+      "clearAllConfirmMessage": "Are you sure you want to delete all {count} slide(s)?",
+      "clearAllConfirmDetail": "All slide files will be moved to the in-app trash and can be restored if needed.",
+      "moveAllToTrash": "Move All to Trash",
+      "trashFailedTitle": "Move to Trash Failed",
+      "trashFailedSingle": "Failed to move slide to trash: {error}",
+      "trashFailedAll": "Failed to move slides to trash: {error}"
+    },
     "back": "Back",
     "unknownCourse": "Unknown Course",
     "playingInBackground": "Playing in Background",

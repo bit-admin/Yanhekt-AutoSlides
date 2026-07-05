@@ -129,14 +129,14 @@ export function usePHashExclusion(): UsePHashExclusionReturn {
       if (!result.success) {
         if (!result.canceled) {
           log.error('Failed to select image:', result.error)
-          alert('Failed to select image: ' + (result.error || 'Unknown error'))
+          void window.electronAPI.dialog?.showErrorBox?.('Exclusion List', 'Failed to select image: ' + (result.error || 'Unknown error'))
         }
         return
       }
 
       if (!result.imageBuffer || !result.fileName) {
         log.error('Missing image data or filename')
-        alert('Failed to process selected image: Missing data')
+        void window.electronAPI.dialog?.showErrorBox?.('Exclusion List', 'Failed to process selected image: Missing data')
         return
       }
 
@@ -187,7 +187,7 @@ export function usePHashExclusion(): UsePHashExclusionReturn {
       }
     } catch (error) {
       log.error('Failed to add exclusion item:', error)
-      alert('Failed to add exclusion item: ' + (error instanceof Error ? error.message : 'Unknown error'))
+      void window.electronAPI.dialog?.showErrorBox?.('Exclusion List', 'Failed to add exclusion item: ' + (error instanceof Error ? error.message : 'Unknown error'))
     } finally {
       isAddingExclusion.value = false
     }

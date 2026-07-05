@@ -572,6 +572,20 @@
     "close": "閉じる"
   },
   "playback": {
+    "gallery": {
+      "deleteConfirmTitle": "スライドを削除",
+      "deleteConfirmMessage": "「{name}」を削除しますか？",
+      "deleteConfirmDetail": "ファイルはアプリ内ゴミ箱に移動され、必要に応じて復元できます。",
+      "moveToTrash": "ゴミ箱へ移動",
+      "cancel": "キャンセル",
+      "clearAllConfirmTitle": "すべてのスライドを削除",
+      "clearAllConfirmMessage": "{count} 枚のスライドをすべて削除しますか？",
+      "clearAllConfirmDetail": "すべてのスライドファイルはアプリ内ゴミ箱に移動され、必要に応じて復元できます。",
+      "moveAllToTrash": "すべてゴミ箱へ移動",
+      "trashFailedTitle": "ゴミ箱への移動に失敗",
+      "trashFailedSingle": "スライドをゴミ箱に移動できませんでした：{error}",
+      "trashFailedAll": "スライドをゴミ箱に移動できませんでした：{error}"
+    },
     "back": "戻る",
     "unknownCourse": "不明なコース",
     "playingInBackground": "バックグラウンドで再生中",

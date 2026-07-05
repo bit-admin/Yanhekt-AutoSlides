@@ -93,15 +93,15 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
           onLoginSuccess?.()
         } else {
           log.error('Token verification failed after login')
-          alert('Login failed: Token verification failed')
+          void window.electronAPI.dialog?.showErrorBox?.('Login Failed', 'Token verification failed')
         }
       } else {
         log.error('Login failed:', result.error)
-        alert(`Login failed: ${result.error}`)
+        void window.electronAPI.dialog?.showErrorBox?.('Login Failed', `${result.error}`)
       }
     } catch (error) {
       log.error('Login error:', error)
-      alert('Login failed: Network error or server exception')
+      void window.electronAPI.dialog?.showErrorBox?.('Login Failed', 'Network error or server exception')
     } finally {
       isLoading.value = false
     }
@@ -256,11 +256,11 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         closeBrowserLogin()
       } else {
         log.error('Browser token verification failed')
-        alert('Token verification failed. Please try again.')
+        void window.electronAPI.dialog?.showErrorBox?.('Login Failed', 'Token verification failed. Please try again.')
       }
     } catch (error) {
       log.error('Browser token verification error:', error)
-      alert('Token verification failed: Network error or server exception')
+      void window.electronAPI.dialog?.showErrorBox?.('Login Failed', 'Token verification failed: Network error or server exception')
     } finally {
       isVerifyingToken.value = false
     }

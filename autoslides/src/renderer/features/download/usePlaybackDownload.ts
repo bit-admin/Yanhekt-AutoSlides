@@ -53,11 +53,14 @@ export function usePlaybackDownload(options: UsePlaybackDownloadOptions): UsePla
     }
 
     if (!firstAddedId) {
-      alert(videoTypes.length > 1
-        ? t('sessions.allInDownloadQueue')
-        : videoTypes[0] === 'screen'
-          ? t('sessions.alreadyInDownloadQueueScreen')
-          : t('sessions.alreadyInDownloadQueue'))
+      void window.electronAPI.dialog?.showMessageBox?.({
+        type: 'info',
+        message: videoTypes.length > 1
+          ? t('sessions.allInDownloadQueue')
+          : videoTypes[0] === 'screen'
+            ? t('sessions.alreadyInDownloadQueueScreen')
+            : t('sessions.alreadyInDownloadQueue')
+      })
       return
     }
 
