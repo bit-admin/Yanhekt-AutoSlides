@@ -300,9 +300,9 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps): UseDualStreamPl
       attachDualHls(cameraVideo, cameraStream, cameraHls, 'camera', seekToTime, shouldAutoPlay)
       attachDualHls(screenVideo, screenStream, screenHls, 'screen', seekToTime, shouldAutoPlay)
       startDualSync()
-    } catch (err: any) {
+    } catch (err: unknown) {
       log.error('Failed to load dual video sources:', err)
-      const errorMessage = 'Failed to load dual video sources: ' + err.message
+      const errorMessage = 'Failed to load dual video sources: ' + (err instanceof Error ? err.message : String(err))
       error.value = errorMessage
       handleTaskError(errorMessage)
     }

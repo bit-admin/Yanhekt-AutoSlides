@@ -2,8 +2,16 @@ import { ipcRenderer } from 'electron';
 
 export const update = {
   checkForUpdates: () => ipcRenderer.invoke('update:checkForUpdates'),
-  onCheckForUpdates: (callback: () => void) => ipcRenderer.on('menu:checkForUpdates', () => callback()),
-  onAutoCheckForUpdates: (callback: () => void) => ipcRenderer.on('update:autoCheck', () => callback()),
+  onCheckForUpdates: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('menu:checkForUpdates', handler);
+    return () => ipcRenderer.removeListener('menu:checkForUpdates', handler);
+  },
+  onAutoCheckForUpdates: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on('update:autoCheck', handler);
+    return () => ipcRenderer.removeListener('update:autoCheck', handler);
+  },
   getReleaseInfo: () => ipcRenderer.invoke('update:getReleaseInfo'),
   downloadUpdate: (url: string, filename: string) => ipcRenderer.invoke('update:downloadUpdate', url, filename),
   cancelDownload: () => ipcRenderer.invoke('update:cancelDownload'),

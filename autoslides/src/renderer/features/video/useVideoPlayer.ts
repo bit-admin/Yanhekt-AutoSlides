@@ -404,10 +404,11 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         throw new Error('No video streams available')
       }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       log.error('Failed to load video streams:', err)
-      error.value = err.message || 'Failed to load video streams'
-      handleTaskError(err.message || 'Failed to load video streams')
+      const errorMessage = (err instanceof Error && err.message) || 'Failed to load video streams'
+      error.value = errorMessage
+      handleTaskError(errorMessage)
       isRetrying.value = false
       retryMessage.value = ''
     } finally {
@@ -495,9 +496,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       } else {
         throw new Error('HLS is not supported in this browser')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       log.error('Failed to load video source with position:', err)
-      const errorMessage = 'Failed to load video source: ' + err.message
+      const errorMessage = 'Failed to load video source: ' + (err instanceof Error ? err.message : String(err))
       error.value = errorMessage
       handleTaskError(errorMessage)
       isRetrying.value = false
@@ -601,9 +602,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       } else {
         throw new Error('HLS is not supported in this browser')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       log.error('Failed to load video source:', err)
-      const errorMessage = 'Failed to load video source: ' + err.message
+      const errorMessage = 'Failed to load video source: ' + (err instanceof Error ? err.message : String(err))
       error.value = errorMessage
       handleTaskError(errorMessage)
       isRetrying.value = false

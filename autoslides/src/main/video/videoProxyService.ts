@@ -17,6 +17,14 @@ import { signRecordedUrl, buildAxiosConfig } from './videoProxy/proxyRequest';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('VideoProxy');
 
+/** Narrow an unknown catch value to the axios-ish fields this proxy logs. */
+function asHttpError(error: unknown): { message: string; code?: string; response?: AxiosResponse } {
+  if (axios.isAxiosError(error)) {
+    return { message: error.message, code: error.code, response: error.response };
+  }
+  return { message: error instanceof Error ? error.message : String(error) };
+}
+
 export interface VideoStream {
   type: 'camera' | 'screen';
   name: string;
@@ -374,18 +382,19 @@ export class VideoProxyService {
             await this.handleTsRequest(req, res, parsedUrl);
           }
 
-        } catch (error: any) {
+        } catch (error: unknown) {
+          const httpError = asHttpError(error);
           log.error('Proxy error details:', {
-            message: error.message,
-            code: error.code,
-            response: error.response ? {
-              status: error.response.status,
-              statusText: error.response.statusText,
-              data: error.response.data
+            message: httpError.message,
+            code: httpError.code,
+            response: httpError.response ? {
+              status: httpError.response.status,
+              statusText: httpError.response.statusText,
+              data: httpError.response.data
             } : null
           });
           res.writeHead(500, { 'Content-Type': 'text/plain' });
-          res.end('Proxy error: ' + error.message);
+          res.end('Proxy error: ' + httpError.message);
         }
       });
 
@@ -527,13 +536,13 @@ export class VideoProxyService {
           continue;
         }
         return response;
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (this.intranetMapping.isEnabled()) {
           this.markIpFailedForUrl(requestUrl, rawUrl);
         }
         if (attempt < maxRetries) {
           attempt++;
-          log.debug(`Live request failed, trying next IP (${attempt}/${maxRetries}):`, error.message);
+          log.debug(`Live request failed, trying next IP (${attempt}/${maxRetries}):`, asHttpError(error).message);
           await this.delay(500);
           continue;
         }
@@ -595,14 +604,15 @@ export class VideoProxyService {
       response = await this.getLiveWithFailover(originalUrl as string, liveHeaders, {
         timeout: this.intranetMapping.isEnabled() ? 8000 : 30000 // 8s for intranet, 30s for external
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const httpError = asHttpError(error);
       log.error('Live M3U8 request failed after retries:', {
-        message: error.message,
-        code: error.code,
+        message: httpError.message,
+        code: httpError.code,
         originalUrl
       });
       res.writeHead(502, { 'Content-Type': 'text/plain' });
-      res.end(`Live M3U8 request failed: ${error.message}`);
+      res.end(`Live M3U8 request failed: ${httpError.message}`);
       return;
     }
 
@@ -638,14 +648,15 @@ export class VideoProxyService {
     let response: AxiosResponse;
     try {
       response = await this.getRecordedWithResign(originalUrl as string, { timeout: 30000 });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const httpError = asHttpError(error);
       log.error('M3U8 request failed:', {
-        status: error.response?.status,
-        message: error.message,
+        status: httpError.response?.status,
+        message: httpError.message,
         url: originalUrl
       });
       res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end(`M3U8 request failed: ${error.message}`);
+      res.end(`M3U8 request failed: ${httpError.message}`);
       return;
     }
 
@@ -710,10 +721,11 @@ export class VideoProxyService {
       let response: AxiosResponse;
       try {
         response = await this.getLiveWithFailover(tsUrl, headers, { timeout: 30000, responseType: 'stream' });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const httpError = asHttpError(error);
         log.error('Live TS request failed after retries:', {
-          message: error.message,
-          code: error.code,
+          message: httpError.message,
+          code: httpError.code,
           url: tsUrl
         });
         throw error; // Surfaced as a 500 by the server handler.
@@ -726,10 +738,11 @@ export class VideoProxyService {
     let response: AxiosResponse;
     try {
       response = await this.getRecordedWithResign(tsUrl, { timeout: 30000, responseType: 'stream' });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const httpError = asHttpError(error);
       log.error('Recorded TS request failed:', {
-        status: error.response?.status,
-        message: error.message,
+        status: httpError.response?.status,
+        message: httpError.message,
         url: tsUrl
       });
       throw error; // Surfaced as a 500 by the server handler.

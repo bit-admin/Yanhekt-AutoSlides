@@ -195,27 +195,27 @@ let cleanupAutoCheck: (() => void) | null = null
 onMounted(() => {
   isMacOS.value = navigator.userAgent.toLowerCase().includes('mac')
 
-  cleanupCheckForUpdates = (window as any).electronAPI.update.onCheckForUpdates(() => {
+  cleanupCheckForUpdates = window.electronAPI.update.onCheckForUpdates(() => {
     checkForUpdates()
   })
 
-  cleanupAutoCheck = (window as any).electronAPI.update.onAutoCheckForUpdates(() => {
+  cleanupAutoCheck = window.electronAPI.update.onAutoCheckForUpdates(() => {
     autoCheckForUpdates()
   })
 
-  cleanupDownloadProgress = (window as any).electronAPI.update.onDownloadProgress((progress: DownloadProgress) => {
+  cleanupDownloadProgress = window.electronAPI.update.onDownloadProgress((progress: DownloadProgress) => {
     downloadProgress.value = progress
   })
 
-  cleanupDownloadComplete = (window as any).electronAPI.update.onDownloadComplete((filename: string) => {
+  cleanupDownloadComplete = window.electronAPI.update.onDownloadComplete((filename: string) => {
     downloadedFile.value = filename
     isDownloading.value = false
   })
 
-  cleanupDownloadError = (window as any).electronAPI.update.onDownloadError((error: string) => {
+  cleanupDownloadError = window.electronAPI.update.onDownloadError((error: string) => {
     isDownloading.value = false
     log.error('Download error:', error)
-    ;(window as any).electronAPI.dialog.showMessageBox({
+    void window.electronAPI.dialog?.showMessageBox?.({
       type: 'error',
       title: $t('titlebar.updateModal.downloadFailed'),
       message: error,
@@ -223,7 +223,7 @@ onMounted(() => {
     })
   })
 
-  cleanupPromptQuit = (window as any).electronAPI.update.onPromptQuit(() => {
+  cleanupPromptQuit = window.electronAPI.update.onPromptQuit(() => {
     promptQuitAndInstall()
   })
 })
@@ -267,7 +267,7 @@ const closeUpdateModal = () => {
 
 const skipFor7Days = async () => {
   const skipUntilTimestamp = Date.now() + 7 * 24 * 60 * 60 * 1000
-  await (window as any).electronAPI.config.setSkipUpdateCheckUntil(skipUntilTimestamp)
+  await window.electronAPI.config.setSkipUpdateCheckUntil(skipUntilTimestamp)
   closeUpdateModal()
 }
 
@@ -279,7 +279,7 @@ const handleReleaseNotesClick = (event: MouseEvent) => {
     event.stopPropagation()
     const href = link.getAttribute('href')
     if (href) {
-      (window as any).electronAPI.shell.openExternal(href)
+      window.electronAPI.shell.openExternal(href)
     }
   }
 }
@@ -298,7 +298,7 @@ const startDownload = async (url: string, filename: string) => {
   downloadProgress.value = { downloaded: 0, total: 0, percent: 0 }
 
   try {
-    await (window as any).electronAPI.update.downloadUpdate(url, filename)
+    await window.electronAPI.update.downloadUpdate(url, filename)
   } catch (error) {
     log.error('Failed to start download:', error)
     isDownloading.value = false
@@ -307,7 +307,7 @@ const startDownload = async (url: string, filename: string) => {
 
 const cancelDownload = async () => {
   try {
-    await (window as any).electronAPI.update.cancelDownload()
+    await window.electronAPI.update.cancelDownload()
     isDownloading.value = false
     downloadProgress.value = { downloaded: 0, total: 0, percent: 0 }
   } catch (error) {
@@ -317,7 +317,7 @@ const cancelDownload = async () => {
 
 const openDownloadFolder = async () => {
   try {
-    await (window as any).electronAPI.update.openDownloadFolder()
+    await window.electronAPI.update.openDownloadFolder()
   } catch (error) {
     log.error('Failed to open download folder:', error)
   }
@@ -327,14 +327,14 @@ const installUpdate = async () => {
   if (!downloadedFile.value) return
 
   try {
-    await (window as any).electronAPI.update.installUpdate(downloadedFile.value)
+    await window.electronAPI.update.installUpdate(downloadedFile.value)
   } catch (error) {
     log.error('Failed to install update:', error)
   }
 }
 
 const promptQuitAndInstall = async () => {
-  const response = await (window as any).electronAPI.dialog.showMessageBox({
+  const response = await window.electronAPI.dialog?.showMessageBox?.({
     type: 'question',
     title: $t('titlebar.updateModal.confirmQuit'),
     message: $t('titlebar.updateModal.confirmQuitMessage'),
@@ -343,17 +343,17 @@ const promptQuitAndInstall = async () => {
     cancelId: 1
   })
 
-  if (response.response === 0) {
-    await (window as any).electronAPI.window.close()
+  if (response?.response === 0) {
+    await window.electronAPI.window.close()
   }
 }
 
 const checkForUpdates = async () => {
   try {
-    const result = await (window as any).electronAPI.update.checkForUpdates()
+    const result = await window.electronAPI.update.checkForUpdates()
 
     if (!result.success) {
-      await (window as any).electronAPI.dialog.showMessageBox({
+      await window.electronAPI.dialog?.showMessageBox?.({
         type: 'error',
         title: $t('titlebar.updateCheckFailed'),
         message: $t('titlebar.updateCheckFailedMessage'),
@@ -372,7 +372,7 @@ const checkForUpdates = async () => {
       isDownloading.value = false
       openUpdateModal()
     } else {
-      await (window as any).electronAPI.dialog.showMessageBox({
+      await window.electronAPI.dialog?.showMessageBox?.({
         type: 'info',
         title: $t('titlebar.noUpdateAvailable'),
         message: $t('titlebar.noUpdateMessage'),
@@ -389,14 +389,14 @@ const checkForUpdates = async () => {
 
 const autoCheckForUpdates = async () => {
   try {
-    const skipUntil = await (window as any).electronAPI.config.getSkipUpdateCheckUntil()
+    const skipUntil = await window.electronAPI.config.getSkipUpdateCheckUntil()
     if (Date.now() < skipUntil) {
       return
     }
 
-    const oldFilesResult = await (window as any).electronAPI.update.findOldUpdates()
+    const oldFilesResult = await window.electronAPI.update.findOldUpdates()
     if (oldFilesResult.success && oldFilesResult.files && oldFilesResult.files.length > 0) {
-      const response = await (window as any).electronAPI.dialog.showMessageBox({
+      const response = await window.electronAPI.dialog?.showMessageBox?.({
         type: 'question',
         title: $t('titlebar.updateModal.oldFilesFound'),
         message: $t('titlebar.updateModal.oldFilesMessage', { count: oldFilesResult.files.length }),
@@ -405,12 +405,12 @@ const autoCheckForUpdates = async () => {
         cancelId: 1
       })
 
-      if (response.response === 0) {
-        await (window as any).electronAPI.update.deleteOldUpdates(oldFilesResult.files)
+      if (response?.response === 0) {
+        await window.electronAPI.update.deleteOldUpdates(oldFilesResult.files)
       }
     }
 
-    const result = await (window as any).electronAPI.update.checkForUpdates()
+    const result = await window.electronAPI.update.checkForUpdates()
 
     if (!result.success || !result.hasUpdate) {
       return

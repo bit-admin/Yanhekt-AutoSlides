@@ -167,9 +167,9 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
         totalPages.value = response.last_page
         currentPage.value = response.current_page
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       log.error('Failed to fetch personal courses:', error)
-      errorMessage.value = error.message || 'Failed to fetch personal courses'
+      errorMessage.value = (error instanceof Error && error.message) || 'Failed to fetch personal courses'
       courses.value = []
     } finally {
       isLoading.value = false

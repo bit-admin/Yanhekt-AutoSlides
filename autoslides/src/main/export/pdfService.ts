@@ -485,8 +485,7 @@ export class PdfService {
         },
       };
       if (!wantsCover) {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore - font: null is valid PDFKit option to skip loading default fonts
+        // @ts-expect-error -- font: null is a valid PDFKit option (skips loading the default font) missing from its typings
         docOptions.font = null;
       }
       const doc = new PDFDocument(docOptions);

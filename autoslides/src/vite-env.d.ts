@@ -398,6 +398,8 @@ interface ElectronAPI {
     setEnableAIFiltering: (enabled: boolean) => Promise<AppConfig>;
     getEnableAIFiltering: () => Promise<boolean>;
     setPreventSystemSleep: (prevent: boolean) => Promise<AppConfig>;
+    getSkipUpdateCheckUntil: () => Promise<number>;
+    setSkipUpdateCheckUntil: (timestamp: number) => Promise<void>;
     // Auth token mirror for cross-window access (add-ons windows have separate localStorage)
     setAuthToken: (token: string | null) => Promise<void>;
     getAuthToken: () => Promise<string | null>;
@@ -585,6 +587,46 @@ interface ElectronAPI {
     onCancelled: (callback: (extractionId: string) => void) => () => void;
   };
 
+  update: {
+    checkForUpdates: () => Promise<{
+      success: boolean;
+      hasUpdate?: boolean;
+      currentVersion?: string;
+      latestVersion?: string;
+      releaseUrl?: string;
+      releaseBody?: string;
+      publishedAt?: string;
+      assets?: Array<{ name: string; url: string; size: number; formattedSize: string; proxyUrl: string }>;
+      error?: string;
+    }>;
+    onCheckForUpdates: (callback: () => void) => () => void;
+    onAutoCheckForUpdates: (callback: () => void) => () => void;
+    getReleaseInfo: () => Promise<{
+      success: boolean;
+      tagName?: string;
+      name?: string;
+      body?: string;
+      bodyHtml?: string;
+      htmlUrl?: string;
+      publishedAt?: string;
+      assets?: Array<{ name: string; url: string; size: number; formattedSize: string; proxyUrl: string }>;
+      error?: string;
+    }>;
+    downloadUpdate: (url: string, filename: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+    cancelDownload: () => Promise<{ success: boolean }>;
+    isDownloading: () => Promise<{ isDownloading: boolean }>;
+    onDownloadProgress: (callback: (progress: { downloaded: number; total: number; percent: number }) => void) => () => void;
+    onDownloadComplete: (callback: (filename: string) => void) => () => void;
+    onDownloadError: (callback: (error: string) => void) => () => void;
+    onPromptQuit: (callback: (filename: string) => void) => () => void;
+    openDownloadFolder: () => Promise<{ success: boolean; error?: string }>;
+    getDownloadFolder: () => Promise<{ success: boolean; path?: string }>;
+    installUpdate: (filename: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;
+    listDownloadedUpdates: () => Promise<{ success: boolean; updates?: string[]; error?: string }>;
+    findOldUpdates: () => Promise<{ success: boolean; files?: string[]; currentVersion?: string; error?: string }>;
+    deleteOldUpdates: (filenames: string[]) => Promise<{ success: boolean; errors?: string[] }>;
+  };
+
   extractorInstaller: {
     checkLatest: () => Promise<{
       success: boolean;
@@ -675,6 +717,7 @@ interface ElectronAPI {
 
   app?: {
     restart: () => Promise<void>;
+    getVersion: () => Promise<string>;
   };
 
   ai: {

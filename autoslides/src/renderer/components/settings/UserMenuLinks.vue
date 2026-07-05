@@ -106,7 +106,7 @@ const { t: $t } = useI18n()
 
 const openGitHub = async () => {
   try {
-    await (window as any).electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides')
+    await window.electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides')
   } catch (error) {
     log.error('Failed to open GitHub repository:', error)
   }
@@ -114,7 +114,7 @@ const openGitHub = async () => {
 
 const openITCenter = async () => {
   try {
-    await (window as any).electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/software')
+    await window.electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/software')
   } catch (error) {
     log.error('Failed to open User Manual:', error)
   }
@@ -129,7 +129,7 @@ const openYanhekt = async () => {
     const url = token
       ? `${base}?token=${encodeURIComponent(token)}&type=Bearer&expired_at=${expiredAt}`
       : base
-    await (window as any).electronAPI.shell.openExternal(url)
+    await window.electronAPI.shell.openExternal(url)
   } catch (error) {
     log.error('Failed to open Yanhekt website:', error)
   }
@@ -137,7 +137,7 @@ const openYanhekt = async () => {
 
 const openFeedbackIssue = async () => {
   try {
-    await (window as any).electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides/issues/new')
+    await window.electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides/issues/new')
   } catch (error) {
     log.error('Failed to open issue page:', error)
   }
@@ -149,7 +149,7 @@ const openFeedbackEmail = async () => {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Unknown'
   let appVersion = ''
   try {
-    appVersion = await (window as any).electronAPI.app.getVersion()
+    appVersion = await window.electronAPI.app?.getVersion() ?? ''
   } catch (error) {
     log.error('Failed to get app version:', error)
   }
@@ -176,7 +176,7 @@ const openFeedbackEmail = async () => {
   )
 
   try {
-    await (window as any).electronAPI.shell.openExternal(`mailto:info@ruc.edu.kg?subject=${subject}&body=${body}`)
+    await window.electronAPI.shell.openExternal(`mailto:info@ruc.edu.kg?subject=${subject}&body=${body}`)
   } catch (error) {
     log.error('Failed to open email client:', error)
   }

@@ -190,8 +190,8 @@ export function useYuketang(): UseYuketangReturn {
     try {
       const capture = await window.electronAPI.yuketang.getClassCapture()
       classCapture.value = capture
-    } catch {
-      // Ignore errors
+    } catch (error) {
+      log.warn('Failed to load initial class capture state:', error)
     }
 
     // Set initial status

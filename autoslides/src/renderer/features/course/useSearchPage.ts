@@ -97,10 +97,10 @@ const executeSearch = async (resetPage = true) => {
       totalPages.value = response.last_page
       currentPage.value = response.current_page
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (seq !== requestSeq) return
     log.error('Search failed:', error)
-    errorMessage.value = error.message || 'Failed to search courses'
+    errorMessage.value = (error instanceof Error && error.message) || 'Failed to search courses'
     results.value = []
   } finally {
     if (seq === requestSeq) {

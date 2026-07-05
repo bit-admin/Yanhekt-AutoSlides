@@ -168,20 +168,6 @@ export class SsimThresholdService {
   }
 
   /**
-   * Update adaptive threshold calculation (for future use)
-   */
-  public updateAdaptiveContext(context: {
-    videoQuality?: string
-    networkStability?: number
-    detectionAccuracy?: number
-    systemLoad?: number
-  }): void {
-    // TODO: Implement adaptive context updates
-    // This will be used to improve adaptive threshold calculation
-    log.debug('Adaptive context update:', context)
-  }
-
-  /**
    * Validate if a threshold value is within acceptable range
    */
   public isValidThreshold(value: number): boolean {

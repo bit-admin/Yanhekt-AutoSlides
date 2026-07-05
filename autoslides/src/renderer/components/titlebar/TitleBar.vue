@@ -537,7 +537,7 @@ const toggleHelpMenu = () => {
 // Window control functions for non-macOS platforms
 const minimizeWindow = async () => {
   try {
-    await (window as any).electronAPI.window.minimize();
+    await window.electronAPI.window.minimize();
   } catch (error) {
     log.error('Failed to minimize window:', error);
   }
@@ -545,7 +545,7 @@ const minimizeWindow = async () => {
 
 const maximizeWindow = async () => {
   try {
-    const result = await (window as any).electronAPI.window.maximize();
+    const result = await window.electronAPI.window.maximize();
     if (result.success) {
       // Update maximize button icon based on window state
       updateMaximizeIcon(result.isMaximized);
@@ -557,7 +557,7 @@ const maximizeWindow = async () => {
 
 const closeWindow = async () => {
   try {
-    await (window as any).electronAPI.window.close();
+    await window.electronAPI.window.close();
   } catch (error) {
     log.error('Failed to close window:', error);
   }
@@ -572,7 +572,7 @@ const updateMaximizeIcon = (isMaximized: boolean) => {
 // Link button handlers
 const openGitHub = async () => {
   try {
-    await (window as any).electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides');
+    await window.electronAPI.shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides');
   } catch (error) {
     log.error('Failed to open GitHub repository:', error);
   }
@@ -580,7 +580,7 @@ const openGitHub = async () => {
 
 const openITCenter = async () => {
   try {
-    await (window as any).electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/software');
+    await window.electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/software');
   } catch (error) {
     log.error('Failed to open User Manual:', error);
   }
@@ -595,7 +595,7 @@ const executeEdit = (action: string) => {
 const menuReload = async () => {
   closeAllMenus();
   try {
-    await (window as any).electronAPI.menu.reload();
+    await window.electronAPI.menu.reload();
   } catch (error) {
     log.error('Failed to reload:', error);
   }
@@ -604,7 +604,7 @@ const menuReload = async () => {
 const menuForceReload = async () => {
   closeAllMenus();
   try {
-    await (window as any).electronAPI.menu.forceReload();
+    await window.electronAPI.menu.forceReload();
   } catch (error) {
     log.error('Failed to force reload:', error);
   }
@@ -613,7 +613,7 @@ const menuForceReload = async () => {
 const menuToggleDevTools = async () => {
   closeAllMenus();
   try {
-    await (window as any).electronAPI.menu.toggleDevTools();
+    await window.electronAPI.menu.toggleDevTools();
   } catch (error) {
     log.error('Failed to toggle dev tools:', error);
   }
@@ -622,7 +622,7 @@ const menuToggleDevTools = async () => {
 const menuResetZoom = async () => {
   closeAllMenus();
   try {
-    await (window as any).electronAPI.menu.resetZoom();
+    await window.electronAPI.menu.resetZoom();
   } catch (error) {
     log.error('Failed to reset zoom:', error);
   }
@@ -631,7 +631,7 @@ const menuResetZoom = async () => {
 const menuZoomIn = async () => {
   closeAllMenus();
   try {
-    await (window as any).electronAPI.menu.zoomIn();
+    await window.electronAPI.menu.zoomIn();
   } catch (error) {
     log.error('Failed to zoom in:', error);
   }
@@ -640,7 +640,7 @@ const menuZoomIn = async () => {
 const menuZoomOut = async () => {
   closeAllMenus();
   try {
-    await (window as any).electronAPI.menu.zoomOut();
+    await window.electronAPI.menu.zoomOut();
   } catch (error) {
     log.error('Failed to zoom out:', error);
   }
@@ -649,7 +649,7 @@ const menuZoomOut = async () => {
 const menuToggleFullscreen = async () => {
   closeAllMenus();
   try {
-    await (window as any).electronAPI.menu.toggleFullscreen();
+    await window.electronAPI.menu.toggleFullscreen();
   } catch (error) {
     log.error('Failed to toggle fullscreen:', error);
   }
@@ -658,7 +658,7 @@ const menuToggleFullscreen = async () => {
 const openTermsAndConditions = async () => {
   closeAllMenus();
   try {
-    await (window as any).electronAPI.menu.openTermsAndConditions();
+    await window.electronAPI.menu.openTermsAndConditions();
   } catch (error) {
     log.error('Failed to open Terms and Conditions:', error);
   }
@@ -667,7 +667,7 @@ const openTermsAndConditions = async () => {
 const showAbout = async () => {
   closeAllMenus();
   try {
-    await (window as any).electronAPI.dialog.showMessageBox({
+    await window.electronAPI.dialog?.showMessageBox?.({
       type: 'info',
       title: $t('titlebar.aboutTitle'),
       message: $t('titlebar.aboutMessage'),
@@ -688,7 +688,7 @@ const checkForUpdates = () => {
 // Open Settings — routed through main so LeftPanel's listener opens the modal
 const openSettings = () => {
   closeAllMenus();
-  (window as any).electronAPI.menu.openSettings();
+  window.electronAPI.menu.openSettings();
 };
 </script>
 

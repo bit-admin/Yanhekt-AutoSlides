@@ -396,8 +396,7 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
 
   private async loadConfigFromService(): Promise<void> {
     try {
-      const slideConfig = await (window as { electronAPI?: { config?: { getSlideExtractionConfig?: () => Promise<Partial<SlideExtractionConfig> & { ssimPresetMode?: SsimPresetType }> } } })
-        .electronAPI?.config?.getSlideExtractionConfig?.();
+      const slideConfig = await window.electronAPI.config.getSlideExtractionConfig();
       if (!slideConfig) return;
 
       this.ssimPresetMode = slideConfig.ssimPresetMode;
