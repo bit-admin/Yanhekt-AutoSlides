@@ -259,17 +259,6 @@ const videoTokenRefreshOptions = computed(() => [
 const {
   tempShowMorePlaybackSpeed,
   tempPreventSystemSleep,
-  tempQtExtractorAutoRun,
-  tempQtExtractorAutoPostProcess,
-  qtExtractorStatusOk,
-  qtExtractorStatusVersion,
-  qtExtractorStatusError,
-  qtExtractorVerifying,
-  qtExtractorBinaryPath,
-  qtExtractorResolvedPath,
-  qtExtractorVerify,
-  qtExtractorBrowseBinary,
-  openExtractorInstallModal,
   tempMaxConcurrentDownloads,
   tempDownloadMaxWorkers,
   tempDownloadNumRetries,
@@ -281,7 +270,21 @@ const {
   updateDownloadMaxWorkers,
   updateDownloadNumRetries,
   updateVideoRetryCount,
-} = advanced
+} = advanced.general
+
+const {
+  tempQtExtractorAutoRun,
+  tempQtExtractorAutoPostProcess,
+  qtExtractorStatusOk,
+  qtExtractorStatusVersion,
+  qtExtractorStatusError,
+  qtExtractorVerifying,
+  qtExtractorBinaryPath,
+  qtExtractorResolvedPath,
+  qtExtractorVerify,
+  qtExtractorBrowseBinary,
+  openExtractorInstallModal,
+} = advanced.extractor
 
 const openExtractorRepository = async () => {
   try {

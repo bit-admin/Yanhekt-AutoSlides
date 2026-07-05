@@ -695,7 +695,7 @@ import MlThresholdSlider from '../MlThresholdSlider.vue'
 
 const { advanced, cache, ai } = useSettingsContext()
 
-const { tempDistinguishMaybeSlide } = advanced
+const { tempDistinguishMaybeSlide } = advanced.imageProcessing
 const { formatCacheSize } = cache
 
 const {

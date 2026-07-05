@@ -225,7 +225,7 @@ const {
   tempTaskSpeed,
   tempParallelTasks,
   tempMaxManualTabs,
-} = advanced
+} = advanced.general
 
 const {
   cacheStats,

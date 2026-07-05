@@ -391,9 +391,11 @@ const handleDocumentClick = (event: MouseEvent) => {
 const {
   showExtractorInstallModal,
   closeExtractorInstallModal,
+} = advancedSettings.extractor
+const {
   updateThresholdProgrammatically,
-  onAdaptiveThresholdChanged
-} = advancedSettings
+  onAdaptiveThresholdChanged,
+} = advancedSettings.imageProcessing
 
 // Open the Settings page at a requested tab when another surface asks (e.g. the
 // Home-page campus-network warning's "open intranet interface settings" link).
@@ -434,7 +436,7 @@ let cleanupOpenSettings: (() => void) | undefined
 onMounted(async () => {
   auth.verifyExistingToken()
   await settings.loadConfig()
-  await advancedSettings.loadImageProcessingConfig()
+  await advancedSettings.imageProcessing.load()
 
   // Load built-in model name in background (non-blocking)
   aiSettings.refreshBuiltinModel()

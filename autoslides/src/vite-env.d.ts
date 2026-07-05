@@ -588,17 +588,19 @@ interface ElectronAPI {
   };
 
   update: {
-    checkForUpdates: () => Promise<{
-      success: boolean;
-      hasUpdate?: boolean;
-      currentVersion?: string;
-      latestVersion?: string;
-      releaseUrl?: string;
-      releaseBody?: string;
-      publishedAt?: string;
-      assets?: Array<{ name: string; url: string; size: number; formattedSize: string; proxyUrl: string }>;
-      error?: string;
-    }>;
+    checkForUpdates: () => Promise<
+      | {
+          success: true;
+          hasUpdate: boolean;
+          currentVersion: string;
+          latestVersion: string;
+          releaseUrl: string;
+          releaseBody: string;
+          publishedAt: string;
+          assets: Array<{ name: string; url: string; size: number; formattedSize: string; proxyUrl: string }>;
+        }
+      | { success: false; error: string }
+    >;
     onCheckForUpdates: (callback: () => void) => () => void;
     onAutoCheckForUpdates: (callback: () => void) => () => void;
     getReleaseInfo: () => Promise<{
@@ -676,7 +678,7 @@ interface ElectronAPI {
 
   window: {
     minimize: () => Promise<void>;
-    maximize: () => Promise<void>;
+    maximize: () => Promise<{ success: true; isMaximized: boolean } | { success: false; error: string }>;
     close: () => Promise<void>;
     isMaximized: () => Promise<boolean>;
     setBusyState: (busy: boolean) => Promise<{ success: boolean }>;

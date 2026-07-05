@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue'
+import { computed, reactive, ref, toRaw, toRef, watch } from 'vue'
 import type { TokenManager } from '@shared/services/authService'
 import { useCopilotOAuth, type CopilotOAuthStep } from './useCopilotOAuth'
 import { useMlClassifierSettings, type AIClassifierMode, type MlThresholdValues, type MlModelInfo } from './useMlClassifierSettings'
@@ -28,43 +28,65 @@ export interface UseAISettingsOptions {
   tokenManager: TokenManager
 }
 
+// Every committed/temp value pair, with its initial default. One record per
+// side replaces the former 28 individual refs; resetTempPairs() replaces the
+// field-by-field copy in resetTempValues. NOTE the load-time fallback for
+// batchSize is `|| 5` (see loadAISettings) while the initial default is 4 —
+// a long-standing quirk kept as-is.
+const AI_PAIR_DEFAULTS = {
+  serviceType: 'builtin' as AIServiceType,
+  customApiBaseUrl: '',
+  customApiKey: '',
+  customModelName: '',
+  rateLimit: 10,
+  batchSize: 4,
+  maxConcurrent: 1,
+  minTime: 6000,
+  imageResizeWidth: 768,
+  imageResizeHeight: 432,
+  promptLive: '',
+  promptRecorded: '',
+  promptLiveDistinguish: '',
+  promptRecordedDistinguish: '',
+}
+type AiPairs = typeof AI_PAIR_DEFAULTS
+
 export function useAISettings(options: UseAISettingsOptions) {
   const { tokenManager } = options
 
-  // Service type
-  const aiServiceType = ref<AIServiceType>('builtin')
-  const tempAiServiceType = ref<AIServiceType>('builtin')
+  const committed = reactive<AiPairs>({ ...AI_PAIR_DEFAULTS })
+  const temp = reactive<AiPairs>({ ...AI_PAIR_DEFAULTS })
+  const resetTempPairs = () => Object.assign(temp, toRaw(committed))
 
-  // Custom API settings
-  const aiCustomApiBaseUrl = ref('')
-  const tempAiCustomApiBaseUrl = ref('')
-  const aiCustomApiKey = ref('')
-  const tempAiCustomApiKey = ref('')
-  const aiCustomModelName = ref('')
-  const tempAiCustomModelName = ref('')
+  // Named refs into the records — the exact public names AISettingsTab
+  // destructures and v-models; toRef keeps them writable and reactive.
+  const aiServiceType = toRef(committed, 'serviceType')
+  const tempAiServiceType = toRef(temp, 'serviceType')
+  const aiCustomApiBaseUrl = toRef(committed, 'customApiBaseUrl')
+  const tempAiCustomApiBaseUrl = toRef(temp, 'customApiBaseUrl')
+  const aiCustomApiKey = toRef(committed, 'customApiKey')
+  const tempAiCustomApiKey = toRef(temp, 'customApiKey')
+  const aiCustomModelName = toRef(committed, 'customModelName')
+  const tempAiCustomModelName = toRef(temp, 'customModelName')
   const showApiKey = ref(false)
 
-  // Rate limit and batch size
-  const aiRateLimit = ref(10)
-  const tempAiRateLimit = ref(10)
-  const aiBatchSize = ref(4)
-  const tempAiBatchSize = ref(4)
-
-  // Concurrency control
-  const aiMaxConcurrent = ref(1)
-  const tempAiMaxConcurrent = ref(1)
-  const aiMinTime = ref(6000)
-  const tempAiMinTime = ref(6000)
+  const aiRateLimit = toRef(committed, 'rateLimit')
+  const tempAiRateLimit = toRef(temp, 'rateLimit')
+  const aiBatchSize = toRef(committed, 'batchSize')
+  const tempAiBatchSize = toRef(temp, 'batchSize')
+  const aiMaxConcurrent = toRef(committed, 'maxConcurrent')
+  const tempAiMaxConcurrent = toRef(temp, 'maxConcurrent')
+  const aiMinTime = toRef(committed, 'minTime')
+  const tempAiMinTime = toRef(temp, 'minTime')
 
   const maxAiRateLimit = computed(() => {
     return tempAiServiceType.value === 'builtin' ? 10 : 60
   })
 
-  // Image resize settings
-  const aiImageResizeWidth = ref(768)
-  const tempAiImageResizeWidth = ref(768)
-  const aiImageResizeHeight = ref(432)
-  const tempAiImageResizeHeight = ref(432)
+  const aiImageResizeWidth = toRef(committed, 'imageResizeWidth')
+  const tempAiImageResizeWidth = toRef(temp, 'imageResizeWidth')
+  const aiImageResizeHeight = toRef(committed, 'imageResizeHeight')
+  const tempAiImageResizeHeight = toRef(temp, 'imageResizeHeight')
   const selectedImageResizePreset = ref('768x432')
 
   const imageResizePresets: ImageResizePreset[] = [
@@ -75,16 +97,16 @@ export function useAISettings(options: UseAISettingsOptions) {
   ]
 
   // AI prompts — simple variant
-  const aiPromptLive = ref('')
-  const tempAiPromptLive = ref('')
-  const aiPromptRecorded = ref('')
-  const tempAiPromptRecorded = ref('')
+  const aiPromptLive = toRef(committed, 'promptLive')
+  const tempAiPromptLive = toRef(temp, 'promptLive')
+  const aiPromptRecorded = toRef(committed, 'promptRecorded')
+  const tempAiPromptRecorded = toRef(temp, 'promptRecorded')
 
   // AI prompts — distinguish variant
-  const aiPromptLiveDistinguish = ref('')
-  const tempAiPromptLiveDistinguish = ref('')
-  const aiPromptRecordedDistinguish = ref('')
-  const tempAiPromptRecordedDistinguish = ref('')
+  const aiPromptLiveDistinguish = toRef(committed, 'promptLiveDistinguish')
+  const tempAiPromptLiveDistinguish = toRef(temp, 'promptLiveDistinguish')
+  const aiPromptRecordedDistinguish = toRef(committed, 'promptRecordedDistinguish')
+  const tempAiPromptRecordedDistinguish = toRef(temp, 'promptRecordedDistinguish')
 
   // Built-in model info
   const builtinModelName = ref('')
@@ -154,29 +176,26 @@ export function useAISettings(options: UseAISettingsOptions) {
     try {
       const aiConfig = await window.electronAPI.config.getAIFilteringConfig()
       if (aiConfig) {
-        aiServiceType.value = aiConfig.serviceType || 'builtin'
-        tempAiServiceType.value = aiConfig.serviceType || 'builtin'
-        aiCustomApiBaseUrl.value = aiConfig.customApiBaseUrl || ''
-        tempAiCustomApiBaseUrl.value = aiConfig.customApiBaseUrl || ''
-        aiCustomApiKey.value = aiConfig.customApiKey || ''
-        tempAiCustomApiKey.value = aiConfig.customApiKey || ''
-        aiCustomModelName.value = aiConfig.customModelName || ''
-        tempAiCustomModelName.value = aiConfig.customModelName || ''
+        // Per-key falsy fallbacks preserved exactly (incl. the batchSize || 5
+        // quirk). Written to BOTH records so committed === temp after a load.
+        const loaded: Omit<AiPairs, 'promptLive' | 'promptRecorded' | 'promptLiveDistinguish' | 'promptRecordedDistinguish'> = {
+          serviceType: aiConfig.serviceType || 'builtin',
+          customApiBaseUrl: aiConfig.customApiBaseUrl || '',
+          customApiKey: aiConfig.customApiKey || '',
+          customModelName: aiConfig.customModelName || '',
+          rateLimit: aiConfig.rateLimit || 10,
+          batchSize: aiConfig.batchSize || 5,
+          maxConcurrent: aiConfig.maxConcurrent || 1,
+          minTime: aiConfig.minTime || 6000,
+          imageResizeWidth: aiConfig.imageResizeWidth || 768,
+          imageResizeHeight: aiConfig.imageResizeHeight || 432,
+        }
+        Object.assign(committed, loaded)
+        Object.assign(temp, loaded)
+
         modelChain.tempCustomModelChain.value = Array.isArray(aiConfig.customModelChain)
           ? [...aiConfig.customModelChain]
           : []
-        aiRateLimit.value = aiConfig.rateLimit || 10
-        tempAiRateLimit.value = aiConfig.rateLimit || 10
-        aiBatchSize.value = aiConfig.batchSize || 5
-        tempAiBatchSize.value = aiConfig.batchSize || 5
-        aiMaxConcurrent.value = aiConfig.maxConcurrent || 1
-        tempAiMaxConcurrent.value = aiConfig.maxConcurrent || 1
-        aiMinTime.value = aiConfig.minTime || 6000
-        tempAiMinTime.value = aiConfig.minTime || 6000
-        aiImageResizeWidth.value = aiConfig.imageResizeWidth || 768
-        tempAiImageResizeWidth.value = aiConfig.imageResizeWidth || 768
-        aiImageResizeHeight.value = aiConfig.imageResizeHeight || 432
-        tempAiImageResizeHeight.value = aiConfig.imageResizeHeight || 432
 
         const matchingPreset = imageResizePresets.find(
           p => p.width === aiImageResizeWidth.value && p.height === aiImageResizeHeight.value
@@ -192,16 +211,12 @@ export function useAISettings(options: UseAISettingsOptions) {
         window.electronAPI.config.getAIPrompts('distinguish')
       ])
       if (simplePrompts) {
-        aiPromptLive.value = simplePrompts.live || ''
-        tempAiPromptLive.value = simplePrompts.live || ''
-        aiPromptRecorded.value = simplePrompts.recorded || ''
-        tempAiPromptRecorded.value = simplePrompts.recorded || ''
+        committed.promptLive = temp.promptLive = simplePrompts.live || ''
+        committed.promptRecorded = temp.promptRecorded = simplePrompts.recorded || ''
       }
       if (distinguishPrompts) {
-        aiPromptLiveDistinguish.value = distinguishPrompts.live || ''
-        tempAiPromptLiveDistinguish.value = distinguishPrompts.live || ''
-        aiPromptRecordedDistinguish.value = distinguishPrompts.recorded || ''
-        tempAiPromptRecordedDistinguish.value = distinguishPrompts.recorded || ''
+        committed.promptLiveDistinguish = temp.promptLiveDistinguish = distinguishPrompts.live || ''
+        committed.promptRecordedDistinguish = temp.promptRecordedDistinguish = distinguishPrompts.recorded || ''
       }
     } catch (error) {
       log.error('Failed to load AI settings:', error)
@@ -379,23 +394,10 @@ export function useAISettings(options: UseAISettingsOptions) {
   }
 
   const resetTempValues = () => {
-    tempAiServiceType.value = aiServiceType.value
-    tempAiCustomApiBaseUrl.value = aiCustomApiBaseUrl.value
-    tempAiCustomApiKey.value = aiCustomApiKey.value
-    tempAiCustomModelName.value = aiCustomModelName.value
+    resetTempPairs()
     if (modelChain.tempCustomModelChain.value.length === 0 && aiCustomModelName.value) {
       modelChain.tempCustomModelChain.value = [aiCustomModelName.value]
     }
-    tempAiRateLimit.value = aiRateLimit.value
-    tempAiBatchSize.value = aiBatchSize.value
-    tempAiMaxConcurrent.value = aiMaxConcurrent.value
-    tempAiMinTime.value = aiMinTime.value
-    tempAiImageResizeWidth.value = aiImageResizeWidth.value
-    tempAiImageResizeHeight.value = aiImageResizeHeight.value
-    tempAiPromptLive.value = aiPromptLive.value
-    tempAiPromptRecorded.value = aiPromptRecorded.value
-    tempAiPromptLiveDistinguish.value = aiPromptLiveDistinguish.value
-    tempAiPromptRecordedDistinguish.value = aiPromptRecordedDistinguish.value
     selectedApiUrlPreset.value = ''
     selectedModelPreset.value = ''
     const matchingPreset = imageResizePresets.find(

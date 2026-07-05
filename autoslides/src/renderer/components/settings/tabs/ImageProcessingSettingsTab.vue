@@ -530,7 +530,7 @@ const {
   autoCropModelInfo,
   selectAutoCropCustomModel,
   deleteAutoCropCustomModel,
-} = advanced
+} = advanced.imageProcessing
 
 const { formatCacheSize } = cache
 

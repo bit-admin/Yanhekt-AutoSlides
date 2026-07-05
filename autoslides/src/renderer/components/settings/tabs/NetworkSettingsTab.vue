@@ -94,7 +94,7 @@ const {
   refreshNetworkInterfaces,
   toggleMappingExpanded,
   getStrategyDisplayName,
-} = advanced
+} = advanced.network
 </script>
 
 <style scoped>
