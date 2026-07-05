@@ -84,14 +84,8 @@ export interface UseVideoPlayerReturn {
   dualCanSeek: ComputedRef<boolean>
   showSpeedWarning: ComputedRef<boolean>
 
-  // Error tracking state
-  videoErrorRetryCount: number
-  consecutiveErrorsAtSamePosition: number
-  lastErrorPosition: number
-  lastPlaybackPosition: number
-  wasPlayingBeforeError: boolean
-  lastPlaybackRateBeforeError: number
-  isHlsRecovering: boolean
+  // Error tracking state (read-only; the rest of the error vars are internal)
+  readonly lastPlaybackPosition: number
 
   // Methods
   loadVideoStreams: () => Promise<void>
@@ -416,7 +410,20 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     }
   }
 
-  const loadVideoSourceWithPosition = async (seekToTime?: number, shouldAutoPlay?: boolean) => {
+  // Shared HLS scaffold for the two single-stream load paths. The callers keep
+  // their own MANIFEST_PARSED behavior (rate restore/seek/auto-play policy) and
+  // their own recoverMediaError strategy — only the setup/teardown/catch
+  // skeleton is common.
+  type SingleStreamErrorConfig = Omit<
+    Parameters<typeof createSingleStreamHlsErrorHandler>[0],
+    'hls' | 'reportFatal'
+  >
+
+  const setupHlsSource = async (opts: {
+    catchLogLabel: string
+    onManifestParsed: () => void
+    errorConfig: SingleStreamErrorConfig
+  }) => {
     if (overrides.playbackDemo) return // demo posters only — never load a real source
     if (!videoPlayer.value || !currentStreamData.value) {
       return
@@ -435,34 +442,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         hls.value.attachMedia(videoPlayer.value)
 
         hls.value.on(Events.MANIFEST_PARSED, () => {
-          setTimeout(() => {
-            if (videoPlayer.value) {
-              const targetRate = mode === 'recorded' && lastPlaybackRateBeforeError > 1
-                ? lastPlaybackRateBeforeError
-                : currentPlaybackRate.value
-              currentPlaybackRate.value = applyPlaybackRate(videoPlayer.value, mode, targetRate, slideExtractorInstance.value)
-
-              isVideoMuted.value = applyMute(videoPlayer.value, shouldVideoMute.value)
-
-              if (seekToTime && seekToTime > 0) {
-                videoPlayer.value.currentTime = seekToTime
-              }
-
-              if (shouldAutoPlay !== false) {
-                setTimeout(() => {
-                  if (videoPlayer.value) {
-                    videoPlayer.value.play().catch(() => {
-                      setTimeout(() => {
-                        if (videoPlayer.value) {
-                          videoPlayer.value.play().catch(() => { /* Ignore retry play error */ })
-                        }
-                      }, 500)
-                    })
-                  }
-                }, 200)
-              }
-            }
-          }, 100)
+          setTimeout(opts.onManifestParsed, 100)
         })
 
         const reportFatal = createFatalErrorReporter({ error, isRetrying, retryMessage, handleTaskError })
@@ -470,34 +450,14 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         hls.value.on(Events.ERROR, createSingleStreamHlsErrorHandler({
           hls,
           reportFatal,
-          logLabel: 'HLS error during position restore:',
-          defaultErrorLabel: 'Other fatal error during restore:',
-          recoverMediaError: (data, attempt) => {
-            if (data.details === ErrorDetails.BUFFER_STALLED_ERROR ||
-                data.details === ErrorDetails.BUFFER_FULL_ERROR ||
-                data.details === ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
-              setTimeout(() => {
-                if (hls.value && videoPlayer.value) {
-                  const currentTime = videoPlayer.value.currentTime
-                  videoPlayer.value.currentTime = currentTime + 0.1
-                  hls.value.recoverMediaError()
-                }
-              }, 500)
-            } else {
-              setTimeout(() => {
-                if (hls.value) {
-                  hls.value.recoverMediaError()
-                }
-              }, 1000 * attempt)
-            }
-          }
+          ...opts.errorConfig
         }))
 
       } else {
         throw new Error('HLS is not supported in this browser')
       }
     } catch (err: unknown) {
-      log.error('Failed to load video source with position:', err)
+      log.error(opts.catchLogLabel, err)
       const errorMessage = 'Failed to load video source: ' + (err instanceof Error ? err.message : String(err))
       error.value = errorMessage
       handleTaskError(errorMessage)
@@ -506,45 +466,77 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     }
   }
 
-  const loadVideoSource = async () => {
-    if (overrides.playbackDemo) return // demo posters only — never load a real source
-    if (!videoPlayer.value || !currentStreamData.value) {
-      return
-    }
+  const loadVideoSourceWithPosition = (seekToTime?: number, shouldAutoPlay?: boolean) =>
+    setupHlsSource({
+      catchLogLabel: 'Failed to load video source with position:',
+      onManifestParsed: () => {
+        if (!videoPlayer.value) return
+        const targetRate = mode === 'recorded' && lastPlaybackRateBeforeError > 1
+          ? lastPlaybackRateBeforeError
+          : currentPlaybackRate.value
+        currentPlaybackRate.value = applyPlaybackRate(videoPlayer.value, mode, targetRate, slideExtractorInstance.value)
 
-    try {
-      dual.cleanupDualVideoSources()
-      cleanupSingleVideoSource()
+        isVideoMuted.value = applyMute(videoPlayer.value, shouldVideoMute.value)
 
-      const videoUrl = currentStreamData.value.url
+        if (seekToTime && seekToTime > 0) {
+          videoPlayer.value.currentTime = seekToTime
+        }
 
-      if (Hls.isSupported()) {
-        hls.value = new Hls(getHlsConfig(mode))
-
-        hls.value.loadSource(videoUrl)
-        hls.value.attachMedia(videoPlayer.value)
-
-        hls.value.on(Events.MANIFEST_PARSED, () => {
+        if (shouldAutoPlay !== false) {
           setTimeout(() => {
             if (videoPlayer.value) {
-              currentPlaybackRate.value = applyPlaybackRate(videoPlayer.value, mode, currentPlaybackRate.value, slideExtractorInstance.value)
-              isVideoMuted.value = applyMute(videoPlayer.value, shouldVideoMute.value)
-
-              videoPlayer.value.play().catch(() => { /* Ignore manifest parsed play error */ })
+              videoPlayer.value.play().catch(() => {
+                setTimeout(() => {
+                  if (videoPlayer.value) {
+                    videoPlayer.value.play().catch(() => { /* Ignore retry play error */ })
+                  }
+                }, 500)
+              })
             }
-          }, 100)
-        })
+          }, 200)
+        }
+      },
+      errorConfig: {
+        logLabel: 'HLS error during position restore:',
+        defaultErrorLabel: 'Other fatal error during restore:',
+        recoverMediaError: (data, attempt) => {
+          if (data.details === ErrorDetails.BUFFER_STALLED_ERROR ||
+              data.details === ErrorDetails.BUFFER_FULL_ERROR ||
+              data.details === ErrorDetails.BUFFER_SEEK_OVER_HOLE) {
+            setTimeout(() => {
+              if (hls.value && videoPlayer.value) {
+                const currentTime = videoPlayer.value.currentTime
+                videoPlayer.value.currentTime = currentTime + 0.1
+                hls.value.recoverMediaError()
+              }
+            }, 500)
+          } else {
+            setTimeout(() => {
+              if (hls.value) {
+                hls.value.recoverMediaError()
+              }
+            }, 1000 * attempt)
+          }
+        }
+      }
+    })
 
-        const reportFatal = createFatalErrorReporter({ error, isRetrying, retryMessage, handleTaskError })
+  const loadVideoSource = () =>
+    setupHlsSource({
+      catchLogLabel: 'Failed to load video source:',
+      onManifestParsed: () => {
+        if (!videoPlayer.value) return
+        currentPlaybackRate.value = applyPlaybackRate(videoPlayer.value, mode, currentPlaybackRate.value, slideExtractorInstance.value)
+        isVideoMuted.value = applyMute(videoPlayer.value, shouldVideoMute.value)
 
-        hls.value.on(Events.ERROR, createSingleStreamHlsErrorHandler({
-          hls,
-          reportFatal,
-          logLabel: 'HLS error:',
-          defaultErrorLabel: 'Other fatal error:',
-          onFatalStart: () => { isHlsRecovering = true },
-          onNonFatal: (data) => { log.warn('Non-fatal HLS error:', data.details, data) },
-          recoverMediaError: (data, attempt) => {
+        videoPlayer.value.play().catch(() => { /* Ignore manifest parsed play error */ })
+      },
+      errorConfig: {
+        logLabel: 'HLS error:',
+        defaultErrorLabel: 'Other fatal error:',
+        onFatalStart: () => { isHlsRecovering = true },
+        onNonFatal: (data) => { log.warn('Non-fatal HLS error:', data.details, data) },
+        recoverMediaError: (data, attempt) => {
             const currentPosition = videoPlayer.value?.currentTime || 0
             const wasPlaying = videoPlayer.value ? !videoPlayer.value.paused : false
 
@@ -596,21 +588,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
                 }
               }, 500 * attempt)
             }
-          }
-        }))
-
-      } else {
-        throw new Error('HLS is not supported in this browser')
+        }
       }
-    } catch (err: unknown) {
-      log.error('Failed to load video source:', err)
-      const errorMessage = 'Failed to load video source: ' + (err instanceof Error ? err.message : String(err))
-      error.value = errorMessage
-      handleTaskError(errorMessage)
-      isRetrying.value = false
-      retryMessage.value = ''
-    }
-  }
+    })
 
   const switchStream = async () => {
     const wasPlaying = isAnyVideoPlaying()
@@ -903,21 +883,9 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     dualCanSeek: dual.dualCanSeek,
     showSpeedWarning,
 
-    // Error tracking state (exposed for task queue access)
-    get videoErrorRetryCount() { return videoErrorRetryCount },
-    set videoErrorRetryCount(val) { videoErrorRetryCount = val },
-    get consecutiveErrorsAtSamePosition() { return consecutiveErrorsAtSamePosition },
-    set consecutiveErrorsAtSamePosition(val) { consecutiveErrorsAtSamePosition = val },
-    get lastErrorPosition() { return lastErrorPosition },
-    set lastErrorPosition(val) { lastErrorPosition = val },
+    // The one piece of error-tracking state read externally (PlaybackPage's
+    // resume hint). The rest of the error vars are internal to this composable.
     get lastPlaybackPosition() { return lastPlaybackPosition },
-    set lastPlaybackPosition(val) { lastPlaybackPosition = val },
-    get wasPlayingBeforeError() { return wasPlayingBeforeError },
-    set wasPlayingBeforeError(val) { wasPlayingBeforeError = val },
-    get lastPlaybackRateBeforeError() { return lastPlaybackRateBeforeError },
-    set lastPlaybackRateBeforeError(val) { lastPlaybackRateBeforeError = val },
-    get isHlsRecovering() { return isHlsRecovering },
-    set isHlsRecovering(val) { isHlsRecovering = val },
 
     // Methods
     loadVideoStreams,
