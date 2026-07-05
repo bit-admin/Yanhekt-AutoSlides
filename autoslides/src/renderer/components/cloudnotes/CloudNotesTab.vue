@@ -299,7 +299,7 @@
               class="cn-note-item"
               :class="{ active: cn.selectedNoteId.value === note.id }"
               :title="note.title || $t('cloudNotes.untitled')"
-              @click="openNote(note.id)"
+              @click="ed.openNote(note.id)"
             >
               <span class="cn-note-title">{{ note.title || $t('cloudNotes.untitled') }}</span>
               <span class="cn-note-meta">{{ note.updated_at }}</span>
@@ -598,122 +598,21 @@
         </div>
       </div>
 
-      <!-- Share note modal -->
-      <div v-if="showShareModal" class="modal-overlay" @click.self="closeShareModal">
-        <div class="cn-import-box cn-share-box">
-          <button class="modal-close cn-share-close" :aria-label="$t('cloudNotes.shareClose')" :title="$t('cloudNotes.shareClose')" @click="closeShareModal">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-          <h3 class="cn-modal-title">{{ $t('cloudNotes.shareTitle') }}</h3>
-          <p class="cn-share-meta">
-            <template v-if="shareImageCount > 0">{{ $t('cloudNotes.shareImagesCount', { n: shareImageCount }) }}</template>
-            <template v-else>{{ $t('cloudNotes.shareNoImages') }}</template>
-          </p>
-
-          <div class="cn-share-field">
-            <span class="cn-share-label">{{ $t('cloudNotes.shareLongLabel') }}</span>
-            <div class="cn-share-row">
-              <input class="text-input cn-share-url" readonly :value="shareLongUrl" @focus="($event.target as HTMLInputElement).select()" />
-              <button class="btn cn-share-action" :disabled="shareImageCount === 0" @click="onCopyShare('long')">
-                {{ shareCopied === 'long' ? $t('cloudNotes.shareCopied') : $t('cloudNotes.shareCopy') }}
-              </button>
-              <button class="btn cn-share-action" :disabled="shareImageCount === 0" @click="onOpenShare('long')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                </svg>
-                <span>{{ $t('cloudNotes.shareOpen') }}</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="cn-share-field">
-            <span class="cn-share-label">{{ $t('cloudNotes.shareShortLabel') }}</span>
-            <div v-if="shareShortUrl" class="cn-share-row">
-              <input class="text-input cn-share-url" readonly :value="shareShortUrl" @focus="($event.target as HTMLInputElement).select()" />
-              <button class="btn cn-share-action" @click="onCopyShare('short')">
-                {{ shareCopied === 'short' ? $t('cloudNotes.shareCopied') : $t('cloudNotes.shareCopy') }}
-              </button>
-              <button class="btn cn-share-action" @click="onOpenShare('short')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                </svg>
-                <span>{{ $t('cloudNotes.shareOpen') }}</span>
-              </button>
-            </div>
-            <div v-else class="cn-share-row">
-              <button class="btn cn-share-action cn-share-getshort" :disabled="shareShortening || shareImageCount === 0" @click="onGetShortLink">
-                {{ shareShortening ? $t('cloudNotes.shareShortening') : $t('cloudNotes.shareGetShort') }}
-              </button>
-              <span v-if="shareShortError" class="cn-share-error">{{ shareShortError }}</span>
-            </div>
-          </div>
-
-          <div class="cn-share-field">
-            <span class="cn-share-label">{{ $t('cloudNotes.shareIndexLabel') }}</span>
-            <div v-if="shareIndexUrl" class="cn-share-row">
-              <input class="text-input cn-share-url" readonly :value="shareIndexUrl" @focus="($event.target as HTMLInputElement).select()" />
-              <button class="btn cn-share-action" @click="onCopyShare('index')">
-                {{ shareCopied === 'index' ? $t('cloudNotes.shareCopied') : $t('cloudNotes.shareCopy') }}
-              </button>
-              <button class="btn cn-share-action" @click="onOpenShare('index')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-                </svg>
-                <span>{{ $t('cloudNotes.shareOpen') }}</span>
-              </button>
-            </div>
-            <div v-else class="cn-share-row">
-              <button class="btn cn-share-action cn-share-getshort" :disabled="shareIndexing || !shareCanIndex || shareImageCount === 0" @click="onPublishToIndex">
-                {{ shareIndexing ? $t('cloudNotes.shareIndexPublishing') : $t('cloudNotes.shareIndexPublish') }}
-              </button>
-              <span v-if="!shareCanIndex" class="cn-share-hint">{{ $t('cloudNotes.shareIndexUnavailable') }}</span>
-              <span v-else-if="shareIndexError" class="cn-share-error">{{ shareIndexError }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <NoteShareModal
+        ref="shareModalRef"
+        :cn="cn"
+        :publisher="publisher"
+        :get-content="ed.currentNoteContent"
+        :on-content-updated="onEditorContentUpdated"
+      />
 
       <!-- Right: editor (notes mode) / slide viewer (index mode) -->
-      <section v-if="viewMode === 'notes'" class="cn-editor">
-        <div v-if="!cn.selectedNote.value" class="cn-empty cn-editor-empty">{{ $t('cloudNotes.selectNote') }}</div>
-        <template v-else>
-          <div class="cn-editor-header">
-            <input
-              v-model="editableTitle"
-              class="text-input cn-title-input"
-              :placeholder="$t('cloudNotes.untitled')"
-              @blur="onSaveTitle"
-              @keyup.enter="onSaveTitle"
-            />
-            <select class="text-input cn-group-select" :value="String(cn.selectedNote.value.note_group_id ?? 0)" @change="onMoveGroup">
-              <option value="0">{{ $t('cloudNotes.defaultGroup') }}</option>
-              <option v-for="g in cn.groups.value.filter(x => x.id !== 0)" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
-            </select>
-            <button
-              v-if="isManagedNoteTitle(cn.selectedNote.value.title)"
-              class="btn btn--ghost cn-share-btn"
-              :title="$t('cloudNotes.shareTip')"
-              @click="openShareModal"
-            >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-              </svg>
-              <span>{{ $t('cloudNotes.shareButton') }}</span>
-            </button>
-            <span class="cn-save-status" :class="saveStatus">
-              <template v-if="saveStatus === 'saving'">{{ $t('cloudNotes.saving') }}</template>
-              <template v-else-if="saveStatus === 'saved'">{{ $t('cloudNotes.saved') }}</template>
-              <template v-else>{{ $t('cloudNotes.idle') }}</template>
-            </span>
-          </div>
-          <div class="cn-editor-holder custom-scrollbar">
-            <div ref="editorHolder" class="cn-editor-doc"></div>
-          </div>
-        </template>
-      </section>
+      <NoteEditorPane
+        v-if="viewMode === 'notes'"
+        :cn="cn"
+        :ed="ed"
+        @share="shareModalRef?.open()"
+      />
       <CloudIndexViewer
         v-else
         :detail="idx.viewer.value"
@@ -740,15 +639,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import EditorJS from '@editorjs/editorjs'
-import type { OutputData } from '@editorjs/editorjs'
-import Header from '@editorjs/header'
-import List from '@editorjs/list'
-import ImageTool from '@editorjs/image'
-import Delimiter from '@editorjs/delimiter'
-import Quote from '@editorjs/quote'
-import CodeTool from '@editorjs/code'
-import Table from '@editorjs/table'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { buildReadmeContent } from '@features/cloudNotes/readmeContent'
@@ -761,13 +651,15 @@ import CloudIndexViewer from './CloudIndexViewer.vue'
 import CloudIndexRemovalModal from './CloudIndexRemovalModal.vue'
 import { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
 import ImportProgressModal from './ImportProgressModal.vue'
+import NoteEditorPane from './NoteEditorPane.vue'
+import NoteShareModal from './NoteShareModal.vue'
+import { useNoteEditor } from '@features/cloudNotes/useNoteEditor'
 import { useNoteExport, type ExportItem } from '@features/cloudNotes/useNoteExport'
 import { noteOpenRequestStore, notesRefreshStore } from '@features/cloudNotes/noteOpenRequest'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { NOTE_GROUP_NAME_MAX, isManagedNoteTitle, managedNoteDisplayName } from '@common/notesTypes'
-import { buildSharePayload, buildShareUrl, encodeSharePayload, SHARE_ORIGIN } from '@common/shareLink'
-import { noteImageUrls, findRecordedShareUrl, readNoteMetadata, upsertNoteMetadata, NOTE_COPYRIGHT } from '@common/notesContent'
-import type { SlideMetadataSource } from '@common/slideMetadataTypes'
+import { SHARE_ORIGIN } from '@common/shareLink'
+import { NOTE_COPYRIGHT } from '@common/notesContent'
 
 const { t } = useI18n()
 const cn = useCloudNotes()
@@ -778,6 +670,11 @@ const imp = useNoteImport(cn, {
   slideCaption: (n) => t('cloudNotes.noteSlideCaption', { n }),
 })
 const publisher = useNotesPublish(cn)
+
+// Editor.js lifecycle (parent-constructed — see useNoteEditor's doc comment).
+const ed = useNoteEditor(cn, t)
+const shareModalRef = ref<InstanceType<typeof NoteShareModal> | null>(null)
+const onEditorContentUpdated = (content: string) => ed.mountEditor(content)
 
 // ── AutoSlides Index (merged-in "index mode") ──────────────────────────────
 // The page toggles between the notes editor (default) and a native browser over
@@ -1036,166 +933,15 @@ function startResize(type: 'group' | 'list', e: MouseEvent): void {
 const newGroupName = ref('')
 const showNewGroupModal = ref(false)
 const newGroupInput = ref<HTMLInputElement | null>(null)
-const editableTitle = ref('')
-const editorHolder = ref<HTMLElement | null>(null)
-const saveStatus = ref<'idle' | 'saving' | 'saved'>('idle')
-let editor: EditorJS | null = null
-/** True once the editor has loaded a note and is ready to accept user edits. */
-let editorReady = false
-/**
- * Serialized *blocks* of the currently-loaded content, used to detect genuine
- * edits. We compare blocks only — never the whole OutputData — because
- * editor.save() stamps a fresh `time` on every call, which would otherwise make
- * every save look like a change. The initial-render onChange also diffs equal.
- */
-let lastSavedBlocks = ''
-let saveTimer: ReturnType<typeof setTimeout> | undefined
-let savedFlashTimer: ReturnType<typeof setTimeout> | undefined
-
-function parseContent(raw: string): OutputData | undefined {
-  if (!raw) return undefined
-  try {
-    const parsed = JSON.parse(raw)
-    if (parsed && Array.isArray(parsed.blocks)) return parsed as OutputData
-  } catch {
-    // Malformed content — start blank rather than crash the editor.
-  }
-  return undefined
-}
-
-/** Persist the current editor content for the given note id, if it changed. */
-async function flushSave(noteId: number): Promise<void> {
-  if (saveTimer) {
-    clearTimeout(saveTimer)
-    saveTimer = undefined
-  }
-  if (!editor || !editorReady) return
-  const data = await editor.save()
-  const blocks = JSON.stringify(data.blocks)
-  // No genuine change vs. what's loaded/last-saved → don't hit the network.
-  if (blocks === lastSavedBlocks) return
-  saveStatus.value = 'saving'
-  const ok = await cn.saveContent(noteId, JSON.stringify(data))
-  if (ok) lastSavedBlocks = blocks
-  // Don't clobber the status if the user already switched to another note.
-  if (cn.selectedNoteId.value !== noteId) return
-  saveStatus.value = ok ? 'saved' : 'idle'
-  if (ok) {
-    if (savedFlashTimer) clearTimeout(savedFlashTimer)
-    savedFlashTimer = setTimeout(() => {
-      if (saveStatus.value === 'saved') saveStatus.value = 'idle'
-    }, 1500)
-  }
-}
-
-/** Debounced auto-save triggered by Editor.js onChange. */
-function scheduleSave(): void {
-  if (!editorReady) return
-  const noteId = cn.selectedNoteId.value
-  if (noteId == null) return
-  if (saveTimer) clearTimeout(saveTimer)
-  saveTimer = setTimeout(() => { flushSave(noteId) }, 1000)
-}
-
-async function destroyEditor(): Promise<void> {
-  editorReady = false
-  lastSavedBlocks = ''
-  if (saveTimer) {
-    clearTimeout(saveTimer)
-    saveTimer = undefined
-  }
-  if (editor) {
-    try {
-      await editor.isReady
-      editor.destroy()
-    } catch {
-      // ignore teardown races
-    }
-    editor = null
-  }
-}
-
-async function mountEditor(content: string): Promise<void> {
-  await destroyEditor()
-  if (!editorHolder.value) return
-  saveStatus.value = 'idle'
-  const instance = new EditorJS({
-    holder: editorHolder.value,
-    data: parseContent(content),
-    placeholder: t('cloudNotes.editorPlaceholder'),
-    onChange: scheduleSave,
-    tools: {
-      header: Header,
-      list: List,
-      quote: Quote,
-      code: CodeTool,
-      table: Table,
-      delimiter: Delimiter,
-      image: {
-        class: ImageTool,
-        config: {
-          uploader: {
-            uploadByFile: async (file: File) => {
-              const buf = await file.arrayBuffer()
-              const res = await window.electronAPI.cloudNotes.uploadImage(buf, file.name, file.type)
-              if (res.ok) return { success: 1, file: { url: res.data.url } }
-              cn.error.value = res.error === 'not-signed-in' ? t('cloudNotes.notSignedIn') : res.error
-              return { success: 0 }
-            },
-          },
-        },
-      },
-    },
-  })
-  editor = instance
-  await instance.isReady
-  if (editor !== instance) return
-  // Capture the editor's own block serialization of the just-loaded content as
-  // the baseline, so the initial render's onChange (and block normalization)
-  // don't count as an edit. Only block diffs against this trigger a real save.
-  try {
-    lastSavedBlocks = JSON.stringify((await instance.save()).blocks)
-  } catch {
-    lastSavedBlocks = ''
-  }
-  editorReady = true
-}
-
-async function openNote(id: number): Promise<void> {
-  // Persist any pending edits to the note we're leaving before switching.
-  const prevId = cn.selectedNoteId.value
-  if (prevId != null && prevId !== id) await flushSave(prevId)
-  const detail = await cn.openNote(id)
-  if (detail) {
-    editableTitle.value = detail.title
-    await mountEditor(detail.content)
-  }
-}
 
 async function onCreateNote(): Promise<void> {
   const id = await cn.createNote()
-  if (id != null) await openNote(id)
-}
-
-async function onSaveTitle(): Promise<void> {
-  const note = cn.selectedNote.value
-  if (!note) return
-  const next = editableTitle.value.trim()
-  if (next === note.title) return
-  await cn.renameNote(note.id, next)
-}
-
-async function onMoveGroup(e: Event): Promise<void> {
-  const note = cn.selectedNote.value
-  if (!note) return
-  const groupId = Number((e.target as HTMLSelectElement).value)
-  await cn.moveNoteToGroup(note.id, groupId)
-  note.note_group_id = groupId
+  if (id != null) await ed.openNote(id)
 }
 
 async function onDeleteNote(noteId: number): Promise<void> {
   if (!confirm(t('cloudNotes.confirmDeleteNote'))) return
-  if (cn.selectedNoteId.value === noteId) await destroyEditor()
+  if (cn.selectedNoteId.value === noteId) await ed.destroyEditor()
   await cn.deleteNote(noteId)
 }
 
@@ -1274,7 +1020,7 @@ async function onOpenConflictNote(id?: number): Promise<void> {
     viewMode.value = 'notes'
     await nextTick()
   }
-  await openNote(id)
+  await ed.openNote(id)
 }
 
 // ── Export notes to slides ─────────────────────────────────────────────────
@@ -1345,142 +1091,6 @@ function exportBarWidth(item: ExportItem): number {
   return 0
 }
 
-// ── Share note ─────────────────────────────────────────────────────────────
-const showShareModal = ref(false)
-const shareLongUrl = ref('')
-const shareShortUrl = ref<string | null>(null)
-const shareFragment = ref('')
-const shareImageCount = ref(0)
-const shareShortening = ref(false)
-const shareShortError = ref('')
-const shareCopied = ref<'long' | 'short' | 'index' | null>(null)
-const shareIndexUrl = ref<string | null>(null)
-const shareIndexing = ref(false)
-const shareIndexError = ref('')
-const shareIndexSource = ref<SlideMetadataSource | null>(null)
-const shareReview = ref<{ reviewed: boolean; edited: boolean }>({ reviewed: false, edited: false })
-// Only recorded-session notes carry the course/session identity the index needs.
-const shareCanIndex = computed(() => !!(shareIndexSource.value?.courseId && shareIndexSource.value?.sessionId))
-
-/** Freshest stringified content for the open note (live editor, else saved). */
-async function currentNoteContent(): Promise<string> {
-  const saved = cn.selectedNote.value?.content ?? ''
-  if (editor && editorReady) {
-    try { return JSON.stringify(await editor.save()) } catch { return saved }
-  }
-  return saved
-}
-
-async function openShareModal(): Promise<void> {
-  const note = cn.selectedNote.value
-  if (!note) return
-  const content = await currentNoteContent()
-  const urls = noteImageUrls(content)
-  const payload = buildSharePayload(managedNoteDisplayName(note.title), urls)
-  shareFragment.value = encodeSharePayload(payload)
-  shareLongUrl.value = buildShareUrl(payload)
-  shareImageCount.value = urls.length
-  shareShortUrl.value = findRecordedShareUrl(content)
-  shareShortError.value = ''
-  shareCopied.value = null
-  // Index publish state: identity + review come from the embedded slides metadata.
-  const meta = readNoteMetadata(content)
-  shareIndexUrl.value = meta?.note.indexUrl ?? null
-  shareIndexSource.value = meta?.slides?.source ?? null
-  const rev = meta?.slides?.review
-  const edited = !!(rev?.edited || rev?.cropped)
-  // Editing implies reviewing.
-  shareReview.value = { reviewed: !!rev?.reviewed || edited, edited }
-  shareIndexError.value = ''
-  showShareModal.value = true
-}
-
-function closeShareModal(): void {
-  showShareModal.value = false
-}
-
-function shareUrlFor(which: 'long' | 'short' | 'index'): string | null {
-  if (which === 'short') return shareShortUrl.value
-  if (which === 'index') return shareIndexUrl.value
-  return shareLongUrl.value
-}
-
-async function onCopyShare(which: 'long' | 'short' | 'index'): Promise<void> {
-  const url = shareUrlFor(which)
-  if (!url) return
-  try {
-    await navigator.clipboard.writeText(url)
-    shareCopied.value = which
-    setTimeout(() => { if (shareCopied.value === which) shareCopied.value = null }, 1500)
-  } catch { /* clipboard denied — ignore */ }
-}
-
-function onOpenShare(which: 'long' | 'short' | 'index'): void {
-  const url = shareUrlFor(which)
-  if (url) window.electronAPI.shell.openExternal(url)
-}
-
-async function onPublishToIndex(): Promise<void> {
-  if (shareIndexing.value || shareIndexUrl.value || !shareCanIndex.value || shareImageCount.value === 0) return
-  // Review nudge: editing implies reviewing, so warn only when neither holds.
-  if (!shareReview.value.reviewed && !shareReview.value.edited) {
-    const res = await window.electronAPI.dialog?.showMessageBox?.({
-      type: 'question',
-      title: t('cloudNotes.shareIndexLabel'),
-      message: t('cloudNotes.shareIndexReviewWarn'),
-      buttons: [t('cloudNotes.shareIndexPublishAnyway'), t('cloudNotes.shareIndexReviewFirst')],
-      defaultId: 1,
-      cancelId: 1,
-    })
-    if (res && res.response !== 0) return
-  }
-  const noteId = cn.selectedNoteId.value
-  if (noteId == null) return
-  shareIndexing.value = true
-  shareIndexError.value = ''
-  try {
-    // useNotesPublish owns the payload build, publish, and metadata write-back;
-    // it returns the updated content so we can refresh the live editor.
-    const res = await publisher.publishNote(noteId, await currentNoteContent())
-    if (!res.ok) {
-      shareIndexError.value = ('error' in res && res.error) || t('cloudNotes.shareIndexError')
-      return
-    }
-    shareIndexUrl.value = res.indexUrl
-    if (res.content) { try { await mountEditor(res.content) } catch { /* best-effort */ } }
-  } catch (e) {
-    shareIndexError.value = e instanceof Error ? e.message : String(e)
-  } finally {
-    shareIndexing.value = false
-  }
-}
-
-async function onGetShortLink(): Promise<void> {
-  if (shareShortening.value || shareShortUrl.value || shareImageCount.value === 0) return
-  shareShortening.value = true
-  shareShortError.value = ''
-  try {
-    const res = await window.electronAPI.cloudNotes.shortenShareUrl(shareFragment.value)
-    if (!res.ok) { shareShortError.value = t('cloudNotes.shareShortError'); return }
-    const url = res.data.url
-    shareShortUrl.value = url
-    // Record the short link in the note's managed metadata block so it persists
-    // and a future Share reuses it instead of minting a new one.
-    const noteId = cn.selectedNoteId.value
-    if (noteId != null) {
-      try {
-        const content = await currentNoteContent()
-        const next = upsertNoteMetadata(content, { note: { shareUrl: url } })
-        if (await cn.saveContent(noteId, next)) await mountEditor(next)
-      } catch { /* metadata update is best-effort */ }
-    }
-  } catch {
-    shareShortError.value = t('cloudNotes.shareShortError')
-  } finally {
-    shareShortening.value = false
-  }
-}
-
 async function onCreateGroup(): Promise<void> {
   const name = newGroupName.value.trim()
   if (!name) return
@@ -1520,7 +1130,7 @@ onMounted(async () => {
 watch(
   () => noteOpenRequestStore.pending.value,
   (req) => {
-    if (req) void openNote(req.noteId)
+    if (req) void ed.openNote(req.noteId)
   },
   { immediate: true },
 )
@@ -1534,18 +1144,12 @@ watch(
 )
 
 onUnmounted(() => {
-  if (savedFlashTimer) clearTimeout(savedFlashTimer)
   if (resizing) stopResize()
-  destroyEditor()
 })
 
 // Live search — filter the list as the user types (client-side, instant).
 watch(() => cn.keyword.value, () => cn.searchNotes(true))
 
-// If the selected note is cleared externally, tear the editor down.
-watch(() => cn.selectedNoteId.value, (id) => {
-  if (id == null) destroyEditor()
-})
 </script>
 
 <style scoped>
@@ -2391,149 +1995,11 @@ watch(() => cn.selectedNoteId.value, (id) => {
 }
 
 /* ── Right: editor ───────────────────────────────────────────────────── */
-.cn-editor {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.cn-editor-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.cn-title-input {
-  flex: 1;
-  min-width: 0;
-  font-weight: 600;
-}
-
-.cn-group-select {
-  width: 120px;
-  flex-shrink: 0;
-}
-
-.cn-save-status {
-  flex-shrink: 0;
-  font-size: 12px;
-  white-space: nowrap;
-  min-width: 50px;
-  text-align: center;
-  color: var(--text-muted);
-  transition: color 0.2s ease;
-}
-
-.cn-save-status.saving {
-  color: var(--text-secondary);
-}
-
-.cn-save-status.saved {
-  color: var(--success);
-}
-
-.cn-share-btn {
-  flex-shrink: 0;
-  gap: 5px;
-  padding: 4px 12px;
-  font-size: 12px;
-}
-
-/* ── Share modal ── */
-.cn-share-box {
-  position: relative;
-  width: 480px;
-}
-
-.cn-share-close {
-  position: absolute;
-  top: 14px;
-  right: 14px;
-}
-
-.cn-share-meta {
-  margin: -4px 0 4px;
-  color: var(--text-muted);
-  font-size: 13px;
-}
-
-.cn-share-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cn-share-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.cn-share-row {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.cn-share-url {
-  flex: 1;
-  min-width: 0;
-  font-size: 12px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-
-/* Row actions share the input's control height for a consistent line. */
-.cn-share-action {
-  flex-shrink: 0;
-  font-size: 12px;
-  padding: 4px 12px;
-}
-
-.cn-share-getshort {
-  align-self: flex-start;
-}
-
-.cn-share-error {
-  color: var(--danger);
-  font-size: 12px;
-  align-self: center;
-}
-
-.cn-share-hint {
-  color: var(--text-muted);
-  font-size: 12px;
-  align-self: center;
-}
-
-.cn-editor-holder {
-  flex: 1;
-  overflow-y: auto;
-  padding: 28px 24px 96px;
-  color: var(--text-primary);
-}
-
-.cn-editor-doc {
-  max-width: 760px;
-  margin: 0 auto;
-  /* Left gutter houses Editor.js's block toolbar (＋ / drag handle), which sits
-     at right:100% of the content column. Without this the toolbar overshoots
-     into the panel divider. */
-  padding: 0 16px 0 56px;
-  box-sizing: border-box;
-}
-
 .cn-empty {
   padding: 24px;
   text-align: center;
   color: var(--text-muted);
   font-size: 13px;
-}
-
-.cn-editor-empty {
-  margin: auto;
 }
 
 /* Sign-in prompt */
@@ -2560,96 +2026,6 @@ watch(() => cn.selectedNoteId.value, (id) => {
   max-width: 70%;
   cursor: pointer;
   z-index: var(--z-dropdown);
-}
-
-/* ── Editor.js theming (maps its hardcoded light chrome to design tokens so
-      light + dark both look right) ──────────────────────────────────────── */
-
-/* Left-align content (don't use Editor.js's own 650px centering); the doc's
-   left padding provides the toolbar gutter instead, so it never overshoots. */
-.cn-editor-doc :deep(.ce-block__content),
-.cn-editor-doc :deep(.ce-toolbar__content) {
-  max-width: 100%;
-  margin: 0;
-}
-
-.cn-editor-doc :deep(.ce-paragraph),
-.cn-editor-doc :deep(.ce-header),
-.cn-editor-doc :deep(.cdx-block) {
-  color: var(--text-primary);
-}
-
-.cn-editor-doc :deep(a) {
-  color: var(--link-color);
-}
-
-/* Placeholders */
-.cn-editor-doc :deep([data-placeholder]:empty::before),
-.cn-editor-doc :deep(.cdx-block[data-placeholder]:empty::before) {
-  color: var(--text-muted);
-}
-
-/* Left-gutter controls: + button and drag/settings handle */
-.cn-editor-doc :deep(.ce-toolbar__plus),
-.cn-editor-doc :deep(.ce-toolbar__settings-btn) {
-  color: var(--text-secondary);
-}
-
-.cn-editor-doc :deep(.ce-toolbar__plus:hover),
-.cn-editor-doc :deep(.ce-toolbar__settings-btn:hover) {
-  background-color: var(--bg-hover);
-}
-
-/* Floating surfaces: toolbox popover, inline toolbar, conversion toolbar,
-   block-settings popover */
-.cn-editor-doc :deep(.ce-popover),
-.cn-editor-doc :deep(.ce-inline-toolbar),
-.cn-editor-doc :deep(.ce-conversion-toolbar),
-.cn-editor-doc :deep(.ce-settings) {
-  background-color: var(--bg-elevated);
-  border-color: var(--border-color);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-md);
-}
-
-.cn-editor-doc :deep(.ce-popover__item:hover),
-.cn-editor-doc :deep(.ce-inline-tool:hover),
-.cn-editor-doc :deep(.ce-inline-toolbar__dropdown:hover),
-.cn-editor-doc :deep(.ce-conversion-tool:hover) {
-  background-color: var(--bg-hover);
-}
-
-.cn-editor-doc :deep(.ce-popover__item-icon),
-.cn-editor-doc :deep(.ce-conversion-tool__icon) {
-  background-color: var(--bg-surface);
-  border-color: var(--border-color);
-  color: var(--text-primary);
-}
-
-/* Inputs inside Editor.js (e.g. image caption, quote text/caption) */
-.cn-editor-doc :deep(.cdx-input) {
-  background-color: var(--bg-input);
-  border-color: var(--border-input);
-  color: var(--text-primary);
-}
-
-/* Code block */
-.cn-editor-doc :deep(.ce-code__textarea) {
-  background-color: var(--bg-input);
-  border-color: var(--border-input);
-  color: var(--text-primary);
-}
-
-/* Table — themes itself through these three CSS variables */
-.cn-editor-doc :deep(.tc-wrap) {
-  --color-background: var(--bg-subtle);
-  --color-text-secondary: var(--text-muted);
-  --color-border: var(--border-color);
-}
-
-/* Delimiter dots */
-.cn-editor-doc :deep(.ce-delimiter) {
-  color: var(--text-muted);
 }
 
 /* ── AutoSlides Index (index mode) ───────────────────────────────────── */
