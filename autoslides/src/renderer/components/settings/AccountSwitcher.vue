@@ -136,8 +136,9 @@ function onAddAccount() {
 .account-flyout {
   position: absolute;
   left: 100%;
-  /* Align top border with the parent dropup's top border (8px padding + 1px border) */
-  top: -9px;
+  /* Bottom-anchored so the list grows upward: the parent is a dropup pinned to the
+     bottom of the sidebar, so a top-anchored flyout overshoots the window with 2+ rows. */
+  bottom: -9px;
   margin-left: 12px;
   min-width: 200px;
   max-height: 320px;
@@ -173,12 +174,13 @@ function onAddAccount() {
 
 .account-row {
   align-items: center;
+  padding: 4px 10px;
 }
 
 .account-avatar {
   flex-shrink: 0;
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   display: flex;
   align-items: center;
