@@ -253,8 +253,8 @@ import { settingsLauncher } from '@features/settings/settingsLauncher'
 import { configStore } from '@shared/services/configStore'
 
 const { t } = useI18n()
-const { greetingText, loadGreeting } = useGreeting()
-const { isLoggedIn } = useAuth()
+const { greetingText, loadGreeting, resetGreeting } = useGreeting()
+const { isLoggedIn, userId } = useAuth()
 const { openSavedSearch } = useSearchPage()
 const {
   liveStreams,
@@ -365,8 +365,16 @@ const confirmAddSearch = () => {
   closeAddModal()
 }
 
-watch(isLoggedIn, (loggedIn) => {
+// Watch userId too: switching accounts stays logged-in (isLoggedIn unchanged),
+// so a plain isLoggedIn watch would leave the previous account's rows/greeting.
+watch([isLoggedIn, userId], ([loggedIn]) => {
   if (loggedIn) {
+    // Clear the previous account's cached rows + module-level thumbnail cache,
+    // re-roll the (name-bearing) greeting, then load the new account's rows.
+    clearPersonalRows()
+    clearThumbnails()
+    resetGreeting()
+    loadGreeting()
     loadPersonalRows()
   } else {
     clearPersonalRows()

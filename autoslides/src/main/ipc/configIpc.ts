@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { IpcServices } from './types';
 import type { AIServiceType } from '@main/platform/configService';
-import type { PinnedCourse } from '@common/types';
+import type { PinnedCourse, StoredAccount } from '@common/types';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('ConfigIpc');
 
@@ -267,6 +267,16 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle('config:setCloudStorageInitialized', async (_, badge: string, initialized: boolean) => {
     configService.setCloudStorageInitialized(badge, initialized);
+    broadcastConfig();
+  });
+
+  ipcMain.handle('config:upsertAccount', async (_, account: StoredAccount) => {
+    configService.upsertAccount(account);
+    broadcastConfig();
+  });
+
+  ipcMain.handle('config:removeAccount', async (_, badge: string) => {
+    configService.removeAccount(badge);
     broadcastConfig();
   });
 

@@ -91,7 +91,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const { activeNav } = navigationStore
-const { isLoggedIn } = useAuth()
+const { isLoggedIn, userId } = useAuth()
 
 const {
   isLoading,
@@ -130,8 +130,10 @@ watch(activeNav, (nav) => {
   }
 })
 
-// Login while this mode's grid is visible → load it.
-watch(isLoggedIn, (loggedIn) => {
+// Login OR account switch while this mode's grid is visible → reload it. userId is
+// watched too: a switch stays logged-in, so an isLoggedIn-only watch would leave
+// the previous account's personal course grid on screen.
+watch([isLoggedIn, userId], ([loggedIn]) => {
   if (loggedIn && activeNav.value === props.mode) {
     refresh()
   }

@@ -92,17 +92,50 @@ export class VideoProxyService {
   private clientIdCounter = 0;
 
   private intranetMapping: IntranetMappingService;
-  private auth: ProxyAuth;
+  private apiClient: ApiClient;
+  private configService: ConfigService;
+  // One ProxyAuth (login token + video-token cache + signature loop) PER account
+  // login token, keyed by the token. Recorded/live stream URLs embed their own
+  // loginToken (in the m3u8 URL, and now in the rewritten TS URLs), so each stream
+  // signs with the token of the account that opened it. This is what lets an
+  // account switch — or a second concurrent stream on a different account — proceed
+  // without the streams clobbering each other's video token (the old single shared
+  // ProxyAuth caused cross-account 403s). Cleared only when the proxy goes idle.
+  private authByToken = new Map<string, ProxyAuth>();
 
   constructor(apiClient: ApiClient, intranetMapping: IntranetMappingService, configService: ConfigService) {
     this.intranetMapping = intranetMapping;
-    this.auth = new ProxyAuth(apiClient, configService);
+    this.apiClient = apiClient;
+    this.configService = configService;
 
     // Proactively invalidate bound agents when the user changes the selected
     // intranet interface IP in Advanced Settings.
     this.intranetMapping.on('interfaceIpChanged', () => {
       this.rebuildAgents('');
     });
+  }
+
+  /**
+   * Get (or lazily create) the ProxyAuth for a given account login token. Each
+   * instance owns that account's video-token cache + signature refresh loop, so
+   * concurrent streams on different accounts never share signing state.
+   */
+  private getAuth(loginToken: string): ProxyAuth {
+    let auth = this.authByToken.get(loginToken);
+    if (!auth) {
+      auth = new ProxyAuth(this.apiClient, this.configService);
+      auth.setLoginToken(loginToken);
+      this.authByToken.set(loginToken, auth);
+    }
+    return auth;
+  }
+
+  /** Stop every per-token signature loop (per-request signing still refreshes on
+   * demand, so this only pauses the warm-keeper — safe for any still-live stream). */
+  private stopAllSignatureLoops(): void {
+    for (const auth of this.authByToken.values()) {
+      auth.stopUpdateSignatureLoop();
+    }
   }
 
   /**
@@ -204,11 +237,9 @@ export class VideoProxyService {
       // Start proxy server if not already running
       const proxyPort = await this.startVideoProxy();
 
-      // Store the login token for dynamic token refresh
-      this.auth.setLoginToken(token);
-
-      // Start signature update loop for recorded videos
-      this.auth.startUpdateSignatureLoop();
+      // Get (or create) this account's ProxyAuth and start its signature loop
+      // (recorded videos keep the token warm; other accounts' loops are untouched).
+      this.getAuth(token).startUpdateSignatureLoop();
 
       const result: VideoPlaybackUrls = {
         session_id: session.session_id,
@@ -260,8 +291,8 @@ export class VideoProxyService {
    */
   async getLiveStreamUrls(stream: LiveStreamInput, token: string): Promise<VideoPlaybackUrls> {
     try {
-      // Store the login token for dynamic token refresh
-      this.auth.setLoginToken(token);
+      // Ensure this account's ProxyAuth exists (live needs no signature loop).
+      this.getAuth(token);
 
       const result: VideoPlaybackUrls = {
         stream_id: stream.id || stream.live_id,
@@ -468,14 +499,15 @@ export class VideoProxyService {
    */
   private async getRecordedWithResign(
     rawUrl: string,
-    opts: { timeout: number; responseType?: 'stream' }
+    opts: { timeout: number; responseType?: 'stream' },
+    auth: ProxyAuth
   ): Promise<AxiosResponse> {
     const maxRetries = 3;
     let attempt = 0;
 
     while (true) {
       const { requestUrl, headers } = await signRecordedUrl(
-        this.auth, this.intranetMapping, rawUrl, this.BASE_HEADERS
+        auth, this.intranetMapping, rawUrl, this.BASE_HEADERS
       );
       const agents = this.resolveAgents();
       const axiosConfig = buildAxiosConfig(this.intranetMapping, agents, headers, opts);
@@ -496,7 +528,7 @@ export class VideoProxyService {
       }
 
       log.debug('Clearing token cache due to persistent recorded 403 errors');
-      this.auth.invalidateToken();
+      auth.invalidateToken();
       return response; // exhausted — caller surfaces the 403
     }
   }
@@ -586,8 +618,9 @@ export class VideoProxyService {
       return;
     }
 
-    // Store login token for future use
-    this.auth.setLoginToken(loginToken as string);
+    // Resolve this account's ProxyAuth (live needs no signing, but ensures the
+    // instance exists for lifecycle symmetry).
+    this.getAuth(loginToken as string);
 
     // Set proper headers for live stream request. Under intranet mode the URL is
     // rewritten to an IP, so Host must carry the original hostname.
@@ -622,8 +655,9 @@ export class VideoProxyService {
       return;
     }
 
-    // Process m3u8 content to rewrite TS URLs to point to our proxy.
-    const content = this.processLiveM3u8Content(response.data, originalUrl as string);
+    // Process m3u8 content to rewrite TS URLs to point to our proxy (carrying the
+    // account's loginToken so each TS request signs with the right account).
+    const content = this.processLiveM3u8Content(response.data, originalUrl as string, loginToken as string);
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
     res.writeHead(200);
     res.end(content);
@@ -642,12 +676,12 @@ export class VideoProxyService {
       return;
     }
 
-    // Store login token for future use
-    this.auth.setLoginToken(loginToken as string);
+    // Resolve this account's ProxyAuth so recorded signing uses its own token.
+    const auth = this.getAuth(loginToken as string);
 
     let response: AxiosResponse;
     try {
-      response = await this.getRecordedWithResign(originalUrl as string, { timeout: 30000 });
+      response = await this.getRecordedWithResign(originalUrl as string, { timeout: 30000 }, auth);
     } catch (error: unknown) {
       const httpError = asHttpError(error);
       log.error('M3U8 request failed:', {
@@ -666,8 +700,9 @@ export class VideoProxyService {
       return;
     }
 
-    // Process m3u8 content to rewrite TS URLs to point to our proxy.
-    const content = this.processM3u8Content(response.data, originalUrl as string);
+    // Process m3u8 content to rewrite TS URLs to point to our proxy (carrying the
+    // account's loginToken so each TS request signs with the right account).
+    const content = this.processM3u8Content(response.data, originalUrl as string, loginToken as string);
     res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
     res.writeHead(200);
     res.end(content);
@@ -678,7 +713,7 @@ export class VideoProxyService {
    */
   private async handleTsRequest(_req: http.IncomingMessage, res: http.ServerResponse, parsedUrl: url.UrlWithParsedQuery): Promise<void> {
     const pathname = parsedUrl.pathname || '';
-    const { baseUrl } = parsedUrl.query;
+    const { baseUrl, loginToken } = parsedUrl.query;
 
     if (!baseUrl) {
       log.error('Missing baseUrl for TS request');
@@ -734,10 +769,13 @@ export class VideoProxyService {
       return;
     }
 
-    // Recorded video (and the legacy fallback) — encrypt + sign with 403 re-sign.
+    // Recorded video (and the legacy fallback) — encrypt + sign with 403 re-sign,
+    // using the ProxyAuth for the account that opened this stream (loginToken from
+    // the TS URL). Missing token (legacy URL) falls back to a fresh instance.
+    const auth = this.getAuth((loginToken as string) ?? '');
     let response: AxiosResponse;
     try {
-      response = await this.getRecordedWithResign(tsUrl, { timeout: 30000, responseType: 'stream' });
+      response = await this.getRecordedWithResign(tsUrl, { timeout: 30000, responseType: 'stream' }, auth);
     } catch (error: unknown) {
       const httpError = asHttpError(error);
       log.error('Recorded TS request failed:', {
@@ -750,12 +788,12 @@ export class VideoProxyService {
     this.pipeUpstream(res, response);
   }
 
-  private processLiveM3u8Content(content: string, baseUrl: string): string {
-    return rewriteM3u8TsUrls(content, this.proxyPort, baseUrl, 'live');
+  private processLiveM3u8Content(content: string, baseUrl: string, loginToken: string): string {
+    return rewriteM3u8TsUrls(content, this.proxyPort, baseUrl, 'live', loginToken);
   }
 
-  private processM3u8Content(content: string, baseUrl: string): string {
-    return rewriteM3u8TsUrls(content, this.proxyPort, baseUrl, 'recorded');
+  private processM3u8Content(content: string, baseUrl: string, loginToken: string): string {
+    return rewriteM3u8TsUrls(content, this.proxyPort, baseUrl, 'recorded', loginToken);
   }
 
   private extractHostFromUrl(url: string): string {
@@ -784,8 +822,11 @@ export class VideoProxyService {
    * This stops token refresh without stopping the proxy server
    */
   stopSignatureLoop(): void {
-    log.debug('Stopping signature update loop (playback ended)');
-    this.auth.stopUpdateSignatureLoop();
+    log.debug('Stopping signature update loops (playback ended)');
+    // Pause every account's warm-keeper. Any still-live stream keeps working via
+    // per-request on-demand signing; instances are retained (not cleared) so a
+    // concurrent stream doesn't lose its cached video token.
+    this.stopAllSignatureLoops();
   }
 
   /**
@@ -797,7 +838,10 @@ export class VideoProxyService {
    */
   stopSignatureLoopIfIdle(): void {
     if (this.activeClients.size === 0) {
-      this.auth.stopUpdateSignatureLoop();
+      // Fully idle: stop every loop and drop the per-token instances so the map
+      // doesn't accumulate stale tokens across sessions.
+      this.stopAllSignatureLoops();
+      this.authByToken.clear();
     }
   }
 
@@ -805,8 +849,9 @@ export class VideoProxyService {
    * Force stop the proxy server (internal method)
    */
   private forceStopVideoProxy(): void {
-    // Stop signature update loop
-    this.auth.stopUpdateSignatureLoop();
+    // Stop every per-token signature loop and drop the instances.
+    this.stopAllSignatureLoops();
+    this.authByToken.clear();
 
     if (this.proxyServer) {
       this.proxyServer.close();

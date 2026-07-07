@@ -1,6 +1,6 @@
 import { ref, type Ref } from 'vue'
 import { AuthService, TokenManager, tokenManager } from '@shared/services/authService'
-import { ApiClient } from '@shared/services/apiClient'
+import { ApiClient, type UserData } from '@shared/services/apiClient'
 import { toDisplayName } from './usePinyinName'
 import { configStore } from '@shared/services/configStore'
 import { createLogger } from '@shared/utils/logger';
@@ -20,6 +20,29 @@ const apiClient = new ApiClient()
 function persistUserNames(nickname: string): void {
   const display = toDisplayName(nickname)
   window.electronAPI.config.setUserNames(nickname, display)
+}
+
+// Apply a freshly-verified user to the shared auth state and record it as the
+// active account. Used by every verify path (login, existing-token, manual token,
+// browser login, account switch) so identity + token capture stays in one place.
+function applyVerifiedUser(userData: UserData, token: string, fallbackNickname = 'User'): void {
+  const nickname = userData.nickname || fallbackNickname
+  const badge = userData.badge || 'unknown'
+  isLoggedIn.value = true
+  userNickname.value = nickname
+  userId.value = badge
+  persistUserNames(nickname)
+  tokenManager.saveToken(token)
+  const now = Date.now()
+  const existing = (configStore.accounts ?? []).find((a) => a.badge === badge)
+  window.electronAPI.config.upsertAccount({
+    badge,
+    nickname,
+    displayName: toDisplayName(nickname),
+    token,
+    addedAt: existing?.addedAt ?? now,
+    lastUsedAt: now,
+  })
 }
 
 export interface UseAuthReturn {
@@ -44,6 +67,8 @@ export interface UseAuthReturn {
   // Methods
   login: () => Promise<void>
   logout: () => void
+  deactivate: () => void
+  switchAccount: (badge: string) => Promise<void>
   verifyExistingToken: () => Promise<void>
 
   // Manual token methods
@@ -85,10 +110,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
         const verificationResult = await apiClient.verifyToken(result.token)
 
         if (verificationResult.valid && verificationResult.userData) {
-          isLoggedIn.value = true
-          userNickname.value = verificationResult.userData.nickname || username.value
-          userId.value = verificationResult.userData.badge || 'unknown'
-          persistUserNames(userNickname.value)
+          applyVerifiedUser(verificationResult.userData, result.token, username.value)
           log.debug('Login successful')
           onLoginSuccess?.()
         } else {
@@ -107,7 +129,9 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     }
   }
 
-  const logout = () => {
+  // Clear the active session (token + shared/local auth state) back to the
+  // signed-out state. Does NOT touch the saved accounts list.
+  const clearActiveSession = () => {
     tokenManager.clearToken()
     isLoggedIn.value = false
     username.value = ''
@@ -115,6 +139,51 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     userNickname.value = 'User'
     userId.value = 'user123'
     window.electronAPI.config.setUserNames('', '')
+  }
+
+  // Fully sign out of the active account AND forget it (remove from the saved
+  // switch list). Also the invalid-token path (verifyExistingToken) and the
+  // switch-failure path, where dropping the dead account is the right behavior.
+  const logout = () => {
+    const badge = userId.value
+    if (badge && badge !== 'user123') {
+      void window.electronAPI.config.removeAccount(badge)
+    }
+    clearActiveSession()
+  }
+
+  // Deactivate the active session WITHOUT forgetting the account (it stays in the
+  // switch list). Backs the "Add account" flow: returns the UI to the signed-out
+  // chooser so the user can sign in as another account, then switch back.
+  const deactivate = () => {
+    clearActiveSession()
+  }
+
+  const switchAccount = async (badge: string) => {
+    const account = (configStore.accounts ?? []).find((a) => a.badge === badge)
+    if (!account) return
+
+    isVerifyingToken.value = true
+    try {
+      const result = await apiClient.verifyToken(account.token)
+      if (result.valid && result.userData) {
+        applyVerifiedUser(result.userData, account.token)
+        log.debug('Account switch successful')
+        onLoginSuccess?.()
+      } else if (result.networkError) {
+        // Keep the account and the previous active session on transient failure.
+        void window.electronAPI.dialog?.showErrorBox?.('Switch Account', 'Network error while switching account. Please try again.')
+      } else {
+        // Token revoked/invalid: forget this account.
+        void window.electronAPI.config.removeAccount(badge)
+        void window.electronAPI.dialog?.showErrorBox?.('Switch Account', `The saved session for ${account.nickname || 'this account'} has expired. Please sign in again.`)
+      }
+    } catch (error) {
+      log.error('Account switch error:', error)
+      void window.electronAPI.dialog?.showErrorBox?.('Switch Account', 'Network error or server exception')
+    } finally {
+      isVerifyingToken.value = false
+    }
   }
 
   const verifyExistingToken = async () => {
@@ -135,10 +204,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     try {
       const result = await apiClient.verifyToken(token)
       if (result.valid && result.userData) {
-        isLoggedIn.value = true
-        userNickname.value = result.userData.nickname || 'User'
-        userId.value = result.userData.badge || 'unknown'
-        persistUserNames(userNickname.value)
+        applyVerifiedUser(result.userData, token)
         log.debug('Existing token verified successfully')
       } else {
         if (!result.networkError) {
@@ -191,12 +257,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
           message: `Token verified successfully for ${result.userData.nickname || 'user'}`
         }
 
-        isLoggedIn.value = true
-        userNickname.value = result.userData.nickname || 'User'
-        userId.value = result.userData.badge || 'unknown'
-        persistUserNames(userNickname.value)
-
-        tokenManager.saveToken(manualToken.value.trim())
+        applyVerifiedUser(result.userData, manualToken.value.trim())
 
         log.debug('Manual token verification successful')
       } else {
@@ -245,11 +306,7 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
       const result = await apiClient.verifyToken(token)
 
       if (result.valid && result.userData) {
-        tokenManager.saveToken(token)
-        isLoggedIn.value = true
-        userNickname.value = result.userData.nickname || 'User'
-        userId.value = result.userData.badge || 'unknown'
-        persistUserNames(userNickname.value)
+        applyVerifiedUser(result.userData, token)
         log.debug('Browser login successful')
         onLoginSuccess?.()
         // Close browser login view after successful login
@@ -288,6 +345,8 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     // Methods
     login,
     logout,
+    deactivate,
+    switchAccount,
     verifyExistingToken,
 
     // Manual token methods

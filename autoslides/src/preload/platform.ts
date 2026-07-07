@@ -1,5 +1,5 @@
 import { ipcRenderer } from 'electron';
-import type { PinnedCourse } from '@common/types';
+import type { PinnedCourse, StoredAccount } from '@common/types';
 
 export const auth = {
   login: (username: string, password: string) => ipcRenderer.invoke('auth:login', username, password),
@@ -73,6 +73,8 @@ export const config = {
   setLastGreetingId: (id: string) => ipcRenderer.invoke('config:setLastGreetingId', id),
   setOnboardingCompleted: (completed: boolean) => ipcRenderer.invoke('config:setOnboardingCompleted', completed),
   setCloudStorageInitialized: (badge: string, initialized: boolean) => ipcRenderer.invoke('config:setCloudStorageInitialized', badge, initialized),
+  upsertAccount: (account: StoredAccount) => ipcRenderer.invoke('config:upsertAccount', account),
+  removeAccount: (badge: string) => ipcRenderer.invoke('config:removeAccount', badge),
   setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => ipcRenderer.invoke('config:setSavedSearches', mode, searches),
   setPinnedRecordedCourses: (courses: PinnedCourse[]) => ipcRenderer.invoke('config:setPinnedRecordedCourses', courses),
   getSlideExtractionConfig: () => ipcRenderer.invoke('config:getSlideExtractionConfig'),

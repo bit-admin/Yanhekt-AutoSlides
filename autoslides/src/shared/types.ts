@@ -115,6 +115,19 @@ export interface AIFilteringConfig {
   mlClassifierCustomModelName: string | null;
 }
 
+// A signed-in account remembered for quick account switching. Keyed by `badge`
+// (the Yanhekt user id from verifyToken). `badge === ''` marks a pre-migration
+// placeholder seeded from the legacy single `authToken`; it is reconciled to a
+// real record (matched by `token`) on the next successful verifyToken.
+export interface StoredAccount {
+  badge: string;
+  nickname: string;
+  displayName: string;
+  token: string;
+  addedAt: number;
+  lastUsedAt: number;
+}
+
 export interface AppConfig {
   outputDirectory: string;
   connectionMode: ConnectionMode;
@@ -163,6 +176,10 @@ export interface AppConfig {
   // group exists; this flag only distinguishes "never initialized" (features gated
   // until the user inits) from "initialized but deleted server-side" (auto re-init).
   cloudStorageInitializedUsers: string[];
+  // Accounts remembered for quick account switching (each with its own token).
+  // The active account is the one whose `token` equals the standalone `authToken`
+  // electron-store key. Migrated from the legacy single-account fields.
+  accounts: StoredAccount[];
 }
 
 // A recorded course pinned to the sidebar. `id` drives navigation/session loading;

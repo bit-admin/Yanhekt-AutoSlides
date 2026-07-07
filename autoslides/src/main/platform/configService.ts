@@ -30,7 +30,8 @@ import type {
   PHashExclusionItem,
   PinnedCourse,
   QtExtractorConfig,
-  SlideExtractionConfig
+  SlideExtractionConfig,
+  StoredAccount
 } from './config/types';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('Config');
@@ -49,7 +50,8 @@ export type {
   MlClassifierThresholds,
   PHashExclusionItem,
   QtExtractorConfig,
-  SlideExtractionConfig
+  SlideExtractionConfig,
+  StoredAccount
 };
 
 export {
@@ -77,6 +79,7 @@ export class ConfigService {
     this.ensureOutputDirectoryExists();
     this.initializeTheme();
     this.migrateOnboardingFlag();
+    this.migrateAccounts();
   }
 
   // One-time migration: existing installs (which have already shown a greeting)
@@ -87,6 +90,42 @@ export class ConfigService {
       const isExistingInstall = !!this.store.get('lastGreetingId');
       this.store.set('onboardingCompleted', isExistingInstall);
     }
+  }
+
+  // One-time migration: bring the legacy single-account state (the standalone
+  // `authToken` key + userOriginalNickname/userDisplayName) into the new `accounts`
+  // list. Seeds a placeholder with badge '' because the badge is not persisted;
+  // it is reconciled to a real record (matched by token) on the next verifyToken.
+  private migrateAccounts(): void {
+    const existing = (this.store.get('accounts') ?? []) as StoredAccount[];
+    if (existing.length > 0) return;
+    const token = this.store.get('authToken');
+    if (!token) return;
+    const now = Date.now();
+    this.store.set('accounts', [{
+      badge: '',
+      nickname: this.store.get('userOriginalNickname') ?? '',
+      displayName: this.store.get('userDisplayName') ?? '',
+      token,
+      addedAt: now,
+      lastUsedAt: now
+    }]);
+  }
+
+  // Insert or update an account, keyed by badge. Also drops any placeholder
+  // (badge === '') whose token matches, reconciling a migrated legacy account.
+  upsertAccount(account: StoredAccount): void {
+    const accounts = (this.store.get('accounts') ?? []) as StoredAccount[];
+    const filtered = accounts.filter((a) =>
+      a.badge !== account.badge && !(a.badge === '' && a.token === account.token)
+    );
+    filtered.push(account);
+    this.store.set('accounts', filtered);
+  }
+
+  removeAccount(badge: string): void {
+    const accounts = (this.store.get('accounts') ?? []) as StoredAccount[];
+    this.store.set('accounts', accounts.filter((a) => a.badge !== badge));
   }
 
   getConfig(): AppConfig {
@@ -125,7 +164,8 @@ export class ConfigService {
       savedSearchesRecorded: this.store.get('savedSearchesRecorded') ?? [],
       pinnedRecordedCourses: this.store.get('pinnedRecordedCourses') ?? [],
       onboardingCompleted: this.store.get('onboardingCompleted') ?? false,
-      cloudStorageInitializedUsers: this.store.get('cloudStorageInitializedUsers') ?? []
+      cloudStorageInitializedUsers: this.store.get('cloudStorageInitializedUsers') ?? [],
+      accounts: this.store.get('accounts') ?? []
     };
   }
 

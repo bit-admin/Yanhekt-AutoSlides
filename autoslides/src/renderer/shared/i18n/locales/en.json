@@ -70,7 +70,9 @@
     "accessMessage": "You can now access all resources from Yanhekt.",
     "signOut": "Sign Out",
     "signInWithBrowser": "Sign in with Browser",
-    "signInWithSSO": "Sign in with SSO"
+    "signInWithSSO": "Sign in with SSO",
+    "switchAccount": "Switch Account",
+    "addAccount": "Add Account"
   },
   "browserLogin": {
     "close": "Close",

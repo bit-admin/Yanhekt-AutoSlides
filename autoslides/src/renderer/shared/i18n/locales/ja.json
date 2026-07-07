@@ -70,7 +70,9 @@
     "accessMessage": "延河課堂のすべてのリソースにアクセスできるようになりました",
     "signOut": "サインアウト",
     "signInWithBrowser": "ブラウザでサインイン",
-    "signInWithSSO": "SSOでサインイン"
+    "signInWithSSO": "SSOでサインイン",
+    "switchAccount": "アカウントを切り替え",
+    "addAccount": "アカウントを追加"
   },
   "browserLogin": {
     "close": "閉じる",

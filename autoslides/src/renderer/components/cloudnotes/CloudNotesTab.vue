@@ -503,6 +503,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
+import { useAuth } from '@features/platform/useAuth'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { buildReadmeContent } from '@features/cloudNotes/readmeContent'
 import { useNoteImport } from '@features/cloudNotes/useNoteImport'
@@ -528,6 +529,7 @@ import { NOTE_COPYRIGHT } from '@common/notesContent'
 
 const { t } = useI18n()
 const cn = useCloudNotes()
+const { userId } = useAuth()
 
 const imp = useNoteImport(cn, {
   meta: (count, date) => t('cloudNotes.noteMeta', { count, date }),
@@ -885,6 +887,17 @@ watch(
 
 onUnmounted(() => {
   if (resizing) stopResize()
+})
+
+// Account switch: the note list, groups, and any open note belong to the previous
+// account. Tear down the editor first (cancels the debounced auto-save so it can't
+// write the old note's content under the new account's token), drop the selection,
+// then reload for the switched account. cloudStorageStore is rebound separately by
+// LeftPanel's [isLoggedIn, userId] watch.
+watch(() => userId.value, () => {
+  void ed.destroyEditor()
+  cn.selectedNote.value = null
+  void cn.init()
 })
 
 // Live search — filter the list as the user types (client-side, instant).

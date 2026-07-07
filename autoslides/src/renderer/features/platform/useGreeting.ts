@@ -140,5 +140,11 @@ export function useGreeting() {
     greetingText.value = await sessionPromise
   }
 
-  return { greetingText, loadGreeting }
+  // Drop the memoized greeting so the next loadGreeting() re-rolls one. Called on
+  // account switch: the greeting may embed the user's name, which changes.
+  const resetGreeting = () => {
+    sessionPromise = null
+  }
+
+  return { greetingText, loadGreeting, resetGreeting }
 }

@@ -163,6 +163,10 @@
             </svg>
             <span>{{ $t('auth.signInWithSSO') }}</span>
           </button>
+          <template v-if="hasSavedAccounts">
+            <div class="menu-links-separator"></div>
+            <AccountSwitcher mode="signed-out" @close="closeSigninMenu" />
+          </template>
         </div>
       </div>
       <div v-else ref="userInfoRef" class="user-info">
@@ -204,6 +208,7 @@
 
         <div v-if="showUserMenu" class="user-menu user-menu-expanded">
           <UserMenuLinks />
+          <AccountSwitcher mode="signed-in" @close="closeUserMenu" />
           <button class="btn btn--danger-outline logout-btn user-menu-signout" @click="handleSignOut">{{ $t('auth.signOut') }}</button>
         </div>
       </div>
@@ -265,7 +270,7 @@
 <script setup lang="ts">
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('LeftPanel');
-import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { usePinyinName } from '@features/platform/usePinyinName'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import { navigationStore } from '@features/course/navigationStore'
@@ -275,7 +280,9 @@ import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@fe
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
 import UserMenuLinks from './UserMenuLinks.vue'
+import AccountSwitcher from './AccountSwitcher.vue'
 import SignInModal from './SignInModal.vue'
+import { configStore } from '@shared/services/configStore'
 
 // Navigator (Home / Live / Recorded + search bar)
 const { activeNav, livePlaybackActive, recordedPlaybackActive, activePinnedId, navigate } = navigationStore
@@ -308,14 +315,20 @@ const {
 // verified, check whether the managed note storage is provisioned. Auto
 // re-provisions only for accounts that initialized before (persisted flag);
 // otherwise import/publish surfaces stay gated until an explicit init.
-watch(isLoggedIn, (v) => {
-  if (v) {
+// Watch userId too so switching accounts (logged-in → logged-in, isLoggedIn
+// unchanged but the badge changes) rebinds cloud storage to the new account.
+watch([isLoggedIn, userId], ([loggedIn]) => {
+  if (loggedIn) {
     cloudStorageStore.setUser(userId.value)
     void cloudStorageStore.refresh()
   } else {
     cloudStorageStore.setUser(null)
   }
 }, { immediate: true })
+
+// The signed-out "Switch account" block only appears when there is at least one
+// saved account to switch into.
+const hasSavedAccounts = computed(() => (configStore.accounts ?? []).length > 0)
 
 const showUserMenu = ref(false)
 const userInfoRef = ref<HTMLElement | null>(null)
@@ -676,6 +689,12 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.menu-links-separator {
+  height: 1px;
+  background-color: var(--border-input);
+  margin: 4px 0;
 }
 
 .signin-option {

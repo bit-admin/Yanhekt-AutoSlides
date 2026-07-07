@@ -13,6 +13,7 @@ import type {
   CropRect,
   CropEntry,
   PinnedCourse,
+  StoredAccount,
 } from './shared/types';
 import type {
   SlideMetadata,
@@ -417,6 +418,8 @@ interface ElectronAPI {
     setLastGreetingId: (id: string) => Promise<void>;
     setOnboardingCompleted: (completed: boolean) => Promise<void>;
     setCloudStorageInitialized: (badge: string, initialized: boolean) => Promise<void>;
+    upsertAccount: (account: StoredAccount) => Promise<void>;
+    removeAccount: (badge: string) => Promise<void>;
     setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => Promise<void>;
     setPinnedRecordedCourses: (courses: PinnedCourse[]) => Promise<void>;
 
