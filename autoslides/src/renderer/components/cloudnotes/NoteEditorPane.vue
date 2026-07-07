@@ -4,7 +4,16 @@
        the parent — openNote must work while this pane is unmounted in index
        mode); this component only renders the pane and binds the holder. -->
   <section class="cn-editor">
-    <div v-if="!cn.selectedNote.value" class="cn-empty cn-editor-empty">{{ $t('cloudNotes.selectNote') }}</div>
+    <!-- Mirrors CloudIndexViewer's empty state (icon + caption) for consistency. -->
+    <div v-if="!cn.selectedNote.value" class="cn-editor-empty">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+      </svg>
+      <p>{{ $t('cloudNotes.selectNote') }}</p>
+    </div>
     <template v-else>
       <div class="cn-editor-header">
         <input
@@ -135,17 +144,26 @@ async function onMoveGroup(e: Event): Promise<void> {
   box-sizing: border-box;
 }
 
-/* This pane's copy of the shared empty-state style (the parent keeps its own
-   for the note list / sign-in states). */
-.cn-empty {
-  padding: 24px;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 13px;
+/* Empty state — same icon+caption composition as CloudIndexViewer's
+   .ci-viewer-empty so the two right-pane placeholders read as one design. */
+.cn-editor-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: 1;
+  color: var(--text-secondary);
+  font-size: 14px;
 }
 
-.cn-editor-empty {
-  margin: auto;
+.cn-editor-empty p {
+  margin: 0;
+}
+
+.cn-editor-empty svg {
+  color: var(--text-muted);
+  opacity: 0.7;
 }
 
 /* ── Editor.js theming (maps its hardcoded light chrome to design tokens so

@@ -242,7 +242,7 @@
               @click="idx.selectCourse(g.courseId)"
             >
               <span class="cn-index-course-title">{{ g.courseTitle }}</span>
-              <span class="cn-index-course-meta">{{ g.courseId }}</span>
+              <span class="cn-index-course-meta">{{ courseSub(g) }}</span>
             </button>
           </template>
         </div>
@@ -676,6 +676,16 @@ function termOptionLabel(tm: IndexTermOption): string {
 }
 function sessionMeta(l: IndexLecture): string {
   return [instructorOf(l), termLabel(l)].filter(Boolean).join(' · ')
+}
+/** Course-row second line: "#60490 · 王一夫 · 2025-2026 · Fall" (no college). */
+function courseSub(g: { courseId: string; items: IndexLecture[] }): string {
+  const first = g.items[0]
+  return [
+    `#${g.courseId}`,
+    first ? instructorOf(first) : '',
+    first?.schoolYear ?? '',
+    first ? semesterLabel(first.semester) : '',
+  ].filter(Boolean).join(' · ')
 }
 function recentMeta(f: { instructor?: string; professors?: string[]; schoolYear?: string; semester?: string; college?: string; imageCount?: number; createdAt?: string }): string {
   return [

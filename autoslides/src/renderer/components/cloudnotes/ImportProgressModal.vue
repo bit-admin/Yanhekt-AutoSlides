@@ -3,7 +3,8 @@
     <div class="cn-import-box">
       <h3 class="cn-modal-title">{{ title }}</h3>
 
-      <div class="cn-import-overall">{{ $t('cloudNotes.importOverall', { done: imp.overall.value.done, total: imp.overall.value.total }) }}</div>
+      <!-- Folder-batch imports only — a share-link import is always a single item. -->
+      <div v-if="imp.queue.value.some(i => i.kind === 'folder')" class="cn-import-overall">{{ $t('cloudNotes.importOverall', { done: imp.overall.value.done, total: imp.overall.value.total }) }}</div>
       <div class="cn-import-list custom-scrollbar">
         <div v-for="item in imp.queue.value" :key="item.folderName" class="cn-imp-row">
           <div class="cn-imp-row-top">
@@ -60,7 +61,11 @@ function statusText(item: ImportItem): string {
     case 'uploading': return t('cloudNotes.importUploading', { done: item.uploaded, total: item.total })
     case 'building': return t('cloudNotes.importBuilding')
     case 'publishing': return t('cloudNotes.importPublishing')
-    case 'done': return item.indexUrl ? t('cloudNotes.importPublished') : t('cloudNotes.importDone')
+    // A share import *downloads from* the index — its indexUrl is provenance,
+    // not a publish result, so it reads "Imported", never "Published".
+    case 'done':
+      if (item.kind === 'share') return t('cloudNotes.importImported')
+      return item.indexUrl ? t('cloudNotes.importPublished') : t('cloudNotes.importDone')
     case 'conflict': return t('cloudNotes.importConflict')
     case 'error': return errorText(item.error)
     default: return t('cloudNotes.importPending')
