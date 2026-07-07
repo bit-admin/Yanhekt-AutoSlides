@@ -18,6 +18,11 @@ import type {
   NoteDetail,
   NoteGroup,
   UploadedImage,
+  IndexStats,
+  IndexLecture,
+  IndexLectureDetail,
+  IndexRemovalResult,
+  ShareImportResult,
 } from '@common/notesTypes'
 
 export interface ResultImageItem {
@@ -58,6 +63,18 @@ export interface CloudNotesProvider {
   uploadImage(bytes: ArrayBuffer, filename: string, mime: string): Promise<NotesResult<UploadedImage>>
 }
 
+// Drop-in for the subset of window.electronAPI.cloudNotes that the Cloud Index
+// browse layer (useCloudIndexBrowse) calls. In demo mode this serves a
+// fabricated index (stats/search/lecture/share resolution) so the Drive page's
+// index mode renders offline; production reads `overrides.cloudIndexProvider ?? real`.
+export interface CloudIndexProvider {
+  indexStats(): Promise<NotesResult<IndexStats>>
+  indexSearch(term: string): Promise<NotesResult<IndexLecture[]>>
+  indexLecture(courseId: string, sessionId: string): Promise<NotesResult<IndexLectureDetail>>
+  resolveShareLink(link: string): Promise<NotesResult<ShareImportResult>>
+  requestIndexRemoval(courseId: string, sessionId: string): Promise<NotesResult<IndexRemovalResult>>
+}
+
 export interface PlaybackDemo {
   poster(kind: 'screen' | 'camera'): string
   // Fabricated extracted slides for the screen-recording gallery. Loosely typed
@@ -87,6 +104,8 @@ export interface RuntimeOverrides {
   playbackDemo?: PlaybackDemo
   /** Backing data source for the Cloud Notes page (groups + notes + content). */
   cloudNotesProvider?: CloudNotesProvider
+  /** Backing data source for the Drive page's Cloud Index mode (browse + viewer). */
+  cloudIndexProvider?: CloudIndexProvider
   /** When true, the download + task queues never start real network/extraction. */
   suppressRealWork?: boolean
 }

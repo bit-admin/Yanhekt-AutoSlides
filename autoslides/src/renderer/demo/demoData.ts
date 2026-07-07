@@ -23,6 +23,12 @@ import type {
   NoteSummary,
   NoteDetail,
   NoteListResult,
+  IndexStats,
+  IndexLecture,
+  IndexVersion,
+  IndexRecentFile,
+  IndexLectureDetail,
+  ShareImportResult,
 } from '@common/notesTypes'
 import {
   MANAGED_GROUP_NAME,
@@ -650,4 +656,138 @@ export function demoNoteDetail(id: number): NoteDetail {
 let demoNextNoteId = 1000
 export function demoNextNoteIdValue(): number {
   return ++demoNextNoteId
+}
+
+// ── Cloud Index (Drive page index mode) ─────────────────────────────────────
+// A fabricated public index over the same demo courses, so index mode renders
+// offline: stats/recently-added, search → course/session browse, and share
+// resolution into the right-panel slide viewer (the same slide SVGs as
+// everywhere else). All instructors share one college, so only the term and
+// instructor filter dropdowns appear — matching a typical small search result.
+
+interface DemoIndexSession {
+  courseId: string
+  week: number
+  versions: Array<{ imageCount: number; reviewed: boolean; edited?: boolean }>
+}
+
+const DEMO_INDEX_SESSIONS: DemoIndexSession[] = [
+  { courseId: 'math-501', week: 9, versions: [{ imageCount: 6, reviewed: true }, { imageCount: 5, reviewed: false, edited: true }] },
+  { courseId: 'math-501', week: 10, versions: [{ imageCount: 5, reviewed: true }] },
+  { courseId: 'math-501', week: 11, versions: [{ imageCount: 4, reviewed: false }] },
+  { courseId: 'math-501', week: 12, versions: [{ imageCount: 6, reviewed: true }] },
+  { courseId: 'math-401', week: 7, versions: [{ imageCount: 5, reviewed: true }] },
+  { courseId: 'math-401', week: 8, versions: [{ imageCount: 4, reviewed: false }] },
+  { courseId: 'math-401', week: 11, versions: [{ imageCount: 6, reviewed: true }] },
+  { courseId: 'math-410', week: 9, versions: [{ imageCount: 4, reviewed: false }] },
+  { courseId: 'math-410', week: 10, versions: [{ imageCount: 5, reviewed: true }] },
+]
+
+const indexShareId = (s: DemoIndexSession, i: number): string =>
+  `demo-${s.courseId}-w${s.week}-v${i + 1}`
+
+function indexCourseOf(s: DemoIndexSession): { title: string; professor: string; semester: string } {
+  const c = DEMO_COURSES.find((x) => x.id === s.courseId)
+  return c ?? { title: 'Functional Analysis', professor: 'Dr. Helena Whitcombe', semester: '1' }
+}
+
+function indexTopicOf(s: DemoIndexSession): string {
+  const topics = SESSION_TOPICS[s.courseId] ?? GENERIC_TOPICS
+  return topics[(s.week - 1) % topics.length]
+}
+
+function indexLectureOf(s: DemoIndexSession): IndexLecture {
+  const c = indexCourseOf(s)
+  return {
+    courseId: s.courseId,
+    sessionId: `${s.courseId}-session-${s.week}`,
+    courseTitle: c.title,
+    sessionTitle: `Lecture ${s.week}: ${indexTopicOf(s)}`,
+    instructor: c.professor,
+    semester: c.semester,
+    schoolYear: '2024-2025',
+    college: COLLEGE,
+    weekNumber: s.week,
+    day: 2,
+    versionCount: s.versions.length,
+    updatedAt: isoAt(-(16 - s.week), 12, 0),
+  }
+}
+
+function indexVersionsOf(s: DemoIndexSession): IndexVersion[] {
+  const c = indexCourseOf(s)
+  return s.versions.map((v, i) => ({
+    shareId: indexShareId(s, i),
+    title: `${c.title} - Lecture ${s.week}`,
+    imageCount: v.imageCount,
+    reviewed: v.reviewed,
+    edited: v.edited ?? false,
+    createdAt: isoAt(-(16 - s.week) + i, 15, 30),
+  }))
+}
+
+export function demoIndexStats(): IndexStats {
+  const recent: IndexRecentFile[] = DEMO_INDEX_SESSIONS.flatMap((s) => {
+    const lec = indexLectureOf(s)
+    return indexVersionsOf(s).map((v): IndexRecentFile => ({
+      shareId: v.shareId,
+      courseId: lec.courseId,
+      sessionId: lec.sessionId,
+      courseTitle: lec.courseTitle,
+      sessionTitle: lec.sessionTitle,
+      instructor: lec.instructor,
+      semester: lec.semester,
+      schoolYear: lec.schoolYear,
+      college: lec.college,
+      imageCount: v.imageCount,
+      createdAt: v.createdAt,
+    }))
+  })
+    .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+    .slice(0, 8)
+  const versionCount = DEMO_INDEX_SESSIONS.reduce((n, s) => n + s.versions.length, 0)
+  return {
+    courseCount: new Set(DEMO_INDEX_SESSIONS.map((s) => s.courseId)).size,
+    lectureCount: DEMO_INDEX_SESSIONS.length,
+    versionCount,
+    recent,
+    colleges: [{ college: COLLEGE, count: versionCount }],
+    updatedAt: isoAt(0, 8, 0),
+  }
+}
+
+export function demoIndexSearch(term: string): IndexLecture[] {
+  const q = term.trim().toLowerCase()
+  return DEMO_INDEX_SESSIONS.map(indexLectureOf).filter(
+    (l) =>
+      !q ||
+      [l.courseTitle, l.sessionTitle, l.instructor, l.college].some((f) =>
+        f?.toLowerCase().includes(q),
+      ),
+  )
+}
+
+export function demoIndexLecture(courseId: string, sessionId: string): IndexLectureDetail | null {
+  const s = DEMO_INDEX_SESSIONS.find(
+    (x) => x.courseId === courseId && `${x.courseId}-session-${x.week}` === sessionId,
+  )
+  return s ? { lecture: indexLectureOf(s), versions: indexVersionsOf(s) } : null
+}
+
+/** Resolve a `/v1/s/<shareId>` link minted from the demo index into slide URLs. */
+export function demoResolveIndexShare(link: string): ShareImportResult | null {
+  const shareId = link.match(/\/v1\/s\/([^/?#]+)/)?.[1] ?? link.trim()
+  for (const s of DEMO_INDEX_SESSIONS) {
+    const i = s.versions.findIndex((_, vi) => indexShareId(s, vi) === shareId)
+    if (i < 0) continue
+    const c = indexCourseOf(s)
+    const count = Math.min(s.versions[i].imageCount, SLIDE_TITLES.length)
+    return {
+      title: `${c.title} - Lecture ${s.week}`,
+      urls: SLIDE_TITLES.slice(0, count).map(([title, page]) => slideDataUri(title, page)),
+      missing: 0,
+      metadata: null,
+    }
+  }
+  return null
 }

@@ -16,6 +16,7 @@
 
 import { computed, ref, watch } from 'vue'
 import { SHARE_ORIGIN } from '@common/shareLink'
+import { overrides } from '@shared/overrideRegistry'
 import type {
   IndexLecture,
   IndexVersion,
@@ -168,7 +169,7 @@ export function useCloudIndexBrowse() {
     }
   })
 
-  const notes = window.electronAPI.cloudNotes
+  const notes = overrides.cloudIndexProvider ?? window.electronAPI.cloudNotes
 
   // ── Loading ────────────────────────────────────────────────────────────
 

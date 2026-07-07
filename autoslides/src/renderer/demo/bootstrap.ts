@@ -33,6 +33,10 @@ import {
   demoNotesList,
   demoNoteDetail,
   demoNextNoteIdValue,
+  demoIndexStats,
+  demoIndexSearch,
+  demoIndexLecture,
+  demoResolveIndexShare,
 } from './demoData'
 import { seedDemoQueues } from './demoSeed'
 
@@ -87,6 +91,21 @@ export function installDemo(): void {
     groupCreate: async () => ({ ok: true, data: undefined }),
     groupDelete: async () => ({ ok: true, data: undefined }),
     uploadImage: async () => ({ ok: true, data: { url: demoResultImageDataUri({}) } }),
+  }
+  // Fake Cloud Index: the Drive page's index mode browses a fabricated public
+  // index over the same demo courses; share links resolve to the slide SVGs.
+  overrides.cloudIndexProvider = {
+    indexStats: async () => ({ ok: true, data: demoIndexStats() }),
+    indexSearch: async (term: string) => ({ ok: true, data: demoIndexSearch(term) }),
+    indexLecture: async (courseId: string, sessionId: string) => {
+      const detail = demoIndexLecture(courseId, sessionId)
+      return detail ? { ok: true, data: detail } : { ok: false, error: 'not found' }
+    },
+    resolveShareLink: async (link: string) => {
+      const resolved = demoResolveIndexShare(link)
+      return resolved ? { ok: true, data: resolved } : { ok: false, error: 'not found' }
+    },
+    requestIndexRemoval: async () => ({ ok: true, data: { removed: 1, lectureRemoved: false } }),
   }
   overrides.suppressRealWork = true
 
