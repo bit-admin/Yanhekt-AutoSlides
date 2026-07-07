@@ -172,8 +172,9 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
         reason: 'manual',
         reasonDetails: 'User deleted via Results View'
       });
-      // Manual delete during review: latch `edited` (no-op if no metadata).
-      await slideMetadataService.markEdited(outputPath);
+      // Manual delete during review: stage `edited`, latched to disk once the
+      // renderer confirms the user returned to the folder list.
+      slideMetadataService.stageEdited(outputPath);
       return { success: true };
     } catch (error) {
       log.error('Failed to delete image:', error);

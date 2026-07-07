@@ -794,6 +794,7 @@ interface ElectronAPI {
     ) => Promise<{ success: boolean }>;
     write: (folderPath: string, metadata: SlideMetadata) => Promise<{ success: boolean }>;
     markReviewed: (folderPath: string) => Promise<{ success: boolean }>;
+    commitEdited: (folderPath: string) => Promise<{ success: boolean; result: { cropped?: boolean } | null }>;
   };
 
   pdfmaker: {

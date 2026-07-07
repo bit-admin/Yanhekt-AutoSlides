@@ -7,9 +7,13 @@
  * Semantics:
  *  - `writeExtraction` upserts the file (creates it / refreshes source+extraction),
  *    preserving `createdAt` and any existing review/postProcessing state.
- *  - `updatePostProcessing` / `markReviewed` / `markEdited` / `setCropped` are
+ *  - `updatePostProcessing` / `markReviewed` / `commitEdited` / `setCropped` are
  *    no-ops when the file is absent (a folder without metadata stays without it —
  *    no backfill). They only enrich an already-recorded folder.
+ *  - `stageEdited` records a human mutation (crop/delete/restore) in memory only;
+ *    `commitEdited` latches it to disk once the renderer confirms the user
+ *    returned to the folder list, so metadata.json isn't rewritten on every
+ *    single edit while they're still reviewing.
  *
  * Writes for a given folder are serialized through a per-path promise chain so
  * concurrent read-modify-write calls cannot clobber each other.
@@ -37,8 +41,16 @@ export class SlideMetadataService {
   // Per-folder write serialization. Keyed by the resolved metadata file path.
   private writeChains = new Map<string, Promise<unknown>>();
 
+  // Human edits staged during a folder-review session, keyed by resolved
+  // folder path, awaiting commitEdited(). In-memory only.
+  private pendingEdits = new Map<string, { cropped?: boolean }>();
+
   private metadataPath(folderPath: string): string {
     return path.join(path.resolve(expandTilde(folderPath)), SLIDE_METADATA_FILENAME);
+  }
+
+  private resolveFolderKey(folderPath: string): string {
+    return path.resolve(expandTilde(folderPath));
   }
 
   /** Read and parse a folder's metadata, or null if absent/unreadable. */
@@ -139,10 +151,31 @@ export class SlideMetadataService {
   }
 
   /**
-   * Latch the `edited` flag for a human mutation during review, and optionally
-   * set the current `cropped` state. No-op if the folder has no metadata.
+   * Stage a human mutation (crop/delete/restore) for a folder, to be latched
+   * to disk later via commitEdited. Synchronous, in-memory only — cheap to
+   * call on every edit during a review session.
    */
-  async markEdited(folderPath: string, opts?: { cropped?: boolean }): Promise<void> {
+  stageEdited(folderPath: string, opts?: { cropped?: boolean }): void {
+    const key = this.resolveFolderKey(folderPath);
+    const staged = this.pendingEdits.get(key) ?? {};
+    if (opts && typeof opts.cropped === 'boolean') {
+      staged.cropped = opts.cropped;
+    }
+    this.pendingEdits.set(key, staged);
+  }
+
+  /**
+   * Latch the `edited` flag (and any staged `cropped` state) to disk for a
+   * folder with a pending stage. No-op if nothing was staged or the folder
+   * has no metadata. Returns the applied state, or null if nothing changed.
+   */
+  async commitEdited(folderPath: string): Promise<{ cropped?: boolean } | null> {
+    const key = this.resolveFolderKey(folderPath);
+    const staged = this.pendingEdits.get(key);
+    if (!staged) return null;
+    this.pendingEdits.delete(key);
+
+    let applied: { cropped?: boolean } | null = null;
     await this.mutate(folderPath, (current) => {
       if (!current) return null;
       const review = { ...current.review };
@@ -150,11 +183,13 @@ export class SlideMetadataService {
         review.edited = true;
         review.editedAt = new Date().toISOString();
       }
-      if (opts && typeof opts.cropped === 'boolean') {
-        review.cropped = opts.cropped;
+      if (typeof staged.cropped === 'boolean') {
+        review.cropped = staged.cropped;
       }
+      applied = staged;
       return { ...current, review };
     });
+    return applied;
   }
 
   /** Set the current `cropped` state without touching the edited latch. */

@@ -21,14 +21,14 @@ export function registerTrashIpcHandlers(services: IpcServices): void {
     try {
       const outputDir = configService.getConfig().outputDirectory;
       // Resolve the folders these entries restore into BEFORE the manifest is
-      // rewritten, so we can latch `edited` on each (no-op if no metadata).
+      // rewritten, so we can stage `edited` on each (no-op if no metadata).
       const entries = await slideExtractionService.getTrashEntries(outputDir);
       const affectedFolders = new Set(
         entries.filter(e => ids.includes(e.id)).map(e => path.dirname(e.originalPath))
       );
       const result = await slideExtractionService.restoreFromTrash(ids, outputDir);
       for (const folderPath of affectedFolders) {
-        await slideMetadataService.markEdited(folderPath);
+        slideMetadataService.stageEdited(folderPath);
       }
       return result;
     } catch (error) {

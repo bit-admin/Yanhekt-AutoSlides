@@ -50,8 +50,9 @@ export function registerCropIpcHandlers(services: IpcServices): void {
       assertNoTraversal(imagePath);
       const outputDir = configService.getConfig().outputDirectory;
       await slideExtractionService.applyCrop(imagePath, outputDir, rect, autoCropped);
-      // Human crop during review: latch `edited` and flag the folder cropped.
-      await slideMetadataService.markEdited(path.dirname(imagePath), { cropped: true });
+      // Human crop during review: stage `edited` + cropped, latched to disk
+      // once the renderer confirms the user returned to the folder list.
+      slideMetadataService.stageEdited(path.dirname(imagePath), { cropped: true });
       return { success: true };
     } catch (error) {
       log.error('Failed to apply crop:', error);
@@ -65,7 +66,7 @@ export function registerCropIpcHandlers(services: IpcServices): void {
       const outputDir = configService.getConfig().outputDirectory;
       await slideExtractionService.restoreCrop(imagePath, outputDir);
       const folderPath = path.dirname(imagePath);
-      await slideMetadataService.markEdited(folderPath, {
+      slideMetadataService.stageEdited(folderPath, {
         cropped: await folderStillCropped(folderPath, outputDir),
       });
       return { success: true };

@@ -66,4 +66,14 @@ export function registerSlideMetadataIpcHandlers(services: IpcServices): void {
       return { success: false };
     }
   });
+
+  ipcMain.handle('slideMetadata:commitEdited', async (_event, folderPath: string) => {
+    try {
+      const result = await slideMetadataService.commitEdited(folderPath);
+      return { success: true, result };
+    } catch (error) {
+      log.error('Failed to commit folder edited state:', error);
+      return { success: false, result: null };
+    }
+  });
 }

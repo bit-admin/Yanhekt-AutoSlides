@@ -61,6 +61,11 @@ export const slideMetadata = {
     ipcRenderer.invoke('slideMetadata:write', folderPath, metadata),
   markReviewed: (folderPath: string) =>
     ipcRenderer.invoke('slideMetadata:markReviewed', folderPath),
+  commitEdited: (folderPath: string) =>
+    ipcRenderer.invoke('slideMetadata:commitEdited', folderPath) as Promise<{
+      success: boolean;
+      result: { cropped?: boolean } | null;
+    }>,
 };
 
 export const autoCrop = {

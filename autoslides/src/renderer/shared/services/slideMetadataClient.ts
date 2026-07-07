@@ -118,3 +118,18 @@ export async function markFolderReviewed(folderPath: string): Promise<void> {
     log.warn('Failed to mark folder reviewed:', error);
   }
 }
+
+/**
+ * Latch any human edits staged for a folder (crop/delete/restore during the
+ * current review session) to disk. No-op if nothing was staged or the folder
+ * has no metadata.json. Returns the applied cropped state, if any.
+ */
+export async function commitFolderEdited(folderPath: string): Promise<{ cropped?: boolean } | null> {
+  try {
+    const response = await window.electronAPI.slideMetadata.commitEdited(folderPath);
+    return response.result;
+  } catch (error) {
+    log.warn('Failed to commit folder edited state:', error);
+    return null;
+  }
+}

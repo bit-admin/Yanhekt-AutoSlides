@@ -3,7 +3,7 @@ import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { createAutoCropWorkerClient } from '@shared/autoCrop'
 import { configStore } from '@shared/services/configStore'
 import { overrides } from '@shared/overrideRegistry'
-import { markFolderReviewed } from '@shared/services/slideMetadataClient'
+import { markFolderReviewed, commitFolderEdited } from '@shared/services/slideMetadataClient'
 import {
   createResultsDataIO,
   loadFolderSummaries as loadFolderSummariesCore,
@@ -207,35 +207,68 @@ export function useResultsView() {
   const autoCropClient = createAutoCropWorkerClient()
   onUnmounted(() => autoCropClient.destroy())
 
-  // Reviewed-on-dwell: mark a folder reviewed once the user has had it open for
-  // REVIEW_DWELL_MS. Cancelled if they leave sooner. No-op for folders without
-  // metadata.json. The timer is reset whenever the open folder changes.
+  // Reviewed-on-dwell: once the user has had a folder open for REVIEW_DWELL_MS,
+  // mark it reviewed when they return to the folder list — not while they're
+  // still browsing it. Cancelled if they leave sooner. No-op for folders
+  // without metadata.json.
   const REVIEW_DWELL_MS = 2000
   let reviewDwellTimer: ReturnType<typeof setTimeout> | null = null
+  let reviewDwellFolder: ResultsFolder | null = null
+  let reviewDwellMet = false
 
   function cancelReviewDwell() {
     if (reviewDwellTimer !== null) {
       clearTimeout(reviewDwellTimer)
       reviewDwellTimer = null
     }
+    reviewDwellFolder = null
+    reviewDwellMet = false
   }
 
   function startReviewDwell(folder: ResultsFolder) {
     cancelReviewDwell()
-    const folderPath = folder.path
-    if (!folderPath) return
+    if (!folder.path) return
+    reviewDwellFolder = folder
     reviewDwellTimer = setTimeout(() => {
       reviewDwellTimer = null
-      void markFolderReviewed(folderPath)
-      // Reflect locally so the badge updates without a full reload.
-      if (folder.metadata?.review && !folder.metadata.review.reviewed) {
-        folder.metadata.review.reviewed = true
-        folder.metadata.review.reviewedAt = new Date().toISOString()
-      }
+      reviewDwellMet = true
     }, REVIEW_DWELL_MS)
   }
 
+  function commitReviewDwell() {
+    const folder = reviewDwellFolder
+    const met = reviewDwellMet
+    cancelReviewDwell()
+    if (!met || !folder?.path) return
+    void markFolderReviewed(folder.path)
+    // Reflect locally so the badge updates without a full reload.
+    if (folder.metadata?.review && !folder.metadata.review.reviewed) {
+      folder.metadata.review.reviewed = true
+      folder.metadata.review.reviewedAt = new Date().toISOString()
+    }
+  }
+
   onUnmounted(cancelReviewDwell)
+
+  // Edited-on-return: crop/delete/restore actions stage an `edited` latch in
+  // the main process immediately (see slideMetadataService.stageEdited), but
+  // it's only written to metadata.json here, when the user returns to the
+  // folder list — not while they're still browsing the folder.
+  function commitEditLatch() {
+    const folder = currentFolder.value
+    if (!folder?.path) return
+    const folderPath = folder.path
+    void commitFolderEdited(folderPath).then((result) => {
+      if (!result || !folder.metadata?.review) return
+      folder.metadata.review.edited = true
+      folder.metadata.review.editedAt = new Date().toISOString()
+      if (typeof result.cropped === 'boolean') {
+        folder.metadata.review.cropped = result.cropped
+      }
+    })
+  }
+
+  onUnmounted(commitEditLatch)
 
   watch([selectedReason, contextMode], () => {
     selectedIds.value = []
@@ -353,7 +386,8 @@ export function useResultsView() {
   }
 
   function goBack() {
-    cancelReviewDwell()
+    commitReviewDwell()
+    commitEditLatch()
     currentView.value = 'folders'
     currentFolder.value = null
     folderItems.value = []
