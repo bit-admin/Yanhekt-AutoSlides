@@ -270,6 +270,18 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     broadcastConfig();
   });
 
+  ipcMain.handle('config:setCloudAutoSyncMode', async (_, mode: 'disabled' | 'edited' | 'reviewed') => {
+    configService.setCloudAutoSyncMode(mode);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  ipcMain.handle('config:setCloudAutoPublishAfterSync', async (_, enabled: boolean) => {
+    configService.setCloudAutoPublishAfterSync(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:upsertAccount', async (_, account: StoredAccount) => {
     configService.upsertAccount(account);
     broadcastConfig();

@@ -154,7 +154,15 @@
       "statusError": "Check failed",
       "lastChecked": "Last checked",
       "refresh": "Refresh",
-      "refreshing": "Refreshing…"
+      "refreshing": "Refreshing…",
+      "syncTitle": "Sync",
+      "syncDescription": "Automatically import a slide folder to your notes when you finish reviewing or editing it. Folders that already have a note are skipped.",
+      "syncMode": "Auto sync to notes",
+      "syncModeDisabled": "Disabled",
+      "syncModeEdited": "Auto sync after edited",
+      "syncModeReviewed": "Auto sync after reviewed",
+      "autoPublish": "Also publish to Cloud Index after auto sync",
+      "autoPublishDescription": "Applies to auto sync only, not to manual imports."
     },
     "authentication": "Authentication",
     "appearance": "Appearance",

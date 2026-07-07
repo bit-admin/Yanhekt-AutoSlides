@@ -154,7 +154,15 @@
       "statusError": "확인 실패",
       "lastChecked": "마지막 확인",
       "refresh": "새로 고침",
-      "refreshing": "새로 고침 중…"
+      "refreshing": "새로 고침 중…",
+      "syncTitle": "동기화",
+      "syncDescription": "슬라이드 폴더의 검토 또는 편집을 마치면 자동으로 노트에 가져옵니다. 이미 노트가 있는 폴더는 건너뜁니다.",
+      "syncMode": "노트로 자동 동기화",
+      "syncModeDisabled": "사용 안 함",
+      "syncModeEdited": "편집 후 자동 동기화",
+      "syncModeReviewed": "검토 후 자동 동기화",
+      "autoPublish": "자동 동기화 후 클라우드 인덱스에도 게시",
+      "autoPublishDescription": "자동 동기화에만 적용되며 수동 가져오기에는 적용되지 않습니다."
     },
     "authentication": "인증",
     "appearance": "외관",

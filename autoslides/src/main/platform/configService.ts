@@ -165,6 +165,8 @@ export class ConfigService {
       pinnedRecordedCourses: this.store.get('pinnedRecordedCourses') ?? [],
       onboardingCompleted: this.store.get('onboardingCompleted') ?? false,
       cloudStorageInitializedUsers: this.store.get('cloudStorageInitializedUsers') ?? [],
+      cloudAutoSyncMode: this.store.get('cloudAutoSyncMode') ?? 'disabled',
+      cloudAutoPublishAfterSync: this.store.get('cloudAutoPublishAfterSync') ?? false,
       accounts: this.store.get('accounts') ?? []
     };
   }
@@ -187,6 +189,14 @@ export class ConfigService {
     if (initialized) users.add(badge);
     else users.delete(badge);
     this.store.set('cloudStorageInitializedUsers', [...users]);
+  }
+
+  setCloudAutoSyncMode(mode: 'disabled' | 'edited' | 'reviewed'): void {
+    this.store.set('cloudAutoSyncMode', mode);
+  }
+
+  setCloudAutoPublishAfterSync(enabled: boolean): void {
+    this.store.set('cloudAutoPublishAfterSync', enabled);
   }
 
   setSavedSearches(mode: 'live' | 'recorded', searches: string[]): void {

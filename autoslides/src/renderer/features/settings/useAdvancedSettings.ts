@@ -3,6 +3,7 @@ import { useGeneralSettings } from './useGeneralSettings'
 import { useImageProcessingSettings } from './useImageProcessingSettings'
 import { useNetworkSettings } from './useNetworkSettings'
 import { useExtractorSettings } from './useExtractorSettings'
+import { useCloudSettings } from './useCloudSettings'
 import type {
   AdvancedTabId,
   AutoCropDetectorMode,
@@ -56,6 +57,7 @@ export function useAdvancedSettings(
   const imageProcessing = useImageProcessingSettings()
   const network = useNetworkSettings({ t })
   const extractor = useExtractorSettings()
+  const cloud = useCloudSettings()
 
   // The Settings page renders these underline tabs. activeAdvancedTab is shared
   // state so settingsLauncher (and the page) can drive the active tab.
@@ -81,6 +83,7 @@ export function useAdvancedSettings(
     imageProcessing.resetTemp()
     network.resetTemp()
     extractor.resetTemp()
+    cloud.resetTemp()
 
     await nextTick()
 
@@ -98,6 +101,7 @@ export function useAdvancedSettings(
         // whole Promise.all and abort the other settings loads.
         log.error('Failed to load extractor settings:', err)
       }),
+      cloud.load(),
       onOpenModal ? onOpenModal() : Promise.resolve()
     ])
   }
@@ -111,6 +115,7 @@ export function useAdvancedSettings(
     imageProcessing.resetTemp()
     network.resetTemp()
     extractor.resetTemp()
+    cloud.resetTemp()
     tempEnableAIFiltering.value = enableAIFiltering.value
   }
 
@@ -121,6 +126,7 @@ export function useAdvancedSettings(
       await imageProcessing.save()
       await network.save()
       await extractor.save()
+      await cloud.save()
 
       if (onSaveSettings) {
         await onSaveSettings()
@@ -145,6 +151,7 @@ export function useAdvancedSettings(
     imageProcessing,
     network,
     extractor,
+    cloud,
 
     // Settings-page lifecycle
     prepareSettings,

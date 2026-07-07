@@ -176,6 +176,13 @@ export interface AppConfig {
   // group exists; this flag only distinguishes "never initialized" (features gated
   // until the user inits) from "initialized but deleted server-side" (auto re-init).
   cloudStorageInitializedUsers: string[];
+  // Auto-sync: when a slide folder transitions to reviewed/edited on the Slides
+  // page, auto-import it to Cloud Notes (skipping folders already imported).
+  // 'disabled' (default) turns it off. Only meaningful once cloud storage is ready.
+  cloudAutoSyncMode: 'disabled' | 'edited' | 'reviewed';
+  // When auto-sync imports a folder, also publish it to the Cloud Index. Applies
+  // to auto-sync only (never the manual Slides-page buttons). Default off.
+  cloudAutoPublishAfterSync: boolean;
   // Accounts remembered for quick account switching (each with its own token).
   // The active account is the one whose `token` equals the standalone `authToken`
   // electron-store key. Migrated from the legacy single-account fields.

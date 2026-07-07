@@ -154,7 +154,15 @@
       "statusError": "確認に失敗しました",
       "lastChecked": "最終確認",
       "refresh": "更新",
-      "refreshing": "更新中…"
+      "refreshing": "更新中…",
+      "syncTitle": "同期",
+      "syncDescription": "スライドフォルダの確認または編集を終えると、自動的にノートへインポートします。すでにノートがあるフォルダはスキップされます。",
+      "syncMode": "ノートへの自動同期",
+      "syncModeDisabled": "無効",
+      "syncModeEdited": "編集後に自動同期",
+      "syncModeReviewed": "確認後に自動同期",
+      "autoPublish": "自動同期後にクラウドインデックスへも公開する",
+      "autoPublishDescription": "自動同期にのみ適用され、手動インポートには適用されません。"
     },
     "authentication": "認証",
     "appearance": "外観",

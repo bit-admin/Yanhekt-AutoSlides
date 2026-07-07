@@ -418,6 +418,8 @@ interface ElectronAPI {
     setLastGreetingId: (id: string) => Promise<void>;
     setOnboardingCompleted: (completed: boolean) => Promise<void>;
     setCloudStorageInitialized: (badge: string, initialized: boolean) => Promise<void>;
+    setCloudAutoSyncMode: (mode: 'disabled' | 'edited' | 'reviewed') => Promise<AppConfig>;
+    setCloudAutoPublishAfterSync: (enabled: boolean) => Promise<AppConfig>;
     upsertAccount: (account: StoredAccount) => Promise<void>;
     removeAccount: (badge: string) => Promise<void>;
     setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => Promise<void>;

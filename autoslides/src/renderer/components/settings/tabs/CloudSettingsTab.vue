@@ -42,6 +42,32 @@
       </p>
     </div>
   </div>
+
+  <!-- Sync: auto-import folders to Cloud Notes on review/edit. Only shown once
+       cloud storage is ready, since the whole flow is a no-op otherwise. -->
+  <div v-if="store.canUse.value" class="advanced-setting-section">
+    <h4>{{ $t('advanced.cloudStorage.syncTitle') }}</h4>
+    <div class="setting-item">
+      <label class="setting-label">{{ $t('advanced.cloudStorage.syncMode') }}</label>
+      <div class="setting-description">{{ $t('advanced.cloudStorage.syncDescription') }}</div>
+      <div class="auto-post-processing-control">
+        <select v-model="tempCloudAutoSyncMode" class="select-field sync-mode-select">
+          <option value="disabled">{{ $t('advanced.cloudStorage.syncModeDisabled') }}</option>
+          <option value="edited">{{ $t('advanced.cloudStorage.syncModeEdited') }}</option>
+          <option value="reviewed">{{ $t('advanced.cloudStorage.syncModeReviewed') }}</option>
+        </select>
+        <label class="checkbox-label" :class="{ 'checkbox-label-disabled': tempCloudAutoSyncMode === 'disabled' }">
+          <input
+            type="checkbox"
+            v-model="tempCloudAutoPublishAfterSync"
+            :disabled="tempCloudAutoSyncMode === 'disabled'"
+          />
+          {{ $t('advanced.cloudStorage.autoPublish') }}
+        </label>
+      </div>
+      <div class="setting-description">{{ $t('advanced.cloudStorage.autoPublishDescription') }}</div>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -52,9 +78,14 @@ import { computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MANAGED_GROUP_NAME } from '@common/notesTypes'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
+import { useSettingsContext } from '@features/settings/settingsContext'
 
 const { t } = useI18n()
 const store = cloudStorageStore
+
+// Buffered "Sync" settings live in the shared settings bundle (Save/Cancel).
+const { advanced } = useSettingsContext()
+const { tempCloudAutoSyncMode, tempCloudAutoPublishAfterSync } = advanced.cloud
 // The managed group's name is a fixed, non-localized identifier (server-side
 // dedup key) — always show it, even before the group exists, so the title
 // reads "ASnote Not initialized" rather than a blank prefix.
@@ -168,5 +199,27 @@ onMounted(() => {
   margin: 6px 0 0;
   font-size: 11px;
   color: var(--danger);
+}
+
+.auto-post-processing-control .sync-mode-select {
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-input);
+  background-color: transparent;
+  min-height: unset;
+  padding: 8px 12px;
+}
+
+.auto-post-processing-control .sync-mode-select:focus {
+  box-shadow: none;
+}
+
+.checkbox-label-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.checkbox-label-disabled input[type="checkbox"] {
+  cursor: not-allowed;
 }
 </style>

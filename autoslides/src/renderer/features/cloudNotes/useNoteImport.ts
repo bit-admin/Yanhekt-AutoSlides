@@ -423,8 +423,50 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
   /** Drop a conflicting row from the queue without importing it. */
   const skipConflict = removeItem
 
+  /**
+   * Auto-sync a single folder to the managed group in the background — the entry
+   * point for the Settings → Cloud "Sync" feature (triggered when a folder becomes
+   * reviewed/edited). Unlike startImport, this never touches the visible `queue`
+   * (no modal/progress-bar surface) and never prompts: a folder that already has a
+   * managed note is *skipped* (the user's chosen policy), not flagged as a conflict.
+   * With `{ publish: true }` a freshly-imported folder is also published to the
+   * AutoSlides Index. Returns the outcome so the caller can log/ignore.
+   */
+  async function syncFolder(folderName: string, opts: { publish: boolean }): Promise<'synced' | 'skipped' | 'error'> {
+    if (running.value) return 'skipped'
+    cancelRequested.value = false
+    running.value = true
+    try {
+      await cn.loadAll()
+      const displayName = formatToolFolderName(folderName)
+      // Already imported → skip (no overwrite, no prompt).
+      if (sameTitleNoteIds(displayName).length > 0) return 'skipped'
+
+      const folders = (await window.electronAPI.pdfmaker.getFolders()) as PdfFolder[]
+      const folder = folders.find((f) => f.name === folderName)
+      if (!folder) return 'error'
+
+      const item: ImportItem = {
+        kind: 'folder',
+        folderName,
+        displayName,
+        path: folder.path,
+        status: 'pending',
+        uploaded: 0,
+        total: folder.imageCount,
+      }
+      await processItem(item)
+      if (item.status === 'done' && opts.publish) await publishItem(item)
+
+      await Promise.all([cn.loadAll(), cn.refreshGroups()])
+      return item.status === 'done' ? 'synced' : 'error'
+    } finally {
+      running.value = false
+    }
+  }
+
   return {
     queue, importing, overall, imageProgress, cancelRequested,
-    startImport, importShareLink, cancel, reset, resolveConflict, skipConflict,
+    startImport, importShareLink, cancel, reset, resolveConflict, skipConflict, syncFolder,
   }
 }

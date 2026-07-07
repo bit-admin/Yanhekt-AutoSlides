@@ -154,7 +154,15 @@
       "statusError": "检查失败",
       "lastChecked": "上次检查",
       "refresh": "刷新",
-      "refreshing": "刷新中…"
+      "refreshing": "刷新中…",
+      "syncTitle": "同步",
+      "syncDescription": "在你完成审阅或编辑幻灯片文件夹后，自动将其导入到笔记。已有笔记的文件夹会被跳过。",
+      "syncMode": "自动同步到笔记",
+      "syncModeDisabled": "关闭",
+      "syncModeEdited": "编辑后自动同步",
+      "syncModeReviewed": "审阅后自动同步",
+      "autoPublish": "自动同步后同时发布到云索引",
+      "autoPublishDescription": "仅适用于自动同步，不适用于手动导入。"
     },
     "authentication": "身份验证",
     "appearance": "外观",

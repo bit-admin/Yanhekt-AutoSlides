@@ -183,5 +183,7 @@ export const defaultConfig: AppConfig = {
   pinnedRecordedCourses: [],
   onboardingCompleted: false,
   cloudStorageInitializedUsers: [],
+  cloudAutoSyncMode: 'disabled',
+  cloudAutoPublishAfterSync: false,
   accounts: []
 };

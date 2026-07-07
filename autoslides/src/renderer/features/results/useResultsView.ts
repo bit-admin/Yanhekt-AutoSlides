@@ -50,7 +50,14 @@ export type {
   ResultsItem,
 }
 
-export function useResultsView() {
+export interface UseResultsViewOptions {
+  /** Fired once when a folder transitions from not-reviewed → reviewed. */
+  onFolderReviewed?: (folder: ResultsFolder) => void
+  /** Fired when a folder's `edited` latch is committed (a real edit landed). */
+  onFolderEdited?: (folder: ResultsFolder) => void
+}
+
+export function useResultsView(options: UseResultsViewOptions = {}) {
   const folders = ref<ResultsFolder[]>([])
   const activeFolders = ref<Array<{ name: string; path: string }>>([])
   const trashEntries = ref<RemovedEntry[]>([])
@@ -245,6 +252,8 @@ export function useResultsView() {
     if (folder.metadata?.review && !folder.metadata.review.reviewed) {
       folder.metadata.review.reviewed = true
       folder.metadata.review.reviewedAt = new Date().toISOString()
+      // Not-reviewed → reviewed edge (fires once): let the host react (auto-sync).
+      options.onFolderReviewed?.(folder)
     }
   }
 
@@ -265,6 +274,8 @@ export function useResultsView() {
       if (typeof result.cropped === 'boolean') {
         folder.metadata.review.cropped = result.cropped
       }
+      // A real edit was latched: let the host react (auto-sync).
+      options.onFolderEdited?.(folder)
     })
   }
 

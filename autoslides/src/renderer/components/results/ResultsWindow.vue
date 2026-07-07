@@ -384,7 +384,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useResultsView, type CropRect, type ResultsItem, type ResultsReason } from '@features/results/useResultsView'
+import { useResultsView, type CropRect, type ResultsFolder, type ResultsItem, type ResultsReason } from '@features/results/useResultsView'
 import { usePdfMaker } from '@features/export/usePdfMaker'
 import ResultsExportBar from './ResultsExportBar.vue'
 import { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
@@ -458,7 +458,10 @@ const {
   restoreCropFromImage,
   formatDate,
   formatToolFolderName,
-} = useResultsView()
+} = useResultsView({
+  onFolderReviewed: (f) => void maybeAutoSync(f, 'reviewed'),
+  onFolderEdited: (f) => void maybeAutoSync(f, 'edited'),
+})
 
 
 const allFilteredSelected = computed(() => {
@@ -679,6 +682,24 @@ async function startNotesRun(mode: 'import' | 'publish'): Promise<void> {
 
 const onImportToNotes = () => startNotesRun('import')
 const onPublishToIndex = () => startNotesRun('publish')
+
+/**
+ * Auto-sync a folder to Cloud Notes when it transitions to reviewed/edited, if
+ * the matching mode is enabled in Settings → Cloud. Silent by design: it never
+ * prompts (uses the quiet store `ensureReady`, not the dialog-producing
+ * `ensureManagedStorage`) and no-ops when cloud storage isn't ready, a manual
+ * run is active, or the folder is already imported (handled in `imp.syncFolder`).
+ */
+async function maybeAutoSync(folder: ResultsFolder, kind: 'reviewed' | 'edited'): Promise<void> {
+  if (configStore.cloudAutoSyncMode !== kind) return
+  if (imp.importing.value) return
+  if (cloudStorage.status.value !== 'ready') {
+    const st = await cloudStorage.ensureReady()
+    if (st !== 'ready') return
+  }
+  await cn.init()
+  await imp.syncFolder(folder.name, { publish: configStore.cloudAutoPublishAfterSync })
+}
 
 function onDoneNotesModal(): void {
   imp.reset()
