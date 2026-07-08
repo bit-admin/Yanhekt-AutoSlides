@@ -79,6 +79,48 @@ function finish(): void {
 </script>
 
 <style scoped>
+/* This modal's copy of the shared modal-box classes (ImportProgressModal
+   precedent: extracted modals carry their own scoped subset). */
+.cn-import-box {
+  background: var(--bg-modal);
+  border-radius: 12px;
+  padding: 20px;
+  width: 460px;
+  max-width: 92vw;
+  max-height: 80vh;
+  box-shadow: 0 8px 32px var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cn-modal-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.cn-modal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.cn-modal-btn {
+  flex: 1;
+  min-height: 32px;
+  border-radius: 7px;
+  font-size: 13px;
+}
+
+.cn-share-error {
+  color: var(--danger);
+  font-size: 12px;
+  align-self: center;
+}
+
 .cn-removal-box {
   max-width: 420px;
 }
