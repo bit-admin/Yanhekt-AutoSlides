@@ -1,0 +1,24 @@
+{
+  // Copy this file to `wrangler.jsonc` and set your own custom domain before
+  // deploying. The real `wrangler.jsonc` is gitignored so deploy-specific
+  // config stays out of the public repo. See README.md.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "yanhekt-proxy",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-06-01",
+  "assets": {
+    "directory": "./public",
+    "html_handling": "auto-trailing-slash"
+  },
+  "observability": {
+    // Note: query strings (which carry the login token) may appear in logs.
+    // Disable or scrub if that matters for your deployment.
+    "enabled": false
+  },
+
+  // Custom domain — Cloudflare creates/manages the DNS record and attaches this
+  // Worker to the whole hostname. Adjust to your own zone.
+  "routes": [
+    { "pattern": "example.com", "custom_domain": true }
+  ]
+}

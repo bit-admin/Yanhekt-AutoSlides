@@ -1,0 +1,8 @@
+node_modules/
+.wrangler/
+.dev.vars
+dist/
+.DS_Store
+
+# Real deploy config (custom domain) — copy from wrangler.example.jsonc.
+wrangler.jsonc
