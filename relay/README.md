@@ -32,7 +32,7 @@ All responses are CORS-open (`Access-Control-Allow-Origin: *`).
 ## Develop & deploy
 
 ```bash
-cd yanhekt-proxy
+cd relay
 npm install
 cp wrangler.example.jsonc wrangler.jsonc   # then set your own `routes` custom domain
 npm run dev        # local: http://localhost:8787
