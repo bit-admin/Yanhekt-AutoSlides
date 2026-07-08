@@ -185,5 +185,7 @@ export const defaultConfig: AppConfig = {
   cloudStorageInitializedUsers: [],
   cloudAutoSyncMode: 'disabled',
   cloudAutoPublishAfterSync: false,
+  cloudAutoResyncMode: 'disabled',
+  cloudAutoRepublishAfterResync: false,
   accounts: []
 };

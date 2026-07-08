@@ -162,7 +162,14 @@
       "syncModeEdited": "편집 후 자동 동기화",
       "syncModeReviewed": "검토 후 자동 동기화",
       "autoPublish": "자동 동기화 후 클라우드 인덱스에도 게시",
-      "autoPublishDescription": "자동 동기화에만 적용되며 수동 가져오기에는 적용되지 않습니다."
+      "autoPublishDescription": "자동 동기화에만 적용되며 수동 가져오기에는 적용되지 않습니다.",
+      "resyncMode": "노트로 자동 재동기화",
+      "resyncDescription": "이미 노트가 있는 폴더를 다시 편집하면 해당 노트를 새로 편집한 슬라이드로 교체합니다.",
+      "resyncRequiresSync": "먼저 노트로 자동 동기화를 활성화하세요 — 재동기화는 자동 동기화가 만든 노트를 교체합니다.",
+      "resyncModeDisabled": "사용 안 함",
+      "resyncModeEdited": "편집 후 자동 재동기화",
+      "autoRepublish": "자동 재동기화 후 클라우드 인덱스에도 다시 게시",
+      "autoRepublishDescription": "자동 재동기화에만 적용되며 수동 가져오기에는 적용되지 않습니다."
     },
     "authentication": "인증",
     "appearance": "외관",
@@ -1137,6 +1144,7 @@
     "searchPlaceholder": "제목으로 검색…",
     "search": "검색",
     "newNote": "새로 만들기",
+    "refreshList": "새로고침",
     "toggleGroups": "그룹 표시 전환",
     "loading": "불러오는 중…",
     "noNotes": "노트 없음",

@@ -684,21 +684,48 @@ const onImportToNotes = () => startNotesRun('import')
 const onPublishToIndex = () => startNotesRun('publish')
 
 /**
- * Auto-sync a folder to Cloud Notes when it transitions to reviewed/edited, if
- * the matching mode is enabled in Settings → Cloud. Silent by design: it never
+ * Auto-sync/resync a folder to Cloud Notes when it transitions to reviewed/edited,
+ * if a matching mode is enabled in Settings → Cloud. Silent by design: it never
  * prompts (uses the quiet store `ensureReady`, not the dialog-producing
- * `ensureManagedStorage`) and no-ops when cloud storage isn't ready, a manual
- * run is active, or the folder is already imported (handled in `imp.syncFolder`).
+ * `ensureManagedStorage`) and no-ops when cloud storage isn't ready or a manual
+ * run is active.
+ *
+ * Two complementary behaviors route by folder state (never both on one edit):
+ * - Sync creates a note for a not-yet-imported folder (`syncFolder` skips if one
+ *   already exists). Resync replaces the note of an already-imported folder
+ *   (`resyncFolder` skips if none exists). Resync only applies to `edited`.
+ * The `r !== 'skipped'` gate stops a folder's first edit from creating a note and
+ * then immediately delete-recreating it when both modes are on `edited`.
  */
 async function maybeAutoSync(folder: ResultsFolder, kind: 'reviewed' | 'edited'): Promise<void> {
-  if (configStore.cloudAutoSyncMode !== kind) return
+  const syncOn = configStore.cloudAutoSyncMode === kind
+  // Resync only replaces a note that auto-sync created, so it requires auto-sync
+  // enabled (the UI enforces this too). Without it, resync would act only on
+  // manually-imported notes — which is not the intended behavior.
+  const resyncOn = kind === 'edited'
+    && configStore.cloudAutoResyncMode === 'edited'
+    && configStore.cloudAutoSyncMode !== 'disabled'
+  if (!syncOn && !resyncOn) return
   if (imp.importing.value) return
   if (cloudStorage.status.value !== 'ready') {
     const st = await cloudStorage.ensureReady()
     if (st !== 'ready') return
   }
   await cn.init()
-  await imp.syncFolder(folder.name, { publish: configStore.cloudAutoPublishAfterSync })
+  if (syncOn) {
+    // Creates if absent; returns 'skipped' when a managed note already exists.
+    const r = await imp.syncFolder(folder.name, { publish: configStore.cloudAutoPublishAfterSync })
+    if (r !== 'skipped') {
+      // A note was created (or errored) — refresh the (separate-instance) Cloud
+      // Notes page so it surfaces the new note, same signal manual import uses.
+      if (r === 'synced') notesRefreshStore.requestNotesRefresh()
+      return
+    }
+  }
+  if (resyncOn) {
+    const r = await imp.resyncFolder(folder.name, { republish: configStore.cloudAutoRepublishAfterResync })
+    if (r === 'resynced') notesRefreshStore.requestNotesRefresh()
+  }
 }
 
 function onDoneNotesModal(): void {

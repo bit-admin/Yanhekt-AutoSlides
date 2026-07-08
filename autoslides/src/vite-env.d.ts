@@ -420,6 +420,8 @@ interface ElectronAPI {
     setCloudStorageInitialized: (badge: string, initialized: boolean) => Promise<void>;
     setCloudAutoSyncMode: (mode: 'disabled' | 'edited' | 'reviewed') => Promise<AppConfig>;
     setCloudAutoPublishAfterSync: (enabled: boolean) => Promise<AppConfig>;
+    setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => Promise<AppConfig>;
+    setCloudAutoRepublishAfterResync: (enabled: boolean) => Promise<AppConfig>;
     upsertAccount: (account: StoredAccount) => Promise<void>;
     removeAccount: (badge: string) => Promise<void>;
     setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => Promise<void>;

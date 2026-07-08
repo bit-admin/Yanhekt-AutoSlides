@@ -162,7 +162,14 @@
       "syncModeEdited": "編集後に自動同期",
       "syncModeReviewed": "確認後に自動同期",
       "autoPublish": "自動同期後にクラウドインデックスへも公開する",
-      "autoPublishDescription": "自動同期にのみ適用され、手動インポートには適用されません。"
+      "autoPublishDescription": "自動同期にのみ適用され、手動インポートには適用されません。",
+      "resyncMode": "ノートへの自動再同期",
+      "resyncDescription": "すでにノートがあるフォルダーが再度編集されたとき、そのノートを再編集したスライドで置き換えます。",
+      "resyncRequiresSync": "先にノートへの自動同期を有効にしてください。再同期は自動同期が作成したノートを置き換えます。",
+      "resyncModeDisabled": "無効",
+      "resyncModeEdited": "編集後に自動再同期",
+      "autoRepublish": "自動再同期後にクラウドインデックスへ再公開する",
+      "autoRepublishDescription": "自動再同期にのみ適用され、手動インポートには適用されません。"
     },
     "authentication": "認証",
     "appearance": "外観",
@@ -1137,6 +1144,7 @@
     "searchPlaceholder": "タイトルで検索…",
     "search": "検索",
     "newNote": "新規",
+    "refreshList": "更新",
     "toggleGroups": "グループを表示切り替え",
     "loading": "読み込み中…",
     "noNotes": "ノートがありません",

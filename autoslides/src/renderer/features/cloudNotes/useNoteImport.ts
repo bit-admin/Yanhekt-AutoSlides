@@ -465,8 +465,67 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     }
   }
 
+  /**
+   * Auto-resync a single folder that ALREADY has a managed note — the inverse of
+   * `syncFolder`. Triggered when an imported folder is edited again. Replaces the
+   * existing note by delete-then-create (matching the manual "Import Slides to
+   * Notes" replace-on-conflict path), so the note reflects the freshly-edited
+   * slides. A folder with no managed note is a no-op (`'skipped'`) — first import
+   * is `syncFolder`'s job. With `{ republish: true }` the Cloud Index entry is
+   * removed and re-published (remove-then-publish, since the Index is versioned).
+   */
+  async function resyncFolder(folderName: string, opts: { republish: boolean }): Promise<'resynced' | 'skipped' | 'error'> {
+    if (running.value) return 'skipped'
+    cancelRequested.value = false
+    running.value = true
+    try {
+      await cn.loadAll()
+      const displayName = formatToolFolderName(folderName)
+      const ids = sameTitleNoteIds(displayName)
+      // No existing note → nothing to resync (creating is syncFolder's job).
+      if (ids.length === 0) return 'skipped'
+
+      const folders = (await window.electronAPI.pdfmaker.getFolders()) as PdfFolder[]
+      const folder = folders.find((f) => f.name === folderName)
+      if (!folder) return 'error'
+
+      // Republish = clear the old Index entry first. The Index is versioned, so
+      // publishing changed content without removal would stack a new version.
+      if (opts.republish) {
+        const meta = await window.electronAPI.slideMetadata.get(folder.path)
+        const src = meta?.source
+        if (src?.courseId && src?.sessionId) {
+          await window.electronAPI.cloudNotes.requestIndexRemoval(src.courseId, src.sessionId)
+        }
+      }
+
+      // Replace = delete existing managed note(s), then import fresh.
+      for (const id of ids) {
+        const del = await window.electronAPI.cloudNotes.delete(id)
+        if (!del.ok) return 'error'
+      }
+
+      const item: ImportItem = {
+        kind: 'folder',
+        folderName,
+        displayName,
+        path: folder.path,
+        status: 'pending',
+        uploaded: 0,
+        total: folder.imageCount,
+      }
+      await processItem(item)
+      if (item.status === 'done' && opts.republish) await publishItem(item)
+
+      await Promise.all([cn.loadAll(), cn.refreshGroups()])
+      return item.status === 'done' ? 'resynced' : 'error'
+    } finally {
+      running.value = false
+    }
+  }
+
   return {
     queue, importing, overall, imageProgress, cancelRequested,
-    startImport, importShareLink, cancel, reset, resolveConflict, skipConflict, syncFolder,
+    startImport, importShareLink, cancel, reset, resolveConflict, skipConflict, syncFolder, resyncFolder,
   }
 }

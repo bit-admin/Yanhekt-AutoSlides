@@ -167,6 +167,8 @@ export class ConfigService {
       cloudStorageInitializedUsers: this.store.get('cloudStorageInitializedUsers') ?? [],
       cloudAutoSyncMode: this.store.get('cloudAutoSyncMode') ?? 'disabled',
       cloudAutoPublishAfterSync: this.store.get('cloudAutoPublishAfterSync') ?? false,
+      cloudAutoResyncMode: this.store.get('cloudAutoResyncMode') ?? 'disabled',
+      cloudAutoRepublishAfterResync: this.store.get('cloudAutoRepublishAfterResync') ?? false,
       accounts: this.store.get('accounts') ?? []
     };
   }
@@ -197,6 +199,14 @@ export class ConfigService {
 
   setCloudAutoPublishAfterSync(enabled: boolean): void {
     this.store.set('cloudAutoPublishAfterSync', enabled);
+  }
+
+  setCloudAutoResyncMode(mode: 'disabled' | 'edited'): void {
+    this.store.set('cloudAutoResyncMode', mode);
+  }
+
+  setCloudAutoRepublishAfterResync(enabled: boolean): void {
+    this.store.set('cloudAutoRepublishAfterResync', enabled);
   }
 
   setSavedSearches(mode: 'live' | 'recorded', searches: string[]): void {

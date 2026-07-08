@@ -67,6 +67,28 @@
       </div>
       <div class="setting-description">{{ $t('advanced.cloudStorage.autoPublishDescription') }}</div>
     </div>
+
+    <div class="setting-item" :class="{ 'resync-locked': syncDisabled }">
+      <label class="setting-label">{{ $t('advanced.cloudStorage.resyncMode') }}</label>
+      <div class="setting-description">
+        {{ syncDisabled ? $t('advanced.cloudStorage.resyncRequiresSync') : $t('advanced.cloudStorage.resyncDescription') }}
+      </div>
+      <div class="auto-post-processing-control">
+        <select v-model="tempCloudAutoResyncMode" class="select-field sync-mode-select" :disabled="syncDisabled">
+          <option value="disabled">{{ $t('advanced.cloudStorage.resyncModeDisabled') }}</option>
+          <option value="edited">{{ $t('advanced.cloudStorage.resyncModeEdited') }}</option>
+        </select>
+        <label class="checkbox-label" :class="{ 'checkbox-label-disabled': tempCloudAutoResyncMode === 'disabled' }">
+          <input
+            type="checkbox"
+            v-model="tempCloudAutoRepublishAfterResync"
+            :disabled="tempCloudAutoResyncMode === 'disabled'"
+          />
+          {{ $t('advanced.cloudStorage.autoRepublish') }}
+        </label>
+      </div>
+      <div class="setting-description">{{ $t('advanced.cloudStorage.autoRepublishDescription') }}</div>
+    </div>
   </div>
 </template>
 
@@ -74,7 +96,7 @@
 // Cloud storage status + explicit initialization. Pure status/action section
 // (like the AI tab's model-info card) — no buffered prepare/commit settings,
 // so it reads the shared cloudStorageStore directly instead of settingsContext.
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MANAGED_GROUP_NAME } from '@common/notesTypes'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
@@ -85,7 +107,23 @@ const store = cloudStorageStore
 
 // Buffered "Sync" settings live in the shared settings bundle (Save/Cancel).
 const { advanced } = useSettingsContext()
-const { tempCloudAutoSyncMode, tempCloudAutoPublishAfterSync } = advanced.cloud
+const {
+  tempCloudAutoSyncMode,
+  tempCloudAutoPublishAfterSync,
+  tempCloudAutoResyncMode,
+  tempCloudAutoRepublishAfterResync,
+} = advanced.cloud
+
+// Resync replaces a note that auto-sync created, so it's meaningless without
+// auto-sync. Whenever auto-sync is turned off, force resync (and its republish)
+// off too — the resync controls are also disabled in the template below.
+const syncDisabled = computed(() => tempCloudAutoSyncMode.value === 'disabled')
+watch(tempCloudAutoSyncMode, (mode) => {
+  if (mode === 'disabled') {
+    tempCloudAutoResyncMode.value = 'disabled'
+    tempCloudAutoRepublishAfterResync.value = false
+  }
+})
 // The managed group's name is a fixed, non-localized identifier (server-side
 // dedup key) — always show it, even before the group exists, so the title
 // reads "ASnote Not initialized" rather than a blank prefix.
@@ -221,5 +259,11 @@ onMounted(() => {
 
 .checkbox-label-disabled input[type="checkbox"] {
   cursor: not-allowed;
+}
+
+/* Resync requires auto-sync: dim the label/hint when auto-sync is off (the
+   select itself is disabled via :disabled). */
+.resync-locked .setting-label {
+  opacity: 0.55;
 }
 </style>

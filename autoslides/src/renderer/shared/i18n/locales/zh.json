@@ -162,7 +162,14 @@
       "syncModeEdited": "编辑后自动同步",
       "syncModeReviewed": "审阅后自动同步",
       "autoPublish": "自动同步后同时发布到云索引",
-      "autoPublishDescription": "仅适用于自动同步，不适用于手动导入。"
+      "autoPublishDescription": "仅适用于自动同步，不适用于手动导入。",
+      "resyncMode": "自动重新同步到笔记",
+      "resyncDescription": "当已有笔记的文件夹再次被编辑时，用重新编辑后的幻灯片替换其笔记。",
+      "resyncRequiresSync": "请先启用自动同步到笔记——重新同步只会替换由自动同步创建的笔记。",
+      "resyncModeDisabled": "已禁用",
+      "resyncModeEdited": "编辑后自动重新同步",
+      "autoRepublish": "自动重新同步后同时重新发布到云索引",
+      "autoRepublishDescription": "仅适用于自动重新同步，不适用于手动导入。"
     },
     "authentication": "身份验证",
     "appearance": "外观",
@@ -1137,6 +1144,7 @@
     "searchPlaceholder": "按标题搜索…",
     "search": "搜索",
     "newNote": "新建",
+    "refreshList": "刷新",
     "toggleGroups": "切换分组栏",
     "loading": "加载中…",
     "noNotes": "暂无笔记",

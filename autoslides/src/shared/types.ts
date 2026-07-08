@@ -183,6 +183,13 @@ export interface AppConfig {
   // When auto-sync imports a folder, also publish it to the Cloud Index. Applies
   // to auto-sync only (never the manual Slides-page buttons). Default off.
   cloudAutoPublishAfterSync: boolean;
+  // Auto-resync: when an already-imported folder is edited again, re-import
+  // (replace) its managed note with the freshly-edited slides. Only 'edited'
+  // (re-review is meaningless). 'disabled' (default) turns it off.
+  cloudAutoResyncMode: 'disabled' | 'edited';
+  // When auto-resync replaces a note, also re-publish it to the Cloud Index
+  // (remove-then-publish). Applies to auto-resync only. Default off.
+  cloudAutoRepublishAfterResync: boolean;
   // Accounts remembered for quick account switching (each with its own token).
   // The active account is the one whose `token` equals the standalone `authToken`
   // electron-store key. Migrated from the legacy single-account fields.

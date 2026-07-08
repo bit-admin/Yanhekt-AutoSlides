@@ -162,7 +162,14 @@
       "syncModeEdited": "Auto sync after edited",
       "syncModeReviewed": "Auto sync after reviewed",
       "autoPublish": "Also publish to Cloud Index after auto sync",
-      "autoPublishDescription": "Applies to auto sync only, not to manual imports."
+      "autoPublishDescription": "Applies to auto sync only, not to manual imports.",
+      "resyncMode": "Auto resync to notes",
+      "resyncDescription": "When a folder that already has a note is edited again, replace its note with the freshly-edited slides.",
+      "resyncRequiresSync": "Enable auto sync to notes first — resync replaces a note that auto sync created.",
+      "resyncModeDisabled": "Disabled",
+      "resyncModeEdited": "Auto resync after edited",
+      "autoRepublish": "Also republish to Cloud Index after auto resync",
+      "autoRepublishDescription": "Applies to auto resync only, not to manual imports."
     },
     "authentication": "Authentication",
     "appearance": "Appearance",
@@ -1137,6 +1144,7 @@
     "searchPlaceholder": "Search by title…",
     "search": "Search",
     "newNote": "New",
+    "refreshList": "Refresh",
     "toggleGroups": "Toggle groups",
     "loading": "Loading…",
     "noNotes": "No notes",

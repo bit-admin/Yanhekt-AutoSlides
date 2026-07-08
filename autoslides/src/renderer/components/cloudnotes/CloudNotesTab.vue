@@ -105,6 +105,21 @@
               </svg>
             </button>
           </template>
+          <!-- Shared: manual refresh of the current list (notes or index) -->
+          <button
+            class="cn-newnote-btn"
+            :title="$t('cloudNotes.refreshList')"
+            :aria-label="$t('cloudNotes.refreshList')"
+            :disabled="listRefreshing"
+            @click="onRefreshList"
+          >
+            <svg :class="{ spinning: listRefreshing }" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+              <path d="M21 3v5h-5"/>
+              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+              <path d="M3 21v-5h5"/>
+            </svg>
+          </button>
         </div>
         <div class="cn-sidebar-panes">
       <!-- Left: groups -->
@@ -588,6 +603,25 @@ function onIndexSearch(): void {
 
 function onIndexPaste(): void {
   void idx.resolvePaste()
+}
+
+// Manual refresh of the currently-shown list. Notes mode: reload the full note
+// set + groups. Index mode: re-run the active search, or reload recent files if
+// there's no search term. Storage status is refreshed too (cheap). Also covers
+// the case where a background auto-sync/import happened through a separate
+// useCloudNotes() instance and this page is already mounted.
+const listRefreshing = computed(() =>
+  viewMode.value === 'index' ? idx.searching.value : cn.loading.value)
+
+async function onRefreshList(): Promise<void> {
+  void cloudStorageStore.refresh()
+  if (viewMode.value === 'index') {
+    const term = idx.query.value.trim()
+    if (term) await idx.runSearch(term)
+    else await idx.loadRecent()
+  } else {
+    await Promise.all([cn.loadAll(), cn.refreshGroups()])
+  }
 }
 
 const sessionEntry = (s: IndexLecture) => idx.sessionEntryFor(s.courseId, s.sessionId)
@@ -1398,6 +1432,19 @@ watch(() => cn.keyword.value, () => cn.searchNotes(true))
 .cn-newnote-btn:hover {
   color: var(--text-primary);
   background-color: var(--bg-hover);
+}
+
+.cn-newnote-btn:disabled {
+  cursor: default;
+}
+
+.cn-newnote-btn .spinning {
+  animation: cn-spin 0.8s linear infinite;
+}
+
+@keyframes cn-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .cn-list-items {
