@@ -62,6 +62,9 @@ interface SessionCacheEntry {
 
 const sessionKey = (courseId: string, sessionId: string): string => `${courseId}.${sessionId}`
 
+// Mirrors the left-panel Search page's search-as-you-type debounce (useSearchPage.ts).
+const SEARCH_DEBOUNCE_MS = 400
+
 /**
  * Split a share payload's display title into course + session lines — mirrors
  * the public viewer's `parseTitle` (share/src/lib/title.ts). Used only for a raw
@@ -185,8 +188,22 @@ export function useCloudIndexBrowse() {
     }
   }
 
+  // Search-as-you-type: debounce while the search box is active. `runSearch`
+  // itself writes the trimmed term back into `query` (needed so an external
+  // pre-search request populates the box) and records it as the last-executed
+  // term, so a programmatic write doesn't re-trigger the debounce watcher below.
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+  let lastExecutedQuery: string | null = null
+  const cancelPendingSearch = (): void => {
+    if (debounceTimer !== null) {
+      clearTimeout(debounceTimer)
+      debounceTimer = null
+    }
+  }
+
   /** Run a search, group the results by course, and select the first course. */
   async function runSearch(term: string): Promise<void> {
+    lastExecutedQuery = term
     query.value = term
     searchMode.value = 'search'
     searching.value = true
@@ -204,6 +221,7 @@ export function useCloudIndexBrowse() {
 
   /** Back to the recently-added view (clears the current search). */
   function clearSearch(): void {
+    lastExecutedQuery = null
     results.value = null
     selectedCourseId.value = null
     expandedKey.value = null
@@ -214,6 +232,21 @@ export function useCloudIndexBrowse() {
   function togglePaste(): void {
     searchMode.value = searchMode.value === 'paste' ? 'search' : 'paste'
   }
+
+  watch(query, () => {
+    if (searchMode.value !== 'search') return
+    cancelPendingSearch()
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null
+      const term = query.value.trim()
+      if (term === lastExecutedQuery) return
+      if (!term) {
+        if (results.value !== null) clearSearch()
+        return
+      }
+      void runSearch(term)
+    }, SEARCH_DEBOUNCE_MS)
+  })
 
   // ── Course / session navigation ──────────────────────────────────────────
 
