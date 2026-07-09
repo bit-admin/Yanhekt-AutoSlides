@@ -56,6 +56,10 @@ export class AIFilteringService {
   private aiPromptsService: AIPromptsService;
   private copilotService: CopilotService;
   private llm: LLMApiService;
+  // Fetched once per token and held for the life of the process (see resolveBuiltinModel) —
+  // not re-fetched on a timer. The Settings-page "refresh" button and account switching are
+  // the only ways to pick up a server-side model change without an app restart.
+  private builtinModelCache: { token: string; model: string } | null = null;
 
   constructor(
     configService: ConfigService,
@@ -91,7 +95,9 @@ export class AIFilteringService {
       return {
         providerId: 'builtin',
         baseUrl: BUILTIN_API_BASE_URL,
-        models: [BUILTIN_FALLBACK_MODEL], // will be swapped per-call via modelOverride
+        // Placeholder — the live model name is resolved per-call in resolveBuiltinModel()
+        // (classifySingleImage/classifyMultipleImages), since it requires an async fetch.
+        models: [BUILTIN_FALLBACK_MODEL],
         serviceType: 'builtin'
       };
     }
@@ -165,6 +171,30 @@ export class AIFilteringService {
    */
   async getBuiltinModelName(token: string): Promise<string> {
     return this.llm.getBuiltinModelName(token);
+  }
+
+  /**
+   * Resolve the model name actually sent on builtin classification requests. Fetched once
+   * per token and held for the life of the process (not re-fetched on a timer); falls back
+   * to BUILTIN_FALLBACK_MODEL (without caching the failure) on fetch error so a transient
+   * outage doesn't stick — the next call retries the real fetch.
+   */
+  private async resolveBuiltinModel(token?: string): Promise<string> {
+    if (!token) return BUILTIN_FALLBACK_MODEL;
+
+    const cached = this.builtinModelCache;
+    if (cached && cached.token === token) {
+      return cached.model;
+    }
+
+    try {
+      const model = await this.llm.getBuiltinModelName(token);
+      this.builtinModelCache = { token, model };
+      return model;
+    } catch (error) {
+      debugError('resolveBuiltinModel: falling back to default model', error);
+      return BUILTIN_FALLBACK_MODEL;
+    }
   }
 
   private parseClassificationResult(content: string, allowEdit: boolean): ClassificationResult | null {
@@ -250,9 +280,14 @@ export class AIFilteringService {
 
       const { headers, apiKey } = await this.buildRequestHeaders(ctx.providerId, ctx.baseUrl, token, true);
 
-      // modelOverride forces a specific model and bypasses the chain; otherwise use the
-      // resolved chain (single-element for non-ModelScope providers, so no chain logic runs).
-      const models = modelOverride ? [modelOverride] : ctx.models;
+      // modelOverride forces a specific model and bypasses the chain; builtin resolves the
+      // live server-reported model (cached); otherwise use the resolved chain (single-element
+      // for non-ModelScope providers, so no chain logic runs).
+      const models = modelOverride
+        ? [modelOverride]
+        : ctx.serviceType === 'builtin'
+          ? [await this.resolveBuiltinModel(token)]
+          : ctx.models;
       if (models.length === 0) {
         return { success: false, error: 'No model configured', errorKind: 'unknown' };
       }
@@ -312,7 +347,11 @@ export class AIFilteringService {
 
       const { headers, apiKey } = await this.buildRequestHeaders(ctx.providerId, ctx.baseUrl, token, true);
 
-      const models = modelOverride ? [modelOverride] : ctx.models;
+      const models = modelOverride
+        ? [modelOverride]
+        : ctx.serviceType === 'builtin'
+          ? [await this.resolveBuiltinModel(token)]
+          : ctx.models;
       if (models.length === 0) {
         return { success: false, error: 'No model configured', errorKind: 'unknown' };
       }
