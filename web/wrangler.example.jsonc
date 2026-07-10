@@ -1,0 +1,31 @@
+{
+  // Copy this file to `wrangler.jsonc` and fill in your own custom domain (or
+  // remove `routes` to use the workers.dev subdomain) before deploying. The
+  // real `wrangler.jsonc` is gitignored so deploy-specific ids/domains stay
+  // out of the public repo. See README.md.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "autoslides-web",
+  "main": "src/index.ts",
+  // Local `wrangler dev` rejects a future compatibility_date. Keep this at or
+  // before today's date. Bump as needed when deploying.
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Static frontend. Files here serve directly; any path that is NOT an asset
+  // falls through to the Worker.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+
+  // Custom domain — Cloudflare creates/manages the DNS record and attaches this
+  // Worker to the whole hostname. Adjust to your own zone, or remove to fall
+  // back to the workers.dev subdomain.
+  "routes": [
+    { "pattern": "example.com", "custom_domain": true }
+  ],
+
+  "observability": {
+    "enabled": false
+  }
+}

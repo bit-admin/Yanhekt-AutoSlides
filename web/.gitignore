@@ -1,0 +1,9 @@
+node_modules/
+.wrangler/
+.dev.vars
+dist/
+worker-configuration.d.ts
+debug/
+
+# Real deploy config (custom domain) — copy from wrangler.example.jsonc.
+wrangler.jsonc
