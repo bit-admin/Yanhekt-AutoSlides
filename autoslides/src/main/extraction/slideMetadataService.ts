@@ -25,6 +25,7 @@ import {
   SLIDE_METADATA_VERSION,
   SLIDE_METADATA_FILENAME,
   type SlideMetadata,
+  type SlideMetadataKind,
   type SlideMetadataSource,
   type SlideExtractionMeta,
   type SlidePostProcessingMeta,
@@ -103,12 +104,12 @@ export class SlideMetadataService {
    */
   async writeExtraction(
     folderPath: string,
-    data: { source: SlideMetadataSource; extraction: SlideExtractionMeta }
+    data: { source: SlideMetadataSource; extraction: SlideExtractionMeta; kind?: SlideMetadataKind }
   ): Promise<void> {
     const now = new Date().toISOString();
     await this.mutate(folderPath, (current) => ({
       version: SLIDE_METADATA_VERSION,
-      kind: 'recorded',
+      kind: data.kind ?? 'recorded',
       source: data.source,
       extraction: data.extraction,
       postProcessing: current?.postProcessing,

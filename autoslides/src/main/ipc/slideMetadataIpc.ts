@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import type {
   SlideMetadata,
+  SlideMetadataKind,
   SlideMetadataSource,
   SlideExtractionMeta,
   SlidePostProcessingMeta,
@@ -23,7 +24,7 @@ export function registerSlideMetadataIpcHandlers(services: IpcServices): void {
 
   ipcMain.handle(
     'slideMetadata:writeExtraction',
-    async (_event, folderPath: string, data: { source: SlideMetadataSource; extraction: SlideExtractionMeta }) => {
+    async (_event, folderPath: string, data: { source: SlideMetadataSource; extraction: SlideExtractionMeta; kind?: SlideMetadataKind }) => {
       try {
         await slideMetadataService.writeExtraction(folderPath, data);
         return { success: true };

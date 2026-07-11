@@ -5,6 +5,7 @@ import { buildNoteMetadataBlock, NOTE_METADATA_VERSION } from '@common/notesCont
 import type { NoteCloudMetadata } from '@common/notesContent'
 import { SHARE_ORIGIN, SHARE_PATH, parseShareLink } from '@common/shareLink'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
+import { isWatchExtraction } from '@common/slideMetadataTypes'
 import { formatToolFolderName, compareToolImages } from '@shared/utils/toolWindowFolders'
 import type { useCloudNotes } from './useCloudNotes'
 import { cloudStorageStore } from './cloudStorageStore'
@@ -446,6 +447,10 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       const folder = folders.find((f) => f.name === folderName)
       if (!folder) return 'error'
 
+      // Watch-mode folders (captured while watching playback) are import-ineligible
+      // — completeness is unverifiable. Skip silently so auto-sync never imports them.
+      if (isWatchExtraction(await window.electronAPI.slideMetadata.get(folder.path))) return 'skipped'
+
       const item: ImportItem = {
         kind: 'folder',
         folderName,
@@ -488,6 +493,10 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       const folders = (await window.electronAPI.pdfmaker.getFolders()) as PdfFolder[]
       const folder = folders.find((f) => f.name === folderName)
       if (!folder) return 'error'
+
+      // Watch-mode folders are import-ineligible, so they never have a managed
+      // note to resync (guarded here too in case one is created out-of-band).
+      if (isWatchExtraction(await window.electronAPI.slideMetadata.get(folder.path))) return 'skipped'
 
       // Republish = clear the old Index entry first. The Index is versioned, so
       // publishing changed content without removal would stack a new version.

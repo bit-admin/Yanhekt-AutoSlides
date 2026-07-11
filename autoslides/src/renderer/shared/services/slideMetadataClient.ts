@@ -5,6 +5,7 @@
 import { DataStore } from './dataStore';
 import { createLogger } from '@shared/utils/logger';
 import type {
+  SlideMetadataKind,
   SlideMetadataSource,
   SlideExtractionMeta,
   SlidePostProcessingMeta,
@@ -80,13 +81,17 @@ export interface RecordRecordedExtractionInput {
   folderPath: string;
   extractor: 'builtin' | 'qt';
   ssimThreshold?: number;
+  // Source medium of the folder. Defaults to 'recorded' when omitted.
+  kind?: SlideMetadataKind;
+  // How the extraction was initiated (task/download → 'auto', playback → 'watch').
+  trigger?: 'auto' | 'watch';
   // Used to enrich `source` from the cached session data.
   sessionId?: string;
   // Fields the caller holds directly (wins over DataStore-derived values).
   source?: Partial<SlideMetadataSource>;
 }
 
-/** Create/refresh metadata.json for a recorded extraction folder. */
+/** Create/refresh metadata.json for an extraction folder. */
 export async function recordRecordedExtraction(input: RecordRecordedExtractionInput): Promise<void> {
   try {
     const source = normalizeSource(mergeSource(sourceFromDataStore(input.sessionId), input.source));
@@ -94,8 +99,15 @@ export async function recordRecordedExtraction(input: RecordRecordedExtractionIn
       extractor: input.extractor,
       ssimThreshold: input.ssimThreshold,
       extractedAt: new Date().toISOString(),
+      trigger: input.trigger,
     };
-    await window.electronAPI.slideMetadata.writeExtraction(input.folderPath, { source, extraction });
+    // Deep-clone to strip Vue reactive proxies before the IPC hop: callers build
+    // `source` from reactive `course.value`/`session.value`, and Electron's
+    // structured clone throws a silent DataCloneError on a Proxy — the failure
+    // that left built-in-extractor folders with no metadata.json. All fields are
+    // JSON-safe, so a JSON round-trip yields a plain, cloneable object.
+    const payload = JSON.parse(JSON.stringify({ source, extraction, kind: input.kind }));
+    await window.electronAPI.slideMetadata.writeExtraction(input.folderPath, payload);
   } catch (error) {
     log.warn('Failed to record extraction metadata:', error);
   }

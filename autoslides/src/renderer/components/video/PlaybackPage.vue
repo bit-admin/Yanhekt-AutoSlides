@@ -722,7 +722,12 @@ const slideExtraction = useSlideExtraction({
   mode: props.mode,
   course: courseRef,
   session: sessionRef,
-  currentPlaybackRate: sharedPlaybackRate
+  currentPlaybackRate: sharedPlaybackRate,
+  // `taskQueue` is created below (it depends on this composable's outputs). The
+  // getter is only invoked when extraction starts, long after setup completes,
+  // so the forward reference is safe. Task-driven extraction sets isTaskMode
+  // true before starting; manual watching leaves it false.
+  isTaskExtraction: () => taskQueue.isTaskMode.value
 })
 
 // Initialize slide gallery composable

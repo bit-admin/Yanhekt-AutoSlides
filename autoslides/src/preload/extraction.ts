@@ -1,6 +1,7 @@
 import { ipcRenderer } from 'electron';
 import type {
   SlideMetadata,
+  SlideMetadataKind,
   SlideMetadataSource,
   SlideExtractionMeta,
   SlidePostProcessingMeta,
@@ -53,7 +54,7 @@ export const crop = {
 export const slideMetadata = {
   get: (folderPath: string) =>
     ipcRenderer.invoke('slideMetadata:get', folderPath) as Promise<SlideMetadata | null>,
-  writeExtraction: (folderPath: string, data: { source: SlideMetadataSource; extraction: SlideExtractionMeta }) =>
+  writeExtraction: (folderPath: string, data: { source: SlideMetadataSource; extraction: SlideExtractionMeta; kind?: SlideMetadataKind }) =>
     ipcRenderer.invoke('slideMetadata:writeExtraction', folderPath, data),
   updatePostProcessing: (folderPath: string, pp: SlidePostProcessingMeta) =>
     ipcRenderer.invoke('slideMetadata:updatePostProcessing', folderPath, pp),

@@ -9,7 +9,7 @@
       <!-- Pick local slide folders -->
       <div class="cn-import-list custom-scrollbar">
         <div v-if="loadingFolders" class="cn-empty">{{ $t('cloudNotes.loading') }}</div>
-        <div v-else-if="importFolders.length === 0" class="cn-empty">{{ $t('cloudNotes.importNoFolders') }}</div>
+        <div v-else-if="importFolders.length === 0 && watchFolders.length === 0" class="cn-empty">{{ $t('cloudNotes.importNoFolders') }}</div>
         <button
           v-for="f in importFolders"
           :key="f.name"
@@ -24,6 +24,23 @@
           <span class="cn-import-folder-name">{{ fmtFolder(f.name) }}</span>
           <span class="cn-import-folder-count">{{ $t('cloudNotes.importImagesCount', { n: f.imageCount }) }}</span>
         </button>
+
+        <!-- Watch-mode folders: shown for context but not importable. -->
+        <template v-if="watchFolders.length > 0">
+          <div class="cn-import-section">{{ $t('cloudNotes.importWatchSectionTitle') }}</div>
+          <p class="cn-import-section-hint">{{ $t('cloudNotes.importWatchHint') }}</p>
+          <div
+            v-for="f in watchFolders"
+            :key="f.name"
+            class="cn-import-folder cn-import-folder--disabled"
+          >
+            <svg class="cn-import-folder-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span class="cn-import-folder-name">{{ fmtFolder(f.name) }}</span>
+            <span class="cn-import-folder-count">{{ $t('cloudNotes.importImagesCount', { n: f.imageCount }) }}</span>
+          </div>
+        </template>
       </div>
       <div class="cn-modal-actions">
         <button class="btn cn-modal-btn" @click="emit('close')">{{ $t('cloudNotes.cancel') }}</button>
@@ -38,6 +55,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
+import { isWatchExtraction } from '@common/slideMetadataTypes'
 
 interface ImportFolder { name: string; path: string; imageCount: number }
 
@@ -50,7 +68,11 @@ const emit = defineEmits<{
   (e: 'start', names: string[]): void
 }>()
 
+// Importable folders (selectable) vs. watch-mode folders captured while watching
+// playback — the latter can't be imported (completeness unverifiable) and render
+// in a separate, non-selectable "can't import" section.
 const importFolders = ref<ImportFolder[]>([])
+const watchFolders = ref<ImportFolder[]>([])
 const importSelected = ref<string[]>([])
 const loadingFolders = ref(false)
 
@@ -59,7 +81,15 @@ const fmtFolder = formatToolFolderName
 async function loadImportFolders(): Promise<void> {
   loadingFolders.value = true
   try {
-    importFolders.value = (await window.electronAPI.pdfmaker.getFolders()) as ImportFolder[]
+    const all = (await window.electronAPI.pdfmaker.getFolders()) as ImportFolder[]
+    const metas = await Promise.all(
+      all.map((f) => window.electronAPI.slideMetadata.get(f.path).catch(() => null))
+    )
+    const importable: ImportFolder[] = []
+    const watched: ImportFolder[] = []
+    all.forEach((f, i) => (isWatchExtraction(metas[i]) ? watched : importable).push(f))
+    importFolders.value = importable
+    watchFolders.value = watched
     importSelected.value = []
   } finally {
     loadingFolders.value = false
@@ -143,6 +173,34 @@ function onStartImport(): void {
 .cn-import-folder.selected {
   background-color: var(--badge-active-bg);
   border-color: var(--accent);
+}
+
+.cn-import-folder--disabled {
+  cursor: default;
+  opacity: 0.6;
+  background-color: var(--bg-subtle);
+}
+
+.cn-import-folder--disabled:hover {
+  background-color: var(--bg-subtle);
+}
+
+/* "Can't import" section header + hint for watch-mode folders. */
+.cn-import-section {
+  margin-top: 12px;
+  padding: 4px 2px 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.cn-import-section-hint {
+  margin: 0 2px 4px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
 }
 
 .cn-import-check {

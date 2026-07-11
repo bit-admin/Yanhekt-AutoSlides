@@ -279,6 +279,7 @@ export class ExtractionOrchestrator {
     void recordRecordedExtraction({
       folderPath: slidesDir,
       extractor: 'qt',
+      trigger: 'auto',
       ssimThreshold: item.ssimThreshold,
       sessionId: item.sessionId,
       source: {

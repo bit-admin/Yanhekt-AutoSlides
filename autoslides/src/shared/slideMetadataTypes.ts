@@ -1,15 +1,17 @@
 // Per-folder slide metadata. Written by the main process as `metadata.json`
-// INSIDE each recorded `slides_*` folder (colocated so it travels when the
-// folder is copied — unlike the root crop/trash manifests). Folder-level only:
-// no per-slide records. Only recorded extractions write this file; a missing
-// file means "no metadata" and all consumers degrade gracefully.
+// INSIDE each `slides_*` folder (colocated so it travels when the folder is
+// copied — unlike the root crop/trash manifests). Folder-level only: no
+// per-slide records. Written for recorded extractions and for playback
+// "watch mode" (live or recorded); offline/web-capture folders get none. A
+// missing file means "no metadata" and all consumers degrade gracefully.
 import type { AIClassifierMode } from './types';
 
 export const SLIDE_METADATA_VERSION = 1;
 export const SLIDE_METADATA_FILENAME = 'metadata.json';
 
-// Discriminator for future kinds (live/offline). Only 'recorded' is written now.
-export type SlideMetadataKind = 'recorded';
+// The source medium of the folder's slides. 'live' is written only for
+// live-stream watch-mode extractions; everything else is 'recorded'.
+export type SlideMetadataKind = 'recorded' | 'live';
 
 // Identifying context for a group of slides (a folder). All fields optional —
 // filled best-effort from the Course/Session data available at the caller.
@@ -40,6 +42,11 @@ export interface SlideExtractionMeta {
   extractor: 'builtin' | 'qt';
   ssimThreshold?: number;
   extractedAt: string;
+  // How the extraction was initiated. Absent (legacy files) is treated as 'auto'.
+  //  'auto'  → unattended task-queue / qt-download; assumed complete → importable.
+  //  'watch' → produced while the user watched playback (live or recorded);
+  //            completeness is unverifiable → held out of ASnote import.
+  trigger?: 'auto' | 'watch';
 }
 
 // Post-processing provenance: which phases ran, not how many slides each removed.
@@ -72,4 +79,12 @@ export interface SlideMetadata {
   review: SlideReviewMeta;
   createdAt: string;
   updatedAt: string;
+}
+
+// Single source of truth for import eligibility. "Watch mode" folders were
+// captured while the user watched playback, so AutoSlides can't confirm they
+// contain every slide — they're held out of ASnote import. Folders with no
+// metadata at all are NOT watch-mode (they stay importable, status quo).
+export function isWatchExtraction(meta: SlideMetadata | null | undefined): boolean {
+  return meta?.extraction?.trigger === 'watch';
 }

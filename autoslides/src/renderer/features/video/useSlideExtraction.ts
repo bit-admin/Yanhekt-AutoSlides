@@ -42,6 +42,11 @@ export interface UseSlideExtractionOptions {
   course: Ref<Course | null>
   session: Ref<Session | null>
   currentPlaybackRate: Ref<number>
+  // Whether the current extraction is driven by the task queue (unattended) vs.
+  // the user actively watching. Determines the `trigger` recorded in metadata
+  // ('auto' for tasks, 'watch' for manual playback). Lazily read at extraction
+  // start so it can reference a sibling composable created after this one.
+  isTaskExtraction?: () => boolean
 }
 
 export interface UseSlideExtractionReturn {
@@ -67,7 +72,7 @@ export interface UseSlideExtractionReturn {
 }
 
 export function useSlideExtraction(options: UseSlideExtractionOptions) {
-  const { mode, course, session, currentPlaybackRate } = options
+  const { mode, course, session, currentPlaybackRate, isTaskExtraction } = options
 
   // State
   const isSlideExtractionEnabled = ref(false)
@@ -135,13 +140,18 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     const slideOutputPath = `${outputDir}/${folderName}`
     await window.electronAPI.slideExtraction.ensureDirectory(slideOutputPath)
 
-    // Record per-folder metadata for recorded extractions only (best-effort).
-    // Live/offline/web-capture folders intentionally get no metadata.json.
-    if (mode === 'recorded') {
+    // Record per-folder metadata (best-effort). Playback extraction is "watch
+    // mode" (the user is watching — completeness unverifiable), whether live or
+    // recorded; the task queue drives the same composable but is unattended, so
+    // it records 'auto'. Live folders now get metadata too (kind: 'live').
+    // Offline/web-capture paths don't use this composable and stay metadata-free.
+    {
       const sessionId = session.value?.session_id ? String(session.value.session_id) : undefined
       void recordRecordedExtraction({
         folderPath: slideOutputPath,
         extractor: 'builtin',
+        kind: mode === 'live' ? 'live' : 'recorded',
+        trigger: isTaskExtraction?.() ? 'auto' : 'watch',
         ssimThreshold: configStore.slideExtraction?.ssimThreshold,
         sessionId,
         source: {

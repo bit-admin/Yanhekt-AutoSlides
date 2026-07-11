@@ -79,6 +79,12 @@
           <div class="folder-mainline">
             <span class="folder-name">{{ formatToolFolderName(entry.folder.name) }}</span>
             <div class="folder-counts">
+              <template v-if="isWatchExtraction(entry.folder.metadata)">
+                <span class="folder-count-text" :title="$t('trash.watchModeHint')">
+                  <span class="count-label">{{ $t('trash.watchMode') }}</span>
+                </span>
+                <span class="folder-count-separator">/</span>
+              </template>
               <template v-if="entry.folder.metadata?.review.edited">
                 <span class="folder-count-text">
                   <span class="count-label">{{ $t('trash.edited') }}</span>
@@ -116,6 +122,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { getCourseName } from '@shared/utils/toolWindowFolders'
+import { isWatchExtraction } from '@common/slideMetadataTypes'
 import type { ResultsFolder } from '@features/results/useResultsView'
 
 const props = defineProps<{
@@ -455,6 +462,7 @@ defineExpose({
 .folder-count-separator {
   color: var(--text-secondary);
 }
+
 
 .count-value {
   font-variant-numeric: tabular-nums;

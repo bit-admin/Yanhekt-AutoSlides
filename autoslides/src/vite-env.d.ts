@@ -17,6 +17,7 @@ import type {
 } from './shared/types';
 import type {
   SlideMetadata,
+  SlideMetadataKind,
   SlideMetadataSource,
   SlideExtractionMeta,
   SlidePostProcessingMeta,
@@ -790,7 +791,7 @@ interface ElectronAPI {
     get: (folderPath: string) => Promise<SlideMetadata | null>;
     writeExtraction: (
       folderPath: string,
-      data: { source: SlideMetadataSource; extraction: SlideExtractionMeta }
+      data: { source: SlideMetadataSource; extraction: SlideExtractionMeta; kind?: SlideMetadataKind }
     ) => Promise<{ success: boolean }>;
     updatePostProcessing: (
       folderPath: string,
