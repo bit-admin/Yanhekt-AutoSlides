@@ -10,6 +10,8 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { Env } from "./env";
+import { loginRouter } from "./routes/login";
+import { yanhektProxyRouter } from "./routes/yanhektProxy";
 
 export function createApp<TEnv extends Env = Env>() {
   const app = new Hono<{ Bindings: TEnv }>();
@@ -19,7 +21,8 @@ export function createApp<TEnv extends Env = Env>() {
     cors({ origin: "*", allowMethods: ["GET", "POST", "OPTIONS"], allowHeaders: ["Content-Type", "Authorization"], maxAge: 86400 }),
   );
 
-  // Real API routes are mounted here as the project is rebuilt.
+  app.route("/api/yanhekt", yanhektProxyRouter);
+  app.route("/api", loginRouter);
 
   return app;
 }

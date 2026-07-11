@@ -11,10 +11,11 @@
   "compatibility_date": "2025-06-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Static frontend. Files here serve directly; any path that is NOT an asset
-  // falls through to the Worker.
+  // Static frontend (Vite build output — run `npm run build` first). Files
+  // here serve directly; any path that is NOT an asset falls through to the
+  // Worker.
   "assets": {
-    "directory": "./public",
+    "directory": "./dist",
     "binding": "ASSETS"
   },
 

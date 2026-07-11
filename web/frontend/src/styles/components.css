@@ -1,0 +1,540 @@
+/*
+ * Shared component classes. Unscoped utility classes for the most duplicated
+ * structural patterns across the codebase. Components opt in via class names;
+ * scoped overrides win when needed.
+ */
+
+/* === Scrollbar ===
+ *
+ * Global default: every scrollbar in the app is the thin, macOS-style
+ * auto-hide bar (transparent until the cursor enters the scroll container).
+ * Making this the universal default — rather than an opt-in class — means
+ * new scrollable elements are consistent automatically and can never drift
+ * back to the wide native scrollbar.
+ *
+ * `.custom-scrollbar` is retained as an explicit alias for the same look so
+ * existing markup and docs keep working; it is no longer required.
+ */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover {
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  border: none;
+  transition: background 0.3s ease;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover) !important;
+}
+
+/* === Buttons === */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  min-height: var(--control-height);
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn--danger {
+  background-color: var(--danger);
+  border-color: var(--danger);
+  color: var(--text-on-accent);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background-color: var(--danger-hover);
+  border-color: var(--danger-hover);
+}
+
+.btn--success {
+  background-color: var(--success);
+  border-color: var(--success);
+  color: var(--text-on-accent);
+}
+
+.btn--success:hover:not(:disabled) {
+  background-color: var(--success-hover);
+  border-color: var(--success-hover);
+}
+
+.btn--warning {
+  background-color: var(--warning-btn);
+  border-color: var(--warning-btn);
+  color: var(--text-primary);
+}
+
+.btn--warning:hover:not(:disabled) {
+  background-color: var(--warning-btn-hover);
+  border-color: var(--warning-btn-hover);
+}
+
+.btn--danger-outline {
+  background-color: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger);
+}
+
+.btn--danger-outline:hover:not(:disabled) {
+  background-color: var(--danger-border);
+  color: var(--text-on-accent);
+}
+
+.btn--success-outline {
+  background-color: var(--success-bg);
+  border: 1px solid var(--success-border);
+  color: var(--success);
+}
+
+.btn--success-outline:hover:not(:disabled) {
+  background-color: var(--success-border);
+  color: var(--text-on-accent);
+}
+
+.btn--ghost {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+}
+
+.btn--ghost:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.btn--icon:hover {
+  background-color: var(--bg-hover);
+}
+
+.btn--lg {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.btn--sm {
+  min-height: 0;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+/* === Badges === */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge--active {
+  background-color: var(--badge-active-bg);
+  color: var(--badge-active-text);
+}
+
+.badge--cropped {
+  background-color: var(--badge-cropped-bg);
+  color: var(--badge-cropped-text);
+}
+
+.badge--removed {
+  background-color: var(--badge-removed-bg);
+  color: var(--badge-removed-text);
+}
+
+.badge--version {
+  background-color: var(--badge-version-bg);
+  color: var(--badge-version-text);
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 14px;
+}
+
+/* === Form Elements === */
+
+.input-field {
+  box-sizing: border-box;
+  min-height: var(--control-height);
+  padding: 8px 12px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.text-input {
+  box-sizing: border-box;
+  min-height: var(--control-height);
+  padding: 6px 8px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 12px;
+  transition: border-color 0.2s;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.field-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Input group — an input/select plus adornment buttons (visibility toggle,
+   verify, etc.) on one row. align-items: stretch + the shared --control-height
+   make every child the same height by construction. */
+.input-group {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+/* Square icon button sized to the control height, for use inside .input-group
+   (e.g. a password visibility toggle next to a text input). */
+.btn--adornment {
+  flex: 0 0 auto;
+  width: var(--control-height);
+  min-height: var(--control-height);
+  padding: 0;
+}
+
+/* Native <select>. One shared class replaces ~13 near-identical per-component
+   select styles. Relies on the global color-scheme (theme.css) for a correct
+   dark-mode <option> popup. */
+.select-field {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: var(--control-height);
+  padding: 6px 8px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.select-field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.select-field:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* === Tool-window tab bar (ToolsWindow pill tabs) === */
+
+.toolwin-tabs {
+  display: flex;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.toolwin-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.toolwin-tab:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.toolwin-tab.active {
+  background-color: var(--focus-ring);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* === Tool-window controls (Windows minimize/maximize/close) === */
+
+.win-controls {
+  display: flex;
+  gap: 8px;
+  -webkit-app-region: no-drag;
+}
+
+.win-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.win-btn:hover {
+  background-color: var(--bg-hover);
+}
+
+.win-btn--close:hover {
+  background-color: var(--danger);
+  color: var(--text-on-accent);
+}
+
+/* === Spinner === */
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner--sm {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+}
+
+.spinner--lg {
+  width: 40px;
+  height: 40px;
+  border-width: 4px;
+}
+
+/* Rotate any element in place (e.g. a refresh icon) via the shared spin
+   keyframe. A component can still override the timing with a more specific
+   scoped rule. */
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+/* Shared pulse (opacity breathing) for live/active status indicators. */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* === Loading / empty state === */
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* Empty-queue placeholder shared by the task + download queue panels. */
+.empty-queue {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-secondary);
+}
+
+.empty-icon {
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-queue p {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+}
+
+/* Circular per-item status indicator shared by the queue panels. The
+   queued/completed/error variants are common; panel-specific variants
+   (downloading pulse, processing spin) stay local to their component. */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+}
+
+.status-indicator.status-queued {
+  color: var(--text-muted);
+  background-color: var(--bg-elevated);
+}
+
+.status-indicator.status-completed {
+  color: var(--success);
+  background-color: var(--success-bg);
+}
+
+.status-indicator.status-error {
+  color: var(--danger-pink);
+  background-color: var(--danger-bg);
+}
+
+/* === Post-process affiliated panel ===
+   The post-processing bar wrapper that hangs off the bottom of a queue/download
+   row. Shared by the task + download queue panels; each panel keeps its own
+   status border-left rules (they reference panel-specific item classes). */
+
+.post-process-affiliated-panel {
+  width: 100%;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 4px 6px;
+  margin-top: 0;
+}
+
+.pp-panel-content {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  font-size: 8px;
+}
+
+.pp-panel-content .pp-bar {
+  gap: 8px;
+}
+
+.pp-panel-content .pp-phase-bar {
+  height: 3px;
+}
+
+/* === Progress bar === */
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: var(--bg-hover);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background-color: var(--accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* === Section Header === */
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}

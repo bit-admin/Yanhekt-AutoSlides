@@ -6,6 +6,10 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
+# Vite build output — filenames are content-hashed, safe to cache forever
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
 # Cache headers for static assets
 /*.css
   Cache-Control: public, max-age=31536000, immutable
