@@ -637,6 +637,7 @@ import { configStore } from '@shared/services/configStore'
 import { layoutStore } from '@shared/services/layoutStore'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '@features/video/useVideoPlayer'
 import { useSlideExtraction, type Course, type Session } from '@features/video/useSlideExtraction'
+import { watchNotesStore } from '@features/cloudNotes/watchNotesStore'
 import { usePlaybackStreamUrl } from '@features/video/usePlaybackStreamUrl'
 import { usePostProcessing } from '@features/download/usePostProcessing'
 import { useTaskQueue } from '@features/download/useTaskQueue'
@@ -660,6 +661,7 @@ const props = defineProps<{
   mode: 'live' | 'recorded'
   streamId?: string
   sessionId?: string
+  tabId?: string
   isVisible?: boolean
 }>()
 
@@ -729,6 +731,19 @@ const slideExtraction = useSlideExtraction({
   // true before starting; manual watching leaves it false.
   isTaskExtraction: () => taskQueue.isTaskMode.value
 })
+
+// When the user starts extraction while watching (manual tab), hand off to the
+// watch-notes store: it creates/opens this tab's ASuser note and reveals the
+// right-panel Notes tab. Gated inside the store (manual origin + watch-sync on).
+watch(
+  () => slideExtraction.slideExtractionStatus.value.isRunning,
+  (running, was) => {
+    const instanceId = slideExtraction.extractorInstanceId.value
+    if (running && !was && props.tabId && instanceId) {
+      void watchNotesStore.onExtractionStarted(props.tabId, instanceId)
+    }
+  }
+)
 
 // Initialize slide gallery composable
 const slideGallery = useSlideGallery({

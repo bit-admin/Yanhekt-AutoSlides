@@ -190,6 +190,11 @@ export interface AppConfig {
   // When auto-resync replaces a note, also re-publish it to the Cloud Index
   // (remove-then-publish). Applies to auto-resync only. Default off.
   cloudAutoRepublishAfterResync: boolean;
+  // Watch-mode capture sync: when watching a live stream or a recorded session
+  // (manual playback) and slide extraction starts, auto-create a personal note
+  // in the ASuser group and append each captured slide to it. Gates the whole
+  // right-panel Notes flow. Default off; only meaningful once cloud storage is ready.
+  cloudWatchSyncEnabled: boolean;
   // Accounts remembered for quick account switching (each with its own token).
   // The active account is the one whose `token` equals the standalone `authToken`
   // electron-store key. Migrated from the legacy single-account fields.

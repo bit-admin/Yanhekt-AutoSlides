@@ -484,12 +484,19 @@
         :on-content-updated="onEditorContentUpdated"
       />
 
+      <NoteExportFormatModal
+        ref="exportFormatModalRef"
+        :cn="cn"
+        :get-content="ed.currentNoteContent"
+      />
+
       <!-- Right: editor (notes mode) / slide viewer (index mode) -->
       <NoteEditorPane
         v-if="viewMode === 'notes'"
         :cn="cn"
         :ed="ed"
         @share="shareModalRef?.open()"
+        @export="exportFormatModalRef?.open()"
       />
       <CloudIndexViewer
         v-else
@@ -532,6 +539,7 @@ import { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
 import ImportProgressModal from './ImportProgressModal.vue'
 import NoteEditorPane from './NoteEditorPane.vue'
 import NoteShareModal from './NoteShareModal.vue'
+import NoteExportFormatModal from './NoteExportFormatModal.vue'
 import NewGroupModal from './NewGroupModal.vue'
 import ImportSelectModal from './ImportSelectModal.vue'
 import NotesExportModal from './NotesExportModal.vue'
@@ -556,6 +564,7 @@ const publisher = useNotesPublish(cn)
 // Editor.js lifecycle (parent-constructed — see useNoteEditor's doc comment).
 const ed = useNoteEditor(cn, t)
 const shareModalRef = ref<InstanceType<typeof NoteShareModal> | null>(null)
+const exportFormatModalRef = ref<InstanceType<typeof NoteExportFormatModal> | null>(null)
 const onEditorContentUpdated = (content: string) => ed.mountEditor(content)
 
 // ── AutoSlides Index (merged-in "index mode") ──────────────────────────────

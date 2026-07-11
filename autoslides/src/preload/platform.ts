@@ -77,6 +77,7 @@ export const config = {
   setCloudAutoPublishAfterSync: (enabled: boolean) => ipcRenderer.invoke('config:setCloudAutoPublishAfterSync', enabled),
   setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => ipcRenderer.invoke('config:setCloudAutoResyncMode', mode),
   setCloudAutoRepublishAfterResync: (enabled: boolean) => ipcRenderer.invoke('config:setCloudAutoRepublishAfterResync', enabled),
+  setCloudWatchSyncEnabled: (enabled: boolean) => ipcRenderer.invoke('config:setCloudWatchSyncEnabled', enabled),
   upsertAccount: (account: StoredAccount) => ipcRenderer.invoke('config:upsertAccount', account),
   removeAccount: (badge: string) => ipcRenderer.invoke('config:removeAccount', badge),
   setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => ipcRenderer.invoke('config:setSavedSearches', mode, searches),

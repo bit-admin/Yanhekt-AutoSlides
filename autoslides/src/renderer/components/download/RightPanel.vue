@@ -20,6 +20,13 @@
           :auto-post-processing="autoPostProcessing"
         />
       </div>
+
+      <div
+        :class="['tab-container', { 'tab-hidden': rightPanelStore.currentTab !== 'notes' }]"
+        data-tab="notes"
+      >
+        <WatchNotesPanel />
+      </div>
     </div>
   </div>
 </template>
@@ -32,6 +39,7 @@ import { configStore } from '@shared/services/configStore'
 import { rightPanelStore } from '@shared/services/rightPanelStore'
 import TaskQueuePanel from './TaskQueuePanel.vue'
 import DownloadQueuePanel from './DownloadQueuePanel.vue'
+import WatchNotesPanel from './WatchNotesPanel.vue'
 
 type Tab = 'task' | 'download'
 

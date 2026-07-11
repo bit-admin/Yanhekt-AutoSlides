@@ -24,6 +24,16 @@ export const pdfmaker = {
   },
 };
 
+export const noteExport = {
+  export: (payload: { title: string; content: string; format: 'pdf' | 'markdown' | 'docx' }) =>
+    ipcRenderer.invoke('noteExport:export', payload) as Promise<{
+      ok: boolean;
+      path?: string;
+      canceled?: boolean;
+      error?: string;
+    }>,
+};
+
 export const yuketang = {
   exportLesson: (payload: { lessonId?: string; format: 'pdf' | 'images' }) =>
     ipcRenderer.invoke('yuketang:export', payload),

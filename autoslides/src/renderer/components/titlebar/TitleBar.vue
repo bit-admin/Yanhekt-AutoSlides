@@ -220,6 +220,18 @@
         </svg>
         {{ $t('navigation.download') }}
       </button>
+      <!-- Notes: only while watching a playback tab with watch-sync enabled. -->
+      <button
+        v-if="watchNotesStore.notesTabAvailable.value"
+        :class="['view-tab', { active: rightPanelStore.currentTab === 'notes' }]"
+        @click="setRightPanelTab('notes')"
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/>
+        </svg>
+        {{ $t('navigation.notes') }}
+      </button>
     </div>
 
     <!-- Trailing cluster: right-panel collapse toggle + (non-macOS) window
@@ -275,6 +287,7 @@ import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import UpdateManager from './UpdateManager.vue';
 import { rightPanelStore, setRightPanelTab } from '@shared/services/rightPanelStore';
+import { watchNotesStore } from '@features/cloudNotes/watchNotesStore';
 import { layoutStore, toggleLeftPanel, toggleRightPanel } from '@shared/services/layoutStore';
 import { tabStore, type PlaybackTab } from '@features/course/tabStore';
 import { navigationStore } from '@features/course/navigationStore';

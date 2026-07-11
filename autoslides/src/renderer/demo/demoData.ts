@@ -32,6 +32,7 @@ import type {
 } from '@common/notesTypes'
 import {
   MANAGED_GROUP_NAME,
+  USER_GROUP_NAME,
   README_NOTE_TITLE,
   EDITORJS_DOC_VERSION,
   buildManagedNoteTitle,
@@ -518,7 +519,8 @@ export function demoCropEntries(): Array<{
 // whose file.url is a slide SVG data URI.
 
 const DEMO_NOTE_GROUPS: NoteGroup[] = [
-  { id: 1, name: MANAGED_GROUP_NAME }, // AutoSlides-managed
+  { id: 1, name: MANAGED_GROUP_NAME }, // AutoSlides-managed (ASnote import)
+  { id: 3, name: USER_GROUP_NAME }, // AutoSlides-managed (ASuser watch-mode)
   { id: 2, name: 'Math' }, // a user group (≤ 6 chars)
   { id: 0, name: '' }, // implicit default (Ungrouped)
 ]

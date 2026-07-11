@@ -1,6 +1,12 @@
 import { ref, computed } from 'vue'
 import type { NoteGroup } from '@common/notesTypes'
-import { isManagedGroupName, MANAGED_GROUP_NAME, README_NOTE_TITLE } from '@common/notesTypes'
+import {
+  isManagedGroupName,
+  isUserGroupName,
+  MANAGED_GROUP_NAME,
+  USER_GROUP_NAME,
+  README_NOTE_TITLE,
+} from '@common/notesTypes'
 import { overrides } from '@shared/overrideRegistry'
 import type { CloudNotesProvider } from '@shared/overrideRegistry'
 import { configStore } from '@shared/services/configStore'
@@ -36,8 +42,12 @@ export type CloudStorageStatus =
 // gated until the user explicitly runs initialize() (Settings → Cloud, or the
 // Cloud Notes page button).
 const status = ref<CloudStorageStatus>('unknown')
+// ASnote — the import target group.
 const managedGroupId = ref<number | null>(null)
 const managedGroupName = ref('')
+// ASuser — the personal watch-mode capture group.
+const userGroupId = ref<number | null>(null)
+const userGroupName = ref('')
 const lastCheckedAt = ref<number | null>(null)
 const lastError = ref('')
 
@@ -66,9 +76,14 @@ async function persistFlag(initialized: boolean): Promise<void> {
   await window.electronAPI.config.setCloudStorageInitialized(userBadge, initialized)
 }
 
-function adoptGroup(group: NoteGroup): void {
-  managedGroupId.value = group.id
-  managedGroupName.value = group.name
+/** Adopt whichever managed groups are present in a fresh group list. */
+function adoptGroups(groups: NoteGroup[]): void {
+  const note = groups.find((g) => isManagedGroupName(g.name))
+  const user = groups.find((g) => isUserGroupName(g.name))
+  managedGroupId.value = note?.id ?? null
+  managedGroupName.value = note?.name ?? ''
+  userGroupId.value = user?.id ?? null
+  userGroupName.value = user?.name ?? ''
 }
 
 /** Set the account the store tracks (null on sign-out). Resets to 'unknown'. */
@@ -77,6 +92,8 @@ function setUser(badge: string | null): void {
   status.value = 'unknown'
   managedGroupId.value = null
   managedGroupName.value = ''
+  userGroupId.value = null
+  userGroupName.value = ''
   lastCheckedAt.value = null
   lastError.value = ''
 }
@@ -140,10 +157,10 @@ async function ensureReadme(): Promise<boolean> {
 }
 
 /**
- * Provision the managed storage: create the ASnote group if (and only if) a
- * fresh server read shows none, ensure the README note exists, and adopt the
- * canonical group (first in groupList order). groupCreate returns no id, so the
- * group list is re-fetched after creation.
+ * Provision the managed storage: create either managed group (ASnote import
+ * target, ASuser watch-mode captures) if a fresh server read shows it missing,
+ * ensure the README note exists, and adopt both. groupCreate returns no id, so
+ * the group list is re-fetched after any creation.
  */
 async function provision(): Promise<boolean> {
   const listRes = await api().groupList()
@@ -151,25 +168,30 @@ async function provision(): Promise<boolean> {
     lastError.value = listRes.error
     return false
   }
-  let managed = listRes.data.filter((g) => isManagedGroupName(g.name))
-  if (managed.length === 0) {
-    const createRes = await api().groupCreate(MANAGED_GROUP_NAME)
-    if (!createRes.ok) {
-      lastError.value = createRes.error
-      return false
+  let groups = listRes.data
+  const missing: string[] = []
+  if (!groups.some((g) => isManagedGroupName(g.name))) missing.push(MANAGED_GROUP_NAME)
+  if (!groups.some((g) => isUserGroupName(g.name))) missing.push(USER_GROUP_NAME)
+  if (missing.length > 0) {
+    for (const name of missing) {
+      const createRes = await api().groupCreate(name)
+      if (!createRes.ok) {
+        lastError.value = createRes.error
+        return false
+      }
     }
     const relist = await api().groupList()
     if (!relist.ok) {
       lastError.value = relist.error
       return false
     }
-    managed = relist.data.filter((g) => isManagedGroupName(g.name))
-    if (managed.length === 0) {
+    groups = relist.data
+    if (!groups.some((g) => isManagedGroupName(g.name)) || !groups.some((g) => isUserGroupName(g.name))) {
       lastError.value = 'managed-group-missing'
       return false
     }
   }
-  adoptGroup(managed[0])
+  adoptGroups(groups)
   return ensureReadme()
 }
 
@@ -184,20 +206,21 @@ async function doRefresh(): Promise<CloudStorageStatus> {
     lastCheckedAt.value = Date.now()
     return status.value
   }
-  const managed = res.data.filter((g) => isManagedGroupName(g.name))
-  if (managed.length > 0) {
-    adoptGroup(managed[0])
+  const hasNote = res.data.some((g) => isManagedGroupName(g.name))
+  const hasUser = res.data.some((g) => isUserGroupName(g.name))
+  if (hasNote && hasUser) {
+    adoptGroups(res.data)
     // Initialized on another machine / before the flag existed — self-heal it.
     if (!hasFlag()) void persistFlag(true).catch((err) => log.warn('flag self-heal failed', err))
     status.value = 'ready'
   } else if (hasFlag()) {
-    // Initialized before but the group is gone (deleted server-side): re-provision.
-    log.info('managed group missing for an initialized account — re-provisioning')
+    // Initialized before but a managed group is gone (deleted server-side, or
+    // ASuser predates this feature): re-provision the missing one(s).
+    log.info('a managed group is missing for an initialized account — re-provisioning')
     status.value = 'repairing'
     status.value = (await provision()) ? 'ready' : failureStatus()
   } else {
-    managedGroupId.value = null
-    managedGroupName.value = ''
+    adoptGroups(res.data)
     status.value = 'uninitialized'
   }
   lastCheckedAt.value = Date.now()
@@ -244,6 +267,8 @@ export const cloudStorageStore = {
   status,
   managedGroupId,
   managedGroupName,
+  userGroupId,
+  userGroupName,
   lastCheckedAt,
   lastError,
   canUse,

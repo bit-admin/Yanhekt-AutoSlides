@@ -1,0 +1,42 @@
+/* Editor.js block-toolbar placement — shared by every AutoSlides Editor.js
+   instance (the Drive/Cloud Notes editor and the right-panel watch-notes editor).
+
+   Editor.js latches the `codex-editor--narrow` class ONCE at mount, whenever the
+   editor is narrower than its ~650px content width, and never clears it on
+   resize. Narrow mode parks the block toolbar (＋ / drag handle / toolbox) in a
+   RIGHT gutter — but our editors live in narrow panes and want it in the LEFT
+   gutter (the wide, non-narrow default). Reset the narrow rules back to that
+   default here, globally, so both editors render consistently no matter how wide
+   their pane happens to be.
+
+   Selectors are boosted with the `.codex-editor` element class (e.g.
+   `.codex-editor.codex-editor--narrow` = 3 classes) so they outrank Editor.js's
+   own narrow rules (2 classes) regardless of stylesheet injection order —
+   Editor.js injects its CSS at runtime, after this file loads.
+
+   The host document must provide a left gutter (padding-left) wide enough for the
+   toolbar; both editor docs do (`.cn-editor-doc` / `.wn-editor-doc`). */
+
+.codex-editor.codex-editor--narrow .codex-editor__redactor {
+  margin-right: 0;
+}
+
+.codex-editor.codex-editor--narrow .ce-toolbar__actions {
+  right: 100%;
+  left: auto;
+}
+
+.codex-editor.codex-editor--narrow .ce-toolbar__plus {
+  left: auto;
+}
+
+.codex-editor.codex-editor--narrow .ce-block--focused {
+  margin-right: 0;
+  padding-right: 0;
+}
+
+.codex-editor.codex-editor--narrow .ce-toolbox,
+.codex-editor.codex-editor--narrow .ce-toolbox .ce-popover {
+  left: 0;
+  right: auto;
+}

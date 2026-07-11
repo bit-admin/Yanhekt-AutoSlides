@@ -20,6 +20,8 @@ export function useCloudSettings() {
   const tempCloudAutoResyncMode = ref<CloudAutoResyncMode>('disabled')
   const cloudAutoRepublishAfterResync = ref(false)
   const tempCloudAutoRepublishAfterResync = ref(false)
+  const cloudWatchSyncEnabled = ref(false)
+  const tempCloudWatchSyncEnabled = ref(false)
 
   const load = async () => {
     const cfg = await window.electronAPI.config.get()
@@ -27,6 +29,7 @@ export function useCloudSettings() {
     cloudAutoPublishAfterSync.value = cfg.cloudAutoPublishAfterSync ?? false
     cloudAutoResyncMode.value = cfg.cloudAutoResyncMode ?? 'disabled'
     cloudAutoRepublishAfterResync.value = cfg.cloudAutoRepublishAfterResync ?? false
+    cloudWatchSyncEnabled.value = cfg.cloudWatchSyncEnabled ?? false
     resetTemp()
   }
 
@@ -35,6 +38,7 @@ export function useCloudSettings() {
     tempCloudAutoPublishAfterSync.value = cloudAutoPublishAfterSync.value
     tempCloudAutoResyncMode.value = cloudAutoResyncMode.value
     tempCloudAutoRepublishAfterResync.value = cloudAutoRepublishAfterResync.value
+    tempCloudWatchSyncEnabled.value = cloudWatchSyncEnabled.value
   }
 
   const save = async () => {
@@ -54,6 +58,10 @@ export function useCloudSettings() {
       await window.electronAPI.config.setCloudAutoRepublishAfterResync(tempCloudAutoRepublishAfterResync.value)
       cloudAutoRepublishAfterResync.value = tempCloudAutoRepublishAfterResync.value
     }
+    if (tempCloudWatchSyncEnabled.value !== cloudWatchSyncEnabled.value) {
+      await window.electronAPI.config.setCloudWatchSyncEnabled(tempCloudWatchSyncEnabled.value)
+      cloudWatchSyncEnabled.value = tempCloudWatchSyncEnabled.value
+    }
   }
 
   return {
@@ -61,6 +69,7 @@ export function useCloudSettings() {
     tempCloudAutoPublishAfterSync,
     tempCloudAutoResyncMode,
     tempCloudAutoRepublishAfterResync,
+    tempCloudWatchSyncEnabled,
     load,
     resetTemp,
     save,

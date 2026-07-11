@@ -14,6 +14,7 @@ export function buildReadmeContent(): string {
   const blocks = [
     { type: 'header', data: { text: t('cloudNotes.readmeHeading'), level: 2 } },
     { type: 'paragraph', data: { text: t('cloudNotes.readmeBody1') } },
+    { type: 'paragraph', data: { text: t('cloudNotes.readmeBody4') } },
     { type: 'paragraph', data: { text: t('cloudNotes.readmeBody2') } },
     { type: 'paragraph', data: { text: t('cloudNotes.readmeBody3') } },
     { type: 'paragraph', data: { text: stamp } },

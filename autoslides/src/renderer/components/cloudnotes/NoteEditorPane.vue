@@ -27,8 +27,21 @@
           <option value="0">{{ $t('cloudNotes.defaultGroup') }}</option>
           <option v-for="g in cn.groups.value.filter(x => x.id !== 0)" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
         </select>
+        <!-- ASuser (watch-mode) notes export to a file; other managed notes share. -->
         <button
-          v-if="isManagedNoteTitle(cn.selectedNote.value.title)"
+          v-if="isUserNote"
+          class="btn btn--ghost cn-share-btn"
+          :title="$t('cloudNotes.exportTip')"
+          @click="emit('export')"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span>{{ $t('cloudNotes.exportButton') }}</span>
+        </button>
+        <button
+          v-else-if="isManagedNoteTitle(cn.selectedNote.value.title)"
           class="btn btn--ghost cn-share-btn"
           :title="$t('cloudNotes.shareTip')"
           @click="emit('share')"
@@ -53,9 +66,11 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { isManagedNoteTitle } from '@common/notesTypes'
 import type { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import type { useNoteEditor } from '@features/cloudNotes/useNoteEditor'
+import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 
 const props = defineProps<{
   cn: ReturnType<typeof useCloudNotes>
@@ -64,7 +79,15 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'share'): void
+  (e: 'export'): void
 }>()
+
+/** Watch-mode ASuser notes: exported to a file rather than shared to the Index. */
+const isUserNote = computed(() => {
+  const note = props.cn.selectedNote.value
+  const userGroupId = cloudStorageStore.userGroupId.value
+  return !!note && userGroupId != null && Number(note.note_group_id) === Number(userGroupId)
+})
 
 async function onMoveGroup(e: Event): Promise<void> {
   const note = props.cn.selectedNote.value

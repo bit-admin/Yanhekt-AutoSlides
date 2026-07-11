@@ -64,6 +64,7 @@ import { navigationStore, type NavTarget } from '@features/course/navigationStor
 import { configStore } from '@shared/services/configStore'
 import { isDemoMode } from '@shared/services/runtimeEnv'
 import { layoutStore } from '@shared/services/layoutStore'
+import { rightPanelStore } from '@shared/services/rightPanelStore'
 import { TaskQueue } from '@shared/services/taskQueueService'
 import { DownloadService } from '@shared/services/downloadService'
 import { PostProcessingService } from '@shared/services/postProcessingService'
@@ -305,6 +306,28 @@ const stopResize = () => {
   document.removeEventListener('mousemove', handleResize)
   document.removeEventListener('mouseup', stopResize)
 }
+
+// The right-panel Notes editor wants more room than the task/download lists, so
+// auto-widen the panel a bit when it enters the Notes tab and restore the prior
+// width on leave. Preserves the layout invariant (left + main + right).
+const NOTES_MIN_WIDTH = 490
+let preNotesRightWidth: number | null = null
+watch(() => rightPanelStore.currentTab, (tab) => {
+  const container = window.innerWidth
+  const minMain = 500
+  if (tab === 'notes') {
+    const target = Math.min(NOTES_MIN_WIDTH, container - leftWidth.value - minMain)
+    if (rightWidth.value < target) {
+      preNotesRightWidth = rightWidth.value
+      rightWidth.value = target
+      mainWidth.value = container - leftWidth.value - rightWidth.value
+    }
+  } else if (preNotesRightWidth != null) {
+    rightWidth.value = preNotesRightWidth
+    preNotesRightWidth = null
+    mainWidth.value = container - leftWidth.value - rightWidth.value
+  }
+})
 
 const updateSizes = () => {
   const totalWidth = window.innerWidth

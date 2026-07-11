@@ -195,6 +195,14 @@ export const NOTE_GROUP_NAME_MAX = 6;
 export const MANAGED_GROUP_NAME = 'ASnote';
 
 /**
+ * Name of the second AutoSlides-managed group, holding personal "watch mode"
+ * captures (slides grabbed while watching a live stream or a recorded session).
+ * Exactly 6 chars (the server limit), same identification rules as ASnote.
+ * Notes here are exported (PDF/Markdown/DOCX), never published to the Index.
+ */
+export const USER_GROUP_NAME = 'ASuser';
+
+/**
  * Title of the bootstrap README note. Kept language-independent and used both as
  * the display title and as the dedup key, so re-initializing under a different UI
  * language can't create a duplicate README.
@@ -204,9 +212,19 @@ export const README_NOTE_TITLE = 'AutoSlides Cloud Storage README';
 /** Editor.js library version stamped into documents we generate (matches the installed build). */
 export const EDITORJS_DOC_VERSION = '2.26.5';
 
-/** Whether a group is the AutoSlides-managed group (by reserved name). */
+/** Whether a group is the ASnote import group (by reserved name). */
 export function isManagedGroupName(name: string): boolean {
   return name === MANAGED_GROUP_NAME;
+}
+
+/** Whether a group is the ASuser watch-mode group (by reserved name). */
+export function isUserGroupName(name: string): boolean {
+  return name === USER_GROUP_NAME;
+}
+
+/** Whether a group is any AutoSlides-managed/protected group (ASnote or ASuser). */
+export function isAutoSlidesGroupName(name: string): boolean {
+  return isManagedGroupName(name) || isUserGroupName(name);
 }
 
 /**

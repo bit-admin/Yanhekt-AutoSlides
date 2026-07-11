@@ -4,37 +4,54 @@
     <div class="setting-item">
       <div class="setting-description">{{ $t('advanced.cloudStorage.intro') }}</div>
 
-      <div class="cloud-storage-card">
-        <span class="cloud-storage-dot" :class="statusClass"></span>
-        <div class="cloud-storage-text">
-          <span class="cloud-storage-title">{{ groupName }} {{ statusText }}</span>
-          <span class="cloud-storage-subtitle">{{ $t('advanced.cloudStorage.groupDescription') }}</span>
+      <div class="cloud-storage-cards">
+        <!-- ASnote: the slide-import storage group. -->
+        <div class="cloud-storage-card">
+          <span class="cloud-storage-dot" :class="statusClass"></span>
+          <div class="cloud-storage-text">
+            <span class="cloud-storage-title">{{ noteGroupName }} {{ statusText }}</span>
+            <span class="cloud-storage-subtitle">{{ $t('advanced.cloudStorage.groupDescription') }}</span>
+          </div>
+          <span v-if="noteIdText" class="cloud-storage-meta">{{ noteIdText }}</span>
         </div>
-        <div class="cloud-storage-right">
-          <button
-            v-if="store.status.value === 'uninitialized'"
-            type="button"
-            class="btn btn--primary btn--sm"
-            @click="onInitialize"
-          >
-            {{ $t('cloudNotes.initStorage') }}
-          </button>
-          <span v-if="metaText" class="cloud-storage-meta">{{ metaText }}</span>
-          <button
-            type="button"
-            class="btn--icon"
-            :title="busy ? $t('advanced.cloudStorage.refreshing') : $t('advanced.cloudStorage.refresh')"
-            :disabled="busy"
-            @click="onRefresh"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ spinning: busy }">
-              <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-              <path d="M21 3v5h-5"/>
-              <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-              <path d="M3 21v-5h5"/>
-            </svg>
-          </button>
+
+        <!-- ASuser: the personal watch-mode notes group. -->
+        <div class="cloud-storage-card">
+          <span class="cloud-storage-dot" :class="statusClass"></span>
+          <div class="cloud-storage-text">
+            <span class="cloud-storage-title">{{ userGroupName }} {{ statusText }}</span>
+            <span class="cloud-storage-subtitle">{{ $t('advanced.cloudStorage.groupDescriptionUser') }}</span>
+          </div>
+          <span v-if="userIdText" class="cloud-storage-meta">{{ userIdText }}</span>
         </div>
+      </div>
+
+      <!-- Shared actions for both groups (they provision + refresh together). -->
+      <div class="cloud-storage-footer">
+        <span v-if="lastCheckedText" class="cloud-storage-checked">{{ lastCheckedText }}</span>
+        <span class="cloud-storage-footer-spacer"></span>
+        <button
+          v-if="store.status.value === 'uninitialized'"
+          type="button"
+          class="btn btn--primary btn--sm"
+          @click="onInitialize"
+        >
+          {{ $t('cloudNotes.initStorage') }}
+        </button>
+        <button
+          type="button"
+          class="btn--icon"
+          :title="busy ? $t('advanced.cloudStorage.refreshing') : $t('advanced.cloudStorage.refresh')"
+          :disabled="busy"
+          @click="onRefresh"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ spinning: busy }">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+            <path d="M21 3v5h-5"/>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+            <path d="M3 21v-5h5"/>
+          </svg>
+        </button>
       </div>
 
       <p v-if="store.status.value === 'error' && store.lastError.value" class="cloud-storage-error">
@@ -89,6 +106,19 @@
       </div>
       <div class="setting-description">{{ $t('advanced.cloudStorage.autoRepublishDescription') }}</div>
     </div>
+
+    <!-- Watch-mode capture sync: the personal ASuser notes flow (right-panel
+         Notes tab). Independent of the folder auto-sync above. -->
+    <div class="setting-item">
+      <label class="setting-label">{{ $t('advanced.cloudStorage.watchSyncTitle') }}</label>
+      <div class="setting-description">{{ $t('advanced.cloudStorage.watchSyncDescription') }}</div>
+      <div class="auto-post-processing-control">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="tempCloudWatchSyncEnabled" />
+          {{ $t('advanced.cloudStorage.watchSyncEnable') }}
+        </label>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -98,7 +128,7 @@
 // so it reads the shared cloudStorageStore directly instead of settingsContext.
 import { computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { MANAGED_GROUP_NAME } from '@common/notesTypes'
+import { MANAGED_GROUP_NAME, USER_GROUP_NAME } from '@common/notesTypes'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import { useSettingsContext } from '@features/settings/settingsContext'
 
@@ -112,6 +142,7 @@ const {
   tempCloudAutoPublishAfterSync,
   tempCloudAutoResyncMode,
   tempCloudAutoRepublishAfterResync,
+  tempCloudWatchSyncEnabled,
 } = advanced.cloud
 
 // Resync replaces a note that auto-sync created, so it's meaningless without
@@ -124,10 +155,11 @@ watch(tempCloudAutoSyncMode, (mode) => {
     tempCloudAutoRepublishAfterResync.value = false
   }
 })
-// The managed group's name is a fixed, non-localized identifier (server-side
-// dedup key) — always show it, even before the group exists, so the title
-// reads "ASnote Not initialized" rather than a blank prefix.
-const groupName = MANAGED_GROUP_NAME
+// The managed groups' names are fixed, non-localized identifiers (server-side
+// dedup keys) — always show them, even before the groups exist, so each card's
+// title reads e.g. "ASnote Not initialized" rather than a blank prefix.
+const noteGroupName = MANAGED_GROUP_NAME
+const userGroupName = USER_GROUP_NAME
 
 const busy = computed(() =>
   store.status.value === 'checking' || store.status.value === 'repairing')
@@ -154,18 +186,21 @@ const statusClass = computed(() => {
   }
 })
 
-// Right-aligned meta: the server-assigned group id (once ready) + when the
-// status was last confirmed against the server.
-const metaText = computed(() => {
-  const parts: string[] = []
-  if (store.status.value === 'ready' && store.managedGroupId.value != null) {
-    parts.push(`ID ${store.managedGroupId.value}`)
-  }
-  if (store.lastCheckedAt.value) {
-    parts.push(`${t('advanced.cloudStorage.lastChecked')} ${new Date(store.lastCheckedAt.value).toLocaleString()}`)
-  }
-  return parts.join(' · ')
-})
+// Per-card server-assigned group id (once ready).
+const noteIdText = computed(() =>
+  store.status.value === 'ready' && store.managedGroupId.value != null
+    ? `ID ${store.managedGroupId.value}`
+    : '')
+const userIdText = computed(() =>
+  store.status.value === 'ready' && store.userGroupId.value != null
+    ? `ID ${store.userGroupId.value}`
+    : '')
+
+// When the status was last confirmed against the server (shown once, below both cards).
+const lastCheckedText = computed(() =>
+  store.lastCheckedAt.value
+    ? `${t('advanced.cloudStorage.lastChecked')} ${new Date(store.lastCheckedAt.value).toLocaleString()}`
+    : '')
 
 const onRefresh = () => { void store.refresh() }
 const onInitialize = () => { void store.initialize() }
@@ -178,6 +213,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.cloud-storage-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .cloud-storage-card {
   display: flex;
   align-items: center;
@@ -186,6 +227,22 @@ onMounted(() => {
   background-color: var(--bg-subtle);
   border: 1px solid var(--border-color);
   border-radius: 6px;
+}
+
+.cloud-storage-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.cloud-storage-footer-spacer {
+  flex: 1;
+}
+
+.cloud-storage-checked {
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
 .cloud-storage-dot {
@@ -220,14 +277,8 @@ onMounted(() => {
   line-height: 1.4;
 }
 
-.cloud-storage-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
 .cloud-storage-meta {
+  flex-shrink: 0;
   font-size: 11px;
   color: var(--text-secondary);
   white-space: nowrap;

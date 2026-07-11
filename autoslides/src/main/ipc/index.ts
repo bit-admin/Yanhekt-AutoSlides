@@ -24,6 +24,7 @@ import { registerTrashIpcHandlers } from './trashIpc';
 import { registerCropIpcHandlers } from './cropIpc';
 import { registerSlideMetadataIpcHandlers } from './slideMetadataIpc';
 import { registerPdfMakerIpcHandlers } from './pdfMakerIpc';
+import { registerNoteExportIpcHandlers } from './noteExportIpc';
 import { registerUpdateIpcHandlers } from './updateIpc';
 import { registerQtExtractorIpcHandlers } from './qtExtractorIpc';
 import { registerExtractorInstallerIpcHandlers } from './extractorInstallerIpc';
@@ -56,6 +57,7 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerCropIpcHandlers(services);
   registerSlideMetadataIpcHandlers(services);
   registerPdfMakerIpcHandlers(services);
+  registerNoteExportIpcHandlers(services);
   registerUpdateIpcHandlers(services);
   registerQtExtractorIpcHandlers(services);
   registerExtractorInstallerIpcHandlers(services);

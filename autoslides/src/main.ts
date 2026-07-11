@@ -21,6 +21,7 @@ import { MlClassifierModelService } from '@main/ai/mlClassifierModelService';
 import { CompressLectureService } from '@main/video/compressLectureService';
 import { WindowManager, getWindowBackgroundColor } from '@main/platform/windowManager';
 import { pdfService } from '@main/export/pdfService';
+import { noteExportService } from '@main/export/noteExportService';
 import { slideExtractionService } from '@main/extraction/slideExtractionService';
 import { slideMetadataService } from '@main/extraction/slideMetadataService';
 import { offlineProcessingService } from '@main/extraction/offlineProcessingService';
@@ -213,6 +214,7 @@ registerAllIpcHandlers({
   compressLectureService,
   windowManager,
   pdfService,
+  noteExportService,
   slideExtractionService,
   slideMetadataService,
   offlineProcessingService,

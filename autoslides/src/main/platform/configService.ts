@@ -169,6 +169,7 @@ export class ConfigService {
       cloudAutoPublishAfterSync: this.store.get('cloudAutoPublishAfterSync') ?? false,
       cloudAutoResyncMode: this.store.get('cloudAutoResyncMode') ?? 'disabled',
       cloudAutoRepublishAfterResync: this.store.get('cloudAutoRepublishAfterResync') ?? false,
+      cloudWatchSyncEnabled: this.store.get('cloudWatchSyncEnabled') ?? false,
       accounts: this.store.get('accounts') ?? []
     };
   }
@@ -207,6 +208,10 @@ export class ConfigService {
 
   setCloudAutoRepublishAfterResync(enabled: boolean): void {
     this.store.set('cloudAutoRepublishAfterResync', enabled);
+  }
+
+  setCloudWatchSyncEnabled(enabled: boolean): void {
+    this.store.set('cloudWatchSyncEnabled', enabled);
   }
 
   setSavedSearches(mode: 'live' | 'recorded', searches: string[]): void {

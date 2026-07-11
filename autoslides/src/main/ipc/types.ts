@@ -18,6 +18,7 @@ import type { MlClassifierModelService } from '@main/ai/mlClassifierModelService
 import type { CompressLectureService } from '@main/video/compressLectureService';
 import type { WindowManager } from '@main/platform/windowManager';
 import type { PdfService } from '@main/export/pdfService';
+import type { NoteExportService } from '@main/export/noteExportService';
 import type { SlideExtractionService } from '@main/extraction/slideExtractionService';
 import type { SlideMetadataService } from '@main/extraction/slideMetadataService';
 import type { OfflineProcessingService } from '@main/extraction/offlineProcessingService';
@@ -45,6 +46,7 @@ export interface IpcServices {
   compressLectureService: CompressLectureService;
   windowManager: WindowManager;
   pdfService: PdfService;
+  noteExportService: NoteExportService;
   slideExtractionService: SlideExtractionService;
   slideMetadataService: SlideMetadataService;
   offlineProcessingService: OfflineProcessingService;

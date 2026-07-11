@@ -187,5 +187,6 @@ export const defaultConfig: AppConfig = {
   cloudAutoPublishAfterSync: false,
   cloudAutoResyncMode: 'disabled',
   cloudAutoRepublishAfterResync: false,
+  cloudWatchSyncEnabled: false,
   accounts: []
 };

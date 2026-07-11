@@ -3,7 +3,7 @@ import { auth, config, windowNs, shell, menu, powerManagement, cache, app, dialo
 import { video, ffmpeg, compressLecture, download } from './video';
 import { slideExtraction, offline, trash, crop, slideMetadata, autoCrop, mlClassifier, qtExtractor } from './extraction';
 import { ai, copilot } from './ai';
-import { pdfmaker, yuketang } from './export';
+import { pdfmaker, yuketang, noteExport } from './export';
 import { api } from './course';
 import { update, extractorInstaller } from './update';
 import { tools, webCapture } from './tools';
@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   crop,
   slideMetadata,
   pdfmaker,
+  noteExport,
   tools,
   webCapture,
   yuketang,

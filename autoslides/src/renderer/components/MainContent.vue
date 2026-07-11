@@ -98,6 +98,7 @@
           :mode="tab.mode"
           :streamId="tab.streamId"
           :sessionId="tab.sessionId"
+          :tabId="tab.id"
           :isVisible="tabStore.state.activeTabId === tab.id"
           @back="handleTabBack(tab.id)"
         />

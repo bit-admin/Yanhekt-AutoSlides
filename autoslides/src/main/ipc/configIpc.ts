@@ -294,6 +294,12 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setCloudWatchSyncEnabled', async (_, enabled: boolean) => {
+    configService.setCloudWatchSyncEnabled(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
   ipcMain.handle('config:upsertAccount', async (_, account: StoredAccount) => {
     configService.upsertAccount(account);
     broadcastConfig();

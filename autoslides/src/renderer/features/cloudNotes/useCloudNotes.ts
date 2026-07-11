@@ -5,7 +5,7 @@ import type {
   NoteGroup,
   NotesResult,
 } from '@common/notesTypes'
-import { isManagedGroupName, README_NOTE_TITLE } from '@common/notesTypes'
+import { isManagedGroupName, isAutoSlidesGroupName, README_NOTE_TITLE } from '@common/notesTypes'
 import { overrides } from '@shared/overrideRegistry'
 
 const PAGE_SIZE = 20
@@ -53,12 +53,12 @@ export function useCloudNotes() {
 
   const selectedNoteId = computed(() => selectedNote.value?.id ?? null)
 
-  /** The AutoSlides-managed group(s), identified by reserved name. */
-  const managedGroups = computed(() => groups.value.filter((g) => isManagedGroupName(g.name)))
+  /** The AutoSlides-managed groups (ASnote import + ASuser watch), by reserved name. */
+  const managedGroups = computed(() => groups.value.filter((g) => isAutoSlidesGroupName(g.name)))
   /** Everything else: the default (Ungrouped) group + user-created groups. */
-  const otherGroups = computed(() => groups.value.filter((g) => !isManagedGroupName(g.name)))
-  /** Whether the managed group has been provisioned on the server. */
-  const hasManagedStorage = computed(() => managedGroups.value.length > 0)
+  const otherGroups = computed(() => groups.value.filter((g) => !isAutoSlidesGroupName(g.name)))
+  /** Whether the ASnote import group has been provisioned on the server. */
+  const hasManagedStorage = computed(() => groups.value.some((g) => isManagedGroupName(g.name)))
 
   /** Unwrap an IPC envelope; routes auth/errors into reactive state. */
   function unwrap<T>(res: NotesResult<T>): T | null {

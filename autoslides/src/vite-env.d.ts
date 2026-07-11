@@ -423,6 +423,7 @@ interface ElectronAPI {
     setCloudAutoPublishAfterSync: (enabled: boolean) => Promise<AppConfig>;
     setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => Promise<AppConfig>;
     setCloudAutoRepublishAfterResync: (enabled: boolean) => Promise<AppConfig>;
+    setCloudWatchSyncEnabled: (enabled: boolean) => Promise<AppConfig>;
     upsertAccount: (account: StoredAccount) => Promise<void>;
     removeAccount: (badge: string) => Promise<void>;
     setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => Promise<void>;
@@ -827,6 +828,15 @@ interface ElectronAPI {
       | { success: false; error?: string }
     >;
     onProgress: (callback: (progress: { current: number; total: number }) => void) => () => void;
+  };
+
+  noteExport: {
+    export: (payload: { title: string; content: string; format: 'pdf' | 'markdown' | 'docx' }) => Promise<{
+      ok: boolean;
+      path?: string;
+      canceled?: boolean;
+      error?: string;
+    }>;
   };
 
   tools: {
