@@ -16,6 +16,13 @@
     "enabled": false
   },
 
+  // Placement Hints: probe the upstream Yanhekt video host (HTTP/layer 7) and
+  // run this Worker in the data center with lowest latency to it, since every
+  // request proxies through to cvideo.yanhekt.cn anyway.
+  "placement": {
+    "hostname": "cvideo.yanhekt.cn"
+  },
+
   // Custom domain — Cloudflare creates/manages the DNS record and attaches this
   // Worker to the whole hostname. Adjust to your own zone.
   "routes": [
