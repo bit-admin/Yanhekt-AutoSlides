@@ -620,6 +620,10 @@
     "streamScreen": "Screen Recording",
     "bothStreams": "Both Streams",
     "loadingVideoStreams": "Loading video streams...",
+    "warming": {
+      "title": "Preparing playback…",
+      "hint": "The initial playback of a recording is routed through our relay service and may require a brief warm-up period. Thank you for your patience; subsequent playback and seeking will be considerably faster."
+    },
     "lastPlayedPosition": "Last played position:",
     "networkProblems": "This may be due to video quality issues or network problems. Consider downloading this video for offline viewing to avoid playback interruptions.",
     "retry": "Retry",

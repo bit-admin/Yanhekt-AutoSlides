@@ -157,6 +157,11 @@ async function getRawPlaylist(
   })().finally(() => inflightM3u8.delete(url));
 
   inflightM3u8.set(url, p);
+  // A cold open can outlast the player's manifest-load timeout; if the client
+  // aborts and retries, we must still finish the mint+fetch+cache in the
+  // background so the retry (and every later viewer) hits a warm cache instead
+  // of re-triggering the slow upstream round-trip.
+  ctx.waitUntil(p.catch(() => {}));
   try {
     return { status: 200, body: await p };
   } catch (err) {

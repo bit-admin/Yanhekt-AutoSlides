@@ -158,6 +158,12 @@
             <span>{{ retryMessage }}</span>
           </div>
 
+          <div v-else-if="isVideoLoading" class="warming-overlay">
+            <div class="warming-spinner"></div>
+            <p class="warming-title">{{ $t('playback.warming.title') }}</p>
+            <p v-if="props.mode === 'recorded'" class="warming-hint">{{ $t('playback.warming.hint') }}</p>
+          </div>
+
           <SingleStreamControls
             :mode="props.mode"
             :is-playing="isPlaying"
@@ -242,6 +248,12 @@
             <div v-if="isRetrying" class="retry-indicator">
               <div class="retry-spinner"></div>
               <span>{{ retryMessage }}</span>
+            </div>
+
+            <div v-else-if="isVideoLoading" class="warming-overlay">
+              <div class="warming-spinner"></div>
+              <p class="warming-title">{{ $t('playback.warming.title') }}</p>
+              <p v-if="props.mode === 'recorded'" class="warming-hint">{{ $t('playback.warming.hint') }}</p>
             </div>
           </div>
 
@@ -507,6 +519,7 @@ const {
   playbackData,
   selectedStream,
   isPlaying,
+  isVideoLoading,
   currentPlaybackRate,
   isRetrying,
   retryMessage,
@@ -1184,6 +1197,45 @@ onUnmounted(async () => {
   border-top: 2px solid white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+.warming-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-on-accent);
+  background-color: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: 20;
+}
+
+.warming-spinner {
+  width: 34px;
+  height: 34px;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.warming-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.warming-hint {
+  margin: 0;
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .video-player {

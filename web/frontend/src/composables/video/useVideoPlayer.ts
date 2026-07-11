@@ -32,6 +32,10 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   const playbackData = ref<PlaybackData | null>(null);
   const selectedStream = ref<string>("");
   const isPlaying = ref(false);
+  // True from the moment an HLS source starts loading until the first frame is
+  // playable — drives the "warming up" overlay for the (potentially slow) cold
+  // relay open. Distinct from `loading` (the stream-metadata fetch).
+  const isVideoLoading = ref(false);
   const videoPlayer = ref<HTMLVideoElement | null>(null);
   const cameraVideoPlayer = ref<HTMLVideoElement | null>(null);
   const screenVideoPlayer = ref<HTMLVideoElement | null>(null);
@@ -163,8 +167,12 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         levelLoadingMaxRetry: 4,
         levelLoadingRetryDelay: 1000,
         levelLoadingMaxRetryTimeout: 64000,
-        manifestLoadingTimeOut: 10000,
-        manifestLoadingMaxRetry: 6,
+        // Recorded playback goes through the relay, whose first (cold) open of a
+        // given video pays a mint + China round-trip that can take tens of
+        // seconds. Keep a generous per-attempt timeout so a slow cold open isn't
+        // aborted prematurely (which would re-trigger the cold work each retry).
+        manifestLoadingTimeOut: 30000,
+        manifestLoadingMaxRetry: 4,
         manifestLoadingRetryDelay: 1000,
         manifestLoadingMaxRetryTimeout: 64000,
         highBufferWatchdogPeriod: 2,
@@ -273,6 +281,8 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       return;
     }
 
+    isVideoLoading.value = true;
+
     try {
       dual.cleanupDualVideoSources();
       cleanupSingleVideoSource();
@@ -318,6 +328,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       error.value = errorMessage;
       isRetrying.value = false;
       retryMessage.value = "";
+      isVideoLoading.value = false;
     }
   };
 
@@ -622,6 +633,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
       error.value = userMessage;
       isRetrying.value = false;
       retryMessage.value = "";
+      isVideoLoading.value = false;
 
       videoErrorRetryCount = 0;
       wasPlayingBeforeError = false;
@@ -632,6 +644,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
   };
 
   const onCanPlay = () => {
+    isVideoLoading.value = false;
     if (isRetrying.value) {
       setTimeout(() => {
         isRetrying.value = false;
@@ -675,6 +688,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     playbackData,
     selectedStream,
     isPlaying,
+    isVideoLoading,
     videoPlayer,
     cameraVideoPlayer,
     screenVideoPlayer,

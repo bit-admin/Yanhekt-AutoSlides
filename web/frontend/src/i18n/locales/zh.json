@@ -620,6 +620,10 @@
     "streamScreen": "屏幕录制",
     "bothStreams": "同时观看",
     "loadingVideoStreams": "加载视频流中...",
+    "warming": {
+      "title": "正在准备播放…",
+      "hint": "录播的首次播放需通过中转服务预热，可能需要稍作等待。感谢您的耐心，后续的播放与拖动将明显更快。"
+    },
     "lastPlayedPosition": "上次播放位置：",
     "networkProblems": "这可能是由于视频质量问题或网络问题导致的。建议下载此视频以供离线观看，避免播放中断。",
     "retry": "重试",
