@@ -102,6 +102,71 @@ function invalidateToken(loginToken: string, ctx: ExecutionContext): void {
   ctx.waitUntil(caches.default.delete(req));
 }
 
+// ---- Raw m3u8 cache -------------------------------------------------------
+// Recorded (VOD) playlists are immutable, and the raw upstream body is
+// identical regardless of which login token requested it (segment lines are
+// relative + token-independent; signing happens per segment fetch). So we
+// cache the RAW m3u8 keyed by its url alone — shared across every viewer —
+// and rewrite per-request with the caller's token. This keeps the slow,
+// tail-spiky "mint token + round-trip to China for the m3u8" work off all
+// but the first playlist request per video per PoP.
+const PLAYLIST_TTL = 21600; // 6h — recorded lectures never change once processed
+
+const inflightM3u8 = new Map<string, Promise<string>>();
+
+function m3u8CacheKey(rawUrl: string): { url: string; req: Request } {
+  const url = `https://yanhekt-proxy.cache/m3u8/${md5(rawUrl)}`;
+  return { url, req: new Request(url) };
+}
+
+async function getRawPlaylist(
+  rawUrl: string,
+  loginToken: string,
+  ctx: ExecutionContext
+): Promise<{ status: number; body: string }> {
+  const { url, req } = m3u8CacheKey(rawUrl);
+  const cache = caches.default;
+
+  const cached = await cache.match(req);
+  if (cached) return { status: 200, body: await cached.text() };
+
+  // Coalesce concurrent cold fetches for the same playlist within this isolate
+  // so a burst of viewers triggers a single mint+upstream round-trip.
+  const existing = inflightM3u8.get(url);
+  if (existing) return { status: 200, body: await existing };
+
+  const p = (async () => {
+    const res = await fetchSignedMedia(rawUrl, loginToken, ctx, null);
+    const body = await res.text();
+    if (res.status !== 200) {
+      // Surface upstream failures without caching them or joining coalesced waiters.
+      throw { status: res.status, body } as { status: number; body: string };
+    }
+    ctx.waitUntil(
+      cache.put(
+        req,
+        new Response(body, {
+          headers: {
+            'Cache-Control': `max-age=${PLAYLIST_TTL}`,
+            'Content-Type': 'application/vnd.apple.mpegurl',
+          },
+        })
+      )
+    );
+    return body;
+  })().finally(() => inflightM3u8.delete(url));
+
+  inflightM3u8.set(url, p);
+  try {
+    return { status: 200, body: await p };
+  } catch (err) {
+    if (err && typeof err === 'object' && 'status' in err) {
+      return err as { status: number; body: string };
+    }
+    throw err;
+  }
+}
+
 // ---- Signed media fetch with 403 re-sign / re-mint retry ------------------
 
 async function fetchSignedMedia(
@@ -192,11 +257,11 @@ export default {
         const t = url.searchParams.get('t');
         if (!u || !t) return text('Missing required params: u (m3u8 url) and t (login token)', 400);
 
-        const res = await fetchSignedMedia(u, t, ctx, null);
-        if (res.status !== 200) {
-          return text(`Upstream playlist request failed with status ${res.status}`, res.status === 403 ? 403 : 502);
+        const raw = await getRawPlaylist(u, t, ctx);
+        if (raw.status !== 200) {
+          return text(`Upstream playlist request failed with status ${raw.status}`, raw.status === 403 ? 403 : 502);
         }
-        const rewritten = rewriteM3u8(await res.text(), u, origin, t);
+        const rewritten = rewriteM3u8(raw.body, u, origin, t);
         return text(rewritten, 200, 'application/vnd.apple.mpegurl');
       }
 
