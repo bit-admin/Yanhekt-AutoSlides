@@ -159,32 +159,47 @@ const submitToken = async () => {
 
 <style scoped>
 .signin-modal {
-  width: 420px;
+  width: 400px;
   max-width: 92vw;
+  border-radius: 12px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  padding: 12px 20px;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 .signin-body {
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
-/* Same segmented control idiom as the Search page mode switch */
+/* Premium iOS/macOS style segmented control */
 .signin-mode-switch {
   display: flex;
-  align-items: center;
-  align-self: center;
+  width: 100%;
   padding: 2px;
-  border-radius: 8px;
-  background: var(--bg-page-alt);
+  background-color: var(--bg-page-alt);
   border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 4px;
 }
 
 .mode-pill {
+  flex: 1;
   display: inline-flex;
   align-items: center;
-  padding: 4px 12px;
+  justify-content: center;
+  padding: 6px 12px;
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
@@ -192,7 +207,7 @@ const submitToken = async () => {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.15s ease;
 }
 
 .mode-pill:hover {
@@ -200,7 +215,7 @@ const submitToken = async () => {
 }
 
 .mode-pill.active {
-  background: var(--bg-surface);
+  background-color: var(--bg-surface);
   border-color: var(--border-strong);
   color: var(--text-primary);
   box-shadow: 0 1px 2px var(--shadow-sm);
@@ -209,7 +224,24 @@ const submitToken = async () => {
 .signin-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+}
+
+.signin-form .text-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-input);
+  border-radius: 8px;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.signin-form .text-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+  outline: none;
 }
 
 .signin-hint {
@@ -230,21 +262,36 @@ const submitToken = async () => {
   margin: 0;
   font-size: 12px;
   color: var(--danger);
+  font-weight: 500;
 }
 
 .signin-submit {
+  height: 38px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
   margin-top: 4px;
+  transition: all 0.15s ease;
 }
 
-/* Draggable bookmarklet chip */
+.signin-submit:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.signin-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Full-width premium bookmarklet link */
 .bookmarklet-link {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  align-self: flex-start;
-  padding: 7px 14px;
-  border: 1px dashed var(--accent);
+  gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 16px;
+  border: 1.5px dashed var(--accent);
   border-radius: 8px;
   background-color: var(--badge-active-bg);
   color: var(--accent);
@@ -253,9 +300,15 @@ const submitToken = async () => {
   text-decoration: none;
   cursor: grab;
   user-select: none;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.bookmarklet-link:hover {
+  background-color: var(--bg-hover);
 }
 
 .bookmarklet-link:active {
   cursor: grabbing;
+  transform: scale(0.98);
 }
 </style>

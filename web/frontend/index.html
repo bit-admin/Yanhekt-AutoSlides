@@ -4,6 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AutoSlides</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <script>
+      // Stamp the resolved theme before first paint to avoid a flash of the
+      // wrong scheme. The app's settings store re-applies + tracks OS changes.
+      (function () {
+        try {
+          var cfg = JSON.parse(localStorage.getItem("autoslides.config") || "{}");
+          var mode = cfg.themeMode || "system";
+          var dark =
+            mode === "dark" ||
+            (mode === "system" &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "light");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="app"></div>

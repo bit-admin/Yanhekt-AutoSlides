@@ -33,6 +33,11 @@
             @back-to-courses="backToCourses"
           />
         </div>
+
+        <!-- Settings Page -->
+        <div :class="['mode-container', { 'mode-hidden': activeNav !== 'settings' }]" data-mode="settings">
+          <SettingsPage />
+        </div>
       </div>
 
       <!-- Single playback view (the web shell has no tab strip) -->
@@ -60,6 +65,7 @@ import HomePage from './course/HomePage.vue'
 import SearchPage from './course/SearchPage.vue'
 import CoursePage from './course/CoursePage.vue'
 import SessionPage from './course/SessionPage.vue'
+import SettingsPage from './SettingsPage.vue'
 import PlaybackPage from './video/PlaybackPage.vue'
 import { navigationStore } from '../stores/navigationStore'
 import { playbackStore, closePlayback } from '../stores/playbackStore'

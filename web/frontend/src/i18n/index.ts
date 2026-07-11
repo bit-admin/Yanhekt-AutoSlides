@@ -1,6 +1,7 @@
 import { createI18n } from "vue-i18n";
 import en from "./locales/en.json";
 import zh from "./locales/zh.json";
+import { configStore } from "../stores/configStore";
 
 // Web-only strings layered over the locale files copied verbatim from the
 // desktop app (kept separate so the copies stay diffable against upstream).
@@ -47,26 +48,30 @@ const webZh = {
 export type MessageSchema = typeof en;
 export type AppLocale = "en" | "zh";
 
-const STORAGE_KEY = "autoslides.locale";
-
-function detectLocale(): AppLocale {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "en" || stored === "zh") return stored;
+/** Resolve the browser's preferred locale to one of the two supported ones. */
+export function detectSystemLocale(): AppLocale {
   const systemLang = navigator.language || navigator.languages?.[0] || "en";
   return systemLang.toLowerCase().startsWith("zh") ? "zh" : "en";
 }
 
+// Initial locale resolved from the persisted language mode ('system' follows
+// the browser). Persistence itself is owned by configStore + settingsStore.
+function initialLocale(): AppLocale {
+  const mode = configStore.languageMode;
+  return mode === "system" ? detectSystemLocale() : mode;
+}
+
 export const i18n = createI18n({
   legacy: false,
-  locale: detectLocale(),
+  locale: initialLocale(),
   fallbackLocale: "en",
   messages: { en: { ...en, ...webEn }, zh: { ...zh, ...webZh } },
   globalInjection: true,
 });
 
+/** Low-level i18n switch. Callers persist via settingsStore.setLanguageMode. */
 export function setLocale(locale: AppLocale) {
   i18n.global.locale.value = locale;
-  localStorage.setItem(STORAGE_KEY, locale);
 }
 
 export function getCurrentLocale(): AppLocale {

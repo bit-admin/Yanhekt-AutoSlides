@@ -9,6 +9,18 @@
           {{ $t('sessions.backToCourses') }}
         </button>
         <h2>{{ course?.title }}</h2>
+        <button
+          @click="togglePin"
+          class="btn pin-btn"
+          :class="{ active: pinned }"
+          :title="pinned ? $t('sessions.unpin') : $t('sessions.pin')"
+          :aria-label="pinned ? $t('sessions.unpin') : $t('sessions.pin')"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" :fill="pinned ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 17v5"/>
+            <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>
+          </svg>
+        </button>
         <button @click="toggleCourseDetails" class="btn expand-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showCourseDetails }">
             <polyline points="6,9 12,15 18,9"/>
@@ -102,9 +114,10 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, toRef } from 'vue'
+import { computed, onMounted, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '../../composables/useSessionPage'
+import { isPinned, togglePinnedCourse } from '../../composables/pinnedCourses'
 
 const props = defineProps<{
   course: SessionCourse | null
@@ -136,6 +149,15 @@ const {
   onSessionSelected: (session: Session) => emit('sessionSelected', session),
   onBackToCourses: () => emit('backToCourses')
 })
+
+// Pin/unpin the recorded course. Pins the enriched courseDetails so the wide
+// fields (classrooms / participants / term) are captured at pin time.
+const pinned = computed(() => !!props.course?.id && isPinned(props.course.id))
+const togglePin = () => {
+  const c = courseDetails.value
+  if (!c?.id) return
+  togglePinnedCourse(c)
+}
 
 onMounted(() => {
   loadCourseSessions()
@@ -179,12 +201,18 @@ onMounted(() => {
   flex: 1;
 }
 
-/* Square 32×32 icon button — padding:0 so the chevron is not crushed by
+/* Square 32×32 icon buttons — padding:0 so the glyph is not crushed by
    .btn's horizontal padding under box-sizing: border-box. */
-.expand-btn {
+.expand-btn,
+.pin-btn {
   width: 32px;
   height: 32px;
   padding: 0;
+  flex-shrink: 0;
+}
+
+.pin-btn.active {
+  color: var(--accent);
 }
 
 .expand-btn svg {

@@ -163,6 +163,19 @@ const selectResult = (course: Course) => {
   openCourse(mode.value, course);
 };
 
+// Open a saved search: adopt its keyword + mode, switch to the Search page,
+// and run it (ports the desktop app's openSavedSearch).
+const openSavedSearch = async (kw: string, m: "live" | "recorded") => {
+  cancelPendingSearch();
+  keyword.value = kw;
+  mode.value = m;
+  navigationStore.navigate("search");
+  if (m === "recorded" && !semesterInitialized.value) {
+    await selectLatestSemester();
+  }
+  await executeSearch();
+};
+
 export function useSearchPage() {
   return {
     keyword,
@@ -182,5 +195,6 @@ export function useSearchPage() {
     handleSidebarFocus,
     handleSidebarEnter,
     selectResult,
+    openSavedSearch,
   };
 }
