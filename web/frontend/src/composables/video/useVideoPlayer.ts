@@ -213,6 +213,7 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
     shouldVideoMute,
     isVideoMuted,
     isPlaying,
+    isVideoLoading,
     isDualStreamSelected,
     cameraStreamData,
     screenStreamData,

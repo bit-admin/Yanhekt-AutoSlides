@@ -18,6 +18,10 @@ export interface DualStreamPlayerDeps {
   shouldVideoMute: ComputedRef<boolean>;
   isVideoMuted: Ref<boolean>;
   isPlaying: Ref<boolean>;
+  /** Warm-up overlay flag, shared with the single-stream path. The dual player
+   *  owns it while dual sources load so the overlay clears once both streams
+   *  are playable (the single-stream `canplay` never fires in dual mode). */
+  isVideoLoading: Ref<boolean>;
   isDualStreamSelected: ComputedRef<boolean>;
   cameraStreamData: ComputedRef<VideoStream | null>;
   screenStreamData: ComputedRef<VideoStream | null>;
@@ -39,6 +43,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     shouldVideoMute,
     isVideoMuted,
     isPlaying,
+    isVideoLoading,
     isDualStreamSelected,
     cameraStreamData,
     screenStreamData,
@@ -169,6 +174,9 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
     if (!cameraVideo || !screenVideo) return;
     if (cameraVideo.readyState < 2 || screenVideo.readyState < 2) return;
 
+    // Both streams now have enough data to play — dismiss the warm-up overlay.
+    isVideoLoading.value = false;
+
     if (mode === "recorded") {
       const playbackRateNumber = Number(currentPlaybackRate.value);
       cameraVideo.playbackRate = playbackRateNumber;
@@ -199,6 +207,9 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
 
   const startDualSync = () => {
     stopDualSync();
+    // Run once immediately so a warm re-load dismisses the overlay without
+    // waiting a full interval, then poll for drift/readiness.
+    syncDualStreams();
     dualSyncInterval = setInterval(syncDualStreams, 1500);
   };
 
@@ -289,6 +300,10 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
       return;
     }
 
+    // Own the warm-up overlay for the dual load; syncDualStreams clears it once
+    // both streams are playable.
+    isVideoLoading.value = true;
+
     try {
       cleanupSingleVideoSource();
       cleanupDualVideoSources();
@@ -308,6 +323,7 @@ export function useDualStreamPlayer(deps: DualStreamPlayerDeps) {
       const errorMessage =
         "Failed to load dual video sources: " + (err instanceof Error ? err.message : String(err));
       error.value = errorMessage;
+      isVideoLoading.value = false;
       handleTaskError(errorMessage);
     }
   };

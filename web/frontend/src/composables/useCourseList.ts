@@ -123,7 +123,7 @@ export interface UseCourseListReturn {
   errorMessage: Ref<string>;
   paginatedCourses: ComputedRef<Course[]>;
   fetchPersonalCourses: () => Promise<void>;
-  goToPage: (page: number) => Promise<void>;
+  loadMore: () => Promise<void>;
   selectCourse: (course: Course) => void;
   getStatusClass: (status?: number) => string;
   getStatusText: (status?: number) => string;
@@ -159,7 +159,12 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
     try {
       if (mode.value === "live") {
         const response = await getPersonalLiveList(token, currentPage.value, coursesPerPage);
-        courses.value = response.data.map(transformLiveStreamToCourse);
+        const transformed = response.data.map(transformLiveStreamToCourse);
+        if (resetPage) {
+          courses.value = transformed;
+        } else {
+          courses.value = [...courses.value, ...transformed];
+        }
         totalPages.value = response.last_page;
         currentPage.value = response.current_page;
       } else {
@@ -167,24 +172,30 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
           page: currentPage.value,
           pageSize: coursesPerPage,
         });
-        courses.value = response.data.map(transformCourseDataToCourse);
+        const transformed = response.data.map(transformCourseDataToCourse);
+        if (resetPage) {
+          courses.value = transformed;
+        } else {
+          courses.value = [...courses.value, ...transformed];
+        }
         totalPages.value = response.last_page;
         currentPage.value = response.current_page;
       }
     } catch (error: unknown) {
       console.error("Failed to fetch personal courses:", error);
       errorMessage.value = (error instanceof Error && error.message) || "Failed to fetch personal courses";
-      courses.value = [];
+      if (resetPage) {
+        courses.value = [];
+      }
     } finally {
       isLoading.value = false;
     }
   };
 
-  const goToPage = async (page: number) => {
-    if (page >= 1 && page <= totalPages.value && page !== currentPage.value) {
-      currentPage.value = page;
-      await fetchPersonalCourses(false);
-    }
+  const loadMore = async () => {
+    if (isLoading.value || currentPage.value >= totalPages.value) return;
+    currentPage.value += 1;
+    await fetchPersonalCourses(false);
   };
 
   const getStatusClass = (status?: number): string => getCourseStatusClass(status);
@@ -202,7 +213,7 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
     errorMessage,
     paginatedCourses,
     fetchPersonalCourses,
-    goToPage,
+    loadMore,
     selectCourse,
     getStatusClass,
     getStatusText,

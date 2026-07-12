@@ -1346,6 +1346,8 @@
   "home": {
     "myLiveStreams": "My Live Streams",
     "myRecordings": "My Recordings",
+    "liveSession": "Live Session",
+    "academicCourse": "Academic Course",
     "signInHint": "Sign in to see your live streams and recordings",
     "campusWarning": {
       "message": "Internal network mode is on, but the campus network can't be reached. You may want to",

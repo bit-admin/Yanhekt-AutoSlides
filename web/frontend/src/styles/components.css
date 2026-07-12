@@ -1,21 +1,9 @@
 /*
- * Shared component classes. Unscoped utility classes for the most duplicated
- * structural patterns across the codebase. Components opt in via class names;
- * scoped overrides win when needed.
+ * Shared component classes. Relies on theme.css variables.
+ * Refactored to use relative rem units and YouTube-style visual guidelines.
  */
 
-/* === Scrollbar ===
- *
- * Global default: every scrollbar in the app is the thin, macOS-style
- * auto-hide bar (transparent until the cursor enters the scroll container).
- * Making this the universal default — rather than an opt-in class — means
- * new scrollable elements are consistent automatically and can never drift
- * back to the wide native scrollbar.
- *
- * `.custom-scrollbar` is retained as an explicit alias for the same look so
- * existing markup and docs keep working; it is no longer required.
- */
-
+/* === Scrollbar === */
 * {
   scrollbar-width: thin;
   scrollbar-color: transparent transparent;
@@ -26,19 +14,17 @@
 }
 
 *::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 0.5rem;
+  height: 0.5rem;
 }
 
 *::-webkit-scrollbar-track {
   background: transparent;
-  border-radius: 3px;
 }
 
 *::-webkit-scrollbar-thumb {
   background: transparent;
-  border-radius: 3px;
-  border: none;
+  border-radius: 0.25rem;
   transition: background 0.3s ease;
 }
 
@@ -50,51 +36,60 @@
   background: var(--scrollbar-thumb-hover) !important;
 }
 
-/* === Buttons === */
-
+/* === Buttons (YouTube Pill Style) === */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
   min-height: var(--control-height);
-  gap: 6px;
-  padding: 6px 12px;
+  gap: 0.375rem;
+  padding: 0.5rem 1rem;
   border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background-color: var(--bg-surface);
-  color: var(--text-secondary);
-  font-size: 12px;
+  border-radius: 6.25rem; /* Pill shape */
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
 }
 
 .btn:hover:not(:disabled) {
   background-color: var(--bg-hover);
+  filter: brightness(0.95);
   border-color: var(--border-strong);
 }
 
+:global(html[data-theme="dark"]) .btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .btn--primary {
-  background-color: var(--accent);
-  border-color: var(--accent);
-  color: var(--text-on-accent);
+  background-color: var(--text-primary); /* YouTube's main buttons are black in light, white in dark */
+  border-color: var(--text-primary);
+  color: var(--bg-page-alt);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background-color: var(--accent-hover);
-  border-color: var(--accent-hover);
+  background-color: var(--text-primary);
+  opacity: 0.9;
 }
 
 .btn--danger {
   background-color: var(--danger);
   border-color: var(--danger);
-  color: var(--text-on-accent);
+  color: #ffffff;
 }
 
 .btn--danger:hover:not(:disabled) {
@@ -105,56 +100,17 @@
 .btn--success {
   background-color: var(--success);
   border-color: var(--success);
-  color: var(--text-on-accent);
-}
-
-.btn--success:hover:not(:disabled) {
-  background-color: var(--success-hover);
-  border-color: var(--success-hover);
-}
-
-.btn--warning {
-  background-color: var(--warning-btn);
-  border-color: var(--warning-btn);
-  color: var(--text-primary);
-}
-
-.btn--warning:hover:not(:disabled) {
-  background-color: var(--warning-btn-hover);
-  border-color: var(--warning-btn-hover);
-}
-
-.btn--danger-outline {
-  background-color: var(--danger-bg);
-  border: 1px solid var(--danger-border);
-  color: var(--danger);
-}
-
-.btn--danger-outline:hover:not(:disabled) {
-  background-color: var(--danger-border);
-  color: var(--text-on-accent);
-}
-
-.btn--success-outline {
-  background-color: var(--success-bg);
-  border: 1px solid var(--success-border);
-  color: var(--success);
-}
-
-.btn--success-outline:hover:not(:disabled) {
-  background-color: var(--success-border);
-  color: var(--text-on-accent);
+  color: #ffffff;
 }
 
 .btn--ghost {
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .btn--ghost:hover {
   background-color: var(--bg-hover);
-  color: var(--text-primary);
 }
 
 .btn--icon {
@@ -162,11 +118,13 @@
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  padding: 4px;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
   border: none;
-  border-radius: 4px;
+  border-radius: 50%; /* Circle */
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   cursor: pointer;
   transition: background-color 0.2s;
 }
@@ -176,24 +134,24 @@
 }
 
 .btn--lg {
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 0.625rem 1.25rem;
+  font-size: 1rem;
+  min-height: 2.625rem;
 }
 
 .btn--sm {
-  min-height: 0;
-  padding: 4px 8px;
-  font-size: 11px;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
 }
 
 /* === Badges === */
-
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-size: 11px;
+  padding: 0.1875rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.6875rem;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -216,66 +174,60 @@
 .badge--version {
   background-color: var(--badge-version-bg);
   color: var(--badge-version-text);
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 14px;
+  padding: 0.375rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
 }
 
 /* === Form Elements === */
-
 .input-field {
   box-sizing: border-box;
   min-height: var(--control-height);
-  padding: 8px 12px;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--border-input);
-  border-radius: 4px;
+  border-radius: 0.5rem;
   background-color: var(--bg-input);
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 0.875rem;
   transition: border-color 0.2s;
 }
 
 .input-field:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--link-color);
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .text-input {
   box-sizing: border-box;
   min-height: var(--control-height);
-  padding: 6px 8px;
+  padding: 0.375rem 0.5rem;
   border: 1px solid var(--border-input);
-  border-radius: 4px;
+  border-radius: 0.375rem;
   background-color: var(--bg-input);
   color: var(--text-primary);
-  font-size: 12px;
+  font-size: 0.75rem;
   transition: border-color 0.2s;
 }
 
 .text-input:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--link-color);
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .field-label {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   white-space: nowrap;
 }
 
-/* Input group — an input/select plus adornment buttons (visibility toggle,
-   verify, etc.) on one row. align-items: stretch + the shared --control-height
-   make every child the same height by construction. */
 .input-group {
   display: flex;
   align-items: stretch;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
-/* Square icon button sized to the control height, for use inside .input-group
-   (e.g. a password visibility toggle next to a text input). */
 .btn--adornment {
   flex: 0 0 auto;
   width: var(--control-height);
@@ -283,63 +235,56 @@
   padding: 0;
 }
 
-/* Native <select>. One shared class replaces ~13 near-identical per-component
-   select styles. Relies on the global color-scheme (theme.css) for a correct
-   dark-mode <option> popup. */
+/* Custom Select Field */
 .select-field {
   width: 100%;
   box-sizing: border-box;
   height: var(--control-height);
   min-height: var(--control-height);
-  padding: 0 32px 0 10px;
+  padding: 0 2rem 0 0.625rem;
   border: 1px solid var(--border-input);
-  border-radius: 6px;
+  border-radius: 0.375rem;
   background-color: var(--bg-input);
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition: border-color 0.2s, box-shadow 0.2s;
-  
-  /* Reset Safari and Chrome native appearance to unlock custom heights/paddings */
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
   
-  /* Premium SVG chevron arrow */
   background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 14px;
+  background-position: right 0.625rem center;
+  background-size: 0.875rem;
 }
 
 .select-field:focus {
   outline: none;
-  border-color: var(--accent);
+  border-color: var(--link-color);
   box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .select-field:disabled {
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
-/* === Tool-window tab bar (ToolsWindow pill tabs) === */
-
+/* === Tool win / Tab bar === */
 .toolwin-tabs {
   display: flex;
-  gap: 2px;
-  -webkit-app-region: no-drag;
+  gap: 0.125rem;
 }
 
 .toolwin-tab {
   display: flex;
   align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
+  gap: 0.3125rem;
+  padding: 0.25rem 0.75rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 0.25rem;
   background: transparent;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s;
@@ -353,43 +298,11 @@
 
 .toolwin-tab.active {
   background-color: var(--focus-ring);
-  color: var(--accent);
+  color: var(--link-color);
   font-weight: 500;
 }
 
-/* === Tool-window controls (Windows minimize/maximize/close) === */
-
-.win-controls {
-  display: flex;
-  gap: 8px;
-  -webkit-app-region: no-drag;
-}
-
-.win-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.win-btn:hover {
-  background-color: var(--bg-hover);
-}
-
-.win-btn--close:hover {
-  background-color: var(--danger);
-  color: var(--text-on-accent);
-}
-
-/* === Spinner === */
-
+/* === Spinners === */
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -397,8 +310,8 @@
 }
 
 .spinner {
-  width: 32px;
-  height: 32px;
+  width: 2rem;
+  height: 2rem;
   border: 3px solid var(--border-color);
   border-top-color: var(--accent);
   border-radius: 50%;
@@ -406,69 +319,56 @@
 }
 
 .spinner--sm {
-  width: 16px;
-  height: 16px;
+  width: 1rem;
+  height: 1rem;
   border-width: 2px;
 }
 
 .spinner--lg {
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   border-width: 4px;
 }
 
-/* Rotate any element in place (e.g. a refresh icon) via the shared spin
-   keyframe. A component can still override the timing with a more specific
-   scoped rule. */
 .spinning {
   animation: spin 1s linear infinite;
 }
 
-/* Shared pulse (opacity breathing) for live/active status indicators. */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-
-/* === Loading / empty state === */
-
+/* === Loading / Empty states === */
 .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 1rem;
+  padding: 3rem 1rem;
 }
 
-/* Empty-queue placeholder shared by the task + download queue panels. */
 .empty-queue {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 32px 16px;
+  padding: 2rem 1rem;
   color: var(--text-secondary);
 }
 
 .empty-icon {
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
   opacity: 0.6;
 }
 
 .empty-queue p {
-  margin: 0 0 20px 0;
-  font-size: 14px;
+  margin: 0 0 1.25rem 0;
+  font-size: 0.875rem;
 }
 
-/* Circular per-item status indicator shared by the queue panels. The
-   queued/completed/error variants are common; panel-specific variants
-   (downloading pulse, processing spin) stay local to their component. */
 .status-indicator {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 1.5rem;
+  height: 1.5rem;
   border-radius: 50%;
   border: 2px solid currentColor;
 }
@@ -484,69 +384,87 @@
 }
 
 .status-indicator.status-error {
-  color: var(--danger-pink);
+  color: var(--danger);
   background-color: var(--danger-bg);
 }
 
-/* === Post-process affiliated panel ===
-   The post-processing bar wrapper that hangs off the bottom of a queue/download
-   row. Shared by the task + download queue panels; each panel keeps its own
-   status border-left rules (they reference panel-specific item classes). */
-
-.post-process-affiliated-panel {
-  width: 100%;
-  background-color: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  padding: 4px 6px;
-  margin-top: 0;
-}
-
-.pp-panel-content {
-  display: flex;
-  align-items: stretch;
-  gap: 8px;
-  font-size: 8px;
-}
-
-.pp-panel-content .pp-bar {
-  gap: 8px;
-}
-
-.pp-panel-content .pp-phase-bar {
-  height: 3px;
-}
-
 /* === Progress bar === */
-
 .progress-bar {
   width: 100%;
-  height: 4px;
+  height: 0.25rem;
   background-color: var(--bg-hover);
-  border-radius: 2px;
+  border-radius: 0.125rem;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
   background-color: var(--accent);
-  border-radius: 2px;
+  border-radius: 0.125rem;
   transition: width 0.3s ease;
 }
 
 /* === Section Header === */
-
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 1.25rem;
 }
 
 .section-header h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+/* Course covers. Courses have no per-course artwork, so a shared banner sits
+   behind each card with the title overlaid to give it identity. Kept clean
+   (white, system bold, a soft scrim) rather than clickbait-styled. */
+.video-thumbnail-container,
+.playlist-cover-container {
+  position: relative;
+  overflow: hidden;
+  container-type: inline-size; /* Enable container query width units */
+}
+
+.video-thumbnail,
+.playlist-cover {
+  filter: brightness(0.82) contrast(1.02);
+  transition: filter 0.25s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.video-card:hover .video-thumbnail,
+.playlist-cover-container:hover .playlist-cover {
+  filter: brightness(0.92) contrast(1);
+}
+
+.video-cover-overlay-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8cqw;
+  color: #ffffff;
+  font-family: 'Roboto', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  font-weight: 700;
+  z-index: 2;
+  pointer-events: none;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  /* Break only when a token can't fit, and never mid-character for Latin text. */
+  overflow-wrap: break-word;
+  word-break: normal;
+
+  /* Vertical scrim keeps the title legible over any banner. */
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.15) 0%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  text-shadow: 0 0.4cqw 1cqw rgba(0, 0, 0, 0.75);
 }

@@ -23,9 +23,23 @@ const activePinned = ref<string | null>(null);
 
 let nextRequestId = 1;
 
+// Mobile-only slide-in drawer for the left panel. Kept separate from the
+// desktop collapse pref so it always starts closed on a phone (and resizing
+// between layouts never toggles the other one).
+const mobileNavOpen = ref(false);
+
+const toggleMobileNav = () => {
+  mobileNavOpen.value = !mobileNavOpen.value;
+};
+
+const closeMobileNav = () => {
+  mobileNavOpen.value = false;
+};
+
 const navigate = (target: NavTarget) => {
   activeNav.value = target;
   activePinned.value = null;
+  mobileNavOpen.value = false;
   // Sidebar navigation always leaves the playback view.
   closePlayback();
 };
@@ -34,6 +48,7 @@ const requestCourseOpen = (mode: "live" | "recorded", course: Course) => {
   courseOpenRequest.value = { mode, course, requestId: nextRequestId++ };
   activeNav.value = mode;
   activePinned.value = null;
+  mobileNavOpen.value = false;
   closePlayback();
 };
 
@@ -55,8 +70,11 @@ export const navigationStore = {
   courseOpenRequest,
   activePinned,
   isSidebarCollapsed,
+  mobileNavOpen,
   navigate,
   requestCourseOpen,
   setActivePinned,
   toggleSidebar,
+  toggleMobileNav,
+  closeMobileNav,
 };

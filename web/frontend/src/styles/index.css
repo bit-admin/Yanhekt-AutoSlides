@@ -1,3 +1,8 @@
+/* Fonts are NOT loaded from a remote CDN. The primary audience reaches this
+   app from a mainland-China campus network where fonts.googleapis.com is
+   blocked, and a remote @import here would render-block the whole page until
+   it times out. The stack below prefers Roboto/Inter when locally installed
+   and otherwise falls back to the native system font — visually equivalent. */
 @import "./theme.css";
 @import "./modal.css";
 @import "./components.css";
@@ -11,8 +16,12 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px; /* Base size: 1rem = 16px */
+  font-family: Roboto, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   background-color: var(--bg-page);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #app {
@@ -20,10 +29,19 @@ body {
   overflow: hidden;
 }
 
-button {
+button,
+input,
+select,
+textarea {
   font-family: inherit;
+  font-size: inherit;
 }
 
-input {
-  font-family: inherit;
+a {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
 }

@@ -2,38 +2,92 @@
   <div class="app">
     <Header />
     <div class="layout">
-      <!-- Backdrop for mobile sidebar drawer -->
+      <!-- Desktop sidebar (hidden on mobile and in cinema mode) -->
       <div
-        v-if="!isSidebarCollapsed && isMobile && !playbackStore.cinema.value"
-        class="sidebar-backdrop"
-        @click="toggleSidebar"
-      ></div>
-
-      <div
+        v-if="!isMobile"
         class="left-panel-slot"
         :class="{ 'collapsed': isSidebarCollapsed }"
         v-show="!playbackStore.cinema.value"
       >
         <LeftPanel />
       </div>
+
+      <!-- Main content area -->
       <div class="main-content-slot">
         <MainContent />
       </div>
+
+      <!-- Mobile slide-in drawer: full navigator + pinned courses, which the
+           bottom nav has no room for. Opened from the header hamburger. -->
+      <template v-if="isMobile && !playbackStore.cinema.value">
+        <div
+          v-if="navigationStore.mobileNavOpen.value"
+          class="sidebar-backdrop"
+          @click="navigationStore.closeMobileNav()"
+        ></div>
+        <div class="mobile-drawer" :class="{ open: navigationStore.mobileNavOpen.value }">
+          <LeftPanel mobile />
+        </div>
+      </template>
     </div>
+
+    <!-- Responsive Mobile Bottom Navigation Bar -->
+    <nav v-if="isMobile && !playbackStore.cinema.value" class="mobile-bottom-nav">
+      <button :class="['bottom-nav-item', { active: activeNav === 'home' }]" @click="navigate('home')">
+        <svg class="bottom-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        <span class="bottom-nav-label">{{ $t('navigation.home') }}</span>
+      </button>
+      
+      <button :class="['bottom-nav-item', { active: activeNav === 'live' }]" @click="navigate('live')">
+        <div class="bottom-nav-icon-wrap">
+          <svg class="bottom-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
+          </svg>
+          <span v-if="livePlaybackActive" class="bottom-playback-indicator">●</span>
+        </div>
+        <span class="bottom-nav-label">{{ $t('navigation.live') }}</span>
+      </button>
+
+      <button :class="['bottom-nav-item', { active: activeNav === 'recorded' }]" @click="navigate('recorded')">
+        <div class="bottom-nav-icon-wrap">
+          <svg class="bottom-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          <span v-if="recordedPlaybackActive" class="bottom-playback-indicator">●</span>
+        </div>
+        <span class="bottom-nav-label">{{ $t('navigation.recorded') }}</span>
+      </button>
+
+      <button :class="['bottom-nav-item', { active: activeNav === 'settings' }]" @click="navigate('settings')">
+        <svg class="bottom-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span class="bottom-nav-label">{{ $t('settings.settings') }}</span>
+      </button>
+    </nav>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import Header from './components/Header.vue'
 import LeftPanel from './components/LeftPanel.vue'
 import MainContent from './components/MainContent.vue'
 import { playbackStore } from './stores/playbackStore'
 import { navigationStore } from './stores/navigationStore'
 
-const { isSidebarCollapsed, toggleSidebar } = navigationStore
+const { isSidebarCollapsed, activeNav, navigate } = navigationStore
 
 const isMobile = ref(false)
+
+const livePlaybackActive = computed(() => playbackStore.active.value?.mode === 'live')
+const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode === 'recorded')
 
 const checkMobile = () => {
   isMobile.value = window.innerWidth <= 768
@@ -61,22 +115,22 @@ onUnmounted(() => {
 .layout {
   display: flex;
   flex: 1;
-  height: calc(100vh - 56px);
+  height: calc(100vh - var(--header-height));
   min-height: 0;
   position: relative;
 }
 
 .left-panel-slot {
-  width: 240px;
+  width: var(--sidebar-width-expanded);
   flex-shrink: 0;
   border-right: 1px solid var(--border-color);
-  background-color: var(--bg-page-alt);
+  background-color: var(--bg-page);
   transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
 }
 
 .left-panel-slot.collapsed {
-  width: 72px;
+  width: var(--sidebar-width-collapsed);
 }
 
 .main-content-slot {
@@ -86,15 +140,81 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
+/* YouTube Style Mobile Bottom Navigation */
+.mobile-bottom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 3.5rem;
+  background-color: var(--bg-surface);
+  border-top: 1px solid var(--border-color);
+  position: relative;
+  z-index: 99;
+  box-shadow: 0 -1px 3px var(--shadow-sm);
+  padding: 0 0.5rem;
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+
+.bottom-nav-item.active {
+  font-weight: 500;
+}
+
+.bottom-nav-item.active .bottom-nav-icon {
+  color: var(--accent-deep);
+}
+
+.bottom-nav-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-nav-icon {
+  color: var(--text-primary);
+}
+
+.bottom-nav-label {
+  font-size: 0.625rem;
+  margin-top: 0.25rem;
+}
+
+.bottom-playback-indicator {
+  position: absolute;
+  top: -0.25rem;
+  right: -0.375rem;
+  color: var(--accent);
+  font-size: 0.5rem;
+  animation: bottom-pulse 2s infinite;
+}
+
+@keyframes bottom-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Mobile navigator drawer + backdrop */
 .sidebar-backdrop {
   position: fixed;
-  top: 56px;
+  top: var(--header-height);
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: 3.5rem; /* sit above the mobile bottom nav so it stays tappable */
   background-color: var(--overlay-dark);
   z-index: 98;
-  backdrop-filter: blur(2px);
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -103,24 +223,28 @@ onUnmounted(() => {
   to { opacity: 1; }
 }
 
-@media (max-width: 768px) {
-  .left-panel-slot {
-    position: fixed;
-    top: 56px;
-    left: 0;
-    bottom: 0;
-    z-index: 99;
-    width: 240px;
-    height: calc(100vh - 56px);
-    box-shadow: 4px 0 10px var(--shadow-md);
-    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    transform: translateX(0);
-  }
+.mobile-drawer {
+  position: fixed;
+  top: var(--header-height);
+  left: 0;
+  bottom: 3.5rem; /* sit above the mobile bottom nav */
+  width: var(--sidebar-width-expanded);
+  max-width: 80vw;
+  z-index: 99;
+  background-color: var(--bg-page);
+  border-right: 1px solid var(--border-color);
+  box-shadow: 4px 0 16px var(--shadow-md);
+  transform: translateX(-100%);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-  .left-panel-slot.collapsed {
-    width: 240px; /* Keep full width but hide via transform */
-    border-right: none;
-    transform: translateX(-240px);
+.mobile-drawer.open {
+  transform: translateX(0);
+}
+
+@media (max-width: 768px) {
+  .layout {
+    height: calc(100vh - var(--header-height) - 3.5rem);
   }
 }
 </style>

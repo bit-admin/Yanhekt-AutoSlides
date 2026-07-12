@@ -1,454 +1,513 @@
 <template>
   <div class="playback-page" :class="{ 'cinema-mode': isCinemaMode }">
-    <div class="header">
-      <div class="header-main">
+    <div class="playback-content-wrapper">
+      <!-- Back Button header -->
+      <div class="playback-header" v-if="!isCinemaMode">
         <button @click="goBack" class="btn btn--ghost back-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="15,18 9,12 15,6"/>
           </svg>
-          {{ $t('playback.back') }}
-        </button>
-        <div class="title-info">
-          <h2>{{ course?.title || $t('playback.unknownCourse') }}</h2>
-          <p v-if="session">{{ session.title }}</p>
-          <p v-if="course?.session?.section_group_title && props.mode === 'live'">{{ course.session.section_group_title }}</p>
-        </div>
-        <button
-          v-if="props.mode === 'live'"
-          @click="copyStreamUrl"
-          class="btn copy-url-btn"
-          :disabled="!canCopyStreamUrl"
-          :title="isDualStreamSelected ? $t('playback.selectOneStreamToCopy') : streamUrlCopied ? $t('playback.urlCopied') : $t('playback.copyStreamUrl')"
-        >
-          <svg v-if="streamUrlCopied" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20,6 9,17 4,12"/>
-          </svg>
-          <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-          </svg>
-        </button>
-        <button @click="refreshPage" class="btn refresh-btn" :title="$t('playback.refresh')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
-            <path d="M21 3v5h-5"/>
-            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
-            <path d="M3 21v-5h5"/>
-          </svg>
-        </button>
-        <button @click="toggleCourseDetails" class="btn expand-btn">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" :class="{ 'rotated': showDetails }">
-            <polyline points="6,9 12,15 18,9"/>
-          </svg>
+          <span>{{ $t('playback.back') }}</span>
         </button>
       </div>
-      <div v-show="showDetails" class="course-details">
-        <div class="course-detail-item" v-if="course?.instructor">
-          <span class="detail-label">{{ $t('playback.instructor') }}</span>
-          <span class="detail-value">{{ course.instructor }}</span>
-        </div>
-        <div class="course-detail-item" v-if="course?.professors && course.professors.length > 0">
-          <span class="detail-label">{{ $t('playback.professors') }}</span>
-          <span class="detail-value">{{ course.professors.join(', ') }}</span>
-        </div>
-        <div class="course-detail-item" v-if="course?.time">
-          <span class="detail-label">{{ $t('sessions.academicTerm') }}</span>
-          <span class="detail-value">{{ course.time }}</span>
-        </div>
-        <div class="course-detail-item" v-if="course?.classrooms && course.classrooms.length > 0">
-          <span class="detail-label">{{ $t('sessions.classrooms') }}</span>
-          <span class="detail-value">{{ course.classrooms.map(c => c.name).join(', ') }}</span>
-        </div>
-        <div class="course-detail-item" v-if="course?.college_name">
-          <span class="detail-label">{{ $t('sessions.college') }}</span>
-          <span class="detail-value">{{ course.college_name }}</span>
-        </div>
-        <div class="course-detail-item" v-if="course?.participant_count !== undefined">
-          <span class="detail-label">{{ $t('sessions.participants') }}</span>
-          <span class="detail-value">{{ course.participant_count }} {{ $t('sessions.participantsCount') }}</span>
-        </div>
-        <div class="course-detail-item" v-if="session">
-          <span class="detail-label">{{ $t('playback.sessionDate') }}</span>
-          <span class="detail-value">{{ formatDate(session.started_at) }}</span>
-        </div>
-        <div class="course-detail-item" v-if="session?.duration">
-          <span class="detail-label">{{ $t('playback.duration') }}</span>
-          <span class="detail-value">{{ formatDuration(session.duration) }}</span>
-        </div>
-        <div class="course-detail-item" v-if="currentStreamData || isDualStreamSelected">
-          <span class="detail-label">{{ $t('playback.currentStream') }}</span>
-          <span v-if="isDualStreamSelected" class="detail-value">{{ $t('playback.bothStreams') }}</span>
-          <span v-else-if="currentStreamData" class="detail-value">
-            {{ currentStreamData.type === 'camera' ? $t('playback.streamCamera') : currentStreamData.type === 'screen' ? $t('playback.streamScreen') : currentStreamData.name }}
-          </span>
-        </div>
-      </div>
-    </div>
 
-    <div class="content custom-scrollbar">
-      <div v-if="loading" class="loading-state">
-        <div class="spinner spinner--lg"></div>
-        <p>{{ $t('playback.loadingVideoStreams') }}</p>
-      </div>
-
-      <div v-else-if="error" class="loading-state error-state">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="15" y1="9" x2="9" y2="15"/>
-          <line x1="9" y1="9" x2="15" y2="15"/>
-        </svg>
-        <div class="error-details">
-          <p class="error-message">{{ error }}</p>
-          <div v-if="lastPlaybackPosition > 0" class="error-info">
-            <p class="playback-position">
-              <strong>{{ $t('playback.lastPlayedPosition') }}</strong> {{ formatDuration(Math.floor(lastPlaybackPosition)) }}
-            </p>
-          </div>
-        </div>
-        <button @click="retryLoad" class="btn btn--primary btn--lg">{{ $t('playback.retry') }}</button>
-      </div>
-
-      <div v-else-if="playbackData" class="video-content">
-        <div class="player-panel">
-        <DualStreamControls
-          v-model:selected-stream="selectedStream"
-          v-model:current-playback-rate="currentPlaybackRate"
-          :streams="playbackData.streams"
-          :playback-rate-options="playbackRateOptions"
-          :mode="props.mode"
-          :is-dual-stream-selected="isDualStreamSelected"
-          :is-picture-in-picture="isPictureInPicture"
-          :is-cinema-mode="isCinemaMode"
-          :should-disable-controls="false"
-          :video-player-ready="!!videoPlayer"
-          :has-dual-streams="hasDualStreams"
-          :dual-stream-key="DUAL_STREAM_KEY"
-          @switch-stream="switchStream"
-          @change-playback-rate="changePlaybackRate"
-          @toggle-picture-in-picture="togglePictureInPicture"
-          @toggle-cinema-mode="toggleCinemaMode"
-        />
-
-        <!-- Single-stream player -->
-        <div
-          v-if="!isDualStreamSelected"
-          ref="singleVideoContainer"
-          class="video-container"
-          :class="{ 'is-fullscreen': isSingleFullscreen, 'controls-hidden': !controlsVisible }"
-          @mousemove="showControls"
-          @mouseleave="onPlayerPointerLeave"
-        >
-          <video
-            ref="videoPlayer"
-            class="video-player"
-            preload="metadata"
-            playsinline
-            @error="onVideoError"
-            @canplay="onCanPlay"
-            @ended="onEnded"
-            @volumechange="preventUnmute"
-            @enterpictureinpicture="onEnterPictureInPicture"
-            @leavepictureinpicture="onLeavePictureInPicture"
-          >
-            {{ $t('playback.browserNotSupported') }}
-          </video>
-
-          <div v-if="isRetrying" class="retry-indicator">
-            <div class="retry-spinner"></div>
-            <span>{{ retryMessage }}</span>
+      <!-- Left Column: Video + Meta Details -->
+      <div class="main-video-section">
+        <!-- Video Player Panel -->
+        <div class="player-panel-container">
+          <div v-if="loading" class="player-loading-state">
+            <div class="spinner spinner--lg"></div>
+            <p>{{ $t('playback.loadingVideoStreams') }}</p>
           </div>
 
-          <div v-else-if="isVideoLoading" class="warming-overlay">
-            <div class="warming-spinner"></div>
-            <p class="warming-title">{{ $t('playback.warming.title') }}</p>
-            <p v-if="props.mode === 'recorded'" class="warming-hint">{{ $t('playback.warming.hint') }}</p>
+          <div v-else-if="error" class="player-loading-state error-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="15" y1="9" x2="9" y2="15"/>
+              <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+            <div class="error-details">
+              <p class="error-message">{{ error }}</p>
+              <div v-if="lastPlaybackPosition > 0" class="error-info">
+                <p class="playback-position">
+                  <strong>{{ $t('playback.lastPlayedPosition') }}</strong> {{ formatPlaybackTime(Math.floor(lastPlaybackPosition)) }}
+                </p>
+              </div>
+            </div>
+            <button @click="retryLoad" class="btn btn--primary">{{ $t('playback.retry') }}</button>
           </div>
 
-          <SingleStreamControls
-            :mode="props.mode"
-            :is-playing="isPlaying"
-            :controls-visible="controlsVisible"
-            :should-disable-controls="false"
-            :should-video-mute="shouldVideoMute"
-            :current-time="singleCurrentTime"
-            :duration="singleDuration"
-            :can-seek="singleCanSeek"
-            :seek-progress="singleSeekProgress"
-            :effective-volume="singleEffectiveVolume"
-            :volume-progress="singleVolumeProgress"
-            :is-muted="singleIsMuted"
-            :current-playback-rate="currentPlaybackRate"
-            :playback-rate-options="playbackRateOptions"
-            :show-speed-panel="showSpeedPanel"
-            :show-more-panel="showDualMorePanel"
-            :is-fullscreen="isSingleFullscreen"
-            :is-cinema-mode="isCinemaMode"
-            :is-picture-in-picture="isPictureInPicture"
-            :video-player-ready="!!videoPlayer"
-            :format-time="formatPlaybackTime"
-            @toggle-playback="toggleSinglePlayback"
-            @seek-input="onSingleSeekInput"
-            @volume-input="applySingleVolume"
-            @toggle-mute="toggleSingleMute"
-            @toggle-speed-panel="toggleSpeedPanel"
-            @set-playback-rate="setPlaybackRateFromPanel"
-            @toggle-fullscreen="toggleSingleFullscreen"
-            @toggle-more-panel="toggleDualMorePanel"
-            @toggle-cinema="toggleCinemaFromMenu"
-            @toggle-pip="togglePipFromMenu"
-            @pointer-over-controls="pointerOverControls = $event"
-          />
-        </div>
-
-        <!-- Dual-stream player -->
-        <div
-          v-else
-          ref="dualVideoContainer"
-          class="dual-playback-shell"
-          :class="{ 'is-fullscreen': isDualFullscreen, 'controls-hidden': !controlsVisible }"
-          @mousemove="showControls"
-          @mouseleave="onPlayerPointerLeave"
-        >
-          <div class="video-container dual-video-container">
-            <div class="dual-video-grid">
-              <div class="dual-video-panel" :style="{ order: cameraPanelOrder }">
-                <div class="dual-video-label">{{ $t('playback.streamCamera') }}</div>
+          <div v-else-if="playbackData" class="video-content">
+            <div class="player-panel">
+              <!-- Single-stream player -->
+              <div
+                v-if="!isDualStreamSelected"
+                ref="singleVideoContainer"
+                class="video-container"
+                :class="{ 'is-fullscreen': isSingleFullscreen, 'controls-hidden': !controlsVisible }"
+                @mousemove="showControls"
+                @mouseleave="onPlayerPointerLeave"
+              >
                 <video
-                  ref="cameraVideoPlayer"
-                  class="dual-video-player"
+                  ref="videoPlayer"
+                  class="video-player"
                   preload="metadata"
                   playsinline
-                  @timeupdate="onDualTimeUpdate"
-                  @play="onDualPlayStateChanged"
-                  @pause="onDualPlayStateChanged"
-                  @ended="onDualEnded"
-                  @volumechange="preventDualUnmute"
+                  @error="onVideoError"
+                  @canplay="onCanPlay"
+                  @ended="onEnded"
+                  @volumechange="preventUnmute"
+                  @enterpictureinpicture="onEnterPictureInPicture"
+                  @leavepictureinpicture="onLeavePictureInPicture"
                 >
                   {{ $t('playback.browserNotSupported') }}
                 </video>
+
+                <div v-if="isRetrying" class="retry-indicator">
+                  <div class="retry-spinner"></div>
+                  <span>{{ retryMessage }}</span>
+                </div>
+
+                <div v-else-if="isVideoLoading" class="warming-overlay">
+                  <div class="warming-spinner"></div>
+                  <p class="warming-title">{{ $t('playback.warming.title') }}</p>
+                  <p v-if="props.mode === 'recorded'" class="warming-hint">{{ $t('playback.warming.hint') }}</p>
+                </div>
+
+                <SingleStreamControls
+                  :mode="props.mode"
+                  :is-playing="isPlaying"
+                  :controls-visible="controlsVisible"
+                  :should-disable-controls="false"
+                  :should-video-mute="shouldVideoMute"
+                  :current-time="singleCurrentTime"
+                  :duration="singleDuration"
+                  :can-seek="singleCanSeek"
+                  :seek-progress="singleSeekProgress"
+                  :effective-volume="singleEffectiveVolume"
+                  :volume-progress="singleVolumeProgress"
+                  :is-muted="singleIsMuted"
+                  :current-playback-rate="currentPlaybackRate"
+                  :playback-rate-options="playbackRateOptions"
+                  :show-speed-panel="showSpeedPanel"
+                  :show-more-panel="showDualMorePanel"
+                  :is-fullscreen="isSingleFullscreen"
+                  :is-cinema-mode="isCinemaMode"
+                  :is-picture-in-picture="isPictureInPicture"
+                  :video-player-ready="!!videoPlayer"
+                  :format-time="formatPlaybackTime"
+                  @toggle-playback="toggleSinglePlayback"
+                  @seek-input="onSingleSeekInput"
+                  @volume-input="applySingleVolume"
+                  @toggle-mute="toggleSingleMute"
+                  @toggle-speed-panel="toggleSpeedPanel"
+                  @set-playback-rate="setPlaybackRateFromPanel"
+                  @toggle-fullscreen="toggleSingleFullscreen"
+                  @toggle-more-panel="toggleDualMorePanel"
+                  @toggle-cinema="toggleCinemaFromMenu"
+                  @toggle-pip="togglePipFromMenu"
+                  @pointer-over-controls="pointerOverControls = $event"
+                />
               </div>
-              <div class="dual-video-panel" :style="{ order: screenPanelOrder }">
-                <div class="dual-video-label">{{ $t('playback.streamScreen') }}</div>
-                <video
-                  ref="screenVideoPlayer"
-                  class="dual-video-player"
-                  preload="metadata"
-                  playsinline
-                  @timeupdate="onDualTimeUpdate"
-                  @play="onDualPlayStateChanged"
-                  @pause="onDualPlayStateChanged"
-                  @ended="onDualEnded"
-                  @volumechange="preventDualUnmute"
+
+              <!-- Dual-stream player -->
+              <div
+                v-else
+                ref="dualVideoContainer"
+                class="dual-playback-shell"
+                :class="{ 'is-fullscreen': isDualFullscreen, 'controls-hidden': !controlsVisible }"
+                @mousemove="showControls"
+                @mouseleave="onPlayerPointerLeave"
+              >
+                <div class="video-container dual-video-container">
+                  <div class="dual-video-grid">
+                    <div class="dual-video-panel" :style="{ order: cameraPanelOrder }">
+                      <div class="dual-video-label">{{ $t('playback.streamCamera') }}</div>
+                      <video
+                        ref="cameraVideoPlayer"
+                        class="dual-video-player"
+                        preload="metadata"
+                        playsinline
+                        @timeupdate="onDualTimeUpdate"
+                        @play="onDualPlayStateChanged"
+                        @pause="onDualPlayStateChanged"
+                        @ended="onDualEnded"
+                        @volumechange="preventDualUnmute"
+                      >
+                        {{ $t('playback.browserNotSupported') }}
+                      </video>
+                    </div>
+                    <div class="dual-video-panel" :style="{ order: screenPanelOrder }">
+                      <div class="dual-video-label">{{ $t('playback.streamScreen') }}</div>
+                      <video
+                        ref="screenVideoPlayer"
+                        class="dual-video-player"
+                        preload="metadata"
+                        playsinline
+                        @timeupdate="onDualTimeUpdate"
+                        @play="onDualPlayStateChanged"
+                        @pause="onDualPlayStateChanged"
+                        @ended="onDualEnded"
+                        @volumechange="preventDualUnmute"
+                      >
+                        {{ $t('playback.browserNotSupported') }}
+                      </video>
+                    </div>
+                  </div>
+
+                  <div v-if="isRetrying" class="retry-indicator">
+                    <div class="retry-spinner"></div>
+                    <span>{{ retryMessage }}</span>
+                  </div>
+
+                  <div v-else-if="isVideoLoading" class="warming-overlay">
+                    <div class="warming-spinner"></div>
+                    <p class="warming-title">{{ $t('playback.warming.title') }}</p>
+                    <p v-if="props.mode === 'recorded'" class="warming-hint">{{ $t('playback.warming.hint') }}</p>
+                  </div>
+                </div>
+
+                <div
+                  class="dual-controls-section"
+                  :class="{ 'controls-hidden': !controlsVisible }"
+                  @mouseenter="pointerOverControls = true"
+                  @mouseleave="pointerOverControls = false"
                 >
-                  {{ $t('playback.browserNotSupported') }}
-                </video>
-              </div>
-            </div>
+                  <div class="dual-controls-main-row">
+                    <div class="dual-controls-left">
+                      <button
+                        class="dual-icon-button"
+                        @click="toggleDualPlayback"
+                        :title="isPlaying ? $t('playback.dual.pause') : $t('playback.dual.play')"
+                      >
+                        <svg v-if="!isPlaying" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <polygon points="8,5 19,12 8,19"/>
+                        </svg>
+                        <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <rect x="6" y="5" width="4" height="14"/>
+                          <rect x="14" y="5" width="4" height="14"/>
+                        </svg>
+                      </button>
 
-            <div v-if="isRetrying" class="retry-indicator">
-              <div class="retry-spinner"></div>
-              <span>{{ retryMessage }}</span>
-            </div>
+                      <span class="dual-time">{{ formatPlaybackTime(dualCurrentTime) }} / {{ dualCanSeek ? formatPlaybackTime(dualDuration) : $t('playback.dual.live') }}</span>
+                    </div>
 
-            <div v-else-if="isVideoLoading" class="warming-overlay">
-              <div class="warming-spinner"></div>
-              <p class="warming-title">{{ $t('playback.warming.title') }}</p>
-              <p v-if="props.mode === 'recorded'" class="warming-hint">{{ $t('playback.warming.hint') }}</p>
-            </div>
-          </div>
+                    <div class="dual-controls-right">
+                      <div class="single-volume">
+                        <button
+                          class="dual-icon-button"
+                          @click="toggleDualMute"
+                          :title="dualIsMuted ? $t('playback.unmute') : $t('playback.mute')"
+                        >
+                          <svg v-if="!dualIsMuted" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                          </svg>
+                          <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
+                            <line x1="23" y1="9" x2="17" y2="15"/>
+                            <line x1="17" y1="9" x2="23" y2="15"/>
+                          </svg>
+                        </button>
+                        <input
+                          class="dual-seek single-volume-slider"
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          :value="dualEffectiveVolume"
+                          :style="{ '--dual-progress': dualVolumeProgress }"
+                          :aria-label="$t('playback.volume')"
+                          @input="onDualVolumeInput"
+                        />
+                      </div>
 
-          <div
-            class="dual-controls-section"
-            :class="{ 'controls-hidden': !controlsVisible }"
-            @mouseenter="pointerOverControls = true"
-            @mouseleave="pointerOverControls = false"
-          >
-            <div class="dual-controls-main-row">
-              <div class="dual-controls-left">
-                <button
-                  class="dual-icon-button"
-                  @click="toggleDualPlayback"
-                  :title="isPlaying ? $t('playback.dual.pause') : $t('playback.dual.play')"
-                >
-                  <svg v-if="!isPlaying" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <polygon points="8,5 19,12 8,19"/>
-                  </svg>
-                  <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <rect x="6" y="5" width="4" height="14"/>
-                    <rect x="14" y="5" width="4" height="14"/>
-                  </svg>
-                </button>
+                      <div class="dual-popover-anchor">
+                        <button
+                          class="dual-icon-button"
+                          @click="toggleDualAudioPanel"
+                          :title="$t('playback.dual.audioSource')"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M4 14v-2a8 8 0 0 1 16 0v2"/>
+                            <rect x="3" y="14" width="4" height="6" rx="1.5"/>
+                            <rect x="17" y="14" width="4" height="6" rx="1.5"/>
+                          </svg>
+                        </button>
+                        <div v-if="showDualAudioPanel" class="dual-popover dual-audio-popover">
+                          <button
+                            class="dual-popover-option"
+                            :class="{ active: dualAudioSource === 'screen' }"
+                            @click="setDualAudio('screen')"
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                              <polyline v-if="dualAudioSource === 'screen'" points="20,6 9,17 4,12"/>
+                              <rect v-else x="4" y="5" width="16" height="10" rx="2"/>
+                            </svg>
+                            <span>{{ $t('playback.dual.screenAudio') }}</span>
+                          </button>
+                          <button
+                            class="dual-popover-option"
+                            :class="{ active: dualAudioSource === 'camera' }"
+                            @click="setDualAudio('camera')"
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                              <polyline v-if="dualAudioSource === 'camera'" points="20,6 9,17 4,12"/>
+                              <path v-else d="M23 7l-7 5 7 5V7z"/>
+                            </svg>
+                            <span>{{ $t('playback.dual.cameraAudio') }}</span>
+                          </button>
+                        </div>
+                      </div>
 
-                <span class="dual-time">{{ formatPlaybackTime(dualCurrentTime) }} / {{ dualCanSeek ? formatPlaybackTime(dualDuration) : $t('playback.dual.live') }}</span>
-              </div>
+                      <div v-if="props.mode === 'recorded'" class="dual-popover-anchor">
+                        <button
+                          class="dual-speed-button"
+                          @click="toggleSpeedPanel"
+                          :title="$t('playback.playbackSpeed')"
+                        >
+                          {{ currentPlaybackRate }}x
+                        </button>
+                        <div v-if="showSpeedPanel" class="dual-popover dual-speed-popover custom-scrollbar">
+                          <button
+                            v-for="rate in playbackRateOptions"
+                            :key="rate"
+                            class="dual-popover-option"
+                            :class="{ active: Number(currentPlaybackRate) === rate }"
+                            @click="setPlaybackRateFromPanel(rate)"
+                          >
+                            <span>{{ rate }}x</span>
+                          </button>
+                        </div>
+                      </div>
 
-              <div class="dual-controls-right">
-                <div class="single-volume">
-                  <button
-                    class="dual-icon-button"
-                    @click="toggleDualMute"
-                    :title="dualIsMuted ? $t('playback.unmute') : $t('playback.mute')"
-                  >
-                    <svg v-if="!dualIsMuted" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
-                      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-                    </svg>
-                    <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <polygon points="11,5 6,9 2,9 2,15 6,15 11,19"/>
-                      <line x1="23" y1="9" x2="17" y2="15"/>
-                      <line x1="17" y1="9" x2="23" y2="15"/>
-                    </svg>
-                  </button>
+                      <button
+                        class="dual-icon-button"
+                        @click="toggleDualFullscreen"
+                        :title="isDualFullscreen ? $t('playback.dual.exitFullscreen') : $t('playback.dual.fullscreen')"
+                      >
+                        <svg v-if="!isDualFullscreen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+                          <path d="M16 3h3a2 2 0 0 1 2 2v3"/>
+                          <path d="M8 21H5a2 2 0 0 1-2-2v-3"/>
+                          <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                        </svg>
+                        <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                          <path d="M8 3v3a2 2 0 0 1-2 2H3"/>
+                          <path d="M16 3v3a2 2 0 0 0 2 2h3"/>
+                          <path d="M8 21v-3a2 2 0 0 0-2-2H3"/>
+                          <path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
+                        </svg>
+                      </button>
+
+                      <div class="dual-popover-anchor">
+                        <button
+                          class="dual-icon-button"
+                          @click="toggleDualMorePanel"
+                          :title="$t('playback.dual.moreOptions')"
+                        >
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <circle cx="12" cy="5" r="2"/>
+                            <circle cx="12" cy="12" r="2"/>
+                            <circle cx="12" cy="19" r="2"/>
+                          </svg>
+                        </button>
+                        <div v-if="showDualMorePanel" class="dual-popover dual-more-popover">
+                          <button class="dual-popover-option" @click="toggleDualStreamOrder">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                              <path d="M7 7h11l-4-4"/>
+                              <path d="M17 17H6l4 4"/>
+                            </svg>
+                            <span>{{ $t('playback.dual.swapOrder') }}</span>
+                          </button>
+                          <button
+                            class="dual-popover-option"
+                            :class="{ active: isCinemaMode }"
+                            @click="toggleCinemaFromMenu"
+                          >
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                              <rect x="2" y="5" width="20" height="14" rx="2"/>
+                              <path d="M2 9h20"/>
+                              <path d="M2 15h20"/>
+                            </svg>
+                            <span>{{ isCinemaMode ? $t('playback.exitCinemaMode') : $t('playback.cinemaMode') }}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <input
-                    class="dual-seek single-volume-slider"
+                    class="dual-seek"
                     type="range"
                     min="0"
-                    max="1"
-                    step="0.05"
-                    :value="dualEffectiveVolume"
-                    :style="{ '--dual-progress': dualVolumeProgress }"
-                    :aria-label="$t('playback.volume')"
-                    @input="onDualVolumeInput"
+                    :max="dualDuration || 0"
+                    step="0.1"
+                    :value="dualCurrentTime"
+                    :style="{ '--dual-progress': dualSeekProgress }"
+                    :disabled="!dualCanSeek"
+                    @input="onDualSeekInput"
                   />
-                </div>
-
-                <div class="dual-popover-anchor">
-                  <button
-                    class="dual-icon-button"
-                    @click="toggleDualAudioPanel"
-                    :title="$t('playback.dual.audioSource')"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <path d="M4 14v-2a8 8 0 0 1 16 0v2"/>
-                      <rect x="3" y="14" width="4" height="6" rx="1.5"/>
-                      <rect x="17" y="14" width="4" height="6" rx="1.5"/>
-                    </svg>
-                  </button>
-                  <div v-if="showDualAudioPanel" class="dual-popover dual-audio-popover">
-                    <button
-                      class="dual-popover-option"
-                      :class="{ active: dualAudioSource === 'screen' }"
-                      @click="setDualAudio('screen')"
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <polyline v-if="dualAudioSource === 'screen'" points="20,6 9,17 4,12"/>
-                        <rect v-else x="4" y="5" width="16" height="10" rx="2"/>
-                      </svg>
-                      <span>{{ $t('playback.dual.screenAudio') }}</span>
-                    </button>
-                    <button
-                      class="dual-popover-option"
-                      :class="{ active: dualAudioSource === 'camera' }"
-                      @click="setDualAudio('camera')"
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <polyline v-if="dualAudioSource === 'camera'" points="20,6 9,17 4,12"/>
-                        <path v-else d="M23 7l-7 5 7 5V7z"/>
-                      </svg>
-                      <span>{{ $t('playback.dual.cameraAudio') }}</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div v-if="props.mode === 'recorded'" class="dual-popover-anchor">
-                  <button
-                    class="dual-speed-button"
-                    @click="toggleSpeedPanel"
-                    :title="$t('playback.playbackSpeed')"
-                  >
-                    {{ currentPlaybackRate }}x
-                  </button>
-                  <div v-if="showSpeedPanel" class="dual-popover dual-speed-popover custom-scrollbar">
-                    <button
-                      v-for="rate in playbackRateOptions"
-                      :key="rate"
-                      class="dual-popover-option"
-                      :class="{ active: Number(currentPlaybackRate) === rate }"
-                      @click="setPlaybackRateFromPanel(rate)"
-                    >
-                      <span>{{ rate }}x</span>
-                    </button>
-                  </div>
-                </div>
-
-                <button
-                  class="dual-icon-button"
-                  @click="toggleDualFullscreen"
-                  :title="isDualFullscreen ? $t('playback.dual.exitFullscreen') : $t('playback.dual.fullscreen')"
-                >
-                  <svg v-if="!isDualFullscreen" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
-                    <path d="M16 3h3a2 2 0 0 1 2 2v3"/>
-                    <path d="M8 21H5a2 2 0 0 1-2-2v-3"/>
-                    <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
-                  </svg>
-                  <svg v-else width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path d="M8 3v3a2 2 0 0 1-2 2H3"/>
-                    <path d="M16 3v3a2 2 0 0 0 2 2h3"/>
-                    <path d="M8 21v-3a2 2 0 0 0-2-2H3"/>
-                    <path d="M16 21v-3a2 2 0 0 1 2-2h3"/>
-                  </svg>
-                </button>
-
-                <div class="dual-popover-anchor">
-                  <button
-                    class="dual-icon-button"
-                    @click="toggleDualMorePanel"
-                    :title="$t('playback.dual.moreOptions')"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                      <circle cx="12" cy="5" r="2"/>
-                      <circle cx="12" cy="12" r="2"/>
-                      <circle cx="12" cy="19" r="2"/>
-                    </svg>
-                  </button>
-                  <div v-if="showDualMorePanel" class="dual-popover dual-more-popover">
-                    <button class="dual-popover-option" @click="toggleDualStreamOrder">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path d="M7 7h11l-4-4"/>
-                        <path d="M17 17H6l4 4"/>
-                      </svg>
-                      <span>{{ $t('playback.dual.swapOrder') }}</span>
-                    </button>
-                    <button
-                      class="dual-popover-option"
-                      :class="{ active: isCinemaMode }"
-                      @click="toggleCinemaFromMenu"
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <rect x="2" y="5" width="20" height="14" rx="2"/>
-                        <path d="M2 9h20"/>
-                        <path d="M2 15h20"/>
-                      </svg>
-                      <span>{{ isCinemaMode ? $t('playback.exitCinemaMode') : $t('playback.cinemaMode') }}</span>
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
-
-            <input
-              class="dual-seek"
-              type="range"
-              min="0"
-              :max="dualDuration || 0"
-              step="0.1"
-              :value="dualCurrentTime"
-              :style="{ '--dual-progress': dualSeekProgress }"
-              :disabled="!dualCanSeek"
-              @input="onDualSeekInput"
-            />
           </div>
         </div>
+
+        <!-- Video title and metadata -->
+        <div class="video-info-section" v-if="playbackData && !loading">
+          <h1 class="video-info-title">{{ session ? session.title : course?.title }}</h1>
+          
+          <!-- Channel Info Row (Subscribers, Pin buttons) -->
+          <div class="channel-info-row">
+            <div class="channel-main">
+              <!-- Circular Avatar -->
+              <div class="instructor-avatar" :style="{ backgroundColor: getAvatarBg(course?.instructor || course?.title || 'Course') }">
+                {{ getInitials(course?.instructor || course?.title || 'CS') }}
+              </div>
+              <div class="channel-text">
+                <span class="instructor-name">{{ course?.instructor }}</span>
+                <span class="course-name">{{ course?.title }}</span>
+              </div>
+              
+              <!-- Subscribe style Pin button (recorded only) -->
+              <button
+                v-if="props.mode === 'recorded'"
+                @click="togglePin"
+                class="btn subscribe-pill"
+                :class="{ 'pinned': pinned }"
+                :title="pinned ? $t('sessions.unpin') : $t('sessions.pin')"
+              >
+                <svg v-if="pinned" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                </svg>
+                <span>{{ pinned ? $t('navigation.pinned') : $t('sessions.pin') }}</span>
+              </button>
+            </div>
+
+             <!-- Action Pills -->
+            <div class="action-pills">
+              <!-- Select Stream Pill -->
+              <div v-if="playbackData && Object.keys(playbackData.streams).length > 1" class="action-pill-select-wrapper">
+                <select
+                  :value="selectedStream"
+                  class="action-pill-select"
+                  @change="onStreamChange"
+                >
+                  <option v-if="hasDualStreams" :value="DUAL_STREAM_KEY">
+                    {{ $t('playback.bothStreams') }}
+                  </option>
+                  <option v-for="(stream, key) in playbackData.streams" :key="key" :value="key">
+                    {{ stream.type === 'camera' ? $t('playback.streamCamera') : stream.type === 'screen' ? $t('playback.streamScreen') : stream.name }}
+                  </option>
+                </select>
+              </div>
+
+              <button
+                v-if="props.mode === 'live'"
+                @click="copyStreamUrl"
+                class="btn action-pill-btn"
+                :disabled="!canCopyStreamUrl"
+                :title="isDualStreamSelected ? $t('playback.selectOneStreamToCopy') : streamUrlCopied ? $t('playback.urlCopied') : $t('playback.copyStreamUrl')"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                  <polyline points="16 6 12 2 8 6"/>
+                  <line x1="12" y1="2" x2="12" y2="15"/>
+                </svg>
+                <span>{{ streamUrlCopied ? $t('playback.urlCopied') : $t('playback.copyStreamUrl') }}</span>
+              </button>
+
+              <button @click="refreshPage" class="btn action-pill-btn" :title="$t('playback.refresh')">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+                <span>{{ $t('playback.refresh') }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- YouTube style expandable Description Box -->
+          <div class="description-box" :class="{ 'expanded': descriptionExpanded }" @click="!descriptionExpanded && (descriptionExpanded = true)">
+            <div class="description-header">
+              <span class="description-stats" v-if="session?.started_at">
+                {{ formatDate(session.started_at) }}
+              </span>
+              <span class="description-stats" v-else-if="course?.time">
+                {{ course.time }}
+              </span>
+              <span class="description-stats" v-if="session?.duration">
+                · {{ formatDuration(session.duration) }}
+              </span>
+            </div>
+            
+            <div class="description-details-content">
+              <!-- Render details inside description box -->
+              <p v-if="course?.college_name"><strong>{{ $t('sessions.college') }}:</strong> {{ course.college_name }}</p>
+              <p v-if="course?.classrooms && course.classrooms.length > 0">
+                <strong>{{ $t('sessions.classrooms') }}:</strong> {{ course.classrooms.map(c => c.name).join(', ') }}
+              </p>
+              <p v-if="course?.professors && course.professors.length > 0">
+                <strong>{{ $t('playback.professors') }}:</strong> {{ course.professors.join(', ') }}
+              </p>
+              <p v-if="course?.participant_count !== undefined">
+                <strong>{{ $t('sessions.participants') }}:</strong> {{ course.participant_count }}
+              </p>
+              <p v-if="currentStreamData || isDualStreamSelected">
+                <strong>{{ $t('playback.currentStream') }}:</strong> 
+                <span v-if="isDualStreamSelected">{{ $t('playback.bothStreams') }}</span>
+                <span v-else-if="currentStreamData">
+                  {{ currentStreamData.type === 'camera' ? $t('playback.streamCamera') : currentStreamData.type === 'screen' ? $t('playback.streamScreen') : currentStreamData.name }}
+                </span>
+              </p>
+            </div>
+
+            <!-- Show more / less trigger -->
+            <button class="description-toggle-btn" @click.stop="descriptionExpanded = !descriptionExpanded">
+              {{ descriptionExpanded ? 'Show less' : '...more' }}
+            </button>
+          </div>
         </div>
       </div>
 
-      <div v-else class="loading-state no-streams">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <polygon points="5,3 19,12 5,21"/>
-        </svg>
-        <p>{{ $t('playback.noVideoStreams') }}</p>
+      <!-- Right Column: Sibling Sessions Sidebar Playlist (Hidden in cinema mode on desktop) -->
+      <div 
+        class="playback-sidebar-playlist" 
+        v-if="props.mode === 'recorded' && !isCinemaMode"
+      >
+        <div class="playlist-header">
+          <h3 class="playlist-title">{{ course?.title }}</h3>
+          <span class="playlist-subtitle">{{ siblingSessions.length }} {{ $t('playback.duration') !== 'Duration' ? '节课' : 'sessions' }}</span>
+        </div>
+
+        <div v-if="isLoadingSiblings" class="playlist-loading">
+          <div class="spinner spinner--sm"></div>
+        </div>
+
+        <div v-else class="playlist-items custom-scrollbar">
+          <div 
+            v-for="(sib, idx) in siblingSessions" 
+            :key="sib.session_id"
+            class="playlist-item-row"
+            :class="{ 'active-playing': sib.session_id === session?.session_id }"
+            @click="playSession(sib)"
+          >
+            <span class="row-index">
+              <span v-if="sib.session_id === session?.session_id">▶</span>
+              <span v-else>{{ idx + 1 }}</span>
+            </span>
+            <div class="row-thumb">
+              <img :src="getCourseCover(course?.id)" class="row-thumb-img" alt="" />
+              <span class="row-duration" v-if="sib.duration">{{ formatDurationBadge(sib.duration) }}</span>
+            </div>
+            <div class="row-info">
+              <h4 class="row-title" :title="sib.title">{{ sib.title }}</h4>
+              <span class="row-date">{{ formatDateShort(sib.started_at) }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -459,10 +518,12 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'v
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '../../composables/video/useVideoPlayer'
 import { useControlsVisibility } from '../../composables/video/useControlsVisibility'
 import { playbackStore } from '../../stores/playbackStore'
-import DualStreamControls from './DualStreamControls.vue'
 import SingleStreamControls from './SingleStreamControls.vue'
 import type { Course } from '../../composables/useCourseList'
-import type { SessionData } from '../../lib/api'
+import { getCourseInfo, type SessionData } from '../../lib/api'
+import { authStore } from '../../stores/authStore'
+import { isPinned, togglePinnedCourse } from '../../composables/pinnedCourses'
+import { getCourseCover, getAvatarBg, getInitials } from '../../composables/courseCover'
 
 const props = defineProps<{
   course: Course | null
@@ -475,7 +536,6 @@ const emit = defineEmits<{
 }>()
 
 // Local UI state
-const showDetails = ref(false)
 const isPictureInPicture = ref(false)
 const isCinemaMode = playbackStore.cinema
 const dualVideoContainer = ref<HTMLElement | null>(null)
@@ -492,9 +552,13 @@ const showDualAudioPanel = ref(false)
 const showDualMorePanel = ref(false)
 const streamUrlCopied = ref(false)
 
-// Capped at 2x for the web version (the Electron app goes up to 16x, but
-// there's no local extraction/download workflow here to justify skimming
-// faster than that).
+// Expandable description box state
+const descriptionExpanded = ref(false)
+
+// Sibling sessions sidebar state
+const siblingSessions = ref<SessionData[]>([])
+const isLoadingSiblings = ref(false)
+
 const playbackRateOptions = [1, 1.25, 1.5, 2]
 
 const courseRef = toRef(props, 'course')
@@ -507,7 +571,6 @@ const videoPlayerComposable = useVideoPlayer({
 })
 
 const videoPlayer = videoPlayerComposable.videoPlayer
-// Bound by the template's string refs (ref="cameraVideoPlayer" / "screenVideoPlayer").
 const cameraVideoPlayer = videoPlayerComposable.cameraVideoPlayer
 const screenVideoPlayer = videoPlayerComposable.screenVideoPlayer
 void cameraVideoPlayer
@@ -576,18 +639,52 @@ const dualIsMuted = computed(() => dualEffectiveVolume.value <= 0)
 
 const lastPlaybackPosition = computed(() => videoPlayerComposable.lastPlaybackPosition)
 
+// Pinned / Subscription state
+const pinned = computed(() => !!props.course?.id && isPinned(props.course.id))
+const togglePin = () => {
+  if (!props.course) return
+  togglePinnedCourse(props.course)
+}
+
 // Methods
 const goBack = () => emit('back')
-const toggleCourseDetails = () => {
-  showDetails.value = !showDetails.value
-}
 const refreshPage = () => {
   videoPlayerComposable.error.value = null
   videoPlayerComposable.resetErrorCounters()
   videoPlayerComposable.loadVideoStreams()
 }
 
-// Live stream URL copy (raw m3u8, never the relay URL — that carries the token)
+const onStreamChange = (event: Event) => {
+  const value = (event.target as HTMLSelectElement).value
+  selectedStream.value = value
+  switchStream()
+}
+
+const playSession = (targetSession: SessionData) => {
+  playbackStore.active.value = {
+    mode: 'recorded',
+    course: props.course!,
+    session: targetSession,
+  }
+}
+
+// Sibling fetching
+const loadSiblingSessions = async () => {
+  if (props.mode !== 'recorded' || !props.course?.id) return
+  const token = authStore.token.value
+  if (!token) return
+  isLoadingSiblings.value = true
+  try {
+    const response = await getCourseInfo(props.course.id, token)
+    siblingSessions.value = response.videos || []
+  } catch (err) {
+    console.error('Failed to load sibling sessions in playback watch page:', err)
+  } finally {
+    isLoadingSiblings.value = false
+  }
+}
+
+// Live stream URL copy
 const canCopyStreamUrl = computed(
   () => props.mode === 'live' && !isDualStreamSelected.value && !!currentStreamData.value?.original_url,
 )
@@ -629,7 +726,7 @@ const onLeavePictureInPicture = () => {
   isPictureInPicture.value = false
 }
 
-// Cinema mode: hide page chrome + sidebar (via playbackStore.cinema in App.vue)
+// Cinema mode
 const toggleCinemaMode = () => {
   isCinemaMode.value = !isCinemaMode.value
 }
@@ -710,9 +807,7 @@ const toggleSinglePlayback = () => {
   const video = videoPlayer.value
   if (!video) return
   if (video.paused) {
-    video.play().catch(() => {
-      /* Ignore play rejection (autoplay/buffer) */
-    })
+    video.play().catch(() => {})
   } else {
     video.pause()
   }
@@ -776,7 +871,7 @@ const setPlaybackRateFromPanel = (rate: number) => {
   showSpeedPanel.value = false
 }
 
-// Auto-hide the control overlay (single + dual bars share one instance).
+// Auto-hide the control overlay
 const { controlsVisible, pointerOverControls, showControls, onPlayerPointerLeave } =
   useControlsVisibility({
     isPlaying,
@@ -787,6 +882,15 @@ const { controlsVisible, pointerOverControls, showControls, onPlayerPointerLeave
 const formatDate = (dateString: string): string => {
   try {
     return new Date(dateString).toLocaleString()
+  } catch {
+    return dateString
+  }
+}
+
+const formatDateShort = (dateString: string): string => {
+  try {
+    const d = new Date(dateString)
+    return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`
   } catch {
     return dateString
   }
@@ -807,19 +911,27 @@ const formatDuration = (duration: string | number): string => {
 const formatPlaybackTime = (duration: string | number): string => {
   const totalSeconds = Math.max(0, Math.floor(typeof duration === 'string' ? parseInt(duration) : duration))
   if (isNaN(totalSeconds)) return '0:00'
-
   const hours = Math.floor(totalSeconds / 3600)
   const minutes = Math.floor((totalSeconds % 3600) / 60)
   const seconds = totalSeconds % 60
-
   if (hours > 0) {
     return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
   }
-
   return `${minutes}:${seconds.toString().padStart(2, '0')}`
 }
 
-// Keep the custom single-stream control bar in sync with the <video> element.
+const formatDurationBadge = (seconds: number): string => {
+  if (!seconds || seconds <= 0) return '0:00'
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = seconds % 60
+  if (hours > 0) {
+    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+  return `${minutes}:${secs.toString().padStart(2, '0')}`
+}
+
+// Keep control bar in sync
 let currentEventListeners: (() => void)[] = []
 
 watch(
@@ -832,17 +944,14 @@ watch(
       const updatePlayingState = () => {
         videoPlayerComposable.isPlaying.value = !newPlayer.paused
       }
-
       const onTimeUpdate = () => {
         singleCurrentTime.value = newPlayer.currentTime
       }
-
       const onLoadedMeta = () => {
         singleDuration.value = Number.isFinite(newPlayer.duration) ? newPlayer.duration : 0
         singleCurrentTime.value = newPlayer.currentTime
       }
 
-      // Seed control-bar state from the freshly attached element.
       singleDuration.value = Number.isFinite(newPlayer.duration) ? newPlayer.duration : 0
       singleCurrentTime.value = newPlayer.currentTime || 0
       if (!shouldVideoMute.value) {
@@ -866,8 +975,6 @@ watch(
         newPlayer.removeEventListener('loadedmetadata', onLoadedMeta)
       })
 
-      // If we have stream data ready, load it now (the element re-mounts when
-      // switching back from the dual layout).
       if (currentStreamData.value && playbackData.value && !isDualStreamSelected.value) {
         nextTick(() => {
           videoPlayerComposable.loadVideoSource()
@@ -877,7 +984,6 @@ watch(
   },
 )
 
-// Dual selection changes: apply audio routing after the panels mount.
 watch(isDualStreamSelected, async (isDual) => {
   if (isDual) {
     await nextTick()
@@ -894,17 +1000,16 @@ const onFullscreenChange = () => {
   isSingleFullscreen.value = document.fullscreenElement === singleVideoContainer.value
 }
 
-// Lifecycle
+// Initial session fetching
 onMounted(async () => {
   document.addEventListener('fullscreenchange', onFullscreenChange)
-
   await nextTick()
   videoPlayerComposable.loadVideoStreams()
+  void loadSiblingSessions()
 })
 
 onUnmounted(async () => {
   document.removeEventListener('fullscreenchange', onFullscreenChange)
-
   if (document.pictureInPictureElement && document.pictureInPictureElement === videoPlayer.value) {
     try {
       await document.exitPictureInPicture()
@@ -912,9 +1017,7 @@ onUnmounted(async () => {
       console.error('Error exiting Picture in Picture on unmount:', err)
     }
   }
-
   videoPlayerComposable.cleanup()
-
   currentEventListeners.forEach((cleanupFn) => cleanupFn())
   currentEventListeners = []
 })
@@ -925,251 +1028,91 @@ onUnmounted(async () => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-page);
   color: var(--text-primary);
+  overflow-y: auto;
 }
 
-/* Cinema mode: hide the page chrome and let the player fill the whole main
-   content (the sidebar is hidden by App.vue via playbackStore.cinema). */
-.playback-page.cinema-mode .header {
-  display: none;
+.playback-content-wrapper {
+  display: flex;
+  max-width: none;
+  margin: 0 auto;
+  padding: 1.5rem 3rem;
+  gap: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.playback-page.cinema-mode .content {
-  padding: 0;
-}
-
-.playback-page.cinema-mode .video-content {
+/* Main video column */
+.main-video-section {
   flex: 1;
-  min-height: 0;
-}
-
-.playback-page.cinema-mode .player-panel {
-  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  border: none;
-  border-radius: 0;
 }
 
-.playback-page.cinema-mode .video-container {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Letterbox the video to fit the available height instead of overflowing. */
-.playback-page.cinema-mode .video-player {
-  min-height: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.playback-page.cinema-mode .dual-playback-shell,
-.playback-page.cinema-mode .dual-video-container {
-  flex: 1;
-  min-height: 0;
-}
-
-.playback-page.cinema-mode .dual-video-grid {
-  height: 100%;
-  min-height: 0;
-}
-
-.playback-page.cinema-mode .dual-video-player {
-  min-height: 0;
-}
-
-/* Apple Music style title band: full-width tinted bar, hairline underline */
-.header {
+.playback-header {
+  margin-bottom: 0;
   flex-shrink: 0;
-  background-color: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 24px;
-}
-
-.header-main {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 24px;
+  padding-top: 0.5rem;
 }
 
 .back-btn {
-  flex-shrink: 0;
-}
-
-.title-info {
-  flex: 1;
-}
-
-.title-info h2 {
-  margin: 0;
-  font-size: 19px;
-  font-weight: 600;
-  letter-spacing: -0.2px;
-  color: var(--text-primary);
-}
-
-.title-info p {
-  margin: 4px 0 0 0;
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-/* Square 32×32 icon buttons */
-.copy-url-btn,
-.refresh-btn,
-.expand-btn {
-  width: 32px;
-  height: 32px;
-  padding: 0;
-}
-
-.copy-url-btn:hover:not(:disabled),
-.refresh-btn:hover:not(:disabled),
-.expand-btn:hover {
-  border-color: var(--accent);
-  background-color: var(--bg-hover);
-}
-
-.copy-url-btn:disabled,
-.refresh-btn:disabled {
-  background-color: var(--bg-elevated);
-}
-
-.expand-btn svg {
-  transition: transform 0.2s;
-}
-
-.expand-btn svg.rotated {
-  transform: rotate(180deg);
-}
-
-.course-details {
-  padding: 16px 24px;
-  border-top: 1px solid var(--border-color);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 12px;
-}
-
-.course-detail-item {
+  font-size: 0.875rem;
+  padding: 0.375rem 0.75rem;
+  align-self: flex-start;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 0.25rem;
 }
 
-.detail-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+/* Fused Player Container */
+.player-panel-container {
+  position: relative; /* Anchor absolute elements within the player bounds */
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background-color: #000000;
+  border: 1px solid var(--border-color);
 }
 
-.detail-value {
-  font-size: 14px;
-  color: var(--text-primary);
-  font-weight: 500;
-}
-
-.content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0 24px 16px;
-}
-
-/* Loading and Error States */
-.loading-state {
-  height: 400px;
+.player-loading-state {
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  color: var(--text-secondary);
+  gap: 1rem;
+  color: #aaaaaa;
 }
 
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-.spinner--lg {
-  width: 36px;
-  height: 36px;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.error-state svg {
-  color: var(--danger-bright);
-}
-
-.error-details {
-  text-align: center;
-  max-width: 500px;
-}
-
-.error-message {
-  font-size: 16px;
-  font-weight: 500;
-  margin-bottom: 12px;
-  color: var(--text-primary);
-}
-
-.error-info {
-  margin: 12px 0;
-  padding: 8px 12px;
-  background-color: var(--bg-elevated);
-  border-radius: 4px;
-  border-left: 3px solid var(--accent);
-}
-
-.playback-position {
-  margin: 0;
-  font-size: 14px;
-  color: var(--text-secondary);
-}
-
-/* Video Content */
 .video-content {
+  width: 100%;
+  height: 100%;
+}
+
+.player-panel {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  gap: 0;
-}
-
-/* Seamless player panel: control bar + video fused into one bordered,
-   rounded card; inner sections divided by hairlines. */
-.player-panel {
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
   overflow: hidden;
-  background-color: var(--bg-elevated);
 }
 
 .video-container {
   position: relative;
   width: 100%;
-  background-color: #000;
+  flex: 1;
+  background-color: #000000;
   overflow: hidden;
-  transition: all 0.3s ease;
+}
+
+.video-player {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .retry-indicator {
@@ -1179,22 +1122,22 @@ onUnmounted(async () => {
   transform: translate(-50%, -50%);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: var(--text-on-accent);
-  border-radius: 8px;
-  font-size: 14px;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background-color: rgba(15, 15, 15, 0.95);
+  color: #ffffff;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
   font-weight: 500;
   z-index: 20;
   backdrop-filter: blur(4px);
 }
 
 .retry-spinner {
-  width: 20px;
-  height: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
   border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
+  border-top-color: white;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -1206,82 +1149,63 @@ onUnmounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  padding: 24px;
+  gap: 0.875rem;
+  padding: 1.5rem;
   text-align: center;
-  color: var(--text-on-accent);
-  background-color: rgba(0, 0, 0, 0.55);
+  color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(2px);
   z-index: 20;
 }
 
 .warming-spinner {
-  width: 34px;
-  height: 34px;
+  width: 2.25rem;
+  height: 2.25rem;
   border: 3px solid rgba(255, 255, 255, 0.25);
-  border-top-color: white;
+  border-top-color: #ffffff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 .warming-title {
   margin: 0;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
 }
 
 .warming-hint {
   margin: 0;
-  max-width: 420px;
-  font-size: 13px;
+  max-width: 26.25rem;
+  font-size: 0.8125rem;
   line-height: 1.5;
   color: rgba(255, 255, 255, 0.75);
 }
 
-.video-player {
-  width: 100%;
-  height: auto;
-  min-height: 400px;
-  display: block;
-}
-
-.video-container:fullscreen {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100vw;
-  height: 100vh;
-  background-color: #000;
-}
-
-.video-container:fullscreen .video-player {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  object-fit: contain;
-}
-
+/* Dual layout */
 .dual-playback-shell {
+  position: relative;
   display: flex;
   flex-direction: column;
-  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .dual-video-container {
-  min-height: 400px;
+  width: 100%;
+  height: 100%;
 }
 
 .dual-video-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 1fr 1fr;
   gap: 1px;
-  background-color: #111;
-  min-height: 400px;
+  background-color: #1a1a1a;
+  height: 100%;
 }
 
 .dual-video-panel {
   position: relative;
-  min-width: 0;
   background-color: #000;
   display: flex;
   align-items: center;
@@ -1290,66 +1214,402 @@ onUnmounted(async () => {
 
 .dual-video-label {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 0.75rem;
+  left: 0.75rem;
   z-index: 5;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background-color: rgba(0, 0, 0, 0.65);
-  color: var(--text-on-accent);
-  font-size: 12px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  background-color: rgba(15, 15, 15, 0.8);
+  color: #ffffff;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
 .dual-video-player {
   width: 100%;
   height: 100%;
-  min-height: 400px;
   object-fit: contain;
   display: block;
-  background-color: #000;
 }
 
-.dual-playback-shell:fullscreen {
-  display: flex;
-  flex-direction: column;
-  width: 100vw;
-  height: 100vh;
-  background-color: #000;
+/* Video metadata */
+.video-info-section {
+  margin-top: 1.25rem;
+  padding: 0 0.25rem;
 }
 
-.dual-playback-shell:fullscreen .dual-video-container {
+.video-info-title {
+  margin: 0;
+  font-family: Roboto, Inter, sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.75rem;
+  color: var(--text-primary);
+}
+
+/* Channel Row (Subscribe button) */
+.channel-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.channel-main {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.instructor-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.channel-text {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
+}
+
+.instructor-name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.course-name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.125rem;
+}
+
+.subscribe-pill {
+  background-color: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--bg-page-alt);
+  font-weight: 600;
+  padding: 0.4375rem 1.125rem;
+  height: 2.125rem;
+  border-radius: 6.25rem;
+  font-size: 0.8125rem;
+  margin-left: 1rem;
+}
+
+.subscribe-pill.pinned {
+  background-color: var(--bg-hover);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.action-pills {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.action-pill-btn {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  border-radius: 6.25rem;
+  height: 2.125rem;
+  padding: 0 0.875rem;
+}
+
+/* Expandable Description Box */
+.description-box {
+  background-color: var(--bg-elevated);
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  margin-top: 0.875rem;
+  font-size: 0.875rem;
+  line-height: 1.4rem;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.15s;
+}
+
+.description-box:hover {
+  background-color: var(--bg-hover);
+}
+
+.description-box.expanded {
+  cursor: default;
+}
+
+.description-header {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.375rem;
+}
+
+.description-stats {
+  margin-right: 0.5rem;
+}
+
+.description-details-content {
+  color: var(--text-primary);
+  max-height: 2.8rem;
+  overflow: hidden;
+}
+
+.description-box.expanded .description-details-content {
+  max-height: none;
+}
+
+.description-details-content p {
+  margin: 0.25rem 0;
+}
+
+.description-toggle-btn {
+  background: transparent;
   border: none;
-  border-radius: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 0.5rem;
+  display: block;
 }
 
-.dual-playback-shell:fullscreen .dual-video-grid {
+/* Sibling Sessions Sidebar Playlist */
+.playback-sidebar-playlist {
+  width: 25rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  background-color: var(--bg-page-alt);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - var(--header-height) - 3rem);
+  flex-shrink: 0;
+}
+
+.playlist-header {
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
+.playlist-header .playlist-title {
+  margin: 0;
+  font-family: Roboto, Inter, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.playlist-header .playlist-subtitle {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.playlist-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+}
+
+.playlist-items {
   flex: 1;
-  min-height: 0;
+  overflow-y: auto;
+  padding: 0.5rem 0;
 }
 
-.dual-playback-shell:fullscreen .dual-video-player {
-  min-height: 0;
+.playlist-item-row {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  user-select: none;
+  gap: 0.625rem;
 }
 
-.dual-playback-shell:fullscreen .dual-controls-section {
+.playlist-item-row:hover {
+  background-color: var(--bg-hover);
+}
+
+.playlist-item-row.active-playing {
+  background-color: var(--focus-ring);
+}
+
+.row-index {
+  width: 1.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.playlist-item-row.active-playing .row-index {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.row-thumb {
+  position: relative;
+  width: 5.5rem;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  background-color: var(--bg-elevated);
+  flex-shrink: 0;
+}
+
+.row-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.row-duration {
+  position: absolute;
+  bottom: 0.125rem;
+  right: 0.125rem;
+  background-color: rgba(15, 15, 15, 0.85);
+  color: #ffffff;
+  font-size: 0.625rem;
+  font-weight: 500;
+  padding: 0.0625rem 0.1875rem;
+  border-radius: 0.125rem;
+}
+
+.row-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.row-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.05rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-date {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+  display: block;
+}
+
+/* Cinema Mode overrules */
+.playback-page.cinema-mode .playback-content-wrapper {
+  max-width: none;
+  padding: 0;
+  flex-direction: column;
+}
+
+.playback-page.cinema-mode .main-video-section {
+  width: 100%;
+}
+
+.playback-page.cinema-mode .player-panel-container {
   border-left: none;
   border-right: none;
-  border-bottom: none;
   border-radius: 0;
+  height: calc(80vh - var(--header-height));
+  max-height: 48rem;
+  aspect-ratio: auto;
 }
 
-.video-container.controls-hidden,
-.dual-playback-shell.controls-hidden {
-  cursor: none;
+.playback-page.cinema-mode .video-info-section {
+  max-width: 80rem;
+  width: 100%;
+  margin: 1.5rem auto 0;
+  padding: 0 1.5rem 2rem;
 }
 
-.dual-audio-popover {
-  right: -42px;
+/* Responsive queries */
+@media (max-width: 1120px) {
+  .playback-content-wrapper {
+    flex-direction: column;
+  }
+  .playback-sidebar-playlist {
+    width: 100%;
+    height: auto;
+    max-height: 25rem;
+  }
+}
+
+.action-pill-select-wrapper {
+  display: inline-flex;
+  position: relative;
+}
+
+.action-pill-select {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  border-radius: 6.25rem;
+  height: 2.125rem;
+  padding: 0 1.75rem 0 0.875rem;
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 500;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  background-size: 0.75rem;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.action-pill-select:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+.action-pill-select option {
+  background-color: var(--bg-modal);
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .playback-content-wrapper {
+    padding: 0.5rem;
+    gap: 1rem;
+  }
+  .player-panel-container {
+    border-radius: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .action-pills {
+    margin-top: 0.25rem;
+    width: 100%;
+  }
+  .subscribe-pill {
+    margin-left: auto;
+  }
 }
 </style>
 

@@ -84,7 +84,12 @@ const executeSearch = async (resetPage = true) => {
     if (mode.value === "live") {
       const response = await searchLiveList(token, keyword.value.trim(), currentPage.value, RESULTS_PER_PAGE);
       if (seq !== requestSeq) return;
-      results.value = response.data.map(transformLiveStreamToCourse);
+      const transformed = response.data.map(transformLiveStreamToCourse);
+      if (resetPage) {
+        results.value = transformed;
+      } else {
+        results.value = [...results.value, ...transformed];
+      }
       totalPages.value = response.last_page;
       currentPage.value = response.current_page;
     } else {
@@ -95,7 +100,12 @@ const executeSearch = async (resetPage = true) => {
         pageSize: RESULTS_PER_PAGE,
       });
       if (seq !== requestSeq) return;
-      results.value = response.data.map(transformCourseDataToCourse);
+      const transformed = response.data.map(transformCourseDataToCourse);
+      if (resetPage) {
+        results.value = transformed;
+      } else {
+        results.value = [...results.value, ...transformed];
+      }
       totalPages.value = response.last_page;
       currentPage.value = response.current_page;
     }
@@ -103,12 +113,20 @@ const executeSearch = async (resetPage = true) => {
     if (seq !== requestSeq) return;
     console.error("Search failed:", error);
     errorMessage.value = (error instanceof Error && error.message) || "Failed to search courses";
-    results.value = [];
+    if (resetPage) {
+      results.value = [];
+    }
   } finally {
     if (seq === requestSeq) {
       isLoading.value = false;
     }
   }
+};
+
+const loadMore = async () => {
+  if (isLoading.value || currentPage.value >= totalPages.value) return;
+  currentPage.value += 1;
+  await executeSearch(false);
 };
 
 // Search-as-you-type: debounce while the Search page is active.
@@ -120,13 +138,6 @@ watch(keyword, () => {
     executeSearch();
   }, SEARCH_DEBOUNCE_MS);
 });
-
-const goToPage = async (page: number) => {
-  if (page >= 1 && page <= totalPages.value && page !== currentPage.value) {
-    currentPage.value = page;
-    await executeSearch(false);
-  }
-};
 
 const setMode = async (m: "live" | "recorded") => {
   if (mode.value === m) return;
@@ -189,7 +200,7 @@ export function useSearchPage() {
     errorMessage,
     hasSearched,
     executeSearch,
-    goToPage,
+    loadMore,
     setMode,
     setSemesters,
     handleSidebarFocus,

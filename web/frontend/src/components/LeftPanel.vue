@@ -1,27 +1,26 @@
 <template>
-  <div class="left-panel" :class="{ 'collapsed': isSidebarCollapsed }">
+  <div class="left-panel" :class="{ 'collapsed': isSidebarCollapsed && !mobile }">
     <div class="control-section custom-scrollbar">
       <div class="settings-content">
-        <!-- Expanded Navigator -->
-        <div v-if="!isSidebarCollapsed" class="navigator-section">
-          <div class="nav-group-title">{{ $t('navigation.appName') }}</div>
+        <!-- Expanded Navigator (always expanded inside the mobile drawer) -->
+        <div v-if="!isSidebarCollapsed || mobile" class="navigator-section">
           <nav class="nav-items">
             <button :class="['nav-item', { active: activeNav === 'home' }]" @click="navigate('home')">
-              <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                 <polyline points="9 22 9 12 15 12 15 22"/>
               </svg>
               <span>{{ $t('navigation.home') }}</span>
             </button>
             <button :class="['nav-item', { active: activeNav === 'live' }]" @click="navigate('live')">
-              <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
               </svg>
               <span>{{ $t('navigation.live') }}</span>
               <span v-if="livePlaybackActive" class="nav-playback-indicator">●</span>
             </button>
             <button :class="['nav-item', { active: activeNav === 'recorded' && !activePinned }]" @click="navigate('recorded')">
-              <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                 <line x1="8" y1="21" x2="16" y2="21"/>
                 <line x1="12" y1="17" x2="12" y2="21"/>
@@ -30,7 +29,7 @@
               <span v-if="recordedPlaybackActive" class="nav-playback-indicator">●</span>
             </button>
             <button :class="['nav-item', { active: activeNav === 'settings' }]" @click="navigate('settings')">
-              <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="3"/>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
               </svg>
@@ -38,22 +37,33 @@
             </button>
           </nav>
 
-          <div class="nav-group-title panel-actions-title" v-if="pinnedRecordedCourses.length > 0">{{ $t('navigation.pinned') }}</div>
+          <div class="nav-divider"></div>
+
+          <div class="nav-group-title" v-if="pinnedRecordedCourses.length > 0">
+            {{ $t('navigation.pinned') }}
+          </div>
           <div class="nav-items" v-if="pinnedRecordedCourses.length > 0">
             <div v-for="c in pinnedRecordedCourses" :key="c.id" class="pinned-row">
-              <button :class="['nav-item', 'pinned-item', { active: activePinned === c.id }]" @click="openPinnedCourse(c)" :title="c.title">
-                <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                </svg>
+              <button
+                :class="['nav-item', 'pinned-item', { active: activePinned === c.id }]"
+                @click="openPinnedCourse(c)"
+                :title="c.title"
+              >
+                <!-- Subscription Style Circle Initials Avatar -->
+                <div class="pinned-avatar" :style="{ backgroundColor: getAvatarBg(c.title) }">
+                  {{ getInitials(c.title) }}
+                </div>
                 <span class="pinned-label">{{ c.title }}</span>
               </button>
-              <button class="pinned-unpin" @click.stop="removePinnedCourse(c.id)" :title="$t('sessions.unpin')" :aria-label="$t('sessions.unpin')">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <line x1="2" y1="2" x2="22" y2="22"/>
-                  <path d="M12 17v5"/>
-                  <path d="M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11"/>
-                  <path d="M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89"/>
+              <button
+                class="pinned-unpin"
+                @click.stop="removePinnedCourse(c.id)"
+                :title="$t('sessions.unpin')"
+                :aria-label="$t('sessions.unpin')"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               </button>
             </div>
@@ -63,7 +73,7 @@
         <!-- Collapsed/Mini Navigator (YouTube Style) -->
         <div v-else class="mini-navigator">
           <button :class="['mini-nav-item', { active: activeNav === 'home' }]" @click="navigate('home')" :title="$t('navigation.home')">
-            <svg class="mini-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg class="mini-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
               <polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
@@ -72,7 +82,7 @@
           
           <button :class="['mini-nav-item', { active: activeNav === 'live' }]" @click="navigate('live')" :title="$t('navigation.live')">
             <div class="mini-nav-icon-wrap">
-              <svg class="mini-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="mini-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
               </svg>
               <span v-if="livePlaybackActive" class="mini-playback-indicator">●</span>
@@ -82,7 +92,7 @@
           
           <button :class="['mini-nav-item', { active: activeNav === 'recorded' }]" @click="navigate('recorded')" :title="$t('navigation.recorded')">
             <div class="mini-nav-icon-wrap">
-              <svg class="mini-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg class="mini-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                 <line x1="8" y1="21" x2="16" y2="21"/>
                 <line x1="12" y1="17" x2="12" y2="21"/>
@@ -90,6 +100,14 @@
               <span v-if="recordedPlaybackActive" class="mini-playback-indicator">●</span>
             </div>
             <span class="mini-nav-label">{{ $t('navigation.recorded') }}</span>
+          </button>
+
+          <button :class="['mini-nav-item', { active: activeNav === 'settings' }]" @click="navigate('settings')" :title="$t('settings.settings')">
+            <svg class="mini-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+            <span class="mini-nav-label">{{ $t('settings.settings') }}</span>
           </button>
         </div>
       </div>
@@ -102,6 +120,11 @@ import { computed } from 'vue'
 import { navigationStore } from '../stores/navigationStore'
 import { playbackStore } from '../stores/playbackStore'
 import { pinnedRecordedCourses, openPinnedCourse, removePinnedCourse } from '../composables/pinnedCourses'
+import { getAvatarBg, getInitials } from '../composables/courseCover'
+
+// `mobile` forces the full navigator (incl. pinned courses) when rendered
+// inside App.vue's mobile slide-in drawer, regardless of the collapse pref.
+defineProps<{ mobile?: boolean }>()
 
 const { activeNav, activePinned, navigate, isSidebarCollapsed } = navigationStore
 
@@ -115,80 +138,99 @@ const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode =
   flex-direction: column;
   height: 100%;
   padding: 0;
-  background-color: var(--bg-page-alt);
+  background-color: var(--bg-page);
   color: var(--text-primary);
 }
 
 .control-section {
   flex: 1;
-  padding: 16px;
+  padding: 0.75rem;
   overflow-y: auto;
 }
 
 .left-panel.collapsed .control-section {
-  padding: 8px 0;
+  padding: 0.5rem 0;
 }
 
 .settings-content {
   padding: 0;
 }
 
-/* Navigator (Apple Music style sidebar) */
 .navigator-section {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.25rem;
 }
 
-/* Apple Music style group label above a nav group */
+.nav-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 0.75rem 0.5rem;
+}
+
+/* YouTube Style Section Header */
 .nav-group-title {
-  padding: 0 8px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.1px;
-  color: var(--text-muted);
+  padding: 0 0.75rem 0.5rem;
+  font-family: Roboto, Inter, sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-transform: none;
 }
 
 .nav-items {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0.125rem;
 }
 
-.panel-actions-title {
-  margin: 18px 0 4px;
-}
-
-/* Pinned recorded courses — a nav-item with a hover-revealed unpin button. */
+/* Pinned recorded courses */
 .pinned-row {
   position: relative;
   display: flex;
   align-items: center;
+  margin: 0 0.375rem;
 }
 
 .pinned-item {
-  /* Reserve room on the right so the label never sits under the unpin button. */
-  padding-right: 30px;
+  padding-right: 2.25rem !important;
+  margin: 0 !important;
+  flex: 1;
+  min-width: 0;
+}
+
+.pinned-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 .pinned-unpin {
   position: absolute;
-  right: 6px;
+  right: 0.5rem;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 1.5rem;
+  height: 1.5rem;
   padding: 0;
   border: none;
-  border-radius: 4px;
+  border-radius: 50%;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s, color 0.15s, background-color 0.15s;
+  z-index: 5;
 }
 
 .pinned-row:hover .pinned-unpin {
@@ -203,18 +245,18 @@ const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode =
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 9px;
-  width: 100%;
-  /* Items indent clearly past the group label, Apple Music style */
-  padding: 8px 10px 8px 20px;
+  gap: 1.25rem;
+  width: auto;
+  margin: 0 0.375rem;
+  padding: 0.5rem 0.75rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 0.625rem;
   background: transparent;
   color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 0.875rem;
+  font-weight: 400;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.15s;
   text-align: left;
 }
 
@@ -223,13 +265,17 @@ const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode =
 }
 
 .nav-item.active {
-  background-color: var(--badge-active-bg);
-  color: var(--accent);
+  background-color: var(--bg-hover);
+  font-weight: 500;
 }
 
 .nav-item-icon {
   flex-shrink: 0;
-  opacity: 0.8;
+  color: var(--text-primary);
+}
+
+.nav-item.active .nav-item-icon {
+  color: var(--accent-deep);
 }
 
 .nav-item span:not(.nav-playback-indicator) {
@@ -242,8 +288,8 @@ const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode =
 
 .nav-playback-indicator {
   flex: none;
-  color: var(--success);
-  font-size: 10px;
+  color: var(--accent);
+  font-size: 0.625rem;
   font-weight: bold;
   animation: nav-pulse 2s infinite;
 }
@@ -259,30 +305,35 @@ const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode =
   flex-direction: column;
   align-items: center;
   width: 100%;
-  gap: 4px;
+  gap: 0.25rem;
 }
 
 .mini-nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  width: 100%;
-  padding: 14px 0 10px;
+  justify-content: center;
+  width: calc(100% - 0.5rem);
+  margin: 0 0.25rem;
+  padding: 0.875rem 0 0.75rem;
   border: none;
   background: transparent;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   cursor: pointer;
   transition: background-color 0.15s, color 0.15s;
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .mini-nav-item:hover {
   background-color: var(--bg-hover);
-  color: var(--text-primary);
 }
 
 .mini-nav-item.active {
-  color: var(--accent);
+  font-weight: 500;
+}
+
+.mini-nav-item.active .mini-nav-icon {
+  color: var(--accent-deep);
 }
 
 .mini-nav-icon-wrap {
@@ -293,14 +344,13 @@ const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode =
 }
 
 .mini-nav-icon {
-  opacity: 0.9;
+  color: var(--text-primary);
 }
 
 .mini-nav-label {
-  font-size: 10px;
-  font-weight: 500;
-  margin-top: 6px;
-  max-width: 68px;
+  font-size: 0.625rem;
+  margin-top: 0.375rem;
+  max-width: 4rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -308,10 +358,10 @@ const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode =
 
 .mini-playback-indicator {
   position: absolute;
-  top: -4px;
-  right: -6px;
-  color: var(--success);
-  font-size: 8px;
+  top: -0.25rem;
+  right: -0.375rem;
+  color: var(--accent);
+  font-size: 0.5rem;
   animation: nav-pulse 2s infinite;
 }
 </style>

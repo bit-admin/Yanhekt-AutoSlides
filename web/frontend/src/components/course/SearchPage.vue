@@ -1,39 +1,44 @@
 <template>
   <div class="search-page">
     <div class="search-header">
-      <SemesterSelect
-        v-if="mode === 'recorded'"
-        :semesters="availableSemesters"
-        :model-value="selectedSemesterIds"
-        @update:model-value="setSemesters"
-      />
-      <div class="mode-switch">
-        <button
-          :class="['mode-pill', { active: mode === 'live' }]"
-          @click="setMode('live')"
-        >
-          {{ $t('navigation.live') }}
-        </button>
-        <button
-          :class="['mode-pill', { active: mode === 'recorded' }]"
-          @click="setMode('recorded')"
-        >
-          {{ $t('navigation.recorded') }}
-        </button>
+      <div class="search-filters">
+        <!-- Semester Selection Chips (only for Recorded) -->
+        <SemesterSelect
+          v-if="mode === 'recorded'"
+          :semesters="availableSemesters"
+          :model-value="selectedSemesterIds"
+          @update:model-value="setSemesters"
+        />
+
+        <!-- Live/Recorded toggle chips -->
+        <div class="mode-chips">
+          <button
+            :class="['mode-chip', { active: mode === 'live' }]"
+            @click="setMode('live')"
+          >
+            {{ $t('navigation.live') }}
+          </button>
+          <button
+            :class="['mode-chip', { active: mode === 'recorded' }]"
+            @click="setMode('recorded')"
+          >
+            {{ $t('navigation.recorded') }}
+          </button>
+        </div>
       </div>
     </div>
 
-    <div class="content">
+    <div class="content custom-scrollbar" @scroll="handleScroll">
       <div v-if="errorMessage" class="error-message">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
           <line x1="15" y1="9" x2="9" y2="15"/>
           <line x1="9" y1="9" x2="15" y2="15"/>
         </svg>
-        {{ errorMessage }}
+        <span>{{ errorMessage }}</span>
       </div>
 
-      <div v-if="isLoading" class="loading-state">
+      <div v-if="isLoading && results.length === 0" class="loading-state">
         <div class="spinner"></div>
         <p>{{ $t('courses.loading') }}</p>
       </div>
@@ -42,57 +47,69 @@
         <p>{{ $t('courses.noResults') }}</p>
       </div>
 
-      <div v-else-if="!errorMessage" class="courses-grid custom-scrollbar">
-        <div
-          v-for="course in results"
-          :key="course.id"
-          class="course-card"
-          @click="selectResult(course)"
-        >
-          <div v-if="mode === 'live'" class="course-status" :class="getCourseStatusClass(course.status)">
-            {{ getCourseStatusText(course.status, t) }}
-          </div>
-          <div v-if="mode === 'recorded'" class="course-id">
-            #{{ course.id }}
-          </div>
-          <div class="course-info">
-            <h3 class="course-title">{{ course.title }}</h3>
-            <p class="course-instructor">{{ course.instructor }}</p>
-            <p class="course-location" v-if="mode === 'live' && course.subtitle">{{ course.subtitle }}</p>
-            <p class="course-location" v-if="mode === 'recorded' && course.classrooms">
-              {{ course.classrooms.map(c => c.name).join(', ') }}
-            </p>
-            <p class="course-time">{{ course.time }}</p>
-            <p class="course-section" v-if="mode === 'live' && course.session?.section_group_title">{{ course.session.section_group_title }}</p>
-            <p class="course-section" v-if="mode === 'recorded' && course.college_name">{{ course.college_name }}</p>
-            <p class="course-participants" v-if="course.participant_count !== undefined">
-              {{ course.participant_count }} {{ $t('courses.info.participants') }}
-            </p>
+      <template v-else-if="!errorMessage && hasSearched">
+        <div class="video-grid">
+          <div
+            v-for="course in results"
+            :key="course.id"
+            class="video-card"
+            @click="selectResult(course)"
+          >
+            <!-- 16:9 Thumbnail -->
+            <div class="video-thumbnail-container">
+              <img
+                v-if="!coverFailed.has(course.id)"
+                :src="getCourseCover(course.id)"
+                class="video-thumbnail"
+                alt=""
+                @error="markCoverFailed(course.id)"
+              />
+              <div v-else class="video-thumbnail-placeholder">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+              </div>
+              <div v-if="!coverFailed.has(course.id)" class="video-cover-overlay-text" :style="getOverlayTextStyle(course.title)">
+                {{ course.title }}
+              </div>
+              <!-- Badges -->
+              <span v-if="mode === 'live'" class="video-badge" :class="getLiveBadgeClass(course.status)">
+                <span v-if="course.status === 1" class="pulse-dot"></span>
+                {{ getCourseStatusText(course.status, t) }}
+              </span>
+              <span v-else class="video-badge badge-id">#{{ course.id }}</span>
+              <div class="video-hover-overlay">
+                <svg class="play-arrow" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Description Row -->
+            <div class="video-detail-row">
+              <div class="instructor-avatar" :style="{ backgroundColor: getAvatarBg(course.instructor || course.title) }">
+                {{ getInitials(course.instructor || course.title) }}
+              </div>
+              <div class="video-meta">
+                <h3 class="video-title" :title="course.title">{{ course.title }}</h3>
+                <p class="video-instructor">{{ course.instructor }}</p>
+                <p class="video-stats">
+                  {{ course.time }}
+                  <span v-if="mode === 'recorded' && course.classrooms"> · {{ course.classrooms.map(c => c.name).join(', ') }}</span>
+                  <span v-if="mode === 'live' && course.subtitle"> · {{ course.subtitle }}</span>
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div v-if="!isLoading && results.length > 0" class="pagination">
-        <button
-          :disabled="currentPage === 1"
-          @click="goToPage(currentPage - 1)"
-          class="btn page-btn"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="15,18 9,12 15,6"/>
-          </svg>
-        </button>
-        <span class="page-info">{{ currentPage }} / {{ totalPages }}</span>
-        <button
-          :disabled="currentPage === totalPages"
-          @click="goToPage(currentPage + 1)"
-          class="btn page-btn"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9,18 15,12 9,6"/>
-          </svg>
-        </button>
-      </div>
+        <!-- Infinite scroll loading spinner -->
+        <div v-if="isLoading && results.length > 0" class="scroll-loading">
+          <div class="spinner mini-spinner"></div>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -100,8 +117,9 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useSearchPage } from '../../composables/useSearchPage'
-import { getCourseStatusClass, getCourseStatusText } from '../../composables/useCourseList'
+import { getCourseStatusText } from '../../composables/useCourseList'
 import SemesterSelect from './SemesterSelect.vue'
+import { getCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
 
 const { t } = useI18n()
 
@@ -110,16 +128,25 @@ const {
   availableSemesters,
   selectedSemesterIds,
   results,
-  currentPage,
-  totalPages,
   isLoading,
   errorMessage,
   hasSearched,
-  goToPage,
+  loadMore,
   setMode,
   setSemesters,
   selectResult
 } = useSearchPage()
+
+const handleScroll = (event: Event) => {
+  const target = event.target as HTMLElement
+  if (target.scrollHeight - target.scrollTop <= target.clientHeight + 100) {
+    loadMore()
+  }
+}
+
+const getLiveBadgeClass = (status?: number) => {
+  return `video-badge badge-live ${status === 1 ? 'live-active' : 'live-ended'}`
+}
 </script>
 
 <style scoped>
@@ -127,59 +154,54 @@ const {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--bg-surface);
+  background-color: var(--bg-page);
   color: var(--text-primary);
 }
 
-/* Apple Music style title band: right-aligned controls on a full-width tinted
-   bar (same band as CoursePage, with the semester selector + mode switch
-   instead of a title). */
 .search-header {
   flex-shrink: 0;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 16px;
-  background-color: var(--bg-elevated);
-  border-bottom: 1px solid var(--border-color);
-  margin-bottom: 36px;
+  padding: 1.5rem 3rem 0.5rem;
+  background-color: var(--bg-page);
 }
 
-/* macOS-style segmented control: gray grouped track, the active segment is a
-   white outlined pill (Apple Music "Apple Music | Your Library" switcher). */
-.mode-switch {
+.search-filters {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 2px;
-  border-radius: 8px;
-  background: var(--bg-page-alt);
-  border: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.mode-pill {
+/* Mode Switch as YouTube Chips */
+.mode-chips {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.mode-chip {
   display: inline-flex;
   align-items: center;
-  padding: 4px 12px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
+  padding: 0.4rem 0.875rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background-color 0.2s, border-color 0.2s;
 }
 
-.mode-pill:hover {
-  color: var(--text-primary);
+.mode-chip:hover {
+  background-color: var(--bg-hover);
 }
 
-.mode-pill.active {
-  background: var(--bg-surface);
-  border-color: var(--border-strong);
-  color: var(--text-primary);
-  box-shadow: 0 1px 2px var(--shadow-sm);
+.mode-chip.active {
+  background-color: var(--text-primary);
+  border-color: var(--text-primary);
+  color: var(--bg-page-alt);
 }
 
 .content {
@@ -187,20 +209,21 @@ const {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 0 24px 16px;
+  padding: 1rem 3rem 2rem;
+  overflow-y: auto;
 }
 
 .error-message {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
   background-color: var(--danger-bg);
   border: 1px solid var(--danger-border);
-  border-radius: 4px;
+  border-radius: 0.5rem;
   color: var(--danger-bright);
-  font-size: 14px;
+  font-size: 0.875rem;
   flex-shrink: 0;
 }
 
@@ -210,21 +233,8 @@ const {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 0.75rem;
   color: var(--text-secondary);
-}
-
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 .empty-state {
@@ -232,198 +242,257 @@ const {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
-  font-size: 14px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
 }
 
-/* A page is always 16 items: 4 columns × 4 rows stretched to fill the
-   available height; rows shrink to 140px minimum before scrolling kicks in. */
-.courses-grid {
+/* 16:9 grids */
+.video-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(4, minmax(140px, 1fr));
-  gap: 12px;
-  flex: 1;
-  overflow-y: auto;
-  padding-right: 8px;
-  min-height: 0;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2.5rem 1.5rem;
+  flex: 1 0 auto;
 }
 
-.course-card {
+.video-card {
   display: flex;
   flex-direction: column;
-  padding: 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background-color: var(--bg-card);
   cursor: pointer;
-  transition: all 0.2s;
   position: relative;
+  background-color: transparent;
+  width: 100%;
+}
+
+.video-thumbnail-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.75rem;
   overflow: hidden;
-}
-
-.course-card:hover {
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--focus-ring);
-}
-
-.course-status {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
-.status-ended {
-  background-color: var(--bg-page-alt);
-  color: var(--text-secondary);
-}
-
-.status-live {
-  background-color: var(--success-bg);
-  color: var(--success);
-}
-
-.status-upcoming {
-  background-color: var(--warning-bg);
-  color: var(--warning);
-}
-
-.status-unknown {
   background-color: var(--bg-elevated);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+.video-thumbnail {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.video-card:hover .video-thumbnail {
+  transform: scale(1.03);
+}
+
+.video-thumbnail-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
   color: var(--text-muted);
 }
 
-.course-id {
+.video-hover-overlay {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 600;
-  background-color: var(--border-color);
-  color: var(--text-secondary);
-}
-
-.course-info {
-  text-align: left;
-  padding-top: 18px;
-  flex: 1;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.2);
   display: flex;
-  flex-direction: column;
-  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
 }
 
-.course-title {
-  margin: 0 0 10px 0;
-  font-size: 12px;
+.video-card:hover .video-hover-overlay {
+  opacity: 1;
+}
+
+.play-arrow {
+  color: #ffffff;
+  transform: scale(0.9);
+  transition: transform 0.2s;
+}
+
+.video-card:hover .play-arrow {
+  transform: scale(1.1);
+}
+
+/* Badges */
+.video-badge {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  padding: 0.1875rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-id {
+  background-color: rgba(15, 15, 15, 0.85);
+  color: #ffffff;
+}
+
+.badge-live {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #ffffff;
+  font-weight: 700;
+  text-transform: uppercase;
+  top: 0.5rem;
+  bottom: auto;
+  left: 0.5rem;
+  right: auto;
+}
+
+.badge-live.live-active {
+  background-color: var(--accent);
+}
+
+.badge-live.live-ended {
+  background-color: var(--neutral-strong);
+}
+
+.pulse-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  background-color: #ffffff;
+  border-radius: 50%;
+  animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.9); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.5; }
+  100% { transform: scale(0.9); opacity: 1; }
+}
+
+.video-detail-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0 0.25rem;
+}
+
+.instructor-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.video-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.video-title {
+  margin: 0;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.2;
+  line-height: 1.25rem;
+  max-height: 2.5rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  /* Always reserve two lines so the info block starts at the same height
-     on every card, whether the name wraps or not. */
-  min-height: 2.4em;
 }
 
-.course-instructor {
-  margin: 0 0 4px 0;
-  font-size: 10px;
+.video-instructor {
+  margin: 0.375rem 0 0.125rem;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
-  font-weight: 500;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.course-location {
-  margin: 0 0 4px 0;
-  font-size: 10px;
-  color: var(--text-muted);
-  white-space: nowrap;
+.video-stats {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.course-time {
-  margin: 0 0 4px 0;
-  font-size: 10px;
-  color: var(--text-muted);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.course-section {
-  margin: 0 0 4px 0;
-  font-size: 9px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.course-participants {
-  margin: auto 0 0;
-  padding-top: 4px;
-  font-size: 9px;
-  color: var(--accent);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
+/* Pagination */
 .pagination {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
-  margin-top: 12px;
-  padding-top: 12px;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
   border-top: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
-/* Square 32×32 icon button — padding:0 so the chevron is not crushed by
-   .btn's horizontal padding under box-sizing: border-box. */
 .page-btn {
-  width: 32px;
-  height: 32px;
+  width: 2.25rem;
+  height: 2.25rem;
   padding: 0;
+  border-radius: 50%;
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-color);
 }
 
 .page-info {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--text-secondary);
-  min-width: 60px;
+  min-width: 3.75rem;
   text-align: center;
 }
 
-@media (max-width: 1200px) {
-  .courses-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 900px) {
-  .courses-grid {
+@media (max-width: 1024px) {
+  .video-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
+@media (max-width: 768px) {
+  .search-filters {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 600px) {
-  .courses-grid {
+  .video-grid {
     grid-template-columns: 1fr;
   }
+  .search-header {
+    padding: 1.5rem 1.5rem 0.5rem;
+  }
+  .content {
+    padding: 1rem 1.5rem 2rem;
+  }
+}
+
+.scroll-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1.5rem;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.mini-spinner {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-width: 2px;
 }
 </style>

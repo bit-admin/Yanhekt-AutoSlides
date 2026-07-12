@@ -1,157 +1,178 @@
 <template>
   <div class="home-page custom-scrollbar">
+    <!-- Greeting & Header -->
     <div class="home-hero">
       <h1 class="home-greeting">{{ greetingText }}</h1>
-      <p class="home-tagline">AutoSlides</p>
     </div>
-    <section class="home-section">
-      <h2 class="home-section-title">{{ $t('courses.savedSearches.sectionTitle') }}</h2>
-      <div class="saved-grid custom-scrollbar">
-        <div
-          v-for="c in pinnedRecordedCourses"
-          :key="'pin:' + c.id"
-          class="saved-card saved-card--recorded"
-          @click="openPinnedCourse(c)"
+
+    <!-- YouTube-style scrollable horizontal chips -->
+    <div class="chips-container custom-scrollbar-x">
+      <button 
+        class="chip active" 
+        @click="navigate('home')"
+      >
+        {{ $t('navigation.home') }}
+      </button>
+
+      <!-- Pinned recorded courses as chips -->
+      <button
+        v-for="c in pinnedRecordedCourses"
+        :key="'chip-pin:' + c.id"
+        class="chip chip--pinned"
+        @click="openPinnedCourse(c)"
+      >
+        <span class="chip-dot"></span>
+        <span class="chip-label">{{ c.title }}</span>
+        <span
+          class="chip-remove"
+          :title="$t('sessions.unpin')"
+          @click.stop="removePinnedCourse(c.id)"
         >
-          <span class="saved-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 17v5"/>
-              <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>
-            </svg>
-          </span>
-          <div class="saved-text">
-            <span class="saved-label">{{ c.title }}</span>
-            <span class="saved-mode">{{ $t('navigation.recorded') }}</span>
-          </div>
-          <button
-            class="saved-remove"
-            :title="$t('sessions.unpin')"
-            @click.stop="removePinnedCourse(c.id)"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-        <div
-          v-for="entry in mergedSavedSearches"
-          :key="entry.mode + ':' + entry.keyword"
-          :class="['saved-card', `saved-card--${entry.mode}`]"
-          @click="openSavedSearch(entry.keyword, entry.mode)"
+          ×
+        </span>
+      </button>
+
+      <!-- Saved Searches as chips -->
+      <button
+        v-for="entry in mergedSavedSearches"
+        :key="'chip-search:' + entry.mode + ':' + entry.keyword"
+        :class="['chip', `chip--${entry.mode}`]"
+        @click="openSavedSearch(entry.keyword, entry.mode)"
+      >
+        <span class="chip-label">{{ entry.keyword }}</span>
+        <span class="chip-mode">{{ $t(entry.mode === 'live' ? 'navigation.live' : 'navigation.recorded') }}</span>
+        <span
+          class="chip-remove"
+          :title="$t('courses.savedSearches.remove')"
+          @click.stop="removeSavedSearch(entry.mode, entry.keyword)"
         >
-          <span class="saved-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="8"/>
-              <path d="m21 21-4.35-4.35"/>
-            </svg>
-          </span>
-          <div class="saved-text">
-            <span class="saved-label">{{ entry.keyword }}</span>
-            <span class="saved-mode">{{ $t(entry.mode === 'live' ? 'navigation.live' : 'navigation.recorded') }}</span>
-          </div>
-          <button
-            class="saved-remove"
-            :title="$t('courses.savedSearches.remove')"
-            @click.stop="removeSavedSearch(entry.mode, entry.keyword)"
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
-        </div>
-        <div class="saved-card saved-card--add" @click="openAddModal">
-          <span class="saved-icon saved-icon--add">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <line x1="12" y1="5" x2="12" y2="19"/>
-              <line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-          </span>
-          <div class="saved-text">
-            <span class="saved-label saved-label--add">{{ $t('courses.savedSearches.save') }}</span>
-          </div>
-        </div>
-      </div>
-    </section>
+          ×
+        </span>
+      </button>
+
+      <!-- Add Chip Button -->
+      <button class="chip chip--add" @click="openAddModal">
+        <svg class="chip-add-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span>{{ $t('courses.savedSearches.save') }}</span>
+      </button>
+    </div>
 
     <template v-if="isLoggedIn">
+      <!-- Live Streams Section -->
       <section class="home-section">
         <h2 class="home-section-title">{{ $t('home.myLiveStreams') }}</h2>
         <div v-if="isLoadingLive" class="row-loading"><div class="spinner"></div></div>
         <p v-else-if="liveError" class="row-error">{{ liveError }}</p>
         <p v-else-if="liveStreams.length === 0" class="row-empty">{{ $t('courses.noResults') }}</p>
-        <div v-else class="course-row custom-scrollbar">
+        
+        <div v-else class="video-grid">
           <div
             v-for="course in liveStreams"
             :key="course.id"
-            class="preview-card"
+            class="video-card"
             @click="openCourse('live', course)"
           >
-            <div class="preview-thumb">
+            <!-- 16:9 Thumbnail -->
+            <div class="video-thumbnail-container">
               <img
                 v-if="!coverFailed.has(course.id)"
-                :src="FALLBACK_COVER"
-                class="preview-img preview-img--cover"
+                :src="getCourseCover(course.id)"
+                class="video-thumbnail"
                 alt=""
                 @error="markCoverFailed(course.id)"
               />
-              <div v-else class="preview-placeholder">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <div v-else class="video-thumbnail-placeholder">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                   <line x1="8" y1="21" x2="16" y2="21"/>
                   <line x1="12" y1="17" x2="12" y2="21"/>
                 </svg>
               </div>
-              <span class="preview-badge" :class="getCourseStatusClass(course.status)">
+              <div v-if="!coverFailed.has(course.id)" class="video-cover-overlay-text" :style="getOverlayTextStyle(course.title)">
+                {{ course.title }}
+              </div>
+              <!-- Pulse LIVE Badge -->
+              <span class="video-badge badge-live">
+                <span class="pulse-dot"></span>
                 {{ getCourseStatusText(course.status, t) }}
               </span>
-              <div class="preview-play">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <div class="video-hover-overlay">
+                <svg class="play-arrow" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M8 5v14l11-7z"/>
                 </svg>
               </div>
             </div>
-            <div class="preview-meta">
-              <h3 class="preview-title">{{ course.title }}</h3>
-              <p class="preview-subtitle">{{ course.instructor }} · {{ course.time }}</p>
+
+            <!-- Avatar + Meta Row -->
+            <div class="video-detail-row">
+              <div class="instructor-avatar" :style="{ backgroundColor: getAvatarBg(course.instructor || course.title) }">
+                {{ getInitials(course.instructor || course.title) }}
+              </div>
+              <div class="video-meta">
+                <h3 class="video-title" :title="course.title">{{ course.title }}</h3>
+                <p class="video-instructor">{{ course.instructor }}</p>
+                <p class="video-stats">{{ course.time }} · {{ course.subtitle || $t('home.liveSession') }}</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
+      <!-- Recordings Section -->
       <section class="home-section">
         <h2 class="home-section-title">{{ $t('home.myRecordings') }}</h2>
         <div v-if="isLoadingRecorded" class="row-loading"><div class="spinner"></div></div>
         <p v-else-if="recordedError" class="row-error">{{ recordedError }}</p>
         <p v-else-if="recordings.length === 0" class="row-empty">{{ $t('courses.noResults') }}</p>
-        <div v-else class="course-row custom-scrollbar">
+        
+        <div v-else class="video-grid">
           <div
             v-for="course in recordings"
             :key="course.id"
-            class="preview-card"
+            class="video-card"
             @click="openCourse('recorded', course)"
           >
-            <div class="preview-thumb">
+            <!-- 16:9 Thumbnail -->
+            <div class="video-thumbnail-container">
               <img
                 v-if="!coverFailed.has(course.id)"
-                :src="FALLBACK_COVER"
-                class="preview-img preview-img--cover"
+                :src="getCourseCover(course.id)"
+                class="video-thumbnail"
                 alt=""
                 @error="markCoverFailed(course.id)"
               />
-              <div v-else class="preview-placeholder">
-                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <div v-else class="video-thumbnail-placeholder">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                   <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                   <line x1="8" y1="21" x2="16" y2="21"/>
                   <line x1="12" y1="17" x2="12" y2="21"/>
                 </svg>
               </div>
-              <span class="preview-badge preview-badge--id">#{{ course.id }}</span>
+              <div v-if="!coverFailed.has(course.id)" class="video-cover-overlay-text" :style="getOverlayTextStyle(course.title)">
+                {{ course.title }}
+              </div>
+              <!-- Course ID Badge -->
+              <span class="video-badge badge-id">#{{ course.id }}</span>
+              <div class="video-hover-overlay">
+                <svg class="play-arrow" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
             </div>
-            <div class="preview-meta">
-              <h3 class="preview-title">{{ course.title }}</h3>
-              <p class="preview-subtitle">{{ course.instructor }} · {{ course.time }}</p>
+
+            <!-- Avatar + Meta Row -->
+            <div class="video-detail-row">
+              <div class="instructor-avatar" :style="{ backgroundColor: getAvatarBg(course.instructor || course.title) }">
+                {{ getInitials(course.instructor || course.title) }}
+              </div>
+              <div class="video-meta">
+                <h3 class="video-title" :title="course.title">{{ course.title }}</h3>
+                <p class="video-instructor">{{ course.instructor }}</p>
+                <p class="video-stats">{{ course.time }} · {{ course.college_name || $t('home.academicCourse') }}</p>
+              </div>
             </div>
           </div>
         </div>
@@ -159,6 +180,7 @@
     </template>
     <p v-else class="home-signin-hint">{{ $t('home.signInHint') }}</p>
 
+    <!-- Save Search Modal (Pill styled) -->
     <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
       <div class="modal-box">
         <h3 class="modal-title">{{ $t('courses.savedSearches.modalTitle') }}</h3>
@@ -209,7 +231,6 @@ import { getPersonalLiveList, getPersonalCourseList } from '../../lib/api'
 import {
   transformLiveStreamToCourse,
   transformCourseDataToCourse,
-  getCourseStatusClass,
   getCourseStatusText,
   type Course,
 } from '../../composables/useCourseList'
@@ -218,14 +239,13 @@ import { useSearchPage } from '../../composables/useSearchPage'
 import { mergedSavedSearches, addSavedSearch, removeSavedSearch } from '../../composables/savedSearches'
 import { pinnedRecordedCourses, openPinnedCourse, removePinnedCourse } from '../../composables/pinnedCourses'
 import { authStore } from '../../stores/authStore'
+import { getCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
 import { navigationStore } from '../../stores/navigationStore'
-
-const FALLBACK_COVER = 'https://coss.yanhekt.cn/images/front_cover.png'
 const ROW_SIZE = 12
 
 const { t, locale } = useI18n()
 const { isLoggedIn, userNickname, userId } = authStore
-const { activeNav } = navigationStore
+const { activeNav, navigate } = navigationStore
 const { openSavedSearch } = useSearchPage()
 
 // Add-saved-search modal
@@ -251,8 +271,6 @@ const confirmAdd = () => {
   closeAddModal()
 }
 
-// Simple time-of-day greeting (the desktop app's weighted greeting catalog is
-// deliberately not ported).
 const greetingText = computed(() => {
   const hour = new Date().getHours()
   const zh = locale.value.startsWith('zh')
@@ -271,13 +289,7 @@ const isLoadingLive = ref(false)
 const isLoadingRecorded = ref(false)
 const liveError = ref('')
 const recordedError = ref('')
-const coverFailed = ref(new Set<string>())
 let loadedForUser: string | null = null
-
-const markCoverFailed = (id: string) => {
-  coverFailed.value.add(id)
-  coverFailed.value = new Set(coverFailed.value)
-}
 
 const loadRows = async () => {
   const token = authStore.token.value
@@ -342,183 +354,328 @@ watch(activeNav, (nav) => {
 .home-page {
   height: 100%;
   overflow-y: auto;
-  padding: 24px 32px 28px;
-  background-color: var(--bg-surface);
+  padding: 1.5rem 3rem 3rem;
+  background-color: var(--bg-page);
   color: var(--text-primary);
 }
 
 .home-hero {
-  margin-top: 12px;
-  margin-bottom: 22px;
+  margin-bottom: 1.5rem;
 }
 
 .home-greeting {
   margin: 0;
-  font-size: 30px;
+  font-family: Roboto, Inter, sans-serif;
+  font-size: 1.75rem;
   font-weight: 700;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.03rem;
   color: var(--text-primary);
 }
 
 .home-tagline {
-  margin: 8px 0 0;
-  font-size: 13px;
-  color: var(--text-muted);
-  opacity: 0.75;
+  margin: 0.25rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
 }
 
+/* Horizontal scrolling chips */
+.chips-container {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.5rem 0 1.25rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Hide scrollbars for chips */
+.custom-scrollbar-x::-webkit-scrollbar {
+  display: none;
+}
+.custom-scrollbar-x {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  height: 2rem;
+  padding: 0 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+
+.chip:hover {
+  background-color: var(--bg-hover);
+}
+
+.chip.active {
+  background-color: var(--text-primary);
+  color: var(--bg-page-alt);
+  border-color: var(--text-primary);
+}
+
+.chip--pinned {
+  border-color: var(--accent-deep);
+}
+
+.chip-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 50%;
+  background-color: var(--accent-deep);
+}
+
+.chip-mode {
+  font-size: 0.6875rem;
+  color: var(--text-secondary);
+  background-color: var(--bg-hover);
+  padding: 0.0625rem 0.25rem;
+  border-radius: 0.25rem;
+  margin-left: 0.25rem;
+}
+
+.chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.875rem;
+  height: 0.875rem;
+  margin-left: 0.25rem;
+  border-radius: 50%;
+  font-size: 0.6875rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.chip-remove:hover {
+  background-color: var(--danger);
+  color: #ffffff;
+}
+
+.chip--add {
+  border-style: dashed;
+  color: var(--text-secondary);
+}
+
+.chip--add:hover {
+  color: var(--accent-deep);
+  border-color: var(--accent-deep);
+}
+
+.chip-add-icon {
+  margin-right: -0.125rem;
+}
+
+/* Sections & Grids */
 .home-section {
-  margin-bottom: 26px;
+  margin-bottom: 2.5rem;
 }
 
 .home-section-title {
-  margin: 0 0 12px;
-  font-size: 17px;
-  font-weight: 600;
-  letter-spacing: -0.2px;
+  margin: 0 0 1.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01rem;
   color: var(--text-primary);
 }
 
 .home-signin-hint {
-  margin-top: 40px;
+  margin-top: 3rem;
   text-align: center;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
-/* Saved Courses: normal vertical grid layout */
-.saved-grid {
+/* YouTube Style Responsive Grid */
+.video-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
-  padding-bottom: 8px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2.5rem 1.5rem;
 }
 
-.saved-card {
-  position: relative;
+.video-card {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 26px 10px 10px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background-color: var(--bg-card);
+  flex-direction: column;
   cursor: pointer;
-  transition: all 0.2s;
+  position: relative;
+  background-color: transparent;
+  width: 100%;
+}
+
+.video-thumbnail-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.75rem;
   overflow: hidden;
+  background-color: var(--bg-elevated);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
 }
 
-.saved-card:hover {
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px var(--focus-ring);
+.video-thumbnail {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.saved-icon {
+.video-card:hover .video-thumbnail {
+  transform: scale(1.03);
+}
+
+.video-thumbnail-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: var(--badge-active-bg);
-  color: var(--accent);
-  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--text-muted);
 }
 
-/* Mode color coding: live = yellow, recorded = blue */
-.saved-card--live .saved-icon {
-  background: var(--warning-bg);
-  color: var(--warning);
-}
-
-.saved-card--live .saved-mode {
-  color: var(--warning);
-}
-
-.saved-card--live:hover {
-  border-color: var(--warning);
-}
-
-.saved-card--recorded .saved-icon {
-  background: var(--blue-badge-bg);
-  color: var(--blue-badge-text);
-}
-
-.saved-card--recorded .saved-mode {
-  color: var(--blue-badge-text);
-}
-
-.saved-text {
+.video-hover-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.2);
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.video-card:hover .video-hover-overlay {
+  opacity: 1;
+}
+
+.play-arrow {
+  color: #ffffff;
+  transform: scale(0.9);
+  transition: transform 0.2s;
+}
+
+.video-card:hover .play-arrow {
+  transform: scale(1.1);
+}
+
+/* YouTube Badges */
+.video-badge {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  padding: 0.1875rem 0.375rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-id {
+  background-color: rgba(15, 15, 15, 0.85);
+  color: #ffffff;
+}
+
+.badge-live {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: var(--accent); /* Red */
+  color: #ffffff;
+  font-weight: 700;
+  text-transform: uppercase;
+  top: 0.5rem;
+  bottom: auto;
+  left: 0.5rem;
+  right: auto;
+}
+
+.pulse-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  background-color: #ffffff;
+  border-radius: 50%;
+  animation: pulse-dot 1.5s infinite;
+}
+
+@keyframes pulse-dot {
+  0% { transform: scale(0.9); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.5; }
+  100% { transform: scale(0.9); opacity: 1; }
+}
+
+/* Details row under thumbnail */
+.video-detail-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0 0.25rem;
+}
+
+.instructor-avatar {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.video-meta {
+  flex: 1;
   min-width: 0;
 }
 
-.saved-label {
-  font-size: 13px;
+.video-title {
+  margin: 0;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text-primary);
+  line-height: 1.25rem;
+  max-height: 2.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.video-instructor {
+  margin: 0.375rem 0 0.125rem;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.saved-mode {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.saved-card--add {
-  border-style: dashed;
-}
-
-.saved-card--add .saved-icon--add {
-  background: var(--bg-elevated);
-  color: var(--text-muted);
-}
-
-.saved-card--add:hover .saved-icon--add {
-  color: var(--accent);
-}
-
-.saved-label--add {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.saved-card--add:hover .saved-label--add {
-  color: var(--accent);
-}
-
-.saved-remove {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 16px;
-  height: 16px;
-  border: none;
-  background: var(--hover-tint-strong);
-  border-radius: 50%;
-  padding: 0;
+.video-stats {
+  margin: 0;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.15s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.saved-card:hover .saved-remove {
-  display: flex;
-}
-
-.saved-remove:hover {
-  background: var(--danger);
-  color: var(--text-on-accent);
-}
-
-/* Add Saved Search modal */
+/* Modal and segments styling (relative rem units) */
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -527,54 +684,49 @@ watch(activeNav, (nav) => {
   align-items: center;
   justify-content: center;
   z-index: var(--z-modal);
+  backdrop-filter: blur(2px);
 }
 
 .modal-box {
   background: var(--bg-modal);
-  border-radius: 12px;
-  padding: 20px;
-  width: 320px;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  width: 20rem;
   box-shadow: 0 8px 32px var(--shadow-lg);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 1rem;
 }
 
 .modal-title {
   margin: 0;
-  font-size: 15px;
+  font-size: 1rem;
   font-weight: 600;
   text-align: center;
   color: var(--text-primary);
 }
 
 .modal-input {
-  padding: 8px 11px;
+  padding: 0.5rem 0.75rem;
   border: 1px solid var(--border-input);
-  border-radius: 7px;
-  font-size: 13px;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
   outline: none;
   transition: border-color 0.2s;
   background-color: var(--bg-input);
   color: var(--text-primary);
 }
 
-.modal-input::placeholder {
-  color: var(--text-muted);
-}
-
 .modal-input:focus {
-  border-color: var(--accent);
+  border-color: var(--link-color);
 }
 
-/* Full-width macOS segmented Live/Recorded control: gray track, white active
-   pill (matches the Search page mode switch) */
 .mode-segments {
   display: flex;
-  gap: 2px;
-  padding: 2px;
-  border-radius: 8px;
-  background: var(--bg-page-alt);
+  gap: 0.125rem;
+  padding: 0.125rem;
+  border-radius: 0.5rem;
+  background: var(--bg-elevated);
   border: 1px solid var(--border-color);
 }
 
@@ -583,13 +735,13 @@ watch(activeNav, (nav) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 6px 0;
+  gap: 0.375rem;
+  padding: 0.375rem 0;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 0.375rem;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
@@ -600,7 +752,7 @@ watch(activeNav, (nav) => {
 }
 
 .mode-segment.active {
-  background: var(--bg-surface);
+  background: var(--bg-page-alt);
   border-color: var(--border-strong);
   color: var(--text-primary);
   box-shadow: 0 1px 2px var(--shadow-sm);
@@ -608,180 +760,42 @@ watch(activeNav, (nav) => {
 
 .modal-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 2px;
+  gap: 0.5rem;
 }
 
 .modal-action-btn {
   flex: 1;
-  min-height: 32px;
-  border-radius: 7px;
-  font-size: 13px;
-}
-
-/* Personal rows: normal vertical grid layout */
-.course-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
-  gap: 16px;
-  padding-bottom: 8px;
-}
-
-/* Infuse-style preview card: 16:9 thumbnail on top, text below */
-.preview-card {
-  width: 100%;
-  cursor: pointer;
-}
-
-.preview-thumb {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: 10px;
-  overflow: hidden;
-  background-color: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.preview-card:hover .preview-thumb {
-  border-color: var(--accent);
-  box-shadow: 0 4px 14px var(--focus-ring);
-}
-
-.preview-img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* CDN cover art has varied aspect ratios — center-crop to fill the 16:9 frame */
-.preview-img--cover {
-  object-position: center;
-}
-
-.preview-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  color: var(--text-muted);
-}
-
-.preview-play {
-  position: absolute;
-  inset: 0;
-  margin: auto;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-left: 2px;
-  background: var(--overlay-dark);
-  color: var(--text-on-accent);
-  pointer-events: none;
-  transition: transform 0.2s;
-}
-
-.preview-card:hover .preview-play {
-  transform: scale(1.08);
-}
-
-.preview-badge {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  padding: 2px 7px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-}
-
-.preview-badge--id {
-  background: var(--overlay-dark);
-  color: var(--text-on-accent);
-  text-transform: none;
-}
-
-.status-ended {
-  background-color: var(--bg-page-alt);
-  color: var(--text-secondary);
-}
-
-.status-live {
-  background-color: var(--success-bg);
-  color: var(--success);
-}
-
-.status-upcoming {
-  background-color: var(--warning-bg);
-  color: var(--warning);
-}
-
-.status-unknown {
-  background-color: var(--bg-elevated);
-  color: var(--text-muted);
-}
-
-.preview-meta {
-  padding: 9px 2px 0;
-}
-
-.preview-title {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.preview-subtitle {
-  margin: 4px 0 0;
-  font-size: 11px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .row-loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100px;
+  min-height: 8rem;
 }
 
 .row-error {
   color: var(--danger);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .row-empty {
-  color: var(--text-muted);
-  font-size: 13px;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
 }
 
-.spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
+@media (max-width: 1024px) {
+  .video-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@media (max-width: 600px) {
+  .video-grid {
+    grid-template-columns: 1fr;
+  }
+  .home-page {
+    padding: 1rem 1rem 2rem;
+  }
 }
 </style>
