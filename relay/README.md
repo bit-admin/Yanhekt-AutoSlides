@@ -16,8 +16,16 @@ AutoSlides' local Node proxy (`autoslides/src/main/video/videoProxyService.ts`).
    `Xclient_Version=v1` / `Platform=yhkt_user`. (`MAGIC = 1138b69dfef641d9d7ba49137d2d4875`.)
    Web Crypto has no MD5, so a small pure-JS MD5 is bundled (`src/md5.ts`).
 3. **Stream media** — segments are fetched (with `Range` passthrough) and streamed straight
-   back; media is **never buffered or cached** (keeps within free-plan CPU limits). On `403` the
-   token is re-minted and the URL re-signed, up to 3 attempts.
+   back. On `403` the token is re-minted and the URL re-signed, up to 3 attempts.
+4. **Shared VOD cache** — recorded content is immutable and byte-identical for every viewer,
+   so raw m3u8 bodies and full `200` segment bodies are cached in the Workers Cache API for
+   6h, keyed by upstream URL alone (deliberately shared across login tokens). Segments are
+   `tee()`-streamed: the client gets first bytes immediately while the cache fills in the
+   background. `Range` requests are served as `206` from a cached full body by the Cache API
+   itself; a ranged cold miss streams through uncached (partial responses can't be `put`).
+   The cache is per-PoP and free-plan eviction is aggressive — treat it as best-effort.
+   Because cache hits never reach upstream, login tokens are format-checked up front
+   (32 hex chars) and malformed ones get an early `403`.
 
 ## Routes
 
@@ -26,6 +34,10 @@ AutoSlides' local Node proxy (`autoslides/src/main/video/videoProxyService.ts`).
 | `GET /` | Static page to generate a playable URL + test it with hls.js |
 | `GET /playlist?u=<m3u8 url>&t=<loginToken>` | Fetch + sign the m3u8, rewrite segment/variant/key lines back through the proxy |
 | `GET /segment?u=<media url>&t=<loginToken>` | Fetch + sign a segment and stream it (supports `Range`) |
+
+Both routes accept `&nocache=1` to bypass the shared VOD cache (read and write); `/playlist`
+propagates the flag into the segment URLs it emits, so setting it once on the playlist opts
+the whole playback session out.
 
 All responses are CORS-open (`Access-Control-Allow-Origin: *`).
 
@@ -63,4 +75,7 @@ Or just open `/` in a browser, paste the token + `.m3u8` URL, and hit **Test pla
   generated URLs as secrets. Query strings may also appear in Worker logs — see
   `observability` in `wrangler.jsonc`.
 - **Recorded videos only.** Live streams (which use IP failover, not signing) are out of scope.
-- **No media caching** by design.
+- **The VOD cache is shared across tokens.** A cache hit never revalidates the login token
+  upstream — a well-formed but expired/revoked token can still be served already-cached
+  media until the entry expires or is evicted. The early format check only rejects
+  malformed tokens.

@@ -39,6 +39,8 @@
   }
   video { width: 100%; margin-top: 1.25rem; border-radius: 10px; background: #000; display: none; }
   .hint { font-size: 12.5px; opacity: .6; margin-top: .35rem; }
+  label.check { display: flex; align-items: center; gap: .45rem; font-weight: 400; }
+  label.check code { font-size: 12.5px; opacity: .75; }
   .note { margin-top: 2rem; font-size: 12.5px; opacity: .65; border-top: 1px solid color-mix(in srgb, CanvasText 15%, transparent); padding-top: 1rem; }
 </style>
 </head>
@@ -52,6 +54,9 @@
 
   <label for="video">Recorded video URL (.m3u8)</label>
   <textarea id="video" placeholder="https://cvideo.Yanhekt.cn/.../index.m3u8" spellcheck="false"></textarea>
+
+  <label class="check"><input id="nocache" type="checkbox" /> Bypass shared cache (<code>nocache=1</code>)</label>
+  <div class="hint">Forces every playlist/segment fetch to go to Yanhekt instead of the edge cache. Slower; only useful for debugging.</div>
 
   <div class="row">
     <button class="primary" id="gen">Generate URL</button>
@@ -84,7 +89,9 @@
     var token = $('token').value.trim();
     var video = $('video').value.trim();
     if (!token || !video) { alert('Please provide both a login token and a video URL.'); return null; }
-    return location.origin + '/playlist?u=' + encodeURIComponent(video) + '&t=' + encodeURIComponent(token);
+    var url = location.origin + '/playlist?u=' + encodeURIComponent(video) + '&t=' + encodeURIComponent(token);
+    if ($('nocache').checked) url += '&nocache=1';
+    return url;
   }
 
   $('gen').onclick = function () {

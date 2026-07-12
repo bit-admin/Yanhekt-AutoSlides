@@ -8,7 +8,13 @@
  *   GET /playlist?u=<m3u8>&t=<token> fetch+sign m3u8, rewrite segment lines
  *   GET /segment?u=<url>&t=<token>   fetch+sign a media segment, stream it back
  *
- * Caching (Cache API): the video TOKEN only (~its real lifetime), not media.
+ * Both routes accept &nocache=1 to bypass the shared VOD cache (read AND
+ * write); /playlist propagates the flag into the segment URLs it emits.
+ *
+ * Caching (Cache API): the video TOKEN (~its real lifetime), plus raw VOD
+ * m3u8 bodies and full 200 segment bodies keyed by upstream URL alone —
+ * recorded content is immutable and byte-identical for every viewer, so the
+ * cache is deliberately shared across login tokens.
  */
 import { md5 } from './md5';
 import { getClientSignature, signMediaUrl } from './yanhekt';
@@ -37,6 +43,13 @@ function tokenHeaders(loginToken: string): Record<string, string> {
     Authorization: `Bearer ${loginToken}`,
   };
 }
+
+// Yanhekt login tokens are always 32 hex chars (md5-shaped). Since cache hits
+// never touch upstream (which is what would reject a bad token), reject
+// malformed tokens up front so junk requests can't be served shared cached
+// media for free. NOTE: this is a format check only — a well-formed but
+// expired/revoked token still gets cache hits until the entry expires.
+const LOGIN_TOKEN_RE = /^[0-9a-f]{32}$/i;
 
 const CORS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -110,7 +123,7 @@ function invalidateToken(loginToken: string, ctx: ExecutionContext): void {
 // and rewrite per-request with the caller's token. This keeps the slow,
 // tail-spiky "mint token + round-trip to China for the m3u8" work off all
 // but the first playlist request per video per PoP.
-const PLAYLIST_TTL = 21600; // 6h — recorded lectures never change once processed
+const VOD_TTL = 21600; // 6h — recorded lectures never change once processed
 
 const inflightM3u8 = new Map<string, Promise<string>>();
 
@@ -122,8 +135,14 @@ function m3u8CacheKey(rawUrl: string): { url: string; req: Request } {
 async function getRawPlaylist(
   rawUrl: string,
   loginToken: string,
-  ctx: ExecutionContext
+  ctx: ExecutionContext,
+  noCache: boolean
 ): Promise<{ status: number; body: string }> {
+  if (noCache) {
+    const res = await fetchSignedMedia(rawUrl, loginToken, ctx, null);
+    return { status: res.status, body: await res.text() };
+  }
+
   const { url, req } = m3u8CacheKey(rawUrl);
   const cache = caches.default;
 
@@ -147,7 +166,7 @@ async function getRawPlaylist(
         req,
         new Response(body, {
           headers: {
-            'Cache-Control': `max-age=${PLAYLIST_TTL}`,
+            'Cache-Control': `max-age=${VOD_TTL}`,
             'Content-Type': 'application/vnd.apple.mpegurl',
           },
         })
@@ -170,6 +189,53 @@ async function getRawPlaylist(
     }
     throw err;
   }
+}
+
+// ---- Segment cache --------------------------------------------------------
+// Same sharing argument as the m3u8 cache: VOD segment bytes are immutable
+// and token-independent, so full 200 bodies are cached keyed by upstream URL
+// alone. A warm hit serves from the PoP instead of a ~2s round-trip to
+// cvideo. Range requests are served from a cached full body by the Cache API
+// itself (match returns 206); a ranged cold miss just streams through
+// uncached (cache.put rejects partial responses). Note the cache is per-PoP
+// and free-plan eviction is aggressive — this is best-effort, not storage.
+
+function segmentCacheKey(rawUrl: string, range: string | null): Request {
+  const url = `https://yanhekt-proxy.cache/seg/${md5(rawUrl)}`;
+  return new Request(url, range ? { headers: { Range: range } } : undefined);
+}
+
+async function getSegment(
+  rawUrl: string,
+  loginToken: string,
+  ctx: ExecutionContext,
+  range: string | null,
+  noCache: boolean
+): Promise<Response> {
+  const cache = caches.default;
+
+  if (!noCache) {
+    const cached = await cache.match(segmentCacheKey(rawUrl, range));
+    if (cached) return cached;
+  }
+
+  const res = await fetchSignedMedia(rawUrl, loginToken, ctx, range);
+  if (noCache || res.status !== 200 || !res.body) return res;
+
+  // Stream to the client and the cache simultaneously; put() finishes in the
+  // background even if the client disconnects mid-segment.
+  const [toClient, toCache] = res.body.tee();
+  const cacheHeaders = new Headers({ 'Cache-Control': `max-age=${VOD_TTL}` });
+  for (const h of ['Content-Type', 'Content-Length']) {
+    const v = res.headers.get(h);
+    if (v) cacheHeaders.set(h, v);
+  }
+  ctx.waitUntil(
+    cache
+      .put(segmentCacheKey(rawUrl, null), new Response(toCache, { headers: cacheHeaders }))
+      .catch(() => {})
+  );
+  return new Response(toClient, { status: res.status, headers: res.headers });
 }
 
 // ---- Signed media fetch with 403 re-sign / re-mint retry ------------------
@@ -203,11 +269,18 @@ async function fetchSignedMedia(
 
 // ---- m3u8 rewriting -------------------------------------------------------
 
-function rewriteM3u8(content: string, baseUrl: string, origin: string, t: string): string {
+function rewriteM3u8(
+  content: string,
+  baseUrl: string,
+  origin: string,
+  t: string,
+  noCache: boolean
+): string {
   const tEnc = encodeURIComponent(t);
+  const suffix = noCache ? '&nocache=1' : '';
   const proxify = (abs: string): string => {
     const route = abs.split('?')[0].toLowerCase().endsWith('.m3u8') ? 'playlist' : 'segment';
-    return `${origin}/${route}?u=${encodeURIComponent(abs)}&t=${tEnc}`;
+    return `${origin}/${route}?u=${encodeURIComponent(abs)}&t=${tEnc}${suffix}`;
   };
 
   return content
@@ -257,25 +330,23 @@ export default {
     const origin = url.origin;
 
     try {
-      if (url.pathname === '/playlist') {
-        const u = url.searchParams.get('u');
-        const t = url.searchParams.get('t');
-        if (!u || !t) return text('Missing required params: u (m3u8 url) and t (login token)', 400);
-
-        const raw = await getRawPlaylist(u, t, ctx);
-        if (raw.status !== 200) {
-          return text(`Upstream playlist request failed with status ${raw.status}`, raw.status === 403 ? 403 : 502);
-        }
-        const rewritten = rewriteM3u8(raw.body, u, origin, t);
-        return text(rewritten, 200, 'application/vnd.apple.mpegurl');
-      }
-
-      if (url.pathname === '/segment') {
+      if (url.pathname === '/playlist' || url.pathname === '/segment') {
         const u = url.searchParams.get('u');
         const t = url.searchParams.get('t');
         if (!u || !t) return text('Missing required params: u (media url) and t (login token)', 400);
+        if (!LOGIN_TOKEN_RE.test(t)) return text('Invalid login token', 403);
+        const noCache = url.searchParams.get('nocache') === '1';
 
-        const res = await fetchSignedMedia(u, t, ctx, request.headers.get('Range'));
+        if (url.pathname === '/playlist') {
+          const raw = await getRawPlaylist(u, t, ctx, noCache);
+          if (raw.status !== 200) {
+            return text(`Upstream playlist request failed with status ${raw.status}`, raw.status === 403 ? 403 : 502);
+          }
+          const rewritten = rewriteM3u8(raw.body, u, origin, t, noCache);
+          return text(rewritten, 200, 'application/vnd.apple.mpegurl');
+        }
+
+        const res = await getSegment(u, t, ctx, request.headers.get('Range'), noCache);
         return streamMedia(res);
       }
 
