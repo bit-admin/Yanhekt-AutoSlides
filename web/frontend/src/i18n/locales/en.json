@@ -701,7 +701,8 @@
       "fullscreen": "Fullscreen",
       "exitFullscreen": "Exit Fullscreen",
       "moreOptions": "More Options"
-    }
+    },
+    "captureNotSupported": "Slide capture is not supported in this browser for this stream."
   },
   "sessions": {
     "pin": "Pin course",
@@ -952,7 +953,8 @@
     "confirmClearFolders": "Move {count} folder(s) to system trash? This will also clear all related extracted images and trash entries.",
     "clearFoldersSummary": "Removed: {removed} · Failed: {failed}",
     "notesRunSummary": "Done: {done} · Failed: {failed}",
-    "groupByCourse": "Group by Course"
+    "groupByCourse": "Group by Course",
+    "watchMode": "Captured on watch"
   },
   "pdfmaker": {
     "title": "Slides Export",

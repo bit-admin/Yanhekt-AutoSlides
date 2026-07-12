@@ -28,6 +28,14 @@
               <span>{{ $t('navigation.recorded') }}</span>
               <span v-if="recordedPlaybackActive" class="nav-playback-indicator">●</span>
             </button>
+            <button :class="['nav-item', { active: activeNav === 'slides' }]" @click="navigate('slides')">
+              <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <circle cx="9" cy="9" r="2"/>
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+              </svg>
+              <span>{{ $t('navigation.slidesReview') }}</span>
+            </button>
             <button :class="['nav-item', { active: activeNav === 'settings' }]" @click="navigate('settings')">
               <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="3"/>
@@ -100,6 +108,15 @@
               <span v-if="recordedPlaybackActive" class="mini-playback-indicator">●</span>
             </div>
             <span class="mini-nav-label">{{ $t('navigation.recorded') }}</span>
+          </button>
+
+          <button :class="['mini-nav-item', { active: activeNav === 'slides' }]" @click="navigate('slides')" :title="$t('navigation.slidesReview')">
+            <svg class="mini-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="9" cy="9" r="2"/>
+              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+            </svg>
+            <span class="mini-nav-label">{{ $t('navigation.slidesReview') }}</span>
           </button>
 
           <button :class="['mini-nav-item', { active: activeNav === 'settings' }]" @click="navigate('settings')" :title="$t('settings.settings')">

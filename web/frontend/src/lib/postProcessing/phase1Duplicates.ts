@@ -1,0 +1,75 @@
+// Phase 1 — duplicate removal via pHash + Hamming distance.
+// Ported from autoslides/src/renderer/shared/postProcessing/phase1Duplicates.ts
+// (only the logger import path changed).
+//
+// Operates on an in-memory list of (filename, pHash) pairs computed by the
+// pipeline's pHash pass. Trash moves happen per-duplicate as they're detected
+// so partial progress is visible immediately.
+
+import type {
+  PipelineDataSource,
+  PostProcessingContext,
+  SlideHashInfo
+} from './types'
+import type { WorkerHelpers } from './workerHelpers'
+import { createLogger } from '../logger';
+const log = createLogger('Phase1Duplicates');
+
+export interface DuplicatePhaseResult {
+  duplicatesRemoved: string[]
+}
+
+export async function runDuplicatePhase(
+  slideHashes: SlideHashInfo[],
+  pHashThreshold: number,
+  worker: WorkerHelpers,
+  dataSource: PipelineDataSource,
+  ctx: PostProcessingContext,
+  reportProgress: (processed: number, removed: number) => void
+): Promise<DuplicatePhaseResult> {
+  const seenHashes = new Map<string, string>() // pHash -> first filename seen
+  const removed: string[] = []
+
+  for (let i = 0; i < slideHashes.length; i++) {
+    if (ctx.signal?.aborted) break
+
+    const item = slideHashes[i]
+    if (item.error || !item.pHash) {
+      reportProgress(i + 1, removed.length)
+      continue
+    }
+
+    let duplicateOf = ''
+    for (const [seenHash, seenFilename] of seenHashes.entries()) {
+      try {
+        const distance = await worker.calculateHammingDistance(item.pHash, seenHash)
+        if (distance <= pHashThreshold) {
+          duplicateOf = seenFilename
+          log.debug(
+            `[PostProcessing] Duplicate: ${item.filename} similar to ${seenFilename} (distance: ${distance})`
+          )
+          break
+        }
+      } catch (error) {
+        log.warn('[PostProcessing] Hamming distance calculation failed:', error)
+      }
+    }
+
+    if (duplicateOf) {
+      const moved = await dataSource.moveToTrash(
+        item.filename,
+        'duplicate',
+        `Duplicate of ${duplicateOf}`
+      )
+      if (moved) {
+        removed.push(item.filename)
+        ctx.onItemRemoved?.(item.filename, 'duplicate')
+      }
+    } else {
+      seenHashes.set(item.pHash, item.filename)
+    }
+    reportProgress(i + 1, removed.length)
+  }
+
+  return { duplicatesRemoved: removed }
+}

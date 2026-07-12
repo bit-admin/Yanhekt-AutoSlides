@@ -53,6 +53,7 @@
                   class="video-player"
                   preload="metadata"
                   playsinline
+                  crossorigin="anonymous"
                   @error="onVideoError"
                   @canplay="onCanPlay"
                   @ended="onEnded"
@@ -128,6 +129,7 @@
                         class="dual-video-player"
                         preload="metadata"
                         playsinline
+                        crossorigin="anonymous"
                         @timeupdate="onDualTimeUpdate"
                         @play="onDualPlayStateChanged"
                         @pause="onDualPlayStateChanged"
@@ -144,6 +146,7 @@
                         class="dual-video-player"
                         preload="metadata"
                         playsinline
+                        crossorigin="anonymous"
                         @timeupdate="onDualTimeUpdate"
                         @play="onDualPlayStateChanged"
                         @pause="onDualPlayStateChanged"
@@ -470,6 +473,19 @@
             </button>
           </div>
         </div>
+
+        <!-- Slide extraction panel (screen or dual view only) -->
+        <SlideExtractionPanel
+          v-if="playbackData && !loading && !error && canExtract"
+          :enabled="slideExtraction.isSlideExtractionEnabled.value"
+          :status="slideExtraction.slideExtractionStatus.value"
+          :slides="slideExtraction.extractedSlides.value"
+          :post-status="extractionPostStatus"
+          :is-post-processing="slideExtraction.isPostProcessing.value"
+          :capture-not-supported="slideExtraction.captureNotSupported.value"
+          @toggle="onExtractionToggle"
+          @post-process="slideExtraction.executePostProcessing()"
+        />
       </div>
 
       <!-- Right Column: Sibling Sessions Sidebar Playlist (Hidden in cinema mode on desktop) -->
@@ -517,8 +533,11 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'vue'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '../../composables/video/useVideoPlayer'
 import { useControlsVisibility } from '../../composables/video/useControlsVisibility'
+import { useSlideExtraction } from '../../composables/video/useSlideExtraction'
+import { postProcessingStatus } from '../../lib/postProcessing/runner'
 import { playbackStore } from '../../stores/playbackStore'
 import SingleStreamControls from './SingleStreamControls.vue'
+import SlideExtractionPanel from './SlideExtractionPanel.vue'
 import type { Course } from '../../composables/useCourseList'
 import { getCourseInfo, type SessionData } from '../../lib/api'
 import { authStore } from '../../stores/authStore'
@@ -638,6 +657,40 @@ const dualVolumeProgress = computed(() => `${Math.min(100, Math.max(0, dualEffec
 const dualIsMuted = computed(() => dualEffectiveVolume.value <= 0)
 
 const lastPlaybackPosition = computed(() => videoPlayerComposable.lastPlaybackPosition)
+
+// Slide extraction (always watch-mode on the web). The provider targets the
+// screen (vga) element in dual view, the single player otherwise; it's read
+// live on every capture tick.
+const slideExtraction = useSlideExtraction({
+  mode: props.mode,
+  course: courseRef,
+  session: sessionRef,
+  currentPlaybackRate,
+})
+slideExtraction.videoElementProvider.value = () =>
+  isDualStreamSelected.value ? screenVideoPlayer.value : videoPlayer.value
+
+// Extraction is possible when the capture source shows the screen stream.
+const canExtract = computed(
+  () => isDualStreamSelected.value || currentStreamData.value?.type === 'screen',
+)
+
+const extractionPostStatus = computed(() => {
+  const folder = slideExtraction.currentFolder.value
+  return folder ? postProcessingStatus[folder] ?? null : null
+})
+
+const onExtractionToggle = (checked: boolean) => {
+  slideExtraction.isSlideExtractionEnabled.value = checked
+  void slideExtraction.toggleSlideExtraction()
+}
+
+// Switching to a camera-only view mid-extraction force-stops it (desktop parity).
+watch(canExtract, (can) => {
+  if (!can) {
+    slideExtraction.forceStopSlideExtraction()
+  }
+})
 
 // Pinned / Subscription state
 const pinned = computed(() => !!props.course?.id && isPinned(props.course.id))
@@ -869,6 +922,10 @@ const setPlaybackRateFromPanel = (rate: number) => {
   currentPlaybackRate.value = rate
   changePlaybackRate()
   showSpeedPanel.value = false
+  // Keep the extraction check interval in step with the playback rate.
+  if (slideExtraction.isSlideExtractionEnabled.value) {
+    slideExtraction.slideExtractorInstance.value?.setPlaybackRate(rate)
+  }
 }
 
 // Auto-hide the control overlay
@@ -959,12 +1016,24 @@ watch(
         if (newPlayer.volume > 0) lastNonZeroVolume.value = newPlayer.volume
       }
 
+      const onBufferWaiting = () => {
+        if (slideExtraction.isSlideExtractionEnabled.value) {
+          slideExtraction.slideExtractorInstance.value?.pauseForBuffering()
+        }
+      }
+      const onBufferReady = () => {
+        slideExtraction.slideExtractorInstance.value?.resumeAfterBuffering()
+      }
+
       newPlayer.addEventListener('play', updatePlayingState)
       newPlayer.addEventListener('pause', updatePlayingState)
       newPlayer.addEventListener('ended', updatePlayingState)
       newPlayer.addEventListener('timeupdate', onTimeUpdate)
       newPlayer.addEventListener('durationchange', onLoadedMeta)
       newPlayer.addEventListener('loadedmetadata', onLoadedMeta)
+      newPlayer.addEventListener('waiting', onBufferWaiting)
+      newPlayer.addEventListener('canplay', onBufferReady)
+      newPlayer.addEventListener('canplaythrough', onBufferReady)
 
       currentEventListeners.push(() => {
         newPlayer.removeEventListener('play', updatePlayingState)
@@ -973,6 +1042,9 @@ watch(
         newPlayer.removeEventListener('timeupdate', onTimeUpdate)
         newPlayer.removeEventListener('durationchange', onLoadedMeta)
         newPlayer.removeEventListener('loadedmetadata', onLoadedMeta)
+        newPlayer.removeEventListener('waiting', onBufferWaiting)
+        newPlayer.removeEventListener('canplay', onBufferReady)
+        newPlayer.removeEventListener('canplaythrough', onBufferReady)
       })
 
       if (currentStreamData.value && playbackData.value && !isDualStreamSelected.value) {
@@ -980,6 +1052,34 @@ watch(
           videoPlayerComposable.loadVideoSource()
         })
       }
+    }
+  },
+)
+
+// Buffering hooks for the dual-view capture source (the screen element).
+let screenBufferListeners: (() => void)[] = []
+watch(
+  () => screenVideoPlayer.value,
+  (newPlayer) => {
+    screenBufferListeners.forEach((cleanup) => cleanup())
+    screenBufferListeners = []
+    if (newPlayer) {
+      const onBufferWaiting = () => {
+        if (slideExtraction.isSlideExtractionEnabled.value) {
+          slideExtraction.slideExtractorInstance.value?.pauseForBuffering()
+        }
+      }
+      const onBufferReady = () => {
+        slideExtraction.slideExtractorInstance.value?.resumeAfterBuffering()
+      }
+      newPlayer.addEventListener('waiting', onBufferWaiting)
+      newPlayer.addEventListener('canplay', onBufferReady)
+      newPlayer.addEventListener('canplaythrough', onBufferReady)
+      screenBufferListeners.push(() => {
+        newPlayer.removeEventListener('waiting', onBufferWaiting)
+        newPlayer.removeEventListener('canplay', onBufferReady)
+        newPlayer.removeEventListener('canplaythrough', onBufferReady)
+      })
     }
   },
 )
@@ -1017,9 +1117,14 @@ onUnmounted(async () => {
       console.error('Error exiting Picture in Picture on unmount:', err)
     }
   }
+  // Stops any running extraction, which kicks off the detached auto
+  // post-processing run for the folder.
+  slideExtraction.cleanupSlideExtraction()
   videoPlayerComposable.cleanup()
   currentEventListeners.forEach((cleanupFn) => cleanupFn())
   currentEventListeners = []
+  screenBufferListeners.forEach((cleanupFn) => cleanupFn())
+  screenBufferListeners = []
 })
 </script>
 

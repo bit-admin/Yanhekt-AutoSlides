@@ -34,6 +34,11 @@
           />
         </div>
 
+        <!-- Slides (extraction results review + export) -->
+        <div :class="['mode-container', { 'mode-hidden': activeNav !== 'slides' }]" data-mode="slides">
+          <SlidesPage />
+        </div>
+
         <!-- Settings Page -->
         <div :class="['mode-container', { 'mode-hidden': activeNav !== 'settings' }]" data-mode="settings">
           <SettingsPage />
@@ -66,6 +71,7 @@ import SearchPage from './course/SearchPage.vue'
 import CoursePage from './course/CoursePage.vue'
 import SessionPage from './course/SessionPage.vue'
 import SettingsPage from './SettingsPage.vue'
+import SlidesPage from './slides/SlidesPage.vue'
 import PlaybackPage from './video/PlaybackPage.vue'
 import { navigationStore } from '../stores/navigationStore'
 import { playbackStore, closePlayback } from '../stores/playbackStore'

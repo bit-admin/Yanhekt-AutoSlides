@@ -701,7 +701,8 @@
       "fullscreen": "全屏",
       "exitFullscreen": "退出全屏",
       "moreOptions": "更多选项"
-    }
+    },
+    "captureNotSupported": "当前浏览器不支持对此视频流进行幻灯片捕捉。"
   },
   "sessions": {
     "pin": "置顶课程",
@@ -952,7 +953,8 @@
     "confirmClearFolders": "是否将 {count} 个文件夹移至系统回收站？相关的提取图像与回收记录也会一并清除。",
     "clearFoldersSummary": "已移除：{removed} · 失败：{failed}",
     "notesRunSummary": "完成：{done} · 失败：{failed}",
-    "groupByCourse": "按课程分组"
+    "groupByCourse": "按课程分组",
+    "watchMode": "观看时捕获"
   },
   "pdfmaker": {
     "title": "幻灯片导出",

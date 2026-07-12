@@ -5,7 +5,7 @@ import { configStore, persistConfig } from "./configStore";
 
 // Ported (slimmed) from the desktop app's navigationStore. No workspace pages
 // or tabs in the web shell; Settings and pinned courses are supported.
-export type NavTarget = "home" | "live" | "recorded" | "search" | "settings";
+export type NavTarget = "home" | "live" | "recorded" | "search" | "slides" | "settings";
 
 export interface CourseOpenRequest {
   mode: "live" | "recorded";
