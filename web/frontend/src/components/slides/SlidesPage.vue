@@ -1,5 +1,5 @@
 <template>
-  <div class="slides-page custom-scrollbar">
+  <div class="slides-page custom-scrollbar" :class="{ 'review-mode': rv.currentView.value === 'images' }">
     <!-- Folder list view -->
     <template v-if="rv.currentView.value === 'folders'">
       <div class="page-header">
@@ -9,39 +9,13 @@
             {{ $t('trash.refresh') }}
           </button>
           <button
-            v-if="rv.trashEntries.value.length > 0 && !selectMode"
+            v-if="rv.trashEntries.value.length > 0"
             class="btn btn--ghost danger-text"
             @click="clearAllTrash"
           >
             {{ $t('trash.clearTrash') }}
           </button>
-          <button
-            v-if="rv.folders.value.length > 0"
-            class="btn"
-            :class="selectMode ? 'btn--primary' : 'btn--ghost'"
-            @click="toggleSelectMode"
-          >
-            {{ selectMode ? $t('trash.doneEditing') : $t('trash.editFolders') }}
-          </button>
         </div>
-      </div>
-
-      <div v-if="selectMode" class="select-toolbar">
-        <SlidesExportBar
-          :selected-count="selectedFolderNames.length"
-          :output-mode="pdfExport.outputMode.value"
-          :is-generating="pdfExport.isGenerating.value"
-          :progress="pdfExport.generateProgress.value"
-          @update:output-mode="pdfExport.outputMode.value = $event"
-          @make="exportSelectedFolders"
-        />
-        <button
-          class="btn btn--danger clear-folders-btn"
-          :disabled="selectedFolderNames.length === 0 || pdfExport.isGenerating.value"
-          @click="clearSelectedFolders"
-        >
-          {{ $t('trash.clearFolder') }}
-        </button>
       </div>
 
       <div v-if="rv.folders.value.length === 0 && !rv.isLoading.value" class="empty-state">
@@ -54,35 +28,24 @@
       <FolderListView
         v-else
         :folders="rv.folders.value"
-        :select-mode="selectMode"
-        :selected-names="selectedFolderNames"
+        :folder-covers="rv.folderCovers.value"
         @open="rv.openFolder($event)"
-        @update:selected-names="selectedFolderNames = $event"
+        @remove="removeFolderWithConfirm"
       />
     </template>
 
     <!-- Image review view -->
     <template v-else>
-      <div class="page-header">
-        <div class="header-left">
-          <button class="btn btn--ghost back-btn" @click="rv.goBack()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <polyline points="15,18 9,12 15,6"/>
-            </svg>
-            <span>{{ $t('trash.back') }}</span>
-          </button>
-          <h1 class="page-title folder-title" :title="rv.currentFolder.value?.name">
-            {{ rv.currentFolderDisplayName.value }}
-          </h1>
-        </div>
-        <div class="header-actions">
-          <button class="btn btn--ghost" :disabled="rv.isLoading.value" @click="rv.refresh()">
-            {{ $t('trash.refresh') }}
-          </button>
-        </div>
-      </div>
-
+      <!-- Single-row toolbar (desktop ResultsWindow parity): back, filters,
+           refresh, then the action buttons -->
       <div class="review-toolbar">
+        <button class="btn btn--ghost back-btn" @click="rv.goBack()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polyline points="15,18 9,12 15,6"/>
+          </svg>
+          <span>{{ $t('trash.back') }}</span>
+        </button>
+
         <label class="toolbar-field">
           <span class="field-label">{{ $t('trash.viewMode') }}</span>
           <select v-model="rv.contextMode.value" class="toolbar-select">
@@ -101,6 +64,10 @@
             <option value="manual">{{ $t('trash.manual') }}</option>
           </select>
         </label>
+
+        <button class="btn btn--ghost" :disabled="rv.isLoading.value" @click="rv.refresh()">
+          {{ $t('trash.refresh') }}
+        </button>
 
         <div class="toolbar-spacer"></div>
 
@@ -126,40 +93,79 @@
         >
           {{ $t('trash.clearTrash') }}
         </button>
+
+        <button
+          class="btn btn--outline-sm export-btn"
+          :disabled="exportDisabled"
+          @click="exportCurrentFolder('pdf')"
+        >
+          <span v-if="slidesExport.exportingFormat.value === 'pdf'" class="export-progress">
+            <span class="btn-spinner"></span>
+            {{ slidesExport.exportProgress.value.current }}/{{ slidesExport.exportProgress.value.total }}
+          </span>
+          <span v-else>{{ $t('pdfmaker.makeOutput', { format: 'PDF' }) }}</span>
+        </button>
+        <button
+          class="btn btn--outline-sm export-btn"
+          :disabled="exportDisabled"
+          @click="exportCurrentFolder('zip')"
+        >
+          <span v-if="slidesExport.exportingFormat.value === 'zip'" class="export-progress">
+            <span class="btn-spinner"></span>
+            {{ slidesExport.exportProgress.value.current }}/{{ slidesExport.exportProgress.value.total }}
+          </span>
+          <span v-else>{{ $t('pdfmaker.makeOutput', { format: 'ZIP' }) }}</span>
+        </button>
       </div>
 
-      <div class="selection-row">
-        <button class="link-btn" @click="rv.selectAll()">{{ $t('trash.selectAll') }}</button>
-        <button class="link-btn" :disabled="rv.selectedIds.value.length === 0" @click="rv.clearSelection()">
-          {{ $t('trash.clearSelection') }}
-        </button>
-        <span class="selection-count">
-          {{ rv.selectedIds.value.length }} {{ $t('trash.selected') }} / {{ rv.filteredItems.value.length }} {{ $t('trash.total') }}
-        </span>
-        <div class="toolbar-spacer"></div>
-        <input
-          v-model.number="rv.thumbnailSize.value"
-          class="size-slider"
-          type="range"
-          min="180"
-          max="640"
-          step="20"
+      <!-- Scrolling grid region between the toolbar and the footer -->
+      <div class="grid-scroll custom-scrollbar">
+        <div v-if="rv.filteredItems.value.length === 0 && !rv.isLoading.value" class="empty-state">
+          <p>{{ rv.folderItems.value.length === 0 ? $t('trash.emptyFolder') : $t('trash.emptyFiltered') }}</p>
+        </div>
+
+        <SlidesImageGrid
+          v-else
+          :items="rv.filteredItems.value"
+          :thumbnails="rv.thumbnails.value"
+          :selected-ids="rv.selectedIds.value"
+          :thumbnail-size="rv.thumbnailSize.value"
+          @toggle="rv.toggleSelection($event)"
+          @preview="rv.openPreview($event)"
         />
       </div>
 
-      <div v-if="rv.filteredItems.value.length === 0 && !rv.isLoading.value" class="empty-state">
-        <p>{{ rv.folderItems.value.length === 0 ? $t('trash.emptyFolder') : $t('trash.emptyFiltered') }}</p>
-      </div>
+      <!-- Slim status footer (desktop ResultsWindow parity): selection on the
+           left, thumbnail size slider on the right -->
+      <div class="review-footer">
+        <div class="footer-left">
+          <button
+            class="select-all-btn"
+            :disabled="rv.filteredItems.value.length === 0"
+            @click="toggleSelectAllFiltered"
+          >
+            {{ allFilteredSelected ? $t('trash.clearSelection') : $t('trash.selectAll') }}
+          </button>
+          <span>{{ $t('trash.selected') }}: {{ rv.selectedIds.value.length }} / {{ $t('trash.total') }}: {{ rv.filteredItems.value.length }}</span>
+        </div>
 
-      <SlidesImageGrid
-        v-else
-        :items="rv.filteredItems.value"
-        :thumbnails="rv.thumbnails.value"
-        :selected-ids="rv.selectedIds.value"
-        :thumbnail-size="rv.thumbnailSize.value"
-        @toggle="rv.toggleSelection($event)"
-        @preview="rv.openPreview($event)"
-      />
+        <div class="size-slider-group">
+          <svg width="12" height="12" viewBox="0 0 16 16" class="size-icon">
+            <rect x="3" y="3" width="10" height="10" fill="currentColor" opacity="0.6"/>
+          </svg>
+          <input
+            v-model.number="rv.thumbnailSize.value"
+            class="size-slider"
+            type="range"
+            min="180"
+            max="640"
+            step="20"
+          />
+          <svg width="16" height="16" viewBox="0 0 16 16" class="size-icon">
+            <rect x="2" y="2" width="12" height="12" fill="currentColor" opacity="0.6"/>
+          </svg>
+        </div>
+      </div>
 
       <SlidesPreviewModal
         :item="rv.previewItem.value"
@@ -178,31 +184,23 @@
 </template>
 
 <script setup lang="ts">
-// Slides workspace page: folder list → per-folder image review, plus
-// PDF export from folder select mode. Web port of the desktop's
-// ResultsWindow.vue shell (crop/dedup/notes features omitted).
-import { ref, watch } from 'vue'
+// Slides workspace page: folder list → per-folder image review with a
+// floating bottom action bar (selection, restore/delete, PDF/ZIP export).
+// Web port of the desktop's ResultsWindow.vue shell (crop/dedup/notes
+// features omitted; no folder select mode — cards expose delete directly).
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FolderListView from './FolderListView.vue'
 import SlidesImageGrid from './SlidesImageGrid.vue'
 import SlidesPreviewModal from './SlidesPreviewModal.vue'
-import SlidesExportBar from './SlidesExportBar.vue'
 import { useResultsView } from '../../composables/useResultsView'
-import { usePdfExport } from '../../composables/usePdfExport'
+import { useSlidesExport, type ExportFormat } from '../../composables/useSlidesExport'
 import { navigationStore } from '../../stores/navigationStore'
-import type { ResultsItem } from '../../composables/resultsTypes'
+import type { ResultsFolder, ResultsItem } from '../../composables/resultsTypes'
 
 const { t } = useI18n()
 const rv = useResultsView()
-const pdfExport = usePdfExport()
-
-const selectMode = ref(false)
-const selectedFolderNames = ref<string[]>([])
-
-const toggleSelectMode = () => {
-  selectMode.value = !selectMode.value
-  if (!selectMode.value) selectedFolderNames.value = []
-}
+const slidesExport = useSlidesExport()
 
 // The page stays mounted behind the mode-container; refresh when the user
 // navigates back to it so folders extracted since last visit show up.
@@ -213,16 +211,40 @@ watch(
   },
 )
 
-const exportSelectedFolders = async () => {
-  await pdfExport.makePdf(selectedFolderNames.value)
+// Footer Select All button toggles: selects everything shown, or clears the
+// selection once everything is already selected (desktop footer parity).
+const allFilteredSelected = computed(() => {
+  const items = rv.filteredItems.value
+  if (items.length === 0) return false
+  const selected = new Set(rv.selectedIds.value)
+  return items.every((item) => selected.has(item.id))
+})
+
+const toggleSelectAllFiltered = () => {
+  if (allFilteredSelected.value) {
+    rv.clearSelection()
+  } else {
+    rv.selectAll()
+  }
 }
 
-const clearSelectedFolders = async () => {
-  const names = selectedFolderNames.value
-  if (names.length === 0) return
-  if (!window.confirm(t('trash.confirmClearFolders', { count: names.length }))) return
-  await rv.removeFolders(names)
-  selectedFolderNames.value = []
+const exportDisabled = computed(
+  () =>
+    slidesExport.isExporting.value ||
+    rv.isLoading.value ||
+    !rv.folderItems.value.some((item) => item.status === 'active'),
+)
+
+const exportCurrentFolder = async (format: ExportFormat) => {
+  const folder = rv.currentFolder.value
+  if (!folder) return
+  await slidesExport.exportFolder(folder.name, format)
+}
+
+const removeFolderWithConfirm = async (folder: ResultsFolder) => {
+  const displayName = rv.getFolderDisplayName(folder.name).course || folder.name
+  if (!window.confirm(t('trash.confirmDeleteFolder', { folder: displayName }))) return
+  await rv.removeFolders([folder.name])
 }
 
 const clearAllTrash = async () => {
@@ -281,24 +303,10 @@ const deleteFromPreview = async (item: ResultsItem) => {
   margin-bottom: 1rem;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 0;
-}
-
 .page-title {
   margin: 0;
   font-size: 1.375rem;
   font-weight: 600;
-}
-
-.folder-title {
-  font-size: 1.125rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .header-actions {
@@ -317,82 +325,212 @@ const deleteFromPreview = async (item: ResultsItem) => {
   color: var(--danger);
 }
 
-.select-toolbar {
-  display: flex;
-  align-items: stretch;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.select-toolbar > :first-child {
-  flex: 1;
-}
-
-.clear-folders-btn {
-  align-self: center;
-}
-
 .review-toolbar {
   display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
+  align-items: center;
+  gap: 0.625rem;
   flex-wrap: wrap;
   margin-bottom: 0.75rem;
 }
 
 .toolbar-field {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+  align-items: center;
+  gap: 0.375rem;
 }
 
 .field-label {
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .toolbar-select {
-  padding: 0.375rem 0.625rem;
+  padding: 0.375rem 2rem 0.375rem 0.625rem;
   border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   background-color: var(--bg-input, var(--bg-surface));
   color: var(--text-primary);
   font-size: 0.8125rem;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  background-size: 0.75rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.toolbar-select:focus {
+  outline: none;
+  border-color: var(--link-color);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .toolbar-spacer {
   flex: 1;
 }
 
-.selection-row {
+/* Review mode: the page becomes a fixed column (header / toolbar / scrolling
+   grid / slim footer) so the footer stays attached to the bottom edge, like
+   the desktop ResultsWindow. */
+.slides-page.review-mode {
   display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  margin-bottom: 1rem;
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-}
-
-.link-btn {
-  border: none;
-  background: transparent;
-  color: var(--accent);
-  font-size: 0.8125rem;
-  cursor: pointer;
+  flex-direction: column;
+  overflow: hidden;
   padding: 0;
 }
 
-.link-btn:disabled {
-  color: var(--text-muted, var(--text-secondary));
-  cursor: default;
+.review-mode .review-toolbar {
+  padding: 1.25rem 2rem 0;
 }
 
-.selection-count {
-  white-space: nowrap;
+.grid-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.25rem 2rem 1.5rem;
+}
+
+/* Slim status footer (desktop ResultsWindow .footer parity) */
+.review-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: var(--bg-elevated, var(--bg-surface));
+  border-top: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.select-all-btn {
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  background-color: var(--bg-input, var(--bg-surface));
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.select-all-btn:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+.select-all-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.size-slider-group {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.5rem;
+  background-color: var(--bg-hover);
+  border-radius: 0.375rem;
+}
+
+.size-icon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.export-btn {
+  min-width: 6.5rem;
+  justify-content: center;
+}
+
+.export-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.btn-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: action-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes action-spin {
+  to { transform: rotate(360deg); }
+}
+
+.btn--outline-sm {
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-primary);
+  border-radius: 6.25rem;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: var(--control-height, 2rem);
+}
+
+.btn--outline-sm:hover:not(:disabled) {
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+.btn--outline-sm:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .size-slider {
+  -webkit-appearance: none;
+  appearance: none;
   width: 140px;
+  height: 4px;
+  background: var(--border-strong);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.size-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: var(--bg-input, var(--bg-surface));
+  border: 1px solid var(--text-muted, var(--text-secondary));
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px var(--shadow-lg);
+}
+
+.size-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  background: var(--bg-input, var(--bg-surface));
+  border: 1px solid var(--text-muted, var(--text-secondary));
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px var(--shadow-lg);
 }
 
 .empty-state {

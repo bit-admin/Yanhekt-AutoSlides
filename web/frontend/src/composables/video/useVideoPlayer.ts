@@ -159,10 +159,12 @@ export function useVideoPlayer(options: UseVideoPlayerOptions) {
         maxBufferLength: 30,
         maxMaxBufferLength: 60,
         maxBufferSize: 60 * 1000 * 1000,
-        fragLoadingTimeOut: 20000,
+        // Fragment loading timeout is increased to 45s (max retry timeout 90s)
+        // to prevent premature aborts when downloading segments through the relay server.
+        fragLoadingTimeOut: 45000,
         fragLoadingMaxRetry: 6,
         fragLoadingRetryDelay: 1000,
-        fragLoadingMaxRetryTimeout: 64000,
+        fragLoadingMaxRetryTimeout: 90000,
         levelLoadingTimeOut: 10000,
         levelLoadingMaxRetry: 4,
         levelLoadingRetryDelay: 1000,

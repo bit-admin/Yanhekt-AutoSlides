@@ -17,29 +17,15 @@ export interface CourseOpenRequest {
 // MainContent.
 const activeNav = ref<NavTarget>("home");
 const courseOpenRequest = ref<CourseOpenRequest | null>(null);
-// Which pinned course is currently highlighted in the sidebar (pure UI state,
+// Which subscribed course is currently highlighted in the sidebar (pure UI state,
 // not persisted). Cleared whenever navigation moves elsewhere.
-const activePinned = ref<string | null>(null);
+const activeSubscribed = ref<string | null>(null);
 
 let nextRequestId = 1;
 
-// Mobile-only slide-in drawer for the left panel. Kept separate from the
-// desktop collapse pref so it always starts closed on a phone (and resizing
-// between layouts never toggles the other one).
-const mobileNavOpen = ref(false);
-
-const toggleMobileNav = () => {
-  mobileNavOpen.value = !mobileNavOpen.value;
-};
-
-const closeMobileNav = () => {
-  mobileNavOpen.value = false;
-};
-
 const navigate = (target: NavTarget) => {
   activeNav.value = target;
-  activePinned.value = null;
-  mobileNavOpen.value = false;
+  activeSubscribed.value = null;
   // Sidebar navigation always leaves the playback view.
   closePlayback();
 };
@@ -47,13 +33,12 @@ const navigate = (target: NavTarget) => {
 const requestCourseOpen = (mode: "live" | "recorded", course: Course) => {
   courseOpenRequest.value = { mode, course, requestId: nextRequestId++ };
   activeNav.value = mode;
-  activePinned.value = null;
-  mobileNavOpen.value = false;
+  activeSubscribed.value = null;
   closePlayback();
 };
 
-const setActivePinned = (id: string | null) => {
-  activePinned.value = id;
+const setActiveSubscribed = (id: string | null) => {
+  activeSubscribed.value = id;
 };
 
 // Sidebar collapse state lives in the unified config store (not a separate key).
@@ -68,13 +53,10 @@ const toggleSidebar = () => {
 export const navigationStore = {
   activeNav,
   courseOpenRequest,
-  activePinned,
+  activeSubscribed,
   isSidebarCollapsed,
-  mobileNavOpen,
   navigate,
   requestCourseOpen,
-  setActivePinned,
+  setActiveSubscribed,
   toggleSidebar,
-  toggleMobileNav,
-  closeMobileNav,
 };

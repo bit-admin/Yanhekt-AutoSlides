@@ -46,24 +46,30 @@ export async function loadFolderSummaries(io: ResultsDataIO): Promise<FolderSumm
   const activeCounts = await Promise.all(
     activeFolderList.map(async (folder) => {
       let metadata = null
+      let coverImageId = undefined
       try {
         metadata = await io.getMetadata(folder.path)
+        const images = await io.getImages(folder.path)
+        if (images && images.length > 0) {
+          coverImageId = images[0].path
+        }
       } catch (error) {
-        log.warn(`Failed to load metadata for ${folder.name}:`, error)
+        log.warn(`Failed to load metadata/images for ${folder.name}:`, error)
       }
-      return { folder, count: folder.imageCount, metadata }
+      return { folder, count: folder.imageCount, metadata, coverImageId }
     }),
   )
 
   const folderMap = new Map<string, ResultsFolder>()
 
-  for (const { folder, count, metadata } of activeCounts) {
+  for (const { folder, count, metadata, coverImageId } of activeCounts) {
     folderMap.set(folder.name, {
       name: folder.name,
       path: folder.path,
       activeCount: count,
       removedCount: 0,
       metadata,
+      coverImageId,
     })
   }
 

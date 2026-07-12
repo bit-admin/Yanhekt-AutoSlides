@@ -6,7 +6,7 @@
 // which desktop's garbage-collected data URLs never needed.
 
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { formatToolFolderName } from '../lib/toolFolders'
+import { formatToolFolderName, parseFolderDisplayName } from '../lib/toolFolders'
 import {
   getSlideBlob,
   deleteImages,
@@ -45,6 +45,7 @@ export function useResultsView() {
   const selectedReason = ref<ResultsReason | ''>('')
   const contextMode = ref<ContextMode>('context')
   const thumbnails = ref<Record<string, string>>({})
+  const folderCovers = ref<Record<string, string>>({})
   const thumbnailSize = ref(320)
   const isLoading = ref(false)
   const previewItem = ref<ResultsItem | null>(null)
@@ -165,13 +166,40 @@ export function useResultsView() {
     thumbnailLoadVersion += 1
   }
 
-  onUnmounted(resetThumbnails)
+  function resetFolderCovers() {
+    for (const url of Object.values(folderCovers.value)) {
+      URL.revokeObjectURL(url)
+    }
+    folderCovers.value = {}
+  }
+
+  async function loadFolderCovers(foldersList: ResultsFolder[]) {
+    resetFolderCovers()
+    for (const folder of foldersList) {
+      if (folder.coverImageId) {
+        try {
+          const blob = await getSlideBlob(folder.coverImageId)
+          if (blob) {
+            folderCovers.value[folder.name] = URL.createObjectURL(blob)
+          }
+        } catch (error) {
+          log.warn(`Failed to load cover for folder ${folder.name}:`, error)
+        }
+      }
+    }
+  }
+
+  onUnmounted(() => {
+    resetThumbnails()
+    resetFolderCovers()
+  })
 
   async function loadFolderSummaries() {
     const result = await loadFolderSummariesCore(dataIO)
     activeFolders.value = result.activeFolders
     trashEntries.value = result.trashEntries
     folders.value = result.folders
+    void loadFolderCovers(result.folders)
   }
 
   async function buildFolderItems(folder: ResultsFolder): Promise<ResultsItem[]> {
@@ -378,6 +406,7 @@ export function useResultsView() {
     selectedReason,
     contextMode,
     thumbnails,
+    folderCovers,
     thumbnailSize,
     isLoading,
     previewItem,
@@ -397,6 +426,7 @@ export function useResultsView() {
     removeFolders,
     formatDate,
     formatToolFolderName,
+    getFolderDisplayName: parseFolderDisplayName,
   }
 }
 

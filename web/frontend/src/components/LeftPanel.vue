@@ -1,9 +1,9 @@
 <template>
-  <div class="left-panel" :class="{ 'collapsed': isSidebarCollapsed && !mobile }">
+  <div class="left-panel" :class="{ 'collapsed': isSidebarCollapsed }">
     <div class="control-section custom-scrollbar">
       <div class="settings-content">
-        <!-- Expanded Navigator (always expanded inside the mobile drawer) -->
-        <div v-if="!isSidebarCollapsed || mobile" class="navigator-section">
+        <!-- Expanded Navigator -->
+        <div v-if="!isSidebarCollapsed" class="navigator-section">
           <nav class="nav-items">
             <button :class="['nav-item', { active: activeNav === 'home' }]" @click="navigate('home')">
               <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -19,7 +19,7 @@
               <span>{{ $t('navigation.live') }}</span>
               <span v-if="livePlaybackActive" class="nav-playback-indicator">●</span>
             </button>
-            <button :class="['nav-item', { active: activeNav === 'recorded' && !activePinned }]" @click="navigate('recorded')">
+            <button :class="['nav-item', { active: activeNav === 'recorded' && !activeSubscribed }]" @click="navigate('recorded')">
               <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
                 <line x1="8" y1="21" x2="16" y2="21"/>
@@ -28,6 +28,7 @@
               <span>{{ $t('navigation.recorded') }}</span>
               <span v-if="recordedPlaybackActive" class="nav-playback-indicator">●</span>
             </button>
+            <div class="nav-divider"></div>
             <button :class="['nav-item', { active: activeNav === 'slides' }]" @click="navigate('slides')">
               <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -47,25 +48,25 @@
 
           <div class="nav-divider"></div>
 
-          <div class="nav-group-title" v-if="pinnedRecordedCourses.length > 0">
-            {{ $t('navigation.pinned') }}
+          <div class="nav-group-title" v-if="subscribedRecordedCourses.length > 0">
+            {{ $t('navigation.subscriptions') }}
           </div>
-          <div class="nav-items" v-if="pinnedRecordedCourses.length > 0">
-            <div v-for="c in pinnedRecordedCourses" :key="c.id" class="pinned-row">
+          <div class="nav-items" v-if="subscribedRecordedCourses.length > 0">
+            <div v-for="c in subscribedRecordedCourses" :key="c.id" class="subscribed-row">
               <button
-                :class="['nav-item', 'pinned-item', { active: activePinned === c.id }]"
-                @click="openPinnedCourse(c)"
+                :class="['nav-item', 'subscribed-item', { active: activeSubscribed === c.id }]"
+                @click="openSubscribedCourse(c)"
                 :title="c.title"
               >
                 <!-- Subscription Style Circle Initials Avatar -->
-                <div class="pinned-avatar" :style="{ backgroundColor: getAvatarBg(c.title) }">
+                <div class="subscribed-avatar" :style="{ backgroundColor: getAvatarBg(c.title) }">
                   {{ getInitials(c.title) }}
                 </div>
-                <span class="pinned-label">{{ c.title }}</span>
+                <span class="subscribed-label">{{ c.title }}</span>
               </button>
               <button
-                class="pinned-unpin"
-                @click.stop="removePinnedCourse(c.id)"
+                class="subscribed-unpin"
+                @click.stop="removeSubscribedCourse(c.id)"
                 :title="$t('sessions.unpin')"
                 :aria-label="$t('sessions.unpin')"
               >
@@ -109,7 +110,7 @@
             </div>
             <span class="mini-nav-label">{{ $t('navigation.recorded') }}</span>
           </button>
-
+          <div class="nav-divider"></div>
           <button :class="['mini-nav-item', { active: activeNav === 'slides' }]" @click="navigate('slides')" :title="$t('navigation.slidesReview')">
             <svg class="mini-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -136,14 +137,10 @@
 import { computed } from 'vue'
 import { navigationStore } from '../stores/navigationStore'
 import { playbackStore } from '../stores/playbackStore'
-import { pinnedRecordedCourses, openPinnedCourse, removePinnedCourse } from '../composables/pinnedCourses'
+import { subscribedRecordedCourses, openSubscribedCourse, removeSubscribedCourse } from '../composables/subscribedCourses'
 import { getAvatarBg, getInitials } from '../composables/courseCover'
 
-// `mobile` forces the full navigator (incl. pinned courses) when rendered
-// inside App.vue's mobile slide-in drawer, regardless of the collapse pref.
-defineProps<{ mobile?: boolean }>()
-
-const { activeNav, activePinned, navigate, isSidebarCollapsed } = navigationStore
+const { activeNav, activeSubscribed, navigate, isSidebarCollapsed } = navigationStore
 
 const livePlaybackActive = computed(() => playbackStore.active.value?.mode === 'live')
 const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode === 'recorded')
@@ -187,9 +184,9 @@ const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode =
 
 /* YouTube Style Section Header */
 .nav-group-title {
-  padding: 0 0.75rem 0.5rem;
+  padding: 0.25rem 0.75rem 0.625rem;
   font-family: Roboto, Inter, sans-serif;
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 500;
   color: var(--text-primary);
   text-transform: none;
@@ -201,22 +198,22 @@ const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode =
   gap: 0.125rem;
 }
 
-/* Pinned recorded courses */
-.pinned-row {
+/* Subscribed recorded courses */
+.subscribed-row {
   position: relative;
   display: flex;
   align-items: center;
   margin: 0 0.375rem;
 }
 
-.pinned-item {
+.subscribed-item {
   padding-right: 2.25rem !important;
   margin: 0 !important;
   flex: 1;
   min-width: 0;
 }
 
-.pinned-avatar {
+.subscribed-avatar {
   width: 1.5rem;
   height: 1.5rem;
   border-radius: 50%;
@@ -229,7 +226,7 @@ const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode =
   flex-shrink: 0;
 }
 
-.pinned-unpin {
+.subscribed-unpin {
   position: absolute;
   right: 0.5rem;
   top: 50%;
@@ -250,11 +247,11 @@ const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode =
   z-index: 5;
 }
 
-.pinned-row:hover .pinned-unpin {
+.subscribed-row:hover .subscribed-unpin {
   opacity: 1;
 }
 
-.pinned-unpin:hover {
+.subscribed-unpin:hover {
   color: var(--danger);
   background-color: var(--bg-hover);
 }

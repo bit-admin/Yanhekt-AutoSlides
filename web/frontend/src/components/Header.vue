@@ -3,6 +3,7 @@
     <!-- Desktop Left / Mobile Brand (hidden when mobile search is active) -->
     <div class="masthead-left" v-show="!showMobileSearch">
       <button
+        v-if="!isMobile"
         class="masthead-btn hamburger-btn"
         @click="onHamburger"
         :aria-label="$t('navigation.menu')"
@@ -128,10 +129,51 @@
         </div>
 
         <!-- Logged In -->
-        <div v-else ref="userInfoRef" class="user-control">
-          <button class="avatar-btn" type="button" @click="toggleUserMenu">
-            <span class="user-avatar-circle">{{ userInitial }}</span>
-          </button>
+        <template v-else>
+          <!-- Bell Icon / Subscriptions Dropdown -->
+          <div ref="bellMenuRef" class="bell-control">
+            <button class="bell-btn" type="button" @click="toggleBellMenu" :title="$t('navigation.subscriptions')">
+              <svg class="bell-icon" width="20" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              <span v-if="subscribedCount > 0" class="bell-badge"></span>
+            </button>
+
+            <!-- Dropdown popup list -->
+            <div v-if="showBellMenu" class="dropdown-menu bell-dropdown custom-scrollbar">
+              <div class="bell-dropdown-header">
+                <h3>{{ $t('navigation.subscriptions') }}</h3>
+              </div>
+              <div class="dropdown-divider"></div>
+              
+              <div v-if="subscribedRecordedCourses.length === 0" class="bell-empty-state">
+                <p>{{ $t('sessions.noSubscriptions') }}</p>
+              </div>
+              <div v-else class="bell-items">
+                <button
+                  v-for="c in subscribedRecordedCourses"
+                  :key="c.id"
+                  class="dropdown-item bell-item"
+                  type="button"
+                  @click="clickSubscribedCourse(c)"
+                >
+                  <div class="bell-avatar" :style="{ backgroundColor: getAvatarBg(c.title) }">
+                    {{ getInitials(c.title) }}
+                  </div>
+                  <div class="bell-item-info">
+                    <span class="bell-item-title" :title="c.title">{{ c.title }}</span>
+                    <span v-if="c.instructor" class="bell-item-sub">{{ c.instructor }}</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div ref="userInfoRef" class="user-control">
+            <button class="avatar-btn" type="button" @click="toggleUserMenu">
+              <span class="user-avatar-circle">{{ userInitial }}</span>
+            </button>
 
           <div v-if="showUserMenu" class="dropdown-menu user-dropdown">
             <div class="user-profile-header">
@@ -157,8 +199,9 @@
             </button>
           </div>
         </div>
-      </div>
+      </template>
     </div>
+  </div>
 
     <SignInModal
       v-if="showSignInModal"
@@ -174,17 +217,16 @@ import { navigationStore } from '../stores/navigationStore'
 import { authStore } from '../stores/authStore'
 import { useSearchPage } from '../composables/useSearchPage'
 import SignInModal from './SignInModal.vue'
+import { subscribedRecordedCourses, openSubscribedCourse } from '../composables/subscribedCourses'
+import { getAvatarBg, getInitials } from '../composables/courseCover'
+import type { SubscribedCourse } from '../stores/configStore'
 
-const { navigate, toggleSidebar, toggleMobileNav } = navigationStore
+const { navigate, toggleSidebar } = navigationStore
 
-// The hamburger opens the slide-in drawer on mobile and collapses the rail on
-// desktop — two different affordances behind the same icon.
+// Desktop-only (hidden on mobile, where the bottom nav takes over): the
+// hamburger collapses/expands the sidebar rail.
 const onHamburger = () => {
-  if (isMobile.value) {
-    toggleMobileNav()
-  } else {
-    toggleSidebar()
-  }
+  toggleSidebar()
 }
 const { keyword: searchKeyword, handleSidebarFocus, executeSearch } = useSearchPage()
 const { isLoggedIn, userNickname, userId, isVerifyingToken, signOut } = authStore
@@ -197,6 +239,24 @@ const userInitial = computed(() => {
 
 const showUserMenu = ref(false)
 const userInfoRef = ref<HTMLElement | null>(null)
+
+const showBellMenu = ref(false)
+const bellMenuRef = ref<HTMLElement | null>(null)
+
+const toggleBellMenu = () => {
+  showBellMenu.value = !showBellMenu.value
+}
+
+const closeBellMenu = () => {
+  showBellMenu.value = false
+}
+
+const clickSubscribedCourse = (course: SubscribedCourse) => {
+  closeBellMenu()
+  openSubscribedCourse(course)
+}
+
+const subscribedCount = computed(() => subscribedRecordedCourses.value.length)
 
 const showSigninMenu = ref(false)
 const signinMenuRef = ref<HTMLElement | null>(null)
@@ -267,6 +327,10 @@ const handleDocumentClick = (event: MouseEvent) => {
 
   if (showSigninMenu.value && signinMenuRef.value && target && !signinMenuRef.value.contains(target)) {
     closeSigninMenu()
+  }
+
+  if (showBellMenu.value && bellMenuRef.value && target && !bellMenuRef.value.contains(target)) {
+    closeBellMenu()
   }
 }
 
@@ -470,6 +534,9 @@ onUnmounted(() => {
 
 .auth-wrap {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 /* YouTube Style Sign In Pill */
@@ -622,5 +689,143 @@ onUnmounted(() => {
     align-items: center;
     z-index: 101;
   }
+}
+/* Bell notification control styling */
+.bell-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.bell-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: none;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-primary);
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.bell-btn:hover {
+  background-color: var(--bg-hover);
+}
+
+.bell-icon {
+  flex-shrink: 0;
+}
+
+.bell-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background-color: var(--accent);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-surface);
+}
+
+.bell-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  width: 20rem;
+  max-height: 25rem;
+  overflow-y: auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
+  box-shadow: 0 8px 24px var(--shadow-lg);
+  z-index: 101;
+  padding: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.bell-dropdown-header {
+  padding: 0.5rem 1rem 0.25rem;
+}
+
+.bell-dropdown-header h3 {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.bell-empty-state {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.bell-items {
+  display: flex;
+  flex-direction: column;
+}
+
+.bell-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 1rem !important;
+  text-align: left;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.bell-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.bell-avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.bell-item-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.bell-item-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bell-item-sub {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 0.125rem;
 }
 </style>

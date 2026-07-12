@@ -120,8 +120,8 @@ export async function buildPdf(
   return doc.save()
 }
 
-export function downloadBlob(data: Uint8Array, filename: string): void {
-  const blob = new Blob([data as BlobPart], { type: 'application/pdf' })
+export function downloadBlob(data: Uint8Array, filename: string, mimeType = 'application/pdf'): void {
+  const blob = new Blob([data as BlobPart], { type: mimeType })
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a')
   anchor.href = url

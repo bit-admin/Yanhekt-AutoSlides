@@ -16,19 +16,6 @@
       <div class="main-content-slot">
         <MainContent />
       </div>
-
-      <!-- Mobile slide-in drawer: full navigator + pinned courses, which the
-           bottom nav has no room for. Opened from the header hamburger. -->
-      <template v-if="isMobile && !playbackStore.cinema.value">
-        <div
-          v-if="navigationStore.mobileNavOpen.value"
-          class="sidebar-backdrop"
-          @click="navigationStore.closeMobileNav()"
-        ></div>
-        <div class="mobile-drawer" :class="{ open: navigationStore.mobileNavOpen.value }">
-          <LeftPanel mobile />
-        </div>
-      </template>
     </div>
 
     <!-- Responsive Mobile Bottom Navigation Bar -->
@@ -213,42 +200,6 @@ onUnmounted(() => {
 @keyframes bottom-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
-}
-
-/* Mobile navigator drawer + backdrop */
-.sidebar-backdrop {
-  position: fixed;
-  top: var(--header-height);
-  left: 0;
-  right: 0;
-  bottom: 3.5rem; /* sit above the mobile bottom nav so it stays tappable */
-  background-color: var(--overlay-dark);
-  z-index: 98;
-  animation: fadeIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.mobile-drawer {
-  position: fixed;
-  top: var(--header-height);
-  left: 0;
-  bottom: 3.5rem; /* sit above the mobile bottom nav */
-  width: var(--sidebar-width-expanded);
-  max-width: 80vw;
-  z-index: 99;
-  background-color: var(--bg-page);
-  border-right: 1px solid var(--border-color);
-  box-shadow: 4px 0 16px var(--shadow-md);
-  transform: translateX(-100%);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.mobile-drawer.open {
-  transform: translateX(0);
 }
 
 @media (max-width: 768px) {

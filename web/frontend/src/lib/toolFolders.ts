@@ -82,3 +82,40 @@ export function compareToolImages(a: string, b: string): number {
     sensitivity: 'base',
   });
 }
+
+/**
+ * Split a slides folder name into a card-friendly course title + session
+ * detail line (e.g. "第2周 · 星期四 · 第3大节" or "Week 2"). Falls back to the
+ * cleaned raw name when the session pattern doesn't parse.
+ */
+export function parseFolderDisplayName(name?: string): { course: string; details: string } {
+  if (!name) return { course: '', details: '' };
+  const parsed = parseSessionInfo(name);
+  if (!parsed) {
+    return { course: formatToolFolderName(name).replace(/_/g, ' '), details: '' };
+  }
+
+  const isChinese = name.includes('第') && name.includes('周');
+  if (isChinese) {
+    const weekMatch = name.match(/第(\d+)周/);
+    const dayMatch = name.match(/星期([一二三四五六日])/);
+    const periodMatch = name.match(/第(\d+)大节/);
+
+    const parts = [];
+    if (weekMatch) parts.push(weekMatch[0]);
+    if (dayMatch) parts.push(dayMatch[0]);
+    if (periodMatch) parts.push(periodMatch[0]);
+
+    return { course: parsed.courseName, details: parts.join(' · ') };
+  }
+
+  if (name.includes(' - Lecture ')) {
+    const lectureMatch = name.match(/Lecture (\d+)/);
+    return {
+      course: parsed.courseName,
+      details: lectureMatch ? lectureMatch[0] : `Lecture ${parsed.week}`,
+    };
+  }
+
+  return { course: parsed.courseName, details: `Week ${parsed.week}` };
+}

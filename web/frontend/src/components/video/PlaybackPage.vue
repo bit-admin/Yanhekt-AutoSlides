@@ -377,16 +377,16 @@
               <!-- Subscribe style Pin button (recorded only) -->
               <button
                 v-if="props.mode === 'recorded'"
-                @click="togglePin"
+                @click="toggleSubscribe"
                 class="btn subscribe-pill"
-                :class="{ 'pinned': pinned }"
-                :title="pinned ? $t('sessions.unpin') : $t('sessions.pin')"
+                :class="{ 'subscribed': subscribed }"
+                :title="subscribed ? $t('sessions.unsubscribe') : $t('sessions.subscribe')"
               >
-                <svg v-if="pinned" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" :fill="subscribed ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                <span>{{ pinned ? $t('navigation.pinned') : $t('sessions.pin') }}</span>
+                <span>{{ subscribed ? $t('navigation.pinned') : $t('sessions.subscribe') }}</span>
               </button>
             </div>
 
@@ -541,7 +541,7 @@ import SlideExtractionPanel from './SlideExtractionPanel.vue'
 import type { Course } from '../../composables/useCourseList'
 import { getCourseInfo, type SessionData } from '../../lib/api'
 import { authStore } from '../../stores/authStore'
-import { isPinned, togglePinnedCourse } from '../../composables/pinnedCourses'
+import { isSubscribed, toggleSubscribedCourse } from '../../composables/subscribedCourses'
 import { getCourseCover, getAvatarBg, getInitials } from '../../composables/courseCover'
 
 const props = defineProps<{
@@ -693,10 +693,10 @@ watch(canExtract, (can) => {
 })
 
 // Pinned / Subscription state
-const pinned = computed(() => !!props.course?.id && isPinned(props.course.id))
-const togglePin = () => {
+const subscribed = computed(() => !!props.course?.id && isSubscribed(props.course.id))
+const toggleSubscribe = () => {
   if (!props.course) return
-  togglePinnedCourse(props.course)
+  toggleSubscribedCourse(props.course)
 }
 
 // Methods
@@ -1412,7 +1412,7 @@ onUnmounted(async () => {
   margin-left: 1rem;
 }
 
-.subscribe-pill.pinned {
+.subscribe-pill.subscribed {
   background-color: var(--bg-hover);
   border-color: var(--border-color);
   color: var(--text-primary);

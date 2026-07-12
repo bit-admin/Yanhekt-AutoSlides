@@ -9,7 +9,8 @@
     "searchPlaceholder": "搜索",
     "menu": "菜单",
     "workspace": "工作区",
-    "pinned": "置顶",
+    "pinned": "已订阅",
+    "subscriptions": "订阅",
     "slidesReview": "幻灯片",
     "cloudNotes": "云盘",
     "cloudIndex": "云索引"
@@ -623,7 +624,7 @@
     "loadingVideoStreams": "加载视频流中...",
     "warming": {
       "title": "正在准备播放…",
-      "hint": "录播的首次播放需通过中转服务预热，可能需要稍作等待。感谢您的耐心，后续的播放与拖动将明显更快。"
+      "hint": "录播播放中转服务器预热中，这可能需要一些时间。"
     },
     "lastPlayedPosition": "上次播放位置：",
     "networkProblems": "这可能是由于视频质量问题或网络问题导致的。建议下载此视频以供离线观看，避免播放中断。",
@@ -668,7 +669,8 @@
       "skippedPhase1": "阶段一已跳过（已禁用）",
       "skippedPhase2": "阶段二已跳过（已禁用）",
       "cancelAI": "取消",
-      "cancellingAI": "正在取消…"
+      "cancellingAI": "正在取消…",
+      "failed": "后处理失败"
     },
     "moveToTrash": "移至废纸篓",
     "close": "关闭",
@@ -705,8 +707,11 @@
     "captureNotSupported": "当前浏览器不支持对此视频流进行幻灯片捕捉。"
   },
   "sessions": {
-    "pin": "置顶课程",
-    "unpin": "取消置顶",
+    "pin": "订阅",
+    "unpin": "取消订阅",
+    "subscribe": "订阅",
+    "unsubscribe": "取消订阅",
+    "noSubscriptions": "暂无订阅的课程",
     "searchInIndex": "在云索引中搜索该课程",
     "backToCourses": "返回课程",
     "classrooms": "教室",
@@ -954,7 +959,10 @@
     "clearFoldersSummary": "已移除：{removed} · 失败：{failed}",
     "notesRunSummary": "完成：{done} · 失败：{failed}",
     "groupByCourse": "按课程分组",
-    "watchMode": "观看时捕获"
+    "watchMode": "观看时捕获",
+    "slideNumber": "幻灯片 {n}",
+    "deleteFolder": "删除文件夹",
+    "confirmDeleteFolder": "删除 {folder} 及其全部图片？此操作无法撤销。"
   },
   "pdfmaker": {
     "title": "幻灯片导出",

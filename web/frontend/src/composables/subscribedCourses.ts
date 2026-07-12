@@ -1,23 +1,23 @@
 import { computed } from "vue";
-import { configStore, persistConfig, type PinnedCourse } from "../stores/configStore";
+import { configStore, persistConfig, type SubscribedCourse } from "../stores/configStore";
 import { navigationStore } from "../stores/navigationStore";
 import { openCourse } from "./courseSelection";
 import type { Course } from "./useCourseList";
 
-// Pinned recorded courses. Ported from the desktop app's
-// features/course/pinnedCourses.ts. Only recorded courses are pinnable (they
+// Subscribed recorded courses. Ported from the desktop app's
+// features/course/pinnedCourses.ts. Only recorded courses are subscribable (they
 // persist; live streams are transient).
 
-export const pinnedRecordedCourses = computed<PinnedCourse[]>(
-  () => configStore.pinnedRecordedCourses,
+export const subscribedRecordedCourses = computed<SubscribedCourse[]>(
+  () => configStore.subscribedRecordedCourses,
 );
 
-export const isPinned = (id: string): boolean =>
-  pinnedRecordedCourses.value.some((c) => c.id === id);
+export const isSubscribed = (id: string): boolean =>
+  subscribedRecordedCourses.value.some((c) => c.id === id);
 
 // Rebuild a plain, JSON-safe snapshot before persisting (drops reactive proxies
 // and any extra Course fields we don't store).
-const toPlain = (course: PinnedCourse | Course): PinnedCourse => ({
+const toPlain = (course: SubscribedCourse | Course): SubscribedCourse => ({
   id: course.id,
   title: course.title,
   instructor: course.instructor,
@@ -30,9 +30,9 @@ const toPlain = (course: PinnedCourse | Course): PinnedCourse => ({
   semester: course.semester,
 });
 
-export const togglePinnedCourse = (course: PinnedCourse | Course): void => {
+export const toggleSubscribedCourse = (course: SubscribedCourse | Course): void => {
   if (!course.id) return;
-  const list = configStore.pinnedRecordedCourses;
+  const list = configStore.subscribedRecordedCourses;
   const idx = list.findIndex((c) => c.id === course.id);
   if (idx === -1) {
     list.push(toPlain(course));
@@ -42,15 +42,15 @@ export const togglePinnedCourse = (course: PinnedCourse | Course): void => {
   persistConfig();
 };
 
-export const removePinnedCourse = (id: string): void => {
-  const list = configStore.pinnedRecordedCourses;
+export const removeSubscribedCourse = (id: string): void => {
+  const list = configStore.subscribedRecordedCourses;
   const idx = list.findIndex((c) => c.id === id);
   if (idx === -1) return;
   list.splice(idx, 1);
   persistConfig();
 };
 
-export const openPinnedCourse = (course: PinnedCourse): void => {
+export const openSubscribedCourse = (course: SubscribedCourse): void => {
   openCourse("recorded", {
     id: course.id,
     title: course.title,
@@ -63,5 +63,5 @@ export const openPinnedCourse = (course: PinnedCourse): void => {
     school_year: course.school_year,
     semester: course.semester,
   } as Course);
-  navigationStore.setActivePinned(course.id);
+  navigationStore.setActiveSubscribed(course.id);
 };

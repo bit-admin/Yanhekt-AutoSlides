@@ -14,19 +14,19 @@
         {{ $t('navigation.home') }}
       </button>
 
-      <!-- Pinned recorded courses as chips -->
+      <!-- Subscribed recorded courses as chips -->
       <button
-        v-for="c in pinnedRecordedCourses"
+        v-for="c in subscribedRecordedCourses"
         :key="'chip-pin:' + c.id"
-        class="chip chip--pinned"
-        @click="openPinnedCourse(c)"
+        class="chip chip--subscribed"
+        @click="openSubscribedCourse(c)"
       >
         <span class="chip-dot"></span>
         <span class="chip-label">{{ c.title }}</span>
         <span
           class="chip-remove"
-          :title="$t('sessions.unpin')"
-          @click.stop="removePinnedCourse(c.id)"
+          :title="$t('sessions.unsubscribe')"
+          @click.stop="removeSubscribedCourse(c.id)"
         >
           ×
         </span>
@@ -237,7 +237,7 @@ import {
 import { openCourse } from '../../composables/courseSelection'
 import { useSearchPage } from '../../composables/useSearchPage'
 import { mergedSavedSearches, addSavedSearch, removeSavedSearch } from '../../composables/savedSearches'
-import { pinnedRecordedCourses, openPinnedCourse, removePinnedCourse } from '../../composables/pinnedCourses'
+import { subscribedRecordedCourses, openSubscribedCourse, removeSubscribedCourse } from '../../composables/subscribedCourses'
 import { authStore } from '../../stores/authStore'
 import { getCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
 import { navigationStore } from '../../stores/navigationStore'
@@ -426,7 +426,7 @@ watch(activeNav, (nav) => {
   border-color: var(--text-primary);
 }
 
-.chip--pinned {
+.chip--subscribed {
   border-color: var(--accent-deep);
 }
 

@@ -14,10 +14,10 @@ export type ThemeMode = "system" | "light" | "dark";
 // Web supports two locales only (no ja/ko).
 export type LanguageMode = "system" | "en" | "zh";
 
-// Captured at pin time so a pinned course keeps its rich fields (classrooms /
+// Captured at subscribe time so a subscribed course keeps its rich fields (classrooms /
 // participant_count / term) — those come from the course list/search and are
 // NOT returned by getCourseInfo. Ported from the desktop app's PinnedCourse.
-export interface PinnedCourse {
+export interface SubscribedCourse {
   id: string;
   title: string;
   instructor?: string;
@@ -35,7 +35,7 @@ export interface WebConfig {
   languageMode: LanguageMode;
   savedSearchesLive: string[];
   savedSearchesRecorded: string[];
-  pinnedRecordedCourses: PinnedCourse[];
+  subscribedRecordedCourses: SubscribedCourse[];
   sidebarCollapsed: boolean;
 }
 
@@ -44,7 +44,7 @@ const defaults = (): WebConfig => ({
   languageMode: "system",
   savedSearchesLive: [],
   savedSearchesRecorded: [],
-  pinnedRecordedCourses: [],
+  subscribedRecordedCourses: [],
   sidebarCollapsed: false,
 });
 
@@ -75,7 +75,7 @@ export function persistConfig(): void {
     languageMode: configStore.languageMode,
     savedSearchesLive: [...configStore.savedSearchesLive],
     savedSearchesRecorded: [...configStore.savedSearchesRecorded],
-    pinnedRecordedCourses: configStore.pinnedRecordedCourses.map((c) => ({ ...c })),
+    subscribedRecordedCourses: configStore.subscribedRecordedCourses.map((c) => ({ ...c })),
     sidebarCollapsed: configStore.sidebarCollapsed,
   });
 }

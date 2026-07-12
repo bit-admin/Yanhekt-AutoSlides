@@ -20,6 +20,7 @@ export interface ResultsFolder {
   removedCount: number
   // Per-folder metadata; null/undefined = none.
   metadata?: SlideMetadata | null
+  coverImageId?: string
 }
 
 export interface ResultsItem {

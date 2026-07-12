@@ -33,20 +33,16 @@
             <!-- YouTube Subscribe Style Pin Button -->
             <div class="playlist-actions">
               <button
-                @click="togglePin"
+                @click="toggleSubscribe"
                 class="btn subscribe-btn"
-                :class="{ 'pinned': pinned }"
-                :title="pinned ? $t('sessions.unpin') : $t('sessions.pin')"
+                :class="{ 'subscribed': subscribed }"
+                :title="subscribed ? $t('sessions.unsubscribe') : $t('sessions.subscribe')"
               >
-                <svg v-if="!pinned" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 17v5"/>
-                  <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>
-                </svg>
-                <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg width="16" height="16" viewBox="0 0 24 24" :fill="subscribed ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
-                <span>{{ pinned ? $t('navigation.pinned') : $t('sessions.pin') }}</span>
+                <span>{{ subscribed ? $t('navigation.pinned') : $t('sessions.subscribe') }}</span>
               </button>
             </div>
 
@@ -150,7 +146,7 @@
 import { computed, onMounted, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '../../composables/useSessionPage'
-import { isPinned, togglePinnedCourse } from '../../composables/pinnedCourses'
+import { isSubscribed, toggleSubscribedCourse } from '../../composables/subscribedCourses'
 import { getCourseCover, getOverlayTextStyle } from '../../composables/courseCover'
 
 const props = defineProps<{
@@ -181,11 +177,11 @@ const {
   onBackToCourses: () => emit('backToCourses')
 })
 
-const pinned = computed(() => !!props.course?.id && isPinned(props.course.id))
-const togglePin = () => {
+const subscribed = computed(() => !!props.course?.id && isSubscribed(props.course.id))
+const toggleSubscribe = () => {
   const c = courseDetails.value
   if (!c?.id) return
-  togglePinnedCourse(c)
+  toggleSubscribedCourse(c)
 }
 
 // Formats seconds into HH:MM:SS or MM:SS for duration badge
@@ -311,13 +307,13 @@ onMounted(() => {
   opacity: 0.9;
 }
 
-.subscribe-btn.pinned {
+.subscribe-btn.subscribed {
   background-color: var(--bg-hover);
   border-color: var(--border-color);
   color: var(--text-primary);
 }
 
-.subscribe-btn.pinned:hover {
+.subscribe-btn.subscribed:hover {
   background-color: var(--bg-hover);
   filter: brightness(0.9);
 }

@@ -9,7 +9,8 @@
     "searchPlaceholder": "Search",
     "menu": "Menu",
     "workspace": "Workspace",
-    "pinned": "Pinned",
+    "pinned": "Subscribed",
+    "subscriptions": "Subscriptions",
     "slidesReview": "Slides",
     "cloudNotes": "Drive",
     "cloudIndex": "Cloud Index"
@@ -623,7 +624,7 @@
     "loadingVideoStreams": "Loading video streams...",
     "warming": {
       "title": "Preparing playback…",
-      "hint": "The initial playback of a recording is routed through our relay service and may require a brief warm-up period. Thank you for your patience; subsequent playback and seeking will be considerably faster."
+      "hint": "The initial playback of a recording is routed through our relay service and may require a brief warm-up period."
     },
     "lastPlayedPosition": "Last played position:",
     "networkProblems": "This may be due to video quality issues or network problems. Consider downloading this video for offline viewing to avoid playback interruptions.",
@@ -633,8 +634,8 @@
     "volume": "Volume",
     "mute": "Mute",
     "unmute": "Unmute",
-    "exitPictureInPicture": "Exit Picture in Picture",
-    "enterPictureInPicture": "Enter Picture in Picture",
+    "exitPictureInPicture": "Exit PiP Mode",
+    "enterPictureInPicture": "Enter PiP Mode",
     "exitPiP": "Exit PiP",
     "picInPic": "Pic-in-Pic",
     "cinemaMode": "Cinema Mode",
@@ -668,7 +669,8 @@
       "skippedPhase1": "Phase 1 skipped (disabled)",
       "skippedPhase2": "Phase 2 skipped (disabled)",
       "cancelAI": "Cancel",
-      "cancellingAI": "Cancelling…"
+      "cancellingAI": "Cancelling…",
+      "failed": "Post-processing failed"
     },
     "moveToTrash": "Move to Trash",
     "close": "Close",
@@ -705,8 +707,11 @@
     "captureNotSupported": "Slide capture is not supported in this browser for this stream."
   },
   "sessions": {
-    "pin": "Pin course",
-    "unpin": "Unpin",
+    "pin": "Subscribe",
+    "unpin": "Unsubscribe",
+    "subscribe": "Subscribe",
+    "unsubscribe": "Unsubscribe",
+    "noSubscriptions": "No subscribed courses",
     "searchInIndex": "Search this course in Cloud Index",
     "backToCourses": "Back to Courses",
     "classrooms": "Classrooms",
@@ -954,7 +959,10 @@
     "clearFoldersSummary": "Removed: {removed} · Failed: {failed}",
     "notesRunSummary": "Done: {done} · Failed: {failed}",
     "groupByCourse": "Group by Course",
-    "watchMode": "Captured on watch"
+    "watchMode": "Captured on watch",
+    "slideNumber": "Slide {n}",
+    "deleteFolder": "Delete folder",
+    "confirmDeleteFolder": "Delete {folder} and all of its images? This cannot be undone."
   },
   "pdfmaker": {
     "title": "Slides Export",
