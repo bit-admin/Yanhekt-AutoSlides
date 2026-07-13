@@ -118,7 +118,11 @@ interface CourseInfoApiResponse extends BaseApiResponse {
     professors: Array<{ name: string }>;
     school_year?: string;
     semester?: number | string;
+    // Often empty ("") even when the nested college object is populated —
+    // verified against the live API. NO classrooms / participant_count here;
+    // those exist only in the course list/search responses.
     college_name?: string;
+    college?: { name?: string };
   };
 }
 
@@ -272,10 +276,13 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
 
   const formattedVideos: SessionData[] = videoList.map((video) => {
     const videoData = video.videos && video.videos.length > 0 ? video.videos[0] : null;
-    const realVideoId = videoData ? videoData.id : "";
+    // The API returns numeric ids at runtime despite the declared string
+    // types (the Electron app String()s them at every use site). Normalize
+    // here so router params and Map keys compare reliably.
+    const realVideoId = videoData ? String(videoData.id) : "";
 
     return {
-      session_id: video.id,
+      session_id: String(video.id),
       video_id: realVideoId,
       title: video.title,
       duration: videoData ? parseInt(videoData.duration) : 0,
@@ -290,11 +297,11 @@ export async function getCourseInfo(courseId: string, token: string): Promise<Co
   });
 
   return {
-    course_id: courseId,
+    course_id: String(courseId),
     title: name,
     professor,
     professors: professorNames,
-    college_name: courseData.college_name,
+    college_name: courseData.college_name || courseData.college?.name,
     school_year: courseData.school_year,
     semester: courseData.semester,
     videos: formattedVideos,

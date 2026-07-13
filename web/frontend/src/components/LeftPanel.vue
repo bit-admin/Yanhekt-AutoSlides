@@ -135,15 +135,16 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import { navigationStore } from '../stores/navigationStore'
-import { playbackStore } from '../stores/playbackStore'
 import { subscribedRecordedCourses, openSubscribedCourse, removeSubscribedCourse } from '../composables/subscribedCourses'
 import { getAvatarBg, getInitials } from '../composables/courseCover'
 
 const { activeNav, activeSubscribed, navigate, isSidebarCollapsed } = navigationStore
 
-const livePlaybackActive = computed(() => playbackStore.active.value?.mode === 'live')
-const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode === 'recorded')
+const route = useRoute()
+const livePlaybackActive = computed(() => route.name === 'player-live')
+const recordedPlaybackActive = computed(() => route.name === 'player-recorded')
 </script>
 
 <style scoped>

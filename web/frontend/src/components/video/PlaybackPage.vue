@@ -531,11 +531,15 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick, toRef } from 'vue'
+import { onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { DUAL_STREAM_KEY, useVideoPlayer, type DualAudioSource } from '../../composables/video/useVideoPlayer'
 import { useControlsVisibility } from '../../composables/video/useControlsVisibility'
 import { useSlideExtraction } from '../../composables/video/useSlideExtraction'
 import { postProcessingStatus } from '../../lib/postProcessing/runner'
 import { playbackStore } from '../../stores/playbackStore'
+import { router } from '../../router'
+import { stashCourse, stashSession } from '../../stores/courseTransfer'
 import SingleStreamControls from './SingleStreamControls.vue'
 import SlideExtractionPanel from './SlideExtractionPanel.vue'
 import type { Course } from '../../composables/useCourseList'
@@ -692,6 +696,31 @@ watch(canExtract, (can) => {
   }
 })
 
+// Leaving this page mid-extraction (sidebar nav, browser back, the player's
+// back button, a sibling-session switch) unmounts it and kills the run —
+// confirm first. beforeunload covers reload/tab-close the same way.
+const { t } = useI18n()
+const extractionActive = computed(
+  () =>
+    slideExtraction.isSlideExtractionEnabled.value ||
+    slideExtraction.slideExtractionStatus.value.isRunning,
+)
+const confirmLeaveExtraction = () =>
+  !extractionActive.value || window.confirm(t('playback.confirmLeaveExtraction'))
+
+onBeforeRouteLeave(() => confirmLeaveExtraction())
+onBeforeRouteUpdate((to, from) => {
+  if (to.params.sessionId === from.params.sessionId) return true
+  return confirmLeaveExtraction()
+})
+
+const onBeforeUnload = (event: BeforeUnloadEvent) => {
+  if (extractionActive.value) {
+    event.preventDefault()
+    event.returnValue = ''
+  }
+}
+
 // Pinned / Subscription state
 const subscribed = computed(() => !!props.course?.id && isSubscribed(props.course.id))
 const toggleSubscribe = () => {
@@ -714,11 +743,15 @@ const onStreamChange = (event: Event) => {
 }
 
 const playSession = (targetSession: SessionData) => {
-  playbackStore.active.value = {
-    mode: 'recorded',
-    course: props.course!,
-    session: targetSession,
-  }
+  if (!props.course) return
+  // The player route is keyed by fullPath, so this remounts the whole page —
+  // same teardown/reload as the old in-place playbackStore mutation.
+  stashCourse(props.course)
+  stashSession(props.course.id, targetSession)
+  void router.push({
+    name: 'player-recorded',
+    params: { courseId: props.course.id, sessionId: targetSession.session_id },
+  })
 }
 
 // Sibling fetching
@@ -1103,6 +1136,7 @@ const onFullscreenChange = () => {
 // Initial session fetching
 onMounted(async () => {
   document.addEventListener('fullscreenchange', onFullscreenChange)
+  window.addEventListener('beforeunload', onBeforeUnload)
   await nextTick()
   videoPlayerComposable.loadVideoStreams()
   void loadSiblingSessions()
@@ -1110,6 +1144,7 @@ onMounted(async () => {
 
 onUnmounted(async () => {
   document.removeEventListener('fullscreenchange', onFullscreenChange)
+  window.removeEventListener('beforeunload', onBeforeUnload)
   if (document.pictureInPictureElement && document.pictureInPictureElement === videoPlayer.value) {
     try {
       await document.exitPictureInPicture()

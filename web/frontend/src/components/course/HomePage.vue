@@ -1,5 +1,5 @@
 <template>
-  <div class="home-page custom-scrollbar">
+  <div ref="pageEl" class="home-page custom-scrollbar">
     <!-- Greeting & Header -->
     <div class="home-hero">
       <h1 class="home-greeting">{{ greetingText }}</h1>
@@ -241,7 +241,14 @@ import { subscribedRecordedCourses, openSubscribedCourse, removeSubscribedCourse
 import { authStore } from '../../stores/authStore'
 import { getCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
 import { navigationStore } from '../../stores/navigationStore'
+import { useKeepScroll } from '../../composables/useKeepScroll'
+
+defineOptions({ name: 'HomePage' })
+
 const ROW_SIZE = 12
+
+const pageEl = ref<HTMLElement | null>(null)
+useKeepScroll(pageEl)
 
 const { t, locale } = useI18n()
 const { isLoggedIn, userNickname, userId } = authStore

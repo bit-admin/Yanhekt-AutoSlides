@@ -67,6 +67,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     const extra = fetchedCourseInfo.value;
     return {
       ...base,
+      title: base.title || extra.title || "",
       instructor: base.instructor || extra.instructor || "",
       professors: base.professors && base.professors.length > 0 ? base.professors : extra.professors,
       college_name: base.college_name || extra.college_name,
@@ -112,6 +113,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       // normalize to string. Derive a display term matching useCourseList.
       const semesterStr = response.semester != null ? String(response.semester) : undefined;
       fetchedCourseInfo.value = {
+        title: response.title,
         instructor: response.professor,
         professors: response.professors,
         college_name: response.college_name,

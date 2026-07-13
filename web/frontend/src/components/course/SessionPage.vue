@@ -15,8 +15,8 @@
           <!-- Playlist Thumbnail Cover -->
           <div class="playlist-cover-container">
             <img :src="getCourseCover(course?.id)" class="playlist-cover" alt="" />
-            <div v-if="course?.title" class="video-cover-overlay-text" :style="getOverlayTextStyle(course.title)">
-              {{ course.title }}
+            <div v-if="courseDetails?.title" class="video-cover-overlay-text" :style="getOverlayTextStyle(courseDetails.title)">
+              {{ courseDetails.title }}
             </div>
             <div class="playlist-cover-overlay">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -28,7 +28,7 @@
 
           <!-- Playlist Details -->
           <div class="playlist-info">
-            <h2 class="playlist-title">{{ course?.title }}</h2>
+            <h2 class="playlist-title">{{ courseDetails?.title }}</h2>
             
             <!-- YouTube Subscribe Style Pin Button -->
             <div class="playlist-actions">
@@ -98,7 +98,7 @@
             <p>{{ $t('sessions.noSessions') }}</p>
           </div>
 
-          <div v-else class="sessions-list custom-scrollbar">
+          <div v-else ref="listEl" class="sessions-list custom-scrollbar">
             <!-- YouTube horizontal list item -->
             <div
               v-for="(session, index) in sessions"
@@ -143,18 +143,26 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, toRef } from 'vue'
+import { computed, onMounted, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '../../composables/useSessionPage'
 import { isSubscribed, toggleSubscribedCourse } from '../../composables/subscribedCourses'
 import { getCourseCover, getOverlayTextStyle } from '../../composables/courseCover'
+import { useKeepScroll } from '../../composables/useKeepScroll'
 
 const props = defineProps<{
   course: SessionCourse | null
 }>()
 
+// Cached via the RecordedCourseRoute wrapper; activated/deactivated propagate.
+const listEl = ref<HTMLElement | null>(null)
+useKeepScroll(listEl)
+
 const emit = defineEmits<{
-  sessionSelected: [session: Session]
+  // Emits the merged course details alongside the session: getCourseInfo
+  // fields fetched here (title, professors, term…) must reach the player,
+  // since a cold-loaded route only had a minimal course stub.
+  sessionSelected: [session: Session, course: SessionCourse | null]
   backToCourses: []
 }>()
 
@@ -173,7 +181,7 @@ const {
 } = useSessionPage({
   course: toRef(() => props.course),
   t,
-  onSessionSelected: (session: Session) => emit('sessionSelected', session),
+  onSessionSelected: (session: Session) => emit('sessionSelected', session, courseDetails.value),
   onBackToCourses: () => emit('backToCourses')
 })
 

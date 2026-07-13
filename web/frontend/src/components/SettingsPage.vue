@@ -59,6 +59,8 @@ import { computed } from 'vue'
 import { configStore, type LanguageMode, type ThemeMode } from '../stores/configStore'
 import { setThemeMode, setLanguageMode } from '../stores/settingsStore'
 
+defineOptions({ name: 'SettingsPage' })
+
 const themeMode = computed(() => configStore.themeMode)
 const languageMode = computed(() => configStore.languageMode)
 

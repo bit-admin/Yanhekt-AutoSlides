@@ -13,7 +13,8 @@
     "subscriptions": "Subscriptions",
     "slidesReview": "Slides",
     "cloudNotes": "Drive",
-    "cloudIndex": "Cloud Index"
+    "cloudIndex": "Cloud Index",
+    "search": "Search"
   },
   "cloudIndex": {
     "loading": "Loading slides…",
@@ -704,7 +705,14 @@
       "exitFullscreen": "Exit Fullscreen",
       "moreOptions": "More Options"
     },
-    "captureNotSupported": "Slide capture is not supported in this browser for this stream."
+    "captureNotSupported": "Slide capture is not supported in this browser for this stream.",
+    "signInToWatch": "Sign in to watch this lecture",
+    "streamNotFound": "Live stream not found — it may have ended",
+    "sessionNotFound": "Session not found in this course",
+    "goToLive": "Go to Live",
+    "goToCourse": "Go to Course",
+    "loadFailed": "Failed to load playback info",
+    "confirmLeaveExtraction": "Slide extraction is running. Leave and stop extraction?"
   },
   "sessions": {
     "pin": "Subscribe",

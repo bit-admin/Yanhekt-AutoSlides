@@ -115,11 +115,15 @@
 </template>
 
 <script setup lang="ts">
+import { onActivated, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { useSearchPage } from '../../composables/useSearchPage'
 import { getCourseStatusText } from '../../composables/useCourseList'
 import SemesterSelect from './SemesterSelect.vue'
 import { getCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
+
+defineOptions({ name: 'SearchPage' })
 
 const { t } = useI18n()
 
@@ -134,8 +138,22 @@ const {
   loadMore,
   setMode,
   setSemesters,
+  syncFromRoute,
   selectResult
 } = useSearchPage()
+
+// The URL owns q/mode: adopt them on entry (deep link, KeepAlive return) and
+// on query changes while shown (back/forward through search states).
+const route = useRoute()
+onMounted(() => void syncFromRoute(route.query))
+onActivated(() => void syncFromRoute(route.query))
+watch(
+  () => route.query,
+  (query) => {
+    if (route.name !== 'search') return
+    void syncFromRoute(query)
+  },
+)
 
 const handleScroll = (event: Event) => {
   const target = event.target as HTMLElement

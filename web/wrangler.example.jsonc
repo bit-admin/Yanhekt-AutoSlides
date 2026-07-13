@@ -16,7 +16,11 @@
   // Worker.
   "assets": {
     "directory": "./dist",
-    "binding": "ASSETS"
+    "binding": "ASSETS",
+    // SPA fallback: unknown paths (vue-router history-mode deep links like
+    // /player/...) serve index.html instead of 404. Applies to the Worker's
+    // ASSETS.fetch() catch-all too.
+    "not_found_handling": "single-page-application"
   },
 
   // Custom domain — Cloudflare creates/manages the DNS record and attaches this

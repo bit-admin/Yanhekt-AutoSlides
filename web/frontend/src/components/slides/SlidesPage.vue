@@ -1,5 +1,5 @@
 <template>
-  <div class="slides-page custom-scrollbar" :class="{ 'review-mode': rv.currentView.value === 'images' }">
+  <div ref="pageEl" class="slides-page custom-scrollbar" :class="{ 'review-mode': rv.currentView.value === 'images' }">
     <!-- Folder list view -->
     <template v-if="rv.currentView.value === 'folders'">
       <div class="page-header">
@@ -119,7 +119,7 @@
       </div>
 
       <!-- Scrolling grid region between the toolbar and the footer -->
-      <div class="grid-scroll custom-scrollbar">
+      <div ref="gridEl" class="grid-scroll custom-scrollbar">
         <div v-if="rv.filteredItems.value.length === 0 && !rv.isLoading.value" class="empty-state">
           <p>{{ rv.folderItems.value.length === 0 ? $t('trash.emptyFolder') : $t('trash.emptyFiltered') }}</p>
         </div>
@@ -188,7 +188,7 @@
 // floating bottom action bar (selection, restore/delete, PDF/ZIP export).
 // Web port of the desktop's ResultsWindow.vue shell (crop/dedup/notes
 // features omitted; no folder select mode — cards expose delete directly).
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import FolderListView from './FolderListView.vue'
 import SlidesImageGrid from './SlidesImageGrid.vue'
@@ -196,11 +196,18 @@ import SlidesPreviewModal from './SlidesPreviewModal.vue'
 import { useResultsView } from '../../composables/useResultsView'
 import { useSlidesExport, type ExportFormat } from '../../composables/useSlidesExport'
 import { navigationStore } from '../../stores/navigationStore'
+import { useKeepScroll } from '../../composables/useKeepScroll'
 import type { ResultsFolder, ResultsItem } from '../../composables/resultsTypes'
+
+defineOptions({ name: 'SlidesPage' })
 
 const { t } = useI18n()
 const rv = useResultsView()
 const slidesExport = useSlidesExport()
+
+const pageEl = ref<HTMLElement | null>(null)
+const gridEl = ref<HTMLElement | null>(null)
+useKeepScroll(pageEl, gridEl)
 
 // The page stays mounted behind the mode-container; refresh when the user
 // navigates back to it so folders extracted since last visit show up.

@@ -1,44 +1,28 @@
-import { ref } from "vue";
-import type { Course } from "../composables/useCourseList";
-import { closePlayback } from "./playbackStore";
+import { computed, ref } from "vue";
+import { router } from "../router";
 import { configStore, persistConfig } from "./configStore";
 
-// Ported (slimmed) from the desktop app's navigationStore. No workspace pages
-// or tabs in the web shell; Settings and pinned courses are supported.
+// Thin façade over vue-router so nav consumers (LeftPanel, Header, mobile
+// bottom nav, page refresh watchers) keep their existing read/call surface.
+// The route is the source of truth; nothing here holds navigation state.
 export type NavTarget = "home" | "live" | "recorded" | "search" | "slides" | "settings";
 
-export interface CourseOpenRequest {
-  mode: "live" | "recorded";
-  course: Course;
-  requestId: number;
-}
+// Which nav entry the current route belongs to (player routes highlight their
+// mode, matching the pre-router behavior).
+const activeNav = computed<NavTarget>(
+  () => (router.currentRoute.value.meta.nav as NavTarget | undefined) ?? "home",
+);
 
-// Module-singleton navigation state shared by the left-panel navigator and
-// MainContent.
-const activeNav = ref<NavTarget>("home");
-const courseOpenRequest = ref<CourseOpenRequest | null>(null);
-// Which subscribed course is currently highlighted in the sidebar (pure UI state,
-// not persisted). Cleared whenever navigation moves elsewhere.
-const activeSubscribed = ref<string | null>(null);
-
-let nextRequestId = 1;
+// Which subscribed course is highlighted in the sidebar: the course open in
+// the recorded sessions/player route, if any.
+const activeSubscribed = computed<string | null>(() => {
+  const route = router.currentRoute.value;
+  const courseId = route.params.courseId;
+  return route.meta.nav === "recorded" && typeof courseId === "string" ? courseId : null;
+});
 
 const navigate = (target: NavTarget) => {
-  activeNav.value = target;
-  activeSubscribed.value = null;
-  // Sidebar navigation always leaves the playback view.
-  closePlayback();
-};
-
-const requestCourseOpen = (mode: "live" | "recorded", course: Course) => {
-  courseOpenRequest.value = { mode, course, requestId: nextRequestId++ };
-  activeNav.value = mode;
-  activeSubscribed.value = null;
-  closePlayback();
-};
-
-const setActiveSubscribed = (id: string | null) => {
-  activeSubscribed.value = id;
+  void router.push({ name: target });
 };
 
 // Sidebar collapse state lives in the unified config store (not a separate key).
@@ -52,11 +36,8 @@ const toggleSidebar = () => {
 
 export const navigationStore = {
   activeNav,
-  courseOpenRequest,
   activeSubscribed,
   isSidebarCollapsed,
   navigate,
-  requestCourseOpen,
-  setActiveSubscribed,
   toggleSidebar,
 };

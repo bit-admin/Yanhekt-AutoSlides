@@ -72,6 +72,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import Header from './components/Header.vue'
 import LeftPanel from './components/LeftPanel.vue'
 import MainContent from './components/MainContent.vue'
@@ -82,8 +83,9 @@ const { isSidebarCollapsed, activeNav, navigate } = navigationStore
 
 const isMobile = ref(false)
 
-const livePlaybackActive = computed(() => playbackStore.active.value?.mode === 'live')
-const recordedPlaybackActive = computed(() => playbackStore.active.value?.mode === 'recorded')
+const route = useRoute()
+const livePlaybackActive = computed(() => route.name === 'player-live')
+const recordedPlaybackActive = computed(() => route.name === 'player-recorded')
 
 const checkMobile = () => {
   isMobile.value = window.innerWidth <= 768

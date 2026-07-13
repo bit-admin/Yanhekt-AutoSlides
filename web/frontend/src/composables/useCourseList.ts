@@ -48,7 +48,9 @@ export const transformLiveStreamToCourse = (stream: LiveStream): Course => {
   });
 
   return {
-    id: stream.id || stream.live_id || "",
+    // Runtime ids are numbers despite the declared string types — normalize
+    // so route params and stash keys (always strings) compare reliably.
+    id: String(stream.id || stream.live_id || ""),
     title: stream.title || "Untitled",
     instructor: stream.session?.professor?.name || "Unknown",
     time: `${startTime} - ${endTime}`,
@@ -70,7 +72,7 @@ export const transformCourseDataToCourse = (courseData: CourseData): Course => {
   const timeInfo = `${courseData.school_year} ${semesterText}`;
 
   return {
-    id: courseData.id,
+    id: String(courseData.id),
     title: courseData.name_zh,
     instructor: professors,
     time: timeInfo,

@@ -4,7 +4,7 @@
       <h2 class="page-title">{{ mode === 'live' ? $t('courses.title.liveStreams') : $t('courses.title.recordings') }}</h2>
     </div>
 
-    <div class="content custom-scrollbar" @scroll="handleScroll">
+    <div ref="contentEl" class="content custom-scrollbar" @scroll="handleScroll">
       <div v-if="errorMessage" class="error-message">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/>
@@ -91,16 +91,22 @@
 </template>
 
 <script setup lang="ts">
-import { toRef, onMounted, watch } from 'vue'
+import { ref, toRef, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCourseList } from '../../composables/useCourseList'
 import { navigationStore } from '../../stores/navigationStore'
 import { authStore } from '../../stores/authStore'
 import { getCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
+import { useKeepScroll } from '../../composables/useKeepScroll'
+
+defineOptions({ name: 'CoursePage' })
 
 const props = defineProps<{
   mode: 'live' | 'recorded'
 }>()
+
+const contentEl = ref<HTMLElement | null>(null)
+useKeepScroll(contentEl)
 
 const { t } = useI18n()
 const { activeNav } = navigationStore

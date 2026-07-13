@@ -13,7 +13,8 @@
     "subscriptions": "订阅",
     "slidesReview": "幻灯片",
     "cloudNotes": "云盘",
-    "cloudIndex": "云索引"
+    "cloudIndex": "云索引",
+    "search": "搜索"
   },
   "cloudIndex": {
     "loading": "正在加载幻灯片…",
@@ -704,7 +705,14 @@
       "exitFullscreen": "退出全屏",
       "moreOptions": "更多选项"
     },
-    "captureNotSupported": "当前浏览器不支持对此视频流进行幻灯片捕捉。"
+    "captureNotSupported": "当前浏览器不支持对此视频流进行幻灯片捕捉。",
+    "signInToWatch": "登录后即可观看该课程",
+    "streamNotFound": "未找到该直播，可能已结束",
+    "sessionNotFound": "该课程中未找到此课次",
+    "goToLive": "前往直播",
+    "goToCourse": "前往课程",
+    "loadFailed": "加载播放信息失败",
+    "confirmLeaveExtraction": "幻灯片提取正在运行，确定离开并停止提取吗？"
   },
   "sessions": {
     "pin": "订阅",
