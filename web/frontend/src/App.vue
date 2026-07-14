@@ -1,5 +1,9 @@
 <template>
   <div class="app">
+    <!-- Full-page routes (e.g. login) render standalone, no site chrome -->
+    <RouterView v-if="isFullPage" />
+
+    <template v-else>
     <Header />
     <div class="layout">
       <!-- Desktop sidebar (hidden on mobile and in cinema mode) -->
@@ -67,6 +71,7 @@
         <span class="bottom-nav-label">{{ $t('settings.settings') }}</span>
       </button>
     </nav>
+    </template>
   </div>
 </template>
 
@@ -84,6 +89,7 @@ const { isSidebarCollapsed, activeNav, navigate } = navigationStore
 const isMobile = ref(false)
 
 const route = useRoute()
+const isFullPage = computed(() => route.meta.fullPage === true)
 const livePlaybackActive = computed(() => route.name === 'player-live')
 const recordedPlaybackActive = computed(() => route.name === 'player-recorded')
 

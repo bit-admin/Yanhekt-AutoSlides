@@ -101,32 +101,15 @@
       </div>
       <div v-else class="auth-wrap">
         <!-- Not Logged In -->
-        <div v-if="!isLoggedIn" ref="signinMenuRef" class="signin-control">
-          <button class="signin-trigger-btn" type="button" @click="toggleSigninMenu">
-            <span class="signin-icon-wrap">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-            </span>
-            <span class="signin-text">{{ $t('auth.signIn') }}</span>
-          </button>
-          
-          <div v-if="showSigninMenu" class="dropdown-menu signin-dropdown">
-            <button type="button" class="dropdown-item" @click="openSignIn('password')">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
-              </svg>
-              <span>{{ $t('webAuth.signInWithPassword') }}</span>
-            </button>
-            <button type="button" class="dropdown-item" @click="openSignIn('token')">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
-              </svg>
-              <span>{{ $t('webAuth.signInWithToken') }}</span>
-            </button>
-          </div>
-        </div>
+        <button v-if="!isLoggedIn" class="signin-trigger-btn" type="button" @click="goToLogin">
+          <span class="signin-icon-wrap">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </span>
+          <span class="signin-text">{{ $t('auth.signIn') }}</span>
+        </button>
 
         <!-- Logged In -->
         <template v-else>
@@ -202,21 +185,15 @@
       </template>
     </div>
   </div>
-
-    <SignInModal
-      v-if="showSignInModal"
-      :initial-mode="signInMode"
-      @close="showSignInModal = false"
-    />
   </header>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { navigationStore } from '../stores/navigationStore'
 import { authStore } from '../stores/authStore'
 import { useSearchPage } from '../composables/useSearchPage'
-import SignInModal from './SignInModal.vue'
 import { subscribedRecordedCourses, openSubscribedCourse } from '../composables/subscribedCourses'
 import { getAvatarBg, getInitials } from '../composables/courseCover'
 import type { SubscribedCourse } from '../stores/configStore'
@@ -258,11 +235,10 @@ const clickSubscribedCourse = (course: SubscribedCourse) => {
 
 const subscribedCount = computed(() => subscribedRecordedCourses.value.length)
 
-const showSigninMenu = ref(false)
-const signinMenuRef = ref<HTMLElement | null>(null)
-
-const showSignInModal = ref(false)
-const signInMode = ref<'password' | 'token'>('password')
+const router = useRouter()
+const goToLogin = () => {
+  void router.push({ name: 'login' })
+}
 
 // Responsive state
 const showMobileSearch = ref(false)
@@ -281,20 +257,6 @@ const toggleUserMenu = () => {
 
 const closeUserMenu = () => {
   showUserMenu.value = false
-}
-
-const toggleSigninMenu = () => {
-  showSigninMenu.value = !showSigninMenu.value
-}
-
-const closeSigninMenu = () => {
-  showSigninMenu.value = false
-}
-
-const openSignIn = (mode: 'password' | 'token') => {
-  closeSigninMenu()
-  signInMode.value = mode
-  showSignInModal.value = true
 }
 
 const openSettings = () => {
@@ -323,10 +285,6 @@ const handleDocumentClick = (event: MouseEvent) => {
 
   if (showUserMenu.value && userInfoRef.value && target && !userInfoRef.value.contains(target)) {
     closeUserMenu()
-  }
-
-  if (showSigninMenu.value && signinMenuRef.value && target && !signinMenuRef.value.contains(target)) {
-    closeSigninMenu()
   }
 
   if (showBellMenu.value && bellMenuRef.value && target && !bellMenuRef.value.contains(target)) {
@@ -540,10 +498,6 @@ onUnmounted(() => {
 }
 
 /* YouTube Style Sign In Pill */
-.signin-control {
-  position: relative;
-}
-
 .signin-trigger-btn {
   display: flex;
   align-items: center;
@@ -615,10 +569,6 @@ onUnmounted(() => {
   box-shadow: 0 4px 20px var(--shadow-lg);
   padding: 0.5rem 0;
   z-index: 1000;
-}
-
-.signin-dropdown {
-  width: 12.5rem;
 }
 
 .user-profile-header {

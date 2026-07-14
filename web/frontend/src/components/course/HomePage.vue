@@ -1,66 +1,66 @@
 <template>
   <div ref="pageEl" class="home-page custom-scrollbar">
-    <!-- Greeting & Header -->
-    <div class="home-hero">
-      <h1 class="home-greeting">{{ greetingText }}</h1>
-    </div>
-
-    <!-- YouTube-style scrollable horizontal chips -->
-    <div class="chips-container custom-scrollbar-x">
-      <button 
-        class="chip active" 
-        @click="navigate('home')"
-      >
-        {{ $t('navigation.home') }}
-      </button>
-
-      <!-- Subscribed recorded courses as chips -->
-      <button
-        v-for="c in subscribedRecordedCourses"
-        :key="'chip-pin:' + c.id"
-        class="chip chip--subscribed"
-        @click="openSubscribedCourse(c)"
-      >
-        <span class="chip-dot"></span>
-        <span class="chip-label">{{ c.title }}</span>
-        <span
-          class="chip-remove"
-          :title="$t('sessions.unsubscribe')"
-          @click.stop="removeSubscribedCourse(c.id)"
-        >
-          ×
-        </span>
-      </button>
-
-      <!-- Saved Searches as chips -->
-      <button
-        v-for="entry in mergedSavedSearches"
-        :key="'chip-search:' + entry.mode + ':' + entry.keyword"
-        :class="['chip', `chip--${entry.mode}`]"
-        @click="openSavedSearch(entry.keyword, entry.mode)"
-      >
-        <span class="chip-label">{{ entry.keyword }}</span>
-        <span class="chip-mode">{{ $t(entry.mode === 'live' ? 'navigation.live' : 'navigation.recorded') }}</span>
-        <span
-          class="chip-remove"
-          :title="$t('courses.savedSearches.remove')"
-          @click.stop="removeSavedSearch(entry.mode, entry.keyword)"
-        >
-          ×
-        </span>
-      </button>
-
-      <!-- Add Chip Button -->
-      <button class="chip chip--add" @click="openAddModal">
-        <svg class="chip-add-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="12" y1="5" x2="12" y2="19"/>
-          <line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        <span>{{ $t('courses.savedSearches.save') }}</span>
-      </button>
-    </div>
-
     <template v-if="isLoggedIn">
+      <!-- Greeting & Header -->
+      <div class="home-hero">
+        <h1 class="home-greeting">{{ greetingText }}</h1>
+      </div>
+
+      <!-- YouTube-style scrollable horizontal chips -->
+      <div class="chips-container custom-scrollbar-x">
+        <button
+          class="chip active"
+          @click="navigate('home')"
+        >
+          {{ $t('navigation.home') }}
+        </button>
+
+        <!-- Subscribed recorded courses as chips -->
+        <button
+          v-for="c in subscribedRecordedCourses"
+          :key="'chip-pin:' + c.id"
+          class="chip chip--subscribed"
+          @click="openSubscribedCourse(c)"
+        >
+          <span class="chip-dot"></span>
+          <span class="chip-label">{{ c.title }}</span>
+          <span
+            class="chip-remove"
+            :title="$t('sessions.unsubscribe')"
+            @click.stop="removeSubscribedCourse(c.id)"
+          >
+            ×
+          </span>
+        </button>
+
+        <!-- Saved Searches as chips -->
+        <button
+          v-for="entry in mergedSavedSearches"
+          :key="'chip-search:' + entry.mode + ':' + entry.keyword"
+          :class="['chip', `chip--${entry.mode}`]"
+          @click="openSavedSearch(entry.keyword, entry.mode)"
+        >
+          <span class="chip-label">{{ entry.keyword }}</span>
+          <span class="chip-mode">{{ $t(entry.mode === 'live' ? 'navigation.live' : 'navigation.recorded') }}</span>
+          <span
+            class="chip-remove"
+            :title="$t('courses.savedSearches.remove')"
+            @click.stop="removeSavedSearch(entry.mode, entry.keyword)"
+          >
+            ×
+          </span>
+        </button>
+
+        <!-- Add Chip Button -->
+        <button class="chip chip--add" @click="openAddModal">
+          <svg class="chip-add-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          <span>{{ $t('courses.savedSearches.save') }}</span>
+        </button>
+      </div>
+
       <!-- Live Streams Section -->
       <section class="home-section">
         <h2 class="home-section-title">{{ $t('home.myLiveStreams') }}</h2>
@@ -178,7 +178,10 @@
         </div>
       </section>
     </template>
-    <p v-else class="home-signin-hint">{{ $t('home.signInHint') }}</p>
+    <div v-else class="signin-panel">
+      <h2 class="signin-panel-title">{{ $t('home.signInTitle') }}</h2>
+      <p class="signin-panel-subtitle">{{ $t('home.signInHint') }}</p>
+    </div>
 
     <!-- Save Search Modal (Pill styled) -->
     <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
@@ -499,11 +502,27 @@ watch(activeNav, (nav) => {
   color: var(--text-primary);
 }
 
-.home-signin-hint {
-  margin-top: 3rem;
+.signin-panel {
+  max-width: 42rem;
+  margin: 1.5rem auto 0;
+  padding: 1.25rem 2rem;
+  border-radius: 1.25rem;
+  background-color: var(--bg-elevated);
+  box-shadow: 0 4px 20px var(--shadow-md);
   text-align: center;
-  color: var(--text-muted);
-  font-size: 0.875rem;
+}
+
+.signin-panel-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.signin-panel-subtitle {
+  margin: 0.375rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
 }
 
 /* YouTube Style Responsive Grid */

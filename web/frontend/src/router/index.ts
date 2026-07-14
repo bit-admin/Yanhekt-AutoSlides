@@ -9,6 +9,7 @@ import RecordedCourseRoute from "../components/course/RecordedCourseRoute.vue";
 import SlidesPage from "../components/slides/SlidesPage.vue";
 import SettingsPage from "../components/SettingsPage.vue";
 import PlayerRoute from "../components/video/PlayerRoute.vue";
+import LoginPage from "../components/LoginPage.vue";
 
 // Routes are the source of truth for navigation; navigationStore is a thin
 // façade over this instance. Exported as a module singleton so the singleton
@@ -21,6 +22,8 @@ declare module "vue-router" {
     keepAlive?: boolean;
     /** i18n key for document.title. */
     titleKey?: string;
+    /** Renders standalone in App.vue — no Header/LeftPanel/bottom nav. */
+    fullPage?: boolean;
   }
 }
 
@@ -70,6 +73,12 @@ export const router = createRouter({
       path: "/settings",
       component: SettingsPage,
       meta: { nav: "settings", keepAlive: true, titleKey: "settings.settings" },
+    },
+    {
+      name: "login",
+      path: "/login",
+      component: LoginPage,
+      meta: { fullPage: true, keepAlive: false, titleKey: "webAuth.pageTitle" },
     },
     {
       name: "player-live",
