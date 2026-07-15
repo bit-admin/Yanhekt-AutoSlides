@@ -296,6 +296,7 @@
     "signingIn": "Signing in…",
     "tokenConfirm": "Verify",
     "tokenContinue": "Continue",
+    "bookmarksBarHint": "No bookmarks bar? Press {key} to show it.",
     "tokenHint": "Drag the button above to your bookmarks bar, then click it on yanhekt.cn to fetch your token.",
     "tokenOptionDesc": "Import a session from yanhekt.cn",
     "tokenPlaceholder": "Paste your Yanhekt token here",

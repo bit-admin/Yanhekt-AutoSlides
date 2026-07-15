@@ -296,6 +296,7 @@
     "signingIn": "登录中…",
     "tokenConfirm": "验证",
     "tokenContinue": "继续",
+    "bookmarksBarHint": "没有看到书签栏？按 {key} 显示。",
     "tokenHint": "将上方的按钮拖到书签栏，然后在 yanhekt.cn 点击它获取你的 Token。",
     "tokenOptionDesc": "从延河课堂导入登录状态",
     "tokenPlaceholder": "在此粘贴延河课堂 Token",

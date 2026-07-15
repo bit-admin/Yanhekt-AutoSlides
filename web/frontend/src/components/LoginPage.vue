@@ -98,43 +98,52 @@
               <!-- Step 2b: token — the draggable, SVG-drawn bookmarklet button -->
               <div v-else-if="step === 'token-get'" class="login-form">
                 <div class="login-fields login-fields--center">
-                  <a
-                    class="bm-link"
-                    :href="bookmarkletHref"
-                    @click.prevent
-                    draggable="true"
-                    :title="$t('webAuth.bookmarkletLabel')"
-                  >
-                    <svg class="bm-art" viewBox="0 0 360 132" xmlns="http://www.w3.org/2000/svg" role="img" :aria-label="$t('webAuth.bookmarkletLabel')">
-                      <defs>
-                        <filter id="bmShadow" x="-25%" y="-25%" width="150%" height="170%">
-                          <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.18" />
-                        </filter>
-                      </defs>
-
-                      <!-- Browser bookmarks bar with a dashed drop-slot -->
+                  <div class="bm-stage">
+                    <!-- Backdrop: bookmarks bar with a dashed drop-slot, and the arrow -->
+                    <svg class="bm-art" viewBox="0 0 360 132" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <rect class="bm-bar" x="18" y="2" width="324" height="22" rx="7" />
                       <rect class="bm-mark" x="32" y="9" width="30" height="8" rx="4" />
                       <rect class="bm-mark" x="70" y="9" width="22" height="8" rx="4" />
                       <rect class="bm-mark" x="100" y="9" width="22" height="8" rx="4" />
                       <rect class="bm-slot" x="150" y="6" width="44" height="14" rx="4" />
 
-                      <!-- Dashed arrow from the button up into the slot -->
                       <path class="bm-arrow" d="M176 62 C 168 46 168 40 172 30" fill="none" />
                       <path class="bm-arrow" d="M166 36 L 172 28 L 178 36" fill="none" />
+                    </svg>
 
-                      <!-- The button itself -->
-                      <g filter="url(#bmShadow)">
-                        <rect class="bm-btn" x="48" y="66" width="264" height="54" rx="15" />
-                      </g>
-                      <path class="bm-glyph" d="M92 80 a2 2 0 0 1 2 -2 h13 a2 2 0 0 1 2 2 v23 l-8.5 -6.5 -8.5 6.5 z" />
-                      <text class="bm-label" x="196" y="99" text-anchor="middle">{{ $t('webAuth.bookmarkletLabel') }}</text>
+                    <!-- Only the button is the drag source -->
+                    <a
+                      class="bm-link"
+                      :href="bookmarkletHref"
+                      @click.prevent
+                      draggable="true"
+                      :title="$t('webAuth.bookmarkletLabel')"
+                    >
+                      <svg class="bm-btn-art" viewBox="0 0 264 54" xmlns="http://www.w3.org/2000/svg" role="img" :aria-label="$t('webAuth.bookmarkletLabel')">
+                        <defs>
+                          <filter id="bmShadow" x="-25%" y="-25%" width="150%" height="170%">
+                            <feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#000000" flood-opacity="0.18" />
+                          </filter>
+                        </defs>
+                        <g filter="url(#bmShadow)">
+                          <rect class="bm-btn" x="0" y="0" width="264" height="54" rx="15" />
+                        </g>
+                        <path class="bm-glyph" d="M44 14 a2 2 0 0 1 2 -2 h13 a2 2 0 0 1 2 2 v23 l-8.5 -6.5 -8.5 6.5 z" />
+                        <text class="bm-label" x="148" y="33" text-anchor="middle">{{ $t('webAuth.bookmarkletLabel') }}</text>
+                      </svg>
+                    </a>
 
-                      <!-- Little grab cursor to signal dragging -->
+                    <!-- Little grab cursor to signal dragging, drawn over the button -->
+                    <svg class="bm-cursor-art" viewBox="0 0 360 132" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                       <path class="bm-cursor" d="M296 100 l 0 26 l 6.5 -6.5 l 4.5 10 l 5 -2 l -4.5 -10 l 9 -0.5 z" />
                     </svg>
-                  </a>
-                  <p class="login-note login-note--center">{{ $t('webAuth.tokenHint') }}</p>
+                  </div>
+                  <div class="login-note-group">
+                    <p class="login-note login-note--center">{{ $t('webAuth.tokenHint') }}</p>
+                    <p class="login-note login-note--faint">
+                      {{ $t('webAuth.bookmarksBarHint', { key: bookmarksBarShortcut }) }}
+                    </p>
+                  </div>
                 </div>
                 <div class="login-actions">
                   <button type="button" class="login-link-btn" @click="backToChoose">{{ $t('webAuth.back') }}</button>
@@ -238,6 +247,16 @@ const isSubmitting = ref(false)
 const bookmarkletHref = computed(() =>
   generateBookmarklet(locale.value.startsWith('zh') ? 'zh' : 'en'),
 )
+
+// The bookmarks bar can't be detected from a page, so the hint always shows —
+// only the shortcut adapts. It is ⌘⇧B / Ctrl+Shift+B across every major browser.
+const bookmarksBarShortcut = (() => {
+  const platform =
+    (navigator as { userAgentData?: { platform?: string } }).userAgentData?.platform ??
+    navigator.platform ??
+    ''
+  return /mac|iphone|ipad|ipod/i.test(platform) ? '⌘⇧B' : 'Ctrl+Shift+B'
+})()
 
 const currentLang = computed(() => getCurrentLocale())
 const languageOptions = [
@@ -551,6 +570,23 @@ html[data-theme='dark'] .login-input {
   color: var(--text-secondary);
 }
 
+.login-note-group {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+/* Always-on nudge: a page can't tell whether the bookmarks bar is showing. */
+.login-note--faint {
+  width: 100%;
+  text-align: left;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
 .login-note--center {
   width: 100%;
   text-align: left;
@@ -571,7 +607,7 @@ html[data-theme='dark'] .login-input {
   align-items: center;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 2rem;
+  margin-top: 0.95rem;
 }
 
 .login-link-btn {
@@ -613,11 +649,27 @@ html[data-theme='dark'] .login-input {
   cursor: not-allowed;
 }
 
-/* ---- SVG-drawn draggable bookmarklet button ---- */
-.bm-link {
-  display: block;
+/* ---- SVG-drawn bookmarklet art; only .bm-link (the button) is draggable ---- */
+.bm-stage {
+  position: relative;
   width: 100%;
   max-width: 21rem;
+}
+
+.bm-art {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Button box, as a fraction of the 360x132 backdrop viewBox: x=48 y=66 w=264 h=54 */
+.bm-link {
+  position: absolute;
+  left: 13.3333%;
+  top: 50%;
+  width: 73.3333%;
+  height: 40.9091%;
   cursor: grab;
   text-decoration: none;
   transition: transform 0.14s ease;
@@ -631,11 +683,20 @@ html[data-theme='dark'] .login-input {
   cursor: grabbing;
 }
 
-.bm-art {
+.bm-btn-art {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
   overflow: visible;
+}
+
+.bm-cursor-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
 }
 
 .bm-bar {
