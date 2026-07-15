@@ -5,6 +5,46 @@
       "general": "一般"
     }
   },
+  "apps": {
+    "allDownloads": "全部下载",
+    "autoslides": {
+      "blurb": "完整的延河课堂客户端。观看直播与录播、下载课程录像，并在播放的同时提取幻灯片，无需先把视频下载下来。另有 AI 过滤、幻灯片审查，以及 PDF / PPTX 导出。",
+      "input": "直接播放延河课堂"
+    },
+    "disclaimer": "AutoSlides 为第三方工具，仅供个人学习之用，与北京理工大学无任何关联，亦未获其认可。",
+    "documentation": "文档",
+    "download": "下载",
+    "errorBody": "直连 GitHub 与镜像均无响应。",
+    "eyebrow": "桌面应用",
+    "extractor": {
+      "blurb": "面向你已有的视频文件——屏幕录制、会议演讲，或任意 MP4。借助硬件解码，一节课的视频快至 10 秒即可处理完成，并支持过滤、裁剪、审查与导出 PDF。",
+      "input": "读取本地视频文件"
+    },
+    "forYourPlatform": "适用于你的 {platform}",
+    "forkLead": "取决于你的视频从哪里来。",
+    "forkTitle": "你需要哪一个？",
+    "heroLead": "两款桌面应用，只在幻灯片真正切换的那一刻保留画面。全部处理都在你自己的电脑上完成。",
+    "heroTitleIn": "输入课程视频，",
+    "heroTitleOut": "输出幻灯片。",
+    "kind": {
+      "installer": "安装程序",
+      "package": "软件包",
+      "portable": "免安装"
+    },
+    "loading": "正在从 GitHub 加载…",
+    "mirror": "镜像",
+    "mirrorHint": "GitHub 太慢或无法访问？镜像会通过 gh-proxy.org 下载同一个文件。",
+    "mirrorTitle": "通过 gh-proxy.org 下载",
+    "openReleases": "打开 release 页面",
+    "otherPlatforms": "其他平台",
+    "pageTitle": "桌面应用",
+    "readmeErrorBody": "文档未能加载。",
+    "releaseNotes": "完整说明",
+    "retry": "重试",
+    "ribbonCaption": "只有幻灯片发生变化的画面才会被保留。",
+    "viewOnGitHub": "GitHub",
+    "whatsNew": "{version} 更新内容"
+  },
   "auth": {
     "signIn": "登录",
     "signOut": "退出登录"
@@ -32,6 +72,15 @@
       "recordings": "录播课程"
     }
   },
+  "feedback": {
+    "close": "关闭",
+    "lead": "遇到问题，或有功能建议？选择你方便的方式。",
+    "openIssue": "提交 Issue",
+    "openIssueDesc": "在 GitHub 上公开反馈，任何人都可以关注进展。",
+    "sendEmail": "给我们发送邮件",
+    "sendEmailDesc": "私下写信给我们。将打开你的邮件应用并预填相关信息。",
+    "title": "反馈问题"
+  },
   "home": {
     "academicCourse": "课程",
     "liveSession": "直播课",
@@ -40,15 +89,43 @@
     "signInHint": "登录后可查看你的直播和录播",
     "signInTitle": "开始使用 AutoSlides"
   },
+  "legal": {
+    "bilingualNote": "本文件以英文及繁體中文發佈，並以英文版本為準。",
+    "indexLead": "各章節的簡要導讀，不能取代閱讀文件全文。",
+    "indexTitle": "本文件包含什麼？",
+    "notice": "第三方工具，仅供个人学习使用。与北京理工大学无关联，亦未获其认可。",
+    "privacy": "隐私",
+    "terms": "条款",
+    "updated": "日期：{date}"
+  },
   "navigation": {
+    "desktopApp": "下载桌面版",
+    "feedback": "反馈问题",
     "home": "主页",
+    "legal": "法律",
     "live": "直播课程",
     "menu": "菜单",
+    "openGitHub": "GitHub",
+    "openYanhekt": "延河课堂",
     "pinned": "已订阅",
     "recorded": "录播课程",
+    "search": "搜索",
     "searchPlaceholder": "搜索",
     "slidesReview": "幻灯片",
     "subscriptions": "订阅"
+  },
+  "notice": {
+    "accept": "知道了",
+    "affiliation": "AutoSlides 是独立的第三方工具，仅供个人学习使用。与北京理工大学无关联，亦未获其认可。",
+    "agree": "继续使用即表示你同意《条款》，并已知悉《隐私》政策。",
+    "cookies": "AutoSlides 不会设置任何自己的 Cookie，也没有广告、分析或追踪。保护本站的 Cloudflare 可能会设置一个必要的 Cookie，用于区分真实访客与机器人。",
+    "items": {
+      "settings": "记住你的设置，例如主题、语言和已订阅的课程",
+      "signedIn": "保持你的延河课堂登录状态——登录凭证仅保存在此浏览器中",
+      "slides": "保存你提取的幻灯片，仅存放在此浏览器中，永远不会上传"
+    },
+    "lead": "AutoSlides 会在你的浏览器中存储数据，用于：",
+    "title": "在你继续使用 AutoSlides 之前"
   },
   "pdfmaker": {
     "makeOutput": "生成 {format}"
@@ -208,17 +285,15 @@
     "close": "关闭",
     "continueSubtitle": "以继续使用 AutoSlides",
     "formTitle": "登录",
-    "help": "帮助",
     "invalidToken": "Token 无效，请重试",
+    "pageTitle": "登录",
     "passwordDisclaimer": "您的账号密码仅用于登录学校统一身份认证，不会被存储。",
     "passwordOptionDesc": "使用你的统一身份认证账号登录",
     "passwordPlaceholder": "密码",
-    "privacy": "隐私",
     "signIn": "登录",
     "signInWithPassword": "使用密码登录",
     "signInWithToken": "使用 Token 登录",
     "signingIn": "登录中…",
-    "terms": "条款",
     "tokenConfirm": "验证",
     "tokenContinue": "继续",
     "tokenHint": "将上方的按钮拖到书签栏，然后在 yanhekt.cn 点击它获取你的 Token。",

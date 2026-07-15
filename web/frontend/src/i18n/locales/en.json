@@ -5,6 +5,46 @@
       "general": "General"
     }
   },
+  "apps": {
+    "allDownloads": "All downloads",
+    "autoslides": {
+      "blurb": "The full Yanhekt client. Watch live and recorded lectures, download recordings, and extract slides while the video plays — there is no separate download step. Adds AI filtering, slide review, and PDF or PPTX export.",
+      "input": "Streams from Yanhekt"
+    },
+    "disclaimer": "AutoSlides is a third-party tool for personal study. It is not affiliated with, endorsed by, or connected to Beijing Institute of Technology.",
+    "documentation": "Documentation",
+    "download": "Download",
+    "errorBody": "GitHub and the mirror both failed to answer.",
+    "eyebrow": "Desktop apps",
+    "extractor": {
+      "blurb": "A native tool for video you already have — screen recordings, conference talks, any MP4. Hardware decoding processes a lecture in as little as 10 seconds, then filters, crops, reviews, and exports to PDF.",
+      "input": "Reads video files"
+    },
+    "forYourPlatform": "For your {platform}",
+    "forkLead": "It depends on where the video comes from.",
+    "forkTitle": "Which one do you need?",
+    "heroLead": "Two desktop apps that watch a lecture for the moment the slide actually changes, and keep only those frames. Everything runs on your own machine.",
+    "heroTitleIn": "Lecture video in.",
+    "heroTitleOut": "Slides out.",
+    "kind": {
+      "installer": "Installer",
+      "package": "Package",
+      "portable": "Portable"
+    },
+    "loading": "Loading from GitHub…",
+    "mirror": "Mirror",
+    "mirrorHint": "GitHub slow or unreachable? Mirror routes the same file through gh-proxy.org.",
+    "mirrorTitle": "Download through gh-proxy.org",
+    "openReleases": "Open releases page",
+    "otherPlatforms": "Other platforms",
+    "pageTitle": "Desktop Apps",
+    "readmeErrorBody": "The documentation didn't load.",
+    "releaseNotes": "Full notes",
+    "retry": "Try again",
+    "ribbonCaption": "Only the frames where the slide changes are kept.",
+    "viewOnGitHub": "GitHub",
+    "whatsNew": "What's new in {version}"
+  },
   "auth": {
     "signIn": "Sign In",
     "signOut": "Sign Out"
@@ -32,6 +72,15 @@
       "recordings": "Recordings"
     }
   },
+  "feedback": {
+    "close": "Close",
+    "lead": "Found a bug, or want to suggest something? Pick whichever suits you.",
+    "openIssue": "Open an Issue",
+    "openIssueDesc": "Report it on GitHub, where anyone can follow along.",
+    "sendEmail": "Send Us an Email",
+    "sendEmailDesc": "Write to the team privately. Opens your mail app with the details filled in.",
+    "title": "Feedback"
+  },
   "home": {
     "academicCourse": "Academic Course",
     "liveSession": "Live Session",
@@ -40,15 +89,43 @@
     "signInHint": "Sign in to see your live streams and recordings",
     "signInTitle": "Get started with AutoSlides"
   },
+  "legal": {
+    "bilingualNote": "This document is published in English and 繁體中文. The English version prevails.",
+    "indexLead": "A short guide to each section. It is not a substitute for reading the document in full.",
+    "indexTitle": "What's in this document?",
+    "notice": "A third-party tool for personal study. Not affiliated with or endorsed by BIT.",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "updated": "Dated: {date}"
+  },
   "navigation": {
+    "desktopApp": "Desktop App",
+    "feedback": "Feedback",
     "home": "Home",
+    "legal": "Legal",
     "live": "Live",
     "menu": "Menu",
+    "openGitHub": "GitHub",
+    "openYanhekt": "Yanhekt",
     "pinned": "Subscribed",
     "recorded": "Recorded",
+    "search": "Search",
     "searchPlaceholder": "Search",
     "slidesReview": "Slides",
     "subscriptions": "Subscriptions"
+  },
+  "notice": {
+    "accept": "Got it",
+    "affiliation": "AutoSlides is an independent third-party tool for personal study. It is not affiliated with, endorsed by, or connected to Beijing Institute of Technology.",
+    "agree": "By continuing, you agree to the Terms and acknowledge the Privacy Policy.",
+    "cookies": "AutoSlides sets no cookies of its own, and has no ads, analytics, or tracking. Cloudflare, which protects this site, may set a strictly necessary cookie to tell real visitors from bots.",
+    "items": {
+      "settings": "Remember your settings, such as theme, language, and subscribed courses",
+      "signedIn": "Keep you signed in to Yanhekt — your sign-in token stays in this browser",
+      "slides": "Save the slides you extract, in this browser only — they are never uploaded"
+    },
+    "lead": "AutoSlides stores data in your browser to:",
+    "title": "Before you continue to AutoSlides"
   },
   "pdfmaker": {
     "makeOutput": "Make {format}"
@@ -208,17 +285,15 @@
     "close": "Close",
     "continueSubtitle": "to continue to AutoSlides",
     "formTitle": "Sign in",
-    "help": "Help",
     "invalidToken": "Invalid token, please try again",
+    "pageTitle": "Sign In",
     "passwordDisclaimer": "Your credentials are only used to sign in to school SSO and are never stored.",
     "passwordOptionDesc": "Sign in with your school SSO account",
     "passwordPlaceholder": "Password",
-    "privacy": "Privacy",
     "signIn": "Sign In",
     "signInWithPassword": "Sign in with Password",
     "signInWithToken": "Sign in with Token",
     "signingIn": "Signing in…",
-    "terms": "Terms",
     "tokenConfirm": "Verify",
     "tokenContinue": "Continue",
     "tokenHint": "Drag the button above to your bookmarks bar, then click it on yanhekt.cn to fetch your token.",

@@ -10,6 +10,8 @@ import SlidesPage from "../components/slides/SlidesPage.vue";
 import SettingsPage from "../components/SettingsPage.vue";
 import PlayerRoute from "../components/video/PlayerRoute.vue";
 import LoginPage from "../components/LoginPage.vue";
+import AppsPage from "../components/AppsPage.vue";
+import LegalPage from "../components/legal/LegalPage.vue";
 
 // Routes are the source of truth for navigation; navigationStore is a thin
 // façade over this instance. Exported as a module singleton so the singleton
@@ -79,6 +81,29 @@ export const router = createRouter({
       path: "/login",
       component: LoginPage,
       meta: { fullPage: true, keepAlive: false, titleKey: "webAuth.pageTitle" },
+    },
+    {
+      // Opened in its own tab from the sidebar; standalone chrome so it reads
+      // as a product page rather than a view inside the player app.
+      name: "apps",
+      path: "/apps",
+      component: AppsPage,
+      meta: { fullPage: true, keepAlive: false, titleKey: "apps.pageTitle" },
+    },
+    {
+      // Route names match LegalDocId — the legal sidebar links by name.
+      name: "terms",
+      path: "/terms",
+      component: LegalPage,
+      props: { docId: "terms" },
+      meta: { fullPage: true, keepAlive: false, titleKey: "legal.terms" },
+    },
+    {
+      name: "privacy",
+      path: "/privacy",
+      component: LegalPage,
+      props: { docId: "privacy" },
+      meta: { fullPage: true, keepAlive: false, titleKey: "legal.privacy" },
     },
     {
       name: "player-live",

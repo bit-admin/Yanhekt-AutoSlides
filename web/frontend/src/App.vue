@@ -72,15 +72,21 @@
       </button>
     </nav>
     </template>
+
+    <!-- First-run notice. Skipped on full-page routes so its own Terms/Privacy
+         links are reachable; it reappears on return until acknowledged. -->
+    <FirstRunNotice v-if="!isFullPage && !noticeStore.acknowledged.value" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import FirstRunNotice from './components/FirstRunNotice.vue'
 import Header from './components/Header.vue'
 import LeftPanel from './components/LeftPanel.vue'
 import MainContent from './components/MainContent.vue'
+import { noticeStore } from './stores/noticeStore'
 import { playbackStore } from './stores/playbackStore'
 import { navigationStore } from './stores/navigationStore'
 

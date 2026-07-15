@@ -77,6 +77,71 @@
               </button>
             </div>
           </div>
+
+          <div class="nav-divider" v-if="subscribedRecordedCourses.length > 0"></div>
+
+          <div class="nav-items">
+            <button class="nav-item" @click="openYanhekt">
+              <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+              <span>{{ $t('navigation.openYanhekt') }}</span>
+              <svg class="nav-item-external" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 3h6v6"/>
+                <path d="M10 14L21 3"/>
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              </svg>
+            </button>
+            <button class="nav-item" @click="openApps">
+              <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                <path d="M8 21h8"/>
+                <path d="M12 17v4"/>
+                <path d="m9 8 3 2.5L9 13"/>
+              </svg>
+              <span>{{ $t('navigation.desktopApp') }}</span>
+              <svg class="nav-item-external" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 3h6v6"/>
+                <path d="M10 14L21 3"/>
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              </svg>
+            </button>
+            <button class="nav-item" @click="openGitHub">
+              <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
+              </svg>
+              <span>{{ $t('navigation.openGitHub') }}</span>
+              <svg class="nav-item-external" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M15 3h6v6"/>
+                <path d="M10 14L21 3"/>
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              </svg>
+            </button>
+          </div>
+
+          <div class="nav-divider"></div>
+
+          <div class="nav-items">
+            <!-- No external arrow: this one opens a modal, it doesn't leave. -->
+            <button class="nav-item" @click="showFeedback = true">
+              <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/>
+              </svg>
+              <span>{{ $t('navigation.feedback') }}</span>
+            </button>
+          </div>
+
+          <div class="nav-divider"></div>
+
+          <!-- Legal: quiet links plus the standing disclaimer, YouTube-footer style. -->
+          <nav class="legal-links" :aria-label="$t('navigation.legal')">
+            <RouterLink class="legal-link" :to="{ name: 'terms' }">{{ $t('legal.terms') }}</RouterLink>
+            <RouterLink class="legal-link" :to="{ name: 'privacy' }">{{ $t('legal.privacy') }}</RouterLink>
+          </nav>
+          <p class="legal-notice">{{ $t('legal.notice') }}</p>
+          <p class="legal-copyright">© {{ COPYRIGHT_YEAR }} {{ COPYRIGHT_HOLDER }}</p>
         </div>
 
         <!-- Collapsed/Mini Navigator (YouTube Style) -->
@@ -130,21 +195,49 @@
         </div>
       </div>
     </div>
+
+    <FeedbackModal v-if="showFeedback" @close="showFeedback = false" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import FeedbackModal from './FeedbackModal.vue'
+import { COPYRIGHT_HOLDER, COPYRIGHT_YEAR } from '../legal/meta'
 import { navigationStore } from '../stores/navigationStore'
+import { authStore } from '../stores/authStore'
 import { subscribedRecordedCourses, openSubscribedCourse, removeSubscribedCourse } from '../composables/subscribedCourses'
 import { getAvatarBg, getInitials } from '../composables/courseCover'
 
 const { activeNav, activeSubscribed, navigate, isSidebarCollapsed } = navigationStore
 
+const showFeedback = ref(false)
+
 const route = useRoute()
+const router = useRouter()
 const livePlaybackActive = computed(() => route.name === 'player-live')
 const recordedPlaybackActive = computed(() => route.name === 'player-recorded')
+
+/** In-app route, but opened as its own tab so playback here keeps running. */
+const openApps = () => {
+  window.open(router.resolve({ name: 'apps' }).href, '_blank', 'noopener,noreferrer')
+}
+
+/** Hand our token to yanhekt.cn's own login page so the site opens signed in. */
+const openYanhekt = () => {
+  const token = authStore.isLoggedIn.value ? authStore.token.value : null
+  // Expiry timestamp 7 days from now (Unix seconds, matching Yanhekt's expired_at)
+  const expiredAt = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60
+  const url = token
+    ? `https://www.yanhekt.cn/login?token=${encodeURIComponent(token)}&type=Bearer&expired_at=${expiredAt}`
+    : 'https://www.yanhekt.cn'
+  window.open(url, '_blank', 'noopener,noreferrer')
+}
+
+const openGitHub = () => {
+  window.open('https://github.com/bit-admin/Yanhekt-AutoSlides', '_blank', 'noopener,noreferrer')
+}
 </script>
 
 <style scoped>
@@ -181,6 +274,7 @@ const recordedPlaybackActive = computed(() => route.name === 'player-recorded')
   height: 1px;
   background-color: var(--border-color);
   margin: 0.75rem 0.5rem;
+  align-self: stretch;
 }
 
 /* YouTube Style Section Header */
@@ -291,6 +385,47 @@ const recordedPlaybackActive = computed(() => route.name === 'player-recorded')
 
 .nav-item.active .nav-item-icon {
   color: var(--accent-deep);
+}
+
+.nav-item-external {
+  flex: none;
+  color: var(--text-muted);
+  opacity: 0.45;
+}
+
+/* Legal block: deliberately the quietest thing in the panel. */
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  padding: 0 0.75rem;
+  margin: 0 0.375rem;
+}
+
+.legal-link {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
+
+.legal-link:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.legal-notice {
+  margin: 0.75rem 0.375rem 0;
+  padding: 0 0.75rem;
+  font-size: 0.6875rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.legal-copyright {
+  margin: 0.625rem 0.375rem 0.5rem;
+  padding: 0 0.75rem;
+  font-size: 0.6875rem;
+  color: var(--text-muted);
 }
 
 .nav-item span:not(.nav-playback-indicator) {

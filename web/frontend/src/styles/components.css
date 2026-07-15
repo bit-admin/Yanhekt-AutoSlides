@@ -62,7 +62,7 @@
   border-color: var(--border-strong);
 }
 
-:global(html[data-theme="dark"]) .btn:hover:not(:disabled) {
+html[data-theme="dark"] .btn:hover:not(:disabled) {
   filter: brightness(1.1);
 }
 

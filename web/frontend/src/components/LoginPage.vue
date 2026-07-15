@@ -206,9 +206,8 @@
           </div>
         </div>
         <nav class="login-legal">
-          <span class="login-legal-link">{{ $t('webAuth.help') }}</span>
-          <span class="login-legal-link">{{ $t('webAuth.privacy') }}</span>
-          <span class="login-legal-link">{{ $t('webAuth.terms') }}</span>
+          <RouterLink class="login-legal-link" :to="{ name: 'privacy' }">{{ $t('legal.privacy') }}</RouterLink>
+          <RouterLink class="login-legal-link" :to="{ name: 'terms' }">{{ $t('legal.terms') }}</RouterLink>
         </nav>
       </footer>
     </div>
@@ -369,7 +368,7 @@ watch(
   overflow: hidden;
 }
 
-:global(html[data-theme='dark']) .login-card {
+html[data-theme='dark'] .login-card {
   background-color: var(--bg-elevated);
   box-shadow: none;
 }
@@ -527,7 +526,7 @@ watch(
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-:global(html[data-theme='dark']) .login-input {
+html[data-theme='dark'] .login-input {
   background-color: transparent;
 }
 
@@ -688,7 +687,7 @@ watch(
   stroke-linejoin: round;
 }
 
-:global(html[data-theme='dark']) .bm-cursor {
+html[data-theme='dark'] .bm-cursor {
   stroke: var(--bg-elevated);
 }
 
@@ -703,7 +702,7 @@ watch(
   opacity: 0.85;
 }
 
-:global(html[data-theme='dark']) .login-verifying {
+html[data-theme='dark'] .login-verifying {
   background-color: var(--bg-elevated);
 }
 
@@ -774,7 +773,7 @@ watch(
   z-index: var(--z-dropdown);
 }
 
-:global(html[data-theme='dark']) .login-lang-menu {
+html[data-theme='dark'] .login-lang-menu {
   background-color: var(--bg-elevated);
 }
 
@@ -810,11 +809,13 @@ watch(
 .login-legal-link {
   font-size: 0.875rem;
   color: var(--text-secondary);
+  text-decoration: none;
   cursor: pointer;
 }
 
 .login-legal-link:hover {
   color: var(--text-primary);
+  text-decoration: underline;
 }
 
 /* ===== Responsive ===== */
