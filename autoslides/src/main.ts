@@ -6,6 +6,7 @@ import { ConfigService } from '@main/platform/configService';
 import { NotesService } from '@main/platform/notesService';
 import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { VideoProxyService } from '@main/video/videoProxyService';
+import { LocalRelayService } from '@main/video/localRelayService';
 import { ThumbnailService } from '@main/video/thumbnailService';
 import { FFmpegService } from '@main/infra/ffmpegService';
 import { M3u8DownloadService } from '@main/video/m3u8DownloadService';
@@ -153,6 +154,7 @@ const autoCropModelService = new AutoCropModelService(configService);
 const mlClassifierModelService = new MlClassifierModelService(configService);
 const intranetMappingService = new IntranetMappingService(configService);
 const videoProxyService = new VideoProxyService(apiClient, intranetMappingService, configService);
+const localRelayService = new LocalRelayService(apiClient, intranetMappingService, configService);
 const ffmpegService = new FFmpegService();
 const thumbnailService = new ThumbnailService(videoProxyService, ffmpegService);
 const compressLectureService = new CompressLectureService(ffmpegService);
@@ -179,6 +181,8 @@ const initializePowerManagement = async () => {
 app.whenReady().then(() => {
   initializePowerManagement();
   windowManager.setupYuketangClassCapture();
+  // Start LAN relay if the user left it enabled last session.
+  void localRelayService.applyConfig();
 });
 
 app.on('before-quit', () => {
@@ -190,6 +194,7 @@ app.on('before-quit', () => {
 // down power management while the app keeps running.
 app.on('will-quit', () => {
   powerManagementService.cleanup();
+  void localRelayService.stop();
 });
 
 // Register all IPC handlers
@@ -199,6 +204,7 @@ registerAllIpcHandlers({
   configService,
   intranetMappingService,
   videoProxyService,
+  localRelayService,
   thumbnailService,
   ffmpegService,
   m3u8DownloadService,

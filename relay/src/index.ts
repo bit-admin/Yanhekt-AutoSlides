@@ -51,6 +51,21 @@ function tokenHeaders(loginToken: string): Record<string, string> {
 // expired/revoked token still gets cache hits until the entry expires.
 const LOGIN_TOKEN_RE = /^[0-9a-f]{32}$/i;
 
+// The relay signs and fetches whatever `u` points at, so restrict it to
+// Yanhekt hosts — otherwise any token holder can use the relay as an open
+// fetch proxy. Recorded media lives on cvideo.yanhekt.cn.
+function isAllowedUpstream(rawUrl: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+  const host = parsed.hostname.toLowerCase();
+  return host === 'yanhekt.cn' || host.endsWith('.yanhekt.cn');
+}
+
 const CORS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,OPTIONS',
@@ -335,6 +350,7 @@ export default {
         const t = url.searchParams.get('t');
         if (!u || !t) return text('Missing required params: u (media url) and t (login token)', 400);
         if (!LOGIN_TOKEN_RE.test(t)) return text('Invalid login token', 403);
+        if (!isAllowedUpstream(u)) return text('Upstream host not allowed', 403);
         const noCache = url.searchParams.get('nocache') === '1';
 
         if (url.pathname === '/playlist') {

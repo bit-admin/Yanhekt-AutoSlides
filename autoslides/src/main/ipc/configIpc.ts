@@ -14,7 +14,8 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     powerManagementService,
     llmApiService,
     aiPromptsService,
-    windowManager
+    windowManager,
+    localRelayService
   } = services;
 
   // Push the current AppConfig snapshot to every live BrowserWindow. The
@@ -299,6 +300,38 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     broadcastConfig();
     return configService.getConfig();
   });
+
+  // Local LAN relay (Worker-compatible /playlist + /segment). One setter so
+  // enable/port/whitelist land together, then applyConfig starts/stops/restarts.
+  ipcMain.handle(
+    'config:setLocalRelayConfig',
+    async (
+      _,
+      patch: {
+        enabled?: boolean;
+        port?: number;
+        whitelistEnabled?: boolean;
+        includeCurrentToken?: boolean;
+        tokenWhitelist?: string[];
+      }
+    ) => {
+      // Deep-clone so a Vue reactive proxy never reaches electron-store / IPC.
+      const plain = JSON.parse(JSON.stringify(patch ?? {})) as {
+        enabled?: boolean;
+        port?: number;
+        whitelistEnabled?: boolean;
+        includeCurrentToken?: boolean;
+        tokenWhitelist?: string[];
+      };
+      configService.setLocalRelayConfig(plain);
+      await localRelayService.applyConfig();
+      broadcastConfig();
+      return {
+        config: configService.getConfig(),
+        status: localRelayService.getStatus()
+      };
+    }
+  );
 
   ipcMain.handle('config:upsertAccount', async (_, account: StoredAccount) => {
     configService.upsertAccount(account);

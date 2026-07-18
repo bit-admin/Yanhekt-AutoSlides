@@ -24,6 +24,7 @@ import type { SlideMetadataService } from '@main/extraction/slideMetadataService
 import type { OfflineProcessingService } from '@main/extraction/offlineProcessingService';
 import type { CacheManagementService } from '@main/platform/cacheManagementService';
 import type { NotesService } from '@main/platform/notesService';
+import type { LocalRelayService } from '@main/video/localRelayService';
 
 export interface IpcServices {
   authService: MainAuthService;
@@ -31,6 +32,7 @@ export interface IpcServices {
   configService: ConfigService;
   intranetMappingService: IntranetMappingService;
   videoProxyService: VideoProxyService;
+  localRelayService: LocalRelayService;
   thumbnailService: ThumbnailService;
   ffmpegService: FFmpegService;
   m3u8DownloadService: M3u8DownloadService;

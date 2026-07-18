@@ -8,6 +8,7 @@ import { api } from './course';
 import { update, extractorInstaller } from './update';
 import { tools, webCapture } from './tools';
 import { intranet } from './intranet';
+import { localRelay } from './localRelay';
 import { cloudNotes } from './notes';
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -19,6 +20,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   config,
   api,
   intranet,
+  localRelay,
   video,
   ffmpeg,
   compressLecture,

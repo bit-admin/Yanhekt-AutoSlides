@@ -170,6 +170,11 @@ export class ConfigService {
       cloudAutoResyncMode: this.store.get('cloudAutoResyncMode') ?? 'disabled',
       cloudAutoRepublishAfterResync: this.store.get('cloudAutoRepublishAfterResync') ?? false,
       cloudWatchSyncEnabled: this.store.get('cloudWatchSyncEnabled') ?? false,
+      localRelayEnabled: this.store.get('localRelayEnabled') ?? false,
+      localRelayPort: this.store.get('localRelayPort') ?? 8787,
+      localRelayWhitelistEnabled: this.store.get('localRelayWhitelistEnabled') ?? true,
+      localRelayIncludeCurrentToken: this.store.get('localRelayIncludeCurrentToken') ?? true,
+      localRelayTokenWhitelist: this.store.get('localRelayTokenWhitelist') ?? [],
       accounts: this.store.get('accounts') ?? []
     };
   }
@@ -212,6 +217,103 @@ export class ConfigService {
 
   setCloudWatchSyncEnabled(enabled: boolean): void {
     this.store.set('cloudWatchSyncEnabled', enabled);
+  }
+
+  /** Clamp local-relay listen port to an unprivileged range. */
+  private clampLocalRelayPort(port: number): number {
+    const n = Math.round(Number(port));
+    if (!Number.isFinite(n)) return 8787;
+    return Math.max(1024, Math.min(65535, n));
+  }
+
+  /**
+   * Normalize a token whitelist entry: must be exactly 32 hex chars.
+   * Returns lowercase hex or null if invalid.
+   */
+  private normalizeWhitelistToken(token: string): string | null {
+    const t = (token || '').trim().toLowerCase();
+    return /^[0-9a-f]{32}$/.test(t) ? t : null;
+  }
+
+  getLocalRelayEnabled(): boolean {
+    return this.store.get('localRelayEnabled') ?? false;
+  }
+
+  getLocalRelayPort(): number {
+    return this.clampLocalRelayPort(this.store.get('localRelayPort') ?? 8787);
+  }
+
+  getLocalRelayWhitelistEnabled(): boolean {
+    return this.store.get('localRelayWhitelistEnabled') ?? true;
+  }
+
+  getLocalRelayIncludeCurrentToken(): boolean {
+    return this.store.get('localRelayIncludeCurrentToken') ?? true;
+  }
+
+  getLocalRelayTokenWhitelist(): string[] {
+    const list = this.store.get('localRelayTokenWhitelist') ?? [];
+    if (!Array.isArray(list)) return [];
+    const out: string[] = [];
+    const seen = new Set<string>();
+    for (const item of list) {
+      const n = this.normalizeWhitelistToken(String(item));
+      if (n && !seen.has(n)) {
+        seen.add(n);
+        out.push(n);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * Persist local-relay settings in one write path. Invalid tokens are dropped;
+   * port is clamped. Returns the normalized values actually stored.
+   */
+  setLocalRelayConfig(patch: {
+    enabled?: boolean;
+    port?: number;
+    whitelistEnabled?: boolean;
+    includeCurrentToken?: boolean;
+    tokenWhitelist?: string[];
+  }): {
+    enabled: boolean;
+    port: number;
+    whitelistEnabled: boolean;
+    includeCurrentToken: boolean;
+    tokenWhitelist: string[];
+  } {
+    if (patch.enabled !== undefined) {
+      this.store.set('localRelayEnabled', !!patch.enabled);
+    }
+    if (patch.port !== undefined) {
+      this.store.set('localRelayPort', this.clampLocalRelayPort(patch.port));
+    }
+    if (patch.whitelistEnabled !== undefined) {
+      this.store.set('localRelayWhitelistEnabled', !!patch.whitelistEnabled);
+    }
+    if (patch.includeCurrentToken !== undefined) {
+      this.store.set('localRelayIncludeCurrentToken', !!patch.includeCurrentToken);
+    }
+    if (patch.tokenWhitelist !== undefined) {
+      const seen = new Set<string>();
+      const cleaned: string[] = [];
+      for (const item of patch.tokenWhitelist) {
+        const n = this.normalizeWhitelistToken(String(item));
+        if (n && !seen.has(n)) {
+          seen.add(n);
+          cleaned.push(n);
+        }
+      }
+      this.store.set('localRelayTokenWhitelist', cleaned);
+    }
+    return {
+      enabled: this.getLocalRelayEnabled(),
+      port: this.getLocalRelayPort(),
+      whitelistEnabled: this.getLocalRelayWhitelistEnabled(),
+      includeCurrentToken: this.getLocalRelayIncludeCurrentToken(),
+      tokenWhitelist: this.getLocalRelayTokenWhitelist()
+    };
   }
 
   setSavedSearches(mode: 'live' | 'recorded', searches: string[]): void {

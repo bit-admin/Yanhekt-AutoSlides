@@ -283,6 +283,14 @@ interface SetInterfaceIpResponse {
   warning?: 'interface-not-found';
 }
 
+interface LocalRelayStatus {
+  enabled: boolean;
+  running: boolean;
+  port: number;
+  bindAddresses: string[];
+  error: string | null;
+}
+
 interface PowerManagementResponse {
   success: boolean;
   error?: string;
@@ -424,6 +432,13 @@ interface ElectronAPI {
     setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => Promise<AppConfig>;
     setCloudAutoRepublishAfterResync: (enabled: boolean) => Promise<AppConfig>;
     setCloudWatchSyncEnabled: (enabled: boolean) => Promise<AppConfig>;
+    setLocalRelayConfig: (patch: {
+      enabled?: boolean;
+      port?: number;
+      whitelistEnabled?: boolean;
+      includeCurrentToken?: boolean;
+      tokenWhitelist?: string[];
+    }) => Promise<{ config: AppConfig; status: LocalRelayStatus }>;
     upsertAccount: (account: StoredAccount) => Promise<void>;
     removeAccount: (badge: string) => Promise<void>;
     setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => Promise<void>;
@@ -520,6 +535,10 @@ interface ElectronAPI {
     getInterfaceIp: () => Promise<string | null>;
     setInterfaceIp: (ip: string | null) => Promise<SetInterfaceIpResponse>;
     checkCampusConnection: () => Promise<CampusProbeResult>;
+  };
+
+  localRelay: {
+    getStatus: () => Promise<LocalRelayStatus>;
   };
 
   video: {

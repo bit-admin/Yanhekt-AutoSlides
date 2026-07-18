@@ -28,6 +28,7 @@ import { registerNoteExportIpcHandlers } from './noteExportIpc';
 import { registerUpdateIpcHandlers } from './updateIpc';
 import { registerQtExtractorIpcHandlers } from './qtExtractorIpc';
 import { registerExtractorInstallerIpcHandlers } from './extractorInstallerIpc';
+import { registerLocalRelayIpcHandlers } from './localRelayIpc';
 import type { IpcServices } from './types';
 
 export function registerAllIpcHandlers(services: IpcServices): void {
@@ -36,6 +37,7 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerModelIpcHandlers(services);
   registerAiIpcHandlers(services);
   registerIntranetIpcHandlers(services);
+  registerLocalRelayIpcHandlers(services);
   registerApiIpcHandlers(services);
   registerVideoIpcHandlers(services);
   registerFfmpegIpcHandlers(services);

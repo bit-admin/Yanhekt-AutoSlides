@@ -78,6 +78,13 @@ export const config = {
   setCloudAutoResyncMode: (mode: 'disabled' | 'edited') => ipcRenderer.invoke('config:setCloudAutoResyncMode', mode),
   setCloudAutoRepublishAfterResync: (enabled: boolean) => ipcRenderer.invoke('config:setCloudAutoRepublishAfterResync', enabled),
   setCloudWatchSyncEnabled: (enabled: boolean) => ipcRenderer.invoke('config:setCloudWatchSyncEnabled', enabled),
+  setLocalRelayConfig: (patch: {
+    enabled?: boolean;
+    port?: number;
+    whitelistEnabled?: boolean;
+    includeCurrentToken?: boolean;
+    tokenWhitelist?: string[];
+  }) => ipcRenderer.invoke('config:setLocalRelayConfig', patch),
   upsertAccount: (account: StoredAccount) => ipcRenderer.invoke('config:upsertAccount', account),
   removeAccount: (badge: string) => ipcRenderer.invoke('config:removeAccount', badge),
   setSavedSearches: (mode: 'live' | 'recorded', searches: string[]) => ipcRenderer.invoke('config:setSavedSearches', mode, searches),

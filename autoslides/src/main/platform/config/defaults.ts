@@ -188,5 +188,10 @@ export const defaultConfig: AppConfig = {
   cloudAutoResyncMode: 'disabled',
   cloudAutoRepublishAfterResync: false,
   cloudWatchSyncEnabled: false,
+  localRelayEnabled: false,
+  localRelayPort: 8787,
+  localRelayWhitelistEnabled: true,
+  localRelayIncludeCurrentToken: true,
+  localRelayTokenWhitelist: [],
   accounts: []
 };

@@ -195,6 +195,20 @@ export interface AppConfig {
   // in the ASuser group and append each captured slide to it. Gates the whole
   // right-panel Notes flow. Default off; only meaningful once cloud storage is ready.
   cloudWatchSyncEnabled: boolean;
+  // Local LAN relay server (Worker-compatible /playlist + /segment API). Opt-in;
+  // binds 0.0.0.0 so other devices on the network can stream recorded HLS.
+  // Independent of the in-app localhost VideoProxyService.
+  localRelayEnabled: boolean;
+  // Listen port for the local relay (default 8787; clamped 1024–65535).
+  localRelayPort: number;
+  // When true, only tokens on the whitelist (plus optionally the current login
+  // token) may use the relay. When false, any well-formed 32-hex token is accepted.
+  localRelayWhitelistEnabled: boolean;
+  // When whitelist is on, also allow the active app authToken.
+  localRelayIncludeCurrentToken: boolean;
+  // Extra 32-hex login tokens allowed by the whitelist (lowercase). Does not
+  // include the current token — that is controlled by localRelayIncludeCurrentToken.
+  localRelayTokenWhitelist: string[];
   // Accounts remembered for quick account switching (each with its own token).
   // The active account is the one whose `token` equals the standalone `authToken`
   // electron-store key. Migrated from the legacy single-account fields.
