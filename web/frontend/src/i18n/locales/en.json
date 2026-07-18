@@ -239,6 +239,13 @@
     "followSystem": "Follow System",
     "language": "Language",
     "light": "Light",
+    "relay": "Relay Server",
+    "relayDescription": "Recorded lectures stream through a relay that signs Yanhekt URLs. Defaults to the public server. You can point this at another relay endpoint (for example a local relay from AutoSlides Desktop). Live streams are unaffected.",
+    "relayEndpoint": "Relay server endpoint",
+    "relayHttpNote": "This endpoint uses HTTP. Fine when this page is also HTTP (local dev); browsers block HTTP relays from HTTPS pages.",
+    "relayInvalid": "Enter a valid http:// or https:// URL (host and optional port).",
+    "relayMixedContent": "This page is HTTPS but the relay is HTTP — the browser will block playback (mixed content). Use the public https://relay.ruc.edu.kg, serve this page over HTTP on the LAN, or put TLS in front of the local relay.",
+    "relayUsePublic": "Use public relay",
     "settings": "Settings",
     "theme": "Theme"
   },

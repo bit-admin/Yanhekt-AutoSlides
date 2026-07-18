@@ -80,7 +80,9 @@
     </div>
   </div>
 
-  <!-- Local LAN relay: Worker-compatible /playlist + /segment for external clients -->
+  <!-- Local LAN relay: Worker-compatible /playlist + /segment for external clients.
+       All options stay visible; body grays out when the server is off, and the
+       whitelist body grays out when the whitelist itself is off. -->
   <div class="advanced-setting-section">
     <h4>{{ $t('advanced.localRelay') }}</h4>
     <div class="setting-item">
@@ -93,25 +95,32 @@
       </div>
     </div>
 
-    <template v-if="tempLocalRelayEnabled">
-      <div class="setting-item">
-        <label class="setting-label">{{ $t('advanced.localRelayPort') }}</label>
-        <input
-          v-model.number="tempLocalRelayPort"
-          type="number"
-          min="1024"
-          max="65535"
-          step="1"
-          class="text-input local-relay-port-input"
-        />
-      </div>
-
+    <div class="local-relay-body" :class="{ 'is-disabled': !tempLocalRelayEnabled }">
       <div class="setting-item">
         <div class="reachable-header">
           <label class="setting-label">{{ $t('advanced.localRelayReachableAt') }}</label>
-          <button type="button" class="btn btn--sm" @click="refreshNetworkInterfaces">
-            {{ $t('advanced.localRelayRefreshAddresses') }}
-          </button>
+          <div class="reachable-controls">
+            <label class="port-inline-label">
+              <span>{{ $t('advanced.localRelayPort') }}</span>
+              <input
+                v-model.number="tempLocalRelayPort"
+                type="number"
+                min="1024"
+                max="65535"
+                step="1"
+                class="text-input local-relay-port-input"
+                :disabled="!tempLocalRelayEnabled"
+              />
+            </label>
+            <button
+              type="button"
+              class="btn btn--sm"
+              :disabled="!tempLocalRelayEnabled"
+              @click="refreshNetworkInterfaces"
+            >
+              {{ $t('advanced.localRelayRefreshAddresses') }}
+            </button>
+          </div>
         </div>
         <div v-if="reachableUrls.length" class="reachable-list">
           <code v-for="url in reachableUrls" :key="url" class="reachable-url">{{ url }}</code>
@@ -133,18 +142,29 @@
       <div class="setting-item">
         <div class="auto-post-processing-control">
           <label class="checkbox-label">
-            <input type="checkbox" v-model="tempLocalRelayWhitelistEnabled" />
+            <input
+              type="checkbox"
+              v-model="tempLocalRelayWhitelistEnabled"
+              :disabled="!tempLocalRelayEnabled"
+            />
             {{ $t('advanced.localRelayWhitelistEnable') }}
           </label>
         </div>
         <div class="setting-description">{{ $t('advanced.localRelayWhitelistEnableDescription') }}</div>
       </div>
 
-      <template v-if="tempLocalRelayWhitelistEnabled">
+      <div
+        class="local-relay-whitelist-body"
+        :class="{ 'is-disabled': !tempLocalRelayEnabled || !tempLocalRelayWhitelistEnabled }"
+      >
         <div class="setting-item">
           <div class="auto-post-processing-control">
             <label class="checkbox-label">
-              <input type="checkbox" v-model="tempLocalRelayIncludeCurrentToken" />
+              <input
+                type="checkbox"
+                v-model="tempLocalRelayIncludeCurrentToken"
+                :disabled="!tempLocalRelayEnabled || !tempLocalRelayWhitelistEnabled"
+              />
               {{ $t('advanced.localRelayIncludeCurrentToken') }}
             </label>
           </div>
@@ -177,6 +197,7 @@
               <button
                 type="button"
                 class="btn btn--sm btn--ghost"
+                :disabled="!tempLocalRelayEnabled || !tempLocalRelayWhitelistEnabled"
                 @click="removeWhitelistToken(token)"
               >
                 {{ $t('advanced.localRelayRemoveToken') }}
@@ -191,9 +212,15 @@
               :placeholder="$t('advanced.localRelayWhitelistPlaceholder')"
               spellcheck="false"
               autocomplete="off"
+              :disabled="!tempLocalRelayEnabled || !tempLocalRelayWhitelistEnabled"
               @keyup.enter="addWhitelistToken"
             />
-            <button type="button" class="btn btn--sm" @click="addWhitelistToken">
+            <button
+              type="button"
+              class="btn btn--sm"
+              :disabled="!tempLocalRelayEnabled || !tempLocalRelayWhitelistEnabled"
+              @click="addWhitelistToken"
+            >
               {{ $t('advanced.localRelayWhitelistAdd') }}
             </button>
           </div>
@@ -201,8 +228,8 @@
             {{ whitelistAddError }}
           </div>
         </div>
-      </template>
-    </template>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -398,16 +425,50 @@ const statusClass = computed(() => {
   line-height: 1.2;
 }
 
-.local-relay-port-input {
-  max-width: 120px;
-  margin-top: 4px;
+/* Gray-out shells for nested option groups. pointer-events still blocked on
+   individual controls via :disabled — the opacity is purely visual. */
+.local-relay-body.is-disabled,
+.local-relay-whitelist-body.is-disabled {
+  opacity: 0.5;
 }
 
 .reachable-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.reachable-controls {
+  display: flex;
+  align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+.port-inline-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Override .text-input's 30px --control-height so Port matches .btn--sm
+   (min-height:0 + 4px pad + 11px type). */
+.local-relay-port-input {
+  width: 72px;
+  max-width: 72px;
+  margin: 0;
+  text-align: center;
+  min-height: 0;
+  height: 24px;
+  padding: 0 8px;
+  font-size: 11px;
+  line-height: 22px;
+  box-sizing: border-box;
 }
 
 .reachable-list {

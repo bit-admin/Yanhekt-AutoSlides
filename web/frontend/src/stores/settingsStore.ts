@@ -1,4 +1,11 @@
-import { configStore, persistConfig, type LanguageMode, type ThemeMode } from "./configStore";
+import {
+  configStore,
+  persistConfig,
+  normalizeRelayEndpoint,
+  PUBLIC_RELAY_ENDPOINT,
+  type LanguageMode,
+  type ThemeMode,
+} from "./configStore";
 import { detectSystemLocale, setLocale, type AppLocale } from "../i18n";
 
 // Applies theme + language preferences held in configStore. The desktop app
@@ -40,8 +47,48 @@ export function setLanguageMode(mode: LanguageMode): void {
   applyLanguage();
 }
 
+/**
+ * Persist a relay endpoint after normalization. Returns the stored origin, or
+ * null if the input was invalid (config is left unchanged).
+ */
+export function setRelayEndpoint(raw: string): string | null {
+  const normalized = normalizeRelayEndpoint(raw);
+  if (!normalized) return null;
+  configStore.relayEndpoint = normalized;
+  persistConfig();
+  return normalized;
+}
+
+/** Restore the public Cloudflare relay (https://relay.ruc.edu.kg). */
+export function resetRelayEndpoint(): string {
+  configStore.relayEndpoint = PUBLIC_RELAY_ENDPOINT;
+  persistConfig();
+  return PUBLIC_RELAY_ENDPOINT;
+}
+
+/**
+ * True when the page is served over HTTPS but the configured relay is HTTP.
+ * Browsers block that as mixed active content — HLS fetch/XHR will fail.
+ * Local Electron relays are plain HTTP, so this is the common LAN pitfall.
+ */
+export function isMixedContentRelay(endpoint?: string): boolean {
+  if (typeof window === "undefined") return false;
+  if (window.location.protocol !== "https:") return false;
+  const ep = endpoint ?? configStore.relayEndpoint;
+  try {
+    return new URL(ep).protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
 /** Apply persisted preferences at startup and follow OS scheme in system mode. */
 export function initSettings(): void {
+  // Heal a missing/empty relay endpoint from older configs.
+  if (!configStore.relayEndpoint) {
+    configStore.relayEndpoint = PUBLIC_RELAY_ENDPOINT;
+    persistConfig();
+  }
   applyTheme();
   applyLanguage();
   // Track the OS scheme so "Follow System" updates live.

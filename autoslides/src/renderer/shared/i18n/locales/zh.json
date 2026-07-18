@@ -407,7 +407,7 @@
     "localRelayDescription": "在局域网启动与公开中继相同 API（GET /playlist、GET /segment）的 HTTP 服务，使其他设备可通过本机串流录播。启用内网模式时会走内网映射。应用内播放不受影响。",
     "localRelayEnable": "启用本地中继服务器",
     "localRelayPort": "端口",
-    "localRelayReachableAt": "可通过以下地址访问：",
+    "localRelayReachableAt": "监听地址",
     "localRelayRefreshAddresses": "刷新",
     "localRelayNoAddresses": "当前没有可用的局域网地址。",
     "localRelayStatusRunning": "运行中",

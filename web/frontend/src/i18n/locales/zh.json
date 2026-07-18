@@ -239,6 +239,13 @@
     "followSystem": "跟随系统",
     "language": "语言",
     "light": "浅色",
+    "relay": "中继服务器",
+    "relayDescription": "录播会经中继服务器完成延河课堂 URL 签名。默认使用公共中继。也可填写其他中继地址（例如 AutoSlides 桌面版提供的本地中继）。直播不受影响。",
+    "relayEndpoint": "中继服务器地址",
+    "relayHttpNote": "当前地址为 HTTP。页面同为 HTTP 时可用（本地开发）；在 HTTPS 页面上浏览器会拦截 HTTP 中继。",
+    "relayInvalid": "请输入有效的 http:// 或 https:// 地址（主机名与可选端口）。",
+    "relayMixedContent": "当前页面为 HTTPS，而中继为 HTTP —— 浏览器会拦截播放（混合内容）。请改用公共 https://relay.ruc.edu.kg、在局域网用 HTTP 打开本站，或为本地中继配置 TLS。",
+    "relayUsePublic": "恢复公共中继",
     "settings": "设置",
     "theme": "主题"
   },

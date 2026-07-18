@@ -407,7 +407,7 @@
     "localRelayDescription": "公開中継と同じ API（GET /playlist /segment）を LAN 上に公開し、他の端末がこのマシン経由で録画をストリームできるようにします。学内ネットワークモード時はイントラネット経路を使用します。アプリ内再生は変わりません。",
     "localRelayEnable": "ローカル中継サーバーを有効にする",
     "localRelayPort": "ポート",
-    "localRelayReachableAt": "このサーバーへの到達先:",
+    "localRelayReachableAt": "待ち受けアドレス",
     "localRelayRefreshAddresses": "更新",
     "localRelayNoAddresses": "利用可能な LAN アドレスがありません。",
     "localRelayStatusRunning": "稼働中",

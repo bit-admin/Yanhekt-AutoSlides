@@ -3,17 +3,18 @@
  * the desktop app's videoProxyService.getVideoPlaybackUrls /
  * getLiveStreamUrls results).
  *
- * Recorded streams go through the relay Worker, which signs Yanhekt's
- * anti-hotlink scheme and rewrites the playlist so any HLS player can stream
- * it. The generated URL embeds the login token — treat it as a secret (never
- * log it or surface it in shareable UI; use original_url for that).
+ * Recorded streams go through a relay (public Worker or a local Electron LAN
+ * relay) that signs Yanhekt's anti-hotlink scheme and rewrites the playlist so
+ * any HLS player can stream it. The base URL is configStore.relayEndpoint —
+ * default https://relay.ruc.edu.kg. The generated URL embeds the login token —
+ * treat it as a secret (never log it or surface it in shareable UI; use
+ * original_url for that).
  *
  * Live streams are unsigned and their CDN is CORS-open, so they play
  * directly from the raw m3u8.
  */
 import type { LiveStream, SessionData } from "./api";
-
-const RELAY_BASE = "https://relay.ruc.edu.kg";
+import { configStore, PUBLIC_RELAY_ENDPOINT } from "../stores/configStore";
 
 export interface VideoStream {
   type: "camera" | "screen";
@@ -26,8 +27,14 @@ export interface PlaybackData {
   streams: Record<string, VideoStream>;
 }
 
+/** Current relay origin (no trailing slash). Falls back to the public Worker. */
+export function getRelayBase(): string {
+  const ep = (configStore.relayEndpoint || "").trim().replace(/\/+$/, "");
+  return ep || PUBLIC_RELAY_ENDPOINT;
+}
+
 function relayPlaylistUrl(m3u8Url: string, loginToken: string): string {
-  return `${RELAY_BASE}/playlist?u=${encodeURIComponent(m3u8Url)}&t=${encodeURIComponent(loginToken)}`;
+  return `${getRelayBase()}/playlist?u=${encodeURIComponent(m3u8Url)}&t=${encodeURIComponent(loginToken)}`;
 }
 
 /** Recorded sessions: main_url = camera, vga_url = screen; keys match the desktop app. */

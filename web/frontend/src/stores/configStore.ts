@@ -30,6 +30,9 @@ export interface SubscribedCourse {
   semester?: string;
 }
 
+/** Default public Cloudflare relay. Also the "reset" target in Settings. */
+export const PUBLIC_RELAY_ENDPOINT = "https://relay.ruc.edu.kg";
+
 export interface WebConfig {
   themeMode: ThemeMode;
   languageMode: LanguageMode;
@@ -37,6 +40,11 @@ export interface WebConfig {
   savedSearchesRecorded: string[];
   subscribedRecordedCourses: SubscribedCourse[];
   sidebarCollapsed: boolean;
+  // Base URL of the recorded-HLS relay (no trailing slash). Defaults to the
+  // public Worker; may be overridden with another relay origin. Scheme matters:
+  // an https page cannot fetch an http relay (mixed active content) — see
+  // settingsStore.setRelayEndpoint / isMixedContentRelay.
+  relayEndpoint: string;
 }
 
 const defaults = (): WebConfig => ({
@@ -46,6 +54,7 @@ const defaults = (): WebConfig => ({
   savedSearchesRecorded: [],
   subscribedRecordedCourses: [],
   sidebarCollapsed: false,
+  relayEndpoint: PUBLIC_RELAY_ENDPOINT,
 });
 
 function load(): WebConfig {
@@ -61,12 +70,45 @@ function load(): WebConfig {
     writeJSON(STORAGE_KEY, merged);
   }
 
+  // Heal missing / malformed relay endpoints from older configs or bad edits.
+  const normalized = normalizeRelayEndpoint(merged.relayEndpoint || "");
+  merged.relayEndpoint = normalized || PUBLIC_RELAY_ENDPOINT;
+
   return merged;
 }
 
 // Reactive singleton — read synchronously anywhere; mutate via the helpers so
 // every change is written through to localStorage.
 export const configStore = reactive<WebConfig>(load());
+
+/**
+ * Normalize a relay endpoint the user typed:
+ * - trim whitespace
+ * - strip trailing slashes
+ * - if no scheme, default to https:// (public relay is HTTPS; LAN http must
+ *   be typed explicitly so mixed-content risk is intentional)
+ * - accept only http: / https:
+ * Returns null when the value is empty or not a usable absolute URL.
+ */
+export function normalizeRelayEndpoint(raw: string): string | null {
+  let s = (raw || "").trim();
+  if (!s) return null;
+  // Bare host/path without scheme → assume https (safe default for public).
+  if (!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(s)) {
+    s = `https://${s}`;
+  }
+  let url: URL;
+  try {
+    url = new URL(s);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+  // Drop path/query/hash — the relay routes are always /playlist + /segment
+  // at the origin. Non-default ports are preserved via URL.origin.
+  const origin = url.origin; // already no trailing slash
+  return origin;
+}
 
 /** Persist the current config snapshot (plain-object clone, JSON-safe). */
 export function persistConfig(): void {
@@ -77,5 +119,6 @@ export function persistConfig(): void {
     savedSearchesRecorded: [...configStore.savedSearchesRecorded],
     subscribedRecordedCourses: configStore.subscribedRecordedCourses.map((c) => ({ ...c })),
     sidebarCollapsed: configStore.sidebarCollapsed,
+    relayEndpoint: configStore.relayEndpoint || PUBLIC_RELAY_ENDPOINT,
   });
 }
