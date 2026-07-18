@@ -49,10 +49,13 @@ export interface PostProcessStatus {
 }
 
 export interface UsePostProcessingOptions {
-  mode: 'live' | 'recorded'
   extractedSlides: Ref<ExtractedSlide[]>
   slideExtractorInstance: ShallowRef<SlideExtractionHandle | null>
   deleteSlide?: (slide: ExtractedSlide, showConfirmation?: boolean) => Promise<void>  // Deprecated; kept for back-compat
+  // Fires after each completed pipeline pass with the filenames that were
+  // processed and survived vs. moved to trash. Used by the playback page to
+  // release watch-notes uploads only for slides post-processing has cleared.
+  onPassCompleted?: (result: { kept: string[]; removed: string[] }) => void
 }
 
 export interface UsePostProcessingReturn {
@@ -71,7 +74,7 @@ export interface UsePostProcessingReturn {
 }
 
 export function usePostProcessing(options: UsePostProcessingOptions): UsePostProcessingReturn {
-  const { mode, extractedSlides, slideExtractorInstance } = options
+  const { extractedSlides, slideExtractorInstance } = options
 
   const isPostProcessing = ref(false)
   // When true, an auto-trigger arrived while a run was in progress — the AI phase
@@ -159,7 +162,9 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
 
   // Build the PostProcessingConfig used by the pipeline. `aiOnly=true` disables
   // the pHash phases — used for the re-run pass when pendingAIPhase was set.
-  const buildConfig = async (aiOnly: boolean): Promise<PostProcessingConfig> => {
+  // `auto=true` (per-slide watch trigger) uses batchSize 1 so each new slide gets
+  // a snappy single-image verdict; manual runs batch at the configured size.
+  const buildConfig = async (aiOnly: boolean, auto: boolean): Promise<PostProcessingConfig> => {
     const slideConfig = await window.electronAPI.config?.getSlideExtractionConfig?.()
     if (!slideConfig) throw new Error('Failed to get slide extraction configuration')
 
@@ -167,54 +172,54 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
     const exclusionList = filterEnabledExclusionItems(slideConfig.pHashExclusionList || [])
 
-    // Live mode uses single-image AI (batchSize=1) so each slide gets a snappy
-    // verdict; the live prompt variant expects `{ classification: ... }` so we
-    // also flip useSingleImageApi to dispatch via classifySingleImage.
-    const effectiveBatchSize = mode === 'live' ? 1 : (aiConfig?.batchSize || 5)
-    const useSingleImageApi = mode === 'live'
-
     return {
       pHashThreshold: slideConfig.pHashThreshold || 10,
       enableDuplicateRemoval: !aiOnly && slideConfig.enableDuplicateRemoval !== false,
       enableExclusionList: !aiOnly && slideConfig.enableExclusionList !== false,
       enableAIFiltering: enableAI,
       exclusionList,
-      aiBatchSize: effectiveBatchSize,
+      aiBatchSize: auto ? 1 : (aiConfig?.batchSize || 5),
       aiImageResizeWidth: aiConfig?.imageResizeWidth || aiImageResizeWidth.value,
-      aiImageResizeHeight: aiConfig?.imageResizeHeight || aiImageResizeHeight.value,
-      useSingleImageApi
+      aiImageResizeHeight: aiConfig?.imageResizeHeight || aiImageResizeHeight.value
     }
   }
 
   // Single pass of the pipeline against the current `extractedSlides` set.
   // Callbacks splice removed items out of the reactive array and record AI
   // verdicts on the remaining slides.
-  const runOnePass = async (aiOnly: boolean): Promise<void> => {
+  const runOnePass = async (aiOnly: boolean, auto: boolean): Promise<void> => {
     const outputPath = slideExtractorInstance.value?.getOutputPath()
     if (!outputPath) throw new Error('Output path not found')
 
     // Pipeline operates on filenames; map slide.title → filename.
     const filenameToSlide = new Map<string, ExtractedSlide>()
     const imageFiles: string[] = []
+    // On auto full passes, files with an AI verdict still go through the pHash
+    // phases (dedup needs new-vs-old comparison) but skip re-classification —
+    // without this every per-slide trigger would re-send the whole folder to AI.
+    const phase3ExcludeFiles: string[] = []
     for (const slide of extractedSlides.value) {
       const filename = `${slide.title}.png`
       filenameToSlide.set(filename, slide)
+      const hasDecision = slide.aiDecision !== null && slide.aiDecision !== undefined
       // For AI-only passes, skip slides that already have a decision.
-      if (aiOnly && slide.aiDecision !== null && slide.aiDecision !== undefined) continue
+      if (aiOnly && hasDecision) continue
+      if (auto && !aiOnly && hasDecision) phase3ExcludeFiles.push(filename)
       imageFiles.push(filename)
     }
     if (imageFiles.length === 0) return
 
-    const config = await buildConfig(aiOnly)
+    const config = await buildConfig(aiOnly, auto)
     const dataSource = createSlideExtractionDataSource(outputPath)
     const token = tokenManager.getToken() || undefined
+    const removedThisPass: string[] = []
 
     const result = await PostProcessingPipeline.run(
       {
         outputPath,
         imageFiles,
         config,
-        promptType: mode,
+        phase3ExcludeFiles,
         token
       },
       dataSource,
@@ -225,6 +230,7 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
           classifySingleImage,
         },
         onItemRemoved: (filename: string, reason: TrashReason) => {
+          removedThisPass.push(filename)
           const slide = filenameToSlide.get(filename)
           if (!slide) return
           // Splice from the reactive array so the UI updates immediately.
@@ -243,6 +249,16 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       }
     )
 
+    // Report the pass outcome in extraction order. Files that failed AI
+    // classification (no verdict, not trashed) count as kept.
+    if (options.onPassCompleted) {
+      const removedSet = new Set(removedThisPass)
+      options.onPassCompleted({
+        kept: imageFiles.filter(f => !removedSet.has(f)),
+        removed: removedThisPass
+      })
+    }
+
     // Surface the most recent AI failure in the banner, preferring structured
     // errorKind/errorType metadata over message-only parsing.
     if (result.failed.length > 0) {
@@ -253,14 +269,15 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
   }
 
   const executePostProcessing = async (showResultDialog = true): Promise<void> => {
+    const auto = !showResultDialog
     try {
       if (extractedSlides.value.length === 0) return
 
-      // Auto-triggered calls in live mode honor the live-specific toggle.
-      if (!showResultDialog && mode === 'live') {
-        const liveAutoEnabled = await window.electronAPI.config.getAutoPostProcessingLive()
-        if (!liveAutoEnabled) {
-          log.debug('Auto post-processing for live is disabled, skipping')
+      // Auto-triggered (per-slide watch) calls re-check the watch-mode toggle.
+      if (auto) {
+        const watchAutoEnabled = await window.electronAPI.config.getAutoPostProcessingLive()
+        if (!watchAutoEnabled) {
+          log.debug('Auto post-processing for watch mode is disabled, skipping')
           return
         }
       }
@@ -285,14 +302,15 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       log.debug(`Starting post-processing for ${extractedSlides.value.length} slides...`)
 
       // First pass: full 3-phase pipeline.
-      await runOnePass(false)
+      await runOnePass(false, auto)
 
       // Re-runs: AI-only passes for any pendingAIPhase requests that arrived
       // mid-flight. Each re-run picks up slides extracted since the last pass.
+      // These are always auto-origin (per-slide triggers queued them).
       while (pendingAIPhase.value) {
         pendingAIPhase.value = false
         log.debug('Processing pending AI phase request...')
-        await runOnePass(true)
+        await runOnePass(true, true)
       }
 
       postProcessStatus.value.currentPhase = 'completed'

@@ -741,6 +741,14 @@ watch(
     const instanceId = slideExtraction.extractorInstanceId.value
     if (running && !was && props.tabId && instanceId) {
       void watchNotesStore.onExtractionStarted(props.tabId, instanceId)
+    } else if (!running && was && props.tabId) {
+      // Extraction stopped: let any in-flight post-processing pass finish (its
+      // onPassCompleted still releases cleared slides to the note), then drop
+      // buffered slides that never got a completed pass behind them.
+      const tabId = props.tabId
+      void whenPostProcessingIdle().then(() => {
+        watchNotesStore.onExtractionStopped(tabId)
+      })
     }
   }
 )
@@ -781,11 +789,35 @@ const screenVideoPlayer = videoPlayerComposable.screenVideoPlayer
 
 // Initialize post-processing composable
 const postProcessing = usePostProcessing({
-  mode: props.mode,
   extractedSlides: slideExtraction.extractedSlides,
   slideExtractorInstance: slideExtraction.slideExtractorInstance,
-  deleteSlide: slideGallery.deleteSlide
+  deleteSlide: slideGallery.deleteSlide,
+  // Broadcast each completed pass so watchNotesStore can release the buffered
+  // note uploads for slides post-processing kept (and drop the trashed ones).
+  onPassCompleted: ({ kept, removed }) => {
+    window.dispatchEvent(new CustomEvent('slidesPostProcessed', {
+      detail: {
+        instanceId: slideExtraction.extractorInstanceId.value,
+        mode: props.mode,
+        kept,
+        removed
+      }
+    }))
+  }
 })
+
+// Resolves once no post-processing pass is in flight (immediately if idle).
+const whenPostProcessingIdle = (): Promise<void> => {
+  if (!postProcessing.isPostProcessing.value) return Promise.resolve()
+  return new Promise(resolve => {
+    const stopWatch = watch(postProcessing.isPostProcessing, (busy) => {
+      if (!busy) {
+        stopWatch()
+        resolve()
+      }
+    })
+  })
+}
 
 // Initialize task queue composable
 const taskQueue = useTaskQueue({
@@ -1515,13 +1547,15 @@ const onSlideExtracted = async (event: CustomEvent) => {
     slideExtraction.extractedSlides.value.push(slide)
     slideExtraction.updateSlideExtractionStatus()
 
-    // Live mode auto post-processing (unchanged)
-    if (props.mode === 'live' && postProcessing.autoPostProcessingLive.value && !postProcessing.isPostProcessing.value) {
+    // Watch-mode per-slide auto post-processing (manual tabs, live AND recorded).
+    // A trigger arriving while a pass runs queues an AI-only re-run inside
+    // executePostProcessing. Task extractions are excluded — they batch via
+    // PostProcessingService after task completion (non-blocking). Gate on the
+    // live configStore mirror so a mid-session toggle stays in sync with
+    // watchNotesStore's buffer-vs-upload decision.
+    if (!taskQueue.isTaskMode.value && configStore.autoPostProcessingLive !== false) {
       await postProcessing.executePostProcessing(false)
     }
-
-    // Note: Recorded mode batch post-processing is now handled by PostProcessingService
-    // after task completion (non-blocking, runs in parallel with next task)
   }
 }
 

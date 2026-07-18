@@ -92,13 +92,12 @@ async function getActiveAISettings(): Promise<{
  */
 export async function classifyMultipleImages(
   base64Images: string[],
-  type: 'live' | 'recorded',
   token?: string
 ): Promise<UnifiedClassificationResult> {
   const settings = await getActiveAISettings()
 
   if (settings.mode === 'llm') {
-    const result = await window.electronAPI.ai.classifyMultipleImages(base64Images, type, token)
+    const result = await window.electronAPI.ai.classifyMultipleImages(base64Images, token)
     return result as UnifiedClassificationResult
   }
 
@@ -124,17 +123,16 @@ export async function classifyMultipleImages(
 
 /**
  * Single-image classification — drop-in replacement for classifySingleImage
- * (live mode, returns { classification: … }).
+ * (returns { classification: … }).
  */
 export async function classifySingleImage(
   base64Image: string,
-  type: 'live' | 'recorded',
   token?: string
 ): Promise<UnifiedSingleClassificationResult> {
   const settings = await getActiveAISettings()
 
   if (settings.mode === 'llm') {
-    const result = await window.electronAPI.ai.classifySingleImage(base64Image, type, token)
+    const result = await window.electronAPI.ai.classifySingleImage(base64Image, token)
     return result as UnifiedSingleClassificationResult
   }
 

@@ -161,14 +161,14 @@ export class PostProcessingPipeline {
       if (input.config.enableAIFiltering) {
         progress.phase = 'phase3'
         emit()
-        const remainingFiles = input.imageFiles.filter(f => !trashedSet.has(f))
+        const excludeSet = new Set(input.phase3ExcludeFiles ?? [])
+        const remainingFiles = input.imageFiles.filter(f => !trashedSet.has(f) && !excludeSet.has(f))
         progress.phase3.total = remainingFiles.length
 
         const phase3 = await runAIPhase(
           {
             files: remainingFiles,
             config: input.config,
-            promptType: input.promptType,
             token: input.token
           },
           dataSource,

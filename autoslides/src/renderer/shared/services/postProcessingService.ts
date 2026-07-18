@@ -218,7 +218,6 @@ class PostProcessingServiceClass {
           outputPath: job.outputPath,
           imageFiles: job.imageFiles,
           config,
-          promptType: 'recorded',
           token
         },
         dataSource,

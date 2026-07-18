@@ -33,7 +33,6 @@ const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, m
 export interface AIPhaseInput {
   files: string[]
   config: PostProcessingConfig
-  promptType: 'live' | 'recorded'
   token?: string
 }
 
@@ -64,18 +63,17 @@ function emptyOutcome(): BatchOutcome {
 }
 
 // Always returns a `{ image_0, image_1, ... }`-shaped result regardless of which
-// underlying API was used. The single-image endpoint is used when the prompt
-// variant expects a `{ classification }` response (live mode); the batch endpoint
-// is used otherwise. This shields the rest of phase3AI from the dual-shape API.
+// underlying API was used. Dispatch is arity-based: exactly one image goes to the
+// single-image endpoint (which asks for a `{ classification }` response), anything
+// more goes to the batch endpoint (`{ image_N }` map). Each endpoint owns its
+// matching prompt shape, so callers never coordinate prompt vs parser.
 async function dispatchClassification(
   classifier: ClassifierCallbacks,
   base64s: string[],
-  promptType: 'live' | 'recorded',
-  token: string | undefined,
-  useSingleImageWhenAlone: boolean
+  token: string | undefined
 ): Promise<UnifiedClassificationResult> {
-  if (useSingleImageWhenAlone && base64s.length === 1) {
-    const single = await classifier.classifySingleImage(base64s[0], promptType, token)
+  if (base64s.length === 1) {
+    const single = await classifier.classifySingleImage(base64s[0], token)
     if (single.success && single.result) {
       return {
         success: true,
@@ -84,7 +82,7 @@ async function dispatchClassification(
     }
     return { success: false, error: single.error, errorKind: single.errorKind }
   }
-  return classifier.classifyMultipleImages(base64s, promptType, token)
+  return classifier.classifyMultipleImages(base64s, token)
 }
 
 async function readAndResizeImages(
@@ -172,13 +170,7 @@ async function processBatchWithRetry(
     if (!ctx.classifier) {
       throw new Error('phase3AI requires ctx.classifier to be injected by the caller')
     }
-    result = await dispatchClassification(
-      ctx.classifier,
-      validBase64,
-      input.promptType,
-      input.token,
-      input.config.useSingleImageApi === true
-    )
+    result = await dispatchClassification(ctx.classifier, validBase64, input.token)
     if (!result.success || !result.result) {
       errorInfo = parseError(result)
     }

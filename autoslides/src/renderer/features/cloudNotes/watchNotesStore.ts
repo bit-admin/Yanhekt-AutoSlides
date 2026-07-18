@@ -49,6 +49,36 @@ const state = reactive<{ entries: Record<string, WatchNoteEntry> }>({ entries: {
 let activeEditor: ActiveEditorBinding | null = null
 const saveTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
+// Slides captured while watch-mode auto post-processing is on are held here
+// (per tabId, `Slide_*.png` filename → dataUrl, insertion order = capture order)
+// until a completed pass reports them kept; trashed ones never reach the note.
+// Kept outside the reactive state on purpose — nothing renders from it.
+const pendingSlides = new Map<string, Map<string, string>>()
+// Per-tab promise chain serializing note appends so overlapping pass events
+// can't interleave image blocks out of order.
+const flushChains = new Map<string, Promise<void>>()
+
+function getPending(tabId: string): Map<string, string> {
+  let pending = pendingSlides.get(tabId)
+  if (!pending) {
+    pending = new Map()
+    pendingSlides.set(tabId, pending)
+  }
+  return pending
+}
+
+function chainFlush(tabId: string, task: () => Promise<void>): void {
+  const prev = flushChains.get(tabId) ?? Promise.resolve()
+  flushChains.set(
+    tabId,
+    prev.then(task).catch((err) => log.warn('watch note flush failed', err)),
+  )
+}
+
+function findEntryByInstance(instanceId: string): WatchNoteEntry | undefined {
+  return Object.values(state.entries).find((e) => e.instanceId === instanceId)
+}
+
 function api(): CloudNotesProvider {
   return overrides.cloudNotesProvider ?? window.electronAPI.cloudNotes
 }
@@ -182,6 +212,9 @@ export async function onExtractionStarted(tabId: string, instanceId: string): Pr
 
   const existing = state.entries[tabId]
   if (existing) {
+    // New extraction run on the same tab: stale un-cleared slides from the
+    // previous run will never get a pass event — drop them.
+    if (existing.instanceId !== instanceId) pendingSlides.delete(tabId)
     existing.instanceId = instanceId
     return
   }
@@ -217,15 +250,14 @@ export async function onExtractionStarted(tabId: string, instanceId: string): Pr
   if (result.created) notesRefreshStore.requestNotesRefresh()
 }
 
-/** Append a freshly-captured slide image to the matching tab's note. */
-async function appendSlide(instanceId: string, dataUrl: string, filename: string): Promise<void> {
-  const entry = Object.values(state.entries).find((e) => e.instanceId === instanceId)
-  if (!entry || entry.status === 'error') return
+/** Upload a slide image and append it to the entry's note. `pngFilename` includes `.png`. */
+async function appendSlide(entry: WatchNoteEntry, dataUrl: string, pngFilename: string): Promise<void> {
+  if (entry.status === 'error') return
 
   let url: string
   try {
     const bytes = await (await fetch(dataUrl)).arrayBuffer()
-    const up = await api().uploadImage(bytes, `${filename}.png`, 'image/png')
+    const up = await api().uploadImage(bytes, pngFilename, 'image/png')
     if (!up.ok) {
       log.warn('watch slide upload failed', up.error)
       return
@@ -250,7 +282,71 @@ function onSlideExtracted(event: Event): void {
   if (!(event instanceof CustomEvent)) return
   const { slide, instanceId } = event.detail ?? {}
   if (!slide?.dataUrl || typeof instanceId !== 'string') return
-  void appendSlide(instanceId, slide.dataUrl, String(slide.title ?? `Slide_${Date.now()}`))
+  const entry = findEntryByInstance(instanceId)
+  if (!entry || entry.status === 'error') return
+  const pngFilename = `${String(slide.title ?? `Slide_${Date.now()}`)}.png`
+  // With watch-mode auto post-processing on, hold the upload until a completed
+  // pass clears this slide (same `!== false` default-true predicate as the
+  // PlaybackPage trigger gate). Toggle off ⇒ immediate upload, as before.
+  if (configStore.autoPostProcessingLive !== false) {
+    getPending(entry.tabId).set(pngFilename, slide.dataUrl)
+    return
+  }
+  chainFlush(entry.tabId, () => appendSlide(entry, slide.dataUrl, pngFilename))
+}
+
+/** Release buffered slides a completed post-processing pass kept; drop trashed ones. */
+function onSlidesPostProcessed(event: Event): void {
+  if (!(event instanceof CustomEvent)) return
+  const { instanceId, kept, removed } = event.detail ?? {}
+  if (typeof instanceId !== 'string') return
+  const entry = findEntryByInstance(instanceId)
+  if (!entry) return
+  const pending = pendingSlides.get(entry.tabId)
+  if (!pending || pending.size === 0) return
+
+  if (Array.isArray(removed)) {
+    for (const filename of removed) pending.delete(String(filename))
+  }
+  if (!Array.isArray(kept)) return
+  // `kept` arrives in extraction order; take only slides still awaiting clearance.
+  const cleared: Array<{ pngFilename: string; dataUrl: string }> = []
+  for (const filename of kept) {
+    const pngFilename = String(filename)
+    const dataUrl = pending.get(pngFilename)
+    if (dataUrl !== undefined) {
+      pending.delete(pngFilename)
+      cleared.push({ pngFilename, dataUrl })
+    }
+  }
+  if (cleared.length === 0) return
+  chainFlush(entry.tabId, async () => {
+    for (const item of cleared) {
+      await appendSlide(entry, item.dataUrl, item.pngFilename)
+    }
+  })
+}
+
+/** A cleared gallery means those captures are gone — nothing left to release. */
+function onSlidesClearedEvent(event: Event): void {
+  if (!(event instanceof CustomEvent)) return
+  const { instanceId } = event.detail ?? {}
+  if (typeof instanceId !== 'string') return
+  const entry = findEntryByInstance(instanceId)
+  if (entry) pendingSlides.delete(entry.tabId)
+}
+
+/**
+ * Called by PlaybackPage when extraction stops (after any in-flight pass has
+ * finished flushing). Remaining buffered slides never got a completed pass —
+ * drop them rather than upload unverified captures.
+ */
+export function onExtractionStopped(tabId: string): void {
+  const pending = pendingSlides.get(tabId)
+  if (pending && pending.size > 0) {
+    log.debug(`dropping ${pending.size} un-cleared slide(s) for stopped tab ${tabId}`)
+  }
+  pendingSlides.delete(tabId)
 }
 
 // ── Panel-facing API ────────────────────────────────────────────────────────
@@ -300,6 +396,8 @@ watch(
         const timer = saveTimers.get(id)
         if (timer) clearTimeout(timer)
         saveTimers.delete(id)
+        pendingSlides.delete(id)
+        flushChains.delete(id)
         delete state.entries[id]
       }
     }
@@ -314,11 +412,15 @@ watch(
   },
 )
 
-// One module-level subscription to the pipeline's per-slide event.
+// Module-level subscriptions: the pipeline's per-slide event, the playback
+// page's per-pass post-processing outcome, and gallery clears.
 window.addEventListener('slideExtracted', onSlideExtracted)
+window.addEventListener('slidesPostProcessed', onSlidesPostProcessed)
+window.addEventListener('slidesCleared', onSlidesClearedEvent)
 
 export const watchNotesStore = {
   onExtractionStarted,
+  onExtractionStopped,
   activeEntry,
   notesTabAvailable,
   registerActiveEditor,

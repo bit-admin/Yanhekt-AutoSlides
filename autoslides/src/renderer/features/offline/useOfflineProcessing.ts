@@ -215,7 +215,6 @@ export function useOfflineProcessing() {
           outputPath: outputDir.value,
           imageFiles: outputFiles,
           config,
-          promptType: 'recorded',
           token
         },
         dataSource,

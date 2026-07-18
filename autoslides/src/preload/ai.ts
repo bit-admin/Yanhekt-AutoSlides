@@ -1,10 +1,10 @@
 import { ipcRenderer } from 'electron';
 
 export const ai = {
-  classifySingleImage: (base64Image: string, type: 'live' | 'recorded', token?: string, modelOverride?: string) =>
-    ipcRenderer.invoke('ai:classifySingleImage', base64Image, type, token, modelOverride),
-  classifyMultipleImages: (base64Images: string[], type: 'live' | 'recorded', token?: string, modelOverride?: string) =>
-    ipcRenderer.invoke('ai:classifyMultipleImages', base64Images, type, token, modelOverride),
+  classifySingleImage: (base64Image: string, token?: string, modelOverride?: string) =>
+    ipcRenderer.invoke('ai:classifySingleImage', base64Image, token, modelOverride),
+  classifyMultipleImages: (base64Images: string[], token?: string, modelOverride?: string) =>
+    ipcRenderer.invoke('ai:classifyMultipleImages', base64Images, token, modelOverride),
   getBuiltinModelName: (token: string) => ipcRenderer.invoke('ai:getBuiltinModelName', token),
   isConfigured: (token?: string) => ipcRenderer.invoke('ai:isConfigured', token),
   getServiceType: () => ipcRenderer.invoke('ai:getServiceType'),

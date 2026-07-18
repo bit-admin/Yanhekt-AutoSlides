@@ -753,13 +753,11 @@ interface ElectronAPI {
   ai: {
     classifySingleImage: (
       base64Image: string,
-      type: 'live' | 'recorded',
       token?: string,
       modelOverride?: string
     ) => Promise<AIFilteringResult>;
     classifyMultipleImages: (
       base64Images: string[],
-      type: 'live' | 'recorded',
       token?: string,
       modelOverride?: string
     ) => Promise<AIFilteringResult>;

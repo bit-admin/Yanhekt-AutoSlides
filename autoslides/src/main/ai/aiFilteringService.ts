@@ -1,5 +1,5 @@
 import { ConfigService, MODELSCOPE_API_BASE_URL } from '@main/platform/configService';
-import { AIPromptsService, AIPromptType } from './aiPromptsService';
+import { AIPromptsService } from './aiPromptsService';
 import { CopilotService } from './copilotService';
 import {
   LLMApiService,
@@ -252,17 +252,20 @@ export class AIFilteringService {
 
   async classifySingleImage(
     base64Image: string,
-    type: AIPromptType,
     token?: string,
     modelOverride?: string
   ): Promise<AIFilteringResult> {
-    debugLog('classifySingleImage called', { type, hasToken: !!token, modelOverride });
+    debugLog('classifySingleImage called', { hasToken: !!token, modelOverride });
 
     try {
       const ctx = this.resolveRequestContext();
       const distinguish = this.configService.getDistinguishMaybeSlide();
       const variant = distinguish ? 'distinguish' : 'simple';
-      const prompt = this.aiPromptsService.getPrompt(type, variant);
+      // 'live'/'recorded' are legacy storage keys in the prompts file: 'live' is
+      // the single-output prompt shape ({ classification }), 'recorded' the batch
+      // shape ({ image_N }). Each endpoint is hardwired to the shape its parser
+      // expects.
+      const prompt = this.aiPromptsService.getPrompt('live', variant);
 
       const imageUrl = base64Image.startsWith('data:')
         ? base64Image
@@ -322,19 +325,19 @@ export class AIFilteringService {
 
   async classifyMultipleImages(
     base64Images: string[],
-    type: AIPromptType,
     token?: string,
     modelOverride?: string
   ): Promise<AIFilteringResult> {
     debugLog('classifyMultipleImages called', {
-      imageCount: base64Images.length, type, hasToken: !!token, modelOverride
+      imageCount: base64Images.length, hasToken: !!token, modelOverride
     });
 
     try {
       const ctx = this.resolveRequestContext();
       const distinguish = this.configService.getDistinguishMaybeSlide();
       const variant = distinguish ? 'distinguish' : 'simple';
-      const prompt = this.aiPromptsService.getPrompt(type, variant);
+      // See classifySingleImage: 'recorded' is the batch-output prompt storage key.
+      const prompt = this.aiPromptsService.getPrompt('recorded', variant);
 
       const contentParts: ContentPart[] = [{ type: 'text', text: prompt }];
       for (const base64Image of base64Images) {

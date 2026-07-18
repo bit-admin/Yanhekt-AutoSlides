@@ -56,18 +56,15 @@ export interface PostProcessingConfig {
   aiBatchSize: number
   aiImageResizeWidth: number
   aiImageResizeHeight: number
-  // Live mode uses the single-image AI endpoint even for batches of 1 because the
-  // 'live' prompt variant is shaped to return `{ classification: ... }` rather than
-  // the batch `{ image_0: ... }` map. Defaults to false everywhere except the live
-  // playback flow.
-  useSingleImageApi?: boolean
 }
 
 export interface PostProcessingInput {
   outputPath: string          // disk directory holding the images and the trash subfolder
   imageFiles: string[]         // filenames within outputPath
   config: PostProcessingConfig
-  promptType: 'live' | 'recorded'
+  // Files to skip in phase 3 only (already have an AI verdict from an earlier
+  // pass). Phases 1/2 still see every file — dedup needs new-vs-old comparisons.
+  phase3ExcludeFiles?: string[]
   token?: string
 }
 
@@ -145,12 +142,10 @@ export interface UnifiedSingleClassificationResult {
 export interface ClassifierCallbacks {
   classifyMultipleImages: (
     base64Images: string[],
-    type: 'live' | 'recorded',
     token?: string,
   ) => Promise<UnifiedClassificationResult>
   classifySingleImage: (
     base64Image: string,
-    type: 'live' | 'recorded',
     token?: string,
   ) => Promise<UnifiedSingleClassificationResult>
 }
