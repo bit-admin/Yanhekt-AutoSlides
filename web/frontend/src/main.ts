@@ -9,15 +9,21 @@ import "./styles/index.css";
 // Apply persisted theme + language and start following the OS scheme.
 initSettings();
 
-// Kick off token verification (?token= from the bookmarklet wins over the
-// stored token) before mounting; the UI shows the verifying state meanwhile.
-// Must run before the router's initial navigation: the ?token= strip is
-// synchronous (history.replaceState before the first await), so the router
-// never sees the token in the URL.
+// Kick off auth init before mounting. The ?token= strip (bookmarklet return)
+// is synchronous — stashed as pendingToken for the login form to auto-fill,
+// never auto-adopted — so the router never sees the secret in the URL. A
+// stored session is verified async; the UI shows the verifying state meanwhile.
 void authStore.initFromUrlOrStorage();
 
 const app = createApp(App).use(i18n).use(router);
 
 // Mount after the initial navigation resolves so the first render already
-// shows the deep-linked route (keeps KeepAlive caching deterministic).
-void router.isReady().then(() => app.mount("#app"));
+// shows the deep-linked route (keeps KeepAlive caching deterministic). If the
+// bookmarklet returned to a non-login path, bounce to /login so the paste
+// step can pick up the pending token.
+void router.isReady().then(async () => {
+  if (authStore.pendingToken.value && router.currentRoute.value.name !== "login") {
+    await router.replace({ name: "login" });
+  }
+  app.mount("#app");
+});

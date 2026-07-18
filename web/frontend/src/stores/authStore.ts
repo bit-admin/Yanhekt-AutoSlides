@@ -10,6 +10,9 @@ const STORAGE_KEY = "autoslides.token";
 const token = ref<string | null>(localStorage.getItem(STORAGE_KEY));
 const userData = ref<UserData | null>(null);
 const isVerifyingToken = ref(false);
+// Bookmarklet return (`?token=`): stash only — LoginPage auto-fills the paste
+// field so the user can review and hit Verify. Never auto-adopt.
+const pendingToken = ref<string | null>(null);
 
 const isLoggedIn = computed(() => token.value !== null && userData.value !== null);
 const userNickname = computed(() => userData.value?.nickname ?? "");
@@ -24,7 +27,7 @@ function storeToken(value: string | null) {
   }
 }
 
-/** Verify + adopt a token (from paste, bookmarklet return, or password login). */
+/** Verify + adopt a token (from paste Verify, or password login). */
 async function adoptToken(candidate: string): Promise<{ success: boolean; error?: string }> {
   isVerifyingToken.value = true;
   try {
@@ -43,10 +46,18 @@ async function adoptToken(candidate: string): Promise<{ success: boolean; error?
   }
 }
 
+/** Read + clear a one-shot bookmarklet token for the login paste field. */
+function takePendingToken(): string | null {
+  const value = pendingToken.value;
+  pendingToken.value = null;
+  return value;
+}
+
 /**
- * Startup: a ?token= query param (the bookmarklet return) wins over the
- * stored token; the URL is cleaned either way so the token never sits in the
- * address bar or history.
+ * Startup: a ?token= query param (bookmarklet return) is stashed for the
+ * login form to auto-fill — it is never adopted here. The URL is cleaned so
+ * the token never sits in the address bar or history. A stored token is then
+ * verified as usual so an existing session still hydrates.
  */
 async function initFromUrlOrStorage(): Promise<void> {
   const url = new URL(window.location.href);
@@ -55,11 +66,13 @@ async function initFromUrlOrStorage(): Promise<void> {
   if (urlToken) {
     url.searchParams.delete("token");
     window.history.replaceState(null, "", url.pathname + url.search + url.hash);
-    const result = await adoptToken(urlToken);
-    if (result.success) return;
+    pendingToken.value = urlToken;
   }
 
-  if (token.value) {
+  // A bookmarklet token waiting for review owns the login UI — skip hydrating
+  // the stored session so we don't flash the verifying overlay over the form.
+  // adoptToken (on Verify) or a later visit will hydrate as usual.
+  if (token.value && !pendingToken.value) {
     isVerifyingToken.value = true;
     try {
       const result = await verifyToken(token.value);
@@ -98,9 +111,11 @@ export const authStore = {
   userData,
   isLoggedIn,
   isVerifyingToken,
+  pendingToken,
   userNickname,
   userId,
   initFromUrlOrStorage,
+  takePendingToken,
   adoptToken,
   loginWithPassword,
   signOut,

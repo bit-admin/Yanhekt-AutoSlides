@@ -9,6 +9,15 @@
     </button>
 
     <div class="login-shell">
+      <!-- Floating tutorial above the card; out of flow so the card never moves. -->
+      <Transition name="login-fade">
+        <TokenBookmarkletDemo
+          v-if="step === 'token-get' && !demoDismissed"
+          class="token-demo-float"
+          @close="demoDismissed = true"
+        />
+      </Transition>
+
       <div class="login-card">
         <Transition name="login-fade" mode="out-in">
           <div :key="step" class="login-grid">
@@ -229,6 +238,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { authStore } from '../stores/authStore'
 import { generateBookmarklet } from '../lib/bookmarklet'
+import TokenBookmarkletDemo from './TokenBookmarkletDemo.vue'
 import { setLanguageMode } from '../stores/settingsStore'
 import { getCurrentLocale } from '../i18n'
 
@@ -243,6 +253,18 @@ const password = ref('')
 const tokenInput = ref('')
 const errorMessage = ref('')
 const isSubmitting = ref(false)
+// Session-scoped: closing the tutorial keeps it closed until the next page load.
+const demoDismissed = ref(false)
+
+// Bookmarklet return: pre-fill the paste step so the user reviews + verifies.
+// Don't auto-bounce home for an existing session while this form is up.
+const filledFromBookmarklet = ref(false)
+const pending = authStore.takePendingToken()
+if (pending) {
+  tokenInput.value = pending
+  step.value = 'token-paste'
+  filledFromBookmarklet.value = true
+}
 
 const bookmarkletHref = computed(() =>
   generateBookmarklet(locale.value.startsWith('zh') ? 'zh' : 'en'),
@@ -330,11 +352,12 @@ const submitToken = async () => {
   }
 }
 
-// Arriving already signed in, or a bookmarklet redirect resolving here.
+// Arriving already signed in (unless a bookmarklet token is waiting for
+// review on the paste step — submitToken/goHome handles that path).
 watch(
   isLoggedIn,
   (loggedIn) => {
-    if (loggedIn) goHome()
+    if (loggedIn && !filledFromBookmarklet.value) goHome()
   },
   { immediate: true },
 )
@@ -375,8 +398,32 @@ watch(
 
 /* ===== Card + footer wrapper (footer sits below the card) ===== */
 .login-shell {
+  position: relative;
   width: 100%;
   max-width: 58rem;
+}
+
+/* The tutorial floats above the card (shell top == card top), out of flow.
+   Descendant selector outranks the component's own `position: relative`. */
+.login-shell .token-demo-float {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 1rem;
+  width: min(30rem, 90vw);
+}
+
+@media (max-height: 940px) {
+  .login-shell .token-demo-float {
+    width: 24rem;
+  }
+}
+
+@media (max-width: 720px), (max-height: 800px) {
+  .login-shell .token-demo-float {
+    display: none;
+  }
 }
 
 .login-card {
