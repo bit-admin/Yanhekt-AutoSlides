@@ -30,13 +30,13 @@ import type { RouteLocationNormalizedLoaded } from 'vue-router'
 
 // Component names eligible for the KeepAlive cache (each cached SFC declares
 // its name via defineOptions so include-matching survives production builds).
+// Notes is fullPage (App.vue KeepAlive) — not mounted here.
 const CACHE_NAMES = [
   'HomePage',
   'SearchPage',
   'CoursePage',
   'RecordedCourseRoute',
   'SlidesPage',
-  'NotesPage',
   'SettingsPage',
 ]
 

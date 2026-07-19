@@ -1,4 +1,4 @@
-import { ref, watch, onScopeDispose } from 'vue';
+import { ref, watch, onScopeDispose, nextTick } from 'vue'
 import EditorJS from '@editorjs/editorjs';
 import type { OutputData } from '@editorjs/editorjs';
 import Header from '@editorjs/header';
@@ -157,6 +157,9 @@ export function useNoteEditor(
     const detail = await cn.openNote(id);
     if (detail) {
       editableTitle.value = detail.title;
+      // Wait for the canvas holder to mount when going empty → selected
+      // (v-if on the editor pane). Switching between notes reuses the holder.
+      await nextTick();
       await mountEditor(detail.content);
     }
   }

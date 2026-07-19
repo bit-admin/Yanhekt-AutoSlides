@@ -72,10 +72,18 @@ export const router = createRouter({
       meta: { nav: "slides", keepAlive: true, titleKey: "navigation.slidesReview" },
     },
     {
+      // Standalone Notion-like workspace: fullPage drops the YouTube shell.
+      // notes + notes-detail share one KeepAlive instance (see App.vue).
       name: "notes",
       path: "/notes",
       component: NotesPage,
-      meta: { nav: "notes", keepAlive: true, titleKey: "navigation.notes" },
+      meta: { fullPage: true, keepAlive: true, titleKey: "navigation.notes" },
+    },
+    {
+      name: "notes-detail",
+      path: "/notes/:noteId",
+      component: NotesPage,
+      meta: { fullPage: true, keepAlive: true, titleKey: "navigation.notes" },
     },
     {
       name: "settings",

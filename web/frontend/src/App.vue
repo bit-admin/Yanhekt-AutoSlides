@@ -1,7 +1,24 @@
 <template>
   <div class="app">
-    <!-- Full-page routes (e.g. login) render standalone, no site chrome -->
-    <RouterView v-if="isFullPage" />
+    <!-- Full-page routes render standalone (no Header / LeftPanel / bottom nav).
+         Notes is KeepAlive-cached so /notes ↔ /notes/:id share one instance;
+         login/apps/legal stay uncached (keepAlive: false). -->
+    <RouterView v-if="isFullPage" v-slot="{ Component, route: fullPageRoute }">
+      <KeepAlive :include="FULLPAGE_CACHE_NAMES" :max="4">
+        <component
+          :is="Component"
+          v-if="fullPageRoute.meta.keepAlive"
+          :key="fullPageCacheKey(fullPageRoute)"
+          class="fullpage-view"
+        />
+      </KeepAlive>
+      <component
+        :is="Component"
+        v-if="!fullPageRoute.meta.keepAlive"
+        :key="fullPageRoute.fullPath"
+        class="fullpage-view"
+      />
+    </RouterView>
 
     <template v-else>
     <Header />
@@ -91,7 +108,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, type RouteLocationNormalizedLoaded } from 'vue-router'
 import FirstRunNotice from './components/FirstRunNotice.vue'
 import Header from './components/Header.vue'
 import LeftPanel from './components/LeftPanel.vue'
@@ -108,6 +125,11 @@ const route = useRoute()
 const isFullPage = computed(() => route.meta.fullPage === true)
 const livePlaybackActive = computed(() => route.name === 'player-live')
 const recordedPlaybackActive = computed(() => route.name === 'player-recorded')
+
+// Only Notes needs full-page KeepAlive (list + editor state across deep links).
+const FULLPAGE_CACHE_NAMES = ['NotesPage']
+const fullPageCacheKey = (r: RouteLocationNormalizedLoaded) =>
+  r.name === 'notes' || r.name === 'notes-detail' ? 'NotesPage' : String(r.name)
 
 const checkMobile = () => {
   isMobile.value = window.innerWidth <= 768
@@ -130,6 +152,12 @@ onUnmounted(() => {
   height: 100vh;
   overflow: hidden;
   background-color: var(--bg-page);
+}
+
+.fullpage-view {
+  height: 100%;
+  width: 100%;
+  min-height: 0;
 }
 
 .layout {
