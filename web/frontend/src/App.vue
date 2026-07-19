@@ -1,7 +1,7 @@
 <template>
   <div class="app">
     <!-- Full-page routes render standalone (no Header / LeftPanel / bottom nav).
-         Notes is KeepAlive-cached so /notes ↔ /notes/:id share one instance;
+         Notes + Slides are KeepAlive-cached so deep links share one instance;
          login/apps/legal stay uncached (keepAlive: false). -->
     <RouterView v-if="isFullPage" v-slot="{ Component, route: fullPageRoute }">
       <KeepAlive :include="FULLPAGE_CACHE_NAMES" :max="4">
@@ -126,10 +126,13 @@ const isFullPage = computed(() => route.meta.fullPage === true)
 const livePlaybackActive = computed(() => route.name === 'player-live')
 const recordedPlaybackActive = computed(() => route.name === 'player-recorded')
 
-// Only Notes needs full-page KeepAlive (list + editor state across deep links).
-const FULLPAGE_CACHE_NAMES = ['NotesPage']
-const fullPageCacheKey = (r: RouteLocationNormalizedLoaded) =>
-  r.name === 'notes' || r.name === 'notes-detail' ? 'NotesPage' : String(r.name)
+// Notes + Slides need full-page KeepAlive so deep links share one instance.
+const FULLPAGE_CACHE_NAMES = ['NotesPage', 'SlidesPage']
+const fullPageCacheKey = (r: RouteLocationNormalizedLoaded) => {
+  if (r.name === 'notes' || r.name === 'notes-detail') return 'NotesPage'
+  if (r.name === 'slides' || r.name === 'slides-folder') return 'SlidesPage'
+  return String(r.name)
+}
 
 const checkMobile = () => {
   isMobile.value = window.innerWidth <= 768

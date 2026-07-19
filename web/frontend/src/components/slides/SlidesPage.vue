@@ -1,239 +1,155 @@
 <template>
-  <div ref="pageEl" class="slides-page custom-scrollbar" :class="{ 'review-mode': rv.currentView.value === 'images' }">
-    <!-- Folder list view -->
-    <template v-if="rv.currentView.value === 'folders'">
-      <div class="page-header">
-        <h1 class="page-title">{{ $t('navigation.slidesReview') }}</h1>
-        <div class="header-actions">
-          <button class="btn btn--ghost" :disabled="rv.isLoading.value" @click="rv.refresh()">
-            {{ $t('trash.refresh') }}
-          </button>
-          <button
-            v-if="rv.trashEntries.value.length > 0"
-            class="btn btn--ghost danger-text"
-            @click="clearAllTrash"
-          >
-            {{ $t('trash.clearTrash') }}
-          </button>
-        </div>
-      </div>
-
-      <div v-if="rv.folders.value.length === 0 && !rv.isLoading.value" class="empty-state">
-        <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" aria-hidden="true">
-          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-        </svg>
-        <p>{{ $t('trash.noResultsFolders') }}</p>
-      </div>
-
-      <FolderListView
-        v-else
-        :folders="rv.folders.value"
-        :folder-covers="rv.folderCovers.value"
-        @open="rv.openFolder($event)"
-        @remove="removeFolderWithConfirm"
-      />
-    </template>
-
-    <!-- Image review view -->
-    <template v-else>
-      <!-- Single-row toolbar (desktop ResultsWindow parity): back, filters,
-           refresh, then the action buttons -->
-      <div class="review-toolbar">
-        <button class="btn btn--ghost back-btn" @click="rv.goBack()">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <polyline points="15,18 9,12 15,6"/>
+  <div class="slides-workspace" :class="{ 'is-mobile': isMobile }">
+    <header class="sw-chrome">
+      <div class="sw-chrome-left">
+        <button
+          v-if="isMobile"
+          type="button"
+          class="sw-icon-btn"
+          :aria-label="$t('slides.openSidebar')"
+          @click="sidebarOpen = true"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
-          <span>{{ $t('trash.back') }}</span>
         </button>
 
-        <label class="toolbar-field">
-          <span class="field-label">{{ $t('trash.viewMode') }}</span>
-          <select v-model="rv.contextMode.value" class="toolbar-select">
-            <option value="context">{{ $t('trash.showContext') }}</option>
-            <option value="extracted-only">{{ $t('trash.extractedOnly') }}</option>
-            <option value="removed-only">{{ $t('trash.removedOnly') }}</option>
-          </select>
-        </label>
+        <RouterLink class="sw-brand" :to="{ name: 'home' }" :title="$t('slides.backToApp')">
+          <svg class="sw-brand-mark" width="22" height="16" viewBox="0 0 30 22" fill="none" aria-hidden="true">
+            <rect width="30" height="22" rx="5" fill="#FF0000" />
+            <polygon points="12,6 20,11 12,16" fill="white" />
+            <line x1="6" y1="18" x2="24" y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+          </svg>
+          <span class="sw-brand-text">
+            <span class="sw-brand-name">{{ $t('slides.workspaceBrand') }}</span>
+            <span class="sw-brand-product">{{ $t('slides.workspaceProduct') }}</span>
+          </span>
+        </RouterLink>
+      </div>
 
-        <label v-if="rv.contextMode.value !== 'extracted-only'" class="toolbar-field">
-          <span class="field-label">{{ $t('trash.filterReason') }}</span>
-          <select v-model="rv.selectedReason.value" class="toolbar-select">
-            <option value="">{{ $t('trash.all') }}</option>
-            <option value="duplicate">{{ $t('trash.duplicate') }}</option>
-            <option value="exclusion">{{ $t('trash.exclusion') }}</option>
-            <option value="manual">{{ $t('trash.manual') }}</option>
-          </select>
-        </label>
-
-        <button class="btn btn--ghost" :disabled="rv.isLoading.value" @click="rv.refresh()">
+      <div class="sw-chrome-right">
+        <RouterLink class="sw-back" :to="{ name: 'home' }">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          {{ $t('slides.backToApp') }}
+        </RouterLink>
+        <button type="button" class="sw-chrome-btn" :disabled="rv.isLoading.value" @click="onRefresh">
           {{ $t('trash.refresh') }}
         </button>
-
-        <div class="toolbar-spacer"></div>
-
-        <button
-          class="btn btn--primary"
-          :disabled="rv.selectedRemovedItems.value.length === 0 || rv.isLoading.value"
-          @click="rv.restoreSelected()"
-        >
-          {{ $t('trash.restore') }}
-        </button>
-        <button
-          class="btn btn--danger"
-          :disabled="rv.selectedActiveItems.value.length === 0 || rv.isLoading.value"
-          @click="deleteSelectedWithConfirm"
-        >
-          {{ $t('trash.delete') }}
-        </button>
-        <button
-          v-if="rv.hasRemovedItems.value"
-          class="btn btn--ghost danger-text"
-          :disabled="rv.isLoading.value"
-          @click="clearFolderTrash"
-        >
-          {{ $t('trash.clearTrash') }}
-        </button>
-
-        <button
-          class="btn btn--outline-sm export-btn"
-          :disabled="exportDisabled"
-          @click="exportCurrentFolder('pdf')"
-        >
-          <span v-if="slidesExport.exportingFormat.value === 'pdf'" class="export-progress">
-            <span class="btn-spinner"></span>
-            {{ slidesExport.exportProgress.value.current }}/{{ slidesExport.exportProgress.value.total }}
-          </span>
-          <span v-else>{{ $t('pdfmaker.makeOutput', { format: 'PDF' }) }}</span>
-        </button>
-        <button
-          class="btn btn--outline-sm export-btn"
-          :disabled="exportDisabled"
-          @click="exportCurrentFolder('zip')"
-        >
-          <span v-if="slidesExport.exportingFormat.value === 'zip'" class="export-progress">
-            <span class="btn-spinner"></span>
-            {{ slidesExport.exportProgress.value.current }}/{{ slidesExport.exportProgress.value.total }}
-          </span>
-          <span v-else>{{ $t('pdfmaker.makeOutput', { format: 'ZIP' }) }}</span>
-        </button>
       </div>
+    </header>
 
-      <!-- Scrolling grid region between the toolbar and the footer -->
-      <div ref="gridEl" class="grid-scroll custom-scrollbar">
-        <div v-if="rv.filteredItems.value.length === 0 && !rv.isLoading.value" class="empty-state">
-          <p>{{ rv.folderItems.value.length === 0 ? $t('trash.emptyFolder') : $t('trash.emptyFiltered') }}</p>
-        </div>
+    <div v-if="bannerError" class="sw-banner" @click="bannerError = ''">{{ bannerError }}</div>
 
-        <SlidesImageGrid
-          v-else
-          :items="rv.filteredItems.value"
-          :thumbnails="rv.thumbnails.value"
-          :selected-ids="rv.selectedIds.value"
-          :thumbnail-size="rv.thumbnailSize.value"
-          @toggle="rv.toggleSelection($event)"
-          @preview="rv.openPreview($event)"
-        />
-      </div>
-
-      <!-- Slim status footer (desktop ResultsWindow parity): selection on the
-           left, thumbnail size slider on the right -->
-      <div class="review-footer">
-        <div class="footer-left">
-          <button
-            class="select-all-btn"
-            :disabled="rv.filteredItems.value.length === 0"
-            @click="toggleSelectAllFiltered"
-          >
-            {{ allFilteredSelected ? $t('trash.clearSelection') : $t('trash.selectAll') }}
-          </button>
-          <span>{{ $t('trash.selected') }}: {{ rv.selectedIds.value.length }} / {{ $t('trash.total') }}: {{ rv.filteredItems.value.length }}</span>
-        </div>
-
-        <div class="size-slider-group">
-          <svg width="12" height="12" viewBox="0 0 16 16" class="size-icon">
-            <rect x="3" y="3" width="10" height="10" fill="currentColor" opacity="0.6"/>
-          </svg>
-          <input
-            v-model.number="rv.thumbnailSize.value"
-            class="size-slider"
-            type="range"
-            min="180"
-            max="640"
-            step="20"
-          />
-          <svg width="16" height="16" viewBox="0 0 16 16" class="size-icon">
-            <rect x="2" y="2" width="12" height="12" fill="currentColor" opacity="0.6"/>
-          </svg>
-        </div>
-      </div>
-
-      <SlidesPreviewModal
-        :item="rv.previewItem.value"
-        :thumbnails="rv.thumbnails.value"
-        :format-date="rv.formatDate"
-        @close="rv.closePreview()"
-        @restore="restoreFromPreview"
-        @delete="deleteFromPreview"
+    <div class="sw-body">
+      <div
+        v-if="isMobile && sidebarOpen"
+        class="sw-backdrop"
+        @click="sidebarOpen = false"
       />
-    </template>
 
-    <div v-if="rv.isLoading.value" class="loading-overlay">
-      <div class="spinner spinner--lg"></div>
+      <SlidesSidebar
+        class="sw-sidebar"
+        :class="{ 'is-open': !isMobile || sidebarOpen }"
+        :folders="rv.folders.value"
+        :active-folder-name="rv.currentFolder.value?.name ?? null"
+        :trash-count="rv.trashEntries.value.length"
+        @select="onSelectFolder"
+        @remove="removeFolderWithConfirm"
+        @clear-trash="clearAllTrash"
+      />
+
+      <SlidesMain
+        :has-folder="!!rv.currentFolder.value"
+        :empty-library="rv.folders.value.length === 0 && !rv.isLoading.value"
+        :title="reviewTitle"
+        :subtitle="reviewSubtitle"
+        :items="rv.filteredItems.value"
+        :thumbnails="rv.thumbnails.value"
+        :selected-ids="rv.selectedIds.value"
+        :thumbnail-size="rv.thumbnailSize.value"
+        :context-mode="rv.contextMode.value"
+        :selected-reason="rv.selectedReason.value"
+        :loading="rv.isLoading.value"
+        :has-removed-items="rv.hasRemovedItems.value"
+        :selected-active-count="rv.selectedActiveItems.value.length"
+        :selected-removed-count="rv.selectedRemovedItems.value.length"
+        :export-disabled="exportDisabled"
+        :exporting-format="slidesExport.exportingFormat.value"
+        :export-progress="slidesExport.exportProgress.value"
+        :all-selected="allFilteredSelected"
+        :empty-message="emptyReviewMessage"
+        @update:context-mode="(m) => (rv.contextMode.value = m)"
+        @update:selected-reason="(r) => (rv.selectedReason.value = r)"
+        @update:thumbnail-size="(n) => (rv.thumbnailSize.value = n)"
+        @toggle="rv.toggleSelection($event)"
+        @preview="rv.openPreview($event)"
+        @restore-item="restoreSingleItem"
+        @delete-item="deleteSingleItem"
+        @toggle-select-all="toggleSelectAllFiltered"
+        @restore="rv.restoreSelected()"
+        @delete="deleteSelectedWithConfirm"
+        @clear-selection="rv.clearSelection()"
+        @export="exportCurrentFolder"
+        @clear-folder-trash="clearFolderTrash"
+      />
+    </div>
+
+    <SlidesPreviewModal
+      :item="rv.previewItem.value"
+      :items="rv.filteredItems.value"
+      :thumbnails="rv.thumbnails.value"
+      @close="rv.closePreview()"
+      @restore="restoreFromPreview"
+      @delete="deleteFromPreview"
+      @navigate="rv.openPreview($event)"
+    />
+
+    <div v-if="rv.isLoading.value" class="sw-loading">
+      <div class="spinner spinner--lg" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// Slides workspace page: folder list → per-folder image review with a
-// floating bottom action bar (selection, restore/delete, PDF/ZIP export).
-// Web port of the desktop's ResultsWindow.vue shell (crop/dedup/notes
-// features omitted; no folder select mode — cards expose delete directly).
-import { computed, ref, watch } from 'vue'
+// Full-page iCloud Photos–style Slides workspace: folder sidebar + main 16:9 grid.
+import { computed, nextTick, onActivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import FolderListView from './FolderListView.vue'
-import SlidesImageGrid from './SlidesImageGrid.vue'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
+import SlidesSidebar from './SlidesSidebar.vue'
+import SlidesMain from './SlidesMain.vue'
 import SlidesPreviewModal from './SlidesPreviewModal.vue'
 import { useResultsView } from '../../composables/useResultsView'
 import { useSlidesExport, type ExportFormat } from '../../composables/useSlidesExport'
-import { navigationStore } from '../../stores/navigationStore'
-import { useKeepScroll } from '../../composables/useKeepScroll'
 import type { ResultsFolder, ResultsItem } from '../../composables/resultsTypes'
 
 defineOptions({ name: 'SlidesPage' })
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 const rv = useResultsView()
 const slidesExport = useSlidesExport()
 
-const pageEl = ref<HTMLElement | null>(null)
-const gridEl = ref<HTMLElement | null>(null)
-useKeepScroll(pageEl, gridEl)
+const bannerError = ref('')
+const sidebarOpen = ref(false)
+const isMobile = ref(false)
+/** Prevents route ↔ selection feedback loops while we replace URLs. */
+let syncingRoute = false
 
-// The page stays mounted behind the mode-container; refresh when the user
-// navigates back to it so folders extracted since last visit show up.
-watch(
-  () => navigationStore.activeNav.value,
-  (nav) => {
-    if (nav === 'slides') void rv.refresh()
-  },
-)
+function checkMobile(): void {
+  isMobile.value = window.innerWidth <= 768
+}
 
-// Footer Select All button toggles: selects everything shown, or clears the
-// selection once everything is already selected (desktop footer parity).
 const allFilteredSelected = computed(() => {
   const items = rv.filteredItems.value
   if (items.length === 0) return false
   const selected = new Set(rv.selectedIds.value)
   return items.every((item) => selected.has(item.id))
 })
-
-const toggleSelectAllFiltered = () => {
-  if (allFilteredSelected.value) {
-    rv.clearSelection()
-  } else {
-    rv.selectAll()
-  }
-}
 
 const exportDisabled = computed(
   () =>
@@ -242,16 +158,114 @@ const exportDisabled = computed(
     !rv.folderItems.value.some((item) => item.status === 'active'),
 )
 
-const exportCurrentFolder = async (format: ExportFormat) => {
+const reviewTitle = computed(() => {
   const folder = rv.currentFolder.value
-  if (!folder) return
-  await slidesExport.exportFolder(folder.name, format)
+  if (!folder) return ''
+  return rv.getFolderDisplayName(folder.name).course || folder.name
+})
+
+const reviewSubtitle = computed(() => {
+  const folder = rv.currentFolder.value
+  if (!folder) return ''
+  return rv.getFolderDisplayName(folder.name).details || ''
+})
+
+const emptyReviewMessage = computed(() =>
+  rv.folderItems.value.length === 0 ? t('trash.emptyFolder') : t('trash.emptyFiltered'),
+)
+
+function parseRouteFolderName(): string | null {
+  // vue-router already decodes params — do not decodeURIComponent again.
+  const raw = route.params.folderName
+  const s = Array.isArray(raw) ? raw[0] : raw
+  return s && typeof s === 'string' ? s : null
+}
+
+function routeToFolder(name: string | null): void {
+  syncingRoute = true
+  const target =
+    name == null
+      ? { name: 'slides' as const }
+      : { name: 'slides-folder' as const, params: { folderName: name } }
+  void router.replace(target).finally(() => {
+    void nextTick(() => {
+      syncingRoute = false
+    })
+  })
+}
+
+async function openFolder(folder: ResultsFolder): Promise<void> {
+  await rv.openFolder(folder)
+  routeToFolder(folder.name)
+}
+
+async function onSelectFolder(folder: ResultsFolder): Promise<void> {
+  await openFolder(folder)
+  if (isMobile.value) sidebarOpen.value = false
+}
+
+/** Prefer deep-linked folder; otherwise auto-open the first album so main isn't blank. */
+async function ensureFolderOpen(): Promise<void> {
+  if (syncingRoute) return
+  const folderName = parseRouteFolderName()
+
+  if (rv.folders.value.length === 0 && !rv.isLoading.value) {
+    if (rv.currentView.value === 'images') rv.goBack()
+    return
+  }
+
+  if (folderName) {
+    if (rv.currentFolder.value?.name === folderName && rv.currentView.value === 'images') {
+      return
+    }
+    const folder = rv.folders.value.find((f) => f.name === folderName)
+    if (!folder) {
+      bannerError.value = t('slides.folderMissing')
+      // Fall through to first folder if any.
+    } else {
+      await rv.openFolder(folder)
+      return
+    }
+  }
+
+  // Bare /slides or missing deep link: open first folder.
+  if (rv.folders.value.length > 0) {
+    const first = rv.folders.value[0]
+    if (rv.currentFolder.value?.name !== first.name || rv.currentView.value !== 'images') {
+      await openFolder(first)
+    }
+  }
+}
+
+async function syncFromRoute(): Promise<void> {
+  if (syncingRoute) return
+  if (rv.folders.value.length === 0) {
+    await rv.refresh()
+  }
+  await ensureFolderOpen()
+}
+
+async function onRefresh(): Promise<void> {
+  const result = await rv.refresh()
+  if (result === 'folder-missing') {
+    bannerError.value = t('slides.folderMissing')
+  }
+  await ensureFolderOpen()
 }
 
 const removeFolderWithConfirm = async (folder: ResultsFolder) => {
   const displayName = rv.getFolderDisplayName(folder.name).course || folder.name
   if (!window.confirm(t('trash.confirmDeleteFolder', { folder: displayName }))) return
+  const wasOpen = rv.currentFolder.value?.name === folder.name
   await rv.removeFolders([folder.name])
+  if (wasOpen) {
+    if (rv.folders.value.length > 0) {
+      await openFolder(rv.folders.value[0])
+    } else {
+      rv.goBack()
+      routeToFolder(null)
+    }
+  }
 }
 
 const clearAllTrash = async () => {
@@ -277,6 +291,20 @@ const deleteSelectedWithConfirm = async () => {
   await rv.deleteSelected()
 }
 
+const toggleSelectAllFiltered = () => {
+  if (allFilteredSelected.value) {
+    rv.clearSelection()
+  } else {
+    rv.selectAll()
+  }
+}
+
+const exportCurrentFolder = async (format: ExportFormat) => {
+  const folder = rv.currentFolder.value
+  if (!folder) return
+  await slidesExport.exportFolder(folder.name, format)
+}
+
 const restoreFromPreview = async (item: ResultsItem) => {
   rv.closePreview()
   rv.selectedIds.value = [item.id]
@@ -289,273 +317,267 @@ const deleteFromPreview = async (item: ResultsItem) => {
   rv.selectedIds.value = [item.id]
   await rv.deleteSelected()
 }
+
+const restoreSingleItem = async (item: ResultsItem) => {
+  rv.selectedIds.value = [item.id]
+  await rv.restoreSelected()
+}
+
+const deleteSingleItem = async (item: ResultsItem) => {
+  if (!window.confirm(t('trash.confirmDelete', { count: 1 }))) return
+  rv.selectedIds.value = [item.id]
+  await rv.deleteSelected()
+}
+
+watch(
+  () => route.params.folderName,
+  () => {
+    void ensureFolderOpen()
+  },
+)
+
+onMounted(() => {
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  void syncFromRoute()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', checkMobile)
+})
+
+onActivated(() => {
+  void rv.refresh().then(() => ensureFolderOpen())
+})
 </script>
 
 <style scoped>
-.slides-page {
-  position: relative;
+.slides-workspace {
+  display: flex;
+  flex-direction: column;
   height: 100%;
-  overflow-y: auto;
-  padding: 1.5rem 2rem 2.5rem;
-  background-color: var(--bg-page);
-  color: var(--text-primary);
-  box-sizing: border-box;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--st-bg);
+  color: var(--st-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
 }
 
-.page-header {
+.sw-chrome {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.page-title {
-  margin: 0;
-  font-size: 1.375rem;
-  font-weight: 600;
-}
-
-.header-actions {
-  display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid var(--st-border);
+  background: var(--st-bg);
+  z-index: 5;
   flex-shrink: 0;
 }
 
-.back-btn {
+.sw-chrome-left,
+.sw-chrome-right {
   display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.sw-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--st-text);
+  cursor: pointer;
+}
+
+.sw-icon-btn:hover {
+  background: var(--st-hover);
+}
+
+.sw-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.sw-brand-mark {
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.sw-brand-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.sw-brand-name {
+  font-size: 0.975rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--st-text);
+}
+
+.sw-brand-product {
+  font-size: 0.975rem;
+  font-weight: 600;
+  color: var(--st-text-secondary);
+}
+
+.sw-back {
+  display: inline-flex;
   align-items: center;
   gap: 0.25rem;
-}
-
-.danger-text {
-  color: var(--danger);
-}
-
-.review-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.75rem;
-}
-
-.toolbar-field {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-}
-
-.field-label {
+  padding: 0.3rem 0.45rem;
+  border-radius: 0.4rem;
+  text-decoration: none;
   font-size: 0.8125rem;
-  color: var(--text-secondary);
+  font-weight: 500;
+  color: var(--st-text-secondary);
   white-space: nowrap;
 }
 
-.toolbar-select {
-  padding: 0.375rem 2rem 0.375rem 0.625rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  background-color: var(--bg-input, var(--bg-surface));
-  color: var(--text-primary);
-  font-size: 0.8125rem;
-  cursor: pointer;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 0.625rem center;
-  background-size: 0.75rem;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+.sw-back:hover {
+  color: var(--st-text);
+  background: var(--st-hover);
 }
 
-.toolbar-select:focus {
-  outline: none;
-  border-color: var(--link-color);
-  box-shadow: 0 0 0 2px var(--focus-ring);
-}
-
-.toolbar-spacer {
-  flex: 1;
-}
-
-/* Review mode: the page becomes a fixed column (header / toolbar / scrolling
-   grid / slim footer) so the footer stays attached to the bottom edge, like
-   the desktop ResultsWindow. */
-.slides-page.review-mode {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 0;
-}
-
-.review-mode .review-toolbar {
-  padding: 1.25rem 2rem 0;
-}
-
-.grid-scroll {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 0.25rem 2rem 1.5rem;
-}
-
-/* Slim status footer (desktop ResultsWindow .footer parity) */
-.review-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 1rem;
-  background-color: var(--bg-elevated, var(--bg-surface));
-  border-top: 1px solid var(--border-color);
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.footer-left {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.select-all-btn {
-  padding: 0.25rem 0.625rem;
-  font-size: 0.75rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.25rem;
-  background-color: var(--bg-input, var(--bg-surface));
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
-}
-
-.select-all-btn:hover:not(:disabled) {
-  background-color: var(--bg-hover);
-  border-color: var(--border-strong);
-}
-
-.select-all-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.size-slider-group {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.5rem;
-  background-color: var(--bg-hover);
-  border-radius: 0.375rem;
-}
-
-.size-icon {
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
-
-.export-btn {
-  min-width: 6.5rem;
-  justify-content: center;
-}
-
-.export-progress {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.btn-spinner {
-  width: 12px;
-  height: 12px;
-  border: 2px solid currentColor;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: action-spin 0.8s linear infinite;
-  flex-shrink: 0;
-}
-
-@keyframes action-spin {
-  to { transform: rotate(360deg); }
-}
-
-.btn--outline-sm {
-  border: 1px solid var(--border-color);
+.sw-chrome-btn {
+  border: none;
   background: transparent;
-  color: var(--text-primary);
-  border-radius: 6.25rem;
-  padding: 0.375rem 0.875rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
+  color: var(--st-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.35rem 0.6rem;
+  border-radius: 0.4rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  height: var(--control-height, 2rem);
 }
 
-.btn--outline-sm:hover:not(:disabled) {
-  background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+.sw-chrome-btn:hover:not(:disabled) {
+  background: var(--st-hover);
+  color: var(--st-text);
 }
 
-.btn--outline-sm:disabled {
+.sw-chrome-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
 
-.size-slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 140px;
-  height: 4px;
-  background: var(--border-strong);
-  border-radius: 2px;
-  outline: none;
+.sw-banner {
+  margin: 0.5rem 1rem 0;
+  padding: 0.5rem 0.8rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--st-danger) 12%, var(--st-surface));
+  color: var(--st-danger);
+  font-size: 0.8125rem;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-.size-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 14px;
-  height: 14px;
-  background: var(--bg-input, var(--bg-surface));
-  border: 1px solid var(--text-muted, var(--text-secondary));
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 1px 3px var(--shadow-lg);
-}
-
-.size-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
-  background: var(--bg-input, var(--bg-surface));
-  border: 1px solid var(--text-muted, var(--text-secondary));
-  border-radius: 50%;
-  cursor: pointer;
-  box-shadow: 0 1px 3px var(--shadow-lg);
-}
-
-.empty-state {
+.sw-body {
+  position: relative;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 4rem 1rem;
-  color: var(--text-secondary);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.loading-overlay {
+.sw-sidebar {
+  flex-shrink: 0;
+}
+
+.sw-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.28);
+  z-index: 8;
+}
+
+.sw-loading {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--bg-page) 55%, transparent);
-  z-index: 10;
+  background: color-mix(in srgb, var(--st-bg) 55%, transparent);
+  z-index: 30;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .sw-sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 10;
+    width: min(280px, 86vw);
+    transform: translateX(-105%);
+    transition: transform 0.2s ease;
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+  }
+
+  .sw-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  .sw-back span,
+  .sw-chrome-btn {
+    font-size: 0.75rem;
+  }
+}
+</style>
+
+<style>
+.slides-workspace {
+  --st-bg: #ffffff;
+  --st-sidebar-bg: #f5f5f7;
+  --st-sidebar-active: rgba(0, 0, 0, 0.06);
+  --st-surface: #ffffff;
+  --st-elevated: #ffffff;
+  --st-text: #1d1d1f;
+  --st-text-secondary: #6e6e73;
+  --st-text-muted: #86868b;
+  --st-border: rgba(0, 0, 0, 0.08);
+  --st-hover: rgba(0, 0, 0, 0.04);
+  --st-active: rgba(0, 0, 0, 0.08);
+  --st-accent: #0071e3;
+  --st-selection-ring: rgba(0, 113, 227, 0.35);
+  --st-danger: #ff3b30;
+  --st-media-well: #f0f0f2;
+  --st-sidebar-width: 240px;
+  --st-toolbar-height: 52px;
+  --st-radius-card: 0.5rem;
+  --st-radius-control: 0.45rem;
+  position: relative;
+}
+
+html[data-theme='dark'] .slides-workspace {
+  --st-bg: #000000;
+  --st-sidebar-bg: #1c1c1e;
+  --st-sidebar-active: rgba(255, 255, 255, 0.1);
+  --st-surface: #1c1c1e;
+  --st-elevated: #2c2c2e;
+  --st-text: #f5f5f7;
+  --st-text-secondary: #a1a1a6;
+  --st-text-muted: #8e8e93;
+  --st-border: rgba(255, 255, 255, 0.12);
+  --st-hover: rgba(255, 255, 255, 0.08);
+  --st-active: rgba(255, 255, 255, 0.12);
+  --st-accent: #0a84ff;
+  --st-selection-ring: rgba(10, 132, 255, 0.45);
+  --st-danger: #ff453a;
+  --st-media-well: #1c1c1e;
 }
 </style>

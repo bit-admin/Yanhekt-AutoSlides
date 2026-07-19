@@ -4,76 +4,130 @@
       v-for="(item, idx) in items"
       :key="item.id"
       class="image-card"
-      :class="{ selected: selectedIds.includes(item.id), removed: item.status === 'removed' }"
-      @click="$emit('toggle', item.id)"
+      :class="{
+        selected: selectedIds.includes(item.id),
+        removed: item.status === 'removed',
+        'selection-mode': selectionActive,
+      }"
+      @click="onCardClick(item)"
+      @dblclick.prevent="onCardDblClick(item)"
     >
       <div class="image-frame">
-        <img v-if="thumbnails[item.id]" :src="thumbnails[item.id]" :alt="item.name" loading="lazy" />
+        <img v-if="thumbUrl(item)" :src="thumbUrl(item)" :alt="item.name" loading="lazy" />
         <div v-else class="image-placeholder">
           <div class="spinner spinner--sm"></div>
         </div>
-        
-        <!-- Trashed/Removed reason badge -->
+
         <span v-if="item.status === 'removed'" class="reason-chip" :class="`reason-${item.reason}`">
           {{ reasonLabel(item.reason) }}
         </span>
 
-        <!-- Custom animated checkbox overlay (top-left) -->
         <div class="image-checkbox" :class="{ checked: selectedIds.includes(item.id) }">
           <svg class="check-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
         </div>
-
-        <!-- Zoom/Preview Button (bottom-right) -->
-        <button
-          class="zoom-btn"
-          :title="$t('trash.preview')"
-          @click.stop="$emit('preview', item)"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <circle cx="11" cy="11" r="8"/>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            <line x1="11" y1="8" x2="11" y2="14"/>
-            <line x1="8" y1="11" x2="14" y2="11"/>
-          </svg>
-        </button>
       </div>
 
-      <!-- Human-readable numbering and formatted capture timestamp -->
       <div class="image-info">
-        <span class="image-title">{{ $t('trash.slideNumber', { n: idx + 1 }) }}</span>
-        <span class="image-time" v-if="getSlideTimeLabel(item.name)">
-          {{ getSlideTimeLabel(item.name) }}
-        </span>
-        <span class="image-filename-fallback" v-else :title="item.name">
-          {{ item.name }}
-        </span>
+        <div class="image-meta">
+          <span class="image-title">{{ $t('trash.slideNumber', { n: idx + 1 }) }}</span>
+          <span class="image-time" v-if="getSlideTimeLabel(item.name)">
+            {{ getSlideTimeLabel(item.name) }}
+          </span>
+        </div>
+        <button
+          type="button"
+          class="image-action"
+          :class="{ 'image-action--restore': item.status === 'removed' }"
+          :title="item.status === 'removed' ? $t('trash.restore') : $t('trash.delete')"
+          :aria-label="item.status === 'removed' ? $t('trash.restore') : $t('trash.delete')"
+          @click.stop="onRowAction(item)"
+        >
+          <template v-if="item.status === 'removed'">
+            {{ $t('trash.restore') }}
+          </template>
+          <template v-else>
+            <!-- Quiet trash icon; label available via title/aria -->
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+          </template>
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-// Redesigned Review grid card item layout: Slide numbering (Slide 1, Slide 2),
-// captured clock timestamp formatting, custom animated checkboxes on hover,
-// and selection mask overlays.
+// iCloud-style tiles: blue-border selection, double-click to preview,
+// per-row restore/delete at the far right of the caption.
+import { onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ResultsItem, ResultsReason } from '../../composables/resultsTypes'
 
-defineProps<{
-  items: ResultsItem[]
-  thumbnails: Record<string, string>
-  selectedIds: string[]
-  thumbnailSize: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    items: ResultsItem[]
+    thumbnails: Record<string, string>
+    selectedIds: string[]
+    thumbnailSize: number
+    selectionActive?: boolean
+  }>(),
+  { selectionActive: false },
+)
 
-defineEmits<{
+const emit = defineEmits<{
   toggle: [id: string]
   preview: [item: ResultsItem]
+  restore: [item: ResultsItem]
+  delete: [item: ResultsItem]
 }>()
 
 const { t } = useI18n()
+
+// Distinguish single-click (select) from double-click (preview).
+const DBLCLICK_MS = 280
+let clickTimer: ReturnType<typeof setTimeout> | null = null
+
+function clearClickTimer() {
+  if (clickTimer !== null) {
+    clearTimeout(clickTimer)
+    clickTimer = null
+  }
+}
+
+function onCardClick(item: ResultsItem) {
+  clearClickTimer()
+  clickTimer = setTimeout(() => {
+    clickTimer = null
+    emit('toggle', item.id)
+  }, DBLCLICK_MS)
+}
+
+function onCardDblClick(item: ResultsItem) {
+  clearClickTimer()
+  emit('preview', item)
+}
+
+function onRowAction(item: ResultsItem) {
+  clearClickTimer()
+  if (item.status === 'removed') emit('restore', item)
+  else emit('delete', item)
+}
+
+onUnmounted(clearClickTimer)
+
+// Thumbnails are path-keyed (folder/filename). Removed rows use a trash UUID
+// as item.id, so look up via trashPath/originalPath/imagePath instead.
+const thumbUrl = (item: ResultsItem): string => {
+  const key =
+    item.status === 'removed'
+      ? item.trashPath || item.originalPath
+      : item.imagePath || item.originalPath || item.id
+  return (key && props.thumbnails[key]) || ''
+}
 
 const reasonLabel = (reason?: ResultsReason | '') => {
   switch (reason) {
@@ -92,9 +146,6 @@ const reasonLabel = (reason?: ResultsReason | '') => {
   }
 }
 
-// Format the capture time out of a slide filename: recorded slides embed a
-// millisecond epoch (Slide_<ms>.png), live slides a wall-clock stamp
-// (Slide_YYYY-MM-DD_HH-MM-SS.png).
 const getSlideTimeLabel = (name: string): string => {
   const liveMatch = name.match(/^Slide_\d{4}-\d{2}-\d{2}_(\d{2})-(\d{2})-(\d{2})/)
   if (liveMatch) {
@@ -114,55 +165,44 @@ const getSlideTimeLabel = (name: string): string => {
 <style scoped>
 .image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(var(--thumb-size, 320px), 1fr));
-  gap: 1.25rem;
-  padding: 0.5rem 0 2rem;
+  grid-template-columns: repeat(auto-fill, minmax(var(--thumb-size, 280px), 1fr));
+  gap: 0.65rem;
+  padding: 0.15rem 0 0.5rem;
 }
 
 .image-card {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.3rem;
   cursor: pointer;
   position: relative;
+  min-width: 0;
 }
 
 .image-frame {
   position: relative;
   aspect-ratio: 16 / 9;
-  border-radius: 0.625rem;
+  border-radius: 0.4rem;
   overflow: hidden;
-  border: 1px solid var(--border-color);
-  background-color: #0c0c0c;
-  box-shadow: 0 1px 3px var(--shadow-sm);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  border: 2px solid transparent;
+  background-color: var(--st-media-well, #f0f0f2);
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  box-sizing: border-box;
 }
 
 .image-card:hover .image-frame {
-  border-color: var(--border-strong);
-  box-shadow: 0 6px 14px var(--shadow-md);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
 .image-card.selected .image-frame {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--focus-ring), 0 6px 14px var(--shadow-md);
-}
-
-.image-card.selected .image-frame::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: color-mix(in srgb, var(--accent) 8%, transparent);
-  z-index: 1;
-  pointer-events: none;
+  /* iCloud Photos blue selection border */
+  border-color: var(--st-accent, #0071e3);
+  box-shadow: 0 0 0 1px var(--st-selection-ring, rgba(0, 113, 227, 0.35));
 }
 
 .image-card.removed .image-frame {
   opacity: 0.55;
-  filter: grayscale(0.2);
+  filter: grayscale(0.12);
 }
 
 .image-frame img {
@@ -170,11 +210,6 @@ const getSlideTimeLabel = (name: string): string => {
   height: 100%;
   object-fit: contain;
   display: block;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.image-card:hover .image-frame img {
-  transform: scale(1.03);
 }
 
 .image-placeholder {
@@ -185,41 +220,40 @@ const getSlideTimeLabel = (name: string): string => {
   justify-content: center;
 }
 
-/* Custom Checkbox overlay styling */
 .image-checkbox {
   position: absolute;
-  top: 0.5rem;
-  left: 0.5rem;
+  top: 0.4rem;
+  left: 0.4rem;
   z-index: 5;
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 4px;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
   border: 1.5px solid #ffffff;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.28);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: opacity 0.12s ease, background-color 0.12s ease, border-color 0.12s ease;
   opacity: 0;
 }
 
 .image-card:hover .image-checkbox,
+.image-card.selection-mode .image-checkbox,
 .image-checkbox.checked {
   opacity: 1;
 }
 
 .image-checkbox.checked {
-  background-color: var(--accent);
-  border-color: var(--accent);
-  transform: scale(1.05);
+  background-color: var(--st-accent, #0071e3);
+  border-color: var(--st-accent, #0071e3);
 }
 
 .check-icon {
   opacity: 0;
-  transform: scale(0.6);
-  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform: scale(0.65);
+  transition: all 0.12s ease;
 }
 
 .image-checkbox.checked .check-icon {
@@ -229,103 +263,109 @@ const getSlideTimeLabel = (name: string): string => {
 
 .reason-chip {
   position: absolute;
-  top: 8px;
-  left: 8px;
-  padding: 0.125rem 0.5rem;
+  top: 6px;
+  right: 6px;
+  padding: 0.1rem 0.4rem;
   border-radius: 999px;
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 600;
-  line-height: 1.4;
-  letter-spacing: 0.02em;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  line-height: 1.35;
   z-index: 4;
-}
-
-/* When removed reason is shown, shift checkbox down a bit to avoid overlap */
-.image-card.removed .image-checkbox {
-  top: 2rem;
+  max-width: calc(100% - 2.2rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .reason-duplicate {
-  background-color: color-mix(in srgb, var(--warning) 12%, var(--bg-surface));
-  color: var(--warning);
-  border: 1px solid color-mix(in srgb, var(--warning) 25%, transparent);
+  background-color: color-mix(in srgb, #ff9f0a 18%, #fff);
+  color: #9a5b00;
 }
 
 .reason-exclusion {
-  background-color: color-mix(in srgb, var(--danger) 12%, var(--bg-surface));
-  color: var(--danger);
-  border: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
+  background-color: color-mix(in srgb, #bf5af2 16%, #fff);
+  color: #6b2a99;
 }
 
 .reason-ai_filtered,
 .reason-ai_filtered_edit {
-  background-color: color-mix(in srgb, var(--accent-deep) 12%, var(--bg-surface));
-  color: var(--accent-deep);
-  border: 1px solid color-mix(in srgb, var(--accent-deep) 25%, transparent);
+  background-color: color-mix(in srgb, var(--st-accent, #0071e3) 14%, #fff);
+  color: var(--st-accent, #0071e3);
 }
 
 .reason-manual {
-  background-color: color-mix(in srgb, var(--text-secondary) 12%, var(--bg-surface));
-  color: var(--text-secondary);
-  border: 1px solid color-mix(in srgb, var(--text-secondary) 25%, transparent);
+  background-color: color-mix(in srgb, var(--st-danger, #ff3b30) 14%, #fff);
+  color: var(--st-danger, #ff3b30);
 }
 
-.zoom-btn {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background-color: rgba(0, 0, 0, 0.7);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  opacity: 0;
-  transform: scale(0.9);
-  transition: all 0.2s ease;
-  z-index: 4;
-}
-
-.image-card:hover .zoom-btn {
-  opacity: 1;
-  transform: scale(1);
-}
-
-.zoom-btn:hover {
-  background-color: rgba(0, 0, 0, 0.85);
-  transform: scale(1.1) !important;
-}
-
-/* Card details caption */
+/* Caption row: title/time left, delete/restore far right */
 .image-info {
   display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0 0.1rem;
+  min-width: 0;
+}
+
+.image-meta {
+  display: flex;
   flex-direction: column;
-  gap: 0.125rem;
-  padding: 0.125rem 0.25rem;
-  text-align: left;
+  gap: 0.05rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .image-title {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 550;
+  color: var(--st-text, #1d1d1f);
 }
 
 .image-time {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
+  font-size: 0.6875rem;
+  color: var(--st-text-secondary, #6e6e73);
 }
 
-.image-filename-fallback {
+.image-action {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 0.4rem;
+  border: none;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--st-text-muted, #86868b);
   font-size: 0.75rem;
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease, background-color 0.12s ease, color 0.12s ease;
+}
+
+.image-card:hover .image-action,
+.image-card:focus-within .image-action {
+  opacity: 1;
+}
+
+.image-action:hover {
+  background: color-mix(in srgb, var(--st-danger, #ff3b30) 10%, transparent);
+  color: var(--st-danger, #ff3b30);
+}
+
+.image-action--restore:hover {
+  background: color-mix(in srgb, var(--st-accent, #0071e3) 10%, transparent);
+  color: var(--st-accent, #0071e3);
+}
+
+@media (hover: none) {
+  .image-checkbox,
+  .image-action {
+    opacity: 0.95;
+  }
 }
 </style>

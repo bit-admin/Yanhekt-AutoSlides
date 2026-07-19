@@ -1,54 +1,106 @@
 <template>
-  <Transition name="modal-fade">
-    <div v-if="item" class="preview-overlay" @click.self="$emit('close')">
-      <div class="preview-content">
-        <div class="preview-header">
-          <span class="preview-title" :title="item.name">{{ item.name }}</span>
-          <button class="preview-close" :title="$t('playback.close')" @click="$emit('close')">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <line x1="18" y1="6" x2="6" y2="18"/>
-              <line x1="6" y1="6" x2="18" y2="18"/>
+  <Transition name="viewer-fade">
+    <div
+      v-if="item"
+      class="viewer"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="item.name"
+    >
+      <!-- Top chrome: back · counter · quiet actions (iCloud Photos detail) -->
+      <header class="viewer-top">
+        <div class="viewer-top-left">
+          <button type="button" class="viewer-icon-btn" :title="$t('trash.back')" @click="$emit('close')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m15 18-6-6 6-6" />
             </svg>
           </button>
         </div>
 
-        <div class="preview-body">
-          <img v-if="imageUrl" :src="imageUrl" :alt="item.name" />
+        <div class="viewer-top-center">
+          <div class="viewer-meta-title">{{ slideLabel }}</div>
+          <div class="viewer-meta-sub">
+            <span v-if="indexLabel">{{ indexLabel }}</span>
+            <span v-if="statusLabel" class="viewer-meta-dot">·</span>
+            <span v-if="statusLabel">{{ statusLabel }}</span>
+            <span v-if="reasonText" class="viewer-meta-dot">·</span>
+            <span v-if="reasonText">{{ reasonText }}</span>
+          </div>
         </div>
 
-        <div class="preview-footer">
-          <div class="preview-meta">
-            <div class="meta-badge-row">
-              <span class="badge" :class="`badge--${item.status}`">
-                {{ item.status === 'active' ? $t('trash.active') : $t('trash.removed') }}
-              </span>
-              <span v-if="item.status === 'removed'" class="reason-pill" :class="`reason-${item.reason}`">
-                {{ reasonText }}
-              </span>
-            </div>
-            <span v-if="item.status === 'removed' && item.reasonDetails" class="meta-line details">
-              {{ item.reasonDetails }}
-            </span>
-            <span v-if="item.trashedAt" class="meta-line date">
-              {{ $t('trash.trashedAt') }}: {{ formatDate(item.trashedAt) }}
-            </span>
-          </div>
-          <div class="preview-actions">
-            <button
-              v-if="item.status === 'removed'"
-              class="btn btn--primary"
-              @click="$emit('restore', item)"
-            >
-              {{ $t('trash.restore') }}
-            </button>
-            <button
-              v-else
-              class="btn btn--danger"
-              @click="$emit('delete', item)"
-            >
-              {{ $t('trash.delete') }}
-            </button>
-          </div>
+        <div class="viewer-top-right">
+          <button
+            v-if="item.status === 'removed'"
+            type="button"
+            class="viewer-text-btn"
+            @click="$emit('restore', item)"
+          >
+            {{ $t('trash.restore') }}
+          </button>
+          <button
+            v-else
+            type="button"
+            class="viewer-icon-btn viewer-icon-btn--danger"
+            :title="$t('trash.delete')"
+            @click="$emit('delete', item)"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="3 6 5 6 21 6" />
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+            </svg>
+          </button>
+          <button type="button" class="viewer-icon-btn" :title="$t('playback.close')" @click="$emit('close')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Stage -->
+      <div class="viewer-stage" @click.self="$emit('close')">
+        <button
+          v-if="canPrev"
+          type="button"
+          class="viewer-nav viewer-nav--prev"
+          :aria-label="$t('slides.prevSlide')"
+          @click="go(-1)"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+        </button>
+
+        <img v-if="imageUrl" class="viewer-image" :src="imageUrl" :alt="item.name" />
+
+        <button
+          v-if="canNext"
+          type="button"
+          class="viewer-nav viewer-nav--next"
+          :aria-label="$t('slides.nextSlide')"
+          @click="go(1)"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Filmstrip -->
+      <div v-if="items.length > 1" class="viewer-strip-wrap">
+        <div ref="stripEl" class="viewer-strip custom-scrollbar">
+          <button
+            v-for="(entry, i) in items"
+            :key="entry.id"
+            type="button"
+            class="viewer-thumb"
+            :class="{ active: entry.id === item.id, removed: entry.status === 'removed' }"
+            @click="$emit('navigate', entry)"
+          >
+            <img v-if="thumbUrl(entry)" :src="thumbUrl(entry)" :alt="entry.name" />
+            <span v-else class="viewer-thumb-fallback">{{ i + 1 }}</span>
+          </button>
         </div>
       </div>
     </div>
@@ -56,27 +108,64 @@
 </template>
 
 <script setup lang="ts">
-// Full-size slide preview with restore/delete. Reuses the grid's object URL
-// (full resolution — thumbnails on the web are the original blobs).
-import { computed } from 'vue'
+// Full-bleed iCloud Photos–style viewer: quiet chrome, prev/next, bottom filmstrip.
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ResultsItem } from '../../composables/resultsTypes'
 
-const props = defineProps<{
-  item: ResultsItem | null
-  thumbnails: Record<string, string>
-  formatDate: (value?: string) => string
-}>()
+const props = withDefaults(
+  defineProps<{
+    item: ResultsItem | null
+    items?: ResultsItem[]
+    thumbnails: Record<string, string>
+  }>(),
+  { items: () => [] },
+)
 
-defineEmits<{
+const emit = defineEmits<{
   close: []
   restore: [item: ResultsItem]
   delete: [item: ResultsItem]
+  navigate: [item: ResultsItem]
 }>()
 
 const { t } = useI18n()
+const stripEl = ref<HTMLElement | null>(null)
 
-const imageUrl = computed(() => (props.item ? props.thumbnails[props.item.id] ?? '' : ''))
+// Path-keyed thumbs (see useResultsView) — never use trash-entry UUID as key.
+function thumbUrl(item: ResultsItem): string {
+  const key =
+    item.status === 'removed'
+      ? item.trashPath || item.originalPath
+      : item.imagePath || item.originalPath || item.id
+  return (key && props.thumbnails[key]) || ''
+}
+
+const imageUrl = computed(() => (props.item ? thumbUrl(props.item) : ''))
+
+const currentIndex = computed(() => {
+  if (!props.item) return -1
+  return props.items.findIndex((x) => x.id === props.item!.id)
+})
+
+const canPrev = computed(() => currentIndex.value > 0)
+const canNext = computed(() => currentIndex.value >= 0 && currentIndex.value < props.items.length - 1)
+
+const indexLabel = computed(() => {
+  if (currentIndex.value < 0 || props.items.length === 0) return ''
+  return `${currentIndex.value + 1} / ${props.items.length}`
+})
+
+const slideLabel = computed(() => {
+  if (!props.item) return ''
+  if (currentIndex.value >= 0) return t('trash.slideNumber', { n: currentIndex.value + 1 })
+  return props.item.name
+})
+
+const statusLabel = computed(() => {
+  if (!props.item) return ''
+  return props.item.status === 'active' ? t('trash.active') : t('trash.removed')
+})
 
 const reasonText = computed(() => {
   switch (props.item?.reason) {
@@ -94,184 +183,323 @@ const reasonText = computed(() => {
       return ''
   }
 })
+
+function go(delta: number) {
+  const i = currentIndex.value + delta
+  if (i < 0 || i >= props.items.length) return
+  emit('navigate', props.items[i])
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (!props.item) return
+  if (e.key === 'Escape') {
+    e.preventDefault()
+    emit('close')
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault()
+    go(-1)
+  } else if (e.key === 'ArrowRight') {
+    e.preventDefault()
+    go(1)
+  }
+}
+
+async function scrollActiveThumbIntoView() {
+  await nextTick()
+  const root = stripEl.value
+  if (!root) return
+  const active = root.querySelector('.viewer-thumb.active') as HTMLElement | null
+  active?.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' })
+}
+
+watch(
+  () => props.item?.id,
+  (id) => {
+    if (id) {
+      document.body.style.overflow = 'hidden'
+      void scrollActiveThumbIntoView()
+    } else {
+      document.body.style.overflow = ''
+    }
+  },
+)
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown)
+  document.body.style.overflow = ''
+})
 </script>
 
 <style scoped>
-.preview-overlay {
+.viewer {
   position: fixed;
   inset: 0;
   z-index: 1000;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 2rem;
-}
-
-.preview-content {
-  display: flex;
   flex-direction: column;
-  max-width: min(1100px, 92vw);
-  max-height: 90vh;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  background-color: var(--bg-elevated, var(--bg-surface));
-  border: 1px solid var(--border-color);
-  box-shadow: 0 20px 50px var(--shadow-lg);
+  background: #ffffff;
+  color: #1d1d1f;
 }
 
-.preview-header {
+html[data-theme='dark'] .viewer {
+  background: #000000;
+  color: #f5f5f7;
+}
+
+.viewer-top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 52px;
+  padding: 0.4rem 0.85rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+  background: #fff;
+}
+
+html[data-theme='dark'] .viewer-top {
+  background: #000;
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.viewer-top-left,
+.viewer-top-right {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-color);
+  gap: 0.25rem;
 }
 
-.preview-title {
+.viewer-top-right {
+  justify-content: flex-end;
+}
+
+.viewer-top-center {
+  text-align: center;
+  min-width: 0;
+  padding: 0 0.5rem;
+}
+
+.viewer-meta-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-primary);
+  letter-spacing: -0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.preview-close {
+.viewer-meta-sub {
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  color: #6e6e73;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-theme='dark'] .viewer-meta-sub {
+  color: #a1a1a6;
+}
+
+.viewer-meta-dot {
+  margin: 0 0.25rem;
+  opacity: 0.55;
+}
+
+.viewer-icon-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   border: none;
-  border-radius: 0.375rem;
+  border-radius: 50%;
   background: transparent;
-  color: var(--text-secondary);
+  color: #1d1d1f;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.preview-close:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
+html[data-theme='dark'] .viewer-icon-btn {
+  color: #f5f5f7;
 }
 
-.preview-body {
+.viewer-icon-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+html[data-theme='dark'] .viewer-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.viewer-icon-btn--danger:hover {
+  color: #ff3b30;
+  background: color-mix(in srgb, #ff3b30 10%, transparent);
+}
+
+.viewer-text-btn {
+  border: none;
+  background: transparent;
+  color: #0071e3;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.viewer-text-btn:hover {
+  background: color-mix(in srgb, #0071e3 10%, transparent);
+}
+
+.viewer-stage {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #000000;
+  padding: 1rem 3.5rem 0.75rem;
+  background: #fafafa;
 }
 
-.preview-body img {
-  max-width: 100%;
-  max-height: min(70vh, 900px);
+html[data-theme='dark'] .viewer-stage {
+  background: #0a0a0a;
+}
+
+.viewer-image {
+  max-width: min(1100px, 100%);
+  max-height: 100%;
+  width: auto;
+  height: auto;
   object-fit: contain;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border-radius: 0.25rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
 
-.preview-footer {
+.viewer-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #1d1d1f;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1.5rem;
-  padding: 1rem 1.25rem;
-  border-top: 1px solid var(--border-color);
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
 }
 
-.preview-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-  min-width: 0;
+html[data-theme='dark'] .viewer-nav {
+  background: rgba(44, 44, 46, 0.92);
+  color: #f5f5f7;
 }
 
-.meta-badge-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+.viewer-nav:hover {
+  background: #fff;
 }
 
-.reason-pill {
-  padding: 0.125rem 0.5rem;
-  border-radius: 999px;
-  font-size: 0.6875rem;
-  font-weight: 600;
+.viewer-nav--prev {
+  left: 0.75rem;
 }
 
-.reason-pill.reason-duplicate {
-  background-color: var(--reason-duplicate-bg, #fff3e0);
-  color: var(--reason-duplicate-text, #e65100);
+.viewer-nav--next {
+  right: 0.75rem;
 }
 
-.reason-pill.reason-exclusion {
-  background-color: var(--reason-exclusion-bg, #ede7ff);
-  color: var(--reason-exclusion-text, #6546c2);
-}
-
-.reason-pill.reason-ai_filtered {
-  background-color: var(--reason-ai-bg, #dff7ea);
-  color: var(--reason-ai-text, #257550);
-}
-
-.reason-pill.reason-ai_filtered_edit {
-  background-color: var(--reason-ai-edit-bg, #fff3d6);
-  color: var(--reason-ai-edit-text, #955800);
-}
-
-.reason-pill.reason-manual {
-  background-color: var(--badge-removed-bg, #ffe8e6);
-  color: var(--badge-removed-text, #cc0000);
-}
-
-.meta-line {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.meta-line.details {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.meta-line.date {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.preview-actions {
-  display: flex;
-  gap: 0.5rem;
+.viewer-strip-wrap {
   flex-shrink: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: #fff;
+  padding: 0.55rem 0.75rem 0.7rem;
 }
 
-/* Modal Vue Transitions */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.25s ease;
+html[data-theme='dark'] .viewer-strip-wrap {
+  background: #000;
+  border-top-color: rgba(255, 255, 255, 0.1);
 }
 
-.modal-fade-enter-active .preview-content,
-.modal-fade-leave-active .preview-content {
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+.viewer-strip {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scroll-snap-type: x proximity;
 }
 
-.modal-fade-enter-from,
-.modal-fade-leave-to {
+.viewer-thumb {
+  flex: 0 0 auto;
+  width: 72px;
+  aspect-ratio: 16 / 9;
+  border: 2px solid transparent;
+  border-radius: 0.3rem;
+  padding: 0;
+  overflow: hidden;
+  background: #f0f0f2;
+  cursor: pointer;
+  scroll-snap-align: center;
+}
+
+html[data-theme='dark'] .viewer-thumb {
+  background: #1c1c1e;
+}
+
+.viewer-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.viewer-thumb.active {
+  border-color: #0071e3;
+}
+
+html[data-theme='dark'] .viewer-thumb.active {
+  border-color: #0a84ff;
+}
+
+.viewer-thumb.removed {
+  opacity: 0.55;
+}
+
+.viewer-thumb-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 0.7rem;
+  color: #86868b;
+}
+
+.viewer-fade-enter-active,
+.viewer-fade-leave-active {
+  transition: opacity 0.18s ease;
+}
+
+.viewer-fade-enter-from,
+.viewer-fade-leave-to {
   opacity: 0;
 }
 
-.modal-fade-enter-from .preview-content,
-.modal-fade-leave-to .preview-content {
-  transform: translateY(20px);
-  opacity: 0;
+@media (max-width: 768px) {
+  .viewer-stage {
+    padding: 0.5rem 0.5rem 0.35rem;
+  }
+
+  .viewer-nav {
+    display: none;
+  }
+
+  .viewer-thumb {
+    width: 56px;
+  }
 }
 </style>

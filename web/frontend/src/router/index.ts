@@ -66,10 +66,18 @@ export const router = createRouter({
       meta: { nav: "search", keepAlive: true, titleKey: "navigation.search" },
     },
     {
+      // Standalone Photos-like workspace: fullPage drops the YouTube shell.
+      // slides + slides-folder share one KeepAlive instance (see App.vue).
       name: "slides",
       path: "/slides",
       component: SlidesPage,
-      meta: { nav: "slides", keepAlive: true, titleKey: "navigation.slidesReview" },
+      meta: { fullPage: true, keepAlive: true, titleKey: "navigation.slidesReview" },
+    },
+    {
+      name: "slides-folder",
+      path: "/slides/:folderName",
+      component: SlidesPage,
+      meta: { fullPage: true, keepAlive: true, titleKey: "navigation.slidesReview" },
     },
     {
       // Standalone Notion-like workspace: fullPage drops the YouTube shell.

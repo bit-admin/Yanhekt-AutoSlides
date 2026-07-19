@@ -158,6 +158,20 @@ export function useResultsView() {
     selectedIds.value = []
   })
 
+  // Thumbnails are keyed by the stable slide-record id (`folder/filename` =
+  // imagePath / trashPath / originalPath), NOT by ResultsItem.id.
+  // Active items use path as id; removed items use a trash-entry UUID as id
+  // (needed for restore). Keying thumbs by path means a manual delete does
+  // not invalidate the already-decoded blob URL — the previous item-id
+  // keying revoked it in resetThumbnails() and often left a broken tile
+  // until a later full refresh re-fetched the same blob.
+  function blobKey(item: Pick<ResultsItem, 'status' | 'imagePath' | 'trashPath' | 'originalPath' | 'id'>): string | undefined {
+    if (item.status === 'removed') {
+      return item.trashPath || item.originalPath || undefined
+    }
+    return item.imagePath || item.originalPath || item.id || undefined
+  }
+
   function resetThumbnails() {
     for (const url of Object.values(thumbnails.value)) {
       URL.revokeObjectURL(url)
@@ -212,32 +226,50 @@ export function useResultsView() {
   }
 
   async function loadCurrentFolderItems(folder: ResultsFolder) {
-    resetThumbnails()
     folderItems.value = await buildFolderItems(folder)
-    void loadThumbnails(folderItems.value)
+    await loadThumbnails(folderItems.value)
   }
 
   async function loadThumbnails(items: ResultsItem[]) {
-    const version = thumbnailLoadVersion
+    const version = ++thumbnailLoadVersion
 
+    const needed = new Set<string>()
     for (const item of items) {
+      const key = blobKey(item)
+      if (key) needed.add(key)
+    }
+
+    // Drop only URLs that no longer appear in the current folder (keep the
+    // rest so active→trashed does not flash a broken image).
+    for (const key of Object.keys(thumbnails.value)) {
+      if (!needed.has(key)) {
+        URL.revokeObjectURL(thumbnails.value[key])
+        delete thumbnails.value[key]
+      }
+    }
+
+    for (const key of needed) {
       if (version !== thumbnailLoadVersion) return
-      if (thumbnails.value[item.id]) continue
+      if (thumbnails.value[key]) continue
 
       try {
-        const blobId = item.status === 'removed' ? item.trashPath : item.imagePath
-        if (!blobId) continue
-        const blob = await getSlideBlob(blobId)
+        const blob = await getSlideBlob(key)
         if (blob && version === thumbnailLoadVersion) {
-          thumbnails.value[item.id] = URL.createObjectURL(blob)
+          thumbnails.value[key] = URL.createObjectURL(blob)
         }
       } catch (error) {
-        log.warn(`Failed to load thumbnail for ${item.name}:`, error)
+        log.warn(`Failed to load thumbnail for ${key}:`, error)
       }
     }
   }
 
-  async function refresh() {
+  /** Resolve the object URL for a results row (path-keyed map). */
+  function thumbnailFor(item: ResultsItem): string {
+    const key = blobKey(item)
+    return (key && thumbnails.value[key]) || ''
+  }
+
+  async function refresh(): Promise<'ok' | 'folder-missing'> {
     isLoading.value = true
     selectedIds.value = []
     previewItem.value = null
@@ -249,14 +281,16 @@ export function useResultsView() {
         const refreshedFolder = folders.value.find((folder) => folder.name === currentFolder.value?.name)
         if (!refreshedFolder) {
           goBack()
-          return
+          return 'folder-missing'
         }
 
         currentFolder.value = refreshedFolder
         await loadCurrentFolderItems(refreshedFolder)
       }
+      return 'ok'
     } catch (error) {
       log.error('Failed to refresh results view:', error)
+      return 'ok'
     } finally {
       isLoading.value = false
     }
@@ -427,6 +461,8 @@ export function useResultsView() {
     formatDate,
     formatToolFolderName,
     getFolderDisplayName: parseFolderDisplayName,
+    thumbnailFor,
+    blobKey,
   }
 }
 
