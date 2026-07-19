@@ -67,11 +67,78 @@
 
         <div class="advanced-setting-section">
           <h4>{{ $t('settings.cloudNotesSection') }}</h4>
+
+          <!-- Cloud storage status (ASnote + ASuser). Desktop CloudSettingsTab parity. -->
+          <div class="setting-item">
+            <div class="setting-description">{{ $t('settings.cloudStorageIntro') }}</div>
+
+            <div class="cloud-storage-cards">
+              <div class="cloud-storage-card">
+                <span class="cloud-storage-dot" :class="statusClass"></span>
+                <div class="cloud-storage-text">
+                  <span class="cloud-storage-title">{{ noteGroupName }} {{ statusText }}</span>
+                  <span class="cloud-storage-subtitle">{{ $t('settings.cloudStorageGroupDescription') }}</span>
+                </div>
+                <span v-if="noteIdText" class="cloud-storage-meta">{{ noteIdText }}</span>
+              </div>
+
+              <div class="cloud-storage-card">
+                <span class="cloud-storage-dot" :class="statusClass"></span>
+                <div class="cloud-storage-text">
+                  <span class="cloud-storage-title">{{ userGroupLabel }} {{ statusText }}</span>
+                  <span class="cloud-storage-subtitle">{{ $t('settings.cloudStorageGroupDescriptionUser') }}</span>
+                </div>
+                <span v-if="userIdText" class="cloud-storage-meta">{{ userIdText }}</span>
+              </div>
+            </div>
+
+            <div class="cloud-storage-footer">
+              <span v-if="lastCheckedText" class="cloud-storage-checked">{{ lastCheckedText }}</span>
+              <span class="cloud-storage-footer-spacer"></span>
+              <button
+                v-if="store.status.value === 'uninitialized'"
+                type="button"
+                class="btn btn--primary btn--sm"
+                :disabled="storageBusy"
+                @click="onInitialize"
+              >
+                {{ $t('settings.cloudStorageInit') }}
+              </button>
+              <button
+                type="button"
+                class="btn--icon"
+                :title="storageBusy ? $t('settings.cloudStorageRefreshing') : $t('settings.cloudStorageRefresh')"
+                :disabled="storageBusy"
+                @click="onRefreshStorage"
+              >
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  :class="{ spinning: storageBusy }"
+                >
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                  <path d="M21 3v5h-5"/>
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                  <path d="M3 21v-5h5"/>
+                </svg>
+              </button>
+            </div>
+
+            <p v-if="store.status.value === 'error' && store.lastError.value" class="cloud-storage-error">
+              {{ store.lastError.value }}
+            </p>
+          </div>
+
           <div class="setting-item">
             <label class="setting-toggle">
               <input
                 type="checkbox"
                 :checked="configStore.cloudWatchSyncEnabled"
+                :disabled="watchSyncBusy"
                 @change="onWatchSyncChange"
               />
               <span>{{ $t('settings.enableCloudWatchSync') }}</span>
@@ -148,6 +215,7 @@ import {
 } from '../stores/settingsStore'
 import { cloudStorageStore } from '../stores/cloudStorageStore'
 import { authStore } from '../stores/authStore'
+import { MANAGED_GROUP_NAME, USER_GROUP_NAME } from '../lib/notes/notesTypes'
 
 defineOptions({ name: 'SettingsPage' })
 
@@ -156,6 +224,71 @@ const { t } = useI18n()
 const themeMode = computed(() => configStore.themeMode)
 const languageMode = computed(() => configStore.languageMode)
 const publicRelay = PUBLIC_RELAY_ENDPOINT
+const store = cloudStorageStore
+
+const noteGroupName = MANAGED_GROUP_NAME
+const userGroupLabel = USER_GROUP_NAME
+
+const storageBusy = computed(
+  () => store.status.value === 'checking' || store.status.value === 'repairing',
+)
+
+const statusText = computed(() => {
+  switch (store.status.value) {
+    case 'ready':
+      return t('settings.cloudStorageStatusReady')
+    case 'uninitialized':
+      return t('settings.cloudStorageStatusUninitialized')
+    case 'not-signed-in':
+      return t('settings.cloudStorageStatusNotSignedIn')
+    case 'checking':
+      return t('settings.cloudStorageStatusChecking')
+    case 'repairing':
+      return t('settings.cloudStorageStatusRepairing')
+    case 'error':
+      return t('settings.cloudStorageStatusError')
+    default:
+      return t('settings.cloudStorageStatusChecking')
+  }
+})
+
+const statusClass = computed(() => {
+  switch (store.status.value) {
+    case 'ready':
+      return 'is-ready'
+    case 'uninitialized':
+    case 'not-signed-in':
+      return 'is-warning'
+    case 'error':
+      return 'is-error'
+    default:
+      return 'is-pending'
+  }
+})
+
+const noteIdText = computed(() =>
+  store.status.value === 'ready' && store.managedGroupId.value != null
+    ? `ID ${store.managedGroupId.value}`
+    : '',
+)
+const userIdText = computed(() =>
+  store.status.value === 'ready' && store.userGroupId.value != null
+    ? `ID ${store.userGroupId.value}`
+    : '',
+)
+
+const lastCheckedText = computed(() =>
+  store.lastCheckedAt.value
+    ? `${t('settings.cloudStorageLastChecked')} ${new Date(store.lastCheckedAt.value).toLocaleString()}`
+    : '',
+)
+
+const onRefreshStorage = () => {
+  void store.refresh({ force: true })
+}
+const onInitialize = () => {
+  void store.initialize()
+}
 
 const RELAY_UNLOCK_KEY = 'autoslides.relaySettingsUnlocked'
 
@@ -197,6 +330,10 @@ function onDebugKeydown(e: KeyboardEvent): void {
 
 onMounted(() => {
   window.addEventListener('keydown', onDebugKeydown)
+  // Soft check if launch/auth hasn't produced a status yet (or TTL expired).
+  if (store.status.value === 'unknown' || store.status.value === 'error') {
+    void store.refresh()
+  }
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onDebugKeydown)
@@ -242,20 +379,52 @@ const onAutoPostProcessingChange = (e: Event) => {
   persistConfig()
 }
 
-// Enabling watch-sync while signed in kicks the ASuser provisioning early so
-// a failure surfaces here instead of silently at extraction start.
+// Hybrid: enabling watch-sync while signed in runs initialize() so first-time
+// accounts provision ASnote+ASuser+README here (not silently at extraction).
+// Preference is only kept on when storage ends ready; already-ready uses TTL 0-network.
 const watchSyncError = ref<string | null>(null)
+const watchSyncBusy = ref(false)
 
 const onWatchSyncChange = async (e: Event) => {
   const enabled = (e.target as HTMLInputElement).checked
-  configStore.cloudWatchSyncEnabled = enabled
-  persistConfig()
   watchSyncError.value = null
-  if (enabled && authStore.isLoggedIn.value) {
-    const status = await cloudStorageStore.ensureUserGroup()
-    if (status !== 'ready') {
-      watchSyncError.value = t('settings.cloudWatchSyncProvisionFailed')
+
+  if (!enabled) {
+    configStore.cloudWatchSyncEnabled = false
+    persistConfig()
+    return
+  }
+
+  if (!authStore.isLoggedIn.value) {
+    // Persist intent; provision happens after sign-in + re-enable or Init.
+    configStore.cloudWatchSyncEnabled = true
+    persistConfig()
+    return
+  }
+
+  watchSyncBusy.value = true
+  try {
+    // Soft check first: ready+TTL → 0 network; ready+stale → groupList only.
+    // Only call initialize() when not ready so we don't re-run the README scan
+    // on every enable after the TTL expires.
+    let st = await store.ensureReady()
+    if (st !== 'ready') {
+      const ok = await store.initialize()
+      st = ok ? 'ready' : store.status.value
     }
+    if (st !== 'ready') {
+      configStore.cloudWatchSyncEnabled = false
+      persistConfig()
+      watchSyncError.value =
+        store.status.value === 'uninitialized'
+          ? t('settings.cloudWatchSyncNeedInit')
+          : t('settings.cloudWatchSyncProvisionFailed')
+      return
+    }
+    configStore.cloudWatchSyncEnabled = true
+    persistConfig()
+  } finally {
+    watchSyncBusy.value = false
   }
 }
 
@@ -401,6 +570,131 @@ const onResetRelay = () => {
   width: 15px;
   height: 15px;
   cursor: pointer;
+}
+
+.setting-toggle input[type='checkbox']:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.cloud-storage-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cloud-storage-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.cloud-storage-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.cloud-storage-footer-spacer {
+  flex: 1;
+}
+
+.cloud-storage-checked {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.cloud-storage-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--text-muted);
+}
+
+.cloud-storage-dot.is-ready {
+  background-color: var(--success);
+}
+.cloud-storage-dot.is-warning {
+  background-color: var(--warning);
+}
+.cloud-storage-dot.is-error {
+  background-color: var(--danger);
+}
+.cloud-storage-dot.is-pending {
+  background-color: var(--text-muted);
+}
+
+.cloud-storage-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.cloud-storage-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.cloud-storage-subtitle {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.cloud-storage-meta {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.cloud-storage-error {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: var(--danger);
+}
+
+.btn--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.btn--icon:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.btn--icon:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn--icon .spinning {
+  animation: cloud-spin 0.9s linear infinite;
+}
+
+@keyframes cloud-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .relay-row {

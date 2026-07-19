@@ -230,9 +230,10 @@ export async function onExtractionStarted(folder: string, instanceId: string): P
   // Reveal the Notes view immediately; the note fills in when creation resolves.
   notesTabRequest.value += 1;
 
-  // Lazy provisioning: the watch-sync toggle is the intent, the group is
-  // created on first use (and self-heals if deleted server-side).
-  await cloudStorageStore.ensureUserGroup();
+  // Ready-guard (TTL short-circuit when already provisioned). Does not
+  // first-time-init — that happens via Settings Init / hybrid watch-sync
+  // enable. Flag-set accounts self-heal missing groups here.
+  await cloudStorageStore.ensureReady();
   if (!watchSyncActive()) {
     stored.status = 'error';
     return;

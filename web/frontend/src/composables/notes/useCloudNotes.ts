@@ -2,6 +2,7 @@ import { computed, ref } from 'vue';
 import type { NoteSummary, NoteDetail, NoteGroup, NotesResult } from '../../lib/notes/notesTypes';
 import { isAutoSlidesGroupName } from '../../lib/notes/notesTypes';
 import { notesClient } from '../../lib/notes/notesClient';
+import { cloudStorageStore } from '../../stores/cloudStorageStore';
 
 const PAGE_SIZE = 20;
 /** Page size used when fetching the full note set (server honours large sizes). */
@@ -83,7 +84,12 @@ export function useCloudNotes() {
   async function refreshGroups(): Promise<void> {
     const res = await notesClient.groupList();
     const data = unwrap(res);
-    if (data) groups.value = data;
+    if (data) {
+      groups.value = data;
+      // Share this list with the storage store so it can adopt ASnote/ASuser
+      // without a second groupList round-trip.
+      cloudStorageStore.adoptFromGroups(data);
+    }
   }
 
   /** Load the complete note set by paging note/list, then recompute the view. */

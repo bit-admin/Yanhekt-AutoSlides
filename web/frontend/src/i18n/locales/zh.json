@@ -258,7 +258,22 @@
     "cloudNotesSection": "云笔记",
     "enableCloudWatchSync": "观看模式笔记同步",
     "cloudWatchSyncDescription": "在播放中提取幻灯片时，自动创建个人云笔记并追加已通过后处理的幻灯片。",
-    "cloudWatchSyncProvisionFailed": "无法创建 ASuser 笔记分组。请检查网络后重试。"
+    "cloudWatchSyncProvisionFailed": "无法设置云存储。请检查网络后重试。",
+    "cloudStorageTitle": "云存储",
+    "cloudStorageIntro": "AutoSlides 会在你的延河课堂笔记中创建托管分组，用于观看模式同步，并兼容桌面端幻灯片导入。",
+    "cloudStorageGroupDescription": "桌面端导入目标 — 提取的幻灯片会以笔记形式存放于此。",
+    "cloudStorageGroupDescriptionUser": "你的观看模式个人笔记，包含捕获的幻灯片。",
+    "cloudStorageStatusReady": "已初始化",
+    "cloudStorageStatusUninitialized": "未初始化",
+    "cloudStorageStatusNotSignedIn": "未登录",
+    "cloudStorageStatusChecking": "检查中…",
+    "cloudStorageStatusRepairing": "初始化中…",
+    "cloudStorageStatusError": "检查失败",
+    "cloudStorageLastChecked": "上次检查",
+    "cloudStorageRefresh": "刷新",
+    "cloudStorageRefreshing": "刷新中…",
+    "cloudStorageInit": "初始化云存储",
+    "cloudWatchSyncNeedInit": "云存储尚未就绪。请先在上方完成初始化，再开启观看模式同步。"
   },
   "trash": {
     "active": "已提取",
@@ -370,6 +385,14 @@
       "creating": "正在创建笔记…",
       "error": "无法创建笔记。请检查网络后重试。",
       "hint": "观看时开始提取幻灯片即可在此创建笔记，捕获的幻灯片会自动追加。"
-    }
+    },
+    "readmeHeading": "AutoSlides 云存储",
+    "readmeUpdatedAt": "AutoSlides 最近刷新于：{time}",
+    "readmeBody1": "本笔记用于说明你延河课堂笔记中的「ASnote」分组。该分组由 AutoSlides 创建并管理，AutoSlides 会将提取的幻灯片同步到这里。",
+    "readmeBody4": "AutoSlides 还会管理一个「ASuser」分组，用于存放你的观看模式个人笔记：当你在观看直播或录播时记笔记，捕获的幻灯片会追加到这里。这些笔记归你自由编辑，可导出为 PDF、Markdown 或 DOCX，且永远不会发布到共享索引。",
+    "readmeBody2": "请勿手动重命名、移动或编辑 ASnote 分组内的笔记：AutoSlides 在重新同步时可能会覆盖它们。",
+    "readmeBody3": "注意：幻灯片图片会上传到延河课堂的公开存储，任何拿到链接的人都能查看。请勿包含私密或敏感图片。",
+    "initStorage": "初始化云存储",
+    "storageNotInitialized": "云存储尚未初始化。请先在设置中完成初始化。"
   }
 }

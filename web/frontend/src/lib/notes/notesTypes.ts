@@ -88,8 +88,8 @@ export const NOTE_GROUP_NAME_MAX = 6;
  * Name of the Yanhekt note group AutoSlides manages for slide imports. Exactly
  * 6 chars (the server limit). Identification is name-based (groups carry no
  * metadata field), so this marker is the only thing that survives reinstalls /
- * other machines. The web version never provisions this group (no import
- * feature) but still recognizes desktop-created ones.
+ * other machines. Web provisions it for desktop-import readiness even though
+ * the browser client has no folder-import pipeline of its own.
  */
 export const MANAGED_GROUP_NAME = 'ASnote';
 
@@ -99,6 +99,12 @@ export const MANAGED_GROUP_NAME = 'ASnote';
  * Exactly 6 chars (the server limit), same identification rules as ASnote.
  */
 export const USER_GROUP_NAME = 'ASuser';
+
+/**
+ * Title of the bootstrap README note created inside the managed storage setup.
+ * Detection is title-based (notes have no tags), so keep this string stable.
+ */
+export const README_NOTE_TITLE = 'AutoSlides Cloud Storage README';
 
 /** Editor.js library version stamped into documents we generate (matches the installed build). */
 export const EDITORJS_DOC_VERSION = '2.26.5';

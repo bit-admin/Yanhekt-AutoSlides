@@ -51,6 +51,11 @@ export interface WebConfig {
   // Auto-create a cloud note (ASuser group) while extracting and append the
   // captured slides. Desktop parity: `cloudWatchSyncEnabled`.
   cloudWatchSyncEnabled: boolean;
+  // Per-badge intent that cloud storage (ASnote + ASuser) was initialized.
+  // Server group list is still the authority; this only distinguishes
+  // "never initialized" from "was initialized, group deleted → repair".
+  // Desktop parity: `cloudStorageInitializedUsers`.
+  cloudStorageInitializedUsers: string[];
 }
 
 const defaults = (): WebConfig => ({
@@ -63,6 +68,7 @@ const defaults = (): WebConfig => ({
   relayEndpoint: PUBLIC_RELAY_ENDPOINT,
   autoPostProcessingLive: true,
   cloudWatchSyncEnabled: false,
+  cloudStorageInitializedUsers: [],
 });
 
 function load(): WebConfig {
@@ -81,6 +87,11 @@ function load(): WebConfig {
   // Heal missing / malformed relay endpoints from older configs or bad edits.
   const normalized = normalizeRelayEndpoint(merged.relayEndpoint || "");
   merged.relayEndpoint = normalized || PUBLIC_RELAY_ENDPOINT;
+
+  // Heal pre-init configs that never had the flag array.
+  if (!Array.isArray(merged.cloudStorageInitializedUsers)) {
+    merged.cloudStorageInitializedUsers = [];
+  }
 
   return merged;
 }
@@ -130,5 +141,26 @@ export function persistConfig(): void {
     relayEndpoint: configStore.relayEndpoint || PUBLIC_RELAY_ENDPOINT,
     autoPostProcessingLive: configStore.autoPostProcessingLive,
     cloudWatchSyncEnabled: configStore.cloudWatchSyncEnabled,
+    cloudStorageInitializedUsers: [...configStore.cloudStorageInitializedUsers],
   });
+}
+
+/** Whether this account badge has previously initialized cloud storage. */
+export function isCloudStorageInitialized(badge: string): boolean {
+  if (!badge) return false;
+  return (configStore.cloudStorageInitializedUsers ?? []).includes(badge);
+}
+
+/**
+ * Persist per-badge cloud-storage init intent. The server group list remains the
+ * authority on whether ASnote/ASuser exist; this flag only drives repair vs.
+ * "never initialized".
+ */
+export function setCloudStorageInitialized(badge: string, initialized: boolean): void {
+  if (!badge) return;
+  const set = new Set(configStore.cloudStorageInitializedUsers ?? []);
+  if (initialized) set.add(badge);
+  else set.delete(badge);
+  configStore.cloudStorageInitializedUsers = [...set];
+  persistConfig();
 }
