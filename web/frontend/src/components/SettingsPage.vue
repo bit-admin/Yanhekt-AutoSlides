@@ -66,6 +66,181 @@
         </div>
 
         <div class="advanced-setting-section">
+          <h4>{{ $t('settings.aiFilteringSection') }}</h4>
+          <div class="setting-item">
+            <label class="setting-toggle">
+              <input
+                type="checkbox"
+                :checked="configStore.aiFilteringEnabled"
+                @change="onAiEnabledChange"
+              />
+              <span>{{ $t('settings.enableAIFiltering') }}</span>
+            </label>
+            <div class="setting-description">{{ $t('settings.aiFilteringDescription') }}</div>
+          </div>
+
+          <div class="setting-item">
+            <label class="setting-label" for="settings-ai-service">{{ $t('settings.aiServiceType') }}</label>
+            <select
+              id="settings-ai-service"
+              class="select-field"
+              :value="configStore.aiServiceType"
+              @change="onAiServiceChange"
+            >
+              <option value="builtin">{{ $t('settings.aiServiceBuiltin') }}</option>
+              <option value="copilot">{{ $t('settings.aiServiceCopilot') }}</option>
+              <option value="custom">{{ $t('settings.aiServiceCustom') }}</option>
+            </select>
+          </div>
+
+          <!-- Built-in: keyed by the signed-in user's own token, nothing to configure. -->
+          <div v-if="configStore.aiServiceType === 'builtin'" class="setting-item">
+            <div class="setting-description">{{ $t('settings.aiBuiltinDescription') }}</div>
+            <div v-if="!authStore.isLoggedIn.value" class="setting-hint setting-hint--warning">
+              {{ $t('settings.aiBuiltinRequiresLogin') }}
+            </div>
+          </div>
+
+          <!-- GitHub Copilot: device-flow connect or paste-token fallback. -->
+          <template v-else-if="configStore.aiServiceType === 'copilot'">
+            <div class="setting-item">
+              <div v-if="copilotOAuthStep === 'success'" class="copilot-connected">
+                <img
+                  v-if="configStore.aiCopilotAvatarUrl"
+                  class="copilot-avatar"
+                  :src="configStore.aiCopilotAvatarUrl"
+                  alt=""
+                />
+                <span class="copilot-username">{{ configStore.aiCopilotUsername || 'GitHub' }}</span>
+                <button type="button" class="btn btn--sm" @click="disconnectCopilot">
+                  {{ $t('settings.aiCopilotDisconnect') }}
+                </button>
+              </div>
+
+              <div v-else-if="copilotOAuthStep === 'waiting' || copilotOAuthStep === 'polling'">
+                <div class="setting-description">{{ $t('settings.aiCopilotEnterCode') }}</div>
+                <div class="copilot-code-row">
+                  <button
+                    type="button"
+                    class="copilot-code"
+                    :title="$t('settings.aiCopilotClickToCopy')"
+                    @click="copyCopilotCode"
+                  >
+                    {{ copilotUserCode || '···' }}
+                  </button>
+                  <span v-if="copilotCodeCopied" class="copilot-copied">{{ $t('settings.aiCopilotCopied') }}</span>
+                  <a
+                    v-if="copilotVerificationUri"
+                    class="copilot-link"
+                    :href="copilotVerificationUri"
+                    target="_blank"
+                    rel="noopener"
+                  >{{ copilotVerificationUri }}</a>
+                </div>
+                <div class="copilot-wait-row">
+                  <span class="copilot-spinner"></span>
+                  <span class="copilot-wait-text">{{ $t('settings.aiCopilotWaiting') }}</span>
+                  <button type="button" class="btn btn--sm" @click="cancelCopilotOAuth">
+                    {{ $t('settings.aiCopilotCancel') }}
+                  </button>
+                </div>
+              </div>
+
+              <div v-else>
+                <button
+                  type="button"
+                  class="btn btn--primary btn--sm"
+                  :disabled="isCopilotLoading"
+                  @click="startCopilotOAuth"
+                >
+                  {{ $t('settings.aiCopilotSignIn') }}
+                </button>
+                <div class="copilot-or">{{ $t('settings.aiCopilotOr') }}</div>
+                <div class="copilot-token-row">
+                  <input
+                    v-model="copilotTokenDraft"
+                    type="password"
+                    class="text-input copilot-token-input"
+                    autocomplete="off"
+                    spellcheck="false"
+                    :placeholder="$t('settings.aiCopilotTokenPlaceholder')"
+                    @keyup.enter="onVerifyCopilotToken"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn--sm"
+                    :disabled="isCopilotLoading || !copilotTokenDraft.trim()"
+                    @click="onVerifyCopilotToken"
+                  >
+                    {{ $t('settings.aiCopilotVerify') }}
+                  </button>
+                </div>
+                <div v-if="copilotErrorText" class="setting-hint setting-hint--error">
+                  {{ copilotErrorText }}
+                </div>
+              </div>
+            </div>
+            <div class="setting-item">
+              <label class="setting-label" for="settings-copilot-model">{{ $t('settings.aiCopilotModel') }}</label>
+              <input
+                id="settings-copilot-model"
+                type="text"
+                class="text-input"
+                spellcheck="false"
+                :value="configStore.aiCopilotModel"
+                placeholder="gpt-4.1"
+                @change="onCopilotModelChange"
+              />
+            </div>
+          </template>
+
+          <!-- Custom OpenAI-compatible endpoint. -->
+          <template v-else>
+            <div class="setting-item">
+              <label class="setting-label" for="settings-ai-custom-url">{{ $t('settings.aiCustomBaseUrl') }}</label>
+              <input
+                id="settings-ai-custom-url"
+                type="url"
+                class="text-input"
+                spellcheck="false"
+                autocomplete="off"
+                :value="configStore.aiCustomBaseUrl"
+                placeholder="https://api.example.com/v1"
+                @change="onCustomFieldChange('aiCustomBaseUrl', $event)"
+              />
+            </div>
+            <div class="setting-item">
+              <div class="two-col-row">
+                <div class="two-col-item">
+                  <label class="setting-label" for="settings-ai-custom-key">{{ $t('settings.aiCustomApiKey') }}</label>
+                  <input
+                    id="settings-ai-custom-key"
+                    type="password"
+                    class="text-input"
+                    autocomplete="off"
+                    :value="configStore.aiCustomApiKey"
+                    @change="onCustomFieldChange('aiCustomApiKey', $event)"
+                  />
+                </div>
+                <div class="two-col-item">
+                  <label class="setting-label" for="settings-ai-custom-model">{{ $t('settings.aiCustomModel') }}</label>
+                  <input
+                    id="settings-ai-custom-model"
+                    type="text"
+                    class="text-input"
+                    spellcheck="false"
+                    autocomplete="off"
+                    :value="configStore.aiCustomModel"
+                    @change="onCustomFieldChange('aiCustomModel', $event)"
+                  />
+                </div>
+              </div>
+              <div class="setting-hint">{{ $t('settings.aiCustomCorsNote') }}</div>
+            </div>
+          </template>
+        </div>
+
+        <div class="advanced-setting-section">
           <h4>{{ $t('settings.cloudNotesSection') }}</h4>
 
           <!-- Cloud storage status (ASnote + ASuser). Desktop CloudSettingsTab parity. -->
@@ -203,9 +378,11 @@ import {
   configStore,
   persistConfig,
   PUBLIC_RELAY_ENDPOINT,
+  type AIServiceType,
   type LanguageMode,
   type ThemeMode,
 } from '../stores/configStore'
+import { useCopilotOAuth } from '../composables/useCopilotOAuth'
 import {
   setThemeMode,
   setLanguageMode,
@@ -337,6 +514,9 @@ onMounted(() => {
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', onDebugKeydown)
+  // Abort an in-flight Copilot device flow; the user can restart it later.
+  cancelCopilotOAuth()
+  if (copiedTimer) clearTimeout(copiedTimer)
 })
 
 // Draft text so typing doesn't thrash localStorage / playback mid-keystroke;
@@ -377,6 +557,81 @@ const onLanguageChange = (e: Event) => {
 const onAutoPostProcessingChange = (e: Event) => {
   configStore.autoPostProcessingLive = (e.target as HTMLInputElement).checked
   persistConfig()
+}
+
+// --- AI filtering ---
+
+const {
+  copilotOAuthStep,
+  copilotUserCode,
+  copilotVerificationUri,
+  copilotOAuthError,
+  isCopilotLoading,
+  startCopilotOAuth,
+  validateCopilotToken,
+  disconnectCopilot,
+  cancelCopilotOAuth,
+} = useCopilotOAuth()
+
+const copilotTokenDraft = ref('')
+const copilotCodeCopied = ref(false)
+let copiedTimer: ReturnType<typeof setTimeout> | null = null
+
+const copilotErrorText = computed(() => {
+  switch (copilotOAuthError.value) {
+    case '':
+      return ''
+    case 'expired_token':
+      return t('settings.aiCopilotExpired')
+    case 'access_denied':
+      return t('settings.aiCopilotDenied')
+    case 'invalid_token':
+      return t('settings.aiCopilotInvalidToken')
+    default:
+      return copilotOAuthError.value
+  }
+})
+
+const onAiEnabledChange = (e: Event) => {
+  configStore.aiFilteringEnabled = (e.target as HTMLInputElement).checked
+  persistConfig()
+}
+
+const onAiServiceChange = (e: Event) => {
+  configStore.aiServiceType = (e.target as HTMLSelectElement).value as AIServiceType
+  persistConfig()
+}
+
+const onCopilotModelChange = (e: Event) => {
+  configStore.aiCopilotModel = (e.target as HTMLInputElement).value.trim() || 'gpt-4.1'
+  persistConfig()
+}
+
+const onCustomFieldChange = (
+  field: 'aiCustomBaseUrl' | 'aiCustomApiKey' | 'aiCustomModel',
+  e: Event,
+) => {
+  configStore[field] = (e.target as HTMLInputElement).value.trim()
+  persistConfig()
+}
+
+const onVerifyCopilotToken = async () => {
+  const ok = await validateCopilotToken(copilotTokenDraft.value)
+  if (ok) copilotTokenDraft.value = ''
+}
+
+const copyCopilotCode = async () => {
+  if (!copilotUserCode.value) return
+  try {
+    await navigator.clipboard.writeText(copilotUserCode.value)
+    copilotCodeCopied.value = true
+    if (copiedTimer) clearTimeout(copiedTimer)
+    copiedTimer = setTimeout(() => {
+      copilotCodeCopied.value = false
+    }, 1500)
+  } catch {
+    // Clipboard unavailable — the code is visible for manual copying.
+  }
 }
 
 // Hybrid: enabling watch-sync while signed in runs initialize() so first-time
@@ -695,6 +950,115 @@ const onResetRelay = () => {
   to {
     transform: rotate(360deg);
   }
+}
+
+.copilot-connected {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+}
+
+.copilot-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.copilot-username {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.copilot-code-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.copilot-code {
+  padding: 6px 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg-subtle);
+  color: var(--text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  cursor: pointer;
+}
+
+.copilot-code:hover {
+  border-color: var(--accent);
+}
+
+.copilot-copied {
+  font-size: 11px;
+  color: var(--success);
+}
+
+.copilot-link {
+  font-size: 12px;
+  color: var(--link-color);
+  overflow-wrap: anywhere;
+}
+
+.copilot-wait-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copilot-wait-text {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.copilot-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: cloud-spin 0.9s linear infinite;
+}
+
+.copilot-or {
+  margin: 10px 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.copilot-token-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.copilot-token-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.copilot-token-row .btn {
+  flex-shrink: 0;
 }
 
 .relay-row {

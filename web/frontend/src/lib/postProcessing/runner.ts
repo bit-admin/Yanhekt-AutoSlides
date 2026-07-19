@@ -1,8 +1,8 @@
 // Post-processing runner — the web analogue of the desktop's
-// usePostProcessing slice. Runs the pHash phases (duplicates + exclusion) on a
-// folder, detached from any Vue component so SPA navigation away from the
-// playback page doesn't cancel an in-flight run. Two entry points share one
-// pass core:
+// usePostProcessing slice. Runs the pHash phases (duplicates + exclusion) plus
+// AI filtering (when enabled + configured) on a folder, detached from any Vue
+// component so SPA navigation away from the playback page doesn't cancel an
+// in-flight run. Two entry points share one pass core:
 //  - runPostProcessing: the manual Post-process button (desktop gallery parity);
 //  - triggerAutoPostProcessing: the per-slide watch-mode trigger — if a pass is
 //    already in flight it queues a re-run instead of skipping, so slides that
@@ -14,8 +14,11 @@ import { PostProcessingPipeline } from './pipeline'
 import { createSlideStoreDataSource } from './imageSources'
 import { filterEnabledExclusionItems } from './types'
 import type { PostProcessingProgress, TrashReason } from './types'
-import { POST_PROCESSING_DEFAULTS } from '../extractionDefaults'
-import { listActiveImages, setFolderPostProcessing } from '../slideStore'
+import { parseResultError } from './errorModel'
+import { AI_FILTERING_DEFAULTS, POST_PROCESSING_DEFAULTS } from '../extractionDefaults'
+import { listActiveImages, setFolderPostProcessing, setSlideAIDecision } from '../slideStore'
+import { createClassifier, isAIFilteringActive } from '../ai/aiFilteringClient'
+import { authStore } from '../../stores/authStore'
 import { compareToolImages } from '../toolFolders'
 import { createLogger } from '../logger'
 const log = createLogger('PostProcessing')
@@ -25,6 +28,10 @@ export interface PostProcessingRunStatus {
   progress: PostProcessingProgress | null
   duplicatesRemoved: number
   excludedRemoved: number
+  aiRemoved: number
+  aiFailedCount: number
+  // First AI failure's ErrorType, for the compact warning line in the panel.
+  aiErrorType: string | null
 }
 
 // Keyed by folder name; readable from both the extraction panel and the
@@ -105,12 +112,25 @@ async function runOnePass(
     progress: null,
     duplicatesRemoved: 0,
     excludedRemoved: 0,
+    aiRemoved: 0,
+    aiFailedCount: 0,
+    aiErrorType: null,
   }
 
   try {
     const images = await listActiveImages(folder)
     const imageFiles = images.map((i) => i.name).sort(compareToolImages)
     const removed = new Set<string>()
+
+    const aiActive = isAIFilteringActive()
+    // Files with a persisted verdict skip phase 3 — on every pass, including
+    // manual ones (deliberate deviation from desktop, which excludes only on
+    // auto passes): a full pass here re-classifies only new slides, and a
+    // slide the user restored from AI trash stays restored. Re-extracting the
+    // folder overwrites the records and clears the verdicts.
+    const phase3ExcludeFiles = aiActive
+      ? images.filter((i) => i.aiDecision != null).map((i) => i.name)
+      : []
 
     const result = await PostProcessingPipeline.run(
       {
@@ -120,18 +140,16 @@ async function runOnePass(
           pHashThreshold: POST_PROCESSING_DEFAULTS.pHashThreshold,
           enableDuplicateRemoval: POST_PROCESSING_DEFAULTS.enableDuplicateRemoval,
           enableExclusionList: POST_PROCESSING_DEFAULTS.enableExclusionList,
-          // AI phase seam: when AI filtering is ported, this flag comes from
-          // config, the input gains a `phase3ExcludeFiles` list (files that
-          // already carry an AI verdict skip re-classification on full passes),
-          // and triggerAutoPostProcessing's re-runs become AI-only passes —
-          // mirroring the desktop usePostProcessing. The pass-report/emitter/
-          // pending-rerun structure here is exactly what that phase plugs into.
-          enableAIFiltering: false,
+          enableAIFiltering: aiActive,
           exclusionList: filterEnabledExclusionItems(POST_PROCESSING_DEFAULTS.pHashExclusionList).map(
             (item) => ({ name: item.name, pHash: item.pHash }),
           ),
+          aiImageResizeWidth: AI_FILTERING_DEFAULTS.imageResizeWidth,
+          aiImageResizeHeight: AI_FILTERING_DEFAULTS.imageResizeHeight,
         },
         promptType,
+        phase3ExcludeFiles,
+        token: authStore.token.value ?? undefined,
       },
       createSlideStoreDataSource(folder),
       {
@@ -145,6 +163,13 @@ async function runOnePass(
           removed.add(filename)
           onItemRemoved?.(filename, reason)
         },
+        classifier: aiActive ? createClassifier() : undefined,
+        // Persist every verdict (including 'slide') — this is what feeds the
+        // exclude list above. Failed classifications persist nothing, so they
+        // are retried on the next pass.
+        onItemClassified: (filename, classification) => {
+          void setSlideAIDecision(folder, filename, classification)
+        },
       },
     )
 
@@ -152,19 +177,25 @@ async function runOnePass(
       ran: true,
       duplicateRemoval: POST_PROCESSING_DEFAULTS.enableDuplicateRemoval,
       exclusionList: POST_PROCESSING_DEFAULTS.enableExclusionList,
-      aiFiltering: false,
-      aiClassifierMode: null,
+      aiFiltering: aiActive,
+      aiClassifierMode: aiActive ? 'llm' : null,
       completedAt: new Date().toISOString(),
     })
 
+    const aiFailed = result.failed.filter((f) => f.filename !== '*')
     postProcessingStatus[folder] = {
       state: result.status === 'completed' ? 'done' : 'error',
       progress: postProcessingStatus[folder]?.progress ?? null,
       duplicatesRemoved: result.duplicatesRemoved.length,
       excludedRemoved: result.excludedRemoved.length,
+      aiRemoved: result.aiNotSlide.length + result.aiMaybeSlideEdit.length,
+      aiFailedCount: aiFailed.length,
+      aiErrorType: aiFailed.length > 0
+        ? parseResultError({ success: false, error: aiFailed[0].message, errorKind: aiFailed[0].errorKind }).type
+        : null,
     }
     log.info(
-      `Post-processing ${result.status} for ${folder}: ${result.duplicatesRemoved.length} duplicates, ${result.excludedRemoved.length} excluded`,
+      `Post-processing ${result.status} for ${folder}: ${result.duplicatesRemoved.length} duplicates, ${result.excludedRemoved.length} excluded, ${result.aiNotSlide.length + result.aiMaybeSlideEdit.length} AI-filtered (${aiFailed.length} failed)`,
     )
     if (result.status !== 'completed') return null
     return {
@@ -179,6 +210,9 @@ async function runOnePass(
       progress: status?.progress ?? null,
       duplicatesRemoved: status?.duplicatesRemoved ?? 0,
       excludedRemoved: status?.excludedRemoved ?? 0,
+      aiRemoved: status?.aiRemoved ?? 0,
+      aiFailedCount: status?.aiFailedCount ?? 0,
+      aiErrorType: status?.aiErrorType ?? null,
     }
     return null
   }
@@ -208,8 +242,9 @@ export async function runPostProcessing(
  * Per-slide auto trigger (watch mode). If a pass for the folder is already in
  * flight, queues a re-run instead of skipping — the just-saved slide needs a
  * completed pass behind it (dedup verdict + note-gate clearance). Re-runs are
- * full pHash passes: re-reporting already-kept files is harmless (the note
- * gate only releases still-pending filenames).
+ * full passes: re-reporting already-kept files is harmless (the note gate only
+ * releases still-pending filenames), and phase 3 only classifies files without
+ * a persisted verdict — i.e. exactly the newly saved slide(s).
  */
 export async function triggerAutoPostProcessing(
   folder: string,

@@ -13,6 +13,8 @@ const LEGACY_LOCALE_KEY = "autoslides.locale";
 export type ThemeMode = "system" | "light" | "dark";
 // Web supports two locales only (no ja/ko).
 export type LanguageMode = "system" | "en" | "zh";
+// AI-filtering providers (LLM only on the web; desktop's ML mode isn't ported).
+export type AIServiceType = "builtin" | "copilot" | "custom";
 
 // Captured at subscribe time so a subscribed course keeps its rich fields (classrooms /
 // participant_count / term) — those come from the course list/search and are
@@ -56,6 +58,20 @@ export interface WebConfig {
   // "never initialized" from "was initialized, group deleted → repair".
   // Desktop parity: `cloudStorageInitializedUsers`.
   cloudStorageInitializedUsers: string[];
+  // AI filtering (post-processing phase 3). Desktop parity: `enableAIFiltering`
+  // + the aiFiltering config block, LLM-only and simplified for the web.
+  aiFilteringEnabled: boolean;
+  aiServiceType: AIServiceType;
+  // GitHub Copilot via the copilot-proxy Worker: gho_/ghu_ user token from the
+  // device flow (or pasted), plus display identity captured at connect time.
+  aiCopilotToken: string;
+  aiCopilotModel: string;
+  aiCopilotUsername: string;
+  aiCopilotAvatarUrl: string;
+  // Custom OpenAI-compatible endpoint (must allow browser CORS).
+  aiCustomBaseUrl: string;
+  aiCustomApiKey: string;
+  aiCustomModel: string;
 }
 
 const defaults = (): WebConfig => ({
@@ -69,6 +85,15 @@ const defaults = (): WebConfig => ({
   autoPostProcessingLive: true,
   cloudWatchSyncEnabled: false,
   cloudStorageInitializedUsers: [],
+  aiFilteringEnabled: false,
+  aiServiceType: "builtin",
+  aiCopilotToken: "",
+  aiCopilotModel: "gpt-4.1",
+  aiCopilotUsername: "",
+  aiCopilotAvatarUrl: "",
+  aiCustomBaseUrl: "",
+  aiCustomApiKey: "",
+  aiCustomModel: "",
 });
 
 function load(): WebConfig {
@@ -142,6 +167,15 @@ export function persistConfig(): void {
     autoPostProcessingLive: configStore.autoPostProcessingLive,
     cloudWatchSyncEnabled: configStore.cloudWatchSyncEnabled,
     cloudStorageInitializedUsers: [...configStore.cloudStorageInitializedUsers],
+    aiFilteringEnabled: configStore.aiFilteringEnabled,
+    aiServiceType: configStore.aiServiceType,
+    aiCopilotToken: configStore.aiCopilotToken,
+    aiCopilotModel: configStore.aiCopilotModel,
+    aiCopilotUsername: configStore.aiCopilotUsername,
+    aiCopilotAvatarUrl: configStore.aiCopilotAvatarUrl,
+    aiCustomBaseUrl: configStore.aiCustomBaseUrl,
+    aiCustomApiKey: configStore.aiCustomApiKey,
+    aiCustomModel: configStore.aiCustomModel,
   });
 }
 

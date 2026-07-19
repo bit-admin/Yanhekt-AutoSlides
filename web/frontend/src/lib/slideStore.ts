@@ -29,6 +29,11 @@ export interface SlideRecord {
   blob: Blob; // image/png
   status: 'active' | 'trashed';
   createdAt: string;
+  // Persisted AI-filtering verdict. Presence (any value) means the file is
+  // skipped by later phase-3 passes — so a slide restored from AI trash is
+  // never re-trashed by a re-run. Cleared implicitly when the record is
+  // overwritten by a fresh extraction (new pixels need a new verdict).
+  aiDecision?: 'slide' | 'not_slide' | 'may_be_slide_edit';
 }
 
 // Mirrors the desktop trash-manifest entry (RemovedEntry) verbatim.
@@ -142,7 +147,9 @@ export async function getSlideBlob(id: string): Promise<Blob | null> {
 }
 
 /** Active slide filenames in a folder (unsorted; callers sort). */
-export async function listActiveImages(folder: string): Promise<Array<{ name: string; path: string }>> {
+export async function listActiveImages(
+  folder: string,
+): Promise<Array<{ name: string; path: string; aiDecision?: SlideRecord['aiDecision'] }>> {
   const db = await getDb();
   const records = (await requestToPromise(
     db
@@ -151,7 +158,29 @@ export async function listActiveImages(folder: string): Promise<Array<{ name: st
       .index('by-folder-status')
       .getAll(IDBKeyRange.only([folder, 'active'])),
   )) as SlideRecord[];
-  return records.map((r) => ({ name: r.filename, path: r.id }));
+  return records.map((r) => ({ name: r.filename, path: r.id, aiDecision: r.aiDecision }));
+}
+
+/** Record an AI-filtering verdict on a slide (no-op if the record is gone). */
+export async function setSlideAIDecision(
+  folder: string,
+  filename: string,
+  decision: NonNullable<SlideRecord['aiDecision']>,
+): Promise<void> {
+  try {
+    const db = await getDb();
+    const tx = db.transaction(SLIDES, 'readwrite');
+    const store = tx.objectStore(SLIDES);
+    const record = (await requestToPromise(store.get(slideId(folder, filename)))) as
+      | SlideRecord
+      | undefined;
+    if (record) {
+      store.put({ ...record, aiDecision: decision });
+    }
+    await transactionDone(tx);
+  } catch (error) {
+    log.error(`Failed to record AI decision for ${folder}/${filename}:`, error);
+  }
 }
 
 /** All folders with their active-slide counts (ResultsDataIO.getFolders shape; path = folder name). */

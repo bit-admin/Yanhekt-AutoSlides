@@ -41,16 +41,21 @@ export interface PostProcessingDefaults {
   pHashThreshold: number;
   enableDuplicateRemoval: boolean;
   enableExclusionList: boolean;
-  enableAIFiltering: boolean;
   pHashExclusionList: ExclusionPreset[];
 }
+
+// AI filtering (phase 3) is toggled via configStore.aiFilteringEnabled; the
+// image fit-inside target below is the desktop default (imageResizeWidth/
+// Height in defaultAIFilteringConfig).
+export const AI_FILTERING_DEFAULTS = {
+  imageResizeWidth: 768,
+  imageResizeHeight: 432,
+} as const;
 
 export const POST_PROCESSING_DEFAULTS: PostProcessingDefaults = {
   pHashThreshold: 10,
   enableDuplicateRemoval: true,
   enableExclusionList: true,
-  // AI filtering is not available in the web version.
-  enableAIFiltering: false,
   pHashExclusionList: [
     {
       id: 'preset_no_signal',

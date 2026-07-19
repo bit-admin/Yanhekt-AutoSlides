@@ -94,6 +94,17 @@
             <div class="phase-bar-fill" :style="{ width: phase2.pct + '%' }"></div>
           </div>
         </div>
+
+        <!-- Phase 3: AI classification (only when the pass runs AI) -->
+        <div v-if="!phase3Skipped" class="progress-phase" :class="phase3.state">
+          <div class="phase-meta">
+            <span class="phase-name">{{ $t('playback.postProcessStatus.phase3NameShort') }}</span>
+            <span class="phase-val">{{ phase3.text }}</span>
+          </div>
+          <div class="phase-bar-track">
+            <div class="phase-bar-fill" :class="{ retrying: phase3.retrying }" :style="{ width: phase3.pct + '%' }"></div>
+          </div>
+        </div>
       </div>
 
       <div v-else-if="postStatus.state === 'done'" class="dashboard-summary">
@@ -101,6 +112,18 @@
           <polyline points="20,6 9,17 4,12"/>
         </svg>
         <span class="summary-text">{{ postLine }}</span>
+      </div>
+
+      <div
+        v-if="postStatus.state === 'done' && postStatus.aiFailedCount > 0"
+        class="dashboard-summary warning"
+      >
+        <svg class="status-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span class="summary-text">{{ $t('playback.postProcessStatus.aiFailed', { count: postStatus.aiFailedCount }) }}</span>
       </div>
 
       <div v-else-if="postStatus.state === 'error'" class="dashboard-summary error">
@@ -167,7 +190,12 @@ const phase1 = computed(() => {
     const pct = p1.total > 0 ? (p1.processed / p1.total) * 100 : 0
     return { state: 'active', pct, text: `${p1.processed}/${p1.total}` }
   }
-  if (status.progress.phase === 'phase2' || status.progress.phase === 'completed' || status.state === 'done') {
+  if (
+    status.progress.phase === 'phase2' ||
+    status.progress.phase === 'phase3' ||
+    status.progress.phase === 'completed' ||
+    status.state === 'done'
+  ) {
     return { state: 'completed', pct: 100, text: p1.duplicatesRemoved > 0 ? `-${p1.duplicatesRemoved}` : '✓' }
   }
   return { state: 'idle', pct: 0, text: '' }
@@ -182,10 +210,27 @@ const phase2 = computed(() => {
     const pct = p2.total > 0 ? (p2.processed / p2.total) * 100 : 0
     return { state: 'active', pct, text: `${p2.processed}/${p2.total}` }
   }
-  if (status.progress.phase === 'completed' || status.state === 'done') {
+  if (status.progress.phase === 'phase3' || status.progress.phase === 'completed' || status.state === 'done') {
     return { state: 'completed', pct: 100, text: p2.excludedRemoved > 0 ? `-${p2.excludedRemoved}` : '✓' }
   }
   return { state: 'idle', pct: 0, text: '' }
+})
+
+const phase3Skipped = computed(() => props.postStatus?.progress?.phase3.skipped !== false)
+
+const phase3 = computed(() => {
+  const status = props.postStatus
+  if (!status || !status.progress) return { state: 'idle', pct: 0, text: '', retrying: false }
+  const p3 = status.progress.phase3
+  if (status.progress.phase === 'phase3') {
+    const pct = p3.total > 0 ? (p3.processed / p3.total) * 100 : 0
+    return { state: 'active', pct, text: `${p3.processed}/${p3.total}`, retrying: p3.retrying > 0 }
+  }
+  if (status.progress.phase === 'completed' || status.state === 'done') {
+    const removed = p3.aiFiltered + p3.aiFilteredEdit
+    return { state: 'completed', pct: 100, text: removed > 0 ? `-${removed}` : '✓', retrying: false }
+  }
+  return { state: 'idle', pct: 0, text: '', retrying: false }
 })
 
 const postLine = computed(() => {
@@ -199,10 +244,17 @@ const postLine = computed(() => {
     if (progress?.phase === 'phase2') {
       return `${t('playback.postProcessStatus.phase2')} (${progress.phase2.processed}/${progress.phase2.total})`
     }
+    if (progress?.phase === 'phase3') {
+      return `${t('playback.postProcessStatus.phase3')} (${progress.phase3.processed}/${progress.phase3.total})`
+    }
     return t('playback.postProcessing')
   }
   if (status.state === 'done') {
-    return `${t('playback.postProcessStatus.completed')} · ${t('playback.postProcessStatus.duplicatesRemoved', { count: status.duplicatesRemoved })} · ${t('playback.postProcessStatus.excludedRemoved', { count: status.excludedRemoved })}`
+    let line = `${t('playback.postProcessStatus.completed')} · ${t('playback.postProcessStatus.duplicatesRemoved', { count: status.duplicatesRemoved })} · ${t('playback.postProcessStatus.excludedRemoved', { count: status.excludedRemoved })}`
+    if (!phase3Skipped.value) {
+      line += ` · ${t('playback.postProcessStatus.aiRemoved', { count: status.aiRemoved })}`
+    }
+    return line
   }
   return ''
 })
@@ -505,6 +557,15 @@ const postLine = computed(() => {
 
 .dashboard-summary.error {
   color: var(--danger);
+}
+
+.dashboard-summary.warning {
+  color: var(--warning);
+  font-size: 0.75rem;
+}
+
+.progress-phase.active .phase-bar-fill.retrying {
+  background-color: var(--warning);
 }
 
 .status-icon {

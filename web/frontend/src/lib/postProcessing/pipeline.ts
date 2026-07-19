@@ -1,13 +1,14 @@
 // Top-level orchestrator for the post-processing pipeline.
 // Ported from autoslides/src/renderer/shared/postProcessing/pipeline.ts.
 //
-// Web changes: phase 3 (AI classification) is removed — AI filtering is not
-// available in the web version, so `enableAIFiltering` is always false and
-// `progress.phase3.skipped` stays true (kept for shape parity). Phases 1 + 2
+// Web changes: phase 3 (AI classification) is single-image LLM only, gated on
+// `enableAIFiltering` plus an injected ctx.classifier; `phase3ExcludeFiles`
+// lets callers skip files that already carry a persisted verdict. Phases 1 + 2
 // (duplicate + exclusion pHash) are unchanged.
 
 import { runDuplicatePhase } from './phase1Duplicates'
 import { runExclusionPhase } from './phase2Exclusion'
+import { runAIPhase } from './phase3AI'
 import { createPostProcessorWorker, createWorkerHelpers } from './workerHelpers'
 import type {
   PipelineDataSource,
@@ -74,6 +75,7 @@ export class PostProcessingPipeline {
     const progress = freshProgress(input.imageFiles.length)
     progress.phase1.skipped = !input.config.enableDuplicateRemoval
     progress.phase2.skipped = !input.config.enableExclusionList
+    progress.phase3.skipped = !input.config.enableAIFiltering
 
     const emit = () => ctx.onProgress?.(progress)
     emit()
@@ -81,6 +83,8 @@ export class PostProcessingPipeline {
     const failed: PostProcessingResult['failed'] = []
     const removedDuplicates: string[] = []
     const removedExcluded: string[] = []
+    const aiNotSlide: string[] = []
+    const aiMaybeSlideEdit: string[] = []
     const trashedSet = new Set<string>()
 
     const needsPHash = input.config.enableDuplicateRemoval || input.config.enableExclusionList
@@ -150,6 +154,46 @@ export class PostProcessingPipeline {
         worker = null
       }
 
+      if (ctx.signal?.aborted) {
+        return finalize('cancelled')
+      }
+
+      if (input.config.enableAIFiltering) {
+        const excludeSet = new Set(input.phase3ExcludeFiles ?? [])
+        const remainingFiles = input.imageFiles.filter(
+          (f) => !trashedSet.has(f) && !excludeSet.has(f)
+        )
+        progress.phase = 'phase3'
+        progress.phase3.total = remainingFiles.length
+        emit()
+
+        const aiResult = await runAIPhase(
+          { files: remainingFiles, config: input.config, token: input.token },
+          dataSource,
+          ctx,
+          (stats) => {
+            progress.phase3.processed = stats.processed
+            progress.phase3.total = stats.total
+            progress.phase3.batchesCompleted = stats.batchesCompleted
+            progress.phase3.batchesTotal = stats.batchesTotal
+            progress.phase3.aiFiltered = stats.aiFiltered
+            progress.phase3.aiFilteredEdit = stats.aiFilteredEdit
+            progress.phase3.failed = stats.failed
+            progress.phase3.retrying = stats.retrying
+            emit()
+          }
+        )
+        for (const f of aiResult.aiNotSlide) {
+          aiNotSlide.push(f)
+          trashedSet.add(f)
+        }
+        for (const f of aiResult.aiMaybeSlideEdit) {
+          aiMaybeSlideEdit.push(f)
+          trashedSet.add(f)
+        }
+        failed.push(...aiResult.failed)
+      }
+
       return finalize(ctx.signal?.aborted ? 'cancelled' : 'completed')
     } catch (error) {
       log.error('[PostProcessing] Pipeline error:', error)
@@ -178,8 +222,8 @@ export class PostProcessingPipeline {
         status,
         duplicatesRemoved: removedDuplicates,
         excludedRemoved: removedExcluded,
-        aiNotSlide: [],
-        aiMaybeSlideEdit: [],
+        aiNotSlide,
+        aiMaybeSlideEdit,
         failed
       }
     }
