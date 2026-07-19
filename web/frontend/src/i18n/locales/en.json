@@ -112,7 +112,8 @@
     "search": "Search",
     "searchPlaceholder": "Search",
     "slidesReview": "Slides",
-    "subscriptions": "Subscriptions"
+    "subscriptions": "Subscriptions",
+    "notes": "Notes"
   },
   "notice": {
     "accept": "Got it",
@@ -196,7 +197,10 @@
     "warming": {
       "hint": "The initial playback of a recording is routed through our relay service and may require a brief warm-up period.",
       "title": "Preparing playback…"
-    }
+    },
+    "sessionsTab": "Sessions",
+    "notesTab": "Notes",
+    "sessionsCount": "{count} sessions"
   },
   "searchPage": {
     "academicYear": "{start}–{end} Academic Year",
@@ -247,7 +251,14 @@
     "relayMixedContent": "This page is HTTPS but the relay is HTTP — the browser will block playback (mixed content). Use the public https://relay.ruc.edu.kg, serve this page over HTTP on the LAN, or put TLS in front of the local relay.",
     "relayUsePublic": "Use public relay",
     "settings": "Settings",
-    "theme": "Theme"
+    "theme": "Theme",
+    "slideExtractionSection": "Slide Extraction",
+    "enableAutoPostProcessing": "Auto Post-Processing (When Each Slide Is Saved)",
+    "autoPostProcessingDescription": "After each slide is captured, run duplicate and exclusion filtering automatically. When Cloud Notes sync is on, only slides that pass post-processing are uploaded.",
+    "cloudNotesSection": "Cloud Notes",
+    "enableCloudWatchSync": "Watch-Mode Note Sync",
+    "cloudWatchSyncDescription": "While extracting slides during playback, create a personal cloud note and append cleared slides automatically.",
+    "cloudWatchSyncProvisionFailed": "Couldn't set up the ASuser note group. Check your connection and try again."
   },
   "trash": {
     "active": "Extracted",
@@ -317,5 +328,37 @@
     "tokenOptionDesc": "Import a session from yanhekt.cn",
     "tokenPlaceholder": "Paste your Yanhekt token here",
     "usernamePlaceholder": "Student ID"
+  },
+  "cloudNotes": {
+    "notSignedIn": "Sign in to use Notes.",
+    "searchPlaceholder": "Search by title…",
+    "newNote": "New",
+    "refreshList": "Refresh",
+    "allNotes": "All notes",
+    "managedSection": "Managed Groups",
+    "otherGroupsSection": "Other groups",
+    "defaultGroup": "Ungrouped",
+    "deleteGroup": "Delete group",
+    "newGroupTitle": "New Group",
+    "newGroupPlaceholder": "New group (≤{max})",
+    "newGroupHint": "Group names are limited to {max} characters.",
+    "loading": "Loading…",
+    "noNotes": "No notes",
+    "untitled": "Untitled",
+    "delete": "Delete",
+    "confirmDeleteNote": "Delete this note? This cannot be undone.",
+    "confirmDeleteGroup": "Delete group \"{name}\"? Notes inside move to Ungrouped.",
+    "cancel": "Cancel",
+    "add": "Add",
+    "selectNote": "Select a note to view or edit",
+    "saving": "Saving…",
+    "saved": "Saved ✓",
+    "idle": "Idle",
+    "editorPlaceholder": "Start writing…",
+    "watchNotes": {
+      "creating": "Creating your note…",
+      "error": "Couldn't create the note. Check your connection and try again.",
+      "hint": "Start slide extraction while watching to create a note here. Captured slides are appended automatically."
+    }
   }
 }

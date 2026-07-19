@@ -7,6 +7,7 @@ import CoursePage from "../components/course/CoursePage.vue";
 import SearchPage from "../components/course/SearchPage.vue";
 import RecordedCourseRoute from "../components/course/RecordedCourseRoute.vue";
 import SlidesPage from "../components/slides/SlidesPage.vue";
+import NotesPage from "../components/notes/NotesPage.vue";
 import SettingsPage from "../components/SettingsPage.vue";
 import PlayerRoute from "../components/video/PlayerRoute.vue";
 import LoginPage from "../components/LoginPage.vue";
@@ -69,6 +70,12 @@ export const router = createRouter({
       path: "/slides",
       component: SlidesPage,
       meta: { nav: "slides", keepAlive: true, titleKey: "navigation.slidesReview" },
+    },
+    {
+      name: "notes",
+      path: "/notes",
+      component: NotesPage,
+      meta: { nav: "notes", keepAlive: true, titleKey: "navigation.notes" },
     },
     {
       name: "settings",

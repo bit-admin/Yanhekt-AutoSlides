@@ -112,7 +112,8 @@
     "search": "搜索",
     "searchPlaceholder": "搜索",
     "slidesReview": "幻灯片",
-    "subscriptions": "订阅"
+    "subscriptions": "订阅",
+    "notes": "笔记"
   },
   "notice": {
     "accept": "知道了",
@@ -196,7 +197,10 @@
     "warming": {
       "hint": "录播播放中转服务器预热中，这可能需要一些时间。",
       "title": "正在准备播放…"
-    }
+    },
+    "sessionsTab": "课时",
+    "notesTab": "笔记",
+    "sessionsCount": "{count} 节课"
   },
   "searchPage": {
     "academicYear": "{start}–{end} 学年",
@@ -247,7 +251,14 @@
     "relayMixedContent": "当前页面为 HTTPS，而中继为 HTTP —— 浏览器会拦截播放（混合内容）。请改用公共 https://relay.ruc.edu.kg、在局域网用 HTTP 打开本站，或为本地中继配置 TLS。",
     "relayUsePublic": "恢复公共中继",
     "settings": "设置",
-    "theme": "主题"
+    "theme": "主题",
+    "slideExtractionSection": "幻灯片提取",
+    "enableAutoPostProcessing": "自动后处理（每保存一张幻灯片时）",
+    "autoPostProcessingDescription": "每捕获一张幻灯片后自动运行去重与排除列表过滤。开启云笔记同步时，仅上传通过后处理的幻灯片。",
+    "cloudNotesSection": "云笔记",
+    "enableCloudWatchSync": "观看模式笔记同步",
+    "cloudWatchSyncDescription": "在播放中提取幻灯片时，自动创建个人云笔记并追加已通过后处理的幻灯片。",
+    "cloudWatchSyncProvisionFailed": "无法创建 ASuser 笔记分组。请检查网络后重试。"
   },
   "trash": {
     "active": "已提取",
@@ -317,5 +328,37 @@
     "tokenOptionDesc": "从延河课堂导入登录状态",
     "tokenPlaceholder": "在此粘贴延河课堂 Token",
     "usernamePlaceholder": "学号"
+  },
+  "cloudNotes": {
+    "notSignedIn": "请登录后使用笔记。",
+    "searchPlaceholder": "按标题搜索…",
+    "newNote": "新建",
+    "refreshList": "刷新",
+    "allNotes": "全部笔记",
+    "managedSection": "自动管理的分组",
+    "otherGroupsSection": "其他分组",
+    "defaultGroup": "未分组",
+    "deleteGroup": "删除分组",
+    "newGroupTitle": "新建分组",
+    "newGroupPlaceholder": "新建分组（≤{max}）",
+    "newGroupHint": "分组名称最多 {max} 个字符。",
+    "loading": "加载中…",
+    "noNotes": "暂无笔记",
+    "untitled": "无标题",
+    "delete": "删除",
+    "confirmDeleteNote": "删除这条笔记？此操作无法撤销。",
+    "confirmDeleteGroup": "删除分组“{name}”？组内笔记将移至未分组。",
+    "cancel": "取消",
+    "add": "添加",
+    "selectNote": "选择一条笔记进行查看或编辑",
+    "saving": "保存中…",
+    "saved": "已保存 ✓",
+    "idle": "空闲",
+    "editorPlaceholder": "开始输入…",
+    "watchNotes": {
+      "creating": "正在创建笔记…",
+      "error": "无法创建笔记。请检查网络后重试。",
+      "hint": "观看时开始提取幻灯片即可在此创建笔记，捕获的幻灯片会自动追加。"
+    }
   }
 }

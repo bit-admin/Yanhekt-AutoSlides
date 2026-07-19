@@ -5,7 +5,7 @@ import { configStore, persistConfig } from "./configStore";
 // Thin façade over vue-router so nav consumers (LeftPanel, Header, mobile
 // bottom nav, page refresh watchers) keep their existing read/call surface.
 // The route is the source of truth; nothing here holds navigation state.
-export type NavTarget = "home" | "live" | "recorded" | "search" | "slides" | "settings";
+export type NavTarget = "home" | "live" | "recorded" | "search" | "slides" | "notes" | "settings";
 
 // Which nav entry the current route belongs to (player routes highlight their
 // mode, matching the pre-router behavior).

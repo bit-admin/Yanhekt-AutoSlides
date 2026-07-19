@@ -50,6 +50,39 @@
           </div>
         </div>
 
+        <div class="advanced-setting-section">
+          <h4>{{ $t('settings.slideExtractionSection') }}</h4>
+          <div class="setting-item">
+            <label class="setting-toggle">
+              <input
+                type="checkbox"
+                :checked="configStore.autoPostProcessingLive"
+                @change="onAutoPostProcessingChange"
+              />
+              <span>{{ $t('settings.enableAutoPostProcessing') }}</span>
+            </label>
+            <div class="setting-description">{{ $t('settings.autoPostProcessingDescription') }}</div>
+          </div>
+        </div>
+
+        <div class="advanced-setting-section">
+          <h4>{{ $t('settings.cloudNotesSection') }}</h4>
+          <div class="setting-item">
+            <label class="setting-toggle">
+              <input
+                type="checkbox"
+                :checked="configStore.cloudWatchSyncEnabled"
+                @change="onWatchSyncChange"
+              />
+              <span>{{ $t('settings.enableCloudWatchSync') }}</span>
+            </label>
+            <div class="setting-description">{{ $t('settings.cloudWatchSyncDescription') }}</div>
+            <div v-if="watchSyncError" class="setting-hint setting-hint--error">
+              {{ watchSyncError }}
+            </div>
+          </div>
+        </div>
+
         <!-- Hidden debug section: reveal with Ctrl/Cmd+Shift+D while Settings is open.
              If a non-public endpoint is already stored, show it so the user can reset. -->
         <div v-if="relaySectionVisible" class="advanced-setting-section">
@@ -101,6 +134,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   configStore,
+  persistConfig,
   PUBLIC_RELAY_ENDPOINT,
   type LanguageMode,
   type ThemeMode,
@@ -112,6 +146,8 @@ import {
   resetRelayEndpoint,
   isMixedContentRelay,
 } from '../stores/settingsStore'
+import { cloudStorageStore } from '../stores/cloudStorageStore'
+import { authStore } from '../stores/authStore'
 
 defineOptions({ name: 'SettingsPage' })
 
@@ -199,6 +235,28 @@ const onThemeChange = (e: Event) => {
 
 const onLanguageChange = (e: Event) => {
   setLanguageMode((e.target as HTMLSelectElement).value as LanguageMode)
+}
+
+const onAutoPostProcessingChange = (e: Event) => {
+  configStore.autoPostProcessingLive = (e.target as HTMLInputElement).checked
+  persistConfig()
+}
+
+// Enabling watch-sync while signed in kicks the ASuser provisioning early so
+// a failure surfaces here instead of silently at extraction start.
+const watchSyncError = ref<string | null>(null)
+
+const onWatchSyncChange = async (e: Event) => {
+  const enabled = (e.target as HTMLInputElement).checked
+  configStore.cloudWatchSyncEnabled = enabled
+  persistConfig()
+  watchSyncError.value = null
+  if (enabled && authStore.isLoggedIn.value) {
+    const status = await cloudStorageStore.ensureUserGroup()
+    if (status !== 'ready') {
+      watchSyncError.value = t('settings.cloudWatchSyncProvisionFailed')
+    }
+  }
 }
 
 const commitRelay = () => {
@@ -326,6 +384,23 @@ const onResetRelay = () => {
   color: var(--text-secondary);
   line-height: 1.45;
   margin-bottom: 10px;
+}
+
+.setting-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-primary);
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+
+.setting-toggle input[type='checkbox'] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
 }
 
 .relay-row {

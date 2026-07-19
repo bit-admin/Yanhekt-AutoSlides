@@ -6,6 +6,7 @@
 @import "./theme.css";
 @import "./modal.css";
 @import "./components.css";
+@import "./editor.css";
 
 * {
   box-sizing: border-box;

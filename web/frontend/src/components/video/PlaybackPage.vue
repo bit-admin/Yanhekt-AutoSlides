@@ -488,42 +488,64 @@
         />
       </div>
 
-      <!-- Right Column: Sibling Sessions Sidebar Playlist (Hidden in cinema mode on desktop) -->
-      <div 
-        class="playback-sidebar-playlist" 
-        v-if="props.mode === 'recorded' && !isCinemaMode"
+      <!-- Right Column: Sessions / Notes sidebar (Hidden in cinema mode on desktop) -->
+      <div
+        class="playback-sidebar-playlist"
+        v-if="!isCinemaMode && (props.mode === 'recorded' || notesTabAvailable)"
       >
-        <div class="playlist-header">
-          <h3 class="playlist-title">{{ course?.title }}</h3>
-          <span class="playlist-subtitle">{{ siblingSessions.length }} {{ $t('playback.duration') !== 'Duration' ? '节课' : 'sessions' }}</span>
-        </div>
-
-        <div v-if="isLoadingSiblings" class="playlist-loading">
-          <div class="spinner spinner--sm"></div>
-        </div>
-
-        <div v-else class="playlist-items custom-scrollbar">
-          <div 
-            v-for="(sib, idx) in siblingSessions" 
-            :key="sib.session_id"
-            class="playlist-item-row"
-            :class="{ 'active-playing': sib.session_id === session?.session_id }"
-            @click="playSession(sib)"
+        <!-- Sessions | Notes toggle (recorded only — live has no sessions list) -->
+        <div v-if="props.mode === 'recorded' && notesTabAvailable" class="playlist-tabs">
+          <button
+            class="playlist-tab"
+            :class="{ active: activeSidebarView === 'sessions' }"
+            @click="sidebarTab = 'sessions'"
           >
-            <span class="row-index">
-              <span v-if="sib.session_id === session?.session_id">▶</span>
-              <span v-else>{{ idx + 1 }}</span>
-            </span>
-            <div class="row-thumb">
-              <img :src="getCourseCover(course?.id)" class="row-thumb-img" alt="" />
-              <span class="row-duration" v-if="sib.duration">{{ formatDurationBadge(sib.duration) }}</span>
-            </div>
-            <div class="row-info">
-              <h4 class="row-title" :title="sib.title">{{ sib.title }}</h4>
-              <span class="row-date">{{ formatDateShort(sib.started_at) }}</span>
+            {{ $t('playback.sessionsTab') }}
+          </button>
+          <button
+            class="playlist-tab"
+            :class="{ active: activeSidebarView === 'notes' }"
+            @click="sidebarTab = 'notes'"
+          >
+            {{ $t('playback.notesTab') }}
+          </button>
+        </div>
+
+        <template v-if="activeSidebarView === 'sessions'">
+          <div class="playlist-header">
+            <h3 class="playlist-title">{{ course?.title }}</h3>
+            <span class="playlist-subtitle">{{ $t('playback.sessionsCount', { count: siblingSessions.length }) }}</span>
+          </div>
+
+          <div v-if="isLoadingSiblings" class="playlist-loading">
+            <div class="spinner spinner--sm"></div>
+          </div>
+
+          <div v-else class="playlist-items custom-scrollbar">
+            <div
+              v-for="(sib, idx) in siblingSessions"
+              :key="sib.session_id"
+              class="playlist-item-row"
+              :class="{ 'active-playing': sib.session_id === session?.session_id }"
+              @click="playSession(sib)"
+            >
+              <span class="row-index">
+                <span v-if="sib.session_id === session?.session_id">▶</span>
+                <span v-else>{{ idx + 1 }}</span>
+              </span>
+              <div class="row-thumb">
+                <img :src="getCourseCover(course?.id)" class="row-thumb-img" alt="" />
+                <span class="row-duration" v-if="sib.duration">{{ formatDurationBadge(sib.duration) }}</span>
+              </div>
+              <div class="row-info">
+                <h4 class="row-title" :title="sib.title">{{ sib.title }}</h4>
+                <span class="row-date">{{ formatDateShort(sib.started_at) }}</span>
+              </div>
             </div>
           </div>
-        </div>
+        </template>
+
+        <WatchNotesPanel v-else class="playlist-notes" :folder="slideExtraction.currentFolder.value" />
       </div>
     </div>
   </div>
@@ -542,6 +564,9 @@ import { router } from '../../router'
 import { stashCourse, stashSession } from '../../stores/courseTransfer'
 import SingleStreamControls from './SingleStreamControls.vue'
 import SlideExtractionPanel from './SlideExtractionPanel.vue'
+import WatchNotesPanel from '../notes/WatchNotesPanel.vue'
+import { configStore } from '../../stores/configStore'
+import { watchNotesStore } from '../../stores/watchNotesStore'
 import type { Course } from '../../composables/useCourseList'
 import { getCourseInfo, type SessionData } from '../../lib/api'
 import { authStore } from '../../stores/authStore'
@@ -561,6 +586,22 @@ const emit = defineEmits<{
 // Local UI state
 const isPictureInPicture = ref(false)
 const isCinemaMode = playbackStore.cinema
+
+// Sessions | Notes sidebar. The Notes view is offered whenever watch-sync is
+// enabled; live mode has no sessions list, so its sidebar is Notes-only.
+const sidebarTab = ref<'sessions' | 'notes'>('sessions')
+const notesTabAvailable = computed(() => !!configStore.cloudWatchSyncEnabled)
+const activeSidebarView = computed<'sessions' | 'notes'>(() => {
+  if (props.mode === 'live') return 'notes'
+  return notesTabAvailable.value ? sidebarTab.value : 'sessions'
+})
+// Starting an extraction with watch-sync on flips the sidebar to Notes.
+watch(
+  () => watchNotesStore.notesTabRequest.value,
+  () => {
+    sidebarTab.value = 'notes'
+  },
+)
 const dualVideoContainer = ref<HTMLElement | null>(null)
 const isDualOrderSwapped = ref(false)
 const isDualFullscreen = ref(false)
@@ -1538,11 +1579,60 @@ onUnmounted(async () => {
   flex-shrink: 0;
 }
 
+.playlist-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem 0.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-elevated);
+  border-radius: 0.75rem 0.75rem 0 0;
+  flex-shrink: 0;
+}
+
+.playlist-tab {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: none;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.playlist-tab:hover {
+  color: var(--text-primary);
+}
+
+.playlist-tab.active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
+}
+
+/* The notes editor fills the sidebar (below the toggle when one is shown). */
+.playlist-notes {
+  flex: 1;
+  min-height: 0;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+.playlist-tabs + .playlist-notes {
+  border-radius: 0 0 0.75rem 0.75rem;
+}
+
 .playlist-header {
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border-color);
   background-color: var(--bg-elevated);
   border-radius: 0.75rem 0.75rem 0 0;
+}
+
+/* When the toggle row sits above, the header loses its top rounding. */
+.playlist-tabs + .playlist-header {
+  border-radius: 0;
 }
 
 .playlist-header .playlist-title {

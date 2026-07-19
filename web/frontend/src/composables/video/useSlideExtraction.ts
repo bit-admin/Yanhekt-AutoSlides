@@ -17,7 +17,13 @@ import {
 import { resolveSsimThreshold } from '../../lib/extractionDefaults'
 import { recordWatchExtraction } from '../../lib/slideStore'
 import { sanitizeFileName } from '../../lib/sanitizeFileName'
-import { runPostProcessing, postProcessingStatus } from '../../lib/postProcessing/runner'
+import {
+  runPostProcessing,
+  triggerAutoPostProcessing,
+  postProcessingStatus,
+} from '../../lib/postProcessing/runner'
+import { configStore } from '../../stores/configStore'
+import { watchNotesStore } from '../../stores/watchNotesStore'
 import type { Course } from '../useCourseList'
 import type { SessionData } from '../../lib/api'
 import { createLogger } from '../../lib/logger'
@@ -138,6 +144,11 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     if (isSlideExtractionEnabled.value) {
       try {
         const input = await buildExtractionInput()
+        // Start note sync before the pipeline so early slides have an entry to
+        // buffer into (no-op unless the Settings toggle is on).
+        if (currentFolder.value) {
+          void watchNotesStore.onExtractionStarted(currentFolder.value, extractorInstanceId.value)
+        }
         const handle = await slideExtractionManager.run(input, {
           onStatusChanged: (status) => {
             slideExtractionStatus.value = {
@@ -149,9 +160,21 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
           },
           onSlideExtracted: (slide) => {
             extractedSlides.value.push(slide)
+            const folder = currentFolder.value
+            if (!folder) return
+            // Watch-note first: buffer/upload decisions read the same auto-p-p
+            // gate, and buffering must precede the pass that may clear the slide.
+            watchNotesStore.onSlideExtracted(folder, extractorInstanceId.value, `${slide.title}.png`)
+            if (configStore.autoPostProcessingLive !== false) {
+              void triggerAutoPostProcessing(folder, mode, removeSlideByFilename)
+            }
           },
           onSlidesCleared: () => {
             extractedSlides.value = []
+            if (currentFolder.value) watchNotesStore.onSlidesCleared(currentFolder.value)
+          },
+          onStopped: () => {
+            if (currentFolder.value) watchNotesStore.onExtractionStopped(currentFolder.value)
           },
           onError: (error) => {
             if (error instanceof CanvasTaintedError) {

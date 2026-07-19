@@ -18,7 +18,7 @@ export function createApp<TEnv extends Env = Env>() {
 
   app.use(
     "/api/*",
-    cors({ origin: "*", allowMethods: ["GET", "POST", "OPTIONS"], allowHeaders: ["Content-Type", "Authorization"], maxAge: 86400 }),
+    cors({ origin: "*", allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], allowHeaders: ["Content-Type", "Authorization"], maxAge: 86400 }),
   );
 
   app.route("/api/yanhekt", yanhektProxyRouter);

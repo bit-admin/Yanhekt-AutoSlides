@@ -45,6 +45,12 @@ export interface WebConfig {
   // an https page cannot fetch an http relay (mixed active content) — see
   // settingsStore.setRelayEndpoint / isMixedContentRelay.
   relayEndpoint: string;
+  // Run post-processing (pHash phases) automatically after each saved slide
+  // during watch-mode extraction. Desktop parity: `autoPostProcessingLive`.
+  autoPostProcessingLive: boolean;
+  // Auto-create a cloud note (ASuser group) while extracting and append the
+  // captured slides. Desktop parity: `cloudWatchSyncEnabled`.
+  cloudWatchSyncEnabled: boolean;
 }
 
 const defaults = (): WebConfig => ({
@@ -55,6 +61,8 @@ const defaults = (): WebConfig => ({
   subscribedRecordedCourses: [],
   sidebarCollapsed: false,
   relayEndpoint: PUBLIC_RELAY_ENDPOINT,
+  autoPostProcessingLive: true,
+  cloudWatchSyncEnabled: false,
 });
 
 function load(): WebConfig {
@@ -120,5 +128,7 @@ export function persistConfig(): void {
     subscribedRecordedCourses: configStore.subscribedRecordedCourses.map((c) => ({ ...c })),
     sidebarCollapsed: configStore.sidebarCollapsed,
     relayEndpoint: configStore.relayEndpoint || PUBLIC_RELAY_ENDPOINT,
+    autoPostProcessingLive: configStore.autoPostProcessingLive,
+    cloudWatchSyncEnabled: configStore.cloudWatchSyncEnabled,
   });
 }

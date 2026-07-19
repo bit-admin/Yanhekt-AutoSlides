@@ -36,6 +36,7 @@ const CACHE_NAMES = [
   'CoursePage',
   'RecordedCourseRoute',
   'SlidesPage',
+  'NotesPage',
   'SettingsPage',
 ]
 
