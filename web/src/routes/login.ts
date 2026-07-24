@@ -1,193 +1,205 @@
 /**
- * Password login: POST /login {username, password} -> {success, token?, error?}.
+ * Password login, in one or two requests.
  *
- * Ported from the AutoSlides desktop app's CAS flow
- * (autoslides/src/main/platform/authService.ts): scrape the SSO login page
- * for the AES key + flow execution token, submit the encrypted credentials,
- * then follow the redirect chain by hand until the yanhekt callback URL
- * yields a `?token=`.
+ *   POST /login      { username, password, deviceKeepsake? }
+ *     → 200 { success: true, token, deviceKeepsake? }
+ *     → 401 { success: false, error, reason? }
+ *     → 202 { status: "sms_required", phoneHint, resumeToken, resumeNonce, expiresIn }
  *
- * Workers-fetch specifics vs the axios original: redirects are followed
- * manually (`redirect: "manual"`), multiple Set-Cookie headers must be read
- * via `headers.getSetCookie()` (a plain `get("set-cookie")` folds them into
- * one), and 4xx responses never throw so they are mapped explicitly.
+ *   POST /login/sms  { resumeToken, resumeNonce, code }
+ *     → 200 { success: true, token, deviceKeepsake? }
+ *     → 401 { success: false, error, reason }
+ *
+ * The CAS protocol lives in ../lib/campusSso. The reason login is split in two
+ * is that campus SSO frequently demands an SMS code, and a Worker cannot hold a
+ * half-finished flow open while the user reads a text. Instead the flow's state
+ * comes back to the browser sealed (../lib/resumeSeal) and is posted in again
+ * with the code. The browser can never do these hops itself: sso.bit.edu.cn
+ * sends no CORS headers, which is why password login is proxied at all.
+ *
+ * Without SSO_RESUME_KEY there is nothing to seal with, so a second-factor page
+ * degrades to the same "sign in with token" error as before this existed —
+ * a deployment that never sets the secret keeps working, minus SMS.
  */
 import { Hono } from "hono";
-import CryptoJS from "crypto-js";
 import type { Env } from "../env";
-
-const API_LOGIN_PAGE = "https://sso.bit.edu.cn/cas/login";
-const SERVICE_URL = "https://cbiz.yanhekt.cn/v1/cas/callback";
-
-interface LoginResult {
-  success: boolean;
-  token?: string;
-  error?: string;
-}
-
-function encryptPassword(cryptoKey: string, password: string): string {
-  if (!cryptoKey) {
-    throw new Error("Encryption key (cryptoKey) is missing, cannot encrypt password.");
-  }
-  const key = CryptoJS.enc.Base64.parse(cryptoKey);
-  const encrypted = CryptoJS.AES.encrypt(password, key, {
-    mode: CryptoJS.mode.ECB,
-    padding: CryptoJS.pad.Pkcs7,
-  });
-  return encrypted.toString();
-}
-
-function getHtmlParam(html: string, findKey: string): string {
-  const start = html.indexOf(findKey);
-  if (start === -1) return "";
-  const contentStart = html.indexOf(">", start);
-  if (contentStart === -1) return "";
-  const contentEnd = html.indexOf("<", contentStart);
-  if (contentEnd === -1) return "";
-  return html.substring(contentStart + 1, contentEnd).trim();
-}
-
-/** Extract the `name=value` parts of every Set-Cookie header on a response. */
-function cookiesOf(response: Response): string[] {
-  return response.headers.getSetCookie().map((c) => c.split(";")[0]);
-}
-
-function mergeCookies(existing: string, incoming: string[]): string {
-  if (incoming.length === 0) return existing;
-  const joined = incoming.join("; ");
-  return existing ? `${existing}; ${joined}` : joined;
-}
-
-function getTokenFromUrl(urlString: string): string | null {
-  try {
-    return new URL(urlString).searchParams.get("token");
-  } catch {
-    return null;
-  }
-}
-
-async function loginAndGetToken(username: string, password: string): Promise<LoginResult> {
-  let sessionCookies = "";
-
-  try {
-    // Step 1: fetch the login page, collecting cookies across any redirects
-    // (the axios original auto-followed these).
-    let pageUrl = `${API_LOGIN_PAGE}?service=${encodeURIComponent(SERVICE_URL)}`;
-    let pageResponse = await fetch(pageUrl, { redirect: "manual" });
-    sessionCookies = mergeCookies(sessionCookies, cookiesOf(pageResponse));
-    for (let hop = 0; hop < 3 && pageResponse.status >= 300 && pageResponse.status < 400; hop++) {
-      const location = pageResponse.headers.get("Location");
-      if (!location) break;
-      pageUrl = new URL(location, pageUrl).toString();
-      pageResponse = await fetch(pageUrl, {
-        redirect: "manual",
-        headers: sessionCookies ? { Cookie: sessionCookies } : undefined,
-      });
-      sessionCookies = mergeCookies(sessionCookies, cookiesOf(pageResponse));
-    }
-
-    if (!sessionCookies) {
-      throw new Error("Failed to get initial cookies. If this persists, please sign in with token.");
-    }
-
-    const html = await pageResponse.text();
-    const cryptoKey = getHtmlParam(html, `id="login-croypto"`);
-    const executionKey = getHtmlParam(html, `id="login-page-flowkey"`);
-    if (!cryptoKey || !executionKey) {
-      throw new Error("Failed to parse login page. If this persists, please sign in with token.");
-    }
-
-    // Step 2: submit the encrypted credentials.
-    const params = new URLSearchParams();
-    params.append("username", username);
-    params.append("password", encryptPassword(cryptoKey, password));
-    params.append("type", "UsernamePassword");
-    params.append("_eventId", "submit");
-    params.append("execution", executionKey);
-    params.append("croypto", cryptoKey);
-    params.append("geolocation", "");
-    params.append("captcha_code", "");
-
-    const loginUrl = `${API_LOGIN_PAGE}?service=${encodeURIComponent(SERVICE_URL)}`;
-    const loginResponse = await fetch(loginUrl, {
-      method: "POST",
-      redirect: "manual",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        Cookie: sessionCookies,
-      },
-      body: params,
-    });
-
-    if (loginResponse.status === 401) {
-      return { success: false, error: "Incorrect username or password." };
-    }
-
-    if (loginResponse.status !== 302) {
-      const responseHtml = await loginResponse.text();
-      if (
-        responseHtml.includes('id="sso-second">true</p>') ||
-        responseHtml.includes('id="current-login-type">smsLogin</p>') ||
-        responseHtml.includes('id="second-auth-tip">')
-      ) {
-        throw new Error("Verification required. Please sign in with token instead.");
-      }
-      throw new Error("Login failed. If this persists, please sign in with token.");
-    }
-
-    // Step 3: follow the redirect chain manually to reach the yanhekt callback.
-    sessionCookies = mergeCookies(sessionCookies, cookiesOf(loginResponse));
-
-    const firstRedirectLocation = loginResponse.headers.get("Location");
-    if (!firstRedirectLocation) {
-      throw new Error("Login succeeded but redirect failed. Please sign in with token.");
-    }
-
-    const firstRedirectUrl = new URL(firstRedirectLocation, loginUrl).toString();
-    const secondResponse = await fetch(firstRedirectUrl, {
-      redirect: "manual",
-      headers: { Cookie: sessionCookies },
-    });
-
-    if (secondResponse.status !== 302) {
-      throw new Error("Ticket verification failed. Please sign in with token.");
-    }
-
-    const finalRedirectLocation = secondResponse.headers.get("Location");
-    if (!finalRedirectLocation) {
-      throw new Error("Ticket verification succeeded but redirect failed. Please sign in with token.");
-    }
-
-    // Step 4: the final redirect URL carries the yanhekt bearer token.
-    const token = getTokenFromUrl(new URL(finalRedirectLocation, firstRedirectUrl).toString());
-    if (!token) {
-      throw new Error("Failed to extract token. Please sign in with token.");
-    }
-
-    return { success: true, token };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error occurred",
-    };
-  }
-}
+import {
+  CasSignInError,
+  finishSecondFactor,
+  startPasswordSignIn,
+  type DurableCookie,
+  type SecondFactorContext,
+} from "../lib/campusSso";
+import {
+  KEEPSAKE_TTL_SECONDS,
+  RESUME_TTL_SECONDS,
+  Sealer,
+  randomNonce,
+} from "../lib/resumeSeal";
 
 export const loginRouter = new Hono<{ Bindings: Env }>();
 
+interface LoginBody {
+  username?: unknown;
+  password?: unknown;
+  deviceKeepsake?: unknown;
+}
+
+interface SmsBody {
+  resumeToken?: unknown;
+  resumeNonce?: unknown;
+  code?: unknown;
+}
+
 loginRouter.post("/login", async (c) => {
-  let body: { username?: unknown; password?: unknown };
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ success: false, error: "Invalid JSON body" }, 400);
-  }
+  const body = await readJsonBody<LoginBody>(c.req.raw);
+  if (!body) return c.json({ success: false, error: "Invalid JSON body" }, 400);
 
   const { username, password } = body;
   if (typeof username !== "string" || typeof password !== "string" || !username || !password) {
     return c.json({ success: false, error: "username and password are required" }, 400);
   }
 
-  const result = await loginAndGetToken(username, password);
-  return c.json(result, result.success ? 200 : 401);
+  const sealer = await Sealer.from(c.env.SSO_RESUME_KEY);
+  const trustedCookies = await openKeepsake(sealer, body.deviceKeepsake);
+
+  try {
+    const outcome = await startPasswordSignIn(username, password, trustedCookies);
+
+    if (outcome.kind === "token") {
+      return c.json({
+        success: true,
+        token: outcome.token,
+        deviceKeepsake: await sealKeepsake(sealer, outcome.durableCookies),
+      });
+    }
+
+    // A second factor with no way to seal the flow is a dead end; report it the
+    // way this route did before multi-request login existed.
+    if (!sealer) {
+      return c.json(
+        {
+          success: false,
+          error: "Verification required. Please sign in with token instead.",
+          reason: "unsupported_page",
+        },
+        401,
+      );
+    }
+
+    // 202: the credentials were accepted, but the sign-in is not done yet.
+    const resumeNonce = randomNonce();
+    return c.json(
+      {
+        status: "sms_required",
+        phoneHint: outcome.phoneHint,
+        resumeToken: await sealer.seal(outcome.context, RESUME_TTL_SECONDS, resumeNonce),
+        resumeNonce,
+        expiresIn: RESUME_TTL_SECONDS,
+      },
+      202,
+    );
+  } catch (error) {
+    return c.json(failureBody(error), 401);
+  }
 });
+
+loginRouter.post("/login/sms", async (c) => {
+  const body = await readJsonBody<SmsBody>(c.req.raw);
+  if (!body) return c.json({ success: false, error: "Invalid JSON body" }, 400);
+
+  const { resumeToken, resumeNonce, code } = body;
+  if (typeof resumeToken !== "string" || typeof code !== "string" || !resumeToken || !code) {
+    return c.json({ success: false, error: "resumeToken and code are required" }, 400);
+  }
+  if (!/^\d{4,8}$/.test(code)) {
+    return c.json(
+      { success: false, error: "Enter the code from the message.", reason: "code_rejected" },
+      401,
+    );
+  }
+
+  const sealer = await Sealer.from(c.env.SSO_RESUME_KEY);
+  if (!sealer) {
+    return c.json(
+      {
+        success: false,
+        error: "Verification is unavailable. Please sign in with token instead.",
+        reason: "unsupported_page",
+      },
+      401,
+    );
+  }
+
+  // One answer for expired, tampered, replayed-with-the-wrong-nonce, and
+  // sealed-under-a-rotated-key: none of them can be distinguished by a client,
+  // and all of them require starting over.
+  const context = await sealer.open<SecondFactorContext>(
+    resumeToken,
+    typeof resumeNonce === "string" ? resumeNonce : undefined,
+  );
+  if (!context) {
+    return c.json(
+      {
+        success: false,
+        error: "This verification request has expired. Please sign in again.",
+        reason: "challenge_expired",
+      },
+      401,
+    );
+  }
+
+  try {
+    const { token, durableCookies } = await finishSecondFactor(context, code);
+    return c.json({
+      success: true,
+      token,
+      deviceKeepsake: await sealKeepsake(sealer, durableCookies),
+    });
+  } catch (error) {
+    return c.json(failureBody(error), 401);
+  }
+});
+
+async function readJsonBody<T>(request: Request): Promise<T | null> {
+  try {
+    return (await request.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+/** Unseal a remembered-device blob, ignoring anything that no longer opens. */
+async function openKeepsake(
+  sealer: Sealer | null,
+  keepsake: unknown,
+): Promise<DurableCookie[]> {
+  if (!sealer || typeof keepsake !== "string" || !keepsake) return [];
+  return (await sealer.open<DurableCookie[]>(keepsake)) ?? [];
+}
+
+/**
+ * Seal the remembered-device cookies for the browser to hold. Undefined when
+ * there is nothing to remember, so the client keeps whatever it already has
+ * rather than overwriting it with an empty one.
+ */
+async function sealKeepsake(
+  sealer: Sealer | null,
+  cookies: DurableCookie[],
+): Promise<string | undefined> {
+  if (!sealer || cookies.length === 0) return undefined;
+  return sealer.seal(cookies, KEEPSAKE_TTL_SECONDS);
+}
+
+function failureBody(error: unknown): { success: false; error: string; reason: string } {
+  if (error instanceof CasSignInError) {
+    return { success: false, error: error.message, reason: error.reason };
+  }
+  // Deliberately not the raw error: a fetch failure can carry request detail,
+  // and this string goes to the client.
+  return {
+    success: false,
+    error: "Network error or server exception. If this persists, please sign in with token.",
+    reason: "network",
+  };
+}

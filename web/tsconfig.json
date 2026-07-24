@@ -4,7 +4,11 @@
     "module": "ES2022",
     "moduleResolution": "Bundler",
     "lib": ["ES2022"],
-    "types": ["./worker-configuration.d.ts"],
+    // @types/node is needed for the `node:crypto` import in lib/campusSso.ts:
+    // the CAS phone-lookup envelope needs RSA PKCS#1 v1.5, which Web Crypto
+    // does not offer (it only has RSA-OAEP). Available at runtime because the
+    // wrangler configs set the nodejs_compat flag.
+    "types": ["./worker-configuration.d.ts", "node"],
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,

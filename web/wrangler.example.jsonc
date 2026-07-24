@@ -30,6 +30,15 @@
     { "pattern": "example.com", "custom_domain": true }
   ],
 
+  // Secrets are not set here — they live outside the config file. The SMS
+  // second factor needs one, which seals the mid-login state the browser
+  // carries between POST /api/login and POST /api/login/sms:
+  //
+  //   wrangler secret put SSO_RESUME_KEY
+  //
+  // Leaving it unset is supported: password login still works, but an account
+  // that requires an SMS code falls back to the token-paste flow. See README.md.
+
   "observability": {
     "enabled": false
   }

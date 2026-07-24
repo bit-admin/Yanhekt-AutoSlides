@@ -362,22 +362,105 @@ function getFallbackSemesters(): SemesterOption[] {
   ];
 }
 
+/** Why a sign-in did not produce a token. Mirrors SignInReason in the Worker. */
+export type SignInReason =
+  | "bad_credentials"
+  | "account_locked"
+  | "account_inactive"
+  | "account_dormant"
+  | "code_rejected"
+  | "captcha_required"
+  | "risk_rejected"
+  | "challenge_expired"
+  | "sms_send_failed"
+  | "unsupported_page"
+  | "network"
+  | "unknown";
+
 export interface LoginResult {
   success: boolean;
   token?: string;
   error?: string;
+  reason?: SignInReason;
+  /**
+   * Sealed remembered-device state. Opaque to us; handing it back on the next
+   * sign-in is what lets campus SSO skip the SMS second factor.
+   */
+  deviceKeepsake?: string;
+  /**
+   * Set instead of token/error when campus SSO demands a texted code. Finish
+   * with submitSmsCode(); the resume token is a short-lived session secret, so
+   * keep it in memory only.
+   */
+  smsRequired?: {
+    phoneHint: string;
+    resumeToken: string;
+    resumeNonce: string;
+    expiresIn: number;
+  };
 }
 
-/** Password login through the Worker's CAS-scrape route. */
-export async function loginWithPassword(username: string, password: string): Promise<LoginResult> {
+/** Shape the Worker returns on 202. */
+interface SmsRequiredBody {
+  status?: string;
+  phoneHint?: string;
+  resumeToken?: string;
+  resumeNonce?: string;
+  expiresIn?: number;
+}
+
+/**
+ * Password login through the Worker's CAS route. A 202 means the password was
+ * accepted but an SMS code is still needed.
+ */
+export async function loginWithPassword(
+  username: string,
+  password: string,
+  deviceKeepsake?: string | null,
+): Promise<LoginResult> {
   try {
     const response = await fetch("/api/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, deviceKeepsake: deviceKeepsake ?? undefined }),
+    });
+
+    if (response.status === 202) {
+      const body = (await response.json()) as SmsRequiredBody;
+      if (body.resumeToken) {
+        return {
+          success: false,
+          smsRequired: {
+            phoneHint: body.phoneHint ?? "",
+            resumeToken: body.resumeToken,
+            resumeNonce: body.resumeNonce ?? "",
+            expiresIn: body.expiresIn ?? 300,
+          },
+        };
+      }
+      return { success: false, reason: "unknown", error: "Verification could not be started" };
+    }
+
+    return (await response.json()) as LoginResult;
+  } catch {
+    return { success: false, reason: "network", error: "Network error, please try again" };
+  }
+}
+
+/** Answer an SMS second factor, completing the sign-in the 202 started. */
+export async function submitSmsCode(
+  resumeToken: string,
+  resumeNonce: string,
+  code: string,
+): Promise<LoginResult> {
+  try {
+    const response = await fetch("/api/login/sms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resumeToken, resumeNonce, code }),
     });
     return (await response.json()) as LoginResult;
   } catch {
-    return { success: false, error: "Network error, please try again" };
+    return { success: false, reason: "network", error: "Network error, please try again" };
   }
 }

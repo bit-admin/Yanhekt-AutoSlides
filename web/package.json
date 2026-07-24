@@ -33,6 +33,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241127.0",
     "@types/crypto-js": "^4.2.2",
+    "@types/node": "^22.20.1",
     "@vitejs/plugin-vue": "^6.0.2",
     "typescript": "^5.7.2",
     "vite": "^7.2.6",

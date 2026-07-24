@@ -373,7 +373,17 @@
     "tokenHint": "Drag the button above to your bookmarks bar, then click it on yanhekt.cn to fetch your token.",
     "tokenOptionDesc": "Import a session from yanhekt.cn",
     "tokenPlaceholder": "Paste your Yanhekt token here",
-    "usernamePlaceholder": "Student ID"
+    "usernamePlaceholder": "Student ID",
+    "smsTitle": "Verify it's you",
+    "smsSubtitle": "one more step to continue to AutoSlides",
+    "smsSentTo": "We sent a verification code to {phone}.",
+    "smsSentToBoundPhone": "We sent a verification code to the phone bound to your account.",
+    "smsDigitLabel": "Digit {index}",
+    "smsVerify": "Verify",
+    "smsPrivacyNote": "This code is only used to complete this sign-in. Never share it with anyone.",
+    "smsRejected": "That code is incorrect or has expired. Please try again.",
+    "smsExpired": "This verification request has expired. Please sign in again.",
+    "smsFailed": "Verification failed. Please try again, or sign in with a token."
   },
   "cloudNotes": {
     "notSignedIn": "Sign in to use Notes.",

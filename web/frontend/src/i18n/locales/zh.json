@@ -373,7 +373,17 @@
     "tokenHint": "将上方的按钮拖到书签栏，然后在 yanhekt.cn 点击它获取你的 Token。",
     "tokenOptionDesc": "从延河课堂导入登录状态",
     "tokenPlaceholder": "在此粘贴延河课堂 Token",
-    "usernamePlaceholder": "学号"
+    "usernamePlaceholder": "学号",
+    "smsTitle": "验证是你本人",
+    "smsSubtitle": "还差一步即可继续使用 AutoSlides",
+    "smsSentTo": "验证码已发送至 {phone}。",
+    "smsSentToBoundPhone": "验证码已发送至账号绑定的手机号。",
+    "smsDigitLabel": "第 {index} 位",
+    "smsVerify": "验证",
+    "smsPrivacyNote": "验证码仅用于完成本次登录，请勿告知他人。",
+    "smsRejected": "验证码错误或已失效，请重试。",
+    "smsExpired": "本次验证已过期，请重新登录。",
+    "smsFailed": "验证失败，请重试或使用令牌登录。"
   },
   "cloudNotes": {
     "notSignedIn": "请登录后使用笔记。",

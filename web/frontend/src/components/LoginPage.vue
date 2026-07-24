@@ -30,8 +30,12 @@
                   <line x1="6" y1="18" x2="24" y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round" />
                 </svg>
               </div>
-              <h1 class="login-title">{{ $t('webAuth.formTitle') }}</h1>
-              <p class="login-subtitle">{{ $t('webAuth.continueSubtitle') }}</p>
+              <h1 class="login-title">
+                {{ step === 'sms' ? $t('webAuth.smsTitle') : $t('webAuth.formTitle') }}
+              </h1>
+              <p class="login-subtitle">
+                {{ step === 'sms' ? $t('webAuth.smsSubtitle') : $t('webAuth.continueSubtitle') }}
+              </p>
             </div>
 
             <!-- Right column -->
@@ -100,6 +104,51 @@
                     :disabled="isSubmitting || !username.trim() || !password"
                   >
                     {{ isSubmitting ? $t('webAuth.signingIn') : $t('webAuth.signIn') }}
+                  </button>
+                </div>
+              </form>
+
+              <!-- Step 2a-ii: campus SSO wants a texted code before it will
+                   issue a ticket. Same card, one more step. -->
+              <form v-else-if="step === 'sms'" class="login-form" @submit.prevent="submitSms">
+                <div class="login-fields">
+                  <p class="login-note login-note--lead">
+                    <template v-if="smsChallenge?.phoneHint">
+                      {{ $t('webAuth.smsSentTo', { phone: smsChallenge.phoneHint }) }}
+                    </template>
+                    <template v-else>{{ $t('webAuth.smsSentToBoundPhone') }}</template>
+                  </p>
+                  <div class="sms-digits" @paste="onSmsPaste">
+                    <input
+                      v-for="(_, index) in SMS_CODE_LENGTH"
+                      :key="index"
+                      :ref="(el) => registerSmsDigit(el, index)"
+                      :value="smsDigits[index]"
+                      type="text"
+                      inputmode="numeric"
+                      autocomplete="one-time-code"
+                      maxlength="1"
+                      class="sms-digit"
+                      :class="{ 'sms-digit--error': Boolean(errorMessage) }"
+                      :disabled="isSubmitting"
+                      :aria-label="$t('webAuth.smsDigitLabel', { index: index + 1 })"
+                      @input="onSmsInput(index, $event)"
+                      @keydown="onSmsKeydown(index, $event)"
+                    />
+                  </div>
+                  <p v-if="errorMessage" class="login-error">{{ errorMessage }}</p>
+                  <p class="login-note">{{ $t('webAuth.smsPrivacyNote') }}</p>
+                </div>
+                <div class="login-actions">
+                  <button type="button" class="login-link-btn" @click="cancelSms">
+                    {{ $t('webAuth.back') }}
+                  </button>
+                  <button
+                    type="submit"
+                    class="login-next"
+                    :disabled="isSubmitting || smsCode.length < SMS_CODE_LENGTH"
+                  >
+                    {{ isSubmitting ? $t('webAuth.signingIn') : $t('webAuth.smsVerify') }}
                   </button>
                 </div>
               </form>
@@ -233,7 +282,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { authStore } from '../stores/authStore'
@@ -246,13 +295,24 @@ const { t, locale } = useI18n()
 const router = useRouter()
 const { isLoggedIn, isVerifyingToken } = authStore
 
-type Step = 'choose' | 'password' | 'token-get' | 'token-paste'
+type Step = 'choose' | 'password' | 'sms' | 'token-get' | 'token-paste'
 const step = ref<Step>('choose')
 const username = ref('')
 const password = ref('')
 const tokenInput = ref('')
 const errorMessage = ref('')
 const isSubmitting = ref(false)
+
+/** Campus SSO accepts 4–8 digits but only ever issues six. */
+const SMS_CODE_LENGTH = 6
+const smsCode = ref('')
+const smsInputs = ref<HTMLInputElement[]>([])
+const { smsChallenge } = authStore
+
+const smsDigits = computed(() => {
+  const characters = smsCode.value.split('')
+  return Array.from({ length: SMS_CODE_LENGTH }, (_, index) => characters[index] ?? '')
+})
 // Session-scoped: closing the tutorial keeps it closed until the next page load.
 const demoDismissed = ref(false)
 
@@ -328,12 +388,109 @@ const submitPassword = async () => {
     const result = await authStore.loginWithPassword(username.value.trim(), password.value)
     if (result.success) {
       goHome()
+    } else if (result.smsRequired) {
+      smsCode.value = ''
+      goStep('sms')
+      focusSmsDigit(0)
     } else {
       errorMessage.value = result.error || t('webAuth.invalidToken')
     }
   } finally {
     isSubmitting.value = false
   }
+}
+
+// ---- SMS second factor ----------------------------------------------------
+
+const registerSmsDigit = (el: unknown, index: number) => {
+  if (el instanceof HTMLInputElement) smsInputs.value[index] = el
+}
+
+const focusSmsDigit = (index: number) => {
+  const clamped = Math.min(Math.max(index, 0), SMS_CODE_LENGTH - 1)
+  void nextTick(() => smsInputs.value[clamped]?.focus())
+}
+
+const writeSmsCode = (next: string) => {
+  smsCode.value = next.replace(/\D/g, '').slice(0, SMS_CODE_LENGTH)
+}
+
+const onSmsInput = (index: number, event: Event) => {
+  const input = event.target as HTMLInputElement
+  const typed = input.value.replace(/\D/g, '')
+  // Rendering follows smsCode, so reset the DOM value and let the state drive
+  // it back — otherwise a rejected character would linger in the box.
+  input.value = smsDigits.value[index] ?? ''
+  if (!typed) return
+
+  const characters = [...smsDigits.value]
+  // Autofill can drop a whole code into one box; spread it from here.
+  for (let offset = 0; offset < typed.length && index + offset < SMS_CODE_LENGTH; offset++) {
+    characters[index + offset] = typed[offset]
+  }
+  writeSmsCode(characters.join(''))
+  focusSmsDigit(index + typed.length)
+}
+
+const onSmsKeydown = (index: number, event: KeyboardEvent) => {
+  if (event.key === 'Backspace') {
+    event.preventDefault()
+    const characters = [...smsDigits.value]
+    // Deleting an empty box steps back and clears the previous one.
+    const target = characters[index] ? index : index - 1
+    if (target < 0) return
+    characters[target] = ''
+    writeSmsCode(characters.join('').trimEnd())
+    focusSmsDigit(target)
+  } else if (event.key === 'ArrowLeft') {
+    event.preventDefault()
+    focusSmsDigit(index - 1)
+  } else if (event.key === 'ArrowRight') {
+    event.preventDefault()
+    focusSmsDigit(index + 1)
+  }
+}
+
+const onSmsPaste = (event: ClipboardEvent) => {
+  const numeric = (event.clipboardData?.getData('text') ?? '').replace(/\D/g, '')
+  if (!numeric) return
+  event.preventDefault()
+  writeSmsCode(numeric)
+  focusSmsDigit(numeric.length)
+}
+
+const submitSms = async () => {
+  if (isSubmitting.value) return
+  isSubmitting.value = true
+  errorMessage.value = ''
+  try {
+    const result = await authStore.submitSmsCode(smsCode.value)
+    if (result.success) {
+      goHome()
+      return
+    }
+
+    // A dead challenge cannot be retried — go back and start from the password.
+    if (result.reason === 'challenge_expired' || !smsChallenge.value) {
+      goStep('password')
+      errorMessage.value = t('webAuth.smsExpired')
+      return
+    }
+
+    smsCode.value = ''
+    errorMessage.value =
+      result.reason === 'code_rejected' ? t('webAuth.smsRejected') : result.error || t('webAuth.smsFailed')
+    focusSmsDigit(0)
+  } finally {
+    isSubmitting.value = false
+  }
+}
+
+const cancelSms = () => {
+  authStore.cancelSmsChallenge()
+  smsCode.value = ''
+  password.value = ''
+  goStep('password')
 }
 
 const submitToken = async () => {
@@ -647,6 +804,46 @@ html[data-theme='dark'] .login-input {
   font-size: 0.8125rem;
   color: var(--danger);
   font-weight: 500;
+}
+
+/* ---- SMS second factor: one box per digit ---- */
+.sms-digits {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sms-digit {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 3.5rem;
+  padding: 0;
+  border: 1px solid var(--border-input);
+  border-radius: 0.5rem;
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 1.375rem;
+  font-weight: 600;
+  text-align: center;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+html[data-theme='dark'] .sms-digit {
+  background-color: transparent;
+}
+
+.sms-digit:focus {
+  border-color: var(--accent-deep);
+  box-shadow: 0 0 0 1px var(--accent-deep);
+  outline: none;
+}
+
+.sms-digit:disabled {
+  opacity: 0.5;
+}
+
+.sms-digit--error {
+  border-color: var(--danger);
 }
 
 .login-actions {
