@@ -64,8 +64,8 @@ export interface WebConfig {
   aiServiceType: AIServiceType;
   // GitHub Copilot via the copilot-proxy Worker: gho_/ghu_ user token from the
   // device flow (or pasted), plus display identity captured at connect time.
+  // The model is fixed (proxy allowlist), not configurable.
   aiCopilotToken: string;
-  aiCopilotModel: string;
   aiCopilotUsername: string;
   aiCopilotAvatarUrl: string;
   // Custom OpenAI-compatible endpoint (must allow browser CORS).
@@ -85,10 +85,9 @@ const defaults = (): WebConfig => ({
   autoPostProcessingLive: true,
   cloudWatchSyncEnabled: false,
   cloudStorageInitializedUsers: [],
-  aiFilteringEnabled: false,
+  aiFilteringEnabled: true,
   aiServiceType: "builtin",
   aiCopilotToken: "",
-  aiCopilotModel: "gpt-4.1",
   aiCopilotUsername: "",
   aiCopilotAvatarUrl: "",
   aiCustomBaseUrl: "",
@@ -170,7 +169,6 @@ export function persistConfig(): void {
     aiFilteringEnabled: configStore.aiFilteringEnabled,
     aiServiceType: configStore.aiServiceType,
     aiCopilotToken: configStore.aiCopilotToken,
-    aiCopilotModel: configStore.aiCopilotModel,
     aiCopilotUsername: configStore.aiCopilotUsername,
     aiCopilotAvatarUrl: configStore.aiCopilotAvatarUrl,
     aiCustomBaseUrl: configStore.aiCustomBaseUrl,

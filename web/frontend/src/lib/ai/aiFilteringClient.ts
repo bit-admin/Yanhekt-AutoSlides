@@ -11,13 +11,14 @@ import { configStore } from '../../stores/configStore';
 import { authStore } from '../../stores/authStore';
 import type { ClassificationValue, ClassifierCallbacks, SingleClassificationResult } from '../postProcessing/types';
 import { DISTINGUISH_LIVE_PROMPT } from './prompt';
-import { chatCompletionWithImage, getBuiltinModel, BUILTIN_API_BASE_URL } from './llmClient';
+import { chatCompletionWithImage, BUILTIN_API_BASE_URL, BUILTIN_MODEL } from './llmClient';
 import { COPILOT_PROXY_BASE_URL } from './copilotAuth';
 import { createLogger } from '../logger';
 
 const log = createLogger('AIFiltering');
 
-export const DEFAULT_COPILOT_MODEL = 'gpt-4.1';
+// Fixed: the copilot-proxy deployment allowlists this model (MODELS env).
+export const COPILOT_MODEL = 'gpt-4.1';
 
 /** Whether the selected service type has the credentials it needs. */
 export function isAIFilteringConfigured(): boolean {
@@ -62,17 +63,17 @@ interface RequestContext {
   model: string;
 }
 
-async function resolveRequestContext(token: string | undefined): Promise<RequestContext> {
+function resolveRequestContext(token: string | undefined): RequestContext {
   switch (configStore.aiServiceType) {
     case 'builtin': {
       if (!token) throw new Error('Builtin AI service requires a signed-in user token');
-      return { baseUrl: BUILTIN_API_BASE_URL, apiKey: token, model: await getBuiltinModel(token) };
+      return { baseUrl: BUILTIN_API_BASE_URL, apiKey: token, model: BUILTIN_MODEL };
     }
     case 'copilot':
       return {
         baseUrl: `${COPILOT_PROXY_BASE_URL}/v1`,
         apiKey: configStore.aiCopilotToken,
-        model: configStore.aiCopilotModel || DEFAULT_COPILOT_MODEL,
+        model: COPILOT_MODEL,
       };
     case 'custom':
       return {
@@ -95,11 +96,10 @@ export function createClassifier(): ClassifierCallbacks {
     async classifySingleImage(base64Image, token): Promise<SingleClassificationResult> {
       let ctx: RequestContext;
       try {
-        ctx = await resolveRequestContext(token);
+        ctx = resolveRequestContext(token);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        const unavailable = message.toLowerCase().includes('unavailable');
-        return { success: false, error: message, errorKind: unavailable ? 'service_unavailable' : 'unknown' };
+        return { success: false, error: message, errorKind: 'unknown' };
       }
 
       const result = await chatCompletionWithImage({

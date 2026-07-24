@@ -227,50 +227,10 @@ export function chatCompletionWithImage(req: ChatImageRequest): Promise<LLMResul
   });
 }
 
-// --- Builtin model discovery ---
-
+// Built-in service: no client-side model discovery (desktop still calls
+// GET /model). The chat-completions body always sends BUILTIN_MODEL — same
+// string as the Electron app's discovery fallback — and the backend at
+// openai.ruc.edu.kg may rewrite/proxy it as needed.
 export const BUILTIN_API_BASE_URL = 'https://openai.ruc.edu.kg';
-const BUILTIN_FALLBACK_MODEL = 'agnes-2.0-flash';
-const BUILTIN_MODEL_UNAVAILABLE = 'TEMP_UNAVAILABLE';
-
-let builtinModelCache: { token: string; model: string } | null = null;
-
-/**
- * Resolve the builtin service's current model (server-driven). Cached per token
- * for the session. Throws on the explicit unavailable sentinel / 503 so the
- * caller surfaces `service_unavailable`; transient fetch failures fall back to
- * the default model without caching.
- */
-export async function getBuiltinModel(token: string): Promise<string> {
-  if (builtinModelCache && builtinModelCache.token === token) {
-    return builtinModelCache.model;
-  }
-  let response: Response;
-  try {
-    response = await fetch(`${BUILTIN_API_BASE_URL}/model`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-  } catch (error) {
-    log.warn('Builtin model discovery failed, using fallback:', error);
-    return BUILTIN_FALLBACK_MODEL;
-  }
-  if (response.status === 503) {
-    throw new Error('Builtin AI service temporarily unavailable (503)');
-  }
-  if (!response.ok) {
-    log.warn(`Builtin model discovery returned HTTP ${response.status}, using fallback`);
-    return BUILTIN_FALLBACK_MODEL;
-  }
-  let model: string | undefined;
-  try {
-    model = ((await response.json()) as { model?: string }).model;
-  } catch {
-    return BUILTIN_FALLBACK_MODEL;
-  }
-  if (!model) return BUILTIN_FALLBACK_MODEL;
-  if (model === BUILTIN_MODEL_UNAVAILABLE) {
-    throw new Error('Builtin AI service temporarily unavailable');
-  }
-  builtinModelCache = { token, model };
-  return model;
-}
+/** Hardcoded built-in model (matches Electron `BUILTIN_FALLBACK_MODEL`). */
+export const BUILTIN_MODEL = 'agnes-2.0-flash';

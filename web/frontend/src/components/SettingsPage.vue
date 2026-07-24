@@ -67,6 +67,7 @@
 
         <div class="advanced-setting-section">
           <h4>{{ $t('settings.aiFilteringSection') }}</h4>
+
           <div class="setting-item">
             <label class="setting-toggle">
               <input
@@ -80,164 +81,177 @@
           </div>
 
           <div class="setting-item">
-            <label class="setting-label" for="settings-ai-service">{{ $t('settings.aiServiceType') }}</label>
-            <select
-              id="settings-ai-service"
-              class="select-field"
-              :value="configStore.aiServiceType"
-              @change="onAiServiceChange"
-            >
-              <option value="builtin">{{ $t('settings.aiServiceBuiltin') }}</option>
-              <option value="copilot">{{ $t('settings.aiServiceCopilot') }}</option>
-              <option value="custom">{{ $t('settings.aiServiceCustom') }}</option>
-            </select>
-          </div>
+            <div class="setting-label">{{ $t('settings.aiServiceType') }}</div>
 
-          <!-- Built-in: keyed by the signed-in user's own token, nothing to configure. -->
-          <div v-if="configStore.aiServiceType === 'builtin'" class="setting-item">
-            <div class="setting-description">{{ $t('settings.aiBuiltinDescription') }}</div>
-            <div v-if="!authStore.isLoggedIn.value" class="setting-hint setting-hint--warning">
-              {{ $t('settings.aiBuiltinRequiresLogin') }}
-            </div>
-          </div>
-
-          <!-- GitHub Copilot: device-flow connect or paste-token fallback. -->
-          <template v-else-if="configStore.aiServiceType === 'copilot'">
-            <div class="setting-item">
-              <div v-if="copilotOAuthStep === 'success'" class="copilot-connected">
-                <img
-                  v-if="configStore.aiCopilotAvatarUrl"
-                  class="copilot-avatar"
-                  :src="configStore.aiCopilotAvatarUrl"
-                  alt=""
-                />
-                <span class="copilot-username">{{ configStore.aiCopilotUsername || 'GitHub' }}</span>
-                <button type="button" class="btn btn--sm" @click="disconnectCopilot">
-                  {{ $t('settings.aiCopilotDisconnect') }}
-                </button>
-              </div>
-
-              <div v-else-if="copilotOAuthStep === 'waiting' || copilotOAuthStep === 'polling'">
-                <div class="setting-description">{{ $t('settings.aiCopilotEnterCode') }}</div>
-                <div class="copilot-code-row">
-                  <button
-                    type="button"
-                    class="copilot-code"
-                    :title="$t('settings.aiCopilotClickToCopy')"
-                    @click="copyCopilotCode"
-                  >
-                    {{ copilotUserCode || '···' }}
-                  </button>
-                  <span v-if="copilotCodeCopied" class="copilot-copied">{{ $t('settings.aiCopilotCopied') }}</span>
-                  <a
-                    v-if="copilotVerificationUri"
-                    class="copilot-link"
-                    :href="copilotVerificationUri"
-                    target="_blank"
-                    rel="noopener"
-                  >{{ copilotVerificationUri }}</a>
-                </div>
-                <div class="copilot-wait-row">
-                  <span class="copilot-spinner"></span>
-                  <span class="copilot-wait-text">{{ $t('settings.aiCopilotWaiting') }}</span>
-                  <button type="button" class="btn btn--sm" @click="cancelCopilotOAuth">
-                    {{ $t('settings.aiCopilotCancel') }}
-                  </button>
-                </div>
-              </div>
-
-              <div v-else>
+            <!-- One unified panel: tabs + body share a single border -->
+            <div class="ai-panel">
+              <div class="ai-panel-tabs" role="radiogroup" :aria-label="$t('settings.aiServiceType')">
                 <button
+                  v-for="opt in aiServiceOptions"
+                  :key="opt.value"
                   type="button"
-                  class="btn btn--primary btn--sm"
-                  :disabled="isCopilotLoading"
-                  @click="startCopilotOAuth"
+                  role="radio"
+                  class="ai-panel-tab"
+                  :class="{ active: configStore.aiServiceType === opt.value }"
+                  :aria-checked="configStore.aiServiceType === opt.value"
+                  @click="setAiService(opt.value)"
                 >
-                  {{ $t('settings.aiCopilotSignIn') }}
+                  {{ opt.label }}
                 </button>
-                <div class="copilot-or">{{ $t('settings.aiCopilotOr') }}</div>
-                <div class="copilot-token-row">
-                  <input
-                    v-model="copilotTokenDraft"
-                    type="password"
-                    class="text-input copilot-token-input"
-                    autocomplete="off"
-                    spellcheck="false"
-                    :placeholder="$t('settings.aiCopilotTokenPlaceholder')"
-                    @keyup.enter="onVerifyCopilotToken"
-                  />
-                  <button
-                    type="button"
-                    class="btn btn--sm"
-                    :disabled="isCopilotLoading || !copilotTokenDraft.trim()"
-                    @click="onVerifyCopilotToken"
-                  >
-                    {{ $t('settings.aiCopilotVerify') }}
-                  </button>
-                </div>
-                <div v-if="copilotErrorText" class="setting-hint setting-hint--error">
-                  {{ copilotErrorText }}
-                </div>
               </div>
-            </div>
-            <div class="setting-item">
-              <label class="setting-label" for="settings-copilot-model">{{ $t('settings.aiCopilotModel') }}</label>
-              <input
-                id="settings-copilot-model"
-                type="text"
-                class="text-input"
-                spellcheck="false"
-                :value="configStore.aiCopilotModel"
-                placeholder="gpt-4.1"
-                @change="onCopilotModelChange"
-              />
-            </div>
-          </template>
 
-          <!-- Custom OpenAI-compatible endpoint. -->
-          <template v-else>
-            <div class="setting-item">
-              <label class="setting-label" for="settings-ai-custom-url">{{ $t('settings.aiCustomBaseUrl') }}</label>
-              <input
-                id="settings-ai-custom-url"
-                type="url"
-                class="text-input"
-                spellcheck="false"
-                autocomplete="off"
-                :value="configStore.aiCustomBaseUrl"
-                placeholder="https://api.example.com/v1"
-                @change="onCustomFieldChange('aiCustomBaseUrl', $event)"
-              />
-            </div>
-            <div class="setting-item">
-              <div class="two-col-row">
-                <div class="two-col-item">
-                  <label class="setting-label" for="settings-ai-custom-key">{{ $t('settings.aiCustomApiKey') }}</label>
-                  <input
-                    id="settings-ai-custom-key"
-                    type="password"
-                    class="text-input"
-                    autocomplete="off"
-                    :value="configStore.aiCustomApiKey"
-                    @change="onCustomFieldChange('aiCustomApiKey', $event)"
-                  />
-                </div>
-                <div class="two-col-item">
-                  <label class="setting-label" for="settings-ai-custom-model">{{ $t('settings.aiCustomModel') }}</label>
-                  <input
-                    id="settings-ai-custom-model"
-                    type="text"
-                    class="text-input"
-                    spellcheck="false"
-                    autocomplete="off"
-                    :value="configStore.aiCustomModel"
-                    @change="onCustomFieldChange('aiCustomModel', $event)"
-                  />
-                </div>
+              <div class="ai-panel-body">
+                <!-- Built-in -->
+                <template v-if="configStore.aiServiceType === 'builtin'">
+                  <div class="ai-status-row">
+                    <span class="cloud-storage-dot" :class="authStore.isLoggedIn.value ? 'is-ready' : 'is-warning'"></span>
+                    <div class="ai-status-text">
+                      <span class="ai-status-title">{{ $t('settings.aiServiceBuiltin') }}</span>
+                      <span class="ai-status-sub">{{ $t('settings.aiBuiltinDescription') }}</span>
+                    </div>
+                  </div>
+                  <div v-if="!authStore.isLoggedIn.value" class="setting-hint setting-hint--warning">
+                    {{ $t('settings.aiBuiltinRequiresLogin') }}
+                  </div>
+                </template>
+
+                <!-- GitHub Copilot -->
+                <template v-else-if="configStore.aiServiceType === 'copilot'">
+                  <div v-if="copilotOAuthStep === 'success'" class="ai-status-row">
+                    <img
+                      v-if="configStore.aiCopilotAvatarUrl"
+                      class="copilot-avatar"
+                      :src="configStore.aiCopilotAvatarUrl"
+                      alt=""
+                    />
+                    <span v-else class="cloud-storage-dot is-ready"></span>
+                    <div class="ai-status-text">
+                      <span class="ai-status-title">{{ configStore.aiCopilotUsername || 'GitHub' }}</span>
+                      <span class="ai-status-sub">{{ $t('settings.aiCopilotConnected') }}</span>
+                    </div>
+                    <button type="button" class="btn btn--sm" @click="disconnectCopilot">
+                      {{ $t('settings.aiCopilotDisconnect') }}
+                    </button>
+                  </div>
+
+                  <div v-else-if="copilotOAuthStep === 'waiting' || copilotOAuthStep === 'polling'" class="ai-stack">
+                    <i18n-t keypath="settings.aiCopilotEnterCode" tag="div" class="ai-status-sub">
+                      <template #url>
+                        <a
+                          class="copilot-link"
+                          :href="copilotVerificationUri || 'https://github.com/login/device'"
+                          target="_blank"
+                          rel="noopener"
+                        >github.com/login/device</a>
+                      </template>
+                    </i18n-t>
+                    <button
+                      type="button"
+                      class="copilot-code"
+                      :title="$t('settings.aiCopilotClickToCopy')"
+                      @click="copyCopilotCode"
+                    >
+                      {{ copilotUserCode || '····' }}
+                      <span v-if="copilotCodeCopied" class="copilot-copied">{{ $t('settings.aiCopilotCopied') }}</span>
+                    </button>
+                    <div class="copilot-wait-row">
+                      <span class="copilot-spinner"></span>
+                      <span class="copilot-wait-text">{{ $t('settings.aiCopilotWaiting') }}</span>
+                      <button type="button" class="btn btn--sm" @click="cancelCopilotOAuth">
+                        {{ $t('settings.aiCopilotCancel') }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div v-else class="ai-stack">
+                    <button
+                      type="button"
+                      class="btn btn--primary copilot-signin-btn"
+                      :disabled="isCopilotLoading"
+                      @click="startCopilotOAuth"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
+                          0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52
+                          -.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2
+                          -3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82
+                          .64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12
+                          .51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93
+                          -.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                      </svg>
+                      {{ $t('settings.aiCopilotSignIn') }}
+                    </button>
+                    <div class="copilot-divider"><span>{{ $t('settings.aiCopilotOr') }}</span></div>
+                    <div class="copilot-token-row">
+                      <input
+                        v-model="copilotTokenDraft"
+                        type="password"
+                        class="text-input"
+                        autocomplete="off"
+                        spellcheck="false"
+                        :placeholder="$t('settings.aiCopilotTokenPlaceholder')"
+                        @keyup.enter="onVerifyCopilotToken"
+                      />
+                      <button
+                        type="button"
+                        class="btn btn--sm"
+                        :disabled="isCopilotLoading || !copilotTokenDraft.trim()"
+                        @click="onVerifyCopilotToken"
+                      >
+                        {{ $t('settings.aiCopilotVerify') }}
+                      </button>
+                    </div>
+                    <div v-if="copilotErrorText" class="setting-hint setting-hint--error">
+                      {{ copilotErrorText }}
+                    </div>
+                  </div>
+                </template>
+
+                <!-- Custom OpenAI-compatible endpoint -->
+                <template v-else>
+                  <div class="ai-stack">
+                    <div class="ai-field">
+                      <label class="setting-label" for="settings-ai-custom-url">{{ $t('settings.aiCustomBaseUrl') }}</label>
+                      <input
+                        id="settings-ai-custom-url"
+                        type="url"
+                        class="text-input"
+                        spellcheck="false"
+                        autocomplete="off"
+                        :value="configStore.aiCustomBaseUrl"
+                        placeholder="https://api.example.com/v1"
+                        @change="onCustomFieldChange('aiCustomBaseUrl', $event)"
+                      />
+                    </div>
+                    <div class="ai-field">
+                      <label class="setting-label" for="settings-ai-custom-key">{{ $t('settings.aiCustomApiKey') }}</label>
+                      <input
+                        id="settings-ai-custom-key"
+                        type="password"
+                        class="text-input"
+                        autocomplete="off"
+                        :value="configStore.aiCustomApiKey"
+                        @change="onCustomFieldChange('aiCustomApiKey', $event)"
+                      />
+                    </div>
+                    <div class="ai-field">
+                      <label class="setting-label" for="settings-ai-custom-model">{{ $t('settings.aiCustomModel') }}</label>
+                      <input
+                        id="settings-ai-custom-model"
+                        type="text"
+                        class="text-input"
+                        spellcheck="false"
+                        autocomplete="off"
+                        :value="configStore.aiCustomModel"
+                        @change="onCustomFieldChange('aiCustomModel', $event)"
+                      />
+                    </div>
+                    <div class="setting-hint">{{ $t('settings.aiCustomCorsNote') }}</div>
+                  </div>
+                </template>
               </div>
-              <div class="setting-hint">{{ $t('settings.aiCustomCorsNote') }}</div>
             </div>
-          </template>
+          </div>
         </div>
 
         <div class="advanced-setting-section">
@@ -592,18 +606,20 @@ const copilotErrorText = computed(() => {
   }
 })
 
+const aiServiceOptions = computed(() => [
+  { value: 'builtin' as const, label: t('settings.aiServiceBuiltin') },
+  { value: 'copilot' as const, label: t('settings.aiServiceCopilot') },
+  { value: 'custom' as const, label: t('settings.aiServiceCustom') },
+])
+
 const onAiEnabledChange = (e: Event) => {
   configStore.aiFilteringEnabled = (e.target as HTMLInputElement).checked
   persistConfig()
 }
 
-const onAiServiceChange = (e: Event) => {
-  configStore.aiServiceType = (e.target as HTMLSelectElement).value as AIServiceType
-  persistConfig()
-}
-
-const onCopilotModelChange = (e: Event) => {
-  configStore.aiCopilotModel = (e.target as HTMLInputElement).value.trim() || 'gpt-4.1'
+const setAiService = (value: AIServiceType) => {
+  if (configStore.aiServiceType === value) return
+  configStore.aiServiceType = value
   persistConfig()
 }
 
@@ -952,26 +968,94 @@ const onResetRelay = () => {
   }
 }
 
-.copilot-connected {
+/* AI Filtering — one unified panel (tabs + body, single border) */
+
+.ai-panel {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: var(--bg-elevated);
+}
+
+.ai-panel-tabs {
+  display: flex;
+  width: 100%;
+  background-color: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ai-panel-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 10px 8px;
+  border: none;
+  border-right: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+  white-space: nowrap;
+}
+
+.ai-panel-tab:last-child {
+  border-right: none;
+}
+
+.ai-panel-tab:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.ai-panel-tab.active {
+  background-color: var(--bg-elevated);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+.ai-panel-body {
+  padding: 16px;
+}
+
+.ai-panel-body .text-input {
+  width: 100%;
+  display: block;
+}
+
+.ai-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ai-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ai-field .setting-label {
+  margin-bottom: 0;
+}
+
+.ai-status-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background-color: var(--bg-subtle);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
+  gap: 12px;
 }
 
-.copilot-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.copilot-username {
-  flex: 1;
+.ai-status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   min-width: 0;
+  flex: 1;
+}
+
+.ai-status-title {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-primary);
@@ -980,24 +1064,43 @@ const onResetRelay = () => {
   white-space: nowrap;
 }
 
-.copilot-code-row {
-  display: flex;
+.ai-status-sub {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.copilot-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.copilot-signin-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
 }
 
 .copilot-code {
-  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
   border: 1px dashed var(--border-strong);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--bg-subtle);
   color: var(--text-primary);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   cursor: pointer;
 }
 
@@ -1006,14 +1109,17 @@ const onResetRelay = () => {
 }
 
 .copilot-copied {
+  font-family: inherit;
   font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0;
   color: var(--success);
 }
 
 .copilot-link {
-  font-size: 12px;
   color: var(--link-color);
-  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .copilot-wait-row {
@@ -1038,27 +1144,39 @@ const onResetRelay = () => {
   animation: cloud-spin 0.9s linear infinite;
 }
 
-.copilot-or {
-  margin: 10px 0;
+.copilot-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   font-size: 11px;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
+.copilot-divider::before,
+.copilot-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
 .copilot-token-row {
   display: flex;
   align-items: stretch;
   gap: 8px;
+  width: 100%;
 }
 
-.copilot-token-input {
-  flex: 1;
+.copilot-token-row .text-input {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .copilot-token-row .btn {
-  flex-shrink: 0;
+  flex: 0 0 auto;
+  min-width: 72px;
 }
 
 .relay-row {
