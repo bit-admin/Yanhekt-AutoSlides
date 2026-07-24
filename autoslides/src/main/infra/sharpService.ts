@@ -8,8 +8,12 @@ import fs from 'fs';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('Sharp');
 
-// Sharp module type
-type SharpStatic = typeof import('sharp');
+// Sharp module type. sharp >=0.35 ships ESM types (`export default sharp`)
+// alongside the CJS ones, and this repo's node10 `moduleResolution` picks the
+// ESM declaration — so `typeof import('sharp')` is a namespace object, not the
+// callable factory. `.default` is the factory under either declaration, and
+// matches what `require('sharp')` actually returns at runtime.
+type SharpStatic = typeof import('sharp').default;
 
 export class SharpService {
   private sharp: SharpStatic | null = null;
