@@ -79,19 +79,30 @@ Campus SSO often demands a texted code after a correct password. A Worker can't
 hold a half-finished CAS flow open while the user reads a text, so login is two
 requests: `POST /api/login` answers `202 sms_required` with a **sealed** copy of
 the mid-login state, and the SPA posts it back to `POST /api/login/sms` with the
-code. Sealing needs a secret:
+code.
+
+`SSO_RESUME_KEY` is what seals it. It is **not** a campus or Cloudflare
+credential and is not issued by anyone — it is a random string this Worker
+encrypts to itself with, so the browser can carry a half-finished login without
+being able to read or forge it. Generate your own:
 
 ```sh
-wrangler secret put SSO_RESUME_KEY            # any long random string
-wrangler secret put SSO_RESUME_KEY -c debug/wrangler.debug.jsonc   # and for the real deploy
+openssl rand -base64 32
 ```
 
-For local development pass it inline instead: `wrangler dev --var SSO_RESUME_KEY:dev-only`.
+It lives in the `vars` block of `wrangler.jsonc` **and** `debug/wrangler.debug.jsonc`
+— both gitignored, so it stays out of this public repo, and `wrangler deploy`
+carries it with no separate step to remember. `wrangler dev` reads the same
+block, so local development needs nothing extra.
 
-With the secret unset, password login still works but cannot complete an SMS
-challenge — it reports "please sign in with token instead", exactly as it did
-before this existed. Rotating the secret invalidates in-flight logins and every
-remembered device, which is a safe (if mildly annoying) thing to do.
+**Keep the value identical in both configs.** They deploy the same Worker, so a
+mismatch invalidates every remembered device as soon as you deploy the other one.
+
+Leaving it out is supported: password login still works, but an account that
+needs an SMS code answers `"reason": "sms_unavailable"` and the UI points at the
+token flow. That is distinct from `unsupported_page`, which means CAS served a
+page we could not parse. Changing the key is safe — in-flight logins and
+remembered devices stop opening, so users simply sign in again.
 
 The resume token is a short-lived session secret: whoever holds it *and* the
 texted code can finish that sign-in. The SPA keeps it in memory only, never in

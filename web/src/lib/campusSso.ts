@@ -74,6 +74,7 @@ export type SignInReason =
   | "captcha_required"
   | "risk_rejected"
   | "challenge_expired"
+  | "sms_unavailable"
   | "sms_send_failed"
   | "unsupported_page"
   | "network"
@@ -640,11 +641,11 @@ export async function startPasswordSignIn(
     });
   }
 
-  // A 2FA-looking page we could not parse: point at the fallback rather than
-  // reporting it as a wrong password.
+  // A 2FA-looking page we could not parse. Worth saying so distinctly: it means
+  // CAS changed the page, not that the deployment is missing a secret.
   if (hasSecondFactorMarker(html)) {
     throw new CasSignInError(
-      "Verification required. Please sign in with token instead.",
+      "Verification required, but this sign-in page was not recognized. Please sign in with token instead.",
       "unsupported_page",
     );
   }

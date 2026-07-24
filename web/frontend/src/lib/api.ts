@@ -372,6 +372,7 @@ export type SignInReason =
   | "captcha_required"
   | "risk_rejected"
   | "challenge_expired"
+  | "sms_unavailable"
   | "sms_send_failed"
   | "unsupported_page"
   | "network"

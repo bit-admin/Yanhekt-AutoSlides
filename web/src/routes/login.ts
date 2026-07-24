@@ -74,14 +74,20 @@ loginRouter.post("/login", async (c) => {
       });
     }
 
-    // A second factor with no way to seal the flow is a dead end; report it the
-    // way this route did before multi-request login existed.
+    // The credentials were fine and the code was sent, but with no secret bound
+    // there is nothing to seal the flow with, so it cannot be resumed. Distinct
+    // from `unsupported_page` (which means CAS served something we could not
+    // parse): this one is a deployment gap, and only the operator can fix it.
     if (!sealer) {
+      console.warn(
+        "SSO_RESUME_KEY is not bound: an SMS second factor was reached but cannot be completed. " +
+          "Set it with `wrangler secret put SSO_RESUME_KEY`, or add it to .dev.vars for local dev.",
+      );
       return c.json(
         {
           success: false,
-          error: "Verification required. Please sign in with token instead.",
-          reason: "unsupported_page",
+          error: "Verification by SMS is unavailable here. Please sign in with token instead.",
+          reason: "sms_unavailable",
         },
         401,
       );
@@ -124,8 +130,8 @@ loginRouter.post("/login/sms", async (c) => {
     return c.json(
       {
         success: false,
-        error: "Verification is unavailable. Please sign in with token instead.",
-        reason: "unsupported_page",
+        error: "Verification by SMS is unavailable here. Please sign in with token instead.",
+        reason: "sms_unavailable",
       },
       401,
     );

@@ -30,14 +30,20 @@
     { "pattern": "example.com", "custom_domain": true }
   ],
 
-  // Secrets are not set here — they live outside the config file. The SMS
-  // second factor needs one, which seals the mid-login state the browser
-  // carries between POST /api/login and POST /api/login/sms:
+  // Key the Worker seals the mid-login state of an SMS second factor with. Not a
+  // campus or Cloudflare credential — just a random string this Worker encrypts
+  // to itself with, so the browser can carry a half-finished CAS login between
+  // POST /api/login and POST /api/login/sms without reading or forging it.
   //
-  //   wrangler secret put SSO_RESUME_KEY
+  // Generate your own before deploying (`openssl rand -base64 32`). It lives in
+  // the real, gitignored wrangler.jsonc so deploys carry it automatically.
   //
-  // Leaving it unset is supported: password login still works, but an account
-  // that requires an SMS code falls back to the token-paste flow. See README.md.
+  // Leaving it out is supported: password login still works, but an account that
+  // requires an SMS code answers `sms_unavailable` and falls back to the
+  // token-paste flow. See README.md.
+  "vars": {
+    "SSO_RESUME_KEY": "replace-me-with-a-long-random-string"
+  },
 
   "observability": {
     "enabled": false
