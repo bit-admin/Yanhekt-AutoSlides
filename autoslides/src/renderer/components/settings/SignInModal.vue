@@ -32,14 +32,13 @@
           {{ smsChallenge ? $t('auth.smsTitle') : $t('onboarding.signInTitle') }}
         </h2>
         <p class="signin-description">
-          {{ smsChallenge ? $t('auth.smsDescription') : $t('onboarding.signInDescription') }}
+          {{ smsChallenge ? smsPrompt : $t('onboarding.signInDescription') }}
         </p>
 
         <!-- CAS asked for a texted code. Same card, different body — so the
              left-panel and onboarding hosts both get this step for free. -->
         <SmsCodePanel
           v-if="smsChallenge"
-          :phone-hint="smsChallenge.phoneHint"
           :code="smsCode"
           :error="smsError"
           :is-submitting="isSubmittingSmsCode"
@@ -81,7 +80,8 @@
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue'
+import { computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuth } from '@features/platform/useAuth'
 import SmsCodePanel from './SmsCodePanel.vue'
 
@@ -114,6 +114,16 @@ const {
   submitSmsCode,
   cancelSmsChallenge,
 } = useAuth(props.onLoginSuccess)
+
+const { t } = useI18n()
+
+// Doubles as the card's description during the OTP step, so the prompt is not
+// stated twice (once as a description, once above the boxes).
+const smsPrompt = computed(() =>
+  smsChallenge.value?.phoneHint
+    ? t('auth.smsSentTo', { phone: smsChallenge.value.phoneHint })
+    : t('auth.smsSentToBoundPhone')
+)
 
 // Dismissing the card abandons any parked SMS challenge, so main is not left
 // holding a flow nobody will finish.

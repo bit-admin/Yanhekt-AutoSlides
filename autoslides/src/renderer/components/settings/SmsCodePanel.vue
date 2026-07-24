@@ -1,12 +1,11 @@
 <template>
   <div class="sms-panel">
-    <p class="sms-target">
-      <template v-if="phoneHint">{{ $t('auth.smsSentTo', { phone: phoneHint }) }}</template>
-      <template v-else>{{ $t('auth.smsSentToBoundPhone') }}</template>
-    </p>
+    <!-- The "code sent to …" prompt lives in the card's description slot rather
+         than here, so this panel stays no taller than the credential form it
+         replaces and the card keeps its usual height.
 
-    <!-- One input per digit. `inputmode: numeric` keeps it a number pad on
-         touch, and paste of a whole code is spread across the boxes below. -->
+         One input per digit: `inputmode: numeric` keeps it a number pad on
+         touch, and a pasted code is spread across the boxes. -->
     <div class="sms-digits" @paste="onPaste">
       <input
         v-for="(_, index) in CODE_LENGTH"
@@ -54,8 +53,6 @@ import { useI18n } from 'vue-i18n'
 const CODE_LENGTH = 6
 
 const props = defineProps<{
-  /** Masked number as CAS supplied it; '' when it supplied none. */
-  phoneHint: string
   /** Two-way bound digit string, owned by useAuth. */
   code: string
   /** A `SignInFailureReason`, or 'invalidFormat' from client-side validation. */
@@ -180,14 +177,6 @@ watch(
   align-items: center;
   width: 100%;
   max-width: 300px;
-}
-
-.sms-target {
-  margin: 0 0 14px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--text-secondary);
-  text-align: center;
 }
 
 .sms-digits {
