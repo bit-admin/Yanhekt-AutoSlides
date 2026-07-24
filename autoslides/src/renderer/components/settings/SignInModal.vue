@@ -1,12 +1,14 @@
 <template>
-  <div class="signin-overlay" @click="$emit('close')">
+  <!-- While an SMS code is pending, a stray overlay click must not throw the
+       half-finished flow away; the × (which cancels it properly) still does. -->
+  <div class="signin-overlay" @click="onOverlayClick">
     <div class="signin-card" @click.stop>
       <button
         v-if="showClose"
         type="button"
         class="signin-close"
         :aria-label="$t('advanced.cancel')"
-        @click="$emit('close')"
+        @click="requestClose()"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="18" y1="6" x2="6" y2="18"/>
@@ -26,10 +28,27 @@
       </button>
 
       <div class="signin-body">
-        <h2 class="signin-title">{{ $t('onboarding.signInTitle') }}</h2>
-        <p class="signin-description">{{ $t('onboarding.signInDescription') }}</p>
+        <h2 class="signin-title">
+          {{ smsChallenge ? $t('auth.smsTitle') : $t('onboarding.signInTitle') }}
+        </h2>
+        <p class="signin-description">
+          {{ smsChallenge ? $t('auth.smsDescription') : $t('onboarding.signInDescription') }}
+        </p>
 
-        <div class="sso-form">
+        <!-- CAS asked for a texted code. Same card, different body — so the
+             left-panel and onboarding hosts both get this step for free. -->
+        <SmsCodePanel
+          v-if="smsChallenge"
+          :phone-hint="smsChallenge.phoneHint"
+          :code="smsCode"
+          :error="smsError"
+          :is-submitting="isSubmittingSmsCode"
+          @update:code="smsCode = $event"
+          @submit="submitSmsCode"
+          @cancel="cancelSmsChallenge"
+        />
+
+        <div v-else class="sso-form">
           <div class="field-group">
             <input
               v-model="username"
@@ -64,6 +83,7 @@
 <script setup lang="ts">
 import { watch } from 'vue'
 import { useAuth } from '@features/platform/useAuth'
+import SmsCodePanel from './SmsCodePanel.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -81,7 +101,30 @@ const emit = defineEmits<{
   (e: 'skip'): void
 }>()
 
-const { username, password, isLoading, isLoggedIn, login } = useAuth(props.onLoginSuccess)
+const {
+  username,
+  password,
+  isLoading,
+  isLoggedIn,
+  login,
+  smsChallenge,
+  smsCode,
+  smsError,
+  isSubmittingSmsCode,
+  submitSmsCode,
+  cancelSmsChallenge,
+} = useAuth(props.onLoginSuccess)
+
+// Dismissing the card abandons any parked SMS challenge, so main is not left
+// holding a flow nobody will finish.
+const requestClose = () => {
+  if (smsChallenge.value) cancelSmsChallenge()
+  emit('close')
+}
+
+const onOverlayClick = () => {
+  if (!smsChallenge.value) requestClose()
+}
 
 // isLoggedIn is a module-level singleton; it flips to true on a successful login
 // from any source. Forward that so the parent can close.

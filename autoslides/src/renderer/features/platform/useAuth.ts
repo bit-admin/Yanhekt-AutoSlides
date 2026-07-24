@@ -12,6 +12,17 @@ const isLoggedIn = ref(false)
 const userNickname = ref('User')
 const userId = ref('user123')
 const isVerifyingToken = ref(false)
+// An in-flight SMS second factor. Shared like isBrowserLoginActive so whichever
+// surface hosts SignInModal (left panel or onboarding) shows the same prompt.
+const smsChallenge = ref<SmsChallengeState | null>(null)
+
+export interface SmsChallengeState {
+  challengeId: string
+  /** Masked number from CAS; '' when it supplied none. */
+  phoneHint: string
+  /** Epoch ms after which main will no longer accept a code for this challenge. */
+  expiresAt: number
+}
 
 // Shared services (singleton)
 const authService = new AuthService(tokenManager)
@@ -64,12 +75,22 @@ export interface UseAuthReturn {
   // Browser login state (shared across all instances)
   isBrowserLoginActive: Ref<boolean>
 
+  // SMS second-factor state (challenge shared; input state per-instance)
+  smsChallenge: Ref<SmsChallengeState | null>
+  smsCode: Ref<string>
+  smsError: Ref<string>
+  isSubmittingSmsCode: Ref<boolean>
+
   // Methods
   login: () => Promise<void>
   logout: () => void
   deactivate: () => void
   switchAccount: (badge: string) => Promise<void>
   verifyExistingToken: () => Promise<void>
+
+  // SMS second-factor methods
+  submitSmsCode: () => Promise<void>
+  cancelSmsChallenge: () => void
 
   // Manual token methods
   toggleTokenVisibility: () => void
@@ -92,31 +113,56 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
   const password = ref('')
   const isLoading = ref(false)
 
+  // SMS second-factor input state (per-instance; the challenge itself is shared)
+  const smsCode = ref('')
+  const smsError = ref('')
+  const isSubmittingSmsCode = ref(false)
+
   // Manual token auth state (per-instance)
   const manualToken = ref('')
   const showToken = ref(false)
   const isVerifyingManualToken = ref(false)
   const tokenVerificationStatus = ref<{ type: 'success' | 'error'; message: string } | null>(null)
 
+  // Verify a freshly-issued token and adopt the session. Shared by password
+  // login and by the SMS second factor, which both end with a bare token.
+  const adoptIssuedToken = async (token: string): Promise<boolean> => {
+    const verificationResult = await apiClient.verifyToken(token)
+    if (verificationResult.valid && verificationResult.userData) {
+      applyVerifiedUser(verificationResult.userData, token, username.value)
+      onLoginSuccess?.()
+      return true
+    }
+    log.error('Token verification failed after login')
+    void window.electronAPI.dialog?.showErrorBox?.('Login Failed', 'Token verification failed')
+    return false
+  }
+
   // Auth functions
   const login = async () => {
     if (!username.value || !password.value) return
 
     isLoading.value = true
+    smsError.value = ''
     try {
       const result = await authService.loginAndGetToken(username.value, password.value)
 
-      if (result.success && result.token) {
-        const verificationResult = await apiClient.verifyToken(result.token)
-
-        if (verificationResult.valid && verificationResult.userData) {
-          applyVerifiedUser(verificationResult.userData, result.token, username.value)
-          log.debug('Login successful')
-          onLoginSuccess?.()
-        } else {
-          log.error('Token verification failed after login')
-          void window.electronAPI.dialog?.showErrorBox?.('Login Failed', 'Token verification failed')
+      // CAS wants a texted code before it will issue a ticket. Hand off to the
+      // OTP panel rather than treating this as a failure; the flow stays parked
+      // in the main process until submitSmsCode or a cancel/expiry.
+      if (result.smsChallenge) {
+        smsCode.value = ''
+        smsChallenge.value = {
+          challengeId: result.smsChallenge.challengeId,
+          phoneHint: result.smsChallenge.phoneHint,
+          expiresAt: Date.now() + result.smsChallenge.expiresInSeconds * 1000,
         }
+        log.debug('Sign-in requires an SMS second factor')
+        return
+      }
+
+      if (result.success && result.token) {
+        if (await adoptIssuedToken(result.token)) log.debug('Login successful')
       } else {
         log.error('Login failed:', result.error)
         void window.electronAPI.dialog?.showErrorBox?.('Login Failed', `${result.error}`)
@@ -129,6 +175,68 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     }
   }
 
+  // Send the code the user typed. Failures stay inline on the OTP panel so the
+  // user can retry without losing the prompt — except an expired challenge,
+  // which is unrecoverable and drops back to the credential form.
+  const submitSmsCode = async () => {
+    const challenge = smsChallenge.value
+    if (!challenge || isSubmittingSmsCode.value) return
+
+    const code = smsCode.value.trim()
+    if (!/^\d{4,8}$/.test(code)) {
+      smsError.value = 'invalidFormat'
+      return
+    }
+    if (Date.now() >= challenge.expiresAt) {
+      smsChallenge.value = null
+      smsError.value = ''
+      void window.electronAPI.dialog?.showErrorBox?.(
+        'Login Failed',
+        'This verification request has expired. Please sign in again.'
+      )
+      return
+    }
+
+    isSubmittingSmsCode.value = true
+    smsError.value = ''
+    try {
+      const result = await authService.submitSmsCode(challenge.challengeId, code)
+
+      if (result.success && result.token) {
+        // Clear the prompt first: adopting the token flips isLoggedIn, which the
+        // hosting modal watches to close itself.
+        smsChallenge.value = null
+        smsCode.value = ''
+        if (await adoptIssuedToken(result.token)) log.debug('SMS second factor successful')
+        return
+      }
+
+      if (result.reason === 'challenge_expired') {
+        smsChallenge.value = null
+        void window.electronAPI.dialog?.showErrorBox?.('Login Failed', `${result.error}`)
+        return
+      }
+
+      smsCode.value = ''
+      smsError.value = result.reason ?? 'unknown'
+      log.debug('SMS second factor rejected:', result.reason)
+    } catch (error) {
+      log.error('SMS verification error:', error)
+      smsError.value = 'network'
+    } finally {
+      isSubmittingSmsCode.value = false
+    }
+  }
+
+  const cancelSmsChallenge = () => {
+    const challenge = smsChallenge.value
+    smsChallenge.value = null
+    smsCode.value = ''
+    smsError.value = ''
+    password.value = ''
+    if (challenge) void authService.cancelSmsChallenge(challenge.challengeId)
+  }
+
   // Clear the active session (token + shared/local auth state) back to the
   // signed-out state. Does NOT touch the saved accounts list.
   const clearActiveSession = () => {
@@ -136,6 +244,9 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     isLoggedIn.value = false
     username.value = ''
     password.value = ''
+    smsChallenge.value = null
+    smsCode.value = ''
+    smsError.value = ''
     userNickname.value = 'User'
     userId.value = 'user123'
     window.electronAPI.config.setUserNames('', '')
@@ -330,11 +441,15 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     userId,
     isVerifyingToken,
     isBrowserLoginActive,
+    smsChallenge,
 
     // Local state
     username,
     password,
     isLoading,
+    smsCode,
+    smsError,
+    isSubmittingSmsCode,
 
     // Manual token state
     manualToken,
@@ -348,6 +463,10 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
     deactivate,
     switchAccount,
     verifyExistingToken,
+
+    // SMS second-factor methods
+    submitSmsCode,
+    cancelSmsChallenge,
 
     // Manual token methods
     toggleTokenVisibility,

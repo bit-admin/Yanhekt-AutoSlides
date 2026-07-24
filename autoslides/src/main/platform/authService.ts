@@ -1,168 +1,129 @@
-import axios from 'axios';
-import CryptoJS from 'crypto-js';
+/**
+ * Campus SSO sign-in, main-process side.
+ *
+ * The CAS protocol itself lives in ./campusSso; this class is the seam the IPC
+ * layer talks to. Its job is to own the three-outcome contract — signed in,
+ * failed, or "needs an SMS code" — and to persist the remembered-device cookies
+ * that let a second factor be skipped next time.
+ */
+import type { ConfigService, StoredSsoCookie } from './configService';
+import { CasSignInError, finishSecondFactor, startPasswordSignIn } from './campusSso/casFlow';
+import {
+  abandonChallenge,
+  claimChallenge,
+  parkChallenge,
+} from './campusSso/pendingVerifications';
+import { describeErrorSafely, type SignInReason } from './campusSso/casDiagnostics';
 import { createLogger } from '@main/infra/logger';
+
 const log = createLogger('PlatformAuth');
+
+export type { SignInReason };
+
+/** The SMS prompt the renderer needs to render, minus anything sensitive. */
+export interface SmsChallenge {
+  /** Opaque handle for the parked flow. The flow itself never leaves main. */
+  challengeId: string;
+  /** Masked number exactly as CAS renders it, or '' if it did not supply one. */
+  phoneHint: string;
+  expiresInSeconds: number;
+}
 
 export interface LoginResult {
   success: boolean;
   token?: string;
   error?: string;
+  /** Machine-readable failure class, so the UI can localize and decide on retry. */
+  reason?: SignInReason;
+  /** Set instead of `token`/`error` when CAS demands a second factor. */
+  smsChallenge?: SmsChallenge;
 }
 
 export class MainAuthService {
-  private encryptPassword(cryptoKey: string, password: string): string {
-    if (!cryptoKey) {
-      throw new Error("Encryption key (cryptoKey) is missing, cannot encrypt password.");
-    }
-    const key = CryptoJS.enc.Base64.parse(cryptoKey);
-    const encrypted = CryptoJS.AES.encrypt(password, key, {
-      mode: CryptoJS.mode.ECB,
-      padding: CryptoJS.pad.Pkcs7
-    });
-    return encrypted.toString();
-  }
+  constructor(private readonly configService?: ConfigService) {}
 
-  private getHtmlParam(html: string, findKey: string): string {
-    const start = html.indexOf(findKey);
-    if (start === -1) return "";
-    const contentStart = html.indexOf('>', start);
-    if (contentStart === -1) return "";
-    const contentEnd = html.indexOf('<', contentStart);
-    if (contentEnd === -1) return "";
-    return html.substring(contentStart + 1, contentEnd).trim();
-  }
-
+  /**
+   * Password sign-in. Resolves with a token, a failure, or an SMS challenge to
+   * be completed via `submitSmsCode`.
+   */
   async loginAndGetToken(username: string, password: string): Promise<LoginResult> {
-    const serviceUrl = 'https://cbiz.yanhekt.cn/v1/cas/callback';
-    let sessionCookies = '';
-
     try {
-      log.debug('Starting complete manual redirect token acquisition process...');
+      const outcome = await startPasswordSignIn(
+        username,
+        password,
+        this.configService?.getSsoDeviceCookies() ?? [],
+      );
 
-      const API_LOGIN_PAGE = "https://sso.bit.edu.cn/cas/login";
-      log.debug('Step 1: Getting login page and initial cookies...');
-
-      const axiosInstance = axios.create();
-      const initResponse = await axiosInstance.get(`${API_LOGIN_PAGE}?service=${encodeURIComponent(serviceUrl)}`);
-
-      const initialCookiesHeader = initResponse.headers['set-cookie'];
-      if (!initialCookiesHeader) throw new Error("Failed to get initial cookies. If this persists, please sign in with browser.");
-      sessionCookies = initialCookiesHeader.map((c: string) => c.split(';')[0]).join('; ');
-
-      const html = initResponse.data;
-      const cryptoKey = this.getHtmlParam(html, `id="login-croypto"`);
-      const executionKey = this.getHtmlParam(html, `id="login-page-flowkey"`);
-
-      if (!cryptoKey || !executionKey) throw new Error("Failed to parse login page. If this persists, please sign in with browser.");
-      log.debug('Step 1 completed: Got encryption key and execution token');
-
-      log.debug('Step 2: Encrypting password and submitting login...');
-
-      const encryptedPassword = this.encryptPassword(cryptoKey, password);
-      const API_LOGIN_ACTION = "https://sso.bit.edu.cn/cas/login";
-
-      const params = new URLSearchParams();
-      params.append('username', username);
-      params.append('password', encryptedPassword);
-      params.append('type', 'UsernamePassword');
-      params.append('_eventId', 'submit');
-      params.append('execution', executionKey);
-      params.append('croypto', cryptoKey);
-      params.append('geolocation', '');
-      params.append('captcha_code', '');
-
-      const loginResponse = await axiosInstance.post(`${API_LOGIN_ACTION}?service=${encodeURIComponent(serviceUrl)}`, params, {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Cookie': sessionCookies,
-        },
-        maxRedirects: 0,
-        validateStatus: (status: number) => status >= 200 && status < 400,
-      });
-
-      if (loginResponse.status !== 302) {
-        // Check if SMS verification is required
-        const responseHtml = typeof loginResponse.data === 'string' ? loginResponse.data : '';
-        if (
-          responseHtml.includes('id="sso-second">true</p>') ||
-          responseHtml.includes('id="current-login-type">smsLogin</p>') ||
-          responseHtml.includes('id="second-auth-tip">')
-        ) {
-          throw new Error('Verification required. Please sign in with browser.');
-        }
-        const errorData = loginResponse.data?.message || "Login failed. If this persists, please sign in with browser.";
-        throw new Error(errorData);
+      if (outcome.kind === 'token') {
+        this.rememberDevice(outcome.durableCookies);
+        log.debug('Password sign-in completed without a second factor');
+        return { success: true, token: outcome.token };
       }
 
-      log.debug('Step 2 completed: SSO login successful, starting redirect handling');
-
-      log.debug('Step 3: Handling redirect process...');
-
-      const ssoSuccessCookiesHeader = loginResponse.headers['set-cookie'];
-      if (ssoSuccessCookiesHeader) {
-        const newCookies = ssoSuccessCookiesHeader.map((c: string) => c.split(';')[0]).join('; ');
-        sessionCookies += '; ' + newCookies;
-      }
-
-      const firstRedirectLocation = loginResponse.headers['location'];
-      if (!firstRedirectLocation) throw new Error("Login succeeded but redirect failed. Please sign in with browser.");
-
-      log.debug('Step 3: Accessing first redirect URL...', firstRedirectLocation);
-
-      const secondResponse = await axiosInstance.get(firstRedirectLocation, {
-        headers: {
-          'Cookie': sessionCookies
-        },
-        maxRedirects: 0,
-        validateStatus: (status: number) => status >= 200 && status < 400,
-      });
-
-      if (secondResponse.status !== 302) {
-        throw new Error("Ticket verification failed. Please sign in with browser.");
-      }
-
-      const finalRedirectLocation = secondResponse.headers['location'];
-      if (!finalRedirectLocation) throw new Error("Ticket verification succeeded but redirect failed. Please sign in with browser.");
-
-      log.debug('Step 4: Extracting token from final redirect URL...', finalRedirectLocation);
-
-      const getTokenFromUrl = (urlString: string): string | null => {
-        try {
-          const url = new URL(urlString);
-          return url.searchParams.get('token');
-        } catch (_e) {
-          return null;
-        }
-      };
-
-      const token = getTokenFromUrl(finalRedirectLocation);
-
-      if (!token) {
-        throw new Error("Failed to extract token. Please sign in with browser.");
-      }
-
-      log.debug('Successfully obtained token through manual redirect process!');
-
-      return {
-        success: true,
-        token: token
-      };
-
+      const ticket = parkChallenge(outcome.handle);
+      return { success: false, smsChallenge: ticket };
     } catch (error) {
-      log.error('Login error:', error);
+      return this.toFailure(error);
+    }
+  }
 
-      // Check for 401 Unauthorized (incorrect username or password)
-      if (axios.isAxiosError(error) && error.response?.status === 401) {
-        return {
-          success: false,
-          error: 'Incorrect username or password.'
-        };
-      }
-
+  /** Finish a parked second factor with the code the user entered. */
+  async submitSmsCode(challengeId: string, code: string): Promise<LoginResult> {
+    const handle = claimChallenge(challengeId);
+    if (!handle) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error occurred'
+        reason: 'challenge_expired',
+        error: 'This verification request has expired. Please sign in again.',
       };
     }
+
+    try {
+      const { token, durableCookies } = await finishSecondFactor(handle, code);
+      this.rememberDevice(durableCookies);
+      log.debug('Second factor completed');
+      return { success: true, token };
+    } catch (error) {
+      return this.toFailure(error);
+    }
+  }
+
+  /** Discard a challenge the user backed out of. */
+  cancelSmsChallenge(challengeId: string): void {
+    abandonChallenge(challengeId);
+  }
+
+  /**
+   * Persist the cookies CAS marked long-lived. Absent a `trustDevice` cookie
+   * this is a no-op write of an empty list, so behaviour is unchanged from
+   * before this existed.
+   */
+  private rememberDevice(cookies: readonly StoredSsoCookie[]): void {
+    if (!this.configService || cookies.length === 0) return;
+    try {
+      this.configService.setSsoDeviceCookies([...cookies]);
+    } catch (error) {
+      // Never let a persistence hiccup fail an otherwise-successful sign-in.
+      log.warn('Could not persist trusted-device state:', describeErrorSafely(error));
+    }
+  }
+
+  private toFailure(error: unknown): LoginResult {
+    if (error instanceof CasSignInError) {
+      log.debug('Sign-in rejected:', error.reason);
+      return { success: false, error: error.message, reason: error.reason };
+    }
+
+    // Summarized, never dumped — a transport error carries the request config,
+    // and that means cookies and the credential form body.
+    log.error('Sign-in error:', describeErrorSafely(error));
+    return {
+      success: false,
+      reason: 'network',
+      error:
+        error instanceof Error
+          ? error.message
+          : 'Network error or server exception. If this persists, please sign in with browser.',
+    };
   }
 }

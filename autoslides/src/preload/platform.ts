@@ -3,6 +3,10 @@ import type { PinnedCourse, StoredAccount } from '@common/types';
 
 export const auth = {
   login: (username: string, password: string) => ipcRenderer.invoke('auth:login', username, password),
+  submitSmsCode: (challengeId: string, code: string) =>
+    ipcRenderer.invoke('auth:submitSmsCode', challengeId, code),
+  cancelSmsChallenge: (challengeId: string) =>
+    ipcRenderer.invoke('auth:cancelSmsChallenge', challengeId),
   verifyToken: (token: string) => ipcRenderer.invoke('auth:verifyToken', token),
   clearBrowserData: () => ipcRenderer.invoke('auth:clearBrowserData'),
 };

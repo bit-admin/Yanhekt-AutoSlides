@@ -6,8 +6,20 @@ const log = createLogger('AuthIpc');
 export function registerAuthIpcHandlers(services: IpcServices): void {
   const { authService, apiClient } = services;
 
+  // May resolve with a token, a failure, or an `smsChallenge` the renderer has
+  // to answer via auth:submitSmsCode. The CAS flow behind the challenge stays
+  // parked in the main process; only its opaque id crosses the bridge.
   ipcMain.handle('auth:login', async (_event, username: string, password: string) => {
     return await authService.loginAndGetToken(username, password);
+  });
+
+  ipcMain.handle('auth:submitSmsCode', async (_event, challengeId: string, code: string) => {
+    return await authService.submitSmsCode(challengeId, code);
+  });
+
+  ipcMain.handle('auth:cancelSmsChallenge', async (_event, challengeId: string) => {
+    authService.cancelSmsChallenge(challengeId);
+    return { success: true };
   });
 
   ipcMain.handle('auth:verifyToken', async (_event, token: string) => {

@@ -148,10 +148,37 @@ interface RecordedSessionInput {
   vga_url?: string;
 }
 
+/** Why a campus SSO sign-in did not produce a token. Mirrors SignInReason in main. */
+type SignInFailureReason =
+  | 'bad_credentials'
+  | 'account_locked'
+  | 'account_inactive'
+  | 'account_dormant'
+  | 'code_rejected'
+  | 'captcha_required'
+  | 'risk_rejected'
+  | 'challenge_expired'
+  | 'sms_send_failed'
+  | 'unsupported_page'
+  | 'network'
+  | 'unknown';
+
 interface AuthResponse {
   success: boolean;
   token?: string;
   error?: string;
+  reason?: SignInFailureReason;
+  /**
+   * Present instead of token/error when CAS demands an SMS code. Answer it with
+   * auth.submitSmsCode(challengeId, code); the flow itself lives in main and
+   * expires after `expiresInSeconds`.
+   */
+  smsChallenge?: {
+    challengeId: string;
+    /** Masked number as CAS supplied it; '' when it supplied none. */
+    phoneHint: string;
+    expiresInSeconds: number;
+  };
 }
 
 interface TokenVerificationResponse {
@@ -380,6 +407,8 @@ interface ElectronAPI {
   isDemoMode: boolean;
   auth: {
     login: (username: string, password: string) => Promise<AuthResponse>;
+    submitSmsCode: (challengeId: string, code: string) => Promise<AuthResponse>;
+    cancelSmsChallenge: (challengeId: string) => Promise<{ success: boolean }>;
     verifyToken: (token: string) => Promise<TokenVerificationResponse>;
     clearBrowserData: () => Promise<{ success: boolean; error?: string }>;
   };

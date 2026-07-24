@@ -65,6 +65,19 @@ export {
   detectCustomProviderFromUrl
 };
 
+/**
+ * A campus-SSO cookie worth remembering between sign-ins. Structurally the same
+ * shape the SSO transport exports; declared here rather than imported so the
+ * config layer stays free of any dependency on the auth flow.
+ */
+export interface StoredSsoCookie {
+  name: string;
+  value: string;
+  host: string;
+  path: string;
+  expiresAt: number;
+}
+
 export class ConfigService {
   private store: any; // Using any to bypass incorrect type definitions in electron-store v10+
   private themeService: ThemeService;
@@ -462,6 +475,25 @@ export class ConfigService {
 
   getAuthToken(): string | null {
     return this.store.get('authToken') ?? null;
+  }
+
+  // Campus SSO "remembered device" cookies. Main-process only, on purpose:
+  // there is no IPC channel and they are not part of AppConfig, so they never
+  // reach a renderer or a config:onUpdate broadcast. Only cookies CAS gave an
+  // explicit lifetime are ever written here (see casTransport), which is the
+  // mechanism that lets a trusted device skip the SMS second factor. Wiped
+  // wholesale rather than pruned — a stale entry only costs one extra SMS.
+  getSsoDeviceCookies(): StoredSsoCookie[] {
+    const stored = this.store.get('ssoDeviceCookies') as StoredSsoCookie[] | undefined;
+    return Array.isArray(stored) ? stored : [];
+  }
+
+  setSsoDeviceCookies(cookies: StoredSsoCookie[]): void {
+    if (cookies.length === 0) {
+      this.store.delete('ssoDeviceCookies');
+    } else {
+      this.store.set('ssoDeviceCookies', cookies);
+    }
   }
 
   setSkipUpdateCheckUntil(timestamp: number): void {

@@ -4,11 +4,11 @@ import { overrides } from '../overrideRegistry'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ServicesAuth');
 
-export interface LoginResult {
-  success: boolean;
-  token?: string;
-  error?: string;
-}
+// The bridge's AuthResponse is only reachable through the Window declaration
+// (vite-env.d.ts is a module, so its interfaces are not ambient). Deriving the
+// type from the call keeps this in sync with the preload contract for free.
+export type LoginResult = Awaited<ReturnType<ElectronAuthApi['login']>>;
+type ElectronAuthApi = NonNullable<Window['electronAPI']>['auth'];
 
 export class AuthService {
   private tokenManager: TokenManager;
@@ -18,18 +18,39 @@ export class AuthService {
   }
 
   async loginAndGetToken(username: string, password: string): Promise<LoginResult> {
-    try {
-      const result = await window.electronAPI.auth.login(username, password);
+    return this.capture(() => window.electronAPI.auth.login(username, password));
+  }
 
+  /**
+   * Answer an SMS second factor. Same result contract as a password login, so
+   * callers can funnel both through one success path.
+   */
+  async submitSmsCode(challengeId: string, code: string): Promise<LoginResult> {
+    return this.capture(() => window.electronAPI.auth.submitSmsCode(challengeId, code));
+  }
+
+  /** Release a parked challenge in main so it is not left waiting for a code. */
+  async cancelSmsChallenge(challengeId: string): Promise<void> {
+    try {
+      await window.electronAPI.auth.cancelSmsChallenge(challengeId);
+    } catch (error) {
+      // Nothing to recover: the challenge times out on its own regardless.
+      log.debug('Could not cancel SMS challenge:', error);
+    }
+  }
+
+  private async capture(run: () => Promise<LoginResult>): Promise<LoginResult> {
+    try {
+      const result = await run();
       if (result.success && result.token) {
         this.tokenManager.saveToken(result.token);
       }
-
       return result;
     } catch (error) {
       log.error('Login error:', error);
       return {
         success: false,
+        reason: 'network',
         error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }

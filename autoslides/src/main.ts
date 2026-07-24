@@ -148,7 +148,7 @@ app.on('activate', () => {
 });
 
 // Initialize services
-const authService = new MainAuthService();
+const authService = new MainAuthService(configService);
 const apiClient = new MainApiClient();
 const autoCropModelService = new AutoCropModelService(configService);
 const mlClassifierModelService = new MlClassifierModelService(configService);
