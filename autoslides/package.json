@@ -55,7 +55,8 @@
     "tar": "^7.5.11",
     "@tootallnate/once": "^3.0.1",
     "tmp": "^0.2.4",
-    "esbuild": "0.28.1"
+    "esbuild": "0.28.1",
+    "brace-expansion": "$brace-expansion"
   },
   "dependencies": {
     "@editorjs/code": "^2.8.0",
@@ -70,6 +71,7 @@
     "@types/pdfkit": "^0.17.4",
     "axios": "^1.13.2",
     "bottleneck": "^2.19.5",
+    "brace-expansion": "file:vendor/brace-expansion",
     "crypto-js": "^4.2.0",
     "docx": "^9.7.1",
     "electron-store": "^11.0.2",

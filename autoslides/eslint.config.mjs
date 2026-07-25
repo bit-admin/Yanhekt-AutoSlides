@@ -192,6 +192,6 @@ export default tseslint.config(
   },
 
   {
-    ignores: ['node_modules/**', '.vite/**', 'out/**', 'dist/**'],
+    ignores: ['node_modules/**', '.vite/**', 'out/**', 'dist/**', 'vendor/**'],
   }
 );

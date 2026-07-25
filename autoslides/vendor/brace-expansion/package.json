@@ -1,0 +1,10 @@
+{
+  "name": "brace-expansion",
+  "version": "5.0.8",
+  "description": "Dual-export shim of brace-expansion@5.0.8 so older minimatch (callable default) and newer minimatch (named expand) both work under a single audit-clean version. See README.md.",
+  "license": "MIT",
+  "main": "index.js",
+  "dependencies": {
+    "balanced-match": "^4.0.2"
+  }
+}
