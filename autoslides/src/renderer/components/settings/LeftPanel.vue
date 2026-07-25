@@ -1,7 +1,7 @@
 <template>
   <div class="left-panel">
-    <div class="control-section custom-scrollbar">
-      <div class="settings-content">
+    <div class="control-section">
+      <div class="settings-content custom-scrollbar">
         <div class="navigator-section">
           <div :class="['nav-search', { active: activeNav === 'search' }]">
             <svg class="nav-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -45,7 +45,7 @@
           </nav>
         </div>
 
-        <div class="nav-group-title panel-actions-title">{{ $t('navigation.workspace') }}</div>
+        <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.workspace') }}</div>
         <nav class="nav-items">
           <button :class="['nav-item', { active: activeNav === 'slides-review' }]" @click="navigate('slides-review')">
             <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -62,21 +62,8 @@
             <span>{{ $t('navigation.cloudNotes') }}</span>
           </button>
         </nav>
-        <div class="panel-actions">
-          <button type="button" class="panel-action-button" @click="openToolsWindow()">
-            <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-            </svg>
-            <span>{{ $t('tools.openTools') }}</span>
-            <svg class="panel-action-external-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M15 3h6v6"/>
-              <path d="M10 14L21 3"/>
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
-            </svg>
-          </button>
-        </div>
 
-        <div class="nav-group-title panel-actions-title">{{ $t('navigation.pinned') }}</div>
+        <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.pinned') }}</div>
         <div class="nav-items">
           <div v-for="c in pinnedRecordedCourses" :key="c.id" class="pinned-row">
             <button :class="['nav-item', 'pinned-item', { active: activePinnedId === c.id }]" @click="openPinnedCourse(c)" :title="c.title">
@@ -97,6 +84,32 @@
           </div>
         </div>
       </div>
+
+      <!-- Fixed at bottom of navigator area (above user bar); not indented nav items. -->
+      <div class="panel-actions">
+        <button type="button" class="panel-action-button" @click="openToolsWindow()">
+          <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+          </svg>
+          <span>{{ $t('tools.openTools') }}</span>
+          <svg class="panel-action-external-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 3h6v6"/>
+            <path d="M10 14L21 3"/>
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          </svg>
+        </button>
+        <button
+          type="button"
+          :class="['panel-action-button', { active: activeNav === 'settings' }]"
+          @click="openSettingsFromBar"
+        >
+          <svg class="panel-action-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <span>{{ $t('settings.settings') }}</span>
+        </button>
+      </div>
     </div>
 
     <div class="login-section">
@@ -107,42 +120,35 @@
       </div>
       <div v-else class="login-row">
       <div v-if="!isLoggedIn" ref="signinMenuRef" class="signin-control">
-        <div class="user-banner signin-banner" :class="{ open: showSigninMenu }">
-          <button type="button" class="user-banner-main" @click="toggleSigninMenu">
-            <span class="user-avatar signin-avatar">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-            </span>
-            <span class="user-banner-name">{{ $t('auth.signIn') }}</span>
-          </button>
-          <div class="user-banner-actions">
-            <button type="button" class="user-banner-action" :title="$t('settings.advancedSettings')" @click="openSettingsFromBar">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-            </button>
-            <button type="button" class="user-banner-action" @click="toggleSigninMenu">
-              <svg
-                class="user-banner-chevron"
-                :class="{ open: showSigninMenu }"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <polyline points="6 15 12 9 18 15" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          class="user-banner signin-banner"
+          :class="{ open: showSigninMenu }"
+          @click="toggleSigninMenu"
+        >
+          <span class="user-avatar signin-avatar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </span>
+          <span class="user-banner-name">{{ $t('auth.signIn') }}</span>
+          <svg
+            class="user-banner-chevron"
+            :class="{ open: showSigninMenu }"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="6 15 12 9 18 15" />
+          </svg>
+        </button>
 
         <div v-if="showSigninMenu" class="user-menu signin-menu">
           <UserMenuLinks />
@@ -167,41 +173,34 @@
         </div>
       </div>
       <div v-else ref="userInfoRef" class="user-info">
-        <div class="user-banner" :class="{ open: showUserMenu }">
-          <button type="button" class="user-banner-main" @click="toggleUserMenu">
-            <span class="user-avatar">{{ userInitial }}</span>
-            <span class="user-banner-name">{{
-              showUserMenu && isChineseName
-                ? userNickname
-                : displayNickname
-            }}<span v-if="showUserMenu" class="user-banner-userid">{{ userId }}</span></span>
-          </button>
-          <div class="user-banner-actions">
-            <button type="button" class="user-banner-action" :title="$t('settings.advancedSettings')" @click="openSettingsFromBar">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-            </button>
-            <button type="button" class="user-banner-action" @click="toggleUserMenu">
-              <svg
-                class="user-banner-chevron"
-                :class="{ open: showUserMenu }"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <polyline points="6 15 12 9 18 15" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          class="user-banner"
+          :class="{ open: showUserMenu }"
+          @click="toggleUserMenu"
+        >
+          <span class="user-avatar">{{ userInitial }}</span>
+          <span class="user-banner-name">{{
+            showUserMenu && isChineseName
+              ? userNickname
+              : displayNickname
+          }}<span v-if="showUserMenu" class="user-banner-userid">{{ userId }}</span></span>
+          <svg
+            class="user-banner-chevron"
+            :class="{ open: showUserMenu }"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="6 15 12 9 18 15" />
+          </svg>
+        </button>
 
         <div v-if="showUserMenu" class="user-menu user-menu-expanded">
           <UserMenuLinks />
@@ -490,9 +489,20 @@ defineExpose({
 }
 
 .login-section {
+  position: relative;
   padding: 16px;
   background-color: transparent;
   flex-shrink: 0;
+}
+
+/* Inset hairline matching .panel-actions (which sits inside control-section's 16px padding). */
+.login-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  border-top: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
 }
 
 .login-row {
@@ -524,14 +534,24 @@ defineExpose({
   color: var(--text-secondary);
 }
 
+/* Single full-width toggle: avatar + name + chevron. */
 .user-banner {
   width: 100%;
   display: flex;
   align-items: center;
   gap: 8px;
+  border: none;
   border-radius: 6px;
-  padding: 3px 2px;
+  padding: 5px 6px;
   background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+  color: inherit;
+  font: inherit;
+}
+
+.user-banner:hover {
+  background-color: var(--bg-hover);
 }
 
 /* When open, the banner and menu both bleed 8px past the section padding so
@@ -547,50 +567,8 @@ defineExpose({
   background-color: var(--bg-card);
 }
 
-/* Avatar + name: the menu toggle surface */
-.user-banner-main {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: none;
-  border-radius: 5px;
-  padding: 2px 4px;
-  background-color: transparent;
-  cursor: pointer;
-  transition: background-color 0.18s ease;
-}
-
-.user-banner-main:hover {
-  background-color: var(--bg-hover);
-}
-
-/* Settings gear + menu chevron: plain flat icon buttons */
-.user-banner-actions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.user-banner-action {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.user-banner-action:hover {
-  background-color: var(--bg-hover);
+.user-banner.open:hover {
+  background-color: var(--bg-card);
 }
 
 .user-avatar {
@@ -620,6 +598,7 @@ defineExpose({
 }
 
 .user-banner-chevron {
+  flex-shrink: 0;
   width: 14px;
   height: 14px;
   color: var(--text-secondary);
@@ -733,12 +712,18 @@ defineExpose({
 
 .control-section {
   flex: 1;
-  padding: 16px;
-  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 16px 8px;
+  overflow: hidden;
 }
 
 .settings-content {
+  flex: 1;
+  min-height: 0;
   padding: 0;
+  overflow-y: auto;
 }
 
 .setting-label {
@@ -1061,41 +1046,59 @@ defineExpose({
   50% { opacity: 0.4; }
 }
 
-.panel-actions-title {
+.nav-group-title--spaced {
   margin: 18px 0 4px;
 }
 
-/* Window launchers: same flat style as the navigator items */
+/* Fixed footer of the navigator: Tools + Settings side by side, not indented
+   like .nav-item rows — flush with the group-label column, hairline above. */
 .panel-actions {
+  flex-shrink: 0;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 4px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--text-primary) 10%, transparent);
 }
 
 .panel-action-button {
   display: flex;
   align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 8px 10px 8px 20px;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  /* No left indent — intentionally distinct from indented .nav-item rows. */
+  padding: 8px 6px;
   border: none;
   border-radius: 6px;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background-color 0.15s, color 0.15s;
 }
 
 .panel-action-button:hover {
   background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Same active treatment as .nav-item.active (settings page is a real nav target). */
+.panel-action-button.active {
+  background-color: var(--badge-active-bg);
+  color: var(--accent);
+}
+
+.panel-action-button.active .panel-action-icon {
+  opacity: 1;
 }
 
 .panel-action-button span {
-  flex: 1;
   min-width: 0;
-  text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
