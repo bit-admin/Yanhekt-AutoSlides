@@ -316,11 +316,13 @@ const fallbackCover = (id: string): string => {
 }
 const markCoverFailed = (id: string): void => { coverFailed.add(id) }
 
-// One compact meta line under each preview (instructor · location).
+// One compact meta line under each preview (instructor · semester).
+// Recorded `time` is already "YYYY-YYYY Fall/Spring" from transformCourseDataToCourse;
+// live streams have no semester fields, so they show instructor only.
 const liveSubtitle = (course: Course): string =>
-  [course.instructor, course.subtitle].filter(Boolean).join(' · ')
+  course.instructor || ''
 const recordedSubtitle = (course: Course): string =>
-  [course.instructor, course.classrooms?.map(c => c.name).join(', ')].filter(Boolean).join(' · ')
+  [course.instructor, course.time].filter(Boolean).join(' · ')
 
 // Lazily generate a card's preview the first time it scrolls near the viewport.
 const intersectObservers = new WeakMap<Element, IntersectionObserver>()
