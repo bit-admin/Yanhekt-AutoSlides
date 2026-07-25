@@ -6,7 +6,18 @@ import { createLogger } from '@shared/utils/logger';
 const log = createLogger('CourseList');
 
 export interface Course {
+  /**
+   * Recorded: the course id. **Live: the BROADCAST id** — live rows are keyed by
+   * broadcast, and this feeds `streamId`/DataStore. Use `courseId` when you need
+   * the actual course.
+   */
   id: string
+  /**
+   * The real course id. Only set for live streams, where `id` is a broadcast id;
+   * for recorded courses `id` already is the course id. Lets two broadcasts of
+   * one course group together instead of looking like two courses.
+   */
+  courseId?: string
   title: string
   instructor: string
   time: string
@@ -16,6 +27,7 @@ export interface Course {
   schedule_ended_at?: string
   participant_count?: number
   session?: {
+    course_id?: number | string
     professor?: {
       name: string
     }
@@ -42,7 +54,10 @@ export const transformLiveStreamToCourse = (stream: LiveStream): Course => {
   })
 
   return {
+    // Broadcast id — see Course.id. The real course id rides alongside so slide
+    // folders can group by course while staying unique per broadcast.
     id: stream.id || stream.live_id || '',
+    courseId: stream.session?.course_id != null ? String(stream.session.course_id) : undefined,
     title: stream.title || 'Untitled',
     instructor: stream.session?.professor?.name || 'Unknown',
     time: `${startTime} - ${endTime}`,

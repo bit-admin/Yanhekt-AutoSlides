@@ -7,6 +7,7 @@ import {
   classifySingleImage,
 } from '@features/ai/slideClassificationService'
 import { configStore } from '@shared/services/configStore'
+import { sanitizeFileName } from '@common/sanitizeFileName'
 import type {
   PostProcessingConfig,
   PostProcessingProgress
@@ -83,7 +84,11 @@ export function useOfflineProcessing() {
     if (folderPath) {
       inputFolderPath.value = folderPath
       const parts = folderPath.replace(/\\/g, '/').split('/')
-      inputFolderName.value = parts[parts.length - 1] || parts[parts.length - 2] || 'unknown'
+      // The basename comes from an arbitrary user-picked directory, so sanitize
+      // it like every other slide folder name (it previously went through raw).
+      // No ids exist for offline input, so the folder carries no id block.
+      inputFolderName.value =
+        sanitizeFileName(parts[parts.length - 1] || parts[parts.length - 2] || '') || 'unknown'
       const config = configStore
       const configuredOutputDir = config.outputDirectory || ''
       outputDir.value = configuredOutputDir

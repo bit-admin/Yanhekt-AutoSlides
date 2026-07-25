@@ -422,7 +422,7 @@ export function demoGallerySlides(): Array<{
 }
 
 // Folder list. Clean English names grouped by course via the "<course> - Lecture N"
-// form that parseSessionInfo()/getCourseName() understand (no underscores / Chinese
+// form that parseSessionInfo()/getCourseKey() understand (no underscores / Chinese
 // session suffix — cleaner for screenshots). The first folder is the "rich" one
 // carrying the removed + cropped demo items.
 const DEMO_RESULT_FOLDERS: Array<{ name: string; activeCount: number }> = [

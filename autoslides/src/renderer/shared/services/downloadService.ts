@@ -1,5 +1,5 @@
 import { reactive, ref } from 'vue'
-import { sanitizeDownloadName } from './downloadNaming'
+import { buildDownloadFileName } from './downloadNaming'
 import { ExtractionQueue } from './extractionQueueService'
 import { overrides } from '../overrideRegistry'
 import { createLogger } from '@shared/utils/logger';
@@ -26,6 +26,10 @@ export interface DownloadItem {
   courseTitle: string
   sessionTitle: string
   sessionId: string
+  // Needed to disambiguate the .mp4 path (course titles are not unique) and to
+  // stamp the extracted folder's metadata. Optional because a queued item may
+  // predate a known course (e.g. a thin/pinned course with no id).
+  courseId?: string
   videoType: 'camera' | 'screen'
   status: DownloadStatus
   progress: number
@@ -160,7 +164,7 @@ class DownloadServiceClass {
       // files behind, since cleanup only runs on success. Remove them on Clear.
       // Completed items already had their temp files cleaned by the success path.
       if (item.status === 'error') {
-        window.electronAPI.download.cleanupTempFiles(sanitizeDownloadName(item.name))
+        window.electronAPI.download.cleanupTempFiles(buildDownloadFileName(item))
           .catch(log.error)
       }
       const index = this.items.indexOf(item)
@@ -347,7 +351,7 @@ class DownloadServiceClass {
       }
 
       // Start the download with sanitized file name
-      const sanitizedName = sanitizeDownloadName(item.name)
+      const sanitizedName = buildDownloadFileName(item)
       window.electronAPI.download.start(item.id, m3u8Url, sanitizedName)
         .catch((error: Error) => {
           if (!completed) {

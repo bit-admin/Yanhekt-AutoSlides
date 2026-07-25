@@ -13,7 +13,7 @@
 
 import type { DownloadItem } from '@shared/services/downloadService'
 import { PostProcessingService } from '@shared/services/postProcessingService'
-import { sanitizeDownloadName } from '@shared/services/downloadNaming'
+import { buildDownloadFileName } from '@shared/services/downloadNaming'
 import {
   computePendingExtractionFields,
   hasRequiredExtractionParams
@@ -217,10 +217,10 @@ export class ExtractionOrchestrator {
 
   /**
    * Resolve the mp4 path the downloader produced for this item. Must match
-   * DownloadService's naming exactly — both go through sanitizeDownloadName.
+   * DownloadService's naming exactly — both go through buildDownloadFileName.
    */
   private resolveExtractorMp4Path(item: DownloadItem): string {
-    return `${item.extractorOutputDir}/${sanitizeDownloadName(item.name || '')}.mp4`
+    return `${item.extractorOutputDir}/${buildDownloadFileName(item)}.mp4`
   }
 
   private async runOne(item: DownloadItem, videoFilePath: string): Promise<void> {
@@ -283,6 +283,7 @@ export class ExtractionOrchestrator {
       ssimThreshold: item.ssimThreshold,
       sessionId: item.sessionId,
       source: {
+        courseId: item.courseId,
         sessionId: item.sessionId,
         courseTitle: item.courseTitle,
         sessionTitle: item.sessionTitle,

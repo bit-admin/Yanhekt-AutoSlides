@@ -370,6 +370,7 @@ export interface WatchExtractionRecord {
   ssimThreshold?: number;
   source: {
     courseId?: unknown;
+    liveId?: unknown;
     courseTitle?: string;
     sessionId?: unknown;
     sessionTitle?: string;
@@ -392,6 +393,7 @@ export interface WatchExtractionRecord {
 export async function recordWatchExtraction(params: WatchExtractionRecord): Promise<void> {
   const source: SlideMetadataSource = {
     courseId: normalizeString(params.source.courseId),
+    liveId: normalizeString(params.source.liveId),
     courseTitle: params.source.courseTitle,
     sessionId: normalizeString(params.source.sessionId),
     sessionTitle: params.source.sessionTitle,

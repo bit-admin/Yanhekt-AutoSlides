@@ -4,6 +4,7 @@ import { tokenManager } from '@shared/services/authService'
 import { DataStore } from '@shared/services/dataStore'
 import { DownloadService, type DownloadQueueAddResult } from '@shared/services/downloadService'
 import { TaskQueue, type TaskQueueAddResult } from '@shared/services/taskQueueService'
+import { lectureLabel } from '@common/lectureNaming'
 import type { Course } from './useCourseList'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('SessionPage');
@@ -125,11 +126,16 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   // Helper: Add session to download queue
   const addSessionToDownload = (session: Session, videoType: 'camera' | 'screen'): DownloadQueueAddResult => {
     storeSessionData(session)
+    // `name` stays the raw human-readable label — it is sanitized once, later,
+    // by buildDownloadFileName (sanitizeDownloadName, which differs from
+    // sanitizeFileName on path separators). The ids ride alongside so that
+    // helper can disambiguate the .mp4 path at dispatch time.
     return DownloadService.addToQueue({
-      name: `${videoType}_${course.value?.title}_${session.title}`,
+      name: `${videoType}_${lectureLabel(course.value?.title, session.title)}`,
       courseTitle: course.value?.title || t('sessions.unknownCourse'),
       sessionTitle: session.title,
       sessionId: session.session_id.toString(),
+      courseId: course.value?.id,
       videoType
     })
   }
@@ -137,8 +143,9 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   // Helper: Add session to task queue
   const addSessionToTask = (session: Session): TaskQueueAddResult => {
     storeSessionData(session)
+    // Display label only — the real folder is named by useSlideExtraction.
     return TaskQueue.addToQueue({
-      name: `slides_${course.value?.title}_${session.title}`,
+      name: `slides_${lectureLabel(course.value?.title, session.title)}`,
       courseTitle: course.value?.title || t('sessions.unknownCourse'),
       sessionTitle: session.title,
       sessionId: session.session_id.toString(),

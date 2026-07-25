@@ -3,7 +3,7 @@
 // and merges them into the folder summary + per-folder item list. No Vue refs
 // are read or written here — the caller owns reactive state.
 
-import { compareToolFolders, compareToolImages } from '@shared/utils/toolWindowFolders';
+import { compareToolFolderEntries, compareToolImages } from '@shared/utils/toolWindowFolders';
 import { overrides } from '@shared/overrideRegistry';
 import type {
   CropEntry,
@@ -97,7 +97,7 @@ export async function loadFolderSummaries(io: ResultsDataIO): Promise<FolderSumm
     }
   }
 
-  const folders = Array.from(folderMap.values()).sort((a, b) => compareToolFolders(a.name, b.name));
+  const folders = Array.from(folderMap.values()).sort(compareToolFolderEntries);
 
   return {
     activeFolders: activeFolderList.map(({ name, path }) => ({ name, path })),

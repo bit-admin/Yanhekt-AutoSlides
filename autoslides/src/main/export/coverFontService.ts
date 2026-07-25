@@ -93,27 +93,11 @@ export function chineseToPinyin(text: string): string {
   });
 }
 
-const SESSION_SUFFIX_PATTERN = /_第\d+周_星期[一二三四五六日]_第\d+大节$/;
-
-/**
- * Strip the standard session suffix from a folder name to recover the course
- * name. Mirrors the regex used by parseSessionInfo() in the renderer.
- */
-export function extractCourseName(folderName: string): string {
-  const stripped = folderName.startsWith('slides_') ? folderName.slice(7) : folderName;
-  return stripped.replace(SESSION_SUFFIX_PATTERN, '');
-}
-
-/**
- * Pull the session segment out of a folder name and replace underscores with
- * spaces. Returns undefined when the folder name has no session suffix.
- */
-export function extractSessionLabel(folderName: string): string | undefined {
-  const stripped = folderName.startsWith('slides_') ? folderName.slice(7) : folderName;
-  const match = stripped.match(/_(第\d+周_星期[一二三四五六日]_第\d+大节)$/);
-  if (!match) return undefined;
-  return match[1].replace(/_/g, ' ');
-}
+// Course/session extraction lives in @common/lectureNaming so the renderer's
+// folder list and this cover builder cannot drift apart (they used to hold
+// separate copies of the same regex). Re-exported here to keep the existing
+// import sites working.
+export { extractCourseName, extractSessionLabel } from '@common/lectureNaming';
 
 const WEEKDAY_EN: Record<string, string> = {
   '一': 'Monday',

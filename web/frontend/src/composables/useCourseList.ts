@@ -12,7 +12,13 @@ import { openCourse } from "./courseSelection";
 // Electron ApiClient/tokenManager swapped for the web data layer.
 
 export interface Course {
+  /**
+   * Recorded: the course id. **Live: the BROADCAST id.** Use `courseId` when
+   * you need the actual course.
+   */
   id: string;
+  /** The real course id; only set for live, where `id` is a broadcast id. */
+  courseId?: string;
   title: string;
   instructor: string;
   time: string;
@@ -22,6 +28,7 @@ export interface Course {
   schedule_ended_at?: string;
   participant_count?: number;
   session?: {
+    course_id?: number | string;
     professor?: {
       name: string;
     };
@@ -51,6 +58,9 @@ export const transformLiveStreamToCourse = (stream: LiveStream): Course => {
     // Runtime ids are numbers despite the declared string types — normalize
     // so route params and stash keys (always strings) compare reliably.
     id: String(stream.id || stream.live_id || ""),
+    // Broadcast id above; the real course id rides alongside so slide folders
+    // group by course while staying unique per broadcast.
+    courseId: stream.session?.course_id != null ? String(stream.session.course_id) : undefined,
     title: stream.title || "Untitled",
     instructor: stream.session?.professor?.name || "Unknown",
     time: `${startTime} - ${endTime}`,

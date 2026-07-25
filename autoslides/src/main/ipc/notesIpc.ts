@@ -3,6 +3,7 @@ import { NotesAuthError } from '@main/platform/notesService';
 import type { IpcServices } from './types';
 import type { NotesResult, NoteListParams } from '@common/notesTypes';
 import type { SlideMetadataSource } from '@common/slideMetadataTypes';
+import type { LectureIdentity } from '@common/lectureNaming';
 import { createLogger } from '@main/infra/logger';
 
 const log = createLogger('NotesIpc');
@@ -64,11 +65,11 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
   ipcMain.handle('cloudNotes:uploadImageFromPath', (_e, filePath: string) =>
     run(() => notesService.uploadImageFromPath(filePath)));
 
-  ipcMain.handle('cloudNotes:exportFolderStatus', (_e, displayName: string) =>
-    run(() => notesService.exportFolderStatus(displayName)));
+  ipcMain.handle('cloudNotes:exportFolderStatus', (_e, displayName: string, identity?: LectureIdentity) =>
+    run(() => notesService.exportFolderStatus(displayName, identity)));
 
-  ipcMain.handle('cloudNotes:prepareExportFolder', (_e, displayName: string, mode: 'fresh' | 'create') =>
-    run(() => notesService.prepareExportFolder(displayName, mode)));
+  ipcMain.handle('cloudNotes:prepareExportFolder', (_e, displayName: string, mode: 'fresh' | 'create', identity?: LectureIdentity) =>
+    run(() => notesService.prepareExportFolder(displayName, mode, identity)));
 
   ipcMain.handle('cloudNotes:downloadImageToFolder', (_e, url: string, dir: string, filename: string) =>
     run(() => notesService.downloadImageToFolder(url, dir, filename)));

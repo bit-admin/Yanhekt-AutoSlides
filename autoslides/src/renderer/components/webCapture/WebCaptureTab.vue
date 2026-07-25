@@ -188,6 +188,7 @@ const log = createLogger('WebCaptureTab');
 import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useWebCapture, type WebCapturePreset } from '@features/webCapture/useWebCapture'
+import { sanitizeFileName } from '@common/sanitizeFileName'
 import RegionOverlay from './RegionOverlay.vue'
 
 const { t } = useI18n()
@@ -244,9 +245,11 @@ const onSelectPreset = (preset: WebCapturePreset) => {
   void navigatePreset(preset)
 }
 
+// Must stay identical to the folder useWebCapture actually creates — hence the
+// shared sanitizer rather than an inlined copy of its rules.
 const sanitizedPreview = computed(() => {
   const name = courseName.value.trim() || pageTitle.value.trim() || 'Untitled'
-  return name.replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, '_').replace(/_{2,}/g, '_').trim()
+  return sanitizeFileName(name)
 })
 
 const displayStatus = computed(() => {

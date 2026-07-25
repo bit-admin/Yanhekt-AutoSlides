@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { managedNoteDisplayName } from '@common/notesTypes'
+import { managedNoteDisplayName, managedNoteIdentity } from '@common/notesTypes'
 import { noteImageUrls, readNoteMetadata } from '@common/notesContent'
 import { useBackgroundQueue } from './useBackgroundQueue'
 import type { useCloudNotes } from './useCloudNotes'
@@ -56,7 +56,14 @@ export function useNoteExport(cn: CloudNotesApi) {
     item.total = urls.length
     if (urls.length === 0) { item.status = 'error'; item.error = 'empty'; return }
 
-    const prep = await window.electronAPI.cloudNotes.prepareExportFolder(item.displayName, mode)
+    // The note title carries the lecture identity, so the exported folder is
+    // named exactly as a freshly-extracted one would be. `managedNoteIdentity`
+    // returns a fresh plain object — safe to send over the IPC clone hop.
+    const prep = await window.electronAPI.cloudNotes.prepareExportFolder(
+      item.displayName,
+      mode,
+      managedNoteIdentity(item.title),
+    )
     if (!prep.ok) { item.status = 'error'; item.error = prep.error; return }
     item.dir = prep.data.dir
     item.folderName = prep.data.folderName
@@ -108,7 +115,10 @@ export function useNoteExport(cn: CloudNotesApi) {
       // Pre-flag notes whose destination folder already exists. These are not
       // auto-processed — the user decides per row (replace / create / skip).
       for (const item of queue.value) {
-        const statusRes = await window.electronAPI.cloudNotes.exportFolderStatus(item.displayName)
+        const statusRes = await window.electronAPI.cloudNotes.exportFolderStatus(
+          item.displayName,
+          managedNoteIdentity(item.title),
+        )
         if (statusRes.ok && statusRes.data.exists) {
           item.status = 'conflict'
           item.dir = statusRes.data.dir

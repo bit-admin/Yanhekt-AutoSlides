@@ -1,58 +1,85 @@
-// Shared folder and image naming helpers for the tools window.
+// Folder and image display helpers for the results/PDF folder lists.
+//
+// The name *parsing* primitives live in @common/lectureNaming so the main
+// process (coverFontService) shares one implementation; this module keeps the
+// renderer-side sorting and grouping built on top of them.
+import {
+  formatLectureDisplayName,
+  parseLectureIds,
+  parseSessionInfo,
+} from '@common/lectureNaming'
+import type { SlideMetadata } from '@common/slideMetadataTypes'
 
-// Chinese weekday mapping for sorting (Monday = 1, Sunday = 7)
-const WEEKDAY_ORDER: Record<string, number> = {
-  '一': 1,
-  '二': 2,
-  '三': 3,
-  '四': 4,
-  '五': 5,
-  '六': 6,
-  '日': 7,
+export interface CourseGroupFolder {
+  name: string
+  metadata?: SlideMetadata | null
 }
 
-interface ParsedSessionInfo {
-  courseName: string
-  week: number
-  weekday: number
-  session: number
-}
-
-/**
- * Parse session info from folder name.
- * Primary pattern (BIT downloads): slides_<courseName>_第N周_星期X_第N大节
- * English fallback (English-named courses, incl. demo mode): "<courseName> - Lecture N"
- * Note: courseName may contain underscores.
- */
-export function parseSessionInfo(folderName: string): ParsedSessionInfo | null {
-  const name = folderName.startsWith('slides_') ? folderName.slice(7) : folderName
-
-  const sessionPattern = /^(.+)_第(\d+)周_星期([一二三四五六日])_第(\d+)大节$/
-  const match = name.match(sessionPattern)
-  if (match) {
-    return {
-      courseName: match[1],
-      week: parseInt(match[2], 10),
-      weekday: WEEKDAY_ORDER[match[3]] || 0,
-      session: parseInt(match[4], 10),
-    }
-  }
-
-  // English session form: groups by course and orders by lecture number.
-  const englishPattern = /^(.+) - Lecture (\d+)$/
-  const englishMatch = name.match(englishPattern)
-  if (englishMatch) {
-    const lecture = parseInt(englishMatch[2], 10)
-    return { courseName: englishMatch[1], week: lecture, weekday: 0, session: lecture }
-  }
-
-  return null
+/** Strip the `slides_` prefix and the id block — the only way a name is shown. */
+export function formatToolFolderName(name: string): string {
+  return formatLectureDisplayName(name)
 }
 
 /**
- * Compare two folder names with Chinese natural sorting.
+ * Course-level display name parsed out of a folder name: folders with a session
+ * pattern collapse to their course name so sessions of one course share a
+ * group; folders without one fall back to their formatted name.
+ *
+ * Display only — `getCourseKey` decides grouping, because two distinct courses
+ * can share a title and only the id tells them apart.
  */
-export function compareToolFolders(a: string, b: string): number {
+function parsedCourseName(folderName: string): string {
+  return parseSessionInfo(folderName)?.courseName ?? formatToolFolderName(folderName)
+}
+
+/**
+ * Stable grouping key for a folder, most reliable source first:
+ *   1. the course id embedded in the name (every folder created since the
+ *      naming refactor),
+ *   2. `metadata.json`'s course id (cloud-note/share exports, whose names come
+ *      from a note title rather than a lecture),
+ *   3. the course name parsed out of the name — the legacy path, and the only
+ *      one available for folders created by <= v4.4.1.
+ *
+ * Keying on the id is what stops two same-titled courses from merging into one
+ * group in the folder list.
+ */
+export function getCourseKey(folder: CourseGroupFolder): string {
+  const embedded = parseLectureIds(folder.name).courseId
+  if (embedded) return `id:${embedded}`
+
+  const fromMetadata = folder.metadata?.source?.courseId
+  if (fromMetadata) return `id:${fromMetadata}`
+
+  return `name:${parsedCourseName(folder.name)}`
+}
+
+/** Human label for a course group, preferring the recorded title over the parsed one. */
+export function getCourseLabel(folder: CourseGroupFolder): string {
+  return folder.metadata?.source?.courseTitle || parsedCourseName(folder.name)
+}
+
+/** The course id behind a folder, for display as secondary text. */
+export function getCourseId(folder: CourseGroupFolder): string | undefined {
+  return parseLectureIds(folder.name).courseId ?? folder.metadata?.source?.courseId
+}
+
+/** The session id behind a folder, for display as secondary text. */
+export function getSessionId(folder: CourseGroupFolder): string | undefined {
+  return parseLectureIds(folder.name).sessionId ?? folder.metadata?.source?.sessionId
+}
+
+/**
+ * The live (broadcast) id behind a folder. Deliberately NOT part of
+ * `getCourseKey`: a live id identifies one broadcast, so keying on it would put
+ * every broadcast of a course in its own group. Live folders group by title.
+ */
+export function getLiveId(folder: CourseGroupFolder): string | undefined {
+  return parseLectureIds(folder.name).liveId ?? folder.metadata?.source?.liveId
+}
+
+/** Compare two folder names within one course, with Chinese natural sorting. */
+function compareFolderNames(a: string, b: string): number {
   const infoA = parseSessionInfo(a)
   const infoB = parseSessionInfo(b)
 
@@ -70,51 +97,25 @@ export function compareToolFolders(a: string, b: string): number {
   return a.localeCompare(b, 'zh')
 }
 
-export function formatToolFolderName(name: string): string {
-  return name.startsWith('slides_') ? name.slice(7) : name
-}
-
 /**
- * Extract a course-level grouping key from a folder name.
+ * Sort folders so that each course's folders are contiguous, which is what the
+ * grouped folder list needs to emit one header per course.
  *
- * Folders with a session pattern collapse to their parsed courseName so
- * sessions of the same course share one group; folders without a session
- * pattern fall back to their formatted name, becoming a single-folder group.
+ * Ordering by parsed course *name* alone would interleave two same-titled
+ * courses and produce alternating headers, so equal labels are broken by the
+ * course key.
  */
-export function getCourseName(folderName: string): string {
-  const info = parseSessionInfo(folderName)
-  if (info) return info.courseName
-  return formatToolFolderName(folderName)
-}
+export function compareToolFolderEntries(a: CourseGroupFolder, b: CourseGroupFolder): number {
+  const keyA = getCourseKey(a)
+  const keyB = getCourseKey(b)
 
-export type FolderCourseRow<T extends { name: string }> =
-  | { type: 'header'; courseName: string; folderNames: string[] }
-  | { type: 'folder'; folder: T; index: number }
+  if (keyA !== keyB) {
+    const labelCompare = getCourseLabel(a).localeCompare(getCourseLabel(b), 'zh')
+    if (labelCompare !== 0) return labelCompare
+    return keyA.localeCompare(keyB)
+  }
 
-/**
- * Build a render-ready row sequence for grouped folder display.
- * Each header row carries the names of the folders in its group so callers
- * can wire "select all in course" actions without re-deriving the grouping.
- */
-export function buildFolderCourseRows<T extends { name: string }>(
-  folders: T[],
-): FolderCourseRow<T>[] {
-  const rows: FolderCourseRow<T>[] = []
-  let prevCourse: string | null = null
-  let currentHeader: { type: 'header'; courseName: string; folderNames: string[] } | null = null
-
-  folders.forEach((folder, index) => {
-    const courseName = getCourseName(folder.name)
-    if (courseName !== prevCourse) {
-      currentHeader = { type: 'header', courseName, folderNames: [] }
-      rows.push(currentHeader)
-      prevCourse = courseName
-    }
-    currentHeader!.folderNames.push(folder.name)
-    rows.push({ type: 'folder', folder, index })
-  })
-
-  return rows
+  return compareFolderNames(a.name, b.name)
 }
 
 export function compareToolImages(a: string, b: string): number {
@@ -123,4 +124,3 @@ export function compareToolImages(a: string, b: string): number {
     sensitivity: 'base',
   })
 }
-

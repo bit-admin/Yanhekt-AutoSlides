@@ -5,7 +5,7 @@
   <div class="folder-list">
     <div
       v-for="(group, groupIdx) in courseGroups"
-      :key="group.courseName || groupIdx"
+      :key="group.courseKey || groupIdx"
       :class="{ 'course-group': isGroupingActive }"
     >
       <div
@@ -27,17 +27,30 @@
           <path d="M4 7.5v4c0 1.2 1.8 2 4 2s4-.8 4-2v-4L8 10.5 4 7.5z"/>
         </svg>
         <span class="course-name">{{ group.courseName }}</span>
+        <span
+          v-if="group.courseId"
+          class="entity-id"
+          :title="$t('trash.courseIdHint', { id: group.courseId })"
+        >{{ group.courseId }}</span>
+        <!-- No recoverable course id: this group is keyed on the title alone, so
+             say so — otherwise it renders identically to an id-keyed group of
+             the same name and looks like a duplicate. -->
+        <span
+          v-else
+          class="entity-id entity-id--unknown"
+          :title="$t('trash.noCourseIdHint')"
+        >{{ $t('trash.noCourseId') }}</span>
         <svg
           class="course-chevron"
-          :class="{ collapsed: isCourseCollapsed(group.courseName) }"
+          :class="{ collapsed: isCourseCollapsed(group.courseKey) }"
           width="14" height="14" viewBox="0 0 16 16"
-          @click.stop="toggleCourseCollapse(group.courseName)"
+          @click.stop="toggleCourseCollapse(group.courseKey)"
         >
           <path d="M4 3l6 5-6 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
 
-      <template v-if="!isCourseCollapsed(group.courseName)">
+      <template v-if="!isCourseCollapsed(group.courseKey)">
       <button
         v-for="entry in group.folders"
         :key="entry.folder.name"
@@ -77,7 +90,29 @@
 
         <div class="folder-copy">
           <div class="folder-mainline">
-            <span class="folder-name">{{ formatToolFolderName(entry.folder.name) }}</span>
+            <div class="folder-heading">
+              <span class="folder-name">{{ formatToolFolderName(entry.folder.name) }}</span>
+              <!-- Session id (plus course id when there's no group header to
+                   carry it) — the on-disk identity, shown so two same-titled
+                   lectures are tellable apart. -->
+              <span
+                v-if="!isGroupingActive && getCourseId(entry.folder)"
+                class="entity-id"
+                :title="$t('trash.courseIdHint', { id: getCourseId(entry.folder) })"
+              >{{ getCourseId(entry.folder) }}</span>
+              <span
+                v-if="getSessionId(entry.folder)"
+                class="entity-id"
+                :title="$t('trash.sessionIdHint', { id: getSessionId(entry.folder) })"
+              >{{ getSessionId(entry.folder) }}</span>
+              <!-- Live broadcasts have no session; their id identifies the
+                   broadcast, so it is labelled as such. -->
+              <span
+                v-else-if="getLiveId(entry.folder)"
+                class="entity-id"
+                :title="$t('trash.liveIdHint', { id: getLiveId(entry.folder) })"
+              >{{ getLiveId(entry.folder) }}</span>
+            </div>
             <div class="folder-counts">
               <template v-if="isWatchExtraction(entry.folder.metadata)">
                 <span class="folder-count-text" :title="$t('trash.watchModeHint')">
@@ -121,7 +156,13 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { getCourseName } from '@shared/utils/toolWindowFolders'
+import {
+  getCourseId,
+  getCourseKey,
+  getCourseLabel,
+  getLiveId,
+  getSessionId,
+} from '@shared/utils/toolWindowFolders'
 import { isWatchExtraction } from '@common/slideMetadataTypes'
 import type { ResultsFolder } from '@features/results/useResultsView'
 
@@ -146,18 +187,25 @@ const emit = defineEmits<{
 // folder view keeps the same component instance (v-else within the page).
 const collapsedCourses = ref<Set<string>>(new Set())
 
-const toggleCourseCollapse = (courseName: string) => {
-  if (collapsedCourses.value.has(courseName)) {
-    collapsedCourses.value.delete(courseName)
+const toggleCourseCollapse = (courseKey: string) => {
+  if (collapsedCourses.value.has(courseKey)) {
+    collapsedCourses.value.delete(courseKey)
   } else {
-    collapsedCourses.value.add(courseName)
+    collapsedCourses.value.add(courseKey)
   }
 }
 
-const isCourseCollapsed = (courseName: string) => collapsedCourses.value.has(courseName)
+const isCourseCollapsed = (courseKey: string) => collapsedCourses.value.has(courseKey)
 
 interface CourseGroup {
+  // Identity (course id where known) — two courses can share a title, so this
+  // is what splits them into separate groups and keys the collapse state.
+  courseKey: string
+  // What the header actually shows.
   courseName: string
+  // Shown as secondary text beside the name. Absent for pre-v4.4.1 folders and
+  // for origins that never had a course (web capture, offline).
+  courseId?: string
   folderNames: string[]
   folders: Array<{ folder: ResultsFolder; index: number }>
 }
@@ -165,6 +213,7 @@ interface CourseGroup {
 const courseGroups = computed<CourseGroup[]>(() => {
   if (!props.isGroupingActive) {
     return [{
+      courseKey: '',
       courseName: '',
       folderNames: props.folders.map((f) => f.name),
       folders: props.folders.map((folder, index) => ({ folder, index })),
@@ -173,9 +222,15 @@ const courseGroups = computed<CourseGroup[]>(() => {
   const groups: CourseGroup[] = []
   let current: CourseGroup | null = null
   props.folders.forEach((folder, index) => {
-    const courseName = getCourseName(folder.name)
-    if (!current || current.courseName !== courseName) {
-      current = { courseName, folderNames: [], folders: [] }
+    const courseKey = getCourseKey(folder)
+    if (!current || current.courseKey !== courseKey) {
+      current = {
+        courseKey,
+        courseName: getCourseLabel(folder),
+        courseId: getCourseId(folder),
+        folderNames: [],
+        folders: [],
+      }
       groups.push(current)
     }
     current.folderNames.push(folder.name)
@@ -329,6 +384,46 @@ defineExpose({
   text-overflow: ellipsis;
 }
 
+/*
+ * Course/session id shown beside a name. Deliberately quiet: it exists to
+ * disambiguate two same-titled lectures, not to be read routinely. Tabular
+ * digits keep the numbers from jittering down a list, and the `#` is dimmed
+ * further so the digits lead.
+ */
+.entity-id {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  padding: 2px 6px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--bg-subtle);
+  cursor: help;
+}
+
+.entity-id::before {
+  content: '#';
+  opacity: 0.55;
+  margin-right: 1px;
+}
+
+/* Absence of an id, not an id — drop the `#` and go dashed so it reads as a gap. */
+.entity-id--unknown {
+  border-style: dashed;
+  background: none;
+  text-transform: none;
+  letter-spacing: 0.04em;
+}
+
+.entity-id--unknown::before {
+  content: none;
+}
+
 .course-checkbox {
   width: 18px;
   height: 18px;
@@ -428,8 +523,16 @@ defineExpose({
   min-width: 0;
 }
 
-.folder-name {
+/* Name and id travel together, so the name ellipsises before the id is cut. */
+.folder-heading {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.folder-name {
   min-width: 0;
   font-size: 13px;
   font-weight: 600;

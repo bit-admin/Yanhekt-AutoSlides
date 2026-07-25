@@ -1,6 +1,7 @@
 import { computed } from 'vue'
 import type { EditorJsBlock } from '@common/notesTypes'
 import { EDITORJS_DOC_VERSION, buildManagedNoteTitle } from '@common/notesTypes'
+import { parseLectureIds, type LectureIdentity } from '@common/lectureNaming'
 import { buildNoteMetadataBlock, NOTE_METADATA_VERSION } from '@common/notesContent'
 import type { NoteCloudMetadata } from '@common/notesContent'
 import { SHARE_ORIGIN, SHARE_PATH, parseShareLink } from '@common/shareLink'
@@ -169,7 +170,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     const noteId = createRes.data
     item.noteId = noteId
 
-    const title = buildManagedNoteTitle(item.displayName)
+    const title = buildManagedNoteTitle(item.displayName, lectureIdentityOf(item))
     const groupId = cloudStorageStore.managedGroupId.value ?? cn.managedGroups.value[0]?.id
     const titleRes = await window.electronAPI.cloudNotes.updateTitle(noteId, title, groupId)
     if (!titleRes.ok) { item.status = 'error'; item.error = titleRes.error; return }
@@ -206,7 +207,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     const noteId = createRes.data
     item.noteId = noteId
 
-    const title = buildManagedNoteTitle(item.displayName)
+    const title = buildManagedNoteTitle(item.displayName, lectureIdentityOf(item))
     const groupId = cloudStorageStore.managedGroupId.value ?? cn.managedGroups.value[0]?.id
     const titleRes = await window.electronAPI.cloudNotes.updateTitle(noteId, title, groupId)
     if (!titleRes.ok) { item.status = 'error'; item.error = titleRes.error; return }
@@ -285,7 +286,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       item.missing = missing
       if (urls.length === 0) { item.status = 'error'; item.error = 'empty'; return }
 
-      const ids = sameTitleNoteIds(title)
+      const ids = sameLectureNoteIds(item)
       if (ids.length > 0) {
         item.status = 'conflict'
         item.conflictNoteIds = ids
@@ -353,7 +354,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       // await a user decision (replace / create / skip). In publish mode there's
       // no conflict — publish the existing note directly (publishOnly).
       for (const item of queue.value) {
-        const ids = sameTitleNoteIds(item.displayName)
+        const ids = sameLectureNoteIds(item)
         if (ids.length === 0) continue
         if (opts?.publish) {
           item.noteId = ids[0]
@@ -388,9 +389,27 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     return item.status
   }
 
-  /** Current ids of all managed notes whose title matches this folder. */
-  function sameTitleNoteIds(displayName: string): number[] {
-    const title = buildManagedNoteTitle(displayName)
+  /**
+   * The lecture identity behind an import row: the ids embedded in the slide
+   * folder's name for a local import, else the ids carried by an indexed
+   * share's metadata. Empty for folders that never had a lecture (web capture,
+   * offline) and for pre-v4.4.1 folders.
+   */
+  function lectureIdentityOf(item: Pick<ImportItem, 'folderName' | 'metadata'>): LectureIdentity {
+    const fromName = parseLectureIds(item.folderName)
+    if (fromName.courseId) return fromName
+    const source = item.metadata?.source
+    return { courseId: source?.courseId, sessionId: source?.sessionId }
+  }
+
+  /**
+   * Current ids of all managed notes for this lecture. Matching on the full
+   * built title (which carries the id block) is what keeps two same-titled
+   * courses from being treated as one note — and it stays a single request,
+   * since the note list returns titles but not content.
+   */
+  function sameLectureNoteIds(item: Pick<ImportItem, 'folderName' | 'metadata' | 'displayName'>): number[] {
+    const title = buildManagedNoteTitle(item.displayName, lectureIdentityOf(item))
     return cn.allNotes.value.filter((n) => n.title === title).map((n) => n.id)
   }
 
@@ -405,7 +424,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     running.value = true
     try {
       if (mode === 'replace') {
-        for (const id of sameTitleNoteIds(item.displayName)) {
+        for (const id of sameLectureNoteIds(item)) {
           const del = await window.electronAPI.cloudNotes.delete(id)
           if (!del.ok) { item.status = 'error'; item.error = del.error; return }
         }
@@ -441,7 +460,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
       await cn.loadAll()
       const displayName = formatToolFolderName(folderName)
       // Already imported → skip (no overwrite, no prompt).
-      if (sameTitleNoteIds(displayName).length > 0) return 'skipped'
+      if (sameLectureNoteIds({ folderName, displayName }).length > 0) return 'skipped'
 
       const folders = (await window.electronAPI.pdfmaker.getFolders()) as PdfFolder[]
       const folder = folders.find((f) => f.name === folderName)
@@ -486,7 +505,7 @@ export function useNoteImport(cn: CloudNotesApi, texts: ImportTexts) {
     try {
       await cn.loadAll()
       const displayName = formatToolFolderName(folderName)
-      const ids = sameTitleNoteIds(displayName)
+      const ids = sameLectureNoteIds({ folderName, displayName })
       // No existing note → nothing to resync (creating is syncFolder's job).
       if (ids.length === 0) return 'skipped'
 

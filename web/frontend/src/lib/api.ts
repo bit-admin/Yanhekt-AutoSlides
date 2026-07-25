@@ -19,6 +19,7 @@ export interface TokenVerificationResult {
 }
 
 export interface LiveStream {
+  // The BROADCAST id (what /live/<id> refers to), not a course id.
   id: string;
   live_id?: string;
   title: string;
@@ -28,6 +29,9 @@ export interface LiveStream {
   schedule_ended_at: string;
   participant_count?: number;
   session?: {
+    // The real course id behind this broadcast (present on every sampled live
+    // row, unlike the partial sibling `course` object).
+    course_id?: number | string;
     professor?: {
       name: string;
     };

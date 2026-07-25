@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import type { ShareImportResult } from '@common/notesTypes'
 import type { SlideMetadata } from '@common/slideMetadataTypes'
+import type { LectureIdentity } from '@common/lectureNaming'
 
 export type ShareExportStatus = 'pending' | 'downloading' | 'done' | 'conflict' | 'error'
 
@@ -54,9 +55,20 @@ export function useShareIndexExport() {
     cancelRequested.value = true
   }
 
+  /**
+   * The lecture identity from the Index metadata, rebuilt as a PLAIN object.
+   * `row` lives inside a ref, so handing `row.metadata.source` straight to
+   * ipcRenderer.invoke would send a Vue proxy and throw an opaque
+   * DataCloneError (see CLAUDE.md).
+   */
+  function identityOf(row: ShareExportItem): LectureIdentity {
+    const source = row.metadata?.source
+    return { courseId: source?.courseId, sessionId: source?.sessionId }
+  }
+
   /** Resolve the destination folder, then download every image in order. */
   async function processItem(row: ShareExportItem, mode: 'fresh' | 'create' = 'fresh'): Promise<void> {
-    const prep = await window.electronAPI.cloudNotes.prepareExportFolder(row.title, mode)
+    const prep = await window.electronAPI.cloudNotes.prepareExportFolder(row.title, mode, identityOf(row))
     if (!prep.ok) { row.status = 'error'; row.error = prep.error; return }
     row.dir = prep.data.dir
     row.folderName = prep.data.folderName
@@ -100,7 +112,7 @@ export function useShareIndexExport() {
 
       if (row.urls.length === 0) { row.status = 'error'; row.error = 'empty'; return }
 
-      const statusRes = await window.electronAPI.cloudNotes.exportFolderStatus(row.title)
+      const statusRes = await window.electronAPI.cloudNotes.exportFolderStatus(row.title, identityOf(row))
       if (statusRes.ok && statusRes.data.exists) {
         row.status = 'conflict'
         row.dir = statusRes.data.dir

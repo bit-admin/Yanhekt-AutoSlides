@@ -6,7 +6,7 @@
 
 import { ref, computed, onUnmounted, watch, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { compareToolFolders, compareToolImages, formatToolFolderName } from '@shared/utils/toolWindowFolders'
+import { compareToolFolderEntries, compareToolImages, formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { overrides } from '@shared/overrideRegistry'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('PdfMaker');
@@ -121,11 +121,11 @@ export function usePdfMaker<T extends PdfSourceFolder>(deps: {
         }
       }
 
-      remaining.sort((a, b) => compareToolFolders(a.name, b.name))
+      remaining.sort(compareToolFolderEntries)
       return [...ordered, ...remaining]
     }
 
-    return [...deps.folders.value].sort((a, b) => compareToolFolders(a.name, b.name))
+    return [...deps.folders.value].sort(compareToolFolderEntries)
   })
 
   const displaySize = computed(() => {

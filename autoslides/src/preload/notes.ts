@@ -1,4 +1,5 @@
 import { ipcRenderer } from 'electron';
+import type { LectureIdentity } from '@common/lectureNaming';
 import type {
   NotesResult,
   NoteListParams,
@@ -46,10 +47,12 @@ export const cloudNotes = {
     ipcRenderer.invoke('cloudNotes:uploadImage', bytes, filename, mime),
   uploadImageFromPath: (filePath: string): Promise<NotesResult<UploadedImage>> =>
     ipcRenderer.invoke('cloudNotes:uploadImageFromPath', filePath),
-  exportFolderStatus: (displayName: string): Promise<NotesResult<ExportFolderInfo>> =>
-    ipcRenderer.invoke('cloudNotes:exportFolderStatus', displayName),
-  prepareExportFolder: (displayName: string, mode: 'fresh' | 'create'): Promise<NotesResult<ExportFolderInfo>> =>
-    ipcRenderer.invoke('cloudNotes:prepareExportFolder', displayName, mode),
+  // `identity` must be a plain object — a Vue reactive/ref would throw an
+  // opaque DataCloneError on the structured-clone hop (see CLAUDE.md).
+  exportFolderStatus: (displayName: string, identity?: LectureIdentity): Promise<NotesResult<ExportFolderInfo>> =>
+    ipcRenderer.invoke('cloudNotes:exportFolderStatus', displayName, identity),
+  prepareExportFolder: (displayName: string, mode: 'fresh' | 'create', identity?: LectureIdentity): Promise<NotesResult<ExportFolderInfo>> =>
+    ipcRenderer.invoke('cloudNotes:prepareExportFolder', displayName, mode, identity),
   downloadImageToFolder: (url: string, dir: string, filename: string): Promise<NotesResult<void>> =>
     ipcRenderer.invoke('cloudNotes:downloadImageToFolder', url, dir, filename),
   shortenShareUrl: (fragment: string): Promise<NotesResult<{ url: string }>> =>

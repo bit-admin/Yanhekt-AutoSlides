@@ -17,6 +17,7 @@ import {
 import { resolveSsimThreshold } from '../../lib/extractionDefaults'
 import { recordWatchExtraction } from '../../lib/slideStore'
 import { sanitizeFileName } from '../../lib/sanitizeFileName'
+import { buildLectureIdSuffix, parseSessionTitle } from '../../lib/toolFolders'
 import {
   runPostProcessing,
   triggerAutoPostProcessing,
@@ -70,6 +71,11 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
   // the Safari native-HLS path); the panel swaps the toggle for a notice.
   const captureNotSupported = ref(false)
 
+  // Course titles are not unique (re-offered courses, parallel sections), and
+  // the IndexedDB folder store is keyed by this name — without the id block two
+  // distinct lectures would share one folder record. Mirrors the desktop app's
+  // `buildSlideFolderName`; the `__` delimiter is safe because sanitizeFileName
+  // collapses `_{2,}`, so it is appended after sanitizing.
   const buildFolderName = (): string => {
     let folderName = 'slides'
     if (course.value?.title) {
@@ -80,7 +86,13 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     } else if (course.value?.session?.section_group_title && mode === 'live') {
       folderName += `_${sanitizeFileName(course.value.session.section_group_title)}`
     }
-    return folderName
+    // Live: `course.id` is a broadcast id, not a course id — its own slot, so it
+    // still makes the folder unique per broadcast without masquerading as a course.
+    return `${folderName}${buildLectureIdSuffix(
+      mode === 'live'
+        ? { courseId: course.value?.courseId, liveId: course.value?.id }
+        : { courseId: course.value?.id, sessionId: session.value?.session_id },
+    )}`
   }
 
   // Build the SlideExtractionInput payload from current course/session state.
@@ -91,23 +103,33 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     // Record per-folder metadata (best-effort). All web extractions are watch
     // mode: the user is watching, completeness is unverifiable.
     const sessionId = session.value?.session_id ? String(session.value.session_id) : undefined
+    // Live rows have no `session` of their own, but `section_group_title` is the
+    // same string a recorded session uses as its title and encodes week + day.
+    // Everything a recorded folder records is available EXCEPT the session id,
+    // which cannot exist until the lecture has finished and been published.
+    const liveSessionTitle =
+      mode === 'live' ? course.value?.session?.section_group_title : undefined
+    const liveSessionParts = parseSessionTitle(liveSessionTitle)
     void recordWatchExtraction({
       folder: folderName,
       kind: mode === 'live' ? 'live' : 'recorded',
       ssimThreshold: resolveSsimThreshold(course.value?.classrooms ?? null),
       source: {
-        courseId: course.value?.id,
+        // Live: `course.id` is a broadcast id and must not be stored as a
+        // courseId; the real course is `course.courseId`.
+        courseId: mode === 'live' ? course.value?.courseId : course.value?.id,
+        liveId: mode === 'live' ? course.value?.id : undefined,
         courseTitle: course.value?.title,
         sessionId,
-        sessionTitle: session.value?.title,
+        sessionTitle: session.value?.title ?? liveSessionTitle,
         instructor: course.value?.instructor,
         professors: course.value?.professors,
         semester: course.value?.semester,
         schoolYear: course.value?.school_year,
         college: course.value?.college_name,
         classrooms: course.value?.classrooms?.map((c) => c.name),
-        weekNumber: session.value?.week_number,
-        day: session.value?.day,
+        weekNumber: session.value?.week_number ?? liveSessionParts?.weekNumber,
+        day: session.value?.day ?? liveSessionParts?.day,
       },
     }).catch((error) => {
       log.error('Failed to record extraction metadata:', error)

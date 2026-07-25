@@ -25,6 +25,11 @@ export type SlideMetadataKind = 'recorded' | 'live';
 // (see slideMetadataClient.ts).
 export interface SlideMetadataSource {
   courseId?: string;
+  // Live broadcasts only, and mutually exclusive with courseId: Yanhekt's live
+  // list carries no course id, only a per-broadcast id. Kept separate so a
+  // broadcast id never reaches consumers that key on courseId (Index publish,
+  // folder-list grouping) — see @common/lectureNaming.
+  liveId?: string;
   courseTitle?: string;
   sessionId?: string;
   sessionTitle?: string;

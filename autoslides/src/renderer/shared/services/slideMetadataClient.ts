@@ -57,6 +57,7 @@ function normalizeSource(source: SlideMetadataSource): SlideMetadataSource {
   return {
     ...source,
     courseId: toStringId(source.courseId),
+    liveId: toStringId(source.liveId),
     sessionId: toStringId(source.sessionId),
     semester: toStringId(source.semester),
     schoolYear: toStringId(source.schoolYear),

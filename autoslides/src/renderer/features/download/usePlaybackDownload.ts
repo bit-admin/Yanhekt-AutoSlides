@@ -1,6 +1,7 @@
 import { computed, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { DownloadService } from '@shared/services/downloadService'
+import { lectureLabel } from '@common/lectureNaming'
 import type { Course, Session } from '@features/video/useSlideExtraction'
 
 export interface UsePlaybackDownloadOptions {
@@ -43,10 +44,11 @@ export function usePlaybackDownload(options: UsePlaybackDownloadOptions): UsePla
     let firstAddedId: string | undefined
     for (const videoType of videoTypes) {
       const result = DownloadService.addToQueue({
-        name: `${videoType}_${courseTitle}_${currentSession.title}`,
+        name: `${videoType}_${lectureLabel(courseTitle, currentSession.title)}`,
         courseTitle,
         sessionTitle: currentSession.title,
         sessionId: String(resolvedSessionId),
+        courseId: course.value?.id,
         videoType
       })
       if (result.added && !firstAddedId) firstAddedId = result.item.id

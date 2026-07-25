@@ -19,6 +19,9 @@ export type SlideMetadataKind = 'recorded' | 'live';
 // are always strings and `weekNumber`/`day` are always numbers.
 export interface SlideMetadataSource {
   courseId?: string;
+  // Live broadcasts only, mutually exclusive with courseId — a broadcast id
+  // must never reach consumers that key on courseId.
+  liveId?: string;
   courseTitle?: string;
   sessionId?: string;
   sessionTitle?: string;

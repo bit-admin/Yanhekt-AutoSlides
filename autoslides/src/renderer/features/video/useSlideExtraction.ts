@@ -7,7 +7,7 @@ import {
 } from '@shared/processing'
 import { ssimThresholdService } from '@shared/services/ssimThresholdService'
 import { recordRecordedExtraction } from '@shared/services/slideMetadataClient'
-import { sanitizeFileName } from '@common/sanitizeFileName'
+import { buildSlideFolderName, parseSessionTitle } from '@common/lectureNaming'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('VideoSlideExtraction');
 
@@ -63,7 +63,6 @@ export interface UseSlideExtractionReturn {
   initializeSlideExtraction: () => Promise<void>
   updateSlideExtractionStatus: () => void
   updateSSIMThresholdForClassrooms: () => void
-  sanitizeFileName: (name: string) => string
   onSlideExtracted: (event: CustomEvent) => Promise<void>
   onSlidesCleared: (event: CustomEvent) => void
   cleanupSlideExtraction: () => void
@@ -127,15 +126,26 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     const config = configStore
     const outputDir = config.outputDirectory || '~/Downloads/AutoSlides'
 
-    let folderName = 'slides'
-    if (course.value?.title) {
-      folderName += `_${sanitizeFileName(course.value.title)}`
-    }
-    if (session.value?.title) {
-      folderName += `_${sanitizeFileName(session.value.title)}`
-    } else if (course.value?.session?.section_group_title && mode === 'live') {
-      folderName += `_${sanitizeFileName(course.value.session.section_group_title)}`
-    }
+    // Course titles are not unique, so the folder carries the course/session
+    // ids — otherwise two same-titled lectures resolve to one path and this
+    // extraction's slides merge into the other course's folder (mkdir -p).
+    //
+    // In live mode `course.id` is a BROADCAST id, not a course id
+    // (transformLiveStreamToCourse), and there is no session. The real course id
+    // rides on `course.courseId` (from the live row's `session.course_id`), so a
+    // live folder carries both: the course id groups broadcasts of one course
+    // together, the broadcast id keeps each one a distinct folder.
+    const isLive = mode === 'live'
+    const folderName = buildSlideFolderName(
+      {
+        courseTitle: course.value?.title,
+        sessionTitle: session.value?.title,
+        sectionGroupTitle: isLive ? course.value?.session?.section_group_title : undefined,
+      },
+      isLive
+        ? { courseId: course.value?.courseId, liveId: course.value?.id }
+        : { courseId: course.value?.id, sessionId: session.value?.session_id },
+    )
 
     const slideOutputPath = `${outputDir}/${folderName}`
     await window.electronAPI.slideExtraction.ensureDirectory(slideOutputPath)
@@ -147,6 +157,14 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     // Offline/web-capture paths don't use this composable and stay metadata-free.
     {
       const sessionId = session.value?.session_id ? String(session.value.session_id) : undefined
+      // Live rows carry no `session` object of their own, but their
+      // `section_group_title` ("第21周 星期日 第2大节") is the same string a
+      // recorded session uses as its title, and encodes week + weekday. A live
+      // folder can therefore record everything a recorded one does EXCEPT the
+      // session id, which cannot exist yet — a recording is only published once
+      // the lecture has finished.
+      const liveSessionTitle = isLive ? course.value?.session?.section_group_title : undefined
+      const liveSessionParts = parseSessionTitle(liveSessionTitle)
       void recordRecordedExtraction({
         folderPath: slideOutputPath,
         extractor: 'builtin',
@@ -155,18 +173,22 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
         ssimThreshold: configStore.slideExtraction?.ssimThreshold,
         sessionId,
         source: {
-          courseId: course.value?.id,
+          // Live: `course.id` is a broadcast id and must NOT be written as a
+          // courseId — the Index keys on courseId/sessionId and would treat each
+          // broadcast as its own course. The real course id is `course.courseId`.
+          courseId: isLive ? course.value?.courseId : course.value?.id,
+          liveId: isLive ? course.value?.id : undefined,
           courseTitle: course.value?.title,
           sessionId,
-          sessionTitle: session.value?.title,
+          sessionTitle: session.value?.title ?? liveSessionTitle,
           instructor: course.value?.instructor,
           professors: course.value?.professors,
           semester: course.value?.semester,
           schoolYear: course.value?.school_year,
           college: course.value?.college_name,
           classrooms: course.value?.classrooms?.map(c => c.name),
-          weekNumber: session.value?.week_number,
-          day: session.value?.day,
+          weekNumber: session.value?.week_number ?? liveSessionParts?.weekNumber,
+          day: session.value?.day ?? liveSessionParts?.day,
         },
       })
     }
@@ -322,7 +344,6 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
     initializeSlideExtraction,
     updateSlideExtractionStatus,
     updateSSIMThresholdForClassrooms,
-    sanitizeFileName,
     onSlideExtracted,
     onSlidesCleared,
     cleanupSlideExtraction,

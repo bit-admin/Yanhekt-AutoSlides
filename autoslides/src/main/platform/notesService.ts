@@ -14,6 +14,7 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 import { expandTilde } from '@main/infra/pathUtils';
+import { buildLectureIdSuffix, type LectureIdentity } from '@common/lectureNaming';
 import type { ConfigService } from './configService';
 import { sharpService } from '@main/infra/sharpService';
 import type {
@@ -245,15 +246,22 @@ export class NotesService {
     return expandTilde(dir);
   }
 
-  /** Local `slides_<displayName>` folder path for a managed note's display name. */
-  private slidesFolderPath(displayName: string): string {
+  /**
+   * Local `slides_<displayName>[__c<id>s<id>]` folder path for a managed note.
+   *
+   * The identity comes from the note's own title, so an exported folder is
+   * unique per lecture the same way a freshly-extracted one is — two same-titled
+   * courses no longer land on one path. Notes with no identity (web-capture or
+   * offline origins) fall back to the ` (N)` uniquifier in prepareExportFolder.
+   */
+  private slidesFolderPath(displayName: string, identity: LectureIdentity = {}): string {
     const safe = displayName.replace(/[/\\]/g, '_');
-    return path.join(this.exportBaseDir(), `slides_${safe}`);
+    return path.join(this.exportBaseDir(), `slides_${safe}${buildLectureIdSuffix(identity)}`);
   }
 
   /** Whether the base export folder for this display name already exists on disk. */
-  async exportFolderStatus(displayName: string): Promise<ExportFolderInfo> {
-    const dir = this.slidesFolderPath(displayName);
+  async exportFolderStatus(displayName: string, identity: LectureIdentity = {}): Promise<ExportFolderInfo> {
+    const dir = this.slidesFolderPath(displayName, identity);
     let exists = false;
     try {
       exists = (await fs.stat(dir)).isDirectory();
@@ -272,12 +280,13 @@ export class NotesService {
   async prepareExportFolder(
     displayName: string,
     mode: 'fresh' | 'create',
+    identity: LectureIdentity = {},
   ): Promise<ExportFolderInfo> {
-    let dir = this.slidesFolderPath(displayName);
+    let dir = this.slidesFolderPath(displayName, identity);
     if (mode === 'create') {
       let n = 2;
       while (await this.pathExists(dir)) {
-        dir = `${this.slidesFolderPath(displayName)} (${n})`;
+        dir = `${this.slidesFolderPath(displayName, identity)} (${n})`;
         n += 1;
       }
     }

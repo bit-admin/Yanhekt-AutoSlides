@@ -7,7 +7,7 @@ import { layoutStore } from '@shared/services/layoutStore'
 import { rightPanelStore, setRightPanelTab } from '@shared/services/rightPanelStore'
 import { createLogger } from '@shared/utils/logger'
 import { buildManagedNoteTitle, EDITORJS_DOC_VERSION } from '@common/notesTypes'
-import { sanitizeFileName } from '@common/sanitizeFileName'
+import { buildSlideFolderName, type LectureIdentity } from '@common/lectureNaming'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { tabStore } from '@features/course/tabStore'
 import { cloudStorageStore } from './cloudStorageStore'
@@ -95,24 +95,40 @@ function imageBlock(url: string) {
 }
 
 /**
- * Name for the note, matching the extraction folder name that
- * `useSlideExtraction.buildExtractionInput` produces (and therefore reading
- * exactly like an ASnote title): the `slides_` prefix stripped from an
- * underscore-joined, sanitized "<course>_<session>" — e.g.
+ * Name for the note, derived from the same builder that names the extraction
+ * folder, then stripped for display: the `slides_` prefix and the id block
+ * removed from an underscore-joined, sanitized "<course>_<session>" — e.g.
  * "泛函分析_第1周_星期三_第2大节". `sanitizeFileName` turns the session title's
  * spaces into underscores, mirroring the folder on disk.
+ *
+ * This used to re-implement the folder template by hand and had already drifted
+ * (it applied the `section_group_title` fallback in recorded mode too, where
+ * the folder builder gates it on live). Going through the shared builder keeps
+ * note and folder in lockstep by construction.
  */
-function deriveDisplayName(tabId: string): string {
+function deriveNoteNaming(tabId: string): { displayName: string; identity: LectureIdentity } {
   const tab = tabStore.state.tabs.find((t) => t.id === tabId)
-  if (!tab) return 'AutoSlides'
-  let folderName = 'slides'
-  if (tab.course?.title) folderName += `_${sanitizeFileName(tab.course.title)}`
-  const session = tab.session as { title?: string } | null
-  const sectionTitle = tab.course?.session?.section_group_title
-  if (session?.title) folderName += `_${sanitizeFileName(session.title)}`
-  else if (sectionTitle) folderName += `_${sanitizeFileName(sectionTitle)}`
+  if (!tab) return { displayName: 'AutoSlides', identity: {} }
+  const session = tab.session as { title?: string; session_id?: string | number } | null
+  // Live: `course.id` is a broadcast id and `course.courseId` the real course —
+  // same split as useSlideExtraction, so the note title matches the folder.
+  const isLive = tab.mode === 'live'
+  const identity: LectureIdentity = isLive
+    ? { courseId: tab.course?.courseId, liveId: tab.course?.id }
+    : { courseId: tab.course?.id, sessionId: session?.session_id }
+  const folderName = buildSlideFolderName(
+    {
+      courseTitle: tab.course?.title,
+      sessionTitle: session?.title,
+      sectionGroupTitle: isLive ? tab.course?.session?.section_group_title : undefined,
+    },
+    identity,
+  )
   const name = formatToolFolderName(folderName)
-  return name && name !== 'slides' ? name : tab.title || 'AutoSlides'
+  return {
+    displayName: name && name !== 'slides' ? name : tab.title || 'AutoSlides',
+    identity,
+  }
 }
 
 /** Whether the watch-notes auto flow may run right now (gated by the Sync setting). */
@@ -127,10 +143,12 @@ export function watchSyncActive(): boolean {
 /** Find an existing ASuser watch note by title, else create one. */
 async function findOrCreateNote(
   displayName: string,
+  identity: LectureIdentity,
 ): Promise<{ id: number; content: OutputData; created: boolean } | null> {
   const groupId = cloudStorageStore.userGroupId.value
   if (groupId == null) return null
-  const title = buildManagedNoteTitle(displayName)
+  // Carries the id block, so two same-titled courses get two watch notes.
+  const title = buildManagedNoteTitle(displayName, identity)
 
   // Scan the full note list for an existing managed note with this title in ASuser.
   let page = 1
@@ -219,7 +237,7 @@ export async function onExtractionStarted(tabId: string, instanceId: string): Pr
     return
   }
 
-  const displayName = deriveDisplayName(tabId)
+  const { displayName, identity } = deriveNoteNaming(tabId)
   const entry: WatchNoteEntry = {
     tabId,
     instanceId,
@@ -237,7 +255,7 @@ export async function onExtractionStarted(tabId: string, instanceId: string): Pr
   layoutStore.rightCollapsed = false
   setRightPanelTab('notes')
 
-  const result = await findOrCreateNote(displayName)
+  const result = await findOrCreateNote(displayName, identity)
   if (!result) {
     stored.status = 'error'
     return

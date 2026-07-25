@@ -27,7 +27,7 @@ interface ParsedSessionInfo {
  * Note: courseName may contain underscores.
  */
 export function parseSessionInfo(folderName: string): ParsedSessionInfo | null {
-  const name = folderName.startsWith('slides_') ? folderName.slice(7) : folderName;
+  const name = formatToolFolderName(folderName);
 
   const sessionPattern = /^(.+)_第(\d+)周_星期([一二三四五六日])_第(\d+)大节$/;
   const match = name.match(sessionPattern);
@@ -72,8 +72,52 @@ export function compareToolFolders(a: string, b: string): number {
   return a.localeCompare(b, 'zh');
 }
 
+/**
+ * Slide folder names embed a `__c<courseId>[s<sessionId>][l<liveId>]` block,
+ * because course titles are not unique. Strip it for display alongside the
+ * `slides_` prefix. Local copy — this frontend is a separate deployable and
+ * cannot import the app's `@common/lectureNaming`.
+ */
+const LECTURE_ID_SUFFIX = /__(?:c\d+)?(?:s\d+)?(?:l\d+)?$/;
+
+export function stripLectureIds(name: string): string {
+  return name.replace(LECTURE_ID_SUFFIX, '');
+}
+
+const numericId = (value: string | number | null | undefined): string | undefined => {
+  if (value === null || value === undefined) return undefined;
+  const text = String(value).trim();
+  return /^\d+$/.test(text) ? text : undefined;
+};
+
+/**
+ * The id block for a lecture, in this fixed order:
+ *   `__c<courseId>[s<sessionId>][l<liveId>]`
+ * Recorded → `__c62313s751843`; live → `__c71736l761952`. '' when no usable id.
+ *
+ * A live id gets its own slot because it identifies one *broadcast*, not the
+ * course — writing it as a courseId would make every broadcast of a course look
+ * like a different course. Ids must be purely numeric; anything else degrades
+ * to the title-only name.
+ */
+export function buildLectureIdSuffix(
+  identity: {
+    courseId?: string | number | null;
+    sessionId?: string | number | null;
+    liveId?: string | number | null;
+  },
+): string {
+  const course = numericId(identity.courseId);
+  const live = numericId(identity.liveId);
+  // A session id is meaningless without its course.
+  const session = course ? numericId(identity.sessionId) : undefined;
+  if (!course && !live) return '';
+  return `__${course ? `c${course}` : ''}${session ? `s${session}` : ''}${live ? `l${live}` : ''}`;
+}
+
 export function formatToolFolderName(name: string): string {
-  return name.startsWith('slides_') ? name.slice(7) : name;
+  const stripped = name.startsWith('slides_') ? name.slice(7) : name;
+  return stripLectureIds(stripped);
 }
 
 export function compareToolImages(a: string, b: string): number {
@@ -118,4 +162,24 @@ export function parseFolderDisplayName(name?: string): { course: string; details
   }
 
   return { course: parsed.courseName, details: `Week ${parsed.week}` };
+}
+
+// A bare session title, in the API's spaced form or the sanitized underscore form.
+const BARE_SESSION_PATTERN = /^第(\d+)周[_\s]星期([一二三四五六日])[_\s]第(\d+)大节$/;
+
+/**
+ * Parse a standalone session title. Live rows carry no week/day of their own,
+ * but their `section_group_title` encodes both in the same format recorded
+ * sessions use, so live folders can record the same fields.
+ */
+export function parseSessionTitle(
+  title?: string | null,
+): { weekNumber: number; day: number; section: number } | null {
+  const match = title?.trim().match(BARE_SESSION_PATTERN);
+  if (!match) return null;
+  return {
+    weekNumber: parseInt(match[1], 10),
+    day: WEEKDAY_ORDER[match[2]] || 0,
+    section: parseInt(match[3], 10),
+  };
 }
