@@ -16,9 +16,10 @@ export type LanguageMode = "system" | "en" | "zh";
 // AI-filtering providers (LLM only on the web; desktop's ML mode isn't ported).
 export type AIServiceType = "builtin" | "copilot" | "custom";
 
-// Captured at subscribe time so a subscribed course keeps its rich fields (classrooms /
-// participant_count / term) — those come from the course list/search and are
-// NOT returned by getCourseInfo. Ported from the desktop app's PinnedCourse.
+// Captured at subscribe time so a subscribed course keeps its rich fields offline
+// (classrooms / participant_count / term). Those come from the course list/search
+// and are NOT returned by getCourseInfo; cold load can also recover them via
+// `lookupCourseById` and upgrade the snapshot. Ported from desktop PinnedCourse.
 export interface SubscribedCourse {
   id: string;
   title: string;

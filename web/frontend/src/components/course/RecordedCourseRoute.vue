@@ -18,10 +18,10 @@ import type { Session, SessionCourse } from '../../composables/useSessionPage'
 
 // Route wrapper for /recorded/:courseId. In-app navigation hands the full
 // course over via courseTransfer. On a cold load (deep link/refresh) the
-// subscribe-time snapshot is the fallback — it is the ONLY source of
-// classrooms/participant_count, which the by-id APIs never return (verified
-// against the live API). Last resort is a minimal stub; SessionPage's
-// getCourseInfo fetch then fills title/professors/term/college.
+// subscribe-time snapshot is the preferred cache for classrooms/participant_count
+// (by-id APIs never return them). Last resort is a minimal stub; SessionPage
+// then fills title/professors/term/college via getCourseInfo and recovers
+// list-only fields via lookupCourseById (and upgrades the subscribe snapshot).
 defineOptions({ name: 'RecordedCourseRoute' })
 
 const route = useRoute()

@@ -6,6 +6,8 @@ import { DownloadService, type DownloadQueueAddResult } from '@shared/services/d
 import { TaskQueue, type TaskQueueAddResult } from '@shared/services/taskQueueService'
 import { lectureLabel } from '@common/lectureNaming'
 import type { Course } from './useCourseList'
+import { lookupCourseById, needsListHydration } from './lookupCourseById'
+import { upgradePinnedCourse } from './pinnedCourses'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('SessionPage');
 
@@ -79,10 +81,10 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   const errorMessage = ref('')
   const showCourseDetails = ref(false)
 
-  // Rich course fields fetched via getCourseInfo (filled in loadCourseSessions).
-  // Lets a thin course opened from a pin (id + title only) gain instructor /
-  // professors / academic term / college. `classrooms` is not provided by that
-  // endpoint, so it stays as whatever the incoming course carried.
+  // Rich course fields filled in loadCourseSessions. getCourseInfo supplies
+  // instructor / professors / term / college; list-only fields (classrooms,
+  // participant_count) come from `lookupCourseById` when the incoming course
+  // did not already carry them (grid/search handoff).
   const fetchedCourseInfo = ref<Partial<SessionCourse>>({})
 
   // The incoming course merged with fetched fields. Incoming values win (the
@@ -93,12 +95,15 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     const extra = fetchedCourseInfo.value
     return {
       ...base,
+      title: base.title || extra.title || '',
       instructor: base.instructor || extra.instructor || '',
       professors: base.professors && base.professors.length > 0 ? base.professors : extra.professors,
       college_name: base.college_name || extra.college_name,
       school_year: base.school_year || extra.school_year,
       semester: base.semester || extra.semester,
       time: base.time || extra.time || '',
+      classrooms: base.classrooms && base.classrooms.length > 0 ? base.classrooms : extra.classrooms,
+      participant_count: base.participant_count ?? extra.participant_count,
     }
   })
 
@@ -185,23 +190,54 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     errorMessage.value = ''
 
     try {
-      const response = await apiClient.getCourseInfo(course.value.id, token)
+      const courseId = course.value.id
+      // Sessions always need getCourseInfo. List lookup runs in parallel only
+      // when classrooms are missing — grid/search handoffs already have them.
+      const infoPromise = apiClient.getCourseInfo(courseId, token)
+      const listPromise = needsListHydration(course.value)
+        ? lookupCourseById(token, courseId)
+        : Promise.resolve(null)
+
+      const [response, listCourse] = await Promise.all([infoPromise, listPromise])
       courseInfo.value = response
       sessions.value = response.videos
 
       // Hydrate the rich fields a thin/pinned course lacks. semester is a number
       // here (vs a string from the course list) — normalize to string. Derive a
       // display term ("2025-2026 Fall") matching useCourseList's formatting.
+      // Classrooms / participant_count come only from the list lookup.
       const semesterStr = response.semester != null ? String(response.semester) : undefined
       fetchedCourseInfo.value = {
+        title: response.title,
         instructor: response.professor,
         professors: response.professors,
-        college_name: response.college_name,
-        school_year: response.school_year,
-        semester: semesterStr,
+        college_name: response.college_name || listCourse?.college_name,
+        school_year: response.school_year || listCourse?.school_year,
+        semester: semesterStr || listCourse?.semester,
         time: response.school_year
           ? `${response.school_year} ${Number(response.semester) === 1 ? 'Fall' : 'Spring'}`
-          : undefined,
+          : listCourse?.time,
+        classrooms: listCourse?.classrooms,
+        participant_count: listCourse?.participant_count,
+      }
+
+      // Self-heal a thin pin so the next cold open has classrooms without another
+      // list hop. No-op when this course is not pinned.
+      if (listCourse) {
+        upgradePinnedCourse({
+          ...listCourse,
+          title: response.title || listCourse.title,
+          instructor: response.professor || listCourse.instructor,
+          professors: (response.professors && response.professors.length > 0)
+            ? response.professors
+            : listCourse.professors,
+          college_name: response.college_name || listCourse.college_name,
+          school_year: response.school_year || listCourse.school_year,
+          semester: semesterStr || listCourse.semester,
+          time: response.school_year
+            ? `${response.school_year} ${Number(response.semester) === 1 ? 'Fall' : 'Spring'}`
+            : listCourse.time,
+        })
       }
     } catch (error: unknown) {
       log.error('Failed to load course sessions:', error)

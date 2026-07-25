@@ -2,6 +2,8 @@ import { ref, computed, type Ref, type ComputedRef } from "vue";
 import { getCourseInfo, type SessionData, type CourseInfoResponse } from "../lib/api";
 import { authStore } from "../stores/authStore";
 import type { Course } from "./useCourseList";
+import { lookupCourseById, needsListHydration } from "./lookupCourseById";
+import { upgradeSubscribedCourse } from "./subscribedCourses";
 
 // Ported from the desktop app's features/course/useSessionPage.ts with the
 // download/task-queue plumbing stripped (web step 1 is playback only).
@@ -55,8 +57,10 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
   const errorMessage = ref("");
   const showCourseDetails = ref(false);
 
-  // Rich course fields fetched via getCourseInfo (filled in loadCourseSessions).
-  // Lets a thin course gain instructor / professors / academic term / college.
+  // Rich course fields filled in loadCourseSessions. getCourseInfo supplies
+  // instructor / professors / term / college; list-only fields (classrooms,
+  // participant_count) come from `lookupCourseById` when the incoming course
+  // did not already carry them (grid/search handoff or subscribe snapshot).
   const fetchedCourseInfo = ref<Partial<SessionCourse>>({});
 
   // The incoming course merged with fetched fields. Incoming values win (the
@@ -74,6 +78,8 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       school_year: base.school_year || extra.school_year,
       semester: base.semester || extra.semester,
       time: base.time || extra.time || "",
+      classrooms: base.classrooms && base.classrooms.length > 0 ? base.classrooms : extra.classrooms,
+      participant_count: base.participant_count ?? extra.participant_count,
     };
   });
 
@@ -105,24 +111,53 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     errorMessage.value = "";
 
     try {
-      const response = await getCourseInfo(course.value.id, token);
+      const courseId = course.value.id;
+      // Sessions always need getCourseInfo. List lookup runs in parallel only
+      // when classrooms are missing — grid/search handoffs already have them.
+      const infoPromise = getCourseInfo(courseId, token);
+      const listPromise = needsListHydration(course.value)
+        ? lookupCourseById(token, courseId)
+        : Promise.resolve(null);
+
+      const [response, listCourse] = await Promise.all([infoPromise, listPromise]);
       courseInfo.value = response;
       sessions.value = response.videos;
 
       // semester is a number here (vs a string from the course list) —
       // normalize to string. Derive a display term matching useCourseList.
+      // Classrooms / participant_count come only from the list lookup.
       const semesterStr = response.semester != null ? String(response.semester) : undefined;
       fetchedCourseInfo.value = {
         title: response.title,
         instructor: response.professor,
         professors: response.professors,
-        college_name: response.college_name,
-        school_year: response.school_year,
-        semester: semesterStr,
+        college_name: response.college_name || listCourse?.college_name,
+        school_year: response.school_year || listCourse?.school_year,
+        semester: semesterStr || listCourse?.semester,
         time: response.school_year
           ? `${response.school_year} ${Number(response.semester) === 1 ? "Fall" : "Spring"}`
-          : undefined,
+          : listCourse?.time,
+        classrooms: listCourse?.classrooms,
+        participant_count: listCourse?.participant_count,
       };
+
+      // Self-heal a thin subscribe snapshot so the next cold open has classrooms.
+      if (listCourse) {
+        upgradeSubscribedCourse({
+          ...listCourse,
+          title: response.title || listCourse.title,
+          instructor: response.professor || listCourse.instructor,
+          professors: (response.professors && response.professors.length > 0)
+            ? response.professors
+            : listCourse.professors,
+          college_name: response.college_name || listCourse.college_name,
+          school_year: response.school_year || listCourse.school_year,
+          semester: semesterStr || listCourse.semester,
+          time: response.school_year
+            ? `${response.school_year} ${Number(response.semester) === 1 ? "Fall" : "Spring"}`
+            : listCourse.time,
+        });
+      }
     } catch (error: unknown) {
       console.error("Failed to load course sessions:", error);
       errorMessage.value = error instanceof Error ? error.message : t("sessions.failedToLoadSessions");

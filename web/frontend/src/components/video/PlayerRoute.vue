@@ -39,9 +39,10 @@ import { router } from '../../router'
 import { authStore } from '../../stores/authStore'
 import { playbackStore } from '../../stores/playbackStore'
 import { takeCourse, takeSession } from '../../stores/courseTransfer'
-import { getSubscribedCourse } from '../../composables/subscribedCourses'
+import { getSubscribedCourse, upgradeSubscribedCourse } from '../../composables/subscribedCourses'
 import { getCourseInfo, getLiveList, getPersonalLiveList, type SessionData } from '../../lib/api'
 import { transformLiveStreamToCourse, type Course } from '../../composables/useCourseList'
+import { lookupCourseById, needsListHydration } from '../../composables/lookupCourseById'
 
 // Route component for /player/live/:courseId and
 // /player/recorded/:courseId/:sessionId. Owns playback hydration: in-app
@@ -69,8 +70,55 @@ const course = ref<Course | null>(null)
 const session = ref<SessionData | null>(null)
 const errorMessage = ref('')
 
+/**
+ * Merge list-only fields onto a course without overwriting a live broadcast
+ * `id` (list rows use the real course id). Used after `lookupCourseById`.
+ */
+const attachListFields = (base: Course, list: Course): Course => ({
+  ...base,
+  title: base.title || list.title,
+  instructor: base.instructor || list.instructor,
+  time: base.time || list.time,
+  professors: base.professors && base.professors.length > 0 ? base.professors : list.professors,
+  college_name: base.college_name || list.college_name,
+  school_year: base.school_year || list.school_year,
+  semester: base.semester || list.semester,
+  classrooms: base.classrooms && base.classrooms.length > 0 ? base.classrooms : list.classrooms,
+  participant_count: base.participant_count ?? list.participant_count,
+})
+
+/** Soft list lookup for classrooms when the in-hand course is list-incomplete. */
+const fillListFields = async (
+  token: string,
+  realCourseId: string | undefined,
+  upgradeSubscribe: boolean,
+): Promise<void> => {
+  if (!course.value || !realCourseId || !needsListHydration(course.value)) return
+  const list = await lookupCourseById(token, realCourseId)
+  if (!list || !course.value) return
+  course.value = attachListFields(course.value, list)
+  if (upgradeSubscribe) {
+    upgradeSubscribedCourse({
+      ...list,
+      title: course.value.title || list.title,
+      instructor: course.value.instructor || list.instructor,
+      professors: course.value.professors?.length ? course.value.professors : list.professors,
+      college_name: course.value.college_name || list.college_name,
+      school_year: course.value.school_year || list.school_year,
+      semester: course.value.semester || list.semester,
+      time: course.value.time || list.time,
+    })
+  }
+}
+
 const hydrateRecorded = async (token: string): Promise<void> => {
-  const info = await getCourseInfo(courseId, token)
+  // Sessions from getCourseInfo; classrooms from list search when missing.
+  const infoPromise = getCourseInfo(courseId, token)
+  const listPromise = needsListHydration(course.value)
+    ? lookupCourseById(token, courseId)
+    : Promise.resolve(null)
+  const [info, listCourse] = await Promise.all([infoPromise, listPromise])
+
   // Mirror useSessionPage's normalization: semester arrives as a number here
   // (vs a string from the course list) and the display term derives from
   // school_year + semester.
@@ -90,7 +138,7 @@ const hydrateRecorded = async (token: string): Promise<void> => {
   // A stashed course may be a bare stub (empty title) — handed-over values
   // win, fetched ones fill the gaps (same merge rule as useSessionPage).
   const base = course.value
-  course.value = base
+  let merged: Course = base
     ? {
         ...base,
         title: base.title || fetched.title,
@@ -102,6 +150,20 @@ const hydrateRecorded = async (token: string): Promise<void> => {
         semester: base.semester || fetched.semester,
       }
     : fetched
+  if (listCourse) {
+    merged = attachListFields(merged, listCourse)
+    upgradeSubscribedCourse({
+      ...listCourse,
+      title: merged.title || listCourse.title,
+      instructor: merged.instructor || listCourse.instructor,
+      professors: merged.professors?.length ? merged.professors : listCourse.professors,
+      college_name: merged.college_name || listCourse.college_name,
+      school_year: merged.school_year || listCourse.school_year,
+      semester: merged.semester || listCourse.semester,
+      time: merged.time || listCourse.time,
+    })
+  }
+  course.value = merged
   if (!session.value) {
     const found = info.videos.find((v) => v.session_id === sessionId) ?? null
     if (!found) {
@@ -122,6 +184,9 @@ const hydrateLive = async (token: string): Promise<void> => {
     const hit = response.data.find((s) => matches(s.id) || matches(s.live_id))
     if (hit) {
       course.value = transformLiveStreamToCourse(hit)
+      // Real course id rides on courseId (broadcast stays in `id`). List lookup
+      // fills classrooms for adaptive SSIM / metadata without renaming the stream.
+      await fillListFields(token, course.value.courseId, false)
       return
     }
     if (page >= response.last_page) break
@@ -131,6 +196,7 @@ const hydrateLive = async (token: string): Promise<void> => {
     const hit = response.data.find((s) => matches(s.id) || matches(s.live_id))
     if (hit) {
       course.value = transformLiveStreamToCourse(hit)
+      await fillListFields(token, course.value.courseId, false)
       return
     }
     if (page >= response.last_page) break
@@ -149,8 +215,8 @@ const hydrate = async (): Promise<void> => {
   }
 
   // Warm handoff from in-app navigation, then the subscribe-time snapshot
-  // (the only source of classrooms — which feed the adaptive SSIM threshold —
-  // and participant_count on a cold load). A course without a title is an
+  // (preferred cache for classrooms on cold load). List lookup still runs when
+  // the in-hand course is list-incomplete. A course without a title is an
   // unhydrated stub — don't trust it, fall through to the API merge below.
   if (!course.value) {
     course.value =
@@ -159,18 +225,40 @@ const hydrate = async (): Promise<void> => {
   if (mode === 'recorded' && !session.value && sessionId) {
     session.value = takeSession(courseId, sessionId) ?? null
   }
+
+  const token = authStore.token.value
+  if (!token) {
+    // Warm local state is enough to play; list hydrate needs a token, so skip it.
+    if (course.value?.title && (mode === 'live' || session.value)) {
+      state.value = 'ready'
+      return
+    }
+    state.value = 'signed-out'
+    return
+  }
+
+  // Title + session (or live course) already in hand: only fill missing classrooms.
   if (course.value?.title && (mode === 'live' || session.value)) {
+    if (needsListHydration(course.value)) {
+      state.value = 'loading'
+      errorMessage.value = ''
+      try {
+        const realId = mode === 'live' ? course.value.courseId : courseId
+        await fillListFields(token, realId, mode === 'recorded')
+        state.value = 'ready'
+      } catch (error: unknown) {
+        console.error('Failed to hydrate playback route:', error)
+        // Classrooms are best-effort — still enter ready so playback works.
+        state.value = 'ready'
+      }
+      return
+    }
     state.value = 'ready'
     return
   }
 
   state.value = 'loading'
   errorMessage.value = ''
-  const token = authStore.token.value
-  if (!token) {
-    state.value = 'signed-out'
-    return
-  }
   try {
     if (mode === 'recorded') {
       await hydrateRecorded(token)

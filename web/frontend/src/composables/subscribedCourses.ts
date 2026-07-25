@@ -53,10 +53,38 @@ export const removeSubscribedCourse = (id: string): void => {
 };
 
 /**
- * Rebuild a full Course from the subscribe-time snapshot. This is the ONLY
- * cold-load source for classrooms/participant_count: the by-id APIs
- * (/v1/course + session/list) never return them — they exist solely in the
- * course list/search responses, which is why subscribing records everything.
+ * Rewrite a subscribe snapshot with richer list fields recovered via
+ * `lookupCourseById`. No-op when the id is not subscribed. Self-heals thin
+ * snapshots (subscribed from a cold open before list hydrate finished).
+ */
+export const upgradeSubscribedCourse = (course: SubscribedCourse | Course): void => {
+  if (!course.id) return;
+  const list = configStore.subscribedRecordedCourses;
+  const idx = list.findIndex((c) => String(c.id) === String(course.id));
+  if (idx === -1) return;
+
+  const existing = list[idx];
+  const incoming = toPlain(course);
+  list[idx] = {
+    id: String(existing.id),
+    title: incoming.title || existing.title,
+    instructor: incoming.instructor || existing.instructor,
+    time: incoming.time || existing.time,
+    classrooms: incoming.classrooms?.length ? incoming.classrooms : existing.classrooms,
+    participant_count: incoming.participant_count ?? existing.participant_count,
+    college_name: incoming.college_name || existing.college_name,
+    professors: incoming.professors?.length ? incoming.professors : existing.professors,
+    school_year: incoming.school_year || existing.school_year,
+    semester: incoming.semester || existing.semester,
+  };
+  persistConfig();
+};
+
+/**
+ * Rebuild a full Course from the subscribe-time snapshot. Preferred cold-load
+ * cache for classrooms/participant_count (the by-id APIs never return them).
+ * When the snapshot is thin or missing, session/player load recovers list fields
+ * via `lookupCourseById` and can call `upgradeSubscribedCourse`.
  */
 export const getSubscribedCourse = (id: string): Course | null => {
   const snapshot = configStore.subscribedRecordedCourses.find(

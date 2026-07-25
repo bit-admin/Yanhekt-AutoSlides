@@ -143,7 +143,8 @@ interface CourseInfoApiResponse extends BaseApiResponse {
     professors: Array<{ name: string }>;
     // Present on the /v1/course single-course response (confirmed against the
     // live API). Note: `classrooms` is NOT returned here — only on the course
-    // list response — so it cannot be hydrated from getCourseInfo.
+    // list response. Recover list-only fields via keyword=id on /v2/course/list
+    // (renderer `lookupCourseById`), not from this endpoint.
     school_year?: string;
     semester?: number | string;
     college_name?: string;

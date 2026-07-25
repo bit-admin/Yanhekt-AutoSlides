@@ -124,7 +124,8 @@ interface CourseInfoApiResponse extends BaseApiResponse {
     semester?: number | string;
     // Often empty ("") even when the nested college object is populated —
     // verified against the live API. NO classrooms / participant_count here;
-    // those exist only in the course list/search responses.
+    // those exist only in the course list/search responses (recover via
+    // `lookupCourseById` — keyword = course id, all semesters).
     college_name?: string;
     college?: { name?: string };
   };
