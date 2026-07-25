@@ -164,7 +164,7 @@ export class FFmpegService {
 
   /**
    * Resolve the ffprobe path lazily on first access, mirroring the ffmpeg
-   * resolution. ffprobe is shipped by the `ffprobe-static` package (it is NOT
+   * resolution. ffprobe is shipped by `@ffprobe-installer/ffprobe` (it is NOT
    * part of `ffmpeg-static`), bundled into the packaged app via extraResource.
    */
   private ensureFfprobeResolved(): void {
@@ -210,18 +210,20 @@ export class FFmpegService {
 
   private initializeFfprobePath(): void {
     const ffprobeBinary = process.platform === 'win32' ? 'ffprobe.exe' : 'ffprobe';
+    // Platform package folder, e.g. darwin-arm64 / win32-x64 / linux-x64.
+    const platformPackage = `${process.platform}-${process.arch}`;
     let staticFfprobePath: string | null = null;
 
     try {
       // In packaged app, check extraResource first.
-      // ffprobe-static ships per-platform/arch binaries: bin/<platform>/<arch>/ffprobe
+      // @ffprobe-installer ships one optional package per platform/arch;
+      // extraResource copies the whole @ffprobe-installer scope, so the binary
+      // lands at @ffprobe-installer/<platform>-<arch>/ffprobe[.exe].
       if (process.resourcesPath) {
         const extraResourcePath = path.join(
           process.resourcesPath,
-          'ffprobe-static',
-          'bin',
-          process.platform,
-          process.arch,
+          '@ffprobe-installer',
+          platformPackage,
           ffprobeBinary
         );
         log.debug('Checking ffprobe extraResource path:', extraResourcePath);
@@ -234,18 +236,18 @@ export class FFmpegService {
         }
       }
 
-      // Fallback to ffprobe-static npm package (development)
+      // Fallback to @ffprobe-installer/ffprobe npm package (development)
       if (!staticFfprobePath) {
         try {
           // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const ffprobeStatic = require('ffprobe-static');
-          const pkgPath: string | undefined = ffprobeStatic?.path;
+          const ffprobeInstaller = require('@ffprobe-installer/ffprobe');
+          const pkgPath: string | undefined = ffprobeInstaller?.path;
           if (pkgPath && fs.existsSync(pkgPath)) {
             this.ensureExecutePermission(pkgPath);
             staticFfprobePath = pkgPath;
           }
         } catch (error) {
-          log.debug('ffprobe-static npm package not available:', error);
+          log.debug('@ffprobe-installer/ffprobe npm package not available:', error);
         }
       }
 
