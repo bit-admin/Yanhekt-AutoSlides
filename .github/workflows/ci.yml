@@ -57,7 +57,11 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        # Match the test matrix / build workflows — electron@41 and
+        # several deps (vite, sharp, vue-i18n, …) require Node ≥ 22.12;
+        # Node 18 fails at electron's install.js (ERR_REQUIRE_ESM on
+        # @electron/get).
+        node-version: '22'
         cache: 'npm'
         cache-dependency-path: autoslides/package-lock.json
 
