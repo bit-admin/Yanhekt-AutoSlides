@@ -26,6 +26,11 @@ export function registerAuthIpcHandlers(services: IpcServices): void {
     return await apiClient.verifyToken(token);
   });
 
+  // Best-effort server revoke; local sign-out never awaits this for success.
+  ipcMain.handle('auth:revokeToken', async (_event, token: string) => {
+    await apiClient.revokeToken(token);
+  });
+
   ipcMain.handle('auth:clearBrowserData', async () => {
     try {
       const ses = session.fromPartition('persist:browserlogin');

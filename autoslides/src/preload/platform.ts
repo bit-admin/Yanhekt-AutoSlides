@@ -8,6 +8,7 @@ export const auth = {
   cancelSmsChallenge: (challengeId: string) =>
     ipcRenderer.invoke('auth:cancelSmsChallenge', challengeId),
   verifyToken: (token: string) => ipcRenderer.invoke('auth:verifyToken', token),
+  revokeToken: (token: string) => ipcRenderer.invoke('auth:revokeToken', token),
   clearBrowserData: () => ipcRenderer.invoke('auth:clearBrowserData'),
 };
 

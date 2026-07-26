@@ -245,6 +245,27 @@ export class ApiClient {
     }
   }
 
+  /**
+   * Best-effort server-side session revoke. Callers fire-and-forget this so
+   * local sign-out never waits on the network; failures are logged only.
+   */
+  async revokeToken(token: string): Promise<void> {
+    if (!token) return;
+    try {
+      const url = "https://cbiz.yanhekt.cn/v1/cas/logout";
+      const { headers } = this.createHeaders(token);
+      await axios.get(url, {
+        headers,
+        timeout: 10000,
+        validateStatus: function (status) {
+          return status < 500;
+        }
+      });
+    } catch (error: unknown) {
+      log.error('Token revoke error:', error);
+    }
+  }
+
   private async makeRequest(method: string, url: string, token: string, data?: Record<string, unknown>): Promise<unknown> {
     const { headers } = this.createHeaders(token);
 

@@ -410,6 +410,7 @@ interface ElectronAPI {
     submitSmsCode: (challengeId: string, code: string) => Promise<AuthResponse>;
     cancelSmsChallenge: (challengeId: string) => Promise<{ success: boolean }>;
     verifyToken: (token: string) => Promise<TokenVerificationResponse>;
+    revokeToken: (token: string) => Promise<void>;
     clearBrowserData: () => Promise<{ success: boolean; error?: string }>;
   };
 

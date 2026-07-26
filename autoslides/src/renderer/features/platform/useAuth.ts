@@ -255,8 +255,15 @@ export function useAuth(onLoginSuccess?: () => void): UseAuthReturn {
   // Fully sign out of the active account AND forget it (remove from the saved
   // switch list). Also the invalid-token path (verifyExistingToken) and the
   // switch-failure path, where dropping the dead account is the right behavior.
+  // Captures the token first so we can fire-and-forget a server revoke; local
+  // clear never waits on the network. deactivate() deliberately skips revoke
+  // so "Add account" keeps the prior session usable for switch-back.
   const logout = () => {
+    const token = tokenManager.getToken()
     const badge = userId.value
+    if (token && !window.electronAPI.isDemoMode) {
+      void window.electronAPI.auth.revokeToken(token)
+    }
     if (badge && badge !== 'user123') {
       void window.electronAPI.config.removeAccount(badge)
     }
