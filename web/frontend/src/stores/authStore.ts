@@ -3,6 +3,7 @@ import {
   loginWithPassword as apiLogin,
   submitSmsCode as apiSubmitSmsCode,
   verifyToken,
+  revokeToken,
   type SignInReason,
   type UserData,
 } from "../lib/api";
@@ -187,11 +188,14 @@ function cancelSmsChallenge() {
 }
 
 function signOut() {
+  const current = token.value;
   storeToken(null);
   userData.value = null;
   smsChallenge.value = null;
   // The remembered-device blob deliberately survives sign-out: it is what
   // spares the user another SMS next time. Clearing site data drops it.
+  // Fire-and-forget server revoke so the UI never waits on the network.
+  if (current) void revokeToken(current);
 }
 
 export const authStore = {

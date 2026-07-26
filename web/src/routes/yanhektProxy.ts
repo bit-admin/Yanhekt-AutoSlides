@@ -23,6 +23,7 @@ const UPSTREAM_BASE = "https://cbiz.yanhekt.cn";
 const ALLOWED_PATHS: Record<string, string[]> = {
   GET: [
     "/v1/user",
+    "/v1/cas/logout",
     "/v2/live/list",
     "/v2/course/list",
     "/v2/course/private/list",

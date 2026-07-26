@@ -199,6 +199,21 @@ export async function verifyToken(token: string): Promise<TokenVerificationResul
   }
 }
 
+/**
+ * Best-effort server-side session revoke via the Worker proxy. Callers
+ * fire-and-forget this so local sign-out never waits on the network.
+ */
+export async function revokeToken(token: string): Promise<void> {
+  if (!token) return;
+  try {
+    await fetch(`${PROXY_BASE}/v1/cas/logout`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    // best-effort — ignore network failures
+  }
+}
+
 export async function getLiveList(
   token: string,
   page = 1,
