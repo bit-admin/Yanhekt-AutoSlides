@@ -193,5 +193,5 @@ export const defaultConfig: AppConfig = {
   localRelayWhitelistEnabled: true,
   localRelayIncludeCurrentToken: true,
   localRelayTokenWhitelist: [],
-  accounts: []
+  accounts: [],
 };

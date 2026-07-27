@@ -188,7 +188,7 @@ export class ConfigService {
       localRelayWhitelistEnabled: this.store.get('localRelayWhitelistEnabled') ?? true,
       localRelayIncludeCurrentToken: this.store.get('localRelayIncludeCurrentToken') ?? true,
       localRelayTokenWhitelist: this.store.get('localRelayTokenWhitelist') ?? [],
-      accounts: this.store.get('accounts') ?? []
+      accounts: this.store.get('accounts') ?? [],
     };
   }
 

@@ -343,6 +343,7 @@ interface DownloadProgress {
 interface CompressLectureOptions {
   inputPath: string;
   outputPath?: string;
+  replaceSource?: boolean;
   preset?: 'tiny' | 'small' | 'readable';
   audioPreset?: 'low' | 'mid' | 'high' | 'max';
   audioFilterPreset?: 'none' | 'clean' | 'speech' | 'strong' | 'loudnorm';
@@ -357,10 +358,17 @@ interface CompressLectureOptions {
 }
 
 interface CompressLectureProgress {
-  phase: 'preparing' | 'cropdetect' | 'encoding' | 'completed';
+  phase: 'preparing' | 'cropdetect' | 'encoding' | 'validating' | 'completed';
   current: number;
   total: number;
   message?: string;
+}
+
+interface LectureVideoFileInfo {
+  name: string;
+  path: string;
+  size: number;
+  mtimeMs: number;
 }
 
 interface CompressLecturePreviewResult {
@@ -604,6 +612,13 @@ interface ElectronAPI {
     onProgress: (callback: (progress: CompressLectureProgress) => void) => () => void;
     onCompleted: (callback: (result: { outputPath: string }) => void) => () => void;
     onError: (callback: (error: string) => void) => () => void;
+  };
+
+  lectures: {
+    listVideos: () => Promise<LectureVideoFileInfo[]>;
+    rename: (fromPath: string, toName: string) => Promise<{ path: string; name: string }>;
+    reveal: (filePath: string) => Promise<void>;
+    openOutputDirectory: () => Promise<void>;
   };
 
   download: {

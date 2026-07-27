@@ -16,6 +16,12 @@ export type CompressLectureContentAspect = '4:3' | '16:9' | 'cropped' | 'source'
 export interface CompressLectureOptions {
   inputPath: string;
   outputPath?: string;
+  /**
+   * When true, encode to a sibling `.compressing.tmp` file, validate size +
+   * duration, then replace the source path. Used by the Lectures batch queue.
+   * Ignores `outputPath` for the final location (temp is always beside input).
+   */
+  replaceSource?: boolean;
   preset?: CompressLecturePreset;
   audioPreset?: CompressLectureAudioPreset;
   audioFilterPreset?: CompressLectureAudioFilterPreset;
@@ -30,7 +36,7 @@ export interface CompressLectureOptions {
 }
 
 export interface CompressLectureProgress {
-  phase: 'preparing' | 'cropdetect' | 'encoding' | 'completed';
+  phase: 'preparing' | 'cropdetect' | 'encoding' | 'validating' | 'completed';
   current: number;
   total: number;
   message?: string;
@@ -51,6 +57,7 @@ export interface CompressLecturePreviewResult {
 interface NormalizedOptions {
   inputPath: string;
   outputPath?: string;
+  replaceSource: boolean;
   preset: CompressLecturePreset;
   audioPreset: CompressLectureAudioPreset;
   audioFilterPreset: CompressLectureAudioFilterPreset;
@@ -185,6 +192,8 @@ export class CompressLectureService {
     this.isRunningTask = true;
     this.cancelRequested = false;
     this.activeOutputPath = null;
+    const replaceSource = options.replaceSource === true;
+    const sourcePath = options.inputPath;
 
     try {
       const built = await this.buildCommand(options, onProgress);
@@ -194,10 +203,40 @@ export class CompressLectureService {
       }
 
       this.activeOutputPath = built.outputPath;
+      // Drop a stale temp from a previous interrupted run.
+      if (replaceSource && fs.existsSync(built.outputPath)) {
+        try {
+          fs.unlinkSync(built.outputPath);
+        } catch {
+          // ignore
+        }
+      }
+
       await this.runEncoding(built, onProgress);
 
       if (this.cancelRequested) {
         throw new Error('Compression cancelled by user');
+      }
+
+      if (replaceSource) {
+        onProgress({
+          phase: 'validating',
+          current: 99,
+          total: 100,
+          message: 'Validating compressed output',
+        });
+        await this.validateAndReplaceSource(
+          sourcePath,
+          built.outputPath,
+          built.durationSeconds,
+        );
+        onProgress({
+          phase: 'completed',
+          current: 100,
+          total: 100,
+          message: 'Completed',
+        });
+        return { outputPath: sourcePath };
       }
 
       onProgress({
@@ -209,11 +248,15 @@ export class CompressLectureService {
 
       return { outputPath: built.outputPath };
     } catch (error) {
-      if (this.cancelRequested && this.activeOutputPath && fs.existsSync(this.activeOutputPath)) {
-        try {
-          fs.unlinkSync(this.activeOutputPath);
-        } catch {
-          // ignore cleanup failure
+      if (this.activeOutputPath && fs.existsSync(this.activeOutputPath)) {
+        // Always clean partials on cancel; also clean replace-mode temps on any failure
+        // so a bad encode never leaves a sibling that confuses the Lectures scanner.
+        if (this.cancelRequested || replaceSource) {
+          try {
+            fs.unlinkSync(this.activeOutputPath);
+          } catch {
+            // ignore cleanup failure
+          }
         }
       }
       throw error;
@@ -222,6 +265,101 @@ export class CompressLectureService {
       this.isRunningTask = false;
       this.cancelRequested = false;
       this.activeOutputPath = null;
+    }
+  }
+
+  /**
+   * Script-parity validation then durable replace of the original source.
+   * On any validation failure the temp is removed and the source is left alone.
+   */
+  private async validateAndReplaceSource(
+    sourcePath: string,
+    tempPath: string,
+    sourceDurationSeconds: number,
+  ): Promise<void> {
+    if (!fs.existsSync(tempPath)) {
+      throw new Error('Compressed output missing after encode');
+    }
+
+    const outStat = fs.statSync(tempPath);
+    if (outStat.size < 10_000) {
+      try {
+        fs.unlinkSync(tempPath);
+      } catch {
+        // ignore
+      }
+      throw new Error(`Compressed output too small (${outStat.size} bytes)`);
+    }
+
+    const ffmpegPath = this.ffmpegService.getFfmpegPath();
+    if (!ffmpegPath) {
+      try {
+        fs.unlinkSync(tempPath);
+      } catch {
+        // ignore
+      }
+      throw new Error('FFmpeg is not available for validation');
+    }
+    const ffprobePath = await this.resolveFfprobePath(ffmpegPath);
+    let outDuration = 0;
+    try {
+      const probe = await this.probeInput(ffprobePath, tempPath);
+      outDuration = probe.durationSeconds;
+    } catch (error) {
+      try {
+        fs.unlinkSync(tempPath);
+      } catch {
+        // ignore
+      }
+      throw new Error(
+        `Failed to probe compressed output: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    if (sourceDurationSeconds > 0 && outDuration > 0) {
+      const lo = sourceDurationSeconds * 0.9;
+      const hi = sourceDurationSeconds * 1.1;
+      if (outDuration < lo || outDuration > hi) {
+        try {
+          fs.unlinkSync(tempPath);
+        } catch {
+          // ignore
+        }
+        throw new Error(
+          `Duration validation failed (source=${sourceDurationSeconds.toFixed(1)}s output=${outDuration.toFixed(1)}s)`,
+        );
+      }
+    } else if (!outDuration) {
+      try {
+        fs.unlinkSync(tempPath);
+      } catch {
+        // ignore
+      }
+      throw new Error('Compressed output has no readable duration');
+    }
+
+    // Replace: write over source via rename. On Windows, rename onto existing
+    // may fail — unlink source first then rename.
+    try {
+      if (process.platform === 'win32' && fs.existsSync(sourcePath)) {
+        fs.unlinkSync(sourcePath);
+      }
+      fs.renameSync(tempPath, sourcePath);
+    } catch (error) {
+      // Last resort: copy then unlink temp
+      try {
+        fs.copyFileSync(tempPath, sourcePath);
+        fs.unlinkSync(tempPath);
+      } catch (copyError) {
+        try {
+          if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+        } catch {
+          // ignore
+        }
+        throw new Error(
+          `Failed to replace source: ${copyError instanceof Error ? copyError.message : String(error)}`,
+        );
+      }
     }
   }
 
@@ -474,6 +612,7 @@ export class CompressLectureService {
     return {
       inputPath: options.inputPath,
       outputPath: options.outputPath,
+      replaceSource: options.replaceSource === true,
       preset: options.preset ?? 'tiny',
       audioPreset: options.audioPreset ?? 'mid',
       audioFilterPreset: options.audioFilterPreset ?? 'speech',
@@ -598,6 +737,15 @@ export class CompressLectureService {
   }
 
   private resolveOutputPath(options: NormalizedOptions): string {
+    // Lectures batch path: always encode next to the source as a temp file;
+    // `start()` validates then renames over the original.
+    if (options.replaceSource) {
+      const inputDir = path.dirname(options.inputPath);
+      const stem = path.basename(options.inputPath, path.extname(options.inputPath));
+      const ext = path.extname(options.inputPath) || `.${options.container}`;
+      return path.join(inputDir, `${stem}.compressing.tmp${ext}`);
+    }
+
     if (options.outputPath && options.outputPath.trim()) {
       return options.outputPath;
     }

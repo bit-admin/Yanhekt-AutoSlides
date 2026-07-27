@@ -44,6 +44,15 @@
           <CloudNotesTab v-if="cloudNotesMounted" />
         </div>
 
+        <!-- Lectures (Workspace page — local .mp4 library + compress/rename).
+             Lazily mounted; kept mounted so the compress queue UI stays alive. -->
+        <div
+          :class="['mode-container', { 'mode-hidden': activeNav !== 'lectures' }]"
+          data-mode="lectures"
+        >
+          <LecturesPage v-if="lecturesMounted" />
+        </div>
+
         <!-- Settings (Workspace page — full-width, right panel hidden). Reached
              from the user-bar gear button / menu bar, not the Workspace nav list.
              Lazily mounted on first visit so its prepare loads (network
@@ -119,6 +128,7 @@ import HomePage from '@renderer/components/course/HomePage.vue'
 import SearchPage from '@renderer/components/course/SearchPage.vue'
 import ResultsWindow from '@renderer/components/results/ResultsWindow.vue'
 import CloudNotesTab from '@renderer/components/cloudnotes/CloudNotesTab.vue'
+import LecturesPage from '@renderer/components/lectures/LecturesPage.vue'
 import SettingsPage from '@renderer/components/settings/SettingsPage.vue'
 import type { Course, Session } from '@features/video/useSlideExtraction'
 import { DataStore } from '@shared/services/dataStore'
@@ -144,6 +154,17 @@ watch(
   activeNav,
   (nav) => {
     if (nav === 'cloud-notes') cloudNotesMounted.value = true
+  },
+  { immediate: true }
+)
+
+// Lectures mounts lazily; kept mounted so the in-page compress queue strip and
+// list selection survive sidebar navigations away and back.
+const lecturesMounted = ref(false)
+watch(
+  activeNav,
+  (nav) => {
+    if (nav === 'lectures') lecturesMounted.value = true
   },
   { immediate: true }
 )

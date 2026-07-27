@@ -18,16 +18,6 @@
           </button>
           <button
             class="toolwin-tab"
-            :class="{ active: activeTab === 'compress' }"
-            @click="switchTab('compress')"
-          >
-            <svg width="14" height="14" viewBox="0 0 16 16">
-              <path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1zm3 2H4v8h8V6h-2V4H6zm1 0v1h2V4H7zm-2 5h6v1H5V9z" fill="currentColor"/>
-            </svg>
-            {{ $t('tools.tabCompressLecture') }}
-          </button>
-          <button
-            class="toolwin-tab"
             :class="{ active: activeTab === 'webcapture' }"
             @click="switchTab('webcapture')"
           >
@@ -73,9 +63,6 @@
       <div v-show="activeTab === 'offline'" class="tab-panel">
         <OfflineProcessingTab />
       </div>
-      <div v-show="activeTab === 'compress'" class="tab-panel">
-        <CompressLectureTab />
-      </div>
       <div v-show="activeTab === 'webcapture'" class="tab-panel">
         <WebCaptureTab />
       </div>
@@ -89,14 +76,15 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
 import OfflineProcessingTab from '@renderer/components/offline/OfflineProcessingTab.vue'
-import CompressLectureTab from './CompressLectureTab.vue'
 import WebCaptureTab from '@renderer/components/webCapture/WebCaptureTab.vue'
 import YuketangTab from '@renderer/components/export/YuketangTab.vue'
 
-type TabId = 'offline' | 'compress' | 'webcapture' | 'yuketang'
+// Lecture Compress moved to Workspace → Lectures (batch queue). Tools keeps
+// Offline Processing, Web Capture, and Yuketang only.
+type TabId = 'offline' | 'webcapture' | 'yuketang'
 
 const isValidTab = (tab: string | null): tab is TabId =>
-  tab === 'offline' || tab === 'compress' || tab === 'webcapture' || tab === 'yuketang'
+  tab === 'offline' || tab === 'webcapture' || tab === 'yuketang'
 
 const isMacOS = navigator.userAgent.includes('Mac')
 

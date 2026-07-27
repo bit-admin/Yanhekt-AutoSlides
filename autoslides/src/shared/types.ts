@@ -215,6 +215,28 @@ export interface AppConfig {
   accounts: StoredAccount[];
 }
 
+/** Compress options persisted for the Lectures batch modal (no paths). */
+export interface LectureCompressDefaults {
+  preset: 'tiny' | 'small' | 'readable';
+  audioPreset: 'low' | 'mid' | 'high' | 'max';
+  audioFilterPreset: 'none' | 'clean' | 'speech' | 'strong' | 'loudnorm';
+  cropMode: 'none' | '4:3' | 'auto';
+  filterMode: 'none' | 'denoise' | 'sharpen' | 'both';
+  scaler: 'lanczos' | 'bicubic';
+  container: 'mp4' | 'mkv';
+  opusVbr: 'on' | 'constrained' | 'off';
+  opusFrameDuration: 20 | 40 | 60;
+  keepAac: boolean;
+  x265Params: string;
+}
+
+export interface LectureRenameOptions {
+  includeInstructor: boolean;
+  includeSchoolYear: boolean;
+  includeCollege: boolean;
+  includeClassrooms: boolean;
+}
+
 // A recorded course pinned to the sidebar. `id` drives navigation/session loading;
 // `title` is the sidebar label. The remaining fields are captured at pin time so
 // opening a pin restores the full context offline — notably `classrooms` and

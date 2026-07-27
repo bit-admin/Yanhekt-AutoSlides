@@ -61,6 +61,13 @@
             </svg>
             <span>{{ $t('navigation.cloudNotes') }}</span>
           </button>
+          <button :class="['nav-item', { active: activeNav === 'lectures' }]" @click="navigate('lectures')">
+            <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="5" width="18" height="14" rx="2"/>
+              <path d="M10 9l5 3-5 3V9z" fill="currentColor" stroke="none"/>
+            </svg>
+            <span>{{ $t('navigation.lectures') }}</span>
+          </button>
         </nav>
 
         <div class="nav-group-title nav-group-title--spaced">{{ $t('navigation.pinned') }}</div>

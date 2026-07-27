@@ -28,6 +28,7 @@ export const ffmpeg = {
 type CompressLectureOptions = {
   inputPath: string;
   outputPath?: string;
+  replaceSource?: boolean;
   preset?: 'tiny' | 'small' | 'readable';
   audioPreset?: 'low' | 'mid' | 'high' | 'max';
   audioFilterPreset?: 'none' | 'clean' | 'speech' | 'strong' | 'loudnorm';
@@ -42,7 +43,7 @@ type CompressLectureOptions = {
 };
 
 type CompressLectureProgress = {
-  phase: 'preparing' | 'cropdetect' | 'encoding' | 'completed';
+  phase: 'preparing' | 'cropdetect' | 'encoding' | 'validating' | 'completed';
   current: number;
   total: number;
   message?: string;

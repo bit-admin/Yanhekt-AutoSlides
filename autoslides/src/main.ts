@@ -168,7 +168,8 @@ const notesService = new NotesService(configService);
 
 const windowManager = new WindowManager();
 windowManager.setConfigService(configService);
-windowManager.setOnToolsWindowClosed(() => compressLectureService.cancel());
+// Lecture Compress moved to the main-window Lectures page; do not cancel an
+// in-flight batch encode just because the Tools window closes.
 
 // Initialize power management based on config
 const initializePowerManagement = async () => {
