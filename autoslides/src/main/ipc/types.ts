@@ -25,6 +25,7 @@ import type { OfflineProcessingService } from '@main/extraction/offlineProcessin
 import type { CacheManagementService } from '@main/platform/cacheManagementService';
 import type { NotesService } from '@main/platform/notesService';
 import type { LocalRelayService } from '@main/video/localRelayService';
+import type { LocalLecturePosterService } from '@main/video/localLecturePosterService';
 
 export interface IpcServices {
   authService: MainAuthService;
@@ -34,6 +35,7 @@ export interface IpcServices {
   videoProxyService: VideoProxyService;
   localRelayService: LocalRelayService;
   thumbnailService: ThumbnailService;
+  localLecturePosterService: LocalLecturePosterService;
   ffmpegService: FFmpegService;
   m3u8DownloadService: M3u8DownloadService;
   powerManagementService: PowerManagementService;

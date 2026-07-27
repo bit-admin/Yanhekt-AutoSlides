@@ -19,4 +19,11 @@ export const lectures = {
     ipcRenderer.invoke('lectures:reveal', filePath) as Promise<void>,
   openOutputDirectory: () =>
     ipcRenderer.invoke('lectures:openOutputDirectory') as Promise<void>,
+  openExternally: (filePath: string) =>
+    ipcRenderer.invoke('lectures:openExternally', filePath) as Promise<void>,
+  getPoster: (filePath: string, seekSeconds?: number) =>
+    ipcRenderer.invoke('lectures:getPoster', {
+      path: filePath,
+      seekSeconds,
+    }) as Promise<string | null>,
 };

@@ -1487,6 +1487,25 @@
     "compressed": "압축됨",
     "compressedHint": "{preset} 프리셋으로 압축됨",
     "alreadyCompressedOrQueued": "{count}개 파일이 이미 이 프리셋으로 압축되었거나 대기열에 있습니다",
-    "compressSkippedSome": "{added}개 대기열 추가, {skipped}개는 동일 프리셋으로 이미 압축됨(또는 대기 중)이라 건너뜀"
+    "compressSkippedSome": "{added}개 대기열 추가, {skipped}개는 동일 프리셋으로 이미 압축됨(또는 대기 중)이라 건너뜀",
+    "viewList": "목록",
+    "viewLibrary": "라이브러리",
+    "libraryHydrating": "강의 메타데이터 불러오는 중…",
+    "libraryEmpty": "인식된 강의 영상이 없습니다.",
+    "libraryEmptyHint": "라이브러리는 코스·세션 ID가 있는 파일만 표시합니다(레거시 __c…s… 또는 Emby [yhid=…] 태그). 미인식 파일은 목록 보기를 사용하거나 로그인 후 이름 변경을 하세요.",
+    "libraryBackCourses": "강의",
+    "libraryBack": "뒤로",
+    "libraryNoEpisodes": "이 강의에 재생할 회차가 없습니다.",
+    "libraryDual": "듀얼",
+    "libraryFileCount": "파일 {count}개",
+    "libraryCourseCount": "강의 {count}개",
+    "openExternally": "외부 플레이어로 열기",
+    "revealInFolder": "폴더에서 보기",
+    "libraryPlay": "재생",
+    "libraryEpisodes": "회차",
+    "libraryEpisodeCount": "{count}개 회차",
+    "libraryInstructor": "교수",
+    "libraryClassrooms": "강의실",
+    "libraryFiles": "파일"
   }
 }

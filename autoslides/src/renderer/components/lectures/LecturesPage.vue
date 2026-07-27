@@ -1,170 +1,228 @@
 <template>
   <!-- Layout mirrors ResultsWindow (Slides): toolbar / list / optional progress / footer. -->
   <div class="lectures-page">
-    <div class="toolbar">
-      <div class="toolbar-left">
-        <button class="btn refresh-btn" @click="loadVideos" :disabled="isLoading">
-          <svg width="16" height="16" viewBox="0 0 16 16" :class="{ spinning: isLoading }" aria-hidden="true">
-            <path d="M13.65 2.35A7.958 7.958 0 008 0a8 8 0 108 8h-2a6 6 0 11-1.76-4.24l-2.12 2.12H16V0l-2.35 2.35z" fill="currentColor"/>
-          </svg>
-          {{ $t('lectures.refresh') }}
-        </button>
+    <!-- Player takes over the whole page chrome (still not a Playback tab). -->
+    <LecturePlayerView
+      v-if="playerBundle"
+      :course="playerBundle.course"
+      :session="playerBundle.session"
+      :initial-mode="playerTarget!.streamMode"
+      @back="onPlayerBack"
+    />
 
-        <button class="btn" @click="openOutputDirectory">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-          </svg>
-          {{ $t('settings.openFolder') }}
-        </button>
+    <template v-else>
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <!-- Same macOS segmented control as Search Live|Recorded (Library first). -->
+          <div class="mode-switch" role="tablist">
+            <button
+              type="button"
+              class="mode-pill"
+              :class="{ active: viewMode === 'library' }"
+              @click="setViewMode('library')"
+            >
+              {{ $t('lectures.viewLibrary') }}
+            </button>
+            <button
+              type="button"
+              class="mode-pill"
+              :class="{ active: viewMode === 'list' }"
+              @click="setViewMode('list')"
+            >
+              {{ $t('lectures.viewList') }}
+            </button>
+          </div>
 
-        <button
-          class="edit-btn"
-          :class="{ 'edit-btn-active': isSelectMode }"
-          :disabled="videos.length === 0 || isLoading"
-          @click="toggleSelectMode"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-            <rect x="1.5" y="1.5" width="13" height="13" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
-            <path d="M4.5 8.2l2.4 2.4 4.6-5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          {{ isSelectMode ? $t('lectures.doneSelecting') : $t('lectures.select') }}
-          <span v-if="isSelectMode && selectedPaths.length > 0" class="edit-count">
-            {{ selectedPaths.length }}
-          </span>
-        </button>
-      </div>
-
-      <div class="actions">
-        <button
-          class="action-btn action-btn--primary"
-          :disabled="!canCompress"
-          :title="compressDisabledReason"
-          @click="openCompress"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1zm3 2H4v8h8V6h-2V4H6zm1 0v1h2V4H7zm-2 5h6v1H5V9z" fill="currentColor"/>
-          </svg>
-          {{ $t('lectures.compress') }}
-        </button>
-        <button
-          class="action-btn action-btn--secondary"
-          :disabled="!canRename"
-          @click="openRename"
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M11.5 1.5l3 3L5 14H2v-3L11.5 1.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-          </svg>
-          {{ $t('lectures.rename') }}
-        </button>
-      </div>
-    </div>
-
-    <div class="content-area custom-scrollbar">
-      <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
-      <div v-if="isLoading && videos.length === 0" class="loading-state">
-        <div class="spinner"></div>
-        <p>{{ $t('lectures.loading') }}</p>
-      </div>
-      <LectureListView
-        v-else
-        :groups="groups"
-        :group-by-course="groupByCourse"
-        :is-select-mode="isSelectMode"
-        :selected-paths="selectedPaths"
-        :is-loading="isLoading"
-        :format-bytes="formatBytes"
-        :active-path="activeJob?.inputPath"
-        :active-progress="activeJob?.progress"
-        @toggle-selection="toggleSelection"
-        @select-group="selectGroup"
-        @reveal="reveal"
-      />
-    </div>
-
-    <!-- Queue status + full-width progress sit above the footer (Slides progress strip). -->
-    <div v-if="queue.hasWork.value" class="queue-status">
-      <div class="queue-status-main">
-        <template v-if="activeJob">
-          <span class="queue-label">{{ $t('lectures.compressing') }}</span>
-          <span class="queue-name" :title="activeJob.displayName">{{ activeJob.displayName }}</span>
-          <span class="queue-pct">{{ activeJob.progress }}%</span>
-        </template>
-        <template v-else>
-          <span class="queue-label">{{ $t('lectures.queueIdle') }}</span>
-        </template>
-        <span v-if="queue.queuedCount.value > 0" class="queue-pending">
-          {{ $t('lectures.queuedCount', { count: queue.queuedCount.value }) }}
-        </span>
-      </div>
-      <div class="queue-status-actions">
-        <button
-          v-if="activeJob"
-          type="button"
-          class="btn"
-          @click="() => queue.cancelCurrent()"
-        >
-          {{ $t('lectures.cancelCompress') }}
-        </button>
-      </div>
-    </div>
-    <div
-      v-if="activeJob"
-      class="progress-bar-container"
-      :title="`${activeJob.displayName} — ${activeJob.progress}%`"
-    >
-      <div class="progress-bar" :style="{ width: `${activeJob.progress}%` }"></div>
-    </div>
-
-    <div class="footer">
-      <div class="footer-left">
-        <template v-if="isSelectMode">
-          <button
-            type="button"
-            class="select-all-btn"
-            :disabled="videos.length === 0"
-            @click="selectedPaths.length === videos.length ? clearSelection() : selectAll()"
-          >
-            {{ selectedPaths.length === videos.length ? $t('trash.clearSelection') : $t('trash.selectAll') }}
+          <button class="btn refresh-btn" @click="onRefresh" :disabled="isLoading">
+            <svg width="16" height="16" viewBox="0 0 16 16" :class="{ spinning: isLoading }" aria-hidden="true">
+              <path d="M13.65 2.35A7.958 7.958 0 008 0a8 8 0 108 8h-2a6 6 0 11-1.76-4.24l-2.12 2.12H16V0l-2.35 2.35z" fill="currentColor"/>
+            </svg>
+            {{ $t('lectures.refresh') }}
           </button>
-          <span>{{ $t('trash.selected') }}: {{ selectedPaths.length }} / {{ $t('trash.total') }}: {{ videos.length }}</span>
-        </template>
-        <template v-else>
-          <span>{{ $t('trash.total') }}: {{ videos.length }}</span>
-        </template>
+
+          <button class="btn" @click="openOutputDirectory">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            {{ $t('settings.openFolder') }}
+          </button>
+
+          <button
+            v-if="viewMode === 'list'"
+            class="edit-btn"
+            :class="{ 'edit-btn-active': isSelectMode }"
+            :disabled="videos.length === 0 || isLoading"
+            @click="toggleSelectMode"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+              <rect x="1.5" y="1.5" width="13" height="13" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+              <path d="M4.5 8.2l2.4 2.4 4.6-5.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            {{ isSelectMode ? $t('lectures.doneSelecting') : $t('lectures.select') }}
+            <span v-if="isSelectMode && selectedPaths.length > 0" class="edit-count">
+              {{ selectedPaths.length }}
+            </span>
+          </button>
+        </div>
+
+        <div v-if="viewMode === 'list'" class="actions">
+          <button
+            class="action-btn action-btn--primary"
+            :disabled="!canCompress"
+            :title="compressDisabledReason"
+            @click="openCompress"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1zm3 2H4v8h8V6h-2V4H6zm1 0v1h2V4H7zm-2 5h6v1H5V9z" fill="currentColor"/>
+            </svg>
+            {{ $t('lectures.compress') }}
+          </button>
+          <button
+            class="action-btn action-btn--secondary"
+            :disabled="!canRename"
+            @click="openRename"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M11.5 1.5l3 3L5 14H2v-3L11.5 1.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+            </svg>
+            {{ $t('lectures.rename') }}
+          </button>
+        </div>
       </div>
-      <label class="group-toggle">
-        <input type="checkbox" v-model="groupByCourse" />
-        <span>{{ $t('trash.groupByCourse') }}</span>
-      </label>
-    </div>
 
-    <LectureCompressModal
-      v-if="showCompressModal"
-      :file-count="selectedScreenRecognised.length"
-      @close="showCompressModal = false"
-      @start="onCompressStart"
-    />
+      <div
+        class="content-area custom-scrollbar"
+        :class="{ 'content-area--library': viewMode === 'library' }"
+      >
+        <div v-if="errorMessage" class="error-banner">{{ errorMessage }}</div>
+        <div v-if="isLoading && videos.length === 0" class="loading-state">
+          <div class="spinner"></div>
+          <p>{{ $t('lectures.loading') }}</p>
+        </div>
 
-    <LectureRenameModal
-      v-if="showRenameModal"
-      :items="selectedRecognised"
-      :existing-names="videos.map((v) => v.name)"
-      @close="showRenameModal = false"
-      @done="onRenameDone"
-    />
+        <LectureListView
+          v-else-if="viewMode === 'list'"
+          :groups="groups"
+          :group-by-course="groupByCourse"
+          :is-select-mode="isSelectMode"
+          :selected-paths="selectedPaths"
+          :is-loading="isLoading"
+          :format-bytes="formatBytes"
+          :active-path="activeJob?.inputPath"
+          :active-progress="activeJob?.progress"
+          @toggle-selection="toggleSelection"
+          @select-group="selectGroup"
+          @open="openExternally"
+        />
+
+        <LectureLibraryView
+          v-else
+          :browse-level="browseLevel"
+          :courses="libraryCourses"
+          :active-course="activeCourse"
+          :is-hydrating="isHydrating"
+          :posters="posters"
+          @open-course="openCourse"
+          @back-courses="openCourses"
+          @play-session="onPlaySession"
+          @need-poster="loadPoster"
+        />
+      </div>
+
+      <!-- Queue status + full-width progress sit above the footer (Slides progress strip). -->
+      <div v-if="queue.hasWork.value" class="queue-status">
+        <div class="queue-status-main">
+          <template v-if="activeJob">
+            <span class="queue-label">{{ $t('lectures.compressing') }}</span>
+            <span class="queue-name" :title="activeJob.displayName">{{ activeJob.displayName }}</span>
+            <span class="queue-pct">{{ activeJob.progress }}%</span>
+          </template>
+          <template v-else>
+            <span class="queue-label">{{ $t('lectures.queueIdle') }}</span>
+          </template>
+          <span v-if="queue.queuedCount.value > 0" class="queue-pending">
+            {{ $t('lectures.queuedCount', { count: queue.queuedCount.value }) }}
+          </span>
+        </div>
+        <div class="queue-status-actions">
+          <button
+            v-if="activeJob"
+            type="button"
+            class="btn"
+            @click="() => queue.cancelCurrent()"
+          >
+            {{ $t('lectures.cancelCompress') }}
+          </button>
+        </div>
+      </div>
+      <div
+        v-if="activeJob"
+        class="progress-bar-container"
+        :title="`${activeJob.displayName} — ${activeJob.progress}%`"
+      >
+        <div class="progress-bar" :style="{ width: `${activeJob.progress}%` }"></div>
+      </div>
+
+      <div v-if="viewMode === 'list'" class="footer">
+        <div class="footer-left">
+          <template v-if="isSelectMode">
+            <button
+              type="button"
+              class="select-all-btn"
+              :disabled="videos.length === 0"
+              @click="selectedPaths.length === videos.length ? clearSelection() : selectAll()"
+            >
+              {{ selectedPaths.length === videos.length ? $t('trash.clearSelection') : $t('trash.selectAll') }}
+            </button>
+            <span>{{ $t('trash.selected') }}: {{ selectedPaths.length }} / {{ $t('trash.total') }}: {{ videos.length }}</span>
+          </template>
+          <template v-else>
+            <span>{{ $t('trash.total') }}: {{ videos.length }}</span>
+          </template>
+        </div>
+        <label class="group-toggle">
+          <input type="checkbox" v-model="groupByCourse" />
+          <span>{{ $t('trash.groupByCourse') }}</span>
+        </label>
+      </div>
+
+      <LectureCompressModal
+        v-if="showCompressModal"
+        :file-count="selectedScreenRecognised.length"
+        @close="showCompressModal = false"
+        @start="onCompressStart"
+      />
+
+      <LectureRenameModal
+        v-if="showRenameModal"
+        :items="selectedRecognised"
+        :existing-names="videos.map((v) => v.name)"
+        @close="showRenameModal = false"
+        @done="onRenameDone"
+      />
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LectureCompressDefaults } from '@common/types'
 import { useLecturesPage } from '@features/lectures/useLecturesPage'
+import { useLectureLibrary } from '@features/lectures/useLectureLibrary'
+import type { LibrarySession } from '@features/lectures/libraryModel'
 import LectureListView from './LectureListView.vue'
+import LectureLibraryView from './LectureLibraryView.vue'
+import LecturePlayerView from './LecturePlayerView.vue'
 import LectureCompressModal from './LectureCompressModal.vue'
 import LectureRenameModal from './LectureRenameModal.vue'
 
+export type LecturesViewMode = 'list' | 'library'
+
 const { t } = useI18n()
+
+/** Session-only Library|List toggle (not AppConfig). Opens on Library. */
+const viewMode = ref<LecturesViewMode>('library')
 
 const {
   videos,
@@ -187,10 +245,32 @@ const {
   clearSelection,
   openOutputDirectory,
   reveal,
+  openExternally,
   formatBytes,
 } = useLecturesPage()
 
+const {
+  browseLevel,
+  playerTarget,
+  courses: libraryCourses,
+  activeCourse,
+  activePlayerSession,
+  isHydrating,
+  posters,
+  openCourses,
+  openCourse,
+  openPlayer,
+  closePlayer,
+  loadPoster,
+  hydrate,
+} = useLectureLibrary(videos)
+
 const activeJob = computed(() => queue.activeJob.value)
+
+const playerBundle = computed(() => {
+  if (!playerTarget.value) return null
+  return activePlayerSession.value
+})
 
 watch(
   () => queue.hasWork.value,
@@ -200,11 +280,11 @@ watch(
 )
 
 const canCompress = computed(
-  () => isSelectMode.value && selectedScreenRecognised.value.length > 0,
+  () => viewMode.value === 'list' && isSelectMode.value && selectedScreenRecognised.value.length > 0,
 )
 
 const canRename = computed(
-  () => isSelectMode.value && selectedRecognised.value.length > 0,
+  () => viewMode.value === 'list' && isSelectMode.value && selectedRecognised.value.length > 0,
 )
 
 const compressDisabledReason = computed(() => {
@@ -212,6 +292,25 @@ const compressDisabledReason = computed(() => {
   if (selectedScreenRecognised.value.length === 0) return t('lectures.compressScreenOnly')
   return ''
 })
+
+const setViewMode = (mode: LecturesViewMode) => {
+  if (viewMode.value === mode) return
+  // Leaving library / player tears down player state.
+  closePlayer()
+  if (mode === 'library' && isSelectMode.value) {
+    toggleSelectMode()
+  }
+  viewMode.value = mode
+  if (mode === 'library') {
+    openCourses()
+    void hydrate()
+  }
+}
+
+const onRefresh = async () => {
+  await loadVideos()
+  if (viewMode.value === 'library') void hydrate()
+}
 
 const openCompress = () => {
   if (!canCompress.value) return
@@ -256,8 +355,17 @@ const onRenameDone = async () => {
   await loadVideos()
 }
 
-onMounted(() => {
-  void loadVideos()
+const onPlaySession = (courseId: string, session: LibrarySession) => {
+  openPlayer(courseId, session)
+}
+
+const onPlayerBack = () => {
+  closePlayer()
+}
+
+onMounted(async () => {
+  await loadVideos()
+  if (viewMode.value === 'library') void hydrate()
 })
 </script>
 
@@ -267,6 +375,9 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   background-color: var(--bg-surface);
   color: var(--text-primary);
 }
@@ -291,6 +402,43 @@ onMounted(() => {
   gap: 8px;
   flex-wrap: wrap;
   row-gap: 6px;
+}
+
+/* macOS-style segmented control — matches SearchPage Live|Recorded
+   (gray grouped track, white outlined active pill; visible in light mode). */
+.mode-switch {
+  display: flex;
+  align-items: center;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--bg-page-alt);
+  border: 1px solid var(--border-color);
+}
+
+.mode-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  line-height: 1.2;
+}
+
+.mode-pill:hover {
+  color: var(--text-primary);
+}
+
+.mode-pill.active {
+  background: var(--bg-surface);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px var(--shadow-sm);
 }
 
 /* Identical to ResultsWindow Select-mode edit button. */
@@ -372,13 +520,13 @@ onMounted(() => {
 }
 
 .action-btn--secondary {
-  background-color: var(--neutral-strong, var(--bg-input));
-  color: var(--text-on-accent, var(--text-primary));
-  border: 1px solid transparent;
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  border: 1px solid var(--border-input);
 }
 
 .action-btn--secondary:hover:not(:disabled) {
-  background-color: var(--neutral-strong-hover, var(--bg-hover));
+  background-color: var(--bg-hover);
 }
 
 .action-btn:disabled {
@@ -386,101 +534,123 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
+/* List mode matches ResultsWindow/Slides: padded scroll surface. */
 .content-area {
   flex: 1;
-  overflow-y: auto;
-  padding: 16px;
+  min-width: 0;
   min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background-color: var(--bg-surface);
+}
+
+/* Library paints edge-to-edge and owns its own vertical scroll. */
+.content-area--library {
+  padding: 0;
+  overflow: hidden;
+  background: transparent;
 }
 
 .error-banner {
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: var(--danger-bg, var(--bg-subtle));
+  margin: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
   color: var(--danger);
   font-size: 12px;
 }
 
 .loading-state {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.refresh-btn .spinning {
+  animation: spin 0.8s linear infinite;
 }
 
 .queue-status {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 16px;
-  border-top: 1px solid var(--border-color);
+  gap: 10px;
+  padding: 8px 12px;
   background: var(--bg-elevated);
+  border-top: 1px solid var(--border-color);
+  font-size: 12px;
   flex-shrink: 0;
 }
 
 .queue-status-main {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   min-width: 0;
-  flex: 1;
-  font-size: 12px;
+  flex-wrap: wrap;
 }
 
 .queue-label {
-  font-weight: 600;
   color: var(--text-secondary);
-  flex-shrink: 0;
+  font-weight: 550;
 }
 
 .queue-name {
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  min-width: 0;
-  color: var(--text-primary);
+  max-width: 40vw;
 }
 
 .queue-pct,
 .queue-pending {
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
-}
-
-.queue-status-actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
 }
 
 .progress-bar-container {
   height: 3px;
-  background-color: var(--border-color);
   width: 100%;
-  overflow: hidden;
+  background: var(--bg-subtle);
   flex-shrink: 0;
 }
 
 .progress-bar {
   height: 100%;
-  background-color: var(--accent);
-  transition: width 0.15s ease-out;
+  background: var(--accent);
+  transition: width 0.2s ease;
 }
 
 .footer {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
-  background-color: var(--bg-elevated);
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
   border-top: 1px solid var(--border-color);
+  background: var(--bg-elevated);
   font-size: 12px;
   color: var(--text-secondary);
   flex-shrink: 0;
@@ -489,55 +659,30 @@ onMounted(() => {
 .footer-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-width: 0;
 }
 
 .select-all-btn {
-  padding: 4px 8px;
-  border: 1px solid var(--border-input);
-  border-radius: 4px;
-  background: var(--bg-input);
-  color: var(--text-primary);
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--accent);
   font-size: 12px;
   cursor: pointer;
+  padding: 0;
 }
 
-.select-all-btn:hover:not(:disabled) {
-  background: var(--bg-hover);
-}
-
-.select-all-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Same pill as ResultsWindow footer "Group by Course". */
 .group-toggle {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background-color: var(--bg-elevated);
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color 0.15s, border-color 0.15s;
   user-select: none;
-}
-
-.group-toggle:hover {
-  background-color: var(--bg-hover);
-  border-color: var(--border-strong);
+  cursor: pointer;
 }
 
 .group-toggle input {
-  width: 11px;
-  height: 11px;
   margin: 0;
   accent-color: var(--accent);
-  cursor: pointer;
 }
 </style>

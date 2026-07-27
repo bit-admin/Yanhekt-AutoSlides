@@ -619,6 +619,8 @@ interface ElectronAPI {
     rename: (fromPath: string, toName: string) => Promise<{ path: string; name: string }>;
     reveal: (filePath: string) => Promise<void>;
     openOutputDirectory: () => Promise<void>;
+    openExternally: (filePath: string) => Promise<void>;
+    getPoster: (filePath: string, seekSeconds?: number) => Promise<string | null>;
   };
 
   download: {

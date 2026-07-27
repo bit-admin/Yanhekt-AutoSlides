@@ -8,6 +8,11 @@ import { IntranetMappingService } from '@main/platform/intranetMappingService';
 import { VideoProxyService } from '@main/video/videoProxyService';
 import { LocalRelayService } from '@main/video/localRelayService';
 import { ThumbnailService } from '@main/video/thumbnailService';
+import { LocalLecturePosterService } from '@main/video/localLecturePosterService';
+import {
+  installAsmediaProtocol,
+  registerAsmediaScheme,
+} from '@main/video/asmediaProtocol';
 import { FFmpegService } from '@main/infra/ffmpegService';
 import { M3u8DownloadService } from '@main/video/m3u8DownloadService';
 import { PowerManagementService } from '@main/platform/powerManagementService';
@@ -29,6 +34,10 @@ import { offlineProcessingService } from '@main/extraction/offlineProcessingServ
 import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
 import { applyDemoUserData, isDemoLaunch, demoWebPreferences } from '@main/demo/demoEnv';
+
+// Custom local media scheme for Lectures Library playback. Must register
+// privileges BEFORE app is ready (Electron requirement).
+registerAsmediaScheme();
 
 // Demo mode (npm run demo / screenshots): isolate persistence to a separate
 // `AutoSlides-Demo` userData dir. Must run BEFORE `new ConfigService()` below,
@@ -127,6 +136,9 @@ const createWindow = () => {
 };
 
 app.on('ready', () => {
+  // Local progressive media for Lectures Library (Range seeks under outputDir).
+  // Install before any window loads so asmedia:// is ready immediately.
+  installAsmediaProtocol(configService);
   if (process.platform === 'darwin') {
     windowManager.updateApplicationMenu();
   } else {
@@ -157,6 +169,7 @@ const videoProxyService = new VideoProxyService(apiClient, intranetMappingServic
 const localRelayService = new LocalRelayService(apiClient, intranetMappingService, configService);
 const ffmpegService = new FFmpegService();
 const thumbnailService = new ThumbnailService(videoProxyService, ffmpegService);
+const localLecturePosterService = new LocalLecturePosterService(configService, ffmpegService);
 const compressLectureService = new CompressLectureService(ffmpegService);
 const m3u8DownloadService = new M3u8DownloadService(ffmpegService, configService, intranetMappingService, apiClient);
 const powerManagementService = new PowerManagementService();
@@ -207,6 +220,7 @@ registerAllIpcHandlers({
   videoProxyService,
   localRelayService,
   thumbnailService,
+  localLecturePosterService,
   ffmpegService,
   m3u8DownloadService,
   powerManagementService,

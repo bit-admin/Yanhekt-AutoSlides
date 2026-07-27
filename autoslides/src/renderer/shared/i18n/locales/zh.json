@@ -1487,6 +1487,25 @@
     "compressed": "已压缩",
     "compressedHint": "已使用 {preset} 预设压缩",
     "alreadyCompressedOrQueued": "{count} 个文件已用该预设压缩或已在队列中",
-    "compressSkippedSome": "已加入 {added} 个；跳过 {skipped} 个已用该预设压缩（或已在队列中）的文件"
+    "compressSkippedSome": "已加入 {added} 个；跳过 {skipped} 个已用该预设压缩（或已在队列中）的文件",
+    "viewList": "列表",
+    "viewLibrary": "资料库",
+    "libraryHydrating": "正在加载课程元数据…",
+    "libraryEmpty": "暂无已识别的课程视频。",
+    "libraryEmptyHint": "资料库只显示带有课程与课时身份的文件（旧版 __c…s… 或 Emby [yhid=…] 标签）。未识别文件请用列表视图，或登录后使用重命名。",
+    "libraryBackCourses": "课程",
+    "libraryBack": "返回",
+    "libraryNoEpisodes": "此课程下没有可播放的课时。",
+    "libraryDual": "双路",
+    "libraryFileCount": "{count} 个文件",
+    "libraryCourseCount": "{count} 门课程",
+    "openExternally": "用外部播放器打开",
+    "revealInFolder": "在文件夹中显示",
+    "libraryPlay": "播放",
+    "libraryEpisodes": "课时",
+    "libraryEpisodeCount": "{count} 课时",
+    "libraryInstructor": "教师",
+    "libraryClassrooms": "教室",
+    "libraryFiles": "文件"
   }
 }

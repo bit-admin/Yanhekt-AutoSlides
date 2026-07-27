@@ -1487,6 +1487,25 @@
     "compressed": "Compressed",
     "compressedHint": "Compressed with the {preset} preset",
     "alreadyCompressedOrQueued": "{count} file(s) already compressed with this preset or already in the queue",
-    "compressSkippedSome": "Queued {added}; skipped {skipped} already compressed with this preset (or already queued)"
+    "compressSkippedSome": "Queued {added}; skipped {skipped} already compressed with this preset (or already queued)",
+    "viewList": "List",
+    "viewLibrary": "Library",
+    "libraryHydrating": "Loading course metadata…",
+    "libraryEmpty": "No recognised lecture videos yet.",
+    "libraryEmptyHint": "Library only shows files with course and session identity (legacy __c…s… names or Emby [yhid=…] tags). Use List view for unrecognised files, or Rename after signing in.",
+    "libraryBackCourses": "Courses",
+    "libraryBack": "Back",
+    "libraryNoEpisodes": "No episodes found for this course.",
+    "libraryDual": "Dual",
+    "libraryFileCount": "{count} files",
+    "libraryCourseCount": "{count} courses",
+    "openExternally": "Open Externally",
+    "revealInFolder": "Reveal in Folder",
+    "libraryPlay": "Play",
+    "libraryEpisodes": "Episodes",
+    "libraryEpisodeCount": "{count} episodes",
+    "libraryInstructor": "Instructor",
+    "libraryClassrooms": "Classroom",
+    "libraryFiles": "Files"
   }
 }

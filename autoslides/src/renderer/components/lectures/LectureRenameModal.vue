@@ -73,16 +73,17 @@ import {
   episodeIndexForSession,
   type LectureVideoType,
 } from '@common/lectureVideoNaming'
-import { ApiClient } from '@shared/services/apiClient'
 import { tokenManager } from '@shared/services/authService'
-import { lookupCourseById } from '@features/course/lookupCourseById'
+import {
+  hydrateCourseMetas,
+  type LectureCourseMeta,
+} from '@features/lectures/lectureCourseMetaCache'
 import { DEFAULT_RENAME } from '@features/lectures/lecturePrefs'
 import type { LectureVideoItem } from '@features/lectures/useLecturesPage'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('LectureRenameModal')
 const { t } = useI18n()
-const apiClient = new ApiClient()
 
 const props = defineProps<{
   items: LectureVideoItem[]
@@ -100,78 +101,38 @@ const options = reactive<LectureRenameOptions>({ ...DEFAULT_RENAME })
 const isHydrating = ref(false)
 const isApplying = ref(false)
 const hydrateWarning = ref('')
-
-interface CourseMeta {
-  title: string
-  instructor?: string
-  schoolYear?: string
-  semester?: string | number
-  college?: string
-  classrooms?: string[]
-  sessions: Array<{
-    session_id: string
-    title: string
-    week_number?: number
-    day?: number
-    started_at?: string
-  }>
-}
-
-const metaByCourse = ref<Map<string, CourseMeta>>(new Map())
+const metaByCourse = ref<Map<string, LectureCourseMeta>>(new Map())
 
 const hydrate = async () => {
   isHydrating.value = true
   hydrateWarning.value = ''
-  const map = new Map<string, CourseMeta>()
   const token = tokenManager.getToken()
   const courseIds = [...new Set(props.items.map((i) => i.courseId).filter(Boolean))] as string[]
+  const titleBy = new Map<string, string>()
+  for (const item of props.items) {
+    if (item.courseId && !titleBy.has(item.courseId)) {
+      titleBy.set(
+        item.courseId,
+        item.displayName.split(' - ')[0] || item.displayName || item.courseId,
+      )
+    }
+  }
 
   if (!token) {
     hydrateWarning.value = t('lectures.renameOfflineWarning')
   }
 
-  for (const courseId of courseIds) {
-    if (!token) {
-      map.set(courseId, {
-        title: props.items.find((i) => i.courseId === courseId)?.displayName.split(' - ')[0]
-          || props.items.find((i) => i.courseId === courseId)?.displayName
-          || courseId,
-        sessions: [],
-      })
-      continue
-    }
-    try {
-      const [info, list] = await Promise.all([
-        apiClient.getCourseInfo(courseId, token),
-        lookupCourseById(token, courseId),
-      ])
-      map.set(courseId, {
-        title: info.title || list?.title || courseId,
-        instructor: info.professor || list?.instructor,
-        schoolYear: info.school_year || list?.school_year,
-        semester: info.semester ?? list?.semester,
-        college: info.college_name || list?.college_name,
-        classrooms: (list?.classrooms || []).map((c) => c.name).filter(Boolean),
-        sessions: (info.videos || []).map((v) => ({
-          session_id: String(v.session_id),
-          title: v.title,
-          week_number: v.week_number,
-          day: v.day,
-          started_at: v.started_at,
-        })),
-      })
-    } catch (error) {
-      log.warn('Failed to hydrate course for rename', courseId, error)
-      map.set(courseId, {
-        title: props.items.find((i) => i.courseId === courseId)?.displayName || courseId,
-        sessions: [],
-      })
+  try {
+    metaByCourse.value = await hydrateCourseMetas(courseIds, titleBy)
+    if (token && [...metaByCourse.value.values()].some((m) => m.degraded)) {
       hydrateWarning.value = t('lectures.renamePartialWarning')
     }
+  } catch (error) {
+    log.warn('Rename hydrate failed', error)
+    hydrateWarning.value = t('lectures.renamePartialWarning')
+  } finally {
+    isHydrating.value = false
   }
-
-  metaByCourse.value = map
-  isHydrating.value = false
 }
 
 onMounted(() => {

@@ -214,6 +214,10 @@ export function useLecturesPage() {
     await window.electronAPI.lectures.reveal(filePath)
   }
 
+  const openExternally = async (filePath: string) => {
+    await window.electronAPI.lectures.openExternally(filePath)
+  }
+
   return {
     videos,
     isLoading,
@@ -236,6 +240,7 @@ export function useLecturesPage() {
     clearSelection,
     openOutputDirectory,
     reveal,
+    openExternally,
     formatBytes,
   }
 }

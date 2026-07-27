@@ -1487,6 +1487,25 @@
     "compressed": "圧縮済み",
     "compressedHint": "{preset} プリセットで圧縮済み",
     "alreadyCompressedOrQueued": "{count} 件はこのプリセットで圧縮済み、または既にキューにあります",
-    "compressSkippedSome": "{added} 件をキューに追加、{skipped} 件は同プリセット圧縮済み（またはキュー済み）のためスキップ"
+    "compressSkippedSome": "{added} 件をキューに追加、{skipped} 件は同プリセット圧縮済み（またはキュー済み）のためスキップ",
+    "viewList": "リスト",
+    "viewLibrary": "ライブラリ",
+    "libraryHydrating": "コース情報を読み込み中…",
+    "libraryEmpty": "認識済みの講義動画がありません。",
+    "libraryEmptyHint": "ライブラリにはコースとセッション ID を持つファイルのみ表示されます（旧形式 __c…s… または Emby [yhid=…]）。未認識はリスト表示を使うか、ログイン後にリネームしてください。",
+    "libraryBackCourses": "コース",
+    "libraryBack": "戻る",
+    "libraryNoEpisodes": "このコースにエピソードがありません。",
+    "libraryDual": "デュアル",
+    "libraryFileCount": "{count} ファイル",
+    "libraryCourseCount": "{count} コース",
+    "openExternally": "外部プレーヤーで開く",
+    "revealInFolder": "フォルダで表示",
+    "libraryPlay": "再生",
+    "libraryEpisodes": "エピソード",
+    "libraryEpisodeCount": "{count} 話",
+    "libraryInstructor": "教員",
+    "libraryClassrooms": "教室",
+    "libraryFiles": "ファイル"
   }
 }

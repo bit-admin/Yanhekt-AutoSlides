@@ -21,3 +21,12 @@ export function assertBareFilename(name: string): void {
     throw new Error('Invalid filename: contains path separators or traversal characters');
   }
 }
+
+/** True when `target` is the same as or a child of `root` (after resolve). */
+export function isPathInsideRoot(root: string, target: string): boolean {
+  const resolvedRoot = path.resolve(root);
+  const resolvedTarget = path.resolve(target);
+  if (resolvedRoot === resolvedTarget) return true;
+  const rel = path.relative(resolvedRoot, resolvedTarget);
+  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
+}

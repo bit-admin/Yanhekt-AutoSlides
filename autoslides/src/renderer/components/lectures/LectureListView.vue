@@ -56,7 +56,7 @@
           'folder-item-edit': isSelectMode,
           'folder-item-active-job': activePath === item.path,
         }"
-        @click="isSelectMode ? emit('toggle-selection', item.path) : emit('reveal', item.path)"
+        @click="isSelectMode ? emit('toggle-selection', item.path) : emit('open', item.path)"
       >
         <div v-if="isSelectMode" class="folder-checkbox">
           <input
@@ -144,7 +144,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'toggle-selection', path: string): void
   (e: 'select-group', paths: string[]): void
-  (e: 'reveal', path: string): void
+  (e: 'open', path: string): void
 }>()
 
 const isGroupingActive = (group: LectureCourseGroup) =>
@@ -173,6 +173,8 @@ const iconClass = (type?: LectureVideoType) => {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  width: 100%;
 }
 
 .course-group {

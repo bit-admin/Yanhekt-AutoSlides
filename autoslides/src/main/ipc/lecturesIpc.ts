@@ -1,7 +1,7 @@
-import { ipcMain } from 'electron';
+import { ipcMain, shell } from 'electron';
 import fs from 'node:fs';
 import path from 'node:path';
-import { expandTilde, hasTraversalSegment } from '@main/infra/pathUtils';
+import { expandTilde, hasTraversalSegment, isPathInsideRoot } from '@main/infra/pathUtils';
 import type { IpcServices } from './types';
 import { createLogger } from '@main/infra/logger';
 
@@ -15,15 +15,6 @@ function assertNoTraversal(targetPath: string): void {
   }
 }
 
-/** True when `target` is the same as or a child of `root` (after resolve). */
-function isPathInsideRoot(root: string, target: string): boolean {
-  const resolvedRoot = path.resolve(root);
-  const resolvedTarget = path.resolve(target);
-  if (resolvedRoot === resolvedTarget) return true;
-  const rel = path.relative(resolvedRoot, resolvedTarget);
-  return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
-}
-
 export interface LectureVideoFileInfo {
   name: string;
   path: string;
@@ -32,7 +23,7 @@ export interface LectureVideoFileInfo {
 }
 
 export function registerLecturesIpcHandlers(services: IpcServices): void {
-  const { configService } = services;
+  const { configService, localLecturePosterService } = services;
 
   ipcMain.handle('lectures:listVideos', async (): Promise<LectureVideoFileInfo[]> => {
     try {
@@ -123,7 +114,6 @@ export function registerLecturesIpcHandlers(services: IpcServices): void {
       if (!isPathInsideRoot(outputDir, filePath) && path.resolve(filePath) !== path.resolve(outputDir)) {
         throw new Error('Path is outside the output directory');
       }
-      const { shell } = await import('electron');
       shell.showItemInFolder(path.resolve(filePath));
     } catch (error) {
       log.error('Failed to reveal lecture video:', error);
@@ -134,7 +124,6 @@ export function registerLecturesIpcHandlers(services: IpcServices): void {
   ipcMain.handle('lectures:openOutputDirectory', async (): Promise<void> => {
     try {
       const outputDir = expandTilde(configService.getConfig().outputDirectory);
-      const { shell } = await import('electron');
       const result = await shell.openPath(outputDir);
       if (result) {
         throw new Error(result);
@@ -144,4 +133,39 @@ export function registerLecturesIpcHandlers(services: IpcServices): void {
       throw error;
     }
   });
+
+  /** Open a video with the OS default player (codec fallback). */
+  ipcMain.handle('lectures:openExternally', async (_event, filePath: string): Promise<void> => {
+    try {
+      assertNoTraversal(filePath);
+      const outputDir = expandTilde(configService.getConfig().outputDirectory);
+      if (!isPathInsideRoot(outputDir, filePath)) {
+        throw new Error('Path is outside the output directory');
+      }
+      const result = await shell.openPath(path.resolve(filePath));
+      if (result) {
+        throw new Error(result);
+      }
+    } catch (error) {
+      log.error('Failed to open lecture video externally:', error);
+      throw error;
+    }
+  });
+
+  /** Lazy JPEG poster (data URL) for Library cards. */
+  ipcMain.handle(
+    'lectures:getPoster',
+    async (
+      _event,
+      payload: { path: string; seekSeconds?: number },
+    ): Promise<string | null> => {
+      try {
+        if (!payload?.path) return null;
+        return await localLecturePosterService.getPoster(payload.path, payload.seekSeconds);
+      } catch (error) {
+        log.error('Failed to get lecture poster:', error);
+        return null;
+      }
+    },
+  );
 }
