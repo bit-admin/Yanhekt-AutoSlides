@@ -264,10 +264,13 @@ const getLiveBadgeClass = (status?: number) => {
   font-size: 0.875rem;
 }
 
-/* 16:9 grids */
+/* 16:9 grids.
+   minmax(0,1fr) + card min-width:0 stop intrinsic image sizes from stretching
+   unequal columns on first paint (before cover PNGs decode / while cold).
+   Absolute img keeps the box sized only by aspect-ratio, not content. */
 .video-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2.5rem 1.5rem;
   flex: 1 0 auto;
 }
@@ -279,6 +282,7 @@ const getLiveBadgeClass = (status?: number) => {
   position: relative;
   background-color: transparent;
   width: 100%;
+  min-width: 0;
 }
 
 .video-thumbnail-container {
@@ -292,6 +296,8 @@ const getLiveBadgeClass = (status?: number) => {
 }
 
 .video-thumbnail {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -304,6 +310,8 @@ const getLiveBadgeClass = (status?: number) => {
 }
 
 .video-thumbnail-placeholder {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -477,7 +485,7 @@ const getLiveBadgeClass = (status?: number) => {
 
 @media (max-width: 1024px) {
   .video-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 

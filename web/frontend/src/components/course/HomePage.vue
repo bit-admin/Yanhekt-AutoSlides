@@ -525,10 +525,13 @@ watch(activeNav, (nav) => {
   color: var(--text-secondary);
 }
 
-/* YouTube Style Responsive Grid */
+/* YouTube Style Responsive Grid.
+   minmax(0,1fr) + card min-width:0 stop intrinsic image sizes from stretching
+   unequal columns on first paint (before cover PNGs decode / while cold).
+   Absolute img keeps the box sized only by aspect-ratio, not content. */
 .video-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2.5rem 1.5rem;
 }
 
@@ -539,6 +542,7 @@ watch(activeNav, (nav) => {
   position: relative;
   background-color: transparent;
   width: 100%;
+  min-width: 0;
 }
 
 .video-thumbnail-container {
@@ -552,6 +556,8 @@ watch(activeNav, (nav) => {
 }
 
 .video-thumbnail {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -564,6 +570,8 @@ watch(activeNav, (nav) => {
 }
 
 .video-thumbnail-placeholder {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -812,7 +820,7 @@ watch(activeNav, (nav) => {
 
 @media (max-width: 1024px) {
   .video-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
