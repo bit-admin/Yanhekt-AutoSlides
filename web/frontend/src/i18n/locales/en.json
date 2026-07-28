@@ -159,6 +159,12 @@
     "exitCinemaMode": "Exit Cinema Mode",
     "exitPictureInPicture": "Exit PiP Mode",
     "extracted": "Extracted",
+    "extractionFeatures": {
+      "cancel": "Cancel",
+      "continue": "Continue",
+      "lead": "Would you like to enable these features? You can change them later in Settings.",
+      "title": "Before you extract slides"
+    },
     "goToCourse": "Go to Course",
     "goToLive": "Go to Live",
     "instructor": "Instructor",

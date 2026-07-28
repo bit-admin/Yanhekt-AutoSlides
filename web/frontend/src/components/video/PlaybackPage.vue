@@ -486,6 +486,12 @@
           @toggle="onExtractionToggle"
           @post-process="slideExtraction.executePostProcessing()"
         />
+
+        <ExtractionFeaturesModal
+          v-if="showExtractionFeaturesPrompt"
+          @continue="onExtractionFeaturesContinue"
+          @cancel="onExtractionFeaturesCancel"
+        />
       </div>
 
       <!-- Right Column: Sessions / Notes sidebar (Hidden in cinema mode on desktop) -->
@@ -564,6 +570,8 @@ import { router } from '../../router'
 import { stashCourse, stashSession } from '../../stores/courseTransfer'
 import SingleStreamControls from './SingleStreamControls.vue'
 import SlideExtractionPanel from './SlideExtractionPanel.vue'
+import ExtractionFeaturesModal from './ExtractionFeaturesModal.vue'
+import { hasSeenExtractionFeaturesPrompt } from '../../stores/extractionFeaturesPromptStore'
 import WatchNotesPanel from '../notes/WatchNotesPanel.vue'
 import { configStore } from '../../stores/configStore'
 import { watchNotesStore } from '../../stores/watchNotesStore'
@@ -725,9 +733,37 @@ const extractionPostStatus = computed(() => {
   return folder ? postProcessingStatus[folder] ?? null : null
 })
 
-const onExtractionToggle = (checked: boolean) => {
-  slideExtraction.isSlideExtractionEnabled.value = checked
+// First-time turn-on of slide extraction: offer AI filtering + watch-mode note
+// sync before the pipeline starts. localStorage-gated so it only appears once.
+const showExtractionFeaturesPrompt = ref(false)
+
+const startExtraction = () => {
+  slideExtraction.isSlideExtractionEnabled.value = true
   void slideExtraction.toggleSlideExtraction()
+}
+
+const onExtractionToggle = (checked: boolean) => {
+  if (!checked) {
+    slideExtraction.isSlideExtractionEnabled.value = false
+    void slideExtraction.toggleSlideExtraction()
+    return
+  }
+  if (!hasSeenExtractionFeaturesPrompt()) {
+    // Leave the toggle visually off until the user confirms the prompt.
+    showExtractionFeaturesPrompt.value = true
+    return
+  }
+  startExtraction()
+}
+
+const onExtractionFeaturesContinue = () => {
+  showExtractionFeaturesPrompt.value = false
+  startExtraction()
+}
+
+const onExtractionFeaturesCancel = () => {
+  showExtractionFeaturesPrompt.value = false
+  // Toggle stays off — user declined to start extraction.
 }
 
 // Switching to a camera-only view mid-extraction force-stops it (desktop parity).

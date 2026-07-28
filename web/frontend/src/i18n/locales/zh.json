@@ -159,6 +159,12 @@
     "exitCinemaMode": "退出影院模式",
     "exitPictureInPicture": "退出画中画",
     "extracted": "已提取",
+    "extractionFeatures": {
+      "cancel": "取消",
+      "continue": "继续",
+      "lead": "要启用这些功能吗？之后可在设置中更改。",
+      "title": "开始提取幻灯片前"
+    },
     "goToCourse": "前往课程",
     "goToLive": "前往直播",
     "instructor": "讲师",
