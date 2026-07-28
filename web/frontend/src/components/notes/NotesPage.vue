@@ -488,7 +488,7 @@ async function onMoveGroup(groupId: number): Promise<void> {
   --nt-border: rgba(0, 0, 0, 0.06);
   --nt-accent: #2383e2;
   --nt-sidebar-width: 15.5rem;
-  --nt-doc-max: 48rem;
+  --nt-doc-max: 52rem;
   --nt-title-size: 2.5rem;
   color-scheme: light;
 }

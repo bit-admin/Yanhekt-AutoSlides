@@ -196,7 +196,10 @@ function onGroupChange(e: Event): void {
 }
 
 .nec-doc {
-  max-width: var(--nt-doc-max, 48rem);
+  /* Shared left gutter for title / meta / body so the ＋ / drag-handle
+     toolbar doesn't leave body text indented relative to the heading. */
+  --nt-toolbar-gutter: 56px;
+  max-width: var(--nt-doc-max, 52rem);
   margin: 0 auto;
   padding: 12px 48px 120px;
   box-sizing: border-box;
@@ -208,6 +211,8 @@ function onGroupChange(e: Event): void {
   box-sizing: border-box;
   margin: 0;
   padding: 8px 0 4px;
+  /* Match editor body left edge (body sits after the toolbar gutter). */
+  padding-left: var(--nt-toolbar-gutter);
   border: none;
   background: transparent;
   color: var(--nt-text, #37352f);
@@ -232,6 +237,7 @@ function onGroupChange(e: Event): void {
   align-items: center;
   gap: 12px;
   margin: 4px 0 20px;
+  padding-left: var(--nt-toolbar-gutter);
   padding-bottom: 12px;
   border-bottom: 1px solid var(--nt-border, rgba(0, 0, 0, 0.06));
 }
@@ -275,7 +281,7 @@ function onGroupChange(e: Event): void {
 
 .nec-editor-doc {
   /* Left gutter for Editor.js block toolbar (＋ / drag handle). */
-  padding-left: 56px;
+  padding-left: var(--nt-toolbar-gutter);
   box-sizing: border-box;
   min-height: 12rem;
 }
@@ -360,15 +366,12 @@ function onGroupChange(e: Event): void {
 
 @media (max-width: 768px) {
   .nec-doc {
+    --nt-toolbar-gutter: 40px;
     padding: 4px 20px 96px;
   }
 
   .nec-title {
     font-size: 1.85rem;
-  }
-
-  .nec-editor-doc {
-    padding-left: 40px;
   }
 }
 </style>

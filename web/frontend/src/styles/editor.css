@@ -15,7 +15,7 @@
    Editor.js injects its CSS at runtime, after this file loads.
 
    The host document must provide a left gutter (padding-left) wide enough for the
-   toolbar; both editor docs do (`.cn-editor-doc` / `.wn-editor-doc`). */
+   toolbar; both editor docs do (`.nec-editor-doc` / `.wn-editor-doc`). */
 
 .codex-editor.codex-editor--narrow .codex-editor__redactor {
   margin-right: 0;
