@@ -57,6 +57,8 @@
         <div v-if="showHelpMenu" class="dropdown-menu" @click.stop>
           <div class="menu-option" @click="openGitHub">{{ $t('titlebar.visitGitHub') }}</div>
           <div class="menu-option" @click="openITCenter">{{ $t('titlebar.itCenterSoftware') }}</div>
+          <div class="menu-option" @click="openYanhekt">{{ $t('titlebar.openYanhekt') }}</div>
+          <div class="menu-option" @click="openAutoSlidesWeb">{{ $t('titlebar.openAutoSlidesWeb') }}</div>
           <div class="menu-separator"></div>
           <div class="menu-option" @click="checkForUpdates">{{ $t('titlebar.checkForUpdates') }}</div>
           <div class="menu-separator"></div>
@@ -292,6 +294,7 @@ import { layoutStore, toggleLeftPanel, toggleRightPanel } from '@shared/services
 import { tabStore, type PlaybackTab } from '@features/course/tabStore';
 import { navigationStore } from '@features/course/navigationStore';
 import { useAuth } from '@features/platform/useAuth';
+import { tokenManager } from '@shared/services/authService';
 import { taskQueueState } from '@shared/services/taskQueueService';
 
 const { t: $t } = useI18n();
@@ -597,7 +600,34 @@ const openITCenter = async () => {
   try {
     await window.electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/software');
   } catch (error) {
-    log.error('Failed to open User Manual:', error);
+    log.error('Failed to open Official Website:', error);
+  }
+};
+
+const openYanhekt = async () => {
+  try {
+    const token = tokenManager.getToken();
+    // Signed in: open /login with token so the site picks up the session.
+    // Signed out: homepage only — no /login?... path.
+    const url = token
+      ? `https://www.yanhekt.cn/login?token=${encodeURIComponent(token)}&type=Bearer&expired_at=${Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60}`
+      : 'https://www.yanhekt.cn';
+    await window.electronAPI.shell.openExternal(url);
+  } catch (error) {
+    log.error('Failed to open Yanhekt website:', error);
+  }
+};
+
+const openAutoSlidesWeb = async () => {
+  try {
+    const token = tokenManager.getToken();
+    // Web adopts ?token= on load (bookmarklet return shape). Signed out: bare origin.
+    const url = token
+      ? `https://learn.ruc.edu.kg?token=${encodeURIComponent(token)}`
+      : 'https://learn.ruc.edu.kg';
+    await window.electronAPI.shell.openExternal(url);
+  } catch (error) {
+    log.error('Failed to open AutoSlides Web:', error);
   }
 };
 

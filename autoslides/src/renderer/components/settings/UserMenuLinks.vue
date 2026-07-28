@@ -66,10 +66,12 @@
       </svg>
     </button>
 
-    <!-- User Manual / IT Center -->
+    <!-- Official website (IT Center software page) -->
     <button type="button" class="signin-option" @click="openITCenter">
-      <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-        <path d="M1 2.828c.885-.37 2.154-.769 3.388-.893 1.33-.134 2.458.063 3.112.752v9.746c-.935-.53-2.12-.603-3.213-.493-1.18.12-2.37.461-3.287.811V2.828zm7.5-.141c.654-.689 1.782-.886 3.112-.752 1.234.124 2.503.523 3.388.893v9.923c-.918-.35-2.107-.692-3.287-.81-1.094-.111-2.278-.039-3.213.492V2.687zM8 1.783C7.015.936 5.587.81 4.287.94c-1.514.153-3.042.672-3.994 1.105A.5.5 0 0 0 0 2.5v11a.5.5 0 0 0 .707.455c.882-.4 2.303-.881 3.68-1.02 1.409-.142 2.59.087 3.223.877a.5.5 0 0 0 .78 0c.633-.79 1.814-1.019 3.222-.877 1.378.139 2.8.62 3.681 1.02A.5.5 0 0 0 16 13.5v-11a.5.5 0 0 0-.293-.455c-.952-.433-2.48-.952-3.994-1.105C10.413.809 8.985.936 8 1.783z"/>
+      <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 10.5 12 3l9 7.5"/>
+        <path d="M5 10v10h14V10"/>
+        <path d="M10 20v-6h4v6"/>
       </svg>
       <span>{{ $t('titlebar.itCenterSoftware') }}</span>
       <svg class="menu-link-external" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -79,12 +81,27 @@
       </svg>
     </button>
 
-    <!-- Open Yanhekt website with the current auth token -->
+    <!-- Open Yanhekt website with the current auth token (homepage when signed out) -->
     <button type="button" class="signin-option" @click="openYanhekt">
-      <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-        <path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zM4.5 7.5h7a.5.5 0 0 1 0 1h-7a.5.5 0 0 1 0-1zM8 3a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-1 0v-9A.5.5 0 0 1 8 3z"/>
+      <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="2" y1="12" x2="22" y2="12"/>
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
       </svg>
       <span>{{ $t('titlebar.openYanhekt') }}</span>
+      <svg class="menu-link-external" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M15 3h6v6"/>
+        <path d="M10 14L21 3"/>
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+      </svg>
+    </button>
+
+    <!-- Open AutoSlides Web (learn.ruc.edu.kg) with the current auth token -->
+    <button type="button" class="signin-option" @click="openAutoSlidesWeb">
+      <svg class="signin-option-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+      </svg>
+      <span>{{ $t('titlebar.openAutoSlidesWeb') }}</span>
       <svg class="menu-link-external" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M15 3h6v6"/>
         <path d="M10 14L21 3"/>
@@ -116,22 +133,34 @@ const openITCenter = async () => {
   try {
     await window.electronAPI.shell.openExternal('https://it.ruc.edu.kg/zh/software')
   } catch (error) {
-    log.error('Failed to open User Manual:', error)
+    log.error('Failed to open Official Website:', error)
   }
 }
 
 const openYanhekt = async () => {
   try {
     const token = tokenManager.getToken()
-    // Expiry timestamp 7 days from now (Unix seconds, matching Yanhekt's expired_at)
-    const expiredAt = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60
-    const base = 'https://www.yanhekt.cn/login'
+    // Signed in: open /login with token so the site picks up the session.
+    // Signed out: homepage only — no /login?... path.
     const url = token
-      ? `${base}?token=${encodeURIComponent(token)}&type=Bearer&expired_at=${expiredAt}`
-      : base
+      ? `https://www.yanhekt.cn/login?token=${encodeURIComponent(token)}&type=Bearer&expired_at=${Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60}`
+      : 'https://www.yanhekt.cn'
     await window.electronAPI.shell.openExternal(url)
   } catch (error) {
     log.error('Failed to open Yanhekt website:', error)
+  }
+}
+
+const openAutoSlidesWeb = async () => {
+  try {
+    const token = tokenManager.getToken()
+    // Web adopts ?token= on load (bookmarklet return shape). Signed out: bare origin.
+    const url = token
+      ? `https://learn.ruc.edu.kg?token=${encodeURIComponent(token)}`
+      : 'https://learn.ruc.edu.kg'
+    await window.electronAPI.shell.openExternal(url)
+  } catch (error) {
+    log.error('Failed to open AutoSlides Web:', error)
   }
 }
 

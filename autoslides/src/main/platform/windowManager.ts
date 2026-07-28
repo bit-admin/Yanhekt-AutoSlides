@@ -149,7 +149,24 @@ export class WindowManager {
       { label: t('titlebar.window'), submenu: [{ role: 'minimize', label: t('titlebar.minimize') }, { role: 'close', label: t('titlebar.close') }, { type: 'separator' }, { role: 'front', label: t('titlebar.bringAllToFront') }] },
       { label: t('titlebar.help'), role: 'help', submenu: [
         { label: t('titlebar.visitGitHub'), click: () => { shell.openExternal('https://github.com/bit-admin/Yanhekt-AutoSlides'); } },
-        { label: t('titlebar.itCenterSoftware'), click: () => { shell.openExternal('https://it.ruc.edu.kg/zh/software'); } }
+        { label: t('titlebar.itCenterSoftware'), click: () => { shell.openExternal('https://it.ruc.edu.kg/zh/software'); } },
+        { label: t('titlebar.openYanhekt'), click: () => {
+          const token = this.configService?.getAuthToken() ?? null;
+          // Signed in: open /login with token so the site picks up the session.
+          // Signed out: homepage only — no /login?... path.
+          const url = token
+            ? `https://www.yanhekt.cn/login?token=${encodeURIComponent(token)}&type=Bearer&expired_at=${Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60}`
+            : 'https://www.yanhekt.cn';
+          shell.openExternal(url);
+        } },
+        { label: t('titlebar.openAutoSlidesWeb'), click: () => {
+          const token = this.configService?.getAuthToken() ?? null;
+          // Web adopts ?token= on load (bookmarklet return shape). Signed out: bare origin.
+          const url = token
+            ? `https://learn.ruc.edu.kg?token=${encodeURIComponent(token)}`
+            : 'https://learn.ruc.edu.kg';
+          shell.openExternal(url);
+        } }
       ] }
     ];
   }
