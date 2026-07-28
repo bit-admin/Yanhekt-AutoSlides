@@ -9,7 +9,9 @@ import { ref } from "vue";
 // acknowledgements of an older version simply stop matching.
 
 const NOTICE_KEY = "autoslides.notice";
-const NOTICE_VERSION = "1";
+// Bump when the notice's substance changes so every visitor sees it once more.
+// v2 (2026-07-29): slides may leave the browser for AI filtering / Cloud Notes.
+const NOTICE_VERSION = "2";
 
 const acknowledged = ref(readAcknowledged());
 

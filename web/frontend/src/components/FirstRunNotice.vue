@@ -41,7 +41,21 @@
             </li>
           </ul>
 
-          <p class="notice-para">{{ $t('notice.cookies') }}</p>
+          <RouterLink class="notice-desktop" :to="{ name: 'apps' }">
+            <svg class="notice-desktop-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <path d="M8 21h8" />
+              <path d="M12 17v4" />
+            </svg>
+            <span class="notice-desktop-copy">
+              <span class="notice-desktop-title">{{ $t('notice.desktopLink') }}</span>
+              <span class="notice-desktop-sub">{{ $t('notice.desktop') }}</span>
+            </span>
+            <svg class="notice-desktop-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </RouterLink>
+
           <p class="notice-para">{{ $t('notice.affiliation') }}</p>
           <p class="notice-para notice-para--agree">{{ $t('notice.agree') }}</p>
         </div>
@@ -137,6 +151,58 @@ const ITEMS = [{ key: 'signedIn' }, { key: 'slides' }, { key: 'settings' }] as c
 
 .notice-para--agree {
   color: var(--text-primary);
+}
+
+/* Soft full-width CTA — same icon scale as the list rows above, not a gray pill. */
+.notice-desktop {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  margin: 0 0 1.125rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  background-color: var(--bg-subtle, var(--bg-hover));
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.notice-desktop:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-strong);
+}
+
+.notice-desktop-icon {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+}
+
+.notice-desktop-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.notice-desktop-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.notice-desktop-sub {
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.notice-desktop-chevron {
+  flex-shrink: 0;
+  color: var(--text-muted);
 }
 
 .notice-actions {
