@@ -119,14 +119,15 @@
     "accept": "Got it",
     "affiliation": "AutoSlides is an independent third-party tool for personal study. It is not affiliated with, endorsed by, or connected to Beijing Institute of Technology.",
     "agree": "By continuing, you agree to the Terms and acknowledge the Privacy Policy.",
-    "desktop": "Full features, local processing — recommended for regular use.",
+    "desktop": "Full features, local processing, video downloads, and optimised for campus networks.",
     "desktopLink": "Get the desktop app",
     "items": {
+      "network": "Stream live lectures directly from Yanhekt; recorded lectures are relayed through Cloudflare and may play more slowly",
       "settings": "Remember your settings, such as theme, language, subscribed courses, and AI choices",
       "signedIn": "Keep you signed in to Yanhekt — your sign-in token stays in this browser",
       "slides": "Save the slides you extract in this browser so you can review and export them"
     },
-    "lead": "AutoSlides stores data in your browser to:",
+    "lead": "AutoSlides uses your browser to:",
     "title": "Before you continue to AutoSlides"
   },
   "pdfmaker": {

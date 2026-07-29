@@ -25,7 +25,7 @@
                   <circle cx="9" cy="9" r="2" />
                   <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
                 </template>
-                <template v-else>
+                <template v-else-if="item.key === 'settings'">
                   <line x1="4" y1="21" x2="4" y2="14" />
                   <line x1="4" y1="10" x2="4" y2="3" />
                   <line x1="12" y1="21" x2="12" y2="12" />
@@ -35,6 +35,13 @@
                   <line x1="1" y1="14" x2="7" y2="14" />
                   <line x1="9" y1="8" x2="15" y2="8" />
                   <line x1="17" y1="16" x2="23" y2="16" />
+                </template>
+                <template v-else>
+                  <!-- network -->
+                  <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                  <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                  <line x1="12" y1="20" x2="12.01" y2="20" />
                 </template>
               </svg>
               <span>{{ $t(`notice.items.${item.key}`) }}</span>
@@ -83,7 +90,12 @@ import { noticeStore } from '../stores/noticeStore'
 const titleId = useId()
 
 // Only the icon varies per row; the text lives in notice.items.*
-const ITEMS = [{ key: 'signedIn' }, { key: 'slides' }, { key: 'settings' }] as const
+const ITEMS = [
+  { key: 'signedIn' },
+  { key: 'slides' },
+  { key: 'settings' },
+  { key: 'network' },
+] as const
 </script>
 
 <style scoped>
