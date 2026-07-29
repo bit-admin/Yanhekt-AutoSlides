@@ -7,12 +7,17 @@
  * `dataUrl` is an object URL for the PNG blob instead of a base64 data URL —
  * owned by the pipeline, revoked on clearSlides/destroy.
  *
+ * PNG-8 palette reduction (128 colors) is hardcoded on at write time — Electron
+ * parity with `enablePngColorReduction: true`. Fail-open: if quantization
+ * fails, the full-color canvas PNG is stored instead.
+ *
  * Filename generation is unchanged and intentionally differs by mode:
  *   - live    → human-readable CST timestamp
  *   - recorded → Unix-ms timestamp
  */
 
 import { saveSlideBlob } from '../slideStore';
+import { reducePngColorsFromImageData } from '../pngColorReduction';
 import type { CourseInfo, ExtractedSlide } from './types';
 import { createLogger } from '../logger';
 const log = createLogger('SlideWriter');
@@ -37,7 +42,13 @@ export async function saveSlide(imageData: ImageData, options: SaveSlideOptions)
     canvas.height = imageData.height;
     ctx.putImageData(imageData, 0, 0);
 
-    const blob = await canvasToBlob(canvas);
+    // Prefer 128-color indexed PNG (hardcoded on). Fall back to full-color
+    // canvas PNG if quantization fails / browser can't decode the result —
+    // same fail-open as Electron Sharp.
+    let blob = await reducePngColorsFromImageData(imageData);
+    if (!blob) {
+      blob = await canvasToBlob(canvas);
+    }
     if (!blob) return null;
 
     const filename = buildFilename(options.courseInfo?.mode);

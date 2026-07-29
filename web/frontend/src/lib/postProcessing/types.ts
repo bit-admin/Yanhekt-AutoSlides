@@ -67,7 +67,8 @@ export interface PostProcessingInput {
 export interface PipelineDataSource {
   // Returns null when the image can't be read (logged and counted as failed).
   readForPHash(filename: string): Promise<ImageData | null>
-  // Raw base64 PNG resized fit-inside the target box; null on read failure.
+  // Raw base64 PNG for the LLM. Indexed (palette) PNGs are returned as-is;
+  // otherwise fit-inside resized to the target box. Null on read failure.
   readForAI(filename: string, targetWidth: number, targetHeight: number): Promise<string | null>
   moveToTrash(filename: string, reason: TrashReason, reasonDetails: string): Promise<boolean>
 }

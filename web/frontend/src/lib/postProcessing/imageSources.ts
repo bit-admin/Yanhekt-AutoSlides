@@ -2,9 +2,15 @@
 // Ported from autoslides/src/renderer/shared/postProcessing/imageSources.ts —
 // the desktop's two IPC-backed adapters collapse into one slideStore-backed
 // source (blob decode replaces the base64/buffer round-trips).
+//
+// AI prep mirrors Electron `sharpService.prepareImageForAI`: indexed (palette)
+// PNGs are base64'd as-is without resize; non-indexed blobs still fit-inside
+// resize on a canvas. With write-time color reduction hardcoded on, new slides
+// take the indexed path; legacy full-color IDB blobs still resize.
 
 import type { PipelineDataSource, TrashReason } from './types'
 import { getSlideBlob, moveToTrash, slideId } from '../slideStore'
+import { bytesToBase64, isPngIndexed } from '../pngColorReduction'
 import { createLogger } from '../logger';
 const log = createLogger('ImageSources');
 
@@ -53,6 +59,16 @@ export function createSlideStoreDataSource(folder: string): PipelineDataSource {
       try {
         const blob = await getSlideBlob(slideId(folder, filename))
         if (!blob) return null
+
+        const bytes = new Uint8Array(await blob.arrayBuffer())
+
+        // Indexed PNG is already small — send as-is (Electron prepareImageForAI).
+        if (isPngIndexed(bytes)) {
+          log.debug(`[PostProcessing] PNG is indexed, skipping resize for ${filename}`)
+          return bytesToBase64(bytes)
+        }
+
+        // Non-indexed (legacy full-color / reduction failure): fit-inside resize.
         const img = await decodeBlobToImage(blob)
         if (!img) return null
         // Fit-inside, never upscale (desktop Sharp `fit: 'inside'` parity).

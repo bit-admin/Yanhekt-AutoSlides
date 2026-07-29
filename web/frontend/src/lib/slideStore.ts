@@ -4,11 +4,18 @@
 // verbatim (TrashEntry ≙ RemovedEntry, SlideMetadata v1) so the ported
 // Results View and post-processing code consume them unchanged.
 //
-// Model: slide blobs never move. Trashing flips the record's status flag and
+// Model: slide bytes never move. Trashing flips the record's status flag and
 // adds a TrashEntry; restore flips it back and deletes the entry; clearing
 // trash deletes both. `originalPath`/`trashPath` carry the slide record id
 // (`${folder}/${filename}`) — a virtual path, kept so the desktop shapes and
 // UI wiring stay intact.
+//
+// Pixel payload is an ArrayBuffer (field still named `blob` for call-site
+// continuity). WebKit detaches Blob values when a record is re-put with
+// `{ ...record, status/aiDecision }` — later arrayBuffer()/blob: URL loads
+// throw NotFoundError / WebKitBlobResource error 1. ArrayBuffers survive
+// re-put; getSlideBlob rebuilds a short-lived Blob on every read. No Blob
+// migration path: the web app has not shipped, so only ArrayBuffer is stored.
 
 import { openDatabase, requestToPromise, transactionDone } from './idb';
 import type { SlideMetadata, SlideMetadataKind, SlideMetadataSource, SlidePostProcessingMeta } from './slideMetadataTypes';
@@ -26,7 +33,8 @@ export interface SlideRecord {
   id: string; // `${folder}/${filename}`
   folder: string;
   filename: string;
-  blob: Blob; // image/png
+  /** PNG bytes (ArrayBuffer — never a Blob; see file header). */
+  blob: ArrayBuffer;
   status: 'active' | 'trashed';
   createdAt: string;
   // Persisted AI-filtering verdict. Presence (any value) means the file is
@@ -96,6 +104,13 @@ export async function saveSlideBlob(folder: string, filename: string, blob: Blob
     navigator.storage?.persist?.().catch(() => {});
   }
   try {
+    // Store PNG bytes as ArrayBuffer, not Blob. See file header for why.
+    const bytes = await blob.arrayBuffer();
+    if (bytes.byteLength === 0) {
+      log.error(`Refusing to save empty slide ${folder}/${filename}`);
+      return false;
+    }
+
     const db = await getDb();
     const now = new Date().toISOString();
     const tx = db.transaction([SLIDES, TRASH, FOLDERS], 'readwrite');
@@ -104,7 +119,7 @@ export async function saveSlideBlob(folder: string, filename: string, blob: Blob
       id,
       folder,
       filename,
-      blob,
+      blob: bytes,
       status: 'active',
       createdAt: now,
     } satisfies SlideRecord);
@@ -143,7 +158,9 @@ export async function getSlideBlob(id: string): Promise<Blob | null> {
   const record = (await requestToPromise(
     db.transaction(SLIDES).objectStore(SLIDES).get(id),
   )) as SlideRecord | undefined;
-  return record?.blob ?? null;
+  const bytes = record?.blob;
+  if (!bytes || bytes.byteLength === 0) return null;
+  return new Blob([bytes], { type: 'image/png' });
 }
 
 /** Active slide filenames in a folder (unsorted; callers sort). */
@@ -175,6 +192,8 @@ export async function setSlideAIDecision(
       | SlideRecord
       | undefined;
     if (record) {
+      // ArrayBuffer re-put is safe on WebKit (unlike Blob); structured clone
+      // copies the bytes. Only IDB requests are awaited inside this tx.
       store.put({ ...record, aiDecision: decision });
     }
     await transactionDone(tx);
@@ -389,6 +408,12 @@ export interface WatchExtractionRecord {
  * Write extraction metadata for a watch-mode run (the only kind on the web).
  * Field normalization matches desktop slideMetadataClient: ids/semester/
  * schoolYear → strings, weekNumber/day → numbers.
+ *
+ * Deep-clones via JSON before the IndexedDB put: callers build `source` from
+ * reactive `course.value`/`session.value`, and structured clone throws
+ * DataCloneError on a Vue Proxy (same family as Electron's IPC hop in
+ * slideMetadataClient.recordRecordedExtraction — professors/classrooms arrays
+ * are the usual culprits). All fields are JSON-safe.
  */
 export async function recordWatchExtraction(params: WatchExtractionRecord): Promise<void> {
   const source: SlideMetadataSource = {
@@ -398,17 +423,21 @@ export async function recordWatchExtraction(params: WatchExtractionRecord): Prom
     sessionId: normalizeString(params.source.sessionId),
     sessionTitle: params.source.sessionTitle,
     instructor: params.source.instructor,
-    professors: params.source.professors,
+    // Spread arrays so we never hand a reactive Proxy to IndexedDB even if the
+    // JSON round-trip below is later removed or partial.
+    professors: params.source.professors ? [...params.source.professors] : undefined,
     semester: normalizeString(params.source.semester),
     schoolYear: normalizeString(params.source.schoolYear),
     college: params.source.college,
-    classrooms: params.source.classrooms,
+    classrooms: params.source.classrooms ? [...params.source.classrooms] : undefined,
     weekNumber: normalizeNumber(params.source.weekNumber),
     day: normalizeNumber(params.source.day),
   };
   const now = new Date().toISOString();
   await updateFolderRecord(params.folder, (record) => {
-    record.metadata = {
+    // Build, then strip any residual Proxies (and drop undefined keys) before
+    // assigning onto the record that store.put will structured-clone.
+    const metadata: SlideMetadata = {
       version: SLIDE_METADATA_VERSION,
       kind: params.kind,
       source,
@@ -430,6 +459,7 @@ export async function recordWatchExtraction(params: WatchExtractionRecord): Prom
       createdAt: record.metadata?.createdAt ?? now,
       updatedAt: now,
     };
+    record.metadata = JSON.parse(JSON.stringify(metadata)) as SlideMetadata;
   });
 }
 
