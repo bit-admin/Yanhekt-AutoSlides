@@ -34,9 +34,9 @@ const ALLOWED_PATHS: Record<string, string[]> = {
     "/v1/note/list",
     "/v1/note/group/list",
   ],
-  POST: ["/v1/note", "/v1/note/group", "/v1/minio/upload"],
+  POST: ["/v1/note", "/v1/note/group", "/v1/minio/upload", "/v1/course/subscription"],
   PUT: ["/v1/note", "/v1/note/content"],
-  DELETE: ["/v1/note", "/v1/note/group"],
+  DELETE: ["/v1/note", "/v1/note/group", "/v1/course/subscription"],
 };
 
 function isAllowed(method: string, upstreamPath: string): boolean {

@@ -58,6 +58,16 @@ function storeToken(value: string | null) {
   }
 }
 
+/** Soft-fail subscription list sync after identity is ready. Dynamic import
+ *  avoids a static cycle with composables/subscribedCourses (which reads authStore). */
+function scheduleSubscriptionSync(): void {
+  void import("../composables/subscribedCourses")
+    .then((m) => m.syncSubscribedCoursesFromServer())
+    .catch(() => {
+      /* ignore — last-known local list stays */
+    });
+}
+
 /** Verify + adopt a token (from paste Verify, or password login). */
 async function adoptToken(candidate: string): Promise<{ success: boolean; error?: string }> {
   isVerifyingToken.value = true;
@@ -66,6 +76,7 @@ async function adoptToken(candidate: string): Promise<{ success: boolean; error?
     if (result.valid && result.userData) {
       storeToken(candidate);
       userData.value = result.userData;
+      scheduleSubscriptionSync();
       return { success: true };
     }
     return {
@@ -109,6 +120,7 @@ async function initFromUrlOrStorage(): Promise<void> {
       const result = await verifyToken(token.value);
       if (result.valid && result.userData) {
         userData.value = result.userData;
+        scheduleSubscriptionSync();
       } else if (!result.networkError) {
         // Definitively invalid — clear it. On network errors keep the token
         // so a transient outage doesn't sign the user out.

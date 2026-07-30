@@ -69,6 +69,29 @@ export interface CourseListResponse {
   total: number;
 }
 
+// Raw row from GET /v1/course/subscription/list — professors may be objects
+// (like /v1/course) or already strings; professor_names is preferred when present.
+export interface SubscriptionCourseRow {
+  id: number | string;
+  name_zh: string;
+  professor_names?: string[];
+  professors?: Array<{ name?: string } | string>;
+  classrooms?: Array<{ name: string }>;
+  participant_count?: number;
+  college_name?: string;
+  college?: { name?: string };
+  school_year?: string | number;
+  semester?: string | number;
+}
+
+export interface SubscriptionListResponse {
+  data: SubscriptionCourseRow[];
+  current_page: number;
+  last_page: number;
+  per_page: number | string;
+  total: number;
+}
+
 export interface SessionData {
   id: string;
   session_id: string;
@@ -287,6 +310,9 @@ export class ApiClient {
     };
 
     if (data) {
+      // Required for DELETE-with-body (and explicit for POST) so Yanhekt parses
+      // JSON the same way the browser client does.
+      headers['Content-Type'] = 'application/json';
       config.data = data;
     }
 
@@ -447,6 +473,102 @@ export class ApiClient {
       return data.data;
     } catch (error: unknown) {
       log.error('Failed to get personal course list:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * One page of the account's Yanhekt course subscriptions. Default upstream
+   * page_size is 4 when omitted — always pass an explicit pageSize (100 is
+   * enough for typical accounts; callers should paginate on last_page).
+   */
+  async getSubscriptionList(token: string, options: {
+    page?: number;
+    pageSize?: number;
+  } = {}): Promise<SubscriptionListResponse> {
+    try {
+      const { page = 1, pageSize = 100 } = options;
+      const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('page_size', pageSize.toString());
+
+      const url = `https://cbiz.yanhekt.cn/v1/course/subscription/list?${params.toString()}`;
+      const response = await this.makeRequest('GET', url, token) as BaseApiResponse & {
+        data: SubscriptionListResponse;
+      };
+
+      if (response.code !== 0 && response.code !== "0") {
+        let errorMessage = response.message;
+        switch (response.code) {
+          case 13001001:
+            errorMessage = "Authentication failed, please check if token is valid";
+            break;
+          case 99151011:
+            errorMessage = "Remote server error or is temporarily down, please try again later";
+            break;
+          default:
+            errorMessage = `API error: ${response.message} (code: ${response.code})`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return response.data;
+    } catch (error: unknown) {
+      log.error('Failed to get subscription list:', error);
+      throw error;
+    }
+  }
+
+  async subscribeCourse(token: string, courseId: string): Promise<void> {
+    try {
+      const url = 'https://cbiz.yanhekt.cn/v1/course/subscription';
+      const response = await this.makeRequest('POST', url, token, {
+        course_id: String(courseId),
+      }) as BaseApiResponse;
+
+      if (response.code !== 0 && response.code !== "0") {
+        let errorMessage = response.message;
+        switch (response.code) {
+          case 13001001:
+            errorMessage = "Authentication failed, please check if token is valid";
+            break;
+          case 99151011:
+            errorMessage = "Remote server error or is temporarily down, please try again later";
+            break;
+          default:
+            errorMessage = `API error: ${response.message} (code: ${response.code})`;
+        }
+        throw new Error(errorMessage);
+      }
+    } catch (error: unknown) {
+      log.error('Failed to subscribe course:', error);
+      throw error;
+    }
+  }
+
+  async unsubscribeCourse(token: string, courseId: string): Promise<void> {
+    try {
+      const url = 'https://cbiz.yanhekt.cn/v1/course/subscription';
+      const response = await this.makeRequest('DELETE', url, token, {
+        course_id: String(courseId),
+      }) as BaseApiResponse;
+
+      if (response.code !== 0 && response.code !== "0") {
+        let errorMessage = response.message;
+        switch (response.code) {
+          case 13001001:
+            errorMessage = "Authentication failed, please check if token is valid";
+            break;
+          case 99151011:
+            errorMessage = "Remote server error or is temporarily down, please try again later";
+            break;
+          default:
+            errorMessage = `API error: ${response.message} (code: ${response.code})`;
+        }
+        throw new Error(errorMessage);
+      }
+    } catch (error: unknown) {
+      log.error('Failed to unsubscribe course:', error);
       throw error;
     }
   }

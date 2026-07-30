@@ -203,6 +203,28 @@ interface CourseData {
   participant_count: number;
 }
 
+/** Raw row from GET /v1/course/subscription/list (professors may be objects). */
+interface SubscriptionCourseRow {
+  id: number | string;
+  name_zh: string;
+  professor_names?: string[];
+  professors?: Array<{ name?: string } | string>;
+  classrooms?: Array<{ name: string }>;
+  participant_count?: number;
+  college_name?: string;
+  college?: { name?: string };
+  school_year?: string | number;
+  semester?: string | number;
+}
+
+interface SubscriptionListResponse {
+  data: SubscriptionCourseRow[];
+  current_page: number;
+  last_page: number;
+  per_page: number | string;
+  total: number;
+}
+
 interface LiveStreamData {
   id: string;
   live_id?: string;
@@ -562,6 +584,9 @@ interface ElectronAPI {
     searchLiveList: (token: string, keyword: string, page?: number, pageSize?: number) => Promise<PaginatedResponse<LiveStreamData>>;
     getCourseList: (token: string, options: CourseListOptions) => Promise<PaginatedResponse<CourseData>>;
     getPersonalCourseList: (token: string, options: PersonalCourseListOptions) => Promise<PaginatedResponse<CourseData>>;
+    getSubscriptionList: (token: string, options?: { page?: number; pageSize?: number }) => Promise<SubscriptionListResponse>;
+    subscribeCourse: (token: string, courseId: string) => Promise<void>;
+    unsubscribeCourse: (token: string, courseId: string) => Promise<void>;
     getCourseInfo: (courseId: string, token: string) => Promise<CourseInfoResponse>;
     getAvailableSemesters: () => Promise<SemesterInfo[]>;
   };

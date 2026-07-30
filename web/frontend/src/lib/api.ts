@@ -68,6 +68,28 @@ export interface CourseListResponse {
   total: number;
 }
 
+/** Raw row from GET /v1/course/subscription/list (professors may be objects). */
+export interface SubscriptionCourseRow {
+  id: number | string;
+  name_zh: string;
+  professor_names?: string[];
+  professors?: Array<{ name?: string } | string>;
+  classrooms?: Array<{ name: string }>;
+  participant_count?: number;
+  college_name?: string;
+  college?: { name?: string };
+  school_year?: string | number;
+  semester?: string | number;
+}
+
+export interface SubscriptionListResponse {
+  data: SubscriptionCourseRow[];
+  current_page: number;
+  last_page: number;
+  per_page: number | string;
+  total: number;
+}
+
 export interface SessionData {
   id: string;
   session_id: string;
@@ -150,14 +172,7 @@ interface SessionListApiResponse extends BaseApiResponse {
 
 const PROXY_BASE = "/api/yanhekt";
 
-/** Fetch through the Worker proxy and unwrap the {code, message, data} envelope. */
-async function request<T>(path: string, token: string | null): Promise<T> {
-  const headers: Record<string, string> = {};
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const response = await fetch(`${PROXY_BASE}${path}`, { headers });
-  const data = (await response.json()) as BaseApiResponse & { data: T };
-
+function unwrapEnvelope<T>(data: BaseApiResponse & { data: T }): T {
   if (data.code !== 0 && data.code !== "0") {
     switch (data.code) {
       case 13001001:
@@ -170,8 +185,33 @@ async function request<T>(path: string, token: string | null): Promise<T> {
         throw new Error(`API error: ${data.message} (code: ${data.code})`);
     }
   }
-
   return data.data;
+}
+
+/** Fetch through the Worker proxy and unwrap the {code, message, data} envelope. */
+async function request<T>(path: string, token: string | null): Promise<T> {
+  return requestMethod<T>("GET", path, token);
+}
+
+/** Method+body variant (POST/DELETE) — same envelope/error handling as GET. */
+async function requestMethod<T>(
+  method: string,
+  path: string,
+  token: string | null,
+  body?: Record<string, unknown>,
+): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const init: RequestInit = { method, headers };
+  if (body !== undefined) {
+    headers["Content-Type"] = "application/json";
+    init.body = JSON.stringify(body);
+  }
+
+  const response = await fetch(`${PROXY_BASE}${path}`, init);
+  const data = (await response.json()) as BaseApiResponse & { data: T };
+  return unwrapEnvelope(data);
 }
 
 export async function verifyToken(token: string): Promise<TokenVerificationResult> {
@@ -270,6 +310,37 @@ export async function getPersonalCourseList(
   params.append("with_introduction", "true");
 
   return request<CourseListResponse>(`/v2/course/private/list?${params.toString()}`, token);
+}
+
+/**
+ * One page of the account's Yanhekt course subscriptions. Upstream defaults to
+ * page_size=4 when omitted — always pass an explicit pageSize (100 is enough
+ * for typical accounts; callers should paginate on last_page).
+ */
+export async function getSubscriptionList(
+  token: string,
+  options: { page?: number; pageSize?: number } = {},
+): Promise<SubscriptionListResponse> {
+  const { page = 1, pageSize = 100 } = options;
+  const params = new URLSearchParams();
+  params.append("page", page.toString());
+  params.append("page_size", pageSize.toString());
+  return request<SubscriptionListResponse>(
+    `/v1/course/subscription/list?${params.toString()}`,
+    token,
+  );
+}
+
+export async function subscribeCourse(token: string, courseId: string): Promise<void> {
+  await requestMethod<unknown>("POST", "/v1/course/subscription", token, {
+    course_id: String(courseId),
+  });
+}
+
+export async function unsubscribeCourse(token: string, courseId: string): Promise<void> {
+  await requestMethod<unknown>("DELETE", "/v1/course/subscription", token, {
+    course_id: String(courseId),
+  });
 }
 
 export async function getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {

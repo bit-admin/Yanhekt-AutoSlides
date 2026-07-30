@@ -68,6 +68,28 @@ export interface CourseListResponse {
   total: number;
 }
 
+/** Raw row from GET /v1/course/subscription/list (professors may be objects). */
+export interface SubscriptionCourseRow {
+  id: number | string;
+  name_zh: string;
+  professor_names?: string[];
+  professors?: Array<{ name?: string } | string>;
+  classrooms?: Array<{ name: string }>;
+  participant_count?: number;
+  college_name?: string;
+  college?: { name?: string };
+  school_year?: string | number;
+  semester?: string | number;
+}
+
+export interface SubscriptionListResponse {
+  data: SubscriptionCourseRow[];
+  current_page: number;
+  last_page: number;
+  per_page: number | string;
+  total: number;
+}
+
 export interface SessionData {
   id: string;
   session_id: string;
@@ -112,6 +134,9 @@ export interface ApiTransport {
   searchLiveList(token: string, keyword: string, page?: number, pageSize?: number): Promise<LiveListResponse>;
   getCourseList(token: string, options?: { semesters?: number[]; page?: number; pageSize?: number; keyword?: string }): Promise<CourseListResponse>;
   getPersonalCourseList(token: string, options?: { page?: number; pageSize?: number }): Promise<CourseListResponse>;
+  getSubscriptionList(token: string, options?: { page?: number; pageSize?: number }): Promise<SubscriptionListResponse>;
+  subscribeCourse(token: string, courseId: string): Promise<void>;
+  unsubscribeCourse(token: string, courseId: string): Promise<void>;
   getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse>;
   getAvailableSemesters(): Promise<SemesterOption[]>;
 }
@@ -122,6 +147,9 @@ const realApiTransport: ApiTransport = {
   searchLiveList: (token, keyword, page = 1, pageSize = 16) => window.electronAPI.api.searchLiveList(token, keyword, page, pageSize),
   getCourseList: (token, options = {}) => window.electronAPI.api.getCourseList(token, options),
   getPersonalCourseList: (token, options = {}) => window.electronAPI.api.getPersonalCourseList(token, options),
+  getSubscriptionList: (token, options = {}) => window.electronAPI.api.getSubscriptionList(token, options),
+  subscribeCourse: (token, courseId) => window.electronAPI.api.subscribeCourse(token, courseId),
+  unsubscribeCourse: (token, courseId) => window.electronAPI.api.unsubscribeCourse(token, courseId),
   getCourseInfo: (courseId, token) => window.electronAPI.api.getCourseInfo(courseId, token),
   getAvailableSemesters: () => window.electronAPI.api.getAvailableSemesters(),
 };
@@ -183,6 +211,36 @@ export class ApiClient {
       return await this.transport.getPersonalCourseList(token, options);
     } catch (error) {
       log.error('Failed to get personal course list:', error);
+      throw error;
+    }
+  }
+
+  async getSubscriptionList(token: string, options: {
+    page?: number;
+    pageSize?: number;
+  } = {}): Promise<SubscriptionListResponse> {
+    try {
+      return await this.transport.getSubscriptionList(token, options);
+    } catch (error) {
+      log.error('Failed to get subscription list:', error);
+      throw error;
+    }
+  }
+
+  async subscribeCourse(token: string, courseId: string): Promise<void> {
+    try {
+      await this.transport.subscribeCourse(token, courseId);
+    } catch (error) {
+      log.error('Failed to subscribe course:', error);
+      throw error;
+    }
+  }
+
+  async unsubscribeCourse(token: string, courseId: string): Promise<void> {
+    try {
+      await this.transport.unsubscribeCourse(token, courseId);
+    } catch (error) {
+      log.error('Failed to unsubscribe course:', error);
       throw error;
     }
   }

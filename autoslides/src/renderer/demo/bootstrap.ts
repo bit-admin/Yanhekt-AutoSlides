@@ -46,6 +46,17 @@ const demoApiTransport: ApiTransport = {
   searchLiveList: async () => demoLiveCourses(),
   getCourseList: async () => demoRecordedCourses(),
   getPersonalCourseList: async () => demoRecordedCourses(),
+  // Pin UI reads overrides.pinnedRecordedCourses; these stubs keep ApiTransport
+  // complete and ensure demo never hits Yanhekt subscription endpoints.
+  getSubscriptionList: async () => ({
+    data: [],
+    current_page: 1,
+    last_page: 1,
+    per_page: 100,
+    total: 0,
+  }),
+  subscribeCourse: async () => undefined,
+  unsubscribeCourse: async () => undefined,
   getCourseInfo: async (courseId: string) => demoCourseInfo(courseId),
   getAvailableSemesters: async () => demoSemesters(),
 }

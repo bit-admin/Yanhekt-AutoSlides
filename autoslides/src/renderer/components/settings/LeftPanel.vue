@@ -280,7 +280,12 @@ import { useSettingsContext } from '@features/settings/settingsContext'
 import { navigationStore } from '@features/course/navigationStore'
 import { settingsLauncher } from '@features/settings/settingsLauncher'
 import { useSearchPage } from '@features/course/useSearchPage'
-import { pinnedRecordedCourses, removePinnedCourse, openPinnedCourse } from '@features/course/pinnedCourses'
+import {
+  pinnedRecordedCourses,
+  removePinnedCourse,
+  openPinnedCourse,
+  syncPinnedCoursesFromServer,
+} from '@features/course/pinnedCourses'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 import ExtractorInstallModal from './ExtractorInstallModal.vue'
 import UserMenuLinks from './UserMenuLinks.vue'
@@ -321,10 +326,14 @@ const {
 // otherwise import/publish surfaces stay gated until an explicit init.
 // Watch userId too so switching accounts (logged-in → logged-in, isLoggedIn
 // unchanged but the badge changes) rebinds cloud storage to the new account.
+// Same [isLoggedIn, userId] trigger also re-syncs Yanhekt course subscriptions
+// into the local pin cache (launch / login / account switch). Soft-fails
+// offline and never clears last-known pins on error.
 watch([isLoggedIn, userId], ([loggedIn]) => {
   if (loggedIn) {
     cloudStorageStore.setUser(userId.value)
     void cloudStorageStore.refresh()
+    void syncPinnedCoursesFromServer()
   } else {
     cloudStorageStore.setUser(null)
   }
@@ -730,7 +739,13 @@ defineExpose({
 .settings-content {
   flex: 1;
   min-height: 0;
-  padding: 0;
+  /* Scrollbar sits on the right edge of this box. Parent .control-section has
+     16px right padding, which left a large gap between the bar and the panel
+     edge. Pull only this scroller into that padding so the bar moves right;
+     padding-right restores the same content inset so nav/search/pins stay put.
+     Sibling .panel-actions still uses the full control-section padding. */
+  margin-right: -12px;
+  padding: 0 12px 0 0;
   overflow-y: auto;
 }
 
