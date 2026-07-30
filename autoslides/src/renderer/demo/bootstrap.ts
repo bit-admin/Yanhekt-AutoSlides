@@ -86,7 +86,7 @@ export function installDemo(): void {
     create: async () => ({ ok: true, data: demoNextNoteIdValue() }),
     updateTitle: async () => ({ ok: true, data: undefined }),
     updateContent: async () => ({ ok: true, data: undefined }),
-    moveToGroup: async () => ({ ok: true, data: undefined }),
+    moveToGroup: async (id: number) => ({ ok: true, data: id }),
     delete: async () => ({ ok: true, data: undefined }),
     groupCreate: async () => ({ ok: true, data: undefined }),
     groupDelete: async () => ({ ok: true, data: undefined }),

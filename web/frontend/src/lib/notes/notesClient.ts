@@ -32,7 +32,12 @@ export interface CloudNotesProvider {
   create(): Promise<NotesResult<number>>;
   updateTitle(id: number, title: string, groupId?: number): Promise<NotesResult<void>>;
   updateContent(id: number, content: string): Promise<NotesResult<void>>;
-  moveToGroup(id: number, groupId: number): Promise<NotesResult<void>>;
+  moveToGroup(
+    id: number,
+    groupId: number,
+    title: string,
+    content?: string,
+  ): Promise<NotesResult<number>>;
   delete(id: number): Promise<NotesResult<void>>;
   groupList(): Promise<NotesResult<NoteGroup[]>>;
   groupCreate(name: string): Promise<NotesResult<void>>;
@@ -125,10 +130,14 @@ export const notesClient: CloudNotesProvider = {
     });
   },
 
-  /** Update a note's title and optionally assign it to a group. */
+  /**
+   * Update a note's title and optionally assign it to a group.
+   * Only group ids ≥ 1 are accepted by the server — omit the field to leave
+   * the current group alone (never send 0; that errors with "笔记分组ID不能小于1").
+   */
   updateTitle(id: number, title: string, groupId?: number) {
     const body: Record<string, unknown> = { id, title };
-    if (groupId !== undefined) body.note_group_id = groupId;
+    if (groupId !== undefined && groupId > 0) body.note_group_id = groupId;
     return run(() => request<void>('PUT', '/v1/note', body));
   },
 
@@ -137,9 +146,44 @@ export const notesClient: CloudNotesProvider = {
     return run(() => request<void>('PUT', '/v1/note/content', { id, content }));
   },
 
-  /** Move a note into a group (0 = default group). */
-  moveToGroup(id: number, groupId: number) {
-    return run(() => request<void>('PUT', '/v1/note', { id, note_group_id: groupId }));
+  /**
+   * Move a note into a group, or to Ungrouped when `groupId` is 0.
+   *
+   * Assigning a real group (≥ 1) is a normal PUT with `note_group_id`.
+   * Ungrouping cannot be done in place: the server rejects `note_group_id: 0`
+   * ("笔记分组ID不能小于1"), and omitting the field leaves the old group (the
+   * official site's own ungroup is a silent no-op). Workaround: create a fresh
+   * ungrouped note with the same title/content, then delete the original.
+   *
+   * Returns the note id after the operation (new id when ungrouped, same id
+   * when moved into a group). Optional `content` avoids a re-fetch when the
+   * caller already has the live editor document.
+   */
+  moveToGroup(id: number, groupId: number, title: string, content?: string) {
+    return run(async () => {
+      if (groupId > 0) {
+        await request<void>('PUT', '/v1/note', { id, title, note_group_id: groupId });
+        return id;
+      }
+
+      // Always fetch so we can skip no-op ungroups and fall back for content.
+      const detail = await request<NoteDetail>('GET', `/v1/note?id=${encodeURIComponent(id)}`);
+      if (detail.note_group_id == null || detail.note_group_id === 0) {
+        return id;
+      }
+
+      const body = content ?? detail.content ?? '';
+      const created = await request<{ id: number; success?: boolean }>('POST', '/v1/note', {
+        content: '',
+        version: 2,
+      });
+      const newId = created.id;
+      await request<void>('PUT', '/v1/note', { id: newId, title });
+      if (body) await request<void>('PUT', '/v1/note/content', { id: newId, content: body });
+      await request<void>('DELETE', '/v1/note', { id });
+      log.info('ungrouped note via recreate', { from: id, to: newId });
+      return newId;
+    });
   },
 
   /** Delete a note by id. */

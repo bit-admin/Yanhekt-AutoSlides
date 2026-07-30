@@ -195,18 +195,35 @@ export function useCloudNotes() {
     return res.ok;
   }
 
-  async function moveNoteToGroup(id: number, groupId: number): Promise<boolean> {
+  /**
+   * Move `id` into `groupId` (0 = Ungrouped).
+   * Returns the resulting note id (new when ungrouped via recreate), or null on failure.
+   * Pass live editor `content` when ungrouping so unsaved edits aren't lost.
+   */
+  async function moveNoteToGroup(
+    id: number,
+    groupId: number,
+    content?: string,
+  ): Promise<number | null> {
     error.value = '';
-    const res = await notesClient.moveToGroup(id, groupId);
-    if (res.ok) {
-      const row = allNotes.value.find((n) => n.id === id);
+    const row = allNotes.value.find((n) => n.id === id);
+    const title = row?.title ?? selectedNote.value?.title ?? '';
+    const res = await notesClient.moveToGroup(id, groupId, title, content);
+    const newId = unwrap(res);
+    if (newId == null) return null;
+
+    if (newId !== id) {
+      // Ungroup recreated the note under a new id — drop the old row and reload.
+      allNotes.value = allNotes.value.filter((n) => n.id !== id);
+      if (selectedNote.value?.id === id) selectedNote.value = null;
+      await loadAll();
+    } else {
       if (row) row.note_group_id = groupId;
+      if (selectedNote.value?.id === id) selectedNote.value.note_group_id = groupId;
       await refreshGroups();
       applyView();
-    } else {
-      unwrap(res);
     }
-    return res.ok;
+    return newId;
   }
 
   async function createGroup(name: string): Promise<boolean> {

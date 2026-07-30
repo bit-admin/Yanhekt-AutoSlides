@@ -44,8 +44,11 @@ export function registerNotesIpcHandlers(services: IpcServices): void {
   ipcMain.handle('cloudNotes:updateContent', (_e, id: number, content: string) =>
     run(() => notesService.updateContent(id, content)));
 
-  ipcMain.handle('cloudNotes:moveToGroup', (_e, id: number, groupId: number) =>
-    run(() => notesService.moveToGroup(id, groupId)));
+  ipcMain.handle(
+    'cloudNotes:moveToGroup',
+    (_e, id: number, groupId: number, title: string, content?: string) =>
+      run(() => notesService.moveToGroup(id, groupId, title, content)),
+  );
 
   ipcMain.handle('cloudNotes:delete', (_e, id: number) =>
     run(() => notesService.remove(id)));

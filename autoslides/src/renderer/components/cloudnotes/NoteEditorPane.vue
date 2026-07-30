@@ -92,9 +92,17 @@ const isUserNote = computed(() => {
 async function onMoveGroup(e: Event): Promise<void> {
   const note = props.cn.selectedNote.value
   if (!note) return
+  const prevId = note.id
   const groupId = Number((e.target as HTMLSelectElement).value)
-  await props.cn.moveNoteToGroup(note.id, groupId)
-  note.note_group_id = groupId
+  // Ungroup recreates the note — ship the live editor document so we don't drop edits.
+  const content = groupId === 0 ? await props.ed.currentNoteContent() : undefined
+  const newId = await props.cn.moveNoteToGroup(prevId, groupId, content)
+  if (newId == null) return
+  if (newId !== prevId) {
+    await props.ed.openNote(newId)
+  } else {
+    note.note_group_id = groupId
+  }
 }
 </script>
 

@@ -33,8 +33,13 @@ export const cloudNotes = {
     ipcRenderer.invoke('cloudNotes:updateTitle', id, title, groupId),
   updateContent: (id: number, content: string): Promise<NotesResult<void>> =>
     ipcRenderer.invoke('cloudNotes:updateContent', id, content),
-  moveToGroup: (id: number, groupId: number): Promise<NotesResult<void>> =>
-    ipcRenderer.invoke('cloudNotes:moveToGroup', id, groupId),
+  moveToGroup: (
+    id: number,
+    groupId: number,
+    title: string,
+    content?: string,
+  ): Promise<NotesResult<number>> =>
+    ipcRenderer.invoke('cloudNotes:moveToGroup', id, groupId, title, content),
   delete: (id: number): Promise<NotesResult<void>> =>
     ipcRenderer.invoke('cloudNotes:delete', id),
   groupList: (): Promise<NotesResult<NoteGroup[]>> =>

@@ -61,7 +61,7 @@ function makeServer(opts: { groups?: NoteGroup[]; notes?: NoteSummary[]; groupLi
       return { ok: true, data: undefined }
     },
     updateContent: async () => ({ ok: true, data: undefined }),
-    moveToGroup: async () => ({ ok: true, data: undefined }),
+    moveToGroup: async (id: number) => ({ ok: true, data: id }),
     delete: async () => ({ ok: true, data: undefined }),
     groupList: async () =>
       opts.groupListError ? { ok: false, error: opts.groupListError } : { ok: true, data: [...groups] },

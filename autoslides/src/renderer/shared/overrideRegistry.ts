@@ -55,7 +55,12 @@ export interface CloudNotesProvider {
   create(): Promise<NotesResult<number>>
   updateTitle(id: number, title: string, groupId?: number): Promise<NotesResult<void>>
   updateContent(id: number, content: string): Promise<NotesResult<void>>
-  moveToGroup(id: number, groupId: number): Promise<NotesResult<void>>
+  moveToGroup(
+    id: number,
+    groupId: number,
+    title: string,
+    content?: string,
+  ): Promise<NotesResult<number>>
   delete(id: number): Promise<NotesResult<void>>
   groupList(): Promise<NotesResult<NoteGroup[]>>
   groupCreate(name: string): Promise<NotesResult<void>>

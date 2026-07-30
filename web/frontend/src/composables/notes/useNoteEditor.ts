@@ -172,6 +172,19 @@ export function useNoteEditor(
     await cn.renameNote(note.id, next);
   }
 
+  /** Freshest stringified content for the open note (live editor, else saved). */
+  async function currentNoteContent(): Promise<string> {
+    const saved = cn.selectedNote.value?.content ?? '';
+    if (editor && editorReady) {
+      try {
+        return JSON.stringify(await editor.save());
+      } catch {
+        return saved;
+      }
+    }
+    return saved;
+  }
+
   // If the selected note is cleared externally, tear the editor down.
   watch(
     () => cn.selectedNoteId.value,
@@ -194,5 +207,6 @@ export function useNoteEditor(
     mountEditor,
     openNote,
     onSaveTitle,
+    currentNoteContent,
   };
 }

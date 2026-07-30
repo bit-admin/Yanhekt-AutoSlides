@@ -328,8 +328,17 @@ async function onCreateGroup(name: string): Promise<void> {
 async function onMoveGroup(groupId: number): Promise<void> {
   const note = cn.selectedNote.value
   if (!note) return
-  await cn.moveNoteToGroup(note.id, groupId)
-  note.note_group_id = groupId
+  const prevId = note.id
+  // Ungroup recreates the note — ship the live editor document so we don't drop edits.
+  const content = groupId === 0 ? await ed.currentNoteContent() : undefined
+  const newId = await cn.moveNoteToGroup(prevId, groupId, content)
+  if (newId == null) return
+  if (newId !== prevId) {
+    await ed.openNote(newId)
+    routeToNote(newId)
+  } else {
+    note.note_group_id = groupId
+  }
 }
 </script>
 
