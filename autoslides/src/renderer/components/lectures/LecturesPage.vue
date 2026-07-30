@@ -672,17 +672,4 @@ onMounted(async () => {
   cursor: pointer;
   padding: 0;
 }
-
-.group-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  user-select: none;
-  cursor: pointer;
-}
-
-.group-toggle input {
-  margin: 0;
-  accent-color: var(--accent);
-}
 </style>

@@ -1431,42 +1431,7 @@ const confirmClearTrash = async () => {
   border-radius: 6px;
 }
 
-.group-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background-color: var(--bg-elevated);
-  font-size: 12px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background-color 0.15s, border-color 0.15s;
-}
-
-.group-toggle:hover:not(.disabled) {
-  background-color: var(--bg-hover);
-  border-color: var(--border-strong);
-}
-
-.group-toggle.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.group-toggle input {
-  width: 11px;
-  height: 11px;
-  margin: 0;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
-.group-toggle.disabled input {
-  cursor: not-allowed;
-}
+/* .group-toggle is shared (components.css). */
 
 .size-icon {
   color: var(--text-secondary);
