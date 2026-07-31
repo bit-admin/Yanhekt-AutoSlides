@@ -83,6 +83,8 @@
       />
 
       <div v-if="cn.error.value" class="nw-error" @click="cn.error.value = ''">{{ cn.error.value }}</div>
+
+      <PublicStorageBanner v-if="!publicStorageNoticeStore.acknowledged.value" />
     </template>
 
     <NotesNewGroupModal
@@ -104,9 +106,11 @@ import { useNoteEditor } from '../../composables/notes/useNoteEditor'
 import { notesRefreshTick } from '../../stores/notesRefreshStore'
 import { authStore } from '../../stores/authStore'
 import { cloudStorageStore } from '../../stores/cloudStorageStore'
+import { publicStorageNoticeStore } from '../../stores/publicStorageNoticeStore'
 import NotesSidebar from './NotesSidebar.vue'
 import NotesEditorCanvas from './NotesEditorCanvas.vue'
 import NotesNewGroupModal from './NotesNewGroupModal.vue'
+import PublicStorageBanner from './PublicStorageBanner.vue'
 
 defineOptions({ name: 'NotesPage' })
 

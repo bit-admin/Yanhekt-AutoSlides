@@ -36,4 +36,4 @@ export interface LegalDoc {
   sections: LegalSection[];
 }
 
-export type LegalDocId = "terms" | "privacy";
+export type LegalDocId = "terms" | "privacy" | "disclosure";

@@ -302,6 +302,19 @@ watch(() => props.docId, () => document.querySelector('.legal-page')?.scrollTo(0
   background-color: var(--bg-elevated);
 }
 
+/* Inline [label](url) links from renderInline() land inside v-html spans. */
+.legal-en :deep(a),
+.legal-zh :deep(a) {
+  color: var(--link-color, var(--accent-deep));
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+}
+
+.legal-en :deep(a:hover),
+.legal-zh :deep(a:hover) {
+  color: var(--accent);
+}
+
 .legal-foot {
   margin-top: 3rem;
   padding-top: 1.5rem;

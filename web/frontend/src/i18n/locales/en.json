@@ -91,6 +91,7 @@
   },
   "legal": {
     "bilingualNote": "This document is published in English and 繁體中文. The English version prevails.",
+    "disclosure": "Disclosure",
     "indexLead": "A short guide to each section. It is not a substitute for reading the document in full.",
     "indexTitle": "What's in this document?",
     "notice": "A third-party tool for personal study. Not affiliated with or endorsed by BIT.",
@@ -466,7 +467,12 @@
     "duplicateSuffix": "(copy)",
     "deletePage": "Delete",
     "smallText": "Small text",
-    "fullWidth": "Full width"
+    "fullWidth": "Full width",
+    "publicStorageBanner": {
+      "text": "Note: Yanhekt stores note images in public storage and anyone can access them. Do not include private or sensitive images.",
+      "learnWhy": "Learn why ↗",
+      "dismiss": "Got it"
+    }
   },
   "slides": {
     "workspaceBrand": "AutoSlides",

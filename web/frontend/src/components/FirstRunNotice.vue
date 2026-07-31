@@ -77,6 +77,8 @@
           <RouterLink class="notice-legal-link" :to="{ name: 'privacy' }">{{ $t('legal.privacy') }}</RouterLink>
           <span class="notice-legal-dot" aria-hidden="true">•</span>
           <RouterLink class="notice-legal-link" :to="{ name: 'terms' }">{{ $t('legal.terms') }}</RouterLink>
+          <span class="notice-legal-dot" aria-hidden="true">•</span>
+          <RouterLink class="notice-legal-link" :to="{ name: 'disclosure' }">{{ $t('legal.disclosure') }}</RouterLink>
         </div>
       </div>
     </div>

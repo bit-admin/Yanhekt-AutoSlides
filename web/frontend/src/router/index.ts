@@ -129,6 +129,13 @@ export const router = createRouter({
       meta: { fullPage: true, keepAlive: false, titleKey: "legal.privacy" },
     },
     {
+      name: "disclosure",
+      path: "/disclosure",
+      component: LegalPage,
+      props: { docId: "disclosure" },
+      meta: { fullPage: true, keepAlive: false, titleKey: "legal.disclosure" },
+    },
+    {
       name: "player-live",
       path: "/player/live/:courseId",
       component: PlayerRoute,
