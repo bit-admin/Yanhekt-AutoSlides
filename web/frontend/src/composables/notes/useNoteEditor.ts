@@ -18,6 +18,9 @@ type CloudNotesApi = ReturnType<typeof useCloudNotes>;
  * debounced auto-save with block-diff change detection, note switching (flush
  * pending edits first), and title save. Ported from the desktop useNoteEditor;
  * the image uploader goes through notesClient instead of the IPC bridge.
+ *
+ * Dark/light chrome for the selection toolbar lives in styles/editor.css only
+ * (same pattern as Electron shared/styles/editor.css) — do not inject styles here.
  */
 export function useNoteEditor(
   cn: CloudNotesApi,

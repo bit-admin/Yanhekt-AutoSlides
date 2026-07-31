@@ -26,13 +26,6 @@
         </button>
       </div>
 
-      <RouterLink class="ns-back" :to="{ name: 'home' }">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="m15 18-6-6 6-6" />
-        </svg>
-        {{ $t('cloudNotes.backToApp') }}
-      </RouterLink>
-
       <div class="ns-search-wrap">
         <svg class="ns-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
@@ -293,24 +286,6 @@ function onSearchInput(e: Event): void {
   letter-spacing: 0.01em;
   color: var(--nt-text-muted, #787774);
   flex-shrink: 0;
-}
-
-.ns-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  align-self: flex-start;
-  padding: 2px 6px;
-  margin: 0 2px;
-  border-radius: 4px;
-  font-size: 12px;
-  color: var(--nt-text-muted, #787774);
-  text-decoration: none;
-}
-
-.ns-back:hover {
-  background: var(--nt-sidebar-hover, rgba(0, 0, 0, 0.04));
-  color: var(--nt-text, #37352f);
 }
 
 .ns-search-wrap {

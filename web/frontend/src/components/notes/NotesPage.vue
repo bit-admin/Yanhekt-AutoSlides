@@ -70,12 +70,16 @@
         :move-groups="moveGroups"
         :save-status="ed.saveStatus.value"
         :mobile="isMobile"
+        :can-export="canExportCurrentNote"
+        :get-content="() => ed.currentNoteContent()"
         @open-sidebar="sidebarOpen = true"
         @create-note="onCreateNote"
         @update:title="(v) => (ed.editableTitle.value = v)"
         @save-title="ed.onSaveTitle"
         @move-group="onMoveGroup"
         @set-holder="(el) => (ed.editorHolder.value = el)"
+        @duplicate="onDuplicateNote"
+        @delete="onDeleteCurrentNote"
       />
 
       <div v-if="cn.error.value" class="nw-error" @click="cn.error.value = ''">{{ cn.error.value }}</div>
@@ -99,6 +103,7 @@ import { useCloudNotes } from '../../composables/notes/useCloudNotes'
 import { useNoteEditor } from '../../composables/notes/useNoteEditor'
 import { notesRefreshTick } from '../../stores/notesRefreshStore'
 import { authStore } from '../../stores/authStore'
+import { cloudStorageStore } from '../../stores/cloudStorageStore'
 import NotesSidebar from './NotesSidebar.vue'
 import NotesEditorCanvas from './NotesEditorCanvas.vue'
 import NotesNewGroupModal from './NotesNewGroupModal.vue'
@@ -114,6 +119,15 @@ const ed = useNoteEditor(cn, t)
 const showNewGroupModal = ref(false)
 const sidebarOpen = ref(false)
 const isMobile = ref(false)
+
+/** Notes outside ASnote (ASuser, Ungrouped, custom folders) can export to a file. */
+const canExportCurrentNote = computed(() => {
+  const note = cn.selectedNote.value
+  if (!note) return false
+  const mid = cloudStorageStore.managedGroupId.value
+  if (mid == null) return true
+  return Number(note.note_group_id ?? 0) !== Number(mid)
+})
 
 // Desktop sidebar width (px). Persisted so a drag survives reloads.
 const SIDEBAR_DEFAULT = 248 // ~15.5rem
@@ -315,6 +329,37 @@ async function onDeleteNote(id: number): Promise<void> {
   if (wasOpen) routeToNote(null)
 }
 
+async function onDeleteCurrentNote(): Promise<void> {
+  const id = cn.selectedNoteId.value
+  if (id == null) return
+  await onDeleteNote(id)
+}
+
+/** Create a sibling note with the same title + content in the same group. */
+async function onDuplicateNote(): Promise<void> {
+  const src = cn.selectedNote.value
+  if (!src) return
+  const content = await ed.currentNoteContent()
+  const title = (ed.editableTitle.value || src.title || t('cloudNotes.untitled')).trim()
+  const copyTitle = `${title} ${t('cloudNotes.duplicateSuffix')}`
+  const newId = await cn.createNote()
+  if (newId == null) return
+  await cn.renameNote(newId, copyTitle)
+  if (content) await cn.saveContent(newId, content)
+  // Preserve folder membership (create lands in Ungrouped by default).
+  const groupId = Number(src.note_group_id ?? 0)
+  if (groupId !== 0) {
+    const moved = await cn.moveNoteToGroup(newId, groupId, content)
+    if (moved != null && moved !== newId) {
+      await ed.openNote(moved)
+      routeToNote(moved)
+      return
+    }
+  }
+  await ed.openNote(newId)
+  routeToNote(newId)
+}
+
 async function onDeleteGroup(id: number, name: string): Promise<void> {
   if (!window.confirm(t('cloudNotes.confirmDeleteGroup', { name: name || t('cloudNotes.defaultGroup') }))) return
   await cn.deleteGroup(id)
@@ -496,6 +541,10 @@ async function onMoveGroup(groupId: number): Promise<void> {
   --nt-text-muted: #787774;
   --nt-border: rgba(0, 0, 0, 0.06);
   --nt-accent: #2383e2;
+  --nt-selection-bg: rgba(35, 131, 226, 0.28);
+  --nt-selection-fg: inherit;
+  --nt-elevated: #ffffff;
+  --nt-elevated-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   --nt-sidebar-width: 15.5rem;
   --nt-doc-max: 52rem;
   --nt-title-size: 2.5rem;
@@ -511,6 +560,17 @@ html[data-theme="dark"] .notes-workspace {
   --nt-text-muted: rgba(255, 255, 255, 0.5);
   --nt-border: rgba(255, 255, 255, 0.09);
   --nt-accent: #5b9dff;
+  --nt-selection-bg: rgba(91, 157, 255, 0.38);
+  --nt-selection-fg: rgba(255, 255, 255, 0.92);
+  --nt-elevated: #2a2a2a;
+  --nt-elevated-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
   color-scheme: dark;
+}
+
+/* Selection highlight tokens are consumed by styles/editor.css for both
+   text ::selection and .ce-block--selected (one color). */
+.notes-workspace ::selection {
+  background: var(--nt-selection-bg);
+  color: var(--nt-selection-fg);
 }
 </style>

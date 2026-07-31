@@ -73,6 +73,11 @@ export interface WebConfig {
   aiCustomBaseUrl: string;
   aiCustomApiKey: string;
   aiCustomModel: string;
+  // Notes editor / PDF latin face set (Notion-style Default / Serif / Mono).
+  notesFontSet: "default" | "serif" | "mono";
+  // Notes page layout (⋯ menu toggles; Notion-style Small text / Full width).
+  notesSmallText: boolean;
+  notesFullWidth: boolean;
 }
 
 const defaults = (): WebConfig => ({
@@ -94,6 +99,9 @@ const defaults = (): WebConfig => ({
   aiCustomBaseUrl: "",
   aiCustomApiKey: "",
   aiCustomModel: "",
+  notesFontSet: "default",
+  notesSmallText: false,
+  notesFullWidth: false,
 });
 
 function load(): WebConfig {
@@ -117,6 +125,17 @@ function load(): WebConfig {
   if (!Array.isArray(merged.cloudStorageInitializedUsers)) {
     merged.cloudStorageInitializedUsers = [];
   }
+
+  if (
+    merged.notesFontSet !== "default" &&
+    merged.notesFontSet !== "serif" &&
+    merged.notesFontSet !== "mono"
+  ) {
+    merged.notesFontSet = "default";
+  }
+
+  merged.notesSmallText = !!merged.notesSmallText;
+  merged.notesFullWidth = !!merged.notesFullWidth;
 
   return merged;
 }
@@ -175,6 +194,9 @@ export function persistConfig(): void {
     aiCustomBaseUrl: configStore.aiCustomBaseUrl,
     aiCustomApiKey: configStore.aiCustomApiKey,
     aiCustomModel: configStore.aiCustomModel,
+    notesFontSet: configStore.notesFontSet,
+    notesSmallText: !!configStore.notesSmallText,
+    notesFullWidth: !!configStore.notesFullWidth,
   });
 }
 

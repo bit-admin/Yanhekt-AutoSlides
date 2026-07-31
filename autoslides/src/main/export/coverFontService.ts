@@ -9,6 +9,7 @@
 
 import * as fs from 'fs';
 import * as os from 'os';
+import * as path from 'path';
 import { pinyin } from 'pinyin-pro';
 
 export interface SystemCjkFont {
@@ -21,36 +22,60 @@ interface FontCandidate {
   postScriptName?: string;
 }
 
-const CANDIDATES_BY_PLATFORM: Record<NodeJS.Platform, FontCandidate[]> = {
-  darwin: [
+/**
+ * System-wide fonts only (never ~/Library/Fonts — not present for other users /
+ * packaged machines). Prefer faces that PDFKit maps CJK punctuation correctly:
+ * Hiragino Sans GB and Arial Unicode are verified; STHeiti / Songti .ttc often
+ * turn ，。：；「」—— into ` ' ° || under PDFKit and are last-resort only.
+ * PingFang is preferred when the system ships it at a known path.
+ */
+function darwinCandidates(): FontCandidate[] {
+  return [
+    // Preferred — correct CJK punctuation under PDFKit
     { path: '/System/Library/Fonts/PingFang.ttc', postScriptName: 'PingFangSC-Regular' },
+    { path: '/System/Library/Fonts/Hiragino Sans GB.ttc', postScriptName: 'HiraginoSansGB-W3' },
+    { path: '/System/Library/Fonts/Supplemental/Arial Unicode.ttf' },
+    { path: '/Library/Fonts/Arial Unicode.ttf' },
+    // Last resort — ideographs usually OK; CJK punctuation often wrong in PDFKit
     { path: '/System/Library/Fonts/STHeiti Medium.ttc', postScriptName: 'STHeitiSC-Medium' },
     { path: '/System/Library/Fonts/STHeiti Light.ttc', postScriptName: 'STHeitiSC-Light' },
+    { path: '/System/Library/Fonts/Supplemental/Songti.ttc', postScriptName: 'STSongti-SC-Regular' },
     { path: '/Library/Fonts/Songti.ttc', postScriptName: 'STSong' },
-    { path: '/System/Library/Fonts/Hiragino Sans GB.ttc', postScriptName: 'HiraginoSansGB-W3' },
-  ],
-  win32: [
-    { path: 'C:\\Windows\\Fonts\\msyh.ttc', postScriptName: 'MicrosoftYaHei' },
-    { path: 'C:\\Windows\\Fonts\\msyh.ttf', postScriptName: 'MicrosoftYaHei' },
-    { path: 'C:\\Windows\\Fonts\\simhei.ttf' },
-    { path: 'C:\\Windows\\Fonts\\simsun.ttc', postScriptName: 'SimSun' },
-    { path: 'C:\\Windows\\Fonts\\simsun.ttf' },
-  ],
-  linux: [
+  ];
+}
+
+function win32Candidates(): FontCandidate[] {
+  const windir = process.env.WINDIR || 'C:\\Windows';
+  const fonts = path.join(windir, 'Fonts');
+  return [
+    // Prefer .ttf over .ttc for the same reason as on macOS.
+    { path: path.join(fonts, 'simhei.ttf') },
+    { path: path.join(fonts, 'msyh.ttf'), postScriptName: 'MicrosoftYaHei' },
+    { path: path.join(fonts, 'simsun.ttf') },
+    { path: path.join(fonts, 'msyh.ttc'), postScriptName: 'MicrosoftYaHei' },
+    { path: path.join(fonts, 'simsun.ttc'), postScriptName: 'SimSun' },
+  ];
+}
+
+const CANDIDATES_BY_PLATFORM: Record<NodeJS.Platform, () => FontCandidate[]> = {
+  darwin: darwinCandidates,
+  win32: win32Candidates,
+  linux: () => [
+    // Standalone OTF/TTF first when distros ship them
     { path: '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc', postScriptName: 'NotoSansCJKsc-Regular' },
     { path: '/usr/share/fonts/opentype/noto/NotoSansCJK.ttc', postScriptName: 'NotoSansCJKsc-Regular' },
     { path: '/usr/share/fonts/truetype/wqy/wqy-microhei.ttc' },
     { path: '/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc' },
     { path: '/usr/share/fonts/truetype/arphic/uming.ttc' },
   ],
-  aix: [],
-  android: [],
-  freebsd: [],
-  haiku: [],
-  openbsd: [],
-  sunos: [],
-  cygwin: [],
-  netbsd: [],
+  aix: () => [],
+  android: () => [],
+  freebsd: () => [],
+  haiku: () => [],
+  openbsd: () => [],
+  sunos: () => [],
+  cygwin: () => [],
+  netbsd: () => [],
 };
 
 let cachedFont: SystemCjkFont | null | undefined;
@@ -58,7 +83,7 @@ let cachedFont: SystemCjkFont | null | undefined;
 export function resolveSystemCjkFont(): SystemCjkFont | null {
   if (cachedFont !== undefined) return cachedFont;
 
-  const candidates = CANDIDATES_BY_PLATFORM[os.platform()] || [];
+  const candidates = (CANDIDATES_BY_PLATFORM[os.platform()] || (() => []))();
   for (const candidate of candidates) {
     try {
       if (fs.existsSync(candidate.path)) {
@@ -72,6 +97,11 @@ export function resolveSystemCjkFont(): SystemCjkFont | null {
 
   cachedFont = null;
   return null;
+}
+
+/** Test helper / settings UI — drop the memoized pick so a newly installed font is seen. */
+export function clearSystemCjkFontCache(): void {
+  cachedFont = undefined;
 }
 
 const CJK_RANGE = /[㐀-鿿豈-﫿]/;

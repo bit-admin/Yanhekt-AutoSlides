@@ -7,3 +7,8 @@ debug/
 
 # Real deploy config (custom domain) — copy from wrangler.example.jsonc.
 wrangler.jsonc
+
+# Bundled CJK face for note PDF export (local copy; not redistributed in git).
+# Keep README.md tracked; ignore the binary faces only.
+frontend/public/fonts/**
+!frontend/public/fonts/README.md

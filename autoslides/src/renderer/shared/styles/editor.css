@@ -1,21 +1,21 @@
-/* Editor.js block-toolbar placement — shared by every AutoSlides Editor.js
-   instance (the Drive/Cloud Notes editor and the right-panel watch-notes editor).
+/* Editor.js shared overrides — every AutoSlides Editor.js instance
+   (Drive/Cloud Notes + right-panel watch-notes).
 
-   Editor.js latches the `codex-editor--narrow` class ONCE at mount, whenever the
-   editor is narrower than its ~650px content width, and never clears it on
-   resize. Narrow mode parks the block toolbar (＋ / drag handle / toolbox) in a
-   RIGHT gutter — but our editors live in narrow panes and want it in the LEFT
-   gutter (the wide, non-narrow default). Reset the narrow rules back to that
-   default here, globally, so both editors render consistently no matter how wide
-   their pane happens to be.
+   1) Narrow-mode toolbar placement: Editor.js latches `codex-editor--narrow`
+      once at mount and parks the block toolbar in a RIGHT gutter. Our panes
+      want the LEFT gutter. Reset those rules globally.
 
-   Selectors are boosted with the `.codex-editor` element class (e.g.
-   `.codex-editor.codex-editor--narrow` = 3 classes) so they outrank Editor.js's
-   own narrow rules (2 classes) regardless of stylesheet injection order —
-   Editor.js injects its CSS at runtime, after this file loads.
+   2) Theme chrome: Editor.js 2.31 hardcodes light surfaces via CSS variables
+      (`--color-background: white` on `.ce-popover`, which also paints the
+      selection toolbar as `.ce-popover--inline`). Map those vars (and a few
+      hardcoded white backgrounds) onto our design tokens so light + dark both
+      work. Tokens already swap under prefers-color-scheme in theme.css.
 
-   The host document must provide a left gutter (padding-left) wide enough for the
-   toolbar; both editor docs do (`.cn-editor-doc` / `.wn-editor-doc`). */
+   Specificity: boost with `.codex-editor` / !important so we outrank Editor.js
+   runtime-injected CSS (it lands after this file). Do not re-theme Editor.js
+   from individual Vue SFCs — extend this file only. */
+
+/* ── 1. Narrow → left gutter ─────────────────────────────────────────────── */
 
 .codex-editor.codex-editor--narrow .codex-editor__redactor {
   margin-right: 0;
@@ -39,4 +39,155 @@
 .codex-editor.codex-editor--narrow .ce-toolbox .ce-popover {
   left: 0;
   right: auto;
+}
+
+/* ── 2. Theme: body text / placeholders / links ──────────────────────────── */
+
+.codex-editor .ce-paragraph,
+.codex-editor .ce-header,
+.codex-editor .cdx-block {
+  color: var(--text-primary);
+}
+
+.codex-editor a {
+  color: var(--link-color);
+}
+
+.codex-editor [data-placeholder]:empty::before,
+.codex-editor .cdx-block[data-placeholder]:empty::before {
+  color: var(--text-muted);
+}
+
+.codex-editor .ce-delimiter {
+  color: var(--text-muted);
+}
+
+/* ── 3. Theme: floating chrome (popover = inline selection toolbar in 2.31) ─ */
+
+.ce-popover,
+.ce-popover.ce-popover--inline,
+.ce-popover .ce-popover__container,
+.ce-popover--inline .ce-popover__container,
+.ce-inline-toolbar,
+.ce-conversion-toolbar,
+.ce-settings,
+.ce-toolbox {
+  --color-background: var(--bg-elevated) !important;
+  --color-text-primary: var(--text-primary) !important;
+  --color-text-secondary: var(--text-muted) !important;
+  --color-border: var(--border-color) !important;
+  --color-border-icon: var(--border-color) !important;
+  --color-border-icon-disabled: var(--border-color) !important;
+  --color-background-item-hover: var(--bg-hover) !important;
+  --color-background-item-focus: var(--bg-hover) !important;
+  --color-background-icon-active: color-mix(in srgb, var(--accent) 18%, transparent) !important;
+  --color-text-icon-active: var(--accent) !important;
+  --color-shadow: var(--shadow-md) !important;
+  --color-shadow-item-focus: color-mix(in srgb, var(--accent) 12%, transparent) !important;
+  background: var(--bg-elevated) !important;
+  background-color: var(--bg-elevated) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.ce-popover__container {
+  background: var(--bg-elevated) !important;
+  background-color: var(--bg-elevated) !important;
+  border-color: var(--border-color) !important;
+}
+
+.ce-inline-tool,
+.ce-inline-toolbar__dropdown,
+.ce-conversion-tool,
+.ce-popover-item,
+.ce-popover__item {
+  color: var(--text-primary) !important;
+}
+
+.ce-inline-tool:hover,
+.ce-inline-toolbar__dropdown:hover,
+.ce-conversion-tool:hover,
+.ce-popover-item:hover,
+.ce-popover__item:hover,
+.ce-inline-tool--active,
+.ce-popover-item--active {
+  background: var(--bg-hover) !important;
+  background-color: var(--bg-hover) !important;
+}
+
+.ce-inline-tool svg,
+.ce-inline-toolbar__dropdown svg,
+.ce-inline-toolbar__dropdown-content svg,
+.ce-inline-toolbar__dropdown-arrow svg,
+.ce-popover-item__icon svg,
+.ce-popover__item-icon svg {
+  color: var(--text-primary) !important;
+  fill: currentColor !important;
+}
+
+.ce-inline-toolbar__dropdown {
+  border-right-color: var(--border-color) !important;
+}
+
+.ce-popover-item__icon,
+.ce-popover__item-icon,
+.ce-conversion-tool__icon {
+  background: var(--bg-surface) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+.ce-inline-tool-input {
+  background: var(--bg-input) !important;
+  border-color: var(--border-input) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Block + / settings (hardcoded white in Editor.js on narrow) */
+.ce-toolbar__plus,
+.ce-toolbar__settings-btn {
+  color: var(--text-secondary) !important;
+  background-color: var(--bg-elevated) !important;
+  border-color: var(--border-color) !important;
+  box-shadow: none !important;
+}
+
+.ce-toolbar__plus:hover,
+.ce-toolbar__settings-btn:hover {
+  background-color: var(--bg-hover) !important;
+}
+
+/* Inputs / code / table */
+.cdx-input,
+.ce-code__textarea {
+  background-color: var(--bg-input) !important;
+  border-color: var(--border-input) !important;
+  color: var(--text-primary) !important;
+}
+
+.tc-wrap {
+  --color-background: var(--bg-subtle);
+  --color-text-secondary: var(--text-muted);
+  --color-border: var(--border-color);
+}
+
+/*
+  Selection — one accent wash for BOTH text range and full-block select.
+  Editor.js hardcodes different light blues (#d4ecff / #e1f2ff); use the same
+  token for both so they never diverge.
+*/
+.codex-editor {
+  --editor-selection-bg: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+.codex-editor ::selection,
+.codex-editor ::-moz-selection {
+  background: var(--editor-selection-bg) !important;
+  background-color: var(--editor-selection-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+.ce-block--selected .ce-block__content {
+  background: var(--editor-selection-bg) !important;
 }

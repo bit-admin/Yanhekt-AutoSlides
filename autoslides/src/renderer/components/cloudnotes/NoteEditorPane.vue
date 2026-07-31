@@ -27,9 +27,9 @@
           <option value="0">{{ $t('cloudNotes.defaultGroup') }}</option>
           <option v-for="g in cn.groups.value.filter(x => x.id !== 0)" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
         </select>
-        <!-- ASuser (watch-mode) notes export to a file; other managed notes share. -->
+        <!-- Any non-ASnote note can export to a file; ASnote managed notes share. -->
         <button
-          v-if="isUserNote"
+          v-if="isExportableNote"
           class="btn btn--ghost cn-share-btn"
           :title="$t('cloudNotes.exportTip')"
           @click="emit('export')"
@@ -82,11 +82,13 @@ const emit = defineEmits<{
   (e: 'export'): void
 }>()
 
-/** Watch-mode ASuser notes: exported to a file rather than shared to the Index. */
-const isUserNote = computed(() => {
+/** Notes outside ASnote (ASuser, Ungrouped, custom folders) export to a file. */
+const isExportableNote = computed(() => {
   const note = props.cn.selectedNote.value
-  const userGroupId = cloudStorageStore.userGroupId.value
-  return !!note && userGroupId != null && Number(note.note_group_id) === Number(userGroupId)
+  if (!note) return false
+  const managedGroupId = cloudStorageStore.managedGroupId.value
+  if (managedGroupId == null) return true
+  return Number(note.note_group_id ?? 0) !== Number(managedGroupId)
 })
 
 async function onMoveGroup(e: Event): Promise<void> {
@@ -197,8 +199,7 @@ async function onMoveGroup(e: Event): Promise<void> {
   opacity: 0.7;
 }
 
-/* ── Editor.js theming (maps its hardcoded light chrome to design tokens so
-      light + dark both look right) ──────────────────────────────────────── */
+/* Layout only — Editor.js chrome/theme lives in shared/styles/editor.css. */
 
 /* Left-align content (don't use Editor.js's own 650px centering); the doc's
    left padding provides the toolbar gutter instead, so it never overshoots. */
@@ -206,84 +207,5 @@ async function onMoveGroup(e: Event): Promise<void> {
 .cn-editor-doc :deep(.ce-toolbar__content) {
   max-width: 100%;
   margin: 0;
-}
-
-.cn-editor-doc :deep(.ce-paragraph),
-.cn-editor-doc :deep(.ce-header),
-.cn-editor-doc :deep(.cdx-block) {
-  color: var(--text-primary);
-}
-
-.cn-editor-doc :deep(a) {
-  color: var(--link-color);
-}
-
-/* Placeholders */
-.cn-editor-doc :deep([data-placeholder]:empty::before),
-.cn-editor-doc :deep(.cdx-block[data-placeholder]:empty::before) {
-  color: var(--text-muted);
-}
-
-/* Left-gutter controls: + button and drag/settings handle */
-.cn-editor-doc :deep(.ce-toolbar__plus),
-.cn-editor-doc :deep(.ce-toolbar__settings-btn) {
-  color: var(--text-secondary);
-}
-
-.cn-editor-doc :deep(.ce-toolbar__plus:hover),
-.cn-editor-doc :deep(.ce-toolbar__settings-btn:hover) {
-  background-color: var(--bg-hover);
-}
-
-/* Floating surfaces: toolbox popover, inline toolbar, conversion toolbar,
-   block-settings popover */
-.cn-editor-doc :deep(.ce-popover),
-.cn-editor-doc :deep(.ce-inline-toolbar),
-.cn-editor-doc :deep(.ce-conversion-toolbar),
-.cn-editor-doc :deep(.ce-settings) {
-  background-color: var(--bg-elevated);
-  border-color: var(--border-color);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-md);
-}
-
-.cn-editor-doc :deep(.ce-popover__item:hover),
-.cn-editor-doc :deep(.ce-inline-tool:hover),
-.cn-editor-doc :deep(.ce-inline-toolbar__dropdown:hover),
-.cn-editor-doc :deep(.ce-conversion-tool:hover) {
-  background-color: var(--bg-hover);
-}
-
-.cn-editor-doc :deep(.ce-popover__item-icon),
-.cn-editor-doc :deep(.ce-conversion-tool__icon) {
-  background-color: var(--bg-surface);
-  border-color: var(--border-color);
-  color: var(--text-primary);
-}
-
-/* Inputs inside Editor.js (e.g. image caption, quote text/caption) */
-.cn-editor-doc :deep(.cdx-input) {
-  background-color: var(--bg-input);
-  border-color: var(--border-input);
-  color: var(--text-primary);
-}
-
-/* Code block */
-.cn-editor-doc :deep(.ce-code__textarea) {
-  background-color: var(--bg-input);
-  border-color: var(--border-input);
-  color: var(--text-primary);
-}
-
-/* Table — themes itself through these three CSS variables */
-.cn-editor-doc :deep(.tc-wrap) {
-  --color-background: var(--bg-subtle);
-  --color-text-secondary: var(--text-muted);
-  --color-border: var(--border-color);
-}
-
-/* Delimiter dots */
-.cn-editor-doc :deep(.ce-delimiter) {
-  color: var(--text-muted);
 }
 </style>

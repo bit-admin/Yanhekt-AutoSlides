@@ -1,21 +1,21 @@
-/* Editor.js block-toolbar placement — shared by every AutoSlides Editor.js
-   instance (the Drive/Cloud Notes editor and the right-panel watch-notes editor).
+/* Editor.js shared overrides — Notes page + watch-notes panel.
 
-   Editor.js latches the `codex-editor--narrow` class ONCE at mount, whenever the
-   editor is narrower than its ~650px content width, and never clears it on
-   resize. Narrow mode parks the block toolbar (＋ / drag handle / toolbox) in a
-   RIGHT gutter — but our editors live in narrow panes and want it in the LEFT
-   gutter (the wide, non-narrow default). Reset the narrow rules back to that
-   default here, globally, so both editors render consistently no matter how wide
-   their pane happens to be.
+   1) Narrow-mode toolbar placement: Editor.js latches `codex-editor--narrow`
+      once at mount and parks the block toolbar in a RIGHT gutter. Our panes
+      want the LEFT gutter. Reset those rules globally.
 
-   Selectors are boosted with the `.codex-editor` element class (e.g.
-   `.codex-editor.codex-editor--narrow` = 3 classes) so they outrank Editor.js's
-   own narrow rules (2 classes) regardless of stylesheet injection order —
-   Editor.js injects its CSS at runtime, after this file loads.
+   2) Theme chrome: Editor.js 2.31 hardcodes light surfaces via CSS variables
+      (`--color-background: white` on `.ce-popover`, which also paints the
+      selection toolbar as `.ce-popover--inline`). Map those vars onto our
+      design tokens so light + dark both work.
 
-   The host document must provide a left gutter (padding-left) wide enough for the
-   toolbar; both editor docs do (`.nec-editor-doc` / `.wn-editor-doc`). */
+   Dark tokens: prefer app theme tokens when present; fall back to notes
+   `--nt-*` / hard dark values under `html[data-theme="dark"]`.
+
+   Specificity + !important so we outrank Editor.js runtime-injected CSS.
+   Do not re-theme Editor.js from individual Vue SFCs — extend this file only. */
+
+/* ── 1. Narrow → left gutter ─────────────────────────────────────────────── */
 
 .codex-editor.codex-editor--narrow .codex-editor__redactor {
   margin-right: 0;
@@ -39,4 +39,250 @@
 .codex-editor.codex-editor--narrow .ce-toolbox .ce-popover {
   left: 0;
   right: auto;
+}
+
+/* ── 2. Theme chrome (light defaults via tokens; dark overrides below) ───── */
+
+.ce-popover,
+.ce-popover.ce-popover--inline,
+.ce-popover .ce-popover__container,
+.ce-popover--inline .ce-popover__container,
+.ce-inline-toolbar,
+.ce-conversion-toolbar,
+.ce-settings,
+.ce-toolbox {
+  --color-background: var(--bg-elevated, var(--nt-elevated, #ffffff)) !important;
+  --color-text-primary: var(--text-primary, var(--nt-text, #1d1d1f)) !important;
+  --color-text-secondary: var(--text-muted, var(--nt-text-muted, #6e6e73)) !important;
+  --color-border: var(--border-color, var(--nt-border, rgba(0, 0, 0, 0.08))) !important;
+  --color-border-icon: var(--border-color, var(--nt-border, rgba(0, 0, 0, 0.1))) !important;
+  --color-border-icon-disabled: var(--border-color, var(--nt-border, rgba(0, 0, 0, 0.06))) !important;
+  --color-background-item-hover: var(--bg-hover, var(--nt-sidebar-hover, rgba(0, 0, 0, 0.04))) !important;
+  --color-background-item-focus: var(--bg-hover, var(--nt-sidebar-hover, rgba(0, 0, 0, 0.04))) !important;
+  --color-background-icon-active: color-mix(in srgb, var(--accent, var(--nt-accent, #2383e2)) 18%, transparent) !important;
+  --color-text-icon-active: var(--accent, var(--nt-accent, #2383e2)) !important;
+  --color-shadow: var(--shadow-md, rgba(0, 0, 0, 0.12)) !important;
+  background: var(--color-background) !important;
+  background-color: var(--color-background) !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.1)) !important;
+}
+
+.ce-popover__container {
+  background: var(--color-background) !important;
+  background-color: var(--color-background) !important;
+  border-color: var(--color-border) !important;
+}
+
+.ce-inline-tool,
+.ce-inline-toolbar__dropdown,
+.ce-conversion-tool,
+.ce-popover-item,
+.ce-popover__item {
+  color: var(--color-text-primary, var(--text-primary, var(--nt-text, #1d1d1f))) !important;
+}
+
+.ce-inline-tool:hover,
+.ce-inline-toolbar__dropdown:hover,
+.ce-conversion-tool:hover,
+.ce-popover-item:hover,
+.ce-popover__item:hover,
+.ce-inline-tool--active,
+.ce-popover-item--active {
+  background: var(--bg-hover, var(--nt-sidebar-hover, rgba(0, 0, 0, 0.04))) !important;
+  background-color: var(--bg-hover, var(--nt-sidebar-hover, rgba(0, 0, 0, 0.04))) !important;
+}
+
+.ce-inline-tool svg,
+.ce-inline-toolbar__dropdown svg,
+.ce-inline-toolbar__dropdown-content svg,
+.ce-inline-toolbar__dropdown-arrow svg,
+.ce-popover-item__icon svg,
+.ce-popover__item-icon svg {
+  color: var(--color-text-primary, var(--text-primary, var(--nt-text, #1d1d1f))) !important;
+  fill: currentColor !important;
+}
+
+.ce-inline-toolbar__dropdown {
+  border-right-color: var(--border-color, var(--nt-border, rgba(0, 0, 0, 0.1))) !important;
+}
+
+.ce-popover-item__icon,
+.ce-popover__item-icon,
+.ce-conversion-tool__icon {
+  background: var(--bg-surface, var(--nt-sidebar-bg, #f7f7f5)) !important;
+  border-color: var(--border-color, var(--nt-border, rgba(0, 0, 0, 0.09))) !important;
+  color: var(--text-primary, var(--nt-text, #1d1d1f)) !important;
+}
+
+.ce-inline-tool-input,
+.cdx-input,
+.ce-code__textarea {
+  background: var(--bg-input, var(--nt-sidebar-bg, #f7f7f5)) !important;
+  background-color: var(--bg-input, var(--nt-sidebar-bg, #f7f7f5)) !important;
+  border-color: var(--border-input, var(--nt-border, rgba(0, 0, 0, 0.09))) !important;
+  color: var(--text-primary, var(--nt-text, #1d1d1f)) !important;
+}
+
+.ce-toolbar__plus,
+.ce-toolbar__settings-btn {
+  color: var(--text-secondary, var(--nt-text-muted, #787774)) !important;
+  background-color: var(--bg-elevated, var(--nt-elevated, #ffffff)) !important;
+  border-color: var(--border-color, var(--nt-border, rgba(0, 0, 0, 0.09))) !important;
+  box-shadow: none !important;
+}
+
+.ce-toolbar__plus:hover,
+.ce-toolbar__settings-btn:hover {
+  background-color: var(--bg-hover, var(--nt-sidebar-hover, rgba(0, 0, 0, 0.04))) !important;
+}
+
+.tc-wrap {
+  --color-background: var(--bg-subtle, var(--nt-sidebar-bg, #f7f7f5));
+  --color-text-secondary: var(--text-muted, var(--nt-text-muted, #787774));
+  --color-border: var(--border-color, var(--nt-border, rgba(0, 0, 0, 0.09)));
+}
+
+.codex-editor .ce-paragraph,
+.codex-editor .ce-header,
+.codex-editor .cdx-block {
+  color: var(--text-primary, var(--nt-text, #37352f));
+}
+
+.codex-editor a {
+  color: var(--link-color, var(--nt-accent, #2383e2));
+}
+
+.codex-editor [data-placeholder]:empty::before,
+.codex-editor .cdx-block[data-placeholder]:empty::before {
+  color: var(--text-muted, var(--nt-text-muted, #787774));
+}
+
+.codex-editor .ce-delimiter {
+  color: var(--text-muted, var(--nt-text-muted, #787774));
+}
+
+/* ── Dark (app stamps html[data-theme="dark"]) ───────────────────────────── */
+
+html[data-theme="dark"] .ce-popover,
+html[data-theme="dark"] .ce-popover.ce-popover--inline,
+html[data-theme="dark"] .ce-popover .ce-popover__container,
+html[data-theme="dark"] .ce-popover--inline .ce-popover__container,
+html[data-theme="dark"] .ce-inline-toolbar,
+html[data-theme="dark"] .ce-conversion-toolbar,
+html[data-theme="dark"] .ce-settings,
+html[data-theme="dark"] .ce-toolbox {
+  --color-background: #2a2a2a !important;
+  --color-text-primary: rgba(255, 255, 255, 0.88) !important;
+  --color-text-secondary: rgba(255, 255, 255, 0.5) !important;
+  --color-border: rgba(255, 255, 255, 0.12) !important;
+  --color-border-icon: rgba(255, 255, 255, 0.14) !important;
+  --color-border-icon-disabled: rgba(255, 255, 255, 0.08) !important;
+  --color-background-item-hover: rgba(255, 255, 255, 0.08) !important;
+  --color-background-item-focus: rgba(255, 255, 255, 0.08) !important;
+  --color-background-icon-active: rgba(91, 157, 255, 0.2) !important;
+  --color-text-icon-active: #5b9dff !important;
+  --color-shadow: rgba(0, 0, 0, 0.45) !important;
+  background: #2a2a2a !important;
+  background-color: #2a2a2a !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45) !important;
+}
+
+html[data-theme="dark"] .ce-popover__container {
+  background: #2a2a2a !important;
+  background-color: #2a2a2a !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+html[data-theme="dark"] .ce-inline-tool,
+html[data-theme="dark"] .ce-inline-toolbar__dropdown,
+html[data-theme="dark"] .ce-conversion-tool,
+html[data-theme="dark"] .ce-popover-item,
+html[data-theme="dark"] .ce-popover__item {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+html[data-theme="dark"] .ce-inline-tool:hover,
+html[data-theme="dark"] .ce-inline-toolbar__dropdown:hover,
+html[data-theme="dark"] .ce-conversion-tool:hover,
+html[data-theme="dark"] .ce-popover-item:hover,
+html[data-theme="dark"] .ce-popover__item:hover,
+html[data-theme="dark"] .ce-inline-tool--active,
+html[data-theme="dark"] .ce-popover-item--active {
+  background: rgba(255, 255, 255, 0.08) !important;
+  background-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+html[data-theme="dark"] .ce-inline-tool svg,
+html[data-theme="dark"] .ce-inline-toolbar__dropdown svg,
+html[data-theme="dark"] .ce-inline-toolbar__dropdown-content svg,
+html[data-theme="dark"] .ce-inline-toolbar__dropdown-arrow svg,
+html[data-theme="dark"] .ce-popover-item__icon svg,
+html[data-theme="dark"] .ce-popover__item-icon svg {
+  color: rgba(255, 255, 255, 0.88) !important;
+  fill: currentColor !important;
+}
+
+html[data-theme="dark"] .ce-inline-toolbar__dropdown {
+  border-right-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+html[data-theme="dark"] .ce-popover-item__icon,
+html[data-theme="dark"] .ce-popover__item-icon,
+html[data-theme="dark"] .ce-conversion-tool__icon {
+  background: #202020 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+html[data-theme="dark"] .ce-inline-tool-input,
+html[data-theme="dark"] .cdx-input,
+html[data-theme="dark"] .ce-code__textarea {
+  background: #202020 !important;
+  background-color: #202020 !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+html[data-theme="dark"] .ce-toolbar__plus,
+html[data-theme="dark"] .ce-toolbar__settings-btn {
+  background-color: #2a2a2a !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+  box-shadow: none !important;
+}
+
+html[data-theme="dark"] .ce-toolbar__plus:hover,
+html[data-theme="dark"] .ce-toolbar__settings-btn:hover {
+  background-color: #333 !important;
+}
+
+/*
+  Selection — one blue for BOTH text range and full-block select.
+  Editor.js hardcodes #d4ecff (::selection) and #e1f2ff (block) — different
+  lights that also wash out dark-mode body text. Use the same token for both.
+*/
+.codex-editor ::selection,
+.codex-editor ::-moz-selection {
+  background: var(--nt-selection-bg, rgba(35, 131, 226, 0.28)) !important;
+  background-color: var(--nt-selection-bg, rgba(35, 131, 226, 0.28)) !important;
+  color: var(--nt-selection-fg, inherit) !important;
+}
+
+.ce-block--selected .ce-block__content {
+  background: var(--nt-selection-bg, rgba(35, 131, 226, 0.28)) !important;
+}
+
+html[data-theme="dark"] .codex-editor ::selection,
+html[data-theme="dark"] .codex-editor ::-moz-selection {
+  background: var(--nt-selection-bg, rgba(91, 157, 255, 0.38)) !important;
+  background-color: var(--nt-selection-bg, rgba(91, 157, 255, 0.38)) !important;
+  color: var(--nt-selection-fg, rgba(255, 255, 255, 0.92)) !important;
+}
+
+html[data-theme="dark"] .ce-block--selected .ce-block__content {
+  background: var(--nt-selection-bg, rgba(91, 157, 255, 0.38)) !important;
 }
