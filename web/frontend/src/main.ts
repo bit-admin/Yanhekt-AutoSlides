@@ -22,8 +22,13 @@ const app = createApp(App).use(i18n).use(router);
 // bookmarklet returned to a non-login path, bounce to /login so the paste
 // step can pick up the pending token.
 void router.isReady().then(async () => {
-  if (authStore.pendingToken.value && router.currentRoute.value.name !== "login") {
-    await router.replace({ name: "login" });
+  const current = router.currentRoute.value;
+  if (authStore.pendingToken.value && current.name !== "login") {
+    // Carry the origin path so paste-confirm returns the user there (e.g. Notes).
+    await router.replace({
+      name: "login",
+      query: { redirect: current.fullPath },
+    });
   }
   app.mount("#app");
 });

@@ -1,68 +1,90 @@
 <template>
   <div class="notes-workspace" :class="{ 'is-mobile': isMobile }">
-    <!-- Not signed in -->
-    <div v-if="cn.notSignedIn.value" class="nw-signin">
-      <RouterLink class="nw-signin-back" :to="{ name: 'home' }">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="m15 18-6-6 6-6" />
+    <!-- Mobile drawer backdrop (signed-in or gated) -->
+    <div
+      v-if="isMobile && sidebarOpen"
+      class="nw-backdrop"
+      @click="sidebarOpen = false"
+    />
+
+    <!-- Sidebar always visible so Notes keeps its left chrome when signed out -->
+    <NotesSidebar
+      class="nw-sidebar"
+      :class="{ 'is-open': !isMobile || sidebarOpen }"
+      :style="sidebarStyle"
+      :keyword="cn.keyword.value"
+      :active-group-id="cn.activeGroupId.value"
+      :managed-groups="cn.managedGroups.value"
+      :other-groups="cn.otherGroups.value"
+      :notes="cn.notes.value"
+      :selected-note-id="cn.selectedNoteId.value"
+      :loading="cn.loading.value"
+      :page="cn.page.value"
+      :total-pages="cn.totalPages.value"
+      :mobile="isMobile"
+      @update:keyword="onKeyword"
+      @set-group="onSetGroup"
+      @open-note="onOpenNote"
+      @create-note="onCreateNote"
+      @delete-note="onDeleteNote"
+      @delete-group="onDeleteGroup"
+      @new-group="showNewGroupModal = true"
+      @refresh="onRefreshList"
+      @go-page="cn.goToPage"
+      @close="sidebarOpen = false"
+    />
+
+    <!-- Desktop-only drag handle between sidebar and canvas -->
+    <div
+      v-if="!isMobile"
+      class="nw-resize"
+      :class="{ 'is-dragging': resizing }"
+      role="separator"
+      aria-orientation="vertical"
+      :aria-valuenow="sidebarWidthPx"
+      :aria-valuemin="SIDEBAR_MIN"
+      :aria-valuemax="SIDEBAR_MAX"
+      :title="$t('cloudNotes.resizeSidebar')"
+      @pointerdown="onResizeStart"
+    />
+
+    <!-- Gated right pane when signed out (topbar mirrors empty editor canvas) -->
+    <div v-if="cn.notSignedIn.value" class="nw-gated-canvas">
+      <div class="nw-gated-topbar">
+        <button
+          v-if="isMobile"
+          type="button"
+          class="nw-gated-menu-btn"
+          :aria-label="$t('cloudNotes.openSidebar')"
+          @click="sidebarOpen = true"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <div class="nw-gated-topbar-spacer" />
+        <RouterLink class="nw-gated-back" :to="{ name: 'home' }" :title="$t('cloudNotes.backToApp')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m15 18-6-6 6-6" />
+          </svg>
+          <span>{{ $t('cloudNotes.backToApp') }}</span>
+        </RouterLink>
+      </div>
+      <div class="nw-gated-body">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 11a3 3 0 100-6 3 3 0 000 6zM5 20a7 7 0 0114 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
         </svg>
-        {{ $t('cloudNotes.backToApp') }}
-      </RouterLink>
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 11a3 3 0 100-6 3 3 0 000 6zM5 20a7 7 0 0114 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-      </svg>
-      <p>{{ $t('cloudNotes.notSignedIn') }}</p>
-      <RouterLink class="btn btn--primary nw-signin-btn" :to="{ name: 'login' }">{{ $t('auth.signIn') }}</RouterLink>
+        <p>{{ $t('cloudNotes.notSignedIn') }}</p>
+        <RouterLink
+          class="btn btn--primary nw-signin-btn"
+          :to="{ name: 'login', query: { redirect: route.fullPath } }"
+        >
+          {{ $t('auth.signIn') }}
+        </RouterLink>
+      </div>
     </div>
 
     <template v-else>
-      <!-- Mobile drawer backdrop -->
-      <div
-        v-if="isMobile && sidebarOpen"
-        class="nw-backdrop"
-        @click="sidebarOpen = false"
-      />
-
-      <NotesSidebar
-        class="nw-sidebar"
-        :class="{ 'is-open': !isMobile || sidebarOpen }"
-        :style="sidebarStyle"
-        :keyword="cn.keyword.value"
-        :active-group-id="cn.activeGroupId.value"
-        :managed-groups="cn.managedGroups.value"
-        :other-groups="cn.otherGroups.value"
-        :notes="cn.notes.value"
-        :selected-note-id="cn.selectedNoteId.value"
-        :loading="cn.loading.value"
-        :page="cn.page.value"
-        :total-pages="cn.totalPages.value"
-        :mobile="isMobile"
-        @update:keyword="onKeyword"
-        @set-group="onSetGroup"
-        @open-note="onOpenNote"
-        @create-note="onCreateNote"
-        @delete-note="onDeleteNote"
-        @delete-group="onDeleteGroup"
-        @new-group="showNewGroupModal = true"
-        @refresh="onRefreshList"
-        @go-page="cn.goToPage"
-        @close="sidebarOpen = false"
-      />
-
-      <!-- Desktop-only drag handle between sidebar and canvas -->
-      <div
-        v-if="!isMobile"
-        class="nw-resize"
-        :class="{ 'is-dragging': resizing }"
-        role="separator"
-        aria-orientation="vertical"
-        :aria-valuenow="sidebarWidthPx"
-        :aria-valuemin="SIDEBAR_MIN"
-        :aria-valuemax="SIDEBAR_MAX"
-        :title="$t('cloudNotes.resizeSidebar')"
-        @pointerdown="onResizeStart"
-      />
-
       <NotesEditorCanvas
         :has-note="!!cn.selectedNote.value"
         :title="ed.editableTitle.value"
@@ -280,11 +302,14 @@ onBeforeUnmount(() => {
 })
 
 // Signing in while the page is visible: load immediately.
+// Signing out: flip the gate so the canvas shows Sign In without waiting on a failed API call.
 watch(
   () => authStore.isLoggedIn.value,
   (loggedIn) => {
     if (loggedIn && cn.notSignedIn.value) {
       void cn.init().then(() => syncFromRoute())
+    } else if (!loggedIn) {
+      cn.notSignedIn.value = true
     }
   },
 )
@@ -406,7 +431,71 @@ async function onMoveGroup(groupId: number): Promise<void> {
   font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
 }
 
-.nw-signin {
+/* Right-pane gate when signed out (sidebar stays mounted). */
+.nw-gated-canvas {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--nt-bg);
+}
+
+.nw-gated-topbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 6px 12px 6px 14px;
+  flex-shrink: 0;
+}
+
+.nw-gated-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--nt-text-muted);
+  cursor: pointer;
+}
+
+.nw-gated-menu-btn:hover {
+  background: var(--nt-sidebar-hover);
+  color: var(--nt-text);
+}
+
+.nw-gated-topbar-spacer {
+  flex: 1;
+}
+
+/* Match NotesEditorCanvas `.nec-back` so the empty / signed-out chrome looks the same. */
+.nw-gated-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--nt-border, rgba(0, 0, 0, 0.1));
+  border-radius: 6px;
+  background: transparent;
+  color: var(--nt-text-muted);
+  font-size: 12.5px;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.nw-gated-back:hover {
+  background: var(--nt-sidebar-hover);
+  color: var(--nt-text);
+}
+
+.nw-gated-body {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -415,30 +504,11 @@ async function onMoveGroup(groupId: number): Promise<void> {
   gap: 12px;
   color: var(--nt-text-muted);
   font-size: 14px;
-  position: relative;
+  padding: 24px;
 }
 
-.nw-signin p {
+.nw-gated-body p {
   margin: 0;
-}
-
-.nw-signin-back {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  color: var(--nt-text-muted);
-  text-decoration: none;
-  font-size: 13px;
-}
-
-.nw-signin-back:hover {
-  background: var(--nt-sidebar-hover);
-  color: var(--nt-text);
 }
 
 /* Primary button in the gate still uses shared .btn — nudge accent toward blue. */
@@ -549,6 +619,9 @@ async function onMoveGroup(groupId: number): Promise<void> {
   --nt-selection-fg: inherit;
   --nt-elevated: #ffffff;
   --nt-elevated-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  /* Notion-style workspace avatar: light gray square + dark glyph */
+  --nt-avatar-bg: #e3e2e0;
+  --nt-avatar-fg: #37352f;
   --nt-sidebar-width: 15.5rem;
   --nt-doc-max: 52rem;
   --nt-title-size: 2.5rem;
@@ -568,6 +641,9 @@ html[data-theme="dark"] .notes-workspace {
   --nt-selection-fg: rgba(255, 255, 255, 0.92);
   --nt-elevated: #2a2a2a;
   --nt-elevated-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  /* Muted square + light glyph (matches Notion dark sidebar) */
+  --nt-avatar-bg: rgba(255, 255, 255, 0.12);
+  --nt-avatar-fg: rgba(255, 255, 255, 0.9);
   color-scheme: dark;
 }
 

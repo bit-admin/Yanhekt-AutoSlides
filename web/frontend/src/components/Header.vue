@@ -190,7 +190,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { navigationStore } from '../stores/navigationStore'
 import { authStore } from '../stores/authStore'
 import { useSearchPage } from '../composables/useSearchPage'
@@ -236,8 +236,9 @@ const clickSubscribedCourse = (course: SubscribedCourse) => {
 const subscribedCount = computed(() => subscribedRecordedCourses.value.length)
 
 const router = useRouter()
+const route = useRoute()
 const goToLogin = () => {
-  void router.push({ name: 'login' })
+  void router.push({ name: 'login', query: { redirect: route.fullPath } })
 }
 
 // Responsive state

@@ -400,6 +400,7 @@
     "workspaceTitle": "AutoSlides Notes",
     "workspaceBrand": "AutoSlides",
     "workspaceProduct": "Notes",
+    "workspaceUserLabel": "{name}'s Notes",
     "resizeSidebar": "Drag to resize sidebar",
     "backToApp": "Back to AutoSlides",
     "backShort": "Back",

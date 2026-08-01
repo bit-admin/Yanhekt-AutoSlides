@@ -172,12 +172,15 @@
       <span>{{ page }} / {{ totalPages }}</span>
       <button type="button" class="ns-pager-btn" :disabled="page >= totalPages" @click="emit('go-page', page + 1)">›</button>
     </div>
+
+    <NotesUserMenu />
   </aside>
 </template>
 
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import type { NoteGroup, NoteSummary } from '../../lib/notes/notesTypes'
+import NotesUserMenu from './NotesUserMenu.vue'
 
 defineProps<{
   keyword: string

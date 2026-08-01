@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <!-- Escape hatch back to the app (the header "Sign In" routes here). -->
-    <button class="login-close" type="button" @click="goHome" :aria-label="$t('webAuth.close')">
+    <button class="login-close" type="button" @click="leaveLogin" :aria-label="$t('webAuth.close')">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="6" x2="6" y2="18" />
         <line x1="6" y1="6" x2="18" y2="18" />
@@ -285,7 +285,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { authStore } from '../stores/authStore'
 import { generateBookmarklet } from '../lib/bookmarklet'
 import TokenBookmarkletDemo from './TokenBookmarkletDemo.vue'
@@ -294,7 +294,19 @@ import { getCurrentLocale } from '../i18n'
 
 const { t, locale } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const { isLoggedIn, isVerifyingToken } = authStore
+
+/** Reject open redirects: only same-origin relative paths. */
+function isSafeRedirect(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    value.startsWith('/') &&
+    !value.startsWith('//') &&
+    !value.startsWith('/\\') &&
+    !value.includes('://')
+  )
+}
 
 type Step = 'choose' | 'password' | 'sms' | 'token-get' | 'token-paste'
 const step = ref<Step>('choose')
@@ -366,8 +378,11 @@ const onDocClick = (e: MouseEvent) => {
 onMounted(() => document.addEventListener('click', onDocClick))
 onUnmounted(() => document.removeEventListener('click', onDocClick))
 
-const goHome = () => {
-  void router.push({ name: 'home' })
+/** Leave login: honor a safe `redirect` query, else home. */
+const leaveLogin = () => {
+  const raw = route.query.redirect
+  const target = Array.isArray(raw) ? raw[0] : raw
+  void router.push(isSafeRedirect(target) ? target : { name: 'home' })
 }
 
 const goStep = (s: Step) => {
@@ -388,7 +403,7 @@ const submitPassword = async () => {
   try {
     const result = await authStore.loginWithPassword(username.value.trim(), password.value)
     if (result.success) {
-      goHome()
+      leaveLogin()
     } else if (result.smsRequired) {
       smsCode.value = ''
       goStep('sms')
@@ -467,7 +482,7 @@ const submitSms = async () => {
   try {
     const result = await authStore.submitSmsCode(smsCode.value)
     if (result.success) {
-      goHome()
+      leaveLogin()
       return
     }
 
@@ -501,7 +516,7 @@ const submitToken = async () => {
   try {
     const result = await authStore.adoptToken(tokenInput.value.trim())
     if (result.success) {
-      goHome()
+      leaveLogin()
     } else {
       errorMessage.value = result.error || t('webAuth.invalidToken')
     }
@@ -511,11 +526,11 @@ const submitToken = async () => {
 }
 
 // Arriving already signed in (unless a bookmarklet token is waiting for
-// review on the paste step — submitToken/goHome handles that path).
+// review on the paste step — submitToken/leaveLogin handles that path).
 watch(
   isLoggedIn,
   (loggedIn) => {
-    if (loggedIn && !filledFromBookmarklet.value) goHome()
+    if (loggedIn && !filledFromBookmarklet.value) leaveLogin()
   },
   { immediate: true },
 )
