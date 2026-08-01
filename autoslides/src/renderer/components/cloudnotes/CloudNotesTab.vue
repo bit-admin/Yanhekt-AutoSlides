@@ -961,8 +961,8 @@ watch(() => userId.value, () => {
   void cn.init()
 })
 
-// Live search — filter the list as the user types (client-side, instant).
-watch(() => cn.keyword.value, () => cn.searchNotes(true))
+// Live search — debounced server keyword (group filter still local).
+watch(() => cn.keyword.value, () => { void cn.searchNotes(true) })
 
 </script>
 

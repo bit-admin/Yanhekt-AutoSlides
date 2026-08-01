@@ -9,6 +9,8 @@ const PAGE_SIZE = 20;
 const FETCH_PAGE_SIZE = 500;
 /** Safety cap on full-set paging (FETCH_PAGE_SIZE * this = max notes loaded). */
 const MAX_FETCH_PAGES = 20;
+/** Debounce for live keyword search so we don't hit the API on every keystroke. */
+const SEARCH_DEBOUNCE_MS = 300;
 
 /**
  * Reactive state + actions for the Notes page. Ported from the desktop
@@ -17,17 +19,24 @@ const MAX_FETCH_PAGES = 20;
  * bridge, and the desktop-only README recreation is dropped.
  *
  * Grouping model: the server's note/list endpoint ignores any groupId filter,
- * so we load the complete note set once (paging note/list, which paginates
- * correctly and honours a large page_size) and do group filtering, keyword
- * filtering, and pagination entirely client-side over that in-memory set. List
- * rows carry no content, so the full set stays light even for many notes. The
- * Editor.js wiring lives in the component; this composable owns the data.
+ * so we load the complete note set once (paging note/list with empty keyword)
+ * into `allNotes` and filter by group + paginate client-side. Keyword search is
+ * server-side: a non-empty keyword pages note/list with `keyword=` into
+ * `searchResults`, then the same client group/page slice runs over that buffer.
+ * Export/import keep using the full catalog via loadAll() + allNotes. List rows
+ * carry no content, so both sets stay light. The Editor.js wiring lives in the
+ * component; this composable owns the data.
  */
 export function useCloudNotes() {
   const groups = ref<NoteGroup[]>([]);
   /** Complete note set (all groups), loaded via loadAll(). */
   const allNotes = ref<NoteSummary[]>([]);
-  /** The current visible page after group + keyword filtering. */
+  /**
+   * Server keyword matches when a search is active; null means "use allNotes".
+   * Kept separate so export/import can still rely on the full catalog.
+   */
+  const searchResults = ref<NoteSummary[] | null>(null);
+  /** The current visible page after group filtering over the active source set. */
   const notes = ref<NoteSummary[]>([]);
   const selectedNote = ref<NoteDetail | null>(null);
 
@@ -36,7 +45,7 @@ export function useCloudNotes() {
 
   const page = ref(1);
   const totalPages = ref(1);
-  /** Number of notes matching the current group + keyword filter. */
+  /** Number of notes matching the current group (+ keyword, when searching). */
   const filteredCount = ref(0);
 
   const loading = ref(false);
@@ -44,6 +53,10 @@ export function useCloudNotes() {
   const error = ref('');
   /** Set when no token is stored — the user must sign in first. */
   const notSignedIn = ref(false);
+
+  /** Bumps on every new search so in-flight keyword pages discard stale results. */
+  let searchGen = 0;
+  let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   const selectedNoteId = computed(() => selectedNote.value?.id ?? null);
 
@@ -66,19 +79,46 @@ export function useCloudNotes() {
     return null;
   }
 
-  /** Recompute the visible page from allNotes given the active group + keyword. */
+  /** Active source set: server keyword matches when searching, else full catalog. */
+  function sourceRows(): NoteSummary[] {
+    return searchResults.value ?? allNotes.value;
+  }
+
+  /** Recompute the visible page from the active source given the active group. */
   function applyView(): void {
     const gid = activeGroupId.value;
-    const kw = keyword.value.trim().toLowerCase();
-    let rows = allNotes.value;
+    let rows = sourceRows();
     if (gid !== '') rows = rows.filter((n) => n.note_group_id === gid);
-    if (kw) rows = rows.filter((n) => (n.title || '').toLowerCase().includes(kw));
 
     filteredCount.value = rows.length;
     totalPages.value = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
     if (page.value > totalPages.value) page.value = totalPages.value;
     const start = (page.value - 1) * PAGE_SIZE;
     notes.value = rows.slice(start, start + PAGE_SIZE);
+  }
+
+  /** Patch a note title in both the full catalog and the active search buffer. */
+  function patchTitle(id: number, title: string): void {
+    const row = allNotes.value.find((n) => n.id === id);
+    if (row) row.title = title;
+    const searchRow = searchResults.value?.find((n) => n.id === id);
+    if (searchRow) searchRow.title = title;
+  }
+
+  /** Drop a note from both the full catalog and the active search buffer. */
+  function removeFromBuffers(id: number): void {
+    allNotes.value = allNotes.value.filter((n) => n.id !== id);
+    if (searchResults.value) {
+      searchResults.value = searchResults.value.filter((n) => n.id !== id);
+    }
+  }
+
+  /** Patch note_group_id in both buffers. */
+  function patchGroup(id: number, groupId: number): void {
+    const row = allNotes.value.find((n) => n.id === id);
+    if (row) row.note_group_id = groupId;
+    const searchRow = searchResults.value?.find((n) => n.id === id);
+    if (searchRow) searchRow.note_group_id = groupId;
   }
 
   async function refreshGroups(): Promise<void> {
@@ -92,8 +132,44 @@ export function useCloudNotes() {
     }
   }
 
-  /** Load the complete note set by paging note/list, then recompute the view. */
+  /**
+   * Page note/list with a non-empty keyword into searchResults. Stale responses
+   * (superseded by a newer searchGen) are discarded. Does not touch allNotes.
+   */
+  async function fetchKeywordMatches(kw: string): Promise<void> {
+    const gen = ++searchGen;
+    const ownLoading = !loading.value;
+    if (ownLoading) loading.value = true;
+    error.value = '';
+    try {
+      const collected: NoteSummary[] = [];
+      let p = 1;
+      let lastPage = 1;
+      do {
+        const res = await notesClient.list({ page: p, pageSize: FETCH_PAGE_SIZE, keyword: kw });
+        if (gen !== searchGen) return;
+        const data = unwrap(res);
+        if (!data) break;
+        collected.push(...data.data);
+        lastPage = Math.max(1, data.last_page);
+        p += 1;
+      } while (p <= lastPage && p <= MAX_FETCH_PAGES);
+      if (gen !== searchGen) return;
+      searchResults.value = collected;
+      applyView();
+    } finally {
+      if (ownLoading && gen === searchGen) loading.value = false;
+    }
+  }
+
+  /** Load the complete note set by paging note/list (empty keyword), then recompute the view. */
   async function loadAll(): Promise<void> {
+    // Invalidate any in-flight keyword search; loadAll owns the next view update.
+    searchGen += 1;
+    if (searchDebounceTimer != null) {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = null;
+    }
     loading.value = true;
     error.value = '';
     try {
@@ -109,16 +185,40 @@ export function useCloudNotes() {
         p += 1;
       } while (p <= lastPage && p <= MAX_FETCH_PAGES);
       allNotes.value = collected;
-      applyView();
+      const kw = keyword.value.trim();
+      if (kw !== '') {
+        // Keep loading true across the keyword re-fetch.
+        await fetchKeywordMatches(kw);
+      } else {
+        searchResults.value = null;
+        applyView();
+      }
     } finally {
       loading.value = false;
     }
   }
 
-  /** Re-apply the group + keyword filter (client-side; no network). */
+  /**
+   * Apply the current keyword: empty → clear search buffer (instant, local);
+   * non-empty → debounced server keyword fetch. Group filter stays client-side.
+   */
   function searchNotes(resetPage = true): void {
     if (resetPage) page.value = 1;
-    applyView();
+    if (searchDebounceTimer != null) {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = null;
+    }
+    const kw = keyword.value.trim();
+    if (kw === '') {
+      searchGen += 1;
+      searchResults.value = null;
+      applyView();
+      return;
+    }
+    searchDebounceTimer = setTimeout(() => {
+      searchDebounceTimer = null;
+      void fetchKeywordMatches(kw);
+    }, SEARCH_DEBOUNCE_MS);
   }
 
   function setGroup(groupId: number | ''): void {
@@ -173,8 +273,7 @@ export function useCloudNotes() {
     const res = await notesClient.updateTitle(id, title);
     if (res.ok) {
       if (selectedNote.value?.id === id) selectedNote.value.title = title;
-      const row = allNotes.value.find((n) => n.id === id);
-      if (row) row.title = title;
+      patchTitle(id, title);
       applyView();
     } else {
       unwrap(res);
@@ -187,7 +286,7 @@ export function useCloudNotes() {
     const res = await notesClient.delete(id);
     if (res.ok) {
       if (selectedNote.value?.id === id) selectedNote.value = null;
-      allNotes.value = allNotes.value.filter((n) => n.id !== id);
+      removeFromBuffers(id);
       applyView();
     } else {
       unwrap(res);
@@ -214,11 +313,11 @@ export function useCloudNotes() {
 
     if (newId !== id) {
       // Ungroup recreated the note under a new id — drop the old row and reload.
-      allNotes.value = allNotes.value.filter((n) => n.id !== id);
+      removeFromBuffers(id);
       if (selectedNote.value?.id === id) selectedNote.value = null;
       await loadAll();
     } else {
-      if (row) row.note_group_id = groupId;
+      patchGroup(id, groupId);
       if (selectedNote.value?.id === id) selectedNote.value.note_group_id = groupId;
       await refreshGroups();
       applyView();
@@ -244,6 +343,11 @@ export function useCloudNotes() {
       // Server reassigns the group's notes to the default group (0).
       for (const n of allNotes.value) {
         if (n.note_group_id === id) n.note_group_id = 0;
+      }
+      if (searchResults.value) {
+        for (const n of searchResults.value) {
+          if (n.note_group_id === id) n.note_group_id = 0;
+        }
       }
       if (activeGroupId.value === id) {
         activeGroupId.value = '';

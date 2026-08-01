@@ -325,7 +325,8 @@ watch(
 
 function onKeyword(value: string): void {
   cn.keyword.value = value
-  cn.searchNotes()
+  // Debounced server keyword search lives in the composable.
+  void cn.searchNotes()
 }
 
 function onSetGroup(id: number | ''): void {

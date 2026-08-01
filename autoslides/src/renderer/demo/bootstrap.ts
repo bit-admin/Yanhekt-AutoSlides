@@ -92,7 +92,23 @@ export function installDemo(): void {
   // static. The managed notes embed real slide images (see demoNoteDetail).
   overrides.cloudNotesProvider = {
     groupList: async () => ({ ok: true, data: demoNoteGroups() }),
-    list: async () => ({ ok: true, data: demoNotesList() }),
+    // Honour keyword so offline demo search mirrors server-side filtering.
+    list: async (params) => {
+      const full = demoNotesList()
+      const kw = params?.keyword?.trim().toLowerCase()
+      if (!kw) return { ok: true as const, data: full }
+      const filtered = full.data.filter((n) => (n.title || '').toLowerCase().includes(kw))
+      return {
+        ok: true as const,
+        data: {
+          ...full,
+          data: filtered,
+          total: filtered.length,
+          last_page: 1,
+          current_page: 1,
+        },
+      }
+    },
     get: async (id: number) => ({ ok: true, data: demoNoteDetail(id) }),
     create: async () => ({ ok: true, data: demoNextNoteIdValue() }),
     updateTitle: async () => ({ ok: true, data: undefined }),
