@@ -546,6 +546,7 @@
       "remove": "削除",
       "sectionTitle": "保存済みコース",
       "modalTitle": "検索を追加",
+      "modeLabel": "検索モード",
       "placeholder": "キーワードを入力...",
       "cancel": "キャンセル",
       "confirm": "保存"

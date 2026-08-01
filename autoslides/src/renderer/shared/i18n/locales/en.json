@@ -546,6 +546,7 @@
       "remove": "Remove",
       "sectionTitle": "Saved Courses",
       "modalTitle": "Add Saved Search",
+      "modeLabel": "Search mode",
       "placeholder": "Enter a keyword...",
       "cancel": "Cancel",
       "confirm": "Save"

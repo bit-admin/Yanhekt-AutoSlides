@@ -56,6 +56,7 @@
       "cancel": "取消",
       "confirm": "保存",
       "modalTitle": "添加搜索",
+      "modeLabel": "搜索类型",
       "placeholder": "输入关键词...",
       "remove": "删除",
       "save": "保存搜索"

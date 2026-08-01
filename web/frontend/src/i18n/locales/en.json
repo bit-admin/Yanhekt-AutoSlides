@@ -56,6 +56,7 @@
       "cancel": "Cancel",
       "confirm": "Save",
       "modalTitle": "Add Saved Search",
+      "modeLabel": "Search mode",
       "placeholder": "Enter a keyword...",
       "remove": "Remove",
       "save": "Save Search"

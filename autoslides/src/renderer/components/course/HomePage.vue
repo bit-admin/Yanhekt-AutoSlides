@@ -196,36 +196,24 @@
     <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
       <div class="modal-box">
         <h3 class="modal-title">{{ $t('courses.savedSearches.modalTitle') }}</h3>
-        <input
-          v-model="newKeyword"
-          type="text"
-          class="modal-input"
-          :placeholder="$t('courses.savedSearches.placeholder')"
-          @keyup.enter="confirmAddSearch"
-          @keyup.esc="closeAddModal"
-          ref="modalInputRef"
-        />
-        <div class="mode-segments">
-          <button
-            :class="['mode-segment', { active: newSearchMode === 'live' }]"
-            @click="newSearchMode = 'live'"
+        <div class="modal-field-row">
+          <input
+            v-model="newKeyword"
+            type="text"
+            class="modal-input"
+            :placeholder="$t('courses.savedSearches.placeholder')"
+            @keyup.enter="confirmAddSearch"
+            @keyup.esc="closeAddModal"
+            ref="modalInputRef"
+          />
+          <select
+            v-model="newSearchMode"
+            class="select-field modal-mode-select"
+            :aria-label="$t('courses.savedSearches.modeLabel')"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
-            </svg>
-            {{ $t('navigation.live') }}
-          </button>
-          <button
-            :class="['mode-segment', { active: newSearchMode === 'recorded' }]"
-            @click="newSearchMode = 'recorded'"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-              <line x1="8" y1="21" x2="16" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
-            {{ $t('navigation.recorded') }}
-          </button>
+            <option value="recorded">{{ $t('navigation.recorded') }}</option>
+            <option value="live">{{ $t('navigation.live') }}</option>
+          </select>
         </div>
         <div class="modal-actions">
           <button class="btn modal-action-btn" @click="closeAddModal">{{ $t('courses.savedSearches.cancel') }}</button>
@@ -848,7 +836,8 @@ onMounted(() => {
   background: var(--bg-modal);
   border-radius: 12px;
   padding: 20px;
-  width: 320px;
+  width: 384px;
+  max-width: calc(100vw - 32px);
   box-shadow: 0 8px 32px var(--shadow-lg);
   display: flex;
   flex-direction: column;
@@ -863,13 +852,23 @@ onMounted(() => {
   color: var(--text-primary);
 }
 
+.modal-field-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
 .modal-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: var(--control-height);
   padding: 8px 11px;
   border: 1px solid var(--border-input);
   border-radius: 7px;
   font-size: 13px;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
   background-color: var(--bg-input);
   color: var(--text-primary);
 }
@@ -880,56 +879,31 @@ onMounted(() => {
 
 .modal-input:focus {
   border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
-/* Full-width macOS segmented Live/Recorded control: gray track, white active
-   pill (matches the Search page mode switch) */
-.mode-segments {
-  display: flex;
-  gap: 2px;
-  padding: 2px;
-  border-radius: 8px;
-  background: var(--bg-page-alt);
-  border: 1px solid var(--border-color);
-}
-
-.mode-segment {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 6px 0;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.mode-segment:hover {
-  color: var(--text-primary);
-}
-
-.mode-segment.active {
-  background: var(--bg-surface);
-  border-color: var(--border-strong);
-  color: var(--text-primary);
-  box-shadow: 0 1px 2px var(--shadow-sm);
+.modal-mode-select {
+  flex: 0 0 auto;
+  width: 100px;
+  min-height: var(--control-height);
+  border-radius: 7px;
+  font-size: 13px;
+  padding: 6px 8px;
 }
 
 .modal-actions {
   display: flex;
+  justify-content: center;
   gap: 8px;
   margin-top: 2px;
 }
 
 .modal-action-btn {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 120px;
   min-height: 32px;
+  padding-left: 24px;
+  padding-right: 24px;
   border-radius: 7px;
   font-size: 13px;
 }

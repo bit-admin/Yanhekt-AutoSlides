@@ -546,6 +546,7 @@
       "remove": "删除",
       "sectionTitle": "课程收藏夹",
       "modalTitle": "添加搜索",
+      "modeLabel": "搜索类型",
       "placeholder": "输入关键词...",
       "cancel": "取消",
       "confirm": "保存"

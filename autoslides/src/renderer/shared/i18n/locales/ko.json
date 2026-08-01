@@ -546,6 +546,7 @@
       "remove": "삭제",
       "sectionTitle": "저장된 강좌",
       "modalTitle": "검색 추가",
+      "modeLabel": "검색 유형",
       "placeholder": "키워드 입력...",
       "cancel": "취소",
       "confirm": "저장"

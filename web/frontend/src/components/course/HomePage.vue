@@ -183,40 +183,28 @@
       <p class="signin-panel-subtitle">{{ $t('home.signInHint') }}</p>
     </div>
 
-    <!-- Save Search Modal (Pill styled) -->
+    <!-- Save Search Modal -->
     <div v-if="showAddModal" class="modal-overlay" @click.self="closeAddModal">
       <div class="modal-box">
         <h3 class="modal-title">{{ $t('courses.savedSearches.modalTitle') }}</h3>
-        <input
-          v-model="newKeyword"
-          type="text"
-          class="modal-input"
-          :placeholder="$t('courses.savedSearches.placeholder')"
-          @keyup.enter="confirmAdd"
-          @keyup.esc="closeAddModal"
-          ref="keywordInputRef"
-        />
-        <div class="mode-segments">
-          <button
-            :class="['mode-segment', { active: newSearchMode === 'live' }]"
-            @click="newSearchMode = 'live'"
+        <div class="modal-field-row">
+          <input
+            v-model="newKeyword"
+            type="text"
+            class="modal-input"
+            :placeholder="$t('courses.savedSearches.placeholder')"
+            @keyup.enter="confirmAdd"
+            @keyup.esc="closeAddModal"
+            ref="keywordInputRef"
+          />
+          <select
+            v-model="newSearchMode"
+            class="select-field modal-mode-select"
+            :aria-label="$t('courses.savedSearches.modeLabel')"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
-            </svg>
-            {{ $t('navigation.live') }}
-          </button>
-          <button
-            :class="['mode-segment', { active: newSearchMode === 'recorded' }]"
-            @click="newSearchMode = 'recorded'"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-              <line x1="8" y1="21" x2="16" y2="21"/>
-              <line x1="12" y1="17" x2="12" y2="21"/>
-            </svg>
-            {{ $t('navigation.recorded') }}
-          </button>
+            <option value="recorded">{{ $t('navigation.recorded') }}</option>
+            <option value="live">{{ $t('navigation.live') }}</option>
+          </select>
         </div>
         <div class="modal-actions">
           <button class="btn modal-action-btn" @click="closeAddModal">{{ $t('courses.savedSearches.cancel') }}</button>
@@ -725,7 +713,8 @@ watch(activeNav, (nav) => {
   background: var(--bg-modal);
   border-radius: 0.75rem;
   padding: 1.5rem;
-  width: 20rem;
+  width: 24rem;
+  max-width: calc(100vw - 2rem);
   box-shadow: 0 8px 32px var(--shadow-lg);
   display: flex;
   flex-direction: column;
@@ -740,65 +729,52 @@ watch(activeNav, (nav) => {
   color: var(--text-primary);
 }
 
+.modal-field-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
 .modal-input {
-  padding: 0.5rem 0.75rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  box-sizing: border-box;
+  height: var(--control-height);
+  min-height: var(--control-height);
+  padding: 0 0.75rem;
   border: 1px solid var(--border-input);
   border-radius: 0.5rem;
   font-size: 0.8125rem;
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
   background-color: var(--bg-input);
   color: var(--text-primary);
 }
 
 .modal-input:focus {
   border-color: var(--link-color);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
-.mode-segments {
-  display: flex;
-  gap: 0.125rem;
-  padding: 0.125rem;
-  border-radius: 0.5rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-}
-
-.mode-segment {
-  flex: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0;
-  border: 1px solid transparent;
-  border-radius: 0.375rem;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.mode-segment:hover {
-  color: var(--text-primary);
-}
-
-.mode-segment.active {
-  background: var(--bg-page-alt);
-  border-color: var(--border-strong);
-  color: var(--text-primary);
-  box-shadow: 0 1px 2px var(--shadow-sm);
+.modal-mode-select {
+  flex: 0 0 auto;
+  width: 6.25rem;
+  padding-left: 0.5rem;
+  padding-right: 1.5rem;
+  background-position: right 0.4rem center;
 }
 
 .modal-actions {
   display: flex;
+  justify-content: center;
   gap: 0.5rem;
 }
 
 .modal-action-btn {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 7.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
 }
 
 .row-loading {
