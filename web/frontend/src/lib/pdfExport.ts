@@ -116,6 +116,13 @@ export async function buildPdf(
     throw new Error('No images to export')
   }
 
+  // Copyright reminder for rights holders / users (see /copyright §5).
+  // Subject is the conventional place for a short advisory; Title stays empty
+  // so it does not pretend the export is an original work of AutoSlides.
+  doc.setSubject('This file may contain copyrighted material. For personal study only.')
+  doc.setProducer('AutoSlides')
+  doc.setCreator('AutoSlides')
+
   addOutline(pdfLib, doc, outlineItems)
   return doc.save()
 }

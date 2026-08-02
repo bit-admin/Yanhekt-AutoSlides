@@ -106,6 +106,7 @@
   },
   "legal": {
     "bilingualNote": "This document is published in English and 繁體中文. The English version prevails.",
+    "copyright": "Copyright",
     "disclosure": "Disclosure",
     "indexLead": "A short guide to each section. It is not a substitute for reading the document in full.",
     "indexTitle": "What's in this document?",
@@ -458,7 +459,7 @@
     "readmeBody1": "This note explains the \"ASnote\" group in your Yanhekt notes. AutoSlides created and manages that group — it is where AutoSlides syncs your extracted slides.",
     "readmeBody4": "AutoSlides also manages an \"ASuser\" group for your personal watch-mode notes: when you take notes while watching a live stream or a recorded session, captured slides are appended there. Notes outside ASnote (ASuser, Ungrouped, and your own folders) are yours to edit freely and can be exported as PDF or Markdown; they are never published to the shared Index.",
     "readmeBody2": "Please don't manually rename, move, or edit notes inside the ASnote group: AutoSlides may overwrite them when it re-syncs.",
-    "readmeBody3": "Note: slide images are uploaded to Yanhekt's public storage, so anyone with the link can view them. Don't include private or sensitive images.",
+    "readmeBody3": "Note: slide images are uploaded to Yanhekt's public storage, which can be listed and downloaded without signing in. Don't include private or sensitive images.",
     "initStorage": "Init cloud storage",
     "storageNotInitialized": "Cloud storage isn't initialized. Initialize it in Settings first.",
     "exportButton": "Export",
@@ -486,7 +487,7 @@
     "smallText": "Small text",
     "fullWidth": "Full width",
     "publicStorageBanner": {
-      "text": "Note: Yanhekt stores note images in public storage and anyone can access them. Do not include private or sensitive images.",
+      "text": "Note: Yanhekt stores note images in public storage that can be listed and downloaded without signing in. Do not include private or sensitive images.",
       "learnWhy": "Learn why ↗",
       "dismiss": "Got it"
     }

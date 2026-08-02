@@ -275,6 +275,7 @@
         <nav class="login-legal">
           <RouterLink class="login-legal-link" :to="{ name: 'privacy' }">{{ $t('legal.privacy') }}</RouterLink>
           <RouterLink class="login-legal-link" :to="{ name: 'terms' }">{{ $t('legal.terms') }}</RouterLink>
+          <RouterLink class="login-legal-link" :to="{ name: 'copyright' }">{{ $t('legal.copyright') }}</RouterLink>
           <RouterLink class="login-legal-link" :to="{ name: 'disclosure' }">{{ $t('legal.disclosure') }}</RouterLink>
         </nav>
       </footer>

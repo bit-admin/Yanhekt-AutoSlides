@@ -128,10 +128,8 @@ export class WindowManager {
         {
           label: t('titlebar.legalNotices'),
           click: () => {
-            const termsPath = app.isPackaged
-              ? path.join(process.resourcesPath, 'terms/terms.rtf')
-              : path.join(__dirname, '../../resources/terms/terms.rtf');
-            shell.openPath(termsPath);
+            // Canonical Terms live on the web service (same doc as learn.ruc.edu.kg/terms).
+            void shell.openExternal('https://learn.ruc.edu.kg/terms');
           }
         },
         { type: 'separator' },

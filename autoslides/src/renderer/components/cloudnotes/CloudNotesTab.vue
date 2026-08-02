@@ -763,7 +763,7 @@ watch(
 )
 
 const MYNOTES_URL = 'https://www.yanhekt.cn/profile/myNotes'
-const WHY_URL = 'https://github.com/bit-admin/yanhekt-coss-browser'
+const WHY_URL = 'https://learn.ruc.edu.kg/disclosure'
 function openExt(url: string): void { window.electronAPI.shell.openExternal(url) }
 
 // Dismissible per session — resets to visible when the Tools window reopens.

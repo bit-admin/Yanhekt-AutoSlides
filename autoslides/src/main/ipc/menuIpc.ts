@@ -1,15 +1,14 @@
-import { ipcMain, BrowserWindow, app, shell } from 'electron';
-import path from 'node:path';
+import { ipcMain, BrowserWindow, shell } from 'electron';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('MenuIpc');
+
+/** Canonical Terms page (web legal doc; replaces bundled resources/terms/terms.rtf). */
+const TERMS_URL = 'https://learn.ruc.edu.kg/terms';
 
 export function registerMenuIpcHandlers(): void {
   ipcMain.handle('menu:openTermsAndConditions', async () => {
     try {
-      const termsPath = app.isPackaged
-        ? path.join(process.resourcesPath, 'terms/terms.rtf')
-        : path.join(__dirname, '../../resources/terms/terms.rtf');
-      await shell.openPath(termsPath);
+      await shell.openExternal(TERMS_URL);
       return { success: true };
     } catch (error) {
       log.error('Failed to open Terms and Conditions:', error);

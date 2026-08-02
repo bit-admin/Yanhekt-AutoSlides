@@ -1,3 +1,4 @@
+import { copyrightDoc } from "./copyright";
 import { disclosureDoc } from "./disclosure";
 import { privacyDoc } from "./privacy";
 import { termsDoc } from "./terms";
@@ -6,7 +7,12 @@ import type { LegalDoc, LegalDocId } from "./types";
 export type { LegalDoc, LegalDocId } from "./types";
 
 /** Order here drives the sidebar nav on the legal pages. */
-export const LEGAL_DOCS: LegalDoc[] = [termsDoc, privacyDoc, disclosureDoc];
+export const LEGAL_DOCS: LegalDoc[] = [
+  termsDoc,
+  privacyDoc,
+  copyrightDoc,
+  disclosureDoc,
+];
 
 export const legalDoc = (id: LegalDocId): LegalDoc =>
   LEGAL_DOCS.find((d) => d.id === id) ?? termsDoc;

@@ -168,6 +168,7 @@
           <nav class="legal-links" :aria-label="$t('navigation.legal')">
             <RouterLink class="legal-link" :to="{ name: 'terms' }">{{ $t('legal.terms') }}</RouterLink>
             <RouterLink class="legal-link" :to="{ name: 'privacy' }">{{ $t('legal.privacy') }}</RouterLink>
+            <RouterLink class="legal-link" :to="{ name: 'copyright' }">{{ $t('legal.copyright') }}</RouterLink>
             <RouterLink class="legal-link" :to="{ name: 'disclosure' }">{{ $t('legal.disclosure') }}</RouterLink>
           </nav>
           <p class="legal-notice">{{ $t('legal.notice') }}</p>

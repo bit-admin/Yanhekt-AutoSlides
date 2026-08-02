@@ -22,10 +22,9 @@ const config: ForgeConfig = {
     icon: 'resources/img/icon', // Will use .icns on macOS, .ico on Windows
     // Include all necessary resources
     extraResource: [
-      // Always include terms.rtf
-      'resources/terms',
       // Bundled YOLO model(s) for auto-crop. Kept outside asar so we can
       // read the bytes off disk via process.resourcesPath at runtime.
+      // Terms open in the browser (https://learn.ruc.edu.kg/terms) — no bundled RTF.
       'resources/models',
       // Include FFmpeg binary for all platforms
       'node_modules/ffmpeg-static',

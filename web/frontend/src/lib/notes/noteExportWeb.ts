@@ -255,6 +255,22 @@ async function buildMarkdownZip(title: string, blocks: EJBlock[]): Promise<Uint8
 
   const md = new TextEncoder().encode(lines.join('\n'))
   files['note.md'] = [md, { level: 6 }]
+
+  // Copyright reminder (see /copyright §5). Advisory only; does not grant a licence.
+  const notice = new TextEncoder().encode(
+    [
+      'COPYRIGHT NOTICE',
+      '',
+      'This archive may contain copyrighted material.',
+      'It is intended for personal study only under your own lawful access rights.',
+      'Do not redistribute without authorisation from the rights holder.',
+      '',
+      'See https://learn.ruc.edu.kg/copyright',
+      '',
+    ].join('\n'),
+  )
+  files['COPYRIGHT.txt'] = [notice, { level: 6 }]
+
   return zipSync(files)
 }
 
@@ -447,6 +463,11 @@ async function buildPdf(
   const pdfLib = await import('pdf-lib')
   const { PDFDocument, StandardFonts, rgb } = pdfLib
   const doc = await PDFDocument.create()
+
+  // Copyright reminder (see /copyright §5) — advisory only; does not grant a licence.
+  doc.setSubject('This file may contain copyrighted material. For personal study only.')
+  doc.setProducer('AutoSlides')
+  doc.setCreator('AutoSlides')
 
   // Dynamic import keeps ~0.7 MB fontkit out of the main chunk until export.
   const fontkitMod = await import('@pdf-lib/fontkit')

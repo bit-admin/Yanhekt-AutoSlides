@@ -106,6 +106,7 @@
   },
   "legal": {
     "bilingualNote": "本文件以英文及繁體中文發佈，並以英文版本為準。",
+    "copyright": "版权",
     "disclosure": "披露",
     "indexLead": "各章節的簡要導讀，不能取代閱讀文件全文。",
     "indexTitle": "本文件包含什麼？",
@@ -458,7 +459,7 @@
     "readmeBody1": "本笔记用于说明你延河课堂笔记中的「ASnote」分组。该分组由 AutoSlides 创建并管理，AutoSlides 会将提取的幻灯片同步到这里。",
     "readmeBody4": "AutoSlides 还会管理一个「ASuser」分组，用于存放你的观看模式个人笔记：当你在观看直播或录播时记笔记，捕获的幻灯片会追加到这里。ASnote 以外的笔记（ASuser、未分组以及你自己的文件夹）可自由编辑，并导出为 PDF 或 Markdown，且永远不会发布到共享索引。",
     "readmeBody2": "请勿手动重命名、移动或编辑 ASnote 分组内的笔记：AutoSlides 在重新同步时可能会覆盖它们。",
-    "readmeBody3": "注意：幻灯片图片会上传到延河课堂的公开存储，任何拿到链接的人都能查看。请勿包含私密或敏感图片。",
+    "readmeBody3": "注意：幻灯片图片会上传到延河课堂的公开存储，可在未登录情况下被列出并下载。请勿包含私密或敏感图片。",
     "initStorage": "初始化云存储",
     "storageNotInitialized": "云存储尚未初始化。请先在设置中完成初始化。",
     "exportButton": "导出",
@@ -486,7 +487,7 @@
     "smallText": "小字号",
     "fullWidth": "全宽",
     "publicStorageBanner": {
-      "text": "注意：延河课堂将笔记图片存放在公开存储空间，任何人都可访问。请勿在笔记中包含私密或敏感图片。",
+      "text": "注意：延河课堂将笔记图片存放在可未登录列出并下载的公开存储空间。请勿在笔记中包含私密或敏感图片。",
       "learnWhy": "了解原因 ↗",
       "dismiss": "知道了"
     }

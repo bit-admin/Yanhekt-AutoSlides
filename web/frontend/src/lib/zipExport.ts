@@ -44,5 +44,20 @@ export async function buildZip(
     throw new Error('No images to export')
   }
 
+  // Copyright reminder (see /copyright §5). Advisory only; does not grant a licence.
+  const notice = new TextEncoder().encode(
+    [
+      'COPYRIGHT NOTICE',
+      '',
+      'This archive may contain copyrighted material.',
+      'It is intended for personal study only under your own lawful access rights.',
+      'Do not redistribute without authorisation from the rights holder.',
+      '',
+      'See https://learn.ruc.edu.kg/copyright',
+      '',
+    ].join('\n'),
+  )
+  files['COPYRIGHT.txt'] = [notice, { level: 6 }]
+
   return zipSync(files)
 }
