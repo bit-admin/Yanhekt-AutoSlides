@@ -90,6 +90,19 @@
     "signInHint": "登录后可查看你的直播和录播",
     "signInTitle": "开始使用 AutoSlides"
   },
+  "footerLinks": {
+    "copilot": "Copilot",
+    "coss": "COSS",
+    "cvForge": "CV Forge",
+    "itCentre": "IT 中心",
+    "notes": "AS 笔记",
+    "publicIndex": "公共索引",
+    "publicRelay": "公共中继",
+    "shortLink": "短链接"
+  },
+  "lab": {
+    "imageComparison": "图像算法"
+  },
   "legal": {
     "bilingualNote": "本文件以英文及繁體中文發佈，並以英文版本為準。",
     "disclosure": "披露",
@@ -107,6 +120,7 @@
     "legal": "法律",
     "live": "直播课程",
     "menu": "菜单",
+    "moreLinks": "更多",
     "openGitHub": "GitHub",
     "openYanhekt": "延河课堂",
     "pinned": "已订阅",

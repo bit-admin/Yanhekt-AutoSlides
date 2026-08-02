@@ -144,6 +144,18 @@
 
           <div class="nav-divider"></div>
 
+          <!-- Quiet secondary links above legal (YouTube-style stacked footer rows). -->
+          <nav class="footer-links" :aria-label="$t('navigation.moreLinks')">
+            <a
+              v-for="link in FOOTER_LINKS"
+              :key="link.href"
+              class="legal-link"
+              :href="link.href"
+              target="_blank"
+              rel="noopener noreferrer"
+            >{{ $t(link.labelKey) }}</a>
+          </nav>
+
           <!-- Legal: quiet links plus the standing disclaimer, YouTube-footer style. -->
           <nav class="legal-links" :aria-label="$t('navigation.legal')">
             <RouterLink class="legal-link" :to="{ name: 'terms' }">{{ $t('legal.terms') }}</RouterLink>
@@ -238,6 +250,20 @@ const route = useRoute()
 const router = useRouter()
 const livePlaybackActive = computed(() => route.name === 'player-live')
 const recordedPlaybackActive = computed(() => route.name === 'player-recorded')
+
+/** Quiet footer row: sister sites + Image Lab (all open in a new tab). */
+const FOOTER_LINKS = computed(() => [
+  { href: 'https://it.ruc.edu.kg', labelKey: 'footerLinks.itCentre' },
+  { href: 'https://relay.ruc.edu.kg', labelKey: 'footerLinks.publicRelay' },
+  { href: 'https://share.ruc.edu.kg', labelKey: 'footerLinks.publicIndex' },
+  { href: 'https://notes.ruc.edu.kg', labelKey: 'footerLinks.notes' },
+  // Lab sits after Notes; in-app route opened as its own tab (same idea as Apps).
+  { href: router.resolve({ name: 'image-comparison' }).href, labelKey: 'lab.imageComparison' },
+  { href: 'https://copilot.ruc.edu.kg', labelKey: 'footerLinks.copilot' },
+  { href: 'https://coss.ruc.edu.kg', labelKey: 'footerLinks.coss' },
+  { href: 'https://cv.ruc.edu.kg', labelKey: 'footerLinks.cvForge' },
+  { href: 'https://s.ruc.edu.kg', labelKey: 'footerLinks.shortLink' },
+])
 
 /** In-app route, but opened as its own tab so playback here keeps running. */
 const openApps = () => {
@@ -413,13 +439,18 @@ const openGitHub = () => {
   opacity: 0.45;
 }
 
-/* Legal block: deliberately the quietest thing in the panel. */
+/* Quiet footer rows above/within legal: deliberately the quietest thing in the panel. */
+.footer-links,
 .legal-links {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem 0.75rem;
   padding: 0 0.75rem;
   margin: 0 0.375rem;
+}
+
+.footer-links {
+  margin-bottom: 1rem;
 }
 
 .legal-link {

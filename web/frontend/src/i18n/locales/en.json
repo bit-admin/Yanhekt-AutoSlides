@@ -90,6 +90,19 @@
     "signInHint": "Sign in to see your live streams and recordings",
     "signInTitle": "Get started with AutoSlides"
   },
+  "footerLinks": {
+    "copilot": "Copilot",
+    "coss": "COSS",
+    "cvForge": "CV Forge",
+    "itCentre": "IT Centre",
+    "notes": "AS Notes",
+    "publicIndex": "Public Index",
+    "publicRelay": "Public Relay",
+    "shortLink": "Short Link"
+  },
+  "lab": {
+    "imageComparison": "Image Lab"
+  },
   "legal": {
     "bilingualNote": "This document is published in English and 繁體中文. The English version prevails.",
     "disclosure": "Disclosure",
@@ -107,6 +120,7 @@
     "legal": "Legal",
     "live": "Live",
     "menu": "Menu",
+    "moreLinks": "More",
     "openGitHub": "GitHub",
     "openYanhekt": "Yanhekt",
     "pinned": "Subscribed",

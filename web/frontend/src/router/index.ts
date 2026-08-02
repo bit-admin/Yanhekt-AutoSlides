@@ -13,6 +13,7 @@ import PlayerRoute from "../components/video/PlayerRoute.vue";
 import LoginPage from "../components/LoginPage.vue";
 import AppsPage from "../components/AppsPage.vue";
 import LegalPage from "../components/legal/LegalPage.vue";
+import ImageComparisonPage from "../components/lab/ImageComparisonPage.vue";
 
 // Routes are the source of truth for navigation; navigationStore is a thin
 // façade over this instance. Exported as a module singleton so the singleton
@@ -112,6 +113,13 @@ export const router = createRouter({
       path: "/apps",
       component: AppsPage,
       meta: { fullPage: true, keepAlive: false, titleKey: "apps.pageTitle" },
+    },
+    {
+      // Lab tool: SSIM/pHash calibration (was root test-image-comparison.html).
+      name: "image-comparison",
+      path: "/test",
+      component: ImageComparisonPage,
+      meta: { fullPage: true, keepAlive: false, titleKey: "lab.imageComparison" },
     },
     {
       // Route names match LegalDocId — the legal sidebar links by name.
