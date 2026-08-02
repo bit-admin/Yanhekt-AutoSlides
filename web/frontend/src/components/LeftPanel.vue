@@ -57,9 +57,17 @@
 
           <div class="nav-divider"></div>
 
-          <div class="nav-group-title" v-if="subscribedRecordedCourses.length > 0">
-            {{ $t('navigation.subscriptions') }}
-          </div>
+          <!-- YouTube-style: "Subscriptions >" always opens the full grid page. -->
+          <button
+            type="button"
+            :class="['nav-group-title', 'nav-group-title-btn', { active: activeNav === 'subscriptions' }]"
+            @click="navigate('subscriptions')"
+          >
+            <span>{{ $t('navigation.subscriptions') }}</span>
+            <svg class="nav-group-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </button>
           <div class="nav-items" v-if="subscribedRecordedCourses.length > 0">
             <div v-for="c in subscribedRecordedCourses" :key="c.id" class="subscribed-row">
               <button
@@ -87,7 +95,7 @@
             </div>
           </div>
 
-          <div class="nav-divider" v-if="subscribedRecordedCourses.length > 0"></div>
+          <div class="nav-divider"></div>
 
           <div class="nav-items">
             <button class="nav-item" @click="openYanhekt">
@@ -323,14 +331,35 @@ const openGitHub = () => {
   align-self: stretch;
 }
 
-/* YouTube Style Section Header */
+/* YouTube Style Section Header — clickable "Subscriptions >" */
 .nav-group-title {
-  padding: 0.25rem 0.75rem 0.625rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: auto;
+  margin: 0 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border: none;
+  border-radius: 0.625rem;
+  background: transparent;
   font-family: Roboto, Inter, sans-serif;
   font-size: 1rem;
   font-weight: 500;
   color: var(--text-primary);
   text-transform: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.nav-group-title-btn:hover,
+.nav-group-title-btn.active {
+  background-color: var(--bg-hover);
+}
+
+.nav-group-chevron {
+  flex-shrink: 0;
+  color: var(--text-primary);
 }
 
 .nav-items {

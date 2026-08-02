@@ -2,8 +2,10 @@ import { ref, computed, type Ref, type ComputedRef } from "vue";
 import {
   getPersonalLiveList,
   getPersonalCourseList,
+  getSubscriptionList,
   type LiveStream,
   type CourseData,
+  type SubscriptionCourseRow,
 } from "../lib/api";
 import { authStore } from "../stores/authStore";
 import { openCourse } from "./courseSelection";
@@ -95,6 +97,44 @@ export const transformCourseDataToCourse = (courseData: CourseData): Course => {
   };
 };
 
+/** Map a subscription list row into the shared Course card shape. */
+export const transformSubscriptionRowToCourse = (row: SubscriptionCourseRow): Course => {
+  // Keep professor resolution inlined (same rules as subscribedCourses) so this
+  // module does not import that composable (it imports Course from here).
+  let professors: string[] = [];
+  if (Array.isArray(row.professor_names) && row.professor_names.length) {
+    professors = row.professor_names.map(String).map((s) => s.trim()).filter(Boolean);
+  } else if (Array.isArray(row.professors)) {
+    professors = row.professors
+      .map((p) => (typeof p === "string" ? p : (p?.name ?? "")))
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+
+  const schoolYear = row.school_year != null ? String(row.school_year) : undefined;
+  const semester = row.semester != null ? String(row.semester) : undefined;
+  const semesterText = semester === "1" ? "Fall" : semester === "2" ? "Spring" : "";
+  const timeInfo =
+    schoolYear && semesterText
+      ? `${schoolYear} ${semesterText}`
+      : schoolYear || semesterText || "";
+
+  return {
+    id: String(row.id),
+    title: row.name_zh || "Untitled",
+    instructor: professors.length ? professors.join(", ") : "Unknown",
+    time: timeInfo,
+    professors: professors.length ? professors : undefined,
+    classrooms: row.classrooms
+      ?.map((c) => ({ name: c.name }))
+      .filter((c) => !!c.name),
+    school_year: schoolYear,
+    semester,
+    college_name: row.college_name || row.college?.name,
+    participant_count: row.participant_count,
+  };
+};
+
 // Status helpers (shared by every surface that renders live course cards)
 export const getCourseStatusClass = (status?: number): string => {
   switch (status) {
@@ -122,8 +162,10 @@ export const getCourseStatusText = (status: number | undefined, t: (key: string)
   }
 };
 
+export type CourseListMode = "live" | "recorded" | "subscriptions";
+
 export interface UseCourseListOptions {
-  mode: Ref<"live" | "recorded">;
+  mode: Ref<CourseListMode>;
   t: (key: string) => string;
 }
 
@@ -179,6 +221,20 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
         }
         totalPages.value = response.last_page;
         currentPage.value = response.current_page;
+      } else if (mode.value === "subscriptions") {
+        // Same grid as Recordings; source is the Yanhekt subscription list.
+        const response = await getSubscriptionList(token, {
+          page: currentPage.value,
+          pageSize: coursesPerPage,
+        });
+        const transformed = (response.data ?? []).map(transformSubscriptionRowToCourse);
+        if (resetPage) {
+          courses.value = transformed;
+        } else {
+          courses.value = [...courses.value, ...transformed];
+        }
+        totalPages.value = Number(response.last_page) || 1;
+        currentPage.value = Number(response.current_page) || currentPage.value;
       } else {
         const response = await getPersonalCourseList(token, {
           page: currentPage.value,
@@ -214,7 +270,8 @@ export function useCourseList(options: UseCourseListOptions): UseCourseListRetur
   const getStatusText = (status?: number): string => getCourseStatusText(status, t);
 
   const selectCourse = (course: Course) => {
-    openCourse(mode.value, course);
+    // Subscriptions are always recorded courses.
+    openCourse(mode.value === "subscriptions" ? "recorded" : mode.value, course);
   };
 
   return {

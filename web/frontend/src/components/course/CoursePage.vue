@@ -1,7 +1,7 @@
 <template>
   <div class="course-page">
     <div class="header">
-      <h2 class="page-title">{{ mode === 'live' ? $t('courses.title.liveStreams') : $t('courses.title.recordings') }}</h2>
+      <h2 class="page-title">{{ pageTitle }}</h2>
     </div>
 
     <div ref="contentEl" class="content custom-scrollbar" @scroll="handleScroll">
@@ -73,7 +73,7 @@
                 <p class="video-instructor">{{ course.instructor }}</p>
                 <p class="video-stats">
                   {{ course.time }}
-                  <span v-if="mode === 'recorded' && course.classrooms"> · {{ course.classrooms.map(c => c.name).join(', ') }}</span>
+                  <span v-if="(mode === 'recorded' || mode === 'subscriptions') && course.classrooms"> · {{ course.classrooms.map(c => c.name).join(', ') }}</span>
                   <span v-if="mode === 'live' && course.subtitle"> · {{ course.subtitle }}</span>
                 </p>
               </div>
@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, toRef, onMounted, watch } from 'vue'
+import { ref, toRef, onMounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useCourseList } from '../../composables/useCourseList'
 import { navigationStore } from '../../stores/navigationStore'
@@ -102,7 +102,7 @@ import { useKeepScroll } from '../../composables/useKeepScroll'
 defineOptions({ name: 'CoursePage' })
 
 const props = defineProps<{
-  mode: 'live' | 'recorded'
+  mode: 'live' | 'recorded' | 'subscriptions'
 }>()
 
 const contentEl = ref<HTMLElement | null>(null)
@@ -111,6 +111,12 @@ useKeepScroll(contentEl)
 const { t } = useI18n()
 const { activeNav } = navigationStore
 const { isLoggedIn, userId } = authStore
+
+const pageTitle = computed(() => {
+  if (props.mode === 'live') return t('courses.title.liveStreams')
+  if (props.mode === 'subscriptions') return t('courses.title.subscriptions')
+  return t('courses.title.recordings')
+})
 
 const {
   isLoading,

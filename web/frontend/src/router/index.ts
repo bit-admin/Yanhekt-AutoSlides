@@ -55,6 +55,18 @@ export const router = createRouter({
       meta: { nav: "recorded", keepAlive: true, titleKey: "navigation.recorded" },
     },
     {
+      // YouTube-style Subscriptions grid (same CoursePage shell as Recordings).
+      name: "subscriptions",
+      path: "/subscriptions",
+      component: CoursePage,
+      props: { mode: "subscriptions" },
+      meta: {
+        nav: "subscriptions",
+        keepAlive: true,
+        titleKey: "navigation.subscriptions",
+      },
+    },
+    {
       name: "recorded-course",
       path: "/recorded/:courseId",
       component: RecordedCourseRoute,

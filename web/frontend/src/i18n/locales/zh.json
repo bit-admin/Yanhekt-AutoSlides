@@ -70,7 +70,8 @@
     },
     "title": {
       "liveStreams": "直播课程",
-      "recordings": "录播课程"
+      "recordings": "录播课程",
+      "subscriptions": "订阅"
     }
   },
   "feedback": {

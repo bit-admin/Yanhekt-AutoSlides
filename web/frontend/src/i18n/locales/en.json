@@ -70,7 +70,8 @@
     },
     "title": {
       "liveStreams": "Live Streams",
-      "recordings": "Recordings"
+      "recordings": "Recordings",
+      "subscriptions": "Subscriptions"
     }
   },
   "feedback": {
