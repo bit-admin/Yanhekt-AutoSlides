@@ -49,6 +49,7 @@ const toPlain = (course: SubscribedCourse | Course): SubscribedCourse => ({
   professors: course.professors ? [...course.professors] : undefined,
   school_year: course.school_year,
   semester: course.semester,
+  imageUrl: course.imageUrl,
 });
 
 function professorNamesFromRow(row: SubscriptionCourseRow): string[] {
@@ -69,6 +70,7 @@ export function mapSubscriptionRowToSubscribedCourse(
   row: SubscriptionCourseRow,
 ): SubscribedCourse {
   const professors = professorNamesFromRow(row);
+  const imageUrl = (row.image_url || row.college?.image_url || "").trim() || undefined;
   return {
     id: String(row.id),
     title: row.name_zh ?? "",
@@ -81,6 +83,7 @@ export function mapSubscriptionRowToSubscribedCourse(
     professors: professors.length ? professors : undefined,
     school_year: row.school_year != null ? String(row.school_year) : undefined,
     semester: row.semester != null ? String(row.semester) : undefined,
+    imageUrl,
   };
 }
 
@@ -223,6 +226,7 @@ export const upgradeSubscribedCourse = (course: SubscribedCourse | Course): void
     professors: incoming.professors?.length ? incoming.professors : existing.professors,
     school_year: incoming.school_year || existing.school_year,
     semester: incoming.semester || existing.semester,
+    imageUrl: incoming.imageUrl || existing.imageUrl,
   };
   persistConfig();
 };
@@ -249,6 +253,7 @@ export const getSubscribedCourse = (id: string): Course | null => {
     professors: snapshot.professors,
     school_year: snapshot.school_year,
     semester: snapshot.semester,
+    imageUrl: snapshot.imageUrl,
   } as Course;
 };
 

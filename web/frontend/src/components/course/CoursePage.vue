@@ -35,7 +35,7 @@
             <div class="video-thumbnail-container">
               <img
                 v-if="!coverFailed.has(course.id)"
-                :src="getCourseCover(course.id)"
+                :src="resolveCourseCover(course.imageUrl)"
                 class="video-thumbnail"
                 alt=""
                 @error="markCoverFailed(course.id)"
@@ -96,7 +96,7 @@ import { useI18n } from 'vue-i18n'
 import { useCourseList } from '../../composables/useCourseList'
 import { navigationStore } from '../../stores/navigationStore'
 import { authStore } from '../../stores/authStore'
-import { getCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
+import { resolveCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
 import { useKeepScroll } from '../../composables/useKeepScroll'
 
 defineOptions({ name: 'CoursePage' })

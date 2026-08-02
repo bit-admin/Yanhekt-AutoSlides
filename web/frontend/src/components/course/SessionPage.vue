@@ -14,7 +14,7 @@
         <div class="playlist-card">
           <!-- Playlist Thumbnail Cover -->
           <div class="playlist-cover-container">
-            <img :src="getCourseCover(course?.id)" class="playlist-cover" alt="" />
+            <img :src="resolveCourseCover(course?.imageUrl ?? courseDetails?.imageUrl)" class="playlist-cover" alt="" />
             <div v-if="courseDetails?.title" class="video-cover-overlay-text" :style="getOverlayTextStyle(courseDetails.title)">
               {{ courseDetails.title }}
             </div>
@@ -111,7 +111,7 @@
 
               <!-- Mini 16:9 Thumbnail -->
               <div class="session-mini-thumb">
-                <img :src="getCourseCover(course?.id)" class="session-thumb-img" alt="" />
+                <img :src="resolveCourseCover(course?.imageUrl ?? courseDetails?.imageUrl)" class="session-thumb-img" alt="" />
                 <span v-if="session.duration" class="session-duration-badge">
                   {{ formatDurationBadge(session.duration) }}
                 </span>
@@ -147,7 +147,7 @@ import { computed, onMounted, ref, toRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useSessionPage, type SessionCourse, type Session } from '../../composables/useSessionPage'
 import { isSubscribed, toggleSubscribedCourse } from '../../composables/subscribedCourses'
-import { getCourseCover, getOverlayTextStyle } from '../../composables/courseCover'
+import { resolveCourseCover, getOverlayTextStyle } from '../../composables/courseCover'
 import { useKeepScroll } from '../../composables/useKeepScroll'
 
 const props = defineProps<{

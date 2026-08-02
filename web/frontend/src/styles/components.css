@@ -419,9 +419,8 @@ html[data-theme="dark"] .btn:hover:not(:disabled) {
   color: var(--text-primary);
 }
 
-/* Course covers. Courses have no per-course artwork, so a shared banner sits
-   behind each card with the title overlaid to give it identity. Kept clean
-   (white, system bold, a soft scrim) rather than clickbait-styled. */
+/* Course covers. Prefer API image_url; title overlay + soft scrim keep text
+   legible without burying the artwork. */
 .video-thumbnail-container,
 .playlist-cover-container {
   position: relative;
@@ -431,13 +430,13 @@ html[data-theme="dark"] .btn:hover:not(:disabled) {
 
 .video-thumbnail,
 .playlist-cover {
-  filter: brightness(0.82) contrast(1.02);
+  filter: brightness(0.88) contrast(1.02);
   transition: filter 0.25s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
 .video-card:hover .video-thumbnail,
 .playlist-cover-container:hover .playlist-cover {
-  filter: brightness(0.92) contrast(1);
+  filter: brightness(0.95) contrast(1);
 }
 
 .video-cover-overlay-text {
@@ -460,11 +459,11 @@ html[data-theme="dark"] .btn:hover:not(:disabled) {
   overflow-wrap: break-word;
   word-break: normal;
 
-  /* Vertical scrim keeps the title legible over any banner. */
+  /* Vertical scrim keeps the title legible over any banner (lighter so covers show). */
   background: linear-gradient(
     180deg,
-    rgba(0, 0, 0, 0.15) 0%,
-    rgba(0, 0, 0, 0.4) 100%
+    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.28) 100%
   );
-  text-shadow: 0 0.4cqw 1cqw rgba(0, 0, 0, 0.75);
+  text-shadow: 0 0.4cqw 1cqw rgba(0, 0, 0, 0.6);
 }

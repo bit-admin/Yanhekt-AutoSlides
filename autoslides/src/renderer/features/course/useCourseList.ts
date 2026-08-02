@@ -40,6 +40,14 @@ export interface Course {
   school_year?: string
   semester?: string
   college_name?: string
+  /** Course cover URL from Yanhekt; resolve with DEFAULT front_cover fallback. */
+  imageUrl?: string
+}
+
+/** Non-empty trimmed string, else undefined (API often sends ""). */
+const trimImageUrl = (value?: string | null): string | undefined => {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : undefined
 }
 
 // Transform functions (shared by the course grid, Home page rows, and Search page)
@@ -68,7 +76,8 @@ export const transformLiveStreamToCourse = (stream: LiveStream): Course => {
     participant_count: stream.participant_count,
     session: stream.session,
     target: stream.target,
-    target_vga: stream.target_vga
+    target_vga: stream.target_vga,
+    imageUrl: trimImageUrl(stream.img || stream.course?.image_url)
   }
 }
 
@@ -88,7 +97,8 @@ export const transformCourseDataToCourse = (courseData: CourseData): Course => {
     school_year: courseData.school_year,
     semester: courseData.semester,
     college_name: courseData.college_name,
-    participant_count: courseData.participant_count
+    participant_count: courseData.participant_count,
+    imageUrl: trimImageUrl(courseData.image_url)
   }
 }
 

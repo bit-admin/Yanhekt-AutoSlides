@@ -43,6 +43,7 @@ export function needsListHydration(
 function courseFromListRow(courseData: CourseData): Course {
   const professors = courseData.professors ? courseData.professors.join(', ') : 'Unknown'
   const semesterText = courseData.semester === '1' ? 'Fall' : 'Spring'
+  const imageUrl = courseData.image_url?.trim() || undefined
   return {
     id: String(courseData.id),
     title: courseData.name_zh,
@@ -54,6 +55,7 @@ function courseFromListRow(courseData: CourseData): Course {
     semester: courseData.semester,
     college_name: courseData.college_name,
     participant_count: courseData.participant_count,
+    imageUrl,
   }
 }
 

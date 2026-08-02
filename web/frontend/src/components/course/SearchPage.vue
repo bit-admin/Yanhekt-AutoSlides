@@ -59,7 +59,7 @@
             <div class="video-thumbnail-container">
               <img
                 v-if="!coverFailed.has(course.id)"
-                :src="getCourseCover(course.id)"
+                :src="resolveCourseCover(course.imageUrl)"
                 class="video-thumbnail"
                 alt=""
                 @error="markCoverFailed(course.id)"
@@ -121,7 +121,7 @@ import { useRoute } from 'vue-router'
 import { useSearchPage } from '../../composables/useSearchPage'
 import { getCourseStatusText } from '../../composables/useCourseList'
 import SemesterSelect from './SemesterSelect.vue'
-import { getCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
+import { resolveCourseCover, coverFailed, markCoverFailed, getOverlayTextStyle, getAvatarBg, getInitials } from '../../composables/courseCover'
 
 defineOptions({ name: 'SearchPage' })
 

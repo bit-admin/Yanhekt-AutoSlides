@@ -31,6 +31,8 @@ export interface SubscribedCourse {
   professors?: string[];
   school_year?: string;
   semester?: string;
+  /** Cover URL from Yanhekt list/detail; optional on legacy snapshots. */
+  imageUrl?: string;
 }
 
 /** Default public Cloudflare relay. Also the "reset" target in Settings. */

@@ -540,7 +540,7 @@
                 <span v-else>{{ idx + 1 }}</span>
               </span>
               <div class="row-thumb">
-                <img :src="getCourseCover(course?.id)" class="row-thumb-img" alt="" />
+                <img :src="resolveCourseCover(course?.imageUrl)" class="row-thumb-img" alt="" />
                 <span class="row-duration" v-if="sib.duration">{{ formatDurationBadge(sib.duration) }}</span>
               </div>
               <div class="row-info">
@@ -579,7 +579,7 @@ import type { Course } from '../../composables/useCourseList'
 import { getCourseInfo, type SessionData } from '../../lib/api'
 import { authStore } from '../../stores/authStore'
 import { isSubscribed, toggleSubscribedCourse } from '../../composables/subscribedCourses'
-import { getCourseCover, getAvatarBg, getInitials } from '../../composables/courseCover'
+import { resolveCourseCover, getAvatarBg, getInitials } from '../../composables/courseCover'
 
 const props = defineProps<{
   course: Course | null

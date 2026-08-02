@@ -1,34 +1,24 @@
 import { ref } from 'vue'
 
-// Yanhekt CDN banners reused as generic course covers. These live on the same
-// origin the app already streams from, so they load fine on the campus network
-// (unlike a third-party CDN). Courses have no per-course artwork, so one of
-// these is assigned per course and the title is overlaid for identity.
-export const coverImages = [
-  'https://coss.yanhekt.cn/images/front_cover.png',
-  'https://coss.yanhekt.cn/images/colleges/makesi.png',
-  'https://coss.yanhekt.cn/images/colleges/qianyanjiaocha.png',
-  'https://coss.yanhekt.cn/images/colleges/jisuanji.png',
-  'https://coss.yanhekt.cn/images/colleges/fa.png'
-]
+/** Sole fallback when the API omits / empties image_url (or live img). */
+export const DEFAULT_COURSE_COVER = 'https://coss.yanhekt.cn/images/front_cover.png'
 
-// djb2-style string hash, shared by cover and avatar-colour selection so both
-// are stable for a given id/title across reloads and devices.
+/**
+ * Resolve a course cover URL. Prefer the API-provided image; empty/whitespace
+ * falls back to the Yanhekt default front cover (not a hashed college banner).
+ */
+export const resolveCourseCover = (imageUrl?: string | null): string => {
+  const trimmed = imageUrl?.trim()
+  return trimmed ? trimmed : DEFAULT_COURSE_COVER
+}
+
+// djb2-style string hash for avatar-colour selection (stable per title).
 const hashString = (value: string): number => {
   let hash = 0
   for (let i = 0; i < value.length; i++) {
     hash = value.charCodeAt(i) + ((hash << 5) - hash)
   }
   return Math.abs(hash)
-}
-
-/**
- * Get the cover image URL for a given course ID. Deterministic: the same id
- * always maps to the same cover, so cards don't reshuffle on reload.
- */
-export const getCourseCover = (id?: string | null): string => {
-  if (!id) return coverImages[0]
-  return coverImages[hashString(id) % coverImages.length]
 }
 
 // Track courses that failed to load their cover image, falling back to the svg

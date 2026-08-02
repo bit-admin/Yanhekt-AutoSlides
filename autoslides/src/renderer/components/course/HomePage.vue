@@ -123,7 +123,7 @@
               <img v-if="thumbnails[course.id]" :src="thumbnails[course.id]" class="preview-img" alt="" />
               <img
                 v-else-if="!coverFailed.has(course.id)"
-                :src="fallbackCover(course.id)"
+                :src="resolveCourseCover(course.imageUrl)"
                 class="preview-img preview-img--cover"
                 alt=""
                 @error="markCoverFailed(course.id)"
@@ -169,7 +169,7 @@
               <img v-if="thumbnails[course.id]" :src="thumbnails[course.id]" class="preview-img" alt="" />
               <img
                 v-else-if="!coverFailed.has(course.id)"
-                :src="fallbackCover(course.id)"
+                :src="resolveCourseCover(course.imageUrl)"
                 class="preview-img preview-img--cover"
                 alt=""
                 @error="markCoverFailed(course.id)"
@@ -281,26 +281,13 @@ const openIntranetSettings = () => {
   settingsLauncher.openSettingsTab('network')
 }
 
-// Before the monitor-icon fallback, show a course cover image (yanhekt CDN),
-// picked deterministically per course id so it's stable across re-renders.
-const coverImages = [
-  'https://coss.yanhekt.cn/images/front_cover.png',
-  'https://coss.yanhekt.cn/images/colleges/makesi.png',
-  'https://coss.yanhekt.cn/images/colleges/qianyanjiaocha.png',
-  'https://coss.yanhekt.cn/images/colleges/jisuanji.png',
-  'https://coss.yanhekt.cn/images/colleges/fa.png'
-]
+// Before the monitor-icon fallback, show the API course cover (image_url / img),
+// falling back only to Yanhekt's default front_cover.png.
+const DEFAULT_COURSE_COVER = 'https://coss.yanhekt.cn/images/front_cover.png'
 const coverFailed = reactive(new Set<string>())
-// Pick a random cover once per card and remember it, so it stays stable across
-// re-renders instead of reshuffling every render.
-const coverChoice = new Map<string, string>()
-const fallbackCover = (id: string): string => {
-  let choice = coverChoice.get(id)
-  if (!choice) {
-    choice = coverImages[Math.floor(Math.random() * coverImages.length)]
-    coverChoice.set(id, choice)
-  }
-  return choice
+const resolveCourseCover = (imageUrl?: string | null): string => {
+  const trimmed = imageUrl?.trim()
+  return trimmed ? trimmed : DEFAULT_COURSE_COVER
 }
 const markCoverFailed = (id: string): void => { coverFailed.add(id) }
 

@@ -201,6 +201,7 @@ interface CourseData {
   semester: string;
   college_name: string;
   participant_count: number;
+  image_url?: string;
 }
 
 /** Raw row from GET /v1/course/subscription/list (professors may be objects). */
@@ -212,9 +213,10 @@ interface SubscriptionCourseRow {
   classrooms?: Array<{ name: string }>;
   participant_count?: number;
   college_name?: string;
-  college?: { name?: string };
+  college?: { name?: string; image_url?: string };
   school_year?: string | number;
   semester?: string | number;
+  image_url?: string;
 }
 
 interface SubscriptionListResponse {
@@ -234,7 +236,13 @@ interface LiveStreamData {
   schedule_started_at: string;
   schedule_ended_at: string;
   participant_count?: number;
+  img?: string;
+  course?: {
+    id?: number | string;
+    image_url?: string;
+  };
   session?: {
+    course_id?: number | string;
     professor?: {
       name: string;
     };
@@ -274,6 +282,7 @@ interface CourseInfoResponse {
   college_name?: string;
   school_year?: string;
   semester?: number | string;
+  image_url?: string;
   videos: VideoInfo[];
 }
 

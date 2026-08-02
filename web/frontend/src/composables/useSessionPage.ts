@@ -21,6 +21,7 @@ export type SessionCourse = Pick<
   | "professors"
   | "school_year"
   | "semester"
+  | "imageUrl"
 >;
 
 export type Session = SessionData;
@@ -80,6 +81,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       time: base.time || extra.time || "",
       classrooms: base.classrooms && base.classrooms.length > 0 ? base.classrooms : extra.classrooms,
       participant_count: base.participant_count ?? extra.participant_count,
+      imageUrl: base.imageUrl || extra.imageUrl,
     };
   });
 
@@ -127,6 +129,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       // normalize to string. Derive a display term matching useCourseList.
       // Classrooms / participant_count come only from the list lookup.
       const semesterStr = response.semester != null ? String(response.semester) : undefined;
+      const detailImageUrl = response.image_url?.trim() || undefined;
       fetchedCourseInfo.value = {
         title: response.title,
         instructor: response.professor,
@@ -139,6 +142,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
           : listCourse?.time,
         classrooms: listCourse?.classrooms,
         participant_count: listCourse?.participant_count,
+        imageUrl: detailImageUrl || listCourse?.imageUrl,
       };
 
       // Self-heal a thin subscribe snapshot so the next cold open has classrooms.
@@ -156,6 +160,7 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
           time: response.school_year
             ? `${response.school_year} ${Number(response.semester) === 1 ? "Fall" : "Spring"}`
             : listCourse.time,
+          imageUrl: detailImageUrl || listCourse.imageUrl,
         });
       }
     } catch (error: unknown) {

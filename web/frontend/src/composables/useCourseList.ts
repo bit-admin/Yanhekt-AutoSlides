@@ -43,7 +43,15 @@ export interface Course {
   school_year?: string;
   semester?: string;
   college_name?: string;
+  /** Course cover URL from Yanhekt; resolve with resolveCourseCover(). */
+  imageUrl?: string;
 }
+
+/** Non-empty trimmed string, else undefined (API often sends ""). */
+const trimImageUrl = (value?: string | null): string | undefined => {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+};
 
 // Transform functions (shared by the course grid, Home page rows, and Search page)
 export const transformLiveStreamToCourse = (stream: LiveStream): Course => {
@@ -74,6 +82,7 @@ export const transformLiveStreamToCourse = (stream: LiveStream): Course => {
     session: stream.session,
     target: stream.target,
     target_vga: stream.target_vga,
+    imageUrl: trimImageUrl(stream.img || stream.course?.image_url),
   };
 };
 
@@ -94,6 +103,7 @@ export const transformCourseDataToCourse = (courseData: CourseData): Course => {
     semester: courseData.semester,
     college_name: courseData.college_name,
     participant_count: courseData.participant_count,
+    imageUrl: trimImageUrl(courseData.image_url),
   };
 };
 
@@ -132,6 +142,7 @@ export const transformSubscriptionRowToCourse = (row: SubscriptionCourseRow): Co
     semester,
     college_name: row.college_name || row.college?.name,
     participant_count: row.participant_count,
+    imageUrl: trimImageUrl(row.image_url || row.college?.image_url),
   };
 };
 

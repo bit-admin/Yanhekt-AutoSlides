@@ -28,6 +28,13 @@ export interface LiveStream {
   schedule_started_at: string;
   schedule_ended_at: string;
   participant_count?: number;
+  // Cover art from the live list. Prefer `img`; nested course.image_url is a
+  // secondary source and is often "".
+  img?: string;
+  course?: {
+    id?: number | string;
+    image_url?: string;
+  };
   session?: {
     // The real course id behind this broadcast. Verified present on 63/63
     // sampled live rows — far more reliable than the sibling `course` object
@@ -59,6 +66,8 @@ export interface CourseData {
   semester: string;
   college_name: string;
   participant_count: number;
+  /** Course cover from Yanhekt (college banner or custom). Empty string = missing. */
+  image_url?: string;
 }
 
 export interface CourseListResponse {
@@ -79,9 +88,10 @@ export interface SubscriptionCourseRow {
   classrooms?: Array<{ name: string }>;
   participant_count?: number;
   college_name?: string;
-  college?: { name?: string };
+  college?: { name?: string; image_url?: string };
   school_year?: string | number;
   semester?: string | number;
+  image_url?: string;
 }
 
 export interface SubscriptionListResponse {
@@ -118,6 +128,8 @@ export interface CourseInfoResponse {
   college_name?: string;
   school_year?: string;
   semester?: number | string;
+  /** Cover from /v1/course; empty string treated as missing by callers. */
+  image_url?: string;
   videos: SessionData[];
 }
 
@@ -171,6 +183,8 @@ interface CourseInfoApiResponse extends BaseApiResponse {
     school_year?: string;
     semester?: number | string;
     college_name?: string;
+    college?: { name?: string; image_url?: string };
+    image_url?: string;
   };
 }
 
@@ -647,6 +661,7 @@ export class ApiClient {
         college_name: courseData.data.college_name,
         school_year: courseData.data.school_year,
         semester: courseData.data.semester,
+        image_url: courseData.data.image_url || courseData.data.college?.image_url || undefined,
         videos: formattedVideos
       };
     } catch (error: unknown) {

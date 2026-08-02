@@ -52,6 +52,7 @@ const toPlain = (courses: PinnedCourse[]): PinnedCourse[] =>
     professors: c.professors ? [...c.professors] : undefined,
     school_year: c.school_year,
     semester: c.semester,
+    imageUrl: c.imageUrl,
   }))
 
 const toPlainOne = (course: PinnedCourse | Course): PinnedCourse => ({
@@ -65,6 +66,7 @@ const toPlainOne = (course: PinnedCourse | Course): PinnedCourse => ({
   professors: course.professors ? [...course.professors] : undefined,
   school_year: course.school_year,
   semester: course.semester,
+  imageUrl: course.imageUrl,
 })
 
 const persistPins = (courses: PinnedCourse[]): void => {
@@ -87,6 +89,7 @@ function professorNamesFromRow(row: SubscriptionCourseRow): string[] {
 /** Map a Yanhekt subscription list row into a PinnedCourse snapshot. */
 export function mapSubscriptionRowToPinnedCourse(row: SubscriptionCourseRow): PinnedCourse {
   const professors = professorNamesFromRow(row)
+  const imageUrl = (row.image_url || row.college?.image_url || '').trim() || undefined
   return {
     id: String(row.id),
     title: row.name_zh ?? '',
@@ -99,6 +102,7 @@ export function mapSubscriptionRowToPinnedCourse(row: SubscriptionCourseRow): Pi
     professors: professors.length ? professors : undefined,
     school_year: row.school_year != null ? String(row.school_year) : undefined,
     semester: row.semester != null ? String(row.semester) : undefined,
+    imageUrl,
   }
 }
 
@@ -208,6 +212,7 @@ export const upgradePinnedCourse = (course: PinnedCourse | Course): void => {
     professors: incoming.professors?.length ? incoming.professors : existing.professors,
     school_year: incoming.school_year || existing.school_year,
     semester: incoming.semester || existing.semester,
+    imageUrl: incoming.imageUrl || existing.imageUrl,
   }
 
   const next = current.slice()
@@ -261,6 +266,7 @@ export const openPinnedCourse = (c: PinnedCourse): void => {
     professors: c.professors,
     school_year: c.school_year,
     semester: c.semester,
+    imageUrl: c.imageUrl,
   } as Course)
   navigationStore.setActivePinned(c.id)
 }

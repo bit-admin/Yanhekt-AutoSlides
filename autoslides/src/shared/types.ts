@@ -254,6 +254,8 @@ export interface PinnedCourse {
   professors?: string[];
   school_year?: string;
   semester?: string;
+  /** Cover URL from Yanhekt list/detail; optional on legacy pins. */
+  imageUrl?: string;
 }
 
 // Trash and crop manifest entries — written by main process, read by renderer.
