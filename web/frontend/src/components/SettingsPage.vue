@@ -1,18 +1,5 @@
 <template>
   <div class="settings-page">
-    <!-- Section switcher: a centered iOS-style segmented pill (single row). -->
-    <div class="settings-tabs-wrap">
-      <div class="settings-segment" role="tablist">
-        <button
-          role="tab"
-          aria-selected="true"
-          class="settings-segment-btn active"
-        >
-          {{ $t('advanced.tabs.general') }}
-        </button>
-      </div>
-    </div>
-
     <!-- Scrollable body -->
     <div class="settings-body custom-scrollbar">
       <div class="tab-content">
@@ -733,49 +720,10 @@ const onResetRelay = () => {
   color: var(--text-primary);
 }
 
-.settings-tabs-wrap {
-  display: flex;
-  justify-content: center;
-  padding: 14px 20px 8px;
-  flex-shrink: 0;
-}
-
-.settings-segment {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  background-color: var(--bg-subtle);
-  border: 1px solid var(--border-color);
-  border-radius: 9px;
-}
-
-.settings-segment-btn {
-  padding: 6px 16px;
-  border: none;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-
-.settings-segment-btn:hover {
-  color: var(--text-primary);
-}
-
-.settings-segment-btn.active {
-  background-color: var(--bg-elevated);
-  color: var(--accent);
-  box-shadow: var(--shadow-sm);
-}
-
 .settings-body {
   flex: 1;
   overflow-y: auto;
-  padding: 16px 96px 28px;
+  padding: 24px 96px 28px;
 }
 
 .tab-content {
