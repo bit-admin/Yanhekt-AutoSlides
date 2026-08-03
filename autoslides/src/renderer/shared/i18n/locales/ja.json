@@ -1285,6 +1285,7 @@
     "shareTitle": "スライドを共有",
     "shareImagesCount": "{n} 枚",
     "shareNoImages": "このノートには共有できる画像がありません。",
+    "shareImagesOnlyHint": "共有リンクには画像のみが含まれます（テキストなど他の内容は含まれません）。",
     "shareLongLabel": "共有リンク",
     "shareShortLabel": "短縮リンク",
     "shareCopy": "コピー",

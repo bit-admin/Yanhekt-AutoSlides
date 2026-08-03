@@ -1285,6 +1285,7 @@
     "shareTitle": "슬라이드 공유",
     "shareImagesCount": "슬라이드 {n}장",
     "shareNoImages": "이 노트에는 공유할 이미지가 없습니다.",
+    "shareImagesOnlyHint": "공유 링크에는 이미지만 포함됩니다. 텍스트 등 다른 내용은 제외됩니다.",
     "shareLongLabel": "공유 링크",
     "shareShortLabel": "짧은 링크",
     "shareCopy": "복사",

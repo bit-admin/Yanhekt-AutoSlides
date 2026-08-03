@@ -1285,6 +1285,7 @@
     "shareTitle": "Share Slides",
     "shareImagesCount": "{n} slides",
     "shareNoImages": "This note has no images to share.",
+    "shareImagesOnlyHint": "Only images can be shared; text and other blocks are omitted.",
     "shareLongLabel": "Share link",
     "shareShortLabel": "Short link",
     "shareCopy": "Copy",

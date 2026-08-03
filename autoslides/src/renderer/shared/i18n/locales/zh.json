@@ -1285,6 +1285,7 @@
     "shareTitle": "分享幻灯片",
     "shareImagesCount": "{n} 张幻灯片",
     "shareNoImages": "此笔记没有可分享的图片。",
+    "shareImagesOnlyHint": "仅分享图片，文字等内容不会包含在链接中。",
     "shareLongLabel": "分享链接",
     "shareShortLabel": "短链接",
     "shareCopy": "复制",

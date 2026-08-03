@@ -28,6 +28,83 @@
         </svg>
         <span>{{ $t('cloudNotes.backToApp') }}</span>
       </RouterLink>
+      <!-- Share left of Export: Notion-style popover (link-only). Image check runs
+           on open so live edits that add images stay shareable. -->
+      <div v-if="hasNote" ref="shareRoot" class="nec-share">
+        <button
+          type="button"
+          class="nec-export-btn nec-share-btn"
+          :class="{ open: shareOpen }"
+          :aria-expanded="shareOpen"
+          :title="$t('cloudNotes.shareTip')"
+          @click="toggleShare"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+          </svg>
+          <span>{{ $t('cloudNotes.shareButton') }}</span>
+          <svg class="nec-export-caret" :class="{ flipped: shareOpen }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <div v-if="shareOpen" class="nec-share-menu" role="dialog" :aria-label="$t('cloudNotes.shareTitle')">
+          <h3 class="nec-share-title">{{ $t('cloudNotes.shareTitle') }}</h3>
+          <p class="nec-share-meta">
+            <template v-if="shareImageCount > 0">{{ $t('cloudNotes.shareImagesCount', { n: shareImageCount }) }}</template>
+            <template v-else>{{ $t('cloudNotes.shareNoImages') }}</template>
+          </p>
+
+          <label class="nec-share-label" for="nec-share-url">{{ $t('cloudNotes.shareLongLabel') }}</label>
+          <div class="nec-share-url-row">
+            <input
+              id="nec-share-url"
+              class="nec-share-url"
+              readonly
+              :value="shareLongUrl"
+              :placeholder="shareImageCount === 0 ? $t('cloudNotes.shareNoImages') : ''"
+              @focus="($event.target as HTMLInputElement).select()"
+            />
+            <button
+              type="button"
+              class="nec-share-copy"
+              :disabled="shareImageCount === 0 || !shareLongUrl"
+              :title="shareCopied ? $t('cloudNotes.shareCopied') : $t('cloudNotes.shareCopy')"
+              :aria-label="shareCopied ? $t('cloudNotes.shareCopied') : $t('cloudNotes.shareCopy')"
+              @click="onCopyShare"
+            >
+              <!-- check mark briefly after copy -->
+              <svg v-if="shareCopied" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              <svg v-else width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            </button>
+          </div>
+
+          <button
+            type="button"
+            class="nec-share-secondary"
+            :disabled="shareImageCount === 0 || !shareLongUrl"
+            @click="onOpenShare"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+            <span>{{ $t('cloudNotes.shareOpen') }}</span>
+          </button>
+
+          <p class="nec-share-hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            <span>{{ $t('cloudNotes.shareImagesOnlyHint') }}</span>
+          </p>
+        </div>
+      </div>
       <div v-if="hasNote && canExport" ref="exportRoot" class="nec-export">
         <button
           type="button"
@@ -225,7 +302,9 @@ import {
   isNotesFontSetId,
   type NotesFontSetId,
 } from '../../lib/notes/notesFontSets'
+import { noteImageUrls } from '../../lib/notes/notesContent'
 import { exportNote, noteContentToMarkdown, type NoteExportFormat } from '../../lib/notes/noteExportWeb'
+import { buildSharePayload, buildShareUrl, parseCossImageUrl } from '../../lib/notes/shareLink'
 import { configStore, persistConfig } from '../../stores/configStore'
 
 const props = defineProps<{
@@ -237,7 +316,7 @@ const props = defineProps<{
   mobile: boolean
   /** Notes outside ASnote can be exported (PDF / Markdown). */
   canExport: boolean
-  /** Live Editor.js document for export / copy / duplicate. */
+  /** Live Editor.js document for export / copy / duplicate / share. */
   getContent: () => Promise<string>
 }>()
 
@@ -260,8 +339,14 @@ const exportOpen = ref(false)
 const exportRoot = ref<HTMLElement | null>(null)
 const exportBusy = ref(false)
 const exportError = ref('')
+const shareOpen = ref(false)
+const shareRoot = ref<HTMLElement | null>(null)
+const shareLongUrl = ref('')
+const shareImageCount = ref(0)
+const shareCopied = ref(false)
 const copyFlash = ref(false)
 let copyFlashTimer: ReturnType<typeof setTimeout> | undefined
+let shareCopyTimer: ReturnType<typeof setTimeout> | undefined
 
 const fontSetId = computed<NotesFontSetId>(() => {
   const v = configStore.notesFontSet
@@ -282,10 +367,12 @@ function fontSetLabel(id: NotesFontSetId): string {
 function closeMenus(): void {
   menuOpen.value = false
   exportOpen.value = false
+  shareOpen.value = false
 }
 
 function toggleMenu(): void {
   exportOpen.value = false
+  shareOpen.value = false
   menuOpen.value = !menuOpen.value
   if (menuOpen.value) {
     // Prefetch all three so the Ag tiles render in the real faces.
@@ -296,8 +383,52 @@ function toggleMenu(): void {
 function toggleExport(): void {
   if (exportBusy.value) return
   menuOpen.value = false
+  shareOpen.value = false
   exportError.value = ''
   exportOpen.value = !exportOpen.value
+}
+
+async function toggleShare(): Promise<void> {
+  menuOpen.value = false
+  exportOpen.value = false
+  if (shareOpen.value) {
+    shareOpen.value = false
+    return
+  }
+  // Rebuild from live editor content each open (image eligibility is not pre-gated).
+  try {
+    const content = await props.getContent()
+    const urls = noteImageUrls(content)
+    const cossCount = urls.reduce((n, u) => n + (parseCossImageUrl(u) ? 1 : 0), 0)
+    const title = managedNoteDisplayName(props.title || t('cloudNotes.untitled'))
+    const payload = buildSharePayload(title, urls)
+    shareImageCount.value = cossCount
+    shareLongUrl.value = cossCount > 0 ? buildShareUrl(payload) : ''
+  } catch {
+    shareImageCount.value = 0
+    shareLongUrl.value = ''
+  }
+  shareCopied.value = false
+  shareOpen.value = true
+}
+
+async function onCopyShare(): Promise<void> {
+  if (!shareLongUrl.value) return
+  try {
+    await navigator.clipboard.writeText(shareLongUrl.value)
+    shareCopied.value = true
+    if (shareCopyTimer) clearTimeout(shareCopyTimer)
+    shareCopyTimer = setTimeout(() => {
+      shareCopied.value = false
+    }, 1500)
+  } catch {
+    /* clipboard denied */
+  }
+}
+
+function onOpenShare(): void {
+  if (!shareLongUrl.value) return
+  window.open(shareLongUrl.value, '_blank', 'noopener,noreferrer')
 }
 
 function selectFontSet(id: NotesFontSetId): void {
@@ -363,10 +494,14 @@ async function runExport(format: NoteExportFormat): Promise<void> {
 }
 
 function onDocPointerDown(e: PointerEvent): void {
-  if (!menuOpen.value && !exportOpen.value) return
+  if (!menuOpen.value && !exportOpen.value && !shareOpen.value) return
   const target = e.target
   if (!(target instanceof Node)) return
-  if (menuRoot.value?.contains(target) || exportRoot.value?.contains(target)) return
+  if (
+    menuRoot.value?.contains(target)
+    || exportRoot.value?.contains(target)
+    || shareRoot.value?.contains(target)
+  ) return
   closeMenus()
 }
 
@@ -392,6 +527,7 @@ onBeforeUnmount(() => {
   document.removeEventListener('pointerdown', onDocPointerDown, true)
   document.removeEventListener('keydown', onKeydown)
   if (copyFlashTimer) clearTimeout(copyFlashTimer)
+  if (shareCopyTimer) clearTimeout(shareCopyTimer)
 })
 
 function onTitleInput(e: Event): void {
@@ -446,7 +582,8 @@ function onGroupChange(e: Event): void {
   flex: 1;
 }
 
-.nec-export {
+.nec-export,
+.nec-share {
   position: relative;
 }
 
@@ -479,6 +616,142 @@ function onGroupChange(e: Event): void {
 .nec-export-caret {
   margin-left: 1px;
   opacity: 0.75;
+  transition: transform 0.15s ease;
+}
+
+.nec-export-caret.flipped {
+  transform: rotate(180deg);
+}
+
+/* Notion-style share popover anchored under the Share button. */
+.nec-share-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 40;
+  width: min(360px, calc(100vw - 24px));
+  padding: 18px 18px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--nt-border, rgba(0, 0, 0, 0.08));
+  background: var(--nt-bg, #ffffff);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nec-share-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--nt-text, #37352f);
+}
+
+.nec-share-meta {
+  margin: -4px 0 2px;
+  font-size: 13px;
+  text-align: center;
+  color: var(--nt-text-muted, #787774);
+}
+
+.nec-share-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nt-text-muted, #787774);
+}
+
+.nec-share-url-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  border: 1px solid var(--nt-border, rgba(0, 0, 0, 0.1));
+  border-radius: 8px;
+  background: var(--nt-sidebar-hover, rgba(0, 0, 0, 0.02));
+  overflow: hidden;
+}
+
+.nec-share-url {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 34px;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  color: var(--nt-text, #37352f);
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.nec-share-url:focus {
+  outline: none;
+}
+
+.nec-share-copy {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  border: none;
+  border-left: 1px solid var(--nt-border, rgba(0, 0, 0, 0.08));
+  background: transparent;
+  color: var(--nt-text-muted, #787774);
+  cursor: pointer;
+}
+
+.nec-share-copy:hover:not(:disabled) {
+  background: var(--nt-sidebar-hover, rgba(0, 0, 0, 0.04));
+  color: var(--nt-text, #37352f);
+}
+
+.nec-share-copy:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.nec-share-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  height: 34px;
+  border: 1px solid var(--nt-border, rgba(0, 0, 0, 0.1));
+  border-radius: 8px;
+  background: transparent;
+  color: var(--nt-text, #37352f);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.nec-share-secondary:hover:not(:disabled) {
+  background: var(--nt-sidebar-hover, rgba(0, 0, 0, 0.04));
+}
+
+.nec-share-secondary:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.nec-share-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 2px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--nt-border, rgba(0, 0, 0, 0.06));
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--nt-text-muted, #787774);
+}
+
+.nec-share-hint svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  opacity: 0.85;
 }
 
 .nec-export-menu {

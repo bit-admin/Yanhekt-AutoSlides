@@ -14,6 +14,7 @@
         <template v-if="shareImageCount > 0">{{ $t('cloudNotes.shareImagesCount', { n: shareImageCount }) }}</template>
         <template v-else>{{ $t('cloudNotes.shareNoImages') }}</template>
       </p>
+      <p v-if="shareMode === 'link-only'" class="cn-share-hint-block">{{ $t('cloudNotes.shareImagesOnlyHint') }}</p>
 
       <div class="cn-share-field">
         <span class="cn-share-label">{{ $t('cloudNotes.shareLongLabel') }}</span>
@@ -31,50 +32,52 @@
         </div>
       </div>
 
-      <div class="cn-share-field">
-        <span class="cn-share-label">{{ $t('cloudNotes.shareShortLabel') }}</span>
-        <div v-if="shareShortUrl" class="cn-share-row">
-          <input class="text-input cn-share-url" readonly :value="shareShortUrl" @focus="($event.target as HTMLInputElement).select()" />
-          <button class="btn cn-share-action" @click="onCopyShare('short')">
-            {{ shareCopied === 'short' ? $t('cloudNotes.shareCopied') : $t('cloudNotes.shareCopy') }}
-          </button>
-          <button class="btn cn-share-action" @click="onOpenShare('short')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-            </svg>
-            <span>{{ $t('cloudNotes.shareOpen') }}</span>
-          </button>
+      <template v-if="shareMode === 'full'">
+        <div class="cn-share-field">
+          <span class="cn-share-label">{{ $t('cloudNotes.shareShortLabel') }}</span>
+          <div v-if="shareShortUrl" class="cn-share-row">
+            <input class="text-input cn-share-url" readonly :value="shareShortUrl" @focus="($event.target as HTMLInputElement).select()" />
+            <button class="btn cn-share-action" @click="onCopyShare('short')">
+              {{ shareCopied === 'short' ? $t('cloudNotes.shareCopied') : $t('cloudNotes.shareCopy') }}
+            </button>
+            <button class="btn cn-share-action" @click="onOpenShare('short')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              <span>{{ $t('cloudNotes.shareOpen') }}</span>
+            </button>
+          </div>
+          <div v-else class="cn-share-row">
+            <button class="btn cn-share-action cn-share-getshort" :disabled="shareShortening || shareImageCount === 0" @click="onGetShortLink">
+              {{ shareShortening ? $t('cloudNotes.shareShortening') : $t('cloudNotes.shareGetShort') }}
+            </button>
+            <span v-if="shareShortError" class="cn-share-error">{{ shareShortError }}</span>
+          </div>
         </div>
-        <div v-else class="cn-share-row">
-          <button class="btn cn-share-action cn-share-getshort" :disabled="shareShortening || shareImageCount === 0" @click="onGetShortLink">
-            {{ shareShortening ? $t('cloudNotes.shareShortening') : $t('cloudNotes.shareGetShort') }}
-          </button>
-          <span v-if="shareShortError" class="cn-share-error">{{ shareShortError }}</span>
-        </div>
-      </div>
 
-      <div class="cn-share-field">
-        <span class="cn-share-label">{{ $t('cloudNotes.shareIndexLabel') }}</span>
-        <div v-if="shareIndexUrl" class="cn-share-row">
-          <input class="text-input cn-share-url" readonly :value="shareIndexUrl" @focus="($event.target as HTMLInputElement).select()" />
-          <button class="btn cn-share-action" @click="onCopyShare('index')">
-            {{ shareCopied === 'index' ? $t('cloudNotes.shareCopied') : $t('cloudNotes.shareCopy') }}
-          </button>
-          <button class="btn cn-share-action" @click="onOpenShare('index')">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
-            </svg>
-            <span>{{ $t('cloudNotes.shareOpen') }}</span>
-          </button>
+        <div class="cn-share-field">
+          <span class="cn-share-label">{{ $t('cloudNotes.shareIndexLabel') }}</span>
+          <div v-if="shareIndexUrl" class="cn-share-row">
+            <input class="text-input cn-share-url" readonly :value="shareIndexUrl" @focus="($event.target as HTMLInputElement).select()" />
+            <button class="btn cn-share-action" @click="onCopyShare('index')">
+              {{ shareCopied === 'index' ? $t('cloudNotes.shareCopied') : $t('cloudNotes.shareCopy') }}
+            </button>
+            <button class="btn cn-share-action" @click="onOpenShare('index')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              <span>{{ $t('cloudNotes.shareOpen') }}</span>
+            </button>
+          </div>
+          <div v-else class="cn-share-row">
+            <button class="btn cn-share-action cn-share-getshort" :disabled="shareIndexing || !shareCanIndex || shareImageCount === 0" @click="onPublishToIndex">
+              {{ shareIndexing ? $t('cloudNotes.shareIndexPublishing') : $t('cloudNotes.shareIndexPublish') }}
+            </button>
+            <span v-if="!shareCanIndex" class="cn-share-hint">{{ $t('cloudNotes.shareIndexUnavailable') }}</span>
+            <span v-else-if="shareIndexError" class="cn-share-error">{{ shareIndexError }}</span>
+          </div>
         </div>
-        <div v-else class="cn-share-row">
-          <button class="btn cn-share-action cn-share-getshort" :disabled="shareIndexing || !shareCanIndex || shareImageCount === 0" @click="onPublishToIndex">
-            {{ shareIndexing ? $t('cloudNotes.shareIndexPublishing') : $t('cloudNotes.shareIndexPublish') }}
-          </button>
-          <span v-if="!shareCanIndex" class="cn-share-hint">{{ $t('cloudNotes.shareIndexUnavailable') }}</span>
-          <span v-else-if="shareIndexError" class="cn-share-error">{{ shareIndexError }}</span>
-        </div>
-      </div>
+      </template>
     </div>
   </div>
 </template>
@@ -82,12 +85,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { buildSharePayload, buildShareUrl, encodeSharePayload } from '@common/shareLink'
+import { buildSharePayload, buildShareUrl, encodeSharePayload, parseCossImageUrl } from '@common/shareLink'
 import { noteImageUrls, findRecordedShareUrl, readNoteMetadata, upsertNoteMetadata } from '@common/notesContent'
 import { managedNoteDisplayName } from '@common/notesTypes'
 import type { SlideMetadataSource } from '@common/slideMetadataTypes'
 import type { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import type { useNotesPublish } from '@features/cloudNotes/useNotesPublish'
+import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
 
 const props = defineProps<{
   cn: ReturnType<typeof useCloudNotes>
@@ -101,6 +105,8 @@ const props = defineProps<{
 const { t } = useI18n()
 
 const showShareModal = ref(false)
+/** ASnote keeps short link + Public Index; other groups are long-link only. */
+const shareMode = ref<'full' | 'link-only'>('full')
 const shareLongUrl = ref('')
 const shareShortUrl = ref<string | null>(null)
 const shareFragment = ref('')
@@ -116,27 +122,43 @@ const shareReview = ref<{ reviewed: boolean; edited: boolean }>({ reviewed: fals
 // Only recorded-session notes carry the course/session identity the index needs.
 const shareCanIndex = computed(() => !!(shareIndexSource.value?.courseId && shareIndexSource.value?.sessionId))
 
+function isASnoteGroup(noteGroupId: number | null | undefined): boolean {
+  const managedGroupId = cloudStorageStore.managedGroupId.value
+  if (managedGroupId == null) return false
+  return Number(noteGroupId ?? 0) === Number(managedGroupId)
+}
+
 async function open(): Promise<void> {
   const note = props.cn.selectedNote.value
   if (!note) return
   const content = await props.getContent()
   const urls = noteImageUrls(content)
+  const cossCount = urls.reduce((n, u) => n + (parseCossImageUrl(u) ? 1 : 0), 0)
   const payload = buildSharePayload(managedNoteDisplayName(note.title), urls)
+  shareMode.value = isASnoteGroup(note.note_group_id) ? 'full' : 'link-only'
   shareFragment.value = encodeSharePayload(payload)
   shareLongUrl.value = buildShareUrl(payload)
-  shareImageCount.value = urls.length
-  shareShortUrl.value = findRecordedShareUrl(content)
+  // Count matches what the payload actually encodes (non-COSS URLs are skipped).
+  shareImageCount.value = cossCount
+  shareShortUrl.value = shareMode.value === 'full' ? findRecordedShareUrl(content) : null
   shareShortError.value = ''
   shareCopied.value = null
   // Index publish state: identity + review come from the embedded slides metadata.
-  const meta = readNoteMetadata(content)
-  shareIndexUrl.value = meta?.note.indexUrl ?? null
-  shareIndexSource.value = meta?.slides?.source ?? null
-  const rev = meta?.slides?.review
-  const edited = !!(rev?.edited || rev?.cropped)
-  // Editing implies reviewing.
-  shareReview.value = { reviewed: !!rev?.reviewed || edited, edited }
-  shareIndexError.value = ''
+  if (shareMode.value === 'full') {
+    const meta = readNoteMetadata(content)
+    shareIndexUrl.value = meta?.note.indexUrl ?? null
+    shareIndexSource.value = meta?.slides?.source ?? null
+    const rev = meta?.slides?.review
+    const edited = !!(rev?.edited || rev?.cropped)
+    // Editing implies reviewing.
+    shareReview.value = { reviewed: !!rev?.reviewed || edited, edited }
+    shareIndexError.value = ''
+  } else {
+    shareIndexUrl.value = null
+    shareIndexSource.value = null
+    shareReview.value = { reviewed: false, edited: false }
+    shareIndexError.value = ''
+  }
   showShareModal.value = true
 }
 
@@ -268,6 +290,13 @@ defineExpose({ open })
   margin: -4px 0 4px;
   color: var(--text-muted);
   font-size: 13px;
+}
+
+.cn-share-hint-block {
+  margin: -6px 0 2px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .cn-share-field {

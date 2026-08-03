@@ -27,7 +27,20 @@
           <option value="0">{{ $t('cloudNotes.defaultGroup') }}</option>
           <option v-for="g in cn.groups.value.filter(x => x.id !== 0)" :key="g.id" :value="String(g.id)">{{ g.name }}</option>
         </select>
-        <!-- Any non-ASnote note can export to a file; ASnote managed notes share. -->
+        <!-- Share is always available for the open note (image check happens in the
+             modal so live edits that add images don't hide the button). Export stays
+             non-ASnote only. Share sits left of Export when both show. -->
+        <button
+          class="btn btn--ghost cn-share-btn"
+          :title="$t('cloudNotes.shareTip')"
+          @click="emit('share')"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          <span>{{ $t('cloudNotes.shareButton') }}</span>
+        </button>
         <button
           v-if="isExportableNote"
           class="btn btn--ghost cn-share-btn"
@@ -39,18 +52,6 @@
             <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
           <span>{{ $t('cloudNotes.exportButton') }}</span>
-        </button>
-        <button
-          v-else-if="isManagedNoteTitle(cn.selectedNote.value.title)"
-          class="btn btn--ghost cn-share-btn"
-          :title="$t('cloudNotes.shareTip')"
-          @click="emit('share')"
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
-          </svg>
-          <span>{{ $t('cloudNotes.shareButton') }}</span>
         </button>
         <span class="cn-save-status" :class="ed.saveStatus.value">
           <template v-if="ed.saveStatus.value === 'saving'">{{ $t('cloudNotes.saving') }}</template>
@@ -67,7 +68,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { isManagedNoteTitle } from '@common/notesTypes'
 import type { useCloudNotes } from '@features/cloudNotes/useCloudNotes'
 import type { useNoteEditor } from '@features/cloudNotes/useNoteEditor'
 import { cloudStorageStore } from '@features/cloudNotes/cloudStorageStore'
