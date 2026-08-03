@@ -24,6 +24,27 @@
           <div v-if="userId" class="num-header-id">@{{ userId }}</div>
         </div>
         <div class="num-divider" />
+        <a
+          class="num-item"
+          role="menuitem"
+          :href="YANHEKT_MY_NOTES_URL"
+          target="_blank"
+          rel="noopener noreferrer"
+          @click="showMenu = false"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+            <polyline points="14 2 14 8 20 8" />
+            <line x1="16" y1="13" x2="8" y2="13" />
+            <line x1="16" y1="17" x2="8" y2="17" />
+          </svg>
+          <span class="num-item-label">{{ $t('cloudNotes.yanhektMyNotes') }}</span>
+          <svg class="num-item-external" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 3h6v6" />
+            <path d="M10 14L21 3" />
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+          </svg>
+        </a>
         <button type="button" class="num-item num-item--danger" role="menuitem" @click="onSignOut">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -66,6 +87,9 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { isLoggedIn, userNickname, userId, signOut } = authStore
+
+/** Platform's own notes UI — opens in a new tab (not the AutoSlides Notes SPA). */
+const YANHEKT_MY_NOTES_URL = 'https://www.yanhekt.cn/profile/myNotes'
 
 const showMenu = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
@@ -248,10 +272,32 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
   font-size: 13.5px;
   cursor: pointer;
   text-align: left;
+  text-decoration: none;
+  box-sizing: border-box;
 }
 
 .num-item:hover {
   background: var(--nt-sidebar-hover, rgba(0, 0, 0, 0.04));
+}
+
+.num-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.num-item-external {
+  flex-shrink: 0;
+  margin-left: auto;
+  color: var(--nt-text-muted, #787774);
+  opacity: 0.75;
+}
+
+.num-item:hover .num-item-external {
+  opacity: 1;
+  color: var(--nt-text, #37352f);
 }
 
 .num-item--danger {
