@@ -18,7 +18,11 @@
         <circle cx="12" cy="12" r="2.25" />
         <path d="M6.8 12c1.3-2.1 3.1-3.2 5.2-3.2s3.9 1.1 5.2 3.2c-1.3 2.1-3.1 3.2-5.2 3.2s-3.9-1.1-5.2-3.2z" />
       </svg>
-      <p class="psb-text">{{ $t('cloudNotes.publicStorageBanner.text') }}</p>
+      <p class="psb-text">
+        <span>{{ $t('cloudNotes.publicStorageBanner.textLead') }}</span>
+        {{ ' ' }}
+        <span class="psb-text-warn">{{ $t('cloudNotes.publicStorageBanner.textWarn') }}</span>
+      </p>
     </div>
     <div class="psb-actions">
       <a
@@ -84,6 +88,11 @@ const disclosureHref = computed(() => router.resolve({ name: 'disclosure' }).hre
   font-size: 0.875rem;
   line-height: 1.55;
   color: var(--nt-text-muted);
+}
+
+.psb-text-warn {
+  color: var(--danger-pink, #ff4d4d);
+  font-weight: 500;
 }
 
 .psb-actions {

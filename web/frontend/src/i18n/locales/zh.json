@@ -465,6 +465,8 @@
     "storageNotInitialized": "云存储尚未初始化。请先在设置中完成初始化。",
     "exportButton": "导出",
     "exportTip": "将此笔记导出为文件",
+    "exportAsnoteTip": "ASnote 导出请使用桌面端",
+    "exportAsnoteHint": "ASnote 是由 AutoSlides 桌面端管理的受限分组。如需从这些笔记还原幻灯片，请在桌面端云盘页使用导入/导出。",
     "shareButton": "分享",
     "shareTip": "将此笔记的幻灯片生成分享链接",
     "shareTitle": "分享幻灯片",
@@ -499,7 +501,8 @@
     "smallText": "小字号",
     "fullWidth": "全宽",
     "publicStorageBanner": {
-      "text": "注意：延河课堂将笔记图片存放在可未登录列出并下载的公开存储空间。请勿在笔记中包含私密或敏感图片。",
+      "textLead": "注意：延河课堂将笔记图片存放在任何人均可访问的公开存储空间。",
+      "textWarn": "不要在笔记中包含隐私或敏感图片。",
       "learnWhy": "了解原因 ↗",
       "dismiss": "知道了"
     }

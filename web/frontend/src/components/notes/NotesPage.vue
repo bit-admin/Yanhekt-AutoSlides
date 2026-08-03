@@ -146,7 +146,7 @@ const showNewGroupModal = ref(false)
 const sidebarOpen = ref(false)
 const isMobile = ref(false)
 
-/** Notes outside ASnote (ASuser, Ungrouped, custom folders) can export to a file. */
+/** True for notes outside ASnote (file export); false for ASnote (info tip only). */
 const canExportCurrentNote = computed(() => {
   const note = cn.selectedNote.value
   if (!note) return false

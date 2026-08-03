@@ -105,48 +105,88 @@
           </p>
         </div>
       </div>
-      <div v-if="hasNote && canExport" ref="exportRoot" class="nec-export">
+      <!-- Export always shows for open notes. ASnote notes use an info icon + tip
+           (file export is desktop-only for that managed group). -->
+      <div v-if="hasNote" ref="exportRoot" class="nec-export">
         <button
           type="button"
           class="nec-export-btn"
           :class="{ open: exportOpen }"
-          :disabled="exportBusy"
+          :disabled="canExport && exportBusy"
           :aria-expanded="exportOpen"
-          :title="$t('cloudNotes.exportTip')"
+          :title="canExport ? $t('cloudNotes.exportTip') : $t('cloudNotes.exportAsnoteTip')"
           @click="toggleExport"
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            v-if="canExport"
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
             <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
           </svg>
-          <span>{{ exportBusy ? $t('cloudNotes.exportBusy') : $t('cloudNotes.exportButton') }}</span>
+          <svg
+            v-else
+            width="15"
+            height="15"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <span>{{ canExport && exportBusy ? $t('cloudNotes.exportBusy') : $t('cloudNotes.exportButton') }}</span>
           <svg class="nec-export-caret" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="6 9 12 15 18 9" />
           </svg>
         </button>
-        <div v-if="exportOpen" class="nec-export-menu" role="menu">
-          <p class="nec-export-menu-label">{{ $t('cloudNotes.exportFormatLabel') }}</p>
-          <button
-            type="button"
-            class="nec-export-item"
-            role="menuitem"
-            :disabled="exportBusy"
-            @click="runExport('pdf')"
-          >
-            <span class="nec-export-item-name">{{ $t('cloudNotes.exportPdf') }}</span>
-            <span class="nec-export-item-desc">{{ $t('cloudNotes.exportPdfDesc') }}</span>
-          </button>
-          <button
-            type="button"
-            class="nec-export-item"
-            role="menuitem"
-            :disabled="exportBusy"
-            @click="runExport('markdown')"
-          >
-            <span class="nec-export-item-name">{{ $t('cloudNotes.exportMarkdown') }}</span>
-            <span class="nec-export-item-desc">{{ $t('cloudNotes.exportMarkdownDesc') }}</span>
-          </button>
-          <p v-if="exportError" class="nec-export-error">{{ exportError }}</p>
+        <div
+          v-if="exportOpen"
+          class="nec-export-menu"
+          :class="{ 'nec-export-menu--asnote': !canExport }"
+          role="menu"
+        >
+          <template v-if="canExport">
+            <p class="nec-export-menu-label">{{ $t('cloudNotes.exportFormatLabel') }}</p>
+            <button
+              type="button"
+              class="nec-export-item"
+              role="menuitem"
+              :disabled="exportBusy"
+              @click="runExport('pdf')"
+            >
+              <span class="nec-export-item-name">{{ $t('cloudNotes.exportPdf') }}</span>
+              <span class="nec-export-item-desc">{{ $t('cloudNotes.exportPdfDesc') }}</span>
+            </button>
+            <button
+              type="button"
+              class="nec-export-item"
+              role="menuitem"
+              :disabled="exportBusy"
+              @click="runExport('markdown')"
+            >
+              <span class="nec-export-item-name">{{ $t('cloudNotes.exportMarkdown') }}</span>
+              <span class="nec-export-item-desc">{{ $t('cloudNotes.exportMarkdownDesc') }}</span>
+            </button>
+            <p v-if="exportError" class="nec-export-error">{{ exportError }}</p>
+          </template>
+          <p v-else class="nec-export-asnote-hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            <span>{{ $t('cloudNotes.exportAsnoteHint') }}</span>
+          </p>
         </div>
       </div>
       <div v-if="hasNote" ref="menuRoot" class="nec-more">
@@ -314,7 +354,7 @@ const props = defineProps<{
   moveGroups: NoteGroup[]
   saveStatus: 'idle' | 'saving' | 'saved'
   mobile: boolean
-  /** Notes outside ASnote can be exported (PDF / Markdown). */
+  /** When true, show PDF/Markdown export actions; when false (ASnote), show the desktop-export tip. */
   canExport: boolean
   /** Live Editor.js document for export / copy / duplicate / share. */
   getContent: () => Promise<string>
@@ -381,7 +421,8 @@ function toggleMenu(): void {
 }
 
 function toggleExport(): void {
-  if (exportBusy.value) return
+  // Only block while a real file export is in flight (ASnote tip still opens).
+  if (props.canExport && exportBusy.value) return
   menuOpen.value = false
   shareOpen.value = false
   exportError.value = ''
@@ -467,7 +508,8 @@ async function onCopyContents(): Promise<void> {
 }
 
 async function runExport(format: NoteExportFormat): Promise<void> {
-  if (exportBusy.value) return
+  // ASnote notes only show the desktop-export tip; never run file export there.
+  if (!props.canExport || exportBusy.value) return
   exportBusy.value = true
   exportError.value = ''
   try {
@@ -770,6 +812,10 @@ function onGroupChange(e: Event): void {
   gap: 2px;
 }
 
+.nec-export-menu--asnote {
+  min-width: 320px;
+}
+
 .nec-export-menu-label {
   margin: 0 0 6px;
   padding: 0 2px;
@@ -821,6 +867,23 @@ function onGroupChange(e: Event): void {
   font-size: 11.5px;
   color: var(--danger, #d70015);
   line-height: 1.35;
+}
+
+.nec-export-asnote-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--nt-text-muted, #787774);
+}
+
+.nec-export-asnote-hint svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+  opacity: 0.85;
 }
 
 .nec-more {

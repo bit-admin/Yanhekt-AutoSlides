@@ -465,6 +465,8 @@
     "storageNotInitialized": "Cloud storage isn't initialized. Initialize it in Settings first.",
     "exportButton": "Export",
     "exportTip": "Export this note to a file",
+    "exportAsnoteTip": "ASnote export is available in the desktop app",
+    "exportAsnoteHint": "ASnote is a restricted group managed by the AutoSlides desktop app. To reconstitute slides from these notes, use Import/Export in the desktop Drive page.",
     "shareButton": "Share",
     "shareTip": "Share this note's slides as a link",
     "shareTitle": "Share Slides",
@@ -499,7 +501,8 @@
     "smallText": "Small text",
     "fullWidth": "Full width",
     "publicStorageBanner": {
-      "text": "Note: Yanhekt stores note images in public storage that can be listed and downloaded without signing in. Do not include private or sensitive images.",
+      "textLead": "Note: Yanhekt stores note images in public storage and anyone can access them.",
+      "textWarn": "Do not include private or sensitive images.",
       "learnWhy": "Learn why ↗",
       "dismiss": "Got it"
     }

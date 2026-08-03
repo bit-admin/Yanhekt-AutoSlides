@@ -5,7 +5,7 @@
        queue counters straight off `exp` (parent-constructed). -->
   <div v-if="show" class="modal-overlay" @click.self="close">
     <div class="cn-import-box">
-      <h3 class="cn-modal-title">{{ $t('cloudNotes.exportTitle') }}</h3>
+      <h3 class="cn-modal-title">{{ $t('cloudNotes.exportNotesTitle') }}</h3>
 
       <!-- Phase: select notes -->
       <template v-if="exportPhase === 'select'">

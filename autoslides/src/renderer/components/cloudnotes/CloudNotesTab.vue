@@ -559,8 +559,6 @@ const imp = useNoteImport(cn, {
   warning: NOTE_COPYRIGHT,
   slideCaption: (n) => t('cloudNotes.noteSlideCaption', { n }),
 })
-// Declared early so footerVisible can keep the Import/Export strip visible while a
-// batch run is still in progress after the user switches away from ASnote.
 const exp = useNoteExport(cn)
 const publisher = useNotesPublish(cn)
 
@@ -589,16 +587,8 @@ const INDEX_LIST_MIN = 280
 const INDEX_LIST_MAX = 720
 const indexListWidth = ref(360)
 
-// Notes-mode footer is ASnote-only (import lands there; batch export reconstitutes
-// managed AS · notes). Stay visible while a run is active so progress can be
-// reopened after switching groups. Index mode always keeps its own footer.
-const footerVisible = computed(() => {
-  if (viewMode.value !== 'notes') return true
-  const managedId = cloudStorageStore.managedGroupId.value
-  const onASnote =
-    managedId != null && cn.activeGroupId.value === managedId
-  return onASnote || imp.importing.value || exp.exporting.value
-})
+// Footer Import/Export always show (notes mode + index mode).
+const footerVisible = computed(() => true)
 
 async function enterIndexMode(): Promise<void> {
   viewMode.value = 'index'
