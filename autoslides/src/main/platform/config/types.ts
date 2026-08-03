@@ -13,6 +13,7 @@ export type {
   AIClassifierMode,
   CustomProviderId,
   MlClassifierThresholds,
+  AIRequestBodySettings,
   AIFilteringConfig,
   AppConfig,
   PinnedCourse,

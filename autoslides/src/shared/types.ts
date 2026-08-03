@@ -92,6 +92,29 @@ export interface MlClassifierThresholds {
   slideCheckLow: number;
 }
 
+/**
+ * LLM chat-completion body knobs. `null` = omit that key from the request JSON
+ * (presence vs absence matters for some providers, e.g. Agnes + max_tokens).
+ */
+export interface AIRequestBodySettings {
+  /** OpenAI `max_tokens`. Default 100 (sent). */
+  maxTokens: number | null;
+  /** OpenAI `temperature`. Default 0 (sent). */
+  temperature: number | null;
+  /** OpenAI `top_p`. Default null (omit). */
+  topP: number | null;
+  /**
+   * OpenAI `stream`. Default false (sent). Classification does not consume SSE —
+   * true is coerced to false at the transport layer.
+   */
+  stream: boolean | null;
+  /**
+   * Maps to `chat_template_kwargs: { enable_thinking }`.
+   * Default false (send thinking off). `null` omits `chat_template_kwargs`.
+   */
+  enableThinking: boolean | null;
+}
+
 export interface AIFilteringConfig {
   classifierMode: AIClassifierMode;
   serviceType: AIServiceType;
@@ -110,6 +133,8 @@ export interface AIFilteringConfig {
   imageResizeHeight: number;
   maxConcurrent: number;
   minTime: number;
+  /** Optional chat-completion body parameters (omit when null). */
+  requestBody: AIRequestBodySettings;
   mlThresholds: MlClassifierThresholds;
   mlClassifierActiveModel: 'builtin' | 'custom';
   mlClassifierCustomModelName: string | null;

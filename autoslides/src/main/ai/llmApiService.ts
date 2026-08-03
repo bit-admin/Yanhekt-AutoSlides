@@ -35,7 +35,12 @@ export interface ChatCompletionResponse {
   model: string;
   choices: {
     index: number;
-    message: { role: string; content: string };
+    message: {
+      role: string;
+      content: string | null;
+      /** Agnes / reasoning models may put tokens here instead of content. */
+      reasoning_content?: string | null;
+    };
     finish_reason: string;
   }[];
   usage?: {
@@ -345,18 +350,37 @@ export class LLMApiService {
       'Content-Type': 'application/json'
     };
 
-    const requestBody = {
+    // Build body from AI requestBody settings. `null` means omit the key entirely —
+    // do not re-introduce defaults with `??` (Agnes + max_tokens is why presence matters).
+    // Per-call input.maxTokens / temperature still win when explicitly provided.
+    const rb = this.configService.getAIFilteringConfig().requestBody;
+    const requestBody: Record<string, unknown> = {
       model,
-      messages: input.messages,
-      max_tokens: input.maxTokens ?? 100,
-      temperature: input.temperature ?? 0
+      messages: input.messages
     };
+    const maxTokens = input.maxTokens !== undefined ? input.maxTokens : rb.maxTokens;
+    if (maxTokens != null) requestBody.max_tokens = maxTokens;
+    const temperature = input.temperature !== undefined ? input.temperature : rb.temperature;
+    if (temperature != null) requestBody.temperature = temperature;
+    if (rb.topP != null) requestBody.top_p = rb.topP;
+    // Classification always uses a full JSON response (no SSE consumer).
+    // stream is not user-configurable; always send false when present in settings.
+    if (rb.stream != null) {
+      requestBody.stream = false;
+    }
+    if (rb.enableThinking != null) {
+      requestBody.chat_template_kwargs = { enable_thinking: rb.enableThinking };
+    }
 
     debugLog('Chat completion request', {
       url: `${input.baseUrl}/chat/completions`,
       model,
       hasImages,
-      messageCount: input.messages.length
+      messageCount: input.messages.length,
+      bodyKeys: Object.keys(requestBody).filter((k) => k !== 'messages'),
+      enableThinking: rb.enableThinking,
+      maxTokens,
+      temperature
     });
 
     const startTime = Date.now();
@@ -405,10 +429,15 @@ export class LLMApiService {
         };
       }
 
+      const firstMessage = data.choices[0]?.message;
+      const content = firstMessage?.content;
+      const contentEmpty = content == null || (typeof content === 'string' && content.length === 0);
       debugLog('Chat completion response', {
         duration: `${Date.now() - startTime}ms`,
         status: response.status,
-        finishReason: data.choices[0]?.finish_reason
+        finishReason: data.choices[0]?.finish_reason,
+        contentEmpty,
+        hasReasoningContent: !!(firstMessage && 'reasoning_content' in firstMessage && firstMessage.reasoning_content)
       });
       return { ok: true, value: data, modelUsed: model };
     } catch (error) {

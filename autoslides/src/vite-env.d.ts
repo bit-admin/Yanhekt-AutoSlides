@@ -70,6 +70,15 @@ interface MlClassifierThresholds {
   slideCheckLow: number;
 }
 
+/** null = omit key from the chat-completion request JSON. */
+interface AIRequestBodySettings {
+  maxTokens: number | null;
+  temperature: number | null;
+  topP: number | null;
+  stream: boolean | null;
+  enableThinking: boolean | null;
+}
+
 interface AIFilteringConfig {
   classifierMode: 'llm' | 'ml';
   serviceType: 'builtin' | 'custom' | 'copilot';
@@ -88,6 +97,7 @@ interface AIFilteringConfig {
   imageResizeHeight: number; // height to resize images before sending to AI, default 432
   maxConcurrent: number; // max concurrent requests, default 1
   minTime: number; // minimum time between requests in ms, default 6000
+  requestBody: AIRequestBodySettings;
   mlThresholds: MlClassifierThresholds;
   mlClassifierActiveModel: 'builtin' | 'custom';
   mlClassifierCustomModelName: string | null;

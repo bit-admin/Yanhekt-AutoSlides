@@ -137,6 +137,9 @@ async function attemptChatCompletion(req: ChatImageRequest): Promise<LLMResult> 
         Authorization: `Bearer ${req.apiKey}`,
         ...req.extraHeaders,
       },
+      // Match Electron AI requestBody defaults (not user-configurable on web):
+      // max_tokens/temperature/stream sent; top_p omitted; thinking forced off
+      // so Agnes-style models don't burn the token budget on reasoning_content.
       body: JSON.stringify({
         model: req.model,
         messages: [
@@ -153,6 +156,8 @@ async function attemptChatCompletion(req: ChatImageRequest): Promise<LLMResult> 
         ],
         max_tokens: 100,
         temperature: 0,
+        stream: false,
+        chat_template_kwargs: { enable_thinking: false },
       }),
     });
   } catch (error) {

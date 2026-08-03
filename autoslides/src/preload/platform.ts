@@ -136,6 +136,13 @@ export const config = {
     imageResizeHeight?: number;
     maxConcurrent?: number;
     minTime?: number;
+    requestBody?: {
+      maxTokens?: number | null;
+      temperature?: number | null;
+      topP?: number | null;
+      stream?: boolean | null;
+      enableThinking?: boolean | null;
+    };
   }) => ipcRenderer.invoke('config:setAIFilteringConfig', cfg),
   setAIBatchSize: (batchSize: number) => ipcRenderer.invoke('config:setAIBatchSize', batchSize),
   getAIBatchSize: () => ipcRenderer.invoke('config:getAIBatchSize'),

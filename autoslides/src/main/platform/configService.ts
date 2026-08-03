@@ -835,9 +835,17 @@ export class ConfigService {
       ? {
           ...defaultAIFilteringConfig,
           ...stored,
-          mlThresholds: { ...DEFAULT_ML_THRESHOLDS, ...(stored.mlThresholds || {}) }
+          mlThresholds: { ...DEFAULT_ML_THRESHOLDS, ...(stored.mlThresholds || {}) },
+          requestBody: {
+            ...defaultAIFilteringConfig.requestBody,
+            ...(stored.requestBody || {})
+          }
         }
-      : { ...defaultAIFilteringConfig };
+      : {
+          ...defaultAIFilteringConfig,
+          requestBody: { ...defaultAIFilteringConfig.requestBody },
+          mlThresholds: { ...DEFAULT_ML_THRESHOLDS }
+        };
 
     // Migration: ensure customProviderId and customModelChain are populated for installs
     // that predate these fields. Only seed the chain for ModelScope (the only provider
@@ -862,9 +870,23 @@ export class ConfigService {
     return base;
   }
 
-  setAIFilteringConfig(config: Partial<AIFilteringConfig>): void {
+  setAIFilteringConfig(
+    config: Partial<Omit<AIFilteringConfig, 'requestBody' | 'mlThresholds'>> & {
+      requestBody?: Partial<AIFilteringConfig['requestBody']>;
+      mlThresholds?: Partial<AIFilteringConfig['mlThresholds']>;
+    }
+  ): void {
     const currentConfig = this.getAIFilteringConfig();
-    const updatedConfig = { ...currentConfig, ...config };
+    const updatedConfig: AIFilteringConfig = {
+      ...currentConfig,
+      ...config,
+      requestBody: config.requestBody
+        ? { ...currentConfig.requestBody, ...config.requestBody }
+        : currentConfig.requestBody,
+      mlThresholds: config.mlThresholds
+        ? { ...currentConfig.mlThresholds, ...config.mlThresholds }
+        : currentConfig.mlThresholds
+    };
     this.store.set('aiFiltering', updatedConfig);
   }
 

@@ -547,6 +547,133 @@
       </div>
       <div class="setting-description">{{ $t('advanced.ai.requestSettingsHint') }}</div>
     </div>
+
+    <!-- Completion body parameters (omit key when Send is unchecked) -->
+    <div class="setting-item completion-params">
+      <label class="setting-label">{{ $t('advanced.ai.completionParams') }}</label>
+      <div class="setting-description">{{ $t('advanced.ai.completionParamsHint') }}</div>
+
+      <table class="completion-params-table">
+        <thead>
+          <tr>
+            <th class="col-send" scope="col">{{ $t('advanced.ai.sendParam') }}</th>
+            <th class="col-param" scope="col">{{ $t('advanced.ai.paramName') }}</th>
+            <th class="col-value" scope="col">{{ $t('advanced.ai.paramValue') }}</th>
+            <th class="col-note" scope="col">{{ $t('advanced.ai.paramNote') }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr :class="{ 'row-omitted': !tempRequestBodySend.maxTokens }">
+            <td class="col-send">
+              <input
+                type="checkbox"
+                v-model="tempRequestBodySend.maxTokens"
+                :aria-label="$t('advanced.ai.sendParam')"
+              />
+            </td>
+            <td class="col-param"><code>max_tokens</code></td>
+            <td class="col-value">
+              <input
+                v-model.number="tempRequestBodyValues.maxTokens"
+                type="number"
+                min="1"
+                max="8192"
+                class="completion-value-input"
+                :disabled="!tempRequestBodySend.maxTokens"
+              />
+            </td>
+            <td class="col-note">{{ $t('advanced.ai.maxTokensNote') }}</td>
+          </tr>
+
+          <tr :class="{ 'row-omitted': !tempRequestBodySend.temperature }">
+            <td class="col-send">
+              <input
+                type="checkbox"
+                v-model="tempRequestBodySend.temperature"
+                :aria-label="$t('advanced.ai.sendParam')"
+              />
+            </td>
+            <td class="col-param"><code>temperature</code></td>
+            <td class="col-value">
+              <input
+                v-model.number="tempRequestBodyValues.temperature"
+                type="number"
+                min="0"
+                max="2"
+                step="0.1"
+                class="completion-value-input"
+                :disabled="!tempRequestBodySend.temperature"
+              />
+            </td>
+            <td class="col-note">{{ $t('advanced.ai.temperatureNote') }}</td>
+          </tr>
+
+          <tr :class="{ 'row-omitted': !tempRequestBodySend.topP }">
+            <td class="col-send">
+              <input
+                type="checkbox"
+                v-model="tempRequestBodySend.topP"
+                :aria-label="$t('advanced.ai.sendParam')"
+              />
+            </td>
+            <td class="col-param"><code>top_p</code></td>
+            <td class="col-value">
+              <input
+                v-model.number="tempRequestBodyValues.topP"
+                type="number"
+                min="0"
+                max="1"
+                step="0.05"
+                class="completion-value-input"
+                :disabled="!tempRequestBodySend.topP"
+              />
+            </td>
+            <td class="col-note">{{ $t('advanced.ai.topPNote') }}</td>
+          </tr>
+
+          <tr class="row-fixed">
+            <td class="col-send">
+              <input
+                type="checkbox"
+                :checked="true"
+                disabled
+                :aria-label="$t('advanced.ai.sendParam')"
+              />
+            </td>
+            <td class="col-param"><code>stream</code></td>
+            <td class="col-value">
+              <label class="bool-toggle disabled">
+                <input type="checkbox" :checked="false" disabled />
+                <span>{{ $t('advanced.ai.streamOff') }}</span>
+              </label>
+            </td>
+            <td class="col-note">{{ $t('advanced.ai.streamNote') }}</td>
+          </tr>
+
+          <tr :class="{ 'row-omitted': !tempRequestBodySend.enableThinking }">
+            <td class="col-send">
+              <input
+                type="checkbox"
+                v-model="tempRequestBodySend.enableThinking"
+                :aria-label="$t('advanced.ai.sendParam')"
+              />
+            </td>
+            <td class="col-param"><code>enable_thinking</code></td>
+            <td class="col-value">
+              <label class="bool-toggle" :class="{ disabled: !tempRequestBodySend.enableThinking }">
+                <input
+                  type="checkbox"
+                  v-model="tempRequestBodyValues.enableThinking"
+                  :disabled="!tempRequestBodySend.enableThinking"
+                />
+                <span>{{ tempRequestBodyValues.enableThinking ? $t('advanced.ai.thinkingOn') : $t('advanced.ai.thinkingOff') }}</span>
+              </label>
+            </td>
+            <td class="col-note">{{ $t('advanced.ai.enableThinkingHint') }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
   </template>
 
@@ -709,6 +836,8 @@ const {
   maxAiRateLimit,
   tempAiMaxConcurrent,
   tempAiMinTime,
+  tempRequestBodyValues,
+  tempRequestBodySend,
   selectedImageResizePreset,
   imageResizePresets,
   onImageResizePresetChange,
@@ -787,6 +916,136 @@ const openCopilotVerificationUrl = () => {
 </script>
 
 <style scoped>
+.completion-params {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.completion-params-table {
+  width: 100%;
+  margin-top: 10px;
+  border-collapse: collapse;
+  font-size: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-surface);
+}
+
+.completion-params-table thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+
+.completion-params-table tbody td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+  color: var(--text-primary);
+}
+
+.completion-params-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.completion-params-table tbody tr:hover {
+  background: var(--bg-hover);
+}
+
+.completion-params-table tbody tr.row-omitted {
+  opacity: 0.55;
+}
+
+.completion-params-table tbody tr.row-fixed {
+  opacity: 0.6;
+}
+
+.completion-params-table tbody tr.row-fixed:hover {
+  background: transparent;
+}
+
+.completion-params-table .col-send {
+  width: 56px;
+  text-align: center;
+}
+
+.completion-params-table thead th.col-send {
+  text-align: center;
+}
+
+.completion-params-table .col-param {
+  width: 34%;
+  min-width: 150px;
+}
+
+.completion-params-table .col-param code {
+  display: inline-block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.completion-params-table .col-value {
+  width: 140px;
+  white-space: nowrap;
+}
+
+.completion-params-table .col-note {
+  color: var(--text-muted);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.completion-value-input {
+  width: 100%;
+  max-width: 120px;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.completion-value-input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.completion-value-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.bool-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.bool-toggle.disabled {
+  cursor: not-allowed;
+}
+
 .ai-service-type-selector {
   display: flex;
   gap: 8px;

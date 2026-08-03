@@ -5,6 +5,7 @@ import type {
   AutoCropConfig,
   AutoCropYoloConfig,
   AIFilteringConfig,
+  AIRequestBodySettings,
   MlClassifierThresholds,
   QtExtractorConfig,
   SlideExtractionConfig,
@@ -124,6 +125,14 @@ export const defaultSlideExtractionConfig: SlideExtractionConfig = {
   autoCropCustomModelName: null
 };
 
+export const defaultAIRequestBodySettings: AIRequestBodySettings = {
+  maxTokens: 100,
+  temperature: 0,
+  topP: null,
+  stream: false,
+  enableThinking: false
+};
+
 export const defaultAIFilteringConfig: AIFilteringConfig = {
   classifierMode: 'llm',
   serviceType: 'builtin',
@@ -142,6 +151,7 @@ export const defaultAIFilteringConfig: AIFilteringConfig = {
   imageResizeHeight: 432,
   maxConcurrent: 1,
   minTime: 6000,
+  requestBody: { ...defaultAIRequestBodySettings },
   mlThresholds: { ...DEFAULT_ML_THRESHOLDS },
   mlClassifierActiveModel: 'builtin',
   mlClassifierCustomModelName: null

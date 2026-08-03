@@ -1,14 +1,21 @@
 node_modules/
-.wrangler/
-.dev.vars
+
 dist/
+.wrangler/
+*.log
+.dev.vars
+.env
+.env.*
+!.env.example
 worker-configuration.d.ts
+
 debug/
 
-# Real deploy config (custom domain) — copy from wrangler.example.jsonc.
 wrangler.jsonc
 
-# Bundled CJK face for note PDF export (local copy; not redistributed in git).
-# Keep README.md tracked; ignore the binary faces only.
 frontend/public/fonts/**
 !frontend/public/fonts/README.md
+
+.DS_Store
+.idea/
+.vscode/

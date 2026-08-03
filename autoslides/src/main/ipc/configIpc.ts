@@ -461,7 +461,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     customApiKey?: string;
     customModelName?: string;
     customModelChain?: string[];
-    customProviderId?: 'modelscope' | 'lm_studio' | 'other';
+    customProviderId?: 'modelscope' | 'lm_studio' | 'nvidia' | 'agnes' | 'other';
     copilotGhoToken?: string;
     copilotModelName?: string;
     copilotUsername?: string;
@@ -472,6 +472,13 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     imageResizeHeight?: number;
     maxConcurrent?: number;
     minTime?: number;
+    requestBody?: {
+      maxTokens?: number | null;
+      temperature?: number | null;
+      topP?: number | null;
+      stream?: boolean | null;
+      enableThinking?: boolean | null;
+    };
   }) => {
     const prev = configService.getAIFilteringConfig();
     configService.setAIFilteringConfig(config);

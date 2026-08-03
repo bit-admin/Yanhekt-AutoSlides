@@ -306,10 +306,18 @@ export class AIFilteringService {
         return this.toFailureResult(result.error);
       }
 
-      const responseContent = result.value.choices?.[0]?.message?.content || '';
+      const firstChoice = result.value.choices?.[0];
+      const responseContent = firstChoice?.message?.content || '';
       const parsed = this.parseClassificationResult(responseContent, distinguish);
       if (parsed) {
         return { success: true, result: parsed, modelUsed: result.modelUsed };
+      }
+      if (!responseContent) {
+        debugError('classifySingleImage empty assistant content', {
+          finishReason: firstChoice?.finish_reason,
+          hasReasoningContent: !!(firstChoice?.message && 'reasoning_content' in firstChoice.message
+            && (firstChoice.message as { reasoning_content?: unknown }).reasoning_content)
+        });
       }
       return {
         success: false,
@@ -370,10 +378,18 @@ export class AIFilteringService {
         return this.toFailureResult(result.error);
       }
 
-      const responseContent = result.value.choices?.[0]?.message?.content || '';
+      const firstChoice = result.value.choices?.[0];
+      const responseContent = firstChoice?.message?.content || '';
       const parsed = this.parseBatchClassificationResult(responseContent, distinguish);
       if (parsed) {
         return { success: true, result: parsed, modelUsed: result.modelUsed };
+      }
+      if (!responseContent) {
+        debugError('classifyMultipleImages empty assistant content', {
+          finishReason: firstChoice?.finish_reason,
+          hasReasoningContent: !!(firstChoice?.message && 'reasoning_content' in firstChoice.message
+            && (firstChoice.message as { reasoning_content?: unknown }).reasoning_content)
+        });
       }
       return {
         success: false,

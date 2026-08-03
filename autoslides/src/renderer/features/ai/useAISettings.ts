@@ -51,12 +51,93 @@ const AI_PAIR_DEFAULTS = {
 }
 type AiPairs = typeof AI_PAIR_DEFAULTS
 
+/** Staging values shown when a completion param's "Send" checkbox is on. */
+const REQUEST_BODY_VALUE_DEFAULTS = {
+  maxTokens: 100,
+  temperature: 0,
+  topP: 1,
+  stream: false,
+  enableThinking: false,
+}
+
+/** Which completion keys are included in the request JSON (default matches main defaults). */
+const REQUEST_BODY_SEND_DEFAULTS = {
+  maxTokens: true,
+  temperature: true,
+  topP: false,
+  stream: true,
+  enableThinking: true,
+}
+
+type RequestBodyValues = typeof REQUEST_BODY_VALUE_DEFAULTS
+type RequestBodySend = typeof REQUEST_BODY_SEND_DEFAULTS
+
+function requestBodyToUi(rb: {
+  maxTokens?: number | null
+  temperature?: number | null
+  topP?: number | null
+  stream?: boolean | null
+  enableThinking?: boolean | null
+} | undefined | null): { values: RequestBodyValues; send: RequestBodySend } {
+  const src = rb || {}
+  return {
+    values: {
+      maxTokens: src.maxTokens ?? REQUEST_BODY_VALUE_DEFAULTS.maxTokens,
+      temperature: src.temperature ?? REQUEST_BODY_VALUE_DEFAULTS.temperature,
+      topP: src.topP ?? REQUEST_BODY_VALUE_DEFAULTS.topP,
+      stream: src.stream ?? REQUEST_BODY_VALUE_DEFAULTS.stream,
+      enableThinking: src.enableThinking ?? REQUEST_BODY_VALUE_DEFAULTS.enableThinking,
+    },
+    send: {
+      maxTokens: src.maxTokens != null,
+      temperature: src.temperature != null,
+      topP: src.topP != null,
+      stream: src.stream != null,
+      enableThinking: src.enableThinking != null,
+    },
+  }
+}
+
+function uiToRequestBody(
+  values: RequestBodyValues,
+  send: RequestBodySend
+): {
+  maxTokens: number | null
+  temperature: number | null
+  topP: number | null
+  stream: boolean | null
+  enableThinking: boolean | null
+} {
+  return {
+    maxTokens: send.maxTokens
+      ? Math.max(1, Math.min(8192, Math.round(Number(values.maxTokens) || 0)))
+      : null,
+    temperature: send.temperature
+      ? Math.max(0, Math.min(2, Number(values.temperature)))
+      : null,
+    topP: send.topP ? Math.max(0, Math.min(1, Number(values.topP))) : null,
+    // Classification has no SSE consumer — always send stream:false; UI is locked.
+    stream: false,
+    enableThinking: send.enableThinking ? !!values.enableThinking : null,
+  }
+}
+
 export function useAISettings(options: UseAISettingsOptions) {
   const { tokenManager } = options
 
   const committed = reactive<AiPairs>({ ...AI_PAIR_DEFAULTS })
   const temp = reactive<AiPairs>({ ...AI_PAIR_DEFAULTS })
   const resetTempPairs = () => Object.assign(temp, toRaw(committed))
+
+  // Completion request-body knobs (Send checkbox + staging value per key).
+  const committedRequestBodyValues = reactive<RequestBodyValues>({ ...REQUEST_BODY_VALUE_DEFAULTS })
+  const committedRequestBodySend = reactive<RequestBodySend>({ ...REQUEST_BODY_SEND_DEFAULTS })
+  const tempRequestBodyValues = reactive<RequestBodyValues>({ ...REQUEST_BODY_VALUE_DEFAULTS })
+  const tempRequestBodySend = reactive<RequestBodySend>({ ...REQUEST_BODY_SEND_DEFAULTS })
+  const resetTempRequestBody = () => {
+    Object.assign(tempRequestBodyValues, toRaw(committedRequestBodyValues))
+    Object.assign(tempRequestBodySend, toRaw(committedRequestBodySend))
+  }
 
   // Named refs into the records — the exact public names AISettingsTab
   // destructures and v-models; toRef keeps them writable and reactive.
@@ -138,6 +219,7 @@ export function useAISettings(options: UseAISettingsOptions) {
       { label: 'Gemma 4 31B IT', name: 'google/gemma-4-31b-it' }
     ],
     agnes: [
+      { label: 'Agnes 2.5 Flash', name: 'agnes-2.5-flash' },
       { label: 'Agnes 2.0 Flash', name: 'agnes-2.0-flash' }
     ],
     other: []
@@ -202,6 +284,12 @@ export function useAISettings(options: UseAISettingsOptions) {
         )
         selectedImageResizePreset.value = matchingPreset?.key || '768x432'
 
+        const rbUi = requestBodyToUi(aiConfig.requestBody)
+        Object.assign(committedRequestBodyValues, rbUi.values)
+        Object.assign(committedRequestBodySend, rbUi.send)
+        Object.assign(tempRequestBodyValues, rbUi.values)
+        Object.assign(tempRequestBodySend, rbUi.send)
+
         await copilot.applyLoadedConfig(aiConfig)
         mlClassifier.applyLoadedConfig(aiConfig)
       }
@@ -244,6 +332,8 @@ export function useAISettings(options: UseAISettingsOptions) {
         ? chainToSave[0]
         : tempAiCustomModelName.value
 
+      const requestBody = uiToRequestBody(tempRequestBodyValues, tempRequestBodySend)
+
       await window.electronAPI.config.setAIFilteringConfig({
         serviceType: tempAiServiceType.value,
         customApiBaseUrl: tempAiCustomApiBaseUrl.value,
@@ -260,7 +350,8 @@ export function useAISettings(options: UseAISettingsOptions) {
         imageResizeWidth: tempAiImageResizeWidth.value,
         imageResizeHeight: tempAiImageResizeHeight.value,
         maxConcurrent: effectiveMaxConcurrent,
-        minTime: effectiveMinTime
+        minTime: effectiveMinTime,
+        requestBody
       })
 
       tempAiCustomModelName.value = effectiveModelName
@@ -280,6 +371,13 @@ export function useAISettings(options: UseAISettingsOptions) {
       tempAiMinTime.value = effectiveMinTime
       aiImageResizeWidth.value = tempAiImageResizeWidth.value
       aiImageResizeHeight.value = tempAiImageResizeHeight.value
+
+      // Re-sync staging values from the clamped saved payload so temp === committed.
+      const savedRbUi = requestBodyToUi(requestBody)
+      Object.assign(committedRequestBodyValues, savedRbUi.values)
+      Object.assign(committedRequestBodySend, savedRbUi.send)
+      Object.assign(tempRequestBodyValues, savedRbUi.values)
+      Object.assign(tempRequestBodySend, savedRbUi.send)
 
       if (tempAiPromptLive.value !== aiPromptLive.value) {
         await window.electronAPI.config.setAIPrompt('live', tempAiPromptLive.value, 'simple')
@@ -395,6 +493,7 @@ export function useAISettings(options: UseAISettingsOptions) {
 
   const resetTempValues = () => {
     resetTempPairs()
+    resetTempRequestBody()
     if (modelChain.tempCustomModelChain.value.length === 0 && aiCustomModelName.value) {
       modelChain.tempCustomModelChain.value = [aiCustomModelName.value]
     }
@@ -457,6 +556,10 @@ export function useAISettings(options: UseAISettingsOptions) {
     tempAiMaxConcurrent,
     aiMinTime,
     tempAiMinTime,
+
+    // Completion request-body parameters (Send + value)
+    tempRequestBodyValues,
+    tempRequestBodySend,
 
     // Image resize settings
     aiImageResizeWidth,

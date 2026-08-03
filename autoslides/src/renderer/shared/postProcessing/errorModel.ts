@@ -165,9 +165,16 @@ export function errorInfoToBanner(info: ErrorInfo): BannerError {
     case 'quota_exceeded':
       return { type: '429', httpCode: 429, message: info.message }
     case 'http':
-    case 'service_unavailable':
+    case 'service_unavailable': {
+      // Prefer an explicit code from "HTTP 502: …" style messages when present.
+      const match = info.message.match(/HTTP\s*(\d{3})/i)
+      const httpCode = match ? parseInt(match[1], 10) : undefined
+      return { type: 'http', httpCode, message: info.message }
+    }
     case 'parse_failed':
-      return { type: 'http', message: info.message }
+      // Not a transport failure — keep the detailed message under 'unknown'
+      // so the UI does not render "HTTP error ." with an empty code.
+      return { type: 'unknown', message: info.message }
     case 'network':
     case 'timeout':
     case 'unknown':
