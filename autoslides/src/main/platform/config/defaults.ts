@@ -130,7 +130,8 @@ export const defaultAIRequestBodySettings: AIRequestBodySettings = {
   temperature: 0,
   topP: null,
   stream: false,
-  enableThinking: false
+  enableThinking: false,
+  thinkingKey: 'enable_thinking'
 };
 
 export const defaultAIFilteringConfig: AIFilteringConfig = {

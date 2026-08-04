@@ -650,26 +650,71 @@
             <td class="col-note">{{ $t('advanced.ai.streamNote') }}</td>
           </tr>
 
-          <tr :class="{ 'row-omitted': !tempRequestBodySend.enableThinking }">
+          <tr
+            :class="{
+              'row-fixed': tempAiServiceType === 'copilot',
+              'row-omitted': tempAiServiceType !== 'copilot' && !tempRequestBodySend.enableThinking
+            }"
+          >
             <td class="col-send">
               <input
+                v-if="tempAiServiceType === 'copilot'"
+                type="checkbox"
+                :checked="false"
+                disabled
+                :aria-label="$t('advanced.ai.sendParam')"
+              />
+              <input
+                v-else
                 type="checkbox"
                 v-model="tempRequestBodySend.enableThinking"
                 :aria-label="$t('advanced.ai.sendParam')"
               />
             </td>
-            <td class="col-param"><code>enable_thinking</code></td>
+            <td class="col-param">
+              <select
+                class="param-key-select"
+                v-model="tempRequestBodyValues.thinkingKey"
+                :disabled="tempAiServiceType === 'copilot' || !tempRequestBodySend.enableThinking"
+                :aria-label="$t('advanced.ai.thinkingKeyLabel')"
+              >
+                <option value="enable_thinking">enable_thinking</option>
+                <option value="thinking">thinking</option>
+              </select>
+            </td>
             <td class="col-value">
-              <label class="bool-toggle" :class="{ disabled: !tempRequestBodySend.enableThinking }">
+              <label
+                class="bool-toggle"
+                :class="{
+                  disabled: tempAiServiceType === 'copilot' || !tempRequestBodySend.enableThinking
+                }"
+              >
                 <input
+                  v-if="tempAiServiceType === 'copilot'"
+                  type="checkbox"
+                  :checked="false"
+                  disabled
+                />
+                <input
+                  v-else
                   type="checkbox"
                   v-model="tempRequestBodyValues.enableThinking"
                   :disabled="!tempRequestBodySend.enableThinking"
                 />
-                <span>{{ tempRequestBodyValues.enableThinking ? $t('advanced.ai.thinkingOn') : $t('advanced.ai.thinkingOff') }}</span>
+                <span>{{
+                  tempAiServiceType === 'copilot'
+                    ? $t('advanced.ai.thinkingOff')
+                    : (tempRequestBodyValues.enableThinking
+                      ? $t('advanced.ai.thinkingOn')
+                      : $t('advanced.ai.thinkingOff'))
+                }}</span>
               </label>
             </td>
-            <td class="col-note">{{ $t('advanced.ai.enableThinkingHint') }}</td>
+            <td class="col-note">{{
+              tempAiServiceType === 'copilot'
+                ? $t('advanced.ai.thinkingCopilotNote')
+                : $t('advanced.ai.enableThinkingHint')
+            }}</td>
           </tr>
         </tbody>
       </table>
@@ -996,6 +1041,33 @@ const openCopilotVerificationUrl = () => {
   background: var(--bg-elevated);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
+}
+
+.param-key-select {
+  display: block;
+  width: 100%;
+  max-width: 180px;
+  box-sizing: border-box;
+  padding: 4px 8px;
+  border: 1px solid var(--border-input);
+  border-radius: 4px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.param-key-select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.param-key-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .completion-params-table .col-value {

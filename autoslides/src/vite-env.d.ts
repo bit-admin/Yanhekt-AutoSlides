@@ -70,6 +70,8 @@ interface MlClassifierThresholds {
   slideCheckLow: number;
 }
 
+type ThinkingParamKey = 'enable_thinking' | 'thinking';
+
 /** null = omit key from the chat-completion request JSON. */
 interface AIRequestBodySettings {
   maxTokens: number | null;
@@ -77,6 +79,7 @@ interface AIRequestBodySettings {
   topP: number | null;
   stream: boolean | null;
   enableThinking: boolean | null;
+  thinkingKey: ThinkingParamKey;
 }
 
 interface AIFilteringConfig {

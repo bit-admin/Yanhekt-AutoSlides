@@ -478,6 +478,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
       topP?: number | null;
       stream?: boolean | null;
       enableThinking?: boolean | null;
+      thinkingKey?: 'enable_thinking' | 'thinking';
     };
   }) => {
     const prev = configService.getAIFilteringConfig();

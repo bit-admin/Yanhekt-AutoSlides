@@ -368,8 +368,13 @@ export class LLMApiService {
     if (rb.stream != null) {
       requestBody.stream = false;
     }
-    if (rb.enableThinking != null) {
-      requestBody.chat_template_kwargs = { enable_thinking: rb.enableThinking };
+    // Copilot rejects / ignores chat_template_kwargs — never attach them.
+    // Other providers: send either enable_thinking or thinking (user choice).
+    const serviceType = this.configService.getAIFilteringConfig().serviceType;
+    const omitThinking = serviceType === 'copilot';
+    const thinkingKey = rb.thinkingKey === 'thinking' ? 'thinking' : 'enable_thinking';
+    if (!omitThinking && rb.enableThinking != null) {
+      requestBody.chat_template_kwargs = { [thinkingKey]: rb.enableThinking };
     }
 
     debugLog('Chat completion request', {
@@ -379,6 +384,8 @@ export class LLMApiService {
       messageCount: input.messages.length,
       bodyKeys: Object.keys(requestBody).filter((k) => k !== 'messages'),
       enableThinking: rb.enableThinking,
+      thinkingKey,
+      omitThinking,
       maxTokens,
       temperature
     });

@@ -25,7 +25,6 @@ export function useCopilotOAuth() {
   let copilotOAuthCancelled = false
 
   const copilotModelPresets: ModelPreset[] = [
-    { label: 'GPT 5 mini', name: 'gpt-5-mini' },
     { label: 'GPT 4.1', name: 'gpt-4.1' }
   ]
   const selectedCopilotModelPreset = ref('')

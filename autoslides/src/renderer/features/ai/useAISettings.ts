@@ -51,6 +51,8 @@ const AI_PAIR_DEFAULTS = {
 }
 type AiPairs = typeof AI_PAIR_DEFAULTS
 
+type ThinkingParamKey = 'enable_thinking' | 'thinking'
+
 /** Staging values shown when a completion param's "Send" checkbox is on. */
 const REQUEST_BODY_VALUE_DEFAULTS = {
   maxTokens: 100,
@@ -58,6 +60,7 @@ const REQUEST_BODY_VALUE_DEFAULTS = {
   topP: 1,
   stream: false,
   enableThinking: false,
+  thinkingKey: 'enable_thinking' as ThinkingParamKey,
 }
 
 /** Which completion keys are included in the request JSON (default matches main defaults). */
@@ -72,12 +75,17 @@ const REQUEST_BODY_SEND_DEFAULTS = {
 type RequestBodyValues = typeof REQUEST_BODY_VALUE_DEFAULTS
 type RequestBodySend = typeof REQUEST_BODY_SEND_DEFAULTS
 
+function normalizeThinkingKey(key: unknown): ThinkingParamKey {
+  return key === 'thinking' ? 'thinking' : 'enable_thinking'
+}
+
 function requestBodyToUi(rb: {
   maxTokens?: number | null
   temperature?: number | null
   topP?: number | null
   stream?: boolean | null
   enableThinking?: boolean | null
+  thinkingKey?: ThinkingParamKey | null
 } | undefined | null): { values: RequestBodyValues; send: RequestBodySend } {
   const src = rb || {}
   return {
@@ -87,6 +95,7 @@ function requestBodyToUi(rb: {
       topP: src.topP ?? REQUEST_BODY_VALUE_DEFAULTS.topP,
       stream: src.stream ?? REQUEST_BODY_VALUE_DEFAULTS.stream,
       enableThinking: src.enableThinking ?? REQUEST_BODY_VALUE_DEFAULTS.enableThinking,
+      thinkingKey: normalizeThinkingKey(src.thinkingKey ?? REQUEST_BODY_VALUE_DEFAULTS.thinkingKey),
     },
     send: {
       maxTokens: src.maxTokens != null,
@@ -107,6 +116,7 @@ function uiToRequestBody(
   topP: number | null
   stream: boolean | null
   enableThinking: boolean | null
+  thinkingKey: ThinkingParamKey
 } {
   return {
     maxTokens: send.maxTokens
@@ -119,6 +129,8 @@ function uiToRequestBody(
     // Classification has no SSE consumer — always send stream:false; UI is locked.
     stream: false,
     enableThinking: send.enableThinking ? !!values.enableThinking : null,
+    // Always persist the key choice so unchecking Send doesn't forget the dialect.
+    thinkingKey: normalizeThinkingKey(values.thinkingKey),
   }
 }
 

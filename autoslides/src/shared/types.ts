@@ -93,6 +93,12 @@ export interface MlClassifierThresholds {
 }
 
 /**
+ * Which key name to put inside `chat_template_kwargs`. Models disagree:
+ * Agnes-style uses `enable_thinking`; some others use `thinking`.
+ */
+export type ThinkingParamKey = 'enable_thinking' | 'thinking';
+
+/**
  * LLM chat-completion body knobs. `null` = omit that key from the request JSON
  * (presence vs absence matters for some providers, e.g. Agnes + max_tokens).
  */
@@ -109,10 +115,16 @@ export interface AIRequestBodySettings {
    */
   stream: boolean | null;
   /**
-   * Maps to `chat_template_kwargs: { enable_thinking }`.
+   * Thinking on/off value for `chat_template_kwargs[thinkingKey]`.
    * Default false (send thinking off). `null` omits `chat_template_kwargs`.
+   * Copilot transport always omits kwargs regardless of this field.
    */
   enableThinking: boolean | null;
+  /**
+   * Key name inside `chat_template_kwargs`. Default `'enable_thinking'`.
+   * Always stored (not null-omit); only applied when `enableThinking != null`.
+   */
+  thinkingKey: ThinkingParamKey;
 }
 
 export interface AIFilteringConfig {

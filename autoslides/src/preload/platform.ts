@@ -142,6 +142,7 @@ export const config = {
       topP?: number | null;
       stream?: boolean | null;
       enableThinking?: boolean | null;
+      thinkingKey?: 'enable_thinking' | 'thinking';
     };
   }) => ipcRenderer.invoke('config:setAIFilteringConfig', cfg),
   setAIBatchSize: (batchSize: number) => ipcRenderer.invoke('config:setAIBatchSize', batchSize),
