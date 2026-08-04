@@ -30,7 +30,7 @@
           <div class="playlist-info">
             <h2 class="playlist-title">{{ courseDetails?.title }}</h2>
             
-            <!-- YouTube Subscribe Style Pin Button -->
+            <!-- YouTube Subscribe Style Pin Button + Public Index search -->
             <div class="playlist-actions">
               <button
                 @click="toggleSubscribe"
@@ -43,6 +43,17 @@
                   <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
                 </svg>
                 <span>{{ subscribed ? $t('navigation.pinned') : $t('sessions.subscribe') }}</span>
+              </button>
+              <button
+                @click="searchInIndex"
+                class="btn index-search-btn"
+                :title="$t('sessions.searchInIndex')"
+                :aria-label="$t('sessions.searchInIndex')"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
               </button>
             </div>
 
@@ -149,6 +160,7 @@ import { useSessionPage, type SessionCourse, type Session } from '../../composab
 import { isSubscribed, toggleSubscribedCourse } from '../../composables/subscribedCourses'
 import { resolveCourseCover, getOverlayTextStyle } from '../../composables/courseCover'
 import { useKeepScroll } from '../../composables/useKeepScroll'
+import { SHARE_ORIGIN } from '../../lib/notes/shareLink'
 
 const props = defineProps<{
   course: SessionCourse | null
@@ -190,6 +202,16 @@ const toggleSubscribe = () => {
   const c = courseDetails.value
   if (!c?.id) return
   toggleSubscribedCourse(c)
+}
+
+// Open Public Index (share.ruc.edu.kg) pre-searched for this course title.
+// Electron jumps in-app to Drive index mode; web has no embedded index UI, so
+// deep-link the share site's ?q= search instead.
+const searchInIndex = () => {
+  const title = courseDetails.value?.title || props.course?.title
+  if (!title) return
+  const url = `${SHARE_ORIGIN}/?q=${encodeURIComponent(title)}`
+  window.open(url, '_blank', 'noopener,noreferrer')
 }
 
 // Formats seconds into HH:MM:SS or MM:SS for duration badge
@@ -324,6 +346,23 @@ onMounted(() => {
 .subscribe-btn.subscribed:hover {
   background-color: var(--bg-hover);
   filter: brightness(0.9);
+}
+
+/* Compact Public Index search icon — secondary to Subscribe */
+.index-search-btn {
+  width: var(--control-height);
+  height: var(--control-height);
+  padding: 0;
+  flex-shrink: 0;
+  border-radius: 6.25rem;
+  background-color: var(--bg-hover);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.index-search-btn:hover {
+  background-color: var(--bg-elevated);
+  border-color: var(--border-strong, var(--border-color));
 }
 
 /* Course details grid */
