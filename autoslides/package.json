@@ -53,10 +53,13 @@
   },
   "overrides": {
     "tar": "^7.5.11",
-    "@tootallnate/once": "^3.0.1",
     "tmp": "^0.2.4",
-    "esbuild": "0.28.1",
-    "brace-expansion": "$brace-expansion"
+    "brace-expansion@1": "1.1.18",
+    "brace-expansion@2": "2.1.4",
+    "brace-expansion@3": "3.0.6",
+    "brace-expansion@4": "5.0.9",
+    "brace-expansion@5": "5.0.9",
+    "fast-uri": "3.1.5"
   },
   "dependencies": {
     "@editorjs/code": "^2.8.0",
@@ -72,7 +75,6 @@
     "@types/pdfkit": "^0.17.4",
     "axios": "^1.13.2",
     "bottleneck": "^2.19.5",
-    "brace-expansion": "file:vendor/brace-expansion",
     "crypto-js": "^4.2.0",
     "docx": "^9.7.1",
     "electron-store": "^11.0.2",
