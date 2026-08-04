@@ -444,6 +444,8 @@
     "localRelayWhitelistIsCurrent": "現在のアカウントトークンは上の固定行で既に対象です。",
     "cancel": "キャンセル",
     "save": "保存",
+    "applied": "適用しました",
+    "discarded": "破棄しました",
     "ai": {
       "serviceSettings": "AIサービス設定",
       "serviceType": "サービスタイプ",

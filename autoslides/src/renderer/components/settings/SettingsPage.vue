@@ -40,8 +40,16 @@
 
     <!-- Sticky footer actions -->
     <footer class="settings-footer">
-      <button class="btn" @click="onCancel">{{ $t('advanced.cancel') }}</button>
-      <button class="btn btn--primary" @click="onSave">{{ $t('advanced.save') }}</button>
+      <span
+        v-if="footerFeedback"
+        :class="['settings-footer-feedback', footerFeedback]"
+        role="status"
+        aria-live="polite"
+      >
+        {{ $t(`advanced.${footerFeedback}`) }}
+      </span>
+      <button class="btn" :disabled="isSaving" @click="onCancel">{{ $t('advanced.cancel') }}</button>
+      <button class="btn btn--primary" :disabled="isSaving" @click="onSave">{{ $t('advanced.save') }}</button>
     </footer>
   </div>
 </template>
@@ -52,7 +60,7 @@
 // a sibling of LeftPanel under the same root — can inject the same bundle the
 // gear button's state belongs to. Buffered edits commit on Save, discard on
 // Cancel, and discard when the user navigates away without choosing either.
-import { watch } from 'vue'
+import { onUnmounted, ref, watch } from 'vue'
 import { useSettingsContext } from '@features/settings/settingsContext'
 import { navigationStore } from '@features/course/navigationStore'
 import GeneralSettingsTab from './tabs/GeneralSettingsTab.vue'
@@ -64,13 +72,31 @@ import CloudSettingsTab from './tabs/CloudSettingsTab.vue'
 
 const { advanced } = useSettingsContext()
 
+// Brief footer confirmation that Cancel/Save actually ran — the handlers already
+// work, but without this the sticky buttons feel dead after click.
+type FooterFeedback = 'applied' | 'discarded'
+const footerFeedback = ref<FooterFeedback | null>(null)
+const isSaving = ref(false)
+let feedbackTimer: ReturnType<typeof setTimeout> | null = null
+
+const showFooterFeedback = (kind: FooterFeedback, duration = 2000) => {
+  footerFeedback.value = kind
+  if (feedbackTimer) clearTimeout(feedbackTimer)
+  feedbackTimer = setTimeout(() => {
+    footerFeedback.value = null
+    feedbackTimer = null
+  }, duration)
+}
+
 // Refresh buffers/loads on entry; discard buffered edits when leaving the page by
 // any route (sidebar nav, gear button elsewhere) without Save/Cancel. The page is
 // lazily mounted on first visit, so the immediate run sees activeNav === 'settings'.
+// Leave-without-Save discards silently — no footer feedback (user already left).
 watch(
   () => navigationStore.activeNav.value,
   (nav, prev) => {
     if (nav === 'settings') {
+      footerFeedback.value = null
       void advanced.prepareSettings()
     } else if (prev === 'settings') {
       advanced.discardSettings()
@@ -82,12 +108,25 @@ watch(
 // Save persists the buffered edits and stays on the page. Cancel reverts the UI
 // to the currently-saved config (drops buffered edits) and also stays.
 const onSave = async () => {
-  await advanced.commitSettings()
+  if (isSaving.value) return
+  isSaving.value = true
+  try {
+    await advanced.commitSettings()
+    showFooterFeedback('applied')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 const onCancel = () => {
+  if (isSaving.value) return
   advanced.discardSettings()
+  showFooterFeedback('discarded')
 }
+
+onUnmounted(() => {
+  if (feedbackTimer) clearTimeout(feedbackTimer)
+})
 </script>
 
 <style scoped>
@@ -157,11 +196,38 @@ const onCancel = () => {
 
 .settings-footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
   padding: 12px 20px;
   border-top: 1px solid var(--border-color);
   background-color: var(--bg-elevated);
   flex-shrink: 0;
+}
+
+.settings-footer-feedback {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  animation: settings-feedback-in 0.15s ease-out;
+}
+
+.settings-footer-feedback.applied {
+  color: var(--success);
+}
+
+.settings-footer-feedback.discarded {
+  color: var(--text-secondary);
+}
+
+@keyframes settings-feedback-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

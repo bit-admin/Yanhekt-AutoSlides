@@ -444,6 +444,8 @@
     "localRelayWhitelistIsCurrent": "当前账号令牌已由上方固定项覆盖。",
     "cancel": "取消",
     "save": "保存",
+    "applied": "已应用更改",
+    "discarded": "已放弃更改",
     "ai": {
       "serviceSettings": "AI 服务设置",
       "serviceType": "服务类型",

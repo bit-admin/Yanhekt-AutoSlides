@@ -444,6 +444,8 @@
     "localRelayWhitelistIsCurrent": "The current account token is already covered by the pin above.",
     "cancel": "Cancel",
     "save": "Save",
+    "applied": "Applied",
+    "discarded": "Discarded",
     "ai": {
       "serviceSettings": "AI Service Settings",
       "serviceType": "Service Type",

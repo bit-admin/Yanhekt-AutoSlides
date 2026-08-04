@@ -134,9 +134,11 @@ export function useAdvancedSettings(
     } catch (error) {
       log.error('Failed to save advanced settings:', error)
       // A mid-sequence failure leaves earlier groups saved — tell the user
-      // which error stopped the save instead of failing silently.
+      // which error stopped the save instead of failing silently. Rethrow so
+      // the Settings footer does not flash "Applied" after a failed commit.
       const detail = error instanceof Error ? error.message : String(error)
       void window.electronAPI.dialog?.showErrorBox?.('Settings', `Failed to save settings: ${detail}`)
+      throw error
     }
   }
 
