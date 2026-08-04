@@ -4,7 +4,11 @@ import { configStore } from './configStore';
 import { cloudStorageStore } from './cloudStorageStore';
 import { notesClient } from '../lib/notes/notesClient';
 import { buildManagedNoteTitle, EDITORJS_DOC_VERSION } from '../lib/notes/notesTypes';
-import { formatToolFolderName } from '../lib/toolFolders';
+import {
+  formatToolFolderName,
+  parseLectureIds,
+  type LectureIdentity,
+} from '../lib/toolFolders';
 import { slideId, getSlideBlob } from '../lib/slideStore';
 import { onPassCompleted, whenIdle } from '../lib/postProcessing/runner';
 import { requestNotesRefresh } from './notesRefreshStore';
@@ -107,10 +111,12 @@ export function watchSyncActive(): boolean {
 /** Find an existing ASuser watch note by title, else create one. */
 async function findOrCreateNote(
   displayName: string,
+  identity: LectureIdentity,
 ): Promise<{ id: number; content: OutputData; created: boolean } | null> {
   const groupId = cloudStorageStore.userGroupId.value;
   if (groupId == null) return null;
-  const title = buildManagedNoteTitle(displayName);
+  // Carries the id block, so two same-titled courses get two watch notes.
+  const title = buildManagedNoteTitle(displayName, identity);
 
   // Scan the full note list for an existing managed note with this title in ASuser.
   let page = 1;
@@ -214,7 +220,11 @@ export async function onExtractionStarted(folder: string, instanceId: string): P
     return;
   }
 
+  // formatToolFolderName strips slides_ + the id block for the human stem;
+  // identity is recovered from the full folder so the note title matches
+  // Electron (`AS · <stem>__c…s…` / `__c…l…`).
   const displayName = formatToolFolderName(folder) || folder;
+  const identity = parseLectureIds(folder);
   state.entries[folder] = {
     folder,
     instanceId,
@@ -239,7 +249,7 @@ export async function onExtractionStarted(folder: string, instanceId: string): P
     return;
   }
 
-  const result = await findOrCreateNote(displayName);
+  const result = await findOrCreateNote(displayName, identity);
   if (!result) {
     stored.status = 'error';
     return;

@@ -73,15 +73,45 @@ export function compareToolFolders(a: string, b: string): number {
 }
 
 /**
- * Slide folder names embed a `__c<courseId>[s<sessionId>][l<liveId>]` block,
- * because course titles are not unique. Strip it for display alongside the
- * `slides_` prefix. Local copy — this frontend is a separate deployable and
- * cannot import the app's `@common/lectureNaming`.
+ * Slide folder names / managed note titles embed a
+ * `__c<courseId>[s<sessionId>][l<liveId>]` block, because course titles are not
+ * unique. Local copy — this frontend is a separate deployable and cannot import
+ * the app's `@common/lectureNaming`.
+ *
+ * Grammar (fixed order): recorded → `__c62313s751843`; live → `__c71736l761952`;
+ * live with no resolvable course → `__l761952`.
  */
-const LECTURE_ID_SUFFIX = /__(?:c\d+)?(?:s\d+)?(?:l\d+)?$/;
+const ID_SUFFIX_PATTERN = /__(?:c(\d+))?(?:s(\d+))?(?:l(\d+))?$/;
 
+/** Lecture identity as it arrives from the API (string or number). */
+export interface LectureIdentity {
+  courseId?: string | number | null;
+  sessionId?: string | number | null;
+  liveId?: string | number | null;
+}
+
+/**
+ * Identity read back out of a name. Narrower than `LectureIdentity`: parsing
+ * always yields strings, never the numbers the API can hand us on the way in.
+ */
+export interface ParsedLectureIds {
+  courseId?: string;
+  sessionId?: string;
+  liveId?: string;
+}
+
+/** Drop the id block — every user-facing surface should render through this. */
 export function stripLectureIds(name: string): string {
-  return name.replace(LECTURE_ID_SUFFIX, '');
+  return name.replace(ID_SUFFIX_PATTERN, '');
+}
+
+/** Recover the ids embedded in a folder/file/note name. Empty for legacy names. */
+export function parseLectureIds(name: string): ParsedLectureIds {
+  const match = name.match(ID_SUFFIX_PATTERN);
+  // Every group is optional, so a bare `__` would technically match — guard so
+  // that only a suffix carrying at least one id counts.
+  if (!match || (!match[1] && !match[2] && !match[3])) return {};
+  return { courseId: match[1], sessionId: match[2], liveId: match[3] };
 }
 
 const numericId = (value: string | number | null | undefined): string | undefined => {
@@ -100,13 +130,7 @@ const numericId = (value: string | number | null | undefined): string | undefine
  * like a different course. Ids must be purely numeric; anything else degrades
  * to the title-only name.
  */
-export function buildLectureIdSuffix(
-  identity: {
-    courseId?: string | number | null;
-    sessionId?: string | number | null;
-    liveId?: string | number | null;
-  },
-): string {
+export function buildLectureIdSuffix(identity: LectureIdentity): string {
   const course = numericId(identity.courseId);
   const live = numericId(identity.liveId);
   // A session id is meaningless without its course.

@@ -4,6 +4,13 @@
  * Index types — those features are desktop-only).
  */
 
+import {
+  buildLectureIdSuffix,
+  parseLectureIds,
+  stripLectureIds,
+  type LectureIdentity,
+} from '../toolFolders';
+
 /** A single Editor.js content block. */
 export interface EditorJsBlock {
   id?: string;
@@ -125,16 +132,29 @@ export function isAutoSlidesGroupName(name: string): boolean {
 }
 
 /**
- * Prefix marking a note as AutoSlides-managed. We can't persist course/session
- * IDs for extracted folders, so managed slide-notes are keyed off the folder's
- * display name; this prefix makes them identifiable and title-searchable. The
- * full built title (prefix + display name) doubles as the dedup key.
+ * Prefix marking a note as AutoSlides-managed. This prefix makes managed
+ * slide-notes identifiable and title-searchable, and the full built title
+ * doubles as the dedup key.
+ *
+ * The title also carries the lecture's id block, for the same reason folder
+ * names do: course titles are not unique, so two distinct lectures would
+ * otherwise produce the same title and collapse into one note. The list
+ * endpoint returns titles but not content, so the id has to live in the title
+ * for dedup to stay a single request. It is always stripped for display —
+ * see managedNoteDisplayName.
  */
 export const MANAGED_NOTE_PREFIX = 'AS ·';
 
-/** Build a managed note title from a folder's human-readable display name. */
-export function buildManagedNoteTitle(displayName: string): string {
-  return `${MANAGED_NOTE_PREFIX} ${displayName}`;
+/**
+ * Build a managed note title from a folder's human-readable display name plus
+ * the lecture identity. Pass the identity wherever it is known; without it the
+ * title degrades to the display name alone (legacy / incomplete contexts).
+ */
+export function buildManagedNoteTitle(
+  displayName: string,
+  identity: LectureIdentity = {},
+): string {
+  return `${MANAGED_NOTE_PREFIX} ${displayName}${buildLectureIdSuffix(identity)}`;
 }
 
 /** Whether a note title was produced by AutoSlides (carries the managed prefix). */
@@ -144,8 +164,18 @@ export function isManagedNoteTitle(title: string): boolean {
 
 /**
  * Recover the folder display name from a managed note title — the inverse of
- * buildManagedNoteTitle. Non-managed titles are returned unchanged.
+ * buildManagedNoteTitle. Strips the id block as well as the prefix, so this is
+ * the only thing that should ever reach export/share filenames. Non-managed
+ * titles are returned unchanged (minus any id block).
  */
 export function managedNoteDisplayName(title: string): string {
-  return isManagedNoteTitle(title) ? title.slice(MANAGED_NOTE_PREFIX.length).trim() : title;
+  const withoutPrefix = isManagedNoteTitle(title)
+    ? title.slice(MANAGED_NOTE_PREFIX.length).trim()
+    : title;
+  return stripLectureIds(withoutPrefix);
+}
+
+/** The lecture identity embedded in a managed note title, if any. */
+export function managedNoteIdentity(title: string): LectureIdentity {
+  return parseLectureIds(title);
 }
