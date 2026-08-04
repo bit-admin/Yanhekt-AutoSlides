@@ -350,15 +350,30 @@ export async function removeFolders(names: string[]): Promise<void> {
 
 // --- Folder metadata (replaces the slideMetadata IPC namespace) ---
 
+/**
+ * Read-modify-write a folder row. By default this is a no-op when the folder
+ * is absent — matching desktop slideMetadataService (markReviewed / commitEdited
+ * / setPostProcessing never create metadata.json). Without that guard, a
+ * post-delete `markFolderReviewed` from review-dwell (fired via refresh→goBack)
+ * would resurrect an empty album in the sidebar.
+ *
+ * Pass `createIfMissing: true` only for writers that own folder creation
+ * (watch extraction). Slide pixels still create the row via saveSlideBlob.
+ */
 async function updateFolderRecord(
   folder: string,
   mutate: (record: FolderRecord) => void,
+  options?: { createIfMissing?: boolean },
 ): Promise<void> {
   const db = await getDb();
   const now = new Date().toISOString();
   const tx = db.transaction(FOLDERS, 'readwrite');
   const store = tx.objectStore(FOLDERS);
   const existing = (await requestToPromise(store.get(folder))) as FolderRecord | undefined;
+  if (!existing && !options?.createIfMissing) {
+    await transactionDone(tx);
+    return;
+  }
   const record: FolderRecord = existing ?? {
     name: folder,
     metadata: null,
@@ -434,33 +449,39 @@ export async function recordWatchExtraction(params: WatchExtractionRecord): Prom
     day: normalizeNumber(params.source.day),
   };
   const now = new Date().toISOString();
-  await updateFolderRecord(params.folder, (record) => {
-    // Build, then strip any residual Proxies (and drop undefined keys) before
-    // assigning onto the record that store.put will structured-clone.
-    const metadata: SlideMetadata = {
-      version: SLIDE_METADATA_VERSION,
-      kind: params.kind,
-      source,
-      extraction: {
-        extractor: 'builtin',
-        ssimThreshold: params.ssimThreshold,
-        extractedAt: now,
-        trigger: 'watch',
-      },
-      // A re-extraction into an existing folder keeps prior review state.
-      review: record.metadata?.review ?? {
-        reviewed: false,
-        reviewedAt: null,
-        edited: false,
-        editedAt: null,
-        cropped: false,
-      },
-      postProcessing: record.metadata?.postProcessing,
-      createdAt: record.metadata?.createdAt ?? now,
-      updatedAt: now,
-    };
-    record.metadata = JSON.parse(JSON.stringify(metadata)) as SlideMetadata;
-  });
+  await updateFolderRecord(
+    params.folder,
+    (record) => {
+      // Build, then strip any residual Proxies (and drop undefined keys) before
+      // assigning onto the record that store.put will structured-clone.
+      const metadata: SlideMetadata = {
+        version: SLIDE_METADATA_VERSION,
+        kind: params.kind,
+        source,
+        extraction: {
+          extractor: 'builtin',
+          ssimThreshold: params.ssimThreshold,
+          extractedAt: now,
+          trigger: 'watch',
+        },
+        // A re-extraction into an existing folder keeps prior review state.
+        review: record.metadata?.review ?? {
+          reviewed: false,
+          reviewedAt: null,
+          edited: false,
+          editedAt: null,
+          cropped: false,
+        },
+        postProcessing: record.metadata?.postProcessing,
+        createdAt: record.metadata?.createdAt ?? now,
+        updatedAt: now,
+      };
+      record.metadata = JSON.parse(JSON.stringify(metadata)) as SlideMetadata;
+    },
+    // Extraction owns the folder row when metadata is written before the first
+    // pixel lands (or after a wipe); other mutators stay no-op-if-absent.
+    { createIfMissing: true },
+  );
 }
 
 export async function setFolderPostProcessing(folder: string, meta: SlidePostProcessingMeta): Promise<void> {

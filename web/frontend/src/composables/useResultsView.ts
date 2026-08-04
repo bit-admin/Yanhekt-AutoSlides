@@ -401,6 +401,14 @@ export function useResultsView() {
   async function removeFolders(folderNames: string[]) {
     if (!folderNames || folderNames.length === 0) return
 
+    // Drop pending reviewed/edited latches for a folder we're about to wipe so
+    // refresh→goBack can't fire markFolderReviewed/commitFolderEdited against
+    // a just-deleted name (defense in depth; slideStore also no-ops if absent).
+    if (currentFolder.value && folderNames.includes(currentFolder.value.name)) {
+      cancelReviewDwell()
+      editStaged = false
+    }
+
     isLoading.value = true
     try {
       await removeFoldersStore(folderNames)
