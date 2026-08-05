@@ -37,25 +37,32 @@ function relayPlaylistUrl(m3u8Url: string, loginToken: string): string {
   return `${getRelayBase()}/playlist?u=${encodeURIComponent(m3u8Url)}&t=${encodeURIComponent(loginToken)}`;
 }
 
+/** Yanhekt sometimes JSON-escapes slashes in stream URLs (`https:\/\/...`). */
+function fixUrlEscaping(url: string): string {
+  return url.replace(/\\\//g, "/");
+}
+
 /** Recorded sessions: main_url = camera, vga_url = screen; keys match the desktop app. */
 export function getRecordedPlaybackData(session: SessionData, loginToken: string): PlaybackData {
   const streams: Record<string, VideoStream> = {};
 
   if (session.main_url) {
+    const original = fixUrlEscaping(session.main_url);
     streams.main = {
       type: "camera",
       name: "Camera",
-      url: relayPlaylistUrl(session.main_url, loginToken),
-      original_url: session.main_url,
+      url: relayPlaylistUrl(original, loginToken),
+      original_url: original,
     };
   }
 
   if (session.vga_url) {
+    const original = fixUrlEscaping(session.vga_url);
     streams.vga = {
       type: "screen",
       name: "Screen",
-      url: relayPlaylistUrl(session.vga_url, loginToken),
-      original_url: session.vga_url,
+      url: relayPlaylistUrl(original, loginToken),
+      original_url: original,
     };
   }
 
@@ -67,20 +74,22 @@ export function getLivePlaybackData(stream: Pick<LiveStream, "target" | "target_
   const streams: Record<string, VideoStream> = {};
 
   if (stream.target) {
+    const original = fixUrlEscaping(stream.target);
     streams.camera = {
       type: "camera",
       name: "Camera",
-      url: stream.target,
-      original_url: stream.target,
+      url: original,
+      original_url: original,
     };
   }
 
   if (stream.target_vga) {
+    const original = fixUrlEscaping(stream.target_vga);
     streams.screen = {
       type: "screen",
       name: "Screen",
-      url: stream.target_vga,
-      original_url: stream.target_vga,
+      url: original,
+      original_url: original,
     };
   }
 

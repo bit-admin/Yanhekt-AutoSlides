@@ -360,7 +360,7 @@
 
         <!-- Video title and metadata -->
         <div class="video-info-section" v-if="playbackData && !loading">
-          <h1 class="video-info-title">{{ session ? session.title : course?.title }}</h1>
+          <h1 class="video-info-title">{{ videoInfoTitle }}</h1>
           
           <!-- Channel Info Row (Subscribers, Pin buttons) -->
           <div class="channel-info-row">
@@ -635,6 +635,19 @@ const playbackRateOptions = [1, 1.25, 1.5, 2]
 
 const courseRef = toRef(props, 'course')
 const sessionRef = computed(() => props.session ?? null)
+
+// "Course · session" under the player — recorded uses session.title,
+// live uses section_group_title (same source as extraction folder names).
+const videoInfoTitle = computed(() => {
+  const courseTitle = props.course?.title?.trim() || ''
+  const sessionTitle =
+    (props.session?.title ||
+      (props.mode === 'live' ? props.course?.session?.section_group_title : undefined) ||
+      ''
+    ).trim()
+  if (courseTitle && sessionTitle) return `${courseTitle} · ${sessionTitle}`
+  return courseTitle || sessionTitle || ''
+})
 
 const videoPlayerComposable = useVideoPlayer({
   mode: props.mode,
