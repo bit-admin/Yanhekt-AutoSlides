@@ -21,6 +21,12 @@
         <span v-if="item.status === 'removed'" class="reason-chip" :class="`reason-${item.reason}`">
           {{ reasonLabel(item.reason) }}
         </span>
+        <span
+          v-else-if="item.isCropped"
+          class="badge badge--cropped image-crop-badge"
+        >
+          {{ $t('trash.cropped') }}
+        </span>
 
         <div class="image-checkbox" :class="{ checked: selectedIds.includes(item.id) }">
           <svg class="check-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
@@ -36,25 +42,52 @@
             {{ getSlideTimeLabel(item.name) }}
           </span>
         </div>
-        <button
-          type="button"
-          class="image-action"
-          :class="{ 'image-action--restore': item.status === 'removed' }"
-          :title="item.status === 'removed' ? $t('trash.restore') : $t('trash.delete')"
-          :aria-label="item.status === 'removed' ? $t('trash.restore') : $t('trash.delete')"
-          @click.stop="onRowAction(item)"
-        >
+        <div class="image-actions">
           <template v-if="item.status === 'removed'">
-            {{ $t('trash.restore') }}
+            <button
+              type="button"
+              class="image-action image-action--restore"
+              :title="$t('trash.restore')"
+              :aria-label="$t('trash.restore')"
+              @click.stop="onRestore(item)"
+            >
+              {{ $t('trash.restore') }}
+            </button>
           </template>
           <template v-else>
-            <!-- Quiet trash icon; label available via title/aria -->
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polyline points="3 6 5 6 21 6" />
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-            </svg>
+            <!-- Cropped tiles: Set Baseline + Revert left of trash. -->
+            <button
+              v-if="item.isCropped"
+              type="button"
+              class="image-action image-action--text"
+              :title="$t('trash.setBaseline')"
+              @click.stop="onSetBaseline(item)"
+            >
+              {{ $t('trash.setBaseline') }}
+            </button>
+            <button
+              v-if="item.isCropped"
+              type="button"
+              class="image-action image-action--text image-action--revert"
+              :title="$t('trash.revertCrop')"
+              @click.stop="onRevertCrop(item)"
+            >
+              {{ $t('trash.revertCrop') }}
+            </button>
+            <button
+              type="button"
+              class="image-action image-action--danger"
+              :title="$t('trash.delete')"
+              :aria-label="$t('trash.delete')"
+              @click.stop="onDelete(item)"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
+            </button>
           </template>
-        </button>
+        </div>
       </div>
     </div>
   </div>
@@ -83,6 +116,8 @@ const emit = defineEmits<{
   preview: [item: ResultsItem]
   restore: [item: ResultsItem]
   delete: [item: ResultsItem]
+  'set-baseline': [item: ResultsItem]
+  'revert-crop': [item: ResultsItem]
 }>()
 
 const { t } = useI18n()
@@ -111,10 +146,24 @@ function onCardDblClick(item: ResultsItem) {
   emit('preview', item)
 }
 
-function onRowAction(item: ResultsItem) {
+function onRestore(item: ResultsItem) {
   clearClickTimer()
-  if (item.status === 'removed') emit('restore', item)
-  else emit('delete', item)
+  emit('restore', item)
+}
+
+function onDelete(item: ResultsItem) {
+  clearClickTimer()
+  emit('delete', item)
+}
+
+function onSetBaseline(item: ResultsItem) {
+  clearClickTimer()
+  emit('set-baseline', item)
+}
+
+function onRevertCrop(item: ResultsItem) {
+  clearClickTimer()
+  emit('revert-crop', item)
 }
 
 onUnmounted(clearClickTimer)
@@ -278,6 +327,19 @@ const getSlideTimeLabel = (name: string): string => {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
+.image-crop-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 4;
+  font-size: 0.625rem;
+  max-width: calc(100% - 2.2rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
 .reason-duplicate {
   background-color: color-mix(in srgb, #ff9f0a 18%, #fff);
   color: #9a5b00;
@@ -328,6 +390,14 @@ const getSlideTimeLabel = (name: string): string => {
   color: var(--st-text-secondary, #6e6e73);
 }
 
+.image-actions {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  max-width: 60%;
+}
+
 .image-action {
   flex-shrink: 0;
   display: inline-flex;
@@ -335,15 +405,16 @@ const getSlideTimeLabel = (name: string): string => {
   justify-content: center;
   min-width: 28px;
   height: 28px;
-  padding: 0 0.4rem;
+  padding: 0 0.35rem;
   border: none;
   border-radius: 0.4rem;
   background: transparent;
   color: var(--st-text-muted, #86868b);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 500;
   cursor: pointer;
   opacity: 0;
+  white-space: nowrap;
   transition: opacity 0.12s ease, background-color 0.12s ease, color 0.12s ease;
 }
 
@@ -352,9 +423,27 @@ const getSlideTimeLabel = (name: string): string => {
   opacity: 1;
 }
 
-.image-action:hover {
+.image-action--text:hover {
+  background: color-mix(in srgb, var(--st-text, #1d1d1f) 6%, transparent);
+  color: var(--st-text, #1d1d1f);
+}
+
+.image-action--revert {
+  color: var(--st-danger, #ff3b30);
+}
+
+.image-action--revert:hover {
   background: color-mix(in srgb, var(--st-danger, #ff3b30) 10%, transparent);
   color: var(--st-danger, #ff3b30);
+}
+
+.image-action--danger:hover {
+  background: color-mix(in srgb, var(--st-danger, #ff3b30) 10%, transparent);
+  color: var(--st-danger, #ff3b30);
+}
+
+.image-action--restore {
+  color: var(--st-accent, #0071e3);
 }
 
 .image-action--restore:hover {

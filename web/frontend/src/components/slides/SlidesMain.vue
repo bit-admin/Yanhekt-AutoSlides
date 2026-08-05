@@ -88,6 +88,26 @@
           <template v-if="selectedIds.length > 0">
             <span class="sm-sel-count">{{ $t('slides.selectedCount', { n: selectedIds.length }) }}</span>
             <button
+              v-if="hasBaseline"
+              type="button"
+              class="sm-btn"
+              :disabled="selectedActiveCount === 0 || loading"
+              :title="$t('trash.applyBaselineHint')"
+              @click="$emit('apply-baseline')"
+            >
+              {{ $t('trash.applyBaseline') }}
+            </button>
+            <button
+              v-if="selectedCroppedCount > 0"
+              type="button"
+              class="sm-btn sm-btn--quiet-danger"
+              :disabled="loading"
+              :title="$t('trash.revertCrop')"
+              @click="$emit('revert-crop')"
+            >
+              {{ $t('trash.revertCrop') }}
+            </button>
+            <button
               type="button"
               class="sm-btn"
               :disabled="selectedRemovedCount === 0 || loading"
@@ -107,15 +127,25 @@
               {{ $t('trash.clearSelection') }}
             </button>
           </template>
-          <button
-            v-else
-            type="button"
-            class="sm-btn"
-            :disabled="items.length === 0"
-            @click="$emit('toggle-select-all')"
-          >
-            {{ $t('trash.selectAll') }}
-          </button>
+          <template v-else>
+            <button
+              type="button"
+              class="sm-btn"
+              :disabled="items.length === 0"
+              @click="$emit('toggle-select-all')"
+            >
+              {{ $t('trash.selectAll') }}
+            </button>
+            <button
+              v-if="hasBaseline"
+              type="button"
+              class="sm-btn"
+              :title="$t('trash.clearBaseline')"
+              @click="$emit('clear-baseline')"
+            >
+              {{ $t('trash.clearBaseline') }}
+            </button>
+          </template>
 
           <div class="sm-export-wrap">
             <button
@@ -192,6 +222,8 @@
           @preview="$emit('preview', $event)"
           @restore="$emit('restore-item', $event)"
           @delete="$emit('delete-item', $event)"
+          @set-baseline="$emit('set-baseline-item', $event)"
+          @revert-crop="$emit('revert-crop-item', $event)"
         />
       </div>
 
@@ -216,27 +248,35 @@ const sizeMin = 180
 const sizeMax = 640
 const sizeStep = 20
 
-const props = defineProps<{
-  hasFolder: boolean
-  emptyLibrary: boolean
-  title: string
-  subtitle: string
-  items: ResultsItem[]
-  thumbnails: Record<string, string>
-  selectedIds: string[]
-  thumbnailSize: number
-  contextMode: ContextMode
-  selectedReason: ResultsReason | ''
-  loading: boolean
-  hasRemovedItems: boolean
-  selectedActiveCount: number
-  selectedRemovedCount: number
-  exportDisabled: boolean
-  exportingFormat: ExportFormat | null
-  exportProgress: { current: number; total: number }
-  allSelected: boolean
-  emptyMessage: string
-}>()
+const props = withDefaults(
+  defineProps<{
+    hasFolder: boolean
+    emptyLibrary: boolean
+    title: string
+    subtitle: string
+    items: ResultsItem[]
+    thumbnails: Record<string, string>
+    selectedIds: string[]
+    thumbnailSize: number
+    contextMode: ContextMode
+    selectedReason: ResultsReason | ''
+    loading: boolean
+    hasRemovedItems: boolean
+    selectedActiveCount: number
+    selectedRemovedCount: number
+    selectedCroppedCount?: number
+    exportDisabled: boolean
+    exportingFormat: ExportFormat | null
+    exportProgress: { current: number; total: number }
+    allSelected: boolean
+    emptyMessage: string
+    hasBaseline?: boolean
+  }>(),
+  {
+    selectedCroppedCount: 0,
+    hasBaseline: false,
+  },
+)
 
 const emit = defineEmits<{
   'update:contextMode': [mode: ContextMode]
@@ -246,12 +286,17 @@ const emit = defineEmits<{
   preview: [item: ResultsItem]
   'restore-item': [item: ResultsItem]
   'delete-item': [item: ResultsItem]
+  'set-baseline-item': [item: ResultsItem]
+  'revert-crop-item': [item: ResultsItem]
   'toggle-select-all': []
   restore: []
   delete: []
   'clear-selection': []
   export: [format: ExportFormat]
   'clear-folder-trash': []
+  'apply-baseline': []
+  'clear-baseline': []
+  'revert-crop': []
 }>()
 
 const { t } = useI18n()

@@ -18,6 +18,7 @@
 // migration path: the web app has not shipped, so only ArrayBuffer is stored.
 
 import { openDatabase, requestToPromise, transactionDone } from './idb';
+import { cropImageBuffer, type CropRect } from './imageCrop';
 import type { SlideMetadata, SlideMetadataKind, SlideMetadataSource, SlidePostProcessingMeta } from './slideMetadataTypes';
 import { SLIDE_METADATA_VERSION } from './slideMetadataTypes';
 import { createLogger } from './logger';
@@ -29,12 +30,19 @@ const log = createLogger('SlideStore');
 // Slides-page delete action.
 export type TrashReason = 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual';
 
+export type { CropRect };
+
 export interface SlideRecord {
   id: string; // `${folder}/${filename}`
   folder: string;
   filename: string;
   /** PNG bytes (ArrayBuffer — never a Blob; see file header). */
   blob: ArrayBuffer;
+  /**
+   * Uncropped original PNG bytes. Set on the first crop; subsequent recrops
+   * always cut from this backup (mirrors desktop `.autoslidesCrop/`).
+   */
+  originalBlob?: ArrayBuffer;
   status: 'active' | 'trashed';
   createdAt: string;
   // Persisted AI-filtering verdict. Presence (any value) means the file is
@@ -42,6 +50,21 @@ export interface SlideRecord {
   // never re-trashed by a re-run. Cleared implicitly when the record is
   // overwritten by a fresh extraction (new pixels need a new verdict).
   aiDecision?: 'slide' | 'not_slide' | 'may_be_slide_edit';
+  isCropped?: boolean;
+  isAutoCropped?: boolean;
+  cropRect?: CropRect;
+  croppedAt?: string;
+}
+
+/** List shape for active slides — includes crop fields for the Results UI. */
+export interface ActiveImageInfo {
+  name: string;
+  path: string;
+  aiDecision?: SlideRecord['aiDecision'];
+  isCropped?: boolean;
+  isAutoCropped?: boolean;
+  cropRect?: CropRect;
+  croppedAt?: string;
 }
 
 // Mirrors the desktop trash-manifest entry (RemovedEntry) verbatim.
@@ -164,9 +187,7 @@ export async function getSlideBlob(id: string): Promise<Blob | null> {
 }
 
 /** Active slide filenames in a folder (unsorted; callers sort). */
-export async function listActiveImages(
-  folder: string,
-): Promise<Array<{ name: string; path: string; aiDecision?: SlideRecord['aiDecision'] }>> {
+export async function listActiveImages(folder: string): Promise<ActiveImageInfo[]> {
   const db = await getDb();
   const records = (await requestToPromise(
     db
@@ -175,7 +196,195 @@ export async function listActiveImages(
       .index('by-folder-status')
       .getAll(IDBKeyRange.only([folder, 'active'])),
   )) as SlideRecord[];
-  return records.map((r) => ({ name: r.filename, path: r.id, aiDecision: r.aiDecision }));
+  return records.map((r) => ({
+    name: r.filename,
+    path: r.id,
+    aiDecision: r.aiDecision,
+    isCropped: r.isCropped || undefined,
+    isAutoCropped: r.isAutoCropped || undefined,
+    cropRect: r.cropRect,
+    croppedAt: r.croppedAt,
+  }));
+}
+
+/**
+ * Bytes used as the crop-editor source: original backup when already cropped,
+ * otherwise the active blob. Returns a short-lived Blob (never stored).
+ */
+export async function getSlideCropSourceBlob(id: string): Promise<Blob | null> {
+  const db = await getDb();
+  const record = (await requestToPromise(
+    db.transaction(SLIDES).objectStore(SLIDES).get(id),
+  )) as SlideRecord | undefined;
+  if (!record) return null;
+  const bytes =
+    record.isCropped && record.originalBlob && record.originalBlob.byteLength > 0
+      ? record.originalBlob
+      : record.blob;
+  if (!bytes || bytes.byteLength === 0) return null;
+  return new Blob([bytes], { type: 'image/png' });
+}
+
+/**
+ * Apply a crop to an active slide. Backs up the uncropped original on first
+ * crop; always cuts from that backup so recrop is relative to the original.
+ */
+export async function applyCropToSlide(
+  id: string,
+  rect: CropRect,
+  autoCropped = false,
+): Promise<boolean> {
+  try {
+    const db = await getDb();
+    const readTx = db.transaction(SLIDES, 'readonly');
+    const existing = (await requestToPromise(
+      readTx.objectStore(SLIDES).get(id),
+    )) as SlideRecord | undefined;
+    if (!existing || existing.status !== 'active') {
+      log.warn(`applyCropToSlide: missing or inactive slide ${id}`);
+      return false;
+    }
+
+    const source =
+      existing.originalBlob && existing.originalBlob.byteLength > 0
+        ? existing.originalBlob
+        : existing.blob;
+    if (!source || source.byteLength === 0) {
+      log.error(`applyCropToSlide: empty source for ${id}`);
+      return false;
+    }
+
+    const croppedBytes = await cropImageBuffer(source, rect);
+    if (croppedBytes.byteLength === 0) {
+      log.error(`applyCropToSlide: crop produced empty buffer for ${id}`);
+      return false;
+    }
+
+    const now = new Date().toISOString();
+    const writeTx = db.transaction([SLIDES, FOLDERS], 'readwrite');
+    const slides = writeTx.objectStore(SLIDES);
+    // Re-read inside the write tx in case of concurrent mutators.
+    const current = (await requestToPromise(slides.get(id))) as SlideRecord | undefined;
+    if (!current || current.status !== 'active') {
+      await transactionDone(writeTx);
+      return false;
+    }
+
+    const originalBlob =
+      current.originalBlob && current.originalBlob.byteLength > 0
+        ? current.originalBlob
+        : current.blob;
+
+    slides.put({
+      ...current,
+      originalBlob,
+      blob: croppedBytes,
+      isCropped: true,
+      isAutoCropped: autoCropped,
+      cropRect: {
+        x: Math.round(rect.x),
+        y: Math.round(rect.y),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      },
+      croppedAt: now,
+    } satisfies SlideRecord);
+
+    // Folder review.cropped = true (and stage edited latch fields if metadata exists).
+    const folders = writeTx.objectStore(FOLDERS);
+    const folderRec = (await requestToPromise(folders.get(current.folder))) as
+      | FolderRecord
+      | undefined;
+    if (folderRec?.metadata?.review) {
+      folderRec.metadata.review.cropped = true;
+      folderRec.updatedAt = now;
+      folderRec.metadata.updatedAt = now;
+      folders.put(folderRec);
+    }
+
+    await transactionDone(writeTx);
+    return true;
+  } catch (error) {
+    log.error(`Failed to apply crop to ${id}:`, error);
+    return false;
+  }
+}
+
+/** Restore a slide's active blob from its originalBlob backup. */
+export async function restoreCropFromSlide(id: string): Promise<boolean> {
+  try {
+    const db = await getDb();
+    const tx = db.transaction([SLIDES, FOLDERS], 'readwrite');
+    const slides = tx.objectStore(SLIDES);
+    const record = (await requestToPromise(slides.get(id))) as SlideRecord | undefined;
+    if (!record || !record.isCropped || !record.originalBlob || record.originalBlob.byteLength === 0) {
+      await transactionDone(tx);
+      return false;
+    }
+
+    const folder = record.folder;
+    // Rebuild without crop fields so structured clone does not keep stale keys.
+    const restored: SlideRecord = {
+      id: record.id,
+      folder: record.folder,
+      filename: record.filename,
+      blob: record.originalBlob,
+      status: record.status,
+      createdAt: record.createdAt,
+    };
+    if (record.aiDecision) restored.aiDecision = record.aiDecision;
+    slides.put(restored);
+
+    await transactionDone(tx);
+
+    // Recompute folder.review.cropped from remaining active slides.
+    await recomputeFolderCroppedFlag(folder);
+    return true;
+  } catch (error) {
+    log.error(`Failed to restore crop for ${id}:`, error);
+    return false;
+  }
+}
+
+/** True if any active slide in the folder is currently cropped. */
+async function recomputeFolderCroppedFlag(folder: string): Promise<void> {
+  try {
+    const db = await getDb();
+    const records = (await requestToPromise(
+      db
+        .transaction(SLIDES)
+        .objectStore(SLIDES)
+        .index('by-folder-status')
+        .getAll(IDBKeyRange.only([folder, 'active'])),
+    )) as SlideRecord[];
+    const anyCropped = records.some((r) => !!r.isCropped);
+
+    await updateFolderRecord(folder, (record) => {
+      if (record.metadata?.review) {
+        record.metadata.review.cropped = anyCropped;
+      }
+    });
+  } catch (error) {
+    log.warn(`Failed to recompute cropped flag for ${folder}:`, error);
+  }
+}
+
+/**
+ * Active-slide source buffer for dimension checks (baseline out-of-bounds).
+ * Prefer original backup when present.
+ */
+export async function getSlideSourceBuffer(id: string): Promise<ArrayBuffer | null> {
+  const db = await getDb();
+  const record = (await requestToPromise(
+    db.transaction(SLIDES).objectStore(SLIDES).get(id),
+  )) as SlideRecord | undefined;
+  if (!record) return null;
+  const bytes =
+    record.originalBlob && record.originalBlob.byteLength > 0
+      ? record.originalBlob
+      : record.blob;
+  if (!bytes || bytes.byteLength === 0) return null;
+  return bytes;
 }
 
 /** Record an AI-filtering verdict on a slide (no-op if the record is gone). */

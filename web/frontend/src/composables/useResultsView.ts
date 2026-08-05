@@ -1,9 +1,8 @@
 // State engine for the Slides page.
-// Ported from autoslides/src/renderer/features/results/useResultsView.ts with
-// all crop/baseline/dedup/AI machinery removed (web scope: review, restore,
-// delete, clear trash, export). Storage goes through slideStore (IndexedDB)
-// and thumbnails are Blob object URLs — revoked on reset/goBack/unmount,
-// which desktop's garbage-collected data URLs never needed.
+// Ported from autoslides/src/renderer/features/results/useResultsView.ts.
+// Storage goes through slideStore (IndexedDB) and thumbnails are Blob object
+// URLs — revoked on reset/goBack/unmount. Manual crop + baseline crop are
+// supported; auto-crop / post-crop dedup are not (yet).
 
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { formatToolFolderName, parseFolderDisplayName } from '../lib/toolFolders'
@@ -15,7 +14,11 @@ import {
   removeFolders as removeFoldersStore,
   markFolderReviewed,
   commitFolderEdited,
+  applyCropToSlide,
+  restoreCropFromSlide,
+  getSlideSourceBuffer,
 } from '../lib/slideStore'
+import { getImageBufferSize } from '../lib/imageCrop'
 import {
   createResultsDataIO,
   loadFolderSummaries as loadFolderSummariesCore,
@@ -28,11 +31,21 @@ import type {
   ResultsItem,
   ResultsViewMode,
   ContextMode,
+  CropRect,
+  BaselineCrop,
+  BaselineCropActionSummary,
 } from './resultsTypes'
 import { createLogger } from '../lib/logger'
 const log = createLogger('ResultsView')
 
-export type { ResultsReason, ResultsFolder, ResultsItem }
+export type {
+  ResultsReason,
+  ResultsFolder,
+  ResultsItem,
+  CropRect,
+  BaselineCrop,
+  BaselineCropActionSummary,
+}
 
 export function useResultsView() {
   const folders = ref<ResultsFolder[]>([])
@@ -49,6 +62,8 @@ export function useResultsView() {
   const thumbnailSize = ref(320)
   const isLoading = ref(false)
   const previewItem = ref<ResultsItem | null>(null)
+  /** Session-only baseline crop (not persisted across reloads). */
+  const baselineCrop = ref<BaselineCrop | null>(null)
 
   let thumbnailLoadVersion = 0
 
@@ -324,6 +339,7 @@ export function useResultsView() {
     selectedIds.value = []
     selectedReason.value = ''
     previewItem.value = null
+    baselineCrop.value = null
     resetThumbnails()
   }
 
@@ -351,6 +367,195 @@ export function useResultsView() {
   function closePreview() {
     previewItem.value = null
   }
+
+  /** Force-reload one path-keyed thumbnail (after crop/restore). */
+  async function refreshThumbnail(key: string) {
+    const prev = thumbnails.value[key]
+    if (prev) {
+      URL.revokeObjectURL(prev)
+      delete thumbnails.value[key]
+    }
+    try {
+      const blob = await getSlideBlob(key)
+      if (blob) {
+        thumbnails.value[key] = URL.createObjectURL(blob)
+      }
+    } catch (error) {
+      log.warn(`Failed to refresh thumbnail for ${key}:`, error)
+    }
+  }
+
+  /**
+   * Soft-refresh folder items without closing the preview: rebuild items,
+   * refresh thumbs for changed crop state, re-bind previewItem only when a
+   * preview is already open (never open the viewer as a side effect).
+   */
+  async function softRefreshFolder() {
+    if (!currentFolder.value) return
+    const folder = currentFolder.value
+    const openPreviewId = previewItem.value?.id ?? null
+    const items = await buildFolderItems(folder)
+    folderItems.value = items
+
+    // Always re-fetch thumbs for active items that are cropped or were just restored
+    // (blob bytes changed under the same path key).
+    for (const item of items) {
+      if (item.status !== 'active') continue
+      const key = blobKey(item)
+      if (!key) continue
+      // Drop cached URL so loadThumbnails / refreshThumbnail picks up new bytes.
+      if (thumbnails.value[key]) {
+        URL.revokeObjectURL(thumbnails.value[key])
+        delete thumbnails.value[key]
+      }
+    }
+    await loadThumbnails(items)
+
+    if (openPreviewId) {
+      const next = items.find((i) => i.id === openPreviewId || i.imagePath === openPreviewId)
+      previewItem.value = next ?? null
+    }
+
+    // Keep folder.metadata.review.cropped in sync if we have metadata.
+    if (folder.metadata?.review) {
+      folder.metadata.review.cropped = items.some((i) => i.status === 'active' && i.isCropped)
+    }
+  }
+
+  async function applyCropToImage(
+    imagePath: string,
+    rect: CropRect,
+    autoCropped = false,
+  ): Promise<boolean> {
+    const ok = await applyCropToSlide(imagePath, rect, autoCropped)
+    if (!ok) return false
+    editStaged = true
+    await softRefreshFolder()
+    return true
+  }
+
+  async function restoreCropFromImage(imagePath: string): Promise<boolean> {
+    const ok = await restoreCropFromSlide(imagePath)
+    if (!ok) return false
+    editStaged = true
+    // Clear baseline if it pointed at this slide.
+    if (baselineCrop.value?.sourceId === imagePath) {
+      baselineCrop.value = null
+    }
+    await softRefreshFolder()
+    return true
+  }
+
+  function setBaselineCrop(item: ResultsItem): boolean {
+    if (item.status !== 'active' || !item.isCropped || !item.cropRect) return false
+    const sourceId = item.imagePath || item.id
+    baselineCrop.value = {
+      rect: { ...item.cropRect },
+      sourceFilename: item.name,
+      sourceId,
+    }
+    return true
+  }
+
+  function clearBaselineCrop() {
+    baselineCrop.value = null
+  }
+
+  async function applyBaselineToSelected(): Promise<BaselineCropActionSummary> {
+    const summary: BaselineCropActionSummary = {
+      cropped: 0,
+      outOfBounds: 0,
+      failed: 0,
+    }
+    const baseline = baselineCrop.value
+    if (!baseline) return summary
+
+    const targets = selectedActiveItems.value
+    if (targets.length === 0) return summary
+
+    isLoading.value = true
+    try {
+      for (const item of targets) {
+        const id = item.imagePath || item.id
+        if (!id) {
+          summary.failed++
+          continue
+        }
+        try {
+          const buffer = await getSlideSourceBuffer(id)
+          if (!buffer) {
+            summary.failed++
+            continue
+          }
+          const { width, height } = await getImageBufferSize(buffer)
+          const r = baseline.rect
+          if (
+            r.x < 0 ||
+            r.y < 0 ||
+            r.width <= 0 ||
+            r.height <= 0 ||
+            r.x + r.width > width ||
+            r.y + r.height > height
+          ) {
+            summary.outOfBounds++
+            continue
+          }
+          const ok = await applyCropToSlide(id, r, false)
+          if (ok) summary.cropped++
+          else summary.failed++
+        } catch (err) {
+          log.error(`Baseline crop failed for ${id}:`, err)
+          summary.failed++
+        }
+      }
+
+      if (summary.cropped > 0) {
+        editStaged = true
+        await softRefreshFolder()
+      }
+    } finally {
+      isLoading.value = false
+    }
+    return summary
+  }
+
+  /** Revert crop on selected active cropped slides. */
+  async function revertCropSelected(): Promise<{ restored: number; failed: number }> {
+    const targets = selectedActiveItems.value.filter((item) => item.isCropped)
+    const summary = { restored: 0, failed: 0 }
+    if (targets.length === 0) return summary
+
+    isLoading.value = true
+    try {
+      for (const item of targets) {
+        const id = item.imagePath || item.id
+        if (!id) {
+          summary.failed++
+          continue
+        }
+        const ok = await restoreCropFromSlide(id)
+        if (ok) {
+          summary.restored++
+          if (baselineCrop.value?.sourceId === id) {
+            baselineCrop.value = null
+          }
+        } else {
+          summary.failed++
+        }
+      }
+      if (summary.restored > 0) {
+        editStaged = true
+        await softRefreshFolder()
+      }
+    } finally {
+      isLoading.value = false
+    }
+    return summary
+  }
+
+  const selectedCroppedCount = computed(
+    () => selectedActiveItems.value.filter((item) => item.isCropped).length,
+  )
 
   async function deleteSelected() {
     if (selectedActiveItems.value.length === 0) return
@@ -445,6 +650,7 @@ export function useResultsView() {
     selectedItems,
     selectedActiveItems,
     selectedRemovedItems,
+    selectedCroppedCount,
     selectedReason,
     contextMode,
     thumbnails,
@@ -452,6 +658,7 @@ export function useResultsView() {
     thumbnailSize,
     isLoading,
     previewItem,
+    baselineCrop,
     hasRemovedItems,
     trashEntries,
     openFolder,
@@ -462,6 +669,12 @@ export function useResultsView() {
     clearSelection,
     openPreview,
     closePreview,
+    applyCropToImage,
+    restoreCropFromImage,
+    setBaselineCrop,
+    clearBaselineCrop,
+    applyBaselineToSelected,
+    revertCropSelected,
     deleteSelected,
     restoreSelected,
     clearTrash,
@@ -471,6 +684,7 @@ export function useResultsView() {
     getFolderDisplayName: parseFolderDisplayName,
     thumbnailFor,
     blobKey,
+    refreshThumbnail,
   }
 }
 

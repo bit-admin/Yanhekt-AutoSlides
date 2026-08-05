@@ -64,7 +64,6 @@ export interface SlideReviewMeta {
   edited: boolean;
   editedAt: string | null;
   // Current state: any slide in this folder currently has an applied crop.
-  // Always false on the web (cropping not available); kept for shape parity.
   cropped: boolean;
 }
 

@@ -1,8 +1,8 @@
 // Pure data-aggregation helpers for the Slides page.
 // Ported from autoslides/src/renderer/features/results/resultsDataLoader.ts —
-// the four IPC reads become slideStore (IndexedDB) reads, and the crop-entry
-// join is dropped (no cropping on the web). No Vue refs are read or written
-// here — the caller owns reactive state.
+// the four IPC reads become slideStore (IndexedDB) reads. Crop fields come
+// from each active SlideRecord (no separate crop-manifest join on web).
+// No Vue refs are read or written here — the caller owns reactive state.
 
 import { compareToolFolders, compareToolImages } from '../lib/toolFolders'
 import {
@@ -10,6 +10,7 @@ import {
   listActiveImages,
   getTrashEntries,
   getFolderMetadata,
+  type ActiveImageInfo,
 } from '../lib/slideStore'
 import type { RemovedEntry, ResultsFolder, ResultsItem, SlideMetadata } from './resultsTypes'
 import { createLogger } from '../lib/logger'
@@ -17,7 +18,7 @@ const log = createLogger('ResultsDataLoader')
 
 export interface ResultsDataIO {
   getFolders(): Promise<Array<{ name: string; path: string; imageCount: number }>>
-  getImages(folderPath: string): Promise<Array<{ name: string; path: string }>>
+  getImages(folderPath: string): Promise<ActiveImageInfo[]>
   getTrashEntries(): Promise<RemovedEntry[]>
   getMetadata(folderPath: string): Promise<SlideMetadata | null>
 }
@@ -115,6 +116,10 @@ export async function buildFolderItems(
         status: 'active' as const,
         imagePath: image.path,
         originalPath: image.path,
+        isCropped: image.isCropped,
+        isAutoCropped: image.isAutoCropped,
+        cropRect: image.cropRect,
+        croppedAt: image.croppedAt,
       }))
     } catch (error) {
       log.warn(`Failed to load images for ${folder.name}:`, error)

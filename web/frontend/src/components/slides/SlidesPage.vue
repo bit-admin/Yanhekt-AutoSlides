@@ -77,11 +77,13 @@
         :has-removed-items="rv.hasRemovedItems.value"
         :selected-active-count="rv.selectedActiveItems.value.length"
         :selected-removed-count="rv.selectedRemovedItems.value.length"
+        :selected-cropped-count="rv.selectedCroppedCount.value"
         :export-disabled="exportDisabled"
         :exporting-format="slidesExport.exportingFormat.value"
         :export-progress="slidesExport.exportProgress.value"
         :all-selected="allFilteredSelected"
         :empty-message="emptyReviewMessage"
+        :has-baseline="!!rv.baselineCrop.value"
         @update:context-mode="(m) => (rv.contextMode.value = m)"
         @update:selected-reason="(r) => (rv.selectedReason.value = r)"
         @update:thumbnail-size="(n) => (rv.thumbnailSize.value = n)"
@@ -89,12 +91,17 @@
         @preview="rv.openPreview($event)"
         @restore-item="restoreSingleItem"
         @delete-item="deleteSingleItem"
+        @set-baseline-item="setBaselineSingleItem"
+        @revert-crop-item="revertCropSingleItem"
         @toggle-select-all="toggleSelectAllFiltered"
         @restore="rv.restoreSelected()"
         @delete="deleteSelectedWithConfirm"
         @clear-selection="rv.clearSelection()"
         @export="exportCurrentFolder"
         @clear-folder-trash="clearFolderTrash"
+        @apply-baseline="applyBaselineSelected"
+        @clear-baseline="rv.clearBaselineCrop()"
+        @revert-crop="rv.revertCropSelected()"
       />
     </div>
 
@@ -102,6 +109,11 @@
       :item="rv.previewItem.value"
       :items="rv.filteredItems.value"
       :thumbnails="rv.thumbnails.value"
+      :is-loading="rv.isLoading.value"
+      :baseline-crop="rv.baselineCrop.value"
+      :apply-crop-to-image="rv.applyCropToImage"
+      :restore-crop-from-image="rv.restoreCropFromImage"
+      :set-baseline-crop="rv.setBaselineCrop"
       @close="rv.closePreview()"
       @restore="restoreFromPreview"
       @delete="deleteFromPreview"
@@ -291,6 +303,19 @@ const deleteSelectedWithConfirm = async () => {
   await rv.deleteSelected()
 }
 
+const applyBaselineSelected = async () => {
+  if (!rv.baselineCrop.value) return
+  if (rv.selectedActiveItems.value.length === 0) return
+  const summary = await rv.applyBaselineToSelected()
+  window.alert(
+    t('trash.applyBaselineSummary', {
+      cropped: summary.cropped,
+      outOfBounds: summary.outOfBounds,
+      failed: summary.failed,
+    }),
+  )
+}
+
 const toggleSelectAllFiltered = () => {
   if (allFilteredSelected.value) {
     rv.clearSelection()
@@ -327,6 +352,16 @@ const deleteSingleItem = async (item: ResultsItem) => {
   if (!window.confirm(t('trash.confirmDelete', { count: 1 }))) return
   rv.selectedIds.value = [item.id]
   await rv.deleteSelected()
+}
+
+const setBaselineSingleItem = (item: ResultsItem) => {
+  rv.setBaselineCrop(item)
+}
+
+const revertCropSingleItem = async (item: ResultsItem) => {
+  const path = item.imagePath || item.id
+  if (!path || !item.isCropped) return
+  await rv.restoreCropFromImage(path)
 }
 
 watch(

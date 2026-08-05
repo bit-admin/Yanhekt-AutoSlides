@@ -1,8 +1,7 @@
 // Slides-page view models.
-// Ported from autoslides/src/renderer/features/results/resultsTypes.ts with
-// all crop-related types dropped (cropping is not available on the web).
-// `RemovedEntry` is the slideStore's TrashEntry — identical shape to the
-// desktop trash-manifest entry.
+// Ported from autoslides/src/renderer/features/results/resultsTypes.ts.
+// Crop fields are hydrated from slideStore (IndexedDB) rather than a
+// filesystem crop-manifest join.
 
 import type { TrashEntry, TrashReason } from '../lib/slideStore'
 import type { SlideMetadata } from '../lib/slideMetadataTypes'
@@ -12,6 +11,27 @@ export type { SlideMetadata }
 // Historic alias preserved from the desktop call sites.
 export type ResultsReason = TrashReason
 export type RemovedEntry = TrashEntry
+
+export interface CropRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+/** In-memory baseline: one slide's crop rect reused on other slides. */
+export interface BaselineCrop {
+  rect: CropRect
+  sourceFilename: string
+  /** slideStore id (`folder/filename`) of the source slide. */
+  sourceId: string
+}
+
+export interface BaselineCropActionSummary {
+  cropped: number
+  outOfBounds: number
+  failed: number
+}
 
 export interface ResultsFolder {
   name: string
@@ -33,6 +53,11 @@ export interface ResultsItem {
   reason?: ResultsReason
   reasonDetails?: string
   trashedAt?: string
+  // Crop state (active slides only; from slideStore).
+  isCropped?: boolean
+  isAutoCropped?: boolean
+  cropRect?: CropRect
+  croppedAt?: string
 }
 
 export type ResultsViewMode = 'folders' | 'images'
