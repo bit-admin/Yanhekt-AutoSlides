@@ -163,6 +163,9 @@ export class ConfigService {
       autoPostProcessingLive: this.store.get('autoPostProcessingLive') ?? true,
       enableAIFiltering: this.store.get('enableAIFiltering') ?? true,
       distinguishMaybeSlide: this.store.get('distinguishMaybeSlide') ?? true,
+      enableAutoCropAIFilteredEdit: this.store.get('enableAutoCropAIFilteredEdit') ?? true,
+      enableDedupAfterAutoCropAIFilteredEdit:
+        this.store.get('enableDedupAfterAutoCropAIFilteredEdit') ?? true,
       themeMode: this.store.get('themeMode'),
       languageMode: this.store.get('languageMode'),
       preventSystemSleep: this.store.get('preventSystemSleep'),
@@ -699,6 +702,22 @@ export class ConfigService {
 
   getDistinguishMaybeSlide(): boolean {
     return this.store.get('distinguishMaybeSlide') ?? true;
+  }
+
+  setAutoCropAIFilteredEdit(enabled: boolean): void {
+    this.store.set('enableAutoCropAIFilteredEdit', enabled);
+  }
+
+  getAutoCropAIFilteredEdit(): boolean {
+    return this.store.get('enableAutoCropAIFilteredEdit') ?? true;
+  }
+
+  setDedupAfterAutoCropAIFilteredEdit(enabled: boolean): void {
+    this.store.set('enableDedupAfterAutoCropAIFilteredEdit', enabled);
+  }
+
+  getDedupAfterAutoCropAIFilteredEdit(): boolean {
+    return this.store.get('enableDedupAfterAutoCropAIFilteredEdit') ?? true;
   }
 
   // SSIM Adaptive Mode Management

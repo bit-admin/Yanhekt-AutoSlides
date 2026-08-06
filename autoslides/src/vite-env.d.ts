@@ -567,6 +567,13 @@ interface ElectronAPI {
     getDistinguishMaybeSlide: () => Promise<boolean>;
     setDistinguishMaybeSlide: (enabled: boolean) => Promise<AppConfig>;
 
+    // auto-crop may_be_slide_edit frames during post-processing
+    getAutoCropAIFilteredEdit: () => Promise<boolean>;
+    setAutoCropAIFilteredEdit: (enabled: boolean) => Promise<AppConfig>;
+    // re-run pHash after those auto-crops (Results-style candidate dedup)
+    getDedupAfterAutoCropAIFilteredEdit: () => Promise<boolean>;
+    setDedupAfterAutoCropAIFilteredEdit: (enabled: boolean) => Promise<AppConfig>;
+
     // pHash exclusion list management
     getPHashExclusionList: () => Promise<PHashExclusionItem[]>;
     addPHashExclusionItem: (name: string, pHash: string) => Promise<PHashExclusionItem>;
@@ -895,7 +902,12 @@ interface ElectronAPI {
   crop: {
     getEntries: () => Promise<CropEntry[]>;
     getImageAsBase64: (cropPath: string) => Promise<string>;
-    apply: (imagePath: string, rect: CropRect, autoCropped?: boolean) => Promise<{ success: boolean }>;
+    apply: (
+      imagePath: string,
+      rect: CropRect,
+      autoCropped?: boolean,
+      isAutomated?: boolean,
+    ) => Promise<{ success: boolean }>;
     restore: (imagePath: string) => Promise<{ success: boolean }>;
   };
 

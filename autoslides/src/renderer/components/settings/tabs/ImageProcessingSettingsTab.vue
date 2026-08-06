@@ -186,7 +186,38 @@
           <span class="phase-toggle-text">{{ $t('advanced.enableAIFiltering') }}</span>
         </label>
       </div>
-      <div v-if="tempEnableAIFiltering" class="setting-description ai-reminder">
+      <div
+        v-if="tempEnableAIFiltering"
+        class="post-processing-phase-separator"
+        role="separator"
+      />
+      <div v-if="tempEnableAIFiltering" class="post-processing-phases-list">
+        <div v-if="!tempDistinguishMaybeSlide" class="setting-description">
+          {{ $t('advanced.enableAutoCropAIFilteredEditRequiresDistinguish') }}
+        </div>
+        <label class="phase-toggle-item" :class="{ disabled: !tempDistinguishMaybeSlide }">
+          <input
+            type="checkbox"
+            v-model="tempEnableAutoCropAIFilteredEdit"
+            :disabled="!tempDistinguishMaybeSlide"
+          />
+          <span class="phase-toggle-text">{{ $t('advanced.enableAutoCropAIFilteredEdit') }}</span>
+        </label>
+        <label
+          class="phase-toggle-item"
+          :class="{ disabled: !tempEnableAutoCropAIFilteredEdit || !tempDistinguishMaybeSlide }"
+        >
+          <input
+            type="checkbox"
+            v-model="tempEnableDedupAfterAutoCropAIFilteredEdit"
+            :disabled="!tempEnableAutoCropAIFilteredEdit || !tempDistinguishMaybeSlide"
+          />
+          <span class="phase-toggle-text">{{
+            $t('advanced.enableDedupAfterAutoCropAIFilteredEdit')
+          }}</span>
+        </label>
+      </div>
+      <div v-if="tempEnableAIFiltering" class="setting-description">
         {{ $t('advanced.aiFilteringReminder') }}
       </div>
     </div>
@@ -512,6 +543,9 @@ const {
   tempSelectedDownsamplingPreset,
   tempEnableDuplicateRemoval,
   tempEnableExclusionList,
+  tempEnableAutoCropAIFilteredEdit,
+  tempEnableDedupAfterAutoCropAIFilteredEdit,
+  tempDistinguishMaybeSlide,
   tempPHashThreshold,
   tempAutoCropDetectorMode,
   tempAutoCropAspectTolerance,
@@ -646,6 +680,22 @@ const {
 .image-output-toggle-text {
   font-size: 12px;
   color: var(--text-primary);
+}
+
+.post-processing-phase-separator {
+  margin: 12px 0 10px;
+  border: 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.phase-toggle-item.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.phase-toggle-item.disabled:hover {
+  background-color: var(--bg-input);
+  border-color: var(--border-input);
 }
 
 .ssim-input-group {

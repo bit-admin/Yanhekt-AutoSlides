@@ -46,8 +46,12 @@ export const trash = {
 export const crop = {
   getEntries: () => ipcRenderer.invoke('crop:getEntries'),
   getImageAsBase64: (cropPath: string) => ipcRenderer.invoke('crop:getImageAsBase64', cropPath),
-  apply: (imagePath: string, rect: { x: number; y: number; width: number; height: number }, autoCropped?: boolean) =>
-    ipcRenderer.invoke('crop:apply', imagePath, rect, autoCropped),
+  apply: (
+    imagePath: string,
+    rect: { x: number; y: number; width: number; height: number },
+    autoCropped?: boolean,
+    isAutomated?: boolean,
+  ) => ipcRenderer.invoke('crop:apply', imagePath, rect, autoCropped, isAutomated),
   restore: (imagePath: string) => ipcRenderer.invoke('crop:restore', imagePath),
 };
 

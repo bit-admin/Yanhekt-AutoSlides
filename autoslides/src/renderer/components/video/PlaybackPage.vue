@@ -792,6 +792,7 @@ const postProcessing = usePostProcessing({
   extractedSlides: slideExtraction.extractedSlides,
   slideExtractorInstance: slideExtraction.slideExtractorInstance,
   deleteSlide: slideGallery.deleteSlide,
+  getExtractorInstanceId: () => slideExtraction.extractorInstanceId.value,
   // Broadcast each completed pass so watchNotesStore can release the buffered
   // note uploads for slides post-processing kept (and drop the trashed ones).
   onPassCompleted: ({ kept, removed }) => {

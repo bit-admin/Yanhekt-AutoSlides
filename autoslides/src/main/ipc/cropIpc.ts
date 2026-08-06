@@ -45,14 +45,28 @@ export function registerCropIpcHandlers(services: IpcServices): void {
     }
   });
 
-  ipcMain.handle('crop:apply', async (_event, imagePath: string, rect: CropRect, autoCropped?: boolean) => {
+  ipcMain.handle(
+    'crop:apply',
+    async (
+      _event,
+      imagePath: string,
+      rect: CropRect,
+      autoCropped?: boolean,
+      isAutomated?: boolean,
+    ) => {
     try {
       assertNoTraversal(imagePath);
       const outputDir = configService.getConfig().outputDirectory;
       await slideExtractionService.applyCrop(imagePath, outputDir, rect, autoCropped);
-      // Human crop during review: stage `edited` + cropped, latched to disk
-      // once the renderer confirms the user returned to the folder list.
-      slideMetadataService.stageEdited(path.dirname(imagePath), { cropped: true });
+      // Automated post-processing crops only set review.cropped — never the
+      // human-only `edited` latch (that is reserved for manual review actions).
+      if (isAutomated) {
+        await slideMetadataService.setCropped(path.dirname(imagePath), true);
+      } else {
+        // Human crop during review: stage `edited` + cropped, latched to disk
+        // once the renderer confirms the user returned to the folder list.
+        slideMetadataService.stageEdited(path.dirname(imagePath), { cropped: true });
+      }
       return { success: true };
     } catch (error) {
       log.error('Failed to apply crop:', error);

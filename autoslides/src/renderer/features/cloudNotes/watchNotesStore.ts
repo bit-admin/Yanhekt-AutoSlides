@@ -345,6 +345,24 @@ function onSlidesPostProcessed(event: Event): void {
   })
 }
 
+/**
+ * Replace a still-pending slide's dataUrl after post-processing auto-crop
+ * succeeds, so note upload uses cropped pixels. Dispatched as
+ * `slideAutoCropped` from usePostProcessing (avoids download→cloudNotes import).
+ */
+function onSlideAutoCropped(event: Event): void {
+  if (!(event instanceof CustomEvent)) return
+  const { instanceId, filename, dataUrl } = event.detail ?? {}
+  if (typeof instanceId !== 'string' || typeof filename !== 'string' || typeof dataUrl !== 'string') {
+    return
+  }
+  const entry = findEntryByInstance(instanceId)
+  if (!entry) return
+  const pending = pendingSlides.get(entry.tabId)
+  if (!pending?.has(filename)) return
+  pending.set(filename, dataUrl)
+}
+
 /** A cleared gallery means those captures are gone — nothing left to release. */
 function onSlidesClearedEvent(event: Event): void {
   if (!(event instanceof CustomEvent)) return
@@ -431,10 +449,12 @@ watch(
 )
 
 // Module-level subscriptions: the pipeline's per-slide event, the playback
-// page's per-pass post-processing outcome, and gallery clears.
+// page's per-pass post-processing outcome, gallery clears, and auto-crop
+// success refreshes for still-pending note uploads.
 window.addEventListener('slideExtracted', onSlideExtracted)
 window.addEventListener('slidesPostProcessed', onSlidesPostProcessed)
 window.addEventListener('slidesCleared', onSlidesClearedEvent)
+window.addEventListener('slideAutoCropped', onSlideAutoCropped)
 
 export const watchNotesStore = {
   onExtractionStarted,

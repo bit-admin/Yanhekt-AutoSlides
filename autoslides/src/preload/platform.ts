@@ -43,6 +43,12 @@ export const config = {
   getEnableAIFiltering: () => ipcRenderer.invoke('config:getEnableAIFiltering'),
   setDistinguishMaybeSlide: (enabled: boolean) => ipcRenderer.invoke('config:setDistinguishMaybeSlide', enabled),
   getDistinguishMaybeSlide: () => ipcRenderer.invoke('config:getDistinguishMaybeSlide'),
+  setAutoCropAIFilteredEdit: (enabled: boolean) => ipcRenderer.invoke('config:setAutoCropAIFilteredEdit', enabled),
+  getAutoCropAIFilteredEdit: () => ipcRenderer.invoke('config:getAutoCropAIFilteredEdit'),
+  setDedupAfterAutoCropAIFilteredEdit: (enabled: boolean) =>
+    ipcRenderer.invoke('config:setDedupAfterAutoCropAIFilteredEdit', enabled),
+  getDedupAfterAutoCropAIFilteredEdit: () =>
+    ipcRenderer.invoke('config:getDedupAfterAutoCropAIFilteredEdit'),
   setAutoCropParams: (params: {
     aspectTolerance?: number;
     blackThreshold?: number;

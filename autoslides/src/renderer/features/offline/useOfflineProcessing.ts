@@ -6,6 +6,7 @@ import {
   classifyMultipleImages,
   classifySingleImage,
 } from '@features/ai/slideClassificationService'
+import { createInPlaceAutoCropper } from '@shared/autoCrop'
 import { configStore } from '@shared/services/configStore'
 import { sanitizeFileName } from '@common/sanitizeFileName'
 import type {
@@ -147,12 +148,22 @@ export function useOfflineProcessing() {
     const exclusionList = filterEnabledExclusionItems(exclusionListRaw)
       .map((item: { name: string; pHash: string }) => ({ name: item.name, pHash: item.pHash }))
 
+    const distinguishMaybeSlide =
+      (await window.electronAPI.config?.getDistinguishMaybeSlide?.()) !== false
+    const enableAutoCropAIFilteredEdit =
+      (await window.electronAPI.config?.getAutoCropAIFilteredEdit?.()) !== false
+    const enableDedupAfterAutoCropAIFilteredEdit =
+      (await window.electronAPI.config?.getDedupAfterAutoCropAIFilteredEdit?.()) !== false
+
     return {
       pHashThreshold: slideConfig?.pHashThreshold ?? 10,
       // Per-run overrides from the modal checkboxes take precedence over global settings.
       enableDuplicateRemoval: enableDuplicateRemoval.value,
       enableExclusionList: enableExclusionList.value,
       enableAIFiltering: enableAIFiltering.value,
+      distinguishMaybeSlide,
+      enableAutoCropAIFilteredEdit,
+      enableDedupAfterAutoCropAIFilteredEdit,
       exclusionList,
       aiBatchSize: aiConfig?.batchSize || 5,
       aiImageResizeWidth: aiConfig?.imageResizeWidth || 768,
@@ -215,31 +226,45 @@ export function useOfflineProcessing() {
       const dataSource = createOfflineDataSource(outputDir.value)
       const token = tokenManager.getToken() || undefined
 
-      const result = await PostProcessingPipeline.run(
-        {
-          outputPath: outputDir.value,
-          imageFiles: outputFiles,
-          config,
-          token
-        },
-        dataSource,
-        {
-          signal: abortController.signal,
-          onProgress: mirrorProgress,
-          classifier: {
-            classifyMultipleImages,
-            classifySingleImage,
-          }
-        }
-      )
+      const shouldAutoCrop =
+        config.enableAIFiltering &&
+        config.distinguishMaybeSlide &&
+        config.enableAutoCropAIFilteredEdit
+      const cropper = shouldAutoCrop ? createInPlaceAutoCropper() : null
+      const outDir = outputDir.value
 
-      if (result.status === 'cancelled') {
-        progress.value.phase = 'cancelled'
-      } else if (result.status === 'failed') {
-        progress.value.phase = 'error'
-        progress.value.errorMessage = result.failed[0]?.message || 'Post-processing failed'
-      } else {
-        progress.value.phase = 'completed'
+      try {
+        const result = await PostProcessingPipeline.run(
+          {
+            outputPath: outDir,
+            imageFiles: outputFiles,
+            config,
+            token
+          },
+          dataSource,
+          {
+            signal: abortController.signal,
+            onProgress: mirrorProgress,
+            classifier: {
+              classifyMultipleImages,
+              classifySingleImage,
+            },
+            autoCrop: cropper
+              ? (filename) => cropper.crop(`${outDir}/${filename}`)
+              : undefined,
+          }
+        )
+
+        if (result.status === 'cancelled') {
+          progress.value.phase = 'cancelled'
+        } else if (result.status === 'failed') {
+          progress.value.phase = 'error'
+          progress.value.errorMessage = result.failed[0]?.message || 'Post-processing failed'
+        } else {
+          progress.value.phase = 'completed'
+        }
+      } finally {
+        cropper?.destroy()
       }
     } catch (error) {
       log.error('Offline processing error:', error)

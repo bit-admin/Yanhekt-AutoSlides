@@ -96,6 +96,13 @@ export function useImageProcessingSettings() {
   const distinguishMaybeSlide = ref(true)
   const tempDistinguishMaybeSlide = ref(true)
 
+  // Post-processing: auto-crop may_be_slide_edit frames before trashing
+  const enableAutoCropAIFilteredEdit = ref(true)
+  const tempEnableAutoCropAIFilteredEdit = ref(true)
+  // After those crops, re-run pHash candidate dedup (Results-style)
+  const enableDedupAfterAutoCropAIFilteredEdit = ref(true)
+  const tempEnableDedupAfterAutoCropAIFilteredEdit = ref(true)
+
   // Programmatic update flag (shared so SSIM input change doesn't fire feedback)
   let isUpdatingProgrammatically = false
 
@@ -212,6 +219,16 @@ export function useImageProcessingSettings() {
       distinguishMaybeSlide.value = distinguishValue !== false
       tempDistinguishMaybeSlide.value = distinguishMaybeSlide.value
 
+      const autoCropEditValue = await window.electronAPI.config.getAutoCropAIFilteredEdit()
+      enableAutoCropAIFilteredEdit.value = autoCropEditValue !== false
+      tempEnableAutoCropAIFilteredEdit.value = enableAutoCropAIFilteredEdit.value
+
+      const dedupAfterCropValue =
+        await window.electronAPI.config.getDedupAfterAutoCropAIFilteredEdit()
+      enableDedupAfterAutoCropAIFilteredEdit.value = dedupAfterCropValue !== false
+      tempEnableDedupAfterAutoCropAIFilteredEdit.value =
+        enableDedupAfterAutoCropAIFilteredEdit.value
+
       const currentPreset = downsamplingPresets.find(preset =>
         preset.width === downsampleWidth.value && preset.height === downsampleHeight.value
       )
@@ -269,6 +286,15 @@ export function useImageProcessingSettings() {
     await window.electronAPI.config.setDistinguishMaybeSlide(tempDistinguishMaybeSlide.value)
     distinguishMaybeSlide.value = tempDistinguishMaybeSlide.value
 
+    await window.electronAPI.config.setAutoCropAIFilteredEdit(tempEnableAutoCropAIFilteredEdit.value)
+    enableAutoCropAIFilteredEdit.value = tempEnableAutoCropAIFilteredEdit.value
+
+    await window.electronAPI.config.setDedupAfterAutoCropAIFilteredEdit(
+      tempEnableDedupAfterAutoCropAIFilteredEdit.value,
+    )
+    enableDedupAfterAutoCropAIFilteredEdit.value =
+      tempEnableDedupAfterAutoCropAIFilteredEdit.value
+
     validateAndCorrectInterval()
     const intervalResult = await window.electronAPI.config.setSlideCheckInterval(tempSlideCheckInterval.value)
     slideCheckInterval.value = intervalResult.checkInterval
@@ -298,6 +324,9 @@ export function useImageProcessingSettings() {
     tempSelectedDownsamplingPreset.value = selectedDownsamplingPreset.value
     tempEnablePngColorReduction.value = enablePngColorReduction.value
     tempDistinguishMaybeSlide.value = distinguishMaybeSlide.value
+    tempEnableAutoCropAIFilteredEdit.value = enableAutoCropAIFilteredEdit.value
+    tempEnableDedupAfterAutoCropAIFilteredEdit.value =
+      enableDedupAfterAutoCropAIFilteredEdit.value
     tempSlideCheckInterval.value = slideCheckInterval.value
     tempSlideDoubleVerification.value = slideDoubleVerification.value
     tempSlideVerificationCount.value = slideVerificationCount.value
@@ -428,6 +457,10 @@ export function useImageProcessingSettings() {
     // AI behaviour
     distinguishMaybeSlide,
     tempDistinguishMaybeSlide,
+    enableAutoCropAIFilteredEdit,
+    tempEnableAutoCropAIFilteredEdit,
+    enableDedupAfterAutoCropAIFilteredEdit,
+    tempEnableDedupAfterAutoCropAIFilteredEdit,
 
     // Slide detection
     slideCheckInterval,

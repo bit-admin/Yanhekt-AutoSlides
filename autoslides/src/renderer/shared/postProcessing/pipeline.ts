@@ -9,6 +9,7 @@
 import { runDuplicatePhase } from './phase1Duplicates'
 import { runExclusionPhase } from './phase2Exclusion'
 import { runAIPhase } from './phase3AI'
+import { runPostCropDedup } from './postCropDedup'
 import { createPostProcessorWorker, createWorkerHelpers } from './workerHelpers'
 import type {
   PipelineDataSource,
@@ -86,6 +87,8 @@ export class PostProcessingPipeline {
     const removedAINotSlide: string[] = []
     const removedAIMaybeSlideEdit: string[] = []
     const trashedSet = new Set<string>()
+    // Phase-1 hashes for non-cropped files — reused as post-crop dedup seeds.
+    const cachedHashes = new Map<string, string>()
 
     const needsPHash = input.config.enableDuplicateRemoval || input.config.enableExclusionList
     let worker: ReturnType<typeof createPostProcessorWorker> | null = null
@@ -97,6 +100,9 @@ export class PostProcessingPipeline {
         worker = createPostProcessorWorker()
         const helpers = createWorkerHelpers(worker)
         slideHashes = await computeAllHashes(input.imageFiles, dataSource, helpers.calculatePHash, ctx)
+        for (const h of slideHashes) {
+          if (h.pHash && !h.error) cachedHashes.set(h.filename, h.pHash)
+        }
 
         if (ctx.signal?.aborted) {
           return finalize('cancelled')
@@ -158,6 +164,8 @@ export class PostProcessingPipeline {
         return finalize('cancelled')
       }
 
+      let autoCroppedKept: string[] = []
+
       if (input.config.enableAIFiltering) {
         progress.phase = 'phase3'
         emit()
@@ -186,7 +194,47 @@ export class PostProcessingPipeline {
         )
         removedAINotSlide.push(...phase3.aiNotSlide)
         removedAIMaybeSlideEdit.push(...phase3.aiMaybeSlideEdit)
+        for (const f of phase3.aiNotSlide) trashedSet.add(f)
+        for (const f of phase3.aiMaybeSlideEdit) trashedSet.add(f)
+        autoCroppedKept = phase3.autoCroppedKept
         failed.push(...phase3.failed)
+      }
+
+      // Phase 3b: Results-style candidate dedup after successful edit-frame auto-crops.
+      if (
+        !ctx.signal?.aborted &&
+        input.config.enableDedupAfterAutoCropAIFilteredEdit &&
+        autoCroppedKept.length > 0
+      ) {
+        const autoCroppedSet = new Set(autoCroppedKept)
+        const nonCandidates = input.imageFiles.filter(
+          (f) => !trashedSet.has(f) && !autoCroppedSet.has(f),
+        )
+        const postCropWorker = createPostProcessorWorker()
+        try {
+          const helpers = createWorkerHelpers(postCropWorker)
+          const postCrop = await runPostCropDedup({
+            candidates: autoCroppedKept,
+            nonCandidates,
+            pHashThreshold: input.config.pHashThreshold,
+            worker: helpers,
+            dataSource,
+            ctx,
+            cachedHashes,
+          })
+          for (const f of postCrop.duplicatesRemoved) {
+            removedDuplicates.push(f)
+            trashedSet.add(f)
+          }
+          progress.phase1.duplicatesRemoved = removedDuplicates.length
+          emit()
+        } finally {
+          try {
+            postCropWorker.terminate()
+          } catch {
+            // ignore
+          }
+        }
       }
 
       return finalize(ctx.signal?.aborted ? 'cancelled' : 'completed')

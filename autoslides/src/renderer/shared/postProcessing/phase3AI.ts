@@ -39,6 +39,8 @@ export interface AIPhaseInput {
 export interface AIPhaseResult {
   aiNotSlide: string[]
   aiMaybeSlideEdit: string[]
+  /** Filenames that auto-cropped successfully and stayed active (for post-crop dedup). */
+  autoCroppedKept: string[]
   failed: PostProcessingFailure[]
   // For UI mirrors that want to know what kept slides were classified as 'slide'
   // — emitted via ctx.onItemClassified during the run; not returned here.
@@ -54,12 +56,13 @@ interface AIPhaseStats {
 interface BatchOutcome {
   notSlide: string[]
   maybeSlideEdit: string[]
+  autoCroppedKept: string[]
   failed: PostProcessingFailure[]
   pending413: string[][] // batches whose payload was too large, queued for split
 }
 
 function emptyOutcome(): BatchOutcome {
-  return { notSlide: [], maybeSlideEdit: [], failed: [], pending413: [] }
+  return { notSlide: [], maybeSlideEdit: [], autoCroppedKept: [], failed: [], pending413: [] }
 }
 
 // Always returns a `{ image_0, image_1, ... }`-shaped result regardless of which
@@ -102,15 +105,33 @@ async function applyClassificationsToTrash(
   validFilenames: string[],
   classifications: Record<string, ClassificationValue>,
   dataSource: PipelineDataSource,
-  ctx: PostProcessingContext
-): Promise<{ notSlide: string[]; maybeSlideEdit: string[] }> {
+  ctx: PostProcessingContext,
+  config: PostProcessingConfig
+): Promise<{ notSlide: string[]; maybeSlideEdit: string[]; autoCroppedKept: string[] }> {
   const notSlide: string[] = []
   const maybeSlideEdit: string[] = []
+  const autoCroppedKept: string[] = []
   for (let j = 0; j < validFilenames.length; j++) {
     const filename = validFilenames[j]
     const cls = classifications[`image_${j}`] || 'slide'
     ctx.onItemClassified?.(filename, cls)
     if (cls === 'slide') continue
+
+    // Optional auto-crop gate for edit-mode frames: keep on success, trash on fail.
+    const tryCrop =
+      cls === 'may_be_slide_edit' &&
+      config.distinguishMaybeSlide &&
+      config.enableAutoCropAIFilteredEdit &&
+      !!ctx.autoCrop
+
+    if (tryCrop) {
+      const cropped = await ctx.autoCrop!(filename)
+      if (cropped) {
+        autoCroppedKept.push(filename)
+        await ctx.onItemCropped?.(filename)
+        continue
+      }
+    }
 
     const reason = trashReasonForAI(cls)
     const moved = await dataSource.moveToTrash(filename, reason, trashReasonDetailsForAI(cls))
@@ -120,7 +141,7 @@ async function applyClassificationsToTrash(
       else notSlide.push(filename)
     }
   }
-  return { notSlide, maybeSlideEdit }
+  return { notSlide, maybeSlideEdit, autoCroppedKept }
 }
 
 async function processBatchWithRetry(
@@ -187,10 +208,12 @@ async function processBatchWithRetry(
       validFilenames,
       result.result as Record<string, ClassificationValue>,
       dataSource,
-      ctx
+      ctx,
+      input.config
     )
     outcome.notSlide.push(...applied.notSlide)
     outcome.maybeSlideEdit.push(...applied.maybeSlideEdit)
+    outcome.autoCroppedKept.push(...applied.autoCroppedKept)
     return outcome
   }
 
@@ -273,6 +296,7 @@ async function processPending413(
         } else {
           outcome.notSlide.push(...singleOutcome.notSlide)
           outcome.maybeSlideEdit.push(...singleOutcome.maybeSlideEdit)
+          outcome.autoCroppedKept.push(...singleOutcome.autoCroppedKept)
           outcome.failed.push(...singleOutcome.failed)
         }
       }
@@ -291,6 +315,7 @@ async function processPending413(
       const subOutcome = await processBatchWithRetry(sub, input, dataSource, ctx, stats, reportStats)
       outcome.notSlide.push(...subOutcome.notSlide)
       outcome.maybeSlideEdit.push(...subOutcome.maybeSlideEdit)
+      outcome.autoCroppedKept.push(...subOutcome.autoCroppedKept)
       outcome.failed.push(...subOutcome.failed)
       if (subOutcome.pending413.length > 0) {
         const nested = await processPending413(
@@ -304,6 +329,7 @@ async function processPending413(
         )
         outcome.notSlide.push(...nested.notSlide)
         outcome.maybeSlideEdit.push(...nested.maybeSlideEdit)
+        outcome.autoCroppedKept.push(...nested.autoCroppedKept)
         outcome.failed.push(...nested.failed)
       }
     }
@@ -330,7 +356,12 @@ export async function runAIPhase(
     processed: 0,
     retrying: 0
   }
-  const final: AIPhaseResult = { aiNotSlide: [], aiMaybeSlideEdit: [], failed: [] }
+  const final: AIPhaseResult = {
+    aiNotSlide: [],
+    aiMaybeSlideEdit: [],
+    autoCroppedKept: [],
+    failed: [],
+  }
   const pending413: string[][] = []
 
   const emit = () =>
@@ -349,6 +380,7 @@ export async function runAIPhase(
     const outcome = await processBatchWithRetry(batch, input, dataSource, ctx, stats, emit)
     final.aiNotSlide.push(...outcome.notSlide)
     final.aiMaybeSlideEdit.push(...outcome.maybeSlideEdit)
+    final.autoCroppedKept.push(...outcome.autoCroppedKept)
     final.failed.push(...outcome.failed)
     pending413.push(...outcome.pending413)
     stats.batchesCompleted = i + 1
@@ -369,6 +401,7 @@ export async function runAIPhase(
     )
     final.aiNotSlide.push(...pending413Outcome.notSlide)
     final.aiMaybeSlideEdit.push(...pending413Outcome.maybeSlideEdit)
+    final.autoCroppedKept.push(...pending413Outcome.autoCroppedKept)
     final.failed.push(...pending413Outcome.failed)
     emit()
   }

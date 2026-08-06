@@ -9,3 +9,7 @@ export {
   type AutoCropBatchProgress,
   type AutoCropCallbacks,
 } from './autoCropPipeline';
+export {
+  createInPlaceAutoCropper,
+  type InPlaceAutoCropper,
+} from './inPlaceAutoCropper';

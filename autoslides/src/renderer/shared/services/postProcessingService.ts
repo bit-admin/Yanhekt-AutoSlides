@@ -2,6 +2,7 @@ import { reactive, computed } from 'vue'
 import { tokenManager } from './authService'
 import { PostProcessingPipeline } from '@shared/postProcessing/pipeline'
 import { createSlideExtractionDataSource } from '@shared/postProcessing/imageSources'
+import { createInPlaceAutoCropper } from '@shared/autoCrop'
 import { recordPostProcessing } from './slideMetadataClient'
 import type {
   AIErrorKind,
@@ -207,11 +208,18 @@ class PostProcessingServiceClass {
     this.controllers.set(job.id, controller)
     this.notify(job)
 
+    let cropper: ReturnType<typeof createInPlaceAutoCropper> | null = null
     try {
       const { config, classifierMode } = await this.loadConfig()
       job.classifierMode = classifierMode
       const dataSource = createSlideExtractionDataSource(job.outputPath)
       const token = tokenManager.getToken() || undefined
+
+      const shouldAutoCrop =
+        config.enableAIFiltering &&
+        config.distinguishMaybeSlide &&
+        config.enableAutoCropAIFilteredEdit
+      cropper = shouldAutoCrop ? createInPlaceAutoCropper() : null
 
       const result = await PostProcessingPipeline.run(
         {
@@ -224,7 +232,10 @@ class PostProcessingServiceClass {
         {
           signal: controller.signal,
           onProgress: (snap) => this.mirrorProgress(job, snap),
-          classifier: this.classifier ?? undefined
+          classifier: this.classifier ?? undefined,
+          autoCrop: cropper
+            ? (filename) => cropper!.crop(`${job.outputPath}/${filename}`)
+            : undefined,
         }
       )
 
@@ -287,6 +298,7 @@ class PostProcessingServiceClass {
       })
       this.notify(job)
     } finally {
+      cropper?.destroy()
       this.controllers.delete(job.id)
     }
   }
@@ -328,6 +340,12 @@ class PostProcessingServiceClass {
   private async loadConfig(): Promise<{ config: PostProcessingConfig; classifierMode: 'llm' | 'ml' }> {
     const slideConfig = await window.electronAPI.config?.getSlideExtractionConfig?.()
     const enableAIFiltering = await window.electronAPI.config?.getEnableAIFiltering?.() ?? true
+    const distinguishMaybeSlide =
+      (await window.electronAPI.config?.getDistinguishMaybeSlide?.()) !== false
+    const enableAutoCropAIFilteredEdit =
+      (await window.electronAPI.config?.getAutoCropAIFilteredEdit?.()) !== false
+    const enableDedupAfterAutoCropAIFilteredEdit =
+      (await window.electronAPI.config?.getDedupAfterAutoCropAIFilteredEdit?.()) !== false
     const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
 
     const exclusionList = filterEnabledExclusionItems(slideConfig?.pHashExclusionList || [])
@@ -338,6 +356,9 @@ class PostProcessingServiceClass {
         enableDuplicateRemoval: slideConfig?.enableDuplicateRemoval !== false,
         enableExclusionList: slideConfig?.enableExclusionList !== false,
         enableAIFiltering,
+        distinguishMaybeSlide,
+        enableAutoCropAIFilteredEdit,
+        enableDedupAfterAutoCropAIFilteredEdit,
         exclusionList,
         aiBatchSize: aiConfig?.batchSize || 5,
         aiImageResizeWidth: aiConfig?.imageResizeWidth || 768,

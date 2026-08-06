@@ -244,7 +244,12 @@
     "enableExclusionListDescription": "pHash 제외 목록의 항목과 일치하는 슬라이드를 제거합니다.",
     "enableAIFiltering": "AI 필터링 활성화",
     "enableAIFilteringDescription": "AI를 사용하여 슬라이드가 아닌 이미지를 분류하고 필터링합니다.",
-    "aiFilteringReminder": "AI는 실수할 수 있습니다. 잘못 삭제된 이미지는 휴지통에서 복원할 수 있습니다.",
+    "aiFilteringReminder": "AI는 실수할 수 있습니다. 결과는 나중에 슬라이드에서 다시 확인할 수 있습니다.",
+    "enableAutoCropAIFilteredEdit": "AI 필터링 – 편집 자동 자르기",
+    "enableAutoCropAIFilteredEditDescription": "AI가 프레임을 편집 모드로 분류하면 먼저 자동 자르기를 시도합니다. 성공하면 활성 슬라이드로 유지하고, 실패하면 AI 필터링 – 편집으로 휴지통에 넣습니다.",
+    "enableAutoCropAIFilteredEditRequiresDistinguish": "「may_be_slide 구분」이 켜져 있어야 합니다.",
+    "enableDedupAfterAutoCropAIFilteredEdit": "자동 자르기 후 중복 다시 확인",
+    "enableDedupAfterAutoCropAIFilteredEditDescription": "편집 프레임 자동 자르기 성공 후 유지된 슬라이드와 pHash를 비교해 시각적 중복을 휴지통으로 옮깁니다(휴지통에서도 자동 자르기 배지 유지).",
     "autoCrop": {
       "title": "자동 자르기",
       "description": "자동 자르기 작업에서 사용하는 슬라이드 영역 감지 파라미터를 조정합니다. 기본값은 대부분의 녹화에 적합하며, 더 엄격한 매칭이 필요할 경우 종횡비 허용치를 낮추세요.",

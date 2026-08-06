@@ -244,7 +244,12 @@
     "enableExclusionListDescription": "pHash除外リストの項目と一致するスライドを除去します。",
     "enableAIFiltering": "AIフィルタリングを有効化",
     "enableAIFilteringDescription": "AIを使用して非スライド画像を分類・フィルタリングします。",
-    "aiFilteringReminder": "AIは間違いを起こす可能性があります。誤って削除された画像はゴミ箱から復元できます。",
+    "aiFilteringReminder": "AIは間違いを起こす可能性があります。結果は後から「スライド」で確認できます。",
+    "enableAutoCropAIFilteredEdit": "AI フィルタ（編集）を自動トリミング",
+    "enableAutoCropAIFilteredEditDescription": "AI が編集モードのフレームと判定した場合、先に自動トリミングを試します。成功すればアクティブなスライドとして保持し、失敗すれば「AI フィルタ – 編集」としてゴミ箱へ移します。",
+    "enableAutoCropAIFilteredEditRequiresDistinguish": "「may_be_slide を区別」が有効である必要があります。",
+    "enableDedupAfterAutoCropAIFilteredEdit": "自動トリミング後に重複を再チェック",
+    "enableDedupAfterAutoCropAIFilteredEditDescription": "編集フレームの自動トリミング成功後、保持中のスライドと pHash を比較し、視覚的な重複をゴミ箱へ移します（ゴミ箱でも自動トリミングバッジは残ります）。",
     "autoCrop": {
       "title": "自動トリミング",
       "description": "自動トリミング処理で使用するスライド領域検出パラメータを調整します。既定値はほとんどの録画で機能しますが、より厳密なマッチングが必要な場合はアスペクト比許容値を下げてください。",

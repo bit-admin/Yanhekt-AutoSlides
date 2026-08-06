@@ -7,6 +7,7 @@ import {
   classifyMultipleImages,
   classifySingleImage,
 } from '@features/ai/slideClassificationService'
+import { createInPlaceAutoCropper } from '@shared/autoCrop'
 import { configStore } from '@shared/services/configStore'
 import {
   errorInfoToBanner,
@@ -56,6 +57,8 @@ export interface UsePostProcessingOptions {
   // processed and survived vs. moved to trash. Used by the playback page to
   // release watch-notes uploads only for slides post-processing has cleared.
   onPassCompleted?: (result: { kept: string[]; removed: string[] }) => void
+  /** Extraction instance id used to refresh watch-mode pending note buffers after auto-crop. */
+  getExtractorInstanceId?: () => string | null | undefined
 }
 
 export interface UsePostProcessingReturn {
@@ -169,6 +172,12 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     if (!slideConfig) throw new Error('Failed to get slide extraction configuration')
 
     const enableAI = await window.electronAPI.config?.getEnableAIFiltering?.() ?? true
+    const distinguishMaybeSlide =
+      (await window.electronAPI.config?.getDistinguishMaybeSlide?.()) !== false
+    const enableAutoCropAIFilteredEdit =
+      (await window.electronAPI.config?.getAutoCropAIFilteredEdit?.()) !== false
+    const enableDedupAfterAutoCropAIFilteredEdit =
+      (await window.electronAPI.config?.getDedupAfterAutoCropAIFilteredEdit?.()) !== false
     const aiConfig = await window.electronAPI.config?.getAIFilteringConfig?.()
     const exclusionList = filterEnabledExclusionItems(slideConfig.pHashExclusionList || [])
 
@@ -177,11 +186,24 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
       enableDuplicateRemoval: !aiOnly && slideConfig.enableDuplicateRemoval !== false,
       enableExclusionList: !aiOnly && slideConfig.enableExclusionList !== false,
       enableAIFiltering: enableAI,
+      distinguishMaybeSlide,
+      enableAutoCropAIFilteredEdit,
+      enableDedupAfterAutoCropAIFilteredEdit,
       exclusionList,
       aiBatchSize: auto ? 1 : (aiConfig?.batchSize || 5),
       aiImageResizeWidth: aiConfig?.imageResizeWidth || aiImageResizeWidth.value,
       aiImageResizeHeight: aiConfig?.imageResizeHeight || aiImageResizeHeight.value
     }
+  }
+
+  async function bufferToDataUrl(buffer: Uint8Array): Promise<string> {
+    const blob = new Blob([buffer as BlobPart], { type: 'image/png' })
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onloadend = () => resolve(reader.result as string)
+      reader.onerror = () => reject(reader.error ?? new Error('Failed to read cropped image'))
+      reader.readAsDataURL(blob)
+    })
   }
 
   // Single pass of the pipeline against the current `extractedSlides` set.
@@ -214,57 +236,89 @@ export function usePostProcessing(options: UsePostProcessingOptions): UsePostPro
     const token = tokenManager.getToken() || undefined
     const removedThisPass: string[] = []
 
-    const result = await PostProcessingPipeline.run(
-      {
-        outputPath,
-        imageFiles,
-        config,
-        phase3ExcludeFiles,
-        token
-      },
-      dataSource,
-      {
-        onProgress: mirrorProgress,
-        classifier: {
-          classifyMultipleImages,
-          classifySingleImage,
+    const shouldAutoCrop =
+      config.enableAIFiltering &&
+      config.distinguishMaybeSlide &&
+      config.enableAutoCropAIFilteredEdit
+    const cropper = shouldAutoCrop ? createInPlaceAutoCropper() : null
+
+    try {
+      const result = await PostProcessingPipeline.run(
+        {
+          outputPath,
+          imageFiles,
+          config,
+          phase3ExcludeFiles,
+          token
         },
-        onItemRemoved: (filename: string, reason: TrashReason) => {
-          removedThisPass.push(filename)
-          const slide = filenameToSlide.get(filename)
-          if (!slide) return
-          // Splice from the reactive array so the UI updates immediately.
-          const idx = extractedSlides.value.findIndex(s => s.id === slide.id)
-          if (idx !== -1) extractedSlides.value.splice(idx, 1)
-          if (reason === 'duplicate') postProcessStatus.value.duplicatesRemoved++
-          else if (reason === 'exclusion') postProcessStatus.value.excludedRemoved++
-          else if (reason === 'ai_filtered' || reason === 'ai_filtered_edit') {
-            postProcessStatus.value.aiFiltered++
+        dataSource,
+        {
+          onProgress: mirrorProgress,
+          classifier: {
+            classifyMultipleImages,
+            classifySingleImage,
+          },
+          autoCrop: cropper
+            ? (filename) => cropper.crop(`${outputPath}/${filename}`)
+            : undefined,
+          onItemCropped: async (filename: string) => {
+            // Refresh gallery thumbnail + watch pending buffer with cropped pixels.
+            try {
+              const fullPath = `${outputPath}/${filename}`
+              const buffer = await window.electronAPI.offline.readImageBuffer(fullPath)
+              const dataUrl = await bufferToDataUrl(buffer)
+              const slide = filenameToSlide.get(filename)
+              if (slide) slide.dataUrl = dataUrl
+              const instanceId = options.getExtractorInstanceId?.()
+              if (instanceId) {
+                window.dispatchEvent(new CustomEvent('slideAutoCropped', {
+                  detail: { instanceId, filename, dataUrl },
+                }))
+              }
+            } catch (err) {
+              log.warn(`Failed to refresh dataUrl after auto-crop for ${filename}:`, err)
+            }
+          },
+          onItemRemoved: (filename: string, reason: TrashReason) => {
+            removedThisPass.push(filename)
+            const slide = filenameToSlide.get(filename)
+            if (!slide) return
+            // Splice from the reactive array so the UI updates immediately.
+            const idx = extractedSlides.value.findIndex(s => s.id === slide.id)
+            if (idx !== -1) extractedSlides.value.splice(idx, 1)
+            if (reason === 'duplicate') postProcessStatus.value.duplicatesRemoved++
+            else if (reason === 'exclusion') postProcessStatus.value.excludedRemoved++
+            else if (reason === 'ai_filtered' || reason === 'ai_filtered_edit') {
+              postProcessStatus.value.aiFiltered++
+            }
+          },
+          onItemClassified: (filename, classification) => {
+            const slide = filenameToSlide.get(filename)
+            if (slide) slide.aiDecision = classification
           }
-        },
-        onItemClassified: (filename, classification) => {
-          const slide = filenameToSlide.get(filename)
-          if (slide) slide.aiDecision = classification
         }
+      )
+
+      // Report the pass outcome in extraction order. Files that failed AI
+      // classification (no verdict, not trashed) count as kept. Auto-cropped
+      // may_be_slide_edit frames never hit onItemRemoved, so they stay in kept.
+      if (options.onPassCompleted) {
+        const removedSet = new Set(removedThisPass)
+        options.onPassCompleted({
+          kept: imageFiles.filter(f => !removedSet.has(f)),
+          removed: removedThisPass
+        })
       }
-    )
 
-    // Report the pass outcome in extraction order. Files that failed AI
-    // classification (no verdict, not trashed) count as kept.
-    if (options.onPassCompleted) {
-      const removedSet = new Set(removedThisPass)
-      options.onPassCompleted({
-        kept: imageFiles.filter(f => !removedSet.has(f)),
-        removed: removedThisPass
-      })
-    }
-
-    // Surface the most recent AI failure in the banner, preferring structured
-    // errorKind/errorType metadata over message-only parsing.
-    if (result.failed.length > 0) {
-      aiFilteringError.value = failureToBannerError(result.failed[0])
-    } else {
-      aiFilteringError.value = { type: 'none' }
+      // Surface the most recent AI failure in the banner, preferring structured
+      // errorKind/errorType metadata over message-only parsing.
+      if (result.failed.length > 0) {
+        aiFilteringError.value = failureToBannerError(result.failed[0])
+      } else {
+        aiFilteringError.value = { type: 'none' }
+      }
+    } finally {
+      cropper?.destroy()
     }
   }
 

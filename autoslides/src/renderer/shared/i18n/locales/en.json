@@ -244,7 +244,12 @@
     "enableExclusionListDescription": "Remove slides that match items in the pHash exclusion list.",
     "enableAIFiltering": "Enable AI Filtering",
     "enableAIFilteringDescription": "Use AI to classify and filter out non-slide images.",
-    "aiFilteringReminder": "AI can make mistakes. You can restore incorrectly removed images from the trash folder.",
+    "aiFilteringReminder": "AI can make mistakes. You can review results later in Slides.",
+    "enableAutoCropAIFilteredEdit": "Auto Crop AI Filtered – Edit",
+    "enableAutoCropAIFilteredEditDescription": "When AI flags a frame as edit-mode, try auto-crop first. Keep the frame if crop succeeds; otherwise trash it as AI Filtered – Edit.",
+    "enableAutoCropAIFilteredEditRequiresDistinguish": "Requires “Distinguish may_be_slide” to be enabled.",
+    "enableDedupAfterAutoCropAIFilteredEdit": "Re-check Duplicates After Auto Crop",
+    "enableDedupAfterAutoCropAIFilteredEditDescription": "After a successful edit-frame auto-crop, compare pHash against kept slides and trash visual duplicates. The auto-cropped badge is retained in trash.",
     "autoCrop": {
       "title": "Auto Crop",
       "description": "Tune slide-canvas detection used by the Auto Crop workflow. Defaults work for most recordings; lower the aspect tolerance for stricter matches.",

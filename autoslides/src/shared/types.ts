@@ -194,6 +194,13 @@ export interface AppConfig {
   autoPostProcessingLive: boolean;
   enableAIFiltering: boolean;
   distinguishMaybeSlide: boolean;
+  /** When true (default), phase-3 may_be_slide_edit frames are auto-cropped in place before trash. */
+  enableAutoCropAIFilteredEdit: boolean;
+  /**
+   * When true (default), after a successful may_be_slide_edit auto-crop, re-run
+   * pHash against kept slides and trash visual duplicates (Results-style).
+   */
+  enableDedupAfterAutoCropAIFilteredEdit: boolean;
   themeMode: ThemeMode;
   languageMode: LanguageMode;
   preventSystemSleep: boolean;

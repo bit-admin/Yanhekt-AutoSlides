@@ -179,6 +179,8 @@ export const defaultConfig: AppConfig = {
   autoPostProcessingLive: true,
   enableAIFiltering: true,
   distinguishMaybeSlide: true,
+  enableAutoCropAIFilteredEdit: true,
+  enableDedupAfterAutoCropAIFilteredEdit: true,
   themeMode: 'system',
   languageMode: 'system',
   preventSystemSleep: true,

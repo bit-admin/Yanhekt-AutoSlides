@@ -244,7 +244,12 @@
     "enableExclusionListDescription": "去除与 pHash 排除列表中的项目匹配的幻灯片。",
     "enableAIFiltering": "启用 AI 过滤",
     "enableAIFilteringDescription": "使用 AI 分类并过滤非幻灯片图像。",
-    "aiFilteringReminder": "AI 可能出错，您可以从回收站中恢复被误删的图像。",
+    "aiFilteringReminder": "AI 可能出错，您可以稍后在「幻灯片」中复查结果。",
+    "enableAutoCropAIFilteredEdit": "自动裁剪 AI 过滤 – 编辑",
+    "enableAutoCropAIFilteredEditDescription": "当 AI 将帧标记为编辑模式时，先尝试自动裁剪。裁剪成功则保留为活动幻灯片；失败则仍移入「AI 过滤 – 编辑」回收站。",
+    "enableAutoCropAIFilteredEditRequiresDistinguish": "需要先启用「区分 may_be_slide」。",
+    "enableDedupAfterAutoCropAIFilteredEdit": "自动裁剪后重新检查重复",
+    "enableDedupAfterAutoCropAIFilteredEditDescription": "编辑帧自动裁剪成功后，与已保留幻灯片进行 pHash 比较，将视觉重复项移入回收站（回收站中仍显示自动裁剪标记）。",
     "autoCrop": {
       "title": "自动裁剪",
       "description": "微调自动裁剪工作流程所使用的幻灯片画布检测参数。默认值适用于大多数录制内容；如需更严格的匹配可降低宽高比容差。",

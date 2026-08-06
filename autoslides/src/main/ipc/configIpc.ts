@@ -163,6 +163,26 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getDistinguishMaybeSlide();
   });
 
+  ipcMain.handle('config:setAutoCropAIFilteredEdit', async (_event, enabled: boolean) => {
+    configService.setAutoCropAIFilteredEdit(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  ipcMain.handle('config:getAutoCropAIFilteredEdit', async () => {
+    return configService.getAutoCropAIFilteredEdit();
+  });
+
+  ipcMain.handle('config:setDedupAfterAutoCropAIFilteredEdit', async (_event, enabled: boolean) => {
+    configService.setDedupAfterAutoCropAIFilteredEdit(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  ipcMain.handle('config:getDedupAfterAutoCropAIFilteredEdit', async () => {
+    return configService.getDedupAfterAutoCropAIFilteredEdit();
+  });
+
   ipcMain.handle('config:setAutoCropParams', async (_event, params) => {
     configService.setAutoCropParams(params);
     broadcastConfig();

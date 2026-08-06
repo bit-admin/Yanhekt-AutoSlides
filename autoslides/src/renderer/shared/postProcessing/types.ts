@@ -52,6 +52,18 @@ export interface PostProcessingConfig {
   enableDuplicateRemoval: boolean
   enableExclusionList: boolean
   enableAIFiltering: boolean
+  /** When true, may_be_slide_edit is a distinct class (vs collapsed to not_slide). */
+  distinguishMaybeSlide: boolean
+  /**
+   * When true (and distinguish + AI filtering are on), try in-place auto-crop on
+   * may_be_slide_edit frames before trashing them as ai_filtered_edit.
+   */
+  enableAutoCropAIFilteredEdit: boolean
+  /**
+   * When true, after successful may_be_slide_edit auto-crops, re-run pHash against
+   * kept slides and trash visual duplicates (independent of enableDuplicateRemoval).
+   */
+  enableDedupAfterAutoCropAIFilteredEdit: boolean
   exclusionList: ExclusionItem[]
   aiBatchSize: number
   aiImageResizeWidth: number
@@ -160,10 +172,16 @@ export interface PostProcessingContext {
   // Called once per file with its AI verdict (including 'slide'). Used by the
   // playback page to set each slide's `aiDecision` field for the UI.
   onItemClassified?: (filename: string, classification: ClassificationValue) => void
+  // Called after a successful in-place auto-crop of a may_be_slide_edit frame
+  // (file stays active). Playback uses this to refresh gallery/pending dataUrls.
+  onItemCropped?: (filename: string) => void | Promise<void>
   // Injected by the adapter so phase3AI can call into the AI classifier without
   // a shared -> features import. Required when input.config.enableAIFiltering
   // is true; callers can omit it when phase3 is disabled.
   classifier?: ClassifierCallbacks
+  // Optional in-place auto-crop attempt for may_be_slide_edit frames. Returns
+  // true when crop was applied (caller must not trash). Adapters own the worker.
+  autoCrop?: (filename: string) => Promise<boolean>
 }
 
 export interface SlideHashInfo {
