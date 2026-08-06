@@ -30,7 +30,6 @@ export interface UseSessionPageOptions {
   course: Ref<SessionCourse | null>;
   t: (key: string, params?: Record<string, unknown>) => string;
   onSessionSelected: (session: Session) => void;
-  onBackToCourses: () => void;
 }
 
 export interface UseSessionPageReturn {
@@ -40,7 +39,6 @@ export interface UseSessionPageReturn {
   isLoading: Ref<boolean>;
   errorMessage: Ref<string>;
   showCourseDetails: Ref<boolean>;
-  goBack: () => void;
   selectSession: (session: Session) => void;
   toggleCourseDetails: () => void;
   loadCourseSessions: () => Promise<void>;
@@ -50,7 +48,7 @@ export interface UseSessionPageReturn {
 }
 
 export function useSessionPage(options: UseSessionPageOptions): UseSessionPageReturn {
-  const { course, t, onSessionSelected, onBackToCourses } = options;
+  const { course, t, onSessionSelected } = options;
 
   const sessions = ref<Session[]>([]);
   const courseInfo = ref<CourseInfoResponse | null>(null);
@@ -84,10 +82,6 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
       imageUrl: base.imageUrl || extra.imageUrl,
     };
   });
-
-  const goBack = (): void => {
-    onBackToCourses();
-  };
 
   const selectSession = (session: Session): void => {
     onSessionSelected(session);
@@ -221,7 +215,6 @@ export function useSessionPage(options: UseSessionPageOptions): UseSessionPageRe
     isLoading,
     errorMessage,
     showCourseDetails,
-    goBack,
     selectSession,
     toggleCourseDetails,
     loadCourseSessions,

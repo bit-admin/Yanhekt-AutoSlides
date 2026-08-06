@@ -152,7 +152,6 @@
     "makeOutput": "生成 {format}"
   },
   "playback": {
-    "back": "返回",
     "bothStreams": "同时观看",
     "browserNotSupported": "您的浏览器不支持视频标签。",
     "captureNotSupported": "当前浏览器不支持对此视频流进行幻灯片捕捉。",
@@ -242,7 +241,6 @@
   },
   "sessions": {
     "academicTerm": "学期",
-    "backToCourses": "返回课程",
     "classrooms": "教室",
     "college": "学院",
     "day": "Day",

@@ -2,7 +2,6 @@
   <SessionPage
     :course="course"
     @session-selected="onSessionSelected"
-    @back-to-courses="onBackToCourses"
   />
 </template>
 
@@ -45,9 +44,5 @@ const onSessionSelected = (session: Session, enriched: SessionCourse | null) => 
     name: 'player-recorded',
     params: { courseId: c.id, sessionId: session.session_id },
   })
-}
-
-const onBackToCourses = () => {
-  void router.push({ name: 'recorded' })
 }
 </script>

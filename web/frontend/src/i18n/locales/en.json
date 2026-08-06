@@ -152,7 +152,6 @@
     "makeOutput": "Make {format}"
   },
   "playback": {
-    "back": "Back",
     "bothStreams": "Both Streams",
     "browserNotSupported": "Your browser does not support the video tag.",
     "captureNotSupported": "Slide capture is not supported in this browser for this stream.",
@@ -242,7 +241,6 @@
   },
   "sessions": {
     "academicTerm": "Academic Term",
-    "backToCourses": "Back to Courses",
     "classrooms": "Classrooms",
     "college": "College",
     "day": "Day",

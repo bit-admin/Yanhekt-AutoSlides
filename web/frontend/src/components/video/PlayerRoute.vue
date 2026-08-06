@@ -4,7 +4,6 @@
     :course="course"
     :session="session"
     :mode="mode"
-    @back="handleBack"
   />
 
   <div v-else class="player-route-state">
@@ -291,18 +290,6 @@ watch([state, course], () => {
     document.title = `${course.value.title} - AutoSlides`
   }
 })
-
-const handleBack = () => {
-  // In-app history exists → behave like a browser back. Cold deep link →
-  // back would leave the site, so fall to the natural parent view.
-  if (window.history.state?.back) {
-    router.back()
-  } else if (mode === 'recorded') {
-    void router.push({ name: 'recorded-course', params: { courseId } })
-  } else {
-    void router.push({ name: 'live' })
-  }
-}
 
 const goToBrowse = () => {
   if (mode === 'live') {

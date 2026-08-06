@@ -1,16 +1,6 @@
 <template>
   <div class="playback-page" :class="{ 'cinema-mode': isCinemaMode }">
     <div class="playback-content-wrapper">
-      <!-- Back Button header -->
-      <div class="playback-header" v-if="!isCinemaMode">
-        <button @click="goBack" class="btn btn--ghost back-btn">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="15,18 9,12 15,6"/>
-          </svg>
-          <span>{{ $t('playback.back') }}</span>
-        </button>
-      </div>
-
       <!-- Left Column: Video + Meta Details -->
       <div class="main-video-section">
         <!-- Video Player Panel -->
@@ -587,10 +577,6 @@ const props = defineProps<{
   mode: 'live' | 'recorded'
 }>()
 
-const emit = defineEmits<{
-  back: []
-}>()
-
 // Local UI state
 const isPictureInPicture = ref(false)
 const isCinemaMode = playbackStore.cinema
@@ -819,7 +805,6 @@ const toggleSubscribe = () => {
 }
 
 // Methods
-const goBack = () => emit('back')
 const refreshPage = () => {
   videoPlayerComposable.error.value = null
   videoPlayerComposable.resetErrorCounters()
@@ -1279,21 +1264,6 @@ onUnmounted(async () => {
   min-width: 0;
   display: flex;
   flex-direction: column;
-}
-
-.playback-header {
-  margin-bottom: 0;
-  flex-shrink: 0;
-  padding-top: 0.5rem;
-}
-
-.back-btn {
-  font-size: 0.875rem;
-  padding: 0.375rem 0.75rem;
-  align-self: flex-start;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
 }
 
 /* Fused Player Container */
