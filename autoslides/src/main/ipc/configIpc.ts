@@ -461,7 +461,7 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     customApiKey?: string;
     customModelName?: string;
     customModelChain?: string[];
-    customProviderId?: 'modelscope' | 'lm_studio' | 'nvidia' | 'agnes' | 'other';
+    customProviderId?: 'modelscope' | 'opencode_zen' | 'nvidia' | 'agnes' | 'other';
     copilotGhoToken?: string;
     copilotModelName?: string;
     copilotUsername?: string;

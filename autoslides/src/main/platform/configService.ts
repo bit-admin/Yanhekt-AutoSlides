@@ -849,8 +849,19 @@ export class ConfigService {
 
     // Migration: ensure customProviderId and customModelChain are populated for installs
     // that predate these fields. Only seed the chain for ModelScope (the only provider
-    // with a built-in preset model list).
-    const providerId = stored?.customProviderId ?? detectCustomProviderFromUrl(base.customApiBaseUrl);
+    // with a built-in preset model list). Drop retired ids (e.g. lm_studio → re-detect).
+    const VALID_CUSTOM_PROVIDER_IDS: CustomProviderId[] = [
+      'modelscope',
+      'opencode_zen',
+      'nvidia',
+      'agnes',
+      'other'
+    ];
+    const storedProviderId = stored?.customProviderId;
+    const providerId =
+      storedProviderId && VALID_CUSTOM_PROVIDER_IDS.includes(storedProviderId)
+        ? storedProviderId
+        : detectCustomProviderFromUrl(base.customApiBaseUrl);
     base.customProviderId = providerId;
 
     if (!Array.isArray(base.customModelChain) || base.customModelChain.length === 0) {

@@ -3,7 +3,7 @@ import type { TokenManager } from '@shared/services/authService'
 import { useCopilotOAuth, type CopilotOAuthStep } from './useCopilotOAuth'
 import { useMlClassifierSettings, type AIClassifierMode, type MlThresholdValues, type MlModelInfo } from './useMlClassifierSettings'
 import { useModelChain, type ModelPreset } from './useModelChain'
-import { detectCustomProvider, MODELSCOPE_API_BASE_URL, type CustomProviderId } from './providerDetect'
+import { detectCustomProvider, MODELSCOPE_API_BASE_URL, OPENCODE_ZEN_API_BASE_URL, type CustomProviderId } from './providerDetect'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('AISettings');
 
@@ -209,7 +209,7 @@ export function useAISettings(options: UseAISettingsOptions) {
   // Presets
   const apiUrlPresets: ApiUrlPreset[] = [
     { id: 'modelscope', label: 'ModelScope', url: MODELSCOPE_API_BASE_URL },
-    { id: 'lm_studio', label: 'LM Studio', url: 'http://localhost:1234/v1' },
+    { id: 'opencode_zen', label: 'OpenCode Zen', url: OPENCODE_ZEN_API_BASE_URL },
     { id: 'nvidia', label: 'NVIDIA NIM', url: 'https://integrate.api.nvidia.com/v1' },
     { id: 'agnes', label: 'Agnes AI', url: 'https://apihub.agnes-ai.com/v1' }
   ]
@@ -220,14 +220,16 @@ export function useAISettings(options: UseAISettingsOptions) {
       { label: 'Qwen3.5-122B-A10B', name: 'Qwen/Qwen3.5-122B-A10B' },
       { label: 'Qwen3.5-35B-A3B', name: 'Qwen/Qwen3.5-35B-A3B' },
       { label: 'Qwen3.5-27B', name: 'Qwen/Qwen3.5-27B' },
-      { label: 'Kimi-K2.5', name: 'moonshotai/Kimi-K2.5' }
+      { label: 'MiniMax-M3', name: 'MiniMax/MiniMax-M3' }
     ],
-    lm_studio: [],
+    opencode_zen: [
+      { label: 'mimo-v2.5-free', name: 'mimo-v2.5-free' }
+    ],
     nvidia: [
       { label: 'Qwen3.5-397B-A17B', name: 'qwen/qwen3.5-397b-a17b' },
       { label: 'Qwen3.5-122B-A10B', name: 'qwen/qwen3.5-122b-a10b' },
       { label: 'Kimi-K2.6', name: 'moonshotai/kimi-k2.6' },
-      { label: 'Kimi-K2.5', name: 'moonshotai/kimi-k2.5' },
+      { label: 'Minimax M3', name: 'minimaxai/minimax-m3' },
       { label: 'Gemma 4 31B IT', name: 'google/gemma-4-31b-it' }
     ],
     agnes: [

@@ -155,7 +155,7 @@ export class AIFilteringService {
       };
     }
 
-    // Custom (modelscope / lm_studio / other)
+    // Custom (modelscope / opencode_zen / nvidia / agnes / other)
     const apiKey = config.customApiKey;
     return {
       headers: {
