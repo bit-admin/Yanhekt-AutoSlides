@@ -78,6 +78,7 @@
         :selected-active-count="rv.selectedActiveItems.value.length"
         :selected-removed-count="rv.selectedRemovedItems.value.length"
         :selected-cropped-count="rv.selectedCroppedCount.value"
+        :selected-auto-crop-count="rv.selectedAutoCropCount.value"
         :export-disabled="exportDisabled"
         :exporting-format="slidesExport.exportingFormat.value"
         :export-progress="slidesExport.exportProgress.value"
@@ -93,6 +94,7 @@
         @delete-item="deleteSingleItem"
         @set-baseline-item="setBaselineSingleItem"
         @revert-crop-item="revertCropSingleItem"
+        @auto-crop-item="autoCropSingleItem"
         @toggle-select-all="toggleSelectAllFiltered"
         @restore="rv.restoreSelected()"
         @delete="deleteSelectedWithConfirm"
@@ -102,6 +104,7 @@
         @apply-baseline="applyBaselineSelected"
         @clear-baseline="rv.clearBaselineCrop()"
         @revert-crop="rv.revertCropSelected()"
+        @auto-crop="autoCropSelected"
       />
     </div>
 
@@ -117,6 +120,7 @@
       @close="rv.closePreview()"
       @restore="restoreFromPreview"
       @delete="deleteFromPreview"
+      @auto-crop="autoCropFromPreview"
       @navigate="rv.openPreview($event)"
     />
 
@@ -314,6 +318,39 @@ const applyBaselineSelected = async () => {
       failed: summary.failed,
     }),
   )
+}
+
+function formatAutoCropSummary(summary: {
+  cropped: number
+  noDetection: number
+  failed: number
+}): string {
+  return t('trash.autoCropSelectedSummary', {
+    cropped: summary.cropped,
+    noDetection: summary.noDetection,
+    failed: summary.failed,
+  })
+}
+
+const autoCropSelected = async () => {
+  if (rv.selectedAutoCropCount.value === 0) return
+  const summary = await rv.autoCropSelected()
+  window.alert(formatAutoCropSummary(summary))
+}
+
+const autoCropSingleItem = async (item: ResultsItem) => {
+  const summary = await rv.autoCropItem(item)
+  // Quiet when a single tile succeeds; surface misses/failures.
+  if (summary.noDetection > 0 || summary.failed > 0 || summary.cropped === 0) {
+    window.alert(formatAutoCropSummary(summary))
+  }
+}
+
+const autoCropFromPreview = async (item: ResultsItem) => {
+  const summary = await rv.autoCropItem(item)
+  if (summary.noDetection > 0 || summary.failed > 0 || summary.cropped === 0) {
+    window.alert(formatAutoCropSummary(summary))
+  }
 }
 
 const toggleSelectAllFiltered = () => {

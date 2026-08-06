@@ -25,7 +25,7 @@
           v-else-if="item.isCropped"
           class="badge badge--cropped image-crop-badge"
         >
-          {{ $t('trash.cropped') }}
+          {{ item.isAutoCropped ? $t('trash.autoCropped') : $t('trash.cropped') }}
         </span>
 
         <div class="image-checkbox" :class="{ checked: selectedIds.includes(item.id) }">
@@ -44,6 +44,17 @@
         </div>
         <div class="image-actions">
           <template v-if="item.status === 'removed'">
+            <!-- AI-edit trash: Auto Crop restores then crops (Electron parity). -->
+            <button
+              v-if="item.reason === 'ai_filtered_edit'"
+              type="button"
+              class="image-action image-action--text"
+              :title="$t('trash.autoCrop')"
+              :aria-label="$t('trash.autoCrop')"
+              @click.stop="onAutoCrop(item)"
+            >
+              {{ $t('trash.autoCrop') }}
+            </button>
             <button
               type="button"
               class="image-action image-action--restore"
@@ -118,6 +129,7 @@ const emit = defineEmits<{
   delete: [item: ResultsItem]
   'set-baseline': [item: ResultsItem]
   'revert-crop': [item: ResultsItem]
+  'auto-crop': [item: ResultsItem]
 }>()
 
 const { t } = useI18n()
@@ -164,6 +176,11 @@ function onSetBaseline(item: ResultsItem) {
 function onRevertCrop(item: ResultsItem) {
   clearClickTimer()
   emit('revert-crop', item)
+}
+
+function onAutoCrop(item: ResultsItem) {
+  clearClickTimer()
+  emit('auto-crop', item)
 }
 
 onUnmounted(clearClickTimer)

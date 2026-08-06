@@ -1,8 +1,8 @@
 // State engine for the Slides page.
 // Ported from autoslides/src/renderer/features/results/useResultsView.ts.
 // Storage goes through slideStore (IndexedDB) and thumbnails are Blob object
-// URLs — revoked on reset/goBack/unmount. Manual crop + baseline crop are
-// supported; auto-crop / post-crop dedup are not (yet).
+// URLs — revoked on reset/goBack/unmount. Manual + baseline + Canny auto-crop
+// (single / batch, restore-then-crop for ai_filtered_edit). No post-crop dedup.
 
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { formatToolFolderName, parseFolderDisplayName } from '../lib/toolFolders'
@@ -17,8 +17,10 @@ import {
   applyCropToSlide,
   restoreCropFromSlide,
   getSlideSourceBuffer,
+  getSlideCropSourceBlob,
 } from '../lib/slideStore'
 import { getImageBufferSize } from '../lib/imageCrop'
+import { createAutoCropWorkerClient } from '../workers/autoCropWorkerClient'
 import {
   createResultsDataIO,
   loadFolderSummaries as loadFolderSummariesCore,
@@ -34,6 +36,7 @@ import type {
   CropRect,
   BaselineCrop,
   BaselineCropActionSummary,
+  AutoCropActionSummary,
 } from './resultsTypes'
 import { createLogger } from '../lib/logger'
 const log = createLogger('ResultsView')
@@ -45,6 +48,23 @@ export type {
   CropRect,
   BaselineCrop,
   BaselineCropActionSummary,
+  AutoCropActionSummary,
+}
+
+/** Active slides, or AI-edit trash that can restore-then-crop (Electron parity). */
+export function canUseAsCropActionTarget(item: ResultsItem): boolean {
+  return (
+    item.status === 'active' ||
+    (item.status === 'removed' && item.reason === 'ai_filtered_edit')
+  )
+}
+
+interface AutoCropTarget {
+  /** Slide record id (`folder/filename`) used by applyCrop / getSlideCropSourceBlob. */
+  slideId: string
+  /** Trash entry id when restore is needed first. */
+  trashId?: string
+  needsRestore: boolean
 }
 
 export function useResultsView() {
@@ -389,13 +409,46 @@ export function useResultsView() {
    * Soft-refresh folder items without closing the preview: rebuild items,
    * refresh thumbs for changed crop state, re-bind previewItem only when a
    * preview is already open (never open the viewer as a side effect).
+   *
+   * Always re-reads trash from IDB — restore-then-crop (and any soft path that
+   * mutates trash) would otherwise leave a ghost removed tile next to the
+   * restored active slide, because buildFolderItems joins the in-memory
+   * trashEntries snapshot.
    */
   async function softRefreshFolder() {
     if (!currentFolder.value) return
     const folder = currentFolder.value
-    const openPreviewId = previewItem.value?.id ?? null
-    const items = await buildFolderItems(folder)
+    // Capture identity keys before rebuild — trash UUID becomes folder/filename after restore.
+    const prev = previewItem.value
+    const openPreviewKeys = prev
+      ? new Set(
+          [prev.id, prev.imagePath, prev.originalPath, prev.trashPath].filter(
+            (k): k is string => !!k,
+          ),
+        )
+      : null
+
+    // Keep trash join current with IDB (restore/delete soft paths).
+    trashEntries.value = await dataIO.getTrashEntries()
+    const removedCount = trashEntries.value.filter(
+      (entry) => entry.originalParentFolder === folder.name,
+    ).length
+    if (folder.removedCount !== removedCount) {
+      const nextFolder = { ...folder, removedCount }
+      currentFolder.value = nextFolder
+      folders.value = folders.value.map((f) =>
+        f.name === folder.name ? { ...f, removedCount } : f,
+      )
+    }
+
+    const items = await buildFolderItems(currentFolder.value)
     folderItems.value = items
+
+    // Drop selection ids that no longer exist (e.g. trash UUID after restore).
+    if (selectedIds.value.length > 0) {
+      const live = new Set(items.map((i) => i.id))
+      selectedIds.value = selectedIds.value.filter((id) => live.has(id))
+    }
 
     // Always re-fetch thumbs for active items that are cropped or were just restored
     // (blob bytes changed under the same path key).
@@ -411,14 +464,20 @@ export function useResultsView() {
     }
     await loadThumbnails(items)
 
-    if (openPreviewId) {
-      const next = items.find((i) => i.id === openPreviewId || i.imagePath === openPreviewId)
+    if (openPreviewKeys && openPreviewKeys.size > 0) {
+      const next = items.find((i) =>
+        [i.id, i.imagePath, i.originalPath, i.trashPath].some(
+          (k) => !!k && openPreviewKeys.has(k),
+        ),
+      )
       previewItem.value = next ?? null
     }
 
     // Keep folder.metadata.review.cropped in sync if we have metadata.
-    if (folder.metadata?.review) {
-      folder.metadata.review.cropped = items.some((i) => i.status === 'active' && i.isCropped)
+    if (currentFolder.value.metadata?.review) {
+      currentFolder.value.metadata.review.cropped = items.some(
+        (i) => i.status === 'active' && i.isCropped,
+      )
     }
   }
 
@@ -557,6 +616,100 @@ export function useResultsView() {
     () => selectedActiveItems.value.filter((item) => item.isCropped).length,
   )
 
+  const selectedAutoCropTargets = computed(() =>
+    selectedItems.value.filter(canUseAsCropActionTarget),
+  )
+
+  const selectedAutoCropCount = computed(() => selectedAutoCropTargets.value.length)
+
+  function buildAutoCropTarget(item: ResultsItem): AutoCropTarget | null {
+    if (item.status === 'active') {
+      const slideId = item.imagePath || item.id
+      if (!slideId) return null
+      return { slideId, needsRestore: false }
+    }
+    if (item.status === 'removed' && item.reason === 'ai_filtered_edit') {
+      // After restore, slide id is originalPath / trashPath (folder/filename).
+      const slideId = item.originalPath || item.trashPath
+      if (!slideId || !item.id) return null
+      return { slideId, trashId: item.id, needsRestore: true }
+    }
+    return null
+  }
+
+  async function runAutoCropOnTargets(items: ResultsItem[]): Promise<AutoCropActionSummary> {
+    const summary: AutoCropActionSummary = { cropped: 0, noDetection: 0, failed: 0 }
+    const targets = items
+      .map(buildAutoCropTarget)
+      .filter((t): t is AutoCropTarget => t !== null)
+    if (targets.length === 0) return summary
+
+    isLoading.value = true
+    const client = createAutoCropWorkerClient()
+    try {
+      const toRestore = targets
+        .filter((t) => t.needsRestore && t.trashId)
+        .map((t) => t.trashId as string)
+      if (toRestore.length > 0) {
+        await restoreTrashEntries(toRestore)
+        editStaged = true
+      }
+
+      for (const target of targets) {
+        try {
+          const blob = await getSlideCropSourceBlob(target.slideId)
+          if (!blob) {
+            summary.failed++
+            continue
+          }
+          const imageData = await client.blobToImageData(blob)
+          const response = await client.detectBbox(imageData, false)
+          if (!response.success || !response.result?.bbox) {
+            summary.noDetection++
+            continue
+          }
+          const { x, y, w, h } = response.result.bbox
+          if (w < 20 || h < 20) {
+            summary.noDetection++
+            continue
+          }
+          const ok = await applyCropToSlide(
+            target.slideId,
+            { x, y, width: w, height: h },
+            true,
+          )
+          if (ok) summary.cropped++
+          else summary.failed++
+        } catch (err) {
+          log.error(`Auto-crop failed for ${target.slideId}:`, err)
+          summary.failed++
+        }
+      }
+
+      if (summary.cropped > 0 || toRestore.length > 0) {
+        editStaged = true
+        await softRefreshFolder()
+      }
+    } finally {
+      client.destroy()
+      isLoading.value = false
+    }
+    return summary
+  }
+
+  /** Batch Canny auto-crop: active + ai_filtered_edit (restore-then-crop). */
+  async function autoCropSelected(): Promise<AutoCropActionSummary> {
+    return runAutoCropOnTargets(selectedAutoCropTargets.value)
+  }
+
+  /** Single-item auto-crop (grid / preview); same eligibility as batch. */
+  async function autoCropItem(item: ResultsItem): Promise<AutoCropActionSummary> {
+    if (!canUseAsCropActionTarget(item)) {
+      return { cropped: 0, noDetection: 0, failed: 1 }
+    }
+    return runAutoCropOnTargets([item])
+  }
+
   async function deleteSelected() {
     if (selectedActiveItems.value.length === 0) return
 
@@ -651,6 +804,7 @@ export function useResultsView() {
     selectedActiveItems,
     selectedRemovedItems,
     selectedCroppedCount,
+    selectedAutoCropCount,
     selectedReason,
     contextMode,
     thumbnails,
@@ -675,6 +829,8 @@ export function useResultsView() {
     clearBaselineCrop,
     applyBaselineToSelected,
     revertCropSelected,
+    autoCropSelected,
+    autoCropItem,
     deleteSelected,
     restoreSelected,
     clearTrash,

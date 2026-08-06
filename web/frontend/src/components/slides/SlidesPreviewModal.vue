@@ -30,7 +30,9 @@
             <span v-if="statusLabel" class="viewer-meta-dot">·</span>
             <span v-if="statusLabel">{{ statusLabel }}</span>
             <span v-if="item.isCropped && item.status === 'active'" class="viewer-meta-dot">·</span>
-            <span v-if="item.isCropped && item.status === 'active'" class="viewer-cropped">{{ $t('trash.cropped') }}</span>
+            <span v-if="item.isCropped && item.status === 'active'" class="viewer-cropped">{{
+              item.isAutoCropped ? $t('trash.autoCropped') : $t('trash.cropped')
+            }}</span>
             <span v-if="reasonText" class="viewer-meta-dot">·</span>
             <span v-if="reasonText">{{ reasonText }}</span>
           </div>
@@ -42,15 +44,23 @@
             <button
               type="button"
               class="viewer-text-btn"
-              :disabled="isLoading"
+              :disabled="isLoading || isAutoCropDetecting"
               @click="cancelCropMode"
             >
               {{ $t('trash.cancel') }}
             </button>
             <button
               type="button"
+              class="viewer-text-btn"
+              :disabled="isLoading || isAutoCropDetecting"
+              @click="startAutoCropMode"
+            >
+              {{ isAutoCropDetecting ? '…' : $t('trash.autoCrop') }}
+            </button>
+            <button
+              type="button"
               class="viewer-text-btn viewer-text-btn--accent"
-              :disabled="!canApplyCrop || isLoading"
+              :disabled="!canApplyCrop || isLoading || isAutoCropDetecting"
               @click="applyCrop"
             >
               {{ $t('trash.applyCrop') }}
@@ -109,14 +119,26 @@
               </svg>
             </button>
           </template>
-          <button
-            v-else
-            type="button"
-            class="viewer-text-btn"
-            @click="$emit('restore', item)"
-          >
-            {{ $t('trash.restore') }}
-          </button>
+          <template v-else>
+            <button
+              v-if="item.reason === 'ai_filtered_edit'"
+              type="button"
+              class="viewer-text-btn"
+              :disabled="isLoading"
+              :title="$t('trash.autoCrop')"
+              @click="$emit('auto-crop', item)"
+            >
+              {{ $t('trash.autoCrop') }}
+            </button>
+            <button
+              type="button"
+              class="viewer-text-btn"
+              :disabled="isLoading"
+              @click="$emit('restore', item)"
+            >
+              {{ $t('trash.restore') }}
+            </button>
+          </template>
           <button
             type="button"
             class="viewer-icon-btn"
@@ -272,6 +294,7 @@ const emit = defineEmits<{
   restore: [item: ResultsItem]
   delete: [item: ResultsItem]
   navigate: [item: ResultsItem]
+  'auto-crop': [item: ResultsItem]
 }>()
 
 const { t } = useI18n()
@@ -283,6 +306,7 @@ const thumbnailsRef = toRef(props, 'thumbnails')
 
 const {
   isCropMode,
+  isAutoCropDetecting,
   cropRectPx,
   previewStageShell,
   previewStage,
@@ -296,6 +320,7 @@ const {
   resetCropState,
   handlePreviewImageLoad,
   startCropMode,
+  startAutoCropMode,
   cancelCropMode,
   handleCropStagePointerDown,
   startCropInteraction,

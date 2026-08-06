@@ -33,6 +33,13 @@ export interface BaselineCropActionSummary {
   failed: number
 }
 
+/** Summary for batch / single Canny auto-crop (no post-crop dedup this phase). */
+export interface AutoCropActionSummary {
+  cropped: number
+  noDetection: number
+  failed: number
+}
+
 export interface ResultsFolder {
   name: string
   path?: string

@@ -1,10 +1,12 @@
 // Crop-editor state machine for the web Slides preview modal.
 // Ported from autoslides/src/renderer/features/results/useCropEditor.ts —
-// pure rect math + pointer UI kept; Electron IPC / auto-crop / demo overrides
-// replaced with slideStore Blob URLs and apply/restore callbacks.
+// pure rect math + pointer UI kept; Electron IPC / demo overrides replaced
+// with slideStore Blob URLs, apply/restore callbacks, and Canny auto-crop.
 
 import { computed, nextTick, onBeforeUnmount, ref, watch, type Ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { getSlideCropSourceBlob } from '../lib/slideStore'
+import { createAutoCropWorkerClient } from '../workers/autoCropWorkerClient'
 import type { CropRect, ResultsItem } from './resultsTypes'
 import { createLogger } from '../lib/logger'
 
@@ -29,8 +31,12 @@ const minimumCropSize = 20
 
 export function useCropEditor(deps: CropEditorDeps) {
   const { previewItem, isLoading, thumbnails, applyCropToImage, restoreCropFromImage } = deps
+  const { t } = useI18n()
 
   const isCropMode = ref(false)
+  const isAutoCropDetecting = ref(false)
+  /** True after a successful Canny detect until apply/cancel — marks isAutoCropped. */
+  const isAutoCropPending = ref(false)
   const cropEditorImageSrc = ref('')
   const cropImageNaturalSize = ref({ width: 0, height: 0 })
   const cropRectPx = ref<CropRect | null>(null)
@@ -42,6 +48,7 @@ export function useCropEditor(deps: CropEditorDeps) {
   const cropSourceRequestId = ref(0)
   /** Object URL for crop-source bytes; revoked on reset. */
   let cropSourceObjectUrl: string | null = null
+  const autoCropClient = createAutoCropWorkerClient()
 
   const previewImageSrc = computed(() => {
     if (!previewItem.value) return ''
@@ -151,12 +158,52 @@ export function useCropEditor(deps: CropEditorDeps) {
 
   const resetCropState = () => {
     isCropMode.value = false
+    isAutoCropDetecting.value = false
+    isAutoCropPending.value = false
     cropEditorImageSrc.value = ''
     cropImageNaturalSize.value = { width: 0, height: 0 }
     cropRectPx.value = null
     cropInteraction.value = null
     cropSourceRequestId.value += 1
     revokeCropSourceUrl()
+  }
+
+  /**
+   * Ensure crop-mode source (original if cropped) is loaded and return its Blob.
+   * Reuses an already-open crop session when possible.
+   */
+  const ensureCropSourceBlob = async (
+    activeItem: ResultsItem,
+    requestId: number,
+  ): Promise<Blob | null> => {
+    if (activeItem.status !== 'active' || !activeItem.imagePath) return null
+
+    // Already in crop mode with a live source URL — re-fetch blob for ImageData.
+    const sourceBlob = await getSlideCropSourceBlob(activeItem.imagePath)
+    if (!sourceBlob) return null
+    if (requestId !== cropSourceRequestId.value) return null
+
+    if (!isCropMode.value || !cropSourceObjectUrl) {
+      revokeCropSourceUrl()
+      cropSourceObjectUrl = URL.createObjectURL(sourceBlob)
+      const cropSource = cropSourceObjectUrl
+      const size = await loadImageSize(cropSource)
+      if (requestId !== cropSourceRequestId.value) return null
+
+      cropEditorImageSrc.value = cropSource
+      cropImageNaturalSize.value = size
+      if (!isCropMode.value) {
+        cropRectPx.value =
+          activeItem.isCropped && activeItem.cropRect
+            ? sanitizeCropRect({ ...activeItem.cropRect })
+            : null
+        cropInteraction.value = null
+        isCropMode.value = true
+        await observePreviewStageShell()
+      }
+    }
+
+    return sourceBlob
   }
 
   const disconnectPreviewResizeObserver = () => {
@@ -333,6 +380,7 @@ export function useCropEditor(deps: CropEditorDeps) {
           : null
 
       cropInteraction.value = null
+      isAutoCropPending.value = false
       isCropMode.value = true
       await observePreviewStageShell()
     } catch (error) {
@@ -344,8 +392,64 @@ export function useCropEditor(deps: CropEditorDeps) {
     resetCropState()
   }
 
+  /**
+   * Run Canny auto-detect and seed the crop rect.
+   * Intended from crop mode (Cancel · Auto Crop · Apply); also enters crop mode
+   * if called while outside so the path stays usable later.
+   */
+  const startAutoCropMode = async () => {
+    const activeItem = previewItem.value
+    if (!activeItem || isAutoCropDetecting.value || isLoading.value) return
+    if (activeItem.status !== 'active' || !activeItem.imagePath) return
+    // Allow when already in crop mode, or when uncropped/recroppable.
+    if (!isCropMode.value && !canStartCrop.value && !canRecrop.value) return
+
+    const requestId = cropSourceRequestId.value + 1
+    cropSourceRequestId.value = requestId
+    isAutoCropDetecting.value = true
+
+    try {
+      const sourceBlob = await ensureCropSourceBlob(activeItem, requestId)
+      if (!sourceBlob || requestId !== cropSourceRequestId.value) return
+
+      const imageData = await autoCropClient.blobToImageData(sourceBlob)
+      if (requestId !== cropSourceRequestId.value) return
+
+      const response = await autoCropClient.detectBbox(imageData, false)
+      if (requestId !== cropSourceRequestId.value) return
+
+      if (!response.success || !response.result?.bbox) {
+        window.alert(
+          `${t('trash.autoCropNoDetectionTitle')}\n\n${t('trash.autoCropNoDetectionMessage')}`,
+        )
+        return
+      }
+
+      const { x, y, w, h } = response.result.bbox
+      const next = sanitizeCropRect({ x, y, width: w, height: h })
+      if (!next || next.width < minimumCropSize || next.height < minimumCropSize) {
+        window.alert(
+          `${t('trash.autoCropNoDetectionTitle')}\n\n${t('trash.autoCropNoDetectionMessage')}`,
+        )
+        return
+      }
+
+      cropRectPx.value = next
+      cropInteraction.value = null
+      isAutoCropPending.value = true
+      if (!isCropMode.value) {
+        isCropMode.value = true
+        await observePreviewStageShell()
+      }
+    } catch (error) {
+      log.error('Failed to run auto-crop detection:', error)
+    } finally {
+      isAutoCropDetecting.value = false
+    }
+  }
+
   const handleCropStagePointerDown = (event: PointerEvent) => {
-    if (!isCropMode.value || event.button !== 0) return
+    if (!isCropMode.value || event.button !== 0 || isAutoCropDetecting.value) return
 
     const point = getCropPointFromEvent(event)
     if (!point) return
@@ -451,14 +555,14 @@ export function useCropEditor(deps: CropEditorDeps) {
 
   const applyCrop = async () => {
     const item = previewItem.value
-    if (!item || !cropRectPx.value) return
+    if (!item || !cropRectPx.value || isAutoCropDetecting.value) return
 
     const rect = sanitizeCropRect(cropRectPx.value)
     if (!rect) return
 
     if (item.status !== 'active' || !item.imagePath) return
 
-    const success = await applyCropToImage(item.imagePath, rect, false)
+    const success = await applyCropToImage(item.imagePath, rect, isAutoCropPending.value)
     if (success) {
       resetCropState()
     }
@@ -502,10 +606,13 @@ export function useCropEditor(deps: CropEditorDeps) {
     window.removeEventListener('pointermove', handleGlobalCropPointerMove)
     window.removeEventListener('pointerup', handleGlobalCropPointerUp)
     revokeCropSourceUrl()
+    autoCropClient.destroy()
   })
 
   return {
     isCropMode,
+    isAutoCropDetecting,
+    isAutoCropPending,
     cropRectPx,
     previewStageShell,
     previewStage,
@@ -520,6 +627,7 @@ export function useCropEditor(deps: CropEditorDeps) {
     resetCropState,
     handlePreviewImageLoad,
     startCropMode,
+    startAutoCropMode,
     cancelCropMode,
     handleCropStagePointerDown,
     startCropInteraction,

@@ -110,6 +110,15 @@
             <button
               type="button"
               class="sm-btn"
+              :disabled="selectedAutoCropCount === 0 || loading"
+              :title="$t('trash.autoCropSelectedHint')"
+              @click="$emit('auto-crop')"
+            >
+              {{ $t('trash.autoCropSelected') }}
+            </button>
+            <button
+              type="button"
+              class="sm-btn"
               :disabled="selectedRemovedCount === 0 || loading"
               @click="$emit('restore')"
             >
@@ -224,6 +233,7 @@
           @delete="$emit('delete-item', $event)"
           @set-baseline="$emit('set-baseline-item', $event)"
           @revert-crop="$emit('revert-crop-item', $event)"
+          @auto-crop="$emit('auto-crop-item', $event)"
         />
       </div>
 
@@ -265,6 +275,7 @@ const props = withDefaults(
     selectedActiveCount: number
     selectedRemovedCount: number
     selectedCroppedCount?: number
+    selectedAutoCropCount?: number
     exportDisabled: boolean
     exportingFormat: ExportFormat | null
     exportProgress: { current: number; total: number }
@@ -274,6 +285,7 @@ const props = withDefaults(
   }>(),
   {
     selectedCroppedCount: 0,
+    selectedAutoCropCount: 0,
     hasBaseline: false,
   },
 )
@@ -288,6 +300,7 @@ const emit = defineEmits<{
   'delete-item': [item: ResultsItem]
   'set-baseline-item': [item: ResultsItem]
   'revert-crop-item': [item: ResultsItem]
+  'auto-crop-item': [item: ResultsItem]
   'toggle-select-all': []
   restore: []
   delete: []
@@ -297,6 +310,7 @@ const emit = defineEmits<{
   'apply-baseline': []
   'clear-baseline': []
   'revert-crop': []
+  'auto-crop': []
 }>()
 
 const { t } = useI18n()
