@@ -106,7 +106,7 @@ function makeSlidesExport(
 }
 
 export function registerPdfMakerIpcHandlers(services: IpcServices): void {
-  const { configService, slideExtractionService, slideMetadataService, pdfService } = services;
+  const { configService, slideExtractionService, slideMetadataService, slideTimelineService, pdfService } = services;
 
   ipcMain.handle('pdfmaker:getFolders', async () => {
     try {
@@ -175,6 +175,11 @@ export function registerPdfMakerIpcHandlers(services: IpcServices): void {
       // Manual delete during review: stage `edited`, latched to disk once the
       // renderer confirms the user returned to the folder list.
       slideMetadataService.stageEdited(outputPath);
+      try {
+        await slideTimelineService.applyTrashOutcome(outputPath, filename, 'manual');
+      } catch (timelineError) {
+        log.warn('Timeline update after manual delete failed:', timelineError);
+      }
       return { success: true };
     } catch (error) {
       log.error('Failed to delete image:', error);

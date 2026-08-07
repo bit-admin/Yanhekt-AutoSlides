@@ -30,6 +30,7 @@ import { pdfService } from '@main/export/pdfService';
 import { noteExportService } from '@main/export/noteExportService';
 import { slideExtractionService } from '@main/extraction/slideExtractionService';
 import { slideMetadataService } from '@main/extraction/slideMetadataService';
+import { slideTimelineService } from '@main/extraction/slideTimelineService';
 import { offlineProcessingService } from '@main/extraction/offlineProcessingService';
 import { cacheManagementService } from '@main/platform/cacheManagementService';
 import { registerAllIpcHandlers } from '@main/ipc';
@@ -238,6 +239,7 @@ registerAllIpcHandlers({
   noteExportService,
   slideExtractionService,
   slideMetadataService,
+  slideTimelineService,
   offlineProcessingService,
   cacheManagementService,
   notesService

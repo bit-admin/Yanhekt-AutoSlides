@@ -42,6 +42,18 @@ export function registerSlideExtractionIpcHandlers(services: IpcServices): void 
   ipcMain.handle('slideExtraction:moveToInAppTrash', async (_event, outputPath: string, filename: string, metadata: TrashMetadata) => {
     try {
       await slideExtractionService.moveToInAppTrash(outputPath, filename, metadata);
+      // Best-effort timeline update (recorded/builtin folders only have timeline.json).
+      try {
+        const { slideTimelineService } = services;
+        await slideTimelineService.applyTrashOutcome(
+          outputPath,
+          filename,
+          metadata.reason,
+          metadata.duplicateOf
+        );
+      } catch (timelineError) {
+        log.warn('Timeline update after trash failed:', timelineError);
+      }
       return { success: true };
     } catch (error) {
       log.error('Failed to move slide to in-app trash:', error);

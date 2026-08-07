@@ -22,6 +22,14 @@ import type {
   SlideExtractionMeta,
   SlidePostProcessingMeta,
 } from './shared/slideMetadataTypes';
+import type {
+  SlideTimeline,
+  RecordCaptureConfirmedPayload,
+  RecordGapBoundaryPayload,
+  RelinkDuplicatePayload,
+  UnlinkToGapPayload,
+  RestoreCanonicalPayload,
+} from './shared/sidecars';
 
 declare const _MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const _MAIN_WINDOW_VITE_NAME: string;
@@ -924,6 +932,28 @@ interface ElectronAPI {
     write: (folderPath: string, metadata: SlideMetadata) => Promise<{ success: boolean }>;
     markReviewed: (folderPath: string) => Promise<{ success: boolean }>;
     commitEdited: (folderPath: string) => Promise<{ success: boolean; result: { cropped?: boolean } | null }>;
+  };
+
+  slideTimeline: {
+    get: (folderPath: string) => Promise<SlideTimeline | null>;
+    recordCaptureConfirmed: (
+      folderPath: string,
+      payload: RecordCaptureConfirmedPayload
+    ) => Promise<{ success: boolean }>;
+    recordGapBoundary: (
+      folderPath: string,
+      payload: RecordGapBoundaryPayload
+    ) => Promise<{ success: boolean }>;
+    relinkDuplicate: (
+      folderPath: string,
+      payload: RelinkDuplicatePayload
+    ) => Promise<{ success: boolean }>;
+    unlinkToGap: (folderPath: string, payload: UnlinkToGapPayload) => Promise<{ success: boolean }>;
+    restoreCanonical: (
+      folderPath: string,
+      payload: RestoreCanonicalPayload
+    ) => Promise<{ success: boolean }>;
+    clear: (folderPath: string) => Promise<{ success: boolean }>;
   };
 
   pdfmaker: {

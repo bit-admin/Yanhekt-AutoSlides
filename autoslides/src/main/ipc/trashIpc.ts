@@ -5,7 +5,7 @@ import { createLogger } from '@main/infra/logger';
 const log = createLogger('TrashIpc');
 
 export function registerTrashIpcHandlers(services: IpcServices): void {
-  const { configService, slideExtractionService, slideMetadataService } = services;
+  const { configService, slideExtractionService, slideMetadataService, slideTimelineService } = services;
 
   ipcMain.handle('trash:getEntries', async () => {
     try {
@@ -26,9 +26,20 @@ export function registerTrashIpcHandlers(services: IpcServices): void {
       const affectedFolders = new Set(
         entries.filter(e => ids.includes(e.id)).map(e => path.dirname(e.originalPath))
       );
+      const toRestore = entries.filter(e => ids.includes(e.id));
       const result = await slideExtractionService.restoreFromTrash(ids, outputDir);
       for (const folderPath of affectedFolders) {
         slideMetadataService.stageEdited(folderPath);
+      }
+      // Best-effort: restore timeline resolution for each restored file.
+      for (const entry of toRestore) {
+        try {
+          await slideTimelineService.restoreCanonical(path.dirname(entry.originalPath), {
+            file: entry.filename,
+          });
+        } catch (timelineError) {
+          log.warn(`Timeline restoreCanonical failed for ${entry.filename}:`, timelineError);
+        }
       }
       return result;
     } catch (error) {

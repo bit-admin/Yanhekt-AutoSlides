@@ -57,7 +57,8 @@ export async function runDuplicatePhase(
       const moved = await dataSource.moveToTrash(
         item.filename,
         'duplicate',
-        `Duplicate of ${duplicateOf}`
+        `Duplicate of ${duplicateOf}`,
+        duplicateOf
       )
       if (moved) {
         removed.push(item.filename)

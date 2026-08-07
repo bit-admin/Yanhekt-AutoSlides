@@ -86,8 +86,8 @@ export function createSlideExtractionDataSource(outputPath: string): PipelineDat
         return null
       }
     },
-    async moveToTrash(filename, reason: TrashReason, reasonDetails: string) {
-      return moveToTrash({ outputPath, filename, reason, reasonDetails })
+    async moveToTrash(filename, reason: TrashReason, reasonDetails: string, duplicateOf?: string) {
+      return moveToTrash({ outputPath, filename, reason, reasonDetails, duplicateOf })
     }
   }
 }
@@ -117,10 +117,10 @@ export function createOfflineDataSource(outputDir: string): PipelineDataSource {
         return null
       }
     },
-    async moveToTrash(filename, reason: TrashReason, reasonDetails: string) {
+    async moveToTrash(filename, reason: TrashReason, reasonDetails: string, duplicateOf?: string) {
       // Offline output ends up in the same trash subfolder relative to its
       // directory, so the same slideExtraction trash IPC handles it.
-      return moveToTrash({ outputPath: outputDir, filename, reason, reasonDetails })
+      return moveToTrash({ outputPath: outputDir, filename, reason, reasonDetails, duplicateOf })
     }
   }
 }

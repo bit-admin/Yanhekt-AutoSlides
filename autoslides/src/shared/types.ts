@@ -309,6 +309,8 @@ export type TrashReason = 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filter
 export interface TrashMetadata {
   reason: TrashReason;
   reasonDetails?: string;
+  /** Structured first-kept filename when reason === 'duplicate'. Prefer this over parsing reasonDetails. */
+  duplicateOf?: string;
 }
 
 export interface TrashEntry {
@@ -319,6 +321,8 @@ export interface TrashEntry {
   trashPath: string;
   reason: TrashReason;
   reasonDetails?: string;
+  /** Structured first-kept filename when reason === 'duplicate'. */
+  duplicateOf?: string;
   trashedAt: string;
 }
 

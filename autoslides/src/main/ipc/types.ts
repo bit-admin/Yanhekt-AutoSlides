@@ -21,6 +21,7 @@ import type { PdfService } from '@main/export/pdfService';
 import type { NoteExportService } from '@main/export/noteExportService';
 import type { SlideExtractionService } from '@main/extraction/slideExtractionService';
 import type { SlideMetadataService } from '@main/extraction/slideMetadataService';
+import type { SlideTimelineService } from '@main/extraction/slideTimelineService';
 import type { OfflineProcessingService } from '@main/extraction/offlineProcessingService';
 import type { CacheManagementService } from '@main/platform/cacheManagementService';
 import type { NotesService } from '@main/platform/notesService';
@@ -53,6 +54,7 @@ export interface IpcServices {
   noteExportService: NoteExportService;
   slideExtractionService: SlideExtractionService;
   slideMetadataService: SlideMetadataService;
+  slideTimelineService: SlideTimelineService;
   offlineProcessingService: OfflineProcessingService;
   cacheManagementService: CacheManagementService;
   notesService: NotesService;

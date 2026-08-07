@@ -255,6 +255,7 @@ export class SlideExtractionService {
         trashPath: trashFilePath,
         reason: metadata.reason,
         reasonDetails: metadata.reasonDetails,
+        duplicateOf: metadata.duplicateOf,
         trashedAt: new Date().toISOString()
       };
 

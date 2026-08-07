@@ -11,13 +11,16 @@ export interface MoveToTrashOptions {
   filename: string
   reason: TrashReason
   reasonDetails: string
+  /** Structured first-kept filename when reason === 'duplicate'. */
+  duplicateOf?: string
 }
 
 export async function moveToTrash(opts: MoveToTrashOptions): Promise<boolean> {
   try {
     await window.electronAPI.slideExtraction.moveToInAppTrash(opts.outputPath, opts.filename, {
       reason: opts.reason,
-      reasonDetails: opts.reasonDetails
+      reasonDetails: opts.reasonDetails,
+      duplicateOf: opts.duplicateOf,
     })
     return true
   } catch (error) {

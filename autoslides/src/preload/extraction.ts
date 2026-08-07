@@ -13,8 +13,16 @@ export const slideExtraction = {
   ensureDirectory: (path: string) => ipcRenderer.invoke('slideExtraction:ensureDirectory', path),
   deleteSlide: (outputPath: string, filename: string) =>
     ipcRenderer.invoke('slideExtraction:deleteSlide', outputPath, filename),
-  moveToInAppTrash: (outputPath: string, filename: string, metadata: { reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual'; reasonDetails?: string }) =>
-    ipcRenderer.invoke('slideExtraction:moveToInAppTrash', outputPath, filename, metadata),
+  moveToInAppTrash: (
+    outputPath: string,
+    filename: string,
+    metadata: {
+      reason: 'duplicate' | 'exclusion' | 'ai_filtered' | 'ai_filtered_edit' | 'manual';
+      reasonDetails?: string;
+      /** Structured target when reason === 'duplicate' (filename of first-kept slide). */
+      duplicateOf?: string;
+    }
+  ) => ipcRenderer.invoke('slideExtraction:moveToInAppTrash', outputPath, filename, metadata),
   readSlideAsBase64: (outputPath: string, filename: string) =>
     ipcRenderer.invoke('slideExtraction:readSlideAsBase64', outputPath, filename),
   readSlideForAI: (outputPath: string, filename: string, targetWidth: number, targetHeight: number) =>
@@ -71,6 +79,30 @@ export const slideMetadata = {
       success: boolean;
       result: { cropped?: boolean } | null;
     }>,
+};
+
+export const slideTimeline = {
+  get: (folderPath: string) =>
+    ipcRenderer.invoke('slideTimeline:get', folderPath) as Promise<import('@common/sidecars').SlideTimeline | null>,
+  recordCaptureConfirmed: (
+    folderPath: string,
+    payload: import('@common/sidecars').RecordCaptureConfirmedPayload
+  ) => ipcRenderer.invoke('slideTimeline:recordCaptureConfirmed', folderPath, payload),
+  recordGapBoundary: (
+    folderPath: string,
+    payload: import('@common/sidecars').RecordGapBoundaryPayload
+  ) => ipcRenderer.invoke('slideTimeline:recordGapBoundary', folderPath, payload),
+  relinkDuplicate: (
+    folderPath: string,
+    payload: import('@common/sidecars').RelinkDuplicatePayload
+  ) => ipcRenderer.invoke('slideTimeline:relinkDuplicate', folderPath, payload),
+  unlinkToGap: (folderPath: string, payload: import('@common/sidecars').UnlinkToGapPayload) =>
+    ipcRenderer.invoke('slideTimeline:unlinkToGap', folderPath, payload),
+  restoreCanonical: (
+    folderPath: string,
+    payload: import('@common/sidecars').RestoreCanonicalPayload
+  ) => ipcRenderer.invoke('slideTimeline:restoreCanonical', folderPath, payload),
+  clear: (folderPath: string) => ipcRenderer.invoke('slideTimeline:clear', folderPath),
 };
 
 export const autoCrop = {

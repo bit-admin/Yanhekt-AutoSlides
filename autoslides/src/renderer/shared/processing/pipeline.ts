@@ -27,6 +27,11 @@ import type {
   SlideExtractionStatus,
   SlideSourceMode,
 } from './types';
+import {
+  clearTimeline,
+  recordCaptureConfirmed,
+  recordGapBoundary,
+} from '@shared/services/slideTimelineClient';
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ProcessingPipeline');
 
@@ -250,6 +255,10 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
   clearSlides(): void {
     this.extractedSlides = [];
 
+    if (this.shouldRecordTimeline() && this.outputPath) {
+      void clearTimeline(this.outputPath);
+    }
+
     const event = new CustomEvent('slidesCleared', {
       detail: { instanceId: this.instanceId, mode: this.mode },
     });
@@ -364,15 +373,45 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
   private async handleFrame(imageData: ImageData): Promise<void> {
     if (!this.isRunning) return;
 
-    const decision = await this.detector.process(imageData);
+    const mediaTime = this.readMediaTime();
+    const decision = await this.detector.process(imageData, mediaTime);
     this.emitStatus();
 
+    if (decision.unstableAbort && this.shouldRecordTimeline()) {
+      const changeAt = decision.changeAt ?? mediaTime;
+      const confirmedAt = decision.confirmedAt ?? mediaTime;
+      if (typeof changeAt === 'number' && typeof confirmedAt === 'number' && this.outputPath) {
+        void recordGapBoundary(this.outputPath, {
+          changeAt,
+          confirmedAt,
+          reason: 'unstable',
+        });
+      }
+    }
+
     if (decision.acceptedImage) {
-      await this.persistSlide(decision.acceptedImage);
+      await this.persistSlide(decision.acceptedImage, decision.changeAt, decision.confirmedAt ?? mediaTime);
     }
   }
 
-  private async persistSlide(imageData: ImageData): Promise<void> {
+  /** v1 timeline: recorded + builtin video extraction only. */
+  private shouldRecordTimeline(): boolean {
+    return this.mode === 'recorded' && this.sourceMode === 'video' && !!this.outputPath;
+  }
+
+  private readMediaTime(): number | undefined {
+    if (this.sourceMode !== 'video') return undefined;
+    const video = this.resolveVideoElement();
+    if (!video) return undefined;
+    const t = video.currentTime;
+    return Number.isFinite(t) ? t : undefined;
+  }
+
+  private async persistSlide(
+    imageData: ImageData,
+    changeAt?: number,
+    confirmedAt?: number
+  ): Promise<void> {
     const result = await saveSlide(imageData, {
       outputPath: this.outputPath,
       courseInfo: this.courseInfo,
@@ -380,6 +419,19 @@ export class SlideExtractionPipeline implements SlideExtractionHandle {
     if (!result) return;
 
     this.extractedSlides.push(result.slide);
+
+    if (this.shouldRecordTimeline() && this.outputPath && result.fileWritten) {
+      const file = `${result.slide.title}.png`;
+      const cAt = typeof changeAt === 'number' ? changeAt : confirmedAt;
+      const confAt = typeof confirmedAt === 'number' ? confirmedAt : changeAt;
+      if (typeof cAt === 'number' && typeof confAt === 'number') {
+        void recordCaptureConfirmed(this.outputPath, {
+          changeAt: cAt,
+          confirmedAt: confAt,
+          file,
+        });
+      }
+    }
 
     const event = new CustomEvent('slideExtracted', {
       detail: {

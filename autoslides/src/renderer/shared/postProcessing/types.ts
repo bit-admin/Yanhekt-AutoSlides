@@ -92,7 +92,13 @@ export interface PipelineDataSource {
     targetWidth: number,
     targetHeight: number
   ): Promise<string | null>
-  moveToTrash(filename: string, reason: TrashReason, reasonDetails: string): Promise<boolean>
+  moveToTrash(
+    filename: string,
+    reason: TrashReason,
+    reasonDetails: string,
+    /** Structured first-kept filename when reason === 'duplicate'. */
+    duplicateOf?: string
+  ): Promise<boolean>
 }
 
 export interface PostProcessingFailure {

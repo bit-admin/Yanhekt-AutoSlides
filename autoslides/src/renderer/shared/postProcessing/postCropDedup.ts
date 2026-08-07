@@ -101,6 +101,7 @@ export async function runPostCropDedup(
           filename,
           'duplicate',
           `Duplicate of ${duplicateOf}`,
+          duplicateOf,
         )
         if (moved) {
           duplicatesRemoved.push(filename)

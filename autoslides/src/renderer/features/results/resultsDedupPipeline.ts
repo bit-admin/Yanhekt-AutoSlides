@@ -13,7 +13,7 @@ export interface ResultsDedupIO {
   moveToInAppTrash(
     folderPath: string,
     filename: string,
-    metadata: { reason: 'duplicate'; reasonDetails: string },
+    metadata: { reason: 'duplicate'; reasonDetails: string; duplicateOf?: string },
   ): Promise<unknown>;
 }
 
@@ -98,6 +98,7 @@ export async function runPHashDedup(
           await options.io.moveToInAppTrash(folderPath, item.filename, {
             reason: 'duplicate',
             reasonDetails: `Duplicate of ${duplicateOf}`,
+            duplicateOf,
           });
           result.deduped++;
           result.croppedDelta--;

@@ -24,6 +24,7 @@ import { registerNotesIpcHandlers } from './notesIpc';
 import { registerTrashIpcHandlers } from './trashIpc';
 import { registerCropIpcHandlers } from './cropIpc';
 import { registerSlideMetadataIpcHandlers } from './slideMetadataIpc';
+import { registerSlideTimelineIpcHandlers } from './slideTimelineIpc';
 import { registerPdfMakerIpcHandlers } from './pdfMakerIpc';
 import { registerNoteExportIpcHandlers } from './noteExportIpc';
 import { registerUpdateIpcHandlers } from './updateIpc';
@@ -60,6 +61,7 @@ export function registerAllIpcHandlers(services: IpcServices): void {
   registerTrashIpcHandlers(services);
   registerCropIpcHandlers(services);
   registerSlideMetadataIpcHandlers(services);
+  registerSlideTimelineIpcHandlers(services);
   registerPdfMakerIpcHandlers(services);
   registerNoteExportIpcHandlers(services);
   registerUpdateIpcHandlers(services);
