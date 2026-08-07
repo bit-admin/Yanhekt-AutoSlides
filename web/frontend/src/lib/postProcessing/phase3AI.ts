@@ -36,6 +36,8 @@ export interface AIPhaseInput {
 export interface AIPhaseResult {
   aiNotSlide: string[]
   aiMaybeSlideEdit: string[]
+  /** Filenames that auto-cropped successfully and stayed active (for post-crop dedup). */
+  autoCroppedKept: string[]
   failed: PostProcessingFailure[]
 }
 
@@ -140,7 +142,12 @@ export async function runAIPhase(
   ctx: PostProcessingContext,
   reportProgress: (stats: AIPhaseStats) => void
 ): Promise<AIPhaseResult> {
-  const final: AIPhaseResult = { aiNotSlide: [], aiMaybeSlideEdit: [], failed: [] }
+  const final: AIPhaseResult = {
+    aiNotSlide: [],
+    aiMaybeSlideEdit: [],
+    autoCroppedKept: [],
+    failed: [],
+  }
   const stats: AIPhaseStats = {
     processed: 0,
     total: input.files.length,
@@ -169,6 +176,22 @@ export async function runAIPhase(
       const cls = outcome.classification
       ctx.onItemClassified?.(filename, cls)
       if (cls !== 'slide') {
+        // Desktop 20.53: try auto-crop on may_be_slide_edit before trash.
+        // Web hardcodes this path on (no user toggle); distinguish prompts always on.
+        const tryCrop = cls === 'may_be_slide_edit' && !!ctx.autoCrop
+
+        if (tryCrop) {
+          const cropped = await ctx.autoCrop!(filename)
+          if (cropped) {
+            final.autoCroppedKept.push(filename)
+            await ctx.onItemCropped?.(filename)
+            stats.processed += 1
+            stats.batchesCompleted = stats.processed
+            emit()
+            continue
+          }
+        }
+
         const reason = trashReasonForAI(cls)
         const moved = await dataSource.moveToTrash(filename, reason, trashReasonDetailsForAI(cls))
         if (moved) {

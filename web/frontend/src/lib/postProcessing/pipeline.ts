@@ -4,11 +4,13 @@
 // Web changes: phase 3 (AI classification) is single-image LLM only, gated on
 // `enableAIFiltering` plus an injected ctx.classifier; `phase3ExcludeFiles`
 // lets callers skip files that already carry a persisted verdict. Phases 1 + 2
-// (duplicate + exclusion pHash) are unchanged.
+// (duplicate + exclusion pHash) are unchanged. Phase 3 may auto-crop
+// may_be_slide_edit frames; optional phase 3b re-dedups those crops (20.53).
 
 import { runDuplicatePhase } from './phase1Duplicates'
 import { runExclusionPhase } from './phase2Exclusion'
 import { runAIPhase } from './phase3AI'
+import { runPostCropDedup } from './postCropDedup'
 import { createPostProcessorWorker, createWorkerHelpers } from './workerHelpers'
 import type {
   PipelineDataSource,
@@ -86,6 +88,7 @@ export class PostProcessingPipeline {
     const aiNotSlide: string[] = []
     const aiMaybeSlideEdit: string[] = []
     const trashedSet = new Set<string>()
+    const cachedHashes = new Map<string, string>()
 
     const needsPHash = input.config.enableDuplicateRemoval || input.config.enableExclusionList
     let worker: ReturnType<typeof createPostProcessorWorker> | null = null
@@ -97,6 +100,9 @@ export class PostProcessingPipeline {
         worker = createPostProcessorWorker()
         const helpers = createWorkerHelpers(worker)
         slideHashes = await computeAllHashes(input.imageFiles, dataSource, helpers.calculatePHash, ctx)
+        for (const h of slideHashes) {
+          if (h.pHash && !h.error) cachedHashes.set(h.filename, h.pHash)
+        }
 
         if (ctx.signal?.aborted) {
           return finalize('cancelled')
@@ -158,6 +164,8 @@ export class PostProcessingPipeline {
         return finalize('cancelled')
       }
 
+      let autoCroppedKept: string[] = []
+
       if (input.config.enableAIFiltering) {
         const excludeSet = new Set(input.phase3ExcludeFiles ?? [])
         const remainingFiles = input.imageFiles.filter(
@@ -191,7 +199,42 @@ export class PostProcessingPipeline {
           aiMaybeSlideEdit.push(f)
           trashedSet.add(f)
         }
+        autoCroppedKept = aiResult.autoCroppedKept
         failed.push(...aiResult.failed)
+      }
+
+      // Phase 3b: candidate pHash after successful edit-frame auto-crops.
+      // Web hardcodes this path on (no user toggle), matching always-on auto-crop.
+      if (!ctx.signal?.aborted && autoCroppedKept.length > 0) {
+        const autoCroppedSet = new Set(autoCroppedKept)
+        const nonCandidates = input.imageFiles.filter(
+          (f) => !trashedSet.has(f) && !autoCroppedSet.has(f),
+        )
+        const postCropWorker = createPostProcessorWorker()
+        try {
+          const helpers = createWorkerHelpers(postCropWorker)
+          const postCrop = await runPostCropDedup({
+            candidates: autoCroppedKept,
+            nonCandidates,
+            pHashThreshold: input.config.pHashThreshold,
+            worker: helpers,
+            dataSource,
+            ctx,
+            cachedHashes,
+          })
+          for (const f of postCrop.duplicatesRemoved) {
+            removedDuplicates.push(f)
+            trashedSet.add(f)
+          }
+          progress.phase1.duplicatesRemoved = removedDuplicates.length
+          emit()
+        } finally {
+          try {
+            postCropWorker.terminate()
+          } catch {
+            // ignore
+          }
+        }
       }
 
       return finalize(ctx.signal?.aborted ? 'cancelled' : 'completed')

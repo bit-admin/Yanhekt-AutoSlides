@@ -135,6 +135,10 @@ export interface PostProcessingContext {
   classifier?: ClassifierCallbacks
   // Every AI verdict, including 'slide' — feeds the persisted exclude list.
   onItemClassified?: (filename: string, classification: ClassificationValue) => void
+  // Optional in-place auto-crop for may_be_slide_edit. Returns true when crop applied.
+  autoCrop?: (filename: string) => Promise<boolean>
+  // After a successful auto-crop (file stays active).
+  onItemCropped?: (filename: string) => void | Promise<void>
 }
 
 export interface SlideHashInfo {

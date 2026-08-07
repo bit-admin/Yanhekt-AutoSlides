@@ -15,7 +15,8 @@ import {
   type ExtractedSlide,
 } from '../../lib/processing'
 import { resolveSsimThreshold } from '../../lib/extractionDefaults'
-import { recordWatchExtraction } from '../../lib/slideStore'
+import { getSlideBlob, recordWatchExtraction, slideId } from '../../lib/slideStore'
+import type { TrashReason } from '../../lib/slideStore'
 import { sanitizeFileName } from '../../lib/sanitizeFileName'
 import { buildLectureIdSuffix, parseSessionTitle } from '../../lib/toolFolders'
 import {
@@ -153,12 +154,39 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
 
   // Splice a post-processing-removed slide out of the reactive gallery mirror
   // (and release its object URL — the strip won't render it again).
-  const removeSlideByFilename = (filename: string) => {
+  // Exception: ai_filtered_edit stays visible on the strip so the user can
+  // still see the uncropped frame; IndexedDB still has the trash move.
+  const removeSlideByFilename = (filename: string, reason: TrashReason) => {
+    if (reason === 'ai_filtered_edit') return
     const index = extractedSlides.value.findIndex((slide) => `${slide.title}.png` === filename)
     if (index >= 0) {
       const [removed] = extractedSlides.value.splice(index, 1)
       if (removed?.dataUrl) URL.revokeObjectURL(removed.dataUrl)
     }
+  }
+
+  // After phase-3 in-place auto-crop, re-read the cropped PNG from IDB so the
+  // strip/lightbox show cropped pixels instead of the pre-crop object URL.
+  const refreshSlideAfterCrop = async (filename: string) => {
+    const slide = extractedSlides.value.find((s) => `${s.title}.png` === filename)
+    if (!slide) return
+    const folder = currentFolder.value
+    if (!folder) return
+    try {
+      const blob = await getSlideBlob(slideId(folder, filename))
+      if (!blob) return
+      const nextUrl = URL.createObjectURL(blob)
+      const prevUrl = slide.dataUrl
+      slide.dataUrl = nextUrl
+      if (prevUrl && prevUrl.startsWith('blob:')) URL.revokeObjectURL(prevUrl)
+    } catch (err) {
+      log.warn(`Failed to refresh strip thumbnail after auto-crop for ${filename}:`, err)
+    }
+  }
+
+  const galleryHooks = {
+    onItemRemoved: removeSlideByFilename,
+    onItemCropped: refreshSlideAfterCrop,
   }
 
   // Toggle slide extraction (bound to the panel checkbox's v-model + @change).
@@ -188,7 +216,7 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
             // gate, and buffering must precede the pass that may clear the slide.
             watchNotesStore.onSlideExtracted(folder, extractorInstanceId.value, `${slide.title}.png`)
             if (configStore.autoPostProcessingLive !== false) {
-              void triggerAutoPostProcessing(folder, mode, removeSlideByFilename)
+              void triggerAutoPostProcessing(folder, mode, galleryHooks)
             }
           },
           onSlidesCleared: () => {
@@ -237,7 +265,7 @@ export function useSlideExtraction(options: UseSlideExtractionOptions) {
   // gallery parity). Detached: survives navigation away from the playback page.
   const executePostProcessing = () => {
     if (!currentFolder.value || isPostProcessing.value) return
-    void runPostProcessing(currentFolder.value, mode, removeSlideByFilename)
+    void runPostProcessing(currentFolder.value, mode, galleryHooks)
   }
 
   /** Stop extraction if running and flip the toggle off (stream-switch guard). */

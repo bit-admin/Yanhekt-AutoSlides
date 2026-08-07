@@ -18,6 +18,7 @@ import { parseResultError } from './errorModel'
 import { AI_FILTERING_DEFAULTS, POST_PROCESSING_DEFAULTS } from '../extractionDefaults'
 import { listActiveImages, setFolderPostProcessing, setSlideAIDecision } from '../slideStore'
 import { createClassifier, isAIFilteringActive } from '../ai/aiFilteringClient'
+import { createInPlaceAutoCropper } from '../autoCrop/inPlaceAutoCropper'
 import { authStore } from '../../stores/authStore'
 import { compareToolImages } from '../toolFolders'
 import { createLogger } from '../logger'
@@ -97,6 +98,13 @@ export function whenIdle(folder: string): Promise<void> {
   })
 }
 
+export type PostProcessingGalleryHooks = {
+  /** Splice trashed slides out of the in-memory playback strip (optional). */
+  onItemRemoved?: (filename: string, reason: TrashReason) => void
+  /** Refresh strip thumbnail after a successful in-place auto-crop. */
+  onItemCropped?: (filename: string) => void | Promise<void>
+}
+
 /**
  * One full pipeline pass over the folder's active images. Caller must hold the
  * per-folder inFlight slot. Returns the kept/removed split (extraction order),
@@ -105,7 +113,7 @@ export function whenIdle(folder: string): Promise<void> {
 async function runOnePass(
   folder: string,
   promptType: 'live' | 'recorded',
-  onItemRemoved?: (filename: string, reason: TrashReason) => void,
+  gallery?: PostProcessingGalleryHooks,
 ): Promise<PassResult | null> {
   postProcessingStatus[folder] = {
     state: 'running',
@@ -132,77 +140,102 @@ async function runOnePass(
       ? images.filter((i) => i.aiDecision != null).map((i) => i.name)
       : []
 
-    const result = await PostProcessingPipeline.run(
-      {
-        outputPath: folder,
-        imageFiles,
-        config: {
-          pHashThreshold: POST_PROCESSING_DEFAULTS.pHashThreshold,
-          enableDuplicateRemoval: POST_PROCESSING_DEFAULTS.enableDuplicateRemoval,
-          enableExclusionList: POST_PROCESSING_DEFAULTS.enableExclusionList,
-          enableAIFiltering: aiActive,
-          exclusionList: filterEnabledExclusionItems(POST_PROCESSING_DEFAULTS.pHashExclusionList).map(
-            (item) => ({ name: item.name, pHash: item.pHash }),
-          ),
-          aiImageResizeWidth: AI_FILTERING_DEFAULTS.imageResizeWidth,
-          aiImageResizeHeight: AI_FILTERING_DEFAULTS.imageResizeHeight,
-        },
-        promptType,
-        phase3ExcludeFiles,
-        token: authStore.token.value ?? undefined,
-      },
-      createSlideStoreDataSource(folder),
-      {
-        onProgress: (snap) => {
-          const status = postProcessingStatus[folder]
-          if (status) {
-            status.progress = { ...snap, phase1: { ...snap.phase1 }, phase2: { ...snap.phase2 }, phase3: { ...snap.phase3 } }
-          }
-        },
-        onItemRemoved: (filename, reason) => {
-          removed.add(filename)
-          onItemRemoved?.(filename, reason)
-        },
-        classifier: aiActive ? createClassifier() : undefined,
-        // Persist every verdict (including 'slide') — this is what feeds the
-        // exclude list above. Failed classifications persist nothing, so they
-        // are retried on the next pass.
-        onItemClassified: (filename, classification) => {
-          void setSlideAIDecision(folder, filename, classification)
-        },
-      },
-    )
+    // Auto-crop + post-crop dedup always on when AI filtering is active (no web toggles).
+    const cropper = aiActive ? createInPlaceAutoCropper(folder) : null
 
-    await setFolderPostProcessing(folder, {
-      ran: true,
-      duplicateRemoval: POST_PROCESSING_DEFAULTS.enableDuplicateRemoval,
-      exclusionList: POST_PROCESSING_DEFAULTS.enableExclusionList,
-      aiFiltering: aiActive,
-      aiClassifierMode: aiActive ? 'llm' : null,
-      completedAt: new Date().toISOString(),
-    })
+    try {
+      const result = await PostProcessingPipeline.run(
+        {
+          outputPath: folder,
+          imageFiles,
+          config: {
+            pHashThreshold: POST_PROCESSING_DEFAULTS.pHashThreshold,
+            enableDuplicateRemoval: POST_PROCESSING_DEFAULTS.enableDuplicateRemoval,
+            enableExclusionList: POST_PROCESSING_DEFAULTS.enableExclusionList,
+            enableAIFiltering: aiActive,
+            exclusionList: filterEnabledExclusionItems(POST_PROCESSING_DEFAULTS.pHashExclusionList).map(
+              (item) => ({ name: item.name, pHash: item.pHash }),
+            ),
+            aiImageResizeWidth: AI_FILTERING_DEFAULTS.imageResizeWidth,
+            aiImageResizeHeight: AI_FILTERING_DEFAULTS.imageResizeHeight,
+          },
+          promptType,
+          phase3ExcludeFiles,
+          token: authStore.token.value ?? undefined,
+        },
+        createSlideStoreDataSource(folder),
+        {
+          onProgress: (snap) => {
+            const status = postProcessingStatus[folder]
+            if (status) {
+              status.progress = { ...snap, phase1: { ...snap.phase1 }, phase2: { ...snap.phase2 }, phase3: { ...snap.phase3 } }
+            }
+          },
+          onItemRemoved: (filename, reason) => {
+            removed.add(filename)
+            gallery?.onItemRemoved?.(filename, reason)
+          },
+          classifier: aiActive ? createClassifier() : undefined,
+          autoCrop: cropper ? (filename) => cropper.crop(filename) : undefined,
+          onItemCropped: gallery?.onItemCropped
+            ? (filename) => gallery.onItemCropped!(filename)
+            : undefined,
+          // Persist every verdict (including 'slide') — this is what feeds the
+          // exclude list above. Failed classifications persist nothing, so they
+          // are retried on the next pass.
+          onItemClassified: (filename, classification) => {
+            void setSlideAIDecision(folder, filename, classification)
+          },
+        },
+      )
 
-    const aiFailed = result.failed.filter((f) => f.filename !== '*')
-    postProcessingStatus[folder] = {
-      state: result.status === 'completed' ? 'done' : 'error',
-      progress: postProcessingStatus[folder]?.progress ?? null,
-      duplicatesRemoved: result.duplicatesRemoved.length,
-      excludedRemoved: result.excludedRemoved.length,
-      aiRemoved: result.aiNotSlide.length + result.aiMaybeSlideEdit.length,
-      aiFailedCount: aiFailed.length,
-      aiErrorType: aiFailed.length > 0
-        ? parseResultError({ success: false, error: aiFailed[0].message, errorKind: aiFailed[0].errorKind }).type
-        : null,
-    }
-    log.info(
-      `Post-processing ${result.status} for ${folder}: ${result.duplicatesRemoved.length} duplicates, ${result.excludedRemoved.length} excluded, ${result.aiNotSlide.length + result.aiMaybeSlideEdit.length} AI-filtered (${aiFailed.length} failed)`,
-    )
-    if (result.status !== 'completed') return null
-    return {
-      kept: imageFiles.filter((f) => !removed.has(f)),
-      removed: [...removed],
+      await setFolderPostProcessing(folder, {
+        ran: true,
+        duplicateRemoval: POST_PROCESSING_DEFAULTS.enableDuplicateRemoval,
+        exclusionList: POST_PROCESSING_DEFAULTS.enableExclusionList,
+        aiFiltering: aiActive,
+        aiClassifierMode: aiActive ? 'llm' : null,
+        completedAt: new Date().toISOString(),
+      })
+
+      const aiFailed = result.failed.filter((f) => f.filename !== '*')
+      postProcessingStatus[folder] = {
+        state: result.status === 'completed' ? 'done' : 'error',
+        progress: postProcessingStatus[folder]?.progress ?? null,
+        duplicatesRemoved: result.duplicatesRemoved.length,
+        excludedRemoved: result.excludedRemoved.length,
+        aiRemoved: result.aiNotSlide.length + result.aiMaybeSlideEdit.length,
+        aiFailedCount: aiFailed.length,
+        aiErrorType: aiFailed.length > 0
+          ? parseResultError({ success: false, error: aiFailed[0].message, errorKind: aiFailed[0].errorKind }).type
+          : null,
+      }
+      log.info(
+        `Post-processing ${result.status} for ${folder}: ${result.duplicatesRemoved.length} duplicates, ${result.excludedRemoved.length} excluded, ${result.aiNotSlide.length + result.aiMaybeSlideEdit.length} AI-filtered (${aiFailed.length} failed)`,
+      )
+      if (result.status !== 'completed') return null
+      return {
+        kept: imageFiles.filter((f) => !removed.has(f)),
+        removed: [...removed],
+      }
+    } catch (error) {
+      log.error(`Post-processing failed for ${folder}:`, error)
+      const status = postProcessingStatus[folder]
+      postProcessingStatus[folder] = {
+        state: 'error',
+        progress: status?.progress ?? null,
+        duplicatesRemoved: status?.duplicatesRemoved ?? 0,
+        excludedRemoved: status?.excludedRemoved ?? 0,
+        aiRemoved: status?.aiRemoved ?? 0,
+        aiFailedCount: status?.aiFailedCount ?? 0,
+        aiErrorType: status?.aiErrorType ?? null,
+      }
+      return null
+    } finally {
+      cropper?.destroy()
     }
   } catch (error) {
+    // Outer guard for failures before the pipeline try (e.g. listActiveImages).
     log.error(`Post-processing failed for ${folder}:`, error)
     const status = postProcessingStatus[folder]
     postProcessingStatus[folder] = {
@@ -222,7 +255,7 @@ async function runOnePass(
 export async function runPostProcessing(
   folder: string,
   promptType: 'live' | 'recorded',
-  onItemRemoved?: (filename: string, reason: TrashReason) => void,
+  gallery?: PostProcessingGalleryHooks,
 ): Promise<void> {
   if (inFlight.has(folder)) {
     log.warn(`Post-processing already running for ${folder}`)
@@ -230,7 +263,7 @@ export async function runPostProcessing(
   }
   inFlight.add(folder)
   try {
-    const result = await runOnePass(folder, promptType, onItemRemoved)
+    const result = await runOnePass(folder, promptType, gallery)
     if (result) notifyPassCompleted(folder, result)
   } finally {
     inFlight.delete(folder)
@@ -249,7 +282,7 @@ export async function runPostProcessing(
 export async function triggerAutoPostProcessing(
   folder: string,
   promptType: 'live' | 'recorded',
-  onItemRemoved?: (filename: string, reason: TrashReason) => void,
+  gallery?: PostProcessingGalleryHooks,
 ): Promise<void> {
   if (inFlight.has(folder)) {
     pendingRerun.add(folder)
@@ -259,7 +292,7 @@ export async function triggerAutoPostProcessing(
   try {
     do {
       pendingRerun.delete(folder)
-      const result = await runOnePass(folder, promptType, onItemRemoved)
+      const result = await runOnePass(folder, promptType, gallery)
       if (result) notifyPassCompleted(folder, result)
     } while (pendingRerun.has(folder))
   } finally {
