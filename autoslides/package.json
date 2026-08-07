@@ -59,7 +59,8 @@
     "brace-expansion@3": "3.0.6",
     "brace-expansion@4": "5.0.9",
     "brace-expansion@5": "5.0.9",
-    "fast-uri": "3.1.5"
+    "fast-uri": "3.1.5",
+    "js-yaml": "4.3.1"
   },
   "dependencies": {
     "@editorjs/code": "^2.8.0",
