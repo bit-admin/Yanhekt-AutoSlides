@@ -770,7 +770,10 @@
       "fullscreen": "Fullscreen",
       "exitFullscreen": "Exit Fullscreen",
       "moreOptions": "More Options"
-    }
+    },
+    "slideChapters": "Slides",
+    "slideOrdinal": "Slide {number}",
+    "watching": "Watching"
   },
   "sessions": {
     "pin": "Pin course",

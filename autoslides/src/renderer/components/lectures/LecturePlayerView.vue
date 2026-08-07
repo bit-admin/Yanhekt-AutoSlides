@@ -160,6 +160,15 @@
           </div>
         </div>
 
+        <LectureSlideStrip
+          v-if="hasChapters && slidesStripOpen"
+          :chapters="chapters"
+          :active-chapter-id="activeChapterId"
+          :thumbnail-map="thumbnailMap"
+          @load-thumbnail="loadThumbnail"
+          @seek="seek"
+        />
+
         <input
           class="dual-seek seek-bar"
           type="range"
@@ -353,6 +362,23 @@
               </svg>
             </button>
 
+            <!-- Toggle slide chapter strip (only when a matching timeline exists) -->
+            <button
+              v-if="hasChapters"
+              class="dual-icon-button"
+              type="button"
+              :class="{ 'is-active-control': slidesStripOpen }"
+              @click="toggleSlidesStrip"
+              :title="$t('playback.slideChapters')"
+              :aria-pressed="slidesStripOpen"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="12" rx="2"/>
+                <path d="M7 20h10"/>
+                <path d="M8 8h5M8 11h8"/>
+              </svg>
+            </button>
+
             <button
               class="dual-icon-button"
               type="button"
@@ -384,6 +410,8 @@ import {
 } from '@features/lectures/libraryModel'
 import { formatEpisodeToken } from '@common/lectureVideoNaming'
 import { useLocalLecturePlayer } from '@features/lectures/useLocalLecturePlayer'
+import { useLectureSlideChapters } from '@features/lectures/useLectureSlideChapters'
+import LectureSlideStrip from './LectureSlideStrip.vue'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('LecturePlayerView')
@@ -433,6 +461,22 @@ const {
   onTimeUpdate,
   onPlayStateChanged,
 } = useLocalLecturePlayer()
+
+const courseIdRef = computed(() => props.course.courseId)
+const sessionIdRef = computed(() => props.session.sessionId)
+const {
+  chapters,
+  hasChapters,
+  activeChapterId,
+  thumbnailMap,
+  loadThumbnail,
+} = useLectureSlideChapters(courseIdRef, sessionIdRef, currentTime, duration)
+
+// Open by default once chapters are available for this session; user can hide via transport button.
+const slidesStripOpen = ref(true)
+watch(hasChapters, (available) => {
+  if (available) slidesStripOpen.value = true
+})
 
 const rootEl = ref<HTMLElement | null>(null)
 const stageEl = ref<HTMLElement | null>(null)
@@ -486,6 +530,11 @@ const showControls = () => {
       if (!pointerOverControls.value) controlsVisible.value = false
     }, 2500)
   }
+}
+
+const toggleSlidesStrip = () => {
+  slidesStripOpen.value = !slidesStripOpen.value
+  showControls()
 }
 
 const onPointerLeave = () => {
@@ -934,6 +983,11 @@ const onKeydown = (event: KeyboardEvent) => {
 
 .stream-mode-btn {
   /* icon-only — matches dual-icon-button sizing */
+}
+
+.dual-icon-button.is-active-control {
+  color: var(--accent, #3b82f6);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .stage:fullscreen {

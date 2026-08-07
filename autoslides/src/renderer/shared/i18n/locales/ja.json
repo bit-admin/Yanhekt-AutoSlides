@@ -770,7 +770,10 @@
       "fullscreen": "全画面",
       "exitFullscreen": "全画面を終了",
       "moreOptions": "その他のオプション"
-    }
+    },
+    "slideChapters": "スライド",
+    "slideOrdinal": "スライド {number}",
+    "watching": "再生中"
   },
   "sessions": {
     "pin": "コースをピン留め",

@@ -770,7 +770,10 @@
       "fullscreen": "全屏",
       "exitFullscreen": "退出全屏",
       "moreOptions": "更多选项"
-    }
+    },
+    "slideChapters": "幻灯片",
+    "slideOrdinal": "第 {number} 张",
+    "watching": "正在观看"
   },
   "sessions": {
     "pin": "置顶课程",

@@ -770,7 +770,10 @@
       "fullscreen": "전체 화면",
       "exitFullscreen": "전체 화면 종료",
       "moreOptions": "추가 옵션"
-    }
+    },
+    "slideChapters": "슬라이드",
+    "slideOrdinal": "슬라이드 {number}",
+    "watching": "시청 중"
   },
   "sessions": {
     "pin": "강의 고정",
