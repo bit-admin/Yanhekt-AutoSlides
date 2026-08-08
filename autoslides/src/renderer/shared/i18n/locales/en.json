@@ -371,7 +371,28 @@
       "statusReady": "Ready",
       "statusMissing": "Not found",
       "statusUnknown": "Unknown",
-      "install": "Install Extractor…"
+      "install": "Install Extractor…",
+      "checkForUpdates": "Check for Updates…",
+      "featuresTitle": "Capabilities",
+      "featureSupported": "Available",
+      "featureRequires": "Requires v{version}+",
+      "featureNeedsInstall": "Install the extractor to enable",
+      "features": {
+        "writeTimeline": "Slide timeline",
+        "basicExtraction": "Basic extraction"
+      },
+      "featureSupportedSince": "Available (v{version}+)",
+      "colFeature": "Feature",
+      "colRequiredVersion": "Required Version",
+      "colStatus": "Status",
+      "statusTitle": "Status",
+      "checkingForUpdates": "Checking for updates…",
+      "noUpdateTitle": "No Update Available",
+      "noUpdateMessage": "AutoSlides Extractor is up to date.",
+      "noUpdateDetail": "You are using the latest version (v{currentVersion}).",
+      "updateCheckFailedTitle": "Check for Updates Failed",
+      "updateCheckFailedMessage": "Could not check for AutoSlides Extractor updates.",
+      "updateCheckFailedDetail": "Error: {error}"
     },
     "concurrentDownloadLimit": "Concurrent Download Limit",
     "concurrentDownloadDescription": "Maximum number of simultaneous downloads and processing.",
@@ -660,7 +681,10 @@
     "linuxBuildNotice": "There is no official Linux build for AutoSlides Extractor. Please build it from source.",
     "openRepo": "Open Repository",
     "macInstallNotice": "After installing the .dmg, drag the app into /Applications. If macOS quarantines the app, run: sudo xattr -dr com.apple.quarantine \"/Applications/AutoSlides Extractor.app\"",
-    "close": "Close"
+    "close": "Close",
+    "titleInstall": "Install AutoSlides Extractor",
+    "titleUpdate": "Update AutoSlides Extractor",
+    "upToDateBanner": "You're up to date! Installed version: v{currentVersion}"
   },
   "playback": {
     "gallery": {

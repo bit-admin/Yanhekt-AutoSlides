@@ -2,7 +2,13 @@
   <div v-if="visible" class="modal-overlay" @click="onClose">
     <div class="modal-content extractor-install-modal" @click.stop>
       <div class="modal-header">
-        <h3>{{ $t('extractorInstall.title') }}</h3>
+        <h3>
+          {{
+            installed
+              ? $t('extractorInstall.titleUpdate')
+              : $t('extractorInstall.titleInstall')
+          }}
+        </h3>
         <button @click="onClose" class="btn--icon">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/>
@@ -28,6 +34,14 @@
             <div class="version-meta">
               <span v-if="release.publishedAt" class="publish-date">{{ formatDate(release.publishedAt) }}</span>
             </div>
+          </div>
+
+          <div v-if="isUpToDate" class="up-to-date-notice">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <span>{{ $t('extractorInstall.upToDateBanner', { currentVersion: props.currentVersion }) }}</span>
           </div>
 
           <!-- Release Notes -->
@@ -151,7 +165,8 @@
 <script setup lang="ts">
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ExtractorInstallModal');
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { compareSemver } from '@common/semver'
 import '../../assets/github-markdown.css'
 
 interface ReleaseAsset {
@@ -173,8 +188,22 @@ interface ReleaseInfo {
   repoUrl?: string
 }
 
-const props = defineProps<{ visible: boolean }>()
+const props = withDefaults(
+  defineProps<{
+    visible: boolean
+    /** When true, modal is opened for updates (title only; no auto-check). */
+    installed?: boolean
+    currentVersion?: string
+  }>(),
+  { installed: false, currentVersion: '' }
+)
 const emit = defineEmits<{ (e: 'close'): void }>()
+
+const isUpToDate = computed(() => {
+  if (!props.installed || !release.value?.tagName || !props.currentVersion) return false
+  const latestVersion = release.value.tagName.replace(/^v/, '')
+  return compareSemver(latestVersion, props.currentVersion) <= 0
+})
 
 const isLinux = navigator.userAgent.toLowerCase().includes('linux') && !navigator.userAgent.toLowerCase().includes('android')
 const isMacOS = navigator.userAgent.toLowerCase().includes('mac')
@@ -406,7 +435,21 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+}
+
+.up-to-date-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--success) 12%, var(--bg-subtle));
+  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .version-meta {

@@ -3,9 +3,6 @@
   <div class="advanced-setting-section">
     <div class="section-header-with-action">
       <h4>{{ $t('advanced.qtExtractor.title') }}</h4>
-      <button type="button" class="section-action-pill" @click="openExtractorInstallModal">
-        {{ $t('advanced.qtExtractor.install') }}
-      </button>
     </div>
     <p class="section-help-text">{{ $t('advanced.qtExtractor.titleDescription') }}</p>
 
@@ -28,25 +25,7 @@
 
     <!-- Extractor binary path -->
     <div class="setting-item">
-      <div class="setting-label-with-reset">
-        <label class="setting-label">{{ $t('advanced.qtExtractor.section') }}</label>
-        <div
-          class="extractor-status-line"
-          :class="{
-            ok: qtExtractorStatusOk,
-            error: !qtExtractorStatusOk && !!qtExtractorStatusError,
-            unknown: !qtExtractorStatusOk && !qtExtractorStatusError
-          }"
-          :title="qtExtractorStatusError || ''"
-        >
-          <span class="extractor-status-dot"></span>
-          <span v-if="qtExtractorStatusOk">
-            {{ $t('advanced.qtExtractor.statusReady') }}<span v-if="qtExtractorStatusVersion"> · v{{ qtExtractorStatusVersion }}</span>
-          </span>
-          <span v-else-if="qtExtractorStatusError">{{ $t('advanced.qtExtractor.statusMissing') }}</span>
-          <span v-else>{{ $t('advanced.qtExtractor.statusUnknown') }}</span>
-        </div>
-      </div>
+      <label class="setting-label">{{ $t('advanced.qtExtractor.section') }}</label>
       <div class="setting-description extractor-description">
         {{ $t('advanced.qtExtractor.sectionDescription') }}
         <a
@@ -59,6 +38,82 @@
       </div>
 
       <div class="extractor-config-box">
+        <!-- Status + feature capabilities (above default paths) -->
+        <div class="extractor-status-panel">
+          <div class="extractor-status-section">
+            <div class="extractor-section-header">
+              {{ $t('advanced.qtExtractor.statusTitle') }}
+            </div>
+            <div class="extractor-status-row">
+              <div
+                class="extractor-status-line"
+                :class="{
+                  ok: qtExtractorStatusOk,
+                  error: !qtExtractorStatusOk && !!qtExtractorStatusError,
+                  unknown: !qtExtractorStatusOk && !qtExtractorStatusError
+                }"
+                :title="qtExtractorStatusError || ''"
+              >
+                <span class="extractor-status-dot"></span>
+                <span v-if="qtExtractorStatusOk">
+                  {{ $t('advanced.qtExtractor.statusReady') }}<span v-if="qtExtractorStatusVersion"> · v{{ qtExtractorStatusVersion }}</span>
+                </span>
+                <span v-else-if="qtExtractorStatusError">{{ $t('advanced.qtExtractor.statusMissing') }}</span>
+                <span v-else>{{ $t('advanced.qtExtractor.statusUnknown') }}</span>
+              </div>
+              <button
+                type="button"
+                class="secondary-btn extractor-action-btn"
+                :disabled="checkingForExtractorUpdates"
+                @click="handleExtractorAction"
+              >
+                {{
+                  qtExtractorInstalled
+                    ? (checkingForExtractorUpdates ? $t('advanced.qtExtractor.checkingForUpdates') : $t('advanced.qtExtractor.checkForUpdates'))
+                    : $t('advanced.qtExtractor.install')
+                }}
+              </button>
+            </div>
+          </div>
+
+          <div class="extractor-features">
+            <div class="extractor-features-header">
+              {{ $t('advanced.qtExtractor.featuresTitle') }}
+            </div>
+            <div class="extractor-features-table">
+              <div class="extractor-features-table-header">
+                <span class="col-name">{{ $t('advanced.qtExtractor.colFeature') }}</span>
+                <span class="col-version">{{ $t('advanced.qtExtractor.colRequiredVersion') }}</span>
+                <span class="col-status">{{ $t('advanced.qtExtractor.colStatus') }}</span>
+              </div>
+              <div
+                v-for="row in qtFeatureRows"
+                :key="row.id"
+                class="extractor-feature-row"
+              >
+                <span class="col-name">{{ $t(row.labelKey) }}</span>
+                <span class="col-version">v{{ row.minVersion }}+</span>
+                <span class="col-status">
+                  <span
+                    class="extractor-feature-status-text"
+                    :class="row.supported ? 'supported' : 'unsupported'"
+                  >
+                    <template v-if="!qtExtractorStatusOk">
+                      {{ $t('advanced.qtExtractor.featureNeedsInstall') }}
+                    </template>
+                    <template v-else-if="row.supported">
+                      {{ $t('advanced.qtExtractor.featureSupported') }}
+                    </template>
+                    <template v-else>
+                      {{ $t('advanced.qtExtractor.featureRequires', { version: row.minVersion }) }}
+                    </template>
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="extractor-reference">
           <div class="extractor-reference-header">
             {{ $t('advanced.qtExtractor.defaultExecutables') }}
@@ -279,12 +334,24 @@ const {
   qtExtractorStatusVersion,
   qtExtractorStatusError,
   qtExtractorVerifying,
+  checkingForExtractorUpdates,
   qtExtractorBinaryPath,
   qtExtractorResolvedPath,
+  qtExtractorInstalled,
+  qtFeatureRows,
   qtExtractorVerify,
   qtExtractorBrowseBinary,
   openExtractorInstallModal,
+  checkForExtractorUpdates,
 } = advanced.extractor
+
+const handleExtractorAction = () => {
+  if (qtExtractorInstalled.value) {
+    void checkForExtractorUpdates(t)
+  } else {
+    openExtractorInstallModal()
+  }
+}
 
 const openExtractorRepository = async () => {
   try {
@@ -341,6 +408,128 @@ const openExtractorRepository = async () => {
   border: 1px solid var(--border-color);
   border-radius: 6px;
   background: var(--bg-subtle);
+}
+
+.extractor-status-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.extractor-status-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.extractor-section-header,
+.extractor-features-header {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.extractor-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+}
+
+.extractor-action-btn {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 12px;
+  white-space: nowrap;
+}
+
+.extractor-features {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.extractor-features-table {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+
+.extractor-features-table-header {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 140px 130px;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.extractor-features-table-header .col-status {
+  text-align: right;
+}
+
+.extractor-feature-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 140px 130px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  font-size: 11px;
+  line-height: 1.4;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.extractor-feature-row:last-child {
+  border-bottom: none;
+}
+
+.col-name {
+  color: var(--text-primary);
+  font-weight: 500;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-version {
+  color: var(--text-secondary);
+  font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 11px;
+}
+
+.col-status {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.extractor-feature-status-text {
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.extractor-feature-status-text.supported {
+  color: var(--success);
+}
+
+.extractor-feature-status-text.unsupported {
+  color: var(--warning);
 }
 
 .extractor-reference {
@@ -476,25 +665,26 @@ const openExtractorRepository = async () => {
   animation: spin 0.8s linear infinite;
 }
 
-/* Inline status text on the right of the "Extractor binary" label row. */
+/* Status text inside the redesigned Extractor Status row. */
 .extractor-status-line {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--text-secondary);
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 .extractor-status-line .extractor-status-dot {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background-color: var(--border-strong);
   flex-shrink: 0;
 }
-.extractor-status-line.ok { color: var(--success); }
+.extractor-status-line.ok { color: var(--text-primary); }
 .extractor-status-line.ok .extractor-status-dot { background-color: var(--success); }
-.extractor-status-line.error { color: var(--danger); }
+.extractor-status-line.error { color: var(--text-primary); }
 .extractor-status-line.error .extractor-status-dot { background-color: var(--danger); }
 .extractor-status-line.unknown .extractor-status-dot { background-color: var(--border-strong); }
 </style>

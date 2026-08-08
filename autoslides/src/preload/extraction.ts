@@ -103,6 +103,8 @@ export const slideTimeline = {
     payload: import('@common/sidecars').RestoreCanonicalPayload
   ) => ipcRenderer.invoke('slideTimeline:restoreCanonical', folderPath, payload),
   clear: (folderPath: string) => ipcRenderer.invoke('slideTimeline:clear', folderPath),
+  ensureRecordedHostFields: (folderPath: string) =>
+    ipcRenderer.invoke('slideTimeline:ensureRecordedHostFields', folderPath),
 };
 
 export const autoCrop = {

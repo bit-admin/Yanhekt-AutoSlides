@@ -7,6 +7,7 @@ import type {
   SlideCaptureEvent,
   SlideResolution,
   SlideTimeline,
+  SlideTimelineExtractor,
   UnlinkToGapPayload,
 } from './types';
 import { SLIDE_TIMELINE_VERSION } from './types';
@@ -27,17 +28,39 @@ function touch(timeline: SlideTimeline, patch: Partial<SlideTimeline>): SlideTim
   };
 }
 
-/** Empty recorded/builtin timeline ready for first capture. */
-export function createEmptyTimeline(now: string = nowIso()): SlideTimeline {
+/** Empty timeline ready for first capture (host builtin by default). */
+export function createEmptyTimeline(
+  now: string = nowIso(),
+  extractor: SlideTimelineExtractor = 'builtin'
+): SlideTimeline {
   return {
     version: SLIDE_TIMELINE_VERSION,
     kind: 'recorded',
-    extractor: 'builtin',
+    extractor,
     createdAt: now,
     updatedAt: now,
     events: [],
     resolutions: {},
   };
+}
+
+/**
+ * Host stamp after an offline Qt extract: ensure `kind: 'recorded'` and keep
+ * Qt's `extractor: 'qt'` (default to qt if missing). No-op if already correct.
+ * Returns the same object reference when nothing changes.
+ */
+export function ensureRecordedHostFields(timeline: SlideTimeline): SlideTimeline {
+  const extractor: SlideTimelineExtractor =
+    timeline.extractor === 'builtin' || timeline.extractor === 'qt'
+      ? timeline.extractor
+      : 'qt';
+  const kindOk = timeline.kind === 'recorded';
+  const extractorOk = timeline.extractor === extractor;
+  if (kindOk && extractorOk) return timeline;
+  return touch(timeline, {
+    kind: 'recorded',
+    extractor,
+  });
 }
 
 /**

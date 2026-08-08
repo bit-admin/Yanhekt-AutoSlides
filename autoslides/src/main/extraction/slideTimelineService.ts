@@ -5,7 +5,8 @@
  * folder (event log + resolution map). Pure mutations live in
  * `@common/sidecars/timeline`; this service only does serialized RMW IO.
  *
- * v1: recorded + builtin capture only. Missing file means "no timeline" —
+ * Capture writers: host builtin (video.currentTime) and AutoSlidesQt CLI
+ * (--write-timeline, extractor qt). Missing file means "no timeline" —
  * consumers (and updaters other than first capture) degrade gracefully.
  *
  * Writes for a given folder are serialized through a per-path promise chain so
@@ -18,6 +19,7 @@ import {
   SLIDE_TIMELINE_FILENAME,
   clearTimeline,
   createEmptyTimeline,
+  ensureRecordedHostFields,
   gapReasonFromTrashReason,
   recordCaptureConfirmed,
   recordGapBoundary,
@@ -149,6 +151,20 @@ export class SlideTimelineService {
     await this.mutate(folderPath, current => {
       if (!current && !opts?.createIfMissing) return null;
       return clearTimeline(current ?? createEmptyTimeline());
+    });
+  }
+
+  /**
+   * After a successful Qt extract: stamp `kind: 'recorded'` on timeline.json
+   * (Qt writes extractor:"qt" only). No-op if the file is absent. Preserves
+   * events/resolutions so Electron post-processing can relink/unlink next.
+   */
+  async ensureRecordedHostFields(folderPath: string): Promise<void> {
+    await this.mutate(folderPath, current => {
+      if (!current) return null;
+      const next = ensureRecordedHostFields(current);
+      // Skip disk write when pure helper returned the same reference.
+      return next === current ? null : next;
     });
   }
 }

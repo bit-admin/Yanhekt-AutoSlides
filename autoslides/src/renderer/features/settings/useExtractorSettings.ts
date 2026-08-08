@@ -1,4 +1,10 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { compareSemver } from '@common/semver'
+import {
+  QT_EXTRACTOR_FEATURES,
+  qtFeatureSupported,
+  qtSupportsWriteTimeline,
+} from '@common/qtExtractorFeatures'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ExtractorSettings');
 
@@ -13,7 +19,24 @@ export function useExtractorSettings() {
   const qtExtractorStatusVersion = ref('')
   const qtExtractorStatusError = ref('')
   const qtExtractorVerifying = ref(false)
+  const checkingForExtractorUpdates = ref(false)
   const showExtractorInstallModal = ref(false)
+
+  /** True when a verified binary is present — use "Check for Updates" vs "Install". */
+  const qtExtractorInstalled = computed(() => qtExtractorStatusOk.value)
+
+  const qtSupportsTimeline = computed(() =>
+    qtSupportsWriteTimeline(qtExtractorStatusVersion.value || null)
+  )
+
+  const qtFeatureRows = computed(() =>
+    QT_EXTRACTOR_FEATURES.map(feature => ({
+      id: feature.id,
+      labelKey: feature.labelKey,
+      minVersion: feature.minVersion,
+      supported: qtFeatureSupported(feature, qtExtractorStatusVersion.value || null),
+    }))
+  )
 
   const applyQtStatus = (status: { ok: boolean; path: string; resolvedPath: string; version?: string; error?: string }) => {
     qtExtractorStatusOk.value = !!status.ok
@@ -87,6 +110,61 @@ export function useExtractorSettings() {
     void qtExtractorVerify()
   }
 
+  /**
+   * Check for Extractor updates via GitHub releases.
+   * Compares the latest GitHub release tag against the verified installed version.
+   */
+  const checkForExtractorUpdates = async (
+    t?: (key: string, values?: Record<string, unknown>) => string
+  ) => {
+    if (checkingForExtractorUpdates.value) return
+    checkingForExtractorUpdates.value = true
+
+    try {
+      const res = await window.electronAPI.extractorInstaller.checkLatest()
+      if (!res.success) {
+        if (window.electronAPI.dialog?.showMessageBox && t) {
+          await window.electronAPI.dialog.showMessageBox({
+            type: 'error',
+            title: t('advanced.qtExtractor.updateCheckFailedTitle'),
+            message: t('advanced.qtExtractor.updateCheckFailedMessage'),
+            detail: t('advanced.qtExtractor.updateCheckFailedDetail', {
+              error: res.error || 'Unknown error',
+            }),
+            buttons: [t('titlebar.ok')],
+            defaultId: 0,
+            cancelId: 0,
+          })
+        }
+        return
+      }
+
+      const latestVersion = (res.tagName || '').replace(/^v/, '')
+      const currentVersion = qtExtractorStatusVersion.value || ''
+      const hasUpdate = compareSemver(latestVersion, currentVersion) > 0
+
+      if (hasUpdate || !qtExtractorInstalled.value) {
+        openExtractorInstallModal()
+      } else if (window.electronAPI.dialog?.showMessageBox && t) {
+        await window.electronAPI.dialog.showMessageBox({
+          type: 'info',
+          title: t('advanced.qtExtractor.noUpdateTitle'),
+          message: t('advanced.qtExtractor.noUpdateMessage'),
+          detail: t('advanced.qtExtractor.noUpdateDetail', {
+            currentVersion: currentVersion || latestVersion,
+          }),
+          buttons: [t('titlebar.ok')],
+          defaultId: 0,
+          cancelId: 0,
+        })
+      }
+    } catch (error) {
+      log.error('Failed to check for extractor updates:', error)
+    } finally {
+      checkingForExtractorUpdates.value = false
+    }
+  }
+
   const load = async () => {
     await loadQtExtractorConfig()
   }
@@ -115,7 +193,11 @@ export function useExtractorSettings() {
     qtExtractorStatusVersion,
     qtExtractorStatusError,
     qtExtractorVerifying,
+    checkingForExtractorUpdates,
     showExtractorInstallModal,
+    qtExtractorInstalled,
+    qtSupportsTimeline,
+    qtFeatureRows,
 
     load,
     save,
@@ -125,7 +207,8 @@ export function useExtractorSettings() {
     qtExtractorVerify,
     qtExtractorBrowseBinary,
     openExtractorInstallModal,
-    closeExtractorInstallModal
+    closeExtractorInstallModal,
+    checkForExtractorUpdates,
   }
 }
 

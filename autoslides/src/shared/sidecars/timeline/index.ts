@@ -3,6 +3,7 @@ export {
   SLIDE_TIMELINE_FILENAME,
   type ResolutionState,
   type GapReason,
+  type SlideTimelineExtractor,
   type SlideCaptureEvent,
   type SlideResolution,
   type SlideTimeline,
@@ -16,6 +17,7 @@ export {
 
 export {
   createEmptyTimeline,
+  ensureRecordedHostFields,
   recordCaptureConfirmed,
   recordGapBoundary,
   relinkDuplicate,

@@ -89,6 +89,18 @@ export async function clearTimeline(folderPath: string): Promise<void> {
   }
 }
 
+/**
+ * After Qt CLI extract: stamp kind:"recorded" on timeline.json (Qt writes
+ * extractor:"qt" without kind). Best-effort — no-op if file missing.
+ */
+export async function ensureRecordedHostFields(folderPath: string): Promise<void> {
+  try {
+    await window.electronAPI.slideTimeline.ensureRecordedHostFields(folderPath);
+  } catch (error) {
+    log.warn('Failed to stamp recorded host fields on timeline:', error);
+  }
+}
+
 /** Map post-process / trash reason to GapReason for unlink helpers. */
 export function gapReasonForTrash(reason: string): GapReason {
   switch (reason) {

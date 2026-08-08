@@ -371,7 +371,28 @@
       "statusReady": "準備完了",
       "statusMissing": "見つかりません",
       "statusUnknown": "不明",
-      "install": "抽出ツールをインストール…"
+      "install": "抽出ツールをインストール…",
+      "checkForUpdates": "更新を確認…",
+      "featuresTitle": "機能",
+      "featureSupported": "利用可能",
+      "featureRequires": "v{version}+ が必要",
+      "featureNeedsInstall": "Extractor のインストールが必要",
+      "features": {
+        "writeTimeline": "スライドタイムライン",
+        "basicExtraction": "基本抽出"
+      },
+      "featureSupportedSince": "利用可能（v{version}+）",
+      "colFeature": "機能",
+      "colRequiredVersion": "必要バージョン",
+      "colStatus": "ステータス",
+      "statusTitle": "ステータス",
+      "checkingForUpdates": "更新を確認中…",
+      "noUpdateTitle": "更新はありません",
+      "noUpdateMessage": "AutoSlides Extractor は最新です。",
+      "noUpdateDetail": "最新バージョン (v{currentVersion}) を使用しています。",
+      "updateCheckFailedTitle": "更新の確認に失敗しました",
+      "updateCheckFailedMessage": "AutoSlides Extractor の更新を確認できませんでした。",
+      "updateCheckFailedDetail": "エラー: {error}"
     },
     "concurrentDownloadLimit": "同時ダウンロード制限",
     "concurrentDownloadDescription": "同時ダウンロードと処理の最大数",
@@ -660,7 +681,10 @@
     "linuxBuildNotice": "AutoSlides Extractor の公式 Linux ビルドはありません。ソースからビルドしてください。",
     "openRepo": "リポジトリを開く",
     "macInstallNotice": ".dmg をインストール後、アプリを /Applications にドラッグしてください。macOS が隔離した場合は次を実行してください: sudo xattr -dr com.apple.quarantine \"/Applications/AutoSlides Extractor.app\"",
-    "close": "閉じる"
+    "close": "閉じる",
+    "titleInstall": "AutoSlides Extractor をインストール",
+    "titleUpdate": "AutoSlides Extractor を更新",
+    "upToDateBanner": "最新状態です！インストール済みバージョン: v{currentVersion}"
   },
   "playback": {
     "gallery": {

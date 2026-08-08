@@ -20,6 +20,7 @@ import {
 } from '@shared/services/extractionQueueLogic'
 import { configStore } from '@shared/services/configStore'
 import { recordRecordedExtraction } from '@shared/services/slideMetadataClient'
+import { ensureRecordedHostFields } from '@shared/services/slideTimelineClient'
 import { reduceExtraction, type ExtractionEvent } from './extractionMachine'
 import { createLogger } from '@shared/utils/logger';
 const log = createLogger('ExtractionOrchestrator');
@@ -289,6 +290,11 @@ export class ExtractionOrchestrator {
         sessionTitle: item.sessionTitle,
       },
     })
+
+    // Qt --write-timeline emits extractor:"qt" without kind; stamp kind:"recorded"
+    // so host consumers match builtin timelines. Post-processing then mutates
+    // resolutions via moveToInAppTrash → applyTrashOutcome (same as builtin).
+    void ensureRecordedHostFields(slidesDir)
 
     // Optional PNG-8 palette quantization (only when the user enabled it).
     // Qt extractor `--compatible` mode produces lossless 8-bit RGB PNG; this

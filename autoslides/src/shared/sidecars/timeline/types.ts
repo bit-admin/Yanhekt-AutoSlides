@@ -3,13 +3,19 @@
 // resolutions mutate as post-processing / human review relink or unlink files.
 // Derived subtitle-like cues come from deriveCues() — not stored on disk.
 //
-// v1 scope: recorded + builtin extractor only. Media times are video.currentTime
-// seconds (changeAt = first change / true T1; confirmedAt = stability confirm).
+// Writers:
+//  - Host builtin extraction: media times from video.currentTime; extractor 'builtin'.
+//  - AutoSlidesQt CLI (--write-timeline): media PTS seconds; extractor 'qt'
+//    (no kind). Host stamps kind: 'recorded' after a Qt job for recorded lectures.
+// Times: changeAt = first change / true T1; confirmedAt = stability confirm.
 
 export const SLIDE_TIMELINE_VERSION = 1;
 export const SLIDE_TIMELINE_FILENAME = 'timeline.json';
 
 export type ResolutionState = 'canonical' | 'duplicate' | 'gap';
+
+/** Who produced the capture events. Mirrors metadata.json extraction.extractor. */
+export type SlideTimelineExtractor = 'builtin' | 'qt';
 
 export type GapReason =
   | 'unstable' // flicker / failed verify / pre-content
@@ -40,9 +46,12 @@ export interface SlideResolution {
 
 export interface SlideTimeline {
   version: number;
-  /** v1 only records recorded/builtin timelines. */
-  kind: 'recorded';
-  extractor: 'builtin';
+  /**
+   * Host session context for recorded lectures. Qt CLI omits this; the host
+   * stamps `recorded` after a successful Qt extract. Builtin always writes it.
+   */
+  kind?: 'recorded';
+  extractor: SlideTimelineExtractor;
   createdAt: string;
   updatedAt: string;
   /** Append-mostly capture events, ordered by changeAt when written. */

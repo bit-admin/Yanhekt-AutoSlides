@@ -97,4 +97,14 @@ export function registerSlideTimelineIpcHandlers(services: IpcServices): void {
       return { success: false };
     }
   });
+
+  ipcMain.handle('slideTimeline:ensureRecordedHostFields', async (_event, folderPath: string) => {
+    try {
+      await slideTimelineService.ensureRecordedHostFields(folderPath);
+      return { success: true };
+    } catch (error) {
+      log.error('Failed to stamp recorded host fields on timeline:', error);
+      return { success: false };
+    }
+  });
 }

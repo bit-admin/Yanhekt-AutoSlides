@@ -954,6 +954,7 @@ interface ElectronAPI {
       payload: RestoreCanonicalPayload
     ) => Promise<{ success: boolean }>;
     clear: (folderPath: string) => Promise<{ success: boolean }>;
+    ensureRecordedHostFields: (folderPath: string) => Promise<{ success: boolean }>;
   };
 
   pdfmaker: {

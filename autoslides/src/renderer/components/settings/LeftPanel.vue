@@ -265,6 +265,8 @@
     <!-- Extractor Install Modal -->
     <ExtractorInstallModal
       :visible="showExtractorInstallModal"
+      :installed="qtExtractorInstalled"
+      :current-version="qtExtractorStatusVersion"
       @close="closeExtractorInstallModal"
     />
 
@@ -417,6 +419,8 @@ const handleDocumentClick = (event: MouseEvent) => {
 const {
   showExtractorInstallModal,
   closeExtractorInstallModal,
+  qtExtractorInstalled,
+  qtExtractorStatusVersion,
 } = advancedSettings.extractor
 const {
   updateThresholdProgrammatically,

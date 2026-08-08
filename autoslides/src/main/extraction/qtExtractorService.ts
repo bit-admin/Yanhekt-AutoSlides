@@ -5,6 +5,7 @@ import * as readline from 'readline';
 import { dialog } from 'electron';
 import { ConfigService } from '@main/platform/configService';
 import { sharpService } from '@main/infra/sharpService';
+import { qtSupportsWriteTimeline } from '@common/qtExtractorFeatures';
 import { createLogger } from '@main/infra/logger';
 const log = createLogger('QtExtractor');
 
@@ -313,9 +314,25 @@ export class QtExtractorService {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
+    // --compatible: Slide_*.png + no Qt-side post-process (Electron runs p-p).
+    // --write-timeline only when binary is >= 2.0.0 (unknown flag aborts older builds).
+    let writeTimeline = false;
+    try {
+      const status = await this.verifyBinary(binary);
+      writeTimeline = qtSupportsWriteTimeline(status.version);
+      if (!writeTimeline) {
+        log.info(
+          `Skipping --write-timeline (need >= 2.0.0; have ${status.version || 'unknown'})`
+        );
+      }
+    } catch (error) {
+      log.warn('Could not verify extractor version before spawn; omitting --write-timeline:', error);
+    }
+
     const args = [
       '--json',
       '--compatible',
+      ...(writeTimeline ? ['--write-timeline'] : []),
       '--video', videoPath,
       '--output', outputDir,
       '--ssim-threshold', String(params.ssimThreshold),

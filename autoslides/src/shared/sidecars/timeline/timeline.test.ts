@@ -3,6 +3,7 @@ import {
   clearTimeline,
   createEmptyTimeline,
   deriveCues,
+  ensureRecordedHostFields,
   recordCaptureConfirmed,
   recordGapBoundary,
   relinkDuplicate,
@@ -198,6 +199,79 @@ describe('slide timeline reducers + deriveCues', () => {
       events: [],
       resolutions: {},
       createdAt: '2026-01-01T00:00:00.000Z',
+    });
+  });
+
+  it('ensureRecordedHostFields stamps kind on Qt capture-only timeline', () => {
+    // Shape as written by AutoSlidesQt --write-timeline (no kind).
+    const qtOnly = {
+      version: 1 as const,
+      extractor: 'qt' as const,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      events: [
+        {
+          id: 'evt_1',
+          changeAt: 0,
+          confirmedAt: 1,
+          initialFile: 'Slide_001.png',
+        },
+      ],
+      resolutions: {
+        evt_1: { state: 'canonical' as const, file: 'Slide_001.png' },
+      },
+    };
+    const stamped = ensureRecordedHostFields(qtOnly);
+    expect(stamped.kind).toBe('recorded');
+    expect(stamped.extractor).toBe('qt');
+    expect(stamped.events).toEqual(qtOnly.events);
+    expect(stamped.resolutions).toEqual(qtOnly.resolutions);
+    expect(stamped.updatedAt).not.toBe(qtOnly.updatedAt);
+
+    // Already complete → same reference (no churn).
+    const again = ensureRecordedHostFields(stamped);
+    expect(again).toBe(stamped);
+  });
+
+  it('post-process relink works on qt+kind timeline', () => {
+    let tl = ensureRecordedHostFields({
+      version: 1,
+      extractor: 'qt',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+      events: [
+        {
+          id: 'evt_1',
+          changeAt: 0,
+          confirmedAt: 1,
+          initialFile: 'Slide_001.png',
+        },
+        {
+          id: 'evt_2',
+          changeAt: 10,
+          confirmedAt: 11,
+          initialFile: 'Slide_002.png',
+        },
+      ],
+      resolutions: {
+        evt_1: { state: 'canonical', file: 'Slide_001.png' },
+        evt_2: { state: 'canonical', file: 'Slide_002.png' },
+      },
+    });
+    tl = relinkDuplicate(tl, {
+      duplicateFile: 'Slide_002.png',
+      targetFile: 'Slide_001.png',
+    });
+    expect(tl.kind).toBe('recorded');
+    expect(tl.extractor).toBe('qt');
+    expect(tl.resolutions.evt_2).toEqual({
+      state: 'duplicate',
+      duplicateOf: 'Slide_001.png',
+    });
+    const cues = deriveCues(tl, 20);
+    expect(cues.find(c => c.id === 'evt_2')).toMatchObject({
+      type: 'slide',
+      file: 'Slide_001.png',
     });
   });
 
