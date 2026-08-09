@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   clearTimeline,
+  coalesceConsecutiveSlideCues,
   createEmptyTimeline,
   deriveCues,
   ensureRecordedHostFields,
@@ -288,5 +289,90 @@ describe('slide timeline reducers + deriveCues', () => {
     const same2 = unlinkToGap(tl, { file: 'missing.png', reason: 'exclusion' });
     expect(same1).toBe(tl);
     expect(same2).toBe(tl);
+  });
+
+  it('coalesceConsecutiveSlideCues merges adjacent same-file spans', () => {
+    // Capture s1, then a reappearance s1′ that post-process relinks as duplicate.
+    let tl = recordCaptureConfirmed(null, {
+      changeAt: 0,
+      confirmedAt: 1,
+      file: 'Slide_1.png',
+    });
+    tl = recordCaptureConfirmed(tl, {
+      changeAt: 96.64,
+      confirmedAt: 104.7,
+      file: 'Slide_2.png',
+    });
+    tl = recordCaptureConfirmed(tl, {
+      changeAt: 165.12,
+      confirmedAt: 173.16,
+      file: 'Slide_3.png',
+    });
+    tl = relinkDuplicate(tl, {
+      duplicateFile: 'Slide_2.png',
+      targetFile: 'Slide_1.png',
+    });
+
+    const raw = deriveCues(tl, 200);
+    expect(raw).toHaveLength(3);
+    expect(raw[0]).toMatchObject({ type: 'slide', file: 'Slide_1.png', startTime: 0, endTime: 96.64 });
+    expect(raw[1]).toMatchObject({ type: 'slide', file: 'Slide_1.png', startTime: 96.64, endTime: 165.12 });
+    expect(raw[2]).toMatchObject({ type: 'slide', file: 'Slide_3.png', startTime: 165.12, endTime: 200 });
+
+    const coalesced = coalesceConsecutiveSlideCues(raw);
+    expect(coalesced).toHaveLength(2);
+    expect(coalesced[0]).toMatchObject({
+      type: 'slide',
+      file: 'Slide_1.png',
+      startTime: 0,
+      endTime: 165.12,
+    });
+    // Keep the first event id as the chapter identity.
+    expect(coalesced[0].id).toBe(raw[0].id);
+    expect(coalesced[1]).toMatchObject({
+      type: 'slide',
+      file: 'Slide_3.png',
+      startTime: 165.12,
+      endTime: 200,
+    });
+  });
+
+  it('coalesceConsecutiveSlideCues does not merge non-adjacent reappearances', () => {
+    let tl = recordCaptureConfirmed(null, {
+      changeAt: 0,
+      confirmedAt: 1,
+      file: 'Slide_1.png',
+    });
+    tl = recordCaptureConfirmed(tl, {
+      changeAt: 15,
+      confirmedAt: 16,
+      file: 'Slide_2.png',
+    });
+    tl = recordCaptureConfirmed(tl, {
+      changeAt: 30,
+      confirmedAt: 31,
+      file: 'Slide_3.png',
+    });
+    tl = relinkDuplicate(tl, {
+      duplicateFile: 'Slide_3.png',
+      targetFile: 'Slide_1.png',
+    });
+
+    const coalesced = coalesceConsecutiveSlideCues(deriveCues(tl, 60));
+    // A → B → A stays three cues (reappearance after a different slide).
+    expect(coalesced).toHaveLength(3);
+    expect(coalesced.map(c => c.file)).toEqual(['Slide_1.png', 'Slide_2.png', 'Slide_1.png']);
+  });
+
+  it('coalesceConsecutiveSlideCues does not merge across gaps', () => {
+    const cues = [
+      { id: 'a', startTime: 0, endTime: 10, type: 'slide' as const, file: 'Slide_1.png' },
+      { id: 'g', startTime: 10, endTime: 20, type: 'gap' as const, gapReason: 'unstable' as const },
+      { id: 'b', startTime: 20, endTime: 30, type: 'slide' as const, file: 'Slide_1.png' },
+    ];
+    const coalesced = coalesceConsecutiveSlideCues(cues);
+    expect(coalesced).toHaveLength(3);
+    expect(coalesced[0].endTime).toBe(10);
+    expect(coalesced[2].startTime).toBe(20);
   });
 });

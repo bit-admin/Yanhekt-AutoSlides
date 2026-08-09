@@ -9,7 +9,7 @@
         :class="{ 'is-active': chapter.id === activeChapterId }"
         :data-chapter-id="chapter.id"
         :title="cardTitle(chapter)"
-        @click="emit('seek', chapter.startTime)"
+        @click="onSeekChapter(chapter)"
       >
         <div class="card-thumb-wrap">
           <img
@@ -72,6 +72,19 @@ const formatTime = (seconds: number): string => {
 
 const cardTitle = (chapter: SlideChapterCard): string =>
   `${formatTime(chapter.startTime)}`
+
+/**
+ * Seek slightly into the chapter when startTime > 0 so media keyframe
+ * quantization does not land just under the boundary and leave Watching
+ * on the previous card.
+ */
+const SEEK_INSET_SEC = 0.05
+const onSeekChapter = (chapter: SlideChapterCard): void => {
+  const t = chapter.startTime
+  const target =
+    Number.isFinite(t) && t > 0 ? t + SEEK_INSET_SEC : Math.max(0, t || 0)
+  emit('seek', target)
+}
 
 function setupObserver(): void {
   observer?.disconnect()

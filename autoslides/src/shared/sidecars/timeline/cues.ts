@@ -115,3 +115,47 @@ export function deriveCues(
 
   return cues;
 }
+
+/**
+ * Merge adjacent slide cues that resolve to the same file.
+ *
+ * Dedup/relink often produces consecutive spans that all display the same PNG
+ * (e.g. capture → reappearance trashed as duplicate). Subtitle consumers may
+ * want every event span; chapter UIs should show one card per visual change so
+ * "Watching" does not bounce between identical thumbs at shared boundaries.
+ *
+ * Gaps break the run. Non-adjacent reappearances (A → B → A) stay separate.
+ * Keeps the first cue's id/startTime and extends endTime through the run.
+ */
+export function coalesceConsecutiveSlideCues(cues: SlideCue[]): SlideCue[] {
+  if (!cues.length) return [];
+
+  const out: SlideCue[] = [];
+  for (const cue of cues) {
+    const prev = out[out.length - 1];
+    if (
+      prev &&
+      prev.type === 'slide' &&
+      cue.type === 'slide' &&
+      prev.file &&
+      cue.file &&
+      prev.file === cue.file
+    ) {
+      const prevEnd = prev.endTime;
+      const nextEnd = cue.endTime;
+      let endTime: number;
+      if (!Number.isFinite(prevEnd) || !Number.isFinite(nextEnd)) {
+        endTime = Number.POSITIVE_INFINITY;
+      } else {
+        endTime = Math.max(prevEnd, nextEnd);
+      }
+      out[out.length - 1] = {
+        ...prev,
+        endTime,
+      };
+      continue;
+    }
+    out.push(cue);
+  }
+  return out;
+}

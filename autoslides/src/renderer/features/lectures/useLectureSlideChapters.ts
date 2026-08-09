@@ -4,13 +4,15 @@
 
 import { computed, reactive, ref, unref, watch, type MaybeRefOrGetter, type Ref } from 'vue'
 import { parseLectureIds } from '@common/lectureNaming'
-import { deriveCues } from '@common/sidecars'
+import { coalesceConsecutiveSlideCues, deriveCues } from '@common/sidecars'
 import { getTimeline } from '@shared/services/slideTimelineClient'
 import { createLogger } from '@shared/utils/logger'
 
 const log = createLogger('LectureSlideChapters')
 
 const PREFETCH_COUNT = 4
+/** Prefer the later chapter when currentTime is within this of a shared boundary. */
+const ACTIVE_BOUNDARY_EPS = 0.12
 
 export interface SlideChapterCard {
   id: string
@@ -52,12 +54,18 @@ export function useLectureSlideChapters(
   const activeChapterId = computed(() => {
     const time = toRefValue(currentTimeSource)
     if (!Number.isFinite(time) || chapters.value.length === 0) return null
+
+    // Keyframe-early seeks often land a few frames before the chapter start.
+    // Bias matching slightly forward so the clicked / upcoming chapter wins
+    // when time sits just under a shared boundary.
+    const matchTime = time + ACTIVE_BOUNDARY_EPS
+
     for (const card of chapters.value) {
       const end =
         Number.isFinite(card.endTime) && card.endTime > card.startTime
           ? card.endTime
           : Number.POSITIVE_INFINITY
-      if (time >= card.startTime && time < end) return card.id
+      if (matchTime >= card.startTime && matchTime < end) return card.id
     }
     // Past last cue end with finite duration: keep last chapter active.
     const last = chapters.value[chapters.value.length - 1]
@@ -129,8 +137,10 @@ export function useLectureSlideChapters(
         typeof duration === 'number' && Number.isFinite(duration) && duration > 0
           ? duration
           : undefined
-      const cues = deriveCues(timeline, durationArg).filter(
-        (cue): cue is typeof cue & { file: string } =>
+      // Coalesce on the full cue list first so explicit gaps still break a run;
+      // then keep slide cards only for the strip.
+      const cues = coalesceConsecutiveSlideCues(deriveCues(timeline, durationArg)).filter(
+        (cue): cue is typeof cue & { type: 'slide'; file: string } =>
           cue.type === 'slide' && typeof cue.file === 'string' && cue.file.length > 0
       )
 
@@ -139,8 +149,8 @@ export function useLectureSlideChapters(
         index,
         startTime: cue.startTime,
         endTime: cue.endTime,
-        file: cue.file,
-        imagePath: joinFolderFile(match.path, cue.file),
+        file: cue.file!,
+        imagePath: joinFolderFile(match.path, cue.file!),
       }))
 
       chapters.value = next
