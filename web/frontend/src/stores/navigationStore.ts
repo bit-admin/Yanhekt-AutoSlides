@@ -1,6 +1,7 @@
 import { computed, ref } from "vue";
 import { router } from "../router";
 import { configStore, persistConfig } from "./configStore";
+import { isSubscribed } from "../composables/subscribedCourses";
 
 // Thin façade over vue-router so nav consumers (LeftPanel, Header, mobile
 // bottom nav, page refresh watchers) keep their existing read/call surface.
@@ -26,7 +27,9 @@ const activeNav = computed<NavTarget>(
 const activeSubscribed = computed<string | null>(() => {
   const route = router.currentRoute.value;
   const courseId = route.params.courseId;
-  return route.meta.nav === "recorded" && typeof courseId === "string" ? courseId : null;
+  return route.meta.nav === "recorded" && typeof courseId === "string" && isSubscribed(courseId)
+    ? courseId
+    : null;
 });
 
 const navigate = (target: NavTarget) => {

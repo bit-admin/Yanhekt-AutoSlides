@@ -31,7 +31,6 @@
                 <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
               </svg>
               <span>{{ $t('navigation.live') }}</span>
-              <span v-if="livePlaybackActive" class="nav-playback-indicator">●</span>
             </button>
             <button :class="['nav-item', { active: activeNav === 'recorded' && !activePinnedId }]" @click="navigate('recorded')">
               <svg class="nav-item-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -40,7 +39,6 @@
                 <line x1="12" y1="17" x2="12" y2="21"/>
               </svg>
               <span>{{ $t('navigation.recorded') }}</span>
-              <span v-if="recordedPlaybackActive" class="nav-playback-indicator">●</span>
             </button>
           </nav>
         </div>
@@ -296,7 +294,7 @@ import SignInModal from './SignInModal.vue'
 import { configStore } from '@shared/services/configStore'
 
 // Navigator (Home / Live / Recorded + search bar)
-const { activeNav, livePlaybackActive, recordedPlaybackActive, activePinnedId, navigate } = navigationStore
+const { activeNav, activePinnedId, navigate } = navigationStore
 const { keyword: searchKeyword, handleSidebarFocus, handleSidebarEnter } = useSearchPage()
 
 // The settings composables are constructed and provided by App.vue (the common
@@ -1006,12 +1004,16 @@ defineExpose({
   color: var(--accent);
 }
 
+.nav-item.active:hover {
+  background-color: color-mix(in srgb, var(--accent) 18%, var(--bg-hover));
+}
+
 .nav-item-icon {
   flex-shrink: 0;
   opacity: 0.8;
 }
 
-.nav-item span:not(.nav-playback-indicator) {
+.nav-item span {
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -1060,19 +1062,6 @@ defineExpose({
   background-color: var(--bg-hover);
 }
 
-.nav-playback-indicator {
-  flex: none;
-  color: var(--success);
-  font-size: 10px;
-  font-weight: bold;
-  animation: nav-pulse 2s infinite;
-}
-
-@keyframes nav-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
 .nav-group-title--spaced {
   margin: 18px 0 4px;
 }
@@ -1118,6 +1107,10 @@ defineExpose({
 .panel-action-button.active {
   background-color: var(--badge-active-bg);
   color: var(--accent);
+}
+
+.panel-action-button.active:hover {
+  background-color: color-mix(in srgb, var(--accent) 18%, var(--bg-hover));
 }
 
 .panel-action-button.active .panel-action-icon {

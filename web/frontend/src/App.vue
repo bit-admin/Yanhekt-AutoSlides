@@ -54,7 +54,6 @@
           <svg class="bottom-nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
           </svg>
-          <span v-if="livePlaybackActive" class="bottom-playback-indicator">●</span>
         </div>
         <span class="bottom-nav-label">{{ $t('navigation.live') }}</span>
       </button>
@@ -66,7 +65,6 @@
             <line x1="8" y1="21" x2="16" y2="21"/>
             <line x1="12" y1="17" x2="12" y2="21"/>
           </svg>
-          <span v-if="recordedPlaybackActive" class="bottom-playback-indicator">●</span>
         </div>
         <span class="bottom-nav-label">{{ $t('navigation.recorded') }}</span>
       </button>
@@ -123,8 +121,6 @@ const isMobile = ref(false)
 
 const route = useRoute()
 const isFullPage = computed(() => route.meta.fullPage === true)
-const livePlaybackActive = computed(() => route.name === 'player-live')
-const recordedPlaybackActive = computed(() => route.name === 'player-recorded')
 
 // Notes + Slides need full-page KeepAlive so deep links share one instance.
 const FULLPAGE_CACHE_NAMES = ['NotesPage', 'SlidesPage']
@@ -241,20 +237,6 @@ onUnmounted(() => {
 .bottom-nav-label {
   font-size: 0.625rem;
   margin-top: 0.25rem;
-}
-
-.bottom-playback-indicator {
-  position: absolute;
-  top: -0.25rem;
-  right: -0.375rem;
-  color: var(--accent);
-  font-size: 0.5rem;
-  animation: bottom-pulse 2s infinite;
-}
-
-@keyframes bottom-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
 }
 
 @media (max-width: 768px) {

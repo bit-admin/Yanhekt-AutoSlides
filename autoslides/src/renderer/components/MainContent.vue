@@ -224,16 +224,6 @@ watch(courseOpenRequest, (request) => {
   recordedState.value.page = 'sessions'
 })
 
-// Sidebar playback indicator dots reflect whether any tab of a mode is open.
-watch(
-  () => tabStore.state.tabs.map(tab => tab.mode),
-  () => {
-    navigationStore.livePlaybackActive.value = tabStore.state.tabs.some(tab => tab.mode === 'live')
-    navigationStore.recordedPlaybackActive.value = tabStore.state.tabs.some(tab => tab.mode === 'recorded')
-  },
-  { deep: true }
-)
-
 // Task tabs are transient: once a task reaches a terminal state its playback
 // tab is closed (post-processing runs independently in PostProcessingService).
 watch(

@@ -17,7 +17,6 @@
                 <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
               </svg>
               <span>{{ $t('navigation.live') }}</span>
-              <span v-if="livePlaybackActive" class="nav-playback-indicator">●</span>
             </button>
             <button :class="['nav-item', { active: activeNav === 'recorded' && !activeSubscribed }]" @click="navigate('recorded')">
               <svg class="nav-item-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -26,7 +25,6 @@
                 <line x1="12" y1="17" x2="12" y2="21"/>
               </svg>
               <span>{{ $t('navigation.recorded') }}</span>
-              <span v-if="recordedPlaybackActive" class="nav-playback-indicator">●</span>
             </button>
             <div class="nav-divider"></div>
             <button :class="['nav-item', { active: activeNav === 'slides' }]" @click="navigate('slides')">
@@ -190,11 +188,10 @@
               <svg class="mini-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="m23 7-3 2v-4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4l3 2z"/>
               </svg>
-              <span v-if="livePlaybackActive" class="mini-playback-indicator">●</span>
             </div>
             <span class="mini-nav-label">{{ $t('navigation.live') }}</span>
           </button>
-          
+
           <button :class="['mini-nav-item', { active: activeNav === 'recorded' }]" @click="navigate('recorded')" :title="$t('navigation.recorded')">
             <div class="mini-nav-icon-wrap">
               <svg class="mini-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -202,7 +199,6 @@
                 <line x1="8" y1="21" x2="16" y2="21"/>
                 <line x1="12" y1="17" x2="12" y2="21"/>
               </svg>
-              <span v-if="recordedPlaybackActive" class="mini-playback-indicator">●</span>
             </div>
             <span class="mini-nav-label">{{ $t('navigation.recorded') }}</span>
           </button>
@@ -243,7 +239,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import FeedbackModal from './FeedbackModal.vue'
 import { COPYRIGHT_HOLDER, COPYRIGHT_YEAR } from '../legal/meta'
 import { navigationStore } from '../stores/navigationStore'
@@ -255,10 +251,7 @@ const { activeNav, activeSubscribed, navigate, isSidebarCollapsed } = navigation
 
 const showFeedback = ref(false)
 
-const route = useRoute()
 const router = useRouter()
-const livePlaybackActive = computed(() => route.name === 'player-live')
-const recordedPlaybackActive = computed(() => route.name === 'player-recorded')
 
 /** Quiet footer row: sister sites + Image Lab (all open in a new tab). */
 const FOOTER_LINKS = computed(() => [
@@ -454,6 +447,10 @@ const openGitHub = () => {
   font-weight: 500;
 }
 
+.nav-item.active:hover {
+  background-color: color-mix(in srgb, var(--accent) 18%, var(--bg-hover));
+}
+
 .nav-item-icon {
   flex-shrink: 0;
   color: var(--text-primary);
@@ -509,25 +506,12 @@ const openGitHub = () => {
   color: var(--text-muted);
 }
 
-.nav-item span:not(.nav-playback-indicator) {
+.nav-item span {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.nav-playback-indicator {
-  flex: none;
-  color: var(--accent);
-  font-size: 0.625rem;
-  font-weight: bold;
-  animation: nav-pulse 2s infinite;
-}
-
-@keyframes nav-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
 }
 
 /* YouTube Mini Navigation Style */
@@ -585,14 +569,5 @@ const openGitHub = () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.mini-playback-indicator {
-  position: absolute;
-  top: -0.25rem;
-  right: -0.375rem;
-  color: var(--accent);
-  font-size: 0.5rem;
-  animation: nav-pulse 2s infinite;
 }
 </style>

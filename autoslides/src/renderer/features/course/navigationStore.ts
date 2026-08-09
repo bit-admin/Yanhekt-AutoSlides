@@ -26,8 +26,6 @@ export interface CloudIndexSearchRequest {
 // Module-singleton navigation state shared by the left-panel navigator and
 // MainContent (same pattern as useAuth's shared refs).
 const activeNav = ref<NavTarget>('home')
-const livePlaybackActive = ref(false)
-const recordedPlaybackActive = ref(false)
 // True when the recorded-mode browse state is on the sessions list (vs. the
 // course grid). Set by MainContent; read by the title bar so the Info tab chip
 // can label itself "Sessions" instead of "Recorded".
@@ -97,8 +95,6 @@ const requestCloudIndexSearch = (term: string) => {
 
 export const navigationStore = {
   activeNav,
-  livePlaybackActive,
-  recordedPlaybackActive,
   recordedOnSessions,
   isWorkspacePage,
   courseOpenRequest,
