@@ -411,6 +411,8 @@ import {
 import { formatEpisodeToken } from '@common/lectureVideoNaming'
 import { useLocalLecturePlayer } from '@features/lectures/useLocalLecturePlayer'
 import { useLectureSlideChapters } from '@features/lectures/useLectureSlideChapters'
+import { navigationStore } from '@features/course/navigationStore'
+import { tabStore } from '@features/course/tabStore'
 import LectureSlideStrip from './LectureSlideStrip.vue'
 import { createLogger } from '@shared/utils/logger'
 
@@ -450,6 +452,7 @@ const {
   bindSingleEl,
   open,
   setStreamMode,
+  pause,
   togglePlay,
   seek,
   setVolume,
@@ -461,6 +464,17 @@ const {
   onTimeUpdate,
   onPlayStateChanged,
 } = useLocalLecturePlayer()
+
+// Pause local lecture playback whenever leaving the Lectures page (e.g. navigating to Home/Search or opening a tab).
+const isPageActive = computed(
+  () => navigationStore.activeNav.value === 'lectures' && tabStore.state.activeTabId === null,
+)
+
+watch(isPageActive, (active) => {
+  if (!active) {
+    pause()
+  }
+})
 
 const courseIdRef = computed(() => props.course.courseId)
 const sessionIdRef = computed(() => props.session.sessionId)

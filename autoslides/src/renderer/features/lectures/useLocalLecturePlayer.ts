@@ -347,6 +347,7 @@ export function useLocalLecturePlayer() {
   }
 
   const pause = () => {
+    stopSync()
     screenVideoEl.value?.pause()
     cameraVideoEl.value?.pause()
     singleVideoEl.value?.pause()
