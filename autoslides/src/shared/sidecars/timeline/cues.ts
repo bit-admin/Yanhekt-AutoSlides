@@ -159,3 +159,66 @@ export function coalesceConsecutiveSlideCues(cues: SlideCue[]): SlideCue[] {
   }
   return out;
 }
+
+export interface SlideAppearanceSpan {
+  id: string;
+  startTime: number;
+  endTime: number;
+  source: 'resolved' | 'capture';
+}
+
+function basenameOf(filename: string): string {
+  const parts = filename.split(/[/\\]/);
+  return parts[parts.length - 1] ?? '';
+}
+
+/**
+ * Time spans where `filename` is (or was) on screen.
+ *
+ * Prefer coalesced resolved cues (canonical file + absorbed duplicates).
+ * If none match — typically a trashed or duplicate-of-other file — optionally
+ * fall back to the original capture event span(s) for that basename.
+ */
+export function appearancesForFile(
+  timeline: SlideTimeline | null | undefined,
+  filename: string,
+  options?: { videoDuration?: number; includeCaptureFallback?: boolean }
+): SlideAppearanceSpan[] {
+  if (!timeline || !filename) return [];
+  const target = basenameOf(filename);
+  if (!target) return [];
+
+  const resolved = coalesceConsecutiveSlideCues(deriveCues(timeline, options?.videoDuration))
+    .filter(
+      (cue): cue is SlideCue & { type: 'slide'; file: string } =>
+        cue.type === 'slide' && cue.file === target
+    )
+    .map((cue) => ({
+      id: cue.id,
+      startTime: cue.startTime,
+      endTime: cue.endTime,
+      source: 'resolved' as const,
+    }));
+
+  if (resolved.length > 0) return resolved;
+  if (options?.includeCaptureFallback === false) return [];
+
+  const sorted = [...timeline.events].sort((a, b) => a.changeAt - b.changeAt);
+  const endFallback =
+    typeof options?.videoDuration === 'number' && Number.isFinite(options.videoDuration)
+      ? options.videoDuration
+      : Number.POSITIVE_INFINITY;
+
+  const spans: SlideAppearanceSpan[] = [];
+  for (let i = 0; i < sorted.length; i++) {
+    const event = sorted[i];
+    if (event.initialFile !== target) continue;
+    spans.push({
+      id: event.id,
+      startTime: event.changeAt,
+      endTime: i < sorted.length - 1 ? sorted[i + 1].changeAt : endFallback,
+      source: 'capture',
+    });
+  }
+  return spans;
+}

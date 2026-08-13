@@ -1008,6 +1008,7 @@
     "currentPath": "Current Path",
     "originalPath": "Original Path",
     "folder": "Folder",
+    "appearedInVideo": "Appeared",
     "trashPath": "Trash Path",
     "reasonDetails": "Details",
     "trashedAt": "Trashed At",

@@ -370,6 +370,7 @@
       :is-loading="isLoading"
       :thumbnails="thumbnails"
       :current-folder-display-name="currentFolderDisplayName"
+      :folder-path="currentFolder?.path"
       :can-set-current-as-baseline="canSetCurrentAsBaseline"
       :is-current-preview-baseline="isCurrentPreviewBaseline"
       :format-date="formatDate"

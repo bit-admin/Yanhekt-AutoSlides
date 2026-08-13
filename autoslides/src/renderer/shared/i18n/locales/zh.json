@@ -1008,6 +1008,7 @@
     "currentPath": "当前路径",
     "originalPath": "原始路径",
     "folder": "文件夹",
+    "appearedInVideo": "出现时间",
     "trashPath": "回收站路径",
     "reasonDetails": "详情",
     "trashedAt": "删除时间",

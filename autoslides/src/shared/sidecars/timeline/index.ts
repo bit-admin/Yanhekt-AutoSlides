@@ -27,4 +27,5 @@ export {
   gapReasonFromTrashReason,
 } from './reducers';
 
-export { deriveCues, coalesceConsecutiveSlideCues } from './cues';
+export { deriveCues, coalesceConsecutiveSlideCues, appearancesForFile } from './cues';
+export type { SlideAppearanceSpan } from './cues';

@@ -136,6 +136,14 @@
                 <td class="info-label">{{ $t('trash.folder') }}</td>
                 <td class="info-value">{{ currentFolderDisplayName }}</td>
               </tr>
+              <tr v-if="appearanceLabels.length">
+                <td class="info-label">{{ $t('trash.appearedInVideo') }}</td>
+                <td class="info-value">
+                  <div class="info-appearances">
+                    <div v-for="(label, index) in appearanceLabels" :key="index">{{ label }}</div>
+                  </div>
+                </td>
+              </tr>
               <tr>
                 <td class="info-label">{{ $t('trash.status') }}</td>
                 <td class="info-value">
@@ -182,9 +190,11 @@
 </template>
 
 <script setup lang="ts">
-import { onBeforeUnmount, ref, toRef, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { appearancesForFile, type SlideTimeline } from '@common/sidecars'
 import { createAutoCropWorkerClient } from '@shared/autoCrop'
+import { getTimeline } from '@shared/services/slideTimelineClient'
 import { useCropEditor, type CropHandle } from '@features/results/useCropEditor'
 import type { CropRect, ResultsItem, ResultsReason } from '@features/results/useResultsView'
 
@@ -193,6 +203,7 @@ const props = defineProps<{
   isLoading: boolean
   thumbnails: Record<string, string>
   currentFolderDisplayName: string
+  folderPath?: string
   canSetCurrentAsBaseline: boolean
   isCurrentPreviewBaseline: boolean
   formatDate: (dateString: string) => string
@@ -208,6 +219,75 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const showPreviewMetadata = ref(false)
+
+const cachedTimelineFolder = ref<string | null>(null)
+const cachedTimeline = ref<SlideTimeline | null>(null)
+let timelineLoadGen = 0
+
+function dirnameOf(filePath: string): string {
+  const slash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'))
+  return slash > 0 ? filePath.slice(0, slash) : ''
+}
+
+function resolveFolderPath(): string | null {
+  if (props.folderPath) return props.folderPath
+  const fromItem = props.previewItem?.imagePath || props.previewItem?.originalPath
+  if (!fromItem) return null
+  return dirnameOf(fromItem) || null
+}
+
+async function ensureTimeline(): Promise<void> {
+  const folder = resolveFolderPath()
+  if (!folder) {
+    cachedTimelineFolder.value = null
+    cachedTimeline.value = null
+    return
+  }
+  if (cachedTimelineFolder.value === folder) return
+
+  const gen = ++timelineLoadGen
+  const timeline = await getTimeline(folder)
+  if (gen !== timelineLoadGen) return
+  cachedTimelineFolder.value = folder
+  cachedTimeline.value = timeline
+}
+
+const formatMediaTime = (seconds: number): string => {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00'
+  const s = Math.floor(seconds)
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  const r = s % 60
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`
+  return `${m}:${String(r).padStart(2, '0')}`
+}
+
+const formatAppearanceSpan = (startTime: number, endTime: number): string => {
+  const start = formatMediaTime(startTime)
+  if (!Number.isFinite(endTime)) return `${start} –`
+  return `${start} – ${formatMediaTime(endTime)}`
+}
+
+const appearanceLabels = computed(() => {
+  const item = props.previewItem
+  if (!item) return []
+  return appearancesForFile(cachedTimeline.value, item.name).map((span) =>
+    formatAppearanceSpan(span.startTime, span.endTime)
+  )
+})
+
+watch(showPreviewMetadata, (visible) => {
+  if (visible) void ensureTimeline()
+})
+
+watch(
+  () => props.folderPath,
+  () => {
+    cachedTimelineFolder.value = null
+    cachedTimeline.value = null
+    if (showPreviewMetadata.value) void ensureTimeline()
+  }
+)
 
 // The worker client lives for this component's lifetime — the component is
 // mounted unconditionally, so this matches the former page-long lifetime.
@@ -559,6 +639,12 @@ const formatCropArea = (rect?: CropRect) => {
 
 .info-path {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.info-appearances {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 /* Reason badge (this component's copy — ResultsImageGrid carries its own,

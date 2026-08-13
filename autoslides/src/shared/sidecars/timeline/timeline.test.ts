@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   clearTimeline,
+  appearancesForFile,
   coalesceConsecutiveSlideCues,
   createEmptyTimeline,
   deriveCues,
@@ -374,5 +375,106 @@ describe('slide timeline reducers + deriveCues', () => {
     expect(coalesced).toHaveLength(3);
     expect(coalesced[0].endTime).toBe(10);
     expect(coalesced[2].startTime).toBe(20);
+  });
+
+  it('appearancesForFile returns a single resolved span', () => {
+    let tl = recordCaptureConfirmed(null, {
+      changeAt: 5,
+      confirmedAt: 7,
+      file: 'Slide_1.png',
+    });
+    tl = recordCaptureConfirmed(tl, {
+      changeAt: 25,
+      confirmedAt: 27,
+      file: 'Slide_2.png',
+    });
+
+    expect(appearancesForFile(tl, 'Slide_1.png', { videoDuration: 100 })).toEqual([
+      { id: expect.any(String), startTime: 5, endTime: 25, source: 'resolved' },
+    ]);
+  });
+
+  it('appearancesForFile absorbs a relinked reappearance into the canonical file', () => {
+    let tl = recordCaptureConfirmed(null, {
+      changeAt: 0,
+      confirmedAt: 1,
+      file: 'Slide_1.png',
+    });
+    tl = recordCaptureConfirmed(tl, {
+      changeAt: 15,
+      confirmedAt: 16,
+      file: 'Slide_2.png',
+    });
+    tl = recordCaptureConfirmed(tl, {
+      changeAt: 30,
+      confirmedAt: 31,
+      file: 'Slide_3.png',
+    });
+    tl = relinkDuplicate(tl, {
+      duplicateFile: 'Slide_3.png',
+      targetFile: 'Slide_1.png',
+    });
+
+    expect(appearancesForFile(tl, 'Slide_1.png', { videoDuration: 60 })).toEqual([
+      { id: expect.any(String), startTime: 0, endTime: 15, source: 'resolved' },
+      { id: expect.any(String), startTime: 30, endTime: 60, source: 'resolved' },
+    ]);
+    expect(appearancesForFile(tl, 'Slide_3.png', { videoDuration: 60 })).toEqual([
+      { id: expect.any(String), startTime: 30, endTime: 60, source: 'capture' },
+    ]);
+  });
+
+  it('appearancesForFile falls back to capture span for a gapped file', () => {
+    let tl = recordCaptureConfirmed(null, {
+      changeAt: 0,
+      confirmedAt: 1,
+      file: 'Slide_1.png',
+    });
+    tl = recordCaptureConfirmed(tl, {
+      changeAt: 15,
+      confirmedAt: 16,
+      file: 'Slide_2.png',
+    });
+    tl = recordCaptureConfirmed(tl, {
+      changeAt: 30,
+      confirmedAt: 31,
+      file: 'Slide_3.png',
+    });
+    tl = unlinkToGap(tl, { file: 'Slide_2.png', reason: 'ai_filtered' });
+
+    expect(appearancesForFile(tl, 'Slide_2.png', { videoDuration: 60 })).toEqual([
+      { id: expect.any(String), startTime: 15, endTime: 30, source: 'capture' },
+    ]);
+    expect(
+      appearancesForFile(tl, 'Slide_2.png', {
+        videoDuration: 60,
+        includeCaptureFallback: false,
+      })
+    ).toEqual([]);
+  });
+
+  it('appearancesForFile returns [] for missing timeline or unknown file', () => {
+    expect(appearancesForFile(null, 'Slide_1.png')).toEqual([]);
+    const tl = recordCaptureConfirmed(null, {
+      changeAt: 0,
+      confirmedAt: 1,
+      file: 'Slide_1.png',
+    });
+    expect(appearancesForFile(tl, 'missing.png', { videoDuration: 20 })).toEqual([]);
+  });
+
+  it('appearancesForFile matches a full path basename and leaves last end open', () => {
+    const tl = recordCaptureConfirmed(null, {
+      changeAt: 12,
+      confirmedAt: 14,
+      file: 'Slide_1.png',
+    });
+    const spans = appearancesForFile(tl, '/tmp/slides_foo/Slide_1.png');
+    expect(spans).toHaveLength(1);
+    expect(spans[0]).toMatchObject({
+      startTime: 12,
+      endTime: Number.POSITIVE_INFINITY,
+      source: 'resolved',
+    });
   });
 });
