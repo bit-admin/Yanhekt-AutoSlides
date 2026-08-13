@@ -186,6 +186,7 @@ export class ConfigService {
       cloudAutoResyncMode: this.store.get('cloudAutoResyncMode') ?? 'disabled',
       cloudAutoRepublishAfterResync: this.store.get('cloudAutoRepublishAfterResync') ?? false,
       cloudWatchSyncEnabled: this.store.get('cloudWatchSyncEnabled') ?? false,
+      preferAnonymousApiRequests: this.store.get('preferAnonymousApiRequests') ?? false,
       localRelayEnabled: this.store.get('localRelayEnabled') ?? false,
       localRelayPort: this.store.get('localRelayPort') ?? 8787,
       localRelayWhitelistEnabled: this.store.get('localRelayWhitelistEnabled') ?? true,
@@ -233,6 +234,14 @@ export class ConfigService {
 
   setCloudWatchSyncEnabled(enabled: boolean): void {
     this.store.set('cloudWatchSyncEnabled', enabled);
+  }
+
+  getPreferAnonymousApiRequests(): boolean {
+    return this.store.get('preferAnonymousApiRequests') ?? false;
+  }
+
+  setPreferAnonymousApiRequests(enabled: boolean): void {
+    this.store.set('preferAnonymousApiRequests', enabled);
   }
 
   /** Clamp local-relay listen port to an unprivileged range. */

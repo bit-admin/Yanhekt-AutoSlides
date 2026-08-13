@@ -321,6 +321,16 @@ export function registerConfigIpcHandlers(services: IpcServices): void {
     return configService.getConfig();
   });
 
+  ipcMain.handle('config:setPreferAnonymousApiRequests', async (_, enabled: boolean) => {
+    configService.setPreferAnonymousApiRequests(enabled);
+    broadcastConfig();
+    return configService.getConfig();
+  });
+
+  ipcMain.handle('config:getPreferAnonymousApiRequests', async () => {
+    return configService.getPreferAnonymousApiRequests();
+  });
+
   // Local LAN relay (Worker-compatible /playlist + /segment). One setter so
   // enable/port/whitelist land together, then applyConfig starts/stops/restarts.
   ipcMain.handle(

@@ -89,6 +89,7 @@ export class M3u8DownloadService {
       this.ffmpegService,
       this.intranetMapping,
       this.apiClient,
+      this.configService,
       loginToken,
       this.configService.getConfig().downloadMaxWorkers,
       this.configService.getConfig().downloadNumRetries
@@ -135,6 +136,7 @@ class M3u8Downloader {
   private ffmpegService: FFmpegService;
   private intranetMapping: IntranetMappingService;
   private apiClient: ApiClient;
+  private configService: ConfigService;
   private loginToken: string;
 
   private workDir: string;
@@ -154,7 +156,7 @@ class M3u8Downloader {
   private abortController: AbortController | null = null;
 
 
-  private headers = {
+  private headers: Record<string, string> = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.3",
     "Origin": "https://www.yanhekt.cn",
     "referer": "https://www.yanhekt.cn/",
@@ -181,6 +183,7 @@ class M3u8Downloader {
     ffmpegService: FFmpegService,
     intranetMapping: IntranetMappingService,
     apiClient: ApiClient,
+    configService: ConfigService,
     loginToken: string,
     maxWorkers: number,
     numRetries: number
@@ -193,6 +196,7 @@ class M3u8Downloader {
     this.ffmpegService = ffmpegService;
     this.intranetMapping = intranetMapping;
     this.apiClient = apiClient;
+    this.configService = configService;
     this.loginToken = loginToken;
     this.maxWorkers = maxWorkers;
     this.numRetries = numRetries;
@@ -288,9 +292,12 @@ class M3u8Downloader {
   private async getToken(): Promise<string> {
     if (!this.token) {
       try {
-        // Use the existing API client to get video token
         this.token = await this.apiClient.getVideoToken(this.loginToken);
-        this.headers["Authorization"] = "Bearer " + this.loginToken;
+        if (this.configService.getPreferAnonymousApiRequests()) {
+          delete this.headers["Authorization"];
+        } else {
+          this.headers["Authorization"] = "Bearer " + this.loginToken;
+        }
       } catch (error) {
         log.error("Error getting token:", error);
         throw new Error("获取 Token 失败");

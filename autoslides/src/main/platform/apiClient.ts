@@ -3,6 +3,7 @@ import { app } from 'electron';
 import { getClientSignature } from '@common/crypto';
 import { createLogger } from '@main/infra/logger';
 import { appUserAgent } from '@main/infra/appUserAgent';
+import type { ConfigService } from '@main/platform/configService';
 const log = createLogger('PlatformApiClient');
 
 export interface UserData {
@@ -221,13 +222,25 @@ export class ApiClient {
     "Xclient-Version": "v1"
   };
 
-  private createHeaders(token: string): { headers: Record<string, string>; timestamp: string } {
+  constructor(private configService?: ConfigService) {}
+
+  /**
+   * Omit Authorization when the caller marked the endpoint anonymous-safe
+   * AND Settings → Network "If possible, send anonymous requests" is on.
+   */
+  private shouldOmitAuth(allowAnonymous: boolean): boolean {
+    return allowAnonymous && !!this.configService?.getPreferAnonymousApiRequests();
+  }
+
+  private createHeaders(token: string, allowAnonymous = false): { headers: Record<string, string>; timestamp: string } {
     const timestamp = Math.floor(Date.now() / 1000).toString();
     const headers: Record<string, string> = { ...this.BASE_HEADERS };
 
     headers["Xclient-Signature"] = getClientSignature();
     headers["Xclient-Timestamp"] = timestamp;
-    headers["Authorization"] = `Bearer ${token}`;
+    if (!this.shouldOmitAuth(allowAnonymous) && token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
 
     return { headers, timestamp };
   }
@@ -303,8 +316,14 @@ export class ApiClient {
     }
   }
 
-  private async makeRequest(method: string, url: string, token: string, data?: Record<string, unknown>): Promise<unknown> {
-    const { headers } = this.createHeaders(token);
+  private async makeRequest(
+    method: string,
+    url: string,
+    token: string,
+    data?: Record<string, unknown>,
+    opts?: { allowAnonymous?: boolean }
+  ): Promise<unknown> {
+    const { headers } = this.createHeaders(token, opts?.allowAnonymous === true);
 
     const config: {
       method: string;
@@ -337,7 +356,10 @@ export class ApiClient {
   async getLiveList(token: string, page = 1, pageSize = 16, userRelationshipType = 0): Promise<LiveListResponse> {
     try {
       const url = `https://cbiz.yanhekt.cn/v2/live/list?page=${page}&page_size=${pageSize}&user_relationship_type=${userRelationshipType}`;
-      const response = await this.makeRequest('GET', url, token);
+      // type=0 is the public catalog; type=1 is the user's enrolled lives.
+      const response = await this.makeRequest('GET', url, token, undefined, {
+        allowAnonymous: userRelationshipType !== 1
+      });
       const data = response as LiveListApiResponse;
 
       if (data.code !== 0 && data.code !== "0") {
@@ -370,7 +392,7 @@ export class ApiClient {
     try {
       const encodedKeyword = encodeURIComponent(keyword);
       const url = `https://cbiz.yanhekt.cn/v2/live/list?page=${page}&page_size=${pageSize}&keyword=${encodedKeyword}`;
-      const response = await this.makeRequest('GET', url, token);
+      const response = await this.makeRequest('GET', url, token, undefined, { allowAnonymous: true });
       const data = response as LiveListApiResponse;
 
       if (data.code !== 0 && data.code !== "0") {
@@ -424,7 +446,7 @@ export class ApiClient {
       }
 
       const url = `https://cbiz.yanhekt.cn/v2/course/list?${params.toString()}`;
-      const response = await this.makeRequest('GET', url, token);
+      const response = await this.makeRequest('GET', url, token, undefined, { allowAnonymous: true });
       const data = response as CourseListApiResponse;
 
       if (data.code !== 0 && data.code !== "0") {
@@ -590,7 +612,7 @@ export class ApiClient {
   async getCourseInfo(courseId: string, token: string): Promise<CourseInfoResponse> {
     try {
       const courseApiUrl = `https://cbiz.yanhekt.cn/v1/course?id=${courseId}&with_professor_badges=true`;
-      const courseResponse = await this.makeRequest('GET', courseApiUrl, token);
+      const courseResponse = await this.makeRequest('GET', courseApiUrl, token, undefined, { allowAnonymous: true });
       const courseData = courseResponse as CourseInfoApiResponse;
 
       if (courseData.code !== 0 && courseData.code !== "0") {
@@ -611,6 +633,8 @@ export class ApiClient {
         throw new Error(errorMessage);
       }
 
+      // Session *list* requires a login token (unauth returns code:0 + data:[]).
+      // Session *detail by id* is a different endpoint — see getSessionById.
       const sessionApiUrl = `https://cbiz.yanhekt.cn/v2/course/session/list?course_id=${courseId}`;
       const sessionResponse = await this.makeRequest('GET', sessionApiUrl, token);
       const sessionData = sessionResponse as SessionListApiResponse;
@@ -668,6 +692,24 @@ export class ApiClient {
       log.error('Failed to get course info:', error);
       throw error;
     }
+  }
+
+  /**
+   * Unused by the Electron app. Documented so the two session endpoints stay distinct.
+   *
+   * Playback / course pages enumerate via `GET /v2/course/session/list?course_id=`
+   * inside {@link getCourseInfo} (auth-required; anonymous response is `data: []`).
+   *
+   * This method is `GET /v1/course/session?session_id=&with_video=true` — session
+   * detail *by id*. Proved anonymous-ok (2026-08-13): title, schedule, location,
+   * nested `course`, historical `live` (incl. target URLs), and `video_ids`.
+   * Does **not** include the authenticated list's `videos[]` VOD URLs; recover
+   * those via `GET /v1/video?id=` using `video_ids`. See
+   * `REFERENCE/YANHEKT_UNAUTH_API_REPORT.md`.
+   */
+  async getSessionById(sessionId: string, token: string): Promise<unknown> {
+    const url = `https://cbiz.yanhekt.cn/v1/course/session?session_id=${encodeURIComponent(sessionId)}&with_video=true`;
+    return this.makeRequest('GET', url, token, undefined, { allowAnonymous: true });
   }
 
   // Parse semester name to extract school year and semester info
@@ -815,7 +857,7 @@ export class ApiClient {
   async getVideoToken(token: string): Promise<string> {
     try {
       const url = "https://cbiz.yanhekt.cn/v1/auth/video/token?id=0";
-      const response = await this.makeRequest('GET', url, token);
+      const response = await this.makeRequest('GET', url, token, undefined, { allowAnonymous: true });
       const data = response as VideoTokenApiResponse;
 
       if (data.code !== 0 && data.code !== "0") {

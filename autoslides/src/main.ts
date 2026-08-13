@@ -162,7 +162,7 @@ app.on('activate', () => {
 
 // Initialize services
 const authService = new MainAuthService(configService);
-const apiClient = new MainApiClient();
+const apiClient = new MainApiClient(configService);
 const autoCropModelService = new AutoCropModelService(configService);
 const mlClassifierModelService = new MlClassifierModelService(configService);
 const intranetMappingService = new IntranetMappingService(configService);

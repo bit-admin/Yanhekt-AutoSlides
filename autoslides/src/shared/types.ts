@@ -239,6 +239,11 @@ export interface AppConfig {
   // in the ASuser group and append each captured slide to it. Gates the whole
   // right-panel Notes flow. Default off; only meaningful once cloud storage is ready.
   cloudWatchSyncEnabled: boolean;
+  // When true, omit Authorization on Yanhekt endpoints that work without a
+  // login (public catalog, public live list, course detail, video token).
+  // Session list, personal lists, notes, and account APIs still send the token.
+  // Default off — production behavior is always-authenticated.
+  preferAnonymousApiRequests: boolean;
   // Local LAN relay server (Worker-compatible /playlist + /segment API). Opt-in;
   // binds 0.0.0.0 so other devices on the network can stream recorded HLS.
   // Independent of the in-app localhost VideoProxyService.

@@ -80,6 +80,19 @@
     </div>
   </div>
 
+  <div class="advanced-setting-section">
+    <h4>{{ $t('advanced.preferAnonymousApiRequests') }}</h4>
+    <div class="setting-item">
+      <div class="setting-description">{{ $t('advanced.preferAnonymousApiRequestsDescription') }}</div>
+      <div class="auto-post-processing-control">
+        <label class="checkbox-label">
+          <input type="checkbox" v-model="tempPreferAnonymousApiRequests" />
+          {{ $t('advanced.preferAnonymousApiRequestsEnable') }}
+        </label>
+      </div>
+    </div>
+  </div>
+
   <!-- Local LAN relay: Worker-compatible /playlist + /segment for external clients.
        All options stay visible; body grays out when the server is off, and the
        whitelist body grays out when the whitelist itself is off. -->
@@ -247,6 +260,7 @@ const {
   refreshNetworkInterfaces,
   toggleMappingExpanded,
   getStrategyDisplayName,
+  tempPreferAnonymousApiRequests,
   tempLocalRelayEnabled,
   tempLocalRelayPort,
   tempLocalRelayWhitelistEnabled,

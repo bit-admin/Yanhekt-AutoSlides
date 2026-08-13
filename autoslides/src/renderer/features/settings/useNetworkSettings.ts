@@ -31,6 +31,9 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
   const intranetInterfaceWarning = ref<string | null>(null)
 
   // ---- Local relay (buffered; applied on Save) -----------------------------
+  const preferAnonymousApiRequests = ref(false)
+  const tempPreferAnonymousApiRequests = ref(false)
+
   const localRelayEnabled = ref(false)
   const localRelayPort = ref(8787)
   const localRelayWhitelistEnabled = ref(true)
@@ -94,6 +97,7 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
   const loadLocalRelayFromConfig = () => {
     currentAuthToken.value = tokenManager.getToken()
     const cfg = configStore
+    preferAnonymousApiRequests.value = !!cfg.preferAnonymousApiRequests
     localRelayEnabled.value = !!cfg.localRelayEnabled
     localRelayPort.value = cfg.localRelayPort ?? 8787
     localRelayWhitelistEnabled.value = cfg.localRelayWhitelistEnabled !== false
@@ -122,6 +126,13 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
   }
 
   const save = async () => {
+    if (tempPreferAnonymousApiRequests.value !== preferAnonymousApiRequests.value) {
+      await window.electronAPI.config.setPreferAnonymousApiRequests(
+        tempPreferAnonymousApiRequests.value
+      )
+      preferAnonymousApiRequests.value = tempPreferAnonymousApiRequests.value
+    }
+
     if (tempIntranetInterfaceIp.value !== intranetInterfaceIp.value) {
       const resp = await window.electronAPI.intranet.setInterfaceIp(
         tempIntranetInterfaceIp.value === '' ? null : tempIntranetInterfaceIp.value
@@ -174,6 +185,7 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
   const resetTemp = () => {
     tempIntranetInterfaceIp.value = intranetInterfaceIp.value
     intranetInterfaceWarning.value = null
+    tempPreferAnonymousApiRequests.value = preferAnonymousApiRequests.value
     resetTempLocalRelay()
   }
 
@@ -238,6 +250,7 @@ export function useNetworkSettings(options: UseNetworkSettingsOptions = {}) {
     tempIntranetInterfaceIp,
     intranetInterfaceWarning,
 
+    tempPreferAnonymousApiRequests,
     tempLocalRelayEnabled,
     tempLocalRelayPort,
     tempLocalRelayWhitelistEnabled,
