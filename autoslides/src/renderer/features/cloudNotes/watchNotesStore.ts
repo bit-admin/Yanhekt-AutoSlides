@@ -7,6 +7,7 @@ import { layoutStore } from '@shared/services/layoutStore'
 import { rightPanelStore, setRightPanelTab } from '@shared/services/rightPanelStore'
 import { createLogger } from '@shared/utils/logger'
 import { buildManagedNoteTitle, EDITORJS_DOC_VERSION } from '@common/notesTypes'
+import { NOTE_COPYRIGHT } from '@common/notesContent'
 import { buildSlideFolderName, type LectureIdentity } from '@common/lectureNaming'
 import { formatToolFolderName } from '@shared/utils/toolWindowFolders'
 import { tabStore } from '@features/course/tabStore'
@@ -184,7 +185,7 @@ async function findOrCreateNote(
     return { id: existingId, content, created: false }
   }
 
-  // Create a fresh note in the ASuser group, titled + seeded with a heading.
+  // Create a fresh note in the ASuser group, titled + seeded with a heading and notice.
   const created = await api().create()
   if (!created.ok) {
     log.warn('failed to create watch note', created.error)
@@ -195,7 +196,10 @@ async function findOrCreateNote(
   if (!titleRes.ok) log.warn('failed to title watch note', titleRes.error)
   const content: OutputData = {
     time: Date.now(),
-    blocks: [{ type: 'header', data: { text: displayName, level: 2 } }],
+    blocks: [
+      { type: 'header', data: { text: displayName, level: 2 } },
+      { type: 'paragraph', data: { text: NOTE_COPYRIGHT } },
+    ],
     version: EDITORJS_DOC_VERSION,
   } as OutputData
   await api().updateContent(id, JSON.stringify(content))

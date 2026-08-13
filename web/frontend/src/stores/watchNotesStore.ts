@@ -4,6 +4,7 @@ import { configStore } from './configStore';
 import { cloudStorageStore } from './cloudStorageStore';
 import { notesClient } from '../lib/notes/notesClient';
 import { buildManagedNoteTitle, EDITORJS_DOC_VERSION } from '../lib/notes/notesTypes';
+import { NOTE_COPYRIGHT } from '../lib/notes/notesContent';
 import {
   formatToolFolderName,
   parseLectureIds,
@@ -152,7 +153,7 @@ async function findOrCreateNote(
     return { id: existingId, content, created: false };
   }
 
-  // Create a fresh note in the ASuser group, titled + seeded with a heading.
+  // Create a fresh note in the ASuser group, titled + seeded with a heading and notice.
   const created = await notesClient.create();
   if (!created.ok) {
     log.warn('failed to create watch note', created.error);
@@ -163,7 +164,10 @@ async function findOrCreateNote(
   if (!titleRes.ok) log.warn('failed to title watch note', titleRes.error);
   const content: OutputData = {
     time: Date.now(),
-    blocks: [{ type: 'header', data: { text: displayName, level: 2 } }],
+    blocks: [
+      { type: 'header', data: { text: displayName, level: 2 } },
+      { type: 'paragraph', data: { text: NOTE_COPYRIGHT } },
+    ],
     version: EDITORJS_DOC_VERSION,
   } as OutputData;
   await notesClient.updateContent(id, JSON.stringify(content));
