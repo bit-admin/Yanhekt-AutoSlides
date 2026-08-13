@@ -11,10 +11,11 @@
  * Both routes accept &nocache=1 to bypass the shared VOD cache (read AND
  * write); /playlist propagates the flag into the segment URLs it emits.
  *
- * Caching (Cache API): the video TOKEN (~its real lifetime), plus raw VOD
- * m3u8 bodies and full 200 segment bodies keyed by upstream URL alone —
- * recorded content is immutable and byte-identical for every viewer, so the
- * cache is deliberately shared across login tokens.
+ * Caching (Cache API): one shared video TOKEN (anonymous mint, ~its real
+ * lifetime), plus raw VOD m3u8 bodies and full 200 segment bodies keyed by
+ * upstream URL alone — recorded content is immutable and byte-identical for
+ * every viewer, so the cache is deliberately shared across login tokens.
+ * Client `t=` is still required (32-hex 403) so cache hits are not free.
  */
 import { md5 } from './md5';
 import { getClientSignature, signMediaUrl } from './yanhekt';
@@ -31,8 +32,8 @@ const MEDIA_HEADERS: Record<string, string> = {
   'User-Agent': USER_AGENT,
 };
 
-/** Headers sent to cbiz.yanhekt.cn when minting the video token. */
-function tokenHeaders(loginToken: string): Record<string, string> {
+/** Headers sent to cbiz.yanhekt.cn when minting the video token (no user Bearer). */
+function tokenHeaders(): Record<string, string> {
   return {
     ...MEDIA_HEADERS,
     'xdomain-client': 'web_user',
@@ -40,7 +41,6 @@ function tokenHeaders(loginToken: string): Record<string, string> {
     'Xclient-Version': 'v1',
     'Xclient-Signature': getClientSignature(),
     'Xclient-Timestamp': Math.floor(Date.now() / 1000).toString(),
-    Authorization: `Bearer ${loginToken}`,
   };
 }
 
@@ -77,13 +77,15 @@ const CORS: Record<string, string> = {
 
 const inflight = new Map<string, Promise<string>>();
 
-function tokenCacheKey(loginToken: string): { url: string; req: Request } {
-  const url = `https://yanhekt-proxy.cache/token/${md5(loginToken)}`;
+function tokenCacheKey(): { url: string; req: Request } {
+  // Shared: Yanhekt mints Xvideo_Token without a login Bearer, so one cache
+  // entry serves every viewer. `t=` is only the relay access gate.
+  const url = 'https://yanhekt-proxy.cache/token/anon';
   return { url, req: new Request(url) };
 }
 
-async function getVideoToken(loginToken: string, ctx: ExecutionContext): Promise<string> {
-  const { url, req } = tokenCacheKey(loginToken);
+async function getVideoToken(ctx: ExecutionContext): Promise<string> {
+  const { url, req } = tokenCacheKey();
   const cache = caches.default;
 
   const cached = await cache.match(req);
@@ -96,7 +98,7 @@ async function getVideoToken(loginToken: string, ctx: ExecutionContext): Promise
   if (existing) return existing;
 
   const p = (async () => {
-    const res = await fetch(TOKEN_ENDPOINT, { headers: tokenHeaders(loginToken) });
+    const res = await fetch(TOKEN_ENDPOINT, { headers: tokenHeaders() });
     const data = (await res.json()) as {
       code: number | string;
       message?: string;
@@ -124,8 +126,8 @@ async function getVideoToken(loginToken: string, ctx: ExecutionContext): Promise
   return p;
 }
 
-function invalidateToken(loginToken: string, ctx: ExecutionContext): void {
-  const { url, req } = tokenCacheKey(loginToken);
+function invalidateToken(ctx: ExecutionContext): void {
+  const { url, req } = tokenCacheKey();
   inflight.delete(url);
   ctx.waitUntil(caches.default.delete(req));
 }
@@ -149,12 +151,11 @@ function m3u8CacheKey(rawUrl: string): { url: string; req: Request } {
 
 async function getRawPlaylist(
   rawUrl: string,
-  loginToken: string,
   ctx: ExecutionContext,
   noCache: boolean
 ): Promise<{ status: number; body: string }> {
   if (noCache) {
-    const res = await fetchSignedMedia(rawUrl, loginToken, ctx, null);
+    const res = await fetchSignedMedia(rawUrl, ctx, null);
     return { status: res.status, body: await res.text() };
   }
 
@@ -170,7 +171,7 @@ async function getRawPlaylist(
   if (existing) return { status: 200, body: await existing };
 
   const p = (async () => {
-    const res = await fetchSignedMedia(rawUrl, loginToken, ctx, null);
+    const res = await fetchSignedMedia(rawUrl, ctx, null);
     const body = await res.text();
     if (res.status !== 200) {
       // Surface upstream failures without caching them or joining coalesced waiters.
@@ -222,7 +223,6 @@ function segmentCacheKey(rawUrl: string, range: string | null): Request {
 
 async function getSegment(
   rawUrl: string,
-  loginToken: string,
   ctx: ExecutionContext,
   range: string | null,
   noCache: boolean
@@ -234,7 +234,7 @@ async function getSegment(
     if (cached) return cached;
   }
 
-  const res = await fetchSignedMedia(rawUrl, loginToken, ctx, range);
+  const res = await fetchSignedMedia(rawUrl, ctx, range);
   if (noCache || res.status !== 200 || !res.body) return res;
 
   // Stream to the client and the cache simultaneously; put() finishes in the
@@ -257,19 +257,18 @@ async function getSegment(
 
 async function fetchSignedMedia(
   rawUrl: string,
-  loginToken: string,
   ctx: ExecutionContext,
   range: string | null
 ): Promise<Response> {
   const maxAttempts = 3;
-  let token = await getVideoToken(loginToken, ctx);
+  let token = await getVideoToken(ctx);
   let last: Response | null = null;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     if (attempt > 0) {
       // Previous attempt was a 403: re-mint a fresh token, then re-sign.
-      invalidateToken(loginToken, ctx);
-      token = await getVideoToken(loginToken, ctx);
+      invalidateToken(ctx);
+      token = await getVideoToken(ctx);
     }
     const signed = signMediaUrl(rawUrl, token); // fresh timestamp+signature each call
     const headers: Record<string, string> = { ...MEDIA_HEADERS };
@@ -354,7 +353,7 @@ export default {
         const noCache = url.searchParams.get('nocache') === '1';
 
         if (url.pathname === '/playlist') {
-          const raw = await getRawPlaylist(u, t, ctx, noCache);
+          const raw = await getRawPlaylist(u, ctx, noCache);
           if (raw.status !== 200) {
             return text(`Upstream playlist request failed with status ${raw.status}`, raw.status === 403 ? 403 : 502);
           }
@@ -362,7 +361,7 @@ export default {
           return text(rewritten, 200, 'application/vnd.apple.mpegurl');
         }
 
-        const res = await getSegment(u, t, ctx, request.headers.get('Range'), noCache);
+        const res = await getSegment(u, ctx, request.headers.get('Range'), noCache);
         return streamMedia(res);
       }
 

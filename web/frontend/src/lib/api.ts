@@ -223,6 +223,9 @@ async function requestMethod<T>(
   }
 
   const response = await fetch(`${PROXY_BASE}${path}`, init);
+  if (response.status === 403) {
+    throw new Error("Authentication failed, please check if token is valid");
+  }
   const data = (await response.json()) as BaseApiResponse & { data: T };
   return unwrapEnvelope(data);
 }
@@ -428,10 +431,10 @@ function parseSemesterName(name: string): { schoolYear: number; semester: number
   return { schoolYear: startYear, semester, labelEn };
 }
 
-export async function getAvailableSemesters(): Promise<SemesterOption[]> {
+export async function getAvailableSemesters(token: string): Promise<SemesterOption[]> {
   try {
-    // No Authorization header — the tag list is a public endpoint.
-    const tags = await request<TagItem[]>("/v1/tag/list?with_sub=true", null);
+    // Worker still requires a 32-hex Bearer; it omits Authorization upstream.
+    const tags = await request<TagItem[]>("/v1/tag/list?with_sub=true", token);
 
     const semesterTag = tags.find((tag) => tag.param === "semesters");
     if (!semesterTag || !semesterTag.children) {

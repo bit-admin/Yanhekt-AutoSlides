@@ -68,8 +68,10 @@ const cancelPendingSearch = () => {
 
 const ensureSemesters = async () => {
   if (availableSemesters.value.length > 0) return;
+  const token = authStore.token.value;
+  if (!token) return;
   try {
-    availableSemesters.value = await getAvailableSemesters();
+    availableSemesters.value = await getAvailableSemesters(token);
   } catch (error) {
     console.error("Failed to load available semesters:", error);
   }

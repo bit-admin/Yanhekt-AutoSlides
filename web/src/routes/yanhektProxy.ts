@@ -2,10 +2,13 @@
  * Authenticated pass-through proxy for the yanhekt.cn data API.
  *
  * cbiz.yanhekt.cn sends no CORS headers, so the browser frontend cannot call
- * it directly. This route forwards allowlisted requests upstream with the
- * required client-signature headers injected, re-attaching the caller's
- * Bearer token. The `{code, message, data}` envelope is returned untouched
- * and interpreted client-side.
+ * it directly. Every `/api/yanhekt/*` request from the SPA must carry a
+ * 32-hex login token (same early-403 gate as relay/`t=`); missing/malformed
+ * tokens are rejected before any upstream work. When forwarding to Yanhekt,
+ * Authorization is omitted on endpoints that work anonymously (catalog,
+ * public live, course detail, tag list) and kept on personal/session-list/
+ * notes/account calls. The `{code, message, data}` envelope is returned
+ * untouched and interpreted client-side.
  */
 import { Hono } from "hono";
 import type { Context } from "hono";
@@ -13,6 +16,9 @@ import type { Env } from "../env";
 import { upstreamHeaders } from "../lib/yanhekt";
 
 const UPSTREAM_BASE = "https://cbiz.yanhekt.cn";
+
+/** Same check as relay/src/index.ts — reject before any cache/upstream hop. */
+const LOGIN_TOKEN_RE = /^[0-9a-f]{32}$/i;
 
 /**
  * Only the endpoint+method pairs the frontend actually uses are forwarded —
@@ -49,6 +55,29 @@ function isAllowed(method: string, upstreamPath: string): boolean {
   return paths.includes(upstreamPath);
 }
 
+function parseLoginToken(authHeader: string | undefined): string | null {
+  if (!authHeader?.startsWith("Bearer ")) return null;
+  const token = authHeader.slice("Bearer ".length).trim();
+  return token.length > 0 ? token : null;
+}
+
+/**
+ * Paths Yanhekt serves without a user Bearer (2026-08-13 probes). Personal
+ * live (`user_relationship_type=1`), session list, subscriptions, notes,
+ * and /v1/user still need the token forwarded.
+ */
+function isAnonymousUpstream(method: string, path: string, search: URLSearchParams): boolean {
+  if (method !== "GET") return false;
+  if (path === "/v1/tag/list" || path.startsWith("/v1/tag/list/")) return true;
+  if (path === "/v2/course/list" || path.startsWith("/v2/course/list/")) return true;
+  if (path === "/v1/course") return true;
+  if (path === "/v1/course/session") return true;
+  if (path === "/v2/live/list" || path.startsWith("/v2/live/list/")) {
+    return search.get("user_relationship_type") !== "1";
+  }
+  return false;
+}
+
 export const yanhektProxyRouter = new Hono<{ Bindings: Env }>();
 
 async function forward(c: Context<{ Bindings: Env }>): Promise<Response> {
@@ -60,10 +89,15 @@ async function forward(c: Context<{ Bindings: Env }>): Promise<Response> {
     return c.json({ success: false, error: "Not Found" }, 404);
   }
 
-  const authHeader = c.req.header("Authorization");
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice("Bearer ".length) : null;
+  // Gate first — same idea as relay's `t=` 32-hex 403 before cache/upstream.
+  const token = parseLoginToken(c.req.header("Authorization"));
+  if (!token || !LOGIN_TOKEN_RE.test(token)) {
+    return c.json({ success: false, error: "Invalid login token" }, 403);
+  }
 
-  const headers = upstreamHeaders(token);
+  const headers = upstreamHeaders(
+    isAnonymousUpstream(method, upstreamPath, url.searchParams) ? null : token,
+  );
   let body: ArrayBuffer | undefined;
   if (method !== "GET") {
     // Forward the caller's body bytes and Content-Type verbatim — for
